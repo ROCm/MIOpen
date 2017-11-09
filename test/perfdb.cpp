@@ -258,9 +258,8 @@ class DbRecordOperationsTest : public DbRecordTest
             EXPECT(record.Store(id0(), value0()));
         }
 
-        TestData read0, read1, read_missing, read_missing_cmp(read_missing);
-
         {
+            TestData read0, read1, read_missing, read_missing_cmp(read_missing);
             DbRecord record(temp_file_path(), key());
 
             // Loading by id not present in record should execute well but return false as nothing
@@ -272,10 +271,33 @@ class DbRecordOperationsTest : public DbRecordTest
 
             EXPECT(record.Load(id0(), read0));
             EXPECT(record.Load(id1(), read1));
+
+            EXPECT_EQUAL(read0, value0());
+            EXPECT_EQUAL(read1, value1());
+
+            EXPECT(record.Remove(id0()));
+
+            read0 = read_missing_cmp;
+
+            EXPECT(!record.Load(id0(), read0));
+            EXPECT(record.Load(id1(), read1));
+
+            EXPECT_EQUAL(read0, read_missing_cmp);
+            EXPECT_EQUAL(read1, value1());
+
+            EXPECT(record.Remove(id0()));
         }
 
-        EXPECT_EQUAL(read0, value0());
-        EXPECT_EQUAL(read1, value1());
+        {
+            TestData read0, read1, read_missing_cmp(read0);
+            DbRecord record(temp_file_path(), key());
+
+            EXPECT(!record.Load(id0(), read0));
+            EXPECT(record.Load(id1(), read1));
+
+            EXPECT_EQUAL(read0, read_missing_cmp);
+            EXPECT_EQUAL(read1, value1());
+        }
     }
 };
 
