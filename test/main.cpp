@@ -109,7 +109,7 @@ struct conv_filter_fixture : virtual handle_fixture
 
         STATUS(miopenCreateConvolutionDescriptor(&convDesc));
         // convolution with padding 2
-        STATUS(miopenInitConvolutionDescriptor(convDesc, c_mode, p_mode, 0, 0, 1, 1, 1, 1));
+        STATUS(miopenInitConvolutionDescriptor(convDesc, c_mode, 0, 0, 1, 1, 1, 1));
     }
     ~conv_filter_fixture()
     {
@@ -121,13 +121,11 @@ struct conv_filter_fixture : virtual handle_fixture
     {
         // TODO: Update API to not require mode by pointer
         miopenConvolutionMode_t lcmode = c_mode;
-        miopenPaddingMode_t lpmode     = p_mode;
         int pad_w, pad_h, u, v, upx, upy;
-        STATUS(miopenGetConvolutionDescriptor(
-            convDesc, &lcmode, &lpmode, &pad_h, &pad_w, &u, &v, &upx, &upy));
+        STATUS(
+            miopenGetConvolutionDescriptor(convDesc, &lcmode, &pad_h, &pad_w, &u, &v, &upx, &upy));
 
         EXPECT(lcmode == 0);
-        EXPECT(lpmode == 0);
         EXPECT(pad_h == 0);
         EXPECT(pad_w == 0);
         EXPECT(u == 1);
