@@ -33,6 +33,7 @@
 #include <initializer_list>
 #include <set>
 #include <vector>
+#include <cstdlib>
 
 #define MIO_RNN_TEST_EXPAVGFACTOR 0.1
 #define MIO_RNN_TEST_EPSILON 1e-5 // FLT_EPSILON
@@ -48,7 +49,49 @@ std::vector<int> get_rnn_num_layers()
 
 
 
+        add(hiddenSize, "hidden-size", generate_data(get_rnn_hidden_size()));
+        add(numLayers, "num-layers", generate_data(get_rnn_num_layers()));
+        
+        
+        
+std::vector<int> get_rnn_batchSize()
+{
+    return {{16,32,64,128}};
+}
 
+
+std::vector<int> get_rnn_seq_len()
+{
+    return {{1,2,4,10,20,50}};
+}
+
+std::vector<int> get_rnn_vector_len()
+{
+    return {{1,2,4,10,20,50}};
+}
+
+std::vector<int> get_rnn_hidden_size()
+{
+    return {{10,20,50,128}};
+}
+
+
+
+
+std::vector<int> generate_batchSeq(const int batchSize, const int seqLength)
+{
+ 
+    int modval = 5;
+    int currentval = batchSize;
+    std::vector<int> batchseq;
+    for(int i = 0; i < seqLength; i++)
+    {
+        int nvalue = currentval - rand()%modval;
+        currentval = (nvalue<1) ? 1 : nvalue;
+        batchseq.push_back(currentval);
+    }
+    return batchseq;
+}
 
 
 
