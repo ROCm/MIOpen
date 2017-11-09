@@ -194,6 +194,8 @@ class DbRecord
     }
 
     /// Removes ID with associated VALUES from the db.
+    /// If payload of a record becomes empty after that,
+    /// also removes the entire record.
     bool Remove(const std::string& id)
     {
         RecordPositions pos;

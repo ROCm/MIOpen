@@ -47,6 +47,7 @@ bool DbRecord::ParseContents(const std::string& contents)
 #endif
     std::istringstream ss(contents);
     std::string id_and_values;
+    int found = 0;
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     bool is_legacy_content_found         = false;
     const bool is_legacy_content_allowed = (record_format == RecordFormat::CurrentOrMixed);
@@ -84,6 +85,7 @@ bool DbRecord::ParseContents(const std::string& contents)
         }
 
         map.emplace(id, values);
+        ++found;
     }
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
@@ -96,7 +98,7 @@ bool DbRecord::ParseContents(const std::string& contents)
         record_format = RecordFormat::Mixed;
     }
 #endif
-    return true;
+    return (found > 0);
 }
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
@@ -277,6 +279,9 @@ static void Write(std::ostream& stream,
                   const std::string& key,
                   std::unordered_map<std::string, std::string>& map)
 {
+    if(map.empty())
+        return;
+
     stream << key << '=';
 
     const auto pairsJoiner = [](const std::string& sum,
@@ -462,7 +467,13 @@ void DbRecord::ReadFile(RecordPositions* const pos)
         MIOPEN_LOG_I("Key match: " << current_key);
         const auto contents    = line.substr(key_size + 1);
 #endif
-        MIOPEN_LOG_I("Contents: " << contents);
+
+        if(contents.empty())
+        {
+            MIOPEN_LOG_E("None contents under the key: " << current_key);
+            continue;
+        }
+        MIOPEN_LOG_I("Contents found: " << contents);
 
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
         const bool is_parse_ok = (record_format == RecordFormat::Legacy)
