@@ -45,6 +45,7 @@
 #include <cfloat>
 
 
+
 #define MIO_RNN_TIME_EVERYTHING 0
 
 //****************************************************
@@ -53,8 +54,8 @@
 template <class T>
 struct verify_forward_train_rnn
 {
-    const tensor<T> input;
-    const tensor<T> initHidden;
+    const std::vector<T> input;
+    const std::vector<T> initHidden;
     std::vector<int> batch_seq;
     int hiddenSize;
     int seqLength;
@@ -68,8 +69,8 @@ struct verify_forward_train_rnn
     miopenRNNDescriptor_t rnnDesc;
     
     verify_forward_train_rnn(miopenRNNDescriptor_t pRD,
-                         tensor<T>& px,
-                         tensor<T>& phx,
+                         const std::vector<T> px,
+                         const std::vector<T> phx,
                          const std::vector<int> pBS,
                          const int pHS,
                          const int pBN,
@@ -497,10 +498,10 @@ struct verify_forward_train_rnn
         std::vector<T> hiddenState(initHidden.size(), 0.);
         std::vector<T> weights(wei_sz/4, 0.); 
         
-        auto input_dev    = handle.Write(input.data);
+        auto input_dev    = handle.Write(input.data());
         auto output = input;
         std::fill(output.begin(), output.end(), 0.);
-        auto output_dev  = handle.Write(output.data);
+        auto output_dev  = handle.Write(output.data());
         
         auto weights_dev  = handle.Write(weights.data);
         auto hx_dev  = handle.Write(initHidden.data);
@@ -605,7 +606,7 @@ struct rnn_vanilla_driver : test_driver
 		modes[1] = 1;
 		
         // this->verbose=true;
-        add(batchSize, "batch-size", generate_data(get_rnn_batchSize()));
+        add(batchSize, "batch-size", generate_data(get_rnn_batchSize(),5));
         add(seqLength, "seq-len", generate_data(get_rnn_seq_len()));
         add(inVecLen, "vector-len", generate_data(get_rnn_vector_len()));
         add(hiddenSize, "hidden-size", generate_data(get_rnn_hidden_size()));
@@ -614,7 +615,7 @@ struct rnn_vanilla_driver : test_driver
         add(biasMode, "bias-mode", generate_data(modes));
         add(dirMode, "dir-mode", generate_data(modes));
         add(rnnMode, "rnn-mode", generate_data(modes));
-		//add(batchSeq, "batch-seq", generate_data(generate_batchSeq(batchSize)));
+		add(batchSeq, "batch-seq", generate_data(generate_batchSeq(batchSize, seqLength), 5));
     }
 
     void run()
@@ -641,6 +642,41 @@ struct rnn_vanilla_driver : test_driver
                    // related function for bidirection
         int squash,
       */   
+        
+        /*
+             verify_forward_train_rnn(miopenRNNDescriptor_t pRD,
+                         tensor<T>& px,
+                         tensor<T>& phx,
+                         const std::vector<int> pBS,
+                         const int pHS,
+                         const int pBN,
+                         const int pS,
+                         const int pNL,
+                         const int pBM,
+                         const int pDM,
+                         const int pIM,
+                         const int pRM,
+                         const int pVL)
+    {
+        rnnDesc      = pRD;
+        input        = px;
+        initHidden   = phx;
+        batch_seq    = pBS;
+        seqLength    = pS;
+        nLayers      = pNL;
+        biasMode     = pBM;
+        dirMode      = pDM;
+        inputMode    = pIM;
+        rnnMode      = pRM;
+        batch_n      = pBN;
+        hiddenSize   = pHS;
+        inputVecLen  = pVL;
+    }
+
+         */ 
+        
+        
+        
         int batch_n = 0;
         for(auto& n : batchSeq) batch_n += n;
         
@@ -648,13 +684,32 @@ struct rnn_vanilla_driver : test_driver
         //int numlayer = bidirection ? hy_d / 2 : hy_d;
         int bacc, baccbi; // accumulation of batch
         int bi = dirMode ? 2 : 1;
-		
-		for(int i = 0 ; i < seqLength; i++)
-		{
-			int randStep = rand()%4; 
-			
-			
-		}
+	
+        miopenRNNDescriptor_t rnnDesc;
+        miopenCreateRNNDescriptor(&rnnDesc);
+        
+        miopenRNNAlgo_t algoMode = 0;
+        miopenSetRNNDescriptor(rnnDesc, hiddenSize, numLayers, inputMode, dirMode, rnnMode, biasMode, gloMode, miopenFloat);
+        
+        //Create input tensor
+        int in_sz = inVecLen*seqLength*batch_n;
+        auto inputTensor = tensor<T>{in_sz}.generate(rand_gen{});
+        auto inputData = inputTensor.data;
+        
+        int hx_sz = ((dirMode)?2:1)*hiddenSize*batchSize;
+        
+        auto hxTensor = tensor<T>{hx_sz}.generate(rand_gen{});
+        auto hxData = hxTensor.data;
+        
+        verify(verify_forward_train_rnn<T>{rnnDesc, inputData, 
+                                        hxData, batchSeq, 
+                                        hiddenSize, batch_n, 
+                                        seqLength, numLayers, 
+                                        biasMode, dirMode, 
+                                        inputMode, rnnMode, inVecLen});
+        
+        
+        
 /*
         int in_stride  = in_h;
         int hy_stride  = hy_h * bi;
