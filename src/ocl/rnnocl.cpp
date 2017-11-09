@@ -3666,6 +3666,11 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 				// update hidden status
 					if (in_n[ti] > 0)
 					{
+						sp_size[2] = in_n[ti];
+						sp_size[3] = hy_h;
+						miopenSetTensorDescriptor(
+							sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
+
 						if (rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
 						{
 							// activation
@@ -3716,10 +3721,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 						else if (rnnMode == miopenLSTM)
 						{
 							offset = hid_shift + bacc * hy_stride;
-							sp_size[2] = in_n[ti];
-							sp_size[3] = hy_h;
-							miopenSetTensorDescriptor(
-								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
 							// update cell state
 							tanhDesc.Backward(handle,
@@ -4033,11 +4034,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 						else if (rnnMode == miopenGRU)
 						{
 							offset = hid_shift + bacc * hy_stride;
-							sp_size[2] = in_n[ti];
-							sp_size[3] = hy_h;
-							miopenSetTensorDescriptor(
-								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
+							
 							// c gate
 							alpha0 = 1;
 							alpha1 = -1;
@@ -4288,13 +4285,16 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 					{
 						if (in_n[seqLen - 1 - ti] > 0)
 						{
+							sp_size[2] = in_n[seqLen - 1 - ti];
+							sp_size[3] = hy_h;
+							miopenSetTensorDescriptor(
+								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
+
 							if (rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
 							{
 								// activation
 								offset = hid_shift + baccbi * hy_stride + hy_h;
-								miopenSetTensorDescriptor(
-									sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
+								
 								activDesc.Backward(handle,
 									&alpha,
 									miopen::deref(sp_desc),
@@ -4341,10 +4341,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 							else if (rnnMode == miopenLSTM)
 							{
 								offset = hid_shift + baccbi * hy_stride;
-								sp_size[2] = in_n[seqLen - 1 - ti];
-								sp_size[3] = hy_h;
-								miopenSetTensorDescriptor(
-									sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
 								// update cell state
 								tanhDesc.Backward(handle,
@@ -4670,11 +4666,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 							else if (rnnMode == miopenGRU)
 							{
 								offset = hid_shift + baccbi * hy_stride;
-								sp_size[2] = in_n[seqLen - 1 - ti];
-								sp_size[3] = hy_h;
-								miopenSetTensorDescriptor(
-									sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
+								
 								// c gate
 								alpha0 = 1;
 								alpha1 = -1;
