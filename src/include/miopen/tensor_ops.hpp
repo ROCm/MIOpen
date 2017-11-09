@@ -49,7 +49,10 @@ void OpTensor(Handle& handle,
               ConstData_t BTensor,
               const void* beta,
               const TensorDescriptor& cTensorDesc,
-              Data_t CTensor);
+              Data_t CTensor,
+              size_t Aoffset = 0,
+              size_t Boffset = 0,
+              size_t Coffset = 0);
 
 void CopyTensor(Handle& handle,
                 const TensorDescriptor& srcDesc,
