@@ -30,12 +30,29 @@
 
 #include <cfloat>
 #include <cmath>
-
-
+#include <initializer_list>
+#include <set>
+#include <vector>
 
 #define MIO_RNN_TEST_EXPAVGFACTOR 0.1
 #define MIO_RNN_TEST_EPSILON 1e-5 // FLT_EPSILON
 #define MIO_RNN_SP_TEST_DEBUG 0
+
+
+
+std::vector<int> get_rnn_num_layers()
+{
+    return {{1,2,4,6,7,8,10,20}};
+}
+
+
+
+
+
+
+
+
+
 
 
 int sumvc(std::vector<int>& x)
@@ -88,7 +105,7 @@ float dervactivfunc(float x, int actvf)
 
 #define RNN_MM_TRANSPOSE 1
 template <typename Dtype>
-void rnn_mm_cpu(const Dtype* a_ptr,
+void RNN_mm_cpu(const Dtype* a_ptr,
                  size_t a_cols,
                  size_t a_rows,
                  size_t a_stride,

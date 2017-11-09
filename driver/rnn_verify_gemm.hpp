@@ -764,7 +764,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi;
     int out_stride = out_h;
-int uni_stride = hy_h;
+    int uni_stride = hy_h;
 	int bi_stride = hy_h * bi;
 
     (void)hy_n;
