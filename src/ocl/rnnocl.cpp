@@ -3666,6 +3666,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 				// update hidden status
 					if (in_n[ti] > 0)
 					{
+                                                offset = hid_shift + bacc * hy_stride;
 						sp_size[2] = in_n[ti];
 						sp_size[3] = hy_h;
 						miopenSetTensorDescriptor(
@@ -3674,7 +3675,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 						if (rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
 						{
 							// activation
-							offset = hid_shift + bacc * hy_stride;
 							activDesc.Backward(handle,
 								&alpha,
 								miopen::deref(sp_desc),
@@ -3720,8 +3720,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 						}
 						else if (rnnMode == miopenLSTM)
 						{
-							offset = hid_shift + bacc * hy_stride;
-
 							// update cell state
 							tanhDesc.Backward(handle,
 								&alpha,
@@ -4033,8 +4031,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 						}
 						else if (rnnMode == miopenGRU)
 						{
-							offset = hid_shift + bacc * hy_stride;
-							
 							// c gate
 							alpha0 = 1;
 							alpha1 = -1;
@@ -4285,6 +4281,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 					{
 						if (in_n[seqLen - 1 - ti] > 0)
 						{
+                                                        offset = hid_shift + baccbi * hy_stride;
 							sp_size[2] = in_n[seqLen - 1 - ti];
 							sp_size[3] = hy_h;
 							miopenSetTensorDescriptor(
@@ -4292,9 +4289,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
 							if (rnnMode == miopenRNNRELU || rnnMode == miopenRNNTANH)
 							{
-								// activation
-								offset = hid_shift + baccbi * hy_stride + hy_h;
-								
+								// activation								
 								activDesc.Backward(handle,
 									&alpha,
 									miopen::deref(sp_desc),
@@ -4306,10 +4301,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 									&beta,
 									miopen::deref(sp_desc),
 									workSpace,
-									offset + nLayers * batch_n * hy_stride,
-									offset,
-									offset,
-									offset);
+									offset + hy_h + nLayers * batch_n * hy_stride,
+									offset + hy_h,
+									offset + hy_h,
+									offset + hy_h);
 								// Update time
 								profileRNNkernels(handle, 1);
 
@@ -4340,8 +4335,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 							}
 							else if (rnnMode == miopenLSTM)
 							{
-								offset = hid_shift + baccbi * hy_stride;
-
 								// update cell state
 								tanhDesc.Backward(handle,
 									&alpha,
@@ -4664,9 +4657,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 								profileRNNkernels(handle, 1);
 							}
 							else if (rnnMode == miopenGRU)
-							{
-								offset = hid_shift + baccbi * hy_stride;
-								
+							{						
 								// c gate
 								alpha0 = 1;
 								alpha1 = -1;
@@ -5787,7 +5778,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 							wei_shift + wei_len * uni_stride);
 
 						// Update time
-						if (!rnnMode == miopenGRU)
+						if (rnnMode != miopenGRU)
 							profileRNNkernels(handle, 2);
 						else
 							profileRNNkernels(handle, 1);
