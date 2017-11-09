@@ -29,6 +29,7 @@
 #include "miopen/env.hpp"
 
 #include <ostream>
+#include <cctype>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_ENFORCE)
 
@@ -81,17 +82,17 @@ ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& d
             MIOPEN_LOG_I("Not searchable: " << SolverId());
             break;
         }
+
         if(enforce == FindEnforce::Clean)
         {
             if(dbRecord.Remove(SolverId()))
-            {
-                MIOPEN_LOG_I("Perf Db: record removed: " << SolverId() << ", enforce=" << enforce);
-            }
+                MIOPEN_LOG_I("Perf Db: record removed: " << SolverId() << ", enforce: " << enforce);
+            break;
         }
         else if((context.do_search && enforce == FindEnforce::DbUpdate) ||
                 enforce == FindEnforce::SearchDbUpdate)
         {
-            MIOPEN_LOG_I("Perf Db: load skipped: " << SolverId() << ", enforce=" << enforce);
+            MIOPEN_LOG_I("Perf Db: load skipped: " << SolverId() << ", enforce: " << enforce);
         }
         else
         {
@@ -108,10 +109,11 @@ ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& d
             }
             MIOPEN_LOG_I("Perf Db: record NOT found: " << SolverId());
         }
+
         if(context.do_search || enforce == FindEnforce::Search ||
            enforce == FindEnforce::SearchDbUpdate)
         {
-            MIOPEN_LOG_I("Starting search: " << SolverId() << ", enforce=" << enforce);
+            MIOPEN_LOG_I("Starting search: " << SolverId() << ", enforce: " << enforce);
             if(Search(context, *config))
             {
                 dbRecord.Store(SolverId(), *config);
@@ -144,25 +146,47 @@ const char* FindEnforce2CString(const FindEnforce mode)
 {
     switch(mode)
     {
-    case FindEnforce::None: return "None";
-    case FindEnforce::DbUpdate: return "DbUpdate";
-    case FindEnforce::Search: return "Search";
-    case FindEnforce::SearchDbUpdate: return "SearchDbUpdate";
-    case FindEnforce::Clean: return "Clean";
+    case FindEnforce::None: return "NONE";
+    case FindEnforce::DbUpdate: return "DB_UPDATE";
+    case FindEnforce::Search: return "SEARCH";
+    case FindEnforce::SearchDbUpdate: return "SEARCH_DB_UPDATE";
+    case FindEnforce::Clean: return "CLEAN";
     default: return "<Unknown>";
     }
 }
 
+FindEnforce GetFindEnforceImpl()
+{
+    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_ENFORCE{});
+    if(!p_asciz)
+        return FindEnforce::Default;
+    std::string str = p_asciz;
+    for(auto& c : str)
+        c = toupper(static_cast<unsigned char>(c));
+    if(str == "NONE")
+        return FindEnforce::None;
+    else if(str == "DB_UPDATE")
+        return FindEnforce::DbUpdate;
+    else if(str == "SEARCH")
+        return FindEnforce::Search;
+    else if(str == "SEARCH_DB_UPDATE")
+        return FindEnforce::SearchDbUpdate;
+    else if(str == "CLEAN")
+        return FindEnforce::Clean;
+    else
+    { // Nop. Fall down & try numerics.
+    }
+    const int val = miopen::Value(MIOPEN_FIND_ENFORCE{});
+    if(FindEnforce::Begin <= val && val < FindEnforce::End)
+        return static_cast<FindEnforce>(val);
+    MIOPEN_LOG_E("Wrong MIOPEN_FIND_ENFORCE, using default.");
+    return FindEnforce::Default;
+}
+
 FindEnforce GetFindEnforce()
 {
-    static const int val         = miopen::Value(MIOPEN_FIND_ENFORCE{});
-    static const bool ok         = (FindEnforce::Begin <= val && val < FindEnforce::End);
-    static const FindEnforce ret = ok ? static_cast<FindEnforce>(val) : FindEnforce::Default;
-    if(!ok)
-    {
-        MIOPEN_LOG_E("Wrong MIOPEN_FIND_ENFORCE, resetting to default: " << ret);
-    }
-    return ret;
+    static const FindEnforce val = GetFindEnforceImpl();
+    return val;
 }
 
 std::ostream& operator<<(std::ostream& os, const FindEnforce sm)
