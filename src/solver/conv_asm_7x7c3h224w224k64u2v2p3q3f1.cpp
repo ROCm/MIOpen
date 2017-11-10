@@ -47,7 +47,7 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& p
     {
         return false;
     }
-    if(params.rmv != V3)
+    if(params.rmv != rocm_meta_version::V3)
     {
         return false;
     }

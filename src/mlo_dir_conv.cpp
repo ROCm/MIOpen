@@ -70,7 +70,7 @@ int mlo_construct_direct2D::mloConstruct()
 
     _search_params.use_binaries        = false;
     _search_params.assembler_available = false;
-    _search_params.rmv                 = V3;
+    _search_params.rmv                 = rocm_meta_version::Default;
     if(mloIsAmdOpenclRocm(_search_params.rmv))
     {
         _search_params.assembler_available =
@@ -235,18 +235,14 @@ bool mlo_construct_direct2D::mloIsAmdOpenclRocm(rocm_meta_version& rmv) const
     if(num_begin != std::string::npos)
     {
         int num = std::stoi(platform_version.substr(num_begin + 1));
-        if(num < 2338)
-        {
-            rmv = V1; // Switched to V2 somewhere within [2337,2338]
-        }
-        else if(num < 2389)
-        {
-            rmv = V2; // Switched to V3 somewhere within [2388,2389]
-        }
+        if(num < 2338) // Switched to V2 somewhere within [2337,2338]
+            rmv = rocm_meta_version::V1;
+        else if(num < 2389) // Switched to V3 somewhere within [2388,2389]
+            rmv = rocm_meta_version::V2;
+        else if(num < 2536) // Switched to newer version at 2536 for sure.
+            rmv = rocm_meta_version::V3;
         else
-        {
-            rmv = V3;
-        }
+            rmv = rocm_meta_version::AMDHSA_10;
     }
     return true;
 #else

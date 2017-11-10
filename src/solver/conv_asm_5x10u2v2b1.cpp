@@ -85,7 +85,8 @@ ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "inp_w", params.out_width);
     GenerateClangDefsym(options, "wei_c", params.n_outputs);
     GenerateClangDefsym(options, "wei_k", params.n_inputs);
-    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", (params.rmv == V1) ? 1 : 3);
+    GenerateClangDefsym(
+        options, "ROCM_METADATA_VERSION", (params.rmv == rocm_meta_version::V1) ? 1 : 3);
 
     KernelInfo constr_params;
     constr_params.comp_options = options.str();
