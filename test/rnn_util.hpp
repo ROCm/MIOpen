@@ -75,10 +75,11 @@ std::vector<int> generate_batchSeq()
 
 
 
-std::vector<int> generate_batchSeq(const int batchSize, const int seqLength)
+std::vector<std::vector<int>> generate_batchSeq(const int batchSize, const int seqLength)
 {
  
-    int modval = 5;
+    int modval = 4;
+    srand(modval);
     int currentval = batchSize;
     std::vector<int> batchseq;
     for(int i = 0; i < seqLength; i++)
@@ -89,7 +90,7 @@ std::vector<int> generate_batchSeq(const int batchSize, const int seqLength)
         printf("current value: %d\n", currentval);
         batchseq.push_back(currentval);
     }
-    return batchseq;
+    return {batchseq};
 }
 
 

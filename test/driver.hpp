@@ -306,6 +306,7 @@ struct test_driver
     template <class CpuRange, class GpuRange, class Fail>
     std::pair<CpuRange, GpuRange> verify_check(CpuRange out_cpu, GpuRange out_gpu, Fail fail)
     {
+        printf("In verify_check\n");
         CHECK(miopen::range_distance(out_cpu) == miopen::range_distance(out_gpu));
 
         using value_type = miopen::range_value<decltype(out_gpu)>;
