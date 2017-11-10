@@ -56,7 +56,7 @@ bool ConvBinWinogradRxSFwd::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 
-    if(params.rmv == V1 || params.rmv == V2)
+    if(params.rmv == rocm_meta_version::V1 || params.rmv == rocm_meta_version::V2)
     {
         return false;
     }
