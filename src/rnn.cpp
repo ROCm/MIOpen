@@ -142,12 +142,14 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& xDesc,
             layerJump += direction * hsize * nHiddenTensorsPerLayer;
 
             // jump to either the input bias, or weight bias
-            layerJump += 2 * hsize * layerID * nHiddenTensorsPerLayer;
+            //layerJump += 2 * hsize * layerID * nHiddenTensorsPerLayer;
+            layerJump += 2 * hsize * layerID;
         }
         else // IS the input layer
         {
             // jump over input layer's input bias
-            layerJump = layerID * 2 * inputVectorLen * hsize * nHiddenTensorsPerLayer;
+            //layerJump = layerID * 2 * inputVectorLen * hsize * nHiddenTensorsPerLayer;
+            layerJump = layerID * 2 * inputVectorLen * hsize;
 
             // forward or backward direction bias
             layerJump += direction * hsize * nHiddenTensorsPerLayer;
@@ -167,12 +169,14 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& xDesc,
             layerJump += 2 * hsize * hsize * nHiddenTensorsPerLayer * nLayers;
 
             // jump to either the input bias, or weight bias
-            layerJump += hsize * layerID * nHiddenTensorsPerLayer;
+            //layerJump += hsize * layerID * nHiddenTensorsPerLayer;
+            layerJump += hsize * layerID;
         }
         else
         {
             // jump over input layer's input bias
-            layerJump = layerID * inputVectorLen * hsize * nHiddenTensorsPerLayer;
+            //layerJump = layerID * inputVectorLen * hsize * nHiddenTensorsPerLayer;
+            layerJump = layerID * inputVectorLen * hsize;
         }
     }
     return layerJump;
@@ -187,55 +191,116 @@ size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc,
         inputVectorLen = 0;
 
     size_t layerJump       = 0;
-    unsigned int direction = (layer % 2);
+    //unsigned int direction = (layer % 2);
     if(dirMode)
     {
-        if(layer > 1) // NOT the input layer
-        {
-            // jump over input layer's input matrices
-            layerJump = 2 * inputVectorLen * hsize * nHiddenTensorsPerLayer;
+       if(layer > 1) 
+       {
+           layerJump = (inputVectorLen * hsize + hsize * hsize) * nHiddenTensorsPerLayer * 2;
 
-            // jump over input layer's hidden matrices
-            layerJump += 2 * hsize * hsize * nHiddenTensorsPerLayer;
+           layerJump += (hsize * hsize * 2 + hsize * hsize) * nHiddenTensorsPerLayer * (layer/2 - 1) * 2;
 
-            // jump over all other layers' matrices
-            layerJump += 4 * hsize * hsize * nHiddenTensorsPerLayer * (layer - 2);
-
-            // forward or backward direction matrix
-            layerJump += direction * hsize * nHiddenTensorsPerLayer;
-
-            // jump to either the input matrix, or weight matrix
-            layerJump += 2 * hsize * hsize * layerID * nHiddenTensorsPerLayer;
-        }
-        else // IS the input layer
-        {
-            // jump over input layer's input matrices
-            layerJump = layerID * 2 * inputVectorLen * hsize * nHiddenTensorsPerLayer;
-
-            // forward or backward direction matrix
-            layerJump += direction * hsize * nHiddenTensorsPerLayer;
-        }
+           //W
+           if((layerID % 2) == 0)
+           {
+               //fwd
+               if((layer % 2) == 0)
+               {
+                   layerJump += (layerID / 2) * hsize * hsize * 2;
+               }
+               //bwd
+               else
+               {
+                   layerJump += (2 * hsize * hsize) * nHiddenTensorsPerLayer;
+                   layerJump += (layerID / 2) * hsize * hsize * 2;
+               }
+           }
+           //R
+           else
+           {
+               layerJump += nHiddenTensorsPerLayer * hsize * hsize * 2 * 2; 
+               //fwd
+               if((layer % 2) == 0)
+               {
+                   layerJump += (layerID / 2) * hsize * hsize;
+               }
+               //bwd
+               else
+               {
+                   layerJump += nHiddenTensorsPerLayer * hsize * hsize;
+                   layerJump += (layerID / 2) * hsize * hsize;
+               }
+           }
+       }
+       else
+       {
+           //W
+           if((layerID % 2) == 0)
+           {
+               //fwd
+               if((layer % 2) == 0)
+               {
+                   layerJump = (layerID / 2) * hsize * inputVectorLen;
+               }
+               //bwd
+               else
+               {
+                   layerJump = nHiddenTensorsPerLayer * hsize * inputVectorLen;
+                   layerJump += (layerID / 2) * hsize * inputVectorLen;
+               }
+           }
+           //R
+           else
+           {
+               layerJump = nHiddenTensorsPerLayer * inputVectorLen * hsize * 2; 
+               //fwd
+               if((layer % 2) == 0)
+               {
+                   layerJump += (layerID / 2) * hsize * hsize;
+               }
+               //bwd
+               else
+               {
+                   layerJump += nHiddenTensorsPerLayer * hsize * hsize;
+                   layerJump += (layerID / 2) * hsize * hsize;
+               }
+           }
+       }
     }
     else
     {
-        if(layer > 1) // NOT the input layer
+        if(layer > 0) // NOT the input layer
         {
-            // jump over input layer's input matrices
-            layerJump = inputVectorLen * hsize * nHiddenTensorsPerLayer;
+            layerJump = (inputVectorLen * hsize + hsize * hsize) * nHiddenTensorsPerLayer;
 
-            // jump over input layer's hidden matrices
-            layerJump += hsize * hsize * nHiddenTensorsPerLayer;
+            layerJump += (hsize * hsize * 2) * nHiddenTensorsPerLayer * (layer - 1);
 
-            // jump over all other layers' matrices
-            layerJump += 2 * hsize * hsize * nHiddenTensorsPerLayer * (layer - 1);
+            //W
+            if((layerID % 2) == 0)
+            {
+                layerJump += (layerID / 2) * hsize * hsize;
+            }
+            //R
+            else
+            {
+                layerJump += nHiddenTensorsPerLayer * hsize * hsize; 
+                layerJump += (layerID / 2) * hsize * hsize;
+            }
 
-            // jump to either the input matrix, or weight matrix
-            layerJump += hsize * hsize * layerID * nHiddenTensorsPerLayer;
         }
         else
         {
-            // jump over input layer's input matrices
-            layerJump = layerID * inputVectorLen * hsize * nHiddenTensorsPerLayer;
+            //W
+            if((layerID % 2) == 0)
+            {
+                layerJump = (layerID / 2) * hsize * inputVectorLen;
+            }
+            //R
+            else
+            {
+                layerJump = nHiddenTensorsPerLayer * inputVectorLen * hsize; 
+                layerJump += (layerID / 2) * hsize * hsize;
+            }
         }
     }
     return layerJump;
@@ -544,13 +609,18 @@ void RNNDescriptor::SetLayerParam(Handle& handle,
     std::vector<int> pstride(2, 1);
     pstride[0] = ((dirMode == miopenRNNbidirection) ? 2 : 1) * nHiddenTensorsPerLayer;
 
+
     std::vector<int> intLens(paramDesc.GetLengths().begin(), paramDesc.GetLengths().end());
 
     // 3. Construct descriptor to access into w
     auto pDesc = miopen::TensorDescriptor(dataType, intLens.data(), pstride.data(), 2);
 
+    fprintf(stderr, "DEBUG: pstride == %d poffset == %d paramDesc size = %d pDesc size = %d\n", 
+            pstride[0], poffset, paramDesc.GetElementSize(), pDesc.GetElementSize());
+
     // 4. Copy over data to previously allocated param tensor
-    miopen::CopyTensor(handle, paramDesc, param, pDesc, w, 0, poffset);
+    //miopen::CopyTensor(handle, paramDesc, param, pDesc, w, 0, poffset);
+    miopen::CopyTensor(handle, paramDesc, param, paramDesc, w, 0, poffset);
 }
 
 void RNNDescriptor::SetLayerBias(Handle& handle,
