@@ -33,6 +33,7 @@
 #include "verify.hpp"
 
 #include <functional>
+#include <deque>
 #include <miopen/functional.hpp>
 
 struct rand_gen
@@ -60,6 +61,12 @@ struct test_driver
         std::vector<std::function<void()>> post_write_actions;
         std::vector<std::function<void(std::function<void()>)>> data_sources;
         std::string type;
+        std::string name;
+
+        // Function may refer to the argument by reference so this needs to be noncopyable
+        argument()                = default;
+        argument(const argument&) = delete;
+        argument& operator=(const argument&) = delete;
 
         void post_write()
         {
@@ -89,13 +96,22 @@ struct test_driver
         }
     };
 
-    std::unordered_map<std::string, argument> arguments;
+    std::deque<argument> arguments;
+    std::unordered_map<std::string, std::size_t> argument_index;
     bool full_set    = false;
     bool verbose     = false;
     double tolerance = 80;
     bool time        = false;
     int batch_factor = 0;
     bool no_validate = false;
+
+    argument& get_argument(const std::string& s)
+    {
+        assert(arguments.at(argument_index.at(s)).name == s);
+        return arguments.at(argument_index.at(s));
+    }
+
+    bool has_argument(const std::string& arg) { return argument_index.count(arg) > 0; }
 
     template <class Visitor>
     void parse(Visitor v)
@@ -122,13 +138,16 @@ struct test_driver
     template <class T, class... Fs>
     void add(T& x, std::string name, Fs... fs)
     {
-        arguments.insert(std::make_pair(name, argument{}));
+        argument_index.insert(std::make_pair(name, arguments.size()));
+        arguments.emplace_back();
 
-        argument& arg   = arguments[name];
+        argument& arg   = arguments.back();
+        arg.name        = name;
         arg.type        = get_type_name<T>();
         arg.write_value = [&](std::vector<std::string> params) { args::write_value{}(x, params); };
         miopen::each_args(std::bind(per_arg{}, std::ref(x), std::ref(arg), std::placeholders::_1),
                           fs...);
+        assert(get_argument(name).name == name);
     }
 
     template <class X>
@@ -246,6 +265,17 @@ struct test_driver
         }};
     }
 
+    template <class F, class T>
+    generate_data_t<T> lazy_generate_data(F f, T single)
+    {
+        return {[=]() -> std::vector<T> {
+            if(full_set)
+                return f();
+            else
+                return {single};
+        }};
+    }
+
     template <class T>
     generate_data_t<T> generate_single(T single)
     {
@@ -276,6 +306,7 @@ struct test_driver
     template <class CpuRange, class GpuRange, class Fail>
     std::pair<CpuRange, GpuRange> verify_check(CpuRange out_cpu, GpuRange out_gpu, Fail fail)
     {
+        printf("In verify_check\n");
         CHECK(miopen::range_distance(out_cpu) == miopen::range_distance(out_gpu));
 
         using value_type = miopen::range_value<decltype(out_gpu)>;
@@ -560,7 +591,7 @@ void test_drive(int argc, const char* argv[])
     d.parse(keyword_set{keywords});
     auto arg_map = args::parse(as, [&](std::string x) {
         return (keywords.count(x) > 0) or
-               ((x.compare(0, 2, "--") == 0) and d.arguments.count(x.substr(2)) > 0);
+               ((x.compare(0, 2, "--") == 0) and d.has_argument(x.substr(2)) > 0);
     });
 
     // Show help
@@ -570,11 +601,11 @@ void test_drive(int argc, const char* argv[])
         d.parse(show_help{});
         std::cout << std::endl;
         std::cout << "Test inputs: " << std::endl;
-        for(auto&& p : d.arguments)
+        for(auto&& arg : d.arguments)
         {
-            std::cout << "    --" << p.first;
-            if(not p.second.type.empty())
-                std::cout << " [" << p.second.type << "]";
+            std::cout << "    --" << arg.name;
+            if(not arg.type.empty())
+                std::cout << " [" << arg.type << "]";
             std::cout << std::endl;
         }
         std::cout << std::endl;
@@ -591,7 +622,7 @@ void test_drive(int argc, const char* argv[])
             auto name = p.first.substr(2);
             try
             {
-                auto&& arg = d.arguments.at(name);
+                auto&& arg = d.get_argument(name);
                 arg.write(p.second);
             }
             catch(const std::exception& ex)
@@ -616,11 +647,11 @@ void test_drive(int argc, const char* argv[])
 
     // Run data on arguments that are not passed in
     std::vector<typename Driver::argument*> data_args;
-    for(auto&& p : d.arguments)
+    for(auto&& arg : d.arguments)
     {
-        if(arg_map.count("--" + p.first) == 0)
+        if(arg_map.count("--" + arg.name) == 0)
         {
-            data_args.push_back(&p.second);
+            data_args.push_back(&arg);
         }
     }
 
