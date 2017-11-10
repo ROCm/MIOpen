@@ -154,7 +154,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
 	GemmGeometry gg;
-	int hid_shift, hx_shift, wei_shift_bias_temp, wei_shift, prelayer_shift, prec_shift, pretime_shift;
+	int hid_shift, hx_shift, wei_shift_bias_temp, wei_shift, prelayer_shift, pretime_shift;
 	int wei_len, wei_len_t, hid_off;
 
 	switch (rnnMode)
@@ -214,7 +214,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 				miopenSetTensorDescriptor(
 					sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
-				for (int gi = 0; gi < nHiddenTensorsPerLayer; gi++)
+				for (int gi = 0; gi < nHiddenTensorsPerLayer * bi; gi++)
 				{
 					CopyTensor(handle,
 						miopen::deref(x_desc),
@@ -225,19 +225,6 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 						gi * hy_h);
 					// Update time
 					profileRNNkernels(handle, (gi == 0) ? 0 : 1);
-
-					if (dirMode)
-					{
-						CopyTensor(handle,
-							miopen::deref(x_desc),
-							x,
-							miopen::deref(sp_desc),
-							workSpace,
-							0,
-							(gi + nHiddenTensorsPerLayer) * hy_h);
-						// Update time
-						profileRNNkernels(handle, 1);
-					}
 				}
 			}
 			else
