@@ -353,6 +353,7 @@ RNNDescriptor::RNNDescriptor()
     algoMode               = miopenRNNdefault;
     inputMode              = miopenRNNlinear;
     dataType               = miopenFloat;
+    typeSize               = 4;
 }
 
 RNNDescriptor::RNNDescriptor(int hsz,
@@ -386,6 +387,10 @@ RNNDescriptor::RNNDescriptor(int hsz,
     {
         MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
     }
+    else
+    {
+        typeSize  = 4;  
+    }
 
     hsize     = hsz;
     nLayers   = layers;
@@ -395,7 +400,7 @@ RNNDescriptor::RNNDescriptor(int hsz,
     algoMode  = amode;
     biasMode  = bmode;
     dataType  = dType;
-
+    
     switch(rmode)
     {
     case 0: // RNN vanilla
@@ -413,17 +418,16 @@ RNNDescriptor::RNNDescriptor(int hsz,
         break;
     }
     inputBatchLenSum = 0; // init
+    
+    
+    
 }
 
 size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
                                        const int sLen,
                                        c_array_view<miopenTensorDescriptor_t> xDesc)
 {
-    // NOTE dlowell: this calculation WILL change during development.
-    // currently this is calculated the same as Workspace size
-    // x = maxSequenceLen * batchSize * vector_size * numLayers * bytesForDataType *
-    // numberOfHiddenMatricesPerCell + Extra
-    // GetElemSize will get vector len * batch_size
+
     if(xDesc[0].GetType() != dataType)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
@@ -436,18 +440,15 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
         }
     }
 
-    auto x = workspaceScale * nLayers * inputBatchLenSum * hsize * sizeof(xDesc[0].GetType());
-    return dirMode == miopenRNNbidirection ? size_t(2 * x) : size_t(x);
+    auto x = workspaceScale * nLayers * inputBatchLenSum * hsize * typeSize;
+    return size_t(dirMode == miopenRNNbidirection ? 2*x : x);
 }
 
 size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
                                      const int sLen,
                                      c_array_view<miopenTensorDescriptor_t> xDesc)
 {
-    // NOTE dlowell: this calculation WILL change during development.
-    // x = maxSequenceLen * batchSize * vector_size * numLayers * bytesForDataType *
-    // numberOfHiddenMatricesPerCell + Extra
-    // GetElemSize will get vector len * batch_size
+
     if(xDesc[0].GetType() != dataType)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
@@ -461,19 +462,18 @@ size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
     }
 
     // auto x = workspaceScale * nLayers * inputBatchLenSum * hsize * sizeof(xDesc[0].GetType());
-    auto x = 2 * workspaceScale * nLayers * inputBatchLenSum * hsize *
-             sizeof(xDesc[0].GetType()); // switch to this after offset activ and ops applied
-    return dirMode == miopenRNNbidirection ? size_t(2 * x) : size_t(x);
+    auto x = 2 * workspaceScale * nLayers * inputBatchLenSum * hsize * typeSize;
+    return size_t(dirMode == miopenRNNbidirection ? 2*x : x);
 }
 
 size_t RNNDescriptor::GetParamsSize(Handle& /* handle */,
                                     const TensorDescriptor& xDesc,
-                                    miopenDataType_t /* dtype */)
+                                    miopenDataType_t dtype)
 {
-    // DLOWELL : The factor of 4 counts the input matrix, hidden matrix, input bias, hidden bias
-    // to each of the activated section of the RNN cell.
-    // h_t = sigma(Wx_t + Rh_t-1 + bw + br)
-    // for one layer: wDesc <-- (v_hidden x v_input) + (v_hidden x v_hidden) + 2*(1 x v_hidden)
+    if(xDesc.GetType() != dataType || dtype != dataType)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch.");
+    }
     assert(xDesc.GetLengths().size() > 1);
     auto inputVectorLen = xDesc.GetLengths()[1];
     if(inputMode == miopenRNNskip)
@@ -487,7 +487,7 @@ size_t RNNDescriptor::GetParamsSize(Handle& /* handle */,
         auto in_bias = inputMode == miopenRNNskip ? 1 : 2;
         sz += (in_bias + (nLayers - 1) * 2) * nHiddenTensorsPerLayer * hsize * bi;
     }
-    return size_t(sz);
+    return size_t(typeSize*sz);
 }
 
 size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& /* handle */,
@@ -505,7 +505,7 @@ size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& /* handle */,
             inputBatchLenSum += xDesc[i].GetLengths()[0];
         }
     }
-    auto x = inputBatchLenSum * xDesc[0].GetLengths()[1];
+    auto x = inputBatchLenSum * xDesc[0].GetLengths()[1] * typeSize;
     return size_t(x);
 }
 
@@ -516,8 +516,8 @@ size_t RNNDescriptor::GetRNNHiddenSuperTensorSize(Handle& /* handle */,
     {
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
     }
-    auto x = xDesc[0].GetLengths()[0] * hsize * nLayers;
-    return dirMode == miopenRNNbidirection ? size_t(2 * x) : size_t(x);
+    auto x = xDesc[0].GetLengths()[0] * hsize * nLayers * typeSize;
+    return size_t(dirMode == miopenRNNbidirection ? 2*x : x);
 }
 
 void RNNDescriptor::GetParamsDescriptor(Handle& /* handle */,
@@ -541,6 +541,38 @@ void RNNDescriptor::GetParamsDescriptor(Handle& /* handle */,
     weight_lens[0] = inputVectorLen + ((nLayers - 1) * (bi + 1) + 1) * hsize;
     weight_lens[1] = bi * hsize * nHiddenTensorsPerLayer;
     wDesc          = miopen::TensorDescriptor(dtype, weight_lens.data(), 2);
+}
+
+
+std::size_t RNNDescriptor::GetLayerParamSize(Handle& handle,
+                       int layer,
+                       const TensorDescriptor& xDesc,
+                       int /* paramID */)
+{
+    if(xDesc.GetType() != dataType)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch.");
+    }
+    auto inputVectorLen = xDesc.GetLengths()[1]; // input vector size
+    inputVectorLen = (inputMode == miopenRNNskip)? hsize : inputVectorLen;
+    
+    //Assuming Djikstra counting
+    if((dirMode && layer <= 1) || (!dirMode && layer < 1))
+    {
+        return size_t(typeSize*inputVectorLen*hsize);
+    }
+    else
+    {
+        return size_t(typeSize*hsize*hsize);
+    }
+}
+    
+std::size_t RNNDescriptor::GetLayerBiasSize(Handle& handle,
+                       int layer,
+                       int /* biasID */)
+{
+    return size_t(typeSize*hsize); //is ther more needed here?
+    
 }
 
 void RNNDescriptor::GetLayerParam(Handle& handle,
