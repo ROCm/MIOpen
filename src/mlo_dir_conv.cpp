@@ -242,7 +242,7 @@ bool mlo_construct_direct2D::mloIsAmdOpenclRocm(rocm_meta_version& rmv) const
         else if(num < 2536) // Switched to newer version at 2536 for sure.
             rmv = rocm_meta_version::V3;
         else
-            rmv = rocm_meta_version::AMDHSA_10;
+            rmv = rocm_meta_version::AMDHSA_1_0;
     }
     return true;
 #else
