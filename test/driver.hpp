@@ -265,7 +265,6 @@ struct test_driver
         }};
     }
 
-
     template <class F, class T>
     auto lazy_generate_data(F f, T single) -> generate_data_t<decltype(f())>
     {
