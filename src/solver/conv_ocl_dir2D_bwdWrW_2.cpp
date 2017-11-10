@@ -32,6 +32,10 @@ namespace solver {
 
 bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
 {
+    // FIE ME:  it sounds a bug to enable kernel_size1x1 from original condition
+    if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
+        return false;
+
     return ((params.kernel_size0 >= params.kernel_size1) &&
             ((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) ||
              (params.kernel_size0 > 5) || (params.kernel_size0 == 5 && params.in_width >= 64))) ||
