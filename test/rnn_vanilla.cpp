@@ -148,11 +148,12 @@ struct verify_forward_train_rnn
         miopenGetRNNTrainingReserveSize(&handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
         miopenGetRNNParamsSize(&handle, rnnDesc, inputDescs[0], &wei_sz, miopenFloat);
         
-        std::vector<T> workSpace(workSpaceSize/4, 0.);
-        std::vector<T> reserveSpace(reserveSpaceSize/4, 0.);
-        std::vector<T> output(out_sz/4, 0.);
+        auto wei_elems = wei_sz / sizeof(T);
+        std::vector<T> workSpace(workSpaceSize/sizeof(T), 0.);
+        std::vector<T> reserveSpace(reserveSpaceSize/sizeof(T), 0.);
+        std::vector<T> output(out_sz/sizeof(T), 0.);
         std::vector<T> hiddenState(initHidden.size(), 0.);
-        std::vector<T> weights(wei_sz/4, 0.);
+        std::vector<T> weights(wei_elems, 0.);
         
         // initial weights
         int wei_len = (bi * (in_h + hy_h) + (nLayers - 1) * bi * (bi + 1) * hy_h) * hy_h;
@@ -179,10 +180,10 @@ struct verify_forward_train_rnn
                     {
                         for(int h = 0; h < hy_h; h++)
                         {
-                            hiddenState[hid_shift + bs * hy_stride + h] += input[bs * in_stride + h];
+                            hiddenState.at(hid_shift + bs * hy_stride + h) += input[bs * in_stride + h];
                             if(dirMode)
                             {
-                                hiddenState[hid_shift + bs * hy_stride + hy_h + h] += input[bs * in_stride + h];
+                                hiddenState.at(hid_shift + bs * hy_stride + hy_h + h) += input[bs * in_stride + h];
                             }
                         }
                     }
@@ -194,7 +195,7 @@ struct verify_forward_train_rnn
                         {
                             for(int h = 0; h < hy_stride; h++)
                             {
-                                hiddenState[hid_shift + bs * hy_stride + h] += weights[wei_shift_bias + h];
+                                hiddenState.at(hid_shift + bs * hy_stride + h) += weights[wei_shift_bias + h];
                             }
                         }
                     }
@@ -422,7 +423,7 @@ struct verify_forward_train_rnn
             {
                 for(int h = 0; h < hy_h; h++)
                 {
-                    hiddenState[hx_shift + bs * uni_stride + h] = 0;
+                    hiddenState.at(hx_shift + bs * uni_stride + h) = 0;
                 }
             }
         }
@@ -434,7 +435,7 @@ struct verify_forward_train_rnn
         {
             for(int h = 0; h < hy_h; h++)
             {
-                output[bs * out_stride + h] = workSpace[prelayer_shift + bs * hy_stride + h];
+                output.at(bs * out_stride + h) = workSpace[prelayer_shift + bs * hy_stride + h];
             }
         }
  
@@ -446,7 +447,8 @@ struct verify_forward_train_rnn
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
-        return std::make_tuple(output, hiddenState, weights, workSpace, reserveSpace);
+        auto retSet = std::make_tuple(output, hiddenState, weights, workSpace, reserveSpace);
+        return retSet;
     }
 
     std::tuple<std::vector<T>, std::vector<T>,std::vector<T>,std::vector<T>,std::vector<T>> gpu()
@@ -478,21 +480,35 @@ struct verify_forward_train_rnn
 
         miopenTensorDescriptor_t inDesc;
         std::vector<miopenTensorDescriptor_t> inputDescs;
-        std::vector<int> lens(2,0);
-        lens[1] = inputVecLen;
+        std::vector<int> inlens(2,0);
+        inlens[1] = inputVecLen;
+        
+        miopenTensorDescriptor_t outDesc;
+        std::vector<miopenTensorDescriptor_t> outputDescs;
+        std::vector<int> outlens(2,0);
+        outlens[1] = hiddenSize*((dirMode)?2:1);
         // -----------------------
         for(int i = 0; i < batch_seq.size(); i++)
         {
-            lens[0] = batch_seq[i];
+            inlens[0] = batch_seq[i];
             miopenCreateTensorDescriptor(&inDesc);
             miopenSetTensorDescriptor(inDesc,
                                     miopenFloat,
                                     2,
-                                    lens.data(), 
+                                    inlens.data(), 
                                     nullptr);
             inputDescs.push_back(inDesc);
+            
+            outlens[0] = batch_seq[i];
+            miopenCreateTensorDescriptor(&outDesc);
+            miopenSetTensorDescriptor(outDesc,
+                                    miopenFloat,
+                                    2,
+                                    outlens.data(), 
+                                    nullptr);
+            outputDescs.push_back(outDesc);
         }
-        auto outputDescs = inputDescs;
+        
 
         
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, inputDescs.data(), &in_sz);
@@ -501,13 +517,13 @@ struct verify_forward_train_rnn
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
         miopenGetRNNTrainingReserveSize(&handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
         miopenGetRNNParamsSize(&handle, rnnDesc, inputDescs[0], &wei_sz, miopenFloat);
+        auto wei_elems = int(wei_sz/sizeof(T));
         
-        
-        std::vector<T> workSpace(workSpaceSize/4, 0.);
-        std::vector<T> reserveSpace(reserveSpaceSize/4, 0.);
+        std::vector<T> workSpace(workSpaceSize/sizeof(T), 0.);
+        std::vector<T> reserveSpace(reserveSpaceSize/sizeof(T), 0.);
         //std::vector<T> output(out_sz/4, 0.);
         std::vector<T> hiddenState(initHidden.size(), 0.);
-        std::vector<T> weights(wei_sz/4, 0.); 
+        std::vector<T> weights(wei_elems, 0.); 
         
         auto input_dev    = handle.Write(input);
         auto output = input;
@@ -529,7 +545,6 @@ struct verify_forward_train_rnn
 		hlens[2] = hiddenSize;
 		miopen::TensorDescriptor hiddenDesc(miopenFloat, hlens.data(), 3);
         
-		int wei_elems = wei_sz/4;
 		miopen::TensorDescriptor weightDesc(miopenFloat, &wei_elems, 1);
 		
         miopenRNNForwardTraining(&handle,
@@ -555,10 +570,10 @@ struct verify_forward_train_rnn
                          reserveSpaceSize);
 						 
         auto retSet = std::make_tuple(handle.Read<T>(output_dev, output.size()),
-		handle.Read<T>(hy_dev, hy.size()), 
-		handle.Read<T>(weights_dev, weights.size()), 
-		handle.Read<T>(workSpace_dev, workSpaceSize/4),
-		handle.Read<T>(reserveSpace_dev, reserveSpaceSize/4));
+                                    handle.Read<T>(hy_dev, hy.size()), 
+                                    handle.Read<T>(weights_dev, weights.size()), 
+                                    handle.Read<T>(workSpace_dev, workSpaceSize/sizeof(T)),
+                                    handle.Read<T>(reserveSpace_dev, reserveSpaceSize/sizeof(T)));
 		
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -626,7 +641,7 @@ struct rnn_vanilla_driver : test_driver
         add(biasMode, "bias-mode", generate_data(modes));
         add(dirMode, "dir-mode", generate_data(modes));
         add(rnnMode, "rnn-mode", generate_data(modes));
-		//add(batchSeq, "batch-seq", lazy_generate_data([=]{ return generate_batchSeq(batchSize, seqLength); }, 1));
+		//add(batchSeq, "batch-seq", lazy_generate_data([=]{ return generate_batchSeq(batchSize, seqLength); }, {10}));
         
     }
 
@@ -692,10 +707,12 @@ struct rnn_vanilla_driver : test_driver
         for(int i = 0; i < seqLength; i++)
         {
             printf("adding a value to batch sequence.\n");
-            int nvalue = currentval - rand()%modval;
-            currentval = (nvalue<1) ? 1 : nvalue;
-            printf("current value: %d\n", currentval);
-            batchSeq.push_back(currentval);
+            if(i>0){
+                int nvalue = currentval - rand()%modval;
+                currentval = (nvalue<1) ? 1 : nvalue;
+                printf("current value: %d\n", currentval);
+            }
+                batchSeq.push_back(currentval);
         }
 
         
