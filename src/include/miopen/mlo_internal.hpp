@@ -153,11 +153,13 @@ inline int AlignUp(int val, unsigned step)
     return ((val + step - 1) / step) * step;
 }
 
-enum rocm_meta_version
+enum class rocm_meta_version
 {
     V1,
     V2,
-    V3
+    V3,
+    AMDHSA_10,
+    Default = V3, // Assumption for HIP backend.
 };
 
 namespace miopen {
@@ -302,7 +304,7 @@ class ConvolutionContext : public ProblemDescription
     int out_channel_stride = 0;
     int out_batch_stride   = 0;
     int n_timer_iter       = 0;
-    rocm_meta_version rmv  = V3;
+    rocm_meta_version rmv  = rocm_meta_version::Default;
     std::string general_compile_options;
 
     inline Handle& GetStream() const { return *_stream; }

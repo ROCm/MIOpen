@@ -136,8 +136,11 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "limit_wave_cnt", limit_wave_cnt);
     GenerateClangDefsym(options, "no_params_file", 1);
     GenerateClangDefsym(options, "enable_debug_output", 0);
-    GenerateClangDefsym(
-        options, "ROCM_METADATA_VERSION", (params.rmv == V1) ? 1 : ((params.rmv == V2) ? 2 : 3));
+    GenerateClangDefsym(options,
+                        "ROCM_METADATA_VERSION",
+                        (params.rmv == rocm_meta_version::V1)
+                            ? 1
+                            : ((params.rmv == rocm_meta_version::V2) ? 2 : 3));
 
     KernelInfo construction_params;
     construction_params.comp_options = options.str();
