@@ -233,7 +233,8 @@ int PoolDriver<T>::SetPoolDescriptorFromCmdLineArgs()
     std::initializer_list<int> lens    = {win_h, win_w};
     std::initializer_list<int> pads    = {pad_h, pad_w};
     std::initializer_list<int> strides = {u, v};
-    miopen::PoolingDescriptor(mode, pmode, lens.begin(), pads.begin(), strides.begin(), 2);
+    miopen::deref(poolDesc) =
+        miopen::PoolingDescriptor(mode, pmode, lens.begin(), pads.begin(), strides.begin(), 2);
     return miopenStatusSuccess;
 }
 
