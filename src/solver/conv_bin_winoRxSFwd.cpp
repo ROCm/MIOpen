@@ -56,7 +56,7 @@ bool ConvBinWinogradRxSFwd::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 
-    if(params.rmv == rocm_meta_version::V1 || params.rmv == rocm_meta_version::V2)
+    if(!(params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
     {
         return false;
     }
@@ -198,6 +198,19 @@ ConvSolution ConvBinWinogradRxSFwd::GetSolution(const ConvolutionContext& params
     {
         kernel.kernel_file += "gfx900";
     }
+
+    if(params.rmv == rocm_meta_version::V3)
+    { // Nop.
+    }
+    else if(params.rmv == rocm_meta_version::AMDHSA_1_0)
+    {
+        kernel.kernel_file += "_md10";
+    }
+    else
+    {
+        MIOPEN_THROW("ConvBinWinogradRxSFwd: Unsupported metadata version.");
+    }
+
     kernel.kernel_file += ".so";
 
     result.construction_params.push_back(kernel);

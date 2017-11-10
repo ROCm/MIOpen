@@ -141,6 +141,10 @@ using mlo_kernel_info = std::tuple<const std::string,
 #include <miopen/handle.hpp>
 #include "miopen/db.hpp"
 
+#include "miopen/logger.hpp"
+#define MIOPEN_LOG_I(...) MIOPEN_LOG(miopen::LoggingLevel::Info, __VA_ARGS__)
+#define MIOPEN_LOG_I_EXPR(expr) MIOPEN_LOG_I("'" #expr "' = \t" << (expr))
+
 inline int mloLg2(int v)
 {
     auto ret = static_cast<int>(std::ceil(std::log(v) / std::log(2)));
@@ -158,8 +162,8 @@ enum class rocm_meta_version
     V1,
     V2,
     V3,
-    AMDHSA_10,
-    Default = V3, // Assumption for HIP backend.
+    AMDHSA_1_0,   // 1.0, see https://llvm.org/docs/AMDGPUUsage.html#code-object-metadata
+    Default = V3, // Assumption for HIP backend. To be updated together with ROCm release.
 };
 
 namespace miopen {
@@ -528,6 +532,10 @@ class mlo_construct_direct2D
         _search_params.pad0           = v_padding;
         _search_params.kernel_stride0 = u_stride;
         _search_params.kernel_stride1 = v_stride;
+        MIOPEN_LOG_I_EXPR(_search_params.pad1);
+        MIOPEN_LOG_I_EXPR(_search_params.pad0);
+        MIOPEN_LOG_I_EXPR(_search_params.kernel_stride0);
+        MIOPEN_LOG_I_EXPR(_search_params.kernel_stride1);
     }
 
     /*

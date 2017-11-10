@@ -26,8 +26,11 @@
 
 #include "miopen/solver.hpp"
 #include "miopen/env.hpp"
+#include "miopen/logger.hpp"
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_3X3)
+
+#define MIOPEN_LOG_I(...) MIOPEN_LOG(miopen::LoggingLevel::Info, __VA_ARGS__)
 
 namespace miopen {
 namespace solver {
@@ -71,6 +74,45 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
     // and able to correctly run with given parameters.
     const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
     assert(params.weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
+#if 1
+#define MIOPEN_LOG_I_EXPR(expr) MIOPEN_LOG_I("'" #expr "' = \t" << (expr))
+#define MIOPEN_LOG_I_EXPR_BOOL(expr) MIOPEN_LOG_I("'" #expr "' = \t" << ((expr) ? "true" : "FALSE"))
+    MIOPEN_LOG_I_EXPR(params.n_inputs);
+    MIOPEN_LOG_I_EXPR(params.in_height);
+    MIOPEN_LOG_I_EXPR(params.in_width);
+    MIOPEN_LOG_I_EXPR(params.kernel_size1);
+    MIOPEN_LOG_I_EXPR(params.kernel_size0);
+    MIOPEN_LOG_I_EXPR(params.n_outputs);
+    MIOPEN_LOG_I_EXPR(params.out_height);
+    MIOPEN_LOG_I_EXPR(params.out_width);
+    MIOPEN_LOG_I_EXPR(params.batch_sz);
+    MIOPEN_LOG_I_EXPR(params.pad0);
+    MIOPEN_LOG_I_EXPR(params.pad1);
+    MIOPEN_LOG_I_EXPR(params.kernel_stride0);
+    MIOPEN_LOG_I_EXPR(params.kernel_stride1);
+    MIOPEN_LOG_I_EXPR(params.kernal_dilation0);
+    MIOPEN_LOG_I_EXPR(params.kernal_dilation1);
+    MIOPEN_LOG_I_EXPR(params.bias);
+    MIOPEN_LOG_I_EXPR_BOOL(params.pad0 == 1);
+    MIOPEN_LOG_I_EXPR_BOOL(params.pad1 == 1);
+    MIOPEN_LOG_I_EXPR_BOOL(params.kernel_size0 == 3);
+    MIOPEN_LOG_I_EXPR_BOOL(params.kernel_size1 == 3);
+    MIOPEN_LOG_I_EXPR_BOOL(params.kernel_stride0 == 1);
+    MIOPEN_LOG_I_EXPR_BOOL(params.kernel_stride1 == 1);
+    MIOPEN_LOG_I_EXPR_BOOL(params.batch_sz < std::pow(2, 16));
+    MIOPEN_LOG_I_EXPR_BOOL(params.n_inputs < std::pow(2, 16));
+    MIOPEN_LOG_I_EXPR_BOOL(params.n_outputs < std::pow(2, 16));
+    MIOPEN_LOG_I_EXPR_BOOL(params.in_height < std::pow(2, 16));
+    MIOPEN_LOG_I_EXPR_BOOL(params.in_width < std::pow(2, 16));
+    MIOPEN_LOG_I_EXPR_BOOL(grid_workgroup_count_x < std::pow(2, 16));
+    MIOPEN_LOG_I_EXPR_BOOL((params.n_inputs * params.in_height * params.in_width) <= std::pow(2, 28));
+    MIOPEN_LOG_I_EXPR_BOOL((params.n_outputs * params.in_height * params.in_width) <= std::pow(2, 28));
+    MIOPEN_LOG_I_EXPR_BOOL((params.n_inputs * params.kernel_size0 * params.kernel_size1) <= std::pow(2, 28));
+    MIOPEN_LOG_I_EXPR_BOOL((params.n_outputs * params.kernel_size0 * params.kernel_size1) <= std::pow(2, 28));
+    MIOPEN_LOG_I_EXPR_BOOL(params.n_inputs % 2 == 0);
+    MIOPEN_LOG_I_EXPR_BOOL(params.n_inputs >= (device_is_gfx8_no_xnack ? 16 : 18));
+    MIOPEN_LOG_I_EXPR_BOOL(params.in_layout == "NCHW");
+#endif
     return params.pad0 == 1 && params.pad1 == 1 && params.kernel_size0 == 3 &&
            params.kernel_size1 == 3 && params.kernel_stride0 == 1 && params.kernel_stride1 == 1 &&
            params.batch_sz < std::pow(2, 16) && params.n_inputs < std::pow(2, 16) &&
@@ -120,7 +162,7 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params,
             kernel.kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so";
         else if(params.rmv == rocm_meta_version::V3)
             kernel.kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so";
-        else if(params.rmv == rocm_meta_version::AMDHSA_10)
+        else if(params.rmv == rocm_meta_version::AMDHSA_1_0)
             kernel.kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_md10.so";
         else
             MIOPEN_THROW("conv_3x3_wheel_alpha_v3_0b_gfx803: Unsupported metadata version.");
@@ -129,7 +171,7 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params,
     {
         if(params.rmv == rocm_meta_version::V3)
             kernel.kernel_file = "conv_3x3_wheel_alpha_v7_0_3b_gfx900.so";
-        else if(params.rmv == rocm_meta_version::AMDHSA_10)
+        else if(params.rmv == rocm_meta_version::AMDHSA_1_0)
             kernel.kernel_file = "conv_3x3_wheel_alpha_v7_0_3b_gfx900_md10.so";
         else
             MIOPEN_THROW("conv_3x3_wheel_alpha_v7_0_3b_gfx900: Unsupported metadata version.");
