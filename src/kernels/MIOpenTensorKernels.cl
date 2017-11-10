@@ -87,12 +87,11 @@ __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
     int o_n = gid / b_c;
     int o_c = gid % b_c;
     // MIOPEN_TYPE operand = b[o_c + Boffset];
-    int a_sub_index = o_n* a_nstride + o_c* a_cstride int b_sub_index =
-                          o_n* b_nstride + o_c* b_cstride int c_sub_index =
-                              o_n * c_nstride +
-                              o_c * c_cstride
+    int a_sub_index = o_n * a_nstride + o_c * a_cstride;
+    int b_sub_index = o_n * b_nstride + o_c * b_cstride;
+    int c_sub_index = o_n * c_nstride + o_c * c_cstride;
 
-                                  while(lid < work_per_wg)
+    while(lid < work_per_wg)
     {
         int aindex = a_sub_index + lid;
         int bindex = b_sub_index + lid;
