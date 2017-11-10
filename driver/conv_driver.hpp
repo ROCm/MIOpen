@@ -376,7 +376,8 @@ int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs()
         pad_w = 0;
     }
 
-    miopen::ConvolutionDescriptor(mode, pmode, pad_h, pad_w, u, v, dilation_h, dilation_w);
+    miopen::deref(convDesc) =
+        miopen::ConvolutionDescriptor(mode, pmode, pad_h, pad_w, u, v, dilation_h, dilation_w);
     return miopenStatusSuccess;
 }
 
