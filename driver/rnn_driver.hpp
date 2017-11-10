@@ -237,6 +237,8 @@ int RNNDriver<T>::AddCmdLineArgs()
         "inputmode", 'p', "0", "linear or skip, default linear (Default=0)", "int");
     inflags.AddInputFlag(
         "rnnalgo", 'a', "0", "default, persist static or persist dynamic (Default=0)", "int");
+	inflags.AddInputFlag(
+		"fwdtype", 'c', "0", "RNN forward being training or inference, Default training (Default=0)", "int");
     inflags.AddInputFlag("datatype", 'f', "1", "16-bit or 32-bit fp (Default=1)", "int");
 
     return 0;
@@ -646,27 +648,57 @@ int RNNDriver<T>::RunForwardGPU()
             reservespace_dev->ToGPU(q, reservespace.data());
         }
 
-        miopenRNNForwardTraining(GetHandle(),
-                                 rnnDesc,
-                                 adjustedSeqLen,
-                                 inputTensors.data(),
-                                 in_dev->GetMem(),
-                                 hiddenTensor,
-                                 hx_dev->GetMem(),
-                                 hiddenTensor,
-                                 cx_dev->GetMem(),
-                                 weightTensor,
-                                 wei_dev->GetMem(),
-                                 outputTensors.data(),
-                                 out_dev->GetMem(),
-                                 hiddenTensor,
-                                 hy_dev->GetMem(),
-                                 hiddenTensor,
-                                 cy_dev->GetMem(),
-                                 workspace_dev->GetMem(),
-                                 workspace_dev->GetSize(),
-                                 reservespace_dev->GetMem(),
-                                 reservespace_dev->GetSize());
+		if (inflags.GetValueInt("fwdtype") == 0)
+		{
+			miopenRNNForwardTraining(GetHandle(),
+				rnnDesc,
+				adjustedSeqLen,
+				inputTensors.data(),
+				in_dev->GetMem(),
+				hiddenTensor,
+				hx_dev->GetMem(),
+				hiddenTensor,
+				cx_dev->GetMem(),
+				weightTensor,
+				wei_dev->GetMem(),
+				outputTensors.data(),
+				out_dev->GetMem(),
+				hiddenTensor,
+				hy_dev->GetMem(),
+				hiddenTensor,
+				cy_dev->GetMem(),
+				workspace_dev->GetMem(),
+				workspace_dev->GetSize(),
+				reservespace_dev->GetMem(),
+				reservespace_dev->GetSize());
+		}
+		else if (inflags.GetValueInt("fwdtype") == 1)
+		{
+			if (inflags.GetValueInt("forw") != 1)
+			{
+				printf("Warning: Inference type is only valid for Forward RNN! \n");
+			}
+
+			miopenRNNForwardInference(GetHandle(),
+				rnnDesc,
+				adjustedSeqLen,
+				inputTensors.data(),
+				in_dev->GetMem(),
+				hiddenTensor,
+				hx_dev->GetMem(),
+				hiddenTensor,
+				cx_dev->GetMem(),
+				weightTensor,
+				wei_dev->GetMem(),
+				outputTensors.data(),
+				out_dev->GetMem(),
+				hiddenTensor,
+				hy_dev->GetMem(),
+				hiddenTensor,
+				cy_dev->GetMem(),
+				workspace_dev->GetMem(),
+				workspace_dev->GetSize());
+		}        
     }
 
     if(inflags.GetValueInt("time") == 1)
