@@ -42,7 +42,7 @@ struct superTensorTest
 {
     miopenRNNDescriptor_t rnnDesc;
 
-    int layer;
+    int num_layer;
     int wei_hh;
     miopenRNNMode_t mode;
     miopenRNNBiasMode_t biasMode;
@@ -60,11 +60,13 @@ struct superTensorTest
     superTensorTest() { 
         miopenCreateRNNDescriptor(&rnnDesc);
 
-        wei_hh        = 16;
-        layer         = 1;
+        wei_hh        = 4;
         inMode        = miopenRNNlinear;
-        directionMode = miopenRNNunidirection;
-        mode          = miopenRNNRELU;
+        //directionMode = miopenRNNunidirection;
+        directionMode = miopenRNNbidirection;
+        //mode          = miopenRNNRELU;
+        num_layer     = 3 * ((directionMode == miopenRNNbidirection) ? 2 : 1);
+        mode          = miopenGRU;
         biasMode      = miopenRNNNoBias;
         algo          = miopenRNNdefault;
         dataType      = miopenFloat;
@@ -78,24 +80,23 @@ struct superTensorTest
     void run()
     {
         miopenSetRNNDescriptor(
-                rnnDesc, wei_hh, layer, inMode, directionMode, mode, biasMode, algo, dataType);
+                rnnDesc, wei_hh, num_layer, inMode, directionMode, mode, biasMode, algo, dataType);
 
         int seqLen = 1;
-        int in_size = 16;
+        int in_size = 4;
         size_t in_sz  = 0;
         size_t wei_sz = 0;
+
+        size_t batch_size = 4;
 
 
         auto&& handle = get_handle();
 
-        std::array<int, 2> in_lens = {in_size, 1};
+        std::array<int, 2> in_lens = {batch_size, in_size};
         miopenSetTensorDescriptor(inputTensor, miopenFloat, 2, in_lens.data(), nullptr);
         miopenSetTensorDescriptor(weightTensor, miopenFloat, 2, in_lens.data(), nullptr);
 
-        std::array<int, 2> wei_lens = {wei_hh, 1};
-        miopenSetTensorDescriptor(paramTensor, miopenFloat, 2, wei_lens.data(), nullptr);
-
-        miopenSetTensorDescriptor(biasTensor, miopenFloat, 2, wei_lens.data(), nullptr);
+        //miopenSetTensorDescriptor(biasTensor, miopenFloat, 2, wei_lens.data(), nullptr);
         
         miopenGetRNNInputTensorSize(
                 &handle, rnnDesc, seqLen, &inputTensor, &in_sz);
@@ -104,20 +105,54 @@ struct superTensorTest
 
         printf("inputTensor size: %lu weightTensor size: %lu\n", in_sz, wei_sz);
 
-        auto in_dev = handle.Create(in_sz);
+        //auto in_dev = handle.Create(in_sz);
+
+
         std::vector<float> wei_h(wei_sz, 0); 
-        std::vector<float> param_h(wei_hh, 1);
         std::vector<float> bias_h(wei_hh, 1);
 
-        auto param_dev = handle.Write(param_h);
         auto wei_dev = handle.Write(wei_h);
         auto bias_dev = handle.Write(bias_h);
 
-        for(int layerID = 0; layerID < 8; layerID++)
+        int num_HiddenLayer = 3;
+
+
+        std::array<int, 2> wei_lens = {wei_hh, in_sz};
+        miopenSetTensorDescriptor(paramTensor, miopenFloat, 2, wei_lens.data(), nullptr);
+        for(int layer = 0; layer < 2; layer++)
         {
-            miopenSetRNNLayerParam(&handle, rnnDesc, layer, inputTensor, weightTensor, wei_dev.get(), layerID, paramTensor, param_dev.get());
-            miopenSetRNNLayerBias(&handle, rnnDesc, layer, inputTensor, weightTensor, wei_dev.get(), layerID, biasTensor, bias_dev.get());
+
+            for(int layerID = 0; layerID < num_HiddenLayer * 2; layerID++)
+            {
+
+                size_t paramSize = in_size * wei_hh;
+                fprintf(stderr, "layer: %d layerID: %d size: %d\n", layer, layerID, paramSize);
+                std::vector<float> param_h(paramSize, layer * 10 + layerID);
+                auto param_dev = handle.Write(param_h);
+                miopenSetRNNLayerParam(&handle, rnnDesc, layer, inputTensor, weightTensor, wei_dev.get(), layerID, paramTensor, param_dev.get());
+                //miopenSetRNNLayerBias(&handle, rnnDesc, layer, inputTensor, weightTensor, wei_dev.get(), layerID, biasTensor, bias_dev.get());
+            }
         }
+
+
+        std::array<int, 2> wei_lens_2 = {wei_hh, wei_hh * 2};
+        miopenSetTensorDescriptor(paramTensor, miopenFloat, 2, wei_lens_2.data(), nullptr);
+        for(int layer = 2; layer < num_layer; layer++)
+        {
+
+            for(int layerID = 0; layerID < num_HiddenLayer * 2; layerID++)
+            {
+
+                size_t paramSize = wei_hh * wei_hh * 2;
+                fprintf(stderr, "layer: %d layerID: %d size: %d\n", layer, layerID, paramSize);
+
+                std::vector<float> param_h(paramSize, layer * 10 + layerID);
+                auto param_dev = handle.Write(param_h);
+                miopenSetRNNLayerParam(&handle, rnnDesc, layer, inputTensor, weightTensor, wei_dev.get(), layerID, paramTensor, param_dev.get());
+                //miopenSetRNNLayerBias(&handle, rnnDesc, layer, inputTensor, weightTensor, wei_dev.get(), layerID, biasTensor, bias_dev.get());
+            }
+        }
+
 
         wei_h = handle.Read<float>(wei_dev, wei_sz);
 
