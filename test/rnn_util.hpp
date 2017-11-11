@@ -43,7 +43,7 @@
 
 std::vector<int> get_rnn_num_layers()
 {
-    return {{1,2,4,6,7,8,10,20}};
+    return {{2,4,6,7,8,10,20}};
 }
         
 std::vector<int> get_rnn_batchSize()
@@ -59,7 +59,7 @@ std::vector<int> get_rnn_seq_len()
 
 std::vector<int> get_rnn_vector_len()
 {
-    return {{1,2,4,10,20,50}};
+    return {{2,4,10,20,50}};
 }
 
 std::vector<int> get_rnn_hidden_size()

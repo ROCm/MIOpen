@@ -47,6 +47,7 @@
 
 
 #define MIO_RNN_TIME_EVERYTHING 0
+#define RNN_MM_TRANSPOSE 1
 
 //****************************************************
 // FORWARD TRAIN
@@ -115,8 +116,9 @@ struct verify_forward_train_rnn
         int in_h = (inputMode)?0:inputVecLen;
         int hy_h = hiddenSize;
         int uni_stride = hy_h;
+        int bi_stride = hy_h * bi;
 
-        size_t in_sz  = 0;
+        auto in_sz  = input.size();
         size_t out_sz = 0;
         size_t wei_sz = 0;
         size_t hy_sz  = 0;
@@ -125,41 +127,58 @@ struct verify_forward_train_rnn
 		
         miopenTensorDescriptor_t inDesc;
         std::vector<miopenTensorDescriptor_t> inputDescs;
-        std::vector<int> lens(2,0);
-        lens[1] = inputVecLen;
+        std::vector<int> inlens(2,0);
+        inlens[1] = inputVecLen;
+        
+        miopenTensorDescriptor_t outDesc;
+        std::vector<miopenTensorDescriptor_t> outputDescs;
+        std::vector<int> outlens(2,0);
+        outlens[1] = hiddenSize*((dirMode)?2:1);
         // -----------------------
         for(int i = 0; i < batch_seq.size(); i++)
         {
-            lens[0] = batch_seq[i];
+            inlens[0] = batch_seq[i];
             miopenCreateTensorDescriptor(&inDesc);
             miopenSetTensorDescriptor(inDesc,
                                     miopenFloat,
                                     2,
-                                    lens.data(), 
+                                    inlens.data(), 
                                     nullptr);
             inputDescs.push_back(inDesc);
+            
+            outlens[0] = batch_seq[i];
+            miopenCreateTensorDescriptor(&outDesc);
+            miopenSetTensorDescriptor(outDesc,
+                                    miopenFloat,
+                                    2,
+                                    outlens.data(), 
+                                    nullptr);
+            outputDescs.push_back(outDesc);
         }
-        auto outputDescs = inputDescs;
+        
 
-        miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, inputDescs.data(), &in_sz);
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
         miopenGetRNNHiddenTensorSize(&handle, rnnDesc, seqLength, inputDescs.data(), &hy_sz);
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
         miopenGetRNNTrainingReserveSize(&handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
         miopenGetRNNParamsSize(&handle, rnnDesc, inputDescs[0], &wei_sz, miopenFloat);
         
-        auto wei_elems = wei_sz / sizeof(T);
+        wei_sz /= sizeof(T);
+        hy_sz  /= sizeof(T);
+        out_sz /= sizeof(T);
         std::vector<T> workSpace(workSpaceSize/sizeof(T), 0.);
         std::vector<T> reserveSpace(reserveSpaceSize/sizeof(T), 0.);
-        std::vector<T> output(out_sz/sizeof(T), 0.);
+        std::vector<T> output(out_sz, 0.);
         std::vector<T> hiddenState(initHidden.size(), 0.);
-        std::vector<T> weights(wei_elems, 0.);
+        std::vector<T> weights(wei_sz, 0.);
+          
+        
         
         // initial weights
         int wei_len = (bi * (in_h + hy_h) + (nLayers - 1) * bi * (bi + 1) * hy_h) * hy_h;
         if(biasMode)
         {
-            int in_bias = (inputMode == 1) ? 1 : 2;
+            int in_bias = ((inputMode == 1) ? 1 : 2);
             wei_len += (bi * in_bias + (nLayers - 1) * bi * 2) * hy_h;
         }
 
@@ -202,16 +221,16 @@ struct verify_forward_train_rnn
                 }
                 else
                 {
-                    RNN_mm_cpu<T>(const_cast<T*>(input.data()), 
+                    RNN_mm_cpu<T>(input.data(), 
                                    in_h,
                                    batch_n,
                                    in_stride,
                                    0,
-                                   const_cast<T*>(weights.data()), 
+                                   weights.data(), 
                                    hy_h * bi,
                                    in_h,
-                                   hy_stride,
-                                   0,
+                                   in_stride,
+                                   RNN_MM_TRANSPOSE,
                                    &hiddenState[hid_shift],
                                    hy_h * bi,
                                    batch_n,
@@ -227,7 +246,7 @@ struct verify_forward_train_rnn
                         {
                             for(int h = 0; h < hy_stride; h++)
                             {
-                                hiddenState[hid_shift + bs * hy_stride + h] +=
+                                hiddenState.at(hid_shift + bs * hy_stride + h) +=
                                     (weights[wei_shift_bias + h] + weights[wei_shift_bias + hy_stride + h]);
                             }
                         }
@@ -239,16 +258,16 @@ struct verify_forward_train_rnn
                 int wei_shift = bi * (in_h + hy_h) * hy_h + (li - 1) * bi * (bi * hy_h + hy_h) * hy_h;
                 int prelayer_shift = (li - 1) * batch_n * hy_h * bi;
 
-                RNN_mm_cpu<T>(const_cast<T*>(&workSpace[prelayer_shift]),
+                RNN_mm_cpu<T>(&workSpace[prelayer_shift],
                                hy_h * bi,
                                batch_n,
                                hy_stride,
                                0,
-                               const_cast<T*>(&weights[wei_shift]),
+                               &weights[wei_shift],
                                hy_h * bi,
                                hy_h * bi,
-                               hy_stride,
-                               0,
+                               bi_stride,
+                               RNN_MM_TRANSPOSE,
                                &hiddenState[hid_shift],
                                hy_h * bi,
                                batch_n,
@@ -268,7 +287,7 @@ struct verify_forward_train_rnn
                     {
                         for(int h = 0; h < hy_stride; h++)
                         {
-                            hiddenState[hid_shift + bs * hy_stride + h] +=
+                            hiddenState.at(hid_shift + bs * hy_stride + h) +=
                                 (weights[wei_shift_bias_temp + h] +
                                  weights[wei_shift_bias_temp + hy_stride + h]);
                         }
@@ -290,16 +309,16 @@ struct verify_forward_train_rnn
 
                 if(ti == 0)
                 {
-                    RNN_mm_cpu<T>(const_cast<T*>(&initHidden[hx_shift]),
+                    RNN_mm_cpu<T>(&initHidden[hx_shift],
                                    hy_h,
                                    batch_seq[ti],
                                    uni_stride,
                                    0,
-                                   const_cast<T*>(&weights[wei_shift]),
+                                   &weights[wei_shift],
                                    hy_h,
                                    hy_h,
-                                   hy_stride,
-                                   0,
+                                   uni_stride,
+                                   RNN_MM_TRANSPOSE,
                                    &hiddenState[hid_shift + bacc * hy_stride],
                                    hy_h,
                                    batch_seq[ti],
@@ -310,16 +329,16 @@ struct verify_forward_train_rnn
 
                     if(dirMode)
                     {
-                        RNN_mm_cpu<T>(const_cast<T*>(&initHidden[hx_shift + hy_h]),
+                        RNN_mm_cpu<T>(&initHidden[hx_shift + hy_h],
                                        hy_h,
                                        batch_seq[seqLength - 1 - ti],
                                        uni_stride,
                                        0,
-                                       const_cast<T*>(&weights[wei_shift + hy_h]),
+                                       &weights[wei_shift + hy_h],
                                        hy_h,
                                        hy_h,
-                                       hy_stride,
-                                       0,
+                                       uni_stride,
+                                       RNN_MM_TRANSPOSE,
                                        &hiddenState[hid_shift + baccbi * hy_stride + hy_h],
                                        hy_h,
                                        batch_seq[seqLength - 1 - ti],
@@ -331,16 +350,16 @@ struct verify_forward_train_rnn
                 }
                 else
                 {
-                    RNN_mm_cpu<T>(const_cast<T*>(&hiddenState[hx_shift]),
+                    RNN_mm_cpu<T>(&hiddenState[hx_shift],
                                    hy_h,
                                    batch_seq[ti],
                                    uni_stride,
                                    0,
-                                   const_cast<T*>(&weights[wei_shift]),
+                                   &weights[wei_shift],
                                    hy_h,
                                    hy_h,
-                                   hy_stride,
-                                   0,
+                                   uni_stride,
+                                   RNN_MM_TRANSPOSE,
                                    &hiddenState[hid_shift + bacc * hy_stride],
                                    hy_h,
                                    batch_seq[ti],
@@ -351,16 +370,16 @@ struct verify_forward_train_rnn
 
                     if(dirMode)
                     {
-                        RNN_mm_cpu<T>(const_cast<T*>(&hiddenState[hx_shift + hy_h]),
+                        RNN_mm_cpu<T>(&hiddenState[hx_shift + hy_h],
                                        hy_h,
                                        batch_seq[seqLength - 1 - ti],
                                        uni_stride,
                                        0,
-                                       const_cast<T*>(&weights[wei_shift + hy_h]),
+                                       &weights[wei_shift + hy_h],
                                        hy_h,
                                        hy_h,
-                                       hy_stride,
-                                       0,
+                                       uni_stride,
+                                       RNN_MM_TRANSPOSE,
                                        &hiddenState[hid_shift + baccbi * hy_stride + hy_h],
                                        hy_h,
                                        batch_seq[seqLength - 1 - ti],
@@ -375,17 +394,17 @@ struct verify_forward_train_rnn
                 {
                     for(int h = 0; h < hy_h; h++)
                     {
-                        workSpace[hid_shift + bacc * hy_stride + bs * hy_stride + h] =
+                        workSpace.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) =
                             activfunc(hiddenState[hid_shift + bacc * hy_stride + bs * hy_stride + h],
                                       rnnMode); // squash_func
-                        hiddenState[hx_shift + bs * uni_stride + h] =
+                        hiddenState.at(hx_shift + bs * uni_stride + h) =
                             workSpace[hid_shift + bacc * hy_stride + bs * hy_stride + h];
 
-                        reserveSpace[hid_shift + bacc * hy_stride + bs * hy_stride + h] =
+                        reserveSpace.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) =
                             hiddenState[hid_shift + bacc * hy_stride + bs * hy_stride + h];
 
-                        reserveSpace[hid_shift + bacc * hy_stride + bs * hy_stride + h +
-                                 nLayers * batch_n * hy_h * bi] =
+                        reserveSpace.at(hid_shift + bacc * hy_stride + bs * hy_stride + h +
+                                 nLayers * batch_n * hy_h * bi) =
                             activfunc(hiddenState[hid_shift + bacc * hy_stride + bs * hy_stride + h],
                                       rnnMode);
                     }
@@ -397,18 +416,18 @@ struct verify_forward_train_rnn
                     {
                         for(int h = 0; h < hy_h; h++)
                         {
-                            workSpace[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] =
+                            workSpace.at(hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h) =
                                 activfunc(hiddenState[hid_shift + baccbi * hy_stride + hy_h +
                                                     bs * hy_stride + h],
                                           rnnMode); // squash_func
-                            hiddenState[hx_shift + hy_h + bs * uni_stride + h] =
+                            hiddenState.at(hx_shift + hy_h + bs * uni_stride + h) =
                                 workSpace[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h];
 
-                            reserveSpace[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h] =
+                            reserveSpace.at(hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h) =
                                 hiddenState[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h];
 
-                            reserveSpace[hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h +
-                                     nLayers * batch_n * hy_h * bi] =
+                            reserveSpace.at(hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride + h +
+                                     nLayers * batch_n * hy_h * bi) =
                                 activfunc(hiddenState[hid_shift + baccbi * hy_stride + hy_h +
                                                     bs * hy_stride + h], rnnMode);
                         }
@@ -435,6 +454,7 @@ struct verify_forward_train_rnn
         {
             for(int h = 0; h < hy_h; h++)
             {
+                //printf("out index: %d\n", bs*out_stride+h); fflush(nullptr);
                 output.at(bs * out_stride + h) = workSpace[prelayer_shift + bs * hy_stride + h];
             }
         }
