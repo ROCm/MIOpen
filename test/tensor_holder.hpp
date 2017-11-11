@@ -88,6 +88,11 @@ struct tensor
         : desc(miopenFloat, {n, c, h, w}), data(n * c * h * w)
     {
     }
+        
+    tensor(std::size_t n)
+        : desc(miopenFloat, {n}), data(n)
+    {
+    }
 
     tensor(miopen::TensorDescriptor rhs) : desc(std::move(rhs))
     {

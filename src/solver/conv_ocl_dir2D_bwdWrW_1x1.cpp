@@ -267,7 +267,14 @@ namespace solver {
 
 bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
-    return (params.kernel_size0 == 1) && (params.kernel_size1 == 1);
+    bool result = (params.kernel_size0 == 1) && (params.kernel_size1 == 1);
+
+    // Does not support C, K != 16X yet  Still in to-do-list
+    if((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) &&
+       ((params.n_inputs & 0xF) > 0 || (params.n_outputs & 0xF) > 0))
+        result = false;
+
+    return result;
 }
 
 ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params,
@@ -285,6 +292,264 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params,
             return(mloConstruct1x1Mmap());
         }
 #endif
+
+    // FIX ME! FIX ME! FIX ME! Does not support C, K != 16X yet
+    // NON-Stride/PAD mode NON-16X will be supported by MIOpenConvBwdWrW1x1.CL
+    if((params.n_inputs & 0xF) == 0 && (params.n_outputs & 0xF) == 0)
+    {
+        // params.n_inputs==> C
+        // params.n_outputs==>K
+        // Jian: following kernel uses C as input, K as output, different from original definition
+        // FIX ME! FIX ME! FIX ME!
+        // JIANYANG: not know the meaning of following ==>
+        result.n_stacks      = 1;
+        result.n_stacks      = std::min(params.batch_sz, result.n_stacks);
+        result.out_pix_tile0 = 1;
+        result.out_pix_tile1 = 1;
+        result.in_tile1      = 1;
+        result.in_tile0      = 1;
+        // JIANYANG: not know the meaning of above <==
+
+        // 8/16/64
+        int n_lcl_in_maps = 8;
+
+        /*if(4 *((params.n_outputs+63)/64) * ((params.n_inputs+63)/64) >=512)
+        {
+            n_lcl_in_maps =64;
+        }
+        else
+        */
+        if(4 * ((params.n_outputs + 15) / 16) * ((params.n_inputs + 15) / 16) >= 512)
+        {
+            n_lcl_in_maps = 16;
+        }
+
+        // 8/16/64
+        int n_lcl_out_maps = n_lcl_in_maps;
+
+        int n_grp_size0 = 64;
+
+        int n_out_blocks = ((params.n_inputs + n_lcl_out_maps - 1) / n_lcl_out_maps);
+        int n_in_blocks  = ((params.n_outputs + n_lcl_in_maps - 1) / n_lcl_in_maps);
+        int total_waves  = n_in_blocks * n_out_blocks;
+
+        result.n_out_pix_tiles = n_lcl_out_maps;
+        result.n_in_data_tiles = n_lcl_in_maps;
+
+        if(total_waves < 512) // force 64 threads to see what happened
+        {
+            n_grp_size0 = 256;
+        }
+
+        int n_load_dwords_per_map_once = 64;
+        if(n_lcl_out_maps == 16 || n_lcl_out_maps == 64)
+            n_load_dwords_per_map_once = 16;
+
+        result.grp_tile0 = n_grp_size0;
+        result.grp_tile1 = 1;
+        int grp_tile2    = 1;
+
+        // workload and Kernel name
+        {
+            /*#if 0//nef ML_OPEN_RUNNING
+            // W 28 x H 28 x C 512 x K 256 X N 16
+            //#define MLO_GRP_SZ
+            #define MLO_GRP_SZ0 256
+            #define MLO_GRP_SZ1  1
+            #define MLO_GRP_SZ2  1
+            #define MLO_FILTER_SIZE0    1
+            #define MLO_FILTER_SIZE1    1
+            #define MLO_FILTER_PAD0     0
+            #define MLO_FILTER_PAD1     0
+            #define MLO_FILTER_STRIDE0  2
+            #define MLO_FILTER_STRIDE1  2
+            #define STRIDE_W            1
+            #define STRIDE_H            1
+            #define MLO_N_OUTPUTS       256
+            #define MLO_N_INPUTS        512
+            #define MLO_BATCH_SZ        16
+            #define MLO_IN_WIDTH            28
+            #define MLO_IN_HEIGHT           28
+            #define MLO_OUT_WIDTH           14
+            #define MLO_OUT_HEIGHT          14
+            //64x64 16x16 ==> 16, 8x8 ==> 64
+            #define MLO_N_LOAD_DWORDS_PER_MAP_ONCE 64
+            #define MLO_N_LCL_IN_MAPS        8
+            #define MLO_N_LCL_OUT_MAPS       8
+
+            #define MLO_READ_UNIT          4
+
+            #define MLO_OUT_BATCH_STRIDE   (MLO_OUT_WIDTH*MLO_OUT_HEIGHT*MLO_N_OUTPUTS)
+            #define MLO_OUT_CHANNEL_STRIDE (MLO_OUT_WIDTH*MLO_OUT_WIDTH)
+
+            #define MLO_IN_BATCH_STRIDE    (MLO_IN_WIDTH*MLO_IN_HEIGHT* MLO_N_INPUTS)
+            #define MLO_IN_CHANNEL_STRIDE  (MLO_IN_WIDTH*MLO_IN_HEIGHT)
+            #define MLO_WEI_BATCH_STRIDE   (MLO_N_INPUTS*MLO_N_OUTPUTS)
+            #define MLO_WEI_CHANNEL_STRIDE (1*1*MLO_N_INPUTS)
+            #define MLO_MAX_LOADS     ((MLO_OUT_CHANNEL_STRIDE / MLO_READ_UNIT) * MLO_BATCH_SZ)
+
+            #define MLO_ACCUM_SZ      ( MLO_N_LCL_IN_MAPS * MLO_N_LCL_OUT_MAPS)
+            #define MLO_OUT_READ_SZ    (N_LCL_OUT_MAPS * MLO_READ_UNIT)
+            #define MLO_IN_READ_SZ     (MLO_N_LCL_IN_MAPS * MLO_READ_UNIT)
+
+            #define MLO_OUT_CHANNEL_READ_SZ (MLO_OUT_CHANNEL_STRIDE/MLO_READ_UNIT)
+            #define MLO_N_IN_TILE_BLOCK  4
+            #endif*/
+
+            uint read_unit          = 2;
+            uint in_batch_stride    = params.n_outputs * params.out_width * params.out_height;
+            uint in_channel_stride  = params.out_width * params.out_height;
+            uint out_batch_stride   = params.n_inputs * params.in_width * params.in_height;
+            uint out_channel_stride = params.in_width * params.in_height;
+            uint wei_batch_stride =
+                params.n_inputs * params.n_outputs * params.kernel_size0 * params.kernel_size1;
+            uint wei_channel_stride = params.n_outputs * params.kernel_size0 * params.kernel_size1;
+            uint max_loads_per_readunit = (out_channel_stride / read_unit) * params.batch_sz;
+
+            // test result shows that read_uint == 3 will be faster
+            // it will be changed to 4 after Lightning compiler support SGPR offset
+            if((out_channel_stride % 3) == 1)
+            {
+                read_unit              = 3;
+                max_loads_per_readunit = (out_channel_stride / read_unit) * params.batch_sz;
+            }
+
+            uint out_pad_min_x  = 0;
+            uint out_pad_min_y  = 0;
+            uint out_pad_width  = params.in_width;
+            uint out_pad_height = params.in_height;
+
+            uint in_pad_min_x = 0;
+            uint in_pad_min_y = 0;
+
+            if(params.pad0 > 0)
+            {
+                in_pad_min_x = params.kernel_stride0 - (params.pad0 % params.kernel_stride0);
+                // In case PAD == STRIDE
+                in_pad_min_x = in_pad_min_x % params.kernel_stride0;
+
+                out_pad_min_x = (params.pad0 + params.kernel_stride0 - 1) / params.kernel_stride0;
+                out_pad_width = (params.out_width - in_pad_min_x + params.kernel_stride0 - 1) /
+                                params.kernel_stride0;
+            }
+            if(params.pad1 > 0)
+            {
+                in_pad_min_y = params.kernel_stride1 - (params.pad1 % params.kernel_stride1);
+                // In case PAD == STRIDE
+                in_pad_min_y = in_pad_min_y % params.kernel_stride1;
+
+                out_pad_min_y  = (params.pad1 + params.kernel_stride1 - 1) / params.kernel_stride1;
+                out_pad_height = (params.out_width - in_pad_min_y + params.kernel_stride1 - 1) /
+                                 params.kernel_stride1;
+            }
+
+            if(params.pad0 > 0 || params.pad1 > 0 || params.kernel_stride0 > 1 ||
+               params.kernel_stride1 > 1)
+            {
+                read_unit              = 1;
+                max_loads_per_readunit = out_pad_width * out_pad_height * params.batch_sz;
+            }
+
+            uint out_read_sz         = n_lcl_out_maps * read_unit;
+            uint in_read_sz          = n_lcl_in_maps * read_unit;
+            uint out_channel_read_sz = out_channel_stride / read_unit;
+            uint n_in_tile_block     = 8;
+            uint n_lcl_out_map_once  = 8;
+            uint n_lcl_in_map_once   = 8;
+            uint accum_sz            = n_lcl_out_map_once * n_lcl_in_map_once;
+
+            const auto comp_options =
+                std::string(" -DMLO_GRP_SZ0=") + std::to_string(n_grp_size0) +
+                std::string(" -DMLO_GRP_SZ1=1 ") + std::string(" -DMLO_GRP_SZ2=1 ") +
+                std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(params.kernel_size0) +
+                std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(params.kernel_size1) +
+                std::string(" -DMLO_FILTER_PAD0=") + std::to_string(params.pad0) +
+                std::string(" -DMLO_FILTER_PAD1=") + std::to_string(params.pad1) +
+                std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(params.kernel_stride0) +
+                std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(params.kernel_stride1) +
+                std::string(" -DMLO_N_OUTPUTS=") + std::to_string(params.n_inputs) +
+                std::string(" -DMLO_N_INPUTS=") + std::to_string(params.n_outputs) +
+                std::string(" -DMLO_BATCH_SZ=") + std::to_string(params.batch_sz) +
+                std::string(" -DMLO_IN_WIDTH=") + std::to_string(params.out_width) +
+                std::string(" -DMLO_IN_HEIGHT=") + std::to_string(params.out_height) +
+                std::string(" -DMLO_OUT_WIDTH=") + std::to_string(params.in_width) +
+                std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(params.in_height) +
+                std::string(" -DMLO_N_LOAD_DWORDS_PER_MAP_ONCE=") +
+                std::to_string(n_load_dwords_per_map_once) + std::string(" -DMLO_N_LCL_IN_MAPS=") +
+                std::to_string(n_lcl_in_maps) + std::string(" -DMLO_N_LCL_OUT_MAPS=") +
+                std::to_string(n_lcl_out_maps) + std::string(" -DMLO_READ_UNIT=") +
+                std::to_string(read_unit) + std::string(" -DMLO_OUT_BATCH_STRIDE=") +
+                std::to_string(out_batch_stride) + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
+                std::to_string(out_channel_stride) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
+                std::to_string(in_batch_stride) + std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
+                std::to_string(in_channel_stride) + std::string(" -DMLO_WEI_BATCH_STRIDE=") +
+                std::to_string(wei_batch_stride) + std::string(" -DMLO_WEI_CHANNEL_STRIDE=") +
+                std::to_string(wei_channel_stride) + std::string(" -DMLO_MAX_LOADS=") +
+                std::to_string(max_loads_per_readunit) + std::string(" -DMLO_ACCUM_SZ=") +
+                std::to_string(accum_sz) + std::string(" -DMLO_OUT_READ_SZ=") +
+                std::to_string(out_read_sz) + std::string(" -DMLO_IN_READ_SZ=") +
+                std::to_string(in_read_sz) + std::string(" -DMLO_OUT_CHANNEL_READ_SZ=") +
+                std::to_string(out_channel_read_sz) + std::string(" -DMLO_N_IN_TILE_BLOCK=") +
+                std::to_string(n_in_tile_block) + std::string(" -DMLO_N_LCL_OUT_MAPS_ONCE=") +
+                std::to_string(n_lcl_out_map_once) + std::string(" -DMLO_N_LCL_IN_MAPS_ONCE=") +
+                std::to_string(n_lcl_in_map_once) + std::string(" -DMLO_IN_PAD_MIN_X=") +
+                std::to_string(in_pad_min_x) + std::string(" -DMLO_IN_PAD_MIN_Y=") +
+                std::to_string(in_pad_min_y) + std::string(" -DMLO_OUT_PAD_MIN_X=") +
+                std::to_string(out_pad_min_x) + std::string(" -DMLO_OUT_PAD_MIN_Y=") +
+                std::to_string(out_pad_min_y) + std::string(" -DMLO_OUT_PAD_WIDTH=") +
+                std::to_string(out_pad_width) + std::string(" -DMLO_OUT_PAD_HEIGHT=") +
+                std::to_string(out_pad_height) +
+
+                params.general_compile_options;
+
+            // std::cout << comp_options << std::endl;
+
+            KernelInfo kernel;
+
+            kernel.l_wk.push_back(result.grp_tile0);
+            kernel.l_wk.push_back(result.grp_tile1);
+            kernel.l_wk.push_back(grp_tile2);
+            // input is output
+
+            // Traverse Smaller Batch_stride first
+            size_t gbl_wk0 = n_grp_size0 * n_out_blocks;
+            size_t gbl_wk1 = n_in_blocks;
+            size_t gbl_wk2 = 1;
+
+            if(in_batch_stride < out_batch_stride)
+            {
+                gbl_wk0 = n_grp_size0 * n_in_blocks;
+                gbl_wk1 = n_out_blocks;
+                gbl_wk2 = 1;
+            }
+
+            kernel.g_wk.push_back(gbl_wk0);
+            kernel.g_wk.push_back(gbl_wk1);
+            kernel.g_wk.push_back(gbl_wk2);
+
+            kernel.kernel_file = "MIOpenConvBwdWrW1x1_PAD_read4.cl";
+
+            kernel.kernel_name = "MIOpenCvBwdWrW_8x8map";
+            if(n_lcl_in_maps == 16)
+            {
+                kernel.kernel_name = "MIOpenCvBwdWrW_16x16map";
+            }
+            if(n_lcl_in_maps == 8)
+            {
+                kernel.kernel_name = "MIOpenCvBwdWrW_8x8map";
+            }
+
+            // std::cout << kernel.kernel_name << std::endl;
+
+            kernel.comp_options = comp_options;
+
+            result.construction_params.push_back(kernel);
+            result.workspce_sz = 0;
+        }
+
+        return result;
+    }
+
     // size_t localMemSize = 64 * 1024;
 
     const auto hw_wave_sz = 64;

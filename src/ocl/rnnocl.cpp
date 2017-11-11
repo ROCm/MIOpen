@@ -37,7 +37,7 @@
 #include <miopen/gemm.hpp>
 #endif
 
-#define MIO_RNN_OCL_DEBUG 1
+//#define MIO_RNN_OCL_DEBUG 1
 
 namespace miopen {
 
