@@ -161,19 +161,19 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 	{
 	case miopenRNNRELU:
 	case miopenRNNTANH:
-		printf("run rnn gpu fwd \n");
+		printf("run rnn gpu inference \n");
 		wei_len = hy_h;
 		wei_len_t = hy_h;
 		hid_off = 0;
 		break;
 	case miopenLSTM:
-		printf("run lstm gpu fwd \n");
+		printf("run lstm gpu inference \n");
 		wei_len = hy_h * 4;
 		wei_len_t = hy_h * 4;
 		hid_off = bi * hy_h * 5;
 		break;
 	case miopenGRU:
-		printf("run gru gpu fwd \n");
+		printf("run gru gpu inference \n");
 		wei_len = hy_h * 3;
 		wei_len_t = hy_h * 2;
 		hid_off = bi * hy_h * 3;

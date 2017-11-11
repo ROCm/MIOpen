@@ -488,17 +488,20 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                         }
                         else
                         {
-							if (bs < in_n[seqLength - ti])
-							{
-								hid_state[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h + hy_h +
+                                                        hid_state[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h + hy_h +
 									h] +=
 									((1 - activfunc(hid_state[hid_shift + (baccbi + bs) * hy_stride +
 										3 * hy_h + h],
 										2)) *
 										activfunc(hid_state[hid_shift + (baccbi + bs) * hy_stride +
 											5 * hy_h + h],
-											1) +
-										activfunc(hid_state[hid_shift + (baccbi + bs) * hy_stride +
+											1));
+
+							if (bs < in_n[seqLength - ti])
+							{
+								hid_state[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h + hy_h +
+									h] +=
+									(activfunc(hid_state[hid_shift + (baccbi + bs) * hy_stride +
 											3 * hy_h + h],
 											2) *
 										hid_state[pretime_shift + bs * hy_stride + h]);
