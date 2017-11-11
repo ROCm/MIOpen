@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <../driver/activ_driver.hpp>
+//#include <../driver/activ_driver.hpp>
 #include <miopen/activ.hpp>
 #include <miopen/rnn.hpp>
 #include <miopen/env.hpp>
