@@ -33,8 +33,6 @@
 
 
 // Helper macros to output a cmdline argument for the driver
-namespace miopen {
-};
 #define MIOPEN_DRIVER_CMD(op) __func__ << ": " << "./bin/MIOpenDriver " << op
 #define MIOPEN_DRIVER_ARG(flag,value) " " << (flag) << " " << (value)
 
