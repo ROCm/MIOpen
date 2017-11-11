@@ -842,6 +842,11 @@ int RNNDriver<T>::RunBackwardGPU()
 {
     int ret = 0;
 
+if (inflags.GetValueInt("fwdtype") == 1 && inflags.GetValueInt("forw") != 1)
+{
+return ret;
+}
+
     Timer t;
     START_TIME;
 
@@ -1267,7 +1272,7 @@ int RNNDriver<T>::VerifyForward()
         }
     }
 
-    auto error4 = miopen::rms_range(reservespace_host, reservespace);
+/*    auto error4 = miopen::rms_range(reservespace_host, reservespace);
 
     if(!(error4 < tolerance))
     {
@@ -1277,13 +1282,18 @@ int RNNDriver<T>::VerifyForward()
     {
         printf("reserve space Verifies on CPU and GPU\n");
     }
-
+*/
     return miopenStatusSuccess;
 }
 
 template <typename T>
 int RNNDriver<T>::VerifyBackward()
 {
+if (inflags.GetValueInt("fwdtype") == 1 && inflags.GetValueInt("forw") != 1)
+{
+return miopenStatusSuccess;
+}
+
     const double tolerance = 1e-6;
 
     //   if(!TryReadVerificationCache("bwd_dat", inputTensor, din_host.data()))
@@ -1329,7 +1339,7 @@ int RNNDriver<T>::VerifyBackward()
         }
     }
 
-    auto error_data4 = miopen::rms_range(workspace_host, workspace);
+/*    auto error_data4 = miopen::rms_range(workspace_host, workspace);
 
     if(!(error_data4 < tolerance))
     {
@@ -1339,7 +1349,7 @@ int RNNDriver<T>::VerifyBackward()
     {
         printf("work space Verifies on CPU and GPU\n");
     }
-
+*/
     //    if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data()))
     {
         RunBackwardWeightsCPU();
