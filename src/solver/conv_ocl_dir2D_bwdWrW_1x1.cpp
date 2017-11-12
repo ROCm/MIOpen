@@ -396,7 +396,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params,
             #define MLO_N_IN_TILE_BLOCK  4
             #endif*/
 
-            uint read_unit          = 2;
+            uint read_unit          = 4;
             uint in_batch_stride    = params.n_outputs * params.out_width * params.out_height;
             uint in_channel_stride  = params.out_width * params.out_height;
             uint out_batch_stride   = params.n_inputs * params.in_width * params.in_height;
@@ -406,13 +406,14 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params,
             uint wei_channel_stride = params.n_outputs * params.kernel_size0 * params.kernel_size1;
             uint max_loads_per_readunit = (out_channel_stride / read_unit) * params.batch_sz;
 
-            // test result shows that read_uint == 3 will be faster
-            // it will be changed to 4 after Lightning compiler support SGPR offset
-            if((out_channel_stride % 3) == 1)
+            // limited shape size shows better performance with ead_uint == 3
+            /*
+            if( (out_channel_stride % 3) == 1)
             {
                 read_unit              = 3;
                 max_loads_per_readunit = (out_channel_stride / read_unit) * params.batch_sz;
             }
+            */
 
             uint out_pad_min_x  = 0;
             uint out_pad_min_y  = 0;
@@ -439,7 +440,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params,
                 in_pad_min_y = in_pad_min_y % params.kernel_stride1;
 
                 out_pad_min_y  = (params.pad1 + params.kernel_stride1 - 1) / params.kernel_stride1;
-                out_pad_height = (params.out_width - in_pad_min_y + params.kernel_stride1 - 1) /
+                out_pad_height = (params.out_height - in_pad_min_y + params.kernel_stride1 - 1) /
                                  params.kernel_stride1;
             }
 
