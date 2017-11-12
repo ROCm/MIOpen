@@ -59,8 +59,6 @@ __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
                               UNUSED
 #endif
                               const int b_c,
-                              const int b_nstride,
-                              const int b_cstride,
                               global MIOPEN_TYPE* c,
 #if INCR_WG == 1
                               UNUSED
@@ -88,16 +86,14 @@ __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
     int o_c = gid % b_c;
     // MIOPEN_TYPE operand = b[o_c + Boffset];
     int a_sub_index = o_n * a_nstride + o_c * a_cstride;
-    int b_sub_index = o_n * b_nstride + o_c * b_cstride;
     int c_sub_index = o_n * c_nstride + o_c * c_cstride;
 
     while(lid < work_per_wg)
     {
         int aindex = a_sub_index + lid;
-        int bindex = b_sub_index + lid;
         int cindex = c_sub_index + lid;
         c_off[cindex] =
-            MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, b_off[bindex] * alpha1) + beta * c_off[cindex];
+            MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, b_off[o_c] * alpha1) + beta * c_off[cindex];
         lid += get_local_size(0);
     }
 
@@ -112,14 +108,13 @@ __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
         int o_hw   = lid % work_off;
         int o_n    = lid / work_off;
         int aindex = o_n * a_nstride + gid * a_cstride + o_hw;
-        int bindex = o_n * b_nstride + gid * b_cstride + o_hw;
         int cindex = o_n * c_nstride + gid * c_cstride + o_hw;
         // int index = o_n * c_nstride + gid * c_cstride + o_hw;
         // c[index + Coffset] = MIOPEN_TENSOR_OP(a[index + Aoffset], operand);
         // c[index + Coffset] =
         // alpha * MIOPEN_TENSOR_OP(a[index + Aoffset], operand) + beta * c[index + Coffset];
         c_off[cindex] =
-            MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, b_off[bindex] * alpha1) + beta * c_off[cindex];
+            MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, b_off[gid] * alpha1) + beta * c_off[cindex];
 
         lid += get_local_size(0);
     }
