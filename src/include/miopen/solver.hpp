@@ -168,7 +168,8 @@ auto FindSolutionImpl(rank<0>, Solver s, const Context& context, DbRecord&)
 template <class Solver, class Context>
 ConvSolution FindSolution(Solver s, const Context& context, DbRecord& dbRecord)
 {
-    static_assert(std::is_empty<Solver>{} && std::is_trivially_constructible<Solver>{}, "Solver must be stateless");
+    static_assert(std::is_empty<Solver>{} && std::is_trivially_constructible<Solver>{},
+                  "Solver must be stateless");
     // TODO: This assumes all solutions are ConvSolution
     return FindSolutionImpl(rank<1>{}, s, context, dbRecord);
 }
