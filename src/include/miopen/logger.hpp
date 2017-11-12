@@ -186,6 +186,8 @@ enum LoggingLevel
 
 const char* LoggingLevelToCString(enum LoggingLevel level);
 
+std::string PlatformName();
+
 /// \return true if level is enabled.
 /// \param level - one of the values defined in LoggingLevel.
 int IsLogging(int level = LoggingLevel::Error);
@@ -223,7 +225,7 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 #define MIOPEN_LOG_FUNCTION(...)                                   \
     if(miopen::IsLogging(miopen::LoggingLevel::Trace))             \
     {                                                              \
-        std::cerr << __PRETTY_FUNCTION__ << "{" << std::endl;      \
+        std::cerr << miopen::PlatformName() << ": " << __PRETTY_FUNCTION__ << "{" << std::endl;      \
         MIOPEN_PP_EACH_ARGS(MIOPEN_LOG_FUNCTION_EACH, __VA_ARGS__) \
         std::cerr << "}" << std::endl;                             \
     }
@@ -238,7 +240,7 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
     {                                                                                            \
         if(miopen::IsLogging(level))                                                             \
         {                                                                                        \
-            std::cerr << LoggingLevelToCString(level) << " [" << __func__ << "] " << __VA_ARGS__ \
+            std::cerr << miopen::PlatformName() << ": " << LoggingLevelToCString(level) << " [" << __func__ << "] " << __VA_ARGS__ \
                       << std::endl;                                                              \
         }                                                                                        \
     } while(false)
