@@ -222,12 +222,12 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 }
 #define MIOPEN_LOG_FUNCTION_EACH(param) miopen::LogParam(std::cerr, #param, param) << std::endl;
 
-#define MIOPEN_LOG_FUNCTION(...)                                   \
-    if(miopen::IsLogging(miopen::LoggingLevel::Trace))             \
-    {                                                              \
-        std::cerr << miopen::PlatformName() << ": " << __PRETTY_FUNCTION__ << "{" << std::endl;      \
-        MIOPEN_PP_EACH_ARGS(MIOPEN_LOG_FUNCTION_EACH, __VA_ARGS__) \
-        std::cerr << "}" << std::endl;                             \
+#define MIOPEN_LOG_FUNCTION(...)                                                                \
+    if(miopen::IsLogging(miopen::LoggingLevel::Trace))                                          \
+    {                                                                                           \
+        std::cerr << miopen::PlatformName() << ": " << __PRETTY_FUNCTION__ << "{" << std::endl; \
+        MIOPEN_PP_EACH_ARGS(MIOPEN_LOG_FUNCTION_EACH, __VA_ARGS__)                              \
+        std::cerr << "}" << std::endl;                                                          \
     }
 #else
 #define MIOPEN_LOG_FUNCTION(...)
@@ -235,14 +235,14 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 
 /// \todo __PRETTY_FUNCTION__ is too verbose, __func_ it too short.
 /// Shall we add filename (no path, no ext) prior __func__.
-#define MIOPEN_LOG(level, ...)                                                                   \
-    do                                                                                           \
-    {                                                                                            \
-        if(miopen::IsLogging(level))                                                             \
-        {                                                                                        \
-            std::cerr << miopen::PlatformName() << ": " << LoggingLevelToCString(level) << " [" << __func__ << "] " << __VA_ARGS__ \
-                      << std::endl;                                                              \
-        }                                                                                        \
+#define MIOPEN_LOG(level, ...)                                                                  \
+    do                                                                                          \
+    {                                                                                           \
+        if(miopen::IsLogging(level))                                                            \
+        {                                                                                       \
+            std::cerr << miopen::PlatformName() << ": " << LoggingLevelToCString(level) << " [" \
+                      << __func__ << "] " << __VA_ARGS__ << std::endl;                          \
+        }                                                                                       \
     } while(false)
 
 } // namespace miopen
