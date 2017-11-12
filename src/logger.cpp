@@ -73,4 +73,14 @@ const char* LoggingLevelToCString(const enum LoggingLevel level)
         return "<Unknown>";
 }
 
+std::string PlatformName()
+{
+#if MIOPEN_BACKEND_OPENCL
+    return "MIOpen(OpenCL)";
+#elif MIOPEN_BACKEND_HIP
+    return "MIOpen(HIP)";
+#endif
+    return "MIOpen";
+}
+
 } // namespace miopen
