@@ -71,9 +71,10 @@ void BatchNormForwardTraining(Handle& handle,
         std::cerr << "Only alpha=1 and beta=0 is supported" << std::endl;
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if (miopen::CheckNumericsEnabled()) {
+    if(miopen::CheckNumericsEnabled())
+    {
         miopen::checkNumericsInput(handle, xDesc, x);
-        //miopen::checkNumericsInput(handle, yDesc, y); // if beta!=0?
+        // miopen::checkNumericsInput(handle, yDesc, y); // if beta!=0?
         miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnScale);
         miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnBias);
     }
@@ -396,14 +397,14 @@ void BatchNormForwardTraining(Handle& handle,
         }
     } // end per-activation
 
-    if (miopen::CheckNumericsEnabled()) {
+    if(miopen::CheckNumericsEnabled())
+    {
         miopen::checkNumericsOutput(handle, yDesc, y);
         miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultRunningMean);
         miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultRunningVariance);
         miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultSaveMean);
         miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultSaveInvVariance);
     }
-
 }
 //================== END FWD TRAIN ===================
 
@@ -423,7 +424,8 @@ void BatchNormForwardInference(Handle& handle,
                                ConstData_t estimatedVariance,
                                double epsilon)
 {
-    if (miopen::CheckNumericsEnabled()) {
+    if(miopen::CheckNumericsEnabled())
+    {
         miopen::checkNumericsInput(handle, xDesc, x);
         miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnScale);
         miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnBias);
@@ -550,7 +552,8 @@ void BatchNormForwardInference(Handle& handle,
                                  nullptr,
                                  nullptr);
     }
-    if (miopen::CheckNumericsEnabled()) {
+    if(miopen::CheckNumericsEnabled())
+    {
         miopen::checkNumericsOutput(handle, yDesc, y);
     }
 }
@@ -577,7 +580,8 @@ void BatchNormBackward(Handle& handle,
                        ConstData_t savedMean,
                        ConstData_t savedInvVariance)
 {
-    if (miopen::CheckNumericsEnabled()) {
+    if(miopen::CheckNumericsEnabled())
+    {
         miopen::checkNumericsInput(handle, xDesc, x);
         miopen::checkNumericsInput(handle, dyDesc, dy);
         miopen::checkNumericsInput(handle, bnScaleBiasDiffDesc, bnScale);
@@ -920,7 +924,8 @@ void BatchNormBackward(Handle& handle,
                                     epsilon);
         }
     }
-    if (miopen::CheckNumericsEnabled()) {
+    if(miopen::CheckNumericsEnabled())
+    {
         miopen::checkNumericsOutput(handle, dxDesc, dx);
         miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnScaleDiff);
         miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnBiasDiff);
