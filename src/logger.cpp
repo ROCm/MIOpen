@@ -26,6 +26,7 @@
 #include <cstdlib>
 #include <miopen/env.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/config.h>
 
 namespace miopen {
 
@@ -79,8 +80,9 @@ std::string PlatformName()
     return "MIOpen(OpenCL)";
 #elif MIOPEN_BACKEND_HIP
     return "MIOpen(HIP)";
-#endif
+#else
     return "MIOpen";
+#endif
 }
 
 } // namespace miopen
