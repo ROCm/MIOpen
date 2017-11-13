@@ -374,41 +374,42 @@ struct rnn_vanilla_driver : test_driver
         add(inVecLen, "vector-len", generate_data(get_rnn_vector_len()));
         add(hiddenSize, "hidden-size", generate_data(get_rnn_hidden_size()));
         add(numLayers, "num-layers", generate_data(get_rnn_num_layers()));
-        //add(inputMode, "in-mode", generate_data(modes));
-        //add(biasMode, "bias-mode", generate_data(modes));
-        biasMode = 0;
-        dirMode  = 1;
-        rnnMode  = 0;
-        inputMode= 0;
-        //add(dirMode, "dir-mode", generate_data(modes));
-        //add(rnnMode, "rnn-mode", generate_data(modes));
-		//add(batchSeq, "batch-seq", lazy_generate_data([=]{ return generate_batchSeq(batchSize, seqLength); }, defaultBS));
+
+//        biasMode = 0;
+//        dirMode  = 1;
+//        rnnMode  = 0;
+//        inputMode= 0;
+        add(inputMode, "in-mode", generate_data(modes));
+        add(biasMode, "bias-mode", generate_data(modes));
+        add(dirMode, "dir-mode", generate_data(modes));
+        add(rnnMode, "rnn-mode", generate_data(modes));
+		add(batchSeq, "batch-seq", lazy_generate_data([=]{ return generate_batchSeq(batchSize, seqLength); }, defaultBS));
         
     }
 
     void run()
     { 
         int modval = 4;
-        int scale = 0.9;
-        int currentval = batchSize;
-        batchSeq.clear();
-        for(int i = 0; i < seqLength; i++)
-        {            
-            if(i>0){
-                int nvalue = currentval - rand()%modval;
-                currentval = (nvalue<1) ? 1 : nvalue;
-                printf("current value: %d\n", currentval);
-            }
-            printf("adding a value to batch sequence: %d\n", currentval);
-            batchSeq.push_back(currentval);
-        }
+//        int scale = 0.9;
+//        int currentval = batchSize;
+//        batchSeq.clear();
+//        for(int i = 0; i < seqLength; i++)
+//        {            
+//            if(i>0){
+//                int nvalue = currentval - rand()%modval;
+//                currentval = (nvalue<1) ? 1 : nvalue;
+//                printf("current value: %d\n", currentval);
+//            }
+//            printf("adding a value to batch sequence: %d\n", currentval);
+//            batchSeq.push_back(currentval);
+//        }
         
-        
+#if (MIO_RNN_SP_TEST_DEBUG == 2)       
         for(int i = 0; i < seqLength; i++)
         {
             std::cout << "batch seq[" << i <<"]: " << batchSeq[i] << std::endl;
         }
-        
+#endif
         int batch_n = 0;
         for(auto& n : batchSeq) batch_n += n;
         
@@ -435,7 +436,7 @@ struct rnn_vanilla_driver : test_driver
         auto inputTensor = tensor<T>{in_sz};
         srand(0);
         for(int i = 0; i < in_sz; i++){
-            inputTensor[i] = 0.01*float(rand()%100);//scale*static_cast<T>((static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+            inputTensor[i] = 0.001*float(rand()%100);//scale*static_cast<T>((static_cast<double>(rand()) * (1.0 / RAND_MAX)));
         }
         auto inputData = inputTensor.data;
         
@@ -443,7 +444,7 @@ struct rnn_vanilla_driver : test_driver
         
         auto hxTensor = tensor<T>{hx_sz};//.generate(rand_gen_small{});
         for(int i = 0; i < hx_sz; i++){
-            hxTensor[i] = 0.01*float(rand()%100);//= scale*static_cast<T>((static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+            hxTensor[i] = 0.001*float(rand()%100);//= scale*static_cast<T>((static_cast<double>(rand()) * (1.0 / RAND_MAX)));
         }
         
         auto hxData = hxTensor.data;
@@ -460,11 +461,10 @@ struct rnn_vanilla_driver : test_driver
         }
         auto weightTensor = tensor<T>{std::size_t(wei_sz)};//.generate(rand_gen{});
         for(int i = 0; i < wei_sz; i++){
-            weightTensor[i] = 0.01*float(rand()%100);//= scale*static_cast<T>((static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+            weightTensor[i] = 0.001*float(rand()%100);//= scale*static_cast<T>((static_cast<double>(rand()) * (1.0 / RAND_MAX)));
         }
 
-        auto weightData = weightTensor.data;
-                
+        auto weightData = weightTensor.data;   
         printf("inputMode: %d, biasMode: %d, rnnMode: %d, dirMode: %d\n", inputMode, biasMode, rnnMode, dirMode);
         printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n" ,hiddenSize, batch_n, seqLength,inVecLen,numLayers);
         verify(verify_forward_train_rnn<T>{rnnDesc, inputData, 
