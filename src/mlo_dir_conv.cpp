@@ -81,12 +81,7 @@ int mlo_construct_direct2D::mloConstruct()
 #endif
     }
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    miopen::DbRecord dbRecord(db_path(), _search_params, true);
-#else
     miopen::DbRecord dbRecord(db_path(), _search_params);
-#endif
-
     for(const miopen::solver::Solver& solver : SolverStore())
     {
         if(solver.IsApplicable(_search_params) &&

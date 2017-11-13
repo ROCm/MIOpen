@@ -79,15 +79,6 @@ struct TestData
         return true;
     }
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    void LegacySerialize(std::ostream& s) const
-    {
-        Serialize(s);
-        s << ",l";
-    }
-
-    bool LegacyDeserialize(const std::string& s) { return Deserialize(s); }
-#endif
     bool operator==(const TestData& other) const { return x == other.x && y == other.y; }
 
     private:
@@ -144,10 +135,6 @@ class DbRecordTest
     static const char* id0() { return "0"; }
     static const char* id1() { return "1"; }
     static const char* missing_id() { return "2"; }
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    static const char* legacy_id() { return "ConvOclDirectFwd"; } // const from db_record.cpp
-#endif
-
     const char* temp_file_path() const { return _temp_file_path; }
 
     private:
@@ -203,30 +190,6 @@ class DbRecordWriteTest : public DbRecordTest
         EXPECT_EQUAL(read, ss_vals.str());
     }
 };
-
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-class DbRecordLegacyReadTest : public DbRecordTest
-{
-    public:
-    inline void Run()
-    {
-        std::ostringstream ss_vals;
-        ss_vals << key().x << ',' << key().y << ",l " << value0().x << ',' << value0().y;
-
-        std::ofstream(temp_file_path()) << ss_vals.str() << std::endl;
-
-        TestData read;
-
-        {
-            DbRecord record(temp_file_path(), key(), true);
-
-            EXPECT(record.Load(legacy_id(), read));
-        }
-
-        EXPECT_EQUAL(value0(), read);
-    }
-};
-#endif
 
 class DbRecordOperationsTest : public DbRecordTest
 {
@@ -286,9 +249,6 @@ int main()
 {
     miopen::tests::DbRecordReadTest().Run();
     miopen::tests::DbRecordWriteTest().Run();
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    miopen::tests::DbRecordLegacyReadTest().Run();
-#endif
     miopen::tests::DbRecordOperationsTest().Run();
 
     return 0;
