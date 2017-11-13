@@ -37,6 +37,11 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
+    if(!(params.rmv == rocm_meta_version::V1 || params.rmv == rocm_meta_version::V2 ||
+         params.rmv == rocm_meta_version::V3))
+    {
+        return false;
+    }
 
     const std::string name = params.GetStream().GetDeviceName();
     const bool device_is_gfx8_9_no_xnack =
