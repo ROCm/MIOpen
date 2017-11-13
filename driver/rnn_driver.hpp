@@ -733,7 +733,6 @@ int RNNDriver<T>::RunForwardCPU()
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
     {
         printf("verify rnn fwd \n");
-
         RunRNNForwardGEMMCPUVerify(in,
                                    wei,
                                    hy_host,

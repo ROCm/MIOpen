@@ -49,6 +49,8 @@ struct rand_gen
     };
 };
 
+
+
 struct test_driver
 {
     test_driver()                   = default;
@@ -306,7 +308,6 @@ struct test_driver
     template <class CpuRange, class GpuRange, class Fail>
     std::pair<CpuRange, GpuRange> verify_check(CpuRange out_cpu, GpuRange out_gpu, Fail fail)
     {
-        printf("In verify_check\n");
         CHECK(miopen::range_distance(out_cpu) == miopen::range_distance(out_gpu));
 
         using value_type = miopen::range_value<decltype(out_gpu)>;
@@ -331,8 +332,11 @@ struct test_driver
 
             auto idx = miopen::mismatch_idx(out_cpu, out_gpu, miopen::float_equal);
             if(idx < miopen::range_distance(out_cpu))
+            {
                 std::cout << "Mismatch at " << idx << ": " << out_cpu[idx] << " != " << out_gpu[idx]
                           << std::endl;
+                std::cout << "---------------------------------------------------------\n" << std::endl;
+            }
 
             auto cpu_nan_idx = find_idx(out_cpu, miopen::not_finite);
             if(cpu_nan_idx >= 0)
@@ -346,7 +350,7 @@ struct test_driver
         }
         else if(miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu))
         {
-            std::cout << "Warning: data is all zero" << std::endl;
+            std::cout << "Warning: Both CPU and GPU data is all zero" << std::endl;
             fail(-1);
         }
         return std::make_pair(std::move(out_cpu), std::move(out_gpu));
