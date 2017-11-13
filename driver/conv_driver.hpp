@@ -334,17 +334,17 @@ int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs()
 {
 
     miopenConvolutionMode_t mode;
-    miopenPaddingMode_t pmode;
-    int in_h       = inflags.GetValueInt("in_h");
-    int in_w       = inflags.GetValueInt("in_w");
-    int wei_h      = inflags.GetValueInt("fil_h");
-    int wei_w      = inflags.GetValueInt("fil_w");
-    int pad_h      = inflags.GetValueInt("pad_h");
-    int pad_w      = inflags.GetValueInt("pad_w");
-    int u          = inflags.GetValueInt("conv_stride_0");
-    int v          = inflags.GetValueInt("conv_stride_1");
-    int dilation_h = inflags.GetValueInt("dilation_h");
-    int dilation_w = inflags.GetValueInt("dilation_w");
+    miopenPaddingMode_t pmode = miopenPaddingDefault;
+    int in_h                  = inflags.GetValueInt("in_h");
+    int in_w                  = inflags.GetValueInt("in_w");
+    int wei_h                 = inflags.GetValueInt("fil_h");
+    int wei_w                 = inflags.GetValueInt("fil_w");
+    int pad_h                 = inflags.GetValueInt("pad_h");
+    int pad_w                 = inflags.GetValueInt("pad_w");
+    int u                     = inflags.GetValueInt("conv_stride_0");
+    int v                     = inflags.GetValueInt("conv_stride_1");
+    int dilation_h            = inflags.GetValueInt("dilation_h");
+    int dilation_w            = inflags.GetValueInt("dilation_w");
     if((inflags.GetValueStr("mode")) == "conv")
     {
         pmode = miopenPaddingDefault;
