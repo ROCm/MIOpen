@@ -42,16 +42,9 @@ namespace miopen {
 
 bool DbRecord::ParseContents(const std::string& contents)
 {
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    assert(record_format == RecordFormat::CurrentOrMixed || record_format == RecordFormat::Current);
-#endif
     std::istringstream ss(contents);
     std::string id_and_values;
     int found = 0;
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    bool is_legacy_content_found         = false;
-    const bool is_legacy_content_allowed = (record_format == RecordFormat::CurrentOrMixed);
-#endif
 
     while(std::getline(ss, id_and_values, ';'))
     {
@@ -64,18 +57,7 @@ bool DbRecord::ParseContents(const std::string& contents)
             continue;
         }
 
-        const auto id = id_and_values.substr(0, id_size);
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-        if(is_legacy_content_allowed)
-        {
-            // Here we detect actual format of a record.
-            if(id == MIOPEN_PERFDB_CONV_LEGACY_ID)
-            {
-                is_legacy_content_found = true;
-                MIOPEN_LOG_I("Legacy content found under key: " << key << " Record is Mixed.");
-            }
-        }
-#endif
+        const auto id     = id_and_values.substr(0, id_size);
         const auto values = id_and_values.substr(id_size + 1);
 
         if(map.find(id) != map.end())
@@ -88,79 +70,18 @@ bool DbRecord::ParseContents(const std::string& contents)
         ++found;
     }
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    if(!is_legacy_content_found)
-    {
-        record_format = RecordFormat::Current;
-    }
-    else
-    {
-        record_format = RecordFormat::Mixed;
-    }
-#endif
     return (found > 0);
 }
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-bool DbRecord::ParseLegacyContents(const std::string& contents)
-{
-    assert(record_format == RecordFormat::Legacy);
-    const auto id = MIOPEN_PERFDB_CONV_LEGACY_ID;
-    map.emplace(id, contents);
-    return true;
-}
-
-static bool isLegacySolver(const std::string& id)
-{
-    /// \todo Hard-coded for now, quick and dirty.
-    return (id == "ConvOclDirectFwd" || id == "ConvOclDirectFwd1x1" || id == "ConvOclDirectFwdC");
-}
-#endif
-
 bool DbRecord::StoreValues(const std::string& id, const std::string& values)
 {
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    assert(record_format != RecordFormat::CurrentOrMixed);
-    if((record_format == RecordFormat::Legacy || record_format == RecordFormat::Mixed) &&
-       isLegacySolver(id))
-    {
-        // "__LEGACY__" id shall be replaced by actual legacy SolverId.
-        // Values shall be replaced too (we do not want to cope with
-        // comparison of legacy values with values in the current format).
-        // That is, the whole map entry shall be replaced.
-        // Record format becomes Current after that.
-        const auto it = map.find(MIOPEN_PERFDB_CONV_LEGACY_ID);
-        assert(it != map.end());
-        map.erase(it);
-        map.emplace(id, values);
-        record_format = RecordFormat::Current;
-        MIOPEN_LOG_I("Legacy content under key: " << key << " replaced by " << id << ":" << values);
-        return true;
-    }
-    else if(record_format == RecordFormat::Legacy && !isLegacySolver(id))
-    {
-        // Non-legacy SolverId cannot reside in the legacy record by definition.
-        // Just add a content to the map and mark record as Mixed.
-        assert(map.find(id) == map.end());
-        map.emplace(id, values);
-        record_format = RecordFormat::Mixed;
-        MIOPEN_LOG_I("Legacy record under key: " << key << " appended by " << id << ":" << values
-                                                 << " and becomes Mixed");
-        return true;
-    }
-    assert((record_format == RecordFormat::Mixed && !isLegacySolver(id)) ||
-           record_format == RecordFormat::Current);
-#endif
     // No need to update the file if values are the same:
     const auto it = map.find(id);
     if(it == map.end() || it->second != values)
     {
         MIOPEN_LOG_I("Record under key: " << key << ", content "
-                                          << (it == map.end() ? "inserted" : "overwritten")
-                                          << ": "
-                                          << id
-                                          << ":"
-                                          << values);
+                                          << (it == map.end() ? "inserted" : "overwritten") << ": "
+                                          << id << ":" << values);
         map[id] = values;
         return true;
     }
@@ -169,73 +90,15 @@ bool DbRecord::StoreValues(const std::string& id, const std::string& values)
     return false;
 }
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-bool DbRecord::LoadValues(const std::string& id,
-                          std::string& values,
-                          DbRecord::ContentFormat& content_format)
-#else
 bool DbRecord::LoadValues(const std::string& id, std::string& values)
-#endif
 {
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    assert(record_format != RecordFormat::CurrentOrMixed);
-    if(record_format == RecordFormat::Legacy)
-    {
-        if(!isLegacySolver(id))
-            return false;
-        const auto it = map.find(MIOPEN_PERFDB_CONV_LEGACY_ID);
-        if(it == map.end())
-            return false;
-
-        values         = it->second;
-        content_format = ContentFormat::Legacy;
-        MIOPEN_LOG_I("Read record (Legacy): " << legacy_key << " " << values << " for id: " << id);
-        return true;
-    }
-    else if(record_format == RecordFormat::Mixed)
-    {
-        if(isLegacySolver(id))
-        {
-            // contents for legacy solvers may be in either legacy of current format.
-            const auto it = map.find(MIOPEN_PERFDB_CONV_LEGACY_ID);
-            if(it != map.end())
-            {
-                values         = it->second;
-                content_format = ContentFormat::Legacy;
-                MIOPEN_LOG_I("Read record (Mixed): " << key << "=" << MIOPEN_PERFDB_CONV_LEGACY_ID
-                                                     << ":"
-                                                     << values
-                                                     << " for id: "
-                                                     << id);
-                return true;
-            }
-            // Legacy content not found.
-            // Content shall be in current format.
-            // Fall down.
-        }
-        // Solver is not legacy one.
-        // Content shall be in current format.
-        // Fall down.
-    }
-#endif
     const auto it = map.find(id);
 
     if(it == map.end())
         return false;
 
     values = it->second;
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    content_format = ContentFormat::Current;
-    MIOPEN_LOG_I(
-        "Read record " << ((record_format == RecordFormat::Mixed) ? "(Mixed) " : "(Current) ")
-                       << key
-                       << "="
-                       << id
-                       << ":"
-                       << values);
-#else
     MIOPEN_LOG_I("Read record " << key << "=" << id << ":" << values);
-#endif
     return true;
 }
 
@@ -332,11 +195,7 @@ void DbRecord::ReadFile(RecordPositions* const pos)
     }
     map.clear();
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    MIOPEN_LOG_I("Looking for key: " << key << ", legacy_key: " << legacy_key);
-#else
     MIOPEN_LOG_I("Looking for key: " << key);
-#endif
 
     std::ifstream file(db_filename);
 
@@ -346,9 +205,6 @@ void DbRecord::ReadFile(RecordPositions* const pos)
         return;
     }
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    record_format = RecordFormat::Current; // Used if none record found.
-#endif
     int n_line = 0;
     while(true)
     {
@@ -361,13 +217,7 @@ void DbRecord::ReadFile(RecordPositions* const pos)
 
         const auto key_size = line.find('=');
         const bool is_key   = (key_size != std::string::npos && key_size != 0);
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-        const auto legacy_key_size = is_backward_compatible ? line.find(' ') : std::string::npos;
-        const bool is_legacy_key   = (legacy_key_size != std::string::npos && legacy_key_size != 0);
-        if(!is_key && !is_legacy_key)
-#else
         if(!is_key)
-#endif
         {
             if(!line.empty()) // Do not blame empty lines.
             {
@@ -376,58 +226,14 @@ void DbRecord::ReadFile(RecordPositions* const pos)
             }
             continue;
         }
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-        // Needs to know record format for key compare.
-        // Format of a matching record is not yet known because
-        // actual compare is not performed yet.
-        RecordFormat this_record_format = RecordFormat::Current;
-        if(is_backward_compatible)
-        {
-            // Current format ('=' separator after KEY) takes precedence over
-            // legacy conv perf db format (with ' ' separator), because current format is
-            // allowed to contain spaces everywhere, while legacy format does
-            // not use '='. So:
-            this_record_format = (is_key ? RecordFormat::CurrentOrMixed : RecordFormat::Legacy);
-        }
-
-        const auto current_key = line.substr(0, is_key ? key_size : legacy_key_size);
-#else
         const auto current_key = line.substr(0, key_size);
-#endif
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-        if(this_record_format == RecordFormat::Legacy)
-        {
-            if(current_key != legacy_key)
-            {
-                continue;
-            }
-        }
-        else
-        {
-            if(current_key != key)
-            {
-                continue;
-            }
-        }
-        record_format = this_record_format;
-        MIOPEN_LOG_I("Key match: "
-                     << current_key
-                     << " record format: "
-                     << ((record_format == RecordFormat::Legacy)
-                             ? "Legacy"
-                             : (record_format == RecordFormat::CurrentOrMixed)
-                                   ? "CurrentOrMixed"
-                                   : (record_format == RecordFormat::Mixed) ? "Mixed" : "Current"));
-        const auto contents = line.substr((is_key ? key_size : legacy_key_size) + 1);
-#else
         if(current_key != key)
         {
             continue;
         }
         MIOPEN_LOG_I("Key match: " << current_key);
-        const auto contents    = line.substr(key_size + 1);
-#endif
+        const auto contents = line.substr(key_size + 1);
 
         if(contents.empty())
         {
@@ -436,13 +242,7 @@ void DbRecord::ReadFile(RecordPositions* const pos)
         }
         MIOPEN_LOG_I("Contents found: " << contents);
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-        const bool is_parse_ok = (record_format == RecordFormat::Legacy)
-                                     ? ParseLegacyContents(contents)
-                                     : ParseContents(contents);
-#else
         const bool is_parse_ok = ParseContents(contents);
-#endif
 
         if(!is_parse_ok)
         {

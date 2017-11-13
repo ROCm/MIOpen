@@ -125,9 +125,6 @@ class PerformanceConfig
     virtual ~PerformanceConfig() {}
     virtual void Serialize(std::ostream&) const {}
     virtual bool Deserialize(const std::string& s) { return s.empty(); }
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    virtual bool LegacyDeserialize(const std::string&) { return false; }
-#endif
     friend std::ostream& operator<<(std::ostream& os, const PerformanceConfig& c)
     {
         c.Serialize(os); // Can be used here as provides text.

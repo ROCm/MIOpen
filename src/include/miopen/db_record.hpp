@@ -75,36 +75,8 @@ class DbRecord
         std::streamoff end   = -1;
     };
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-#define MIOPEN_PERFDB_CONV_LEGACY_ID "__LEGACY__"
-    enum class RecordFormat
-    {
-        Current,        // Format as documented above.
-        Mixed,          // One legacy content, and >=1 content(s) in current format.
-        Legacy,         // KEY in legacy format (x-separated). Exactly one legacy content.
-        CurrentOrMixed, // Intermediate status: fomat not yet known, but not Legacy for sure.
-    };
-    enum class ContentFormat
-    {
-        Current, // ID:VALUES in current format in both db file and internal map.
-        Legacy,  // This kind of content can't appear when record format is Current.
-                 //
-                 // Format of ID in the db file:
-                 // - None ID for legacy records.
-                 // - ID == "__LEGACY__" in mixed records.
-                 // In the internal map:
-                 // - ID is always "__LEGACY__".
-                 //
-                 // VALUES are always in legacy format (dot-separated).
-    };
-    RecordFormat record_format = RecordFormat::Current;
-#endif
     const std::string db_filename;
     const std::string key;
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    const std::string legacy_key;
-    bool is_backward_compatible = false;
-#endif
     std::unordered_map<std::string, std::string> map;
 
     template <class T>
@@ -129,28 +101,12 @@ class DbRecord
 
     bool ParseContents(const std::string& contents);
     bool StoreValues(const std::string& id, const std::string& values);
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    bool ParseLegacyContents(const std::string& contents);
-    bool LoadValues(const std::string& id, std::string& values, ContentFormat& content_format);
-#else
     bool LoadValues(const std::string& id, std::string& values);
-#endif
     bool Flush(const RecordPositions* pos);
     void ReadFile(RecordPositions* pos);
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    DbRecord(const std::string& db_filename_,
-             const std::string& key_,
-             const std::string& legacy_key_,
-             const bool is_backward_compatible_)
-        : db_filename(db_filename_),
-          key(key_),
-          legacy_key(legacy_key_),
-          is_backward_compatible(is_backward_compatible_)
-#else
     DbRecord(const std::string& db_filename_, const std::string& key_)
         : db_filename(db_filename_), key(key_)
-#endif
     {
     }
 
@@ -159,18 +115,8 @@ class DbRecord
     /// "void Serialize(std::ostream&) const"
     /// member function.
     template <class T>
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    DbRecord(const std::string& db_filename_,
-             const T& problem_config_,
-             const bool is_backward_compatible_ = false)
-        : DbRecord(db_filename_,
-                   Serialize(problem_config_),
-                   is_backward_compatible_ ? LegacySerialize(problem_config_) : "<NONE LEGACY KEY>",
-                   is_backward_compatible_)
-#else
     DbRecord(const std::string& db_filename_, const T& problem_config_)
         : DbRecord(db_filename_, Serialize(problem_config_))
-#endif
     {
     }
 
@@ -206,27 +152,10 @@ class DbRecord
     {
         std::string s;
         ReadFile(nullptr);
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-        ContentFormat s_format = ContentFormat::Current;
-        if(!LoadValues(id, s, s_format))
-#else
         if(!LoadValues(id, s))
-#endif
             return false;
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-        bool ok = false;
-        if(s_format == ContentFormat::Legacy)
-        {
-            ok = values.LegacyDeserialize(s);
-        }
-        else
-        {
-            ok = values.Deserialize(s);
-        }
-#else
         const bool ok = values.Deserialize(s);
-#endif
         if(!ok)
         {
             MIOPEN_LOG(LoggingLevel::Error, "deserialize failed: " << s);
