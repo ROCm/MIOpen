@@ -607,7 +607,8 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "stride_w", params.kernel_stride0);
     GenerateClangDefsym(options, "weights_layout", 0);
     GenerateClangDefsym(options, "reverse_weights", 0);
-    GenerateClangDefsym(options, "ROCM_METADATA_VERSION", (params.rmv == rocm_meta_version::V3) ? 3 : 4);
+    GenerateClangDefsym(
+        options, "ROCM_METADATA_VERSION", (params.rmv == rocm_meta_version::V3) ? 3 : 4);
     // Perf tune:
     const auto& pp = dynamic_cast<const PerformanceConfigAsmDirect3x3WrW&>(config);
     GenerateClangDefsym(options, "limit_wave_cnt", pp.GetLimitWaveCnt());
