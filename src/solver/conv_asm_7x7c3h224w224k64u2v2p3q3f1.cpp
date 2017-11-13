@@ -36,6 +36,10 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& p
     {
         return false;
     }
+    if(params.rmv != rocm_meta_version::V3)
+    {
+        return false;
+    }
 
     const std::string name = params.GetStream().GetDeviceName();
     if(!(name == "gfx800" || name == "gfx802" || name == "gfx803" || name == "gfx804" ||
