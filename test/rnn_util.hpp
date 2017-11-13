@@ -43,22 +43,22 @@
 inline
 std::vector<int> get_rnn_num_layers()
 {
-    return {{7}};
-    //return {{2,7,8,10,20}};
+    //return {{7}};
+    return {{2,7,8,10,20}};
 }
 
 inline
 std::vector<int> get_rnn_batchSize()
 {
     return {{16}};
-    //return {{16,32,64,128}};
+    return {{16,32,64,128}};
 }
 
 inline
 std::vector<int> get_rnn_seq_len()
 {
-    return {{2}};
-    //return {{1,2,4,10,20,50}};
+    //return {{2}};
+    return {{1,2,4,10,20,50}};
 }
 
 inline
@@ -71,8 +71,8 @@ std::vector<int> get_rnn_vector_len()
 inline
 std::vector<int> get_rnn_hidden_size()
 {
-    return {{16}};
-    //return {{10,20,50,128}};
+    //return {{16}};
+    return {{10,16,20,50,128,256}};
 }
 
 //inline
@@ -89,16 +89,18 @@ std::vector<std::vector<int>> generate_batchSeq(const int batchSize, const int s
     int modval = 4;
     srand(modval);
     int currentval = batchSize;
-    std::vector<int> batchseq;
+    std::vector<int> batchSeq;
     for(int i = 0; i < seqLength; i++)
     {
-        printf("adding a value to batch sequence.\n");
-        int nvalue = currentval - rand()%modval;
-        currentval = (nvalue<1) ? 1 : nvalue;
-        printf("current value: %d\n", currentval);
-        batchseq.push_back(currentval);
+            if(i>0){
+                int nvalue = currentval - rand()%modval;
+                currentval = (nvalue<1) ? 1 : nvalue;
+                //printf("current value: %d\n", currentval);
+            }
+            //printf("adding a value to batch sequence: %d\n", currentval);
+            batchSeq.push_back(currentval);
     }
-    return {batchseq};
+    return {batchSeq};
 }
 
 
@@ -656,7 +658,7 @@ void RNNFwdTrainCPUVerify(std::vector<T>& in,
         {
             assert(!std::isnan(wk_state.at(prelayer_shift + bs * hy_stride + h)));
             out_host.at(bs * out_stride + h) = wk_state.at(prelayer_shift + bs * hy_stride + h);
-            printf("out_host[%d]: %f\n", bs * out_stride + h, out_host.at(bs * out_stride + h));
+            //printf("out_host[%d]: %f\n", bs * out_stride + h, out_host.at(bs * out_stride + h));
         }
     }
 }
