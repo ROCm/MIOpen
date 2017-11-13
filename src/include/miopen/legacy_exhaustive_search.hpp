@@ -49,9 +49,6 @@ class LegacyPerformanceConfig : public PerformanceConfig
     void CopyTo(ConvSolution& iud) const;
     void Serialize(std::ostream& stream) const override;
     bool Deserialize(const std::string& from) override;
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    bool LegacyDeserialize(const std::string& from) override;
-#endif
 };
 } // namespace solver
 } // namespace miopen
