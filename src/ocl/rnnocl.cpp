@@ -496,6 +496,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 					}					
 
 					// update hidden status
+					offset = hid_shift + cur_batch * hy_stride;
+
 					hx_size[2] = in_n[cur_time];
 					hx_size[3] = hy_h;
 					miopenSetTensorDescriptor(
@@ -508,8 +510,6 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 						miopenSetTensorDescriptor(
 							sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
-						offset = hid_shift + cur_batch * hy_stride + ri * hy_h;
-
 						activDesc.Forward(handle,
 							&alpha,
 							miopen::deref(sp_desc),
@@ -517,8 +517,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 							&beta,
 							miopen::deref(sp_desc),
 							workSpace,
-							offset,
-							offset);
+							offset + ri * hy_h,
+							offset + ri * hy_h);
 						// Update time
 						profileRNNkernels(handle, 1);
 					}
@@ -529,8 +529,6 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 						miopenSetTensorDescriptor(
 							sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
-						offset = hid_shift + cur_batch * hy_stride + ri * 4 * hy_h;
-
 						sigDesc.Forward(handle,
 							&alpha,
 							miopen::deref(sp_desc),
@@ -538,8 +536,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 							&beta,
 							miopen::deref(sp_desc),
 							workSpace,
-							offset,
-							offset);
+							offset + ri * 4 * hy_h,
+							offset + ri * 4 * hy_h);
 						// Update time
 						profileRNNkernels(handle, 1);
 
@@ -548,8 +546,6 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 						miopenSetTensorDescriptor(
 							sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
-						offset = hid_shift + cur_batch * hy_stride + 3 * hy_h + ri * 4 * hy_h;
-
 						tanhDesc.Forward(handle,
 							&alpha,
 							miopen::deref(sp_desc),
@@ -557,8 +553,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 							&beta,
 							miopen::deref(sp_desc),
 							workSpace,
-							offset,
-							offset);
+							offset + 3 * hy_h + ri * 4 * hy_h,
+							offset + 3 * hy_h + ri * 4 * hy_h);
 						// Update time
 						profileRNNkernels(handle, 1);
 
@@ -633,8 +629,6 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 						profileRNNkernels(handle, 1);
 
 						// active cell state
-						offset = hid_shift + cur_batch * hy_stride + bi * 4 * hy_h + ri * hy_h;
-
 						tanhDesc.Forward(handle,
 							&alpha,
 							miopen::deref(sp_desc),
@@ -642,8 +636,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 							&beta,
 							miopen::deref(sp_desc),
 							workSpace,
-							offset,
-							offset);
+							offset + bi * 4 * hy_h + ri * hy_h,
+							offset + bi * 4 * hy_h + ri * hy_h);
 						// Update time
 						profileRNNkernels(handle, 1);
 
@@ -671,8 +665,6 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 						sp_size[3] = 2 * hy_h;
 						miopenSetTensorDescriptor(
 							sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
-						offset = hid_shift + cur_batch * hy_stride;
 
 						sigDesc.Forward(handle,
 							&alpha,
