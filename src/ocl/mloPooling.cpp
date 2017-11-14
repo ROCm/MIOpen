@@ -52,20 +52,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
 
-int mlo_construct_pooling2D::mloConstruct()
+void mlo_construct_pooling2D::mloConstruct()
 {
-    int ret = 0;
-
     if(isForwardDirection())
     {
 
-        ret = mloConstructFwd();
+        mloConstructFwd();
     }
     else
     {
-        ret = mloConstructBwd();
+        mloConstructBwd();
     }
-    return (ret);
 }
 
 int mlo_construct_pooling2D::mloConstructFwd()

@@ -31,7 +31,6 @@
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
-#include <miopen/mlo_internal.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {
