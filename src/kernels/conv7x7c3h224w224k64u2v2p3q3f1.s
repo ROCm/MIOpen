@@ -742,6 +742,10 @@ loop_channel:
   s_mov_b32 s8, 51520
   buffer_store_dword v15, v21, s[16:19], s8 offen offset:0
   s_endpgm
+.ifndef ROCM_METADATA_VERSION
+.error "ROCM_METADATA_VERSION must be defined"
+.endif
+.if ROCM_METADATA_VERSION == 3
 .amdgpu_code_object_metadata
 { Version: [ 3, 0 ],
     Kernels:
@@ -756,3 +760,20 @@ loop_channel:
       }
 }
 .end_amdgpu_code_object_metadata
+.endif
+.if ROCM_METADATA_VERSION == 4
+.amd_amdgpu_hsa_metadata
+{ Version: [ 1, 0 ],
+    Kernels:
+    - {
+        Name: gcnAsmConv7x7c3h224w224k64u2v2p3q3f1, SymbolName: 'gcnAsmConv7x7c3h224w224k64u2v2p3q3f1@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+        Attrs: { ReqdWorkGroupSize: [ 64, 8, 1 ] }
+        Args:
+        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: in,          AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: weights,     AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+        - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: out,         AddrSpaceQual: Global, AccQual: Default }
+        - { Size: 4, Align: 4, ValueKind: ByValue,      ValueType: F32, TypeName:  float,   Name: padding_val,                        AccQual: Default }
+      }
+}
+.end_amd_amdgpu_hsa_metadata
+.endif
