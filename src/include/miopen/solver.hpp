@@ -104,17 +104,21 @@ struct ConvSolution
 };
 
 template <class Solver>
-std::string CompulteSolverId(Solver)
+std::string ComputeSolverDbId(Solver)
 {
     const auto& name = get_type_name<Solver>();
     auto idx         = name.find_last_of(':');
     return name.substr(idx + 1);
 }
 
+
+// This will retrieve the id of the solver to write to the database. By
+// default it uses the class name. If the class is renamed, this function can
+// overriden to keep the name to avoid DB corruption.
 template <class Solver>
-const std::string& SolverId(Solver solver)
+const std::string& SolverDbId(Solver solver)
 {
-    static const auto result = CompulteSolverId(solver);
+    static const auto result = ComputeSolverDbId(solver);
     return result;
 }
 
@@ -122,30 +126,30 @@ template <class Solver, class Context>
 auto FindSolutionImpl(rank<1>, Solver s, const Context& context, DbRecord& dbRecord)
     -> decltype(s.GetSolution(context, s.Search(context)))
 {
-    MIOPEN_LOG_I("Finding solution: " << SolverId(s));
+    MIOPEN_LOG_I("Finding solution: " << SolverDbId(s));
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
     PerformanceConfig config{};
-    if(dbRecord.Load(SolverId(s), config))
+    if(dbRecord.Load(SolverDbId(s), config))
     {
-        MIOPEN_LOG_I("Perf Db: record loaded: " << SolverId(s));
+        MIOPEN_LOG_I("Perf Db: record loaded: " << SolverDbId(s));
         if(s.IsValidPerformanceConfig(context, config))
         {
             return s.GetSolution(context, config);
         }
-        MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverId(s) << ": " << config);
+        MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverDbId(s) << ": " << config);
     }
     if(context.do_search) // TODO: Make it a customization point
     {
-        MIOPEN_LOG_I("Starting search: " << SolverId(s));
+        MIOPEN_LOG_I("Starting search: " << SolverDbId(s));
         try
         {
             auto c = s.Search(context);
-            dbRecord.Store(SolverId(s), c);
+            dbRecord.Store(SolverDbId(s), c);
             return s.GetSolution(context, c);
         }
         catch(const miopen::Exception& ex)
         {
-            MIOPEN_LOG_I("Search failed for: " << SolverId(s) << ": " << ex.what());
+            MIOPEN_LOG_I("Search failed for: " << SolverDbId(s) << ": " << ex.what());
         }
     }
     return s.GetSolution(context, s.GetPerformanceConfig(context));
@@ -155,7 +159,7 @@ template <class Solver, class Context>
 auto FindSolutionImpl(rank<0>, Solver s, const Context& context, DbRecord&)
     -> decltype(s.GetSolution(context))
 {
-    MIOPEN_LOG_I("Not searchable: " << SolverId(s));
+    MIOPEN_LOG_I("Not searchable: " << SolverDbId(s));
     return s.GetSolution(context);
 }
 
