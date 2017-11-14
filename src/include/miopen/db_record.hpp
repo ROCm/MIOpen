@@ -26,8 +26,8 @@
 #ifndef GUARD_MIOPEN_DB_RECORD_HPP_
 #define GUARD_MIOPEN_DB_RECORD_HPP_
 
-#include "miopen/config.h"
-#include "miopen/logger.hpp"
+#include <miopen/config.h>
+#include <miopen/logger.hpp>
 
 #include <sstream>
 #include <string>
@@ -174,8 +174,6 @@ class DbRecord
 #endif
     {
     }
-
-    ~DbRecord() {}
 
     /// Obtains VALUES from an object of class T and stores it
     /// in db (in association with ID, under the current KEY).
