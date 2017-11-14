@@ -34,6 +34,7 @@ namespace miopen {
 ConvolutionDescriptor::ConvolutionDescriptor(
     int p_pad_h, int p_pad_w, int p_u, int p_v, int p_dilation_h, int p_dilation_w)
     : mode(miopenConvolution),
+      paddingMode(miopenPaddingDefault),
       pad_h(p_pad_h),
       pad_w(p_pad_w),
       u(p_u),
@@ -47,14 +48,16 @@ ConvolutionDescriptor::ConvolutionDescriptor(
     }
 }
 
-ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t p_mode,
+ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t c_mode,
+                                             miopenPaddingMode_t p_mode,
                                              int p_pad_h,
                                              int p_pad_w,
                                              int p_u,
                                              int p_v,
                                              int p_dilation_h,
                                              int p_dilation_w)
-    : mode(p_mode),
+    : mode(c_mode),
+      paddingMode(p_mode),
       pad_h(p_pad_h),
       pad_w(p_pad_w),
       u(p_u),
@@ -69,6 +72,11 @@ ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t p_mode,
     if(!(mode == miopenConvolution || mode == miopenTranspose))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Convolution mode not supported");
+    }
+    if(!(paddingMode == miopenPaddingSame || paddingMode == miopenPaddingValid ||
+         paddingMode == miopenPaddingDefault))
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Padding mode not supported");
     }
 }
 
@@ -117,22 +125,40 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
     std::ptrdiff_t output_c;
     std::ptrdiff_t output_h;
     std::ptrdiff_t output_w;
-    if(mode == miopenTranspose)
+
+    if(paddingMode == miopenPaddingDefault)
     {
-        output_c = filter_c;
-        output_h = std::max<std::ptrdiff_t>(
-            1, u * (input_h - 1) + 1 + dilation_h * (filter_h - 1.0) - 2 * pad_h);
-        output_w = std::max<std::ptrdiff_t>(
-            1, v * (input_w - 1) + 1 + dilation_w * (filter_w - 1.0) - 2 * pad_w);
+        if(mode == miopenTranspose)
+        {
+            output_c = filter_c;
+            output_h = std::max<std::ptrdiff_t>(
+                1, u * (input_h - 1) + 1 + dilation_h * (filter_h - 1.0) - 2 * pad_h);
+            output_w = std::max<std::ptrdiff_t>(
+                1, v * (input_w - 1) + 1 + dilation_w * (filter_w - 1.0) - 2 * pad_w);
+        }
+        else if(mode == miopenConvolution)
+        {
+            output_c = filter_k;
+            output_h = std::max<std::ptrdiff_t>(
+                1, (input_h - (1 + dilation_h * (filter_h - 1)) + 2 * pad_h) / u + 1);
+            output_w = std::max<std::ptrdiff_t>(
+                1, (input_w - (1 + dilation_w * (filter_w - 1)) + 2 * pad_w) / v + 1);
+        }
     }
-    else
+    else if(paddingMode == miopenPaddingSame)
     {
         output_c = filter_k;
-        output_h = std::max<std::ptrdiff_t>(
-            1, (input_h - (1 + dilation_h * (filter_h - 1)) + 2 * pad_h) / u + 1);
-        output_w = std::max<std::ptrdiff_t>(
-            1, (input_w - (1 + dilation_w * (filter_w - 1)) + 2 * pad_w) / v + 1);
+        output_h = std::ceil(static_cast<double>(input_h) / u);
+        output_w = std::ceil(static_cast<double>(input_w) / v);
     }
+    else if(paddingMode == miopenPaddingValid)
+    {
+        output_c = filter_k;
+        output_h = std::ceil(static_cast<double>(input_h - filter_h + 1) / u);
+        output_w = std::ceil(static_cast<double>(input_w - filter_w + 1) / v);
+    }
+    else
+        MIOPEN_THROW(miopenStatusInvalidValue, "Invalid Padding Mode!");
 
     return std::make_tuple(input_n, output_c, output_h, output_w);
 
@@ -225,7 +251,13 @@ bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& 
           pad_w == 0));
 
     bool workarounds =
-        ((_kernel_size0 == 1 && _kernel_size1 == 1 && (u != 1 || v != 1)) ||
+        // temp enalbe PAD/STRIDE mode: but C,K must be 16x,  non-16x C/K will be developed later
+        //((_kernel_size0 == 1 && _kernel_size1 == 1 && (u != 1 || v != 1)) ||
+
+        ((_kernel_size0 == 1 && _kernel_size1 == 1 &&
+          (u != 1 || v != 1 || ((c & 0xF) > 0) || ((k & 0xF) > 0))) ||
+         // MD: Disabling all stride=2 configs
+         // && ((c & 0xF) > 0 || (k & 0xF) > 0)) ||
          (_kernel_size0 == 7 && _kernel_size1 == 7 && (pad_h == 0 || pad_w == 0)) ||
          (_kernel_size0 == 3 && _kernel_size1 == 3 && (pad_h > 1 || pad_w > 1 || u > 2 || v > 2)) ||
          (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0) || (k < 16 || (k % 2 != 0)));
