@@ -208,7 +208,6 @@ void OpTensor(Handle& handle,
     CreateBitmapAndGrid(bitmap, blens, clens, num_wg, work_per_wg, (d - 2));
 
 #if(MIO_TENSOROCL_DEBUG == 1)
-    printf("d: %d\n", d);
     printf("bitmap: %u\n", bitmap);
     printf("work_per_wg: %d, num_wg: %d\n", work_per_wg, num_wg);
 #endif
@@ -256,11 +255,11 @@ void OpTensor(Handle& handle,
 
     // Special case for adding tensors in place
     size_t global_threads;
-    // if(dims == 4)
-    // global_threads = (leading_ones == 1 && (d - 1) == 3) ? num_wg : num_wg * local_threads;
-    // else
-    global_threads = (leading_ones == 1 && (d - 1) == dims) ? num_wg : num_wg * local_threads;
-    global_threads = (global_threads < local_threads) ? local_threads : global_threads;
+    if(dims == 4)
+        global_threads = (leading_ones == 1 && (d - 1) == 3) ? num_wg : num_wg * local_threads;
+    else
+        global_threads = (leading_ones == 1 && (d - 1) == dims) ? num_wg : num_wg * local_threads;
+    global_threads     = (global_threads < local_threads) ? local_threads : global_threads;
 
     const std::vector<size_t> vgd{global_threads, 1, 1};
 
@@ -386,6 +385,7 @@ void OpTensor(Handle& handle,
             int(astrides[1]),
             BTensor,
             int(blens[1]),
+            int(bstrides[1]),
             CTensor,
             int(clens[0]),
             int(cstrides[0]),
@@ -400,16 +400,24 @@ void OpTensor(Handle& handle,
     }
     else if(leading_ones)
     {
+
         handle.GetKernel(
             "OpTensorLeadingOnes", "", program_name, "OpTensorLeadingOnes", vld, vgd, parms)(
             ATensor,
+            int(astrides[0]),
+            int(astrides[1]),
+            int(astrides[2]),
             BTensor,
+            int(bstrides[0]),
+            int(bstrides[1]),
+            int(bstrides[2]),
             CTensor,
             int(clens[1]),
             int(clens[2]),
             int(clens[3]),
             int(cstrides[0]),
             int(cstrides[1]),
+            int(cstrides[2]),
             miopen_alpha0,
             miopen_alpha1,
             miopen_beta,
