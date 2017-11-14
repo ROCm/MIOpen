@@ -37,8 +37,7 @@ bool ConvOclDirectFwd11x11::IsApplicable(const ConvolutionContext& params) const
            params.kernel_size0 == 11 && params.kernel_stride1 == 4 && params.kernel_stride0 == 4;
 }
 
-ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params,
-                                                const PerformanceConfig&) const
+ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
     const bool is_forward = params.direction.IsForward();
