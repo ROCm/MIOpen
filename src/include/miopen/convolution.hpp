@@ -55,7 +55,8 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                           int p_v          = 1,
                           int p_dilation_h = 1,
                           int p_dilation_w = 1);
-    ConvolutionDescriptor(miopenConvolutionMode_t p_mode,
+    ConvolutionDescriptor(miopenConvolutionMode_t c_mode,
+                          miopenPaddingMode_t p_mode,
                           int p_pad_h      = 0,
                           int p_pad_w      = 0,
                           int p_u          = 1,
@@ -264,6 +265,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                     size_t workSpaceSize) const;
 
     miopenConvolutionMode_t mode;
+    miopenPaddingMode_t paddingMode;
     int pad_h;
     int pad_w;
     int u;
