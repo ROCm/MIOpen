@@ -111,7 +111,6 @@ std::string ComputeSolverDbId(Solver)
     return name.substr(idx + 1);
 }
 
-
 // This will retrieve the id of the solver to write to the database. By
 // default it uses the class name. If the class is renamed, this function can
 // overriden to keep the name to avoid DB corruption.
