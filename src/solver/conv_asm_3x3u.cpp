@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include <unordered_map>
+#include <sstream>
 #include "miopen/env.hpp"
 #include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
@@ -146,8 +147,8 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
                         (params.rmv == rocm_meta_version::V1)
                             ? 1
                             : (params.rmv == rocm_meta_version::V2)
-                                ? 2
-                                : (params.rmv == rocm_meta_version::V3) ? 3 : 4);
+                                  ? 2
+                                  : (params.rmv == rocm_meta_version::V3) ? 3 : 4);
 
     KernelInfo construction_params;
     construction_params.comp_options = options.str();
