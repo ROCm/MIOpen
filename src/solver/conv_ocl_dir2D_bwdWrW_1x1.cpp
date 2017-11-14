@@ -277,8 +277,7 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     return result;
 }
 
-ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params,
-                                           const PerformanceConfig&) const
+ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
     if(params.n_passes)
