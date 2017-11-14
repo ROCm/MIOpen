@@ -273,6 +273,16 @@ typedef enum {
     miopenTranspose   = 1, /*!< Transpose convolutions */
 } miopenConvolutionMode_t;
 
+/*! @ingroup padding
+ *  @enum miopenPaddingMode_t
+ * Padding mode selection for convolution/Pooling layer preference
+*/
+typedef enum {
+    miopenPaddingDefault = 0, /*!< MIOPEN Default Padding */
+    miopenPaddingSame    = 1, /*!< Tensorflow SAME Padding */
+    miopenPaddingValid   = 2, /*!< Tensorflow VALID Padding */
+} miopenPaddingMode_t;
+
 /*! @ingroup pooling
  * @enum miopenPoolingMode_t
  * Pooling layer mode
