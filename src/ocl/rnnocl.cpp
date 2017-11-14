@@ -381,6 +381,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 			{
 				cur_time = ri == 0 ? ti : seqLen - 1 - ti;
 				cur_batch = ri == 0 ? bacc : baccbi;
+				offset = hid_shift + cur_batch * hy_stride;
 
 				if (in_n[cur_time] > 0)
 				{
@@ -406,7 +407,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 							workSpace,
 							hx_shift + ri * hy_n * hy_h,
 							wei_shift + ri * wei_len * uni_stride,
-							hid_shift + cur_batch * hy_stride + ri * wei_len);
+							offset + ri * wei_len);
 
 						// Update time
 						profileRNNkernels(handle, 1);
@@ -433,7 +434,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 								workSpace,
 								hx_shift + ri * hy_n * hy_h,
 								wei_shift + 2 * hy_h * uni_stride + ri * 3 * hy_h * uni_stride,
-								hid_shift + cur_batch * hy_stride + bi * 3 * hy_h + ri * hy_h);
+								offset + bi * 3 * hy_h + ri * hy_h);
 
 							// Update time
 							profileRNNkernels(handle, 1);
@@ -461,7 +462,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 							workSpace,
 							hx_shift + ri * hy_n * hy_h,
 							wei_shift + ri * wei_len * uni_stride,
-							hid_shift + cur_batch * hy_stride + ri * wei_len);
+							offset + ri * wei_len);
 
 						// Update time
 						profileRNNkernels(handle, 1);
@@ -488,7 +489,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 								workSpace,
 								hx_shift + ri * hy_n * hy_h,
 								wei_shift + 2 * hy_h * uni_stride + ri * 3 * hy_h * uni_stride,
-								hid_shift + cur_batch * hy_stride + bi * 3 * hy_h + ri * hy_h);
+								offset + bi * 3 * hy_h + ri * hy_h);
 
 							// Update time
 							profileRNNkernels(handle, 1);
@@ -496,8 +497,6 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 					}					
 
 					// update hidden status
-					offset = hid_shift + cur_batch * hy_stride;
-
 					hx_size[2] = in_n[cur_time];
 					hx_size[3] = hy_h;
 					miopenSetTensorDescriptor(
@@ -574,9 +573,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 							&beta_t,
 							miopen::deref(sp_desc),
 							workSpace,
-							hid_shift + cur_batch * hy_stride + ri * 4 * hy_h,
-							hid_shift + cur_batch * hy_stride + 3 * hy_h + ri * 4 * hy_h,
-							hid_shift + cur_batch * hy_stride + bi * 4 * hy_h + ri * hy_h);
+							offset + ri * 4 * hy_h,
+							offset + 3 * hy_h + ri * 4 * hy_h,
+							offset + bi * 4 * hy_h + ri * hy_h);
 						// Update time
 						profileRNNkernels(handle, 1);
 
@@ -593,9 +592,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 								&beta_t,
 								miopen::deref(sp_desc),
 								workSpace,
-								hid_shift + cur_batch * hy_stride + hy_h + ri * 4 * hy_h,
+								offset + hy_h + ri * 4 * hy_h,
 								hx_shift + ri * hy_n * hy_h,
-								hid_shift + cur_batch * hy_stride + bi * 4 * hy_h + ri * hy_h);
+								offset + bi * 4 * hy_h + ri * hy_h);
 						}
 						else
 						{
@@ -610,9 +609,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 								&beta_t,
 								miopen::deref(sp_desc),
 								workSpace,
-								hid_shift + cur_batch * hy_stride + hy_h + ri * 4 * hy_h,
+								offset + hy_h + ri * 4 * hy_h,
 								hx_shift + ri * hy_n * hy_h,
-								hid_shift + cur_batch * hy_stride + bi * 4 * hy_h + ri * hy_h);
+								offset + bi * 4 * hy_h + ri * hy_h);
 						}
 						// Update time
 						profileRNNkernels(handle, 1);
@@ -623,7 +622,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 							workSpace,
 							miopen::deref(hx_desc),
 							cy,
-							hid_shift + cur_batch * hy_stride + bi * 4 * hy_h + ri * hy_h,
+							offset + bi * 4 * hy_h + ri * hy_h,
 							hx_shift + ri * hy_n * hy_h);
 						// Update time
 						profileRNNkernels(handle, 1);
@@ -653,9 +652,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 							&beta_t,
 							miopen::deref(sp_desc),
 							workSpace,
-							hid_shift + cur_batch * hy_stride + 2 * hy_h + ri * 4 * hy_h,
-							hid_shift + cur_batch * hy_stride + bi * 4 * hy_h + ri * hy_h,
-							hid_shift + cur_batch * hy_stride + bi * 5 * hy_h + ri * hy_h);
+							offset + 2 * hy_h + ri * 4 * hy_h,
+							offset + bi * 4 * hy_h + ri * hy_h,
+							offset + bi * 5 * hy_h + ri * hy_h);
 						// Update time
 						profileRNNkernels(handle, 1);
 				}
@@ -698,9 +697,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 							&beta_t,
 							miopen::deref(sp_desc),
 							workSpace,
-							hid_shift + cur_batch * hy_stride + hy_h + ri * 3 * hy_h,
-							hid_shift + cur_batch * hy_stride + bi * 3 * hy_h + ri * hy_h,
-							hid_shift + cur_batch * hy_stride + 2 * hy_h + ri * 3 * hy_h);
+							offset + hy_h + ri * 3 * hy_h,
+							offset + bi * 3 * hy_h + ri * hy_h,
+							offset + 2 * hy_h + ri * 3 * hy_h);
 						// Update time
 						profileRNNkernels(handle, 1);
 
@@ -732,9 +731,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 							&beta_t,
 							miopen::deref(sp_desc),
 							workSpace,
-							hid_shift + cur_batch * hy_stride + ri * 3 * hy_h,
-							hid_shift + cur_batch * hy_stride + 2 * hy_h + ri * 3 * hy_h,
-							hid_shift + cur_batch * hy_stride + bi * 3 * hy_h + ri * hy_h);
+							offset + ri * 3 * hy_h,
+							offset + 2 * hy_h + ri * 3 * hy_h,
+							offset + bi * 3 * hy_h + ri * hy_h);
 						// Update time
 						profileRNNkernels(handle, 1);
 
@@ -753,9 +752,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 							&beta_t,
 							miopen::deref(sp_desc),
 							workSpace,
-							hid_shift + cur_batch * hy_stride + 2 * hy_h + ri * 3 * hy_h,
-							hid_shift + cur_batch * hy_stride + bi * 3 * hy_h + ri * hy_h,
-							hid_shift + cur_batch * hy_stride + bi * 3 * hy_h + ri * hy_h);
+							offset + 2 * hy_h + ri * 3 * hy_h,
+							offset + bi * 3 * hy_h + ri * hy_h,
+							offset + bi * 3 * hy_h + ri * hy_h);
 						// Update time
 						profileRNNkernels(handle, 1);
 
@@ -775,9 +774,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 								&beta_t,
 								miopen::deref(sp_desc),
 								workSpace,
-								hid_shift + cur_batch * hy_stride + ri * 3 * hy_h,
+								offset + ri * 3 * hy_h,
 								hx_shift + ri * hy_n * hy_h,
-								hid_shift + cur_batch * hy_stride + bi * 3 * hy_h + ri * hy_h);
+								offset + bi * 3 * hy_h + ri * hy_h);
 						}
 						else
 						{
@@ -792,9 +791,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 								&beta_t,
 								miopen::deref(sp_desc),
 								workSpace,
-								hid_shift + cur_batch * hy_stride + ri * 3 * hy_h,
+								offset + ri * 3 * hy_h,
 								hx_shift + ri * hy_n * hy_h,
-								hid_shift + cur_batch * hy_stride + bi * 3 * hy_h + ri * hy_h);
+								offset + bi * 3 * hy_h + ri * hy_h);
 						}
 						// Update time
 						profileRNNkernels(handle, 1);
@@ -806,7 +805,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 						workSpace,
 						miopen::deref(hx_desc),
 						hy,
-						hid_shift + cur_batch * hy_stride + hid_off + ri * hy_h,
+						offset + hid_off + ri * hy_h,
 						hx_shift + ri * hy_n * hy_h);
 					// Update time
 					profileRNNkernels(handle, 1);
@@ -1235,6 +1234,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 			{
 				cur_time = ri == 0 ? ti : seqLen - 1 - ti;
 				cur_batch = ri == 0 ? bacc : baccbi;
+				offset = hid_shift + cur_batch * hy_stride;
 
 				if (in_n[cur_time] > 0)
 				{
@@ -1260,7 +1260,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							reserveSpace,
 							hx_shift + ri * hy_n * hy_h,
 							wei_shift + ri * wei_len * uni_stride,
-							hid_shift + cur_batch * hy_stride + ri * wei_len);
+							offset + ri * wei_len);
 
 						// Update time
 						profileRNNkernels(handle, 1);
@@ -1287,7 +1287,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 								reserveSpace,
 								hx_shift + ri * hy_n * hy_h,
 								wei_shift + 2 * hy_h * uni_stride + ri * 3 * hy_h * uni_stride,
-								hid_shift + cur_batch * hy_stride + bi * 3 * hy_h + ri * hy_h);
+								offset + bi * 3 * hy_h + ri * hy_h);
 
 							// Update time
 							profileRNNkernels(handle, 1);
@@ -1315,7 +1315,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							reserveSpace,
 							hx_shift + ri * hy_n * hy_h,
 							wei_shift + ri * wei_len * uni_stride,
-							hid_shift + cur_batch * hy_stride + ri * wei_len);
+							offset + ri * wei_len);
 
 						// Update time
 						profileRNNkernels(handle, 1);
@@ -1342,7 +1342,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 								reserveSpace,
 								hx_shift + ri * hy_n * hy_h,
 								wei_shift + 2 * hy_h * uni_stride + ri * 3 * hy_h * uni_stride,
-								hid_shift + cur_batch * hy_stride + bi * 3 * hy_h + ri * hy_h);
+								offset + bi * 3 * hy_h + ri * hy_h);
 
 							// Update time
 							profileRNNkernels(handle, 1);
@@ -1350,8 +1350,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 					}
 
 					// update hidden status
-					offset = hid_shift + cur_batch * hy_stride;
-
 					hx_size[2] = in_n[cur_time];
 					hx_size[3] = hy_h;
 					miopenSetTensorDescriptor(
@@ -1428,9 +1426,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							&beta_t,
 							miopen::deref(sp_desc),
 							reserveSpace,
-							hid_shift + cur_batch * hy_stride + ri * 4 * hy_h + nLayers * batch_n * hy_stride,
-							hid_shift + cur_batch * hy_stride + 3 * hy_h + ri * 4 * hy_h + nLayers * batch_n * hy_stride,
-							hid_shift + cur_batch * hy_stride + bi * 4 * hy_h + ri * hy_h);
+							offset + ri * 4 * hy_h + nLayers * batch_n * hy_stride,
+							offset + 3 * hy_h + ri * 4 * hy_h + nLayers * batch_n * hy_stride,
+							offset + bi * 4 * hy_h + ri * hy_h);
 						// Update time
 						profileRNNkernels(handle, 1);
 
@@ -1447,9 +1445,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 								&beta_t,
 								miopen::deref(sp_desc),
 								reserveSpace,
-								hid_shift + cur_batch * hy_stride + hy_h + ri * 4 * hy_h + nLayers * batch_n * hy_stride,
+								offset + hy_h + ri * 4 * hy_h + nLayers * batch_n * hy_stride,
 								hx_shift + ri * hy_n * hy_h,
-								hid_shift + cur_batch * hy_stride + bi * 4 * hy_h + ri * hy_h);
+								offset + bi * 4 * hy_h + ri * hy_h);
 						}
 						else
 						{
@@ -1464,9 +1462,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 								&beta_t,
 								miopen::deref(sp_desc),
 								reserveSpace,
-								hid_shift + cur_batch * hy_stride + hy_h + ri * 4 * hy_h + nLayers * batch_n * hy_stride,
+								offset + hy_h + ri * 4 * hy_h + nLayers * batch_n * hy_stride,
 								hx_shift + ri * hy_n * hy_h,
-								hid_shift + cur_batch * hy_stride + bi * 4 * hy_h + ri * hy_h);
+								offset + bi * 4 * hy_h + ri * hy_h);
 						}
 						// Update time
 						profileRNNkernels(handle, 1);
@@ -1477,7 +1475,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							reserveSpace,
 							miopen::deref(hx_desc),
 							cy,
-							hid_shift + cur_batch * hy_stride + bi * 4 * hy_h + ri * hy_h,
+							offset + bi * 4 * hy_h + ri * hy_h,
 							hx_shift + ri * hy_n * hy_h);
 						// Update time
 						profileRNNkernels(handle, 1);
@@ -1507,9 +1505,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							&beta_t,
 							miopen::deref(sp_desc),
 							reserveSpace,
-							hid_shift + cur_batch * hy_stride + 2 * hy_h + ri * 4 * hy_h + nLayers * batch_n * hy_stride,
-							hid_shift + cur_batch * hy_stride + bi * 4 * hy_h + ri * hy_h + nLayers * batch_n * hy_stride,
-							hid_shift + cur_batch * hy_stride + bi * 5 * hy_h + ri * hy_h);
+							offset + 2 * hy_h + ri * 4 * hy_h + nLayers * batch_n * hy_stride,
+							offset + bi * 4 * hy_h + ri * hy_h + nLayers * batch_n * hy_stride,
+							offset + bi * 5 * hy_h + ri * hy_h);
 						// Update time
 						profileRNNkernels(handle, 1);
 					}
@@ -1552,9 +1550,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							&beta_t,
 							miopen::deref(sp_desc),
 							reserveSpace,
-							hid_shift + cur_batch * hy_stride + hy_h + ri * 3 * hy_h + nLayers * batch_n * hy_stride,
-							hid_shift + cur_batch * hy_stride + bi * 3 * hy_h + ri * hy_h,
-							hid_shift + cur_batch * hy_stride + 2 * hy_h + ri * 3 * hy_h);
+							offset + hy_h + ri * 3 * hy_h + nLayers * batch_n * hy_stride,
+							offset + bi * 3 * hy_h + ri * hy_h,
+							offset + 2 * hy_h + ri * 3 * hy_h);
 						// Update time
 						profileRNNkernels(handle, 1);
 
@@ -1586,9 +1584,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							&beta_t,
 							miopen::deref(sp_desc),
 							reserveSpace,
-							hid_shift + cur_batch * hy_stride + ri * 3 * hy_h + nLayers * batch_n * hy_stride,
-							hid_shift + cur_batch * hy_stride + 2 * hy_h + ri * 3 * hy_h + nLayers * batch_n * hy_stride,
-							hid_shift + cur_batch * hy_stride + bi * 3 * hy_h + ri * hy_h);
+							offset + ri * 3 * hy_h + nLayers * batch_n * hy_stride,
+							offset + 2 * hy_h + ri * 3 * hy_h + nLayers * batch_n * hy_stride,
+							offset + bi * 3 * hy_h + ri * hy_h);
 						// Update time
 						profileRNNkernels(handle, 1);
 
@@ -1607,9 +1605,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 							&beta_t,
 							miopen::deref(sp_desc),
 							reserveSpace,
-							hid_shift + cur_batch * hy_stride + 2 * hy_h + ri * 3 * hy_h + nLayers * batch_n * hy_stride,
-							hid_shift + cur_batch * hy_stride + bi * 3 * hy_h + ri * hy_h,
-							hid_shift + cur_batch * hy_stride + bi * 3 * hy_h + ri * hy_h);
+							offset + 2 * hy_h + ri * 3 * hy_h + nLayers * batch_n * hy_stride,
+							offset + bi * 3 * hy_h + ri * hy_h,
+							offset + bi * 3 * hy_h + ri * hy_h);
 						// Update time
 						profileRNNkernels(handle, 1);
 
@@ -1629,9 +1627,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 								&beta_t,
 								miopen::deref(sp_desc),
 								reserveSpace,
-								hid_shift + cur_batch * hy_stride + ri * 3 * hy_h + nLayers * batch_n * hy_stride,
+								offset + ri * 3 * hy_h + nLayers * batch_n * hy_stride,
 								hx_shift + ri * hy_n * hy_h,
-								hid_shift + cur_batch * hy_stride + bi * 3 * hy_h + ri * hy_h);
+								offset + bi * 3 * hy_h + ri * hy_h);
 						}
 						else
 						{
@@ -1646,9 +1644,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 								&beta_t,
 								miopen::deref(sp_desc),
 								reserveSpace,
-								hid_shift + cur_batch * hy_stride + ri * 3 * hy_h + nLayers * batch_n * hy_stride,
+								offset + ri * 3 * hy_h + nLayers * batch_n * hy_stride,
 								hx_shift + ri * hy_n * hy_h,
-								hid_shift + cur_batch * hy_stride + bi * 3 * hy_h + ri * hy_h);
+								offset + bi * 3 * hy_h + ri * hy_h);
 						}
 						// Update time
 						profileRNNkernels(handle, 1);
@@ -1660,7 +1658,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 						reserveSpace,
 						miopen::deref(hx_desc),
 						hy,
-						hid_shift + cur_batch * hy_stride + hid_off + ri * hy_h,
+						offset + hid_off + ri * hy_h,
 						hx_shift + ri * hy_n * hy_h);
 					// Update time
 					profileRNNkernels(handle, 1);
