@@ -351,12 +351,15 @@ struct pooling_driver : test_driver
         {
             if(filter.strides[0] == 0 || filter.strides[1] == 0)
                 return;
-            filter.pads[0] = (in_h % filter.strides[0] == 0)
-                                 ? (std::max((window_h - filter.strides[0]), 0))
-                                 : (std::max((window_h - (in_h % filter.strides[0])), 0));
-            filter.pads[1] = (in_w % filter.strides[1] == 0)
-                                 ? (std::max((window_w - filter.strides[1]), 0))
-                                 : (std::max((window_w - (in_w % filter.strides[1])), 0));
+            auto _pad_w = (in_h % filter.strides[0] == 0)
+                              ? (std::max((window_h - filter.strides[0]), 0))
+                              : (std::max((window_h - (in_h % filter.strides[0])), 0));
+            auto _pad_h = (in_w % filter.strides[1] == 0)
+                              ? (std::max((window_w - filter.strides[1]), 0))
+                              : (std::max((window_w - (in_w % filter.strides[1])), 0));
+
+            filter.pads[0] = _pad_w / 2;
+            filter.pads[1] = _pad_h / 2;
 
             out_h = std::ceil(static_cast<double>(in_h) / filter.strides[0]);
             out_w = std::ceil(static_cast<double>(in_w) / filter.strides[1]);
