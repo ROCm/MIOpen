@@ -42,7 +42,7 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
     if(!(params.rmv == rocm_meta_version::V1 || params.rmv == rocm_meta_version::V2 ||
-         params.rmv == rocm_meta_version::V3))
+         params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
     {
         return false;
     }
@@ -145,7 +145,9 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
                         "ROCM_METADATA_VERSION",
                         (params.rmv == rocm_meta_version::V1)
                             ? 1
-                            : ((params.rmv == rocm_meta_version::V2) ? 2 : 3));
+                            : (params.rmv == rocm_meta_version::V2)
+                                ? 2
+                                : (params.rmv == rocm_meta_version::V3) ? 3 : 4);
 
     KernelInfo construction_params;
     construction_params.comp_options = options.str();
