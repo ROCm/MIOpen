@@ -127,18 +127,16 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, DbRecord& dbRec
     -> decltype(s.GetSolution(context, s.Search(context)))
 {
     const FindEnforce enforce = GetFindEnforce();
-    MIOPEN_LOG_I("Finding solution: " << SolverDbId(s));
-    do
+    MIOPEN_LOG_I(SolverDbId(s));
+    if(enforce == FindEnforce::Clean)
     {
-        if(enforce == FindEnforce::Clean)
-        {
-            if(dbRecord.Remove(SolverDbId(s)))
-                MIOPEN_LOG_W(
-                    "Perf Db: record removed: " << SolverDbId(s) << ", enforce: " << enforce);
-            break;
-        }
-        else if((context.do_search && enforce == FindEnforce::DbUpdate) ||
-                enforce == FindEnforce::SearchDbUpdate)
+        if(dbRecord.Remove(SolverDbId(s)))
+            MIOPEN_LOG_W("Perf Db: record removed: " << SolverDbId(s) << ", enforce: " << enforce);
+    }
+    else
+    {
+        if((context.do_search && enforce == FindEnforce::DbUpdate) ||
+           enforce == FindEnforce::SearchDbUpdate)
         {
             MIOPEN_LOG_W("Perf Db: load skipped: " << SolverDbId(s) << ", enforce: " << enforce);
         }
@@ -173,7 +171,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, DbRecord& dbRec
                 MIOPEN_LOG_E("Search failed for: " << SolverDbId(s) << ": " << ex.what());
             }
         }
-    } while(false);
+    }
     return s.GetSolution(context, s.GetPerformanceConfig(context));
 }
 
