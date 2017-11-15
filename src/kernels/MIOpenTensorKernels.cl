@@ -128,22 +128,13 @@ __kernel void OpTensorLeadingOnes(global MIOPEN_TYPE* a,
                                   const int b_cstride,
                                   const int b_hstride,
                                   global MIOPEN_TYPE* c,
-                                  //#if FIRST_NOT_ONE == 0
-                                  // UNUSED
-                                  //#endif
                                   const int c_c,
-                                  //#if FIRST_NOT_ONE <= 1
-                                  // UNUSED
-                                  //#endif
                                   const int c_h,
-                                  //#if FIRST_NOT_ONE <= 1
-                                  // UNUSED
-                                  //#endif
+#if FIRST_NOT_ONE <= 2
+                                  UNUSED
+#endif
                                   const int c_w,
                                   const int c_nstride,
-                                  //#if FIRST_NOT_ONE == 0
-                                  // UNUSED
-                                  //#endif
                                   const int c_cstride,
                                   const int c_hstride,
                                   const float alpha0,
