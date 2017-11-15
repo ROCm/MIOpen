@@ -41,9 +41,9 @@ inline bool operator<=(const FindEnforce& lhs, const int& rhs)
     return static_cast<int>(lhs) <= rhs;
 }
 
-inline bool operator<(const int& lhs, const FindEnforce& rhs)
+inline bool operator<=(const int& lhs, const FindEnforce& rhs)
 {
-    return lhs < static_cast<int>(rhs);
+    return lhs <= static_cast<int>(rhs);
 }
 
 const char* FindEnforce2CString(const FindEnforce mode)
@@ -55,15 +55,15 @@ const char* FindEnforce2CString(const FindEnforce mode)
     case FindEnforce::Search: return "SEARCH";
     case FindEnforce::SearchDbUpdate: return "SEARCH_DB_UPDATE";
     case FindEnforce::Clean: return "CLEAN";
-    default: return "<Unknown>";
     }
+    return "<Unknown>";
 }
 
 FindEnforce GetFindEnforceImpl()
 {
     const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_ENFORCE{});
     if(!p_asciz)
-        return FindEnforce::Default;
+        return FindEnforce::Default_;
     std::string str = p_asciz;
     for(auto& c : str)
         c = toupper(static_cast<unsigned char>(c));
@@ -81,10 +81,10 @@ FindEnforce GetFindEnforceImpl()
     { // Nop. Fall down & try numerics.
     }
     const int val = miopen::Value(MIOPEN_FIND_ENFORCE{});
-    if(FindEnforce::Begin <= val && val < FindEnforce::End)
+    if(FindEnforce::First_ <= val && val <= FindEnforce::Last_)
         return static_cast<FindEnforce>(val);
     MIOPEN_LOG_E("Wrong MIOPEN_FIND_ENFORCE, using default.");
-    return FindEnforce::Default;
+    return FindEnforce::Default_;
 }
 
 } // namespace
@@ -97,7 +97,7 @@ FindEnforce GetFindEnforce()
 
 std::ostream& operator<<(std::ostream& os, const FindEnforce sm)
 {
-    return os << FindEnforce2CString(sm);
+    return os << FindEnforce2CString(sm) << " (" << static_cast<int>(sm) << ')';
 }
 
 } // namespace miopen

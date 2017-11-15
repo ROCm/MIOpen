@@ -33,14 +33,14 @@ namespace miopen {
 
 enum class FindEnforce
 {
-    Begin = 0,
-    None  = Begin,
+    First_ = 1, // 0 is returned for non-numeric env.vars.
+    None   = First_,
     DbUpdate,
     Search,
     SearchDbUpdate,
     Clean,
-    End,
-    Default = None,
+    Last_    = Clean,
+    Default_ = None,
 };
 
 FindEnforce GetFindEnforce();

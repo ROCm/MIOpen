@@ -133,14 +133,14 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, DbRecord& dbRec
         if(enforce == FindEnforce::Clean)
         {
             if(dbRecord.Remove(SolverDbId(s)))
-                MIOPEN_LOG_I(
+                MIOPEN_LOG_W(
                     "Perf Db: record removed: " << SolverDbId(s) << ", enforce: " << enforce);
             break;
         }
         else if((context.do_search && enforce == FindEnforce::DbUpdate) ||
                 enforce == FindEnforce::SearchDbUpdate)
         {
-            MIOPEN_LOG_I("Perf Db: load skipped: " << SolverDbId(s) << ", enforce: " << enforce);
+            MIOPEN_LOG_W("Perf Db: load skipped: " << SolverDbId(s) << ", enforce: " << enforce);
         }
         else
         {
