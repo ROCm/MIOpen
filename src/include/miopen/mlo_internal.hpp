@@ -274,6 +274,12 @@ class ProblemDescription
             << sep << (direction.IsForward() ? "1" : "0"); // clang-format on
     }
 #endif
+
+    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
+    {
+        obj.Serialize(os);
+        return os;
+    }
 };
 
 /// A leftover of the legacy design, houses problem config,

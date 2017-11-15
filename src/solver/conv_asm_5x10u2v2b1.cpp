@@ -37,7 +37,8 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
-    if(!(params.rmv == rocm_meta_version::V1 || params.rmv == rocm_meta_version::V3))
+    if(!(params.rmv == rocm_meta_version::V1 || params.rmv == rocm_meta_version::V3 ||
+         params.rmv == rocm_meta_version::AMDHSA_1_0))
     {
         return false;
     }
@@ -90,7 +91,9 @@ ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "wei_c", params.n_outputs);
     GenerateClangDefsym(options, "wei_k", params.n_inputs);
     GenerateClangDefsym(
-        options, "ROCM_METADATA_VERSION", (params.rmv == rocm_meta_version::V1) ? 1 : 3);
+        options,
+        "ROCM_METADATA_VERSION",
+        (params.rmv == rocm_meta_version::V1) ? 1 : (params.rmv == rocm_meta_version::V3) ? 3 : 4);
 
     KernelInfo constr_params;
     constr_params.comp_options = options.str();
