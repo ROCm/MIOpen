@@ -26,7 +26,6 @@
 
 #include "miopen/solver.hpp"
 
-
 namespace miopen {
 namespace solver {
 
@@ -52,7 +51,6 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         result.passes = 1;
         return result;
     }
-
 
     // FIX ME! FIX ME! FIX ME! Does not support C, K != 16X yet
     // NON-Stride/PAD mode NON-16X will be supported by MIOpenConvBwdWrW1x1.CL
