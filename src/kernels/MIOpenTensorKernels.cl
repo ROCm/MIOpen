@@ -146,12 +146,12 @@ __kernel void OpTensorLeadingOnes(global MIOPEN_TYPE* a,
                                   //#endif
                                   const int c_cstride,
                                   const int c_hstride,
-                                  //#if FIRST_NOT_ONE == 3
-                                  // UNUSED
-                                  //#endif
                                   const float alpha0,
                                   const float alpha1,
                                   const float beta,
+#if FIRST_NOT_ONE == 3
+                                  UNUSED
+#endif
                                   const int work_per_wg,
                                   const long Aoffset,
                                   const long Boffset,
