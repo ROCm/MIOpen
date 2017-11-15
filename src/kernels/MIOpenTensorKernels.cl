@@ -124,7 +124,7 @@ __kernel void OpTensorFwdBiasGeneric(global MIOPEN_TYPE* a,
                                      UNUSED
 #endif
                                      const int c_n,
-                                     const int c_h,
+                                     const int c_w,
                                      const int c_nstride,
                                      const int c_cstride,
                                      const int c_hstride,
@@ -153,8 +153,8 @@ __kernel void OpTensorFwdBiasGeneric(global MIOPEN_TYPE* a,
 
     while(lid < work_per_wg)
     {
-        int o_h       = lid % c_h;
-        int o_w       = lid / c_h;
+        int o_h       = lid / c_w;
+        int o_w       = lid % c_w;
         int aindex    = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
         int cindex    = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
         c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
@@ -170,8 +170,8 @@ __kernel void OpTensorFwdBiasGeneric(global MIOPEN_TYPE* a,
     while(lid < work_per_wg)
     {
         int o_n       = lid % c_n;
-        int o_h       = (lid / c_n) % c_h;
-        int o_w       = (lid / c_n) / c_h;
+        int o_h       = (lid / c_n) / c_w;
+        int o_w       = (lid / c_n) % c_w;
         int aindex    = o_n * a_nstride + gid * a_cstride + o_h * a_hstride + o_w;
         int cindex    = o_n * c_nstride + gid * c_cstride + o_h * c_hstride + o_w;
         c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
@@ -303,8 +303,11 @@ __kernel void OpTensorLeadingOnesGeneric(global MIOPEN_TYPE* a,
                                          const int b_hstride,
                                          global MIOPEN_TYPE* c,
                                          const int c_c,
+#if FIRST_NOT_ONE == 1
+                                         UNUSED
+#endif
                                          const int c_h,
-#if FIRST_NOT_ONE <= 2
+#if FIRST_NOT_ONE == 0 || FIRST_NOT_ONE == 2
                                          UNUSED
 #endif
                                          const int c_w,
@@ -375,8 +378,8 @@ __kernel void OpTensorLeadingOnesGeneric(global MIOPEN_TYPE* a,
 
     while(lid < work_per_wg)
     {
-        int o_h       = lid % c_h;
-        int o_w       = lid / c_h;
+        int o_h       = lid / c_w;
+        int o_w       = lid % c_w;
         int aindex    = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
         int cindex    = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
         c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
@@ -588,7 +591,7 @@ __kernel void Op3dTensorGeneric(global MIOPEN_TYPE* a,
     {
         int o_h = (bitmap & (1 << 0)) ? o_h_gid_off : lid % c_h;
         int o_c = (bitmap & (1 << 1)) ? o_c_gid_off : (lid / o_c_div) % c_c;
-        int o_n = (bitmap & (1 << 2)) ? o_n_gid_off : (lid / o_c_div) / o_n_div;
+        int o_n = (bitmap & (1 << 2)) ? o_n_gid_off : lid / o_n_div;
 
         int aindex = o_n * a_nstride + o_c * a_cstride + o_h;
         int cindex = o_n * c_nstride + o_c * c_cstride + o_h;
