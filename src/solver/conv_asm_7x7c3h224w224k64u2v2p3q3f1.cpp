@@ -70,8 +70,7 @@ bool ConvAsm7x7c3h224w224k64u2v2p3q3f1::IsApplicable(const ConvolutionContext& p
     // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
 }
 
-ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ConvolutionContext& params,
-                                                            const PerformanceConfig&) const
+ConvSolution ConvAsm7x7c3h224w224k64u2v2p3q3f1::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
     const int out_w =
