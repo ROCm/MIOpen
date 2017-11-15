@@ -5677,7 +5677,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                    false,
                                                    network_config);
                         gg.FindSolution(.003, handle, workSpace, reserveSpace, dw, false);
-                        gg.RunGemm(handle,
+                        gg.RunGemm(handle,  //DLOWELL bug is here
                                    workSpace,
                                    reserveSpace,
                                    dw,
