@@ -30,13 +30,9 @@
 #include <sstream>
 #include <numeric>
 
-#include "miopen/errors.hpp"
-#include "miopen/db_record.hpp"
-#include "miopen/logger.hpp"
-
-#define MIOPEN_LOG_E(...) MIOPEN_LOG(LoggingLevel::Error, __VA_ARGS__)
-#define MIOPEN_LOG_W(...) MIOPEN_LOG(LoggingLevel::Warning, __VA_ARGS__)
-#define MIOPEN_LOG_I(...) MIOPEN_LOG(LoggingLevel::Info, __VA_ARGS__)
+#include <miopen/errors.hpp>
+#include <miopen/db_record.hpp>
+#include <miopen/logger.hpp>
 
 namespace miopen {
 

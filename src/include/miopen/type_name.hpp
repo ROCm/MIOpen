@@ -23,49 +23,40 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_HANDLE_HPP
-#define GUARD_MIOPEN_HANDLE_HPP
 
-#include <miopen/rank.hpp>
+#ifndef GUARD_TYPE_NAME_HPP
+#define GUARD_TYPE_NAME_HPP
 
-#if defined(MIOPEN_USE_CLANG_TIDY)
-#define MIOPEN_OBJECT_CAST reinterpret_cast
-#else
-#define MIOPEN_OBJECT_CAST static_cast
-#endif
-
-#define MIOPEN_DEFINE_OBJECT(object, ...)                          \
-    inline __VA_ARGS__& miopen_get_object(object& obj)             \
-    {                                                              \
-        return MIOPEN_OBJECT_CAST<__VA_ARGS__&>(obj);              \
-    }                                                              \
-    inline const __VA_ARGS__& miopen_get_object(const object& obj) \
-    {                                                              \
-        return MIOPEN_OBJECT_CAST<const __VA_ARGS__&>(obj);        \
-    }                                                              \
-    inline void miopen_destroy_object(object* p) { delete MIOPEN_OBJECT_CAST<__VA_ARGS__*>(p); }
+#include <string>
 
 namespace miopen {
 
-namespace detail {
-template <class T>
-T& get_object_impl(rank<0>, T& x)
+template <class MIOpen_Private_TypeName_>
+const std::string& get_type_name()
 {
-    return x;
-}
+    static std::string name;
 
-template <class T>
-auto get_object_impl(rank<1>, T& x) -> decltype(miopen_get_object(x))
-{
-    return miopen_get_object(x);
-}
+    if(name.empty())
+    {
+#ifdef _MSC_VER
+        name = typeid(MIOpen_Private_TypeName_).name();
+        name = name.substr(7);
+#else
+        const char parameter_name[] = "MIOpen_Private_TypeName_ =";
 
-} // namespace detail
+        name = __PRETTY_FUNCTION__;
 
-template <class T>
-auto get_object(T& x) -> decltype(detail::get_object_impl(rank<1>{}, x))
-{
-    return detail::get_object_impl(rank<1>{}, x);
+        auto begin  = name.find(parameter_name) + sizeof(parameter_name);
+#if(defined(__GNUC__) && !defined(__clang__) && __GNUC__ == 4 && __GNUC_MINOR__ < 7)
+        auto length = name.find_last_of(",") - begin;
+#else
+        auto length = name.find_first_of("];", begin) - begin;
+#endif
+        name        = name.substr(begin, length);
+#endif
+    }
+
+    return name;
 }
 
 } // namespace miopen
