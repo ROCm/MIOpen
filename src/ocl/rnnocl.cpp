@@ -1858,7 +1858,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     GemmGeometry gg;
     int hid_shift, hx_shift, weitime_shift, wei_shift, prelayer_shift, pretime_shift;
     int wei_len, wei_len_t, dhd_off;
-	int cur_time, cur_batch, pre_time, pre_batch, pre_time2, pre_batch2;
+	int cur_time, cur_batch, use_time, pre_batch, use_time2, pre_batch2;
 
     switch(rnnMode)
     {
