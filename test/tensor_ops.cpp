@@ -263,7 +263,7 @@ struct tensor_ops_driver : test_driver
 
     std::vector<std::vector<int>> get_sub_tensor_a()
     {
-        return {{32, 16, 8, 4, 4}, {16, 8, 16, 4}, {8, 16, 7}, {8, 16}, {8}};
+        return {{32, 16, 8, 4, 4}, {16, 20, 16, 8}, {8, 16, 7}, {8, 8}, {8}};
     }
 
     std::vector<std::vector<int>> get_sub_tensor_b()
@@ -272,21 +272,21 @@ struct tensor_ops_driver : test_driver
                 {32, 16, 1, 1, 1},
                 {1, 16, 8, 1, 1},
                 {1, 1, 8, 4, 1},
-                {16, 8, 16, 4},
-                {16, 8, 16, 1},
-                {1, 8, 1, 1},
-                {16, 8, 1, 1},
+                {16, 20, 16, 8},
+                {16, 20, 16, 1},
+                {1, 20, 1, 1},
+                {16, 20, 1, 1},
                 {16, 1, 1, 1},
-                {1, 8, 16, 4},
-                {1, 8, 16, 1},
-                {1, 1, 16, 4},
+                {1, 20, 16, 8},
+                {1, 20, 16, 1},
+                {1, 1, 16, 8},
                 {8, 16, 7},
                 {8, 16, 1},
                 {1, 16, 7},
                 {8, 1, 1},
-                {8, 16},
+                {8, 8},
                 {8, 1},
-                {1, 16},
+                {1, 8},
                 {8},
                 {1}};
     }
@@ -294,9 +294,9 @@ struct tensor_ops_driver : test_driver
     tensor_ops_driver()
     {
 
-        std::vector<int> alens = {{32, 20, 16, 24, 20}};
-        std::vector<int> blens = {{32, 24, 20, 16, 16}};
-        std::vector<int> clens = {{32, 18, 18, 20, 18}};
+        std::vector<int> alens = {{32, 16, 20, 16, 8}};
+        std::vector<int> blens = {{32, 16, 20, 16, 8}};
+        std::vector<int> clens = {{32, 16, 20, 16, 8}};
 
         super_a = tensor<T>{alens}.generate(rand_gen{});
         super_b = tensor<T>{blens}.generate(rand_gen{});
