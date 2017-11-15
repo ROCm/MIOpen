@@ -54,6 +54,7 @@ MIOPEN_TYPE miopenMin(MIOPEN_TYPE a, MIOPEN_TYPE b) { return ((a < b) ? a : b); 
 __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
                               const int a_nstride,
                               const int a_cstride,
+                              const int a_hstride,
                               global MIOPEN_TYPE* b,
 #if INCR_WG == 0
                               UNUSED
@@ -65,8 +66,10 @@ __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
                               UNUSED
 #endif
                               const int c_n,
+                              const int c_h,
                               const int c_nstride,
                               const int c_cstride,
+                              const int c_hstride,
                               const float alpha0,
                               const float alpha1,
                               const float beta,
@@ -83,16 +86,19 @@ __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
     global MIOPEN_TYPE* c_off = c + Coffset;
 
 #if INCR_WG == 1
-    int o_n             = gid / b_c;
-    int o_c             = gid % b_c;
-    MIOPEN_TYPE operand = b_off[o_c * b_cstride] * alpha1;
-    int a_sub_index     = o_n * a_nstride + o_c * a_cstride;
-    int c_sub_index     = o_n * c_nstride + o_c * c_cstride;
+
+    int o_c = gid % b_c;
+    int o_n = gid / b_c;
+
+    int bindex          = o_c * b_cstride;
+    MIOPEN_TYPE operand = b_off[bindex] * alpha1;
 
     while(lid < work_per_wg)
     {
-        int aindex    = a_sub_index + lid;
-        int cindex    = c_sub_index + lid;
+        int o_h       = lid % c_h;
+        int o_w       = lid / c_h;
+        int aindex    = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
+        int cindex    = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
         c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
         lid += get_local_size(0);
     }
@@ -101,14 +107,15 @@ __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
 // number of workgroups = c_c (b_c)
 #elif INCR_WG == 0
     MIOPEN_TYPE operand = b_off[gid * b_cstride] * alpha1;
-    int work_off        = work_per_wg / c_n;
+    // int work_off        = work_per_wg / c_n;
 
     while(lid < work_per_wg)
     {
-        int o_hw      = lid % work_off;
-        int o_n       = lid / work_off;
-        int aindex    = o_n * a_nstride + gid * a_cstride + o_hw;
-        int cindex    = o_n * c_nstride + gid * c_cstride + o_hw;
+        int o_n       = lid % c_n;
+        int o_h       = (lid / c_n) % c_h;
+        int o_w       = (lid / c_n) / c_h;
+        int aindex    = o_n * a_nstride + gid * a_cstride + o_h * a_hstride + o_w;
+        int cindex    = o_n * c_nstride + gid * c_cstride + o_h * c_hstride + o_w;
         c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
 
         lid += get_local_size(0);
@@ -222,12 +229,11 @@ __kernel void OpTensorLeadingOnes(global MIOPEN_TYPE* a,
 
     while(lid < work_per_wg)
     {
-        int o_n       = gid;
         int o_c       = lid % c_c;
         int o_h       = (lid / c_c) % c_h;
         int o_w       = (lid / c_c) / c_h;
-        int aindex    = o_n * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
-        int cindex    = o_n * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
+        int aindex    = gid * a_nstride + o_c * a_cstride + o_h * a_hstride + o_w;
+        int cindex    = gid * c_nstride + o_c * c_cstride + o_h * c_hstride + o_w;
         c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
 
         lid += get_local_size(0);
