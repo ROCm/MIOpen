@@ -73,6 +73,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                                 int inputMode,
                                 std::vector<T>& rsvspace)
 {
+    printf("FWD TRAIN CPU:\n");
     printf("seqLen: %d, in_h: %d, hy_d: %d, hy_n: %d, hy_h: %d, out_h: %d\n", seqLength, in_h, hy_d, hy_n, hy_h, out_h);
     printf("dirmode: %d, hx size: %d, hy_host size: %d, reserveSpace: %d\n", bidirection ? 2 : 1, hx.size(), hy_host.size(), rsvspace.size());
     printf("input size: %d\n", in.size());
@@ -742,6 +743,11 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
                                        std::vector<T>& rsvspace,
                                        std::vector<T>& wkspace)
 {
+    
+    printf("BWD WEGIHTS CPU driver:\n");
+    printf("seqLen: %d, in_h: %d, hy_d: %d, hy_n: %d, hy_h: %d, out_h: %d\n", seqLength, in_h, hy_d, hy_n, hy_h, out_h);
+    printf("dirmode: %d, hx size: %d, dout size: %d, reserveSpace: %d, workSpace: %d\n", bidirection ? 2 : 1, hx.size(), dout.size(), rsvspace.size(),wkspace.size());
+    printf("input size: %d\n", in.size());
     int batch_n  = sumvc(in_n);
     int numlayer = bidirection ? hy_d / 2 : hy_d;
     int bacc; // accumulation of batch
