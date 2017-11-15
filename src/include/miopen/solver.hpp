@@ -219,9 +219,9 @@ auto SearchForSolution(const Context& search_params, miopen::DbRecord dbRecord) 
            (no_perf_filtering || solver.IsFast(search_params)))
         {
             solution = FindSolution(solver, search_params, dbRecord);
-            if(solution.Succeeded() && solution.construction_params.empty())
+            if(solution.Succeeded() && !search_params.n_passes && solution.construction_params.empty())
             {
-                MIOPEN_THROW(std::string("Internal error in solver: ") + typeid(solver).name());
+                MIOPEN_THROW(std::string("Internal error in solver: ") + SolverDbId(solver));
             }
         }
     });
