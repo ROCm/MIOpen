@@ -40,7 +40,6 @@
 #undef min
 #endif
 
-
 namespace miopen {
 namespace solver {
 
