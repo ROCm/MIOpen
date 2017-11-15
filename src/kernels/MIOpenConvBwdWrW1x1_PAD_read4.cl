@@ -444,6 +444,8 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
 
     for(uint K = 0; K < MLO_N_LCL_OUT_MAPS; K++)
     {
+         barrier(CLK_LOCAL_MEM_FENCE);
+
         for(uint C = 0; C < MLO_N_LCL_IN_MAPS; C++)
         {
             sdata[local_Id0 + MLO_GRP_SZ0 * C] = accum[K * MLO_N_LCL_IN_MAPS + C];
@@ -467,6 +469,8 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
             // NO need inside 1 wave: barrier(CLK_LOCAL_MEM_FENCE);
         }
 
+        barrier(CLK_LOCAL_MEM_FENCE);
+
         // MLO_N_LCL_IN_MAPS store
         if((local_Id0 & ~0x7) == (K * MLO_N_LCL_IN_MAPS))
         {
@@ -474,8 +478,7 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
         }
 
         // only 1st wave need to barrier: it will remove all scratch registers
-        if(local_Id0 < 64)
-            barrier(CLK_LOCAL_MEM_FENCE);
+ 
     }
 
     if(local_Id0 < (MLO_ACCUM_SZ))
