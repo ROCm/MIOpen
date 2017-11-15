@@ -3348,12 +3348,12 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         {
 			baccbi -= in_n[seqLen - 1 - ti];
 
-            hid_shift = li * batch_n * hy_stride + bacc * hy_stride;
             hx_shift  = li * hy_n * bi_stride;
             wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
 			for (int ri = 0; ri < bi; ri++)
 			{
+            hid_shift = ri == 0 ? (li * batch_n * hy_stride + bacc * hy_stride) : (li * batch_n * hy_stride + baccbi * hy_stride);
 				cur_time = ri == 0 ? ti : seqLen - 1 - ti;
 				pre_batch = ri == 0 ? bacc - in_n[ti - 1] : baccbi + in_n[seqLen - 1 - ti];
 				use_time = ri == 0 ? ti : seqLen - ti;
@@ -3364,15 +3364,15 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 					{
 						if (ri == 0)
 						{
-							sp_size[2] = in_n[cur_time];
-							sp_size[3] = hy_h;
-							miopenSetTensorDescriptor(
-								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
-
 							alpha0 = 1;
 							alpha1 = 1;
 							beta_t = 0;
 						}
+
+							sp_size[2] = in_n[cur_time];
+							sp_size[3] = hy_h;
+							miopenSetTensorDescriptor(
+								sp_desc, miopenFloat, 4, sp_size.data(), sp_stride.data());
 
 						OpTensor(handle,
 							miopenTensorOpMul,
