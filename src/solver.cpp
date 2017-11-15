@@ -24,40 +24,10 @@
  *
  *******************************************************************************/
 
-#include <miopen/db_record.hpp>
 #include <miopen/solver.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/env.hpp>
-
 #include <ostream>
-#include <cctype>
-
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_ENFORCE)
-
-#define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
-#define MIOPEN_LOG_I(...) MIOPEN_LOG(miopen::LoggingLevel::Info, __VA_ARGS__)
 
 namespace miopen {
-
-namespace {
-
-enum class FindEnforce
-{
-    Begin = 0,
-    None  = Begin,
-    DbUpdate,
-    Search,
-    SearchDbUpdate,
-    Clean,
-    End,
-    Default = None,
-};
-
-FindEnforce GetFindEnforce();
-std::ostream& operator<<(std::ostream&, FindEnforce);
-
-} // namespace
-
 namespace solver {
 
 std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
@@ -72,71 +42,4 @@ std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
 }
 
 } // namespace solver
-
-namespace {
-
-inline bool operator<=(const FindEnforce& lhs, const int& rhs)
-{
-    return static_cast<int>(lhs) <= rhs;
-}
-
-inline bool operator<(const int& lhs, const FindEnforce& rhs)
-{
-    return lhs < static_cast<int>(rhs);
-}
-
-const char* FindEnforce2CString(const FindEnforce mode)
-{
-    switch(mode)
-    {
-    case FindEnforce::None: return "NONE";
-    case FindEnforce::DbUpdate: return "DB_UPDATE";
-    case FindEnforce::Search: return "SEARCH";
-    case FindEnforce::SearchDbUpdate: return "SEARCH_DB_UPDATE";
-    case FindEnforce::Clean: return "CLEAN";
-    default: return "<Unknown>";
-    }
-}
-
-FindEnforce GetFindEnforceImpl()
-{
-    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_ENFORCE{});
-    if(!p_asciz)
-        return FindEnforce::Default;
-    std::string str = p_asciz;
-    for(auto& c : str)
-        c = toupper(static_cast<unsigned char>(c));
-    if(str == "NONE")
-        return FindEnforce::None;
-    else if(str == "DB_UPDATE")
-        return FindEnforce::DbUpdate;
-    else if(str == "SEARCH")
-        return FindEnforce::Search;
-    else if(str == "SEARCH_DB_UPDATE")
-        return FindEnforce::SearchDbUpdate;
-    else if(str == "CLEAN")
-        return FindEnforce::Clean;
-    else
-    { // Nop. Fall down & try numerics.
-    }
-    const int val = miopen::Value(MIOPEN_FIND_ENFORCE{});
-    if(FindEnforce::Begin <= val && val < FindEnforce::End)
-        return static_cast<FindEnforce>(val);
-    MIOPEN_LOG_E("Wrong MIOPEN_FIND_ENFORCE, using default.");
-    return FindEnforce::Default;
-}
-
-FindEnforce GetFindEnforce()
-{
-    static const FindEnforce val = GetFindEnforceImpl();
-    return val;
-}
-
-std::ostream& operator<<(std::ostream& os, const FindEnforce sm)
-{
-    return os << FindEnforce2CString(sm);
-}
-
-} // namespace
-
 } // namespace miopen
