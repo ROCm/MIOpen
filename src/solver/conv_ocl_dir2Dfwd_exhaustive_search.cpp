@@ -505,7 +505,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
                                           random_top_sys_buf.size() * sizeof(float));
 
                         const auto ret =
-                            MeasureLoop<ConvOclDirectFwd1x1, ConvOclDirectFwdC, ConvOclDirectFwd>(
+                            MeasureLoop<ConvOclDirectFwd1x1>(
                                 &profile_h,
                                 bot_ocl_buf.get(),
                                 top_ocl_buf.get(),
@@ -706,14 +706,16 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
 
 #endif
 
-                                            const auto ret = MeasureLoop(&profile_h,
-                                                                         bot_ocl_buf.get(),
-                                                                         top_ocl_buf.get(),
-                                                                         wei_ocl_buf.get(),
-                                                                         bias_ocl_buf.get(),
-                                                                         processing_time,
-                                                                         params,
-                                                                         result);
+											const auto ret =
+												MeasureLoop<ConvOclDirectFwdC, ConvOclDirectFwd>(
+													&profile_h,
+													bot_ocl_buf.get(),
+													top_ocl_buf.get(),
+													wei_ocl_buf.get(),
+													bias_ocl_buf.get(),
+													processing_time,
+													params,
+													result);
 
                                             runs_left--;
                                             runs_left = (runs_left < 0) ? 0 : runs_left;
