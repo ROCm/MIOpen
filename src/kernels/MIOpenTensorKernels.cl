@@ -52,31 +52,89 @@ MIOPEN_TYPE miopenMax(MIOPEN_TYPE a, MIOPEN_TYPE b) { return ((a > b) ? a : b); 
 MIOPEN_TYPE miopenMin(MIOPEN_TYPE a, MIOPEN_TYPE b) { return ((a < b) ? a : b); }
 
 __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
-                              const int a_nstride,
-                              const int a_cstride,
-                              const int a_hstride,
                               global MIOPEN_TYPE* b,
 #if INCR_WG == 0
                               UNUSED
 #endif
                               const int b_c,
-                              const int b_cstride,
                               global MIOPEN_TYPE* c,
 #if INCR_WG == 1
                               UNUSED
 #endif
                               const int c_n,
-                              const int c_h,
                               const int c_nstride,
                               const int c_cstride,
-                              const int c_hstride,
+                              const int work_per_wg,
                               const float alpha0,
                               const float alpha1,
                               const float beta,
-                              const int work_per_wg,
                               const long Aoffset,
                               const long Boffset,
                               const long Coffset)
+{
+    global MIOPEN_TYPE* a_off = a + Aoffset;
+    global MIOPEN_TYPE* b_off = b + Boffset;
+    global MIOPEN_TYPE* c_off = c + Coffset;
+
+    int gid = get_group_id(0);
+    int lid = get_local_id(0);
+
+#if INCR_WG == 1
+    int o_n             = gid / b_c;
+    int o_c             = gid % b_c;
+    MIOPEN_TYPE operand = b_off[o_c] * alpha1;
+
+    while(lid < work_per_wg)
+    {
+        int index    = o_n * c_nstride + o_c * c_cstride + lid;
+        c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
+        lid += get_local_size(0);
+    }
+
+// each workgroup computes N*H*W for each C (bias-term)
+// number of workgroups = c_c (b_c)
+#elif INCR_WG == 0
+    MIOPEN_TYPE operand = b_off[gid] * alpha1;
+    int work_off        = work_per_wg / c_n;
+
+    while(lid < work_per_wg)
+    {
+        int o_hw     = lid % work_off;
+        int o_n      = lid / work_off;
+        int index    = o_n * c_nstride + gid * c_cstride + o_hw;
+        c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
+
+        lid += get_local_size(0);
+    }
+#endif // INCR_WG
+}
+
+__kernel void OpTensorFwdBiasGeneric(global MIOPEN_TYPE* a,
+                                     const int a_nstride,
+                                     const int a_cstride,
+                                     const int a_hstride,
+                                     global MIOPEN_TYPE* b,
+#if INCR_WG == 0
+                                     UNUSED
+#endif
+                                     const int b_c,
+                                     const int b_cstride,
+                                     global MIOPEN_TYPE* c,
+#if INCR_WG == 1
+                                     UNUSED
+#endif
+                                     const int c_n,
+                                     const int c_h,
+                                     const int c_nstride,
+                                     const int c_cstride,
+                                     const int c_hstride,
+                                     const float alpha0,
+                                     const float alpha1,
+                                     const float beta,
+                                     const int work_per_wg,
+                                     const long Aoffset,
+                                     const long Boffset,
+                                     const long Coffset)
 {
     int gid = get_group_id(0);
     int lid = get_local_id(0);
@@ -127,39 +185,142 @@ __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
 #if(FIRST_NOT_ONE < 4 && MIOPEN_TENSOR_DIMS == 4)
 
 __kernel void OpTensorLeadingOnes(global MIOPEN_TYPE* a,
-                                  const int a_nstride,
-                                  const int a_cstride,
-                                  const int a_hstride,
                                   global MIOPEN_TYPE* b,
-                                  const int b_nstride,
+                                  global MIOPEN_TYPE* c,
 #if FIRST_NOT_ONE == 0
                                   UNUSED
 #endif
-                                  const int b_cstride,
+                                  const int c_c,
 #if FIRST_NOT_ONE <= 1
                                   UNUSED
 #endif
-                                  const int b_hstride,
-                                  global MIOPEN_TYPE* c,
-                                  const int c_c,
                                   const int c_h,
-#if FIRST_NOT_ONE <= 2
+#if FIRST_NOT_ONE <= 1
                                   UNUSED
 #endif
                                   const int c_w,
                                   const int c_nstride,
+#if FIRST_NOT_ONE == 0
+                                  UNUSED
+#endif
                                   const int c_cstride,
-                                  const int c_hstride,
-                                  const float alpha0,
-                                  const float alpha1,
-                                  const float beta,
 #if FIRST_NOT_ONE == 3
                                   UNUSED
 #endif
                                   const int work_per_wg,
+                                  const float alpha0,
+                                  const float alpha1,
+                                  const float beta,
                                   const long Aoffset,
                                   const long Boffset,
                                   const long Coffset)
+{
+
+    /* Special case for leading ones where the total no. of threads is the
+     * inner_product of the tensor dims.  Each thread just updates one value
+     */
+
+    global MIOPEN_TYPE* a_off = a + Aoffset;
+    global MIOPEN_TYPE* b_off = b + Boffset;
+    global MIOPEN_TYPE* c_off = c + Coffset;
+
+#if FIRST_NOT_ONE == 3 // bitmap = 1,1,1,1
+    int tid             = get_global_id(0);
+    MIOPEN_TYPE operand = b_off[tid] * alpha1;
+
+    int o_w = tid % c_w;
+    int o_h = (tid / c_w) % c_h;
+    int o_c = (tid / (c_w * c_h)) % c_c;
+    int o_n = tid / (c_w * c_h * c_c);
+
+    int index    = o_n * c_nstride + o_c * c_cstride + o_h * c_w + o_w;
+    c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
+
+#elif FIRST_NOT_ONE == 2 // bitmap = 1,1,1,0
+    int gid             = get_group_id(0);
+    int lid             = get_local_id(0);
+    MIOPEN_TYPE operand = b_off[gid] * alpha1;
+
+    int o_h = gid % c_h;
+    int o_c = (gid / c_h) % c_c;
+    int o_n = gid / (c_c * c_h);
+
+    while(lid < work_per_wg)
+    {
+        int index    = o_n * c_nstride + o_c * c_cstride + o_h * c_w + lid;
+        c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
+
+        lid += get_local_size(0);
+    }
+#elif FIRST_NOT_ONE == 1 // bitmap = 1,1,0,0
+    int gid             = get_group_id(0);
+    int lid             = get_local_id(0);
+    MIOPEN_TYPE operand = b_off[gid] * alpha1;
+
+    int o_c = gid % c_c;
+    int o_n = gid / c_c;
+
+    while(lid < work_per_wg)
+    {
+        int index    = o_n * c_nstride + o_c * c_cstride + lid;
+        c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
+        lid += get_local_size(0);
+    }
+
+#elif FIRST_NOT_ONE == 0 // bitmap = 1,0,0,0
+    int gid             = get_group_id(0);
+    int lid             = get_local_id(0);
+    MIOPEN_TYPE operand = b_off[gid] * alpha1;
+
+    while(lid < work_per_wg)
+    {
+        int index    = gid * c_nstride + lid;
+        c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
+
+        lid += get_local_size(0);
+    }
+#endif
+}
+
+#endif
+
+// DLOWELL : cutting out this section
+#if(FIRST_NOT_ONE < 4 && MIOPEN_TENSOR_DIMS == 4)
+
+__kernel void OpTensorLeadingOnesGeneric(global MIOPEN_TYPE* a,
+                                         const int a_nstride,
+                                         const int a_cstride,
+                                         const int a_hstride,
+                                         global MIOPEN_TYPE* b,
+                                         const int b_nstride,
+#if FIRST_NOT_ONE == 0
+                                         UNUSED
+#endif
+                                         const int b_cstride,
+#if FIRST_NOT_ONE <= 1
+                                         UNUSED
+#endif
+                                         const int b_hstride,
+                                         global MIOPEN_TYPE* c,
+                                         const int c_c,
+                                         const int c_h,
+#if FIRST_NOT_ONE <= 2
+                                         UNUSED
+#endif
+                                         const int c_w,
+                                         const int c_nstride,
+                                         const int c_cstride,
+                                         const int c_hstride,
+                                         const float alpha0,
+                                         const float alpha1,
+                                         const float beta,
+#if FIRST_NOT_ONE == 3
+                                         UNUSED
+#endif
+                                         const int work_per_wg,
+                                         const long Aoffset,
+                                         const long Boffset,
+                                         const long Coffset)
 {
 
     /* Special case for leading ones where the total no. of threads is the
