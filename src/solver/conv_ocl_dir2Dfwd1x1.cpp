@@ -30,6 +30,7 @@
 
 namespace miopen {
 namespace solver {
+typedef unsigned int uint;
 
 bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
 {

@@ -32,6 +32,14 @@
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/mlo_utils.hpp>
 #include <miopen/solver.hpp>
+#ifdef max
+#undef max
+#endif
+
+#ifdef min
+#undef min
+#endif
+
 
 namespace miopen {
 namespace solver {
