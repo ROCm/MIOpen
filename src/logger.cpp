@@ -33,6 +33,7 @@ namespace miopen {
 /// Kept for backward compatibility for some time.
 /// Enables all logging levels at once.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_CMD)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_LOG_LEVEL)
 
@@ -73,6 +74,7 @@ const char* LoggingLevelToCString(const enum LoggingLevel level)
     else
         return "<Unknown>";
 }
+bool IsLoggingCmd() { return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING_CMD{}); }
 
 std::string PlatformName()
 {
