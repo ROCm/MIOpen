@@ -29,7 +29,7 @@
 namespace miopen {
 namespace solver {
 
-typedef unsigned int uint;
+using uint = unsigned int;
 
 bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
