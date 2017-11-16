@@ -43,8 +43,7 @@ bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
             (params.kernel_size0 != 1 || params.kernel_size1 != 1));
 }
 
-ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
-                                         const PerformanceConfig&) const
+ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
 {
     static const char* s_stride_table[32][2] = {
         //
