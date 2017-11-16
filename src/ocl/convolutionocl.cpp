@@ -564,10 +564,10 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 construct_params.mloCopyTo(context);
                 context.n_passes = true;
 
-                DbRecord dbRecord(context.GetPerfDbPath(), context);
+                Db db(context.GetPerfDbPath());
                 const solver::Solver& solver =
                     StaticContainer<solver::ConvOclDirectFwd11x11>::Instance();
-                solver::ConvSolution solution = solver.FindSolution(context, dbRecord);
+                solver::ConvSolution solution = solver.FindSolution(context, db);
 
                 if(solution.passes == 1)
                 {

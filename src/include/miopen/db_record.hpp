@@ -29,6 +29,7 @@
 #include "miopen/config.h"
 #include "miopen/logger.hpp"
 
+#include <boost/optional.hpp>
 #include <sstream>
 #include <string>
 #include <atomic>
@@ -36,6 +37,8 @@
 #include <iostream>
 
 namespace miopen {
+
+class Db;
 
 /// db consists of 0 or more records.
 /// Each record is an ASCII text line.
@@ -69,14 +72,7 @@ namespace miopen {
 class DbRecord
 {
     private:
-    struct RecordPositions
-    {
-        std::streamoff begin = -1;
-        std::streamoff end   = -1;
-    };
-
-    const std::string db_filename;
-    const std::string key;
+    std::string key;
     std::unordered_map<std::string, std::string> map;
 
     template <class T>
@@ -89,78 +85,131 @@ class DbRecord
         return ss.str();
     }
 
-    template <class T>
-    static // 'static' is for calling from ctor
-        std::string
-        LegacySerialize(const T& data)
-    {
-        std::ostringstream ss;
-        data.LegacySerialize(ss);
-        return ss.str();
-    }
-
     bool ParseContents(const std::string& contents);
-    bool StoreValues(const std::string& id, const std::string& values);
-    bool LoadValues(const std::string& id, std::string& values);
-    bool Flush(const RecordPositions* pos);
-    void ReadFile(RecordPositions* pos);
+    void WriteContents(std::ostream &stream) const;
+    bool SetValues(const std::string& id, const std::string& values);
+    bool GetValues(const std::string& id, std::string& values) const;
 
-    DbRecord(const std::string& db_filename_, const std::string& key_)
-        : db_filename(db_filename_), key(key_)
-    {
-    }
+    DbRecord(const std::string& key_) : key(key_) {}
 
     public:
-    /// T shall provide a db KEY by means of the
-    /// "void Serialize(std::ostream&) const"
-    /// member function.
+    /// T shall provide a db KEY by means of the "void Serialize(std::ostream&) const" member
+    /// function.
     template <class T>
-    DbRecord(const std::string& db_filename_, const T& problem_config_)
-        : DbRecord(db_filename_, Serialize(problem_config_))
+    DbRecord(const T& problem_config_) : DbRecord(Serialize(problem_config_))
     {
     }
 
-    ~DbRecord() {}
+    /// Merges data from this record to data from that record if their keys are same.
+    /// This record would contain all ID:VALUES pairs from that record that are not in this.
+    /// E.g. this = {ID1:VALUE1}
+    ///      that = {ID1:VALUE3, ID2:VALUE2}
+    ///      this.Merge(that) = {ID1:VALUE1, ID2:VALUE2}
+    void Merge(const DbRecord& that);
 
-    /// Obtains VALUES from an object of class T and stores it
-    /// in db (in association with ID, under the current KEY).
-    /// T shall have the "void Serialize(std::ostream&) const"
-    /// member function available.
+    /// Obtains VALUES from an object of class T and sets it in record (in association with ID,
+    /// under the current KEY).
+    /// T shall have the "void Serialize(std::ostream&) const" member function available.
+    ///
+    /// Returns true if records data was changed.
     template <class T>
-    bool Store(const std::string& id, const T& values)
+    bool SetValues(const std::string& id, const T& values)
     {
-        RecordPositions pos;
-        // If there is a record with the same key, we need to load its content
-        // (otherwise existing content will be lost) and find out its positions.
-        ReadFile(&pos);
-        if(StoreValues(id, Serialize(values)))
-            return Flush(&pos);
-        return true;
+        return SetValues(id, Serialize(values));
     }
 
-    /// Loads VALUES associated with ID under the current KEY
-    /// and delivers those to a member function
-    /// of a class T object. T shall have the
-    /// "bool Deserialize(const std::string& str)"
+    /// Get VALUES associated with ID under the current KEY and delivers those to a member function
+    /// of a class T object. T shall have the "bool Deserialize(const std::string& str)"
     /// member function available.
     ///
-    /// Returns false if there is none KEY:ID:VALUES in the database
-    /// or in case of any error, e.g. if VALUES cannot be deserialized
-    /// due to incorrect format.
+    /// Returns false if there is none ID:VALUES in the record or in case of any error, e.g. if
+    /// VALUES cannot be deserialized due to incorrect format.
     template <class T>
-    bool Load(const std::string& id, T& values)
+    bool GetValues(const std::string& id, T& values) const
     {
         std::string s;
-        ReadFile(nullptr);
-        if(!LoadValues(id, s))
+        if(!GetValues(id, s))
             return false;
 
         const bool ok = values.Deserialize(s);
         if(!ok)
-        {
             MIOPEN_LOG(LoggingLevel::Error, "deserialize failed: " << s);
-        }
         return ok;
+    }
+
+    friend class Db;
+};
+
+class Db
+{
+    private:
+    struct RecordPositions
+    {
+        std::streamoff begin = -1;
+        std::streamoff end   = -1;
+    };
+
+    std::string filename;
+
+    boost::optional<DbRecord> FindRecord(const std::string& key, RecordPositions* pos) const;
+
+    bool Flush(const DbRecord& record, const RecordPositions* pos) const;
+
+    public:
+    Db(const std::string& filename_) : filename(filename_) {}
+
+    /// Searches db for provided key and returns found reconrd or none if key not found in database
+    boost::optional<DbRecord> FindRecord(const std::string& key) const
+    {
+        return FindRecord(key, nullptr);
+    }
+
+    template <class T>
+    boost::optional<DbRecord> FindRecord(const T& problem_config) const
+    {
+        std::string key = DbRecord::Serialize(problem_config);
+        return FindRecord(key, nullptr);
+    }
+
+    /// Stores provided record in database. If record with same key is already in database it is
+    /// replaced by provided record.
+    /// Returns true if store was successful, false otherwise.
+    bool StoreRecord(const DbRecord& record) const;
+
+    /// Stores provided record in database. If record with same key is already in database it is
+    /// updated with values from provided record. Provided records data is also updated via
+    /// DbRecord::Merge().
+    /// Returns true if update was successful, false otherwise.
+    bool UpdateRecord(DbRecord& record) const;
+
+    /// Updates record under key PROBLEM_CONFIG  with data ID:VALUES in database.
+    /// Both T and V classes should have "void Serialize(std::ostream&) const" member function
+    /// available.
+    /// Returns updated record or none if update was unsuccessful.
+    template <class T, class V>
+    boost::optional<DbRecord> Store(const T& problem_config, const std::string& id, const V& values)
+    {
+        DbRecord record(problem_config);
+        record.SetValues(id, values);
+        bool ok = UpdateRecord(record);
+        if(ok)
+            return record;
+        else
+            return boost::none;
+    }
+
+    /// Searches for record with key PROBLEM_CONFIG and gets VALUES under the ID from it.
+    /// Class T should have "void Serialize(std::ostream&) const" member function available.
+    /// Class V shall have "bool Deserialize(const std::string& str)" member function available.
+    /// Returns false if there is none PROBLEM_CONFIG=ID:VALUES in the database
+    /// or in case of any error, e.g. if VALUES cannot be deserialized due to incorrect format.
+    template <class T, class V>
+    bool Load(const T& problem_config, const std::string& id, V& values)
+    {
+        auto record = FindRecord(problem_config);
+        if(!record)
+            return false;
+        return record->GetValues(id, values);
     }
 };
 } // namespace miopen

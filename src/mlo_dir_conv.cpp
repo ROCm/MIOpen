@@ -81,13 +81,13 @@ int mlo_construct_direct2D::mloConstruct()
 #endif
     }
 
-    miopen::DbRecord dbRecord(db_path(), _search_params);
+    miopen::Db db(db_path());
     for(const miopen::solver::Solver& solver : SolverStore())
     {
         if(solver.IsApplicable(_search_params) &&
            (no_perf_filtering || solver.IsFast(_search_params)))
         {
-            miopen::solver::ConvSolution solution = solver.FindSolution(_search_params, dbRecord);
+            miopen::solver::ConvSolution solution = solver.FindSolution(_search_params, db);
 
             if(!solution.Succeeded())
                 continue;
