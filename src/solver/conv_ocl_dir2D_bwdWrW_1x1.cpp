@@ -206,9 +206,14 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             if(params.pad0 > 0 || params.pad1 > 0 || params.kernel_stride0 > 1 ||
                params.kernel_stride1 > 1)
             {
-				read_unit = (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2 == 0) ? 2 : (out_pad_width % 7 == 0) ? 7 : (out_pad_width % 5 == 0) ? 5 : 1;
-				//read_unit = (out_pad_width % 7 == 0) ? 7 : (out_pad_width % 5 == 0) ? 5 : (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2 == 0) ? 2 : 1;
-				max_loads_per_readunit = (out_pad_width/ read_unit) * out_pad_height * params.batch_sz;
+                read_unit = (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0)
+                                                               ? 3
+                                                               : (out_pad_width % 2 == 0) ? 2 : 1;
+                // read_unit = (out_pad_width % 7 == 0) ? 7 : (out_pad_width % 5 == 0) ? 5 :
+                // (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2
+                // == 0) ? 2 : 1;
+                max_loads_per_readunit =
+                    (out_pad_width / read_unit) * out_pad_height * params.batch_sz;
             }
 
             uint out_read_sz         = n_lcl_out_maps * read_unit;
