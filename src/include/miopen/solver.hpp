@@ -209,7 +209,7 @@ class Solver
     /// solution-specific parameters and returns the Solution object.
     /// Could take long if an exhaustive search is requested/performed.
     /// May read/write perfDb.
-    ConvSolution FindSolution(const ConvolutionContext& context, DbRecord& dbRecord) const;
+    ConvSolution FindSolution(const ConvolutionContext& context, Db& db) const;
 };
 
 class ConvAsm3x3U : public Solver
