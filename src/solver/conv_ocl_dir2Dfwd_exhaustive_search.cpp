@@ -419,7 +419,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
             out_pix_tile_sz[0] = 0;
             out_pix_tile_sz[1] = 1;
             n_out_tls          = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
-            n_grp_tiles0       = 0;
+            n_grp_tiles0       = 1;
+			grp_tl_ln[0] = 64;
 
             runs_left = out_pix_tl_cnt * n_out_tls * n_in_tls * (n_grp_tiles0 + 1);
 
