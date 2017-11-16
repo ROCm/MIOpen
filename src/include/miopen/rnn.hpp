@@ -103,7 +103,7 @@ struct RNNDescriptor : miopenRNNDescriptor
     std::vector<int> pTensorLengthsCalculation(const TensorDescriptor& xDesc, int layer);
 
     size_t
-    GetWorkspaceSize(Handle& handle, int seqLength, c_array_view<miopenTensorDescriptor_t> xDesc);
+    GetWorkspaceSize(Handle& handle, int seqLength, c_array_view<miopenTensorDescriptor_t> xDesc) const;
 
     size_t GetReserveSize(Handle& handle, int sLen, c_array_view<miopenTensorDescriptor_t> xDesc);
 
