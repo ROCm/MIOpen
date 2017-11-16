@@ -557,15 +557,15 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
     for(uint faked_off = (local_Id0 % (MLO_GRP_SZ0 / 4)); faked_off < MLO_MAX_LOADS;
         faked_off += (MLO_GRP_SZ0 / 4))
     {
-#if MLO_FILTER_STRIDE0 > 1 || MLO_FILTER_STRIDE1 > 1 || MLO_FILTER_STRIDE0 > 1 || \
-    MLO_FILTER_STRIDE1 > 1
+#if MLO_FILTER_STRIDE0 > 1 || MLO_FILTER_STRIDE1 > 1 || MLO_FILTER_PAD0 > 1 || \
+    MLO_FILTER_PAD1 > 1
 
-#if MLO_READ_UNIT == 1
-        uint batch_id   = iDiv(faked_off, (MLO_OUT_PAD_WIDTH * MLO_OUT_PAD_HEIGHT));
-        uint faked_off2 = iMod(faked_off, batch_id, (MLO_OUT_PAD_WIDTH * MLO_OUT_PAD_HEIGHT));
+#if 1 // MLO_READ_UNIT == 1
+        uint batch_id   = iDiv(faked_off, ((MLO_OUT_PAD_WIDTH/MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT));
+        uint faked_off2 = iMod(faked_off, batch_id, ((MLO_OUT_PAD_WIDTH/MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT));
 
-        uint out_x_off = iDiv(faked_off2, MLO_OUT_PAD_WIDTH);
-        uint out_y_off = iMod(faked_off2, out_x_off, MLO_OUT_PAD_WIDTH);
+        uint out_y_off = iDiv(faked_off2, (MLO_OUT_PAD_WIDTH/MLO_READ_UNIT));
+        uint out_x_off = iMod(faked_off2, out_x_off, (MLO_OUT_PAD_WIDTH/MLO_READ_UNIT));
 
         uint out_image_off =
             (out_y_off + MLO_OUT_PAD_MIN_Y) * MLO_OUT_WIDTH + (out_x_off + MLO_OUT_PAD_MIN_X);
@@ -653,7 +653,7 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
 #define LAST_PIXELS (MLO_OUT_CHANNEL_STRIDE % MLO_READ_UNIT)
 
 // PAD/STRIDE never goes to LAST_PIXELS
-#if LAST_PIXELS > 0
+#if LAST_PIXELS > 0 && MLO_FILTER_STRIDE0 == 1 && MLO_FILTER_STRIDE1 == 0 && MLO_FILTER_PAD0 == 1 && MLO_FILTER_PAD1 == 1
 #define MLO_MAX_LOADS2 (MLO_BATCH_SZ * LAST_PIXELS)
 #define MLO_LAST_PIXEL_OFFSET (MLO_OUT_CHANNEL_STRIDE - LAST_PIXELS)
 
