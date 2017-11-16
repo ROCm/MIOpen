@@ -126,20 +126,20 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
     if(miopen::IsLoggingCmd())
     {
         std::cerr << MIOPEN_DRIVER_CMD("bnorm")
-                  << MIOPEN_DRIVER_ARG("-n", miopen::deref(xDesc).GetLengths()[0])
-                  << MIOPEN_DRIVER_ARG("-c", miopen::deref(xDesc).GetLengths()[1])
-                  << MIOPEN_DRIVER_ARG("-H", miopen::deref(xDesc).GetLengths()[2])
-                  << MIOPEN_DRIVER_ARG("-W", miopen::deref(xDesc).GetLengths()[3])
+                  << " -n " << miopen::deref(xDesc).GetLengths()[0]
+                  << " -c " << miopen::deref(xDesc).GetLengths()[1]
+                  << " -H " << miopen::deref(xDesc).GetLengths()[2]
+                  << " -W " << miopen::deref(xDesc).GetLengths()[3]
 
-                  << MIOPEN_DRIVER_ARG("-m", bn_mode);
+                  << " -m " << bn_mode;
 
         if(resultRunningMean && resultRunningVariance)
         {
-            std::cerr << MIOPEN_DRIVER_ARG("-s", 1);
+            std::cerr << " -s " << 1;
         }
         if(resultSaveMean && resultSaveInvVariance)
         {
-            std::cerr << MIOPEN_DRIVER_ARG("-r", 1);
+            std::cerr << " -r " << 1;
         }
         std::cerr << "\n";
     }
