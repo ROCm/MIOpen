@@ -3416,7 +3416,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                         // Update time
                         if(li == nLayers - 1 && ti == seqLen - 1 && ri == bi - 1 &&
-                           rnnMode != miopenGRU && (!biasMode))
+                           !(rnnMode == miopenGRU && biasMode))
                             profileRNNkernels(handle, 2);
                         else
                             profileRNNkernels(handle, std::min(time_mark++, 1));
@@ -3451,7 +3451,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                             // Update time
                             if(li == nLayers - 1 && ti == seqLen - 1 && ri == bi - 1 &&
-                               rnnMode != miopenGRU && (!biasMode))
+                               !(rnnMode == miopenGRU && biasMode))
                                 profileRNNkernels(handle, 2);
                             else
                                 profileRNNkernels(handle, 1);
@@ -3500,7 +3500,10 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                          wei_shift);
 
                 // Update time
-                profileRNNkernels(handle, (bs == batch_n - 1) ? 2 : 1);
+                if(li == nLayers - 1 && bs == batch_n - 1)
+                    profileRNNkernels(handle, 2);
+                else
+                    profileRNNkernels(handle, 1);
             }
         }
     }
