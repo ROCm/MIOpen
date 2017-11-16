@@ -29,12 +29,12 @@
 #include "network_data.hpp"
 #include "tensor_holder.hpp"
 #include "test.hpp"
-#include "type_name.hpp"
 #include "verify.hpp"
 
 #include <functional>
 #include <deque>
 #include <miopen/functional.hpp>
+#include <miopen/type_name.hpp>
 
 struct rand_gen
 {
@@ -48,8 +48,6 @@ struct rand_gen
         return double(dot % 17);
     };
 };
-
-
 
 struct test_driver
 {
@@ -145,7 +143,7 @@ struct test_driver
 
         argument& arg   = arguments.back();
         arg.name        = name;
-        arg.type        = get_type_name<T>();
+        arg.type        = miopen::get_type_name<T>();
         arg.write_value = [&](std::vector<std::string> params) { args::write_value{}(x, params); };
         miopen::each_args(std::bind(per_arg{}, std::ref(x), std::ref(arg), std::placeholders::_1),
                           fs...);
@@ -224,7 +222,7 @@ struct test_driver
     template <class X>
     struct generate_data_t
     {
-        std::function<std::vector<X>()> get_data;
+        std::function<X()> get_data;
         template <class T>
         void operator()(T& x, argument& arg) const
         {
@@ -233,7 +231,7 @@ struct test_driver
     };
 
     template <class T>
-    generate_data_t<T> generate_data(std::vector<T> dims, T single)
+    generate_data_t<std::vector<T>> generate_data(std::vector<T> dims, T single)
     {
         return {[=]() -> std::vector<T> {
             if(full_set)
@@ -244,20 +242,20 @@ struct test_driver
     }
 
     template <class T>
-    generate_data_t<T> generate_data(std::initializer_list<T> dims)
+    generate_data_t<std::vector<T>> generate_data(std::initializer_list<T> dims)
     {
         return generate_data(std::vector<T>(dims));
     }
 
     template <class T>
-    generate_data_t<std::vector<T>>
+    generate_data_t<std::vector<std::vector<T>>>
     generate_data(std::initializer_list<std::initializer_list<T>> dims)
     {
         return generate_data(std::vector<std::vector<T>>(dims.begin(), dims.end()));
     }
 
     template <class T>
-    generate_data_t<T> generate_data(std::vector<T> dims)
+    generate_data_t<std::vector<T>> generate_data(std::vector<T> dims)
     {
         return {[=]() -> std::vector<T> {
             if(full_set)
@@ -268,9 +266,9 @@ struct test_driver
     }
 
     template <class F, class T>
-    generate_data_t<T> lazy_generate_data(F f, T single)
+    auto lazy_generate_data(F f, T single) -> generate_data_t<decltype(f())>
     {
-        return {[=]() -> std::vector<T> {
+        return {[=]() -> decltype(f()) {
             if(full_set)
                 return f();
             else
@@ -278,8 +276,19 @@ struct test_driver
         }};
     }
 
+    template <class F>
+    auto lazy_generate_data(F f) -> generate_data_t<decltype(f())>
+    {
+        return {[=]() -> decltype(f()) {
+            if(full_set)
+                return f();
+            else
+                return {f().front()};
+        }};
+    }
+
     template <class T>
-    generate_data_t<T> generate_single(T single)
+    generate_data_t<std::vector<T>> generate_single(T single)
     {
         return {[=]() -> std::vector<T> { return {single}; }};
     }
@@ -335,7 +344,8 @@ struct test_driver
             {
                 std::cout << "Mismatch at " << idx << ": " << out_cpu[idx] << " != " << out_gpu[idx]
                           << std::endl;
-                std::cout << "---------------------------------------------------------\n" << std::endl;
+                std::cout << "---------------------------------------------------------\n"
+                          << std::endl;
             }
 
             auto cpu_nan_idx = find_idx(out_cpu, miopen::not_finite);
@@ -579,7 +589,7 @@ struct show_help
             prefix = ", ";
         }
         if(not std::is_same<T, bool>{})
-            std::cout << " [" << get_type_name<T>() << "]";
+            std::cout << " [" << miopen::get_type_name<T>() << "]";
         std::cout << std::endl;
         std::cout << "        " << help << std::endl;
     }
