@@ -47,7 +47,7 @@ std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
     return os << "} '" << k.comp_options << '\'';
 }
 
-ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& dbRecord) const
+ConvSolution Solver::FindSolution(const ConvolutionContext& context, Db& db) const
 {
     std::unique_ptr<PerformanceConfig> config = PerformanceConfigImpl();
     MIOPEN_LOG_I("Finding solution: " << SolverId());
@@ -58,7 +58,7 @@ ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& d
             MIOPEN_LOG_I("Not searchable: " << SolverId());
             break;
         }
-        if(dbRecord.Load(SolverId(), *config))
+        if(db.Load(context, SolverId(), *config))
         {
             MIOPEN_LOG_I("Perf Db: record loaded: " << SolverId());
             if(IsValidPerformanceConfigImpl(context, *config))
@@ -74,7 +74,7 @@ ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& d
             MIOPEN_LOG_I("Starting search: " << SolverId());
             if(Search(context, *config))
             {
-                dbRecord.Store(SolverId(), *config);
+                db.Store(context, SolverId(), *config);
                 return GetSolution(context, *config);
             }
             MIOPEN_LOG_E("Search failed: " << SolverId());

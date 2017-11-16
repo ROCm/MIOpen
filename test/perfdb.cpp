@@ -155,10 +155,10 @@ class DbRecordReadTest : public DbRecordTest
         TestData read0, read1;
 
         {
-            DbRecord record(temp_file_path(), key());
+            Db db(temp_file_path());
 
-            EXPECT(record.Load(id0(), read0));
-            EXPECT(record.Load(id1(), read1));
+            EXPECT(db.Load(key(), id0(), read0));
+            EXPECT(db.Load(key(), id1(), read1));
         }
 
         EXPECT_EQUAL(value0(), read0);
@@ -178,10 +178,10 @@ class DbRecordWriteTest : public DbRecordTest
         (void)std::ofstream(temp_file_path());
 
         {
-            DbRecord record(temp_file_path(), key());
+            Db db(temp_file_path());
 
-            EXPECT(record.Store(id0(), value0()));
-            EXPECT(record.Store(id1(), value1()));
+            EXPECT(db.Store(key(), id0(), value0()));
+            EXPECT(db.Store(key(), id1(), value1()));
         }
 
         std::string read;
@@ -201,40 +201,40 @@ class DbRecordOperationsTest : public DbRecordTest
         TestData to_be_rewritten(7, 8);
 
         {
-            DbRecord record(temp_file_path(), key());
+            Db db(temp_file_path());
 
-            EXPECT(record.Store(id0(), to_be_rewritten));
-            EXPECT(record.Store(id1(), to_be_rewritten));
+            EXPECT(db.Store(key(), id0(), to_be_rewritten));
+            EXPECT(db.Store(key(), id1(), to_be_rewritten));
 
             // Rewritting existing value with other.
-            EXPECT(record.Store(id1(), value1()));
+            EXPECT(db.Store(key(), id1(), value1()));
 
             // Rewritting existing value with same. In fact no DB manipulation should be performed
             // inside of store in such case.
-            EXPECT(record.Store(id1(), value1()));
+            EXPECT(db.Store(key(), id1(), value1()));
         }
 
         {
-            DbRecord record(temp_file_path(), key());
+            Db db(temp_file_path());
 
             // Rewriting existing value to store it to file.
-            EXPECT(record.Store(id0(), value0()));
+            EXPECT(db.Store(key(), id0(), value0()));
         }
 
         TestData read0, read1, read_missing, read_missing_cmp(read_missing);
 
         {
-            DbRecord record(temp_file_path(), key());
+            Db db(temp_file_path());
 
             // Loading by id not present in record should execute well but return false as nothing
             // was read.
-            EXPECT(!record.Load(missing_id(), read_missing));
+            EXPECT(!db.Load(key(), missing_id(), read_missing));
 
             // In such case value should not be changed.
             EXPECT_EQUAL(read_missing, read_missing_cmp);
 
-            EXPECT(record.Load(id0(), read0));
-            EXPECT(record.Load(id1(), read1));
+            EXPECT(db.Load(key(), id0(), read0));
+            EXPECT(db.Load(key(), id1(), read1));
         }
 
         EXPECT_EQUAL(read0, value0());
