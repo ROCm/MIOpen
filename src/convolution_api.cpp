@@ -184,6 +184,28 @@ extern "C" miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
 
     MIOPEN_LOG_FUNCTION(
         alpha, xDesc, x, wDesc, w, convDesc, algo, beta, yDesc, y, workSpace, workSpaceSize);
+
+    if(miopen::IsLoggingCmd())
+    {
+        std::cerr << MIOPEN_DRIVER_CMD("conv") << " -n " << miopen::deref(xDesc).GetLengths()[0]
+                  << " -c " << miopen::deref(xDesc).GetLengths()[1] << " -H "
+                  << miopen::deref(xDesc).GetLengths()[2] << " -W "
+                  << miopen::deref(xDesc).GetLengths()[3]
+
+                  << " -k " << miopen::deref(wDesc).GetLengths()[0] << " -y "
+                  << miopen::deref(wDesc).GetLengths()[2] << " -x "
+                  << miopen::deref(wDesc).GetLengths()[3]
+
+                  << " -p " << miopen::deref(convDesc).pad_h << " -q "
+                  << miopen::deref(convDesc).pad_w << " -u " << miopen::deref(convDesc).u << " -v "
+                  << miopen::deref(convDesc).v << " -l " << miopen::deref(convDesc).dilation_h
+                  << " -j " << miopen::deref(convDesc).dilation_w
+
+                  << " -t "
+                  << "1"
+                  << "\n";
+    }
+
     return miopen::try_([&] {
         miopen::deref(convDesc).ConvolutionForward(miopen::deref(handle),
                                                    alpha,
@@ -291,6 +313,28 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
 
     MIOPEN_LOG_FUNCTION(
         alpha, dyDesc, dy, wDesc, w, convDesc, algo, beta, dxDesc, dx, workSpace, workSpaceSize);
+
+    if(miopen::IsLoggingCmd())
+    {
+        std::cerr << MIOPEN_DRIVER_CMD("conv") << " -n " << miopen::deref(dxDesc).GetLengths()[0]
+                  << " -c " << miopen::deref(dxDesc).GetLengths()[1] << " -H "
+                  << miopen::deref(dxDesc).GetLengths()[2] << " -W "
+                  << miopen::deref(dxDesc).GetLengths()[3]
+
+                  << " -k " << miopen::deref(wDesc).GetLengths()[0] << " -y "
+                  << miopen::deref(wDesc).GetLengths()[2] << " -x "
+                  << miopen::deref(wDesc).GetLengths()[3]
+
+                  << " -p " << miopen::deref(convDesc).pad_h << " -q "
+                  << miopen::deref(convDesc).pad_w << " -u " << miopen::deref(convDesc).u << " -v "
+                  << miopen::deref(convDesc).v << " -l " << miopen::deref(convDesc).dilation_h
+                  << " -j " << miopen::deref(convDesc).dilation_w
+
+                  << " -t "
+                  << "1"
+                  << "\n";
+    }
+
     return miopen::try_([&] {
         miopen::deref(convDesc).ConvolutionBackwardData(miopen::deref(handle),
                                                         alpha,
@@ -376,6 +420,28 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
                         workSpace,
                         workSpaceSize,
                         exhaustiveSearch);
+
+    if(miopen::IsLoggingCmd())
+    {
+        std::cerr << MIOPEN_DRIVER_CMD("conv") << " -n " << miopen::deref(xDesc).GetLengths()[0]
+                  << " -c " << miopen::deref(xDesc).GetLengths()[1] << " -H "
+                  << miopen::deref(xDesc).GetLengths()[2] << " -W "
+                  << miopen::deref(xDesc).GetLengths()[3]
+
+                  << " -k " << miopen::deref(dwDesc).GetLengths()[0] << " -y "
+                  << miopen::deref(dwDesc).GetLengths()[2] << " -x "
+                  << miopen::deref(dwDesc).GetLengths()[3]
+
+                  << " -p " << miopen::deref(convDesc).pad_h << " -q "
+                  << miopen::deref(convDesc).pad_w << " -u " << miopen::deref(convDesc).u << " -v "
+                  << miopen::deref(convDesc).v << " -l " << miopen::deref(convDesc).dilation_h
+                  << " -j " << miopen::deref(convDesc).dilation_w
+
+                  << " -t "
+                  << "1"
+                  << "\n";
+    }
+
     return miopen::try_([&] {
         miopen::deref(convDesc).FindConvBwdWeightsAlgorithm(miopen::deref(handle),
                                                             miopen::deref(dyDesc),
@@ -435,6 +501,7 @@ extern "C" miopenStatus_t miopenConvolutionBackwardBias(miopenHandle_t handle,
                                                         const miopenTensorDescriptor_t dbDesc,
                                                         void* db)
 {
+    MIOPEN_LOG_FUNCTION(alpha, dyDesc, dy, beta, dbDesc, db);
     return miopen::try_([&] {
         ConvolutionBackwardBias(miopen::deref(handle),
                                 alpha,

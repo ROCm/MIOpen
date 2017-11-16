@@ -471,7 +471,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
 
         int version = result.out_pix_tile1;
 
-        for(int g0 = 0; g0 <= n_grp_tiles0; ++g0)
+        for(int g0 = 0; g0 < n_grp_tiles0; ++g0)
         {
             result.grp_tile0 = grp_tl_ln[g0];
 
