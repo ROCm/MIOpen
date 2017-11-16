@@ -67,8 +67,15 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
+	if (hxDesc.GetSize() != cxDesc.GetSize() || hxDesc.GetSize() != hyDesc.GetSize() || hxDesc.GetSize() != cyDesc.GetSize())
+	{
+		MIOPEN_THROW(miopenStatusBadParm);
+	}
+	if (workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc))
+	{
+		MIOPEN_THROW("Workspace is required");
+	}
 
-    // TODO: DLOWELL put guards here.
     std::string network_config;
     std::vector<int> in_n;
     int in_h  = xDesc[0].GetLengths()[1]; // input vector size
@@ -93,6 +100,21 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
             printf("Input batch length: %d, Output batch length: %d\n", batchval, batchvalout);
             MIOPEN_THROW(miopenStatusBadParm);
         }
+		if (i == 0)
+		{
+			if (batchval == 0)
+			{
+				MIOPEN_THROW("Input batch is ZERO!");
+			}
+		}
+		else
+		{
+			if (batchval > in_n.back())
+			{
+				printf("Incorrect input batch size at time %d! Batch size must not ascend!\n", i);
+				MIOPEN_THROW(miopenStatusBadParm);
+			}
+		}
         in_n.push_back(batchval);
         batch_n += batchval;
     }
@@ -101,8 +123,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     int bi = dirMode ? 2 : 1;
     if(out_h != (bi * hy_h))
     {
-        printf("Output size doesn't match hidden state size!\n");
-        MIOPEN_THROW(miopenStatusBadParm);
+        MIOPEN_THROW("Output size doesn't match hidden state size!");
     }
 
     int in_stride  = in_h;
@@ -116,9 +137,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     {
         if(in_h != hy_h)
         {
-            printf("The input tensor size must equal to the hidden state size of the network in "
-                   "SKIP_INPUT mode!\n");
-            MIOPEN_THROW(miopenStatusBadParm);
+            MIOPEN_THROW("The input tensor size must equal to the hidden state size of the network in SKIP_INPUT mode!");
         }
         in_h = 0;
     }
