@@ -125,11 +125,10 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
 
     if(miopen::IsLoggingCmd())
     {
-        std::cerr << MIOPEN_DRIVER_CMD("bnorm")
-                  << " -n " << miopen::deref(xDesc).GetLengths()[0]
-                  << " -c " << miopen::deref(xDesc).GetLengths()[1]
-                  << " -H " << miopen::deref(xDesc).GetLengths()[2]
-                  << " -W " << miopen::deref(xDesc).GetLengths()[3]
+        std::cerr << MIOPEN_DRIVER_CMD("bnorm") << " -n " << miopen::deref(xDesc).GetLengths()[0]
+                  << " -c " << miopen::deref(xDesc).GetLengths()[1] << " -H "
+                  << miopen::deref(xDesc).GetLengths()[2] << " -W "
+                  << miopen::deref(xDesc).GetLengths()[3]
 
                   << " -m " << bn_mode;
 
