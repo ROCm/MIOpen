@@ -565,7 +565,7 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
         uint faked_off2 = iMod(faked_off, batch_id, ((MLO_OUT_PAD_WIDTH/MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT));
 
         uint out_y_off = iDiv(faked_off2, (MLO_OUT_PAD_WIDTH/MLO_READ_UNIT));
-        uint out_x_off = iMod(faked_off2, out_x_off, (MLO_OUT_PAD_WIDTH/MLO_READ_UNIT));
+        uint out_x_off = iMod(faked_off2, out_y_off, (MLO_OUT_PAD_WIDTH/MLO_READ_UNIT)) * MLO_READ_UNIT;
 
         uint out_image_off =
             (out_y_off + MLO_OUT_PAD_MIN_Y) * MLO_OUT_WIDTH + (out_x_off + MLO_OUT_PAD_MIN_X);
