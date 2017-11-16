@@ -35,44 +35,42 @@
 #include <vector>
 #include <cstdlib>
 
-#define MIO_RNN_TEST_EXPAVGFACTOR 0.1
-#define MIO_RNN_TEST_EPSILON 1e-5 // FLT_EPSILON
-#define MIO_RNN_SP_TEST_DEBUG 1
 #define RNN_MM_TRANSPOSE 1
 
 inline
 std::vector<int> get_rnn_num_layers()
 {
-   // return {{20}};
-    return {{2,7,10,20}};
+    //return {{20}};
+    return {{1,5,20}};
 }
 
 inline
 std::vector<int> get_rnn_batchSize()
 {
-   // return {{16}};
-    return {{16,32,64,128}};
+    //return {{128}};
+    return {{32,128}};
 }
 
 inline
 std::vector<int> get_rnn_seq_len()
 {
-    //return {{4}};
-    return {{1,2,20,50}};
+    //return {{20}};
+    return {{2,50}};
 }
 
 inline
 std::vector<int> get_rnn_vector_len()
 {
     //return {{20}};
-    return {{4,20,50}};
+    return {{4,32}};
 }
 
 inline
 std::vector<int> get_rnn_hidden_size()
 {
     //return {{128}};
-    return {{16,64,128,256,1760,2048,2560}};
+    //return {{16,64,128,256,1760,2048,2560}};
+	return {{32,256,1760}};
 }
 
 

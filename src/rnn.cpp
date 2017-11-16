@@ -519,16 +519,22 @@ void RNNDescriptor::GetLayerParam(Handle& handle,
                                   TensorDescriptor& paramDesc,
                                   Data_t paramTensor)
 {
-    // 1. Calculate the location of the matrix via layerID, bidirection setting, and params
+	
+    // Get the dimensions of the parameter matrix
+	auto pDims = pTensorLengthsCalculation(xDesc, layer);
+    if(paramTensor == nullptr)
+	{
+            paramDesc = miopen::TensorDescriptor(dataType, pDims.data(), 2);
+            return;
+    }
+	
+    // Calculate the location of the matrix via layerID, bidirection setting, and params
     auto poffset = paramsOffsetCalculation(xDesc, layer, layerID);
 
-    // 2. Get the dimensions of the parameter matrix
-    auto pDims = pTensorLengthsCalculation(xDesc, layer);
-
-    // 3. Construct descriptor for param matrix
+    // Construct descriptor for param matrix
     paramDesc = miopen::TensorDescriptor(dataType, pDims.data(), 2);
 
-    // 4. Copy over data to previously allocated param tensor
+    // Copy over data to previously allocated param tensor
     miopen::CopyTensor(handle, paramDesc, w, paramDesc, paramTensor, poffset, 0);
 }
 
@@ -541,16 +547,21 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
                                  TensorDescriptor& biasDesc,
                                  Data_t bias)
 {
-    if(biasMode == miopenRNNNoBias)
-    {
-        bias = nullptr;
+	auto bdim = int(hsize);
+	
+    // Get the dimensions of the parameter matrix
+    if(bias == nullptr)
+	{
+            biasDesc = miopen::TensorDescriptor(dataType, &bdim, 1);
+            return;
+    }
+    else if(biasMode == miopenRNNNoBias)
+    {//Don't set bias to nullptr, otherwise that is a memory leak. The user should free that memory.
         return;
     }
     // 1. Calculate the location of the matrix via layerID, bidirection setting, and params
     auto boffset = biasOffsetCalculation(xDesc, layer, layerID);
 
-    // 2. Get the dimensions of the parameter matrix
-    auto bdim = int(hsize);
     // 3. Construct descriptor for param matrix
     biasDesc = miopen::TensorDescriptor(dataType, &bdim, 1);
 

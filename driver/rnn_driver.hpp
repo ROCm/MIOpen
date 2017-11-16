@@ -1328,7 +1328,7 @@ int RNNDriver<T>::VerifyBackward()
     }
     else
     {
-        printf("difference at inital hidden state Verifies on CPU and GPU\n");
+        printf("initial hidden state Verifies on CPU and GPU\n");
     }
 
     if((inflags.GetValueStr("mode")) == "lstm")
@@ -1342,7 +1342,7 @@ int RNNDriver<T>::VerifyBackward()
         }
         else
         {
-            printf("difference at inital cell state Verifies on CPU and GPU\n");
+            printf("inital cell state Verifies on CPU and GPU\n");
         }
     }
 
