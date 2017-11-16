@@ -105,6 +105,8 @@ class TempFile
 #endif
 
 static std::string CleanupPath(const char* p);
+
+// Redirrecting both input and output is not supported.
 static int ExecuteGcnAssembler(const std::string& p,
                                std::vector<std::string>& args,
                                std::istream* in,
@@ -176,9 +178,8 @@ bool ValidateGcnAssembler()
 }
 
 int ExecuteGcnAssembler(const std::string& p,
-                        std::vector<std::string>& args, //todo
-                        std::istream* in,
-                        std::ostream* out)
+    std::istream* in,
+    std::ostream* out)
 {
 #ifdef __linux__
     const auto redirect_stdin = (in != nullptr);
@@ -186,7 +187,7 @@ int ExecuteGcnAssembler(const std::string& p,
 
     assert(!(redirect_stdin && redirect_stdout));
 
-    auto file_mode = redirect_stdout ? "w" : "r";
+    const auto file_mode = redirect_stdout ? "r" : "w";
     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(p.c_str(), file_mode), pclose);
 
     if (!pipe)
@@ -221,6 +222,23 @@ int ExecuteGcnAssembler(const std::string& p,
     (void)out;
     return -1;
 #endif // __linux__
+}
+
+int ExecuteGcnAssembler(const std::string& p,
+    std::vector<std::string>& args,
+    std::istream* in,
+    std::ostream* out)
+{
+#ifdef __linux__
+    std::ostringstream cmd;
+
+    cmd << '"' << p << '"';
+
+    for (const auto& arg : args)
+        cmd << " \"" << arg << "\"";
+
+    return ExecuteGcnAssembler(cmd.str(), in, out);
+#endif
 }
 
 int ExecuteGcnAssembler(std::vector<std::string>& args,
