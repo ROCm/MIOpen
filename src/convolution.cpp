@@ -256,7 +256,7 @@ bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& 
         //((_kernel_size0 == 1 && _kernel_size1 == 1 && (u != 1 || v != 1)) ||
 
         ((_kernel_size0 == 1 && _kernel_size1 == 1 &&
-          (u != 1 || v != 1 || ((c & 0xF) > 0) || ((k & 0xF) > 0))) ||
+          (/*u != 1 || v != 1 ||*/ ((c & 0xF) > 0) || ((k & 0xF) > 0))) ||
          // MD: Disabling all stride=2 configs
          // && ((c & 0xF) > 0 || (k & 0xF) > 0)) ||
          (_kernel_size0 == 7 && _kernel_size1 == 7 && (pad_h == 0 || pad_w == 0)) ||
