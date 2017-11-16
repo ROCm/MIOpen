@@ -27,7 +27,6 @@
 #ifndef MIOPEN_RNN_UTIL_H_
 #define MIOPEN_RNN_UTIL_H_
 
-
 #include <cfloat>
 #include <cmath>
 #include <initializer_list>
@@ -37,77 +36,59 @@
 
 #define RNN_MM_TRANSPOSE 1
 
-inline
-std::vector<int> get_rnn_num_layers()
+inline std::vector<int> get_rnn_num_layers()
 {
-    //return {{20}};
-    return {{1,5,20}};
+    // return {{20}};
+    return {{1, 5, 20}};
 }
 
-inline
-std::vector<int> get_rnn_batchSize()
+inline std::vector<int> get_rnn_batchSize()
 {
-    //return {{128}};
-    return {{32,128}};
+    // return {{128}};
+    return {{32, 128}};
 }
 
-inline
-std::vector<int> get_rnn_seq_len()
+inline std::vector<int> get_rnn_seq_len()
 {
-    //return {{20}};
-    return {{2,50}};
+    // return {{20}};
+    return {{2, 50}};
 }
 
-inline
-std::vector<int> get_rnn_vector_len()
+inline std::vector<int> get_rnn_vector_len()
 {
-    //return {{20}};
-    return {{4,32}};
+    // return {{20}};
+    return {{4, 32}};
 }
 
-inline
-std::vector<int> get_rnn_hidden_size()
+inline std::vector<int> get_rnn_hidden_size()
 {
-    //return {{128}};
-    //return {{16,64,128,256,1760,2048,2560}};
-	return {{32,256,1760}};
+    // return {{128}};
+    // return {{16,64,128,256,1760,2048,2560}};
+    return {{32, 256, 1760}};
 }
 
-
-
-
-
-
-
-
-
-inline
-std::vector<std::vector<int>> generate_batchSeq(const int batchSize, const int seqLength)
+inline std::vector<std::vector<int>> generate_batchSeq(const int batchSize, const int seqLength)
 {
- 
+
     int modval = 4;
     srand(modval);
     int currentval = batchSize;
     std::vector<int> batchSeq;
     for(int i = 0; i < seqLength; i++)
     {
-            if(i>0){
-                int nvalue = currentval - rand()%modval;
-                currentval = (nvalue<1) ? 1 : nvalue;
-                //printf("current value: %d\n", currentval);
-            }
-            //printf("adding a value to batch sequence: %d\n", currentval);
-            batchSeq.push_back(currentval);
+        if(i > 0)
+        {
+            int nvalue = currentval - rand() % modval;
+            currentval = (nvalue < 1) ? 1 : nvalue;
+            // printf("current value: %d\n", currentval);
+        }
+        // printf("adding a value to batch sequence: %d\n", currentval);
+        batchSeq.push_back(currentval);
     }
     return {batchSeq};
 }
 
-
-
-
-
-inline
-int sumvc(std::vector<int>& x)
+inline int sumvc(std::vector<int>& x)
 {
     int sum = 0;
     for(int i = 0; i < x.size(); i++)
@@ -117,8 +98,7 @@ int sumvc(std::vector<int>& x)
     return sum;
 }
 
-inline
-float activfunc(float x, int actvf)
+inline float activfunc(float x, int actvf)
 {
     float alpha = 1, beta0 = 0, beta1 = 1;
     if(actvf == 0)
@@ -136,8 +116,7 @@ float activfunc(float x, int actvf)
     return alpha * tanh(beta1 * x);
 }
 
-inline
-float dervactivfunc(float x, int actvf)
+inline float dervactivfunc(float x, int actvf)
 {
     if(actvf == 0)
     {
@@ -151,26 +130,24 @@ float dervactivfunc(float x, int actvf)
     return 1 / cosh(x) / cosh(x);
 }
 
-
-
 template <typename Dtype>
 void RNN_mm_cpu(const Dtype* a_ptr,
-                 size_t a_cols,
-                 size_t a_rows,
-                 size_t a_stride,
-                 int a_flags,
-                 const Dtype* b_ptr,
-                 size_t b_cols,
-                 size_t b_rows,
-                 size_t b_stride,
-                 int b_flags,
-                 Dtype* c_ptr,
-                 size_t c_cols,
-                 size_t c_rows,
-                 size_t c_stride,
-                 int /*c_flags*/,
-                 double d_alpha,
-                 double d_beta)
+                size_t a_cols,
+                size_t a_rows,
+                size_t a_stride,
+                int a_flags,
+                const Dtype* b_ptr,
+                size_t b_cols,
+                size_t b_rows,
+                size_t b_stride,
+                int b_flags,
+                Dtype* c_ptr,
+                size_t c_cols,
+                size_t c_rows,
+                size_t c_stride,
+                int /*c_flags*/,
+                double d_alpha,
+                double d_beta)
 {
 
     Dtype alpha = Dtype(d_alpha);
@@ -282,13 +259,4 @@ void RNN_mm_cpu(const Dtype* a_ptr,
     }
 }
 
-
-
-
-
-
-
-
 #endif
-
-
