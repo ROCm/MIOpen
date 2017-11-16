@@ -177,12 +177,10 @@ bool ValidateGcnAssembler()
     return result;
 }
 
-int ExecuteGcnAssembler(const std::string& p,
-    std::istream* in,
-    std::ostream* out)
+int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostream* out)
 {
 #ifdef __linux__
-    const auto redirect_stdin = (in != nullptr);
+    const auto redirect_stdin  = (in != nullptr);
     const auto redirect_stdout = (out != nullptr);
 
     assert(!(redirect_stdin && redirect_stdout));
@@ -190,25 +188,25 @@ int ExecuteGcnAssembler(const std::string& p,
     const auto file_mode = redirect_stdout ? "r" : "w";
     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(p.c_str(), file_mode), pclose);
 
-    if (!pipe)
+    if(!pipe)
         MIOPEN_THROW("Error: X-AMDGCN-ASM: popen()");
 
-    if (redirect_stdin || redirect_stdout)
+    if(redirect_stdin || redirect_stdout)
     {
         std::array<char, 1024> buffer;
 
-        if (redirect_stdout)
+        if(redirect_stdout)
         {
-            while (!feof(pipe.get()))
-                if (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
+            while(!feof(pipe.get()))
+                if(fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
                     *out << buffer.data();
         }
         else
         {
-            while (!in->eof())
+            while(!in->eof())
             {
                 in->read(buffer.data(), buffer.size());
-                if (fputs(buffer.data(), pipe.get()) == EOF)
+                if(fputs(buffer.data(), pipe.get()) == EOF)
                     MIOPEN_THROW("Error: X-AMDGCN-ASM: fputs()");
             }
         }
@@ -225,16 +223,16 @@ int ExecuteGcnAssembler(const std::string& p,
 }
 
 int ExecuteGcnAssembler(const std::string& p,
-    std::vector<std::string>& args,
-    std::istream* in,
-    std::ostream* out)
+                        std::vector<std::string>& args,
+                        std::istream* in,
+                        std::ostream* out)
 {
 #ifdef __linux__
     std::ostringstream cmd;
 
     cmd << '"' << p << '"';
 
-    for (const auto& arg : args)
+    for(const auto& arg : args)
         cmd << " \"" << arg << "\"";
 
     return ExecuteGcnAssembler(cmd.str(), in, out);
