@@ -458,12 +458,15 @@ struct conv_driver : test_driver
             {
                 if(filter.u == 0 || filter.v == 0)
                     return;
-                filter.pad_h = (input_h % filter.u == 0)
+                auto _pad_h = (input_h % filter.u == 0)
                                    ? (std::max(static_cast<int>(wei_h - filter.u), 0))
                                    : (std::max(static_cast<int>(wei_h - (input_h % filter.u)), 0));
-                filter.pad_w = (input_w % filter.v == 0)
+                auto _pad_w = (input_w % filter.v == 0)
                                    ? (std::max(static_cast<int>(wei_w - filter.v), 0))
                                    : (std::max(static_cast<int>(wei_w - (input_w % filter.v)), 0));
+
+                filter.pad_h = _pad_h / 2;
+                filter.pad_w = _pad_w / 2;
 
                 out_h = std::ceil(static_cast<double>(input_h) / filter.u);
                 out_w = std::ceil(static_cast<double>(input_w) / filter.v);
