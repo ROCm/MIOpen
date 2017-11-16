@@ -73,11 +73,11 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                                 int inputMode,
                                 std::vector<T>& rsvspace)
 {
-    printf("FWD TRAIN CPU:\n");
-    printf("seqLen: %d, in_h: %d, hy_d: %d, hy_n: %d, hy_h: %d, out_h: %d\n", seqLength, in_h, hy_d, hy_n, hy_h, out_h);
-    printf("dirmode: %d, hx size: %d, hy_host size: %d, reserveSpace: %d\n", bidirection ? 2 : 1, hx.size(), hy_host.size(), rsvspace.size());
-    printf("input size: %d\n", in.size());
-    printf("output size: %d\n", out_host.size());
+//    printf("FWD TRAIN CPU:\n");
+//    printf("seqLen: %d, in_h: %d, hy_d: %d, hy_n: %d, hy_h: %d, out_h: %d\n", seqLength, in_h, hy_d, hy_n, hy_h, out_h);
+//    printf("dirmode: %d, hx size: %d, hy_host size: %d, reserveSpace: %d\n", bidirection ? 2 : 1, hx.size(), hy_host.size(), rsvspace.size());
+//    printf("input size: %d\n", in.size());
+//    printf("output size: %d\n", out_host.size());
     int batch_n  = sumvc(in_n);
     std::vector<T> hid_state(hy_d * batch_n * hy_h, 0.);
     std::vector<T> wk_state(hy_d * batch_n * hy_h, 0.);
@@ -452,6 +452,11 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
                                      std::vector<T>& rsvspace,
                                      std::vector<T>& wkspace)
 {
+    
+    printf("BWD DATA CPU driver:\n");
+    printf("seqLen: %d, in_h: %d, hy_d: %d, hy_n: %d, hy_h: %d, out_h: %d\n", seqLength, in_h, hy_d, hy_n, hy_h, out_h);
+    printf("hx size: %d, dhx size: %d, dhy size: %d, reserveSpace: %d, workSpace: %d\n", hx.size(), dhx_host.size(), dhy.size(), rsvspace.size(),wkspace.size());
+    printf("dinput size: %d\n", din_host.size());
     int batch_n = sumvc(in_n);
     std::vector<T> dh_state(hy_d * batch_n * hy_h, 0.);
 
@@ -504,7 +509,7 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
     int wei_len = (bi * (in_h + hy_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
     if(biased)
     {
-        int in_bias = inputMode == 1 ? 1 : 2;
+        int in_bias = (inputMode == 1) ? 1 : 2;
         wei_len += (bi * in_bias + (numlayer - 1) * bi * 2) * hy_h;
     }
 
@@ -713,6 +718,7 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
     for(int h = 0; h < hy_d * hy_n * hy_h; h++)
     {
         dhx_host.at(h) = dhx_state.at(h);
+        //printf("dhx_host[%d]: %f\n", h, dhx_host.at(h));
     }
 
 }
@@ -744,10 +750,10 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
                                        std::vector<T>& wkspace)
 {
     
-    printf("BWD WEGIHTS CPU driver:\n");
-    printf("seqLen: %d, in_h: %d, hy_d: %d, hy_n: %d, hy_h: %d, out_h: %d\n", seqLength, in_h, hy_d, hy_n, hy_h, out_h);
-    printf("dirmode: %d, hx size: %d, dout size: %d, reserveSpace: %d, workSpace: %d\n", bidirection ? 2 : 1, hx.size(), dout.size(), rsvspace.size(),wkspace.size());
-    printf("input size: %d\n", in.size());
+//    printf("BWD WEGIHTS CPU driver:\n");
+//    printf("seqLen: %d, in_h: %d, hy_d: %d, hy_n: %d, hy_h: %d, out_h: %d\n", seqLength, in_h, hy_d, hy_n, hy_h, out_h);
+//    printf("dirmode: %d, hx size: %d, dout size: %d, reserveSpace: %d, workSpace: %d\n", bidirection ? 2 : 1, hx.size(), dout.size(), rsvspace.size(),wkspace.size());
+//    printf("input size: %d\n", in.size());
     int batch_n  = sumvc(in_n);
     int numlayer = bidirection ? hy_d / 2 : hy_d;
     int bacc; // accumulation of batch
