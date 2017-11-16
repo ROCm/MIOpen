@@ -227,7 +227,6 @@ int ExecuteGcnAssembler(const std::string& p,
                         std::istream* in,
                         std::ostream* out)
 {
-#ifdef __linux__
     std::ostringstream cmd;
 
     cmd << '"' << p << '"';
@@ -236,7 +235,6 @@ int ExecuteGcnAssembler(const std::string& p,
         cmd << " \"" << arg << "\"";
 
     return ExecuteGcnAssembler(cmd.str(), in, out);
-#endif
 }
 
 int ExecuteGcnAssembler(std::vector<std::string>& args,
