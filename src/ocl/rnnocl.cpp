@@ -32,6 +32,7 @@
 #include <miopen/float_equal.hpp>
 #include <vector>
 #include <numeric>
+#include <algorithm>
 
 #if MIOPEN_USE_MIOPENGEMM
 #include <miopen/gemm.hpp>
@@ -3088,7 +3089,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         gg.RunGemm(handle, workSpace, w, dx, 0, 0, 0);
 
         // Update time
-        profileRNNkernels(handle, 1);
+        profileRNNkernels(handle, 2);
     }
 #else
     MIOPEN_THROW("GEMM is not supported");
@@ -3196,6 +3197,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     int hid_shift, hx_shift, wei_shift, prelayer_shift, pretime_shift;
     int wei_len, hid_off;
     int cur_time, use_time, pre_batch;
+	int time_mark = 0;
 
     switch(rnnMode)
     {
@@ -3244,7 +3246,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 gg.RunGemm(handle, workSpace, x, dw, 0, 0, 0);
 
                 // Update time
-                profileRNNkernels(handle, 0);
+                profileRNNkernels(handle, std::min(time_mark++, 1));
             }
         }
         else
@@ -3268,7 +3270,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             gg.RunGemm(handle, workSpace, reserveSpace, dw, hid_shift, prelayer_shift, wei_shift);
 
             // Update time
-            profileRNNkernels(handle, 1);
+            profileRNNkernels(handle, std::min(time_mark++, 1));
         }
 
         if(biasMode)
@@ -3318,10 +3320,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                              wei_shift);
 
                     // Update time
-                    if((inputMode != miopenRNNlinear) && bs == 0)
-                        profileRNNkernels(handle, 0);
-                    else
-                        profileRNNkernels(handle, 1);
+                    profileRNNkernels(handle, std::min(time_mark++, 1));
                 }
 
                 if(rnnMode != miopenGRU && (!(li == 0 && inputMode == miopenRNNskip)))
@@ -3334,7 +3333,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                wei_shift,
                                wei_shift + wei_stride);
                     // Update time
-                    profileRNNkernels(handle, 1);
+                    profileRNNkernels(handle, std::min(time_mark++, 1));
                 }
             }
         }
@@ -3388,7 +3387,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                  hid_shift + 2 * hy_h + ri * 3 * hy_h,
                                  hid_shift + 2 * hy_h + ri * 3 * hy_h);
                         // Update time
-                        profileRNNkernels(handle, 1);
+                        profileRNNkernels(handle, std::min(time_mark++, 1));
                     }
 
                     if(ti == 0)
@@ -3416,7 +3415,10 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                    wei_shift + ri * wei_len * uni_stride);
 
                         // Update time
-                        profileRNNkernels(handle, 1);
+						if (ti == seqLen - 1 && ri == bi - 1 && rnnMode != miopenGRU && (!biasMode))
+							profileRNNkernels(handle, 2);
+						else
+                        profileRNNkernels(handle, std::min(time_mark++, 1));
                     }
                     else
                     {
@@ -3447,11 +3449,9 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        wei_shift + ri * wei_len * uni_stride);
 
                             // Update time
-                            if(dirMode)
-                                profileRNNkernels(handle, 1);
-                            else if((li == nLayers) && (ti == seqLen - 1))
-                                profileRNNkernels(handle, 2);
-                            else
+							if (ti == seqLen - 1 && ri == bi - 1 && rnnMode != miopenGRU && (!biasMode))
+								profileRNNkernels(handle, 2);
+						    else
                                 profileRNNkernels(handle, 1);
                         }
                     }
