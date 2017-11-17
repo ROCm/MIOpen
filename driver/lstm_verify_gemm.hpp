@@ -94,7 +94,8 @@ void RunLSTMForwardGEMMCPUVerify(
     }
 
     // initial weights
-    std::vector<T> wei_state(wei_len, 0.);;
+    std::vector<T> wei_state(wei_len, 0.);
+    ;
     for(int h = 0; h < wei_len; h++)
     {
         wei_state.at(h) = wei.at(h);
@@ -135,7 +136,8 @@ void RunLSTMForwardGEMMCPUVerify(
                     {
                         for(int h = 0; h < wei_stride; h++)
                         {
-                            hid_state.at(hid_shift + bs * hy_stride + h) += wei.at(wei_shift_bias + h);
+                            hid_state.at(hid_shift + bs * hy_stride + h) +=
+                                wei.at(wei_shift_bias + h);
                         }
                     }
                 }
@@ -168,7 +170,8 @@ void RunLSTMForwardGEMMCPUVerify(
                         for(int h = 0; h < wei_stride; h++)
                         {
                             hid_state.at(hid_shift + bs * hy_stride + h) +=
-                                (wei.at(wei_shift_bias + h) + wei.at(wei_shift_bias + wei_stride + h));
+                                (wei.at(wei_shift_bias + h) +
+                                 wei.at(wei_shift_bias + wei_stride + h));
                         }
                     }
                 }
@@ -313,7 +316,8 @@ void RunLSTMForwardGEMMCPUVerify(
                 {
                     hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
                         activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + h), 2) *
-                        activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + 3 * hy_h + h), 1);
+                        activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + 3 * hy_h + h),
+                                  1);
                     if(ti == 0)
                     {
                         hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
@@ -336,24 +340,28 @@ void RunLSTMForwardGEMMCPUVerify(
                         activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h),
                                   2) *
                         activfunc(
-                            hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h), 1);
+                            hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h),
+                            1);
 
                     hid_state.at(hid_shift + (bacc + bs) * hy_stride + h +
-                              numlayer * batch_n * hy_stride) =
+                                 numlayer * batch_n * hy_stride) =
                         activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + h), 2);
                     hid_state.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h +
-                              numlayer * batch_n * hy_stride) =
+                                 numlayer * batch_n * hy_stride) =
                         activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h), 2);
                     hid_state.at(hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h +
-                              numlayer * batch_n * hy_stride) =
-                        activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h), 2);
+                                 numlayer * batch_n * hy_stride) =
+                        activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h),
+                                  2);
                     hid_state.at(hid_shift + (bacc + bs) * hy_stride + 3 * hy_h + h +
-                              numlayer * batch_n * hy_stride) =
-                        activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + 3 * hy_h + h), 1);
+                                 numlayer * batch_n * hy_stride) =
+                        activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + 3 * hy_h + h),
+                                  1);
                     hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h +
-                              numlayer * batch_n * hy_stride) =
+                                 numlayer * batch_n * hy_stride) =
                         activfunc(
-                            hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h), 1);
+                            hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h),
+                            1);
 
                     cy_state.at(hx_shift + bs * uni_stride + h) =
                         hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h);
@@ -369,33 +377,35 @@ void RunLSTMForwardGEMMCPUVerify(
                     for(int h = 0; h < hy_h; h++)
                     {
                         hid_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h + hy_h +
-                                  h) +=
+                                     h) +=
                             activfunc(
                                 hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h),
                                 2) *
                             activfunc(
-                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 7 * hy_h + h), 1);
+                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 7 * hy_h + h),
+                                1);
                         if(ti == 0)
                         {
-                            hid_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h + hy_h +
-                                      h) +=
-                                activfunc(
-                                    hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h),
-                                    2) *
+                            hid_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
+                                         hy_h + h) +=
+                                activfunc(hid_state.at(hid_shift + (baccbi + bs) * hy_stride +
+                                                       5 * hy_h + h),
+                                          2) *
                                 cx_state.at(hx_shift + bs * uni_stride + hy_n * hy_h + h);
                         }
                         else
                         {
                             if(bs < in_n.at(seqLength - ti))
                             {
-                                int prec_shift = li * batch_n * hy_stride +
-                                                 (baccbi + in_n.at(seqLength - 1 - ti)) * hy_stride +
-                                                 bi * 4 * hy_h + hy_h;
+                                int prec_shift =
+                                    li * batch_n * hy_stride +
+                                    (baccbi + in_n.at(seqLength - 1 - ti)) * hy_stride +
+                                    bi * 4 * hy_h + hy_h;
 
                                 hid_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
-                                          hy_h + h) +=
+                                             hy_h + h) +=
                                     activfunc(hid_state.at(hid_shift + (baccbi + bs) * hy_stride +
-                                                        5 * hy_h + h),
+                                                           5 * hy_h + h),
                                               2) *
                                     hid_state.at(prec_shift + bs * hy_stride + h);
                             }
@@ -411,33 +421,35 @@ void RunLSTMForwardGEMMCPUVerify(
                                       1);
 
                         hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h +
-                                  numlayer * batch_n * hy_stride) =
+                                     numlayer * batch_n * hy_stride) =
                             activfunc(
-                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h), 2);
+                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h),
+                                2);
                         hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h +
-                                  numlayer * batch_n * hy_stride) =
+                                     numlayer * batch_n * hy_stride) =
                             activfunc(
-                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h), 2);
+                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h),
+                                2);
                         hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 6 * hy_h + h +
-                                  numlayer * batch_n * hy_stride) =
+                                     numlayer * batch_n * hy_stride) =
                             activfunc(
-                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 6 * hy_h + h), 2);
+                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 6 * hy_h + h),
+                                2);
                         hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 7 * hy_h + h +
-                                  numlayer * batch_n * hy_stride) =
+                                     numlayer * batch_n * hy_stride) =
                             activfunc(
-                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 7 * hy_h + h), 1);
-                        hid_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h + hy_h + h +
-                                  numlayer * batch_n * hy_stride) =
+                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 7 * hy_h + h),
+                                1);
+                        hid_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h + hy_h +
+                                     h + numlayer * batch_n * hy_stride) =
                             activfunc(hid_state.at(hid_shift + (baccbi + bs) * hy_stride +
-                                                bi * 4 * hy_h + hy_h + h),
+                                                   bi * 4 * hy_h + hy_h + h),
                                       1);
 
-                        cy_state.at(hx_shift + bs * uni_stride + hy_n * hy_h + h) =
-                            hid_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h + hy_h +
-                                      h);
-                        hy_state.at(hx_shift + bs * uni_stride + hy_n * hy_h + h) =
-                            hid_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 5 * hy_h + hy_h +
-                                      h);
+                        cy_state.at(hx_shift + bs * uni_stride + hy_n * hy_h + h) = hid_state.at(
+                            hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h + hy_h + h);
+                        hy_state.at(hx_shift + bs * uni_stride + hy_n * hy_h + h) = hid_state.at(
+                            hid_shift + (baccbi + bs) * hy_stride + bi * 5 * hy_h + hy_h + h);
                     }
                 }
             }
@@ -526,7 +538,7 @@ void RunLSTMBackwardDataGEMMCPUVerify(
 
     std::vector<T> dh_state(numlayer * batch_n * hy_stride, 0.);
     std::vector<T> din_state(batch_n * in_h, 0.);
-    
+
     // initial dout
     std::vector<T> dout_state(batch_n * out_h, 0.);
     for(int h = 0; h < batch_n; h++)
@@ -978,7 +990,6 @@ void RunLSTMBackwardDataGEMMCPUVerify(
             din_host[bs * in_stride + h] = din_state[bs * in_stride + h];
         }
     }
-
 }
 
 template <typename T>
@@ -1029,7 +1040,7 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<T>& in,
     }
 
     // initial output difference
-    std::vector<T> dout_state(batch_n * out_h,0.);
+    std::vector<T> dout_state(batch_n * out_h, 0.);
     for(int h = 0; h < batch_n; h++)
     {
         for(int w = 0; w < out_h; w++)
@@ -1074,7 +1085,7 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<T>& in,
     }
 
     // initial dwei
-    std::vector<T> dwei_state(wei_len,0.);
+    std::vector<T> dwei_state(wei_len, 0.);
 
     // bwd weights emulator
     for(int li = 0; li < numlayer; li++)
@@ -1279,7 +1290,6 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<T>& in,
     {
         dwei_host[i] = dwei_state[i];
     }
-
 }
 
 #endif // GUARD_MIOPEN_LSTM_VERIFY_GEMM_HPP
