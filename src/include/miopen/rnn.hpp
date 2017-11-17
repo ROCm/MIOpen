@@ -104,7 +104,9 @@ struct RNNDescriptor : miopenRNNDescriptor
                             int seqLength,
                             c_array_view<miopenTensorDescriptor_t> xDesc) const;
 
-    size_t GetReserveSize(Handle& handle, int sLen, c_array_view<miopenTensorDescriptor_t> xDesc);
+    size_t GetReserveSize(Handle& handle,
+                          int seqLength,
+                          c_array_view<miopenTensorDescriptor_t> xDesc) const;
 
     size_t GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miopenDataType_t dtype);
 
