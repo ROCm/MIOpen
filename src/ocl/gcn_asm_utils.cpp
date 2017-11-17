@@ -28,11 +28,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
-#include <memory>
 #include <miopen/config.h>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/gcn_asm_utils.hpp>
+#include <miopen/manage_ptr.hpp>
 #include <sstream>
 
 #ifdef __linux__
@@ -186,7 +186,7 @@ int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostream* ou
     assert(!(redirect_stdin && redirect_stdout));
 
     const auto file_mode = redirect_stdout ? "r" : "w";
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(p.c_str(), file_mode), pclose);
+    MIOPEN_MANAGE_PTR(FILE*, pclose) pipe { popen(p.c_str(), file_mode) };
 
     if(!pipe)
         MIOPEN_THROW("Error: X-AMDGCN-ASM: popen()");
