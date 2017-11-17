@@ -32,7 +32,6 @@
 // MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 
 // Disable specific warnings
-//
 #define MIO_RNN_DEBUG 0
 
 #ifdef __clang__
@@ -131,15 +130,19 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& xDesc,
     {
         if(layer > 1)
         {
-            layerJump += (isNotRNNskip * hsize + hsize * hsize) * nHiddenTensorsPerLayer * 2;
+            layerJump += (isNotRNNskip * hsize + hsize) * nHiddenTensorsPerLayer * 2;
             layerJump += (hsize * 2) * nHiddenTensorsPerLayer * (layer / 2 - 1) * 2;
+        }
 
+        if(layerID >= nHiddenTensorsPerLayer * isNotRNNskip)
+        {
+            layerJump += (hsize)*nHiddenTensorsPerLayer * 2;
             layerJump += (layer % 2 == 1) ? nHiddenTensorsPerLayer * (hsize) : 0;
-            layerJump += (hsize)*layerID;
+            layerJump += (hsize) * (layerID - nHiddenTensorsPerLayer * isNotRNNskip);
         }
         else
         {
-            layerJump += (layer == 1) ? nHiddenTensorsPerLayer * (hsize) : 0;
+            layerJump += (layer % 2 == 1) ? nHiddenTensorsPerLayer * (hsize) : 0;
             layerJump += (hsize)*layerID;
         }
     }
@@ -148,14 +151,11 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& xDesc,
 
         if(layer > 0)
         {
-            layerJump += (isNotRNNskip * hsize + hsize) * nHiddenTensorsPerLayer;
+            layerJump += (hsize * isNotRNNskip + hsize) * nHiddenTensorsPerLayer;
             layerJump += (hsize * 2) * nHiddenTensorsPerLayer * (layer - 1);
-            layerJump += (hsize)*layerID;
         }
-        else
-        {
-            layerJump += (hsize)*layerID;
-        }
+
+        layerJump += (hsize)*layerID;
     }
 
     return layerJump;
@@ -430,6 +430,9 @@ size_t RNNDescriptor::GetParamsSize(Handle& /* handle */,
     int bi  = dirMode == miopenRNNbidirection ? 2 : 1;
     auto sz = nHiddenTensorsPerLayer * hsize * bi *
               (inputVectorLen + hsize + (nLayers - 1) * (bi + 1) * hsize);
+#if(MIO_RNN_DEBUG == 1)
+    fprintf(stderr, "weight size: %d\n", sz);
+#endif
     if(biasMode == miopenRNNwithBias)
     {
         auto in_bias = inputMode == miopenRNNskip ? 1 : 2;
@@ -586,7 +589,7 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
     biasDesc = miopen::TensorDescriptor(dataType, &bdim, 1);
 
 #if(MIO_RNN_DEBUG == 1)
-    fprintf(stderr, "GetLayerbias bDims %d 1\n", bdim);
+    fprintf(stderr, "GetLayerbias bDims %d\n", bdim);
     fprintf(stderr,
             "GetLayerBias layer: %d layerID: %d offst: %d size: %d\n",
             layer,
