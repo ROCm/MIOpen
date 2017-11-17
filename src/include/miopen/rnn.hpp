@@ -126,7 +126,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                        ConstData_t w,
                        int paramID,
                        TensorDescriptor& paramDesc,
-                       Data_t paramTensor);
+                       Data_t param);
 
     void GetLayerBias(Handle& handle,
                       int layer,
