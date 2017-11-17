@@ -521,16 +521,10 @@ int mloBackwardDirectOnHost(
                         for(int k_j = 0; k_j < kernel_size1; ++k_j)
                         {
                             int bot_y = (j * stride1 + k_j - pad1);
-                            //									int top_y = (j +
-                            //kernel_size1
-                            //-
-                            // 1
-                            //-
-                            // k_j);
+                            //	int top_y = (j + kernel_size1 - 1 - k_j);
                             for(int k_i = 0; k_i < kernel_size0; ++k_i)
                             {
-                                //										int
-                                // top_x = (i + kernel_size0 - 1 - k_i);
+                                // int top_x = (i + kernel_size0 - 1 - k_i);
                                 int bot_x = (i * stride0 + k_i - pad0);
                                 if(!(bot_y < 0 || bot_x < 0 || bot_y >= bot_height ||
                                      bot_x >= bot_width))
