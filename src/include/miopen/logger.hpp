@@ -177,7 +177,7 @@ std::ostream& LogEnum(std::ostream& os, T x, Range&& values)
     return os;
 }
 
-enum LoggingLevel
+enum class LoggingLevel
 {
     Default = 0, // WARNING for Release builds, INFO for Debug builds.
     Quiet,
@@ -189,13 +189,13 @@ enum LoggingLevel
     Trace // E.g. messages output by MIOPEN_LOG_FUNCTION).
 };
 
-const char* LoggingLevelToCString(enum LoggingLevel level);
+const char* LoggingLevelToCString(LoggingLevel level);
 
 std::string PlatformName();
 
 /// \return true if level is enabled.
 /// \param level - one of the values defined in LoggingLevel.
-int IsLogging(int level = LoggingLevel::Error);
+int IsLogging(LoggingLevel level = LoggingLevel::Error);
 bool IsLoggingCmd();
 
 template <class T>
@@ -254,6 +254,7 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 #define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
 #define MIOPEN_LOG_W(...) MIOPEN_LOG(miopen::LoggingLevel::Warning, __VA_ARGS__)
 #define MIOPEN_LOG_I(...) MIOPEN_LOG(miopen::LoggingLevel::Info, __VA_ARGS__)
+#define MIOPEN_LOG_I2(...) MIOPEN_LOG(miopen::LoggingLevel::Info2, __VA_ARGS__)
 
 } // namespace miopen
 
