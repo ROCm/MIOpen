@@ -43,11 +43,21 @@
     {                                                              \
         return MIOPEN_OBJECT_CAST<const __VA_ARGS__&>(obj);        \
     }                                                              \
-    inline void miopen_destroy_object(object* p) { delete MIOPEN_OBJECT_CAST<__VA_ARGS__*>(p); } // NOLINT
+    inline void miopen_destroy_object(object* p)                   \
+    {                                                              \
+        miopen::detail::delete_obj(MIOPEN_OBJECT_CAST<__VA_ARGS__*>(p)); \
+    } 
 
 namespace miopen {
 
 namespace detail {
+
+template<class T>
+void delete_obj(T * x)
+{
+    delete x; // NOLINT
+}
+
 template <class T>
 T& get_object_impl(rank<0>, T& x)
 {
