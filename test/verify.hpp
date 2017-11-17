@@ -174,6 +174,6 @@ double rms_range(R1&& r1, R2&& r2)
     else
         return std::numeric_limits<range_value<R1>>::max();
 }
-}
+} // miopen namespace
 
 #endif

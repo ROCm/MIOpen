@@ -470,11 +470,11 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
         GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &reserveSpaceSize);
     miopenGetRNNParamsSize(GetHandle(), rnnDesc, inputTensors[0], &wei_sz, miopenFloat);
 
-    in_sz  /= sizeof(T);
+    in_sz /= sizeof(T);
     out_sz /= sizeof(T);
-    hy_sz  /= sizeof(T);
+    hy_sz /= sizeof(T);
     wei_sz /= sizeof(T);
-    
+
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
