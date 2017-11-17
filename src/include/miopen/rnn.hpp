@@ -114,15 +114,11 @@ struct RNNDescriptor : miopenRNNDescriptor
                              TensorDescriptor& wDesc,
                              miopenDataType_t dtype);
 
-    std::size_t GetLayerParamSize(Handle& handle,
-                       int layer,
-                       const TensorDescriptor& xDesc,
-                       int paramID);
-    
-    std::size_t GetLayerBiasSize(Handle& handle,
-                       int layer,
-                       int biasID);
-    
+    std::size_t
+    GetLayerParamSize(Handle& handle, int layer, const TensorDescriptor& xDesc, int paramID);
+
+    std::size_t GetLayerBiasSize(Handle& handle, int layer, int biasID);
+
     void GetLayerParam(Handle& handle,
                        int layer,
                        const TensorDescriptor& xDesc,
