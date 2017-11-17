@@ -2465,9 +2465,9 @@ struct lstm_driver : test_driver
         }
         auto cxData = cxTensor.data;
 
-        auto iVL = inVecReal; // inVecLen;
-        if(inputMode == miopenRNNskip)
-            iVL = 0;
+        //        auto iVL = inVecReal; // inVecLen;
+        //        if(inputMode == miopenRNNskip)
+        //            iVL = 0;
 
         size_t wei_bytes = 0;
         std::vector<int> inlens(2, 0);
