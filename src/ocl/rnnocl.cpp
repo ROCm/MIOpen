@@ -950,6 +950,14 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
+    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc))
+    {
+        MIOPEN_THROW("Workspace is required");
+    }
+    if(reserveSpaceSize < GetReserveSize(handle, seqLen, xDesc))
+    {
+        MIOPEN_THROW("Reservespace is required");
+    }
 
     std::string network_config;
     std::vector<int> in_n;
@@ -1836,6 +1844,14 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
        dhyDesc.GetSize() != dcxDesc.GetSize())
     {
         MIOPEN_THROW(miopenStatusBadParm);
+    }
+    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, dxDesc))
+    {
+        MIOPEN_THROW("Workspace is required");
+    }
+    if(reserveSpaceSize < GetReserveSize(handle, seqLen, dxDesc))
+    {
+        MIOPEN_THROW("Reservespace is required");
     }
 
     std::string network_config;
@@ -3197,6 +3213,14 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     if(x == nullptr || dw == nullptr || dy == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
+    }
+    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc))
+    {
+        MIOPEN_THROW("Workspace is required");
+    }
+    if(reserveSpaceSize < GetReserveSize(handle, seqLen, xDesc))
+    {
+        MIOPEN_THROW("Reservespace is required");
     }
 
     std::string network_config;
