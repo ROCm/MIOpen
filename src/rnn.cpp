@@ -360,7 +360,7 @@ RNNDescriptor::RNNDescriptor(int hsz,
 
 size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
                                        const int sLen,
-                                       c_array_view<miopenTensorDescriptor_t> xDesc) const
+                                       c_array_view<miopenTensorDescriptor_t> xDesc)
 {
 
     if(xDesc[0].GetType() != dataType)
