@@ -67,14 +67,15 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-	if (hxDesc.GetSize() != cxDesc.GetSize() || hxDesc.GetSize() != hyDesc.GetSize() || hxDesc.GetSize() != cyDesc.GetSize())
-	{
-		MIOPEN_THROW(miopenStatusBadParm);
-	}
-//	if (workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc))
-//	{
-//		MIOPEN_THROW("Workspace is required");
-//	}
+    if(hxDesc.GetSize() != cxDesc.GetSize() || hxDesc.GetSize() != hyDesc.GetSize() ||
+       hxDesc.GetSize() != cyDesc.GetSize())
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+    //	if (workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc))
+    //	{
+    //		MIOPEN_THROW("Workspace is required");
+    //	}
 
     std::string network_config;
     std::vector<int> in_n;
@@ -100,22 +101,22 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
             printf("Input batch length: %d, Output batch length: %d\n", batchval, batchvalout);
             MIOPEN_THROW(miopenStatusBadParm);
         }
-		if (i == 0)
-		{
-			if (batchval == 0)
-			{
-				printf("Input batch is ZERO!\n");
-				MIOPEN_THROW(miopenStatusBadParm);
-			}
-		}
-		else
-		{
-			if (batchval > in_n.back())
-			{
-				printf("Incorrect input batch size at time %d! Batch size must not ascend!\n", i);
-				MIOPEN_THROW(miopenStatusBadParm);
-			}
-		}
+        if(i == 0)
+        {
+            if(batchval == 0)
+            {
+                printf("Input batch is ZERO!\n");
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+        }
+        else
+        {
+            if(batchval > in_n.back())
+            {
+                printf("Incorrect input batch size at time %d! Batch size must not ascend!\n", i);
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+        }
         in_n.push_back(batchval);
         batch_n += batchval;
     }
@@ -124,8 +125,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     int bi = dirMode ? 2 : 1;
     if(out_h != (bi * hy_h))
     {
-		printf("Output size doesn't match hidden state size!\n");
-		MIOPEN_THROW(miopenStatusBadParm);
+        printf("Output size doesn't match hidden state size!\n");
+        MIOPEN_THROW(miopenStatusBadParm);
     }
 
     int in_stride  = in_h;
@@ -139,9 +140,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     {
         if(in_h != hy_h)
         {
-			printf("The input tensor size must equal to the hidden state size of the network in "
-				"SKIP_INPUT mode!\n");
-			MIOPEN_THROW(miopenStatusBadParm);
+            printf("The input tensor size must equal to the hidden state size of the network in "
+                   "SKIP_INPUT mode!\n");
+            MIOPEN_THROW(miopenStatusBadParm);
         }
         in_h = 0;
     }
@@ -945,10 +946,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-	if (hxDesc.GetSize() != cxDesc.GetSize() || hxDesc.GetSize() != hyDesc.GetSize() || hxDesc.GetSize() != cyDesc.GetSize())
-	{
-		MIOPEN_THROW(miopenStatusBadParm);
-	}
+    if(hxDesc.GetSize() != cxDesc.GetSize() || hxDesc.GetSize() != hyDesc.GetSize() ||
+       hxDesc.GetSize() != cyDesc.GetSize())
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
 
     std::string network_config;
     std::vector<int> in_n;
@@ -974,22 +976,22 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             printf("Input batch length: %d, Output batch length: %d\n", batchval, batchvalout);
             MIOPEN_THROW(miopenStatusBadParm);
         }
-		if (i == 0)
-		{
-			if (batchval == 0)
-			{
-				printf("Input batch is ZERO!\n");
-				MIOPEN_THROW(miopenStatusBadParm);
-			}
-		}
-		else
-		{
-			if (batchval > in_n.back())
-			{
-				printf("Incorrect input batch size at time %d! Batch size must not ascend!\n", i);
-				MIOPEN_THROW(miopenStatusBadParm);
-			}
-		}
+        if(i == 0)
+        {
+            if(batchval == 0)
+            {
+                printf("Input batch is ZERO!\n");
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+        }
+        else
+        {
+            if(batchval > in_n.back())
+            {
+                printf("Incorrect input batch size at time %d! Batch size must not ascend!\n", i);
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+        }
         in_n.push_back(batchval);
         batch_n += batchval;
     }
@@ -1830,10 +1832,12 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-	if (dhyDesc.GetSize() != dcyDesc.GetSize() || dhyDesc.GetSize() != hxDesc.GetSize() || dhyDesc.GetSize() != cxDesc.GetSize() || dhyDesc.GetSize() != dhxDesc.GetSize() || dhyDesc.GetSize() != dcxDesc.GetSize())
-	{
-		MIOPEN_THROW(miopenStatusBadParm);
-	}
+    if(dhyDesc.GetSize() != dcyDesc.GetSize() || dhyDesc.GetSize() != hxDesc.GetSize() ||
+       dhyDesc.GetSize() != cxDesc.GetSize() || dhyDesc.GetSize() != dhxDesc.GetSize() ||
+       dhyDesc.GetSize() != dcxDesc.GetSize())
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
 
     std::string network_config;
     std::vector<int> in_n;
@@ -1856,36 +1860,36 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         std::tie(batchvalout, outputvec) = miopen::tien<2>(dyDesc[i].GetLengths());
         if(batchval != batchvalout)
         {
-			printf("Input batch length: %d, Output batch length: %d\n", batchval, batchvalout);
-			MIOPEN_THROW(miopenStatusBadParm);
+            printf("Input batch length: %d, Output batch length: %d\n", batchval, batchvalout);
+            MIOPEN_THROW(miopenStatusBadParm);
         }
-		if (i == 0)
-		{
-			if (batchval == 0)
-			{
-				printf("Input batch is ZERO!\n");
-				MIOPEN_THROW(miopenStatusBadParm);
-			}
-		}
-		else
-		{
-			if (batchval > in_n.back())
-			{
-				printf("Incorrect input batch size at time %d! Batch size must not ascend!\n", i);
-				MIOPEN_THROW(miopenStatusBadParm);
-			}
-		}
+        if(i == 0)
+        {
+            if(batchval == 0)
+            {
+                printf("Input batch is ZERO!\n");
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+        }
+        else
+        {
+            if(batchval > in_n.back())
+            {
+                printf("Incorrect input batch size at time %d! Batch size must not ascend!\n", i);
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+        }
         in_n.push_back(batchval);
         batch_n += dxDesc[i].GetLengths()[0];
     }
 
     int bacc, baccbi;
     int bi = dirMode ? 2 : 1;
-	if (out_h != (bi * hy_h))
-	{
-		printf("Output size doesn't match hidden state size!\n");
-		MIOPEN_THROW(miopenStatusBadParm);
-	}
+    if(out_h != (bi * hy_h))
+    {
+        printf("Output size doesn't match hidden state size!\n");
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
 
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi * workspaceScale;
@@ -3217,36 +3221,36 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         std::tie(batchvalout, outputvec) = miopen::tien<2>(dyDesc[i].GetLengths());
         if(batchval != batchvalout)
         {
-			printf("Input batch length: %d, Output batch length: %d\n", batchval, batchvalout);
-			MIOPEN_THROW(miopenStatusBadParm);
+            printf("Input batch length: %d, Output batch length: %d\n", batchval, batchvalout);
+            MIOPEN_THROW(miopenStatusBadParm);
         }
-		if (i == 0)
-		{
-			if (batchval == 0)
-			{
-				printf("Input batch is ZERO!\n");
-				MIOPEN_THROW(miopenStatusBadParm);
-			}
-		}
-		else
-		{
-			if (batchval > in_n.back())
-			{
-				printf("Incorrect input batch size at time %d! Batch size must not ascend!\n", i);
-				MIOPEN_THROW(miopenStatusBadParm);
-			}
-		}
+        if(i == 0)
+        {
+            if(batchval == 0)
+            {
+                printf("Input batch is ZERO!\n");
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+        }
+        else
+        {
+            if(batchval > in_n.back())
+            {
+                printf("Incorrect input batch size at time %d! Batch size must not ascend!\n", i);
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
+        }
         in_n.push_back(batchval);
         batch_n += xDesc[i].GetLengths()[0];
     }
 
     int bacc, baccbi;
     int bi = dirMode ? 2 : 1;
-	if (out_h != (bi * hy_h))
-	{
-		printf("Output size doesn't match hidden state size!\n");
-		MIOPEN_THROW(miopenStatusBadParm);
-	}
+    if(out_h != (bi * hy_h))
+    {
+        printf("Output size doesn't match hidden state size!\n");
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
 
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi * workspaceScale;
