@@ -94,6 +94,35 @@ inline std::vector<int> get_lstm_hidden_size()
     // return {{16,64,128,256,1760,2048,2560}};
 }
 
+
+
+// GRU configs
+inline std::vector<int> get_gru_num_layers() { return {{1, 4}}; }
+
+inline std::vector<int> get_gru_batchSize()
+{
+    return {16};
+    // return {{32, 128}};
+}
+
+inline std::vector<int> get_gru_seq_len()
+{
+    return {25};
+    // return {{2, 50}};
+}
+
+inline std::vector<int> get_gru_vector_len()
+{
+    return {16};
+    // return {{4, 32}};
+}
+
+inline std::vector<int> get_gru_hidden_size()
+{
+    return {256};
+    // return {{16,64,128,256,1760,2048,2560}};
+}
+
 inline std::vector<std::vector<int>> generate_batchSeq(const int batchSize, const int seqLength)
 {
 

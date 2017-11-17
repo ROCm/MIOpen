@@ -1307,7 +1307,7 @@ struct verify_forward_infer_rnn
                                   &hiddenDesc,
                                   nullptr,
                                   workSpace_dev.get(),
-                                  workSpaceSize);
+                                  workSpaceSize*sizeof(T));
 
 #if(MIO_RNN_TEST_DEBUG == 2)
         auto outdata = handle.Read<T>(output_dev, output.size());
@@ -1567,9 +1567,9 @@ struct verify_forward_train_rnn
                                  &hiddenDesc,
                                  nullptr,
                                  workSpace_dev.get(),
-                                 workSpaceSize,
+                                 workSpaceSize*sizeof(T),
                                  reserveSpace_dev.get(),
-                                 reserveSpaceSize);
+                                 reserveSpaceSize*sizeof(T));
 
 #if(MIO_RNN_TEST_DEBUG == 2)
         auto outdata = handle.Read<T>(output_dev, output.size());
@@ -1848,9 +1848,9 @@ struct verify_backward_data_rnn
                               &hiddenDesc,
                               nullptr,
                               workSpace_dev.get(), // TODO up
-                              workSpaceSize,
+                              workSpaceSize*sizeof(T),
                               reserveSpace_dev.get(), // TODO up remove extra
-                              reserveSpace.size());
+                              reserveSpace.size()*sizeof(T));
 
         auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
                                       handle.Read<T>(dhx_dev, dhx.size()),
@@ -2058,9 +2058,9 @@ struct verify_backward_weights_rnn
                                  &weightDesc,
                                  dweights_dev.get(),
                                  workSpace_dev.get(),
-                                 workSpace.size(),
+                                 workSpace.size()*sizeof(T),
                                  reserveSpace_dev.get(),
-                                 reserveSpace.size());
+                                 reserveSpace.size()*sizeof(T));
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
