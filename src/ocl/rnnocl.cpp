@@ -71,10 +71,10 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    //	if (workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc))
-    //	{
-    //		MIOPEN_THROW("Workspace is required");
-    //	}
+    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc))
+    {
+        MIOPEN_THROW("Workspace is required");
+    }
 
     std::string network_config;
     std::vector<int> in_n;
