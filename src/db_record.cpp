@@ -130,7 +130,7 @@ bool DbRecord::StoreValues(const std::string& id, const std::string& values)
         map.erase(it);
         map.emplace(id, values);
         record_format = RecordFormat::Current;
-        MIOPEN_LOG_I("Legacy content under key: " << key << " replaced by " << id << ":" << values);
+        MIOPEN_LOG_I("Legacy content under key: " << key << " replaced by " << id << ':' << values);
         return true;
     }
     else if(record_format == RecordFormat::Legacy && !isLegacySolver(id))
@@ -140,7 +140,7 @@ bool DbRecord::StoreValues(const std::string& id, const std::string& values)
         assert(map.find(id) == map.end());
         map.emplace(id, values);
         record_format = RecordFormat::Mixed;
-        MIOPEN_LOG_I("Legacy record under key: " << key << " appended by " << id << ":" << values
+        MIOPEN_LOG_I("Legacy record under key: " << key << " appended by " << id << ':' << values
                                                  << " and becomes Mixed");
         return true;
     }
@@ -155,13 +155,49 @@ bool DbRecord::StoreValues(const std::string& id, const std::string& values)
                                           << (it == map.end() ? "inserted" : "overwritten")
                                           << ": "
                                           << id
-                                          << ":"
+                                          << ':'
                                           << values);
         map[id] = values;
         return true;
     }
-    MIOPEN_LOG_I("Record under key: " << key << ", content is the same, not saved:" << id << ":"
+    MIOPEN_LOG_I("Record under key: " << key << ", content is the same, not saved:" << id << ':'
                                       << values);
+    return false;
+}
+
+bool DbRecord::Erase(const std::string& id)
+{
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
+    assert(record_format != RecordFormat::CurrentOrMixed);
+    if((record_format == RecordFormat::Legacy || record_format == RecordFormat::Mixed) &&
+       isLegacySolver(id))
+    {
+        const auto it = map.find(MIOPEN_PERFDB_CONV_LEGACY_ID);
+        assert(it != map.end());
+        MIOPEN_LOG_I(
+            "Legacy content under key: " << key << " removed:" << it->second << ", id: " << id);
+        map.erase(it);
+        record_format = RecordFormat::Current;
+        return true;
+    }
+    else if(record_format == RecordFormat::Legacy && !isLegacySolver(id))
+    {
+        // Non-legacy SolverId cannot reside in the legacy record by definition.
+        assert(map.find(id) == map.end());
+        MIOPEN_LOG_W("Legacy record under key: " << key << ", not found: " << id);
+        return false;
+    }
+    assert((record_format == RecordFormat::Mixed && !isLegacySolver(id)) ||
+           record_format == RecordFormat::Current);
+#endif
+    const auto it = map.find(id);
+    if(it != map.end())
+    {
+        MIOPEN_LOG_I("Record under key: " << key << ", removed: " << id << ':' << it->second);
+        map.erase(it);
+        return true;
+    }
+    MIOPEN_LOG_W("Record under key: " << key << ", not found: " << id);
     return false;
 }
 
@@ -198,8 +234,8 @@ bool DbRecord::LoadValues(const std::string& id, std::string& values)
             {
                 values         = it->second;
                 content_format = ContentFormat::Legacy;
-                MIOPEN_LOG_I("Read record (Mixed): " << key << "=" << MIOPEN_PERFDB_CONV_LEGACY_ID
-                                                     << ":"
+                MIOPEN_LOG_I("Read record (Mixed): " << key << '=' << MIOPEN_PERFDB_CONV_LEGACY_ID
+                                                     << ':'
                                                      << values
                                                      << " for id: "
                                                      << id);
@@ -225,12 +261,12 @@ bool DbRecord::LoadValues(const std::string& id, std::string& values)
     MIOPEN_LOG_I(
         "Read record " << ((record_format == RecordFormat::Mixed) ? "(Mixed) " : "(Current) ")
                        << key
-                       << "="
+                       << '='
                        << id
-                       << ":"
+                       << ':'
                        << values);
 #else
-    MIOPEN_LOG_I("Read record " << key << "=" << id << ":" << values);
+    MIOPEN_LOG_I("Read record " << key << '=' << id << ':' << values);
 #endif
     return true;
 }
@@ -239,12 +275,15 @@ static void Write(std::ostream& stream,
                   const std::string& key,
                   std::unordered_map<std::string, std::string>& map)
 {
+    if(map.empty())
+        return;
+
     stream << key << '=';
 
     const auto pairsJoiner = [](const std::string& sum,
                                 const std::pair<std::string, std::string>& pair) {
-        const auto pair_str = pair.first + ":" + pair.second;
-        return sum.empty() ? pair_str : sum + ";" + pair_str;
+        const auto pair_str = pair.first + ':' + pair.second;
+        return sum.empty() ? pair_str : sum + ';' + pair_str;
     };
 
     stream << std::accumulate(map.begin(), map.end(), std::string(), pairsJoiner) << std::endl;
