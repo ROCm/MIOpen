@@ -67,8 +67,8 @@ struct superTensorTest
         // directionMode = miopenRNNbidirection;
         num_layer = 3 * ((directionMode == miopenRNNbidirection) ? 2 : 1);
         // mode          = miopenRNNRELU;
-        // mode          = miopenGRU;
-        mode = miopenLSTM;
+        mode = miopenGRU;
+        // mode = miopenLSTM;
         // biasMode = miopenRNNNoBias;
         biasMode = miopenRNNwithBias;
         algo     = miopenRNNdefault;
@@ -117,14 +117,7 @@ struct superTensorTest
         for(int layer = 0; layer < num_layer; layer++)
         {
 
-            int skip = 2;
-            if(inMode == miopenRNNskip && ((layer == 0 && directionMode == miopenRNNunidirection) ||
-                                           (layer < 2 && directionMode == miopenRNNbidirection)))
-            {
-                skip = 1;
-            }
-
-            for(int layerID = 0; layerID < num_HiddenLayer * skip; layerID++)
+            for(int layerID = 0; layerID < num_HiddenLayer * 2; layerID++)
             {
 
 #if 1
@@ -196,8 +189,9 @@ struct superTensorTest
                                       biasTensor,
                                       nullptr);
 
-                // fprintf(stderr, "biasSize: %d\n", biasSize);
+// fprintf(stderr, "biasSize: %d\n", biasSize);
 
+#if 1
                 std::vector<float> bias_h_in(biasSize, layer * 10 + layerID);
                 auto bias_dev_in  = handle.Write(bias_h_in);
                 auto bias_dev_out = handle.Create(biasSize);
@@ -221,8 +215,9 @@ struct superTensorTest
                                       layerID,
                                       biasTensor,
                                       bias_dev_out.get());
+#endif
 
-                auto bias_h_out = handle.Read<float>(bias_dev_out, biasSize / sizeof(float));
+                // auto bias_h_out = handle.Read<float>(bias_dev_out, biasSize / sizeof(float));
 
                 // for(int i = 0; i < bias_h_out.size(); i++)
                 //{
@@ -234,14 +229,16 @@ struct superTensorTest
                 //}
                 //}
             }
-
-            auto wei_h = handle.Read<float>(wei_dev, wei_sz);
-
-            // for(int i = 0; i < wei_h.size(); i++)
-            //{
-            // fprintf(stderr, "%d %f\n", i, wei_h[i]);
-            //}
         }
+
+#if 0
+        auto wei_h_out = handle.Read<float>(wei_dev, wei_sz);
+
+        for(int i = 0; i < wei_h_out.size(); i++)
+        {
+            fprintf(stderr, "%d %f\n", i, wei_h_out[i]);
+        }
+#endif
     }
 };
 
