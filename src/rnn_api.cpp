@@ -268,7 +268,7 @@ extern "C" miopenStatus_t miopenSetRNNLayerParam(miopenHandle_t handle,
                                                  void* w,
                                                  const int paramID,
                                                  miopenTensorDescriptor_t paramDesc,
-                                                 void* layerParam)
+                                                 const void* layerParam)
 {
     MIOPEN_LOG_FUNCTION(rnnDesc, layer, xDesc, wDesc, w, paramID, paramDesc, layerParam);
     return miopen::try_([&] {
@@ -291,7 +291,7 @@ extern "C" miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
                                                 void* w,
                                                 const int biasID,
                                                 miopenTensorDescriptor_t biasDesc,
-                                                void* layerBias)
+                                                const void* layerBias)
 {
     MIOPEN_LOG_FUNCTION(rnnDesc, layer, xDesc, wDesc, w, biasID, biasDesc, layerBias);
     return miopen::try_([&] {
