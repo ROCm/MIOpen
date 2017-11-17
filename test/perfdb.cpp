@@ -107,11 +107,11 @@ std::ostream& operator<<(std::ostream& s, const TestData& td)
     return s;
 }
 
-class DbRecordTest
+class DbTest
 {
     public:
-    DbRecordTest() : _temp_file_path("/tmp/miopen.tests.perfdb.XXXXXX") {}
-    virtual ~DbRecordTest() {}
+    DbTest() : _temp_file_path("/tmp/miopen.tests.perfdb.XXXXXX") {}
+    virtual ~DbTest() {}
 
     protected:
     static const TestData& key()
@@ -141,7 +141,125 @@ class DbRecordTest
     TempFilePath _temp_file_path;
 };
 
-class DbRecordReadTest : public DbRecordTest
+class DbFindTest : public DbTest
+{
+public:
+    inline void Run()
+    {
+        std::ostringstream ss_vals;
+        ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ','
+            << value1().y << ';' << id0() << ':' << value0().x << ',' << value0().y;
+
+        std::ofstream(temp_file_path()) << ss_vals.str() << std::endl;
+
+        boost::optional<DbRecord> record0, record1;
+        TestData read0, read1;
+        TestData invalid_key(100, 200);
+
+        {
+            Db db(temp_file_path());
+
+            record0 = db.FindRecord(key());
+            record1 = db.FindRecord(invalid_key);
+        }
+
+        EXPECT(record0);
+        EXPECT(record0->GetValues(id0(), read0));
+        EXPECT(record0->GetValues(id1(), read1));
+        EXPECT_EQUAL(value0(), read0);
+        EXPECT_EQUAL(value1(), read1);
+        EXPECT(!record1);
+    }
+};
+
+class DbStoreTest : public DbTest
+{
+public:
+    inline void Run()
+    {
+        (void)std::ofstream(temp_file_path());
+
+        DbRecord record(key());
+        EXPECT(record.SetValues(id0(), value0()));
+        EXPECT(record.SetValues(id1(), value1()));
+
+        {
+            Db db(temp_file_path());
+
+            EXPECT(db.StoreRecord(record));
+        }
+
+        std::string read;
+        EXPECT(std::getline(std::ifstream(temp_file_path()), read).good());
+
+        boost::optional<DbRecord> record_read;
+        TestData read0, read1;
+
+        {
+            Db db(temp_file_path());
+
+            record_read = db.FindRecord(key());
+        }
+
+        EXPECT(record_read);
+        EXPECT(record_read->GetValues(id0(), read0));
+        EXPECT(record_read->GetValues(id1(), read1));
+        EXPECT_EQUAL(value0(), read0);
+        EXPECT_EQUAL(value1(), read1);
+    }
+};
+
+class DbUpdateTest : public DbTest
+{
+public:
+    inline void Run()
+    {
+        (void)std::ofstream(temp_file_path());
+
+        // Store record0 (key=id0:value0)
+        DbRecord record0(key());
+        EXPECT(record0.SetValues(id0(), value0()));
+
+        {
+            Db db(temp_file_path());
+
+            EXPECT(db.StoreRecord(record0));
+        }
+
+        // Update with record1 (key=id1:value1)
+        DbRecord record1(key());
+        EXPECT(record1.SetValues(id1(), value1()));
+
+        {
+            Db db(temp_file_path());
+
+            EXPECT(db.UpdateRecord(record1));
+        }
+
+        // Check record1 (key=id0:value0;id1:value1)
+        TestData read0, read1;
+        EXPECT(record1.GetValues(id0(), read0));
+        EXPECT(record1.GetValues(id1(), read1));
+        EXPECT_EQUAL(value0(), read0);
+        EXPECT_EQUAL(value1(), read1);
+
+        // Check record that is stored in db (key=id0:value0;id1:value1)
+        boost::optional<DbRecord> record_read;
+        {
+            Db db(temp_file_path());
+
+            record_read = db.FindRecord(key());
+        }
+
+        EXPECT(record_read);
+        EXPECT(record_read->GetValues(id0(), read0));
+        EXPECT(record_read->GetValues(id1(), read1));
+        EXPECT_EQUAL(value0(), read0);
+        EXPECT_EQUAL(value1(), read1);
+    }
+};
+
+class DbReadTest : public DbTest
 {
     public:
     inline void Run()
@@ -166,15 +284,11 @@ class DbRecordReadTest : public DbRecordTest
     }
 };
 
-class DbRecordWriteTest : public DbRecordTest
+class DbWriteTest : public DbTest
 {
     public:
     inline void Run()
     {
-        std::ostringstream ss_vals;
-        ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ','
-                << value1().y << ';' << id0() << ':' << value0().x << ',' << value0().y;
-
         (void)std::ofstream(temp_file_path());
 
         {
@@ -185,13 +299,23 @@ class DbRecordWriteTest : public DbRecordTest
         }
 
         std::string read;
-
         EXPECT(std::getline(std::ifstream(temp_file_path()), read).good());
-        EXPECT_EQUAL(read, ss_vals.str());
+
+        TestData read0, read1;
+
+        {
+            Db db(temp_file_path());
+
+            EXPECT(db.Load(key(), id0(), read0));
+            EXPECT(db.Load(key(), id1(), read1));
+        }
+
+        EXPECT_EQUAL(value0(), read0);
+        EXPECT_EQUAL(value1(), read1);
     }
 };
 
-class DbRecordOperationsTest : public DbRecordTest
+class DbOperationsTest : public DbTest
 {
     public:
     inline void Run()
@@ -247,9 +371,12 @@ class DbRecordOperationsTest : public DbRecordTest
 
 int main()
 {
-    miopen::tests::DbRecordReadTest().Run();
-    miopen::tests::DbRecordWriteTest().Run();
-    miopen::tests::DbRecordOperationsTest().Run();
+    miopen::tests::DbFindTest().Run();
+    miopen::tests::DbStoreTest().Run();
+    miopen::tests::DbUpdateTest().Run();
+    miopen::tests::DbReadTest().Run();
+    miopen::tests::DbWriteTest().Run();
+    miopen::tests::DbOperationsTest().Run();
 
     return 0;
 }
