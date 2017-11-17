@@ -375,7 +375,7 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
 
 size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
                                      const int seqLength,
-                                     c_array_view<miopenTensorDescriptor_t> xDesc)
+                                     c_array_view<miopenTensorDescriptor_t> xDesc) const
 {
 
     if(xDesc[0].GetType() != dataType)
