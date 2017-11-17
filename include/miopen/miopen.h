@@ -279,6 +279,16 @@ typedef enum {
     miopenTranspose   = 1, /*!< Transpose convolutions */
 } miopenConvolutionMode_t;
 
+/*! @ingroup padding
+ *  @enum miopenPaddingMode_t
+ * Padding mode selection for convolution/Pooling layer preference
+*/
+typedef enum {
+    miopenPaddingDefault = 0, /*!< MIOPEN Default Padding */
+    miopenPaddingSame    = 1, /*!< Tensorflow SAME Padding */
+    miopenPaddingValid   = 2, /*!< Tensorflow VALID Padding */
+} miopenPaddingMode_t;
+
 /*! @ingroup pooling
  * @enum miopenPoolingMode_t
  * Pooling layer mode
@@ -1895,7 +1905,6 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNHiddenTensorSize(miopenHandle_t handle,
                                                           miopenTensorDescriptor_t* xDesc,
                                                           size_t* numBytes);
 
-
 /*! @brief Gets the number of bytes of a parameter matrix
  *
  *
@@ -1908,12 +1917,11 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNHiddenTensorSize(miopenHandle_t handle,
  * @return                miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParamSize(miopenHandle_t handle,
-                                                 miopenRNNDescriptor_t rnnDesc,
-                                                 const int layer,
-                                                 miopenTensorDescriptor_t xDesc,
-                                                 const int paramID,
-                                                 size_t* numBytes);
-
+                                                        miopenRNNDescriptor_t rnnDesc,
+                                                        const int layer,
+                                                        miopenTensorDescriptor_t xDesc,
+                                                        const int paramID,
+                                                        size_t* numBytes);
 
 /*! @brief Gets the number of bytes of a bias array
  *
@@ -1926,11 +1934,10 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParamSize(miopenHandle_t handle,
  * @return                miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBiasSize(miopenHandle_t handle,
-                                                 miopenRNNDescriptor_t rnnDesc,
-                                                 const int layer,
-                                                 const int biasID,
-                                                 size_t* numBytes);
-
+                                                       miopenRNNDescriptor_t rnnDesc,
+                                                       const int layer,
+                                                       const int biasID,
+                                                       size_t* numBytes);
 
 /*! @brief Gets a pointer to memory containing parameter tensor for a specific layer in an RNN stack
  *

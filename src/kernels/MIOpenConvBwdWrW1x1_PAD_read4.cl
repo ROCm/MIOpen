@@ -259,12 +259,14 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
     uint local_Id0 = get_local_id(0);
 
 // traverse small batch size to have better performance
-#if MLO_OUT_BATCH_STRIDE < MLO_IN_BATCH_STRIDE
-    uint C_OFFSET = get_group_id(1) * MLO_N_LCL_OUT_MAPS;
-    uint K_OFFSET = get_group_id(0) * MLO_N_LCL_IN_MAPS;
+#if MLO_IN_BATCH_STRIDE < MLO_OUT_BATCH_STRIDE
+    uint C_OFFSET = get_group_id(0) * MLO_N_LCL_IN_MAPS;
+    uint K_OFFSET = get_group_id(1) * MLO_N_LCL_OUT_MAPS;
+
 #else
-    uint C_OFFSET          = get_group_id(0) * MLO_N_LCL_OUT_MAPS;
-    uint K_OFFSET          = get_group_id(1) * MLO_N_LCL_IN_MAPS;
+    uint K_OFFSET          = get_group_id(0) * MLO_N_LCL_OUT_MAPS;
+    uint C_OFFSET          = get_group_id(1) * MLO_N_LCL_IN_MAPS;
+
 #endif
 
     uint glb_out_off0 = K_OFFSET * MLO_OUT_CHANNEL_STRIDE;
@@ -514,13 +516,14 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
     uint local_Id0 = get_local_id(0);
 
 // traverse small batch size to have better performance
-#if MLO_OUT_BATCH_STRIDE < MLO_IN_BATCH_STRIDE
-    uint K_OFFSET = get_group_id(0) * MLO_N_LCL_OUT_MAPS;
-    uint C_OFFSET = get_group_id(1) * MLO_N_LCL_IN_MAPS;
+#if MLO_IN_BATCH_STRIDE < MLO_OUT_BATCH_STRIDE
+    uint C_OFFSET = get_group_id(0) * MLO_N_LCL_IN_MAPS;
+    uint K_OFFSET = get_group_id(1) * MLO_N_LCL_OUT_MAPS;
 
 #else
-    uint K_OFFSET          = get_group_id(1) * MLO_N_LCL_OUT_MAPS;
-    uint C_OFFSET          = get_group_id(0) * MLO_N_LCL_IN_MAPS;
+    uint K_OFFSET          = get_group_id(0) * MLO_N_LCL_OUT_MAPS;
+    uint C_OFFSET          = get_group_id(1) * MLO_N_LCL_IN_MAPS;
+
 #endif
 
     // Split into 4 groups for C[0,1,0,1], K [0,0,1,1]

@@ -356,7 +356,7 @@ RNNDescriptor::RNNDescriptor(int hsz,
 }
 
 size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
-                                       const int sLen,
+                                       const int seqLength,
                                        c_array_view<miopenTensorDescriptor_t> xDesc)
 {
 
@@ -366,7 +366,7 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
     }
     if(!inputBatchLenSum)
     {
-        for(int i = 0; i < sLen; i++)
+        for(int i = 0; i < seqLength; i++)
         {
             inputBatchLenSum += xDesc[i].GetLengths()[0];
         }
@@ -469,13 +469,13 @@ void RNNDescriptor::GetParamsDescriptor(Handle& /* handle */,
 
     // Create weight super tensor descriptor
     int bi = (dirMode == miopenRNNbidirection) ? 2 : 1;
-    std::array<int, 2> weight_lens;
+    std::vector<int> weight_lens(2, 0);
     weight_lens[0] = inputVectorLen + ((nLayers - 1) * (bi + 1) + 1) * hsize;
     weight_lens[1] = bi * hsize * nHiddenTensorsPerLayer;
     wDesc          = miopen::TensorDescriptor(dtype, weight_lens.data(), 2);
 }
 
-std::size_t RNNDescriptor::GetLayerParamSize(Handle& handle,
+std::size_t RNNDescriptor::GetLayerParamSize(Handle& /* handle */,
                                              int layer,
                                              const TensorDescriptor& xDesc,
                                              int /* paramID */)
@@ -498,7 +498,7 @@ std::size_t RNNDescriptor::GetLayerParamSize(Handle& handle,
     }
 }
 
-std::size_t RNNDescriptor::GetLayerBiasSize(Handle& handle, int layer, int /* biasID */)
+std::size_t RNNDescriptor::GetLayerBiasSize(Handle& /* handle */, int /* layer */, int /* biasID */)
 {
     return size_t(typeSize * hsize); // is ther more needed here?
 }
@@ -508,20 +508,26 @@ void RNNDescriptor::GetLayerParam(Handle& handle,
                                   const TensorDescriptor& xDesc,
                                   const TensorDescriptor& /* wDesc */,
                                   ConstData_t w,
-                                  const int layerID,
+                                  const int paramID,
                                   TensorDescriptor& paramDesc,
                                   Data_t paramTensor)
 {
-    // 1. Calculate the location of the matrix via layerID, bidirection setting, and params
+
+    // Get the dimensions of the parameter matrix
+    auto pDims = pTensorLengthsCalculation(xDesc, layer);
+    if(paramTensor == nullptr)
+    {
+        paramDesc = miopen::TensorDescriptor(dataType, pDims.data(), 2);
+        return;
+    }
+
+    // Calculate the location of the matrix via layerID, bidirection setting, and params
     auto poffset = paramsOffsetCalculation(xDesc, layer, layerID);
 
-    // 2. Get the dimensions of the parameter matrix
-    auto pDims = pTensorLengthsCalculation(xDesc, layer);
-
-    // 3. Construct descriptor for param matrix
+    // Construct descriptor for param matrix
     paramDesc = miopen::TensorDescriptor(dataType, pDims.data(), 2);
 
-    // 4. Copy over data to previously allocated param tensor
+    // Copy over data to previously allocated param tensor
     miopen::CopyTensor(handle, paramDesc, w, paramDesc, paramTensor, poffset, 0);
 }
 
@@ -530,20 +536,26 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
                                  const TensorDescriptor& xDesc,
                                  const TensorDescriptor& /* wDesc */,
                                  ConstData_t w,
-                                 const int layerID,
+                                 const int biasID,
                                  TensorDescriptor& biasDesc,
                                  Data_t bias)
 {
-    if(biasMode == miopenRNNNoBias)
+    auto bdim = int(hsize);
+
+    // Get the dimensions of the parameter matrix
+    if(bias == nullptr)
     {
-        bias = nullptr;
+        biasDesc = miopen::TensorDescriptor(dataType, &bdim, 1);
+        return;
+    }
+    else if(biasMode == miopenRNNNoBias)
+    { // Don't set bias to nullptr, otherwise that is a memory leak. The user should free that
+        // memory.
         return;
     }
     // 1. Calculate the location of the matrix via layerID, bidirection setting, and params
     auto boffset = biasOffsetCalculation(xDesc, layer, layerID);
 
-    // 2. Get the dimensions of the parameter matrix
-    auto bdim = int(hsize);
     // 3. Construct descriptor for param matrix
     biasDesc = miopen::TensorDescriptor(dataType, &bdim, 1);
 
@@ -556,7 +568,7 @@ void RNNDescriptor::SetLayerParam(Handle& handle,
                                   const TensorDescriptor& xDesc,
                                   const TensorDescriptor& /* wDesc */,
                                   Data_t w,
-                                  const int layerID,
+                                  const int paramID,
                                   const TensorDescriptor& paramDesc,
                                   ConstData_t param)
 {
@@ -583,7 +595,7 @@ void RNNDescriptor::SetLayerBias(Handle& handle,
                                  const TensorDescriptor& xDesc,
                                  const TensorDescriptor& /* wDesc */,
                                  Data_t w,
-                                 const int layerID,
+                                 const int biasID,
                                  const TensorDescriptor& biasDesc,
                                  ConstData_t bias)
 {

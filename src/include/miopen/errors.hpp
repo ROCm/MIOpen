@@ -99,7 +99,6 @@ auto deref(T& x, miopenStatus_t err = miopenStatusBadParm)
     return get_object(*x);
 }
 
-
 template <class... Ts>
 auto tie_deref(Ts&... xs) MIOPEN_RETURNS(std::tie(miopen::deref(xs)...));
 
