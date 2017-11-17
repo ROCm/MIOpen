@@ -29,8 +29,6 @@
 namespace miopen {
 namespace solver {
 
-using uint = unsigned int;
-
 bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
     bool result = (params.kernel_size0 == 1) && (params.kernel_size1 == 1);
@@ -155,15 +153,15 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             #define MLO_N_IN_TILE_BLOCK  4
             #endif*/
 
-            uint read_unit          = 4;
-            uint in_batch_stride    = params.n_outputs * params.out_width * params.out_height;
-            uint in_channel_stride  = params.out_width * params.out_height;
-            uint out_batch_stride   = params.n_inputs * params.in_width * params.in_height;
-            uint out_channel_stride = params.in_width * params.in_height;
-            uint wei_batch_stride =
-                params.n_inputs * params.n_outputs * params.kernel_size0 * params.kernel_size1;
-            uint wei_channel_stride = params.n_outputs * params.kernel_size0 * params.kernel_size1;
-            uint max_loads_per_readunit = (out_channel_stride / read_unit) * params.batch_sz;
+            int read_unit          = 4;
+            int in_batch_stride    = params.n_outputs * params.out_width * params.out_height;
+            int in_channel_stride  = params.out_width * params.out_height;
+            int out_batch_stride   = params.n_inputs * params.in_width * params.in_height;
+            int out_channel_stride = params.in_width * params.in_height;
+            int wei_batch_stride =
+               params.n_inputs * params.n_outputs * params.kernel_size0 * params.kernel_size1;
+            int wei_channel_stride = params.n_outputs * params.kernel_size0 * params.kernel_size1;
+            int max_loads_per_readunit = (out_channel_stride / read_unit) * params.batch_sz;
 
             // limited shape size shows better performance with ead_uint == 3
             /*
@@ -174,13 +172,13 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             }
             */
 
-            uint out_pad_min_x  = 0;
-            uint out_pad_min_y  = 0;
-            uint out_pad_width  = params.in_width;
-            uint out_pad_height = params.in_height;
+            int out_pad_min_x  = 0;
+            int out_pad_min_y  = 0;
+            int out_pad_width  = params.in_width;
+            int out_pad_height = params.in_height;
 
-            uint in_pad_min_x = 0;
-            uint in_pad_min_y = 0;
+            int in_pad_min_x = 0;
+            int in_pad_min_y = 0;
 
             if(params.pad0 > 0)
             {
@@ -210,13 +208,13 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
                 max_loads_per_readunit = out_pad_width * out_pad_height * params.batch_sz;
             }
 
-            uint out_read_sz         = n_lcl_out_maps * read_unit;
-            uint in_read_sz          = n_lcl_in_maps * read_unit;
-            uint out_channel_read_sz = out_channel_stride / read_unit;
-            uint n_in_tile_block     = 8;
-            uint n_lcl_out_map_once  = 8;
-            uint n_lcl_in_map_once   = 8;
-            uint accum_sz            = n_lcl_out_map_once * n_lcl_in_map_once;
+            int out_read_sz         = n_lcl_out_maps * read_unit;
+            int in_read_sz          = n_lcl_in_maps * read_unit;
+            int out_channel_read_sz = out_channel_stride / read_unit;
+            int n_in_tile_block     = 8;
+            int n_lcl_out_map_once  = 8;
+            int n_lcl_in_map_once   = 8;
+            int accum_sz            = n_lcl_out_map_once * n_lcl_in_map_once;
 
             const auto comp_options =
                 std::string(" -DMLO_GRP_SZ0=") + std::to_string(n_grp_size0) +
