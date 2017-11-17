@@ -212,7 +212,8 @@ int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostream* ou
         }
     }
 
-    return pclose(pipe.release());
+    const auto status = pclose(pipe.release());
+    return WEXITSTATUS(status);
 #else
     (void)p;
     (void)args;
