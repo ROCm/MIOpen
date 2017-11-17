@@ -71,7 +71,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc) / typeSize)
+    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc))
     {
         MIOPEN_THROW("Workspace is required");
     }
@@ -179,7 +179,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 #if MIOPEN_USE_MIOPENGEMM
     GemmGeometry gg;
     int hid_shift, hx_shift, wei_shift_bias_temp, wei_shift, prelayer_shift;
-    int wei_len, wei_len_t, hid_off;
+    int wei_len = 0;
+    int wei_len_t = 0;
+    int hid_off = 0;
     int cur_time, cur_batch;
 
     switch(rnnMode)
@@ -950,11 +952,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc) / typeSize)
+    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc))
     {
         MIOPEN_THROW("Workspace is required");
     }
-    if(reserveSpaceSize < GetReserveSize(handle, seqLen, xDesc) / typeSize)
+    if(reserveSpaceSize < GetReserveSize(handle, seqLen, xDesc))
     {
         MIOPEN_THROW("Reservespace is required");
     }
@@ -1062,7 +1064,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 #if MIOPEN_USE_MIOPENGEMM
     GemmGeometry gg;
     int hid_shift, hx_shift, wei_shift_bias_temp, wei_shift, prelayer_shift;
-    int wei_len, wei_len_t, hid_off;
+    int wei_len = 0;
+    int wei_len_t = 0;
+    int hid_off = 0;
     int cur_time, cur_batch;
 
     switch(rnnMode)
@@ -1845,11 +1849,11 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, dxDesc) / typeSize)
+    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, dxDesc))
     {
         MIOPEN_THROW("Workspace is required");
     }
-    if(reserveSpaceSize < GetReserveSize(handle, seqLen, dxDesc) / typeSize)
+    if(reserveSpaceSize < GetReserveSize(handle, seqLen, dxDesc))
     {
         MIOPEN_THROW("Reservespace is required");
     }
@@ -1951,7 +1955,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 #if MIOPEN_USE_MIOPENGEMM
     GemmGeometry gg;
     int hid_shift, hx_shift, weitime_shift, wei_shift, prelayer_shift, pretime_shift;
-    int wei_len, wei_len_t, dhd_off;
+    int wei_len= 0;
+    int wei_len_t = 0;
+    int dhd_off = 0;
     int cur_time, cur_batch, use_time, pre_batch, use_time2, pre_batch2;
 
     switch(rnnMode)
@@ -3214,11 +3220,11 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc) / typeSize)
+    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc))
     {
         MIOPEN_THROW("Workspace is required");
     }
-    if(reserveSpaceSize < GetReserveSize(handle, seqLen, xDesc) / typeSize)
+    if(reserveSpaceSize < GetReserveSize(handle, seqLen, xDesc))
     {
         MIOPEN_THROW("Reservespace is required");
     }
@@ -3310,7 +3316,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 #if MIOPEN_USE_MIOPENGEMM
     GemmGeometry gg;
     int hid_shift, hx_shift, wei_shift, prelayer_shift, pretime_shift;
-    int wei_len, hid_off;
+    int wei_len = 0;
+    int hid_off = 0;
     int cur_time, use_time, pre_batch;
     int time_mark = 0;
 
