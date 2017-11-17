@@ -45,7 +45,7 @@
 #include <cfloat>
 
 #define MIO_RNN_TEST_DEBUG 0
-#define MIO_RNN_TIME_EVERYTHING 1
+#define MIO_RNN_TIME_EVERYTHING 0
 
 /**********************************************
  * CPU verification functions
