@@ -156,8 +156,8 @@ struct tensor_copy_driver : test_driver
         printf("Generating super tensors...");
         fflush(nullptr);
 #endif
-        std::vector<int> alens = {{64, 32, 64, 32, 32}};
-        std::vector<int> clens = {{64, 64, 32, 32, 32}};
+        std::vector<int> alens = {{32, 16, 32, 16, 16}};
+        std::vector<int> clens = {{32, 32, 16, 16, 16}};
         aSuper                 = tensor<T>{alens}.generate(rand_gen{});
         cSuper                 = tensor<T>{clens}.generate(rand_gen{});
 
@@ -168,8 +168,8 @@ struct tensor_copy_driver : test_driver
         fflush(nullptr);
 #endif
 
-        add(copylens, "copy-lens", generate_data(get_sub_tensor()));
-        add(offsets, "offsets", generate_data(get_tensor_offsets()));
+        add(copylens, "copy-lens", generate_data(get_sub_tensor(), {32, 8, 10}));
+        add(offsets, "offsets", generate_data(get_tensor_offsets(), {7, 11}));
 
 #if(MIO_TENSORCOPY_DEBUG == 1)
         printf("done.\n");
