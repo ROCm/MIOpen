@@ -125,6 +125,7 @@ inline int AlignUp(int val, unsigned step)
 
 enum class rocm_meta_version
 {
+    Unknown,
     V1,
     V2,
     V3,
@@ -834,7 +835,7 @@ struct mlo_construct_direct2D
 
     std::string db_path() const { return _db_path ? _db_path : _search_params.GetPerfDbPath(); }
 
-    bool mloIsAmdOpenclRocm(rocm_meta_version& rmv) const;
+    bool mloIsAmdRocmOpencl(rocm_meta_version& rmv) const;
 
     int mloConstructBwd() { return (0); }
     int mloConstructFwd() { return (0); }
