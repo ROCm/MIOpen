@@ -26,52 +26,17 @@
 
 #define MIOPEN
 
-#include "miopen/allocator.hpp"
-#include "miopen/db.hpp"
-#include "miopen/handle.hpp"
-#include "miopen/legacy_exhaustive_search.hpp"
-#include "miopen/mlo_utils.hpp"
-#include "miopen/solver.hpp"
+#include <miopen/allocator.hpp>
+#include <miopen/db.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/legacy_exhaustive_search.hpp>
+#include <miopen/mlo_utils.hpp>
+#include <miopen/solver.hpp>
 
 namespace miopen {
 namespace solver {
 
-std::unique_ptr<PerformanceConfig>
-ConvOclDirectFwdLegacyExhaustiveSearch::PerformanceConfigImpl() const
-{
-    return make_unique<LegacyPerformanceConfig>();
-}
-
-void LegacyPerformanceConfig::CopyTo(ConvSolution& iud) const
-{
-    iud.grp_tile0       = grp_tile0;
-    iud.grp_tile1       = grp_tile1;
-    iud.in_tile0        = in_tile0;
-    iud.in_tile1        = in_tile1;
-    iud.out_pix_tile0   = out_pix_tile0;
-    iud.out_pix_tile1   = out_pix_tile1;
-    iud.n_out_pix_tiles = n_out_pix_tiles;
-    iud.n_in_data_tiles = n_in_data_tiles;
-    iud.n_stacks        = n_stacks;
-}
-
-void LegacyPerformanceConfig::Serialize(std::ostream& stream) const
-{
-    static const auto sep = ',';
-
-    // clang-format off
-    stream     << grp_tile1
-        << sep << grp_tile0
-        << sep << in_tile1
-        << sep << in_tile0
-        << sep << out_pix_tile1
-        << sep << out_pix_tile0
-        << sep << n_out_pix_tiles
-        << sep << n_in_data_tiles
-        << sep << n_stacks; // clang-format on
-}
-
-static bool DeserializeField(const char separator, std::istream& from, int& to)
+static bool LegacyDeserializeField(const char separator, std::istream& from, int& to)
 {
     std::string part;
 
@@ -84,30 +49,6 @@ static bool DeserializeField(const char separator, std::istream& from, int& to)
     return start != end;
 }
 
-bool LegacyPerformanceConfig::Deserialize(const std::string& from)
-{
-    std::istringstream ss(from);
-    LegacyPerformanceConfig temp;
-    const char sep = ',';
-
-    const auto succeded = // clang-format off
-        DeserializeField(sep, ss, temp.grp_tile1) &&
-        DeserializeField(sep, ss, temp.grp_tile0) &&
-        DeserializeField(sep, ss, temp.in_tile1) &&
-        DeserializeField(sep, ss, temp.in_tile0) &&
-        DeserializeField(sep, ss, temp.out_pix_tile1) &&
-        DeserializeField(sep, ss, temp.out_pix_tile0) &&
-        DeserializeField(sep, ss, temp.n_out_pix_tiles) &&
-        DeserializeField(sep, ss, temp.n_in_data_tiles) &&
-        DeserializeField(sep, ss, temp.n_stacks); // clang-format on
-
-    if(!succeded)
-        return false;
-
-    *this = temp;
-    return true;
-}
-
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
 bool LegacyPerformanceConfig::LegacyDeserialize(const std::string& from)
 {
@@ -116,15 +57,15 @@ bool LegacyPerformanceConfig::LegacyDeserialize(const std::string& from)
     const char sep = '.';
 
     const auto succeded = // clang-format off
-        DeserializeField(sep, ss, temp.grp_tile1) &&
-        DeserializeField(sep, ss, temp.grp_tile0) &&
-        DeserializeField(sep, ss, temp.in_tile1) &&
-        DeserializeField(sep, ss, temp.in_tile0) &&
-        DeserializeField(sep, ss, temp.out_pix_tile1) &&
-        DeserializeField(sep, ss, temp.out_pix_tile0) &&
-        DeserializeField(sep, ss, temp.n_out_pix_tiles) &&
-        DeserializeField(sep, ss, temp.n_in_data_tiles) &&
-        DeserializeField(sep, ss, temp.n_stacks); // clang-format on
+        LegacyDeserializeField(sep, ss, temp.grp_tile1) &&
+        LegacyDeserializeField(sep, ss, temp.grp_tile0) &&
+        LegacyDeserializeField(sep, ss, temp.in_tile1) &&
+        LegacyDeserializeField(sep, ss, temp.in_tile0) &&
+        LegacyDeserializeField(sep, ss, temp.out_pix_tile1) &&
+        LegacyDeserializeField(sep, ss, temp.out_pix_tile0) &&
+        LegacyDeserializeField(sep, ss, temp.n_out_pix_tiles) &&
+        LegacyDeserializeField(sep, ss, temp.n_in_data_tiles) &&
+        LegacyDeserializeField(sep, ss, temp.n_stacks); // clang-format on
 
     if(!succeded)
         return false;
@@ -137,12 +78,11 @@ bool LegacyPerformanceConfig::LegacyDeserialize(const std::string& from)
 /*
 * select defult configuration if a known configuration has not been found.
 */
-void ConvOclDirectFwdLegacyExhaustiveSearch::InitPerformanceConfigImpl(
-    const ConvolutionContext& params, PerformanceConfig& result_) const
+LegacyPerformanceConfig
+ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionContext& params) const
 {
-    auto& result = dynamic_cast<LegacyPerformanceConfig&>(result_);
-
     //
+    LegacyPerformanceConfig result{};
     result.in_tile0 = (params.in_width <= 8) ? 8 : (params.in_width <= 16)
                                                        ? 16
                                                        : 32; // size of input data per ALU plane
@@ -165,8 +105,7 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::InitPerformanceConfigImpl(
     {
 
         // version
-        if(params.direction.IsForward() && params.n_inputs % 16 == 0 &&
-           params.n_outputs % 16 == 0 && params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
+        if(params.direction.IsForward() && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
         {
             result.n_in_data_tiles = 128;
 
@@ -203,22 +142,13 @@ void ConvOclDirectFwdLegacyExhaustiveSearch::InitPerformanceConfigImpl(
             result.out_pix_tile1 = 0;
         }
     }
-}
-
-static const std::vector<std::reference_wrapper<const Solver>>& GetImplementationsToMeasure()
-{
-    static const std::vector<std::reference_wrapper<const Solver>> implementations = {
-        StaticContainer<ConvOclDirectFwd1x1>::Instance(),
-        StaticContainer<ConvOclDirectFwdC>::Instance(),
-        StaticContainer<ConvOclDirectFwd>::Instance(),
-    };
-
-    return implementations;
+    return result;
 }
 
 /*
 * Measure the current configuration performance.
 */
+template <class... Solvers>
 static int MeasureLoop(Handle* profile_h,
                        Data_t bot_ocl_buf,
                        Data_t top_ocl_buf,
@@ -229,18 +159,16 @@ static int MeasureLoop(Handle* profile_h,
                        const LegacyPerformanceConfig& result)
 {
     int ret = 0;
-    ConvSolution kernel_search_result;
+    ConvSolution kernel_search_result{miopenStatusNotInitialized};
 
-    for(const Solver& traits : GetImplementationsToMeasure())
-    {
-        if(traits.IsApplicable(params))
-        {
-            kernel_search_result = traits.GetSolution(params, result);
-
-            if(kernel_search_result.Succeeded())
-                break;
-        }
-    }
+    MIOPEN_STATIC_FOR_EACH(traits,
+                           Solvers{},
+                           {
+                               if(kernel_search_result.Succeeded() || traits.IsApplicable(params))
+                               {
+                                   kernel_search_result = traits.GetSolution(params, result);
+                               }
+                           });
 
     if(!kernel_search_result.Succeeded())
     {
@@ -330,10 +258,10 @@ static int MeasureLoop(Handle* profile_h,
     return (ret);
 }
 
-bool ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params,
-                                                    PerformanceConfig& result_) const
+LegacyPerformanceConfig
+ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params) const
 {
-    auto& result   = dynamic_cast<LegacyPerformanceConfig&>(result_);
+    LegacyPerformanceConfig result;
     bool is_passed = false;
 
     miopen::Handle profile_h;
@@ -467,8 +395,7 @@ bool ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
         report_inteval   = 5;
 
         // Add 1x1_stride : no padding support yet
-        if(params.direction.IsForward() && params.kernel_stride0 == 1 &&
-           params.kernel_stride1 == 1 && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
+        if(params.direction.IsForward() && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
         {
 
             // uint N_LCL_IN_MAPS = result.n_in_data_tiles;
@@ -570,14 +497,16 @@ bool ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
                                           top_ocl_buf,
                                           random_top_sys_buf.size() * sizeof(float));
 
-                        const auto ret = MeasureLoop(&profile_h,
-                                                     bot_ocl_buf.get(),
-                                                     top_ocl_buf.get(),
-                                                     wei_ocl_buf.get(),
-                                                     bias_ocl_buf.get(),
-                                                     processing_time,
-                                                     params,
-                                                     result);
+                        const auto ret =
+                            MeasureLoop<ConvOclDirectFwd1x1, ConvOclDirectFwdC, ConvOclDirectFwd>(
+                                &profile_h,
+                                bot_ocl_buf.get(),
+                                top_ocl_buf.get(),
+                                wei_ocl_buf.get(),
+                                bias_ocl_buf.get(),
+                                processing_time,
+                                params,
+                                result);
 
                         runs_left--;
                         runs_left = (runs_left < 0) ? 0 : runs_left;
@@ -851,7 +780,9 @@ bool ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& pa
     result.n_stacks        = min_n_stacks;
 
     profile_h.EnableProfiling(false);
-    return is_passed;
+    if(!is_passed)
+        MIOPEN_THROW("Search failed for ConvOclDirectFwdLegacyExhaustiveSearch");
+    return result;
 }
 
 } // namespace solver

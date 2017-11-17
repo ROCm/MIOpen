@@ -88,11 +88,8 @@ struct tensor
         : desc(miopenFloat, {n, c, h, w}), data(n * c * h * w)
     {
     }
-        
-    tensor(std::size_t n)
-        : desc(miopenFloat, {n}), data(n)
-    {
-    }
+
+    tensor(std::size_t n) : desc(miopenFloat, {n}), data(n) {}
 
     tensor(miopen::TensorDescriptor rhs) : desc(std::move(rhs))
     {
@@ -209,7 +206,6 @@ tensor<T> make_tensor(const std::vector<X>& dims)
     return tensor<T>{
         miopen::TensorDescriptor{miopenFloat, dims.data(), static_cast<int>(dims.size())}};
 }
-
 
 template <class T, class X, class G>
 tensor<T> make_tensor(const std::vector<X>& dims, G g)

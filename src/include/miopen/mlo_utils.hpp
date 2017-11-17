@@ -47,10 +47,44 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 POSSIBILITY OF SUCH DAMAGE.
 ********************************************************************/
 
-#include <miopen/errors.hpp>
-
 #ifndef MLO_UITLS_H_
 #define MLO_UITLS_H_
+
+#include <miopen/errors.hpp>
+#include <map>
+#include <fstream>
+#include <cstdio>
+
+#ifdef _WIN32
+#include <io.h>
+#include <windows.h>
+// #include <BaseTsd.h>
+#include <direct.h>
+#define snprintf _snprintf
+#define vsnprintf _vsnprintf
+#define strcasecmp _stricmp
+#define strncasecmp _strnicmp
+//#ifndef getcwd
+// #define getcwd _getcwd
+//#endif
+typedef unsigned int uint;
+
+#ifndef getcwd
+#define getcwd _getcwd
+#endif
+
+#else // !WIN32 so Linux and APPLE
+#include <climits>
+#include <unistd.h>
+#include <cstdbool>
+#include <sys/time.h>
+#include <sys/resource.h>
+using __int64 = long long;
+#ifndef fopen_s
+#define fopen_s(file, fileName, mode) ((*(file)) = fopen((fileName), (mode))) == nullptr
+#endif
+
+#endif
 
 using mlo_ocl_arg  = std::pair<size_t, void*>;
 using mlo_ocl_args = std::map<int, mlo_ocl_arg>;

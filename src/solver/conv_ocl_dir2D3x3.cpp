@@ -39,8 +39,7 @@ bool ConvOclDirectFwd3x3::IsApplicable(const ConvolutionContext& params) const
             params.out_width == 256);
 }
 
-ConvSolution ConvOclDirectFwd3x3::GetSolution(const ConvolutionContext& params,
-                                              const PerformanceConfig&) const
+ConvSolution ConvOclDirectFwd3x3::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
     // size_t localMemSize = params.stream.GetLocalMemorySize();
