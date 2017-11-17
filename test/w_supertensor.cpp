@@ -56,20 +56,23 @@ struct superTensorTest
     miopenTensorDescriptor_t paramTensor;
     miopenTensorDescriptor_t biasTensor;
 
-
-    superTensorTest() { 
+    superTensorTest()
+    {
         miopenCreateRNNDescriptor(&rnnDesc);
 
-        wei_hh        = 4;
-        inMode        = miopenRNNlinear;
-        //directionMode = miopenRNNunidirection;
-        directionMode = miopenRNNbidirection;
-        //mode          = miopenRNNRELU;
-        num_layer     = 3 * ((directionMode == miopenRNNbidirection) ? 2 : 1);
-        mode          = miopenGRU;
-        biasMode      = miopenRNNNoBias;
-        algo          = miopenRNNdefault;
-        dataType      = miopenFloat;
+        wei_hh = 4;
+        inMode = miopenRNNlinear;
+        // inMode        = miopenRNNskip;
+        directionMode = miopenRNNunidirection;
+        // directionMode = miopenRNNbidirection;
+        num_layer = 3 * ((directionMode == miopenRNNbidirection) ? 2 : 1);
+        // mode          = miopenRNNRELU;
+        // mode          = miopenGRU;
+        mode = miopenLSTM;
+        // biasMode = miopenRNNNoBias;
+        biasMode = miopenRNNwithBias;
+        algo     = miopenRNNdefault;
+        dataType = miopenFloat;
 
         miopenCreateTensorDescriptor(&inputTensor);
         miopenCreateTensorDescriptor(&weightTensor);
@@ -80,15 +83,14 @@ struct superTensorTest
     void run()
     {
         miopenSetRNNDescriptor(
-                rnnDesc, wei_hh, num_layer, inMode, directionMode, mode, biasMode, algo, dataType);
+            rnnDesc, wei_hh, num_layer, inMode, directionMode, mode, biasMode, algo, dataType);
 
-        int seqLen = 1;
-        int in_size = 4;
+        int seqLen    = 1;
+        int in_size   = 2;
         size_t in_sz  = 0;
         size_t wei_sz = 0;
 
         size_t batch_size = 4;
-
 
         auto&& handle = get_handle();
 
@@ -96,71 +98,150 @@ struct superTensorTest
         miopenSetTensorDescriptor(inputTensor, miopenFloat, 2, in_lens.data(), nullptr);
         miopenSetTensorDescriptor(weightTensor, miopenFloat, 2, in_lens.data(), nullptr);
 
-        //miopenSetTensorDescriptor(biasTensor, miopenFloat, 2, wei_lens.data(), nullptr);
-        
-        miopenGetRNNInputTensorSize(
-                &handle, rnnDesc, seqLen, &inputTensor, &in_sz);
+        miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLen, &inputTensor, &in_sz);
 
         miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopenFloat);
 
+        wei_sz = wei_sz / sizeof(miopenFloat);
+
         printf("inputTensor size: %lu weightTensor size: %lu\n", in_sz, wei_sz);
 
-        //auto in_dev = handle.Create(in_sz);
-
-
-        std::vector<float> wei_h(wei_sz, 0); 
+        std::vector<float> wei_h(wei_sz, 0);
         std::vector<float> bias_h(wei_hh, 1);
 
-        auto wei_dev = handle.Write(wei_h);
+        auto wei_dev  = handle.Write(wei_h);
         auto bias_dev = handle.Write(bias_h);
 
-        int num_HiddenLayer = 3;
+        int num_HiddenLayer = (mode == miopenRNNRELU) ? 1 : (mode == miopenGRU ? 3 : 4);
 
-
-        std::array<int, 2> wei_lens = {wei_hh, in_sz};
-        miopenSetTensorDescriptor(paramTensor, miopenFloat, 2, wei_lens.data(), nullptr);
-        for(int layer = 0; layer < 2; layer++)
+        for(int layer = 0; layer < num_layer; layer++)
         {
 
-            for(int layerID = 0; layerID < num_HiddenLayer * 2; layerID++)
+            int skip = 2;
+            if(inMode == miopenRNNskip && ((layer == 0 && directionMode == miopenRNNunidirection) ||
+                                           (layer < 2 && directionMode == miopenRNNbidirection)))
+            {
+                skip = 1;
+            }
+
+            for(int layerID = 0; layerID < num_HiddenLayer * skip; layerID++)
             {
 
-                size_t paramSize = in_size * wei_hh;
-                fprintf(stderr, "layer: %d layerID: %d size: %d\n", layer, layerID, paramSize);
-                std::vector<float> param_h(paramSize, layer * 10 + layerID);
-                auto param_dev = handle.Write(param_h);
-                miopenSetRNNLayerParam(&handle, rnnDesc, layer, inputTensor, weightTensor, wei_dev.get(), layerID, paramTensor, param_dev.get());
-                //miopenSetRNNLayerBias(&handle, rnnDesc, layer, inputTensor, weightTensor, wei_dev.get(), layerID, biasTensor, bias_dev.get());
+#if 1
+                size_t paramSize = 0;
+                miopenGetRNNLayerParamSize(
+                    &handle, rnnDesc, layer, inputTensor, layerID, &paramSize);
+
+                miopenGetRNNLayerParam(&handle,
+                                       rnnDesc,
+                                       layer,
+                                       inputTensor,
+                                       weightTensor,
+                                       wei_dev.get(),
+                                       layerID,
+                                       paramTensor,
+                                       nullptr);
+
+                std::vector<float> param_h_in(paramSize, layer * 10 + layerID);
+                auto param_dev_in  = handle.Write(param_h_in);
+                auto param_dev_out = handle.Create(paramSize);
+
+                miopenSetRNNLayerParam(&handle,
+                                       rnnDesc,
+                                       layer,
+                                       inputTensor,
+                                       weightTensor,
+                                       wei_dev.get(),
+                                       layerID,
+                                       paramTensor,
+                                       param_dev_in.get());
+                miopenGetRNNLayerParam(&handle,
+                                       rnnDesc,
+                                       layer,
+                                       inputTensor,
+                                       weightTensor,
+                                       wei_dev.get(),
+                                       layerID,
+                                       paramTensor,
+                                       param_dev_out.get());
+
+                auto param_h_out = handle.Read<float>(param_dev_out, paramSize / sizeof(float));
+
+                for(int i = 0; i < param_h_out.size(); i++)
+                {
+                    if(param_h_out[i] != param_h_in[i])
+                    {
+                        fprintf(stderr,
+                                "mismatch at %d in %f != out %f\n",
+                                i,
+                                param_h_in[i],
+                                param_h_out[i]);
+                        exit(1);
+                    }
+                }
+#endif
+
+                size_t biasSize = 0;
+
+                miopenGetRNNLayerParamSize(
+                    &handle, rnnDesc, layer, inputTensor, layerID, &biasSize);
+
+                miopenGetRNNLayerBias(&handle,
+                                      rnnDesc,
+                                      layer,
+                                      inputTensor,
+                                      weightTensor,
+                                      wei_dev.get(),
+                                      layerID,
+                                      biasTensor,
+                                      nullptr);
+
+                // fprintf(stderr, "biasSize: %d\n", biasSize);
+
+                std::vector<float> bias_h_in(biasSize, layer * 10 + layerID);
+                auto bias_dev_in  = handle.Write(bias_h_in);
+                auto bias_dev_out = handle.Create(biasSize);
+
+                miopenSetRNNLayerBias(&handle,
+                                      rnnDesc,
+                                      layer,
+                                      inputTensor,
+                                      weightTensor,
+                                      wei_dev.get(),
+                                      layerID,
+                                      biasTensor,
+                                      bias_dev_in.get());
+
+                miopenGetRNNLayerBias(&handle,
+                                      rnnDesc,
+                                      layer,
+                                      inputTensor,
+                                      weightTensor,
+                                      wei_dev.get(),
+                                      layerID,
+                                      biasTensor,
+                                      bias_dev_out.get());
+
+                auto bias_h_out = handle.Read<float>(bias_dev_out, biasSize / sizeof(float));
+
+                // for(int i = 0; i < bias_h_out.size(); i++)
+                //{
+                // if(bias_h_out[i] != bias_h_in[i])
+                //{
+                // fprintf(stderr, "mismatch at %d in %f != out %f\n", i, bias_h_in[i],
+                // bias_h_out[i]);
+                // exit(1);
+                //}
+                //}
             }
+
+            auto wei_h = handle.Read<float>(wei_dev, wei_sz);
+
+            // for(int i = 0; i < wei_h.size(); i++)
+            //{
+            // fprintf(stderr, "%d %f\n", i, wei_h[i]);
+            //}
         }
-
-
-        std::array<int, 2> wei_lens_2 = {wei_hh, wei_hh * 2};
-        miopenSetTensorDescriptor(paramTensor, miopenFloat, 2, wei_lens_2.data(), nullptr);
-        for(int layer = 2; layer < num_layer; layer++)
-        {
-
-            for(int layerID = 0; layerID < num_HiddenLayer * 2; layerID++)
-            {
-
-                size_t paramSize = wei_hh * wei_hh * 2;
-                fprintf(stderr, "layer: %d layerID: %d size: %d\n", layer, layerID, paramSize);
-
-                std::vector<float> param_h(paramSize, layer * 10 + layerID);
-                auto param_dev = handle.Write(param_h);
-                miopenSetRNNLayerParam(&handle, rnnDesc, layer, inputTensor, weightTensor, wei_dev.get(), layerID, paramTensor, param_dev.get());
-                //miopenSetRNNLayerBias(&handle, rnnDesc, layer, inputTensor, weightTensor, wei_dev.get(), layerID, biasTensor, bias_dev.get());
-            }
-        }
-
-
-        wei_h = handle.Read<float>(wei_dev, wei_sz);
-
-        for(int i = 0; i < wei_h.size(); i++)
-        {
-            printf("%d %f\n", i, wei_h[i]);
-        }
-
     }
 };
 
