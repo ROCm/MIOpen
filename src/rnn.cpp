@@ -356,7 +356,7 @@ RNNDescriptor::RNNDescriptor(int hsz,
 }
 
 size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
-                                       const int sLen,
+                                       const int seqLength,
                                        c_array_view<miopenTensorDescriptor_t> xDesc)
 {
 
@@ -366,7 +366,7 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
     }
     if(!inputBatchLenSum)
     {
-        for(int i = 0; i < sLen; i++)
+        for(int i = 0; i < seqLength; i++)
         {
             inputBatchLenSum += xDesc[i].GetLengths()[0];
         }
@@ -469,7 +469,7 @@ void RNNDescriptor::GetParamsDescriptor(Handle& /* handle */,
 
     // Create weight super tensor descriptor
     int bi = (dirMode == miopenRNNbidirection) ? 2 : 1;
-    std::array<int, 2> weight_lens;
+    std::vector<int> weight_lens(2, 0);
     weight_lens[0] = inputVectorLen + ((nLayers - 1) * (bi + 1) + 1) * hsize;
     weight_lens[1] = bi * hsize * nHiddenTensorsPerLayer;
     wDesc          = miopen::TensorDescriptor(dtype, weight_lens.data(), 2);
@@ -508,7 +508,7 @@ void RNNDescriptor::GetLayerParam(Handle& handle,
                                   const TensorDescriptor& xDesc,
                                   const TensorDescriptor& /* wDesc */,
                                   ConstData_t w,
-                                  const int layerID,
+                                  const int paramID,
                                   TensorDescriptor& paramDesc,
                                   Data_t paramTensor)
 {
@@ -536,7 +536,7 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
                                  const TensorDescriptor& xDesc,
                                  const TensorDescriptor& /* wDesc */,
                                  ConstData_t w,
-                                 const int layerID,
+                                 const int biasID,
                                  TensorDescriptor& biasDesc,
                                  Data_t bias)
 {
@@ -549,7 +549,7 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
         return;
     }
     else if(biasMode == miopenRNNNoBias)
-    {   // Don't set bias to nullptr, otherwise that is a memory leak. The user should free that
+    { // Don't set bias to nullptr, otherwise that is a memory leak. The user should free that
         // memory.
         return;
     }
@@ -568,7 +568,7 @@ void RNNDescriptor::SetLayerParam(Handle& handle,
                                   const TensorDescriptor& xDesc,
                                   const TensorDescriptor& /* wDesc */,
                                   Data_t w,
-                                  const int layerID,
+                                  const int paramID,
                                   const TensorDescriptor& paramDesc,
                                   ConstData_t param)
 {
@@ -595,7 +595,7 @@ void RNNDescriptor::SetLayerBias(Handle& handle,
                                  const TensorDescriptor& xDesc,
                                  const TensorDescriptor& /* wDesc */,
                                  Data_t w,
-                                 const int layerID,
+                                 const int biasID,
                                  const TensorDescriptor& biasDesc,
                                  ConstData_t bias)
 {
