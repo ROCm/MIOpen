@@ -86,8 +86,6 @@ struct RNNDescriptor : miopenRNNDescriptor
     size_t nHiddenTensorsPerLayer; // TODO dlowell: set via constructor, or "set" functions
     size_t workspaceScale;
 
-    size_t inputBatchLenSum;
-
     miopenRNNMode_t rnnMode;
     miopenRNNDirectionMode_t dirMode;
     miopenRNNAlgo_t algoMode;
@@ -102,8 +100,9 @@ struct RNNDescriptor : miopenRNNDescriptor
 
     std::vector<int> pTensorLengthsCalculation(const TensorDescriptor& xDesc, int layer);
 
-    size_t
-    GetWorkspaceSize(Handle& handle, int seqLength, c_array_view<miopenTensorDescriptor_t> xDesc);
+    size_t GetWorkspaceSize(Handle& handle,
+                            int seqLength,
+                            c_array_view<miopenTensorDescriptor_t> xDesc) const;
 
     size_t GetReserveSize(Handle& handle, int sLen, c_array_view<miopenTensorDescriptor_t> xDesc);
 
