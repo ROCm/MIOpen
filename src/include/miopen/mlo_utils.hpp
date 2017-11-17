@@ -83,8 +83,8 @@ typedef unsigned int uint;
 using __int64 = long long;
 #endif
 
-using mlo_ocl_arg  = std::pair<size_t, void*>;
-using mlo_ocl_args = std::map<int, mlo_ocl_arg>;
+using mlo_ocl_arg     = std::pair<size_t, void*>;
+using mlo_ocl_args    = std::map<int, mlo_ocl_arg>;
 using manage_file_ptr = MIOPEN_MANAGE_PTR(FILE*, fclose);
 
 #ifdef MIOPEN
