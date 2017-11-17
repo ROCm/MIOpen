@@ -186,19 +186,19 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     {
     case miopenRNNRELU:
     case miopenRNNTANH:
-        printf("run rnn gpu inference \n");
+        // printf("run rnn gpu inference \n");
         wei_len   = hy_h;
         wei_len_t = hy_h;
         hid_off   = 0;
         break;
     case miopenLSTM:
-        printf("run lstm gpu inference \n");
+        // printf("run lstm gpu inference \n");
         wei_len   = hy_h * 4;
         wei_len_t = hy_h * 4;
         hid_off   = bi * hy_h * 5;
         break;
     case miopenGRU:
-        printf("run gru gpu inference \n");
+        // printf("run gru gpu inference \n");
         wei_len   = hy_h * 3;
         wei_len_t = hy_h * 2;
         hid_off   = bi * hy_h * 3;
@@ -1061,19 +1061,19 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     {
     case miopenRNNRELU:
     case miopenRNNTANH:
-        printf("run rnn gpu fwd \n");
+        // printf("run rnn gpu fwd \n");
         wei_len   = hy_h;
         wei_len_t = hy_h;
         hid_off   = nLayers * batch_n * hy_stride;
         break;
     case miopenLSTM:
-        printf("run lstm gpu fwd \n");
+        // printf("run lstm gpu fwd \n");
         wei_len   = hy_h * 4;
         wei_len_t = hy_h * 4;
         hid_off   = bi * hy_h * 5;
         break;
     case miopenGRU:
-        printf("run gru gpu fwd \n");
+        // printf("run gru gpu fwd \n");
         wei_len   = hy_h * 3;
         wei_len_t = hy_h * 2;
         hid_off   = bi * hy_h * 3;
@@ -1942,19 +1942,19 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     {
     case miopenRNNRELU:
     case miopenRNNTANH:
-        printf("run rnn gpu bwd data \n");
+        // printf("run rnn gpu bwd data \n");
         wei_len   = hy_h;
         wei_len_t = hy_h;
         dhd_off   = 0;
         break;
     case miopenLSTM:
-        printf("run lstm gpu bwd data \n");
+        // printf("run lstm gpu bwd data \n");
         wei_len   = hy_h * 4;
         wei_len_t = hy_h * 4;
         dhd_off   = bi * hy_h * 5;
         break;
     case miopenGRU:
-        printf("run gru gpu bwd data \n");
+        // printf("run gru gpu bwd data \n");
         wei_len   = hy_h * 3;
         wei_len_t = hy_h * 2;
         dhd_off   = bi * hy_h * 3;
@@ -3294,17 +3294,17 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     {
     case miopenRNNRELU:
     case miopenRNNTANH:
-        printf("run rnn gpu bwd weights \n");
+        // printf("run rnn gpu bwd weights \n");
         wei_len = hy_h;
         hid_off = nLayers * batch_n * hy_stride;
         break;
     case miopenLSTM:
-        printf("run lstm gpu bwd weights \n");
+        // printf("run lstm gpu bwd weights \n");
         wei_len = hy_h * 4;
         hid_off = bi * hy_h * 5;
         break;
     case miopenGRU:
-        printf("run gru gpu bwd weights \n");
+        // printf("run gru gpu bwd weights \n");
         wei_len = hy_h * 3;
         hid_off = bi * hy_h * 3;
         break;

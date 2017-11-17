@@ -289,7 +289,7 @@ RNNDescriptor::RNNDescriptor()
     inputMode              = miopenRNNlinear;
     dataType               = miopenFloat;
     typeSize               = 4;
-	workspaceScale         = 1;
+    workspaceScale         = 1;
 }
 
 RNNDescriptor::RNNDescriptor(int hsz,
