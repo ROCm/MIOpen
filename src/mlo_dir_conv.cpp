@@ -163,37 +163,28 @@ void mlo_construct_direct2D::mloUseSolution(const miopen::solver::ConvSolution& 
 static bool IsTokenWithin(const std::string& s, const char* delimiters, const std::string& find_tok)
 {
     assert(delimiters);
-    MIOPEN_LOG_I("s: " << s);
-    MIOPEN_LOG_I("delimiters: " << delimiters);
-    MIOPEN_LOG_I("find_tok: " << find_tok);
     std::size_t cursor = 0;
     do
     {
-        MIOPEN_LOG_I("looking for non-delimiters in '" << s.substr(cursor) << "'...");
         const std::size_t tok_begin = s.find_first_not_of(delimiters, cursor);
-        if (tok_begin == std::string::npos)
+        if(tok_begin == std::string::npos)
         {
-            MIOPEN_LOG_I("break; non-delimiters not found");
             break;
         }
-        MIOPEN_LOG_I("looking for delimiters in '" << s.substr(tok_begin) << "'...");
-        cursor = s.find_first_of(delimiters, tok_begin);
-        std::string token = (cursor == std::string::npos) ? s.substr(tok_begin) : s.substr(tok_begin, cursor - tok_begin);
-        MIOPEN_LOG_I("found token: '" << token << "'");
-        if (token == find_tok)
+        cursor            = s.find_first_of(delimiters, tok_begin);
+        std::string token = (cursor == std::string::npos) ? s.substr(tok_begin)
+                                                          : s.substr(tok_begin, cursor - tok_begin);
+        if(token == find_tok)
         {
-            MIOPEN_LOG_I("found");
             return true;
         }
-    }
-    while (cursor != std::string::npos);
-    MIOPEN_LOG_I("not found");
+    } while(cursor != std::string::npos);
     return false;
 }
 
 static bool IsAmdRocmOpencl(const miopen::ConvolutionContext& context)
 {
-    const auto dev = miopen::GetDevice(context.GetStream().GetStream());
+    const auto dev             = miopen::GetDevice(context.GetStream().GetStream());
     const auto platform        = miopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
     const auto platform_vendor = miopen::GetPlatformInfo<CL_PLATFORM_VENDOR>(platform);
     if(platform_vendor != "Advanced Micro Devices, Inc.")
@@ -206,7 +197,7 @@ static bool IsAmdRocmOpencl(const miopen::ConvolutionContext& context)
         return false;
     }
     const auto driver_version = miopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
-    const char* delimiters = " (),*"; // Specific for ROCm OCL driver version.
+    const char* delimiters    = " (),*";                 // Specific for ROCm OCL driver version.
     if(!IsTokenWithin(driver_version, delimiters, "LC")) // Lightning Compiler.
     {
         return false;
@@ -214,8 +205,7 @@ static bool IsAmdRocmOpencl(const miopen::ConvolutionContext& context)
     return true;
 }
 
-static
-std::ostream& operator<<(std::ostream& os, const rocm_meta_version& rmv)
+static std::ostream& operator<<(std::ostream& os, const rocm_meta_version& rmv)
 {
     switch(rmv)
     {
@@ -230,11 +220,11 @@ std::ostream& operator<<(std::ostream& os, const rocm_meta_version& rmv)
 
 static rocm_meta_version DetectAmdRocmOpenclVersion(const miopen::ConvolutionContext& context)
 {
-    const auto dev = miopen::GetDevice(context.GetStream().GetStream());
-    const auto platform = miopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
+    const auto dev                     = miopen::GetDevice(context.GetStream().GetStream());
+    const auto platform                = miopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
     const std::string platform_version = miopen::GetPlatformInfo<CL_PLATFORM_VERSION>(
         platform); // e.g. "OpenCL 2.0 AMD-APP.internal (2334.0)"
-    size_t num_begin = platform_version.find('(');
+    size_t num_begin      = platform_version.find('(');
     rocm_meta_version rmv = rocm_meta_version::Unknown;
     if(num_begin != std::string::npos)
     {
@@ -257,9 +247,10 @@ bool mlo_construct_direct2D::mloIsAmdRocmOpencl(rocm_meta_version& rmv) const
 {
 #if MIOPEN_BACKEND_OPENCL
     static const bool ret_bool = IsAmdRocmOpencl(_search_params);
-    if (ret_bool) {
+    if(ret_bool)
+    {
         static const rocm_meta_version ret_rmv = DetectAmdRocmOpenclVersion(_search_params);
-        rmv = ret_rmv;
+        rmv                                    = ret_rmv;
     }
     return ret_bool;
 #else
