@@ -71,7 +71,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc))
+    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc) / typeSize)
     {
         MIOPEN_THROW("Workspace is required");
     }
@@ -950,11 +950,11 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc))
+    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc) / typeSize)
     {
         MIOPEN_THROW("Workspace is required");
     }
-    if(reserveSpaceSize < GetReserveSize(handle, seqLen, xDesc))
+    if(reserveSpaceSize < GetReserveSize(handle, seqLen, xDesc) / typeSize)
     {
         MIOPEN_THROW("Reservespace is required");
     }
@@ -1845,11 +1845,11 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, dxDesc))
+    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, dxDesc) / typeSize)
     {
         MIOPEN_THROW("Workspace is required");
     }
-    if(reserveSpaceSize < GetReserveSize(handle, seqLen, dxDesc))
+    if(reserveSpaceSize < GetReserveSize(handle, seqLen, dxDesc) / typeSize)
     {
         MIOPEN_THROW("Reservespace is required");
     }
@@ -3214,11 +3214,11 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc))
+    if(workSpaceSize < GetWorkspaceSize(handle, seqLen, xDesc) / typeSize)
     {
         MIOPEN_THROW("Workspace is required");
     }
-    if(reserveSpaceSize < GetReserveSize(handle, seqLen, xDesc))
+    if(reserveSpaceSize < GetReserveSize(handle, seqLen, xDesc) / typeSize)
     {
         MIOPEN_THROW("Reservespace is required");
     }
