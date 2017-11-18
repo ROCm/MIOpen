@@ -651,8 +651,7 @@ void RNNDescriptor::SetLayerParam(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "mismatch between descriptors");
     }
 
-//#if(MIO_RNN_DEBUG == 1)
-#if(1)
+#if(MIO_RNN_DEBUG == 1)
     fprintf(stderr,
             "paramSrc: %d %d paramDesc: %d %d\n",
             paramSrc.GetStrides()[0],
