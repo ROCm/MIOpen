@@ -98,7 +98,8 @@ struct RNNDescriptor : miopenRNNDescriptor
 
     size_t paramsOffsetCalculation(const TensorDescriptor& xDesc, int layer, int paramID);
 
-    std::vector<int> pTensorLengthsCalculation(const TensorDescriptor& xDesc, int layer);
+    std::vector<int>
+    pTensorLengthsCalculation(const TensorDescriptor& xDesc, int layer, int paramID);
 
     size_t GetWorkspaceSize(Handle& handle,
                             int seqLength,
