@@ -350,17 +350,17 @@ std::set<std::vector<int>> get_bn_spatial_inputs(int n = MIOPEN_TEST_DEFAULT_BAT
 
 std::vector<std::vector<int>> get_sub_tensor()
 {
-    return {{32, 8, 16, 1, 8},
-            {2, 8, 16, 16, 8},
-            {32, 8, 16, 4},
-            {13, 16, 8, 16},
-            {3, 16, 7},
-            {32, 8, 10},
-            {3, 16},
-            {32, 8},
+    return {{16, 4, 8, 1, 4},
+            {2, 4, 8, 8, 4},
+            {16, 4, 8, 4},
+            {13, 8, 4, 8},
+            {3, 8, 7},
+            {16, 4, 10},
+            {3, 8},
+            {16, 4},
             {4}};
 }
 
-std::vector<std::vector<int>> get_tensor_offsets() { return {{0, 0}, {0, 2}, {4, 0}, {7, 11}}; }
+std::vector<std::vector<int>> get_tensor_offsets() { return {{0, 0}, {0, 2}, {4, 0}, {5, 7}}; }
 
 #endif

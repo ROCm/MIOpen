@@ -277,7 +277,7 @@ std::vector<int> RNNDriver<T>::GetInputTensorLengthsFromCmdLine()
         if(in_n[cont] > in_n[cont - 1])
         {
             printf("Incorrect input batch size at time %d\n", cont);
-            break;
+            return std::vector<int>({0});
         }
         else
         {
@@ -470,11 +470,11 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
         GetHandle(), rnnDesc, adjustedSeqLen, inputTensors.data(), &reserveSpaceSize);
     miopenGetRNNParamsSize(GetHandle(), rnnDesc, inputTensors[0], &wei_sz, miopenFloat);
 
-    in_sz  /= sizeof(T);
+    in_sz /= sizeof(T);
     out_sz /= sizeof(T);
-    hy_sz  /= sizeof(T);
+    hy_sz /= sizeof(T);
     wei_sz /= sizeof(T);
-    
+
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
@@ -765,6 +765,12 @@ int RNNDriver<T>::RunForwardCPU()
     bidirection = (dirMode == miopenRNNbidirection);
     biased      = (biasMode == miopenRNNwithBias);
 
+    if(in_h == 0 || out_h == 0 || hy_d == 0 || hy_n == 0 || hy_h == 0 ||
+       out_h != ((dirMode + 1) * hy_h) || (inputMode == miopenRNNskip && in_h != hy_h))
+    {
+        return miopenStatusBadParm;
+    }
+
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
     {
         printf("verify rnn fwd \n");
@@ -972,6 +978,12 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
     bidirection = (dirMode == miopenRNNbidirection);
     biased      = (biasMode == miopenRNNwithBias);
 
+    if(in_h == 0 || out_h == 0 || hy_d == 0 || hy_n == 0 || hy_h == 0 ||
+       out_h != ((dirMode + 1) * hy_h) || (inputMode == miopenRNNskip && in_h != hy_h))
+    {
+        return miopenStatusBadParm;
+    }
+
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
     {
         printf("verify rnn bwdwei \n");
@@ -1075,6 +1087,12 @@ int RNNDriver<T>::RunBackwardDataCPU()
 
     bidirection = (dirMode == miopenRNNbidirection);
     biased      = (biasMode == miopenRNNwithBias);
+
+    if(in_h == 0 || out_h == 0 || hy_d == 0 || hy_n == 0 || hy_h == 0 ||
+       out_h != ((dirMode + 1) * hy_h) || (inputMode == miopenRNNskip && in_h != hy_h))
+    {
+        return miopenStatusBadParm;
+    }
 
     if(mode == miopenRNNRELU || mode == miopenRNNTANH)
     {
@@ -1236,6 +1254,30 @@ void RNNDriver<T>::TrySaveVerificationCache(const std::string& file_name,
 template <typename T>
 int RNNDriver<T>::VerifyForward()
 {
+    std::vector<int> in_n    = GetInputTensorLengthsFromCmdLine();
+    std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
+    std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
+    int in_h                 = in_n.back();
+    int out_h                = out_len[0];
+    int hy_d = hid_len[0], hy_n = in_n[0], hy_h = hid_len[1];
+
+    int layer;
+    miopenRNNMode_t mode;
+    miopenRNNAlgo_t algoMode;
+    miopenRNNInputMode_t inputMode;
+    miopenRNNDirectionMode_t dirMode;
+    miopenRNNBiasMode_t biasMode;
+    int hiddenSize;
+
+    miopenGetRNNDescriptor(
+        rnnDesc, &mode, &algoMode, &inputMode, &dirMode, &biasMode, &hiddenSize, &layer);
+
+    if(in_h == 0 || out_h == 0 || hy_d == 0 || hy_n == 0 || hy_h == 0 ||
+       out_h != ((dirMode + 1) * hy_h) || (inputMode == miopenRNNskip && in_h != hy_h))
+    {
+        printf("Bad Parameters! Verification failed\n");
+        return miopenStatusBadParm;
+    }
 
     //   if(!TryReadVerificationCache("fwd_out", outputTensor, outhost.data()))
     {
@@ -1296,6 +1338,31 @@ int RNNDriver<T>::VerifyForward()
 template <typename T>
 int RNNDriver<T>::VerifyBackward()
 {
+    std::vector<int> in_n    = GetInputTensorLengthsFromCmdLine();
+    std::vector<int> out_len = GetOutputTensorLengthsFromCmdLine();
+    std::vector<int> hid_len = GetHiddenTensorLengthsFromCmdLine();
+    int in_h                 = in_n.back();
+    int out_h                = out_len[0];
+    int hy_d = hid_len[0], hy_n = in_n[0], hy_h = hid_len[1];
+
+    int layer;
+    miopenRNNMode_t mode;
+    miopenRNNAlgo_t algoMode;
+    miopenRNNInputMode_t inputMode;
+    miopenRNNDirectionMode_t dirMode;
+    miopenRNNBiasMode_t biasMode;
+    int hiddenSize;
+
+    miopenGetRNNDescriptor(
+        rnnDesc, &mode, &algoMode, &inputMode, &dirMode, &biasMode, &hiddenSize, &layer);
+
+    if(in_h == 0 || out_h == 0 || hy_d == 0 || hy_n == 0 || hy_h == 0 ||
+       out_h != ((dirMode + 1) * hy_h) || (inputMode == miopenRNNskip && in_h != hy_h))
+    {
+        printf("Bad Parameters! Verification failed\n");
+        return miopenStatusBadParm;
+    }
+
     if(inflags.GetValueInt("fwdtype") == 1 && inflags.GetValueInt("forw") != 1)
     {
         return miopenStatusSuccess;
@@ -1328,7 +1395,7 @@ int RNNDriver<T>::VerifyBackward()
     }
     else
     {
-        printf("difference at inital hidden state Verifies on CPU and GPU\n");
+        printf("initial hidden state Verifies on CPU and GPU\n");
     }
 
     if((inflags.GetValueStr("mode")) == "lstm")
@@ -1342,7 +1409,7 @@ int RNNDriver<T>::VerifyBackward()
         }
         else
         {
-            printf("difference at inital cell state Verifies on CPU and GPU\n");
+            printf("inital cell state Verifies on CPU and GPU\n");
         }
     }
 
