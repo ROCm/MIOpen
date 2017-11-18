@@ -129,6 +129,7 @@ class DbRecord
 
     bool ParseContents(const std::string& contents);
     bool StoreValues(const std::string& id, const std::string& values);
+    bool Erase(const std::string& id);
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
     bool ParseLegacyContents(const std::string& contents);
     bool LoadValues(const std::string& id, std::string& values, ContentFormat& content_format);
@@ -186,6 +187,18 @@ class DbRecord
         // (otherwise existing content will be lost) and find out its positions.
         ReadFile(&pos);
         if(StoreValues(id, Serialize(values)))
+            return Flush(&pos);
+        return true;
+    }
+
+    /// Removes ID with associated VALUES from the db.
+    /// If payload of a record becomes empty after that,
+    /// also removes the entire record.
+    bool Remove(const std::string& id)
+    {
+        RecordPositions pos;
+        ReadFile(&pos);
+        if(Erase(id))
             return Flush(&pos);
         return true;
     }

@@ -1213,7 +1213,7 @@ struct verify_forward_infer_rnn
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
 
-        std::cout << "Wall clock: CPU forward_inference pass time: "
+        std::cout << "Wall clock: CPU forward inference RNN pass time: "
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
@@ -1307,7 +1307,7 @@ struct verify_forward_infer_rnn
                                   &hiddenDesc,
                                   nullptr,
                                   workSpace_dev.get(),
-                                  workSpaceSize);
+                                  workSpaceSize*sizeof(T));
 
 #if(MIO_RNN_TEST_DEBUG == 2)
         auto outdata = handle.Read<T>(output_dev, output.size());
@@ -1389,7 +1389,7 @@ struct verify_forward_train_rnn
         inputVecLen = pVL;
     }
 
-    std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> cpu()
+    std::tuple<std::vector<T>, std::vector<T>, std::vector<T>> cpu()
     {
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -1468,11 +1468,11 @@ struct verify_forward_train_rnn
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
 
-        std::cout << "Wall clock: CPU forward_train pass time: "
+        std::cout << "Wall clock: CPU forward train RNN pass time: "
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
-        auto retSet = std::make_tuple(output, hiddenState, weights, reserveSpace);
+        auto retSet = std::make_tuple(output, hiddenState, reserveSpace);
 #if(MIO_RNN_TEST_DEBUG > 0)
         std::cout << "Done with RNN forward train CPU" << std::endl;
         std::cout << "---------------------------------\n" << std::endl;
@@ -1480,7 +1480,7 @@ struct verify_forward_train_rnn
         return retSet;
     }
 
-    std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> gpu()
+    std::tuple<std::vector<T>, std::vector<T>, std::vector<T>> gpu()
     {
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -1567,9 +1567,9 @@ struct verify_forward_train_rnn
                                  &hiddenDesc,
                                  nullptr,
                                  workSpace_dev.get(),
-                                 workSpaceSize,
+                                 workSpaceSize*sizeof(T),
                                  reserveSpace_dev.get(),
-                                 reserveSpaceSize);
+                                 reserveSpaceSize*sizeof(T));
 
 #if(MIO_RNN_TEST_DEBUG == 2)
         auto outdata = handle.Read<T>(output_dev, output.size());
@@ -1582,7 +1582,6 @@ struct verify_forward_train_rnn
         auto retSet =
             std::make_tuple(handle.Read<T>(output_dev, output.size()),
                             handle.Read<T>(hy_dev, hy.size()),
-                            handle.Read<T>(weights_dev, weights.size()),
                             handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -1849,9 +1848,9 @@ struct verify_backward_data_rnn
                               &hiddenDesc,
                               nullptr,
                               workSpace_dev.get(), // TODO up
-                              workSpaceSize,
+                              workSpaceSize*sizeof(T),
                               reserveSpace_dev.get(), // TODO up remove extra
-                              reserveSpace.size());
+                              reserveSpace.size()*sizeof(T));
 
         auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
                                       handle.Read<T>(dhx_dev, dhx.size()),
@@ -2059,9 +2058,9 @@ struct verify_backward_weights_rnn
                                  &weightDesc,
                                  dweights_dev.get(),
                                  workSpace_dev.get(),
-                                 workSpace.size(),
+                                 workSpace.size()*sizeof(T),
                                  reserveSpace_dev.get(),
-                                 reserveSpace.size());
+                                 reserveSpace.size()*sizeof(T));
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -2136,12 +2135,12 @@ struct rnn_vanilla_driver : test_driver
             std::cout << "batch seq[" << i << "]: " << batchSeq.at(i) << std::endl;
         }
 #endif
+
+        auto&& handle = get_handle();
+
         int batch_n = 0;
         for(auto& n : batchSeq)
             batch_n += n;
-
-        // Need to multiply the number of layers by 2 for bidirectional.
-        int bi = dirMode ? 2 : 1;
 
         miopenRNNDescriptor_t rnnDesc;
         miopenCreateRNNDescriptor(&rnnDesc);
@@ -2160,42 +2159,34 @@ struct rnn_vanilla_driver : test_driver
         // Create input tensor
         auto inVecReal    = (inputMode) ? hiddenSize : inVecLen;
         std::size_t in_sz = inVecReal * batch_n;
-        auto inputTensor  = tensor<T>{in_sz};
+        std::vector<T> input(in_sz, 0.);
         srand(0);
         for(int i = 0; i < in_sz; i++)
         {
-            inputTensor[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
+            input[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
         }
-        auto inputData = inputTensor.data;
 
         std::size_t hx_sz = ((dirMode) ? 2 : 1) * hiddenSize * batchSize * numLayers;
-
-        auto hxTensor = tensor<T>{hx_sz};
+        std::vector<T> hx(hx_sz, 0.);
+        std::vector<T> dhyin(hx_sz, 0.);
         for(int i = 0; i < hx_sz; i++)
         {
-            hxTensor[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
+            hx[i]    = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
+            dhyin[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
         }
 
-        auto hxData = hxTensor.data;
-
-        auto iVL = inVecReal; // inVecLen;
-        if(inputMode == miopenRNNskip)
-            iVL = 0;
-
-        auto wei_sz =
-            hiddenSize * bi * (iVL + hiddenSize + (numLayers - 1) * (bi + 1) * hiddenSize);
-        if(biasMode)
-        {
-            auto in_bias = inputMode ? 1 : 2;
-            wei_sz += (in_bias + (numLayers - 1) * 2) * hiddenSize * bi;
-        }
-        auto weightTensor = tensor<T>{std::size_t(wei_sz)};
+        size_t wei_bytes = 0;
+        std::vector<int> inlens(2, 0);
+        inlens.at(0)        = batchSeq.at(0);
+        inlens.at(1)        = inVecReal;
+        auto firstInputDesc = miopen::TensorDescriptor(miopenFloat, inlens.data(), 2);
+        miopenGetRNNParamsSize(&handle, rnnDesc, &firstInputDesc, &wei_bytes, miopenFloat);
+        auto wei_sz = int(wei_bytes / sizeof(T));
+        std::vector<T> weights(wei_sz, 0.);
         for(int i = 0; i < wei_sz; i++)
         {
-            weightTensor[i] = (((rand() % 2) == 1) ? -1 : 1) * 0.001 * float(rand() % 100);
+            weights[i] = (((rand() % 2) == 1) ? -1 : 1) * 0.001 * float(rand() % 100);
         }
-
-        auto weightData = weightTensor.data;
 
 #if(MIO_RNN_TEST_DEBUG > 0)
         printf("inputMode: %d, biasMode: %d, rnnMode: %d, dirMode: %d\n",
@@ -2211,9 +2202,9 @@ struct rnn_vanilla_driver : test_driver
                numLayers);
 #endif
         auto fwdTrainOutputPair = verify(verify_forward_train_rnn<T>{rnnDesc,
-                                                                     inputData,
-                                                                     hxData,
-                                                                     weightData,
+                                                                     input,
+                                                                     hx,
+                                                                     weights,
                                                                      batchSeq,
                                                                      hiddenSize,
                                                                      batch_n,
@@ -2225,18 +2216,10 @@ struct rnn_vanilla_driver : test_driver
                                                                      rnnMode,
                                                                      inVecReal});
 
-        /// RETURNS std::make_tuple(output, hiddenState, weights, reserveSpace);
-        auto reserveSpaceFwdTrain = std::get<3>(fwdTrainOutputPair.second);
+        /// RETURNS std::make_tuple(output, hiddenState, reserveSpace);
+        auto reserveSpaceFwdTrain = std::get<2>(fwdTrainOutputPair.second);
         auto curHiddenState       = std::get<1>(fwdTrainOutputPair.second);
-
-        std::vector<T> dhyin(hx_sz, 0.);
-        for(int i = 0; i < hx_sz; i++)
-        {
-            dhyin[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
-        }
-
-        auto yin = std::get<0>(fwdTrainOutputPair.second);
-
+        auto yin                  = std::get<0>(fwdTrainOutputPair.second);
         std::vector<T> dyin(yin.size(), 0.);
         for(int i = 0; i < yin.size(); i++)
         {
@@ -2251,7 +2234,7 @@ struct rnn_vanilla_driver : test_driver
                                                                     dyin,
                                                                     dhyin,
                                                                     curHiddenState,
-                                                                    weightData,
+                                                                    weights,
                                                                     reserveSpaceFwdTrain,
                                                                     batchSeq,
                                                                     hiddenSize,
@@ -2277,7 +2260,7 @@ struct rnn_vanilla_driver : test_driver
         fflush(nullptr);
 #endif
         auto dweights_pair = verify(verify_backward_weights_rnn<T>{rnnDesc,
-                                                                   inputData,
+                                                                   input,
                                                                    dyin,
                                                                    curHiddenState,
                                                                    reserveSpaceBwdData,
@@ -2295,9 +2278,9 @@ struct rnn_vanilla_driver : test_driver
                                                                    inVecReal});
 
         verify(verify_forward_infer_rnn<T>{rnnDesc,
-                                           inputData,
+                                           input,
                                            curHiddenState,
-                                           weightData,
+                                           weights,
                                            batchSeq,
                                            hiddenSize,
                                            batch_n,

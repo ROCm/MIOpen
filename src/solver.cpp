@@ -24,10 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/db_record.hpp>
 #include <miopen/solver.hpp>
-#include <miopen/logger.hpp>
-
 #include <ostream>
 
 namespace miopen {
