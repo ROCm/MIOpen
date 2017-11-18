@@ -134,11 +134,16 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& /*xDesc*/,
             layerJump += (hsize * 2) * nHiddenTensorsPerLayer * (layer / 2 - 1) * 2;
         }
 
-        if(biasID >= nHiddenTensorsPerLayer * isNotRNNskip)
+        if(biasID >= nHiddenTensorsPerLayer)
         {
-            layerJump += (hsize)*nHiddenTensorsPerLayer * 2;
+            layerJump += (hsize) * nHiddenTensorsPerLayer * 2;
             layerJump += (layer % 2 == 1) ? nHiddenTensorsPerLayer * (hsize) : 0;
-            layerJump += (hsize) * (biasID - nHiddenTensorsPerLayer * isNotRNNskip);
+            layerJump += (hsize) * (biasID - nHiddenTensorsPerLayer);
+        }
+        else if(!isNotRNNskip)
+        {
+            layerJump += (layer % 2 == 1) ? nHiddenTensorsPerLayer * (hsize) : 0;
+            layerJump += hsize * biasID;
         }
         else
         {
@@ -685,9 +690,10 @@ void RNNDescriptor::SetLayerBias(Handle& handle,
 #if(MIO_RNN_DEBUG == 1)
     fprintf(stderr, "SetLayerBias biasDesc %d\n", biasDesc.GetLengths()[0]);
     fprintf(stderr,
-            "SetLayerBias layer: %d layerID: %d offset: %d size: %d\n",
+            "SetLayerBias layer: %d layerID: %d offset: %d + %d size: %d\n",
             layer,
             biasID,
+            poffset,
             boffset,
             bDesc.GetElementSize());
 #endif
