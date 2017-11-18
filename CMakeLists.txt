@@ -208,6 +208,7 @@ enable_clang_tidy(
         -google-runtime-references
         -hicpp-braces-around-statements
         -hicpp-explicit-conversions
+        -hicpp-no-array-decay
         # We really shouldn't use bitwise operators with signed integers, but
         # opencl leaves us no choice
         -hicpp-signed-bitwise
