@@ -254,7 +254,7 @@ struct superTensorTest : test_driver
 
         auto&& handle = get_handle();
 
-        std::array<int, 2> in_lens = {batch_size, in_size};
+        std::array<int, 2> in_lens = {{batch_size, in_size}};
         miopenSetTensorDescriptor(inputTensor, dataType, 2, in_lens.data(), nullptr);
         miopenSetTensorDescriptor(weightTensor, dataType, 2, in_lens.data(), nullptr);
 
