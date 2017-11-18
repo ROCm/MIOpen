@@ -301,7 +301,6 @@ RNNDescriptor::RNNDescriptor()
 {
     nLayers                = 1;
     hsize                  = 0;
-    inputBatchLenSum       = 0;
     nHiddenTensorsPerLayer = 0;
     rnnMode                = miopenRNNTANH;
     dirMode                = miopenRNNunidirection;
@@ -374,48 +373,42 @@ RNNDescriptor::RNNDescriptor(int hsz,
         workspaceScale         = 4;
         break;
     }
-    inputBatchLenSum = 0; // init
 }
 
 size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
                                        const int seqLength,
-                                       c_array_view<miopenTensorDescriptor_t> xDesc)
+                                       c_array_view<miopenTensorDescriptor_t> xDesc) const
 {
 
     if(xDesc[0].GetType() != dataType)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
     }
-    if(!inputBatchLenSum)
-    {
-        for(int i = 0; i < seqLength; i++)
-        {
-            inputBatchLenSum += xDesc[i].GetLengths()[0];
-        }
-    }
 
+    int inputBatchLenSum = 0;
+    for(int i = 0; i < seqLength; i++)
+    {
+        inputBatchLenSum += xDesc[i].GetLengths()[0];
+    }
     auto x = workspaceScale * nLayers * inputBatchLenSum * hsize * typeSize;
     return size_t(dirMode == miopenRNNbidirection ? 2 * x : x);
 }
 
 size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
-                                     const int sLen,
-                                     c_array_view<miopenTensorDescriptor_t> xDesc)
+                                     const int seqLength,
+                                     c_array_view<miopenTensorDescriptor_t> xDesc) const
 {
 
     if(xDesc[0].GetType() != dataType)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
     }
-    if(!inputBatchLenSum)
+    int inputBatchLenSum = 0;
+    for(int i = 0; i < seqLength; i++)
     {
-        for(int i = 0; i < sLen; i++)
-        {
-            inputBatchLenSum += xDesc[i].GetLengths()[0];
-        }
+        inputBatchLenSum += xDesc[i].GetLengths()[0];
     }
 
-    // auto x = workspaceScale * nLayers * inputBatchLenSum * hsize * sizeof(xDesc[0].GetType());
     auto x = 2 * workspaceScale * nLayers * inputBatchLenSum * hsize * typeSize;
     return size_t(dirMode == miopenRNNbidirection ? 2 * x : x);
 }
@@ -455,12 +448,10 @@ size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& /* handle */,
     {
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
     }
-    if(!inputBatchLenSum)
+    int inputBatchLenSum = 0;
+    for(int i = 0; i < seqLength; i++)
     {
-        for(int i = 0; i < seqLength; i++)
-        {
-            inputBatchLenSum += xDesc[i].GetLengths()[0];
-        }
+        inputBatchLenSum += xDesc[i].GetLengths()[0];
     }
     auto x = inputBatchLenSum * xDesc[0].GetLengths()[1] * typeSize;
     return size_t(x);
@@ -736,7 +727,6 @@ std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r)
     stream << r.nLayers << ", ";
     stream << r.nHiddenTensorsPerLayer << ", ";
     stream << r.workspaceScale << ", ";
-    stream << r.inputBatchLenSum << ", ";
     return stream;
 }
 

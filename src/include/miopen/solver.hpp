@@ -35,6 +35,7 @@
 #include <vector>
 #include <ostream>
 
+#include <miopen/find_controls.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/legacy_exhaustive_search.hpp>
@@ -125,30 +126,50 @@ template <class Solver, class Context>
 auto FindSolutionImpl(rank<1>, Solver s, const Context& context, DbRecord& dbRecord)
     -> decltype(s.GetSolution(context, s.Search(context)))
 {
-    MIOPEN_LOG_I("Finding solution: " << SolverDbId(s));
-    using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
-    PerformanceConfig config{};
-    if(dbRecord.Load(SolverDbId(s), config))
+    const FindEnforce enforce = GetFindEnforce();
+    MIOPEN_LOG_I(SolverDbId(s));
+    if(enforce == FindEnforce::Clean)
     {
-        MIOPEN_LOG_I("Perf Db: record loaded: " << SolverDbId(s));
-        if(s.IsValidPerformanceConfig(context, config))
-        {
-            return s.GetSolution(context, config);
-        }
-        MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverDbId(s) << ": " << config);
+        if(dbRecord.Remove(SolverDbId(s)))
+            MIOPEN_LOG_W("Perf Db: record removed: " << SolverDbId(s) << ", enforce: " << enforce);
     }
-    if(context.do_search) // TODO: Make it a customization point
+    else
     {
-        MIOPEN_LOG_I("Starting search: " << SolverDbId(s));
-        try
+        if((context.do_search && enforce == FindEnforce::DbUpdate) ||
+           enforce == FindEnforce::SearchDbUpdate)
         {
-            auto c = s.Search(context);
-            dbRecord.Store(SolverDbId(s), c);
-            return s.GetSolution(context, c);
+            MIOPEN_LOG_W("Perf Db: load skipped: " << SolverDbId(s) << ", enforce: " << enforce);
         }
-        catch(const miopen::Exception& ex)
+        else
         {
-            MIOPEN_LOG_I("Search failed for: " << SolverDbId(s) << ": " << ex.what());
+            using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
+            PerformanceConfig config{};
+            if(dbRecord.Load(SolverDbId(s), config))
+            {
+                MIOPEN_LOG_I("Perf Db: record loaded: " << SolverDbId(s));
+                if(s.IsValidPerformanceConfig(context, config))
+                {
+                    return s.GetSolution(context, config);
+                }
+                MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverDbId(s) << ": "
+                                                                    << config);
+            }
+        }
+
+        if(context.do_search || enforce == FindEnforce::Search ||
+           enforce == FindEnforce::SearchDbUpdate) // TODO: Make it a customization point
+        {
+            MIOPEN_LOG_I("Starting search: " << SolverDbId(s) << ", enforce: " << enforce);
+            try
+            {
+                auto c = s.Search(context);
+                dbRecord.Store(SolverDbId(s), c);
+                return s.GetSolution(context, c);
+            }
+            catch(const miopen::Exception& ex)
+            {
+                MIOPEN_LOG_E("Search failed for: " << SolverDbId(s) << ": " << ex.what());
+            }
         }
     }
     return s.GetSolution(context, s.GetPerformanceConfig(context));

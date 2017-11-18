@@ -1475,13 +1475,13 @@ struct verify_forward_infer_lstm
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
 
-        std::cout << "Wall clock: CPU forward_inference pass time: "
+        std::cout << "Wall clock: CPU forward inference LSTM pass time: "
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
         auto retSet = std::make_tuple(output, hiddenState, weights, reserveSpace);
 #if(MIO_LSTM_TEST_DEBUG > 0)
-        std::cout << "Done with RNN forward inference CPU" << std::endl;
+        std::cout << "Done with LSTM forward inference CPU" << std::endl;
         std::cout << "---------------------------------\n" << std::endl;
 #endif
         return output;
@@ -1656,7 +1656,7 @@ struct verify_forward_train_lstm
         inputVecLen = pVL;
     }
 
-    std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> cpu()
+    std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> cpu()
     {
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -1736,11 +1736,11 @@ struct verify_forward_train_lstm
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
 
-        std::cout << "Wall clock: CPU forward_train pass time: "
+        std::cout << "Wall clock: CPU forward train LSTM pass time: "
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
-        auto retSet = std::make_tuple(output, hiddenState, cellState, weights, reserveSpace);
+        auto retSet = std::make_tuple(output, hiddenState, cellState, reserveSpace);
 #if(MIO_LSTM_TEST_DEBUG > 0)
         std::cout << "Done with LSTM forward train CPU" << std::endl;
         std::cout << "---------------------------------\n" << std::endl;
@@ -1748,7 +1748,7 @@ struct verify_forward_train_lstm
         return retSet;
     }
 
-    std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> gpu()
+    std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> gpu()
     {
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -1856,7 +1856,6 @@ struct verify_forward_train_lstm
             std::make_tuple(handle.Read<T>(output_dev, output.size()),
                             handle.Read<T>(hy_dev, hy.size()),
                             handle.Read<T>(cy_dev, cy.size()),
-                            handle.Read<T>(weights_dev, weights.size()),
                             handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -2030,7 +2029,7 @@ struct verify_backward_data_lstm
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
 
-        std::cout << "Wall clock: CPU backward_data_lstm pass time: "
+        std::cout << "Wall clock: CPU backward data LSTM pass time: "
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
@@ -2138,7 +2137,7 @@ struct verify_backward_data_lstm
                               workSpace_dev.get(),
                               workSpaceSize,
                               reserveSpace_dev.get(),
-                              reserveSpace.size());
+                              reserveSpace.size()*sizeof(T));
 
         auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
                                       handle.Read<T>(dhx_dev, dhx.size()),
@@ -2149,12 +2148,12 @@ struct verify_backward_data_lstm
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
 
-        std::cout << "Wall clock: GPU backward data RNN vanilla pass time: "
+        std::cout << "Wall clock: GPU backward data LSTM pass time: "
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
 #if(MIO_LSTM_TEST_DEBUG > 0)
-        std::cout << "Done with RNN backward data GPU" << std::endl;
+        std::cout << "Done with LSTM backward data GPU" << std::endl;
 #endif
         return retSet;
     }
@@ -2162,7 +2161,7 @@ struct verify_backward_data_lstm
     void fail(int badtensor)
     {
 
-        std::cout << "Backward Data RNN vanilla: " << std::endl;
+        std::cout << "Backward Data LSTM: " << std::endl;
 
         switch(badtensor)
         {
@@ -2272,7 +2271,7 @@ struct verify_backward_weights_lstm
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
 
-        std::cout << "Wall clock: CPU backward_weights_lstm pass time: "
+        std::cout << "Wall clock: CPU backward_weights LSTM pass time: "
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
@@ -2345,9 +2344,9 @@ struct verify_backward_weights_lstm
                                  &weightDesc,
                                  dweights_dev.get(),
                                  workSpace_dev.get(),
-                                 workSpace.size(),
+                                 workSpace.size()*sizeof(T),
                                  reserveSpace_dev.get(),
-                                 reserveSpace.size());
+                                 reserveSpace.size()*sizeof(T));
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -2379,7 +2378,6 @@ struct lstm_driver : test_driver
     int inputMode;
     int biasMode;
     int dirMode;
-    int rnnMode;
     int batchSize;
 
     lstm_driver()
@@ -2391,11 +2389,11 @@ struct lstm_driver : test_driver
         std::vector<int> defaultBS(1, 5);
 
         // this->verbose=true;
-        add(batchSize, "batch-size", generate_data(get_rnn_batchSize(), {5}));
-        add(seqLength, "seq-len", generate_data(get_rnn_seq_len(), {1}));
-        add(inVecLen, "vector-len", generate_data(get_rnn_vector_len()));
-        add(hiddenSize, "hidden-size", generate_data(get_rnn_hidden_size()));
-        add(numLayers, "num-layers", generate_data(get_rnn_num_layers()));
+        add(batchSize, "batch-size", generate_data(get_lstm_batchSize(), {5}));
+        add(seqLength, "seq-len", generate_data(get_lstm_seq_len(), {1}));
+        add(inVecLen, "vector-len", generate_data(get_lstm_vector_len()));
+        add(hiddenSize, "hidden-size", generate_data(get_lstm_hidden_size()));
+        add(numLayers, "num-layers", generate_data(get_lstm_num_layers()));
 
 #if(MIO_LSTM_TEST_DEBUG == 3)
         biasMode  = 0;
@@ -2442,32 +2440,25 @@ struct lstm_driver : test_driver
         // Create input tensor
         auto inVecReal    = (inputMode) ? hiddenSize : inVecLen;
         std::size_t in_sz = inVecReal * batch_n;
-        auto inputTensor  = tensor<T>{in_sz};
+        std::vector<T> input(in_sz, 0.);
         srand(0);
         for(int i = 0; i < in_sz; i++)
         {
-            inputTensor[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
+            input[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
         }
-        auto inputData = inputTensor.data;
 
         std::size_t hx_sz = ((dirMode) ? 2 : 1) * hiddenSize * batchSize * numLayers;
-        auto hxTensor     = tensor<T>{hx_sz};
+        std::vector<T> hx(hx_sz, 0.);
+        std::vector<T> cx(hx_sz, 0.);
+        std::vector<T> dhyin(hx_sz, 0.);
+        std::vector<T> dcyin(hx_sz, 0.);
         for(int i = 0; i < hx_sz; i++)
         {
-            hxTensor[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
+            hx[i]    = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
+            cx[i]    = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
+            dhyin[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
+            dcyin[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
         }
-        auto hxData = hxTensor.data;
-
-        auto cxTensor = tensor<T>{hx_sz};
-        for(int i = 0; i < hx_sz; i++)
-        {
-            cxTensor[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
-        }
-        auto cxData = cxTensor.data;
-
-        //        auto iVL = inVecReal; // inVecLen;
-        //        if(inputMode == miopenRNNskip)
-        //            iVL = 0;
 
         size_t wei_bytes = 0;
         std::vector<int> inlens(2, 0);
@@ -2475,20 +2466,15 @@ struct lstm_driver : test_driver
         inlens.at(1)        = inVecReal;
         auto firstInputDesc = miopen::TensorDescriptor(miopenFloat, inlens.data(), 2);
         miopenGetRNNParamsSize(&handle, rnnDesc, &firstInputDesc, &wei_bytes, miopenFloat);
-        auto wei_sz       = int(wei_bytes / sizeof(T));
-        auto weightTensor = tensor<T>{std::size_t(wei_sz)};
+        auto wei_sz = int(wei_bytes / sizeof(T));
+        std::vector<T> weights(wei_sz, 0.);
         for(int i = 0; i < wei_sz; i++)
         {
-            weightTensor[i] = (((rand() % 2) == 1) ? -1 : 1) * 0.001 * float(rand() % 100);
+            weights[i] = (((rand() % 2) == 1) ? -1 : 1) * 0.001 * float(rand() % 100);
         }
 
-        auto weightData = weightTensor.data;
 #if(MIO_LSTM_TEST_DEBUG > 0)
-        printf("inputMode: %d, biasMode: %d, rnnMode: %d, dirMode: %d\n",
-               inputMode,
-               biasMode,
-               rnnMode,
-               dirMode);
+        printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
         printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
                hiddenSize,
                batch_n,
@@ -2497,10 +2483,10 @@ struct lstm_driver : test_driver
                numLayers);
 #endif
         auto fwdTrainOutputPair = verify(verify_forward_train_lstm<T>{rnnDesc,
-                                                                      inputData,
-                                                                      hxData,
-                                                                      cxData,
-                                                                      weightData,
+                                                                      input,
+                                                                      hx,
+                                                                      cx,
+                                                                      weights,
                                                                       batchSeq,
                                                                       hiddenSize,
                                                                       batch_n,
@@ -2511,18 +2497,11 @@ struct lstm_driver : test_driver
                                                                       inputMode,
                                                                       inVecReal});
 
-        /// RETURNS std::make_tuple(output, hiddenState, cellState, weights, reserveSpace);
-        auto reserveSpaceFwdTrain = std::get<4>(fwdTrainOutputPair.second);
+        /// RETURNS std::make_tuple(output, hiddenState, cellState, reserveSpace);
+        auto yin                  = std::get<0>(fwdTrainOutputPair.second);
         auto curHiddenState       = std::get<1>(fwdTrainOutputPair.second);
         auto curCellState         = std::get<2>(fwdTrainOutputPair.second);
-
-        std::vector<T> dhyin(hx_sz, 0.);
-        for(int i = 0; i < hx_sz; i++)
-        {
-            dhyin[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
-        }
-
-        auto yin = std::get<0>(fwdTrainOutputPair.second);
+        auto reserveSpaceFwdTrain = std::get<3>(fwdTrainOutputPair.second);
 
         std::vector<T> dyin(yin.size(), 0.);
         for(int i = 0; i < yin.size(); i++)
@@ -2530,13 +2509,8 @@ struct lstm_driver : test_driver
             dyin[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
         }
 
-        std::vector<T> dcyin(hx_sz, 0.);
-        for(int i = 0; i < hx_sz; i++)
-        {
-            dcyin[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
-        }
 #if(MIO_LSTM_TEST_DEBUG > 0)
-        printf("Running backward data RNN.\n");
+        printf("Running backward data LSTM.\n");
 #endif
         auto bwdDataOutputPair = verify(verify_backward_data_lstm<T>{rnnDesc,
                                                                      yin,
@@ -2545,7 +2519,7 @@ struct lstm_driver : test_driver
                                                                      curHiddenState,
                                                                      dcyin,
                                                                      curCellState,
-                                                                     weightData,
+                                                                     weights,
                                                                      reserveSpaceFwdTrain,
                                                                      batchSeq,
                                                                      hiddenSize,
@@ -2561,7 +2535,7 @@ struct lstm_driver : test_driver
         auto reserveSpaceBwdData = std::get<3>(bwdDataOutputPair.second);
         auto workSpaceBwdData    = std::get<4>(bwdDataOutputPair.second);
 #if(MIO_LSTM_TEST_DEBUG > 0)
-        printf("Running backward weights RNN.\n");
+        printf("Running backward weights LSTM.\n");
         printf("reserve sz: %d, workSpace sz: %d, weight sz: %d\n",
                reserveSpaceBwdData.size(),
                workSpaceBwdData.size(),
@@ -2569,7 +2543,7 @@ struct lstm_driver : test_driver
         fflush(nullptr);
 #endif
         auto dweights_pair = verify(verify_backward_weights_lstm<T>{rnnDesc,
-                                                                    inputData,
+                                                                    input,
                                                                     dyin,
                                                                     curHiddenState,
                                                                     reserveSpaceBwdData,
@@ -2586,10 +2560,10 @@ struct lstm_driver : test_driver
                                                                     inVecReal});
 
         verify(verify_forward_infer_lstm<T>{rnnDesc,
-                                            inputData,
+                                            input,
                                             curHiddenState,
                                             curCellState,
-                                            weightData,
+                                            weights,
                                             batchSeq,
                                             hiddenSize,
                                             batch_n,
@@ -2617,12 +2591,12 @@ struct lstm_driver : test_driver
 
 int main(int argc, const char* argv[])
 {
-#if(MIO_RNN_TIME_EVERYTHING == 1)
+#if(MIO_RNN_TIME_EVERYTHING > 0)
     auto t_start = std::chrono::high_resolution_clock::now();
 #endif
     test_drive<lstm_driver<float>>(argc, argv);
 
-#if(MIO_RNN_TIME_EVERYTHING == 1)
+#if(MIO_RNN_TIME_EVERYTHING > 0)
     auto t_end = std::chrono::high_resolution_clock::now();
 
     std::cout << "Wall clock: RNN test pass time: "
