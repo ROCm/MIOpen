@@ -1573,7 +1573,7 @@ struct verify_forward_infer_lstm
                                   &hiddenDesc,
                                   cy_dev.get(),
                                   workSpace_dev.get(),
-                                  workSpaceSize*sizeof(T));
+                                  workSpaceSize);
 
 #if(MIO_LSTM_TEST_DEBUG == 2)
         auto outdata = handle.Read<T>(output_dev, output.size());
@@ -1840,9 +1840,9 @@ struct verify_forward_train_lstm
                                  &hiddenDesc,
                                  cy_dev.get(),
                                  workSpace_dev.get(),
-                                 workSpaceSize*sizeof(T),
+                                 workSpaceSize,
                                  reserveSpace_dev.get(),
-                                 reserveSpaceSize*sizeof(T));
+                                 reserveSpaceSize);
 
 #if(MIO_LSTM_TEST_DEBUG == 2)
         auto outdata = handle.Read<T>(output_dev, output.size());
@@ -2135,7 +2135,7 @@ struct verify_backward_data_lstm
                               &hiddenDesc,
                               dcx_dev.get(),
                               workSpace_dev.get(),
-                              workSpaceSize*sizeof(T),
+                              workSpaceSize,
                               reserveSpace_dev.get(),
                               reserveSpace.size()*sizeof(T));
 
