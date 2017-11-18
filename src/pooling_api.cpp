@@ -232,5 +232,5 @@ extern "C" miopenStatus_t miopenPoolingBackward(miopenHandle_t handle,
 extern "C" miopenStatus_t miopenDestroyPoolingDescriptor(miopenPoolingDescriptor_t poolDesc)
 {
     MIOPEN_LOG_FUNCTION(poolDesc);
-    return miopen::try_([&] { delete poolDesc; });
+    return miopen::try_([&] { miopen_destroy_object(poolDesc); });
 }
