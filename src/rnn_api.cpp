@@ -198,7 +198,7 @@ extern "C" miopenStatus_t miopenGetRNNLayerParamSize(miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(rnnDesc, layer, xDesc, paramID, numBytes);
     return miopen::try_([&] {
-        miopen::deref(rnnDesc).GetLayerParamSize(
+        miopen::deref(numBytes) = miopen::deref(rnnDesc).GetLayerParamSize(
             miopen::deref(handle), layer, miopen::deref(xDesc), paramID);
     });
 }
@@ -210,8 +210,10 @@ extern "C" miopenStatus_t miopenGetRNNLayerBiasSize(miopenHandle_t handle,
                                                     size_t* numBytes)
 {
     MIOPEN_LOG_FUNCTION(rnnDesc, layer, biasID, numBytes);
-    return miopen::try_(
-        [&] { miopen::deref(rnnDesc).GetLayerBiasSize(miopen::deref(handle), layer, biasID); });
+    return miopen::try_([&] {
+        miopen::deref(numBytes) =
+            miopen::deref(rnnDesc).GetLayerBiasSize(miopen::deref(handle), layer, biasID);
+    });
 }
 
 extern "C" miopenStatus_t miopenGetRNNLayerParam(miopenHandle_t handle,
