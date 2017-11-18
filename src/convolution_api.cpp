@@ -96,7 +96,7 @@ miopenGetConvolutionForwardOutputDim(miopenConvolutionDescriptor_t convDesc,
 extern "C" miopenStatus_t miopenDestroyConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc)
 {
     MIOPEN_LOG_FUNCTION(convDesc);
-    return miopen::try_([&] { delete convDesc; });
+    return miopen::try_([&] { miopen_destroy_object(convDesc); });
 }
 
 extern "C" miopenStatus_t
