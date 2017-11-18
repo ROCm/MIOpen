@@ -122,5 +122,5 @@ extern "C" miopenStatus_t miopenDestroyActivationDescriptor(miopenActivationDesc
 {
 
     MIOPEN_LOG_FUNCTION(activDesc)
-    return miopen::try_([&] { delete activDesc; });
+    return miopen::try_([&] { miopen_destroy_object(activDesc); });
 }
