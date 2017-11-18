@@ -52,9 +52,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
 
-int mlo_construct_neuron::mloConstruct()
+void mlo_construct_neuron::mloConstruct()
 {
-    int ret     = 0;
     _hw_wave_sz = 64;
 
     int read_unit         = 4;
@@ -94,8 +93,6 @@ int mlo_construct_neuron::mloConstruct()
 
     _kernel_file = "MIOpenNeuron.cl";
     _kernel_name = (isForwardDirection()) ? "MIOpenNeuronFwd" : "MIOpenNeuronBwd";
-
-    return (ret);
 }
 
 int mlo_construct_neuron::mloConstructFwd()

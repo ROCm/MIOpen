@@ -96,9 +96,9 @@ struct RNNDescriptor : miopenRNNDescriptor
     miopenDataType_t dataType;
     std::size_t typeSize;
 
-    size_t biasOffsetCalculation(const TensorDescriptor& xDesc, int layer, int layerID);
+    size_t biasOffsetCalculation(const TensorDescriptor& xDesc, int layer, int biasID);
 
-    size_t paramsOffsetCalculation(const TensorDescriptor& xDesc, int layer, int layerID);
+    size_t paramsOffsetCalculation(const TensorDescriptor& xDesc, int layer, int paramID);
 
     std::vector<int>
     pTensorLengthsCalculation(const TensorDescriptor& xDesc, int layer, int paramID);
@@ -313,7 +313,7 @@ struct RNNDescriptor : miopenRNNDescriptor
      */
 };
 
-std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& c);
+std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r);
 
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenRNNDescriptor, miopen::RNNDescriptor);

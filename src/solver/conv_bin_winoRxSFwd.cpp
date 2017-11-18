@@ -155,8 +155,7 @@ bool ConvBinWinogradRxSFwd::IsApplicable(const ConvolutionContext& params) const
     // "CKHW" )
 }
 
-ConvSolution ConvBinWinogradRxSFwd::GetSolution(const ConvolutionContext& params,
-                                                const PerformanceConfig&) const
+ConvSolution ConvBinWinogradRxSFwd::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
     const auto n_groups = params.GetStream().GetMaxComputeUnits();
