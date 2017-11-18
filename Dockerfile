@@ -57,7 +57,7 @@ ADD cmake/mingw-toolchain.cmake $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
 RUN cget -p $PREFIX/x86_64-w64-mingw32 init -t $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
 
 # Build hcc
-RUN git clone --depth 1 https://github.com/RadeonOpenCompute/hcc.git -b roc-1.6.x /hcc && \
+RUN git clone --depth 1 https://github.com/RadeonOpenCompute/hcc.git -b roc-1.7.x /hcc && \
     cd hcc && \
     git submodule init && \
     git submodule update --recursive && \
@@ -71,7 +71,7 @@ RUN ln -s $PREFIX /opt/rocm/hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 
 # Install hip
-RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@roc-1.6.x
+RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@85975e719dcae7dbd4d0edf6e691c197c0a4f18c
 
 RUN cget -p $PREFIX install pfultz2/rocm-recipes
 
