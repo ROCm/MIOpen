@@ -83,7 +83,7 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     construct_params.doBackward(do_backward);
     construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
 
-    status = static_cast<miopenStatus_t>(construct_params.mloConstruct());
+    construct_params.mloConstruct();
 
     std::string program_name          = construct_params.getKernelFile();      // CL kernel filename
     std::string kernel_name           = construct_params.getKernelName();      // kernel name
@@ -223,7 +223,7 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
 
     construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
 
-    status = static_cast<miopenStatus_t>(construct_params.mloConstruct());
+    construct_params.mloConstruct();
 
     std::string program_name   = construct_params.getKernelFile();      // CL kernel filename
     std::string kernel_name    = construct_params.getKernelName();      // kernel name
