@@ -32,7 +32,7 @@
 // MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 
 // Disable specific warnings
-#define MIO_RNN_DEBUG 1
+#define MIO_RNN_DEBUG 0
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -248,6 +248,7 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
     }
 
     std::vector<int> tdim(2, 0);
+
     if(dirMode)
     {
         if(layer > 1) // NOT the input layer
@@ -549,18 +550,26 @@ void RNNDescriptor::GetLayerParam(Handle& handle,
     // Construct descriptor for param matrix
     auto paramSrc = miopen::TensorDescriptor(dataType, pDims.data(), 2);
 
-    if(paramSrc.GetLengths() != paramDesc.GetLengths())
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "mismatch between descriptors");
-    }
+    paramDesc = paramSrc;
+// if(paramSrc.GetLengths() != paramDesc.GetLengths())
+//{
+//#if(MIO_RNN_DEBUG == 1)
+// auto inputVectorLen = xDesc.GetLengths()[1];
+// fprintf(stderr,
+//"GetLayerParam %d %d %d %d pDims %d %d sDims %d %d\n",
+// layer,
+// paramID,
+// inputVectorLen,
+// hsize,
+// pDims[0],
+// pDims[1],
+// paramDesc.GetLengths()[0],
+// paramDesc.GetLengths()[1]);
+//#endif
+// MIOPEN_THROW(miopenStatusBadParm, "mismatch between descriptors");
+//}
 
 #if(MIO_RNN_DEBUG == 1)
-    fprintf(stderr,
-            "GetLayerParam pDims %d %d sDims %d %d\n",
-            pDims[0],
-            pDims[1],
-            paramDesc.GetLengths()[0],
-            paramDesc.GetLengths()[1]);
     fprintf(stderr,
             "GetLayerParam layer: %d layerID: %d offst: %d size: %d\n",
             layer,
@@ -602,11 +611,12 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
 
     // 3. Construct descriptor for param matrix
     auto biasSrc = miopen::TensorDescriptor(dataType, &bdim, 1);
+    biasDesc     = biasSrc;
 
-    if(biasSrc.GetLengths() != biasDesc.GetLengths())
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "mismatch between descriptors");
-    }
+// if(biasSrc.GetLengths() != biasDesc.GetLengths())
+//{
+// MIOPEN_THROW(miopenStatusBadParm, "mismatch between descriptors");
+//}
 
 #if(MIO_RNN_DEBUG == 1)
     fprintf(stderr, "GetLayerbias bDims %d\n", bdim);

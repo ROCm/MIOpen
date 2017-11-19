@@ -33,6 +33,7 @@
 #include <miopen/tensor.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/tensor_ops.hpp>
+#include <miopen/allocator.hpp>
 #include <utility>
 
 #include "driver.hpp"
@@ -45,6 +46,7 @@ struct superTensorTest : test_driver
     int num_layer;
     int wei_hh;
     int batch_size;
+
     miopenRNNMode_t mode;
     miopenRNNBiasMode_t biasMode;
     miopenRNNDirectionMode_t directionMode;
@@ -59,6 +61,8 @@ struct superTensorTest : test_driver
     miopenTensorDescriptor_t weightTensor;
     miopenTensorDescriptor_t paramTensor;
     miopenTensorDescriptor_t biasTensor;
+
+    miopen::Allocator::ManageDataPtr wei_dev;
 
     superTensorTest()
     {
@@ -75,12 +79,7 @@ struct superTensorTest : test_driver
         std::vector<miopenRNNBiasMode_t> get_biasMode = {miopenRNNwithBias, miopenRNNNoBias};
         std::vector<miopenRNNDirectionMode_t> get_directionMode = {miopenRNNunidirection,
                                                                    miopenRNNbidirection};
-        // std::vector<miopenRNNDirectionMode_t> get_directionMode = {miopenRNNbidirection};
-        // std::vector<miopenRNNDirectionMode_t> get_directionMode = {miopenRNNunidirection};
         std::vector<miopenRNNInputMode_t> get_inMode = {miopenRNNskip, miopenRNNlinear};
-        // std::vector<miopenRNNInputMode_t> get_inMode = {miopenRNNskip};
-        // std::vector<miopenRNNInputMode_t> get_inMode = {miopenRNNlinear};
-        // std::vector<miopenRNNAlgo_t> get_algo        = {miopenRNNdefault};
 
         add(seqLen, "seqLen", generate_data(get_seqLen));
         add(in_size, "in_size", generate_data(get_in_size));
@@ -108,8 +107,6 @@ struct superTensorTest : test_driver
         std::vector<float> wei_h(wei_sz, 0);
 
         int offset = 0;
-
-        // int bi = (directionMode == miopenRNNbidirection) ? 2 : 1;
 
         int num_HiddenLayer = (mode == miopenRNNRELU) ? 1 : (mode == miopenGRU ? 3 : 4);
 
@@ -230,37 +227,11 @@ struct superTensorTest : test_driver
         return wei_h;
     }
 
-    void run()
+    std::vector<float> setRNNLayer()
     {
-        miopenSetRNNDescriptor(
-            rnnDesc, wei_hh, num_layer, inMode, directionMode, mode, biasMode, algo, dataType);
-
-        size_t in_sz  = 0;
-        size_t wei_sz = 0;
-
-        auto&& handle = get_handle();
-
-        std::array<int, 2> in_lens = {{batch_size, in_size}};
-        miopenSetTensorDescriptor(inputTensor, dataType, 2, in_lens.data(), nullptr);
-        miopenSetTensorDescriptor(weightTensor, dataType, 2, in_lens.data(), nullptr);
-
-        miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLen, &inputTensor, &in_sz);
-
-        miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopenFloat);
-
-        wei_sz = wei_sz / sizeof(miopenFloat);
-
-        // printf("inputTensor size: %lu weightTensor size: %lu\n", in_sz, wei_sz);
-
-        std::vector<float> wei_h(wei_sz, 0);
-        std::vector<float> bias_h(wei_hh, 1);
-
-        auto wei_dev  = handle.Write(wei_h);
-        auto bias_dev = handle.Write(bias_h);
-
+        auto&& handle       = get_handle();
         int num_HiddenLayer = (mode == miopenRNNRELU) ? 1 : (mode == miopenGRU ? 3 : 4);
-
-        int bi = (directionMode == miopenRNNbidirection) ? 2 : 1;
+        int bi              = (directionMode == miopenRNNbidirection) ? 2 : 1;
 
         for(int layer = 0; layer < num_layer * bi; layer++)
         {
@@ -339,6 +310,18 @@ struct superTensorTest : test_driver
             }
         }
 
+        size_t wei_sz = 0;
+        miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopenFloat);
+        wei_sz = wei_sz / sizeof(miopenFloat);
+        return handle.Read<float>(wei_dev, wei_sz);
+    }
+
+    void getRNNLayer()
+    {
+        auto&& handle       = get_handle();
+        int num_HiddenLayer = (mode == miopenRNNRELU) ? 1 : (mode == miopenGRU ? 3 : 4);
+        int bi              = (directionMode == miopenRNNbidirection) ? 2 : 1;
+
         for(int layer = 0; layer < num_layer * bi; layer++)
         {
 
@@ -374,15 +357,16 @@ struct superTensorTest : test_driver
                 for(int i = 0; i < param_h_out.size(); i++)
                 {
 
-                    if(static_cast<int>(param_h_out[i]) != 10 * layer + layerID)
-                    {
-                        fprintf(stderr,
-                                "param mismatch at %d : d %f != h %d\n",
-                                i,
-                                param_h_out[i],
-                                10 * layer + layerID);
-                        exit(1);
-                    }
+                    EXPECT(static_cast<int>(param_h_out[i]) == 10 * layer + layerID);
+                    // if(static_cast<int>(param_h_out[i]) != 10 * layer + layerID)
+                    //{
+                    // fprintf(stderr,
+                    //"param mismatch at %d : d %f != h %d\n",
+                    // i,
+                    // param_h_out[i],
+                    // 10 * layer + layerID);
+                    // exit(1);
+                    //}
                 }
 
                 if(biasMode == miopenRNNwithBias)
@@ -410,19 +394,55 @@ struct superTensorTest : test_driver
 
                     for(int i = 0; i < bias_h_out.size(); i++)
                     {
-                        if(static_cast<int>(bias_h_out[i]) != 10 * layer + layerID)
-                        {
-                            fprintf(stderr,
-                                    "bias mismatch at %d : d %d != %d\n",
-                                    i,
-                                    static_cast<int>(bias_h_out[i]),
-                                    10 * layer + layerID);
-                            exit(1);
-                        }
+                        EXPECT(static_cast<int>(bias_h_out[i]) == 10 * layer + layerID);
+                        // if(static_cast<int>(bias_h_out[i]) != 10 * layer + layerID)
+                        //{
+                        // fprintf(stderr,
+                        //"bias mismatch at %d : d %d != %d\n",
+                        // i,
+                        // static_cast<int>(bias_h_out[i]),
+                        // 10 * layer + layerID);
+                        // exit(1);
+                        //}
                     }
                 }
             }
         }
+    }
+
+    void run()
+    {
+        miopenSetRNNDescriptor(
+            rnnDesc, wei_hh, num_layer, inMode, directionMode, mode, biasMode, algo, dataType);
+
+        size_t in_sz  = 0;
+        size_t wei_sz = 0;
+
+        auto&& handle = get_handle();
+
+        std::array<int, 2> in_lens = {{batch_size, in_size}};
+        miopenSetTensorDescriptor(inputTensor, dataType, 2, in_lens.data(), nullptr);
+        miopenSetTensorDescriptor(weightTensor, dataType, 2, in_lens.data(), nullptr);
+
+        miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLen, &inputTensor, &in_sz);
+
+        miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopenFloat);
+
+        // wei_sz = wei_sz / sizeof(miopenFloat);
+        // std::vector<float> wei_h(wei_sz, 0);
+        wei_dev = handle.Create(wei_sz);
+
+        auto wei_h   = fill_w_tensor();
+        auto wei_set = setRNNLayer();
+
+        EXPECT(wei_h.size() == wei_set.size());
+
+        for(int i = 0; i < wei_h.size(); i++)
+        {
+            EXPECT(static_cast<int>(wei_h[i]) == static_cast<int>(wei_set[i]));
+        }
+
+        getRNNLayer();
     }
 };
 
