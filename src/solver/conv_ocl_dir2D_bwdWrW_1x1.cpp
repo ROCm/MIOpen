@@ -159,7 +159,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             int out_batch_stride   = params.n_inputs * params.in_width * params.in_height;
             int out_channel_stride = params.in_width * params.in_height;
             int wei_batch_stride =
-               params.n_inputs * params.n_outputs * params.kernel_size0 * params.kernel_size1;
+                params.n_inputs * params.n_outputs * params.kernel_size0 * params.kernel_size1;
             int wei_channel_stride = params.n_outputs * params.kernel_size0 * params.kernel_size1;
             int max_loads_per_readunit = (out_channel_stride / read_unit) * params.batch_sz;
 
