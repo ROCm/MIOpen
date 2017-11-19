@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define MLO_UITLS_H_
 
 #include <miopen/errors.hpp>
+#include <miopen/manage_ptr.hpp>
 #include <map>
 #include <fstream>
 #include <cstdio>
@@ -80,14 +81,11 @@ typedef unsigned int uint;
 #include <sys/time.h>
 #include <sys/resource.h>
 using __int64 = long long;
-#ifndef fopen_s
-#define fopen_s(file, fileName, mode) ((*(file)) = fopen((fileName), (mode))) == nullptr
 #endif
 
-#endif
-
-using mlo_ocl_arg  = std::pair<size_t, void*>;
-using mlo_ocl_args = std::map<int, mlo_ocl_arg>;
+using mlo_ocl_arg     = std::pair<size_t, void*>;
+using mlo_ocl_args    = std::map<int, mlo_ocl_arg>;
+using manage_file_ptr = MIOPEN_MANAGE_PTR(FILE*, fclose);
 
 #ifdef MIOPEN
 
@@ -165,7 +163,7 @@ class mloFile
     bool open(const char* fileName)
     {
         size_t size;
-        char* str;
+        std::vector<char> str;
         // Open file stream
         std::fstream f(fileName, (std::fstream::in | std::fstream::binary));
         // Check if we have opened file stream
@@ -176,18 +174,12 @@ class mloFile
             f.seekg(0, std::fstream::end);
             size = sizeFile = static_cast<size_t>(f.tellg());
             f.seekg(0, std::fstream::beg);
-            str = new char[size + 1];
-            if(!str)
-            {
-                f.close();
-                return false;
-            }
+            str = std::vector<char>(size + 1);
             // Read file
-            f.read(str, sizeFile);
+            f.read(str.data(), sizeFile);
             f.close();
             str[size] = '\0';
-            source_   = str;
-            delete[] str;
+            source_   = str.data();
             return true;
         }
         return false;
@@ -202,14 +194,13 @@ class mloFile
      */
     int writeBinaryToFile(const char* fileName, const char* binary, size_t numBytes)
     {
-        FILE* output = nullptr;
+        manage_file_ptr output{fopen(fileName, "wb")};
 
-        if(fopen_s(&output, fileName, "wb"))
+        if(output == nullptr)
         {
             return 0;
         }
-        fwrite(binary, sizeof(char), numBytes, output);
-        fclose(output);
+        fwrite(binary, sizeof(char), numBytes, output.get());
         return 0;
     }
 
@@ -220,9 +211,7 @@ class mloFile
      */
     int readBinaryFromFile(const char* fileName)
     {
-        using FilePtr = MIOPEN_MANAGE_PTR(FILE, fclose);
-
-        FilePtr input{fopen(fileName, "rb")};
+        manage_file_ptr input{fopen(fileName, "rb")};
         if(input == nullptr)
         {
             // TODO: Should throw
