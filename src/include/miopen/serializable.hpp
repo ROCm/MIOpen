@@ -27,7 +27,7 @@
 #ifndef GUARD_MLOPEN_SERIALIZABLE_HPP
 #define GUARD_MLOPEN_SERIALIZABLE_HPP
 
-#include <iso646.h>
+#include <ciso646>
 #include <miopen/config.h>
 #include <iostream>
 #include <sstream>
