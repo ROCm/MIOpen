@@ -32,7 +32,7 @@
 // MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 
 // Disable specific warnings
-#define MIO_RNN_DEBUG 0
+#define MIO_RNN_DEBUG 1
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -570,7 +570,7 @@ void RNNDescriptor::GetLayerParam(Handle& handle,
 #endif
 
     // Copy over data to previously allocated param tensor
-    miopen::CopyTensor(handle, paramSrc, w, paramDesc, param, poffset, 0);
+    miopen::CopyTensor(handle, paramDesc, w, paramDesc, param, poffset, 0);
 }
 
 void RNNDescriptor::GetLayerBias(Handle& handle,

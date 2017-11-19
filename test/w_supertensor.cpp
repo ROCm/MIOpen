@@ -145,7 +145,6 @@ struct superTensorTest : test_driver
                 }
             }
 
-#if 1
             if(biasMode == miopenRNNwithBias)
             {
                 for(int k = 0; k < num_layer * 4; k++)
@@ -176,7 +175,6 @@ struct superTensorTest : test_driver
                     }
                 }
             }
-#endif
         }
         else
         {
@@ -229,28 +227,16 @@ struct superTensorTest : test_driver
             }
         }
 
-        // for(int i = 0; i < wei_sz; i++)
-        //{
-        // printf("verify: %f\n", wei_h[i]);
-        //}
-
         return wei_h;
     }
 
     void run()
     {
-        // printf("seqLen: %d  batch_size: %d num_layer: %d in_size: %d wei_hh: %d mode: %d
-        // biasMode: %d directionMode: %d inMode: %d algo: %d\n",
-        // seqLen, batch_size, num_layer, in_size, wei_hh,
-        // mode, biasMode, directionMode, inMode, algo
-        //);
         miopenSetRNNDescriptor(
             rnnDesc, wei_hh, num_layer, inMode, directionMode, mode, biasMode, algo, dataType);
 
         size_t in_sz  = 0;
         size_t wei_sz = 0;
-
-        // int batch_size = 4;
 
         auto&& handle = get_handle();
 
@@ -288,7 +274,6 @@ struct superTensorTest : test_driver
             for(int layerID = 0; layerID < num_HiddenLayer * skip; layerID++)
             {
 
-#if 1
                 size_t paramSize = 0;
                 miopenGetRNNLayerParamSize(
                     &handle, rnnDesc, layer, inputTensor, layerID, &paramSize);
@@ -319,36 +304,8 @@ struct superTensorTest : test_driver
                                        paramTensor,
                                        param_dev_in.get());
 
-                miopenGetRNNLayerParam(&handle,
-                                       rnnDesc,
-                                       layer,
-                                       inputTensor,
-                                       weightTensor,
-                                       wei_dev.get(),
-                                       layerID,
-                                       paramTensor,
-                                       param_dev_out.get());
-
-                auto param_h_out = handle.Read<float>(param_dev_out, paramSize);
-
-                for(int i = 0; i < param_h_out.size(); i++)
-                {
-                    if(param_h_out[i] != 10 * layer + layerID)
-                    {
-                        fprintf(stderr,
-                                "param mismatch at %d : d %f != h %d\n",
-                                i,
-                                param_h_out[i],
-                                10 * layer + layerID);
-                        exit(1);
-                    }
-                }
-#endif
-
-#if 1
                 if(biasMode == miopenRNNwithBias)
                 {
-
                     size_t biasSize = 0;
 
                     miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
@@ -378,56 +335,10 @@ struct superTensorTest : test_driver
                                           layerID,
                                           biasTensor,
                                           bias_dev_in.get());
-
-                    miopenGetRNNLayerBias(&handle,
-                                          rnnDesc,
-                                          layer,
-                                          inputTensor,
-                                          weightTensor,
-                                          wei_dev.get(),
-                                          layerID,
-                                          biasTensor,
-                                          bias_dev_out.get());
-
-                    auto bias_h_out = handle.Read<float>(bias_dev_out, biasSize);
-
-                    // printf("biasSize %d %d\n", biasSize, bias_h_out.size());
-
-                    for(int i = 0; i < bias_h_out.size(); i++)
-                    {
-                        if(bias_h_out[i] != 10 * layer + layerID)
-                        {
-                            fprintf(stderr,
-                                    "bias mismatch at %d : d %f != %d\n",
-                                    i,
-                                    bias_h_out[i],
-                                    10 * layer + layerID);
-                            exit(1);
-                        }
-                    }
                 }
-#endif
             }
         }
 
-#if 1
-        auto wei_h_ver = fill_w_tensor();
-        auto wei_h_out = handle.Read<float>(wei_dev, wei_sz);
-
-        for(int i = 0; i < wei_h_out.size(); i++)
-        {
-            if(wei_h_ver[i] != wei_h_out[i])
-            {
-                fprintf(stderr,
-                        "w_tensor mismatch at %d : h: %f != d: %f\n",
-                        i,
-                        wei_h_ver[i],
-                        wei_h_out[i]);
-                exit(1);
-            }
-        }
-
-#if 0
         for(int layer = 0; layer < num_layer * bi; layer++)
         {
 
@@ -440,7 +351,6 @@ struct superTensorTest : test_driver
             for(int layerID = 0; layerID < num_HiddenLayer * skip; layerID++)
             {
 
-#if 1
                 size_t paramSize = 0;
                 miopenGetRNNLayerParamSize(
                     &handle, rnnDesc, layer, inputTensor, layerID, &paramSize);
@@ -455,30 +365,33 @@ struct superTensorTest : test_driver
                                        wei_dev.get(),
                                        layerID,
                                        paramTensor,
-                                       param_dev_out.get()
-                                       );
+                                       param_dev_out.get());
+
+                paramSize /= sizeof(miopenFloat);
 
                 auto param_h_out = handle.Read<float>(param_dev_out, paramSize);
 
-
                 for(int i = 0; i < param_h_out.size(); i++)
                 {
-                    if(param_h_out[i] != 10 * layer + layerID)
+
+                    if(static_cast<int>(param_h_out[i]) != 10 * layer + layerID)
                     {
-                        fprintf(stderr, "mismatch at %d : d %f\n", i, param_h_out[i]);
+                        fprintf(stderr,
+                                "param mismatch at %d : d %f != h %d\n",
+                                i,
+                                param_h_out[i],
+                                10 * layer + layerID);
                         exit(1);
                     }
                 }
-#endif
 
-#if 1
                 if(biasMode == miopenRNNwithBias)
                 {
 
                     size_t biasSize = 0;
 
-                    miopenGetRNNLayerParamSize(
-                        &handle, rnnDesc, layer, inputTensor, layerID, &biasSize);
+                    miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
+
                     auto bias_dev_out = handle.Create(biasSize);
 
                     miopenGetRNNLayerBias(&handle,
@@ -491,24 +404,25 @@ struct superTensorTest : test_driver
                                           biasTensor,
                                           bias_dev_out.get());
 
+                    biasSize /= sizeof(float);
+
                     auto bias_h_out = handle.Read<float>(bias_dev_out, biasSize);
 
                     for(int i = 0; i < bias_h_out.size(); i++)
                     {
-                        if(bias_h_out[i] != 10 * layer + layerID)
+                        if(static_cast<int>(bias_h_out[i]) != 10 * layer + layerID)
                         {
-                            fprintf(stderr, "mismatch at %d : d %f\n", i, bias_h_out[i]);
+                            fprintf(stderr,
+                                    "bias mismatch at %d : d %d != %d\n",
+                                    i,
+                                    static_cast<int>(bias_h_out[i]),
+                                    10 * layer + layerID);
                             exit(1);
                         }
                     }
                 }
-#endif
             }
         }
-#endif
-
-        fprintf(stderr, "verification passed\n");
-#endif
     }
 };
 
