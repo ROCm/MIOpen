@@ -32,6 +32,13 @@
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/mlo_utils.hpp>
 #include <miopen/solver.hpp>
+#ifdef max
+#undef max
+#endif
+
+#ifdef min
+#undef min
+#endif
 
 namespace miopen {
 namespace solver {
@@ -464,7 +471,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
 
         int version = result.out_pix_tile1;
 
-        for(int g0 = 0; g0 <= n_grp_tiles0; ++g0)
+        for(int g0 = 0; g0 < n_grp_tiles0; ++g0)
         {
             result.grp_tile0 = grp_tl_ln[g0];
 
@@ -497,16 +504,14 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
                                           top_ocl_buf,
                                           random_top_sys_buf.size() * sizeof(float));
 
-                        const auto ret =
-                            MeasureLoop<ConvOclDirectFwd1x1, ConvOclDirectFwdC, ConvOclDirectFwd>(
-                                &profile_h,
-                                bot_ocl_buf.get(),
-                                top_ocl_buf.get(),
-                                wei_ocl_buf.get(),
-                                bias_ocl_buf.get(),
-                                processing_time,
-                                params,
-                                result);
+                        const auto ret = MeasureLoop<ConvOclDirectFwd1x1>(&profile_h,
+                                                                          bot_ocl_buf.get(),
+                                                                          top_ocl_buf.get(),
+                                                                          wei_ocl_buf.get(),
+                                                                          bias_ocl_buf.get(),
+                                                                          processing_time,
+                                                                          params,
+                                                                          result);
 
                         runs_left--;
                         runs_left = (runs_left < 0) ? 0 : runs_left;
@@ -699,14 +704,16 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
 
 #endif
 
-                                            const auto ret = MeasureLoop(&profile_h,
-                                                                         bot_ocl_buf.get(),
-                                                                         top_ocl_buf.get(),
-                                                                         wei_ocl_buf.get(),
-                                                                         bias_ocl_buf.get(),
-                                                                         processing_time,
-                                                                         params,
-                                                                         result);
+                                            const auto ret =
+                                                MeasureLoop<ConvOclDirectFwdC, ConvOclDirectFwd>(
+                                                    &profile_h,
+                                                    bot_ocl_buf.get(),
+                                                    top_ocl_buf.get(),
+                                                    wei_ocl_buf.get(),
+                                                    bias_ocl_buf.get(),
+                                                    processing_time,
+                                                    params,
+                                                    result);
 
                                             runs_left--;
                                             runs_left = (runs_left < 0) ? 0 : runs_left;
