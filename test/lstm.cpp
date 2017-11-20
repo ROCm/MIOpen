@@ -1598,6 +1598,13 @@ struct verify_forward_infer_lstm
 
     void fail(int)
     {
+        printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
+        printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
+               hiddenSize,
+               batch_n,
+               seqLength,
+               inputVecLen,
+               nLayers);
         std::cout << "Forward Inference LSTM: " << std::endl;
         std::cout << "Output tensor output failed verification." << std::endl;
     }
@@ -1874,6 +1881,13 @@ struct verify_forward_train_lstm
     void fail(int badtensor)
     {
 
+        printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
+        printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
+               hiddenSize,
+               batch_n,
+               seqLength,
+               inputVecLen,
+               nLayers);
         std::cout << "Forward Train LSTM: " << std::endl;
 
         switch(badtensor)
@@ -2160,7 +2174,13 @@ struct verify_backward_data_lstm
 
     void fail(int badtensor)
     {
-
+        printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
+        printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
+               hiddenSize,
+               batch_n,
+               seqLength,
+               inputVecLen,
+               nLayers);
         std::cout << "Backward Data LSTM: " << std::endl;
 
         switch(badtensor)
@@ -2362,7 +2382,17 @@ struct verify_backward_weights_lstm
         return retvec;
     }
 
-    void fail(int) { std::cout << "Backward Weights LSTM: " << std::endl; }
+    void fail(int)
+    {
+        printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
+        printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
+               hiddenSize,
+               batch_n,
+               seqLength,
+               inputVecLen,
+               nLayers);
+        std::cout << "Backward Weights LSTM: " << std::endl;
+    }
 };
 //~~~~~~~~~~~~ END BACKWARD WEIGHTS ~~~~~~~~~~~~~~~~~~~~~~~~
 

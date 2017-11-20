@@ -1836,6 +1836,13 @@ struct verify_forward_infer_gru
 
     void fail(int)
     {
+        printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
+        printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
+               hiddenSize,
+               batch_n,
+               seqLength,
+               inputVecLen,
+               nLayers);
         std::cout << "Forward Inference GRU: " << std::endl;
         std::cout << "Output tensor output failed verification." << std::endl;
     }
@@ -2099,7 +2106,13 @@ struct verify_forward_train_gru
 
     void fail(int badtensor)
     {
-
+        printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
+        printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
+               hiddenSize,
+               batch_n,
+               seqLength,
+               inputVecLen,
+               nLayers);
         std::cout << "Forward Train GRU: " << std::endl;
 
         switch(badtensor)
@@ -2371,6 +2384,13 @@ struct verify_backward_data_gru
 
     void fail(int badtensor)
     {
+        printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
+        printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
+               hiddenSize,
+               batch_n,
+               seqLength,
+               inputVecLen,
+               nLayers);
 
         std::cout << "Backward Data GRU: " << std::endl;
 
@@ -2574,7 +2594,17 @@ struct verify_backward_weights_gru
         return retvec;
     }
 
-    void fail(int) { std::cout << "Backward Weights GRU: " << std::endl; }
+    void fail(int)
+    {
+        printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
+        printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
+               hiddenSize,
+               batch_n,
+               seqLength,
+               inputVecLen,
+               nLayers);
+        std::cout << "Backward Weights GRU: " << std::endl;
+    }
 };
 //~~~~~~~~~~~~ END BACKWARD WEIGHTS ~~~~~~~~~~~~~~~~~~~~~~~~
 
