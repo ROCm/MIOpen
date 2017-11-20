@@ -259,12 +259,14 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
     uint local_Id0 = get_local_id(0);
 
 // traverse small batch size to have better performance
-#if MLO_OUT_BATCH_STRIDE < MLO_IN_BATCH_STRIDE
-    uint C_OFFSET = get_group_id(1) * MLO_N_LCL_OUT_MAPS;
-    uint K_OFFSET = get_group_id(0) * MLO_N_LCL_IN_MAPS;
+#if MLO_IN_BATCH_STRIDE < MLO_OUT_BATCH_STRIDE
+    uint C_OFFSET = get_group_id(0) * MLO_N_LCL_IN_MAPS;
+    uint K_OFFSET = get_group_id(1) * MLO_N_LCL_OUT_MAPS;
+
 #else
-    uint C_OFFSET          = get_group_id(0) * MLO_N_LCL_OUT_MAPS;
-    uint K_OFFSET          = get_group_id(1) * MLO_N_LCL_IN_MAPS;
+    uint K_OFFSET          = get_group_id(0) * MLO_N_LCL_OUT_MAPS;
+    uint C_OFFSET          = get_group_id(1) * MLO_N_LCL_IN_MAPS;
+
 #endif
 
     uint glb_out_off0 = K_OFFSET * MLO_OUT_CHANNEL_STRIDE;
@@ -442,6 +444,8 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
 
     for(uint K = 0; K < MLO_N_LCL_OUT_MAPS; K++)
     {
+        barrier(CLK_LOCAL_MEM_FENCE);
+
         for(uint C = 0; C < MLO_N_LCL_IN_MAPS; C++)
         {
             sdata[local_Id0 + MLO_GRP_SZ0 * C] = accum[K * MLO_N_LCL_IN_MAPS + C];
@@ -465,6 +469,8 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
             // NO need inside 1 wave: barrier(CLK_LOCAL_MEM_FENCE);
         }
 
+        barrier(CLK_LOCAL_MEM_FENCE);
+
         // MLO_N_LCL_IN_MAPS store
         if((local_Id0 & ~0x7) == (K * MLO_N_LCL_IN_MAPS))
         {
@@ -472,8 +478,6 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
         }
 
         // only 1st wave need to barrier: it will remove all scratch registers
-        if(local_Id0 < 64)
-            barrier(CLK_LOCAL_MEM_FENCE);
     }
 
     if(local_Id0 < (MLO_ACCUM_SZ))
@@ -514,13 +518,14 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
     uint local_Id0 = get_local_id(0);
 
 // traverse small batch size to have better performance
-#if MLO_OUT_BATCH_STRIDE < MLO_IN_BATCH_STRIDE
-    uint K_OFFSET = get_group_id(0) * MLO_N_LCL_OUT_MAPS;
-    uint C_OFFSET = get_group_id(1) * MLO_N_LCL_IN_MAPS;
+#if MLO_IN_BATCH_STRIDE < MLO_OUT_BATCH_STRIDE
+    uint C_OFFSET = get_group_id(0) * MLO_N_LCL_IN_MAPS;
+    uint K_OFFSET = get_group_id(1) * MLO_N_LCL_OUT_MAPS;
 
 #else
-    uint K_OFFSET          = get_group_id(1) * MLO_N_LCL_OUT_MAPS;
-    uint C_OFFSET          = get_group_id(0) * MLO_N_LCL_IN_MAPS;
+    uint K_OFFSET          = get_group_id(0) * MLO_N_LCL_OUT_MAPS;
+    uint C_OFFSET          = get_group_id(1) * MLO_N_LCL_IN_MAPS;
+
 #endif
 
     // Split into 4 groups for C[0,1,0,1], K [0,0,1,1]
@@ -733,6 +738,8 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
 
     for(uint K = 0; K < MLO_N_LCL_OUT_MAPS_ONCE; K++)
     {
+        barrier(CLK_LOCAL_MEM_FENCE);
+
         for(uint C = 0; C < MLO_N_LCL_IN_MAPS_ONCE; C++)
         {
             sdata[local_Id0 + MLO_GRP_SZ0 * C] = accum[K * MLO_N_LCL_IN_MAPS_ONCE + C];
@@ -759,6 +766,8 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
             // NO need inside 1 wave: barrier(CLK_LOCAL_MEM_FENCE);
         }
 
+        barrier(CLK_LOCAL_MEM_FENCE);
+
         // MLO_N_LCL_IN_MAPS store 32 DWORD once
         if((local_Id0 & ~0x7) == (K * (MLO_N_LCL_IN_MAPS_ONCE)))
         {
@@ -769,8 +778,6 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
         }
 
         // only 1st wave need to barrier: it will remove all scratch registers
-        if(local_Id0 < 64)
-            barrier(CLK_LOCAL_MEM_FENCE);
     }
 
     if(local_Id0 < (MLO_ACCUM_SZ))

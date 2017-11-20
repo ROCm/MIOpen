@@ -116,6 +116,21 @@ static void CreateBitmapAndGrid(unsigned int& bitmap,
     }
 }
 
+static bool IsPackedTensor(std::vector<std::size_t>& strides, std::vector<std::size_t>& lens)
+{
+    int acc_lens = 1;
+
+    for(auto i = lens.size() - 1; i > 0; i--)
+    {
+        if(acc_lens != strides[i])
+            return false;
+
+        acc_lens *= lens[i];
+    }
+
+    return true;
+}
+
 static bool IsBitmapLeadingOnes(unsigned int& bitmap, int n_size, int first_not_one)
 {
     bool leading_ones = true;
@@ -208,7 +223,6 @@ void OpTensor(Handle& handle,
     CreateBitmapAndGrid(bitmap, blens, clens, num_wg, work_per_wg, (d - 2));
 
 #if(MIO_TENSOROCL_DEBUG == 1)
-    printf("d: %d\n", d);
     printf("bitmap: %u\n", bitmap);
     printf("work_per_wg: %d, num_wg: %d\n", work_per_wg, num_wg);
 #endif
@@ -256,11 +270,11 @@ void OpTensor(Handle& handle,
 
     // Special case for adding tensors in place
     size_t global_threads;
-    // if(dims == 4)
-    // global_threads = (leading_ones == 1 && (d - 1) == 3) ? num_wg : num_wg * local_threads;
-    // else
-    global_threads = (leading_ones == 1 && (d - 1) == dims) ? num_wg : num_wg * local_threads;
-    global_threads = (global_threads < local_threads) ? local_threads : global_threads;
+    if(dims == 4)
+        global_threads = (leading_ones == 1 && (d - 1) == 3) ? num_wg : num_wg * local_threads;
+    else
+        global_threads = (leading_ones == 1 && (d - 1) == dims) ? num_wg : num_wg * local_threads;
+    global_threads     = (global_threads < local_threads) ? local_threads : global_threads;
 
     const std::vector<size_t> vgd{global_threads, 1, 1};
 
@@ -276,6 +290,17 @@ void OpTensor(Handle& handle,
     }
     break;
     }
+
+    bool packed_tensor = true;
+
+    auto alens = aTensorDesc.GetLengths();
+    packed_tensor &= IsPackedTensor(astrides, alens);
+    packed_tensor &= IsPackedTensor(bstrides, blens);
+    packed_tensor &= IsPackedTensor(cstrides, clens);
+
+#if(MIO_TENSOROCL_DEBUG == 1)
+    printf("packed_tensor: %d\n", packed_tensor);
+#endif
 
     if(bsize == 5)
     {
@@ -304,37 +329,6 @@ void OpTensor(Handle& handle,
             int(cstrides[1]), // c_cstride,
             int(cstrides[2]), // c_dstride,
             int(cstrides[3]), // c_hstride,
-            miopen_alpha0,
-            miopen_alpha1,
-            miopen_beta,
-            bitmap,
-            work_per_wg,
-            long(Aoffset),
-            long(Boffset),
-            long(Coffset));
-    }
-    else if(bsize == 4)
-    {
-        handle.GetKernel(
-            "Op4dTensorGeneric", "", program_name, "Op4dTensorGeneric", vld, vgd, parms)(
-            ATensor,
-            int(astrides[0]), // a_nstride,
-            int(astrides[1]), // a_cstride,
-            int(astrides[2]), // a_hstride,
-            BTensor,
-            int(blens[1]),    // b_c,
-            int(blens[2]),    // b_h,
-            int(blens[3]),    // b_w,
-            int(bstrides[0]), // b_nstride,
-            int(bstrides[1]), // b_cstride,
-            int(bstrides[2]), // b_hstride,
-            CTensor,
-            int(clens[1]),    // c_c,
-            int(clens[2]),    // c_h,
-            int(clens[3]),    // c_w,
-            int(cstrides[0]), // c_nstride,
-            int(cstrides[1]), // c_cstride,
-            int(cstrides[2]), // c_hstride,
             miopen_alpha0,
             miopen_alpha1,
             miopen_beta,
@@ -411,45 +405,111 @@ void OpTensor(Handle& handle,
     }
     else if(fwd_conv_bias)
     {
-        handle.GetKernel("OpTensorFwdBias", "", program_name, "OpTensorFwdBias", vld, vgd, parms)(
-            ATensor,
-            int(astrides[0]),
-            int(astrides[1]),
-            BTensor,
-            int(blens[1]),
-            int(bstrides[0]),
-            int(bstrides[1]),
-            CTensor,
-            int(clens[0]),
-            int(cstrides[0]),
-            int(cstrides[1]),
-            miopen_alpha0,
-            miopen_alpha1,
-            miopen_beta,
-            work_per_wg,
-            long(Aoffset),
-            long(Boffset),
-            long(Coffset));
+
+        if(packed_tensor)
+        {
+            handle.GetKernel(
+                "OpTensorFwdBias", "", program_name, "OpTensorFwdBias", vld, vgd, parms)(
+                ATensor,
+                BTensor,
+                int(blens[1]),
+                CTensor,
+                int(clens[0]),
+                int(cstrides[0]),
+                int(cstrides[1]),
+                work_per_wg,
+                miopen_alpha0,
+                miopen_alpha1,
+                miopen_beta,
+                long(Aoffset),
+                long(Boffset),
+                long(Coffset));
+        }
+        else
+        {
+
+            handle.GetKernel("OpTensorFwdBiasGeneric",
+                             "",
+                             program_name,
+                             "OpTensorFwdBiasGeneric",
+                             vld,
+                             vgd,
+                             parms)(ATensor,
+                                    int(astrides[0]),
+                                    int(astrides[1]),
+                                    int(astrides[2]),
+                                    BTensor,
+                                    int(blens[1]),
+                                    int(bstrides[1]),
+                                    CTensor,
+                                    int(clens[0]),
+                                    int(clens[3]),
+                                    int(cstrides[0]),
+                                    int(cstrides[1]),
+                                    int(cstrides[2]),
+                                    miopen_alpha0,
+                                    miopen_alpha1,
+                                    miopen_beta,
+                                    work_per_wg,
+                                    long(Aoffset),
+                                    long(Boffset),
+                                    long(Coffset));
+        }
     }
     else if(leading_ones)
     {
-        handle.GetKernel(
-            "OpTensorLeadingOnes", "", program_name, "OpTensorLeadingOnes", vld, vgd, parms)(
-            ATensor,
-            BTensor,
-            CTensor,
-            int(clens[1]),
-            int(clens[2]),
-            int(clens[3]),
-            int(cstrides[0]),
-            int(cstrides[1]),
-            miopen_alpha0,
-            miopen_alpha1,
-            miopen_beta,
-            work_per_wg,
-            long(Aoffset),
-            long(Boffset),
-            long(Coffset));
+        if(packed_tensor)
+        {
+            handle.GetKernel(
+                "OpTensorLeadingOnes", "", program_name, "OpTensorLeadingOnes", vld, vgd, parms)(
+                ATensor,
+                BTensor,
+                CTensor,
+                int(clens[1]),
+                int(clens[2]),
+                int(clens[3]),
+                int(cstrides[0]),
+                int(cstrides[1]),
+                work_per_wg,
+                miopen_alpha0,
+                miopen_alpha1,
+                miopen_beta,
+                long(Aoffset),
+                long(Boffset),
+                long(Coffset));
+        }
+        else
+        {
+
+            handle.GetKernel("OpTensorLeadingOnesGeneric",
+                             "",
+                             program_name,
+                             "OpTensorLeadingOnesGeneric",
+                             vld,
+                             vgd,
+                             parms)(ATensor,
+                                    int(astrides[0]),
+                                    int(astrides[1]),
+                                    int(astrides[2]),
+                                    BTensor,
+                                    int(bstrides[0]),
+                                    int(bstrides[1]),
+                                    int(bstrides[2]),
+                                    CTensor,
+                                    int(clens[1]),
+                                    int(clens[2]),
+                                    int(clens[3]),
+                                    int(cstrides[0]),
+                                    int(cstrides[1]),
+                                    int(cstrides[2]),
+                                    miopen_alpha0,
+                                    miopen_alpha1,
+                                    miopen_beta,
+                                    work_per_wg,
+                                    long(Aoffset),
+                                    long(Boffset),
+                                    long(Coffset));
+        }
     }
     else
     {
