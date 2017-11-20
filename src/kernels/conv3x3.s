@@ -1079,6 +1079,8 @@ loop_end:
 { Version: [ 1, 0 ],
     Kernels:
     - { Name: gcnAsmConv3x3U, SymbolName: 'gcnAsmConv3x3U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+        CodeProps:
+          { KernargSegmentSize: 56, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
         Args:
         - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: in,          AddrSpaceQual: Global, AccQual: Default, IsConst: true }
         - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: weights,     AddrSpaceQual: Global, AccQual: Default, IsConst: true }

@@ -820,6 +820,8 @@ s_endpgm
         - { Name: gcnAsmConv3x3WrW, SymbolName: 'gcnAsmConv3x3WrW@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
+            CodeProps:
+              { KernargSegmentSize: 64, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
             Args:
             - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }

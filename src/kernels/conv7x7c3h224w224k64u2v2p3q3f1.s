@@ -768,6 +768,8 @@ loop_channel:
     - {
         Name: gcnAsmConv7x7c3h224w224k64u2v2p3q3f1, SymbolName: 'gcnAsmConv7x7c3h224w224k64u2v2p3q3f1@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
         Attrs: { ReqdWorkGroupSize: [ 64, 8, 1 ] }
+        CodeProps:
+          { KernargSegmentSize: 32, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 256 }
         Args:
         - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: in,          AddrSpaceQual: Global, AccQual: Default, IsConst: true }
         - { Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', Name: weights,     AddrSpaceQual: Global, AccQual: Default, IsConst: true }
