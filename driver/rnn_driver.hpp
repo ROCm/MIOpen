@@ -161,6 +161,18 @@ class RNNDriver : public Driver
     //    void TrySaveVerificationCache(const std::string& file_name, std::vector<T>& data) const;
 };
 
+static inline bool CheckGuard(const int& in_h,
+                              const int& out_h,
+                              const int& hy_d,
+                              const int& hy_n,
+                              const int& hy_h,
+                              const miopenRNNDirectionMode_t& dirMode,
+                              const miopenRNNInputMode_t& inputMode)
+{
+    return (in_h == 0 || out_h == 0 || hy_d == 0 || hy_n == 0 || hy_h == 0 ||
+            out_h != ((dirMode + 1) * hy_h) || (inputMode == miopenRNNskip && in_h != hy_h));
+}
+
 template <typename T>
 int RNNDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
 {
@@ -765,8 +777,7 @@ int RNNDriver<T>::RunForwardCPU()
     bidirection = (dirMode == miopenRNNbidirection);
     biased      = (biasMode == miopenRNNwithBias);
 
-    if(in_h == 0 || out_h == 0 || hy_d == 0 || hy_n == 0 || hy_h == 0 ||
-       out_h != ((dirMode + 1) * hy_h) || (inputMode == miopenRNNskip && in_h != hy_h))
+    if(CheckGuard(in_h, out_h, hy_d, hy_n, hy_h, dirMode, inputMode))
     {
         return miopenStatusBadParm;
     }
@@ -978,8 +989,7 @@ int RNNDriver<T>::RunBackwardWeightsCPU()
     bidirection = (dirMode == miopenRNNbidirection);
     biased      = (biasMode == miopenRNNwithBias);
 
-    if(in_h == 0 || out_h == 0 || hy_d == 0 || hy_n == 0 || hy_h == 0 ||
-       out_h != ((dirMode + 1) * hy_h) || (inputMode == miopenRNNskip && in_h != hy_h))
+    if(CheckGuard(in_h, out_h, hy_d, hy_n, hy_h, dirMode, inputMode))
     {
         return miopenStatusBadParm;
     }
@@ -1088,8 +1098,7 @@ int RNNDriver<T>::RunBackwardDataCPU()
     bidirection = (dirMode == miopenRNNbidirection);
     biased      = (biasMode == miopenRNNwithBias);
 
-    if(in_h == 0 || out_h == 0 || hy_d == 0 || hy_n == 0 || hy_h == 0 ||
-       out_h != ((dirMode + 1) * hy_h) || (inputMode == miopenRNNskip && in_h != hy_h))
+    if(CheckGuard(in_h, out_h, hy_d, hy_n, hy_h, dirMode, inputMode))
     {
         return miopenStatusBadParm;
     }
@@ -1272,8 +1281,7 @@ int RNNDriver<T>::VerifyForward()
     miopenGetRNNDescriptor(
         rnnDesc, &mode, &algoMode, &inputMode, &dirMode, &biasMode, &hiddenSize, &layer);
 
-    if(in_h == 0 || out_h == 0 || hy_d == 0 || hy_n == 0 || hy_h == 0 ||
-       out_h != ((dirMode + 1) * hy_h) || (inputMode == miopenRNNskip && in_h != hy_h))
+    if(CheckGuard(in_h, out_h, hy_d, hy_n, hy_h, dirMode, inputMode))
     {
         printf("Bad Parameters! Verification failed\n");
         return miopenStatusBadParm;
@@ -1356,8 +1364,7 @@ int RNNDriver<T>::VerifyBackward()
     miopenGetRNNDescriptor(
         rnnDesc, &mode, &algoMode, &inputMode, &dirMode, &biasMode, &hiddenSize, &layer);
 
-    if(in_h == 0 || out_h == 0 || hy_d == 0 || hy_n == 0 || hy_h == 0 ||
-       out_h != ((dirMode + 1) * hy_h) || (inputMode == miopenRNNskip && in_h != hy_h))
+    if(CheckGuard(in_h, out_h, hy_d, hy_n, hy_h, dirMode, inputMode))
     {
         printf("Bad Parameters! Verification failed\n");
         return miopenStatusBadParm;
