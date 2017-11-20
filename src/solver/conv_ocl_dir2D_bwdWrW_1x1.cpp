@@ -165,11 +165,12 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 			#endif*/
 
 		int read_unit = 4;
+		// subsampled input
 		int in_width = (result.passes > 1) ? params.in_width : params.out_width;
 		int in_height = (result.passes > 1) ? params.in_height : params.out_height;
 		int in_stride =(result.passes > 1) ? params.in_stride : params.out_stride;
 		int in_channel_stride = (result.passes > 1) ? in_stride * in_height : params.out_channel_stride;
-		int in_batch_stride = (result.passes > 1) ? in_channel_stride * params.batch_sz : params.out_batch_stride;
+		int in_batch_stride = (result.passes > 1) ? in_channel_stride * params.n_outputs : params.out_batch_stride;
 		int out_batch_stride = params.in_batch_stride;
 		int out_channel_stride = params.in_channel_stride;
 		int out_stride = params.in_stride;
@@ -248,6 +249,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 
 		int write_unit = (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2 == 0) ? 2 : 1;
 		int n_grp0_size0 = 256;
+		// real input stride
 		int in0_stride = params.out_stride;
 		int in0_channel_stride = params.out_channel_stride;
 		int in0_batch_stride = params.out_batch_stride;
@@ -329,8 +331,8 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 			kernel.l_wk.push_back(n_grp0_size0);
 			kernel.l_wk.push_back(1);
 			kernel.l_wk.push_back(1);
-
-			size_t gbl_wk0 = (out_batch_stride/write_unit);
+// output is number of subsampled input maps
+			size_t gbl_wk0 = (in_batch_stride/write_unit);
 			size_t gbl_wk1 = params.batch_sz;
 			size_t gbl_wk2 = 1;
 
