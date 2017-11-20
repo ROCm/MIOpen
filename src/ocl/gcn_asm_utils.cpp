@@ -106,7 +106,7 @@ class TempFile
 
 static std::string CleanupPath(const char* p);
 
-// Redirrecting both input and output is not supported.
+// Redirecting both input and output is not supported.
 static int ExecuteGcnAssembler(const std::string& p,
                                std::vector<std::string>& args,
                                std::istream* in,
@@ -216,7 +216,6 @@ int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostream* ou
     return WEXITSTATUS(status);
 #else
     (void)p;
-    (void)args;
     (void)in;
     (void)out;
     return -1;
