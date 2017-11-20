@@ -27,6 +27,8 @@
 #include <miopen/errors.hpp>
 #include <miopen/batch_norm.hpp>
 
+#define MIOPEN_BN_SYNCH 0
+
 namespace miopen {
 
 void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
@@ -73,7 +75,9 @@ inline void profileSequence(Handle& handle, unsigned char select)
         }
         else
         {
+#if(MIOPEN_BN_SYNCH)
             handle.Finish();
+#endif
         }
         break;
     case 1:
@@ -89,7 +93,9 @@ inline void profileSequence(Handle& handle, unsigned char select)
         }
         else
         {
+#if(MIOPEN_BN_SYNCH)
             handle.Finish();
+#endif
         }
         break;
 
@@ -382,7 +388,7 @@ void bnBwdTrainSelectMulti(Handle& handle,
 
         kernel_subname = kernel_name + "FinalDScale";
         handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
-            dx, dScale, inhw);
+            dx, dScale);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "DX";
@@ -433,7 +439,7 @@ void bnBwdTrainSelectMulti(Handle& handle,
 
         kernel_subname = kernel_name + "FinalDScale";
         handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
-            dx, dScale, inhw);
+            dx, dScale);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "DX";

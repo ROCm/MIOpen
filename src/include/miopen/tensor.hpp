@@ -71,16 +71,22 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     std::size_t GetElementSize() const;
 
+    std::size_t GetElementSpace() const;
+
+    std::size_t GetNumBytes() const;
+
     std::size_t GetIndex(std::initializer_list<int> l) const;
 
     template <class... Ts>
     std::size_t GetIndex(Ts... is) const
     {
-        return this->GetIndex({is...});
+        return this->GetIndex({static_cast<int>(is)...});
     }
 
     bool operator==(const TensorDescriptor& rhs) const;
     bool operator!=(const TensorDescriptor& rhs) const;
+    bool operator<(const TensorDescriptor& rhs) const;
+    bool operator>(const TensorDescriptor& rhs) const;
 
     std::string ToString() const;
 

@@ -72,8 +72,8 @@ std::set<std::vector<int>> get_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FAC
         { pick_batch_size(32, n),  16,   28,  28  },
         { pick_batch_size(32, n),  160,  14,  14  },
         { pick_batch_size(32, n),  160,  7,   7   },
-        { pick_batch_size(32, n),  192,  128, 256 },
 #if MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR > 0
+        { pick_batch_size(32, n),  192,  128, 256 },
         { pick_batch_size(32, n),  192,  256, 512 },
 #endif
         { pick_batch_size(32, n),  192,  28,  28  },
@@ -347,4 +347,20 @@ std::set<std::vector<int>> get_bn_spatial_inputs(int n = MIOPEN_TEST_DEFAULT_BAT
     };
     // clang-format on
 }
+
+std::vector<std::vector<int>> get_sub_tensor()
+{
+    return {{16, 4, 8, 1, 4},
+            {2, 4, 8, 8, 4},
+            {16, 4, 8, 4},
+            {13, 8, 4, 8},
+            {3, 8, 7},
+            {16, 4, 10},
+            {3, 8},
+            {16, 4},
+            {4}};
+}
+
+std::vector<std::vector<int>> get_tensor_offsets() { return {{0, 0}, {0, 2}, {4, 0}, {5, 7}}; }
+
 #endif

@@ -35,7 +35,7 @@
 
 #if MIOPEN_TEST_USE_GLOBAL_HANDLE
 
-static miopen::Handle& get_handle()
+static inline miopen::Handle& get_handle()
 {
     static miopen::Handle h{};
     return h;
@@ -43,7 +43,7 @@ static miopen::Handle& get_handle()
 
 #else
 
-static miopen::Handle get_handle() { return miopen::Handle{}; }
+static inline miopen::Handle get_handle() { return miopen::Handle{}; }
 
 #endif
 

@@ -39,6 +39,7 @@ struct LRNDescriptor : miopenLRNDescriptor
 {
     LRNDescriptor();
     LRNDescriptor(miopenLRNMode_t m, unsigned int pn, const double* pparms);
+    LRNDescriptor(miopenLRNMode_t m, unsigned int pn, std::vector<double> pparms);
 
     miopenLRNMode_t GetMode() const;
     unsigned int GetN() const;

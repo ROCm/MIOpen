@@ -112,6 +112,14 @@ extern "C" miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t ten
     });
 }
 
+extern "C" miopenStatus_t miopenGetTensorNumBytes(miopenTensorDescriptor_t tensorDesc,
+                                                  size_t* numBytes)
+{
+
+    MIOPEN_LOG_FUNCTION(tensorDesc, numBytes);
+    return miopen::try_([&] { miopen::deref(numBytes) = miopen::deref(tensorDesc).GetNumBytes(); });
+}
+
 // Internal API
 int miopenGetTensorDescriptorElementSize(miopenTensorDescriptor_t tensorDesc)
 {
