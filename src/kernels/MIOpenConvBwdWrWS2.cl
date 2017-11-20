@@ -659,8 +659,20 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                             wei_i_x];
             }
 
-            weights_df[wei_df_off + (og * MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i] =
-                final_sum; // lcl_bot[lcl_id]; //
+            uint wei_out_off =
+                wei_df_off + (og * MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i;
+            if(wei_out_off < MLO_WEI_BATCH_STRIDE * MLO_N_OUTPUTS * MLO_N_BATCH_BLKS)
+            {
+                weights_df[wei_out_off] = final_sum; // lcl_bot[lcl_id]; //
+
+#if DBG_OUT_OF_RNGE
+                // assured
+                if(wei_out_off >= MLO_WEI_BATCH_STRIDE * MLO_N_OUTPUTS * MLO_N_BATCH_BLKS)
+                {
+                    printf("k:err:interm-output-of-range\n");
+                }
+#endif
+            }
         }
 
     } // for(uint og = 0; og < MLO_N_OUT_BLK_GRP; ++og)

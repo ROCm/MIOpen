@@ -107,9 +107,11 @@
 
 #define MIO_BN_MAXN 512
 
-//#ifdef __AMDGCN__
-//#undef __AMDGCN__
-//#endif
+/*
+#ifdef __AMDGCN__
+#undef __AMDGCN__
+#endif
+*/
 
 #define UNUSED __attribute__((__unused__))
 
@@ -154,6 +156,7 @@ regLDSreduce(_FLOAT* value, __local _FLOAT* data, unsigned int localID, _FLOAT s
     *value = data[0] * scale;
 }
 
+#ifdef __AMDGCN__
 static inline void dppRegReduce64(_FLOAT* value, _FLOAT scale)
 {
     _FLOAT tmp = 0.;
@@ -212,6 +215,7 @@ dppLDSReduce16(_FLOAT* value, __local _FLOAT* data, unsigned int localID, _FLOAT
     barrier(CLK_LOCAL_MEM_FENCE);
     *value = data[0];
 }
+#endif
 
 #if(MIO_BN_VARIANT == 255)
 
@@ -770,7 +774,10 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     unsigned int index;
     unsigned int ylid    = get_local_id(1);
     unsigned int xgid    = get_global_id(0);
+
+#ifdef __AMDGCN__
     unsigned int segment = MIO_BN_GRP1 >> 6;
+#endif
 
 #if(MIO_BN_N < MIO_BN_MAXN)
     _FLOAT minibatch[MIO_BN_N];

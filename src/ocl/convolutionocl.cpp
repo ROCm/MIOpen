@@ -23,11 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/config.h>
 #include <miopen/convolution.hpp>
+#include <miopen/db_record.hpp>
 #include <miopen/env.hpp>
 #include <miopen/util.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/float_equal.hpp>
+#include <miopen/check_numerics.hpp>
 
 #if MIOPEN_USE_MIOPENGEMM
 #include <miopen/gemm.hpp>
@@ -64,18 +67,18 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
                                               KernelInvoke& kernel,
                                               int direction) const
 {
+    try
+    {
+        mlo_construct_winograd construct_params(direction);
+        construct_params.setStream(&handle);
 
-    mlo_construct_winograd construct_params(direction);
-    construct_params.setStream(&handle);
+        construct_params.setOutputDescFromMLDesc(yDesc);
+        construct_params.setInputDescFromMLDesc(xDesc);
+        construct_params.setWeightDescFromMLDesc(wDesc);
 
-    construct_params.setOutputDescFromMLDesc(yDesc);
-    construct_params.setInputDescFromMLDesc(xDesc);
-    construct_params.setWeightDescFromMLDesc(wDesc);
+        construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-    construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
-
-    if(construct_params.mloConstruct() != -1)
-    { // TODO: be more graceful with the check for whether a config is supported by winograd
+        mloConstruct(construct_params);
         std::string program_name = construct_params.getKernelFile();
         std::string kernel_name  = construct_params.getKernelName();
         std::string parms        = construct_params.getCompilerOptions();
@@ -96,8 +99,10 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
         k_p = std::make_tuple(N, C, H, W, K, n_groups, R, S, kernel_name == "sp3AsmConvRxSF");
         return 0;
     }
-    else
+    catch(miopen::Exception&)
+    {
         return -1;
+    }
 }
 
 int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
@@ -133,7 +138,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
         return -1;
     }
 
-    construct_params.mloConstruct();
+    mloConstruct(construct_params);
 
     std::string program_name = construct_params.getKernelFile();
     std::string kernel_name  = construct_params.getKernelName();
@@ -517,6 +522,12 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         MIOPEN_THROW(miopenStatusNotImplemented, "Only alpha=1 and beta=0 is supported");
     }
 
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsInput(handle, xDesc, x);
+        miopen::checkNumericsInput(handle, wDesc, w);
+    }
+
     if(mode == miopenConvolution)
     {
         if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1])
@@ -550,13 +561,18 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else
             {
+                /// \todo Something unusual is happening here, why? Shall we rework this?
                 ConvolutionContext context;
                 construct_params.mloCopyTo(context);
                 context.n_passes = true;
 
-                solver::ConvOclDirectFwd11x11 solver;
-                auto config                   = solver.Find(context);
-                solver::ConvSolution solution = solver.GetSolution(context, *config);
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
+                DbRecord dbRecord(context.GetPerfDbPath(), context, true);
+#else
+                DbRecord dbRecord(context.GetPerfDbPath(), context);
+#endif
+                solver::ConvSolution solution =
+                    FindSolution(solver::ConvOclDirectFwd11x11{}, context, dbRecord);
 
                 if(solution.passes == 1)
                 {
@@ -816,6 +832,11 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 #else
         MIOPEN_THROW("GEMM is not supported");
 #endif
+    }
+
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsOutput(handle, yDesc, y);
     }
 }
 
@@ -1130,6 +1151,16 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
 
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsInput(handle, dyDesc, dy);
+        miopen::checkNumericsInput(handle, wDesc, w);
+        if(!float_equal(*(static_cast<const float*>(beta)), 0))
+        {
+            miopen::checkNumericsInput(handle, dxDesc, dx);
+        }
+    }
+
     if(mode == miopenConvolution)
     {
         if(dyDesc.GetLengths()[1] != wDesc.GetLengths()[0])
@@ -1378,6 +1409,10 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         MIOPEN_THROW("GEMM is not supported");
 #endif
     }
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsOutput(handle, dxDesc, dx);
+    }
 }
 
 // ConvolutionBackwardWeightsGetWorkSpaceSize
@@ -1395,7 +1430,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                         miopenConvAlgoPerf_t* perfResults,
                                                         Data_t workSpace,
                                                         size_t workSpaceSize,
-                                                        bool /*exhaustiveSearch*/) const
+                                                        bool exhaustiveSearch) const
 {
 
     if(x == nullptr || dw == nullptr || dy == nullptr)
@@ -1542,14 +1577,15 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                IsBwdWeightsDirectSupported(dwDesc))
             {
                 mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
-                construct_params.doSearch(false);
+                construct_params.doSearch(exhaustiveSearch);
                 construct_params.setStream(&handle);
                 construct_params.setOutputDescFromMLDesc(dyDesc);
                 construct_params.setInputDescFromMLDesc(xDesc);
                 construct_params.setWeightDescFromMLDesc(dwDesc);
                 construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-                if(!construct_params.mloIsCompilerWorkarounds() && !construct_params.mloConstruct())
+                if(!construct_params.mloIsCompilerWorkarounds() &&
+                   try_([&] { mloConstruct(construct_params); }) == miopenStatusSuccess)
                 {
                     construct_params.mloBuildConf_Key(network_config);
 
@@ -1706,6 +1742,16 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
        !float_equal(*(static_cast<const float*>(beta)), 0))
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+    }
+
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsInput(handle, dyDesc, dy);
+        miopen::checkNumericsInput(handle, xDesc, x);
+        if(!float_equal(*(static_cast<const float*>(beta)), 0))
+        {
+            miopen::checkNumericsInput(handle, dwDesc, dw);
+        }
     }
 
     int in_n, in_c, in_h, in_w;
@@ -1939,6 +1985,11 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         MIOPEN_THROW("GEMM is not supported");
 #endif
     }
+
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsOutput(handle, dwDesc, dw);
+    }
 }
 
 void ConvolutionBackwardBias(Handle& handle,
@@ -1961,6 +2012,10 @@ void ConvolutionBackwardBias(Handle& handle,
        !float_equal(*(static_cast<const float*>(beta)), 0))
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
+    }
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsInput(handle, dyDesc, dy);
     }
 
     int out_n, out_c, out_h, out_w, stride_n, stride_c, stride_h, stride_w;
@@ -1996,6 +2051,11 @@ void ConvolutionBackwardBias(Handle& handle,
 
     handle.GetKernel("miopenConvolutionBwdBias", "", program_name, kernel_name, vld, vgd, params)(
         dy, db);
+
+    if(miopen::CheckNumericsEnabled())
+    {
+        miopen::checkNumericsOutput(handle, dbDesc, db);
+    }
 }
 
 } // namespace miopen

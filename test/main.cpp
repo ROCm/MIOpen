@@ -93,7 +93,8 @@ struct conv_filter_fixture : virtual handle_fixture
     miopenTensorDescriptor_t convFilter;
     miopenConvolutionDescriptor_t convDesc;
 
-    static const miopenConvolutionMode_t mode = miopenConvolution;
+    static const miopenConvolutionMode_t c_mode = miopenConvolution;
+    static const miopenPaddingMode_t p_mode     = miopenPaddingDefault;
 
     conv_filter_fixture()
     {
@@ -108,7 +109,7 @@ struct conv_filter_fixture : virtual handle_fixture
 
         STATUS(miopenCreateConvolutionDescriptor(&convDesc));
         // convolution with padding 2
-        STATUS(miopenInitConvolutionDescriptor(convDesc, mode, 0, 0, 1, 1, 1, 1));
+        STATUS(miopenInitConvolutionDescriptor(convDesc, c_mode, 0, 0, 1, 1, 1, 1));
     }
     ~conv_filter_fixture()
     {
@@ -119,12 +120,12 @@ struct conv_filter_fixture : virtual handle_fixture
     void run()
     {
         // TODO: Update API to not require mode by pointer
-        miopenConvolutionMode_t lmode = mode;
+        miopenConvolutionMode_t lcmode = c_mode;
         int pad_w, pad_h, u, v, upx, upy;
         STATUS(
-            miopenGetConvolutionDescriptor(convDesc, &lmode, &pad_h, &pad_w, &u, &v, &upx, &upy));
+            miopenGetConvolutionDescriptor(convDesc, &lcmode, &pad_h, &pad_w, &u, &v, &upx, &upy));
 
-        EXPECT(mode == 0);
+        EXPECT(lcmode == 0);
         EXPECT(pad_h == 0);
         EXPECT(pad_w == 0);
         EXPECT(u == 1);
@@ -203,20 +204,21 @@ struct conv_forward : output_tensor_fixture
 #if MIOPEN_BACKEND_OPENCL
 
         cl_context ctx;
-        clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
+        clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 
         cl_int status  = CL_SUCCESS;
-        cl_mem in_dev  = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4 * sz_in, NULL, &status);
-        cl_mem wei_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4 * sz_wei, NULL, NULL);
-        cl_mem out_dev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sz_out, NULL, NULL);
+        cl_mem in_dev  = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4 * sz_in, nullptr, &status);
+        cl_mem wei_dev = clCreateBuffer(ctx, CL_MEM_READ_ONLY, 4 * sz_wei, nullptr, nullptr);
+        cl_mem out_dev = clCreateBuffer(ctx, CL_MEM_READ_WRITE, 4 * sz_out, nullptr, nullptr);
         cl_mem fwd_workspace_dev =
-            clCreateBuffer(ctx, CL_MEM_READ_WRITE, sz_fwd_workspace, NULL, NULL);
+            clCreateBuffer(ctx, CL_MEM_READ_WRITE, sz_fwd_workspace, nullptr, nullptr);
 
-        status = clEnqueueWriteBuffer(q, in_dev, CL_TRUE, 0, 4 * sz_in, in.data(), 0, NULL, NULL);
-        status |=
-            clEnqueueWriteBuffer(q, wei_dev, CL_TRUE, 0, 4 * sz_wei, wei.data(), 0, NULL, NULL);
-        status |=
-            clEnqueueWriteBuffer(q, out_dev, CL_TRUE, 0, 4 * sz_out, out.data(), 0, NULL, NULL);
+        status =
+            clEnqueueWriteBuffer(q, in_dev, CL_TRUE, 0, 4 * sz_in, in.data(), 0, nullptr, nullptr);
+        status |= clEnqueueWriteBuffer(
+            q, wei_dev, CL_TRUE, 0, 4 * sz_wei, wei.data(), 0, nullptr, nullptr);
+        status |= clEnqueueWriteBuffer(
+            q, out_dev, CL_TRUE, 0, 4 * sz_out, out.data(), 0, nullptr, nullptr);
         status |= clEnqueueWriteBuffer(q,
                                        fwd_workspace_dev,
                                        CL_TRUE,
@@ -224,8 +226,8 @@ struct conv_forward : output_tensor_fixture
                                        sz_fwd_workspace,
                                        fwd_workspace.data(),
                                        0,
-                                       NULL,
-                                       NULL);
+                                       nullptr,
+                                       nullptr);
         EXPECT(status == CL_SUCCESS);
 
 #elif MIOPEN_BACKEND_HIP

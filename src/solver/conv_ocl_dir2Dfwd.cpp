@@ -24,18 +24,17 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
+#include "miopen/legacy_exhaustive_search.hpp"
+#include "miopen/solver.hpp"
 
 namespace miopen {
 namespace solver {
 
 ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
-                                           const PerformanceConfig& exhaustive_search_result) const
+                                           const LegacyPerformanceConfig& searched_params) const
 {
     ConvSolution result;
-    const auto& searched_params =
-        dynamic_cast<const PerformanceConfigImpl&>(exhaustive_search_result);
 
     // std::size_t localMemSize = params.stream.GetLocalMemorySize();
 
@@ -46,7 +45,7 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
     auto hw_wave_sz = 64;
     // auto dev_local_mem_sz = localMemSize; // in bytes
 
-    if(!params.forward)
+    if(!params.direction.IsForward())
     {
         // backward
         pad0 = params.kernel_size0 - 1 - pad0;
@@ -57,14 +56,14 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
     result.n_out_pix_tiles = std::min(params.n_outputs, searched_params.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
-    result.out_pix_tile1 =
-        (params.forward == 0 && params.kernel_stride1 > 1 && searched_params.out_pix_tile1 == 1)
-            ? 2
-            : searched_params.out_pix_tile1;
-    result.out_pix_tile0 =
-        (params.forward == 0 && params.kernel_stride0 > 1 && searched_params.out_pix_tile0 == 1)
-            ? 2
-            : searched_params.out_pix_tile0;
+    result.out_pix_tile1 = (params.direction.IsForward() == 0 && params.kernel_stride1 > 1 &&
+                            searched_params.out_pix_tile1 == 1)
+                               ? 2
+                               : searched_params.out_pix_tile1;
+    result.out_pix_tile0 = (params.direction.IsForward() == 0 && params.kernel_stride0 > 1 &&
+                            searched_params.out_pix_tile0 == 1)
+                               ? 2
+                               : searched_params.out_pix_tile0;
 
     int alu_tile0 = (searched_params.in_tile0 + searched_params.out_pix_tile0 - 1) /
                     searched_params.out_pix_tile0;
@@ -117,8 +116,7 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
 
     kernel_params.comp_options =
         std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(static_cast<long long>(hw_wave_sz)) +
-        std::string(" -DMLO_DIR_FORWARD=") +
-        std::to_string(static_cast<long long>(params.forward)) +
+        std::string(" -DMLO_DIR_FORWARD=") + (params.direction.IsForward() ? "1" : "0") +
         std::string(" -DMLO_FILTER_SIZE0=") +
         std::to_string(static_cast<long long>(params.kernel_size0)) +
         std::string(" -DMLO_FILTER_SIZE1=") +

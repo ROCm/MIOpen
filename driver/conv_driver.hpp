@@ -26,6 +26,14 @@
 #ifndef GUARD_MIOPEN_CONV_DRIVER_HPP
 #define GUARD_MIOPEN_CONV_DRIVER_HPP
 
+#ifdef MLO_NEURON_SOFTRELU
+#undef MLO_NEURON_SOFTRELU
+#endif
+
+#ifdef MLO_NEURON_POWER
+#undef MLO_NEURON_POWER
+#endif
+
 #include "InputFlags.hpp"
 #include "conv_verify.hpp"
 #include "driver.hpp"
@@ -33,6 +41,7 @@
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_driver.hpp"
+#include <miopen/convolution.hpp>
 #include <../test/verify.hpp>
 #include <algorithm>
 #include <cstdlib>
@@ -269,6 +278,10 @@ int ConvDriver<T>::AddCmdLineArgs()
     inflags.AddInputFlag("bias", 'b', "", "Use Bias (Default=0)", "int");
     inflags.AddInputFlag(
         "mode", 'm', "conv", "Convolution Mode (conv, trans) (Default=conv)", "str");
+
+    inflags.AddInputFlag(
+        "pad_mode", 'z', "conv", "Padding Mode (same, valid, default) (Default=default)", "str");
+
     inflags.AddInputFlag("dilation_h", 'l', "1", "Dilation of Filter Height (Default=1)", "int");
     inflags.AddInputFlag("dilation_w", 'j', "1", "Dilation of Filter Width (Default=1)", "int");
     inflags.AddInputFlag("in_bias", 'a', "", "Input bias filename (Default=)", "string");
@@ -321,6 +334,11 @@ int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs()
 {
 
     miopenConvolutionMode_t mode;
+    miopenPaddingMode_t pmode;
+    int in_h       = inflags.GetValueInt("in_h");
+    int in_w       = inflags.GetValueInt("in_w");
+    int wei_h      = inflags.GetValueInt("fil_h");
+    int wei_w      = inflags.GetValueInt("fil_w");
     int pad_h      = inflags.GetValueInt("pad_h");
     int pad_w      = inflags.GetValueInt("pad_w");
     int u          = inflags.GetValueInt("conv_stride_0");
@@ -329,11 +347,13 @@ int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs()
     int dilation_w = inflags.GetValueInt("dilation_w");
     if((inflags.GetValueStr("mode")) == "conv")
     {
-        mode = miopenConvolution;
+        pmode = miopenPaddingDefault;
+        mode  = miopenConvolution;
     }
     else if((inflags.GetValueStr("mode")) == "trans")
     {
-        mode = miopenTranspose;
+        pmode = miopenPaddingDefault;
+        mode  = miopenTranspose;
     }
     else
     {
@@ -341,8 +361,24 @@ int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs()
         exit(0);
     }
 
-    return miopenInitConvolutionDescriptor(
-        convDesc, mode, pad_h, pad_w, u, v, dilation_h, dilation_w);
+    if((inflags.GetValueStr("pad_mode")) == "same")
+    {
+        mode  = miopenConvolution;
+        pmode = miopenPaddingSame;
+        pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
+        pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+    }
+    else if((inflags.GetValueStr("pad_mode")) == "valid")
+    {
+        pmode = miopenPaddingValid;
+        mode  = miopenConvolution;
+        pad_h = 0;
+        pad_w = 0;
+    }
+
+    miopen::deref(convDesc) =
+        miopen::ConvolutionDescriptor(mode, pmode, pad_h, pad_w, u, v, dilation_h, dilation_w);
+    return miopenStatusSuccess;
 }
 
 template <typename T>
@@ -657,9 +693,17 @@ int ConvDriver<T>::RunForwardCPU()
 
     int wei_n, wei_c, wei_h, wei_w;
     int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
-    //	miopenGet4dTensorDescriptor(weightTensor, &dt,
-    //			&wei_n, &wei_c, &wei_h, &wei_w,
-    //			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
+
+    miopenGet4dTensorDescriptor(weightTensor,
+                                &dt,
+                                &wei_n,
+                                &wei_c,
+                                &wei_h,
+                                &wei_w,
+                                &wei_nstride,
+                                &wei_cstride,
+                                &wei_hstride,
+                                &wei_wstride);
 
     int out_n, out_c, out_h, out_w;
     int out_nstride, out_cstride, out_hstride, out_wstride;
@@ -676,8 +720,23 @@ int ConvDriver<T>::RunForwardCPU()
 
     int u, v, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
+    miopenPaddingMode_t pmode = miopen::deref(convDesc).paddingMode;
     miopenGetConvolutionDescriptor(
         convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+
+    if(pmode == miopenPaddingSame)
+    {
+        pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
+        pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+    }
+    else if(pmode == miopenPaddingValid)
+    {
+        pad_h = 0;
+        pad_w = 0;
+    }
+
+    if(out_h <= 0 || out_w <= 0)
+        MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
 
     if(mode == miopenConvolution)
     {
@@ -988,9 +1047,17 @@ int ConvDriver<T>::RunBackwardWeightsCPU()
 
     int wei_n, wei_c, wei_h, wei_w;
     int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
-    //	miopenGet4dTensorDescriptor(weightTensor, &dt,
-    //			&wei_n, &wei_c, &wei_h, &wei_w,
-    //			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
+
+    miopenGet4dTensorDescriptor(weightTensor,
+                                &dt,
+                                &wei_n,
+                                &wei_c,
+                                &wei_h,
+                                &wei_w,
+                                &wei_nstride,
+                                &wei_cstride,
+                                &wei_hstride,
+                                &wei_wstride);
 
     int out_n, out_c, out_h, out_w;
     int out_nstride, out_cstride, out_hstride, out_wstride;
@@ -1007,8 +1074,23 @@ int ConvDriver<T>::RunBackwardWeightsCPU()
 
     int u, v, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
+    miopenPaddingMode_t pmode = miopen::deref(convDesc).paddingMode;
     miopenGetConvolutionDescriptor(
         convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+
+    if(pmode == miopenPaddingSame)
+    {
+        pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
+        pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+    }
+    else if(pmode == miopenPaddingValid)
+    {
+        pad_h = 0;
+        pad_w = 0;
+    }
+
+    if(out_h <= 0 || out_w <= 0)
+        MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
 
     if(mode == miopenConvolution)
     {
@@ -1214,9 +1296,17 @@ int ConvDriver<T>::RunBackwardDataCPU()
 
     int wei_n, wei_c, wei_h, wei_w;
     int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
-    //	miopenGet4dTensorDescriptor(weightTensor, &dt,
-    //			&wei_n, &wei_c, &wei_h, &wei_w,
-    //			&wei_nstride, &wei_cstride, &wei_hstride, &wei_wstride);
+
+    miopenGet4dTensorDescriptor(weightTensor,
+                                &dt,
+                                &wei_n,
+                                &wei_c,
+                                &wei_h,
+                                &wei_w,
+                                &wei_nstride,
+                                &wei_cstride,
+                                &wei_hstride,
+                                &wei_wstride);
 
     int out_n, out_c, out_h, out_w;
     int out_nstride, out_cstride, out_hstride, out_wstride;
@@ -1233,8 +1323,23 @@ int ConvDriver<T>::RunBackwardDataCPU()
 
     int u, v, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
+    miopenPaddingMode_t pmode = miopen::deref(convDesc).paddingMode;
     miopenGetConvolutionDescriptor(
         convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+
+    if(out_h <= 0 || out_w <= 0)
+        MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
+
+    if(pmode == miopenPaddingSame)
+    {
+        pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
+        pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+    }
+    else if(pmode == miopenPaddingValid)
+    {
+        pad_h = 0;
+        pad_w = 0;
+    }
 
     if(mode == miopenConvolution)
     {

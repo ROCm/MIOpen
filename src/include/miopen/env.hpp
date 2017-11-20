@@ -64,6 +64,21 @@ inline bool IsEnvvarValueEnabled(const char* name)
             std::strcmp(value_env_p, "true") == 0);
 }
 
+// Return 0 if env is enabled else convert environment var to an int.
+// Supports hexadecimal with leading 0x or decimal
+inline int EnvvarValue(const char* name)
+{
+    const auto value_env_p = std::getenv(name);
+    if(value_env_p == nullptr)
+    {
+        return 0;
+    }
+    else
+    {
+        return strtoul(value_env_p, nullptr, 0);
+    }
+}
+
 inline std::vector<std::string> GetEnv(const char* name)
 {
     auto p = std::getenv(name);
@@ -94,6 +109,13 @@ template <class T>
 inline bool IsDisabled(T)
 {
     static const bool result = miopen::IsEnvvarValueDisabled(T::value());
+    return result;
+}
+
+template <class T>
+inline int Value(T)
+{
+    static const int result = miopen::EnvvarValue(T::value());
     return result;
 }
 } // namespace miopen

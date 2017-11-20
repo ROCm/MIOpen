@@ -26,11 +26,78 @@
 #include <cstdlib>
 #include <miopen/env.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/config.h>
 
 namespace miopen {
 
+/// Kept for backward compatibility for some time.
+/// Enables all logging levels at once.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_ENABLE_LOGGING_CMD)
 
-bool IsLogging() { return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING{}); }
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_LOG_LEVEL)
+
+namespace {
+
+inline bool operator!=(const int& lhs, const LoggingLevel& rhs)
+{
+    return lhs != static_cast<int>(rhs);
+}
+inline bool operator>=(const int& lhs, const LoggingLevel& rhs)
+{
+    return lhs >= static_cast<int>(rhs);
+}
+
+} // namespace
+
+int IsLogging(const LoggingLevel level)
+{
+    if(miopen::IsEnabled(MIOPEN_ENABLE_LOGGING{}))
+        return true;
+    const int enabled_level = miopen::Value(MIOPEN_LOG_LEVEL{});
+    if(enabled_level != LoggingLevel::Default)
+        return enabled_level >= level;
+#ifdef NDEBUG // Simplest way.
+    return LoggingLevel::Warning >= level;
+#else
+    return LoggingLevel::Info >= level;
+#endif
+}
+
+const char* LoggingLevelToCString(const LoggingLevel level)
+{
+    // Intentionally straightforward.
+    // The most frequently used come first.
+    if(level == LoggingLevel::Error)
+        return "Error";
+    else if(level == LoggingLevel::Warning)
+        return "Warning";
+    else if(level == LoggingLevel::Info)
+        return "Info";
+    else if(level == LoggingLevel::Info2)
+        return "Info2";
+    else if(level == LoggingLevel::Trace)
+        return "Trace";
+    else if(level == LoggingLevel::Default)
+        return "Default";
+    else if(level == LoggingLevel::Quiet)
+        return "Quiet";
+    else if(level == LoggingLevel::Fatal)
+        return "Fatal";
+    else
+        return "<Unknown>";
+}
+bool IsLoggingCmd() { return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING_CMD{}); }
+
+std::string PlatformName()
+{
+#if MIOPEN_BACKEND_OPENCL
+    return "MIOpen(OpenCL)";
+#elif MIOPEN_BACKEND_HIP
+    return "MIOpen(HIP)";
+#else
+    return "MIOpen";
+#endif
+}
 
 } // namespace miopen

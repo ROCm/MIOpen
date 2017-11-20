@@ -30,21 +30,16 @@
 namespace miopen {
 
 miopenStatus_t LRNDescriptor::Forward(Handle& handle,
-                                      const void* alpha,
+                                      const void* /*alpha*/,
                                       const TensorDescriptor& xDesc,
                                       ConstData_t x,
-                                      const void* beta,
+                                      const void* /*beta*/,
                                       const TensorDescriptor& yDesc,
                                       Data_t y,
                                       bool do_backward,
                                       Data_t workSpace)
 {
 
-    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
-       !float_equal(*(static_cast<const float*>(beta)), 0))
-    {
-        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
-    }
     miopenStatus_t status = miopenStatusSuccess;
     mlo_construct_norm construct_params(1); // forward
 
@@ -88,7 +83,7 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     construct_params.doBackward(do_backward);
     construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
 
-    status = static_cast<miopenStatus_t>(construct_params.mloConstruct());
+    construct_params.mloConstruct();
 
     std::string program_name          = construct_params.getKernelFile();      // CL kernel filename
     std::string kernel_name           = construct_params.getKernelName();      // kernel name
@@ -119,6 +114,8 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     KernelInvoke obj = handle.GetKernel(
         "miopenLRNForward", network_config, program_name, kernel_name, vld, vgd, compiler_parms);
 
+    if(float_equal(f_norm_K, 0.0))
+        MIOPEN_THROW("Expect non-zero bias/K");
     if(do_backward)
     {
         obj(x, y, workSpace, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
@@ -132,24 +129,18 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
 }
 
 miopenStatus_t LRNDescriptor::Backward(Handle& handle,
-                                       const void* alpha,
+                                       const void* /*alpha*/,
                                        const TensorDescriptor& yDesc,
                                        ConstData_t y,
                                        const TensorDescriptor& dyDesc,
                                        ConstData_t dy,
                                        const TensorDescriptor& xDesc,
                                        ConstData_t x,
-                                       const void* beta,
+                                       const void* /*beta*/,
                                        const TensorDescriptor& dxDesc,
                                        Data_t dx,
                                        ConstData_t workSpace)
 {
-    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
-       !float_equal(*(static_cast<const float*>(beta)), 0))
-    {
-        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
-    }
-
     miopenStatus_t status = miopenStatusSuccess;
     mlo_construct_norm construct_params(0); // backward
 
@@ -232,7 +223,7 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
 
     construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
 
-    status = static_cast<miopenStatus_t>(construct_params.mloConstruct());
+    construct_params.mloConstruct();
 
     std::string program_name   = construct_params.getKernelFile();      // CL kernel filename
     std::string kernel_name    = construct_params.getKernelName();      // kernel name
@@ -259,6 +250,9 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
     auto f_norm_beta  = static_cast<float>(norm_beta);
     auto f_norm_ratio =
         static_cast<float>(2. * norm_alpha * norm_beta / static_cast<double>(local_ar));
+
+    if(float_equal(norm_K, 0.0))
+        MIOPEN_THROW("Expect non-zero bias/K");
 
     handle.GetKernel(
         "miopenLRNBackward", network_config, program_name, kernel_name, vld, vgd, compiler_parms)(

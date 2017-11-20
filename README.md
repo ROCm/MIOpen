@@ -16,7 +16,7 @@ AMD's library for high peformance machine learning primitives. MIOpen supports t
 * ROCm cmake modules can be installed from [here](https://github.com/RadeonOpenCompute/rocm-cmake)
 * [OpenSSL](https://www.openssl.org/) or [libressl](https://www.libressl.org/)
 * [Boost](http://www.boost.org/) at least version 1.58
-  * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent kernel cache
+  * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/doc/src/cache.md)
 
 Instructions to install the above dependencies are present in this [section](#installing-the-dependencies).
 
@@ -115,10 +115,10 @@ A single test can be built and ran, by doing:
 
 ```
 cmake --build . --config Release --target test_tensor
-./test/test_tensor
+./bin/test_tensor
 ```
 
-If building for HIP and `boost` was installed via `apt-get` in Ubuntu v16, add the following to the cmake line [above](#configure-with-cmake):
+If `boost` was installed via `apt-get` in Ubuntu v16, add the following to the cmake line [above](#configure-with-cmake):
 ```
 -DMIOPEN_MAKE_BOOST_PUBLIC=ON
 ```

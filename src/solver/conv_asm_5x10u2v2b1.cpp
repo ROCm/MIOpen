@@ -46,7 +46,7 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
-    if(params.forward)
+    if(!params.direction.IsBackwardData())
     {
         return false;
     }
@@ -76,8 +76,7 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
     // fixme above.
 }
 
-ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ConvolutionContext& params,
-                                            const PerformanceConfig&) const
+ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
     std::ostringstream options;
