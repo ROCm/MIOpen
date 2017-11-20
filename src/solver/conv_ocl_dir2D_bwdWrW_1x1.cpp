@@ -249,7 +249,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 
 		int write_unit = (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2 == 0) ? 2 : 1;
 		int n_grp0_size0 = 256;
-		// real input stride
+		// real input strides
 		int in0_stride = params.out_stride;
 		int in0_channel_stride = params.out_channel_stride;
 		int in0_batch_stride = params.out_batch_stride;
@@ -349,7 +349,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 			result.construction_params.push_back(kernel);
 
 
-			result.workspce_sz = in_batch_stride * sizeof(float);
+			result.workspce_sz = in_batch_stride * params.batch_sz * sizeof(float);
 		}
 
 		{
