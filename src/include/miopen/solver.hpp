@@ -1,48 +1,52 @@
 /*******************************************************************************
- *
- * MIT License
- *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
- *******************************************************************************/
+*
+* MIT License
+*
+* Copyright (c) 2017 Advanced Micro Devices, Inc.
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+*******************************************************************************/
 
-#ifndef GUARD_MIOPEN_SOLVER_HPP
-#define GUARD_MIOPEN_SOLVER_HPP
+#ifndef GUARD_MIOPEN_SOLVER_HPP_
+#define GUARD_MIOPEN_SOLVER_HPP_
 
-#include <vector>
+#include <miopen/config.h>
+
+#include <functional>
 #include <memory>
-#include "miopen/mlo_internal.hpp"
-#include "miopen/miopen.h"
+#include <string>
+#include <vector>
+#include <ostream>
+
+#include <miopen/find_controls.hpp>
+#include <miopen/db_record.hpp>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/legacy_exhaustive_search.hpp>
+#include <miopen/make_unique.hpp>
+#include <miopen/env.hpp>
+#include <miopen/type_name.hpp>
+#include <miopen/miopen.h>
 
 namespace miopen {
 
-#if __cplusplus < 201402L // For ex. hip is not C++14 yet.
-template <typename T, typename... Args>
-std::unique_ptr<T> make_unique(Args&&... args)
-{
-    return std::unique_ptr<T>(new T(std::forward<Args>(args)...)); // NOLINT
-}
-#else
-using std::make_unique; // re-use as miopen::make_unique
-#endif
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 
 namespace solver {
 
@@ -55,6 +59,7 @@ struct KernelInfo
     std::vector<size_t> g_wk;
     std::string kernel_file;
     std::string kernel_name;
+    friend std::ostream& operator<<(std::ostream& os, const KernelInfo& k);
 };
 
 /// Information required to build and run a kernel (or a set of kernels),
@@ -63,9 +68,8 @@ struct KernelInfo
 /// TODO: Currently best suits a subset of existing solvers,
 /// namely some OpenCL-written forward direct convolutions.
 /// Shall be refactored (possibly, to a class hierarchy).
-class ConvSolution
+struct ConvSolution
 {
-    public:
     std::vector<KernelInfo> construction_params; // impl may consist of multiple kernels.
     miopenStatus_t status;
     int passes;
@@ -100,6 +104,132 @@ class ConvSolution
     inline bool Succeeded() const { return status == miopenStatusSuccess; }
 };
 
+template <class Solver>
+std::string ComputeSolverDbId(Solver)
+{
+    const auto& name = get_type_name<Solver>();
+    auto idx         = name.find_last_of(':');
+    return name.substr(idx + 1);
+}
+
+// This will retrieve the id of the solver to write to the database. By
+// default it uses the class name. If the class is renamed, this function can
+// overriden to keep the name to avoid DB corruption.
+template <class Solver>
+const std::string& SolverDbId(Solver solver)
+{
+    static const auto result = ComputeSolverDbId(solver);
+    return result;
+}
+
+template <class Solver, class Context>
+auto FindSolutionImpl(rank<1>, Solver s, const Context& context, DbRecord& dbRecord)
+    -> decltype(s.GetSolution(context, s.Search(context)))
+{
+    const FindEnforce enforce = GetFindEnforce();
+    MIOPEN_LOG_I(SolverDbId(s));
+    if(enforce == FindEnforce::Clean)
+    {
+        if(dbRecord.Remove(SolverDbId(s)))
+            MIOPEN_LOG_W("Perf Db: record removed: " << SolverDbId(s) << ", enforce: " << enforce);
+    }
+    else
+    {
+        if((context.do_search && enforce == FindEnforce::DbUpdate) ||
+           enforce == FindEnforce::SearchDbUpdate)
+        {
+            MIOPEN_LOG_W("Perf Db: load skipped: " << SolverDbId(s) << ", enforce: " << enforce);
+        }
+        else
+        {
+            using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
+            PerformanceConfig config{};
+            if(dbRecord.Load(SolverDbId(s), config))
+            {
+                MIOPEN_LOG_I("Perf Db: record loaded: " << SolverDbId(s));
+                if(s.IsValidPerformanceConfig(context, config))
+                {
+                    return s.GetSolution(context, config);
+                }
+                MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverDbId(s) << ": "
+                                                                    << config);
+            }
+        }
+
+        if(context.do_search || enforce == FindEnforce::Search ||
+           enforce == FindEnforce::SearchDbUpdate) // TODO: Make it a customization point
+        {
+            MIOPEN_LOG_I("Starting search: " << SolverDbId(s) << ", enforce: " << enforce);
+            try
+            {
+                auto c = s.Search(context);
+                dbRecord.Store(SolverDbId(s), c);
+                return s.GetSolution(context, c);
+            }
+            catch(const miopen::Exception& ex)
+            {
+                MIOPEN_LOG_E("Search failed for: " << SolverDbId(s) << ": " << ex.what());
+            }
+        }
+    }
+    return s.GetSolution(context, s.GetPerformanceConfig(context));
+}
+
+template <class Solver, class Context>
+auto FindSolutionImpl(rank<0>, Solver s, const Context& context, DbRecord&)
+    -> decltype(s.GetSolution(context))
+{
+    MIOPEN_LOG_I("Not searchable: " << SolverDbId(s));
+    return s.GetSolution(context);
+}
+
+/// Finds optimized Solution. Generic method.
+///
+/// Given the specific problem config, finds (hopefully) optimal
+/// solution-specific parameters and returns the Solution object.
+/// Could take long if an exhaustive search is requested/performed.
+/// May read/write perfDb.
+template <class Solver, class Context>
+ConvSolution FindSolution(Solver s, const Context& context, DbRecord& dbRecord)
+{
+    static_assert(std::is_empty<Solver>{} && std::is_trivially_constructible<Solver>{},
+                  "Solver must be stateless");
+    // TODO: This assumes all solutions are ConvSolution
+    return FindSolutionImpl(rank<1>{}, s, context, dbRecord);
+}
+
+// Search for a solution among many solvers
+template <class... Solvers, class Context>
+auto SearchForSolution(const Context& search_params, miopen::DbRecord dbRecord) ->
+    typename std::common_type<decltype(FindSolution(Solvers{}, search_params, dbRecord))...>::type
+{
+    using Solution = typename std::common_type<decltype(
+        FindSolution(Solvers{}, search_params, dbRecord))...>::type;
+    Solution solution{miopenStatusUnknownError};
+
+// Using const here causes gcc to ICE
+#if(!defined(__GNUC__) || defined(__clang__))
+    const
+#endif
+        auto no_perf_filtering = miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
+
+    // clang-format off
+    MIOPEN_STATIC_FOR_EACH(solver, Solvers{}, {
+        if(!solution.Succeeded() && solver.IsApplicable(search_params) &&
+           (no_perf_filtering || solver.IsFast(search_params)))
+        {
+            solution = FindSolution(solver, search_params, dbRecord);
+            if(solution.Succeeded() && !search_params.n_passes && solution.construction_params.empty())
+            {
+                MIOPEN_THROW(std::string("Internal error in solver: ") + SolverDbId(solver));
+            }
+        }
+    });
+    // clang-format on
+
+    return solution;
+}
+
 /// Base class for problem solvers.
 ///
 /// Solvers are to be instantiated as const objects and shall not have any variable
@@ -109,253 +239,212 @@ class ConvSolution
 /// There could be multiple solvers of the same algorithm for a problem config.
 /// For example, ConvAsm3x3U and ConvOclDirectFwd3x3
 /// are able to solve overlapping sets of 3x3 Direct convolution problems.
-class Solver
+template <class Context>
+struct SolverBase
 {
-    public:
-    /// The descendants of this class comprise an solution-specific
-    /// set of optimization parameters, i.e. those which expected to be used by
-    /// the solution to optimize its kernel(s) for the best performance.
-    ///
-    /// This class provides its descendants with polymorphism and supplies syntax
-    /// glue at the source text level. Also serves as en "empty set of parameters"
-    /// for solutions which do not have parameters that affect performance
-    /// (e.g. for 3x3 Wingrad convolutions).
-    class PerformanceConfig
-    {
-        public:
-        PerformanceConfig() noexcept {}
-        virtual ~PerformanceConfig() {}
-    };
 
-    virtual ~Solver() {}
+    /// Initializes performance config to the default values.
+    /// The function may involve some euristic to guess the best solution
+    /// configuration. It is assumed that the function takes constant time
+    /// to finish and does not run kernels to measure performance etc.
+    /// The function shall always return valid config.
+    /// Only implemented by SearchableSolvers
+    /// PerformanceConfig GetPerformanceConfig(const ConvolutionContext&) const;
+
+    /// Should return false if performance config is wrong for a problem.
+    /// Main use is validation of values read from the perf db.
+    /// Only implemented by SearchableSolvers
+    /// bool IsValidPerformanceConfig(const Context&, const PerformanceConfig&) const
+    /// {
+    ///     return true; // Do not check by default.
+    /// }
 
     /// Returns true if solution can work on given SW/HW platform (runtime/device)
     /// and provides correct result for the problem config.
-    virtual bool IsApplicable(const ConvolutionContext&) const { return true; }
+    ///
+    /// Every SolverBase which IsApplicable() for some problem config, must be able to
+    /// GetPerformanceConfig() in a way that GetSolution() would return valid
+    /// solution for a problem (i.e. convolution). In other words, if a Solution
+    /// says "i'am suitable" for a problem, it agrees to solve the problem correctly.
+    bool IsApplicable(const Context&) const { return true; }
 
     /// Legacy euristic method which shall return false when a solution
     /// is known to be slower than some another solution for the same problem config.
     /// Intended to be used for performance optimization.
     /// Warning: Non-trivial implementations introduce implicit dependencies between solutions.
-    virtual bool IsFast(const ConvolutionContext&) const { return true; }
-
-    /// Given the specific problem config, finds optimization parameters for the solution.
-    /// Could take long if an exhaustive search is performed/requested.
-    /// Limitations: The solution shall be adequate for the proglem config.
-    /// Otherwise, the function may return incorrect results or fail.
-    ///
-    /// Possible implementation which tries to find optimal configuration
-    /// in the perfDb (legacy behavior):
-    ///
-    ///     Lookup for a suitable config in the perfDb;
-    ///     if (found) {
-    ///         return (config);
-    ///     } else if (exhaustive search is requested) {
-    ///         Do exhaustive search to find optimal config; // May be slow.
-    ///         Add config to the PerfDb;
-    ///         return (config);
-    ///     }
-    ///     return (solution-specific defaults); // May involve some heuristic math.
-    ///
-    virtual std::unique_ptr<PerformanceConfig> Find(const ConvolutionContext&) const
-    {
-        return miopen::make_unique<PerformanceConfig>();
-    }
+    bool IsFast(const Context&) const { return true; }
 
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
-    virtual ConvSolution GetSolution(const ConvolutionContext& params,
-                                     const PerformanceConfig& exhaustive_search_result) const = 0;
+    /// ConvSolution GetSolution(const ConvolutionContext& params) const;
+
+    /// Searchable solvers provide a GetSolution that takes a Context and PerformanceConfig
+    /// ConvSolution GetSolution(const ConvolutionContext& params,
+    ///                          const PerformanceConfig& config) const;
 };
 
-class ConvAsm3x3U : public Solver
+struct ConvAsm3x3U : SolverBase<ConvolutionContext>
 {
-    public:
-    bool IsApplicable(const ConvolutionContext& params) const override;
-    bool IsFast(const ConvolutionContext& params) const override;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+    bool IsApplicable(const ConvolutionContext& params) const;
+    bool IsFast(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-class ConvAsm5x10u2v2f1 : public Solver
+struct ConvAsm5x10u2v2f1 : SolverBase<ConvolutionContext>
 {
-    public:
-    bool IsApplicable(const ConvolutionContext& params) const override;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+    bool IsApplicable(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-class ConvAsm5x10u2v2b1 : public Solver
+struct ConvAsm5x10u2v2b1 : SolverBase<ConvolutionContext>
 {
-    public:
-    bool IsApplicable(const ConvolutionContext& params) const override;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+    bool IsApplicable(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-class ConvAsm7x7c3h224w224k64u2v2p3q3f1 : public Solver
+struct ConvAsm7x7c3h224w224k64u2v2p3q3f1 : SolverBase<ConvolutionContext>
 {
-    public:
-    bool IsApplicable(const ConvolutionContext& params) const override;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+    bool IsApplicable(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-class ConvOclDirectFwd11x11 : public Solver
+struct ConvOclDirectFwd11x11 : SolverBase<ConvolutionContext>
 {
-    public:
-    bool IsApplicable(const ConvolutionContext& params) const override;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+    bool IsApplicable(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-class ConvOclDirectFwdGen : public Solver
+struct ConvOclDirectFwdGen : SolverBase<ConvolutionContext>
 {
-    public:
-    bool IsApplicable(const ConvolutionContext& params) const override;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+    bool IsApplicable(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-class ConvOclDirectFwd3x3 : public Solver
+struct ConvOclDirectFwd3x3 : SolverBase<ConvolutionContext>
 {
-    public:
-    bool IsApplicable(const ConvolutionContext& params) const override;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+    bool IsApplicable(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-class ConvOclDirectFwdLegacyExhaustiveSearch : public Solver
+/// Holds common member functions for the Solvers which share the same
+/// "legacy exhaustive search" machinery.
+struct ConvOclDirectFwdLegacyExhaustiveSearch : SolverBase<ConvolutionContext>
 {
-    public:
-    class PerformanceConfigImpl : public PerformanceConfig
+    LegacyPerformanceConfig GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&, const LegacyPerformanceConfig&) const
     {
-        public:
-        int grp_tile1;
-        int grp_tile0;
-        int in_tile1;
-        int in_tile0;
-        int out_pix_tile1;
-        int out_pix_tile0;
-        int n_out_pix_tiles;
-        int n_in_data_tiles;
-        int n_stacks;
-
-        PerformanceConfigImpl() noexcept : grp_tile1(),
-                                           grp_tile0(),
-                                           in_tile1(),
-                                           in_tile0(),
-                                           out_pix_tile1(),
-                                           out_pix_tile0(),
-                                           n_out_pix_tiles(),
-                                           n_in_data_tiles(),
-                                           n_stacks()
-        {
-        }
-
-        inline void CopyTo(ConvSolution& iud) const
-        {
-            iud.grp_tile0       = grp_tile0;
-            iud.grp_tile1       = grp_tile1;
-            iud.in_tile0        = in_tile0;
-            iud.in_tile1        = in_tile1;
-            iud.out_pix_tile0   = out_pix_tile0;
-            iud.out_pix_tile1   = out_pix_tile1;
-            iud.n_out_pix_tiles = n_out_pix_tiles;
-            iud.n_in_data_tiles = n_in_data_tiles;
-            iud.n_stacks        = n_stacks;
-        }
-    };
-
-    std::unique_ptr<PerformanceConfig> Find(const ConvolutionContext& params) const override;
-
-    private:
-    void SearchDirect2D(const ConvolutionContext& params, PerformanceConfigImpl& result) const;
-
-    int MeasureLoop(miopen::Handle* profile_h,
-                    Data_t bot_ocl_buf,
-                    Data_t top_ocl_buf,
-                    Data_t wei_ocl_buf,
-                    Data_t bias_ocl_buf,
-                    double& processing_time,
-                    const ConvolutionContext& params,
-                    const PerformanceConfigImpl& result) const;
-
-    static const std::vector<std::unique_ptr<const Solver>>& GetImplementationsToMeasure();
+        return true; // Do not check by default.
+    }
+    LegacyPerformanceConfig Search(const ConvolutionContext&) const;
 };
 
-class ConvOclDirectFwd : public ConvOclDirectFwdLegacyExhaustiveSearch
+struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
 {
-    public:
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const LegacyPerformanceConfig& config) const;
 };
 
-class ConvOclDirectFwd1x1 : public ConvOclDirectFwdLegacyExhaustiveSearch
+struct ConvOclDirectFwd1x1 : ConvOclDirectFwdLegacyExhaustiveSearch
 {
-    public:
-    bool IsApplicable(const ConvolutionContext& params) const override;
+    bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const LegacyPerformanceConfig& config) const;
 };
 
-class ConvOclDirectFwdC : public ConvOclDirectFwdLegacyExhaustiveSearch
+struct ConvOclDirectFwdC : ConvOclDirectFwdLegacyExhaustiveSearch
 {
-    public:
-    bool IsApplicable(const ConvolutionContext& params) const override;
+    bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const LegacyPerformanceConfig& config) const;
 };
 
-class ConvBinWinograd3x3U : public Solver
+struct ConvBinWinograd3x3U : SolverBase<ConvolutionContext>
 {
-    public:
-    bool IsApplicable(const ConvolutionContext& params) const override;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+    bool IsApplicable(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-class ConvBinWinogradRxSFwd : public Solver
+struct ConvBinWinogradRxSFwd : SolverBase<ConvolutionContext>
 {
-    public:
-    bool IsApplicable(const ConvolutionContext& params) const override;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+    bool IsApplicable(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-class ConvAsmBwdWrW3x3 : public Solver
+struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirect3x3WrW>
 {
-    public:
-    bool IsApplicable(const ConvolutionContext& params) const override;
-    bool IsFast(const ConvolutionContext& params) const override;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+    int limit_wave_cnt;   // [0..9]
+    int reverse_inout;    // [0..1], 1 is allowed for stride=1x1 only.
+    int chunk_size;       // {16,8}, Smaller values increase register pressure.
+    int k_per_wave;       // {1,2,4,8} && ((chunk_size * k_per_wave) <= 64).
+                          // Higher values increase register pressure.
+    int pipe_lines_depth; // [1..16] && (pipe_lines_depth <= img_h).
+                          // Higher values increase register pressure.
+    int n_per_group;      // [1..8] && (n_per_group <= batch_size).
+
+    PerformanceConfigAsmDirect3x3WrW(int lwc, int rio, int csz, int kpw, int pld, int npg);
+    PerformanceConfigAsmDirect3x3WrW() : PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1) {}
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.limit_wave_cnt, "limit_wave_cnt");
+        f(self.reverse_inout, "reverse_inout");
+        f(self.chunk_size, "chunk_size");
+        f(self.k_per_wave, "k_per_wave");
+        f(self.pipe_lines_depth, "pipe_lines_depth");
+        f(self.n_per_group, "n_per_group");
+    }
+
+    // clang-format off
+    int GetLimitWaveCnt() const { return limit_wave_cnt; }
+    int GetReverseInout() const { return reverse_inout; }
+    int GetChunkSize() const { return chunk_size; }
+    int GetKPerWave() const { return k_per_wave; }
+    int GetPipeLinesDepth() const { return pipe_lines_depth; }
+    int GetNPerGroup() const { return n_per_group; } 
+    int GetCPerWave() const { assert(chunk_size); return 64 / chunk_size; } // clang-format on
+
+    void EuristicInit(const ConvolutionContext& config);
+    bool IsValidRange() const;
+    bool IsValid(const ConvolutionContext& config) const;
+    // TOOD: Use operator==
+    bool IsEqual(const PerformanceConfigAsmDirect3x3WrW& other) const;
+    std::string ToString() const;
+
+    friend class VirtualIterator; // Modifies private data when advancing.
 };
 
-class ConvOclBwdWrW2 : public Solver
+struct ConvAsmBwdWrW3x3 : SolverBase<ConvolutionContext>
 {
-    public:
-    bool IsApplicable(const ConvolutionContext& params) const override;
+    PerformanceConfigAsmDirect3x3WrW GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigAsmDirect3x3WrW&) const;
+    PerformanceConfigAsmDirect3x3WrW Search(const ConvolutionContext&) const;
+    bool IsApplicable(const ConvolutionContext& params) const;
+    bool IsFast(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+                             const PerformanceConfigAsmDirect3x3WrW& config) const;
 };
 
-class ConvOclBwdWrW53 : public Solver
+struct ConvOclBwdWrW2 : SolverBase<ConvolutionContext>
 {
-    public:
-    bool IsApplicable(const ConvolutionContext& params) const override;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+    bool IsApplicable(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-class ConvOclBwdWrW1x1 : public Solver
+struct ConvOclBwdWrW53 : SolverBase<ConvolutionContext>
 {
-    public:
-    bool IsApplicable(const ConvolutionContext& params) const override;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfig& exhaustive_search_result) const override;
+    bool IsApplicable(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
+
+struct ConvOclBwdWrW1x1 : SolverBase<ConvolutionContext>
+{
+    bool IsApplicable(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params) const;
+};
+
 } // namespace solver
 } // namespace miopen
 
-#endif // GUARD_MIOPEN_SOLVER_HPP
+#endif // GUARD_MIOPEN_SOLVER_HPP_

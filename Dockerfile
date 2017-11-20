@@ -25,6 +25,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     git \
     hsa-rocr-dev \
     hsakmt-roct-dev \
+    lcov \
     libelf-dev \
     libncurses5-dev \
     libpthread-stubs0-dev \
@@ -56,7 +57,7 @@ ADD cmake/mingw-toolchain.cmake $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
 RUN cget -p $PREFIX/x86_64-w64-mingw32 init -t $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
 
 # Build hcc
-RUN git clone --depth 1 https://github.com/RadeonOpenCompute/hcc.git -b roc-1.6.x /hcc && \
+RUN git clone --depth 1 https://github.com/RadeonOpenCompute/hcc.git -b roc-1.7.x /hcc && \
     cd hcc && \
     git submodule init && \
     git submodule update --recursive && \
@@ -70,13 +71,13 @@ RUN ln -s $PREFIX /opt/rocm/hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 
 # Install hip
-RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@roc-1.6.x
+RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@85975e719dcae7dbd4d0edf6e691c197c0a4f18c
 
 RUN cget -p $PREFIX install pfultz2/rocm-recipes
 
 # Install dependencies
 ADD dev-requirements.txt /dev-requirements.txt
-RUN cget -p $PREFIX install -f /dev-requirements.txt
+RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /dev-requirements.txt
 RUN cget -p $PREFIX install RadeonOpenCompute/clang-ocl@2f118b5b6b05f0b17467ef07a8bd3b8e5d8b3aac
 
 # Install doc requirements

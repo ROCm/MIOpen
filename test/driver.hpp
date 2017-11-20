@@ -25,41 +25,16 @@
  *******************************************************************************/
 
 #include "args.hpp"
+#include "get_handle.hpp"
 #include "network_data.hpp"
 #include "tensor_holder.hpp"
 #include "test.hpp"
 #include "verify.hpp"
 
 #include <functional>
+#include <deque>
 #include <miopen/functional.hpp>
-
-template <class Test_Driver_Private_TypeName_>
-const std::string& get_type_name()
-{
-    static std::string name;
-
-    if(name.empty())
-    {
-#ifdef _MSC_VER
-        name = typeid(Test_Driver_Private_TypeName_).name();
-        name = name.substr(7);
-#else
-        const char parameter_name[] = "Test_Driver_Private_TypeName_ =";
-
-        name = __PRETTY_FUNCTION__;
-
-        auto begin  = name.find(parameter_name) + sizeof(parameter_name);
-#if(defined(__GNUC__) && !defined(__clang__) && __GNUC__ == 4 && __GNUC_MINOR__ < 7)
-        auto length = name.find_last_of(",") - begin;
-#else
-        auto length = name.find_first_of("];", begin) - begin;
-#endif
-        name        = name.substr(begin, length);
-#endif
-    }
-
-    return name;
-}
+#include <miopen/type_name.hpp>
 
 struct rand_gen
 {
@@ -86,6 +61,12 @@ struct test_driver
         std::vector<std::function<void()>> post_write_actions;
         std::vector<std::function<void(std::function<void()>)>> data_sources;
         std::string type;
+        std::string name;
+
+        // Function may refer to the argument by reference so this needs to be noncopyable
+        argument()                = default;
+        argument(const argument&) = delete;
+        argument& operator=(const argument&) = delete;
 
         void post_write()
         {
@@ -115,12 +96,22 @@ struct test_driver
         }
     };
 
-    std::unordered_map<std::string, argument> arguments;
+    std::deque<argument> arguments;
+    std::unordered_map<std::string, std::size_t> argument_index;
     bool full_set    = false;
     bool verbose     = false;
     double tolerance = 80;
+    bool time        = false;
     int batch_factor = 0;
     bool no_validate = false;
+
+    argument& get_argument(const std::string& s)
+    {
+        assert(arguments.at(argument_index.at(s)).name == s);
+        return arguments.at(argument_index.at(s));
+    }
+
+    bool has_argument(const std::string& arg) { return argument_index.count(arg) > 0; }
 
     template <class Visitor>
     void parse(Visitor v)
@@ -128,6 +119,7 @@ struct test_driver
         v(full_set, {"--all"}, "Run all tests");
         v(verbose, {"--verbose", "-v"}, "Run verbose mode");
         v(tolerance, {"--tolerance", "-t"}, "Set test tolerance");
+        v(time, {"--time"}, "Time the kernel on GPU");
         v(batch_factor, {"--batch-factor", "-n"}, "Set batch factor");
         v(no_validate,
           {"--disable-validation"},
@@ -146,18 +138,22 @@ struct test_driver
     template <class T, class... Fs>
     void add(T& x, std::string name, Fs... fs)
     {
-        arguments.insert(std::make_pair(name, argument{}));
+        argument_index.insert(std::make_pair(name, arguments.size()));
+        arguments.emplace_back();
 
-        argument& arg   = arguments[name];
-        arg.type        = get_type_name<T>();
+        argument& arg   = arguments.back();
+        arg.name        = name;
+        arg.type        = miopen::get_type_name<T>();
         arg.write_value = [&](std::vector<std::string> params) { args::write_value{}(x, params); };
         miopen::each_args(std::bind(per_arg{}, std::ref(x), std::ref(arg), std::placeholders::_1),
                           fs...);
+        assert(get_argument(name).name == name);
     }
 
+    template <class X>
     struct generate_tensor_t
     {
-        std::function<std::set<std::vector<int>>()> get_data;
+        std::function<std::set<X>()> get_data;
         template <class T>
         void operator()(T& x, argument& arg) const
         {
@@ -166,9 +162,10 @@ struct test_driver
         }
     };
 
-    generate_tensor_t generate_tensor(std::set<std::vector<int>> dims, std::vector<int> single)
+    template <class X>
+    generate_tensor_t<X> generate_tensor(std::set<X> dims, X single)
     {
-        return {[=]() -> std::set<std::vector<int>> {
+        return {[=]() -> std::set<X> {
             if(full_set)
                 return dims;
             else
@@ -176,10 +173,17 @@ struct test_driver
         }};
     }
 
-    template <class F>
-    generate_tensor_t lazy_generate_tensor(F f, std::vector<int> single)
+    template <class X>
+    generate_tensor_t<std::vector<X>> generate_tensor(std::set<std::vector<X>> dims,
+                                                      std::initializer_list<X> single)
     {
-        return {[=]() -> std::set<std::vector<int>> {
+        return generate_tensor<std::vector<X>>(dims, single);
+    }
+
+    template <class F, class X>
+    generate_tensor_t<X> lazy_generate_tensor(F f, X single)
+    {
+        return {[=]() -> std::set<X> {
             if(full_set)
                 return f();
             else
@@ -187,24 +191,30 @@ struct test_driver
         }};
     }
 
-    generate_tensor_t get_bn_spatial_input_tensor()
+    template <class F, class X>
+    generate_tensor_t<std::vector<X>> lazy_generate_tensor(F f, std::initializer_list<X> single)
+    {
+        return lazy_generate_tensor<F, std::vector<X>>(f, single);
+    }
+
+    generate_tensor_t<std::vector<int>> get_bn_spatial_input_tensor()
     {
         return lazy_generate_tensor([=] { return get_bn_spatial_inputs(batch_factor); },
                                     {4, 64, 28, 28});
     }
 
-    generate_tensor_t get_bn_peract_input_tensor()
+    generate_tensor_t<std::vector<int>> get_bn_peract_input_tensor()
     {
         return lazy_generate_tensor([=] { return get_bn_peract_inputs(batch_factor); },
                                     {16, 32, 8, 8});
     }
 
-    generate_tensor_t get_input_tensor()
+    generate_tensor_t<std::vector<int>> get_input_tensor()
     {
         return lazy_generate_tensor([=] { return get_inputs(batch_factor); }, {16, 32, 8, 8});
     }
 
-    generate_tensor_t get_weights_tensor()
+    generate_tensor_t<std::vector<int>> get_weights_tensor()
     {
         return lazy_generate_tensor([=] { return get_weights(batch_factor); }, {64, 32, 5, 5});
     }
@@ -212,7 +222,7 @@ struct test_driver
     template <class X>
     struct generate_data_t
     {
-        std::function<std::vector<X>()> get_data;
+        std::function<X()> get_data;
         template <class T>
         void operator()(T& x, argument& arg) const
         {
@@ -221,7 +231,7 @@ struct test_driver
     };
 
     template <class T>
-    generate_data_t<T> generate_data(std::vector<T> dims, T single)
+    generate_data_t<std::vector<T>> generate_data(std::vector<T> dims, T single)
     {
         return {[=]() -> std::vector<T> {
             if(full_set)
@@ -232,20 +242,20 @@ struct test_driver
     }
 
     template <class T>
-    generate_data_t<T> generate_data(std::initializer_list<T> dims)
+    generate_data_t<std::vector<T>> generate_data(std::initializer_list<T> dims)
     {
         return generate_data(std::vector<T>(dims));
     }
 
     template <class T>
-    generate_data_t<std::vector<T>>
+    generate_data_t<std::vector<std::vector<T>>>
     generate_data(std::initializer_list<std::initializer_list<T>> dims)
     {
         return generate_data(std::vector<std::vector<T>>(dims.begin(), dims.end()));
     }
 
     template <class T>
-    generate_data_t<T> generate_data(std::vector<T> dims)
+    generate_data_t<std::vector<T>> generate_data(std::vector<T> dims)
     {
         return {[=]() -> std::vector<T> {
             if(full_set)
@@ -255,8 +265,30 @@ struct test_driver
         }};
     }
 
+    template <class F, class T>
+    auto lazy_generate_data(F f, T single) -> generate_data_t<decltype(f())>
+    {
+        return {[=]() -> decltype(f()) {
+            if(full_set)
+                return f();
+            else
+                return {single};
+        }};
+    }
+
+    template <class F>
+    auto lazy_generate_data(F f) -> generate_data_t<decltype(f())>
+    {
+        return {[=]() -> decltype(f()) {
+            if(full_set)
+                return f();
+            else
+                return {f().front()};
+        }};
+    }
+
     template <class T>
-    generate_data_t<T> generate_single(T single)
+    generate_data_t<std::vector<T>> generate_single(T single)
     {
         return {[=]() -> std::vector<T> { return {single}; }};
     }
@@ -365,18 +397,94 @@ struct test_driver
     template <class V, class... Ts>
     auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
-        if(verbose)
+        if(verbose or time)
             v.fail(std::integral_constant<int, -1>{}, xs...);
         try
         {
+            auto&& h = get_handle();
+            if(time)
+            {
+                h.EnableProfiling();
+                h.ResetKernelTime();
+            }
+            auto gpu = v.gpu(xs...);
+            if(time)
+            {
+                std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
+                h.EnableProfiling(false);
+            }
             if(no_validate)
             {
-                auto gpu = v.gpu(xs...);
                 return std::make_pair(gpu, gpu);
             }
             else
-                return verify_check(
-                    v.cpu(xs...), v.gpu(xs...), [&](int mode) { v.fail(mode, xs...); });
+            {
+                return verify_check(v.cpu(xs...), gpu, [&](int mode) { v.fail(mode, xs...); });
+            }
+        }
+        catch(const std::exception& ex)
+        {
+            std::cout << "FAILED: " << ex.what() << std::endl;
+            v.fail(-1, xs...);
+            throw;
+        }
+        catch(...)
+        {
+            std::cout << "FAILED with unknown exception" << std::endl;
+            v.fail(-1, xs...);
+            throw;
+        }
+    }
+
+    template <class V, class... Ts>
+    auto verify_equals(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
+    {
+        if(verbose or time)
+            v.fail(std::integral_constant<int, -1>{}, xs...);
+        try
+        {
+            auto&& h = get_handle();
+            if(time)
+            {
+                h.EnableProfiling();
+                h.ResetKernelTime();
+            }
+            auto gpu = v.gpu(xs...);
+            if(time)
+            {
+                std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
+                h.EnableProfiling(false);
+            }
+            if(no_validate)
+            {
+                return std::make_pair(gpu, gpu);
+            }
+            else
+            {
+                auto cpu = v.cpu(xs...);
+
+                if(miopen::range_zero(cpu))
+                {
+                    std::cout << "Cpu data is all zeros" << std::endl;
+                    v.fail(-1, xs...);
+                }
+
+                if(miopen::range_zero(gpu))
+                {
+                    std::cout << "Gpu data is all zeros" << std::endl;
+                    v.fail(-1, xs...);
+                }
+
+                auto idx = miopen::mismatch_idx(cpu, gpu, miopen::float_equal);
+                if(idx < miopen::range_distance(cpu))
+                {
+                    std::cout << "Mismatch at " << idx << ": " << cpu[idx] << " != " << gpu[idx]
+                              << std::endl;
+                    v.fail(-1, xs...);
+                }
+
+                return std::make_pair(cpu, gpu);
+            }
         }
         catch(const std::exception& ex)
         {
@@ -477,7 +585,7 @@ struct show_help
             prefix = ", ";
         }
         if(not std::is_same<T, bool>{})
-            std::cout << " [" << get_type_name<T>() << "]";
+            std::cout << " [" << miopen::get_type_name<T>() << "]";
         std::cout << std::endl;
         std::cout << "        " << help << std::endl;
     }
@@ -493,7 +601,7 @@ void test_drive(int argc, const char* argv[])
     d.parse(keyword_set{keywords});
     auto arg_map = args::parse(as, [&](std::string x) {
         return (keywords.count(x) > 0) or
-               ((x.compare(0, 2, "--") == 0) and d.arguments.count(x.substr(2)) > 0);
+               ((x.compare(0, 2, "--") == 0) and d.has_argument(x.substr(2)) > 0);
     });
 
     // Show help
@@ -503,11 +611,11 @@ void test_drive(int argc, const char* argv[])
         d.parse(show_help{});
         std::cout << std::endl;
         std::cout << "Test inputs: " << std::endl;
-        for(auto&& p : d.arguments)
+        for(auto&& arg : d.arguments)
         {
-            std::cout << "    --" << p.first;
-            if(not p.second.type.empty())
-                std::cout << " [" << p.second.type << "]";
+            std::cout << "    --" << arg.name;
+            if(not arg.type.empty())
+                std::cout << " [" << arg.type << "]";
             std::cout << std::endl;
         }
         std::cout << std::endl;
@@ -524,8 +632,17 @@ void test_drive(int argc, const char* argv[])
             auto name = p.first.substr(2);
             try
             {
-                auto&& arg = d.arguments.at(name);
+                auto&& arg = d.get_argument(name);
                 arg.write(p.second);
+            }
+            catch(const std::exception& ex)
+            {
+                std::cerr << "Invalid argument: " << name << std::endl;
+                std::cerr << "With parameters: " << std::endl;
+                for(auto&& s : p.second)
+                    std::cerr << "    " << s << std::endl;
+                std::cerr << ex.what() << std::endl;
+                std::abort();
             }
             catch(...)
             {
@@ -540,11 +657,11 @@ void test_drive(int argc, const char* argv[])
 
     // Run data on arguments that are not passed in
     std::vector<typename Driver::argument*> data_args;
-    for(auto&& p : d.arguments)
+    for(auto&& arg : d.arguments)
     {
-        if(arg_map.count("--" + p.first) == 0)
+        if(arg_map.count("--" + arg.name) == 0)
         {
-            data_args.push_back(&p.second);
+            data_args.push_back(&arg);
         }
     }
 

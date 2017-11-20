@@ -91,7 +91,7 @@ struct tensor
 
     tensor(miopen::TensorDescriptor rhs) : desc(std::move(rhs))
     {
-        data.resize(desc.GetElementSize());
+        data.resize(desc.GetElementSpace());
     }
 
     template <class G>
@@ -203,6 +203,17 @@ tensor<T> make_tensor(const std::vector<X>& dims)
     // TODO: Compute float
     return tensor<T>{
         miopen::TensorDescriptor{miopenFloat, dims.data(), static_cast<int>(dims.size())}};
+}
+
+template <class T, class X>
+tensor<T>
+make_tensor(const tensor<T> super_tensor, const std::vector<X>& dims, const std::vector<X>& strides)
+{
+    // TODO: Compute float
+    tensor<T> t = tensor<T>{miopen::TensorDescriptor{
+        miopenFloat, dims.data(), strides.data(), static_cast<int>(dims.size())}};
+    t.data = super_tensor.data;
+    return t;
 }
 
 template <class T, class X, class G>

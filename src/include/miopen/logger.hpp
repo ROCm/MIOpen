@@ -31,6 +31,11 @@
 #include <miopen/each_args.hpp>
 #include <type_traits>
 
+// Helper macros to output a cmdline argument for the driver
+#define MIOPEN_DRIVER_CMD(op) \
+    __func__ << ": "          \
+             << "./bin/MIOpenDriver " << op
+
 // See https://github.com/pfultz2/Cloak/wiki/C-Preprocessor-tricks,-tips,-and-idioms
 #define MIOPEN_PP_CAT(x, y) MIOPEN_PP_PRIMITIVE_CAT(x, y)
 #define MIOPEN_PP_PRIMITIVE_CAT(x, y) x##y
@@ -172,7 +177,26 @@ std::ostream& LogEnum(std::ostream& os, T x, Range&& values)
     return os;
 }
 
-bool IsLogging();
+enum class LoggingLevel
+{
+    Default = 0, // WARNING for Release builds, INFO for Debug builds.
+    Quiet,
+    Fatal,
+    Error,
+    Warning,
+    Info,
+    Info2,
+    Trace // E.g. messages output by MIOPEN_LOG_FUNCTION).
+};
+
+const char* LoggingLevelToCString(LoggingLevel level);
+
+std::string PlatformName();
+
+/// \return true if level is enabled.
+/// \param level - one of the values defined in LoggingLevel.
+int IsLogging(LoggingLevel level = LoggingLevel::Error);
+bool IsLoggingCmd();
 
 template <class T>
 auto LogObjImpl(T* x) -> decltype(get_object(*x))
@@ -204,16 +228,33 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 }
 #define MIOPEN_LOG_FUNCTION_EACH(param) miopen::LogParam(std::cerr, #param, param) << std::endl;
 
-#define MIOPEN_LOG_FUNCTION(...)                                   \
-    if(miopen::IsLogging())                                        \
-    {                                                              \
-        std::cerr << __PRETTY_FUNCTION__ << "{" << std::endl;      \
-        MIOPEN_PP_EACH_ARGS(MIOPEN_LOG_FUNCTION_EACH, __VA_ARGS__) \
-        std::cerr << "}" << std::endl;                             \
+#define MIOPEN_LOG_FUNCTION(...)                                                                \
+    if(miopen::IsLogging(miopen::LoggingLevel::Trace))                                          \
+    {                                                                                           \
+        std::cerr << miopen::PlatformName() << ": " << __PRETTY_FUNCTION__ << "{" << std::endl; \
+        MIOPEN_PP_EACH_ARGS(MIOPEN_LOG_FUNCTION_EACH, __VA_ARGS__)                              \
+        std::cerr << "}" << std::endl;                                                          \
     }
 #else
 #define MIOPEN_LOG_FUNCTION(...)
 #endif
+
+/// \todo __PRETTY_FUNCTION__ is too verbose, __func_ it too short.
+/// Shall we add filename (no path, no ext) prior __func__.
+#define MIOPEN_LOG(level, ...)                                                                  \
+    do                                                                                          \
+    {                                                                                           \
+        if(miopen::IsLogging(level))                                                            \
+        {                                                                                       \
+            std::cerr << miopen::PlatformName() << ": " << LoggingLevelToCString(level) << " [" \
+                      << __func__ << "] " << __VA_ARGS__ << std::endl;                          \
+        }                                                                                       \
+    } while(false)
+
+#define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
+#define MIOPEN_LOG_W(...) MIOPEN_LOG(miopen::LoggingLevel::Warning, __VA_ARGS__)
+#define MIOPEN_LOG_I(...) MIOPEN_LOG(miopen::LoggingLevel::Info, __VA_ARGS__)
+#define MIOPEN_LOG_I2(...) MIOPEN_LOG(miopen::LoggingLevel::Info2, __VA_ARGS__)
 
 } // namespace miopen
 
