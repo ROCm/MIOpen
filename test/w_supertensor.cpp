@@ -70,11 +70,20 @@ struct superTensorTest : test_driver
 
         dataType = miopenFloat;
 
-        std::vector<int> get_seqLen                   = {1, 2, 4};
-        std::vector<int> get_batch_size               = {2, 4, 8};
-        std::vector<int> get_num_layer                = {4, 8, 16};
-        std::vector<int> get_in_size                  = {2, 8, 16};
-        std::vector<int> get_wei_hh                   = {4, 8, 16};
+#if 1
+        std::vector<int> get_seqLen     = {1, 2, 4};
+        std::vector<int> get_batch_size = {2, 4, 8};
+        std::vector<int> get_num_layer  = {4, 8, 16};
+        std::vector<int> get_in_size    = {2, 8, 16};
+        std::vector<int> get_wei_hh     = {4, 8, 16};
+#else
+        std::vector<int> get_seqLen     = {2};
+        std::vector<int> get_batch_size = {4};
+        std::vector<int> get_num_layer  = {8};
+        std::vector<int> get_in_size    = {2};
+        std::vector<int> get_wei_hh     = {6};
+#endif
+
         std::vector<miopenRNNMode_t> get_mode         = {miopenRNNRELU, miopenLSTM, miopenGRU};
         std::vector<miopenRNNBiasMode_t> get_biasMode = {miopenRNNwithBias, miopenRNNNoBias};
         std::vector<miopenRNNDirectionMode_t> get_directionMode = {miopenRNNunidirection,
@@ -130,9 +139,6 @@ struct superTensorTest : test_driver
 
                     paramSize /= sizeof(miopenFloat);
 
-                    // printf("param layer: %d Id: %d offset: %d size: %d\n", layer, layerId,
-                    // offset, paramSize);
-
                     for(int i = 0; i < paramSize; i++)
                     {
                         wei_h[offset + i] = layer * 10 + layerId;
@@ -160,8 +166,6 @@ struct superTensorTest : test_driver
                         size_t biasSize = 0;
                         miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
 
-                        // printf("bias layer: %d layerId: %d offset: %d size: %d\n", layer,
-                        // layerID, offset, biasSize);
                         biasSize /= sizeof(float);
 
                         for(int i = 0; i < biasSize; i++)
@@ -186,9 +190,6 @@ struct superTensorTest : test_driver
 
                     paramSize /= sizeof(miopenFloat);
 
-                    // printf("param layer: %d Id: %d offset: %d size: %d\n", k, j, offset,
-                    // paramSize);
-
                     for(int i = 0; i < paramSize; i++)
                     {
                         wei_h[offset + i] = k * 10 + j;
@@ -210,8 +211,6 @@ struct superTensorTest : test_driver
                         size_t biasSize = 0;
                         miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
 
-                        // printf("bias layer: %d layerId: %d offset: %d size: %d\n", layer,
-                        // layerID, offset, biasSize);
                         biasSize /= sizeof(float);
 
                         for(int i = 0; i < biasSize; i++)
@@ -425,11 +424,8 @@ struct superTensorTest : test_driver
         miopenSetTensorDescriptor(weightTensor, dataType, 2, in_lens.data(), nullptr);
 
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLen, &inputTensor, &in_sz);
-
         miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopenFloat);
 
-        // wei_sz = wei_sz / sizeof(miopenFloat);
-        // std::vector<float> wei_h(wei_sz, 0);
         wei_dev = handle.Create(wei_sz);
 
         auto wei_h   = fill_w_tensor();
@@ -439,6 +435,13 @@ struct superTensorTest : test_driver
 
         for(int i = 0; i < wei_h.size(); i++)
         {
+            // if(static_cast<int>(wei_h[i]) != static_cast<int>(wei_set[i]))
+            //{
+            // fprintf(stderr, "mistch at %d wei_h: %d != wei_set: %d\n",
+            // i, static_cast<int>(wei_h[i]),
+            // static_cast<int>(wei_set[i])
+            //);
+            //}
             EXPECT(static_cast<int>(wei_h[i]) == static_cast<int>(wei_set[i]));
         }
 
