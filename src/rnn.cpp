@@ -37,9 +37,6 @@
 #define MIOPEN_RNN_SYNCH 0
 #define MIO_RNN_CPP_PROF 0
 
-#define isNotRNNskip (inputMode != miopenRNNskip)
-#define isRNNskip (inputMode == miopenRNNskip)
-
 namespace miopen {
 
 void profileRNNkernels(Handle& handle, unsigned char select)
@@ -120,7 +117,7 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& /*xDesc*/,
     {
         if(layer > 1)
         {
-            layerJump += (isNotRNNskip * hsize + hsize) * nHiddenTensorsPerLayer * 2;
+            layerJump += (isNotRNNskip() * hsize + hsize) * nHiddenTensorsPerLayer * 2;
             layerJump += (hsize * 2) * nHiddenTensorsPerLayer * (layer / 2 - 1) * 2;
         }
 
@@ -137,7 +134,7 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& /*xDesc*/,
 
         if(layer > 0)
         {
-            layerJump += (hsize * isNotRNNskip + hsize) * nHiddenTensorsPerLayer;
+            layerJump += (hsize * isNotRNNskip() + hsize) * nHiddenTensorsPerLayer;
             layerJump += (hsize * 2) * nHiddenTensorsPerLayer * (layer - 1);
         }
 
@@ -180,7 +177,7 @@ size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc,
         }
         else
         {
-            if(isNotRNNskip)
+            if(isNotRNNskip())
             {
                 if(paramID >= nHiddenTensorsPerLayer)
                 {
@@ -213,7 +210,7 @@ size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc,
         }
         else
         {
-            if(isNotRNNskip)
+            if(isNotRNNskip())
             {
                 if(paramID >= nHiddenTensorsPerLayer)
                 {
@@ -262,7 +259,7 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
         }
         else // IS the input layer
         {
-            if(paramID >= nHiddenTensorsPerLayer * isNotRNNskip)
+            if(paramID >= nHiddenTensorsPerLayer * isNotRNNskip())
             {
                 tdim[0] = tdim[1] = hsize;
             }
@@ -281,7 +278,7 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
         }
         else
         {
-            if(paramID >= nHiddenTensorsPerLayer * isNotRNNskip)
+            if(paramID >= nHiddenTensorsPerLayer * isNotRNNskip())
             {
                 tdim[0] = tdim[1] = hsize;
             }
@@ -504,7 +501,7 @@ std::size_t RNNDescriptor::GetLayerParamSize(Handle& /*handle*/,
     // Assuming Djikstra counting
     if(((dirMode && layer <= 1) || (!dirMode && layer < 1)))
     {
-        if(paramID >= nHiddenTensorsPerLayer * isNotRNNskip)
+        if(paramID >= nHiddenTensorsPerLayer * isNotRNNskip())
             return size_t(typeSize * hsize * hsize);
         else
             return size_t(typeSize * inputVectorLen * hsize);
