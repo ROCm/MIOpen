@@ -290,8 +290,8 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
             args.push_back(param);
         };
     }
-    args.push_back("-");
-    args.push_back("-o");
+    args.emplace_back("-");
+    args.emplace_back("-o");
     args.push_back(outfile);
 
     std::istringstream clang_stdin(source);
