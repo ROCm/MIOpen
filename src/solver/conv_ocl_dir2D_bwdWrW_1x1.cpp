@@ -167,7 +167,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 		int read_unit = 4;
 		int in_width = (result.passes > 1) ? params.in_width : params.out_width;
 		int in_height = (result.passes > 1) ? params.in_height : params.out_height;
-		int in_stride =(result.passes > 1) ? in_height * params.in_stride : params.out_stride;
+		int in_stride =(result.passes > 1) ? params.in_stride : params.out_stride;
 		int in_channel_stride = (result.passes > 1) ? in_stride * in_height : params.out_channel_stride;
 		int in_batch_stride = (result.passes > 1) ? in_channel_stride * params.batch_sz : params.out_batch_stride;
 		int out_batch_stride = params.in_batch_stride;
@@ -254,7 +254,6 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 		int kernel0_stride0 = params.kernel_stride0;
 		int kernel0_stride1 = params.kernel_stride1;
 
-		result.workspce_sz = 0;
 
 		if (params.n_passes)
 		{
@@ -320,6 +319,8 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 			std::to_string(out_pad_height) +
 			std::string(" -DMLO_TWO_PASSES=") + std::to_string((result.passes == 1) ? 0 : 1) +
 			params.general_compile_options;
+
+		result.workspce_sz = 0;
 
 		if (result.passes > 1 && params.pad1 == 0 && params.pad0 == 0 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
 		{
