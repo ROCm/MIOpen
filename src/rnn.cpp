@@ -32,7 +32,7 @@
 // MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 
 // Disable specific warnings
-#define MIO_RNN_DEBUG 1
+#define MIO_RNN_DEBUG 0
 
 #ifdef __clang__
 #pragma clang diagnostic push
