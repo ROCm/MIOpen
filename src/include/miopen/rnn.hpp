@@ -246,6 +246,9 @@ struct RNNDescriptor : miopenRNNDescriptor
                             ConstData_t reserveSpace,
                             size_t reserveSpaceSize) const;
 
+    inline bool isNotRNNskip() const { return inputMode != miopenRNNskip; }
+    inline bool isRNNskip() const { return inputMode == miopenRNNskip; }
+
     // DLOWELL : These will be implemented once all the other elements are in place
     /*
         void ForwardRNNInferCell(Handle& handle,
