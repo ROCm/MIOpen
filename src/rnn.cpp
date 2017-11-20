@@ -34,11 +34,6 @@
 // Disable specific warnings
 #define MIO_RNN_DEBUG 0
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-parameter"
-#endif
-
 #define MIOPEN_RNN_SYNCH 0
 #define MIO_RNN_CPP_PROF 0
 
@@ -734,8 +729,3 @@ std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r)
 }
 
 } // namespace miopen
-
-// Restore warnings
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
