@@ -26,242 +26,6 @@
 
 #include "miopen/solver.hpp"
 
-/*
-int mlo_construct_BwdWrW2D::mloConstruct1x1Mmap()
-{
-
-    int ret = 0;
-    size_t localMemSize = 64 * 1024;
-
-    _hw_wave_sz = 64;
-    _dev_local_mem_sz = localMemSize; // in bytes
-                                      // major parameters
-
-                                      // inpout are outputs
-    int wei_cstride = _kernel_size0*_kernel_size1;
-    int wei_bstride = _n_outputs*wei_cstride;
-
-
-    // number  of batch iterations
-    _n_stacks = 1;
-    _n_stacks = std::min(_batch_sz, _n_stacks);
-    // defines how to proceed : 1 grouop per batch or with a loop over all batches
-    // loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
-    // param
-    int N_BATCH_LOOPS = (_n_inputs*_n_outputs <= 8 * 1024) ? 1 : _batch_sz / _n_stacks;
-    int n_batch_blks = (_batch_sz + N_BATCH_LOOPS * _n_stacks - 1) / (N_BATCH_LOOPS * _n_stacks);
-
-    _out_pix_tile0 = 1;
-    _out_pix_tile1 = 1;
-    _in_tile1 = 1;
-    _in_tile0 = 1;
-
-    // n of wvaefront in a group
-    // param
-    int n_waves = (_in_width <= 8) ? 1 : 4;
-    int GRP_SZ = _hw_wave_sz * n_waves;
-    // number of input maps per group
-
-    int map_sz = _in_width*_in_height;
-    // define a special size for a specific width as a devisor to avoid dealing with out of range
-    // param
-    int read_unit = (_in_width == 7 || _in_width == 14) ? 7 : (_in_width == 28) ? 14 : (((map_sz /
-8) * 8) == map_sz) ? 8 : (((map_sz / 4) * 4) == map_sz) ? 4 : (((map_sz / 2) * 2) == map_sz) ? 2 :
-1;
-
-    int MAP_WK_SZ = ((map_sz + read_unit - 1) / read_unit);
-
-    // to avoid exeeding the group size but trying to keep multiple of the same unit
-    while (MAP_WK_SZ > GRP_SZ)
-    {
-        read_unit *= 2;
-        MAP_WK_SZ = ((map_sz + read_unit - 1) / read_unit);
-    }
-
-    // this one is valid only till _FLOAT8
-    // but it's not an error, the kernel does not use these types at all
-    std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
-
-    int POW2_MAP_WK_SZ = (1 << mloLg2(MAP_WK_SZ));
-    // number of output maps fetched into LDS and to be shred with the input mapped kept in
-registers
-    // param
-    int n_out_stacks = (_in_width == 28) ? 10 : ((_in_width == 7) || (_in_width == 14)) ? 8 :
-(GRP_SZ / MAP_WK_SZ);
-    int lcl_size_limit = (_in_width <= 8) ? n_out_stacks*MAP_WK_SZ*read_unit : _dev_local_mem_sz /
-(2 * sizeof(float));
-
-    // not to exeed local memory size
-    while ((_in_width > 8) && n_out_stacks*MAP_WK_SZ*read_unit > lcl_size_limit)
-    {
-        n_out_stacks--;
-    }
-
-    // number input maps stacks.
-    // n_in_stacks input map wil be written in teh local memory sequentially
-    int n_in_stacks = (GRP_SZ / MAP_WK_SZ);
-
-    n_out_stacks = std::min(_n_inputs, n_out_stacks);
-    n_in_stacks = std::min(_n_outputs, n_in_stacks);
-
-    // param
-    // this is 1 currently
-    _n_out_pix_tiles = std::min(1, (_n_inputs + n_out_stacks - 1) / n_out_stacks);
-
-    // number of maps in a stack or number of input read blocks written into 1 wk-item (lane)
-    // param
-    _n_in_data_tiles = std::min(((_in_width == 28) ? 2 : 4), (_n_outputs + n_in_stacks - 1) /
-n_in_stacks);
-    // to be able to do an easy final transform and summation
-    while ((_in_width > 8) && n_in_stacks*_n_in_data_tiles* n_out_stacks > GRP_SZ)
-    {
-        n_in_stacks--;
-    }
-
-    // total maps per group
-    int total_out_maps = _n_out_pix_tiles * n_out_stacks;
-    int total_in_maps = _n_in_data_tiles * n_in_stacks;
-
-    _grp_tile0 = GRP_SZ;
-    _grp_tile1 = 1;
-    int grp_tile2 = 1;
-
-
-    // utility parameters
-    int n_ut_waves = 4;
-    int UT_GRP_SZ0 = _hw_wave_sz * n_ut_waves;
-    int ut_read_unit = ((wei_cstride / 4) * 4 == wei_cstride) ? 4 : ((wei_cstride / 2) * 2 ==
-wei_cstride) ? 2 : 1;
-    std::string UT_READ_TYPE = (ut_read_unit == 1) ? "_FLOAT" : "_FLOAT" +
-std::to_string((ut_read_unit));
-
-
-    // it's backward - inputs are outputs and vs versa
-    _comp_options =
-        std::string(" -DMLO_DIR_FORWARD=") + std::to_string(_direction)
-        + std::string(" -DMLO_GRP_SZ=") + std::to_string(GRP_SZ)
-        + std::string(" -DMLO_GRP_SZ0=") + std::to_string(_grp_tile0)
-        + std::string(" -DMLO_GRP_SZ1=") + std::to_string(_grp_tile1)
-        + std::string(" -DMLO_GRP_SZ2=") + std::to_string(grp_tile2)
-        + std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(_kernel_size0)
-        + std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(_kernel_size1)
-        + std::string(" -DMLO_FILTER_PAD0=") + std::to_string(_pad0)
-        + std::string(" -DMLO_FILTER_PAD1=") + std::to_string(_pad1)
-        + std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(_kernel_stride0)
-        + std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(_kernel_stride1)
-        + std::string(" -DSTRIDE_W=") + std::to_string(_kernel_stride0)
-        + std::string(" -DSTRIDE_H=") + std::to_string(_kernel_stride1)
-        + std::string(" -DMLO_N_OUTPUTS=") + std::to_string(_n_inputs)
-        + std::string(" -DMLO_N_INPUTS=") + std::to_string(_n_outputs)
-        + std::string(" -DMLO_BATCH_SZ=") + std::to_string(_batch_sz)
-        + std::string(" -DMLO_N_BATCH_LOOPS=") + std::to_string(N_BATCH_LOOPS)
-        + std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(_in_batch_stride)
-        + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(_in_channel_stride)
-        + std::string(" -DMLO_OUT_STRIDE=") + std::to_string(_in_stride)
-        + std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(_out_batch_stride)
-        + std::string(" -DMLO_IN_CHANNEL_STRIDE=") + std::to_string(_out_channel_stride)
-        + std::string(" -DMLO_IN_STRIDE=") + std::to_string(_out_stride)
-        + std::string(" -DMLO_WEI_BATCH_STRIDE=") + std::to_string(wei_bstride)
-        + std::string(" -DMLO_WEI_CHANNEL_STRIDE=") + std::to_string(wei_cstride)
-        + std::string(" -DMLO_IN_WIDTH=") + std::to_string(_out_width)
-        + std::string(" -DMLO_IN_HEIGHT=") + std::to_string(_out_height)
-        + std::string(" -DMLO_OUT_WIDTH=") + std::to_string(_in_width)
-        + std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(_in_height)
-        + std::string(" -DMLO_IN_TILE1=") + std::to_string(_in_tile1)
-        + std::string(" -DMLO_IN_TILE0=") + std::to_string(_in_tile0)
-        + std::string(" -DMLO_N_LCL_BATCHS=") + std::to_string(_n_stacks) // # of diff stacks (part
-of batch).
-        + std::string(" -DMLO_N_LCL_OUT_MAPS=") + std::to_string(_n_out_pix_tiles)  // # output
-pixel tiles per wk-item (ALU)
-        + std::string(" -DMLO_N_LCL_IN_MAPS=") + std::to_string(_n_in_data_tiles) // total # of
-blocks of different inputs in LDS
-        + std::string(" -DMLO_OUT_TILE0=") + std::to_string(_out_pix_tile0)  // size of ouptput tile
-per wk-item (ALU)
-        + std::string(" -DMLO_OUT_TILE1=") + std::to_string(_out_pix_tile1)  //
-        + std::string(" -DMLO_OUT_STACKS=") + std::to_string(n_out_stacks)
-        + std::string(" -DMLO_IN_STACKS=") + std::to_string(n_in_stacks)
-        + std::string(" -DMLO_N_WAVES=") + std::to_string(n_waves)
-        + std::string(" -DMLO_MAP_WK_SZ=") + std::to_string(MAP_WK_SZ)
-        + std::string(" -DMLO_POW2_MAP_WK_SZ=") + std::to_string(POW2_MAP_WK_SZ)
-        + std::string(" -DMLO_LCL_MEM_SZ=") + std::to_string(lcl_size_limit)
-
-        + std::string(" -DMLO_READ_TYPE=") + READ_TYPE
-        + std::string(" -DMLO_READ_UNIT=") + std::to_string(read_unit)
-        + std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(_hw_wave_sz)
-        + std::string(" -DMLO_LG2_PHYS_WAVE_SZ=") + std::to_string(mloLg2(_hw_wave_sz))
-
-        + std::string(" -DMLO_CONV_BIAS=") + std::to_string(_bias)
-
-        + std::string(" -DMLO_UT_READ_TYPE=") + UT_READ_TYPE
-        + std::string(" -DMLO_UT_READ_UNIT=") + std::to_string(ut_read_unit)
-
-        + std::string(" -DMLO_UT_GRP_SZ0=") + std::to_string(UT_GRP_SZ0)
-
-        //		+ std::string(" -limit-vector-registers=64 ")
-        + getGeneralCompOptions()
-        ;
-
-
-    _mlo_kernels_info.clear();
-    // wrt to W
-    {
-        _l_wk.clear();
-        _l_wk.push_back(_grp_tile0);
-        _l_wk.push_back(_grp_tile1);
-        _l_wk.push_back(grp_tile2);
-        // input is output
-
-        size_t gbl_wk0 = GRP_SZ * ((_n_inputs + total_out_maps - 1) / total_out_maps);
-        size_t gbl_wk1 = ((_n_outputs + total_in_maps - 1) / total_in_maps);
-        size_t gbl_wk2 = n_batch_blks;
-
-
-        _g_wk.clear();
-        _g_wk.push_back(gbl_wk0);
-        _g_wk.push_back(gbl_wk1);
-        _g_wk.push_back(gbl_wk2);
-
-        _kernel_file = "MIOpenConvBwdWrW1x1Mmap.cl";
-        _kernel_name = "MIOpenCvBwdWrW";
-
-        auto kern_info = std::make_tuple(_kernel_name, _kernel_file, _comp_options, _g_wk, _l_wk);
-        _mlo_kernels_info.push_back(kern_info);
-
-        _workspce_sz = 0;
-
-    }
-
-    // sum over batch
-    if (n_batch_blks > 1)
-    {
-
-
-        std::string kernel_file = "MIOpenConvBwdWrW1x1Mmap.cl";
-        std::string kernel_name = "MIOpenCvBwdWrW_rdc";
-
-        std::vector<size_t> l_wk;
-        l_wk.clear();
-        l_wk.push_back(UT_GRP_SZ0);
-        l_wk.push_back(1);
-        l_wk.push_back(1);
-
-        int gbl_ut_wk0 = wei_bstride * _n_inputs / ut_read_unit;
-
-        std::vector<size_t> g_wk;
-        g_wk.push_back(gbl_ut_wk0);
-        g_wk.push_back(1);
-        g_wk.push_back(1);
-        auto kern_info = std::make_tuple(kernel_name, kernel_file, _comp_options, g_wk, l_wk);
-        _mlo_kernels_info.push_back(kern_info);
-
-        int data_len = (_out_data_type == "FP32" ? 4 : 8);
-        _workspce_sz = wei_bstride * _n_inputs * n_batch_blks * data_len;
-    }
-
-    return(ret);
-}
-*/
-
 namespace miopen {
 namespace solver {
 
@@ -285,12 +49,6 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         result.passes = 1;
         return result;
     }
-#if 0 // MD: Calls old 1x1 kernel (MIOpenConvBwdWrW1x1Mmap.cl) that has been optimized by Stas
-        if (params.in_width == 14 && params.in_height == 14 && params.n_inputs == 192 && params.n_outputs == 512)
-        {
-            return(mloConstruct1x1Mmap());
-        }
-#endif
 
     // FIX ME! FIX ME! FIX ME! Does not support C, K != 16X yet
     // NON-Stride/PAD mode NON-16X will be supported by MIOpenConvBwdWrW1x1.CL
@@ -395,15 +153,15 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             #define MLO_N_IN_TILE_BLOCK  4
             #endif*/
 
-            uint read_unit          = 4;
-            uint in_batch_stride    = params.n_outputs * params.out_width * params.out_height;
-            uint in_channel_stride  = params.out_width * params.out_height;
-            uint out_batch_stride   = params.n_inputs * params.in_width * params.in_height;
-            uint out_channel_stride = params.in_width * params.in_height;
-            uint wei_batch_stride =
+            int read_unit          = 4;
+            int in_batch_stride    = params.n_outputs * params.out_width * params.out_height;
+            int in_channel_stride  = params.out_width * params.out_height;
+            int out_batch_stride   = params.n_inputs * params.in_width * params.in_height;
+            int out_channel_stride = params.in_width * params.in_height;
+            int wei_batch_stride =
                 params.n_inputs * params.n_outputs * params.kernel_size0 * params.kernel_size1;
-            uint wei_channel_stride = params.n_outputs * params.kernel_size0 * params.kernel_size1;
-            uint max_loads_per_readunit = (out_channel_stride / read_unit) * params.batch_sz;
+            int wei_channel_stride = params.n_outputs * params.kernel_size0 * params.kernel_size1;
+            int max_loads_per_readunit = (out_channel_stride / read_unit) * params.batch_sz;
 
             // limited shape size shows better performance with ead_uint == 3
             /*
@@ -414,13 +172,13 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             }
             */
 
-            uint out_pad_min_x  = 0;
-            uint out_pad_min_y  = 0;
-            uint out_pad_width  = params.in_width;
-            uint out_pad_height = params.in_height;
+            int out_pad_min_x  = 0;
+            int out_pad_min_y  = 0;
+            int out_pad_width  = params.in_width;
+            int out_pad_height = params.in_height;
 
-            uint in_pad_min_x = 0;
-            uint in_pad_min_y = 0;
+            int in_pad_min_x = 0;
+            int in_pad_min_y = 0;
 
             if(params.pad0 > 0)
             {
@@ -450,13 +208,13 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
                 max_loads_per_readunit = out_pad_width * out_pad_height * params.batch_sz;
             }
 
-            uint out_read_sz         = n_lcl_out_maps * read_unit;
-            uint in_read_sz          = n_lcl_in_maps * read_unit;
-            uint out_channel_read_sz = out_channel_stride / read_unit;
-            uint n_in_tile_block     = 8;
-            uint n_lcl_out_map_once  = 8;
-            uint n_lcl_in_map_once   = 8;
-            uint accum_sz            = n_lcl_out_map_once * n_lcl_in_map_once;
+            int out_read_sz         = n_lcl_out_maps * read_unit;
+            int in_read_sz          = n_lcl_in_maps * read_unit;
+            int out_channel_read_sz = out_channel_stride / read_unit;
+            int n_in_tile_block     = 8;
+            int n_lcl_out_map_once  = 8;
+            int n_lcl_in_map_once   = 8;
+            int accum_sz            = n_lcl_out_map_once * n_lcl_in_map_once;
 
             const auto comp_options =
                 std::string(" -DMLO_GRP_SZ0=") + std::to_string(n_grp_size0) +

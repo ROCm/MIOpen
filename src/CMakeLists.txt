@@ -61,6 +61,7 @@ set( MIOpen_Source
     convolution_api.cpp
     convolution_fft.cpp
     db_record.cpp
+    find_controls.cpp
     load_file.cpp
     pooling_api.cpp
     kernel_warnings.cpp
@@ -72,6 +73,7 @@ set( MIOpen_Source
     batch_norm.cpp
     batch_norm_api.cpp
     include/miopen/db_record.hpp
+    include/miopen/find_controls.hpp
     include/miopen/batch_norm.hpp
     include/miopen/check_numerics.hpp
     include/miopen/common.hpp
