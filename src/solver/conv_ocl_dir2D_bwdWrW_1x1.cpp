@@ -34,7 +34,7 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     bool result = (params.kernel_size0 == 1) && (params.kernel_size1 == 1);
 
     // Does not support C, K != 16X yet  Still in to-do-list
-    if((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) &&
+    if(/*(params.kernel_stride0 > 1 || params.kernel_stride1 > 1) &&*/
        ((params.n_inputs & 0xF) > 0 || (params.n_outputs & 0xF) > 0))
         result = false;
 
@@ -204,8 +204,14 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             if(params.pad0 > 0 || params.pad1 > 0 || params.kernel_stride0 > 1 ||
                params.kernel_stride1 > 1)
             {
-                read_unit              = 1;
-                max_loads_per_readunit = out_pad_width * out_pad_height * params.batch_sz;
+                read_unit = (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0)
+                                                               ? 3
+                                                               : (out_pad_width % 2 == 0) ? 2 : 1;
+                // read_unit = (out_pad_width % 7 == 0) ? 7 : (out_pad_width % 5 == 0) ? 5 :
+                // (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2
+                // == 0) ? 2 : 1;
+                max_loads_per_readunit =
+                    (out_pad_width / read_unit) * out_pad_height * params.batch_sz;
             }
 
             int out_read_sz         = n_lcl_out_maps * read_unit;
