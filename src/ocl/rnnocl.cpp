@@ -97,23 +97,20 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
         std::tie(batchvalout, outputvec) = miopen::tien<2>(yDesc[i].GetLengths());
         if(batchval != batchvalout)
         {
-            printf("Input batch length: %d, Output batch length: %d\n", batchval, batchvalout);
-            MIOPEN_THROW(miopenStatusBadParm);
+            MIOPEN_THROW(miopenStatusBadParm, "Input batch length: " + std::to_string(batchval) + ", Output batch length: " + std::to_string(batchvalout));
         }
         if(i == 0)
         {
             if(batchval == 0)
             {
-                printf("Input batch is ZERO!\n");
-                MIOPEN_THROW(miopenStatusBadParm);
+                MIOPEN_THROW(miopenStatusBadParm, "Input batch is ZERO!");
             }
         }
         else
         {
             if(batchval > in_n.back())
             {
-                printf("Incorrect input batch size at time %d! Batch size must not ascend!\n", i);
-                MIOPEN_THROW(miopenStatusBadParm);
+                MIOPEN_THROW(miopenStatusBadParm, "Incorrect input batch size at time " + std::to_string(i) + "! Batch size must not ascend!");
             }
         }
         in_n.push_back(batchval);
@@ -124,8 +121,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     int bi = dirMode ? 2 : 1;
     if(out_h != (bi * hy_h))
     {
-        printf("Output size doesn't match hidden state size!\n");
-        MIOPEN_THROW(miopenStatusBadParm);
+        MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
     }
 
     int in_stride  = in_h;
@@ -139,9 +135,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     {
         if(in_h != hy_h)
         {
-            printf("The input tensor size must equal to the hidden state size of the network in "
-                   "SKIP_INPUT mode!\n");
-            MIOPEN_THROW(miopenStatusBadParm);
+            MIOPEN_THROW(miopenStatusBadParm, "The input tensor size must equal to the hidden state size of the network in SKIP_INPUT mode!");
         }
         in_h = 0;
     }
@@ -982,23 +976,20 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         std::tie(batchvalout, outputvec) = miopen::tien<2>(yDesc[i].GetLengths());
         if(batchval != batchvalout)
         {
-            printf("Input batch length: %d, Output batch length: %d\n", batchval, batchvalout);
-            MIOPEN_THROW(miopenStatusBadParm);
+            MIOPEN_THROW(miopenStatusBadParm, "Input batch length: " + std::to_string(batchval) + ", Output batch length: " + std::to_string(batchvalout));
         }
         if(i == 0)
         {
             if(batchval == 0)
             {
-                printf("Input batch is ZERO!\n");
-                MIOPEN_THROW(miopenStatusBadParm);
+                MIOPEN_THROW(miopenStatusBadParm, "Input batch is ZERO!");
             }
         }
         else
         {
             if(batchval > in_n.back())
             {
-                printf("Incorrect input batch size at time %d! Batch size must not ascend!\n", i);
-                MIOPEN_THROW(miopenStatusBadParm);
+                MIOPEN_THROW(miopenStatusBadParm, "Incorrect input batch size at time " + std::to_string(i) + "! Batch size must not ascend!");
             }
         }
         in_n.push_back(batchval);
@@ -1009,8 +1000,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     int bi = dirMode ? 2 : 1;
     if(out_h != (bi * hy_h))
     {
-        printf("Output size doesn't match hidden state size!\n");
-        MIOPEN_THROW(miopenStatusBadParm);
+        MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
     }
 
     int in_stride  = in_h;
@@ -1024,9 +1014,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     {
         if(in_h != hy_h)
         {
-            printf("The input tensor size must equal to the hidden state size of the network in "
-                   "SKIP_INPUT mode!\n");
-            MIOPEN_THROW(miopenStatusBadParm);
+            MIOPEN_THROW(miopenStatusBadParm, "The input tensor size must equal to the hidden state size of the network in SKIP_INPUT mode!");
         }
         in_h = 0;
     }
@@ -1879,23 +1867,20 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         std::tie(batchvalout, outputvec) = miopen::tien<2>(dyDesc[i].GetLengths());
         if(batchval != batchvalout)
         {
-            printf("Input batch length: %d, Output batch length: %d\n", batchval, batchvalout);
             MIOPEN_THROW(miopenStatusBadParm);
         }
         if(i == 0)
         {
             if(batchval == 0)
             {
-                printf("Input batch is ZERO!\n");
-                MIOPEN_THROW(miopenStatusBadParm);
+                MIOPEN_THROW(miopenStatusBadParm, "Input batch is ZERO!");
             }
         }
         else
         {
             if(batchval > in_n.back())
             {
-                printf("Incorrect input batch size at time %d! Batch size must not ascend!\n", i);
-                MIOPEN_THROW(miopenStatusBadParm);
+                MIOPEN_THROW(miopenStatusBadParm, "Incorrect input batch size at time " + std::to_string(i) + "! Batch size must not ascend!");
             }
         }
         in_n.push_back(batchval);
@@ -1906,8 +1891,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     int bi = dirMode ? 2 : 1;
     if(out_h != (bi * hy_h))
     {
-        printf("Output size doesn't match hidden state size!\n");
-        MIOPEN_THROW(miopenStatusBadParm);
+        MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
     }
 
     int in_stride  = in_h;
@@ -1921,9 +1905,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     {
         if(in_h != hy_h)
         {
-            printf("The input tensor size must equal to the hidden state size of the network in "
-                   "SKIP_INPUT mode!\n");
-            MIOPEN_THROW(miopenStatusBadParm);
+            MIOPEN_THROW(miopenStatusBadParm, "The input tensor size must equal to the hidden state size of the network in SKIP_INPUT mode!");
         }
         in_h = 0;
     }
@@ -3250,23 +3232,20 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         std::tie(batchvalout, outputvec) = miopen::tien<2>(dyDesc[i].GetLengths());
         if(batchval != batchvalout)
         {
-            printf("Input batch length: %d, Output batch length: %d\n", batchval, batchvalout);
             MIOPEN_THROW(miopenStatusBadParm);
         }
         if(i == 0)
         {
             if(batchval == 0)
             {
-                printf("Input batch is ZERO!\n");
-                MIOPEN_THROW(miopenStatusBadParm);
+                MIOPEN_THROW(miopenStatusBadParm, "Input batch is ZERO!");
             }
         }
         else
         {
             if(batchval > in_n.back())
             {
-                printf("Incorrect input batch size at time %d! Batch size must not ascend!\n", i);
-                MIOPEN_THROW(miopenStatusBadParm);
+                MIOPEN_THROW(miopenStatusBadParm, "Incorrect input batch size at time " + std::to_string(i) + "! Batch size must not ascend!");
             }
         }
         in_n.push_back(batchval);
@@ -3277,8 +3256,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     int bi = dirMode ? 2 : 1;
     if(out_h != (bi * hy_h))
     {
-        printf("Output size doesn't match hidden state size!\n");
-        MIOPEN_THROW(miopenStatusBadParm);
+        MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
     }
 
     int in_stride  = in_h;
@@ -3291,9 +3269,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     {
         if(in_h != hy_h)
         {
-            printf("The input tensor size must equal to the hidden state size of the network in "
-                   "SKIP_INPUT mode!\n");
-            MIOPEN_THROW(miopenStatusBadParm);
+            MIOPEN_THROW(miopenStatusBadParm, "The input tensor size must equal to the hidden state size of the network in SKIP_INPUT mode!");
         }
         in_h = 0;
     }
