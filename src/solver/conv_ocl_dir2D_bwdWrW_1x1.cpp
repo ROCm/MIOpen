@@ -49,7 +49,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 {
 	ConvSolution result;
 #if TWO_PASSES
-	if (params.pad1 == 0 && params.pad0 == 0 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
+	if ((params.batch_sz >= 16 || 2*params.n_outputs > params.n_inputs) && params.pad1 == 0 && params.pad0 == 0 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
 	{
 
 		result.passes = 2;
