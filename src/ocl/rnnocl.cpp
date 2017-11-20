@@ -97,7 +97,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
         std::tie(batchvalout, outputvec) = miopen::tien<2>(yDesc[i].GetLengths());
         if(batchval != batchvalout)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "Input batch length: " + std::to_string(batchval) + ", Output batch length: " + std::to_string(batchvalout));
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Input batch length: " + std::to_string(batchval) +
+                             ", Output batch length: " + std::to_string(batchvalout));
         }
         if(i == 0)
         {
@@ -110,7 +112,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
         {
             if(batchval > in_n.back())
             {
-                MIOPEN_THROW(miopenStatusBadParm, "Incorrect input batch size at time " + std::to_string(i) + "! Batch size must not ascend!");
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Incorrect input batch size at time " + std::to_string(i) +
+                                 "! Batch size must not ascend!");
             }
         }
         in_n.push_back(batchval);
@@ -135,7 +139,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     {
         if(in_h != hy_h)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "The input tensor size must equal to the hidden state size of the network in SKIP_INPUT mode!");
+            MIOPEN_THROW(miopenStatusBadParm, "The input tensor size must equal to the hidden "
+                                              "state size of the network in SKIP_INPUT mode!");
         }
         in_h = 0;
     }
@@ -173,9 +178,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 #if MIOPEN_USE_MIOPENGEMM
     GemmGeometry gg;
     int hid_shift, hx_shift, wei_shift_bias_temp, wei_shift, prelayer_shift;
-    int wei_len = 0;
+    int wei_len   = 0;
     int wei_len_t = 0;
-    int hid_off = 0;
+    int hid_off   = 0;
     int cur_time, cur_batch;
 
     switch(rnnMode)
@@ -976,7 +981,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         std::tie(batchvalout, outputvec) = miopen::tien<2>(yDesc[i].GetLengths());
         if(batchval != batchvalout)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "Input batch length: " + std::to_string(batchval) + ", Output batch length: " + std::to_string(batchvalout));
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Input batch length: " + std::to_string(batchval) +
+                             ", Output batch length: " + std::to_string(batchvalout));
         }
         if(i == 0)
         {
@@ -989,7 +996,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         {
             if(batchval > in_n.back())
             {
-                MIOPEN_THROW(miopenStatusBadParm, "Incorrect input batch size at time " + std::to_string(i) + "! Batch size must not ascend!");
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Incorrect input batch size at time " + std::to_string(i) +
+                                 "! Batch size must not ascend!");
             }
         }
         in_n.push_back(batchval);
@@ -1014,7 +1023,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     {
         if(in_h != hy_h)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "The input tensor size must equal to the hidden state size of the network in SKIP_INPUT mode!");
+            MIOPEN_THROW(miopenStatusBadParm, "The input tensor size must equal to the hidden "
+                                              "state size of the network in SKIP_INPUT mode!");
         }
         in_h = 0;
     }
@@ -1052,9 +1062,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 #if MIOPEN_USE_MIOPENGEMM
     GemmGeometry gg;
     int hid_shift, hx_shift, wei_shift_bias_temp, wei_shift, prelayer_shift;
-    int wei_len = 0;
+    int wei_len   = 0;
     int wei_len_t = 0;
-    int hid_off = 0;
+    int hid_off   = 0;
     int cur_time, cur_batch;
 
     switch(rnnMode)
@@ -1880,7 +1890,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         {
             if(batchval > in_n.back())
             {
-                MIOPEN_THROW(miopenStatusBadParm, "Incorrect input batch size at time " + std::to_string(i) + "! Batch size must not ascend!");
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Incorrect input batch size at time " + std::to_string(i) +
+                                 "! Batch size must not ascend!");
             }
         }
         in_n.push_back(batchval);
@@ -1905,7 +1917,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     {
         if(in_h != hy_h)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "The input tensor size must equal to the hidden state size of the network in SKIP_INPUT mode!");
+            MIOPEN_THROW(miopenStatusBadParm, "The input tensor size must equal to the hidden "
+                                              "state size of the network in SKIP_INPUT mode!");
         }
         in_h = 0;
     }
@@ -1937,9 +1950,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 #if MIOPEN_USE_MIOPENGEMM
     GemmGeometry gg;
     int hid_shift, hx_shift, weitime_shift, wei_shift, prelayer_shift, pretime_shift;
-    int wei_len= 0;
+    int wei_len   = 0;
     int wei_len_t = 0;
-    int dhd_off = 0;
+    int dhd_off   = 0;
     int cur_time, cur_batch, use_time, pre_batch, use_time2, pre_batch2;
 
     switch(rnnMode)
@@ -3245,7 +3258,9 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         {
             if(batchval > in_n.back())
             {
-                MIOPEN_THROW(miopenStatusBadParm, "Incorrect input batch size at time " + std::to_string(i) + "! Batch size must not ascend!");
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Incorrect input batch size at time " + std::to_string(i) +
+                                 "! Batch size must not ascend!");
             }
         }
         in_n.push_back(batchval);
@@ -3269,7 +3284,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     {
         if(in_h != hy_h)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "The input tensor size must equal to the hidden state size of the network in SKIP_INPUT mode!");
+            MIOPEN_THROW(miopenStatusBadParm, "The input tensor size must equal to the hidden "
+                                              "state size of the network in SKIP_INPUT mode!");
         }
         in_h = 0;
     }
