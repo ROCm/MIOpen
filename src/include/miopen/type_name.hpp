@@ -24,22 +24,41 @@
  *
  *******************************************************************************/
 
-#include <miopen/solver.hpp>
-#include <ostream>
+#ifndef GUARD_TYPE_NAME_HPP
+#define GUARD_TYPE_NAME_HPP
+
+#include <string>
 
 namespace miopen {
-namespace solver {
 
-std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
+template <class MIOpen_Private_TypeName_>
+const std::string& get_type_name()
 {
-    os << k.kernel_file << ", " << k.kernel_name << " g_wk={ ";
-    for(const auto& size : k.g_wk)
-        os << size << ' ';
-    os << "}, l_wk={ ";
-    for(const auto& size : k.l_wk)
-        os << size << ' ';
-    return os << "} '" << k.comp_options << '\'';
+    static std::string name;
+
+    if(name.empty())
+    {
+#ifdef _MSC_VER
+        name = typeid(MIOpen_Private_TypeName_).name();
+        name = name.substr(7);
+#else
+        const char parameter_name[] = "MIOpen_Private_TypeName_ =";
+
+        name = __PRETTY_FUNCTION__;
+
+        auto begin  = name.find(parameter_name) + sizeof(parameter_name);
+#if(defined(__GNUC__) && !defined(__clang__) && __GNUC__ == 4 && __GNUC_MINOR__ < 7)
+        auto length = name.find_last_of(",") - begin;
+#else
+        auto length = name.find_first_of("];", begin) - begin;
+#endif
+        name        = name.substr(begin, length);
+#endif
+    }
+
+    return name;
 }
 
-} // namespace solver
 } // namespace miopen
+
+#endif

@@ -30,21 +30,16 @@
 #include <iterator>
 #include <chrono>
 
-#include "miopen/gcn_asm_utils.hpp"
-#include "miopen/env.hpp"
-#include "miopen/logger.hpp"
-#include "miopen/handle.hpp"
-#include "miopen/solver.hpp"
+#include <miopen/gcn_asm_utils.hpp>
+#include <miopen/env.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/solver.hpp>
 
 #define MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED 0
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_SEARCH_QUICK)
-
-#define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
-#define MIOPEN_LOG_W(...) MIOPEN_LOG(miopen::LoggingLevel::Warning, __VA_ARGS__)
-#define MIOPEN_LOG_I(...) MIOPEN_LOG(miopen::LoggingLevel::Info, __VA_ARGS__)
-#define MIOPEN_LOG_I2(...) MIOPEN_LOG(miopen::LoggingLevel::Info2, __VA_ARGS__)
 
 namespace miopen {
 
@@ -72,41 +67,6 @@ static bool IsReverseInOutAllowed(const ConvolutionContext& config)
 {
     return config.kernel_stride0 == 1 && config.kernel_stride1 == 1;
 }
-
-class PerformanceConfigAsmDirect3x3WrW : public PerformanceConfig
-{
-    int limit_wave_cnt;   // [0..9]
-    int reverse_inout;    // [0..1], 1 is allowed for stride=1x1 only.
-    int chunk_size;       // {16,8}, Smaller values increase register pressure.
-    int k_per_wave;       // {1,2,4,8} && ((chunk_size * k_per_wave) <= 64).
-                          // Higher values increase register pressure.
-    int pipe_lines_depth; // [1..16] && (pipe_lines_depth <= img_h).
-                          // Higher values increase register pressure.
-    int n_per_group;      // [1..8] && (n_per_group <= batch_size).
-
-    public:
-    PerformanceConfigAsmDirect3x3WrW(int lwc, int rio, int csz, int kpw, int pld, int npg);
-    PerformanceConfigAsmDirect3x3WrW() : PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1) {}
-    void Serialize(std::ostream&) const override;
-    bool Deserialize(const std::string& str) override;
-
-    // clang-format off
-    int GetLimitWaveCnt() const { return limit_wave_cnt; }
-    int GetReverseInout() const { return reverse_inout; }
-    int GetChunkSize() const { return chunk_size; }
-    int GetKPerWave() const { return k_per_wave; }
-    int GetPipeLinesDepth() const { return pipe_lines_depth; }
-    int GetNPerGroup() const { return n_per_group; } 
-    int GetCPerWave() const { assert(chunk_size); return 64 / chunk_size; } // clang-format on
-
-    void EuristicInit(const ConvolutionContext& config);
-    bool IsValidRange() const;
-    bool IsValid(const ConvolutionContext& config) const;
-    bool IsEqual(const PerformanceConfigAsmDirect3x3WrW& other) const;
-    std::string ToString() const;
-
-    friend class VirtualIterator; // Modifies private data when advancing.
-};
 
 class VirtualIterator;
 
@@ -427,50 +387,6 @@ void PerformanceConfigAsmDirect3x3WrW::EuristicInit(const ConvolutionContext& co
     MIOPEN_LOG_I(ToString());
 }
 
-static bool DeserializeField(const char separator, std::istream& from, int& to)
-{
-    std::string part;
-
-    if(!std::getline(from, part, separator))
-        return false;
-
-    const auto start = part.c_str();
-    char* end;
-    to = std::strtol(start, &end, 10);
-    return start != end;
-}
-
-void PerformanceConfigAsmDirect3x3WrW::Serialize(std::ostream& stream) const
-{
-    static const auto sep = ','; // clang-format off
-    stream << limit_wave_cnt
-        << sep << reverse_inout
-        << sep << chunk_size
-        << sep << k_per_wave
-        << sep << pipe_lines_depth
-        << sep << n_per_group; // clang-format on
-}
-
-bool PerformanceConfigAsmDirect3x3WrW::Deserialize(const std::string& str)
-{
-    PerformanceConfigAsmDirect3x3WrW out;
-    {
-        std::istringstream tmp(str);
-        const auto ok = // clang-format off
-            DeserializeField(',', tmp, out.limit_wave_cnt) &&
-            DeserializeField(',', tmp, out.reverse_inout) &&
-            DeserializeField(',', tmp, out.chunk_size) &&
-            DeserializeField(',', tmp, out.k_per_wave) &&
-            DeserializeField(',', tmp, out.pipe_lines_depth) &&
-            DeserializeField(',', tmp, out.n_per_group); // clang-format on
-
-        if(!ok)
-            return false;
-    }
-    *this = out;
-    return true;
-}
-
 std::string PerformanceConfigAsmDirect3x3WrW::ToString() const
 {
     std::ostringstream ss;
@@ -478,13 +394,8 @@ std::string PerformanceConfigAsmDirect3x3WrW::ToString() const
     return ss.str();
 }
 
-std::unique_ptr<PerformanceConfig> ConvAsmBwdWrW3x3::PerformanceConfigImpl() const
-{
-    return make_unique<PerformanceConfigAsmDirect3x3WrW>();
-}
-
-void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& params,
-                                                 PerformanceConfig& result) const
+PerformanceConfigAsmDirect3x3WrW
+ConvAsmBwdWrW3x3::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     std::string s;
     PerformanceConfigAsmDirect3x3WrW pp;
@@ -511,13 +422,12 @@ void ConvAsmBwdWrW3x3::InitPerformanceConfigImpl(const ConvolutionContext& param
         pp.EuristicInit(params);
     }
     MIOPEN_LOG_I(pp.ToString());
-    dynamic_cast<PerformanceConfigAsmDirect3x3WrW&>(result) = pp;
+    return pp;
 }
 
-bool ConvAsmBwdWrW3x3::IsValidPerformanceConfigImpl(const ConvolutionContext& problem,
-                                                    const PerformanceConfig& config) const
+bool ConvAsmBwdWrW3x3::IsValidPerformanceConfig(const ConvolutionContext& problem,
+                                                const PerformanceConfigAsmDirect3x3WrW& c) const
 {
-    const auto& c = dynamic_cast<const PerformanceConfigAsmDirect3x3WrW&>(config);
     return c.IsValidRange() && c.IsValid(problem);
 }
 
@@ -585,7 +495,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 bool ConvAsmBwdWrW3x3::IsFast(const ConvolutionContext&) const { return true; }
 
 ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
-                                           const PerformanceConfig& config) const
+                                           const PerformanceConfigAsmDirect3x3WrW& config) const
 {
     ConvSolution result;
     std::ostringstream options;
@@ -604,14 +514,13 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "weights_layout", 0);
     GenerateClangDefsym(options, "reverse_weights", 0);
     // Perf tune:
-    const auto& pp = dynamic_cast<const PerformanceConfigAsmDirect3x3WrW&>(config);
-    GenerateClangDefsym(options, "limit_wave_cnt", pp.GetLimitWaveCnt());
-    GenerateClangDefsym(options, "chunk_size", pp.GetChunkSize());
-    GenerateClangDefsym(options, "c_per_wave", pp.GetCPerWave());
-    GenerateClangDefsym(options, "k_per_wave", pp.GetKPerWave());
-    GenerateClangDefsym(options, "n_per_group", pp.GetNPerGroup());
-    GenerateClangDefsym(options, "pipe_lines_depth", pp.GetPipeLinesDepth());
-    GenerateClangDefsym(options, "reverse_inout", pp.GetReverseInout());
+    GenerateClangDefsym(options, "limit_wave_cnt", config.GetLimitWaveCnt());
+    GenerateClangDefsym(options, "chunk_size", config.GetChunkSize());
+    GenerateClangDefsym(options, "c_per_wave", config.GetCPerWave());
+    GenerateClangDefsym(options, "k_per_wave", config.GetKPerWave());
+    GenerateClangDefsym(options, "n_per_group", config.GetNPerGroup());
+    GenerateClangDefsym(options, "pipe_lines_depth", config.GetPipeLinesDepth());
+    GenerateClangDefsym(options, "reverse_inout", config.GetReverseInout());
     // Debugging:
     GenerateClangDefsym(options, "enable_debug_output", 0);
 
@@ -620,22 +529,22 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     kernel.comp_options = options.str();
 
     kernel.l_wk.clear(); // workgroupsize
-    kernel.l_wk.push_back(64 * pp.GetNPerGroup());
+    kernel.l_wk.push_back(64 * config.GetNPerGroup());
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
     kernel.g_wk.clear(); // gridsize
-    kernel.g_wk.push_back(64 * pp.GetNPerGroup());
+    kernel.g_wk.push_back(64 * config.GetNPerGroup());
 
-    if(pp.GetReverseInout() == 0)
+    if(config.GetReverseInout() == 0)
     {
-        kernel.g_wk.push_back(params.n_outputs / pp.GetCPerWave());
-        kernel.g_wk.push_back(params.n_inputs / pp.GetKPerWave());
+        kernel.g_wk.push_back(params.n_outputs / config.GetCPerWave());
+        kernel.g_wk.push_back(params.n_inputs / config.GetKPerWave());
     }
     else
     {
-        kernel.g_wk.push_back(params.n_outputs / pp.GetKPerWave());
-        kernel.g_wk.push_back(params.n_inputs / pp.GetCPerWave());
+        kernel.g_wk.push_back(params.n_outputs / config.GetKPerWave());
+        kernel.g_wk.push_back(params.n_inputs / config.GetCPerWave());
     }
 
     kernel.kernel_file = "conv3x3wrw.s";
@@ -769,8 +678,9 @@ InitRandomly(std::vector<float>& vec, const double offset = 0.0, const double fa
         *p++ = static_cast<float>((rand() * (1.0 / RAND_MAX) + offset) * factor);
 }
 
-bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfig& config) const
+PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params) const
 {
+    PerformanceConfigAsmDirect3x3WrW best_config;
     miopen::Handle profile_h;
     profile_h.EnableProfiling(true);
 
@@ -794,12 +704,11 @@ bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfi
         }
     }
     MIOPEN_LOG_W("Searching the best solution among " << n_runs_total << "...");
-    auto& best_config = dynamic_cast<PerformanceConfigAsmDirect3x3WrW&>(config);
-    bool is_passed    = false;
-    float best_time   = std::numeric_limits<float>::max();
-    size_t n_failed   = 0;
-    size_t n_current  = 0;
-    size_t n_best     = 0;
+    bool is_passed   = false;
+    float best_time  = std::numeric_limits<float>::max();
+    size_t n_failed  = 0;
+    size_t n_current = 0;
+    size_t n_best    = 0;
     Heartbeat heartbeat;
     heartbeat.Start();
     for(const auto& current_config : all_configs)
@@ -849,7 +758,9 @@ bool ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params, PerformanceConfi
                           << best_time
                           << ' '
                           << best_config);
-    return is_passed;
+    if(!is_passed)
+        MIOPEN_THROW("Search failed for PerformanceConfigAsmDirect3x3WrW");
+    return best_config;
 }
 
 } // namespace solver
