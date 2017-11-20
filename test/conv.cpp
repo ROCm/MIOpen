@@ -39,7 +39,7 @@
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
-
+#include <miopen/stringutils.hpp>
 template <class T>
 tensor<T> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
                             const tensor<T>& input,
@@ -405,9 +405,19 @@ struct conv_driver : test_driver
     tensor<T> input;
     tensor<T> weights;
     miopen::ConvolutionDescriptor filter;
+    std::string conv_mode;
+    std::string pad_mode;
     bool enable_backward_weights = false;
     bool do_backward_data        = true;
     int search                   = 0;
+
+    std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
+        {"CONV", miopenConvolution}, {"TRANS", miopenTranspose}};
+
+    std::unordered_map<std::string, miopenPaddingMode_t> pmode_lookup = {
+        {"SAME", miopenPaddingSame},
+        {"VALID", miopenPaddingValid},
+        {"DEFAULT", miopenPaddingDefault}};
 
     conv_driver()
     {
@@ -417,13 +427,14 @@ struct conv_driver : test_driver
         add(enable_backward_weights, "enable-backward-weights", flag());
         add(do_backward_data, "disable-backward-data", set_value(false));
         add(search, "search", set_value(1));
+        add(conv_mode, "cmode", generate_data({"conv", "trans"}));
+        add(pad_mode, "pmode", generate_data({"default", "same", "valid"}));
     }
 
     std::vector<miopen::ConvolutionDescriptor> get_filters()
     {
         return {miopen::ConvolutionDescriptor{0, 0, 1, 1},
                 miopen::ConvolutionDescriptor{0, 0, 2, 2},
-                // miopen::ConvolutionDescriptor{ 0, 0, 3, 3 },
                 miopen::ConvolutionDescriptor{1, 1, 1, 1},
                 miopen::ConvolutionDescriptor{1, 1, 2, 2},
                 miopen::ConvolutionDescriptor{2, 2, 1, 1},
@@ -433,25 +444,61 @@ struct conv_driver : test_driver
     void run()
     {
 
-        int input_h, input_w, wei_h, wei_w;
-        std::tie(std::ignore, std::ignore, wei_h, wei_w) =
-            miopen::tien<4>(weights.desc.GetLengths());
-        std::tie(std::ignore, std::ignore, input_h, input_w) =
-            miopen::tien<4>(input.desc.GetLengths());
+        int input_c, input_h, input_w, wei_c, wei_k, wei_h, wei_w, out_h, out_w;
+        std::tie(wei_k, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
+        std::tie(std::ignore, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());
 
-        if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
-           wei_h > 2 * filter.pad_h && wei_w > 2 * filter.pad_w &&
-           input_h >= (2 * filter.pad_h + wei_h) && input_w >= (2 * filter.pad_w + wei_w))
+        filter.mode        = cmode_lookup[miopen::ToUpper(conv_mode)];
+        filter.paddingMode = pmode_lookup[miopen::ToUpper(pad_mode)];
+
+        if(((filter.mode == miopenTranspose) && (input_c == wei_k)) ||
+           ((filter.mode == miopenConvolution) && (input_c == wei_c)))
         {
-            auto out_p = verify(verify_forward_conv<T>{input, weights, filter, 0, search});
-            for(auto& x : out_p.first)
-                x = (long(x + 19) * 2) % 17; // Clamp big numbers
-            if(do_backward_data)
-                verify(verify_backward_conv<T>{input, weights, out_p.first, filter, 0, search});
-            if(enable_backward_weights or MIOPEN_USE_MIOPENGEMM)
+            if(filter.paddingMode == miopenPaddingSame)
             {
-                verify(verify_backward_weights_conv<T>{
-                    input, weights, out_p.first, filter, 0, search});
+                if(filter.u == 0 || filter.v == 0)
+                    return;
+                filter.pad_h = (input_h % filter.u == 0)
+                                   ? (std::max(static_cast<int>(wei_h - filter.u), 0))
+                                   : (std::max(static_cast<int>(wei_h - (input_h % filter.u)), 0));
+                filter.pad_w = (input_w % filter.v == 0)
+                                   ? (std::max(static_cast<int>(wei_w - filter.v), 0))
+                                   : (std::max(static_cast<int>(wei_w - (input_w % filter.v)), 0));
+
+                out_h = std::ceil(static_cast<double>(input_h) / filter.u);
+                out_w = std::ceil(static_cast<double>(input_w) / filter.v);
+
+                if(out_h <= 0 || out_w <= 0)
+                    return;
+            }
+            else if(filter.paddingMode == miopenPaddingValid)
+            {
+                if(filter.u == 0 || filter.v == 0)
+                    return;
+                filter.pad_h = 0;
+                filter.pad_w = 0;
+
+                out_h = std::ceil(static_cast<double>(input_h - wei_h + 1) / filter.u);
+                out_w = std::ceil(static_cast<double>(input_w - wei_w + 1) / filter.v);
+
+                if(out_h <= 0 || out_w <= 0)
+                    return;
+            }
+
+            if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
+               wei_h > 2 * filter.pad_h && wei_w > 2 * filter.pad_w &&
+               input_h >= (2 * filter.pad_h + wei_h) && input_w >= (2 * filter.pad_w + wei_w))
+            {
+                auto out_p = verify(verify_forward_conv<T>{input, weights, filter, 0, search});
+                for(auto& x : out_p.first)
+                    x = (long(x + 19) * 2) % 17; // Clamp big numbers
+                if(do_backward_data)
+                    verify(verify_backward_conv<T>{input, weights, out_p.first, filter, 0, search});
+                if(enable_backward_weights or MIOPEN_USE_MIOPENGEMM)
+                {
+                    verify(verify_backward_weights_conv<T>{
+                        input, weights, out_p.first, filter, 0, search});
+                }
             }
         }
     }
