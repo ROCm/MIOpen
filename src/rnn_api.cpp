@@ -39,7 +39,7 @@ extern "C" miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rnnDe
 extern "C" miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rnnDesc)
 {
     MIOPEN_LOG_FUNCTION(rnnDesc);
-    return miopen::try_([&] { delete rnnDesc; });
+    return miopen::try_([&] { miopen_destroy_object(rnnDesc); });
 }
 
 extern "C" miopenStatus_t miopenGetRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
