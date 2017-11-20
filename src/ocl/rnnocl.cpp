@@ -139,8 +139,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     {
         if(in_h != hy_h)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "The input tensor size must equal to the hidden "
-                                              "state size of the network in SKIP_INPUT mode!");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "The input tensor size must equal to the hidden "
+                         "state size of the network in SKIP_INPUT mode!");
         }
         in_h = 0;
     }
@@ -1023,8 +1024,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     {
         if(in_h != hy_h)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "The input tensor size must equal to the hidden "
-                                              "state size of the network in SKIP_INPUT mode!");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "The input tensor size must equal to the hidden "
+                         "state size of the network in SKIP_INPUT mode!");
         }
         in_h = 0;
     }
@@ -1917,8 +1919,9 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     {
         if(in_h != hy_h)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "The input tensor size must equal to the hidden "
-                                              "state size of the network in SKIP_INPUT mode!");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "The input tensor size must equal to the hidden "
+                         "state size of the network in SKIP_INPUT mode!");
         }
         in_h = 0;
     }
@@ -3284,8 +3287,9 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     {
         if(in_h != hy_h)
         {
-            MIOPEN_THROW(miopenStatusBadParm, "The input tensor size must equal to the hidden "
-                                              "state size of the network in SKIP_INPUT mode!");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "The input tensor size must equal to the hidden "
+                         "state size of the network in SKIP_INPUT mode!");
         }
         in_h = 0;
     }
