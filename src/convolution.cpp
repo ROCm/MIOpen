@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <miopen/convolution.hpp>
+#include <miopen/solver.hpp>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 
@@ -255,7 +256,7 @@ bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& 
         //((_kernel_size0 == 1 && _kernel_size1 == 1 && (u != 1 || v != 1)) ||
 
         ((_kernel_size0 == 1 && _kernel_size1 == 1 &&
-          (u != 1 || v != 1 || ((c & 0xF) > 0) || ((k & 0xF) > 0))) ||
+          (/*u != 1 || v != 1 ||*/ ((c & 0xF) > 0) || ((k & 0xF) > 0))) ||
          // MD: Disabling all stride=2 configs
          // && ((c & 0xF) > 0 || (k & 0xF) > 0)) ||
          (_kernel_size0 == 7 && _kernel_size1 == 7 && (pad_h == 0 || pad_w == 0)) ||
@@ -509,16 +510,22 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
                                                              const TensorDescriptor& xDesc,
                                                              const TensorDescriptor& dwDesc) const
 {
-    mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
-    construct_params.doSearch(false);
-    construct_params.setStream(&handle);
-    construct_params.setOutputDescFromMLDesc(dyDesc);
-    construct_params.setInputDescFromMLDesc(xDesc);
-    construct_params.setWeightDescFromMLDesc(dwDesc);
-    construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
-    construct_params.mloConstruct();
-
-    return construct_params.getWorkSpaceSzBytes();
+    try
+    {
+        mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
+        construct_params.doSearch(false);
+        construct_params.setStream(&handle);
+        construct_params.setOutputDescFromMLDesc(dyDesc);
+        construct_params.setInputDescFromMLDesc(xDesc);
+        construct_params.setWeightDescFromMLDesc(dwDesc);
+        construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+        mloConstruct(construct_params);
+        return construct_params.getWorkSpaceSzBytes();
+    }
+    catch(const miopen::Exception&)
+    {
+        return 0;
+    }
 }
 
 size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(

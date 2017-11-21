@@ -26,8 +26,8 @@
 #ifndef GUARD_MIOPEN_DB_RECORD_HPP_
 #define GUARD_MIOPEN_DB_RECORD_HPP_
 
-#include "miopen/config.h"
-#include "miopen/logger.hpp"
+#include <miopen/config.h>
+#include <miopen/logger.hpp>
 
 #include <boost/optional.hpp>
 #include <sstream>
@@ -89,6 +89,7 @@ class DbRecord
     void WriteContents(std::ostream &stream) const;
     bool SetValues(const std::string& id, const std::string& values);
     bool GetValues(const std::string& id, std::string& values) const;
+    bool Erase(const std::string& id);
 
     DbRecord(const std::string& key_) : key(key_) {}
 
