@@ -1952,11 +1952,14 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
     GemmGeometry gg;
-    int hid_shift, hx_shift, weitime_shift, wei_shift, prelayer_shift, pretime_shift;
+    int hid_shift, hx_shift, weitime_shift, wei_shift, prelayer_shift, pretime_shift, cur_time, cur_batch;
     int wei_len   = 0;
     int wei_len_t = 0;
     int dhd_off   = 0;
-    int cur_time, cur_batch, use_time, pre_batch, use_time2, pre_batch2;
+	int use_time = 0;
+	int pre_batch = 0;
+	int use_time2 = 0;
+	int pre_batch2 = 0;
 
     switch(rnnMode)
     {
@@ -2068,11 +2071,17 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             {
                 cur_time   = ri == 0 ? ti : seqLen - 1 - ti;
                 cur_batch  = ri == 0 ? bacc : baccbi;
-                pre_batch  = ri == 0 ? bacc + in_n[ti] : baccbi - in_n[seqLen - 2 - ti];
-                use_time   = ri == 0 ? ti + 1 : seqLen - 1 - ti;
-                pre_batch2 = ri == 0 ? bacc - in_n[ti - 1] : baccbi + in_n[seqLen - 1 - ti];
-                use_time2  = ri == 0 ? ti : seqLen - ti;
                 offset     = hid_shift + cur_batch * hy_stride;
+				if (ti < seqLen - 1)
+				{
+					use_time = ri == 0 ? ti + 1 : seqLen - 1 - ti;
+					pre_batch = ri == 0 ? bacc + in_n[ti] : baccbi - in_n[seqLen - 2 - ti];
+				}
+				if (ti > 0)
+				{
+					use_time2 = ri == 0 ? ti : seqLen - ti;
+					pre_batch2 = ri == 0 ? bacc - in_n[ti - 1] : baccbi + in_n[seqLen - 1 - ti];
+				}
 
                 if(in_n[cur_time] > 0)
                 {
@@ -3311,10 +3320,11 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
     GemmGeometry gg;
-    int hid_shift, hx_shift, wei_shift, prelayer_shift, pretime_shift;
+    int hid_shift, hx_shift, wei_shift, prelayer_shift, pretime_shift, cur_time;
     int wei_len = 0;
     int hid_off = 0;
-    int cur_time, use_time, pre_batch;
+	int use_time = 0;
+	int pre_batch = 0;
     int time_mark = 0;
 
     switch(rnnMode)
@@ -3471,8 +3481,11 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 hid_shift = ri == 0 ? (li * batch_n * hy_stride + bacc * hy_stride)
                                     : (li * batch_n * hy_stride + baccbi * hy_stride);
                 cur_time  = ri == 0 ? ti : seqLen - 1 - ti;
-                pre_batch = ri == 0 ? bacc - in_n[ti - 1] : baccbi + in_n[seqLen - 1 - ti];
-                use_time  = ri == 0 ? ti : seqLen - ti;
+				if (ti > 0)
+				{
+					pre_batch = ri == 0 ? bacc - in_n[ti - 1] : baccbi + in_n[seqLen - 1 - ti];
+					use_time = ri == 0 ? ti : seqLen - ti;
+				}
 
                 if(in_n[cur_time] > 0)
                 {
