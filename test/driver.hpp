@@ -70,7 +70,7 @@ struct test_driver
 
         void post_write()
         {
-            for(auto pw : post_write_actions)
+            for(const auto& pw : post_write_actions)
             {
                 pw();
             }
@@ -578,7 +578,7 @@ struct show_help
     {
         std::cout << std::endl;
         std::string prefix = "    ";
-        for(std::string a : x)
+        for(const std::string& a : x)
         {
             std::cout << prefix;
             std::cout << a;

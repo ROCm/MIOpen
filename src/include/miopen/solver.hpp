@@ -341,21 +341,21 @@ struct ConvOclDirectFwdLegacyExhaustiveSearch : SolverBase<ConvolutionContext>
 struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
 {
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const LegacyPerformanceConfig& config) const;
+                             const LegacyPerformanceConfig& searched_params) const;
 };
 
 struct ConvOclDirectFwd1x1 : ConvOclDirectFwdLegacyExhaustiveSearch
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const LegacyPerformanceConfig& config) const;
+                             const LegacyPerformanceConfig& searched_params) const;
 };
 
 struct ConvOclDirectFwdC : ConvOclDirectFwdLegacyExhaustiveSearch
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const LegacyPerformanceConfig& config) const;
+                             const LegacyPerformanceConfig& searched_params) const;
 };
 
 struct ConvBinWinograd3x3U : SolverBase<ConvolutionContext>
