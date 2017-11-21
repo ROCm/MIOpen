@@ -80,6 +80,7 @@ class TempFile
         }
     }
 
+    inline const std::string& Path() { return _path; }
     inline operator const std::string&() { return _path; }
 
     private:
@@ -108,7 +109,6 @@ static std::string CleanupPath(const char* p);
 
 // Redirecting both input and output is not supported.
 static int ExecuteGcnAssembler(const std::string& p,
-                               std::vector<std::string>& args,
                                std::istream* in,
                                std::ostream* out);
 
@@ -145,10 +145,9 @@ bool ValidateGcnAssemblerImpl()
         return false;
     }
 
-    std::vector<std::string> args({"--version"});
     std::stringstream clang_stdout;
     std::string clang_result_line;
-    auto clang_rc = ExecuteGcnAssembler(path, args, nullptr, &clang_stdout);
+    auto clang_rc = ExecuteGcnAssembler(path + " --version", nullptr, &clang_stdout);
 
     if(clang_rc != 0)
     {
@@ -177,7 +176,7 @@ bool ValidateGcnAssembler()
     return result;
 }
 
-int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostream* out)
+static int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostream* out)
 {
 #ifdef __linux__
     const auto redirect_stdin  = (in != nullptr);
@@ -212,7 +211,7 @@ int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostream* ou
         }
     }
 
-    const auto status = pclose(pipe.release());
+    auto status = pclose(pipe.release());
     return WEXITSTATUS(status);
 #else
     (void)p;
@@ -220,29 +219,6 @@ int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostream* ou
     (void)out;
     return -1;
 #endif // __linux__
-}
-
-int ExecuteGcnAssembler(const std::string& p,
-                        std::vector<std::string>& args,
-                        std::istream* in,
-                        std::ostream* out)
-{
-    std::ostringstream cmd;
-
-    cmd << '"' << p << '"';
-
-    for(const auto& arg : args)
-        cmd << " \"" << arg << "\"";
-
-    return ExecuteGcnAssembler(cmd.str(), in, out);
-}
-
-int ExecuteGcnAssembler(std::vector<std::string>& args,
-                        std::istream* clang_stdin_content,
-                        std::ostream* clang_stdout_content)
-{
-    auto path = GetGcnAssemblerPath();
-    return ExecuteGcnAssembler(path, args, clang_stdin_content, clang_stdout_content);
 }
 
 static std::string CleanupPath(const char* p)
@@ -278,24 +254,11 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
 #ifdef __linux__
     TempFile outfile("amdgcn-asm-out-XXXXXX");
 
-    std::vector<std::string> args({
-        "-x", "assembler", "-target", "amdgcn--amdhsa",
-    });
-
-    {
-        std::istringstream iss(params);
-        std::string param;
-        while(iss >> param)
-        {
-            args.push_back(param);
-        };
-    }
-    args.emplace_back("-");
-    args.emplace_back("-o");
-    args.push_back(outfile);
+    const auto args = " -x assembler -target amdgcn--amdhsa " + params + " - -o " + outfile.Path();
 
     std::istringstream clang_stdin(source);
-    const auto clang_rc = ExecuteGcnAssembler(args, &clang_stdin, nullptr);
+    const auto clang_path = GetGcnAssemblerPath();
+    const auto clang_rc = ExecuteGcnAssembler(clang_path + " " + args, &clang_stdin, nullptr);
     if(clang_rc != 0)
         MIOPEN_THROW("Assembly error(" + std::to_string(clang_rc) + ")");
 
