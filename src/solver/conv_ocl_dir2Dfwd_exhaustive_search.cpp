@@ -43,6 +43,7 @@
 namespace miopen {
 namespace solver {
 
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
 static bool LegacyDeserializeField(const char separator, std::istream& from, int& to)
 {
     std::string part;
@@ -56,7 +57,6 @@ static bool LegacyDeserializeField(const char separator, std::istream& from, int
     return start != end;
 }
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
 bool LegacyPerformanceConfig::LegacyDeserialize(const std::string& from)
 {
     std::istringstream ss(from);
