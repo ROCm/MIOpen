@@ -428,7 +428,7 @@ struct conv_driver : test_driver
         add(do_backward_data, "disable-backward-data", set_value(false));
         add(search, "search", set_value(1));
         add(conv_mode, "cmode", generate_data({"conv", "trans"}));
-        add(pad_mode, "pmode", generate_data({"same", "valid", "default"}));
+        add(pad_mode, "pmode", generate_data({"default", "same", "valid"}));
     }
 
     std::vector<miopen::ConvolutionDescriptor> get_filters()
@@ -451,54 +451,54 @@ struct conv_driver : test_driver
         filter.mode        = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode = pmode_lookup[miopen::ToUpper(pad_mode)];
 
-        if(((filter.mode == miopenTranspose) && (input_c != wei_k)) ||
-           ((filter.mode == miopenConvolution) && (input_c != wei_c)))
-            return;
-
-        if(filter.paddingMode == miopenPaddingSame)
+        if(((filter.mode == miopenTranspose) && (input_c == wei_k)) ||
+           ((filter.mode == miopenConvolution) && (input_c == wei_c)))
         {
-            if(filter.u == 0 || filter.v == 0)
-                return;
-            filter.pad_h = (input_h % filter.u == 0)
-                               ? (std::max(static_cast<int>(wei_h - filter.u), 0))
-                               : (std::max(static_cast<int>(wei_h - (input_h % filter.u)), 0));
-            filter.pad_w = (input_w % filter.v == 0)
-                               ? (std::max(static_cast<int>(wei_w - filter.v), 0))
-                               : (std::max(static_cast<int>(wei_w - (input_w % filter.v)), 0));
-
-            out_h = std::ceil(static_cast<double>(input_h) / filter.u);
-            out_w = std::ceil(static_cast<double>(input_w) / filter.v);
-
-            if(out_h <= 0 || out_w <= 0)
-                return;
-        }
-        else if(filter.paddingMode == miopenPaddingValid)
-        {
-            if(filter.u == 0 || filter.v == 0)
-                return;
-            filter.pad_h = 0;
-            filter.pad_w = 0;
-
-            out_h = std::ceil(static_cast<double>(input_h - wei_h + 1) / filter.u);
-            out_w = std::ceil(static_cast<double>(input_w - wei_w + 1) / filter.v);
-
-            if(out_h <= 0 || out_w <= 0)
-                return;
-        }
-
-        if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
-           wei_h > 2 * filter.pad_h && wei_w > 2 * filter.pad_w &&
-           input_h >= (2 * filter.pad_h + wei_h) && input_w >= (2 * filter.pad_w + wei_w))
-        {
-            auto out_p = verify(verify_forward_conv<T>{input, weights, filter, 0, search});
-            for(auto& x : out_p.first)
-                x = (long(x + 19) * 2) % 17; // Clamp big numbers
-            if(do_backward_data)
-                verify(verify_backward_conv<T>{input, weights, out_p.first, filter, 0, search});
-            if(enable_backward_weights or MIOPEN_USE_MIOPENGEMM)
+            if(filter.paddingMode == miopenPaddingSame)
             {
-                verify(verify_backward_weights_conv<T>{
-                    input, weights, out_p.first, filter, 0, search});
+                if(filter.u == 0 || filter.v == 0)
+                    return;
+                filter.pad_h = (input_h % filter.u == 0)
+                                   ? (std::max(static_cast<int>(wei_h - filter.u), 0))
+                                   : (std::max(static_cast<int>(wei_h - (input_h % filter.u)), 0));
+                filter.pad_w = (input_w % filter.v == 0)
+                                   ? (std::max(static_cast<int>(wei_w - filter.v), 0))
+                                   : (std::max(static_cast<int>(wei_w - (input_w % filter.v)), 0));
+
+                out_h = std::ceil(static_cast<double>(input_h) / filter.u);
+                out_w = std::ceil(static_cast<double>(input_w) / filter.v);
+
+                if(out_h <= 0 || out_w <= 0)
+                    return;
+            }
+            else if(filter.paddingMode == miopenPaddingValid)
+            {
+                if(filter.u == 0 || filter.v == 0)
+                    return;
+                filter.pad_h = 0;
+                filter.pad_w = 0;
+
+                out_h = std::ceil(static_cast<double>(input_h - wei_h + 1) / filter.u);
+                out_w = std::ceil(static_cast<double>(input_w - wei_w + 1) / filter.v);
+
+                if(out_h <= 0 || out_w <= 0)
+                    return;
+            }
+
+            if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
+               wei_h > 2 * filter.pad_h && wei_w > 2 * filter.pad_w &&
+               input_h >= (2 * filter.pad_h + wei_h) && input_w >= (2 * filter.pad_w + wei_w))
+            {
+                auto out_p = verify(verify_forward_conv<T>{input, weights, filter, 0, search});
+                for(auto& x : out_p.first)
+                    x = (long(x + 19) * 2) % 17; // Clamp big numbers
+                if(do_backward_data)
+                    verify(verify_backward_conv<T>{input, weights, out_p.first, filter, 0, search});
+                if(enable_backward_weights or MIOPEN_USE_MIOPENGEMM)
+                {
+                    verify(verify_backward_weights_conv<T>{
+                        input, weights, out_p.first, filter, 0, search});
+                }
             }
         }
     }

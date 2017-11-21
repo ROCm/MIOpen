@@ -35,8 +35,7 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
             (params.kernel_stride1 == 1 && params.kernel_stride0 == 1));
 }
 
-ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params,
-                                          const PerformanceConfig&) const
+ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
 
@@ -119,7 +118,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params,
         }
         else if(in_n_vert_reads < 2)
         {
-            printf("CONFIG ERROR: not enough local memory for the configuration\n");
+            std::cout << "CONFIG ERROR: not enough local memory for the configuration\n";
             return ConvSolution(static_cast<miopenStatus_t>(-1));
         }
     }
