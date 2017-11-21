@@ -108,9 +108,7 @@ class TempFile
 static std::string CleanupPath(const char* p);
 
 // Redirecting both input and output is not supported.
-static int ExecuteGcnAssembler(const std::string& p,
-                               std::istream* in,
-                               std::ostream* out);
+static int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostream* out);
 
 std::string GetGcnAssemblerPathImpl()
 {
@@ -185,14 +183,14 @@ static int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostr
     assert(!(redirect_stdin && redirect_stdout));
 
     const auto file_mode = redirect_stdout ? "r" : "w";
-    MIOPEN_MANAGE_PTR(FILE*, pclose) pipe { popen(p.c_str(), file_mode) };
+    MIOPEN_MANAGE_PTR(FILE*, pclose) pipe{popen(p.c_str(), file_mode)};
 
     if(!pipe)
         MIOPEN_THROW("Error: X-AMDGCN-ASM: popen()");
 
     if(redirect_stdin || redirect_stdout)
     {
-        std::array<char, 1024> buffer;
+        std::array<char, 1024> buffer{};
 
         if(redirect_stdout)
         {
@@ -258,7 +256,7 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
 
     std::istringstream clang_stdin(source);
     const auto clang_path = GetGcnAssemblerPath();
-    const auto clang_rc = ExecuteGcnAssembler(clang_path + " " + args, &clang_stdin, nullptr);
+    const auto clang_rc   = ExecuteGcnAssembler(clang_path + " " + args, &clang_stdin, nullptr);
     if(clang_rc != 0)
         MIOPEN_THROW("Assembly error(" + std::to_string(clang_rc) + ")");
 
