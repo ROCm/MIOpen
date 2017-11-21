@@ -197,12 +197,8 @@ static bool IsAmdRocmOpencl(const miopen::ConvolutionContext& context)
         return false;
     }
     const auto driver_version = miopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
-    const char* delimiters    = " (),*";                 // Specific for ROCm OCL driver version.
-    if(!IsTokenWithin(driver_version, delimiters, "LC")) // Lightning Compiler.
-    {
-        return false;
-    }
-    return true;
+    const char* delimiters    = " (),*";                    // Specific for ROCm OCL driver version.
+    return IsTokenWithin(driver_version, delimiters, "LC"); // Lightning Compiler.
 }
 
 static std::ostream& operator<<(std::ostream& os, const rocm_meta_version& rmv)
