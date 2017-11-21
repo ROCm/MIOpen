@@ -179,7 +179,7 @@ struct verify_tensor_ops : tensor_ops_base<T>
                                 CtenOffset);
             }
         }
-           }
+    }
 
     tensor<T> cpu()
     {

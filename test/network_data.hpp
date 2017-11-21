@@ -249,7 +249,8 @@ inline std::set<std::vector<int>> get_weights(int n = MIOPEN_TEST_DEFAULT_BATCH_
     // clang-format on
 }
 
-inline std::set<std::vector<int>> get_bn_peract_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+inline std::set<std::vector<int>>
+get_bn_peract_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
     // clang-format off
     return 
@@ -298,7 +299,8 @@ inline std::set<std::vector<int>> get_bn_peract_inputs(int n = MIOPEN_TEST_DEFAU
     // clang-format on
 }
 
-inline std::set<std::vector<int>> get_bn_spatial_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+inline std::set<std::vector<int>>
+get_bn_spatial_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
     // clang-format off
     return 
@@ -361,6 +363,9 @@ inline std::vector<std::vector<int>> get_sub_tensor()
             {4}};
 }
 
-inline std::vector<std::vector<int>> get_tensor_offsets() { return {{0, 0}, {0, 2}, {4, 0}, {5, 7}}; }
+inline std::vector<std::vector<int>> get_tensor_offsets()
+{
+    return {{0, 0}, {0, 2}, {4, 0}, {5, 7}};
+}
 
 #endif
