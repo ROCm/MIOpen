@@ -221,7 +221,7 @@
 
 __attribute__((always_inline)) uint iDiv(uint v, uint d)
 {
-    uint r = (uint)((float)v * (1.f / (float)d) + 0.00001f);
+    uint r = (uint)((float)v * (1.f / (float)d) + 0.0000000001f);
     return (r);
 }
 
@@ -229,6 +229,35 @@ __attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
 {
     uint r = v - mul24(u, d);
     return (r);
+}
+
+//#define MLO_WRITE_UNIT 4
+#define MLO_OUT_CHANNEL_STRIDE_ALIGNED (MLO_OUT_CHANNEL_STRIDE / MLO_WRITE_UNIT)
+#define MLO_OUT_STRIDE_ALIGNED (MLO_OUT_STRIDE / MLO_WRITE_UNIT)
+
+__attribute__((reqd_work_group_size(MLO_GRP0_SZ0, MLO_GRP0_SZ1, MLO_GRP0_SZ2))) __kernel void
+MIOpenSubsample(const __global _FLOAT* __restrict in, __global _FLOAT* __restrict out)
+{
+    uint stack_pos = get_global_id(0);
+    uint batch_id  = get_global_id(1);
+    uint map_id    = iDiv(stack_pos, MLO_OUT_CHANNEL_STRIDE_ALIGNED);
+    uint pix_pos   = iMod(stack_pos, map_id, MLO_OUT_CHANNEL_STRIDE_ALIGNED);
+    uint out_y     = iDiv(pix_pos, MLO_OUT_STRIDE_ALIGNED);
+    uint out_x     = iMod(pix_pos, out_y, MLO_OUT_STRIDE_ALIGNED) * MLO_WRITE_UNIT;
+
+    uint out_off = batch_id * MLO_IN_BATCH_STRIDE + stack_pos * MLO_WRITE_UNIT;
+    uint in_y    = out_y * MLO_FILTER0_STRIDE1;
+    uint in_x    = out_x * MLO_FILTER0_STRIDE0;
+    uint in_off  = batch_id * MLO_IN0_BATCH_STRIDE + map_id * MLO_IN0_CHANNEL_STRIDE +
+                  in_y * MLO_IN0_STRIDE + in_x;
+
+    const __global _FLOAT* in_ptr = &in[in_off];
+    __global _FLOAT* out_ptr      = &out[out_off];
+
+    for(uint i = 0; i < MLO_WRITE_UNIT; ++i, in_ptr += MLO_FILTER0_STRIDE0, out_ptr++)
+    {
+        *out_ptr = *in_ptr;
+    }
 }
 
 // top_df        ==> out        in [Batch][output][out_H][out_W]
@@ -293,15 +322,16 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
 
     for(uint faked_off = local_Id0; faked_off < MLO_MAX_LOADS; faked_off += MLO_GRP_SZ0)
     {
-#if MLO_FILTER_STRIDE0 > 1 || MLO_FILTER_STRIDE1 > 1 || MLO_FILTER_STRIDE0 > 1 || \
-    MLO_FILTER_STRIDE1 > 1
-        // MLO_READ_UNIT==1
+#if MLO_FILTER_PAD0 > 0 || MLO_FILTER_PAD1 > 0 || \
+    (!TWO_PASSES && (MLO_FILTER_STRIDE0 > 1 || MLO_FILTER_STRIDE1 > 1))
 
-        uint batch_id   = iDiv(faked_off, (MLO_OUT_PAD_WIDTH * MLO_OUT_PAD_HEIGHT));
-        uint faked_off2 = iMod(faked_off, batch_id, (MLO_OUT_PAD_WIDTH * MLO_OUT_PAD_HEIGHT));
+        uint batch_id = iDiv(faked_off, ((MLO_OUT_PAD_WIDTH / MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT));
+        uint faked_off2 =
+            iMod(faked_off, batch_id, ((MLO_OUT_PAD_WIDTH / MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT));
 
-        uint out_x_off = iDiv(faked_off2, MLO_OUT_PAD_WIDTH);
-        uint out_y_off = iMod(faked_off2, out_x_off, MLO_OUT_PAD_WIDTH);
+        uint out_y_off = iDiv(faked_off2, (MLO_OUT_PAD_WIDTH / MLO_READ_UNIT));
+        uint out_x_off =
+            iMod(faked_off2, out_y_off, (MLO_OUT_PAD_WIDTH / MLO_READ_UNIT)) * MLO_READ_UNIT;
 
         uint out_image_off =
             (out_y_off + MLO_OUT_PAD_MIN_Y) * MLO_OUT_WIDTH + (out_x_off + MLO_OUT_PAD_MIN_X);
@@ -309,7 +339,7 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
         uint in_x_off = out_x_off * MLO_FILTER_STRIDE0 + MLO_IN_PAD_MIN_X;
         uint in_y_off = out_y_off * MLO_FILTER_STRIDE1 + MLO_IN_PAD_MIN_Y;
 
-        uint in_image_off = in_y_off * MLO_IN_WIDTH + in_x_off;
+        uint in_image_off = in_y_off * MLO_IN_STRIDE + in_x_off;
 
 #else
         uint batch_id      = iDiv(faked_off, (MLO_OUT_CHANNEL_READ_SZ));           // batch
@@ -328,7 +358,7 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
 
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
             {
-                load_buf_bot[c * MLO_READ_UNIT + i] = bot1[i];
+                load_buf_bot[c * MLO_READ_UNIT + i] = bot1[i * MLO_FILTER_STRIDE0];
             }
         }
 
@@ -365,35 +395,20 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
 #define LAST_PIXELS (MLO_OUT_CHANNEL_STRIDE % MLO_READ_UNIT)
 
 // PAD/STRIDE never goes to following since MLO_READ_UNIT == 1
-#if LAST_PIXELS > 0
+#if LAST_PIXELS > 0 && MLO_FILTER_PAD0 == 0 && MLO_FILTER_PAD1 == 0 && MLO_FILTER_STRIDE0 == 1 && \
+    MLO_FILTER_STRIDE1 == 1
 #define MLO_MAX_LOADS2 (MLO_BATCH_SZ * LAST_PIXELS)
 #define MLO_LAST_PIXEL_OFFSET (MLO_OUT_CHANNEL_STRIDE - LAST_PIXELS)
 
     for(uint faked_off = local_Id0; faked_off < MLO_MAX_LOADS2; faked_off += MLO_GRP_SZ0)
     {
-#if MLO_FILTER_STRIDE0 > 1 || MLO_FILTER_STRIDE1 > 1 || MLO_FILTER_STRIDE0 > 1 || \
-    MLO_FILTER_STRIDE1 > 1
-        uint batch_id   = iDiv(faked_off, (MLO_OUT_PAD_WIDTH * MLO_OUT_PAD_HEIGHT));
-        uint faked_off2 = iMod(faked_off, batch_id, (MLO_OUT_PAD_WIDTH * MLO_OUT_PAD_HEIGHT));
 
-        uint out_x_off = iDiv(faked_off2, MLO_OUT_PAD_WIDTH);
-        uint out_y_off = iMod(faked_off2, out_x_off, MLO_OUT_PAD_WIDTH);
-
-        uint out_image_off =
-            (out_y_off + MLO_OUT_PAD_MIN_Y) * MLO_OUT_WIDTH + (out_x_off + MLO_OUT_PAD_MIN_X);
-
-        uint in_x_off = out_x_off * MLO_FILTER_STRIDE0 + MLO_IN_PAD_MIN_X;
-        uint in_y_off = out_y_off * MLO_FILTER_STRIDE1 + MLO_IN_PAD_MIN_Y;
-
-        uint in_image_off = in_y_off * MLO_IN_WIDTH + in_x_off;
-
-#else
         uint batch_id = iDiv(faked_off, (LAST_PIXELS)); // batch
         uint image_off =
             iMod(faked_off, batch_id, (LAST_PIXELS)) + MLO_LAST_PIXEL_OFFSET; // pixel offset
         uint in_image_off  = image_off * 1;
         uint out_image_off = image_off * 1;
-#endif
+
         uint glb_in_off = glb_in_off0 + batch_id * MLO_IN_BATCH_STRIDE + in_image_off;
 
         // Address offset mode is not used in shader compiler
@@ -557,15 +572,17 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
     for(uint faked_off = (local_Id0 % (MLO_GRP_SZ0 / 4)); faked_off < MLO_MAX_LOADS;
         faked_off += (MLO_GRP_SZ0 / 4))
     {
-#if MLO_FILTER_STRIDE0 > 1 || MLO_FILTER_STRIDE1 > 1 || MLO_FILTER_STRIDE0 > 1 || \
-    MLO_FILTER_STRIDE1 > 1
+#if MLO_FILTER_PAD0 > 0 || MLO_FILTER_PAD1 > 0 || \
+    (!TWO_PASSES && (MLO_FILTER_STRIDE0 > 1 || MLO_FILTER_STRIDE1 > 1))
 
-#if MLO_READ_UNIT == 1
-        uint batch_id   = iDiv(faked_off, (MLO_OUT_PAD_WIDTH * MLO_OUT_PAD_HEIGHT));
-        uint faked_off2 = iMod(faked_off, batch_id, (MLO_OUT_PAD_WIDTH * MLO_OUT_PAD_HEIGHT));
+#if 1 // MLO_READ_UNIT == 1
+        uint batch_id = iDiv(faked_off, ((MLO_OUT_PAD_WIDTH / MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT));
+        uint faked_off2 =
+            iMod(faked_off, batch_id, ((MLO_OUT_PAD_WIDTH / MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT));
 
-        uint out_x_off = iDiv(faked_off2, MLO_OUT_PAD_WIDTH);
-        uint out_y_off = iMod(faked_off2, out_x_off, MLO_OUT_PAD_WIDTH);
+        uint out_y_off = iDiv(faked_off2, (MLO_OUT_PAD_WIDTH / MLO_READ_UNIT));
+        uint out_x_off =
+            iMod(faked_off2, out_y_off, (MLO_OUT_PAD_WIDTH / MLO_READ_UNIT)) * MLO_READ_UNIT;
 
         uint out_image_off =
             (out_y_off + MLO_OUT_PAD_MIN_Y) * MLO_OUT_WIDTH + (out_x_off + MLO_OUT_PAD_MIN_X);
@@ -573,7 +590,7 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
         uint in_x_off = out_x_off * MLO_FILTER_STRIDE0 + MLO_IN_PAD_MIN_X;
         uint in_y_off = out_y_off * MLO_FILTER_STRIDE1 + MLO_IN_PAD_MIN_Y;
 
-        uint in_image_off = in_y_off * MLO_IN_WIDTH + in_x_off;
+        uint in_image_off = in_y_off * MLO_IN_STRIDE + in_x_off;
 #endif
 #if 0 // PER_ROW which will be enabled after SGPR offset is enabled.
         uint batch_id   = iDiv( faked_off,  (MLO_OUT_PAD_WIDTH )); 
@@ -593,7 +610,9 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
         //uint glb_out_off = glb_out_off0 + batch_id * MLO_OUT_BATCH_STRIDE  + out_image_off;
 
 #endif
+
 #else
+
         uint batch_id      = iDiv(faked_off, (MLO_OUT_CHANNEL_READ_SZ));           // batch
         uint image_off     = iMod(faked_off, batch_id, (MLO_OUT_CHANNEL_READ_SZ)); // pixel offset
         uint in_image_off  = image_off * MLO_READ_UNIT;
@@ -653,34 +672,18 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
 #define LAST_PIXELS (MLO_OUT_CHANNEL_STRIDE % MLO_READ_UNIT)
 
 // PAD/STRIDE never goes to LAST_PIXELS
-#if LAST_PIXELS > 0
+#if LAST_PIXELS > 0 && MLO_FILTER_PAD0 == 0 && MLO_FILTER_PAD1 == 0 && MLO_FILTER_STRIDE0 == 1 && \
+    MLO_FILTER_STRIDE1 == 1
 #define MLO_MAX_LOADS2 (MLO_BATCH_SZ * LAST_PIXELS)
 #define MLO_LAST_PIXEL_OFFSET (MLO_OUT_CHANNEL_STRIDE - LAST_PIXELS)
 
     for(uint faked_off = (local_Id0 % (MLO_GRP_SZ0 / 4)); faked_off < MLO_MAX_LOADS2;
         faked_off += (MLO_GRP_SZ0 / 4))
     {
-#if MLO_FILTER_STRIDE0 > 1 || MLO_FILTER_STRIDE1 > 1 || MLO_FILTER_STRIDE0 > 1 || \
-    MLO_FILTER_STRIDE1 > 1
-        uint batch_id   = iDiv(faked_off, (MLO_OUT_PAD_WIDTH * MLO_OUT_PAD_HEIGHT));
-        uint faked_off2 = iMod(faked_off, batch_id, (MLO_OUT_PAD_WIDTH * MLO_OUT_PAD_HEIGHT));
-
-        uint out_x_off = iDiv(faked_off2, MLO_OUT_PAD_WIDTH);
-        uint out_y_off = iMod(faked_off2, x_off, MLO_OUT_PAD_WIDTH) + MLO_OUT_PAD_MIN_X;
-
-        uint out_image_off =
-            (out_y_off + MLO_OUT_PAD_MIN_X) * MLO_OUT_WIDTH + out_x_off + MLO_OUT_PAD_MIN_X;
-
-        uint in_x_off = out_x_off * MLO_FILTER_STRIDE0 + MLO_IN_PAD_MIN_X;
-        uint in_y_off = out_y_off * MLO_FILTER_STRIDE1 + MLO_IN_PAD_MIN_Y;
-
-        uint in_image_off = in_y_off * MLO_IN_WIDTH + in_x_off;
-
-#else
-        uint batch_id      = iDiv(faked_off, (LAST_PIXELS));           // batch
-        uint image_off     = iMod(faked_off, batch_id, (LAST_PIXELS)); // pixel offset
+        uint batch_id  = iDiv(faked_off, (LAST_PIXELS));           // batch
+        uint image_off = iMod(faked_off, batch_id, (LAST_PIXELS)); // pixel offset
         image_off += MLO_LAST_PIXEL_OFFSET;
-#endif
+
         uint glb_in_off = glb_in_off0 + batch_id * MLO_IN_BATCH_STRIDE + image_off * 1;
 
         // Address offset mode is not used in shader compiler
