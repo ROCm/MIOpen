@@ -85,7 +85,7 @@ struct verify_tensor_copy
                 csuper[cindex] = asuper[aindex];
             }
         }
-           }
+    }
 
     tensor<T> cpu()
     {
