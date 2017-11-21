@@ -44,7 +44,7 @@ struct rand_gen
         static_assert(sizeof...(Ts) < 6, "Dimensions in rand_gen must be less than 6.");
         std::array<unsigned long, sizeof...(Ts)> left = {{Xs...}};
         std::array<unsigned long, 5> right            = {{613, 547, 701, 877, 1049}};
-        unsigned long dot = std::inner_product(left.begin(), left.end(), right.begin(), 173u);
+        unsigned long dot = std::inner_product(left.begin(), left.end(), right.begin(), 173ul);
         return double(dot % 17);
     };
 };
