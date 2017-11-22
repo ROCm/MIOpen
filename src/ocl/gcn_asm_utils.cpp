@@ -165,7 +165,7 @@ class Pipe
         }
         if(close(fd))
         {
-            std::fprintf(stderr, "Error closing pipe");
+            std::cerr << "Error closing pipe\n";
         }
         closed = true;
     }

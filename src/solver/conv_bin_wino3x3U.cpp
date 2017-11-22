@@ -49,10 +49,24 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
     const auto device_is_gfx9_no_xnack = (name == "gfx900");
     const bool device_is_gfx8_no_xnack =
         (name == "gfx800" || name == "gfx802" || name == "gfx803" || name == "gfx804");
-    if(!device_is_gfx8_no_xnack && !device_is_gfx9_no_xnack)
+
+    bool ok = false;
+    if(device_is_gfx8_no_xnack)
     {
-        return false;
+        ok = (params.rmv == rocm_meta_version::V1 || params.rmv == rocm_meta_version::V2 ||
+              params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0);
     }
+    else if(device_is_gfx9_no_xnack)
+    {
+        ok = (params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0);
+    }
+    else
+    {
+        // nop
+    }
+    if(!ok)
+        return false;
+
     // Check if kernel is suitable for the problem description
     // and able to correctly run with given parameters.
     const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
@@ -78,8 +92,7 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
     // both directions.
 }
 
-ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params,
-                                              const PerformanceConfig&) const
+ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
     const auto n_groups = params.GetStream().GetMaxComputeUnits();
@@ -100,21 +113,26 @@ ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params,
     kernel.kernel_name = "sp3AsmConv3x3F";
     if(name.find("gfx8") != std::string::npos)
     {
-        if(params.rmv == V1)
+        if(params.rmv == rocm_meta_version::V1)
             kernel.kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so";
-        else if(params.rmv == V2)
+        else if(params.rmv == rocm_meta_version::V2)
             kernel.kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so";
-        else if(params.rmv == V3)
+        else if(params.rmv == rocm_meta_version::V3)
             kernel.kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so";
+        else if(params.rmv == rocm_meta_version::AMDHSA_1_0)
+            kernel.kernel_file = "conv_3x3_wheel_alpha_v3_0b_gfx803_md10.so";
+        else
+            MIOPEN_THROW("conv_3x3_wheel_alpha_v3_0b_gfx803: Unsupported metadata version.");
     }
     else
     {
-        if(params.rmv == V1 || params.rmv == V2)
-            MIOPEN_THROW("Metadata versions v1 or v2 is not supported on gfx9 devices");
-
-        kernel.kernel_file = "conv_3x3_wheel_alpha_v7_0_3b_gfx900.so";
+        if(params.rmv == rocm_meta_version::V3)
+            kernel.kernel_file = "conv_3x3_wheel_alpha_v7_0_3b_gfx900.so";
+        else if(params.rmv == rocm_meta_version::AMDHSA_1_0)
+            kernel.kernel_file = "conv_3x3_wheel_alpha_v7_0_3b_gfx900_md10.so";
+        else
+            MIOPEN_THROW("conv_3x3_wheel_alpha_v7_0_3b_gfx900: Unsupported metadata version.");
     }
-
     result.construction_params.push_back(kernel);
     return result;
 }

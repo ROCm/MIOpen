@@ -24,37 +24,33 @@
 *
 *******************************************************************************/
 
+#include <miopen/solver.hpp>
+
 #include <stdlib.h>
 #include <functional>
 #include <sstream>
 #include <typeinfo>
 
 #include "get_handle.hpp"
-#include "miopen/mlo_internal.hpp"
-#include "miopen/solver.hpp"
+#include <miopen/mlo_internal.hpp>
 #include "temp_file_path.hpp"
 #include "test.hpp"
 
 namespace miopen {
 namespace tests {
-class TrivialSlowTestSolver : public solver::Solver
+class TrivialSlowTestSolver : public solver::SolverBase<ConvolutionContext>
 {
     public:
     static const char* FileName() { return "TrivialSlowTestSolver"; }
-    const char* SolverId() const override { return FileName(); }
-    bool IsFast(const ConvolutionContext& context) const override { return context.in_height == 1; }
-    bool IsApplicable(const ConvolutionContext& context) const override
-    {
-        return context.in_width == 1;
-    }
+    bool IsFast(const ConvolutionContext& context) const { return context.in_height == 1; }
+    bool IsApplicable(const ConvolutionContext& context) const { return context.in_width == 1; }
 
-    solver::ConvSolution GetSolution(const ConvolutionContext&,
-                                     const solver::PerformanceConfig&) const override
+    solver::ConvSolution GetSolution(const ConvolutionContext&) const
     {
         solver::ConvSolution ret;
         solver::KernelInfo kernel;
 
-        kernel.kernel_file  = SolverId();
+        kernel.kernel_file  = FileName();
         kernel.comp_options = " ";
         ret.construction_params.push_back(kernel);
 
@@ -62,23 +58,18 @@ class TrivialSlowTestSolver : public solver::Solver
     }
 };
 
-class TrivialTestSolver : public solver::Solver
+class TrivialTestSolver : public solver::SolverBase<ConvolutionContext>
 {
     public:
     static const char* FileName() { return "TrivialTestSolver"; }
-    const char* SolverId() const override { return FileName(); }
-    bool IsApplicable(const ConvolutionContext& context) const override
-    {
-        return context.in_width == 1;
-    }
+    bool IsApplicable(const ConvolutionContext& context) const { return context.in_width == 1; }
 
-    solver::ConvSolution GetSolution(const ConvolutionContext&,
-                                     const solver::PerformanceConfig&) const override
+    solver::ConvSolution GetSolution(const ConvolutionContext&) const
     {
         solver::ConvSolution ret;
         solver::KernelInfo kernel;
 
-        kernel.kernel_file  = SolverId();
+        kernel.kernel_file  = FileName();
         kernel.comp_options = " ";
         ret.construction_params.push_back(kernel);
 
@@ -86,58 +77,46 @@ class TrivialTestSolver : public solver::Solver
     }
 };
 
-class TestConfig : public solver::PerformanceConfig
+struct TestConfig : solver::Serializable<TestConfig>
 {
-    public:
     std::string str;
 
-    void Serialize(std::ostream& s) const override { s << str; }
-
-    bool Deserialize(const std::string& s) override
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
     {
-        std::istringstream ss(s);
-        std::string temp;
-
-        if(!std::getline(ss, temp))
-            return false;
-
-        str = temp;
-        return true;
+        f(self.str, "str");
     }
 };
 
-class SearchableTestSolver : public solver::Solver
+class SearchableTestSolver : public solver::SolverBase<ConvolutionContext>
 {
     public:
     static int searches_done() { return _serches_done; }
     static const char* FileName() { return "SearchableTestSolver"; }
     static const char* NoSearchFileName() { return "SearchableTestSolver.NoSearch"; }
-    const char* SolverId() const override { return FileName(); }
-    bool IsSearchable() const override { return true; }
-    std::unique_ptr<solver::PerformanceConfig> PerformanceConfigImpl() const override
+
+    TestConfig GetPerformanceConfig(const ConvolutionContext&) const
     {
-        return miopen::make_unique<TestConfig>();
+        TestConfig config{};
+        config.str = NoSearchFileName();
+        return config;
     }
 
-    void InitPerformanceConfigImpl(const ConvolutionContext&,
-                                   solver::PerformanceConfig& config_) const override
+    bool IsValidPerformanceConfig(const ConvolutionContext&, const TestConfig&) const
     {
-        auto& config = dynamic_cast<TestConfig&>(config_);
-        config.str   = NoSearchFileName();
-    }
-
-    bool Search(const ConvolutionContext&, solver::PerformanceConfig& config_) const override
-    {
-        auto& config = dynamic_cast<TestConfig&>(config_);
-        config.str   = SolverId();
-        _serches_done++;
         return true;
     }
 
-    solver::ConvSolution GetSolution(const ConvolutionContext&,
-                                     const solver::PerformanceConfig& config_) const override
+    TestConfig Search(const ConvolutionContext&) const
     {
-        const auto& config = dynamic_cast<const TestConfig&>(config_);
+        TestConfig config;
+        config.str = FileName();
+        _serches_done++;
+        return config;
+    }
+
+    solver::ConvSolution GetSolution(const ConvolutionContext&, const TestConfig& config) const
+    {
 
         solver::ConvSolution ret;
         solver::KernelInfo kernel;
@@ -159,26 +138,24 @@ class TrivialConstruct : public mlo_construct_direct2D
 {
     public:
     TrivialConstruct(const char* db_path, int dir, bool do_bias = false)
-        : mlo_construct_direct2D(dir, do_bias), _db_path(db_path)
+        : mlo_construct_direct2D(dir, do_bias)
     {
+        _db_path = db_path;
     }
 
-    const std::vector<std::reference_wrapper<const solver::Solver>>& SolverStore() const override
+    solver::ConvSolution FindSolution()
     {
-        static const std::vector<std::reference_wrapper<const solver::Solver>> data{
-            StaticContainer<const TrivialSlowTestSolver>::Instance(),
-            StaticContainer<const TrivialTestSolver>::Instance(),
-            StaticContainer<const SearchableTestSolver>::Instance(),
-        };
-
-        return data;
+        // clang-format off
+        return miopen::solver::SearchForSolution<
+            TrivialSlowTestSolver,
+            TrivialTestSolver,
+            SearchableTestSolver
+        >(_search_params, this->GetDbRecord());
+        // clang-format on
     }
 
     protected:
-    std::string db_path() const override { return _db_path; }
-
-    private:
-    const char* _db_path;
+    std::string db_path() const { return _db_path; }
 };
 
 class SolverTest
@@ -226,7 +203,7 @@ class SolverTest
         construct.setStream(&get_handle());
 
         context_filler(construct);
-        construct.mloConstruct();
+        mloConstruct(construct);
 
         EXPECT_EQUAL(construct.getKernelFile(), expected_kernel);
     }
