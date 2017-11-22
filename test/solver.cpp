@@ -150,7 +150,7 @@ class TrivialConstruct : public mlo_construct_direct2D
             TrivialSlowTestSolver,
             TrivialTestSolver,
             SearchableTestSolver
-        >(_search_params, this->GetDbRecord());
+        >(_search_params, this->GetDb());
         // clang-format on
     }
 
