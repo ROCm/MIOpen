@@ -2484,11 +2484,11 @@ struct lstm_driver : test_driver
         // this->batch_factor = 4;
         std::vector<int> modes(2, 0);
         modes[1] = 1;
-        std::vector<int> defaultBS(1, 5);
+        std::vector<int> defaultBS(2, 17);
 
         // this->verbose=true;
-        add(batchSize, "batch-size", generate_data(get_lstm_batchSize(), {5}));
-        add(seqLength, "seq-len", generate_data(get_lstm_seq_len(), {1}));
+        add(batchSize, "batch-size", generate_data(get_lstm_batchSize(), {17}));
+        add(seqLength, "seq-len", generate_data(get_lstm_seq_len(), {2}));
         add(inVecLen, "vector-len", generate_data(get_lstm_vector_len()));
         add(hiddenSize, "hidden-size", generate_data(get_lstm_hidden_size()));
         add(numLayers, "num-layers", generate_data(get_lstm_num_layers()));
