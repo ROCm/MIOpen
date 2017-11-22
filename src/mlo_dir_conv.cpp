@@ -81,7 +81,7 @@ miopen::DbRecord mlo_construct_direct2D::GetDbRecord() const
 #else
     return {db_path(), _search_params};
 #endif
-            }
+}
 
 /*
    construction has been split into 2
@@ -90,7 +90,7 @@ miopen::DbRecord mlo_construct_direct2D::GetDbRecord() const
    */
 miopen::solver::ConvSolution mlo_construct_direct2D::FindSolution()
 {
-        // clang-format off
+    // clang-format off
     return miopen::solver::SearchForSolution<
         miopen::solver::ConvAsm3x3U,
         miopen::solver::ConvAsm5x10u2v2f1,
@@ -103,7 +103,7 @@ miopen::solver::ConvSolution mlo_construct_direct2D::FindSolution()
         miopen::solver::ConvOclDirectFwdC,
         miopen::solver::ConvOclDirectFwd
     >(_search_params, this->GetDbRecord());
-        // clang-format on
+    // clang-format on
 }
 
 miopen::solver::ConvSolution mlo_construct_winograd::FindSolution()
@@ -170,12 +170,12 @@ static bool IsTokenWithin(const std::string& s, const char* delimiters, const st
         if(tok_begin == std::string::npos)
         {
             break;
-}
+        }
         cursor            = s.find_first_of(delimiters, tok_begin);
         std::string token = (cursor == std::string::npos) ? s.substr(tok_begin)
                                                           : s.substr(tok_begin, cursor - tok_begin);
         if(token == find_tok)
-{
+        {
             return true;
         }
     } while(cursor != std::string::npos);
@@ -202,7 +202,7 @@ static bool IsAmdRocmOpencl(const miopen::ConvolutionContext& context)
 }
 
 static std::ostream& operator<<(std::ostream& os, const rocm_meta_version& rmv)
-    {
+{
     switch(rmv)
     {
     case rocm_meta_version::Unknown: return os << "Unknown";
@@ -220,7 +220,7 @@ static rocm_meta_version DetectAmdRocmOpenclVersion(const miopen::ConvolutionCon
     const auto platform                = miopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
     const std::string platform_version = miopen::GetPlatformInfo<CL_PLATFORM_VERSION>(
         platform); // e.g. "OpenCL 2.0 AMD-APP.internal (2334.0)"
-    size_t num_begin = platform_version.find('(');
+    size_t num_begin      = platform_version.find('(');
     rocm_meta_version rmv = rocm_meta_version::Unknown;
     if(num_begin != std::string::npos)
     {
@@ -233,21 +233,21 @@ static rocm_meta_version DetectAmdRocmOpenclVersion(const miopen::ConvolutionCon
             rmv = rocm_meta_version::V3;
         else
             rmv = rocm_meta_version::AMDHSA_1_0;
-        }
+    }
     MIOPEN_LOG_I(rmv);
     return rmv;
-        }
+}
 #endif // MIOPEN_BACKEND_OPENCL
 
 bool mlo_construct_direct2D::mloIsAmdRocmOpencl(rocm_meta_version& rmv) const
-        {
+{
 #if MIOPEN_BACKEND_OPENCL
     static const bool ret_bool = IsAmdRocmOpencl(_search_params);
     if(ret_bool)
     {
         static const rocm_meta_version ret_rmv = DetectAmdRocmOpenclVersion(_search_params);
         rmv                                    = ret_rmv;
-        }
+    }
     return ret_bool;
 #else
     (void)rmv; // We don't care about metada version
