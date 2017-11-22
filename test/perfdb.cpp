@@ -259,6 +259,33 @@ public:
     }
 };
 
+class DbRemoveTest : public DbTest
+{
+public:
+    inline void Run()
+    {
+        (void)std::ofstream(temp_file_path());
+
+        DbRecord record(key());
+        EXPECT(record.SetValues(id0(), value0()));
+        EXPECT(record.SetValues(id1(), value1()));
+
+        {
+            Db db(temp_file_path());
+
+            EXPECT(db.StoreRecord(record));
+        }
+
+        {
+            Db db(temp_file_path());
+
+            EXPECT(db.FindRecord(key()));
+            EXPECT(db.RemoveRecord(key()));
+            EXPECT(!db.FindRecord(key()));
+        }
+    }
+};
+
 class DbReadTest : public DbTest
 {
     public:
@@ -347,7 +374,7 @@ class DbOperationsTest : public DbTest
 
         {
             TestData read0, read1, read_missing, read_missing_cmp(read_missing);
-            DbRecord record(temp_file_path(), key());
+            Db db(temp_file_path());
 
             // Loading by id not present in record should execute well but return false as nothing
             // was read.
@@ -356,31 +383,31 @@ class DbOperationsTest : public DbTest
             // In such case value should not be changed.
             EXPECT_EQUAL(read_missing, read_missing_cmp);
 
-            EXPECT(record.Load(id0(), read0));
-            EXPECT(record.Load(id1(), read1));
+            EXPECT(db.Load(key(), id0(), read0));
+            EXPECT(db.Load(key(), id1(), read1));
 
             EXPECT_EQUAL(read0, value0());
             EXPECT_EQUAL(read1, value1());
 
-            EXPECT(record.Remove(id0()));
+            EXPECT(db.Remove(key(), id0()));
 
             read0 = read_missing_cmp;
 
-            EXPECT(!record.Load(id0(), read0));
-            EXPECT(record.Load(id1(), read1));
+            EXPECT(!db.Load(key(), id0(), read0));
+            EXPECT(db.Load(key(), id1(), read1));
 
             EXPECT_EQUAL(read0, read_missing_cmp);
             EXPECT_EQUAL(read1, value1());
 
-            EXPECT(record.Remove(id0()));
+            EXPECT(!db.Remove(key(), id0()));
         }
 
         {
             TestData read0, read1, read_missing_cmp(read0);
-            DbRecord record(temp_file_path(), key());
+            Db db(temp_file_path());
 
-            EXPECT(!record.Load(id0(), read0));
-            EXPECT(record.Load(id1(), read1));
+            EXPECT(!db.Load(key(), id0(), read0));
+            EXPECT(db.Load(key(), id1(), read1));
 
             EXPECT_EQUAL(read0, read_missing_cmp);
             EXPECT_EQUAL(read1, value1());
@@ -396,6 +423,7 @@ int main()
     miopen::tests::DbFindTest().Run();
     miopen::tests::DbStoreTest().Run();
     miopen::tests::DbUpdateTest().Run();
+    miopen::tests::DbRemoveTest().Run();
     miopen::tests::DbReadTest().Run();
     miopen::tests::DbWriteTest().Run();
     miopen::tests::DbOperationsTest().Run();

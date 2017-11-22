@@ -123,14 +123,14 @@ const std::string& SolverDbId(Solver solver)
 }
 
 template <class Solver, class Context>
-auto FindSolutionImpl(rank<1>, Solver s, const Context& context, DbRecord& dbRecord)
+auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
     -> decltype(s.GetSolution(context, s.Search(context)))
 {
     const FindEnforce enforce = GetFindEnforce();
     MIOPEN_LOG_I(SolverDbId(s));
     if(enforce == FindEnforce::Clean)
     {
-        if(dbRecord.Remove(SolverDbId(s)))
+        if(db.Remove(context, SolverDbId(s)))
             MIOPEN_LOG_W("Perf Db: record removed: " << SolverDbId(s) << ", enforce: " << enforce);
     }
     else
@@ -144,7 +144,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, DbRecord& dbRec
         {
             using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
             PerformanceConfig config{};
-            if(dbRecord.Load(SolverDbId(s), config))
+            if(db.Load(context, SolverDbId(s), config))
             {
                 MIOPEN_LOG_I("Perf Db: record loaded: " << SolverDbId(s));
                 if(s.IsValidPerformanceConfig(context, config))
@@ -163,7 +163,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, DbRecord& dbRec
             try
             {
                 auto c = s.Search(context);
-                dbRecord.Store(SolverDbId(s), c);
+                db.Store(context, SolverDbId(s), c);
                 return s.GetSolution(context, c);
             }
             catch(const miopen::Exception& ex)
@@ -176,7 +176,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, DbRecord& dbRec
 }
 
 template <class Solver, class Context>
-auto FindSolutionImpl(rank<0>, Solver s, const Context& context, DbRecord&)
+auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&)
     -> decltype(s.GetSolution(context))
 {
     MIOPEN_LOG_I("Not searchable: " << SolverDbId(s));
@@ -190,21 +190,21 @@ auto FindSolutionImpl(rank<0>, Solver s, const Context& context, DbRecord&)
 /// Could take long if an exhaustive search is requested/performed.
 /// May read/write perfDb.
 template <class Solver, class Context>
-ConvSolution FindSolution(Solver s, const Context& context, DbRecord& dbRecord)
+ConvSolution FindSolution(Solver s, const Context& context, Db& db)
 {
     static_assert(std::is_empty<Solver>{} && std::is_trivially_constructible<Solver>{},
                   "Solver must be stateless");
     // TODO: This assumes all solutions are ConvSolution
-    return FindSolutionImpl(rank<1>{}, s, context, dbRecord);
+    return FindSolutionImpl(rank<1>{}, s, context, db);
 }
 
 // Search for a solution among many solvers
 template <class... Solvers, class Context>
-auto SearchForSolution(const Context& search_params, miopen::DbRecord dbRecord) ->
-    typename std::common_type<decltype(FindSolution(Solvers{}, search_params, dbRecord))...>::type
+auto SearchForSolution(const Context& search_params, miopen::Db db) ->
+    typename std::common_type<decltype(FindSolution(Solvers{}, search_params, db))...>::type
 {
     using Solution = typename std::common_type<decltype(
-        FindSolution(Solvers{}, search_params, dbRecord))...>::type;
+        FindSolution(Solvers{}, search_params, db))...>::type;
     Solution solution{miopenStatusUnknownError};
 
 // Using const here causes gcc to ICE
@@ -218,7 +218,7 @@ auto SearchForSolution(const Context& search_params, miopen::DbRecord dbRecord) 
         if(!solution.Succeeded() && solver.IsApplicable(search_params) &&
            (no_perf_filtering || solver.IsFast(search_params)))
         {
-            solution = FindSolution(solver, search_params, dbRecord);
+            solution = FindSolution(solver, search_params, db);
             if(solution.Succeeded() && !search_params.n_passes && solution.construction_params.empty())
             {
                 MIOPEN_THROW(std::string("Internal error in solver: ") + SolverDbId(solver));
@@ -401,7 +401,7 @@ struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirec
     int GetChunkSize() const { return chunk_size; }
     int GetKPerWave() const { return k_per_wave; }
     int GetPipeLinesDepth() const { return pipe_lines_depth; }
-    int GetNPerGroup() const { return n_per_group; } 
+    int GetNPerGroup() const { return n_per_group; }
     int GetCPerWave() const { assert(chunk_size); return 64 / chunk_size; } // clang-format on
 
     void EuristicInit(const ConvolutionContext& config);
