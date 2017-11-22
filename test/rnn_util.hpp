@@ -73,7 +73,7 @@ inline std::vector<int> get_lstm_num_layers() { return {{1, 5}}; }
 inline std::vector<int> get_lstm_batchSize()
 {
     // return {16};
-    return {{33, 127}};
+    return {{53}};
 }
 
 inline std::vector<int> get_lstm_seq_len()
@@ -90,7 +90,7 @@ inline std::vector<int> get_lstm_vector_len()
 
 inline std::vector<int> get_lstm_hidden_size()
 {
-    return {257};
+    return {67};
     // return {{16,64,128,256,1760,2048,2560}};
 }
 
@@ -100,7 +100,7 @@ inline std::vector<int> get_gru_num_layers() { return {{1, 5}}; }
 inline std::vector<int> get_gru_batchSize()
 {
     // return {16};
-    return {{17, 91}};
+    return {{53}};
 }
 
 inline std::vector<int> get_gru_seq_len()
@@ -117,7 +117,7 @@ inline std::vector<int> get_gru_vector_len()
 
 inline std::vector<int> get_gru_hidden_size()
 {
-    return {127};
+    return {67};
     // return {{16,64,128,256,1760,2048,2560}};
 }
 
