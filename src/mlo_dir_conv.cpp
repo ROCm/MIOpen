@@ -62,8 +62,8 @@ void mlo_construct_direct2D::setupRocm()
     // Detect assembly kernels
     _search_params.use_binaries        = false;
     _search_params.assembler_available = false;
-    _search_params.rmv                 = V3;
-    if(mloIsAmdOpenclRocm(_search_params.rmv))
+    _search_params.rmv                 = rocm_meta_version::Default;
+    if(mloIsAmdRocmOpencl(_search_params.rmv))
     {
         _search_params.assembler_available =
             !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
@@ -160,69 +160,95 @@ void mlo_construct_direct2D::mloUseSolution(const miopen::solver::ConvSolution& 
 }
 
 #if MIOPEN_BACKEND_OPENCL
-static bool IsTokenInOpenclDriverVersion(const std::string& driver_version, const std::string& s)
+static bool IsTokenWithin(const std::string& s, const char* delimiters, const std::string& find_tok)
 {
-    // Assume "(, )" are token separators in Driver Version string.
-    return (driver_version.find('(' + s + ')') != std::string::npos) ||
-           (driver_version.find('(' + s + ',') != std::string::npos) ||
-           (driver_version.find('(' + s + ' ') != std::string::npos) ||
-           (driver_version.find(',' + s + ')') != std::string::npos) ||
-           (driver_version.find(',' + s + ',') != std::string::npos) ||
-           (driver_version.find(',' + s + ' ') != std::string::npos) ||
-           (driver_version.find(' ' + s + ')') != std::string::npos) ||
-           (driver_version.find(' ' + s + ',') != std::string::npos) ||
-           (driver_version.find(' ' + s + ' ') != std::string::npos);
+    assert(delimiters);
+    std::size_t cursor = 0;
+    do
+    {
+        const std::size_t tok_begin = s.find_first_not_of(delimiters, cursor);
+        if(tok_begin == std::string::npos)
+        {
+            break;
+        }
+        cursor            = s.find_first_of(delimiters, tok_begin);
+        std::string token = (cursor == std::string::npos) ? s.substr(tok_begin)
+                                                          : s.substr(tok_begin, cursor - tok_begin);
+        if(token == find_tok)
+        {
+            return true;
+        }
+    } while(cursor != std::string::npos);
+    return false;
 }
-#endif
-bool mlo_construct_direct2D::mloIsAmdOpenclRocm(rocm_meta_version& rmv) const
-{
-#if MIOPEN_BACKEND_OPENCL
-    const auto dev = miopen::GetDevice(_search_params.GetStream().GetStream());
 
-    // Only suitable Opencl platform is from AMD.
+static bool IsAmdRocmOpencl(const miopen::ConvolutionContext& context)
+{
+    const auto dev             = miopen::GetDevice(context.GetStream().GetStream());
     const auto platform        = miopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
     const auto platform_vendor = miopen::GetPlatformInfo<CL_PLATFORM_VENDOR>(platform);
     if(platform_vendor != "Advanced Micro Devices, Inc.")
     {
         return false;
     }
-
-    // Only AMD devices is suitable
     const auto device_vendor_id = miopen::GetDeviceInfo<CL_DEVICE_VENDOR_ID>(dev);
-    if(device_vendor_id != 0x1002)
+    if(device_vendor_id != 0x1002) // AMD
     {
         return false;
     }
-
-    // Our binaries are in OpenCL-on-ROCm Code Object format.
-    // OpenCL-on-ROCm uses Lightning Compiler.
     const auto driver_version = miopen::GetDeviceInfo<CL_DRIVER_VERSION>(dev);
-    if(!IsTokenInOpenclDriverVersion(driver_version, "LC"))
-    {
-        return false;
-    }
+    const char* delimiters    = " (),*";                    // Specific for ROCm OCL driver version.
+    return IsTokenWithin(driver_version, delimiters, "LC"); // Lightning Compiler.
+}
 
-    // At once, extract version of OpenCL metadata. Keep rmv unchanged if extraction fails.
+static std::ostream& operator<<(std::ostream& os, const rocm_meta_version& rmv)
+{
+    switch(rmv)
+    {
+    case rocm_meta_version::Unknown: return os << "Unknown";
+    case rocm_meta_version::V1: return os << "V1";
+    case rocm_meta_version::V2: return os << "V2";
+    case rocm_meta_version::V3: return os << "V3";
+    case rocm_meta_version::AMDHSA_1_0: return os << "AMDHSA_1_0";
+    }
+    return os << "<Error>";
+}
+
+static rocm_meta_version DetectAmdRocmOpenclVersion(const miopen::ConvolutionContext& context)
+{
+    const auto dev                     = miopen::GetDevice(context.GetStream().GetStream());
+    const auto platform                = miopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
     const std::string platform_version = miopen::GetPlatformInfo<CL_PLATFORM_VERSION>(
         platform); // e.g. "OpenCL 2.0 AMD-APP.internal (2334.0)"
-    size_t num_begin = platform_version.find('(');
+    size_t num_begin      = platform_version.find('(');
+    rocm_meta_version rmv = rocm_meta_version::Unknown;
     if(num_begin != std::string::npos)
     {
         int num = std::stoi(platform_version.substr(num_begin + 1));
-        if(num < 2338)
-        {
-            rmv = V1; // Switched to V2 somewhere within [2337,2338]
-        }
-        else if(num < 2389)
-        {
-            rmv = V2; // Switched to V3 somewhere within [2388,2389]
-        }
+        if(num < 2338) // Switched to V2 somewhere within [2337,2338]
+            rmv = rocm_meta_version::V1;
+        else if(num < 2389) // Switched to V3 somewhere within [2388,2389]
+            rmv = rocm_meta_version::V2;
+        else if(num < 2536) // Switched to newer version at 2536 for sure.
+            rmv = rocm_meta_version::V3;
         else
-        {
-            rmv = V3;
-        }
+            rmv = rocm_meta_version::AMDHSA_1_0;
     }
-    return true;
+    MIOPEN_LOG_I(rmv);
+    return rmv;
+}
+#endif // MIOPEN_BACKEND_OPENCL
+
+bool mlo_construct_direct2D::mloIsAmdRocmOpencl(rocm_meta_version& rmv) const
+{
+#if MIOPEN_BACKEND_OPENCL
+    static const bool ret_bool = IsAmdRocmOpencl(_search_params);
+    if(ret_bool)
+    {
+        static const rocm_meta_version ret_rmv = DetectAmdRocmOpenclVersion(_search_params);
+        rmv                                    = ret_rmv;
+    }
+    return ret_bool;
 #else
     (void)rmv; // We don't care about metada version
     return true;
