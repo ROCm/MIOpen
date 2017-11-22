@@ -56,7 +56,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 
-    if(params.rmv == V1 || params.rmv == V2)
+    if(!(params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
     {
         return false;
     }
@@ -162,8 +162,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     // clang-format on
 }
 
-ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params,
-                                             const PerformanceConfig&) const
+ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
     const auto n_groups = params.GetStream().GetMaxComputeUnits();
@@ -205,6 +204,19 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params,
     {
         kernel.kernel_file += "_gfx900";
     }
+
+    if(params.rmv == rocm_meta_version::V3)
+    { // Nop.
+    }
+    else if(params.rmv == rocm_meta_version::AMDHSA_1_0)
+    {
+        kernel.kernel_file += "_md10";
+    }
+    else
+    {
+        MIOPEN_THROW("ConvBinWinogradRxSFwd: Unsupported metadata version.");
+    }
+
     kernel.kernel_file += ".so";
 
     result.construction_params.push_back(kernel);

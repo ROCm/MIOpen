@@ -83,7 +83,7 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     construct_params.doBackward(do_backward);
     construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
 
-    status = static_cast<miopenStatus_t>(construct_params.mloConstruct());
+    construct_params.mloConstruct();
 
     std::string program_name          = construct_params.getKernelFile();      // CL kernel filename
     std::string kernel_name           = construct_params.getKernelName();      // kernel name
@@ -114,6 +114,8 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     KernelInvoke obj = handle.GetKernel(
         "miopenLRNForward", network_config, program_name, kernel_name, vld, vgd, compiler_parms);
 
+    if(float_equal(f_norm_K, 0.0))
+        MIOPEN_THROW("Expect non-zero bias/K");
     if(do_backward)
     {
         obj(x, y, workSpace, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
@@ -221,7 +223,7 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
 
     construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
 
-    status = static_cast<miopenStatus_t>(construct_params.mloConstruct());
+    construct_params.mloConstruct();
 
     std::string program_name   = construct_params.getKernelFile();      // CL kernel filename
     std::string kernel_name    = construct_params.getKernelName();      // kernel name
@@ -248,6 +250,9 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
     auto f_norm_beta  = static_cast<float>(norm_beta);
     auto f_norm_ratio =
         static_cast<float>(2. * norm_alpha * norm_beta / static_cast<double>(local_ar));
+
+    if(float_equal(norm_K, 0.0))
+        MIOPEN_THROW("Expect non-zero bias/K");
 
     handle.GetKernel(
         "miopenLRNBackward", network_config, program_name, kernel_name, vld, vgd, compiler_parms)(

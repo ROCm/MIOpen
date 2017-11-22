@@ -95,37 +95,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <tuple>
 
-#ifdef _WIN32
-#include <io.h>
-#include <windows.h>
-// #include <BaseTsd.h>
-#include <direct.h>
-#define snprintf _snprintf
-#define vsnprintf _vsnprintf
-#define strcasecmp _stricmp
-#define strncasecmp _strnicmp
-//#ifndef getcwd
-// #define getcwd _getcwd
-//#endif
-typedef unsigned int uint;
-
-#ifndef getcwd
-#define getcwd _getcwd
-#endif
-
-#else // !WIN32 so Linux and APPLE
-#include <climits>
-#include <unistd.h>
-#include <cstdbool>
-#include <sys/time.h>
-#include <sys/resource.h>
-using __int64 = long long;
-#ifndef fopen_s
-#define fopen_s(file, fileName, mode) ((*(file)) = fopen((fileName), (mode))) == nullptr
-#endif
-
-#endif
-
 using mlo_kernel_info = std::tuple<const std::string,
                                    const std::string,
                                    const std::string,
@@ -139,7 +108,8 @@ using mlo_kernel_info = std::tuple<const std::string,
 #endif
 #include <miopen/tensor.hpp>
 #include <miopen/handle.hpp>
-#include "miopen/db.hpp"
+#include <miopen/db.hpp>
+#include <miopen/db_record.hpp>
 
 inline int mloLg2(int v)
 {
@@ -153,11 +123,14 @@ inline int AlignUp(int val, unsigned step)
     return ((val + step - 1) / step) * step;
 }
 
-enum rocm_meta_version
+enum class rocm_meta_version
 {
+    Unknown,
     V1,
     V2,
-    V3
+    V3,
+    AMDHSA_1_0,   // 1.0, see https://llvm.org/docs/AMDGPUUsage.html#code-object-metadata
+    Default = V3, // Assumption for HIP backend. To be updated together with ROCm release.
 };
 
 namespace miopen {
@@ -173,9 +146,8 @@ class StaticContainer
     }
 };
 
-class ProblemDescription
+struct ProblemDescription
 {
-    public:
     int n_inputs         = 0;
     int in_height        = 0;
     int in_width         = 0;
@@ -192,9 +164,8 @@ class ProblemDescription
     int kernal_dilation0 = 0;
     int kernal_dilation1 = 0;
     int bias             = 0;
-    class Direction
+    struct Direction
     {
-        public:
         enum class Value
         {
             Unknown,
@@ -272,15 +243,20 @@ class ProblemDescription
             << sep << (direction.IsForward() ? "1" : "0"); // clang-format on
     }
 #endif
+
+    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
+    {
+        obj.Serialize(os);
+        return os;
+    }
 };
 
 /// A leftover of the legacy design, houses problem config,
 /// environmental context (e.g. HW/SW platform) and solver-specific state.
 ///
 /// TODO: These three entities should be made separate.
-class ConvolutionContext : public ProblemDescription
+struct ConvolutionContext : ProblemDescription
 {
-    public:
     bool n_passes = false;
 
     bool do_search           = false;
@@ -302,7 +278,7 @@ class ConvolutionContext : public ProblemDescription
     int out_channel_stride = 0;
     int out_batch_stride   = 0;
     int n_timer_iter       = 0;
-    rocm_meta_version rmv  = V3;
+    rocm_meta_version rmv  = rocm_meta_version::Default;
     std::string general_compile_options;
 
     inline Handle& GetStream() const { return *_stream; }
@@ -326,17 +302,33 @@ class ConvolutionContext : public ProblemDescription
 };
 
 namespace solver {
-class ConvSolution;
-class Solver;
+struct ConvSolution;
+
 } // namespace solver
 
 } // namespace miopen
 
-class mlo_construct_direct2D
+template <class T>
+void mloConstructImpl(miopen::rank<0>, T& x)
 {
-    public:
-    virtual const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
-    SolverStore() const;
+    x.setupRocm();
+    x.mloUseSolution(x.FindSolution());
+}
+
+template <class T>
+auto mloConstructImpl(miopen::rank<1>, T& x) -> decltype(x.mloConstruct(), void())
+{
+    x.mloConstruct();
+}
+
+template <class T>
+void mloConstruct(T& x)
+{
+    mloConstructImpl(miopen::rank<1>{}, x);
+}
+
+struct mlo_construct_direct2D
+{
     void mloUseSolution(const miopen::solver::ConvSolution& s);
 
     mlo_construct_direct2D(int dir, bool do_bias = false)
@@ -389,7 +381,8 @@ class mlo_construct_direct2D
         _new_in_sz     = 0;
     }
 
-    virtual ~mlo_construct_direct2D() = default;
+    void setupRocm();
+
     /*
     * major interface
     * it has to be called only after
@@ -402,9 +395,9 @@ class mlo_construct_direct2D
     * arbitrary combination of kerenl sizes, strides
     */
 
-    /// \todo The function is never called through the vtable. Remove "virtual". Consider moving
-    /// into ctor, if possible.
-    virtual int mloConstruct();
+    miopen::solver::ConvSolution FindSolution();
+
+    miopen::DbRecord GetDbRecord() const;
 
     /*
     * returns parameter values that are compiled in legacy kernels for kernels using them as
@@ -840,10 +833,9 @@ class mlo_construct_direct2D
         params = _search_params;
     }
 
-    protected:
-    virtual std::string db_path() const { return _search_params.GetPerfDbPath(); }
+    std::string db_path() const { return _db_path ? _db_path : _search_params.GetPerfDbPath(); }
 
-    bool mloIsAmdOpenclRocm(rocm_meta_version& rmv) const;
+    bool mloIsAmdRocmOpencl(rocm_meta_version& rmv) const;
 
     int mloConstructBwd() { return (0); }
     int mloConstructFwd() { return (0); }
@@ -921,46 +913,44 @@ class mlo_construct_direct2D
     size_t _workspce_sz;
 
     unsigned int _n_groups{};
+    // For testing
+    const char* _db_path = nullptr;
 };
 
 /*
 * backward with regard to weights construction
 */
 
-class mlo_construct_BwdWrW2D : public mlo_construct_direct2D
+struct mlo_construct_BwdWrW2D : mlo_construct_direct2D
 {
-    public:
     mlo_construct_BwdWrW2D(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias)
     {
         _search_params.direction.SetBackwardWrW();
     }
 
+    miopen::solver::ConvSolution FindSolution();
+
     bool mloIsCompilerWorkarounds() const;
     int mloMultiStep();
-    const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
-    SolverStore() const override;
 };
 
 /*
 * winograd algorithm
 */
 
-class mlo_construct_winograd : public mlo_construct_direct2D
+struct mlo_construct_winograd : mlo_construct_direct2D
 {
-    public:
     mlo_construct_winograd(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias) {}
 
-    const std::vector<std::reference_wrapper<const miopen::solver::Solver>>&
-    SolverStore() const override;
+    miopen::solver::ConvSolution FindSolution();
 };
 
 #define MLO_POOLING_OP_AVE 0
 #define MLO_POOLING_OP_MAX 1
 #define MLO_POOLING_OP_STC 2
 
-class mlo_construct_pooling2D : public mlo_construct_direct2D
+struct mlo_construct_pooling2D : mlo_construct_direct2D
 {
-    public:
     mlo_construct_pooling2D(int dir) : mlo_construct_direct2D(dir)
     {
         _pooling_method = MLO_POOLING_OP_MAX;
@@ -1005,7 +995,7 @@ class mlo_construct_pooling2D : public mlo_construct_direct2D
     }
 
     inline int getPoolingMethod() const { return (_pooling_method); }
-    int mloConstruct() override;
+    void mloConstruct();
 
     protected:
     int _pooling_method;
@@ -1017,9 +1007,8 @@ class mlo_construct_pooling2D : public mlo_construct_direct2D
 #define MLO_LRN_WITHIN_CHANNEL 0
 #define MLO_LRN_ACROSS_CHANNELS 1
 
-class mlo_construct_norm : public mlo_construct_direct2D
+struct mlo_construct_norm : mlo_construct_direct2D
 {
-    public:
     mlo_construct_norm(int dir) : mlo_construct_direct2D(dir) {}
 
     inline void setNormDescr(
@@ -1049,7 +1038,7 @@ class mlo_construct_norm : public mlo_construct_direct2D
                             : _normAlpha / (_norm_area * _norm_area);
     }
 
-    int mloConstruct() override;
+    void mloConstruct();
 
     protected:
     int mloConstructFwd();
@@ -1075,9 +1064,8 @@ class mlo_construct_norm : public mlo_construct_direct2D
 #define MLO_NEURON_POWER MLO_NEURON_LINEAR + 1 // (a + b * x ) ^power
 #define MLO_NEURON_TOTAL MLO_NEURON_POWER + 1
 
-class mlo_construct_neuron : public mlo_construct_direct2D
+struct mlo_construct_neuron : mlo_construct_direct2D
 {
-    public:
     mlo_construct_neuron(int dir) : mlo_construct_direct2D(dir)
     {
         _neuron_type = 0;
@@ -1102,7 +1090,7 @@ class mlo_construct_neuron : public mlo_construct_direct2D
         shift       = _shift;
     }
 
-    int mloConstruct() override;
+    void mloConstruct();
 
     protected:
     int mloConstructFwd();

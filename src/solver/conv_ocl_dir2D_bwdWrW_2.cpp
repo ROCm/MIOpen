@@ -32,6 +32,10 @@ namespace solver {
 
 bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
 {
+    // FIE ME:  it sounds a bug to enable kernel_size1x1 from original condition
+    if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
+        return false;
+
     return ((params.kernel_size0 >= params.kernel_size1) &&
             ((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) ||
              (params.kernel_size0 > 5) || (params.kernel_size0 == 5 && params.in_width >= 64))) ||
@@ -39,8 +43,7 @@ bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
             (params.kernel_size0 != 1 || params.kernel_size1 != 1));
 }
 
-ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
-                                         const PerformanceConfig&) const
+ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
 {
     static const char* s_stride_table[32][2] = {
         //
