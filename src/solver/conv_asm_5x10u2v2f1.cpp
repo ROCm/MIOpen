@@ -37,6 +37,11 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
+    if(!(params.rmv == rocm_meta_version::V1 || params.rmv == rocm_meta_version::V2 ||
+         params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
+    {
+        return false;
+    }
 
     const std::string name = params.GetStream().GetDeviceName();
     const bool device_is_gfx8_9_no_xnack =
@@ -102,8 +107,13 @@ ConvSolution ConvAsm5x10u2v2f1::GetSolution(const ConvolutionContext& params) co
     GenerateClangDefsym(options, "wei_layout", 0); // 0: KCHW, 1: CKHW
     GenerateClangDefsym(options, "pad_w", params.pad0);
     GenerateClangDefsym(options, "pad_h", params.pad1);
-    GenerateClangDefsym(
-        options, "ROCM_METADATA_VERSION", (params.rmv == V1) ? 1 : ((params.rmv == V2) ? 2 : 3));
+    GenerateClangDefsym(options,
+                        "ROCM_METADATA_VERSION",
+                        (params.rmv == rocm_meta_version::V1)
+                            ? 1
+                            : (params.rmv == rocm_meta_version::V2)
+                                  ? 2
+                                  : (params.rmv == rocm_meta_version::V3) ? 3 : 4);
 
     KernelInfo construction_params;
     construction_params.comp_options = options.str();
