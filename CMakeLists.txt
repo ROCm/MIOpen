@@ -1,19 +1,19 @@
 ################################################################################
-# 
+#
 # MIT License
-# 
+#
 # Copyright (c) 2017 Advanced Micro Devices, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,7 +21,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-# 
+#
 ################################################################################
 cmake_minimum_required( VERSION 2.8.12 )
 
@@ -115,7 +115,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     else()
         message(FATAL_ERROR "clang-ocl not found")
     endif()
-    
+
     find_package(hip REQUIRED PATHS /opt/rocm)
     link_libraries(stdc++)
     # A hack to make this work without the device enumerator
@@ -153,6 +153,7 @@ option( BUILD_DEV "Build for development only" OFF)
 
 set( MIOPEN_INSTALL_DIR miopen)
 set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen )
+set( MIOPEN_PERFDB_LOCK_NAME "miopen_perfdb_lock")
 
 if(BUILD_DEV)
     set(MIOPEN_BUILD_DEV 1)
@@ -181,7 +182,7 @@ if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
 endif()
 include(ClangTidy)
 enable_clang_tidy(
-    CHECKS 
+    CHECKS
         *
         -android-cloexec-fopen
         # Yea we shouldn't be using rand()
