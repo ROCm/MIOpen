@@ -1598,6 +1598,22 @@ struct verify_forward_infer_lstm
 
     void fail(int)
     {
+        std::cout << "./bin/MIOpenDriver rnn -n ";
+        for(int i = 0; i < seqLength; i++)
+        {
+            if(i < seqLength - 1)
+            {
+                std::cout << batch_seq.at(i) << ",";
+            }
+            else
+            {
+                std::cout << batch_seq.at(i);
+            }
+        }
+        std::cout << " -m lstm -k " << seqLength << " -H " << hiddenSize << " -W " << inputVecLen
+                  << " -l " << nLayers << " -F 0 -r " << dirMode << " -b " << biasMode << " -p "
+                  << inputMode << std::endl;
+
         printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
         printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
                hiddenSize,
@@ -1880,6 +1896,23 @@ struct verify_forward_train_lstm
 
     void fail(int badtensor)
     {
+
+        std::cout << "./bin/MIOpenDriver rnn -n ";
+        for(int i = 0; i < seqLength; i++)
+        {
+            if(i < seqLength - 1)
+            {
+                std::cout << batch_seq.at(i) << ",";
+            }
+            else
+            {
+                std::cout << batch_seq.at(i);
+            }
+        }
+        std::cout << " -m lstm "
+                  << " -k " << seqLength << " -H " << hiddenSize << " -W " << inputVecLen << " -l "
+                  << nLayers << " -F 0 "
+                  << " -r " << dirMode << " -b " << biasMode << " -p " << inputMode << std::endl;
 
         printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
         printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
@@ -2174,6 +2207,24 @@ struct verify_backward_data_lstm
 
     void fail(int badtensor)
     {
+
+        std::cout << "./bin/MIOpenDriver rnn -n ";
+        for(int i = 0; i < seqLength; i++)
+        {
+            if(i < seqLength - 1)
+            {
+                std::cout << batch_seq.at(i) << ",";
+            }
+            else
+            {
+                std::cout << batch_seq.at(i);
+            }
+        }
+        std::cout << " -m lstm "
+                  << " -k " << seqLength << " -H " << hiddenSize << " -W " << inputVecLen << " -l "
+                  << nLayers << " -F 0 "
+                  << " -r " << dirMode << " -b " << biasMode << " -p " << inputMode << std::endl;
+
         printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
         printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
                hiddenSize,
@@ -2384,6 +2435,23 @@ struct verify_backward_weights_lstm
 
     void fail(int)
     {
+        std::cout << "./bin/MIOpenDriver rnn -n ";
+        for(int i = 0; i < seqLength; i++)
+        {
+            if(i < seqLength - 1)
+            {
+                std::cout << batch_seq.at(i) << ",";
+            }
+            else
+            {
+                std::cout << batch_seq.at(i);
+            }
+        }
+        std::cout << " -m lstm "
+                  << " -k " << seqLength << " -H " << hiddenSize << " -W " << inputVecLen << " -l "
+                  << nLayers << " -F 0 "
+                  << " -r " << dirMode << " -b " << biasMode << " -p " << inputMode << std::endl;
+
         printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
         printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
                hiddenSize,
@@ -2427,7 +2495,7 @@ struct lstm_driver : test_driver
 
 #if(MIO_LSTM_TEST_DEBUG == 3)
         biasMode  = 0;
-        dirMode   = 1;
+        dirMode   = 0;
         inputMode = 0;
 #else
         add(inputMode, "in-mode", generate_data(modes));

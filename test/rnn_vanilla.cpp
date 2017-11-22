@@ -1307,7 +1307,7 @@ struct verify_forward_infer_rnn
                                   &hiddenDesc,
                                   nullptr,
                                   workSpace_dev.get(),
-                                  workSpaceSize*sizeof(T));
+                                  workSpaceSize);
 
 #if(MIO_RNN_TEST_DEBUG == 2)
         auto outdata = handle.Read<T>(output_dev, output.size());
@@ -1332,6 +1332,21 @@ struct verify_forward_infer_rnn
 
     void fail(int)
     {
+        std::cout << "./bin/MIOpenDriver rnn -n ";
+        for(int i = 0; i < seqLength; i++)
+        {
+            if(i < seqLength - 1)
+            {
+                std::cout << batch_seq.at(i) << ",";
+            }
+            else
+            {
+                std::cout << batch_seq.at(i);
+            }
+        }
+        std::cout << " -m " << (rnnMode ? "tanh" : "relu") << " -k " << seqLength << " -H "
+                  << hiddenSize << " -W " << inputVecLen << " -l " << nLayers << " -F 0 -r "
+                  << dirMode << " -b " << biasMode << " -p " << inputMode << std::endl;
         std::cout << "Forward Inference RNN vanilla: " << std::endl;
         std::cout << "Output tensor output failed verification." << std::endl;
     }
@@ -1567,9 +1582,9 @@ struct verify_forward_train_rnn
                                  &hiddenDesc,
                                  nullptr,
                                  workSpace_dev.get(),
-                                 workSpaceSize*sizeof(T),
+                                 workSpaceSize,
                                  reserveSpace_dev.get(),
-                                 reserveSpaceSize*sizeof(T));
+                                 reserveSpaceSize);
 
 #if(MIO_RNN_TEST_DEBUG == 2)
         auto outdata = handle.Read<T>(output_dev, output.size());
@@ -1599,6 +1614,21 @@ struct verify_forward_train_rnn
 
     void fail(int badtensor)
     {
+        std::cout << "./bin/MIOpenDriver rnn -n ";
+        for(int i = 0; i < seqLength; i++)
+        {
+            if(i < seqLength - 1)
+            {
+                std::cout << batch_seq.at(i) << ",";
+            }
+            else
+            {
+                std::cout << batch_seq.at(i);
+            }
+        }
+        std::cout << " -m " << (rnnMode ? "tanh" : "relu") << " -k " << seqLength << " -H "
+                  << hiddenSize << " -W " << inputVecLen << " -l " << nLayers << " -F 0 -r "
+                  << dirMode << " -b " << biasMode << " -p " << inputMode << std::endl;
         std::cout << "Forward Train RNN vanilla: " << std::endl;
         switch(badtensor)
         {
@@ -1848,9 +1878,9 @@ struct verify_backward_data_rnn
                               &hiddenDesc,
                               nullptr,
                               workSpace_dev.get(), // TODO up
-                              workSpaceSize*sizeof(T),
+                              workSpaceSize,
                               reserveSpace_dev.get(), // TODO up remove extra
-                              reserveSpace.size()*sizeof(T));
+                              reserveSpace.size() * sizeof(T));
 
         auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
                                       handle.Read<T>(dhx_dev, dhx.size()),
@@ -1872,6 +1902,21 @@ struct verify_backward_data_rnn
 
     void fail(int badtensor)
     {
+        std::cout << "./bin/MIOpenDriver rnn -n ";
+        for(int i = 0; i < seqLength; i++)
+        {
+            if(i < seqLength - 1)
+            {
+                std::cout << batch_seq.at(i) << ",";
+            }
+            else
+            {
+                std::cout << batch_seq.at(i);
+            }
+        }
+        std::cout << " -m " << (rnnMode ? "tanh" : "relu") << " -k " << seqLength << " -H "
+                  << hiddenSize << " -W " << inputVecLen << " -l " << nLayers << " -F 0 -r "
+                  << dirMode << " -b " << biasMode << " -p " << inputMode << std::endl;
         std::cout << "Backward Data RNN vanilla: " << std::endl;
         switch(badtensor)
         {
@@ -2043,9 +2088,6 @@ struct verify_backward_weights_rnn
         auto dy_dev    = handle.Write(dy);
         auto input_dev = handle.Write(input);
 
-        std::vector<int> wlen(1, 0);
-        wlen[0] = weightSize;
-
         miopenRNNBackwardWeights(&handle,
                                  rnnDesc,
                                  seqLength,
@@ -2058,9 +2100,9 @@ struct verify_backward_weights_rnn
                                  &weightDesc,
                                  dweights_dev.get(),
                                  workSpace_dev.get(),
-                                 workSpace.size()*sizeof(T),
+                                 workSpace.size() * sizeof(T),
                                  reserveSpace_dev.get(),
-                                 reserveSpace.size()*sizeof(T));
+                                 reserveSpace.size() * sizeof(T));
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -2076,7 +2118,25 @@ struct verify_backward_weights_rnn
         return retvec;
     }
 
-    void fail(int) { std::cout << "Backward Weights RNN vanilla: " << std::endl; }
+    void fail(int)
+    {
+        std::cout << "./bin/MIOpenDriver rnn -n ";
+        for(int i = 0; i < seqLength; i++)
+        {
+            if(i < seqLength - 1)
+            {
+                std::cout << batch_seq.at(i) << ",";
+            }
+            else
+            {
+                std::cout << batch_seq.at(i);
+            }
+        }
+        std::cout << " -m " << (rnnMode ? "tanh" : "relu") << " -k " << seqLength << " -H "
+                  << hiddenSize << " -W " << inputVecLen << " -l " << nLayers << " -F 0 -r "
+                  << dirMode << " -b " << biasMode << " -p " << inputMode << std::endl;
+        std::cout << "Backward Weights RNN vanilla: " << std::endl;
+    }
 };
 //~~~~~~~~~~~~ END BACKWARD WEIGHTS ~~~~~~~~~~~~~~~~~~~~~~~~
 
