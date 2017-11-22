@@ -54,7 +54,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
 
             int N_LCL_OUT_MAPS = result.n_out_pix_tiles;
             // 0 or 1
-            uint CHEAT_SHADER_COMPILER = result.out_pix_tile0;
+            int CHEAT_SHADER_COMPILER = result.out_pix_tile0;
 
             int BATCHSIZE = params.batch_sz;
             int W         = params.in_width;
@@ -110,14 +110,14 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             // MLO_N_LCL_IN_MAPS*(MLO_N_IN_GROUPS-1)) / MLO_N_LCL_IN_MAPS_ONCE )
             //#define MLO_N_LCL_OUT_MAPS           16
 
-            uint N_IN_GROUPS        = (C + N_LCL_IN_MAPS - 1) / N_LCL_IN_MAPS;
-            uint N_LCL_IN_MAPS_ONCE = 8;
+            int N_IN_GROUPS        = (C + N_LCL_IN_MAPS - 1) / N_LCL_IN_MAPS;
+            int N_LCL_IN_MAPS_ONCE = 8;
 
             if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
                 N_LCL_IN_MAPS_ONCE = 4;
 
-            uint CLOOP0 = N_LCL_IN_MAPS / N_LCL_IN_MAPS_ONCE;
-            uint CLOOP2 = (C - N_LCL_IN_MAPS * (N_IN_GROUPS - 1)) / N_LCL_IN_MAPS_ONCE;
+            int CLOOP0 = N_LCL_IN_MAPS / N_LCL_IN_MAPS_ONCE;
+            int CLOOP2 = (C - N_LCL_IN_MAPS * (N_IN_GROUPS - 1)) / N_LCL_IN_MAPS_ONCE;
 
             KernelInfo kernel;
 
