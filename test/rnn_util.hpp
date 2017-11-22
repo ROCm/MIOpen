@@ -40,13 +40,13 @@
 inline std::vector<int> get_rnn_num_layers()
 {
     // return {{1, 5, 20}};
-    return {{1, 19}};
+    return {{1, 5}};
 }
 
 inline std::vector<int> get_rnn_batchSize()
 {
     // return {128};
-    return {{31, 127}};
+    return {31};
 }
 
 inline std::vector<int> get_rnn_seq_len()
@@ -58,13 +58,13 @@ inline std::vector<int> get_rnn_seq_len()
 inline std::vector<int> get_rnn_vector_len()
 {
     // return {32};
-    return {{5, 31}};
+    return {31};
 }
 
 inline std::vector<int> get_rnn_hidden_size()
 {
     // return {{16,64,128,256,1760,2048,2560}};
-    return {{65, 127}};
+    return {127};
 }
 
 // LSTM configs
