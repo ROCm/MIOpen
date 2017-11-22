@@ -29,6 +29,8 @@
 #include <miopen/config.h>
 #include <miopen/logger.hpp>
 
+#include <boost/interprocess/sync/named_recursive_mutex.hpp>
+#include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/optional.hpp>
 #include <sstream>
 #include <string>
@@ -86,7 +88,7 @@ class DbRecord
     }
 
     bool ParseContents(const std::string& contents);
-    void WriteContents(std::ostream &stream) const;
+    void WriteContents(std::ostream& stream) const;
     bool SetValues(const std::string& id, const std::string& values);
     bool GetValues(const std::string& id, std::string& values) const;
 
@@ -147,6 +149,9 @@ class DbRecord
 
 class Db
 {
+    protected:
+    static boost::interprocess::named_recursive_mutex mutex;
+
     private:
     struct RecordPositions
     {
@@ -154,10 +159,12 @@ class Db
         std::streamoff end   = -1;
     };
 
+    using exclusive_lock =
+        boost::interprocess::scoped_lock<boost::interprocess::named_recursive_mutex>;
+
     std::string filename;
 
     boost::optional<DbRecord> FindRecord(const std::string& key, RecordPositions* pos) const;
-
     bool Flush(const DbRecord& record, const RecordPositions* pos) const;
 
     public:
@@ -189,14 +196,14 @@ class Db
     /// Returns true if update was successful, false otherwise.
     bool UpdateRecord(DbRecord& record) const;
 
-
     /// Removes record with provided key from db
     ///
     /// Returns true if remove was successful, false otherwise.
     bool RemoveRecord(const std::string& key) const;
 
     template <class T>
-    bool RemoveRecord(const T& problem_config) const {
+    bool RemoveRecord(const T& problem_config) const
+    {
         std::string key = DbRecord::Serialize(problem_config);
         return RemoveRecord(key);
     }
@@ -242,11 +249,12 @@ class Db
     template <class T>
     bool Remove(const T& problem_config, const std::string& id) const
     {
+        exclusive_lock lock(mutex);
         auto record = FindRecord(problem_config);
-        if (!record)
+        if(!record)
             return false;
         bool erased = record->EraseValues(id);
-        if (!erased)
+        if(!erased)
             return false;
         return StoreRecord(*record);
     }

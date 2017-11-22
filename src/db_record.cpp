@@ -152,6 +152,8 @@ boost::optional<DbRecord> Db::FindRecord(const std::string& key, RecordPositions
 
     MIOPEN_LOG_I("Looking for key: " << key);
 
+    exclusive_lock lock(mutex);
+
     std::ifstream file(filename);
 
     if(!file)
@@ -238,6 +240,9 @@ static void Copy(std::istream& from, std::ostream& to, std::streamoff count)
 bool Db::Flush(const DbRecord& record, const RecordPositions* pos) const
 {
     assert(pos);
+
+    exclusive_lock lock(mutex);
+
     if(pos->begin < 0 || pos->end < 0)
     {
         std::ofstream file(filename, std::ios::app);
@@ -291,6 +296,7 @@ bool Db::Flush(const DbRecord& record, const RecordPositions* pos) const
 bool Db::StoreRecord(const DbRecord& record) const
 {
     MIOPEN_LOG_I("Storing record: " << record.key);
+    exclusive_lock lock(mutex);
     RecordPositions pos;
     auto old_record = FindRecord(record.key, &pos);
     return Flush(record, &pos);
@@ -298,6 +304,7 @@ bool Db::StoreRecord(const DbRecord& record) const
 
 bool Db::UpdateRecord(DbRecord& record) const
 {
+    exclusive_lock lock(mutex);
     RecordPositions pos;
     auto old_record = FindRecord(record.key, &pos);
     DbRecord new_record(record);
@@ -321,10 +328,14 @@ bool Db::RemoveRecord(const std::string& key) const
     // Create empty record with same key and replace original with that
     // This will remove record
     MIOPEN_LOG_I("Removing record: " << key);
+    exclusive_lock lock(mutex);
     RecordPositions pos;
     FindRecord(key, &pos);
     DbRecord empty_record(key);
     return Flush(empty_record, &pos);
 }
+
+boost::interprocess::named_recursive_mutex Db::mutex(boost::interprocess::open_or_create,
+                                                     MIOPEN_PERFDB_LOCK_NAME);
 
 } // namespace miopen
