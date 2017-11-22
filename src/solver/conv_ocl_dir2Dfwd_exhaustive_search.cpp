@@ -32,6 +32,13 @@
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/mlo_utils.hpp>
 #include <miopen/solver.hpp>
+#ifdef max
+#undef max
+#endif
+
+#ifdef min
+#undef min
+#endif
 
 namespace miopen {
 namespace solver {
@@ -335,10 +342,10 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
     }
 
     // search loop here
-    int grp_tl_ln[4]       = {8, 16};
+    int grp_tl_ln[4]       = {8, 16, 32};
     int tile_sz[3]         = {8, 16, 32};
-    int tile_sz1[3]        = {8, 16, 32};
-    int tile_sz0[3]        = {8, 16, 32};
+    int tile_sz1[4]        = {8, 16, 32, 64};
+    int tile_sz0[4]        = {8, 16, 32, 64};
     int out_pix_tile_sz[3] = {1, 2, 4};
     int n_out_tiles_rg[5]  = {1, 2, 4, 8};
     int n_in_tiles_rg[3]   = {1, 2, 4};
@@ -347,18 +354,16 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
 
     double min_proc_time = std::numeric_limits<float>::max();
 
-#if 1
-
     size_t run_counter = 0;
-    int n_grp_tiles1   = 2;
-    int n_grp_tiles0   = 2;
+    int n_grp_tiles1   = 3;
+    int n_grp_tiles0   = 3;
 
     int out_pix_tl_cnt = 3; // out_pix_tile_sz[1];
     int n_out_tls      = 4;
     int n_in_tls       = 3;
     int stack_cnt      = std::min(params.batch_sz, 2);
-    int n_tile0_sz     = 3;
-    int n_tile1_sz     = 3;
+    int n_tile0_sz     = 4;
+    int n_tile1_sz     = 4;
 
     if(params.out_width >= 16)
     {
@@ -374,12 +379,11 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
         n_tile1_sz  = 2;
     }
 
-    int n_grp_tiles = (n_grp_tiles1 - 1) * n_grp_tiles0;
+    int n_grp_tiles;
 
     int n_tiles_cnt = n_tile0_sz * n_tile1_sz;
 
-    size_t report_inteval = 100;
-    //			_n_timer_iter = 250;
+    size_t report_inteval = 25;
 
     long long runs_left = 0;
 
@@ -413,7 +417,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
             out_pix_tile_sz[0] = 0;
             out_pix_tile_sz[1] = 1;
             n_out_tls          = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
-            n_grp_tiles0       = 0;
+            n_grp_tiles0       = 1;
+            grp_tl_ln[0]       = 64;
 
             runs_left = out_pix_tl_cnt * n_out_tls * n_in_tls * (n_grp_tiles0 + 1);
 
@@ -464,7 +469,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
 
         int version = result.out_pix_tile1;
 
-        for(int g0 = 0; g0 <= n_grp_tiles0; ++g0)
+        for(int g0 = 0; g0 < n_grp_tiles0; ++g0)
         {
             result.grp_tile0 = grp_tl_ln[g0];
 
@@ -497,16 +502,14 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
                                           top_ocl_buf,
                                           random_top_sys_buf.size() * sizeof(float));
 
-                        const auto ret =
-                            MeasureLoop<ConvOclDirectFwd1x1, ConvOclDirectFwdC, ConvOclDirectFwd>(
-                                &profile_h,
-                                bot_ocl_buf.get(),
-                                top_ocl_buf.get(),
-                                wei_ocl_buf.get(),
-                                bias_ocl_buf.get(),
-                                processing_time,
-                                params,
-                                result);
+                        const auto ret = MeasureLoop<ConvOclDirectFwd1x1>(&profile_h,
+                                                                          bot_ocl_buf.get(),
+                                                                          top_ocl_buf.get(),
+                                                                          wei_ocl_buf.get(),
+                                                                          bias_ocl_buf.get(),
+                                                                          processing_time,
+                                                                          params,
+                                                                          result);
 
                         runs_left--;
                         runs_left = (runs_left < 0) ? 0 : runs_left;
@@ -516,7 +519,6 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
                             continue;
                         }
 
-#if 1
                         if(run_counter % report_inteval == 0)
                         {
                             min_proc_time = (run_counter == 0) ? processing_time : min_proc_time;
@@ -529,8 +531,6 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
                                 << result.out_pix_tile0 << ", " << result.n_out_pix_tiles << ", "
                                 << result.n_in_data_tiles << ", " << result.n_stacks << std::endl;
                         }
-
-#endif
 
                         is_passed = true;
 
@@ -562,213 +562,176 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
                      "take few minutes."
                   << std::endl;
 
-        runs_left = n_grp_tiles * n_tiles_cnt * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls *
+        runs_left = /*n_grp_tiles * */ n_tiles_cnt * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls *
                     n_in_tls * stack_cnt;
 
-        for(int g1 = 0; g1 < n_grp_tiles1; g1++)
+        // tile1
+        for(int j = 0; j < n_tile1_sz; ++j)
         {
-            result.grp_tile1 = grp_tl_ln[g1];
-            for(int g0 = 0; g0 < n_grp_tiles0; ++g0)
+            result.in_tile1 = tile_sz1[j];
+            if(params.out_height * 2 <= result.in_tile1 && result.in_tile1 > tile_sz[0])
             {
-                result.grp_tile0 = grp_tl_ln[g0];
+                runs_left--;
+                runs_left = (runs_left < 0) ? 0 : runs_left;
+                continue;
+            }
 
-                if(result.grp_tile0 < result.grp_tile1)
+            // tile 0
+            for(int i = 0; i < n_tile0_sz; ++i)
+            {
+                result.in_tile0 = tile_sz0[i];
+                if((params.out_width * 2 <= result.in_tile0 && result.in_tile0 > tile_sz[0]))
                 {
                     runs_left--;
                     runs_left = (runs_left < 0) ? 0 : runs_left;
                     continue;
                 }
-
-                // tile1
-                for(int j = 0; j < n_tile1_sz; ++j)
+                if(params.out_height > 16 && params.out_width > 16 &&
+                   ((result.in_tile1 == 8 && result.in_tile0 == 8) ||
+                    (result.grp_tile0 == 8 && result.grp_tile1 == 8)))
                 {
-                    result.in_tile1 = tile_sz1[j];
-                    if(params.out_height * 2 <= result.in_tile1 && result.in_tile1 > tile_sz[0])
+                    runs_left--;
+                    runs_left = (runs_left < 0) ? 0 : runs_left;
+                    continue;
+                }
+                if(params.out_width > 32 && result.in_tile1 > result.in_tile0)
+                {
+                    runs_left--;
+                    runs_left = (runs_left < 0) ? 0 : runs_left;
+                    continue;
+                }
+                // out pix 1
+
+                for(int k = 0; k < out_pix_tl_cnt; ++k)
+                {
+                    result.out_pix_tile1 = out_pix_tile_sz[k];
+                    result.grp_tile1     = result.in_tile1 / result.out_pix_tile1;
+                    if(result.out_pix_tile1 > result.in_tile1 || result.grp_tile1 < 8)
                     {
                         runs_left--;
                         runs_left = (runs_left < 0) ? 0 : runs_left;
                         continue;
                     }
+                    // out pix 0
 
-                    // tile 0
-                    for(int i = 0; i < n_tile0_sz; ++i)
+                    for(int l = 0; l < out_pix_tl_cnt; ++l)
                     {
-                        result.in_tile0 = tile_sz0[i];
-                        if((params.out_width * 2 <= result.in_tile0 &&
-                            result.in_tile0 > tile_sz[0]))
-                        {
-                            runs_left--;
-                            runs_left = (runs_left < 0) ? 0 : runs_left;
-                            continue;
-                        }
-                        if(params.out_height > 16 && params.out_width > 16 &&
-                           ((result.in_tile1 == 8 && result.in_tile0 == 8) ||
-                            (result.grp_tile0 == 8 && result.grp_tile1 == 8)))
-                        {
-                            runs_left--;
-                            runs_left = (runs_left < 0) ? 0 : runs_left;
-                            continue;
-                        }
-                        if(params.out_width > 32 && result.in_tile1 > result.in_tile0)
-                        {
-                            runs_left--;
-                            runs_left = (runs_left < 0) ? 0 : runs_left;
-                            continue;
-                        }
-                        // out pix 1
+                        result.out_pix_tile0 = out_pix_tile_sz[l];
+                        result.grp_tile0     = result.in_tile0 / result.out_pix_tile0;
 
-                        for(int k = 0; k < out_pix_tl_cnt; ++k)
+                        if(result.out_pix_tile0 > result.in_tile0 || result.grp_tile0 < 8)
                         {
-                            result.out_pix_tile1 = out_pix_tile_sz[k];
-                            if(result.out_pix_tile1 > result.in_tile1)
+                            runs_left--;
+                            runs_left = (runs_left < 0) ? 0 : runs_left;
+                            continue;
+                        }
+
+                        for(int o_t = 0; o_t < n_out_tls; ++o_t)
+                        {
+                            result.n_out_pix_tiles = n_out_tiles_rg[o_t];
+                            if(params.n_outputs < result.n_out_pix_tiles)
                             {
                                 runs_left--;
                                 runs_left = (runs_left < 0) ? 0 : runs_left;
                                 continue;
                             }
-                            // out pix 0
 
-                            for(int l = 0; l < out_pix_tl_cnt; ++l)
+                            for(int i_t = 0; i_t < n_in_tls; ++i_t)
                             {
-                                result.out_pix_tile0 = out_pix_tile_sz[l];
-
-                                if(result.out_pix_tile0 > result.in_tile0)
+                                result.n_in_data_tiles = n_in_tiles_rg[i_t];
+                                if(params.n_inputs < result.n_in_data_tiles)
                                 {
                                     runs_left--;
                                     runs_left = (runs_left < 0) ? 0 : runs_left;
                                     continue;
                                 }
 
-                                for(int o_t = 0; o_t < n_out_tls; ++o_t)
+                                for(int s = 0; s < stack_cnt; ++s)
                                 {
-                                    result.n_out_pix_tiles = n_out_tiles_rg[o_t];
-                                    if(params.n_outputs < result.n_out_pix_tiles)
+
+                                    result.n_stacks = n_in_stacks_sz[s];
+                                    if(result.n_stacks > params.batch_sz)
                                     {
                                         runs_left--;
                                         runs_left = (runs_left < 0) ? 0 : runs_left;
                                         continue;
                                     }
 
-                                    for(int i_t = 0; i_t < n_in_tls; ++i_t)
+                                    if(result.out_pix_tile1 * result.out_pix_tile0 *
+                                           result.n_out_pix_tiles * result.n_stacks >=
+                                       128)
                                     {
-                                        result.n_in_data_tiles = n_in_tiles_rg[i_t];
-                                        if(params.n_inputs < result.n_in_data_tiles)
-                                        {
-                                            runs_left--;
-                                            runs_left = (runs_left < 0) ? 0 : runs_left;
-                                            continue;
-                                        }
+                                        runs_left--;
+                                        runs_left = (runs_left < 0) ? 0 : runs_left;
+                                        continue;
+                                    }
 
-                                        for(int s = 0; s < stack_cnt; ++s)
-                                        {
+                                    const auto ret =
+                                        MeasureLoop<ConvOclDirectFwdC, ConvOclDirectFwd>(
+                                            &profile_h,
+                                            bot_ocl_buf.get(),
+                                            top_ocl_buf.get(),
+                                            wei_ocl_buf.get(),
+                                            bias_ocl_buf.get(),
+                                            processing_time,
+                                            params,
+                                            result);
 
-                                            result.n_stacks = n_in_stacks_sz[s];
-                                            if(result.n_stacks > params.batch_sz)
-                                            {
-                                                runs_left--;
-                                                runs_left = (runs_left < 0) ? 0 : runs_left;
-                                                continue;
-                                            }
+                                    runs_left--;
+                                    runs_left = (runs_left < 0) ? 0 : runs_left;
 
-                                            if(result.out_pix_tile1 * result.out_pix_tile0 *
-                                                   result.n_out_pix_tiles * result.n_stacks >=
-                                               128)
-                                            {
-                                                runs_left--;
-                                                runs_left = (runs_left < 0) ? 0 : runs_left;
-                                                continue;
-                                            }
-#if 0
-											if (run_counter != 0 &&
-												run_counter % report_inteval == 0)
-											{
-												std::cout
-													<< "Runs left : " << runs_left << ", "
-													<< "min time so far : " << min_proc_time << ", "
-													<< "curr time : " << processing_time
-													<< ", " << result.grp_tile1 << ", "
-													<< result.grp_tile0 << ", " << result.in_tile1
-													<< ", " << result.in_tile0 << ", "
-													<< result.out_pix_tile1 << ", "
-													<< result.out_pix_tile0 << ", "
-													<< result.n_out_pix_tiles << ", "
-													<< result.n_in_data_tiles << ", "
-													<< result.n_stacks
-													<< std::endl;
-										}
+                                    if(ret != 0)
+                                    {
+                                        continue;
+                                    }
 
-#endif
+                                    if(run_counter % report_inteval == 0)
+                                    {
+                                        min_proc_time =
+                                            (run_counter == 0) ? processing_time : min_proc_time;
 
-                                            const auto ret = MeasureLoop(&profile_h,
-                                                                         bot_ocl_buf.get(),
-                                                                         top_ocl_buf.get(),
-                                                                         wei_ocl_buf.get(),
-                                                                         bias_ocl_buf.get(),
-                                                                         processing_time,
-                                                                         params,
-                                                                         result);
+                                        std::cout
+                                            << "Runs left : " << runs_left << ", "
+                                            << "min time so far : " << min_proc_time << ", "
+                                            << "curr time : " << processing_time << ", "
+                                            << result.grp_tile1 << ", " << result.grp_tile0 << ", "
+                                            << result.in_tile1 << ", " << result.in_tile0 << ", "
+                                            << result.out_pix_tile1 << ", " << result.out_pix_tile0
+                                            << ", " << result.n_out_pix_tiles << ", "
+                                            << result.n_in_data_tiles << ", " << result.n_stacks
+                                            << std::endl;
+                                    }
 
-                                            runs_left--;
-                                            runs_left = (runs_left < 0) ? 0 : runs_left;
+                                    is_passed = true;
 
-                                            if(ret != 0)
-                                            {
-                                                continue;
-                                            }
+                                    run_counter++;
 
-#if 1
-                                            if(run_counter % report_inteval == 0)
-                                            {
-                                                min_proc_time = (run_counter == 0) ? processing_time
-                                                                                   : min_proc_time;
+                                    if(min_proc_time > processing_time)
+                                    {
+                                        min_proc_time       = processing_time;
+                                        min_grp_tile0       = result.grp_tile0;
+                                        min_grp_tile1       = result.grp_tile1;
+                                        min_in_tile0        = result.in_tile0;
+                                        min_in_tile1        = result.in_tile1;
+                                        min_out_pix_tile0   = result.out_pix_tile0;
+                                        min_out_pix_tile1   = result.out_pix_tile1;
+                                        min_n_out_pix_tiles = result.n_out_pix_tiles;
+                                        min_n_in_data_tiles = result.n_in_data_tiles;
+                                        min_n_stacks        = result.n_stacks;
+                                    }
 
-                                                std::cout
-                                                    << "Runs left : " << runs_left << ", "
-                                                    << "min time so far : " << min_proc_time << ", "
-                                                    << "curr time : " << processing_time << ", "
-                                                    << result.grp_tile1 << ", " << result.grp_tile0
-                                                    << ", " << result.in_tile1 << ", "
-                                                    << result.in_tile0 << ", "
-                                                    << result.out_pix_tile1 << ", "
-                                                    << result.out_pix_tile0 << ", "
-                                                    << result.n_out_pix_tiles << ", "
-                                                    << result.n_in_data_tiles << ", "
-                                                    << result.n_stacks << std::endl;
-                                            }
-#endif
-
-                                            is_passed = true;
-
-                                            run_counter++;
-
-                                            if(min_proc_time > processing_time)
-                                            {
-                                                min_proc_time       = processing_time;
-                                                min_grp_tile0       = result.grp_tile0;
-                                                min_grp_tile1       = result.grp_tile1;
-                                                min_in_tile0        = result.in_tile0;
-                                                min_in_tile1        = result.in_tile1;
-                                                min_out_pix_tile0   = result.out_pix_tile0;
-                                                min_out_pix_tile1   = result.out_pix_tile1;
-                                                min_n_out_pix_tiles = result.n_out_pix_tiles;
-                                                min_n_in_data_tiles = result.n_in_data_tiles;
-                                                min_n_stacks        = result.n_stacks;
-                                            }
-
-                                        } // for (int s = 0; s < 3; ++s)
-                                    } // for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1];
-                                      // ++i_t)
-                                }     // if (result.out_pix_tile0 > result.in_tile0)
-                            }         // for (int l = 0; l < l_l; ++l)
-                        }             // for (int k = 0; k < k_l; ++k)
-                    }                 // for (int i = 0; i < 3; ++i)
-                }                     // for (int j = 0; j < 3; ++j)
-            }                         // for (int g0 = 0; g0 < 2; ++g0)
-        }                             // for (int g1 = 0; g1 < 2; g1++)
+                                } // for (int s = 0; s < 3; ++s)
+                            }     // for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1];
+                            // ++i_t)
+                        } // if (result.out_pix_tile0 > result.in_tile0)
+                    }     // for (int l = 0; l < l_l; ++l)
+                }         // for (int k = 0; k < k_l; ++k)
+            }             // for (int i = 0; i < 3; ++i)
+        }                 // for (int j = 0; j < 3; ++j)
     }
 
     std::cout << std::endl << "Score: " << min_proc_time << std::endl;
-#endif
+
     result.grp_tile0       = min_grp_tile0;
     result.grp_tile1       = min_grp_tile1;
     result.in_tile0        = min_in_tile0;

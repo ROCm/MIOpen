@@ -123,11 +123,14 @@ inline int AlignUp(int val, unsigned step)
     return ((val + step - 1) / step) * step;
 }
 
-enum rocm_meta_version
+enum class rocm_meta_version
 {
+    Unknown,
     V1,
     V2,
-    V3
+    V3,
+    AMDHSA_1_0,   // 1.0, see https://llvm.org/docs/AMDGPUUsage.html#code-object-metadata
+    Default = V3, // Assumption for HIP backend. To be updated together with ROCm release.
 };
 
 namespace miopen {
@@ -240,6 +243,12 @@ struct ProblemDescription
             << sep << (direction.IsForward() ? "1" : "0"); // clang-format on
     }
 #endif
+
+    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
+    {
+        obj.Serialize(os);
+        return os;
+    }
 };
 
 /// A leftover of the legacy design, houses problem config,
@@ -269,7 +278,7 @@ struct ConvolutionContext : ProblemDescription
     int out_channel_stride = 0;
     int out_batch_stride   = 0;
     int n_timer_iter       = 0;
-    rocm_meta_version rmv  = V3;
+    rocm_meta_version rmv  = rocm_meta_version::Default;
     std::string general_compile_options;
 
     inline Handle& GetStream() const { return *_stream; }
@@ -826,7 +835,7 @@ struct mlo_construct_direct2D
 
     std::string db_path() const { return _db_path ? _db_path : _search_params.GetPerfDbPath(); }
 
-    bool mloIsAmdOpenclRocm(rocm_meta_version& rmv) const;
+    bool mloIsAmdRocmOpencl(rocm_meta_version& rmv) const;
 
     int mloConstructBwd() { return (0); }
     int mloConstructFwd() { return (0); }
