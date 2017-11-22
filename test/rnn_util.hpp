@@ -40,40 +40,40 @@
 inline std::vector<int> get_rnn_num_layers()
 {
     // return {{1, 5, 20}};
-    return {{1, 20}};
+    return {{1, 19}};
 }
 
 inline std::vector<int> get_rnn_batchSize()
 {
     // return {128};
-    return {{32, 128}};
+    return {{31, 127}};
 }
 
 inline std::vector<int> get_rnn_seq_len()
 {
     // return {50};
-    return {{2, 50}};
+    return {{3, 51}};
 }
 
 inline std::vector<int> get_rnn_vector_len()
 {
     // return {32};
-    return {{4, 32}};
+    return {{5, 31}};
 }
 
 inline std::vector<int> get_rnn_hidden_size()
 {
     // return {{16,64,128,256,1760,2048,2560}};
-    return {{64, 128}};
+    return {{65, 127}};
 }
 
 // LSTM configs
-inline std::vector<int> get_lstm_num_layers() { return {{1, 4}}; }
+inline std::vector<int> get_lstm_num_layers() { return {{1, 5}}; }
 
 inline std::vector<int> get_lstm_batchSize()
 {
-    return {16};
-    // return {{32, 128}};
+    // return {16};
+    return {{33, 127}};
 }
 
 inline std::vector<int> get_lstm_seq_len()
@@ -84,49 +84,47 @@ inline std::vector<int> get_lstm_seq_len()
 
 inline std::vector<int> get_lstm_vector_len()
 {
-    return {16};
+    return {17};
     // return {{4, 32}};
 }
 
 inline std::vector<int> get_lstm_hidden_size()
 {
-    return {256};
+    return {257};
     // return {{16,64,128,256,1760,2048,2560}};
 }
 
-
-
 // GRU configs
-inline std::vector<int> get_gru_num_layers() { return {{1, 4}}; }
+inline std::vector<int> get_gru_num_layers() { return {{1, 5}}; }
 
 inline std::vector<int> get_gru_batchSize()
 {
-    return {16};
-    // return {{32, 128}};
+    // return {16};
+    return {{17, 91}};
 }
 
 inline std::vector<int> get_gru_seq_len()
 {
-    return {25};
+    return {23};
     // return {{2, 50}};
 }
 
 inline std::vector<int> get_gru_vector_len()
 {
-    return {16};
+    return {13};
     // return {{4, 32}};
 }
 
 inline std::vector<int> get_gru_hidden_size()
 {
-    return {256};
+    return {127};
     // return {{16,64,128,256,1760,2048,2560}};
 }
 
 inline std::vector<std::vector<int>> generate_batchSeq(const int batchSize, const int seqLength)
 {
 
-    int modval = 4;
+    int modval = 3;
     srand(modval);
     int currentval = batchSize;
     std::vector<int> batchSeq;
