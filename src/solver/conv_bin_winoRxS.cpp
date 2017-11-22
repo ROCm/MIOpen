@@ -195,7 +195,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     {
         kernel.kernel_file += "_l1j1";
     }
-    kernel.kernel_file += "_wheel_alpha_v9_0_14";
+    kernel.kernel_file += "_wheel_alpha_v9_0_15";
     if(name.find("gfx8") != std::string::npos)
     {
         kernel.kernel_file += "_gfx803";
@@ -206,7 +206,8 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     }
 
     if(params.rmv == rocm_meta_version::V3)
-    { // Nop.
+    {
+        kernel.kernel_file += "_m30";
     }
     else if(params.rmv == rocm_meta_version::AMDHSA_1_0)
     {
@@ -214,7 +215,7 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     }
     else
     {
-        MIOPEN_THROW("ConvBinWinogradRxSFwd: Unsupported metadata version.");
+        MIOPEN_THROW("ConvBinWinogradRxS: Unsupported metadata version.");
     }
 
     kernel.kernel_file += ".so";
