@@ -1836,6 +1836,22 @@ struct verify_forward_infer_gru
 
     void fail(int)
     {
+        std::cout << "./bin/MIOpenDriver rnn -n ";
+        for(int i = 0; i < seqLength; i++)
+        {
+            if(i < seqLength - 1)
+            {
+                std::cout << batch_seq.at(i) << ",";
+            }
+            else
+            {
+                std::cout << batch_seq.at(i);
+            }
+        }
+        std::cout << " -m gru -k " << seqLength << " -H " << hiddenSize << " -W " << inputVecLen
+                  << " -l " << nLayers << " -F 0 -r " << dirMode << " -b " << biasMode << " -p "
+                  << inputMode << std::endl;
+
         printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
         printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
                hiddenSize,
@@ -2106,6 +2122,22 @@ struct verify_forward_train_gru
 
     void fail(int badtensor)
     {
+        std::cout << "./bin/MIOpenDriver rnn -n ";
+        for(int i = 0; i < seqLength; i++)
+        {
+            if(i < seqLength - 1)
+            {
+                std::cout << batch_seq.at(i) << ",";
+            }
+            else
+            {
+                std::cout << batch_seq.at(i);
+            }
+        }
+        std::cout << " -m gru -k " << seqLength << " -H " << hiddenSize << " -W " << inputVecLen
+                  << " -l " << nLayers << " -F 0 -r " << dirMode << " -b " << biasMode << " -p "
+                  << inputMode << std::endl;
+
         printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
         printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
                hiddenSize,
@@ -2384,6 +2416,21 @@ struct verify_backward_data_gru
 
     void fail(int badtensor)
     {
+        std::cout << "./bin/MIOpenDriver rnn -n ";
+        for(int i = 0; i < seqLength; i++)
+        {
+            if(i < seqLength - 1)
+            {
+                std::cout << batch_seq.at(i) << ",";
+            }
+            else
+            {
+                std::cout << batch_seq.at(i);
+            }
+        }
+        std::cout << " -m gru -k " << seqLength << " -H " << hiddenSize << " -W " << inputVecLen
+                  << " -l " << nLayers << " -F 0 -r " << dirMode << " -b " << biasMode << " -p "
+                  << inputMode << std::endl;
         printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
         printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
                hiddenSize,
@@ -2596,6 +2643,22 @@ struct verify_backward_weights_gru
 
     void fail(int)
     {
+        std::cout << "./bin/MIOpenDriver rnn -n ";
+        for(int i = 0; i < seqLength; i++)
+        {
+            if(i < seqLength - 1)
+            {
+                std::cout << batch_seq.at(i) << ",";
+            }
+            else
+            {
+                std::cout << batch_seq.at(i);
+            }
+        }
+        std::cout << " -m gru -k " << seqLength << " -H " << hiddenSize << " -W " << inputVecLen
+                  << " -l " << nLayers << " -F 0 -r " << dirMode << " -b " << biasMode << " -p "
+                  << inputMode << std::endl;
+
         printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
         printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
                hiddenSize,
@@ -2628,11 +2691,11 @@ struct gru_driver : test_driver
         // this->batch_factor = 4;
         std::vector<int> modes(2, 0);
         modes[1] = 1;
-        std::vector<int> defaultBS(1, 5);
+        std::vector<int> defaultBS(2, 17);
 
         // this->verbose=true;
-        add(batchSize, "batch-size", generate_data(get_gru_batchSize(), {5}));
-        add(seqLength, "seq-len", generate_data(get_gru_seq_len(), {1}));
+        add(batchSize, "batch-size", generate_data(get_gru_batchSize(), {17}));
+        add(seqLength, "seq-len", generate_data(get_gru_seq_len(), {2}));
         add(inVecLen, "vector-len", generate_data(get_gru_vector_len()));
         add(hiddenSize, "hidden-size", generate_data(get_gru_hidden_size()));
         add(numLayers, "num-layers", generate_data(get_gru_num_layers()));
