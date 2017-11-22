@@ -89,7 +89,6 @@ class DbRecord
     void WriteContents(std::ostream &stream) const;
     bool SetValues(const std::string& id, const std::string& values);
     bool GetValues(const std::string& id, std::string& values) const;
-    bool Erase(const std::string& id);
 
     DbRecord(const std::string& key_) : key(key_) {}
 
@@ -138,6 +137,11 @@ class DbRecord
         return ok;
     }
 
+    /// Removes ID with associated VALUES from this record.
+    ///
+    /// Returns true if erase was successful. Returns false if this ID was not found.
+    bool EraseValues(const std::string& id);
+
     friend class Db;
 };
 
@@ -174,21 +178,37 @@ class Db
 
     /// Stores provided record in database. If record with same key is already in database it is
     /// replaced by provided record.
+    ///
     /// Returns true if store was successful, false otherwise.
     bool StoreRecord(const DbRecord& record) const;
 
     /// Stores provided record in database. If record with same key is already in database it is
     /// updated with values from provided record. Provided records data is also updated via
     /// DbRecord::Merge().
+    ///
     /// Returns true if update was successful, false otherwise.
     bool UpdateRecord(DbRecord& record) const;
+
+
+    /// Removes record with provided key from db
+    ///
+    /// Returns true if remove was successful, false otherwise.
+    bool RemoveRecord(const std::string& key) const;
+
+    template <class T>
+    bool RemoveRecord(const T& problem_config) const {
+        std::string key = DbRecord::Serialize(problem_config);
+        return RemoveRecord(key);
+    }
 
     /// Updates record under key PROBLEM_CONFIG  with data ID:VALUES in database.
     /// Both T and V classes should have "void Serialize(std::ostream&) const" member function
     /// available.
+    ///
     /// Returns updated record or none if update was unsuccessful.
     template <class T, class V>
-    boost::optional<DbRecord> Store(const T& problem_config, const std::string& id, const V& values)
+    boost::optional<DbRecord>
+    Store(const T& problem_config, const std::string& id, const V& values) const
     {
         DbRecord record(problem_config);
         record.SetValues(id, values);
@@ -202,15 +222,33 @@ class Db
     /// Searches for record with key PROBLEM_CONFIG and gets VALUES under the ID from it.
     /// Class T should have "void Serialize(std::ostream&) const" member function available.
     /// Class V shall have "bool Deserialize(const std::string& str)" member function available.
+    ///
     /// Returns false if there is none PROBLEM_CONFIG=ID:VALUES in the database
     /// or in case of any error, e.g. if VALUES cannot be deserialized due to incorrect format.
     template <class T, class V>
-    bool Load(const T& problem_config, const std::string& id, V& values)
+    bool Load(const T& problem_config, const std::string& id, V& values) const
     {
         auto record = FindRecord(problem_config);
         if(!record)
             return false;
         return record->GetValues(id, values);
+    }
+
+    /// Removes ID with associated VALUES from record with key PROBLEM_CONFIG from db.
+    /// If payload of a record becomes empty after that, also removes the entire record
+    ///
+    /// Returns true if remove was successful. Returns false if this PROBLEM_CONFIG or ID was not
+    /// found.
+    template <class T>
+    bool Remove(const T& problem_config, const std::string& id) const
+    {
+        auto record = FindRecord(problem_config);
+        if (!record)
+            return false;
+        bool erased = record->EraseValues(id);
+        if (!erased)
+            return false;
+        return StoreRecord(*record);
     }
 };
 } // namespace miopen

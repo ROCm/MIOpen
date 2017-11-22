@@ -74,9 +74,9 @@ void mlo_construct_direct2D::setupRocm()
     }
 }
 
-miopen::DbRecord mlo_construct_direct2D::GetDbRecord() const
+miopen::Db mlo_construct_direct2D::GetDb() const
 {
-    return {db_path(), _search_params};
+    return {db_path()};
 }
 
 /*
@@ -98,7 +98,7 @@ miopen::solver::ConvSolution mlo_construct_direct2D::FindSolution()
         miopen::solver::ConvOclDirectFwd1x1,
         miopen::solver::ConvOclDirectFwdC,
         miopen::solver::ConvOclDirectFwd
-    >(_search_params, this->GetDbRecord());
+    >(_search_params, this->GetDb());
     // clang-format on
 }
 
@@ -108,7 +108,7 @@ miopen::solver::ConvSolution mlo_construct_winograd::FindSolution()
     return miopen::solver::SearchForSolution<
         miopen::solver::ConvBinWinograd3x3U,
         miopen::solver::ConvBinWinogradRxSFwd
-    >(_search_params, this->GetDbRecord());
+    >(_search_params, this->GetDb());
     // clang-format on
 }
 
@@ -120,7 +120,7 @@ miopen::solver::ConvSolution mlo_construct_BwdWrW2D::FindSolution()
         miopen::solver::ConvOclBwdWrW2,
         miopen::solver::ConvOclBwdWrW53,
         miopen::solver::ConvOclBwdWrW1x1
-    >(_search_params, this->GetDbRecord());
+    >(_search_params, this->GetDb());
     // clang-format on
 }
 

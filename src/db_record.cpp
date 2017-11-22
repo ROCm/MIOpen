@@ -44,11 +44,11 @@ bool DbRecord::SetValues(const std::string& id, const std::string& values)
     {
         MIOPEN_LOG_I("Record under key: " << key << ", content "
                                           << (it == map.end() ? "inserted" : "overwritten") << ": "
-                                          << id << ":" << values);
+                                          << id << ':' << values);
         map[id] = values;
         return true;
     }
-    MIOPEN_LOG_I("Record under key: " << key << ", content is the same, not changed:" << id << ":"
+    MIOPEN_LOG_I("Record under key: " << key << ", content is the same, not changed:" << id << ':'
                                       << values);
     return false;
 }
@@ -61,8 +61,21 @@ bool DbRecord::GetValues(const std::string& id, std::string& values) const
         return false;
 
     values = it->second;
-    MIOPEN_LOG_I("Read record " << key << "=" << id << ":" << values);
+    MIOPEN_LOG_I("Read record " << key << '=' << id << ':' << values);
     return true;
+}
+
+bool DbRecord::EraseValues(const std::string& id)
+{
+    const auto it = map.find(id);
+    if(it != map.end())
+    {
+        MIOPEN_LOG_I("Record under key: " << key << ", removed: " << id << ':' << it->second);
+        map.erase(it);
+        return true;
+    }
+    MIOPEN_LOG_W("Record under key: " << key << ", not found: " << id);
+    return false;
 }
 
 bool DbRecord::ParseContents(const std::string& contents)
@@ -102,12 +115,15 @@ bool DbRecord::ParseContents(const std::string& contents)
 
 void DbRecord::WriteContents(std::ostream &stream) const
 {
+    if (map.empty())
+        return;
+
     stream << key << '=';
 
     const auto pairsJoiner = [](const std::string& sum,
                                 const std::pair<std::string, std::string>& pair) {
-        const auto pair_str = pair.first + ":" + pair.second;
-        return sum.empty() ? pair_str : sum + ";" + pair_str;
+        const auto pair_str = pair.first + ':' + pair.second;
+        return sum.empty() ? pair_str : sum + ';' + pair_str;
     };
 
     stream << std::accumulate(map.begin(), map.end(), std::string(), pairsJoiner) << std::endl;
@@ -298,6 +314,17 @@ bool Db::UpdateRecord(DbRecord& record) const
     if (result)
         record = std::move(new_record);
     return result;
+}
+
+bool Db::RemoveRecord(const std::string& key) const
+{
+    // Create empty record with same key and replace original with that
+    // This will remove record
+    MIOPEN_LOG_I("Removing record: " << key);
+    RecordPositions pos;
+    FindRecord(key, &pos);
+    DbRecord empty_record(key);
+    return Flush(empty_record, &pos);
 }
 
 } // namespace miopen

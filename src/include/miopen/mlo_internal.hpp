@@ -360,7 +360,7 @@ struct mlo_construct_direct2D
 
     miopen::solver::ConvSolution FindSolution();
 
-    miopen::DbRecord GetDbRecord() const;
+    miopen::Db GetDb() const;
 
     /*
     * returns parameter values that are compiled in legacy kernels for kernels using them as

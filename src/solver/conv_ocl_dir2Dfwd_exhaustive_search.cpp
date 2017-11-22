@@ -43,19 +43,6 @@
 namespace miopen {
 namespace solver {
 
-static bool LegacyDeserializeField(const char separator, std::istream& from, int& to)
-{
-    std::string part;
-
-    if(!std::getline(from, part, separator))
-        return false;
-
-    const auto start = part.c_str();
-    char* end;
-    to = std::strtol(start, &end, 10);
-    return start != end;
-}
-
 /*
 * select defult configuration if a known configuration has not been found.
 */
