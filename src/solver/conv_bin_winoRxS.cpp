@@ -61,7 +61,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 
-    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
+    if(!(params.direction.IsForward() /*|| params.direction.IsBackwardData()*/))
     {
         return false;
     }
