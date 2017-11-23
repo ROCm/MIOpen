@@ -161,8 +161,8 @@ struct ProblemDescription
     int pad1             = 0;
     int kernel_stride0   = 0;
     int kernel_stride1   = 0;
-    int kernal_dilation0 = 0;
-    int kernal_dilation1 = 0;
+    int kernel_dilation0 = 0;
+    int kernel_dilation1 = 0;
     int bias             = 0;
     struct Direction
     {
@@ -208,7 +208,7 @@ struct ProblemDescription
             << sep << batch_sz
             << sep << pad1 << 'x' << pad0
             << sep << kernel_stride1 << 'x' << kernel_stride0
-            << sep << kernal_dilation1 << 'x' << kernal_dilation1
+            << sep << kernel_dilation1 << 'x' << kernel_dilation1
             << sep << bias
             << sep << in_layout
             << sep << in_data_type
@@ -364,8 +364,8 @@ struct mlo_construct_direct2D
         _search_params.kernel_size1     = 3;
         _search_params.kernel_stride0   = 1;
         _search_params.kernel_stride1   = 1;
-        _search_params.kernal_dilation0 = 1;
-        _search_params.kernal_dilation1 = 1;
+        _search_params.kernel_dilation0 = 1;
+        _search_params.kernel_dilation1 = 1;
         _search_params.deconvolution    = 0;
         _search_params.bot_sz           = 0; // bytes
         _search_params.top_sz           = 0; // bytes
@@ -403,37 +403,35 @@ struct mlo_construct_direct2D
     * returns parameter values that are compiled in legacy kernels for kernels using them as
     * arguments.
     */
-    inline void getCompiledInParameters(int* N,
-                                        int* C,
-                                        int* H,
-                                        int* W,
-                                        int* K,
-                                        int* n_groups,
-                                        int* out_H = nullptr,
-                                        int* out_W = nullptr,
-                                        int* R     = nullptr,
-                                        int* S     = nullptr)
+    inline void getCompiledInParameters(
+        int* const N, int* const C, int* const H, int* const W, int* const K, int* const n_groups)
     {
-        assert(N && C && H && W && K && n_groups && out_H && out_W);
-
+        assert(N && C && H && W && K && n_groups);
         *N        = _search_params.batch_sz;
         *C        = _search_params.n_inputs;
         *H        = _search_params.in_height;
         *W        = _search_params.in_width;
         *K        = _search_params.n_outputs;
         *n_groups = _search_params.GetStream().GetMaxComputeUnits();
-        if(out_H)
-        {
-            assert(out_W);
-            *out_H = _search_params.out_height;
-            *out_W = _search_params.out_width;
-        }
-        if(R)
-        {
-            assert(S);
-            *R = _search_params.kernel_size1; // R is height (sic!)
-            *S = _search_params.kernel_size0;
-        }
+    }
+
+    inline void getCompiledInParameters(int* const N,
+                                        int* const C,
+                                        int* const H,
+                                        int* const W,
+                                        int* const K,
+                                        int* const n_groups,
+                                        int* const out_H,
+                                        int* const out_W,
+                                        int* const R,
+                                        int* const S)
+    {
+        getCompiledInParameters(N, C, H, W, K, n_groups);
+        assert(out_H && out_W && R && S);
+        *out_H = _search_params.out_height;
+        *out_W = _search_params.out_width;
+        *R     = _search_params.kernel_size1;
+        *S     = _search_params.kernel_size0;
     }
 
     /*
