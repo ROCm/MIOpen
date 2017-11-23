@@ -1,28 +1,28 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2017 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 #include <algorithm>
 #include <cassert>
 #include <fstream>
@@ -113,9 +113,9 @@ bool DbRecord::ParseContents(const std::string& contents)
     return (found > 0);
 }
 
-void DbRecord::WriteContents(std::ostream &stream) const
+void DbRecord::WriteContents(std::ostream& stream) const
 {
-    if (map.empty())
+    if(map.empty())
         return;
 
     stream << key << '=';
@@ -131,12 +131,12 @@ void DbRecord::WriteContents(std::ostream &stream) const
 
 void DbRecord::Merge(const DbRecord& that)
 {
-    if (key != that.key)
+    if(key != that.key)
         return;
 
-    for (const auto& that_pair: that.map)
+    for(const auto& that_pair : that.map)
     {
-        if (map.find(that_pair.first) != map.end())
+        if(map.find(that_pair.first) != map.end())
             continue;
         map[that_pair.first] = that_pair.second;
     }
@@ -152,7 +152,7 @@ boost::optional<DbRecord> Db::FindRecord(const std::string& key, RecordPositions
 
     MIOPEN_LOG_I("Looking for key: " << key);
 
-    exclusive_lock lock(mutex);
+    exclusive_lock lock(mutex());
 
     std::ifstream file(filename);
 
@@ -202,7 +202,6 @@ boost::optional<DbRecord> Db::FindRecord(const std::string& key, RecordPositions
         DbRecord record(key);
         const bool is_parse_ok = record.ParseContents(contents);
 
-
         if(!is_parse_ok)
         {
             MIOPEN_LOG_E("Error parsing payload under the key: " << current_key);
@@ -241,7 +240,7 @@ bool Db::Flush(const DbRecord& record, const RecordPositions* pos) const
 {
     assert(pos);
 
-    exclusive_lock lock(mutex);
+    exclusive_lock lock(mutex());
 
     if(pos->begin < 0 || pos->end < 0)
     {
@@ -296,7 +295,7 @@ bool Db::Flush(const DbRecord& record, const RecordPositions* pos) const
 bool Db::StoreRecord(const DbRecord& record) const
 {
     MIOPEN_LOG_I("Storing record: " << record.key);
-    exclusive_lock lock(mutex);
+    exclusive_lock lock(mutex());
     RecordPositions pos;
     auto old_record = FindRecord(record.key, &pos);
     return Flush(record, &pos);
@@ -304,7 +303,7 @@ bool Db::StoreRecord(const DbRecord& record) const
 
 bool Db::UpdateRecord(DbRecord& record) const
 {
-    exclusive_lock lock(mutex);
+    exclusive_lock lock(mutex());
     RecordPositions pos;
     auto old_record = FindRecord(record.key, &pos);
     DbRecord new_record(record);
@@ -318,7 +317,7 @@ bool Db::UpdateRecord(DbRecord& record) const
         MIOPEN_LOG_I("Storing record: " << record.key);
     }
     bool result = Flush(new_record, &pos);
-    if (result)
+    if(result)
         record = std::move(new_record);
     return result;
 }
@@ -328,14 +327,10 @@ bool Db::RemoveRecord(const std::string& key) const
     // Create empty record with same key and replace original with that
     // This will remove record
     MIOPEN_LOG_I("Removing record: " << key);
-    exclusive_lock lock(mutex);
+    exclusive_lock lock(mutex());
     RecordPositions pos;
     FindRecord(key, &pos);
     DbRecord empty_record(key);
     return Flush(empty_record, &pos);
 }
-
-boost::interprocess::named_recursive_mutex Db::mutex(boost::interprocess::open_or_create,
-                                                     MIOPEN_PERFDB_LOCK_NAME);
-
 } // namespace miopen
