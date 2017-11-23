@@ -217,12 +217,12 @@ auto SearchForSolution(const Context& search_params, miopen::DbRecord dbRecord) 
     MIOPEN_STATIC_FOR_EACH(solver, Solvers{}, {
         if(!solution.Succeeded() && solver.IsApplicable(search_params) &&
            (no_perf_filtering || solver.IsFast(search_params)))
-    {
+        {
             solution = FindSolution(solver, search_params, dbRecord);
             if(solution.Succeeded() && !search_params.n_passes && solution.construction_params.empty())
             {
                 MIOPEN_THROW(std::string("Internal error in solver: ") + SolverDbId(solver));
-    }
+            }
         }
     });
     // clang-format on
