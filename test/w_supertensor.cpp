@@ -35,6 +35,9 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/allocator.hpp>
 #include <utility>
+#include <miopen/util.hpp>
+#include <miopen/float_equal.hpp>
+#include <miopen/check_numerics.hpp>
 
 #include "driver.hpp"
 #include "test.hpp"
@@ -442,7 +445,8 @@ struct superTensorTest : test_driver
             // static_cast<int>(wei_set[i])
             //);
             //}
-            EXPECT(static_cast<int>(wei_h[i]) == static_cast<int>(wei_set[i]));
+
+            EXPECT(miopen::float_equal(wei_h[i], wei_set[i]));
         }
 
         getRNNLayer();
