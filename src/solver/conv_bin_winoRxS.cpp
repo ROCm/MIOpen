@@ -176,24 +176,15 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     kernel.l_wk.push_back(1);
 
     kernel.kernel_name = "sp3AsmConvRxSU";
-    kernel.kernel_file = "conv";
+    kernel.kernel_file = "conv_3x3_wheel_alpha_v9_0_15";
     if(params.kernel_stride0 == 2)
     {
-        kernel.kernel_file += "_u2v2";
+        if (params.direction.IsForward()) {
+            kernel.kernel_file += "_stride_2_dec";
+        } else {
+            kernel.kernel_file += "_stride_2_dil";
+        }
     }
-    else
-    {
-        kernel.kernel_file += "_u1v1";
-    }
-    //    if(params.kernel_dilation0 == 2)
-    //    {
-    //        kernel.kernel_file += "_l2j2";
-    //    }
-    //    else
-    //    {
-    kernel.kernel_file += "_l1j1";
-    //    }
-    kernel.kernel_file += "_wheel_alpha_v9_0_15";
     if(name.find("gfx8") != std::string::npos)
     {
         kernel.kernel_file += "_gfx803";
@@ -202,7 +193,6 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     {
         kernel.kernel_file += "_gfx900";
     }
-
     if(params.rmv == rocm_meta_version::V3)
     {
         kernel.kernel_file += "_m30";
