@@ -155,9 +155,8 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
            && params.kernel_stride0 <= 2                     // -u   inp_u   1 or 2
            && params.kernel_stride1 <= 2                     // -v   inp_v   1 or 2
            && params.kernel_stride0 == params.kernel_stride1 // Stride 1x1 or 2x2.
-           && params.kernel_dilation0 <= 1
-           && params.kernel_dilation1 <= 1
-           && params.kernel_dilation0 == params.kernel_dilation1 // Dilation 1x1.
+           && params.kernel_dilation0 == 1
+           && params.kernel_dilation1 == 1
            && params.bias == 0
            && params.batch_sz < std::pow(2, 16)
            && shader_n_inputs < std::pow(2, 16)  // -c   wei_c
