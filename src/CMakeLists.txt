@@ -114,7 +114,7 @@ set( MIOpen_Source
     solver/conv_ocl_dir2Dfwd1x1.cpp
     )
 
-    list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
+list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     set(MIOPEN_KERNELS
