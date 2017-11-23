@@ -60,7 +60,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
-    if(!params.direction.IsForward())
+    if(!params.direction.IsForward()) // FIXME
     {
         return false;
     }

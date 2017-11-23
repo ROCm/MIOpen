@@ -94,9 +94,11 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
         kernel =
             handle.GetKernel(algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
 
-        int N, C, H, W, K, n_groups, R, S;
-        construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups, &R, &S);
-        k_p = std::make_tuple(N, C, H, W, K, n_groups, R, S, kernel_name == "sp3AsmConvRxSU");
+        int N, C, H, W, K, n_groups, out_H, out_W, R, S;
+        construct_params.getCompiledInParameters(
+            &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S);
+        k_p = std::make_tuple(
+            N, C, H, W, K, n_groups, out_H, out_W, R, S, kernel_name == "sp3AsmConvRxSU");
         return 0;
     }
     catch(miopen::Exception&)
@@ -391,8 +393,27 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 int reserved     = 0;
                 int* return_addr = nullptr;
                 bool isRxS;
-                int N, C, H, W, K, n_groups, R, S;
-                std::tie(N, C, H, W, K, n_groups, R, S, isRxS) = k_p;
+                int N, C, H, W, K, n_groups, out_H, out_W, R, S;
+                std::tie(N, C, H, W, K, n_groups, out_H, out_W, R, S, isRxS) = k_p;
+                MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
+                                    << " n_groups="
+                                    << n_groups
+                                    << " flags="
+                                    << flags
+                                    << " R="
+                                    << R
+                                    << " S="
+                                    << S
+                                    << " pad_h="
+                                    << pad_h
+                                    << " pad_w="
+                                    << pad_w
+                                    << " out_H="
+                                    << out_H
+                                    << " out_W="
+                                    << out_W
+                                    << " isRxS="
+                                    << isRxS);
                 if(isRxS)
                 {
                     kernel_wino(N,
@@ -410,7 +431,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                 R,
                                 S,
                                 pad_h,
-                                pad_w);
+                                pad_w,
+                                out_H,
+                                out_W);
                 }
                 else
                 {
@@ -956,17 +979,59 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             { // TODO: be more graceful
                 float time_wino = 0;
                 // Execute the winograd kernel
-                static const int F_REVERSE_R = 1 << 0; // Reverse indexing of r, r -> R-1-r if set.
-                static const int F_REVERSE_S = 1 << 1; // Reverse indexing of s, s -> S-1-s if set.
-                static const int F_FLIP_K_C =
-                    1 << 2; // The <filter_addr> to be interpreted as float F
-                            // [C][K][3][3] instead of float F [K][C][3][3].
+                /// Flags:
+                ///  - Any combination of flags is allowed.
+                ///  - The last two (F_FLIP_DATA_N_C, F_FLIP_OUT_N_K) are for RxS version only.
+                ///
+                /// Reverse indexing of r, r -> R-1-r if set.
+                static const int F_REVERSE_R = 1 << 0;
+                /// Reverse indexing of s, s -> S-1-s if set.
+                static const int F_REVERSE_S = 1 << 1;
+                /// The w ("filter_addr") to be interpreted as float F [C][K][3][3] instead of float
+                /// F [K][C][3][3].
+                static const int F_FLIP_K_C = 1 << 2;
+                /// Causes the dy ("data_addr") to be interpreted as float D [C][N][H][W] with the
+                /// following restrictions:
+                ///  - Read several stacks, no restrictions when reading single C
+                ///  - When reading 2x C, ((N * H * W) <= 2^28)
+                /// instead of float D [N][C][H][W] with the following restrictions:
+                ///  - Read several stacks, if (H * W) >= 128 not more than 2, distance at most one
+                ///    stack, else  (C * H * W) <= 2^23 and it can do 32 stacks, so (C * H * W) <= 2^28.
+                ///  - Reading 2x C at once not a problem if it can read one.
+                static const int F_FLIP_DATA_N_C = 1 << 3;
+                /// Causes the dx ("output_addr") to be interpreted as float OUT [K][N][out_h][out_w]
+                /// (no specific restrictions) instead of float OUT [N][K][out_h][out_w] with the
+                /// following restrictions:
+                /// - (K * out_h * out_w) <= 2^28
+                static const int F_FLIP_OUT_N_K = 1 << 4;
+                /// <End of Flags>
+                (void)F_FLIP_DATA_N_C;
+                (void)F_FLIP_OUT_N_K;
                 int flags        = F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
                 int reserved     = 0;
                 int* return_addr = nullptr;
-                int N, C, H, W, K, n_groups, R, S;
+                int N, C, H, W, K, n_groups, out_H, out_W, R, S;
                 bool isRxS;
-                std::tie(N, C, H, W, K, n_groups, R, S, isRxS) = k_p;
+                std::tie(N, C, H, W, K, n_groups, out_H, out_W, R, S, isRxS) = k_p;
+                MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
+                                    << " n_groups="
+                                    << n_groups
+                                    << " flags="
+                                    << flags
+                                    << " R="
+                                    << R
+                                    << " S="
+                                    << S
+                                    << " pad_h="
+                                    << pad_h
+                                    << " pad_w="
+                                    << pad_w
+                                    << " out_H="
+                                    << out_H
+                                    << " out_W="
+                                    << out_W
+                                    << " isRxS="
+                                    << isRxS);
                 if(isRxS)
                 {
                     kernel_wino(N,
@@ -984,7 +1049,9 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                 R,
                                 S,
                                 pad_h,
-                                pad_w);
+                                pad_w,
+                                out_H,
+                                out_W);
                 }
                 else
                 {
@@ -1201,11 +1268,13 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             construct_params.mloBuildConf_Key(network_config);
 
             auto kernel = handle.GetKernel("miopenConvolutionBwdDataAlgoWinograd", network_config);
+            /// \todo Copied from ConvolutionDescriptor::FindConvBwdDataAlgorithm()
+            static const int F_REVERSE_R = 1 << 0;
+            static const int F_REVERSE_S = 1 << 1;
+            static const int F_FLIP_K_C  = 1 << 2;
+            // static const int F_FLIP_DATA_N_C = 1 << 3;
+            // static const int F_FLIP_OUT_N_K = 1 << 4;
 
-            static const int F_REVERSE_R = 1 << 0; // Reverse indexing of r, r -> R-1-r if set.
-            static const int F_REVERSE_S = 1 << 1; // Reverse indexing of s, s -> S-1-s if set.
-            static const int F_FLIP_K_C  = 1 << 2; // The <filter_addr> to be interpreted as float F
-                                                   // [C][K][3][3] instead of float F [K][C][3][3].
             int flags        = F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
             int reserved     = 0;
             int* return_addr = nullptr;
