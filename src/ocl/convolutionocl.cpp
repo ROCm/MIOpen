@@ -395,25 +395,10 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 bool isRxS;
                 int N, C, H, W, K, n_groups, out_H, out_W, R, S;
                 std::tie(N, C, H, W, K, n_groups, out_H, out_W, R, S, isRxS) = k_p;
+                // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-                                    << " n_groups="
-                                    << n_groups
-                                    << " flags="
-                                    << flags
-                                    << " R="
-                                    << R
-                                    << " S="
-                                    << S
-                                    << " pad_h="
-                                    << pad_h
-                                    << " pad_w="
-                                    << pad_w
-                                    << " out_H="
-                                    << out_H
-                                    << " out_W="
-                                    << out_W
-                                    << " isRxS="
-                                    << isRxS);
+                    << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
+                    << " pad_h=" << pad_h << " pad_w=" << pad_w << " out_H=" << out_H << " out_W=" << out_W); // clang-format on
                 if(isRxS)
                 {
                     kernel_wino(N,
@@ -637,8 +622,13 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             int flags        = 0;
             int reserved     = 0;
             int* return_addr = nullptr;
-            int N, C, H, W, K, n_groups, R, S;
-            construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups, &R, &S);
+            int N, C, H, W, K, n_groups, out_H, out_W, R, S;
+            construct_params.getCompiledInParameters(
+                &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S);
+            // clang-format off
+            MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
+                << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
+                << " pad_h=" << pad_h << " pad_w=" << pad_w << " out_H=" << out_H << " out_W=" << out_W); // clang-format on
             if(kernel.GetName() == "sp3AsmConvRxSU")
             {
                 kernel(N,
@@ -656,7 +646,9 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                        R,
                        S,
                        pad_h,
-                       pad_w);
+                       pad_w,
+                       out_H,
+                       out_W);
             }
             else
             {
@@ -996,11 +988,13 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 ///  - When reading 2x C, ((N * H * W) <= 2^28)
                 /// instead of float D [N][C][H][W] with the following restrictions:
                 ///  - Read several stacks, if (H * W) >= 128 not more than 2, distance at most one
-                ///    stack, else  (C * H * W) <= 2^23 and it can do 32 stacks, so (C * H * W) <= 2^28.
+                ///    stack, else  (C * H * W) <= 2^23 and it can do 32 stacks, so
+                ///    (C * H * W) <= 2^28.
                 ///  - Reading 2x C at once not a problem if it can read one.
                 static const int F_FLIP_DATA_N_C = 1 << 3;
-                /// Causes the dx ("output_addr") to be interpreted as float OUT [K][N][out_h][out_w]
-                /// (no specific restrictions) instead of float OUT [N][K][out_h][out_w] with the
+                /// Causes the dx ("output_addr") to be interpreted as
+                /// float OUT[K][N][out_h][out_w] (no specific restrictions)
+                /// instead of float OUT [N][K][out_h][out_w] with the
                 /// following restrictions:
                 /// - (K * out_h * out_w) <= 2^28
                 static const int F_FLIP_OUT_N_K = 1 << 4;
@@ -1013,25 +1007,10 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 int N, C, H, W, K, n_groups, out_H, out_W, R, S;
                 bool isRxS;
                 std::tie(N, C, H, W, K, n_groups, out_H, out_W, R, S, isRxS) = k_p;
+                // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
-                                    << " n_groups="
-                                    << n_groups
-                                    << " flags="
-                                    << flags
-                                    << " R="
-                                    << R
-                                    << " S="
-                                    << S
-                                    << " pad_h="
-                                    << pad_h
-                                    << " pad_w="
-                                    << pad_w
-                                    << " out_H="
-                                    << out_H
-                                    << " out_W="
-                                    << out_W
-                                    << " isRxS="
-                                    << isRxS);
+                    << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
+                    << " pad_h=" << pad_h << " pad_w=" << pad_w << " out_H=" << out_H << " out_W=" << out_W); // clang-format on
                 if(isRxS)
                 {
                     kernel_wino(N,

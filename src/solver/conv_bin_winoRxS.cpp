@@ -141,11 +141,9 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
            && params.kernel_stride0 <= 2                     // -u   inp_u   1 or 2
            && params.kernel_stride1 <= 2                     // -v   inp_v   1 or 2
            && params.kernel_stride0 == params.kernel_stride1 // Stride 1x1 or 2x2.
-           && params.kernal_dilation0 <= 2
-           && params.kernal_dilation1 <= 2
-           && params.kernal_dilation0 == params.kernal_dilation1 // Dilation 1x1 or 2x2.
-           && (params.kernel_stride0 == 1 ||
-               params.kernal_dilation0 == 1) // Either stride or dilation can be 2x2 at once.
+           && params.kernel_dilation0 <= 1
+           && params.kernel_dilation1 <= 1
+           && params.kernel_dilation0 == params.kernel_dilation1 // Dilation 1x1.
            && params.bias == 0
            && params.batch_sz < std::pow(2, 16)
            && params.n_inputs < std::pow(2, 16)  // -c   wei_c
@@ -187,14 +185,14 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     {
         kernel.kernel_file += "_u1v1";
     }
-    if(params.kernal_dilation0 == 2)
-    {
-        kernel.kernel_file += "_l2j2";
-    }
-    else
-    {
-        kernel.kernel_file += "_l1j1";
-    }
+    //    if(params.kernel_dilation0 == 2)
+    //    {
+    //        kernel.kernel_file += "_l2j2";
+    //    }
+    //    else
+    //    {
+    kernel.kernel_file += "_l1j1";
+    //    }
     kernel.kernel_file += "_wheel_alpha_v9_0_15";
     if(name.find("gfx8") != std::string::npos)
     {
