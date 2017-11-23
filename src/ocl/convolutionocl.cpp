@@ -1253,13 +1253,41 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             static const int F_FLIP_K_C  = 1 << 2;
             // static const int F_FLIP_DATA_N_C = 1 << 3;
             // static const int F_FLIP_OUT_N_K = 1 << 4;
-
             int flags        = F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
             int reserved     = 0;
             int* return_addr = nullptr;
-            int N, C, H, W, K, n_groups;
-            construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-            kernel(N, C, H, W, K, n_groups, flags, reserved, dy, w, dx, return_addr);
+            int N, C, H, W, K, n_groups, out_H, out_W, R, S;
+            construct_params.getCompiledInParameters(
+                &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S);
+            // clang-format off
+            MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
+                << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
+                << " pad_h=" << pad_h << " pad_w=" << pad_w << " out_H=" << out_H << " out_W=" << out_W); // clang-format on
+            if(kernel.GetName() == "sp3AsmConvRxSU")
+            {
+                kernel(N,
+                       C,
+                       H,
+                       W,
+                       K,
+                       n_groups,
+                       flags,
+                       reserved,
+                       dy,
+                       w,
+                       dx,
+                       return_addr,
+                       R,
+                       S,
+                       pad_h,
+                       pad_w,
+                       out_H,
+                       out_W);
+            }
+            else
+            {
+                kernel(N, C, H, W, K, n_groups, flags, reserved, dy, w, dx, return_addr);
+            }
             break;
         }
 

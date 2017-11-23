@@ -60,10 +60,12 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
-    if(!params.direction.IsForward()) // FIXME
+
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
     {
         return false;
     }
+
     const auto name                    = params.GetStream().GetDeviceName();
     const auto device_is_gfx9_no_xnack = (name == "gfx900");
     const bool device_is_gfx8_no_xnack =
@@ -72,6 +74,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
+
     // Check if kernel is suitable for the problem description
     // and able to correctly run with given parameters.
     // Calculate padded filter size first.
@@ -94,6 +97,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     {
         padded_S = Ceiling(params.kernel_size0, 6);
     }
+
     // If stride = 1: R is always padded to smallest 3*m for some integer m
     // If stride = 2: if R % 6 ==1 then R is padded to smallest 3*m for some
     // integer m,
@@ -114,19 +118,29 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
             padded_R = Ceiling(params.kernel_size1, 6);
         }
     }
+
+    const auto shader_n_inputs =
+        (params.direction.IsForward() ? params.n_inputs : params.n_outputs);
+    const auto shader_n_outputs =
+        (params.direction.IsForward() ? params.n_outputs : params.n_inputs);
+    const auto shader_in_height =
+        (params.direction.IsForward() ? params.in_height : params.out_height);
+    const auto shader_in_width =
+        (params.direction.IsForward() ? params.in_width : params.out_width);
+
     // Check C restrictions:
     // If stride == 1 and S <= 3 then C needs to be even, otherwise not
-    if(params.kernel_stride0 == 1 && params.kernel_size0 <= 3 && params.n_inputs % 2 != 0)
+    if(params.kernel_stride0 == 1 && params.kernel_size0 <= 3 && shader_n_inputs % 2 != 0)
     {
         return false;
     }
-    // If the padded filter size from above is 3*k x 3*l, then it should be that
-    // k*l*C  >=18
+    // If the padded filter size from above is 3*k x 3*l, then
+    // it should be that k*l*C  >=18
     {
         assert(padded_R % 3 == 0 && padded_S % 3 == 0);
         const int k = padded_R / 3;
         const int l = padded_S / 3;
-        if(k * l * params.n_inputs < 18)
+        if(k * l * shader_n_inputs < 18)
         {
             return false;
         }
@@ -146,15 +160,15 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
            && params.kernel_dilation0 == params.kernel_dilation1 // Dilation 1x1.
            && params.bias == 0
            && params.batch_sz < std::pow(2, 16)
-           && params.n_inputs < std::pow(2, 16)  // -c   wei_c
-           && params.n_outputs < std::pow(2, 16) // -k   wei_k
-           && params.in_height < std::pow(2, 16) // -H   inp_h
-           && params.in_width < std::pow(2, 16)  // -W   inp_w
+           && shader_n_inputs < std::pow(2, 16)  // -c   wei_c
+           && shader_n_outputs < std::pow(2, 16) // -k   wei_k
+           && shader_in_height < std::pow(2, 16) // -H   inp_h
+           && shader_in_width < std::pow(2, 16)  // -W   inp_w
            && grid_workgroup_count_x < std::pow(2, 16)
-           && (params.n_inputs * params.in_height * params.in_width) <= std::pow(2, 28)
-           && (params.n_outputs * params.in_height * params.in_width) <= std::pow(2, 28)
-           && (params.n_inputs * params.kernel_size0 * params.kernel_size1) <= std::pow(2, 28)
-           && (params.n_outputs * params.kernel_size0 * params.kernel_size1) <= std::pow(2, 28)
+           && (shader_n_inputs * shader_in_height * shader_in_width) <= std::pow(2, 28)
+           && (shader_n_outputs * shader_in_height * shader_in_width) <= std::pow(2, 28)
+           && (shader_n_inputs * params.kernel_size0 * params.kernel_size1) <= std::pow(2, 28)
+           && (shader_n_outputs * params.kernel_size0 * params.kernel_size1) <= std::pow(2, 28)
            && params.in_layout == "NCHW";
     // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
     // clang-format on
@@ -179,9 +193,12 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     kernel.kernel_file = "conv_3x3_wheel_alpha_v9_0_15";
     if(params.kernel_stride0 == 2)
     {
-        if (params.direction.IsForward()) {
+        if(params.direction.IsForward())
+        {
             kernel.kernel_file += "_stride_2_dec";
-        } else {
+        }
+        else
+        {
             kernel.kernel_file += "_stride_2_dil";
         }
     }
