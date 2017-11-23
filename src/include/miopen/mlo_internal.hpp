@@ -403,10 +403,18 @@ struct mlo_construct_direct2D
     * returns parameter values that are compiled in legacy kernels for kernels using them as
     * arguments.
     */
-    inline void getCompiledInParameters(
-        int* N, int* C, int* H, int* W, int* K, int* n_groups, int* R = nullptr, int* S = nullptr)
+    inline void getCompiledInParameters(int* N,
+                                        int* C,
+                                        int* H,
+                                        int* W,
+                                        int* K,
+                                        int* n_groups,
+                                        int* out_H = nullptr,
+                                        int* out_W = nullptr,
+                                        int* R     = nullptr,
+                                        int* S     = nullptr)
     {
-        assert(N && C && H && W && K && n_groups);
+        assert(N && C && H && W && K && n_groups && out_H && out_W);
 
         *N        = _search_params.batch_sz;
         *C        = _search_params.n_inputs;
@@ -414,12 +422,16 @@ struct mlo_construct_direct2D
         *W        = _search_params.in_width;
         *K        = _search_params.n_outputs;
         *n_groups = _search_params.GetStream().GetMaxComputeUnits();
+        if(out_H)
+        {
+            assert(out_W);
+            *out_H = _search_params.out_height;
+            *out_W = _search_params.out_width;
+        }
         if(R)
         {
-            *R = _search_params.kernel_size1;
-        } // R is height (sic!)
-        if(S)
-        {
+            assert(S);
+            *R = _search_params.kernel_size1; // R is height (sic!)
             *S = _search_params.kernel_size0;
         }
     }
