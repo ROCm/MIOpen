@@ -35,7 +35,7 @@
 
 namespace miopen {
 
-using WinogradKernelParams = std::tuple<int, int, int, int, int, int, int, int, bool>;
+using WinogradKernelParams = std::tuple<int, int, int, int, int, int, int, int, int, int, bool>;
 
 struct PerfField
 {
