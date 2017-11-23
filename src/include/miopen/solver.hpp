@@ -203,8 +203,8 @@ template <class... Solvers, class Context>
 auto SearchForSolution(const Context& search_params, miopen::Db db) ->
     typename std::common_type<decltype(FindSolution(Solvers{}, search_params, db))...>::type
 {
-    using Solution = typename std::common_type<decltype(
-        FindSolution(Solvers{}, search_params, db))...>::type;
+    using Solution =
+        typename std::common_type<decltype(FindSolution(Solvers{}, search_params, db))...>::type;
     Solution solution{miopenStatusUnknownError};
 
 // Using const here causes gcc to ICE
