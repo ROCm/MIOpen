@@ -970,7 +970,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             if(FindWinogradKernel(handle, dxDesc, wDesc, dyDesc, k_p, kernel_wino, 0) == 0)
             { // TODO: be more graceful
                 float time_wino = 0;
-                // Execute the winograd kernel
+                /// \todo Move Flags into Solution.
                 /// Flags:
                 ///  - Any combination of flags is allowed.
                 ///  - The last two (F_FLIP_DATA_N_C, F_FLIP_OUT_N_K) are for RxS version only.
@@ -996,7 +996,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 /// float OUT[K][N][out_h][out_w] (no specific restrictions)
                 /// instead of float OUT [N][K][out_h][out_w] with the
                 /// following restrictions:
-                /// - (K * out_h * out_w) <= 2^28
+                ///  - (K * out_h * out_w) <= 2^28
                 static const int F_FLIP_OUT_N_K = 1 << 4;
                 /// <End of Flags>
                 (void)F_FLIP_DATA_N_C;
@@ -1251,8 +1251,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             static const int F_REVERSE_R = 1 << 0;
             static const int F_REVERSE_S = 1 << 1;
             static const int F_FLIP_K_C  = 1 << 2;
-            // static const int F_FLIP_DATA_N_C = 1 << 3;
-            // static const int F_FLIP_OUT_N_K = 1 << 4;
             int flags        = F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
             int reserved     = 0;
             int* return_addr = nullptr;
