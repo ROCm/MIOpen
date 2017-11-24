@@ -61,7 +61,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 
-    if(!(params.direction.IsForward() /*|| params.direction.IsBackwardData()*/))
+    if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
     {
         return false;
     }
@@ -76,7 +76,17 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     }
 
     // Check if kernel is suitable for the problem description
-    // and able to correctly run with given parameters.
+    // and is able to correctly run with given parameters.
+
+    // Aliases to ease programming.
+    const auto& shader_R = params.kernel_size1; // -x wei_w
+    const auto& shader_S = params.kernel_size0; // -y wei_h
+    const auto& shader_C = params.n_inputs;  // -c   wei_c
+    const auto& shader_K = params.n_outputs; // -k   wei_k
+    const auto& shader_H = params.in_height; // -H   inp_h
+    const auto& shader_W = params.in_width;  // -W   inp_w
+    const auto& shader_OH = params.out_height;
+    const auto& shader_OW = params.out_width;
     // Calculate padded filter size first.
     // If stride = 1: if S <= 3 it is padded to 3,
     // otherwise S is padded to smallest 6*n for some integer n
@@ -84,53 +94,41 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     int padded_S = 0;
     if(params.kernel_stride0 == 1)
     {
-        if(params.kernel_size0 <= 3)
+        if(shader_S <= 3)
         {
             padded_S = 3;
         }
         else
         {
-            padded_S = Ceiling(params.kernel_size0, 6);
+            padded_S = Ceiling(shader_S, 6);
         }
     }
     else
     {
-        padded_S = Ceiling(params.kernel_size0, 6);
+        padded_S = Ceiling(shader_S, 6);
     }
-
     // If stride = 1: R is always padded to smallest 3*m for some integer m
     // If stride = 2: if R % 6 ==1 then R is padded to smallest 3*m for some
-    // integer m,
-    // otherwise R is padded to smallest 6*m for some integer m
+    // integer m, otherwise R is padded to smallest 6*m for some integer m
     int padded_R = 0;
     if(params.kernel_stride1 == 1)
     {
-        padded_R = Ceiling(params.kernel_size1, 3);
+        padded_R = Ceiling(shader_R, 3);
     }
     else
     {
-        if(params.kernel_size1 % 6 == 1)
+        if(shader_R % 6 == 1)
         {
-            padded_R = Ceiling(params.kernel_size1, 3);
+            padded_R = Ceiling(shader_R, 3);
         }
         else
         {
-            padded_R = Ceiling(params.kernel_size1, 6);
+            padded_R = Ceiling(shader_R, 6);
         }
     }
-
-    const auto shader_n_inputs =
-        (params.direction.IsForward() ? params.n_inputs : params.n_outputs);
-    const auto shader_n_outputs =
-        (params.direction.IsForward() ? params.n_outputs : params.n_inputs);
-    const auto shader_in_height =
-        (params.direction.IsForward() ? params.in_height : params.out_height);
-    const auto shader_in_width =
-        (params.direction.IsForward() ? params.in_width : params.out_width);
-
     // Check C restrictions:
     // If stride == 1 and S <= 3 then C needs to be even, otherwise not
-    if(params.kernel_stride0 == 1 && params.kernel_size0 <= 3 && shader_n_inputs % 2 != 0)
+    if(params.kernel_stride0 == 1 && shader_S <= 3 && shader_C % 2 != 0)
     {
         return false;
     }
@@ -140,7 +138,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         assert(padded_R % 3 == 0 && padded_S % 3 == 0);
         const int k = padded_R / 3;
         const int l = padded_S / 3;
-        if(k * l * shader_n_inputs < 18)
+        if(k * l * shader_C < 18)
         {
             return false;
         }
@@ -148,27 +146,29 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     const auto grid_workgroup_count_x = params.GetStream().GetMaxComputeUnits();
     assert(params.weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
     // clang-format off
-    return params.pad0 < std::pow(2, 16)                     // -q   pad_w   uint16
-           && params.pad1 < std::pow(2, 16)                  // -p   pad_h   uint16
-           && params.kernel_size0 < std::pow(2, 16)          // -x   wei_w   S uint16
-           && params.kernel_size1 < std::pow(2, 16)          // -y   wei_h   R uint16
-           && params.kernel_stride0 <= 2                     // -u   inp_u   1 or 2
-           && params.kernel_stride1 <= 2                     // -v   inp_v   1 or 2
-           && params.kernel_stride0 == params.kernel_stride1 // Stride 1x1 or 2x2.
-           && params.kernel_dilation0 == 1
-           && params.kernel_dilation1 == 1
-           && params.bias == 0
-           && params.batch_sz < std::pow(2, 16)
-           && shader_n_inputs < std::pow(2, 16)  // -c   wei_c
-           && shader_n_outputs < std::pow(2, 16) // -k   wei_k
-           && shader_in_height < std::pow(2, 16) // -H   inp_h
-           && shader_in_width < std::pow(2, 16)  // -W   inp_w
-           && grid_workgroup_count_x < std::pow(2, 16)
-           && (shader_n_inputs * shader_in_height * shader_in_width) <= std::pow(2, 28)
-           && (shader_n_outputs * shader_in_height * shader_in_width) <= std::pow(2, 28)
-           && (shader_n_inputs * params.kernel_size0 * params.kernel_size1) <= std::pow(2, 28)
-           && (shader_n_outputs * params.kernel_size0 * params.kernel_size1) <= std::pow(2, 28)
-           && params.in_layout == "NCHW";
+    return params.kernel_stride0 <= 2 // -u inp_u 1 or 2
+        && params.kernel_stride1 <= 2 // -v inp_v 1 or 2
+        && params.kernel_stride0 == params.kernel_stride1 // Stride 1x1 or 2x2.
+        && params.kernel_dilation0 == 1
+        && params.kernel_dilation1 == 1
+        && params.bias == 0
+        && params.batch_sz < std::pow(2, 16)
+        && shader_C < std::pow(2, 16) 
+        && shader_K < std::pow(2, 16) 
+        && shader_H < std::pow(2, 16) 
+        && shader_W < std::pow(2, 16)
+        && shader_OH < std::pow(2, 16) 
+        && shader_OW < std::pow(2, 16)
+        && params.pad0 < std::pow(2, 16) // -q pad_w
+        && params.pad1 < std::pow(2, 16) // -p pad_h
+        && shader_S < std::pow(2, 16)
+        && shader_R < std::pow(2, 16)
+        && grid_workgroup_count_x < std::pow(2, 16)
+        && (shader_C * shader_H * shader_W) <= std::pow(2, 28)
+        && (shader_K * shader_OH * shader_OW) <= std::pow(2, 28)
+        && (shader_K * shader_R * shader_S) <= std::pow(2, 28)
+        && (shader_C * shader_R * shader_S) <= std::pow(2, 28)
+        && params.in_layout == "NCHW";
     // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
     // clang-format on
 }
