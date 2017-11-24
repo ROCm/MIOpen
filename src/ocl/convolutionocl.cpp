@@ -1251,9 +1251,9 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             static const int F_REVERSE_R = 1 << 0;
             static const int F_REVERSE_S = 1 << 1;
             static const int F_FLIP_K_C  = 1 << 2;
-            int flags        = F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
-            int reserved     = 0;
-            int* return_addr = nullptr;
+            int flags                    = F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
+            int reserved                 = 0;
+            int* return_addr             = nullptr;
             int N, C, H, W, K, n_groups, out_H, out_W, R, S;
             construct_params.getCompiledInParameters(
                 &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S);
