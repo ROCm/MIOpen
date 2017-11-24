@@ -79,12 +79,12 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     // and is able to correctly run with given parameters.
 
     // Aliases to ease programming.
-    const auto& shader_R = params.kernel_size1; // -x wei_w
-    const auto& shader_S = params.kernel_size0; // -y wei_h
-    const auto& shader_C = params.n_inputs;  // -c   wei_c
-    const auto& shader_K = params.n_outputs; // -k   wei_k
-    const auto& shader_H = params.in_height; // -H   inp_h
-    const auto& shader_W = params.in_width;  // -W   inp_w
+    const auto& shader_R  = params.kernel_size1; // -x wei_w
+    const auto& shader_S  = params.kernel_size0; // -y wei_h
+    const auto& shader_C  = params.n_inputs;     // -c   wei_c
+    const auto& shader_K  = params.n_outputs;    // -k   wei_k
+    const auto& shader_H  = params.in_height;    // -H   inp_h
+    const auto& shader_W  = params.in_width;     // -W   inp_w
     const auto& shader_OH = params.out_height;
     const auto& shader_OW = params.out_width;
     // Calculate padded filter size first.
