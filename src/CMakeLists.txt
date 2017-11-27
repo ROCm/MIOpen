@@ -330,7 +330,10 @@ endif()
 # MIOpen depends on librt for Boost.Interprocess
 if(NOT WIN32 AND NOT APPLE)
     find_library(LIBRT rt)
-    target_link_libraries(MIOpen PRIVATE ${LIBRT})
+    if(LIBRT)
+        MESSAGE(STATUS "Librt: " ${LIBRT})
+        target_link_libraries(MIOpen PUBLIC ${LIBRT})
+    endif()
 endif()
 
 ############################################################
