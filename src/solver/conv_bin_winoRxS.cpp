@@ -41,6 +41,10 @@ static int Ceiling(const int v, const int m)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)
 
+// The shader is temporarily disabled for Backward Data convolutions.
+// Use this variable to explicitly enable it back.
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_BWD)
+
 namespace miopen {
 namespace solver {
 
@@ -52,6 +56,10 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     }
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}))
+    {
+        return false;
+    }
+    if(params.direction.IsBackwardData() && !miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_BWD{}))
     {
         return false;
     }
