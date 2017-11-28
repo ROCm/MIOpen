@@ -53,6 +53,7 @@
 #define MLO_POOLING_OP(A, B) (A + B);
 #endif
 
+#if 0
 #define MLO_POOLING_LCL_DATA_WIDTH                                               \
     (MLO_POOLING_GROUP_SZ0 * MLO_POOLING_N_HORIZ_OUT_PIX * MLO_POOLING_STRIDE0 + \
      MLO_POOLING_KERNEL_SZ0 - 1)
@@ -217,6 +218,8 @@ mloPooling(const __global _FLOAT* bot,
         }
     }
 }
+
+#endif
 
 /*********************************************************************************
 
