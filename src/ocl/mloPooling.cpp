@@ -79,7 +79,7 @@ int mlo_construct_pooling2D::mloConstructFwd()
 
     _out_pix_tile0 = (_search_params.out_width < _grp_tile0 * 2) ? 1 : 2;
     _out_pix_tile1 = (_search_params.out_height < _grp_tile1 * 2) ? 1 : 2;
-#if 1
+#if 0
 	bool out_off_lcl_mem = false;
 	if (_search_params.direction.IsForward() == 1)
 	{
@@ -177,7 +177,7 @@ int mlo_construct_pooling2D::mloConstructFwd()
 
     _kernel_file = "MIOpenPooling.cl";
 
-	_kernel_name = /*"mloPoolingG"; */ (out_off_lcl_mem) ? "mloPoolingG" : "mloPooling";
+	_kernel_name = "mloPoolingG"; // (out_off_lcl_mem) ? "mloPoolingG" : "mloPooling";
 
     return (ret);
 }
