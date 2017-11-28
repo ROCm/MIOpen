@@ -23,32 +23,23 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GCN_ASM_UTILS_H
-#define GCN_ASM_UTILS_H
+#ifndef GUARD_CONFIG_H_IN
+#define GUARD_CONFIG_H_IN
 
-#include <string>
-#include <vector>
-#include <sstream>
+#cmakedefine01 MIOPEN_BACKEND_OPENCL
+#cmakedefine01 MIOPEN_BACKEND_HCC
+#cmakedefine01 MIOPEN_BACKEND_HIP
+#cmakedefine01 MIOPEN_USE_MIOPENGEMM
+#cmakedefine01 MIOPEN_BUILD_DEV
 
-std::string GetGcnAssemblerPath();
-bool ValidateGcnAssembler();
-void AmdgcnAssemble(std::string& source, const std::string& params);
+#cmakedefine MIOPEN_AMDGCN_ASSEMBLER "@MIOPEN_AMDGCN_ASSEMBLER@"
+#cmakedefine HIP_OC_COMPILER "@HIP_OC_COMPILER@"
+#cmakedefine MIOPEN_CACHE_DIR "@MIOPEN_CACHE_DIR@"
 
-template <typename TValue>
-void GenerateClangDefsym(std::ostream& stream, const std::string& name, TValue value)
-{
-    GenerateClangDefsym<const std::string&>(stream, name, std::to_string(value));
-}
+<<<<<<< HEAD
+#cmakedefine MIOPEN_PERFDB_LOCK_NAME "@MIOPEN_PERFDB_LOCK_NAME@"
+=======
+#define MIOPEN_PERFDB_CONV_LEGACY_SUPPORT 0
+>>>>>>> develop
 
-template <>
-void GenerateClangDefsym<const std::string&>(std::ostream& stream,
-                                             const std::string& name,
-                                             const std::string& value);
-
-/// @param dir 1: fwd, 0: bwd wrt data. Use 0 for WrW.
-/// Encodes key with default strides (u1v1)
-std::string MakeLutKey(int w, int h, int c, int n, int k, int dir, int CUs = -1);
-/// Allows for any strides.
-std::string MakeLutKey(int w, int h, int c, int n, int k, int u, int v, int dir, int CUs = -1);
-
-#endif // GCN_ASM_UTILS_H
+#endif
