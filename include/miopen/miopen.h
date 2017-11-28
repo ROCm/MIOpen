@@ -35,7 +35,7 @@
 
 #include <miopen/config.h>
 #include <miopen/export.h>
-#include <vector>
+
 #if MIOPEN_BACKEND_OPENCL
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <OpenCL/cl.h>
