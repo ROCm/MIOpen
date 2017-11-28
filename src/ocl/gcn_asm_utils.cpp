@@ -32,10 +32,10 @@
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/gcn_asm_utils.hpp>
+#include <miopen/manage_ptr.hpp>
 #include <sstream>
 
 #ifdef __linux__
-#include <ext/stdio_filebuf.h>
 #include <paths.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -80,6 +80,7 @@ class TempFile
         }
     }
 
+    inline const std::string& Path() { return _path; }
     inline operator const std::string&() { return _path; }
 
     private:
@@ -105,72 +106,9 @@ class TempFile
 #endif
 
 static std::string CleanupPath(const char* p);
-static int ExecuteGcnAssembler(const std::string& p,
-                               std::vector<std::string>& args,
-                               std::istream* in,
-                               std::ostream* out);
 
-#ifdef __linux__
-class Pipe
-{
-    public:
-    Pipe() : _read_side_closed(true), _write_side_closed(true) {}
-
-    Pipe(Pipe&&)  = delete;
-    Pipe(Pipe&)   = delete;
-    Pipe& operator=(Pipe&) = delete;
-    ~Pipe() { Close(); }
-    void CloseRead() { CloseSide(_sides[0], _read_side_closed); }
-    void CloseWrite() { CloseSide(_sides[1], _write_side_closed); }
-    int DupRead(int target_fd)
-    {
-        assert(!_read_side_closed);
-        return dup2(_sides[0], target_fd);
-    }
-    int DupWrite(int target_fd)
-    {
-        assert(!_write_side_closed);
-        return dup2(_sides[1], target_fd);
-    }
-    int GetReadFd() { return _sides[0]; }
-    int GetWriteFd() { return _sides[1]; }
-
-    void Close()
-    {
-        CloseRead();
-        CloseWrite();
-    }
-
-    void Open()
-    {
-        if(pipe(_sides))
-        {
-            MIOPEN_THROW("Error: pipe()");
-        }
-        _read_side_closed  = false;
-        _write_side_closed = false;
-    }
-
-    private:
-    int _sides[2] = {};
-
-    bool _read_side_closed  = false;
-    bool _write_side_closed = false;
-
-    static void CloseSide(int fd, bool& closed)
-    {
-        if(closed)
-        {
-            return;
-        }
-        if(close(fd))
-        {
-            std::cerr << "Error closing pipe\n";
-        }
-        closed = true;
-    }
-};
-#endif // __linux__
+// Redirecting both input and output is not supported.
+static int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostream* out);
 
 std::string GetGcnAssemblerPathImpl()
 {
@@ -205,10 +143,9 @@ bool ValidateGcnAssemblerImpl()
         return false;
     }
 
-    std::vector<std::string> args({"--version"});
     std::stringstream clang_stdout;
     std::string clang_result_line;
-    auto clang_rc = ExecuteGcnAssembler(path, args, nullptr, &clang_stdout);
+    auto clang_rc = ExecuteGcnAssembler(path + " --version", nullptr, &clang_stdout);
 
     if(clang_rc != 0)
     {
@@ -237,120 +174,49 @@ bool ValidateGcnAssembler()
     return result;
 }
 
-int ExecuteGcnAssembler(const std::string& p,
-                        std::vector<std::string>& args,
-                        std::istream* in,
-                        std::ostream* out)
+static int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostream* out)
 {
 #ifdef __linux__
-    Pipe clang_stdin;
-    Pipe clang_stdout;
-
     const auto redirect_stdin  = (in != nullptr);
     const auto redirect_stdout = (out != nullptr);
 
-    if(redirect_stdin)
-    {
-        clang_stdin.Open();
-    }
-    if(redirect_stdout)
-    {
-        clang_stdout.Open();
-    }
+    assert(!(redirect_stdin && redirect_stdout));
 
-    int wstatus;
-    pid_t pid = fork();
-    if(pid == 0)
-    {
-        std::string path(p); // to remove constness
-        std::vector<char*> c_args;
-        c_args.push_back(&path[0]);
-        for(auto& arg : args)
-        {
-            c_args.push_back(&arg[0]);
-        }
-        c_args.push_back(nullptr);
+    const auto file_mode = redirect_stdout ? "r" : "w";
+    MIOPEN_MANAGE_PTR(FILE*, pclose) pipe{popen(p.c_str(), file_mode)};
 
-        if(redirect_stdin)
-        {
-            if(clang_stdin.DupRead(STDIN_FILENO) == -1)
-            {
-                std::exit(EXIT_FAILURE);
-            }
-            clang_stdin.Close();
-        }
+    if(!pipe)
+        MIOPEN_THROW("Error: X-AMDGCN-ASM: popen()");
+
+    if(redirect_stdin || redirect_stdout)
+    {
+        std::array<char, 1024> buffer{};
 
         if(redirect_stdout)
         {
-            if(clang_stdout.DupWrite(STDOUT_FILENO) == -1)
+            while(!feof(pipe.get()))
+                if(fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
+                    *out << buffer.data();
+        }
+        else
+        {
+            while(!in->eof())
             {
-                std::exit(EXIT_FAILURE);
+                in->read(buffer.data(), buffer.size());
+                if(fputs(buffer.data(), pipe.get()) == EOF)
+                    MIOPEN_THROW("Error: X-AMDGCN-ASM: fputs()");
             }
-            clang_stdout.Close();
-        }
-
-        clang_stdout.Close();
-
-        execv(path.c_str(), c_args.data());
-        std::exit(EXIT_FAILURE);
-    }
-    else
-    {
-        if(pid == -1)
-        {
-            MIOPEN_THROW("Error X-AMDGCN-ASM: fork()");
-        }
-
-        if(redirect_stdin)
-        {
-            clang_stdin.CloseRead();
-            __gnu_cxx::stdio_filebuf<char> clang_stdin_buffer(clang_stdin.GetWriteFd(),
-                                                              std::ios::out);
-            std::ostream clang_stdin_stream(&clang_stdin_buffer);
-            clang_stdin_stream << in->rdbuf();
-            clang_stdin.CloseWrite();
-        }
-
-        if(redirect_stdout)
-        {
-            clang_stdout.CloseWrite();
-            __gnu_cxx::stdio_filebuf<char> clang_stdout_buffer(clang_stdout.GetReadFd(),
-                                                               std::ios::in);
-            std::istream clang_stdin_stream(&clang_stdout_buffer);
-            *out << clang_stdin_stream.rdbuf();
-            clang_stdout.CloseRead();
-        }
-
-        if(waitpid(pid, &wstatus, 0) != pid)
-        {
-            MIOPEN_THROW("Error: X-AMDGCN-ASM: waitpid()");
         }
     }
 
-    if(WIFEXITED(wstatus))
-    {
-        const int exit_status = WEXITSTATUS(wstatus);
-        return exit_status;
-    }
-    else
-    {
-        MIOPEN_THROW("Error: X-AMDGCN-ASM: clang terminated abnormally");
-    }
+    auto status = pclose(pipe.release());
+    return WEXITSTATUS(status);
 #else
     (void)p;
-    (void)args;
     (void)in;
     (void)out;
     return -1;
 #endif // __linux__
-}
-
-int ExecuteGcnAssembler(std::vector<std::string>& args,
-                        std::istream* clang_stdin_content,
-                        std::ostream* clang_stdout_content)
-{
-    auto path = GetGcnAssemblerPath();
-    return ExecuteGcnAssembler(path, args, clang_stdin_content, clang_stdout_content);
 }
 
 static std::string CleanupPath(const char* p)
@@ -386,24 +252,11 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
 #ifdef __linux__
     TempFile outfile("amdgcn-asm-out-XXXXXX");
 
-    std::vector<std::string> args({
-        "-x", "assembler", "-target", "amdgcn--amdhsa",
-    });
-
-    {
-        std::istringstream iss(params);
-        std::string param;
-        while(iss >> param)
-        {
-            args.push_back(param);
-        };
-    }
-    args.emplace_back("-");
-    args.emplace_back("-o");
-    args.push_back(outfile);
+    const auto args = " -x assembler -target amdgcn--amdhsa " + params + " - -o " + outfile.Path();
 
     std::istringstream clang_stdin(source);
-    const auto clang_rc = ExecuteGcnAssembler(args, &clang_stdin, nullptr);
+    const auto clang_path = GetGcnAssemblerPath();
+    const auto clang_rc   = ExecuteGcnAssembler(clang_path + " " + args, &clang_stdin, nullptr);
     if(clang_rc != 0)
         MIOPEN_THROW("Assembly error(" + std::to_string(clang_rc) + ")");
 
