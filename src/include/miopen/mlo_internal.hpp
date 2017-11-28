@@ -193,6 +193,8 @@ struct ProblemDescription
     } direction;
     std::string in_layout;
     std::string in_data_type;
+    int GetBackwardPad0() const { return kernel_size0 - pad0 - 1; }
+    int GetBackwardPad1() const { return kernel_size1 - pad1 - 1; }
 
     void Serialize(std::ostream& stream) const
     {
@@ -424,14 +426,20 @@ struct mlo_construct_direct2D
                                         int* const out_H,
                                         int* const out_W,
                                         int* const R,
-                                        int* const S)
+                                        int* const S,
+                                        int* const pad_H,
+                                        int* const pad_W)
     {
         getCompiledInParameters(N, C, H, W, K, n_groups);
-        assert(out_H && out_W && R && S);
+        assert(out_H && out_W && R && S && pad_H && pad_W);
         *out_H = _search_params.out_height;
         *out_W = _search_params.out_width;
         *R     = _search_params.kernel_size1;
         *S     = _search_params.kernel_size0;
+        *pad_H = _search_params.direction.IsForward() ? _search_params.pad1
+                                                      : _search_params.GetBackwardPad1();
+        *pad_W = _search_params.direction.IsForward() ? _search_params.pad0
+                                                      : _search_params.GetBackwardPad0();
     }
 
     /*

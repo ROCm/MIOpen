@@ -94,11 +94,22 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
         kernel =
             handle.GetKernel(algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
 
-        int N, C, H, W, K, n_groups, out_H, out_W, R, S;
+        int N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W;
         construct_params.getCompiledInParameters(
-            &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S);
-        k_p = std::make_tuple(
-            N, C, H, W, K, n_groups, out_H, out_W, R, S, kernel_name == "sp3AsmConvRxSU");
+            &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+        k_p = std::make_tuple(N,
+                              C,
+                              H,
+                              W,
+                              K,
+                              n_groups,
+                              out_H,
+                              out_W,
+                              R,
+                              S,
+                              pad_H,
+                              pad_W,
+                              kernel_name == "sp3AsmConvRxSU");
         return 0;
     }
     catch(miopen::Exception&)
@@ -393,8 +404,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 int reserved     = 0;
                 int* return_addr = nullptr;
                 bool isRxS;
-                int N, C, H, W, K, n_groups, out_H, out_W, R, S;
-                std::tie(N, C, H, W, K, n_groups, out_H, out_W, R, S, isRxS) = k_p;
+                int N, C, H, W, K, n_groups, out_H, out_W, R, S, unused;
+                std::tie(N, C, H, W, K, n_groups, out_H, out_W, R, S, unused, unused, isRxS) = k_p;
                 // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                     << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
@@ -610,6 +621,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             construct_params.setOutputDescFromMLDesc(yDesc);
             construct_params.setInputDescFromMLDesc(xDesc);
             construct_params.setWeightDescFromMLDesc(wDesc);
+            construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
             construct_params.setStream(&handle);
 
@@ -622,9 +634,9 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             int flags        = 0;
             int reserved     = 0;
             int* return_addr = nullptr;
-            int N, C, H, W, K, n_groups, out_H, out_W, R, S;
+            int N, C, H, W, K, n_groups, out_H, out_W, R, S, unused;
             construct_params.getCompiledInParameters(
-                &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S);
+                &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &unused, &unused);
             // clang-format off
             MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                 << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
@@ -1004,13 +1016,13 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 int flags        = F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
                 int reserved     = 0;
                 int* return_addr = nullptr;
-                int N, C, H, W, K, n_groups, out_H, out_W, R, S;
+                int N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W;
                 bool isRxS;
-                std::tie(N, C, H, W, K, n_groups, out_H, out_W, R, S, isRxS) = k_p;
+                std::tie(N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W, isRxS) = k_p;
                 // clang-format off
                 MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                     << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
-                    << " pad_h=" << pad_h << " pad_w=" << pad_w << " out_H=" << out_H << " out_W=" << out_W); // clang-format on
+                    << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W); // clang-format on
                 if(isRxS)
                 {
                     kernel_wino(N,
@@ -1027,8 +1039,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                 return_addr,
                                 R,
                                 S,
-                                pad_h,
-                                pad_w,
+                                pad_H,
+                                pad_W,
                                 out_H,
                                 out_W);
                 }
@@ -1241,6 +1253,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             construct_params.setOutputDescFromMLDesc(dyDesc);
             construct_params.setInputDescFromMLDesc(dxDesc);
             construct_params.setWeightDescFromMLDesc(wDesc);
+            construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
             construct_params.setStream(&handle);
             std::string network_config;
@@ -1254,13 +1267,13 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             int flags                    = F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
             int reserved                 = 0;
             int* return_addr             = nullptr;
-            int N, C, H, W, K, n_groups, out_H, out_W, R, S;
+            int N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W;
             construct_params.getCompiledInParameters(
-                &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S);
+                &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
             // clang-format off
             MIOPEN_LOG_I2(" N=" << N << " C=" << C << " H=" << H << " W=" << W << " K=" << K
                 << " n_groups=" << n_groups << " flags=" << flags << " R=" << R << " S=" << S
-                << " pad_h=" << pad_h << " pad_w=" << pad_w << " out_H=" << out_H << " out_W=" << out_W); // clang-format on
+                << " pad_H=" << pad_H << " pad_W=" << pad_W << " out_H=" << out_H << " out_W=" << out_W); // clang-format on
             if(kernel.GetName() == "sp3AsmConvRxSU")
             {
                 kernel(N,
@@ -1277,8 +1290,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                        return_addr,
                        R,
                        S,
-                       pad_h,
-                       pad_w,
+                       pad_H,
+                       pad_W,
                        out_H,
                        out_W);
             }

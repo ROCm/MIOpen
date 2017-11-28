@@ -41,10 +41,6 @@ static int Ceiling(const int v, const int m)
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)
 
-// The shader is temporarily disabled for Backward Data convolutions.
-// Use this variable to explicitly enable it back.
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_BWD)
-
 namespace miopen {
 namespace solver {
 
@@ -56,10 +52,6 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     }
 
     if(miopen::IsDisabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS{}))
-    {
-        return false;
-    }
-    if(params.direction.IsBackwardData() && !miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_BWD{}))
     {
         return false;
     }
@@ -140,6 +132,14 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
+    // 9_0_14 readme: Additional limitations in the dilated case are R> 1 and  C %2==0
+    if(params.direction.IsBackwardData() && params.kernel_stride0 != 1)
+    {
+        if(!(shader_R > 1))
+            return false;
+        if(!(shader_C % 2 == 0))
+            return false;
+    }
     // If the padded filter size from above is 3*k x 3*l, then
     // it should be that k*l*C  >=18
     {
@@ -147,6 +147,14 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         const int k = padded_R / 3;
         const int l = padded_S / 3;
         if(k * l * shader_C < 18)
+        {
+            return false;
+        }
+    }
+    // Padding for bwd data shall not be negative.
+    if(params.direction.IsBackwardData())
+    {
+        if(params.GetBackwardPad0() < 0 || params.GetBackwardPad1() < 0)
         {
             return false;
         }
