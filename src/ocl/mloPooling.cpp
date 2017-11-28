@@ -52,28 +52,64 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
 
-void mlo_construct_pooling2D::mloConstruct()
+int mlo_construct_pooling2D::mloConstruct()
 {
+	int ret = 0;
+
     if(isForwardDirection())
     {
 
-        mloConstructFwd();
+        ret = mloConstructFwd();
     }
     else
     {
-        mloConstructBwd();
+        ret = mloConstructBwd();
     }
+
+	return(ret);
 }
 
 int mlo_construct_pooling2D::mloConstructFwd()
 {
     int ret = 0;
+	size_t localMemSize = 8 * 1024; // per group, floats
 
     _grp_tile0 = 8;
     _grp_tile1 = 8;
 
     _out_pix_tile0 = (_search_params.out_width < _grp_tile0 * 2) ? 1 : 2;
     _out_pix_tile1 = (_search_params.out_height < _grp_tile1 * 2) ? 1 : 2;
+#if 1
+	bool out_off_lcl_mem = false;
+	if (_search_params.direction.IsForward() == 1)
+	{
+
+	   int POOLING_LCL_DATA_WIDTH = (_grp_tile0 * _out_pix_tile0 * _search_params.kernel_stride0 + _search_params.kernel_size0 - 1);
+       int POOLING_LCL_DATA_HEIGHT = (_grp_tile1 * _out_pix_tile1 * _search_params.kernel_stride1 + _search_params.kernel_size1 - 1);
+	   size_t req_lcl_mem = POOLING_LCL_DATA_WIDTH * POOLING_LCL_DATA_HEIGHT;
+	   while (req_lcl_mem > localMemSize && _out_pix_tile1 > 1)
+	   {
+		   _out_pix_tile1 >>= 1;
+		   POOLING_LCL_DATA_WIDTH = (_grp_tile0 * _out_pix_tile0 * _search_params.kernel_stride0 + _search_params.kernel_size0 - 1);
+		   POOLING_LCL_DATA_HEIGHT = (_grp_tile1 * _out_pix_tile1 * _search_params.kernel_stride1 + _search_params.kernel_size1 - 1);
+		   req_lcl_mem = POOLING_LCL_DATA_WIDTH * POOLING_LCL_DATA_HEIGHT;
+	   }
+	   while (req_lcl_mem > localMemSize && _out_pix_tile0 > 1)
+	   {
+		   _out_pix_tile0 >>= 1;
+		   POOLING_LCL_DATA_WIDTH = (_grp_tile0 * _out_pix_tile0 * _search_params.kernel_stride0 + _search_params.kernel_size0 - 1);
+		   POOLING_LCL_DATA_HEIGHT = (_grp_tile1 * _out_pix_tile1 * _search_params.kernel_stride1 + _search_params.kernel_size1 - 1);
+		   req_lcl_mem = POOLING_LCL_DATA_WIDTH * POOLING_LCL_DATA_HEIGHT;
+	   }
+
+	   if (req_lcl_mem > localMemSize)
+	   {
+		   out_off_lcl_mem = true;
+//		   std::cout << "CONFIG ERROR: not enough local memory for the configuration\n";
+//		   return (-1);
+	   }
+	}
+#endif
 
     _comp_options = std::string(" -DMLO_POOLING_OP_ID=") +
                     std::to_string(static_cast<long long>(_pooling_method)) +
@@ -141,7 +177,7 @@ int mlo_construct_pooling2D::mloConstructFwd()
 
     _kernel_file = "MIOpenPooling.cl";
 
-    _kernel_name = "mloPooling";
+	_kernel_name = /*"mloPoolingG"; */ (out_off_lcl_mem) ? "mloPoolingG" : "mloPooling";
 
     return (ret);
 }
