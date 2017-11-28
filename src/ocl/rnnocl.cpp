@@ -176,7 +176,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     hx_stride[2] = uni_stride;
 
 #if MIOPEN_USE_MIOPENGEMM
-    GemmGeometry gg;
+
     int wei_shift, prelayer_shift;
     int wei_len   = 0;
     int wei_len_t = 0;
@@ -253,6 +253,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
             }
             else
             {
+                GemmGeometry gg;
                 gg = CreateGemmGeometryRNN(batch_n,
                                            wei_len * bi,
                                            in_h,
@@ -278,6 +279,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
             wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
             prelayer_shift = (li - 1) * batch_n * hy_stride + hid_off;
 
+            GemmGeometry gg;
             gg = CreateGemmGeometryRNN(batch_n,
                                        wei_len * bi,
                                        hy_h * bi,
@@ -411,6 +413,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                 {
                     if(ti == 0)
                     {
+                        GemmGeometry gg;
                         gg = CreateGemmGeometryRNN(in_n[cur_time],
                                                    wei_len_t,
                                                    hy_h,
@@ -438,28 +441,29 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 
                         if(rnnMode == miopenGRU)
                         {
-                            gg = CreateGemmGeometryRNN(in_n[cur_time],
-                                                       hy_h,
-                                                       hy_h,
-                                                       1,
-                                                       1,
-                                                       false,
-                                                       true,
-                                                       false,
-                                                       uni_stride,
-                                                       uni_stride,
-                                                       hy_stride,
-                                                       false,
-                                                       network_config);
-                            gg.FindSolution(.003, handle, hx, w, workSpace, false);
-                            gg.RunGemm(handle,
-                                       hx,
-                                       w,
-                                       workSpace,
-                                       hx_shift + ri * hy_n * hy_h,
-                                       wei_shift + 2 * hy_h * uni_stride +
-                                           ri * 3 * hy_h * uni_stride,
-                                       offset + bi * 3 * hy_h + ri * hy_h);
+                            GemmGeometry gg2;
+                            gg2 = CreateGemmGeometryRNN(in_n[cur_time],
+                                                        hy_h,
+                                                        hy_h,
+                                                        1,
+                                                        1,
+                                                        false,
+                                                        true,
+                                                        false,
+                                                        uni_stride,
+                                                        uni_stride,
+                                                        hy_stride,
+                                                        false,
+                                                        network_config);
+                            gg2.FindSolution(.003, handle, hx, w, workSpace, false);
+                            gg2.RunGemm(handle,
+                                        hx,
+                                        w,
+                                        workSpace,
+                                        hx_shift + ri * hy_n * hy_h,
+                                        wei_shift + 2 * hy_h * uni_stride +
+                                            ri * 3 * hy_h * uni_stride,
+                                        offset + bi * 3 * hy_h + ri * hy_h);
 
                             // Update time
                             profileRNNkernels(handle, 1);
@@ -467,6 +471,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                     }
                     else
                     {
+                        GemmGeometry gg;
                         gg = CreateGemmGeometryRNN(in_n[cur_time],
                                                    wei_len_t,
                                                    hy_h,
@@ -494,28 +499,29 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 
                         if(rnnMode == miopenGRU)
                         {
-                            gg = CreateGemmGeometryRNN(in_n[cur_time],
-                                                       hy_h,
-                                                       hy_h,
-                                                       1,
-                                                       1,
-                                                       false,
-                                                       true,
-                                                       false,
-                                                       uni_stride,
-                                                       uni_stride,
-                                                       hy_stride,
-                                                       false,
-                                                       network_config);
-                            gg.FindSolution(.003, handle, hy, w, workSpace, false);
-                            gg.RunGemm(handle,
-                                       hy,
-                                       w,
-                                       workSpace,
-                                       hx_shift + ri * hy_n * hy_h,
-                                       wei_shift + 2 * hy_h * uni_stride +
-                                           ri * 3 * hy_h * uni_stride,
-                                       offset + bi * 3 * hy_h + ri * hy_h);
+                            GemmGeometry gg2;
+                            gg2 = CreateGemmGeometryRNN(in_n[cur_time],
+                                                        hy_h,
+                                                        hy_h,
+                                                        1,
+                                                        1,
+                                                        false,
+                                                        true,
+                                                        false,
+                                                        uni_stride,
+                                                        uni_stride,
+                                                        hy_stride,
+                                                        false,
+                                                        network_config);
+                            gg2.FindSolution(.003, handle, hy, w, workSpace, false);
+                            gg2.RunGemm(handle,
+                                        hy,
+                                        w,
+                                        workSpace,
+                                        hx_shift + ri * hy_n * hy_h,
+                                        wei_shift + 2 * hy_h * uni_stride +
+                                            ri * 3 * hy_h * uni_stride,
+                                        offset + bi * 3 * hy_h + ri * hy_h);
 
                             // Update time
                             profileRNNkernels(handle, 1);
@@ -1059,7 +1065,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     hx_stride[2] = uni_stride;
 
 #if MIOPEN_USE_MIOPENGEMM
-    GemmGeometry gg;
+
     int wei_shift, prelayer_shift;
     int wei_len   = 0;
     int wei_len_t = 0;
@@ -1136,6 +1142,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             }
             else
             {
+                GemmGeometry gg;
                 gg = CreateGemmGeometryRNN(batch_n,
                                            wei_len * bi,
                                            in_h,
@@ -1161,6 +1168,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
             prelayer_shift = (li - 1) * batch_n * hy_stride + hid_off;
 
+            GemmGeometry gg;
             gg = CreateGemmGeometryRNN(batch_n,
                                        wei_len * bi,
                                        hy_h * bi,
@@ -1294,6 +1302,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 {
                     if(ti == 0)
                     {
+                        GemmGeometry gg;
                         gg = CreateGemmGeometryRNN(in_n[cur_time],
                                                    wei_len_t,
                                                    hy_h,
@@ -1321,28 +1330,29 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                         if(rnnMode == miopenGRU)
                         {
-                            gg = CreateGemmGeometryRNN(in_n[cur_time],
-                                                       hy_h,
-                                                       hy_h,
-                                                       1,
-                                                       1,
-                                                       false,
-                                                       true,
-                                                       false,
-                                                       uni_stride,
-                                                       uni_stride,
-                                                       hy_stride,
-                                                       false,
-                                                       network_config);
-                            gg.FindSolution(.003, handle, hx, w, reserveSpace, false);
-                            gg.RunGemm(handle,
-                                       hx,
-                                       w,
-                                       reserveSpace,
-                                       hx_shift + ri * hy_n * hy_h,
-                                       wei_shift + 2 * hy_h * uni_stride +
-                                           ri * 3 * hy_h * uni_stride,
-                                       offset + bi * 3 * hy_h + ri * hy_h);
+                            GemmGeometry gg2;
+                            gg2 = CreateGemmGeometryRNN(in_n[cur_time],
+                                                        hy_h,
+                                                        hy_h,
+                                                        1,
+                                                        1,
+                                                        false,
+                                                        true,
+                                                        false,
+                                                        uni_stride,
+                                                        uni_stride,
+                                                        hy_stride,
+                                                        false,
+                                                        network_config);
+                            gg2.FindSolution(.003, handle, hx, w, reserveSpace, false);
+                            gg2.RunGemm(handle,
+                                        hx,
+                                        w,
+                                        reserveSpace,
+                                        hx_shift + ri * hy_n * hy_h,
+                                        wei_shift + 2 * hy_h * uni_stride +
+                                            ri * 3 * hy_h * uni_stride,
+                                        offset + bi * 3 * hy_h + ri * hy_h);
 
                             // Update time
                             profileRNNkernels(handle, 1);
@@ -1350,6 +1360,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     }
                     else
                     {
+                        GemmGeometry gg;
                         gg = CreateGemmGeometryRNN(in_n[cur_time],
                                                    wei_len_t,
                                                    hy_h,
@@ -1377,28 +1388,29 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                         if(rnnMode == miopenGRU)
                         {
-                            gg = CreateGemmGeometryRNN(in_n[cur_time],
-                                                       hy_h,
-                                                       hy_h,
-                                                       1,
-                                                       1,
-                                                       false,
-                                                       true,
-                                                       false,
-                                                       uni_stride,
-                                                       uni_stride,
-                                                       hy_stride,
-                                                       false,
-                                                       network_config);
-                            gg.FindSolution(.003, handle, hy, w, reserveSpace, false);
-                            gg.RunGemm(handle,
-                                       hy,
-                                       w,
-                                       reserveSpace,
-                                       hx_shift + ri * hy_n * hy_h,
-                                       wei_shift + 2 * hy_h * uni_stride +
-                                           ri * 3 * hy_h * uni_stride,
-                                       offset + bi * 3 * hy_h + ri * hy_h);
+                            GemmGeometry gg2;
+                            gg2 = CreateGemmGeometryRNN(in_n[cur_time],
+                                                        hy_h,
+                                                        hy_h,
+                                                        1,
+                                                        1,
+                                                        false,
+                                                        true,
+                                                        false,
+                                                        uni_stride,
+                                                        uni_stride,
+                                                        hy_stride,
+                                                        false,
+                                                        network_config);
+                            gg2.FindSolution(.003, handle, hy, w, reserveSpace, false);
+                            gg2.RunGemm(handle,
+                                        hy,
+                                        w,
+                                        reserveSpace,
+                                        hx_shift + ri * hy_n * hy_h,
+                                        wei_shift + 2 * hy_h * uni_stride +
+                                            ri * 3 * hy_h * uni_stride,
+                                        offset + bi * 3 * hy_h + ri * hy_h);
 
                             // Update time
                             profileRNNkernels(handle, 1);
@@ -1946,7 +1958,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     hx_stride[2] = uni_stride;
 
 #if MIOPEN_USE_MIOPENGEMM
-    GemmGeometry gg;
+
     int prelayer_shift, pretime_shift, cur_time, cur_batch;
     int wei_len    = 0;
     int wei_len_t  = 0;
@@ -2033,6 +2045,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         {
             prelayer_shift = (li + 1) * batch_n * hy_stride;
 
+            GemmGeometry gg;
             gg = CreateGemmGeometryRNN(batch_n,
                                        hy_h * bi,
                                        wei_len * bi,
@@ -2149,6 +2162,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         {
                             if(in_n[use_time] > 0)
                             {
+                                GemmGeometry gg;
                                 gg = CreateGemmGeometryRNN(in_n[use_time],
                                                            hy_h,
                                                            wei_len_t,
@@ -2223,28 +2237,29 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                     // Update time
                                     profileRNNkernels(handle, 1);
 
-                                    gg = CreateGemmGeometryRNN(in_n[use_time],
-                                                               hy_h,
-                                                               hy_h,
-                                                               1,
-                                                               1,
-                                                               false,
-                                                               false,
-                                                               false,
-                                                               hy_stride,
-                                                               uni_stride,
-                                                               hy_stride,
-                                                               false,
-                                                               network_config);
-                                    gg.FindSolution(.003, handle, workSpace, w, workSpace, false);
-                                    gg.RunGemm(handle,
-                                               workSpace,
-                                               w,
-                                               workSpace,
-                                               offset + 2 * hy_h + ri * 3 * hy_h,
-                                               weitime_shift + 2 * hy_h * uni_stride +
-                                                   ri * 3 * hy_h * uni_stride,
-                                               offset + bi * 3 * hy_h + ri * hy_h);
+                                    GemmGeometry gg2;
+                                    gg2 = CreateGemmGeometryRNN(in_n[use_time],
+                                                                hy_h,
+                                                                hy_h,
+                                                                1,
+                                                                1,
+                                                                false,
+                                                                false,
+                                                                false,
+                                                                hy_stride,
+                                                                uni_stride,
+                                                                hy_stride,
+                                                                false,
+                                                                network_config);
+                                    gg2.FindSolution(.003, handle, workSpace, w, workSpace, false);
+                                    gg2.RunGemm(handle,
+                                                workSpace,
+                                                w,
+                                                workSpace,
+                                                offset + 2 * hy_h + ri * 3 * hy_h,
+                                                weitime_shift + 2 * hy_h * uni_stride +
+                                                    ri * 3 * hy_h * uni_stride,
+                                                offset + bi * 3 * hy_h + ri * hy_h);
 
                                     // Update time
                                     profileRNNkernels(handle, 1);
@@ -2280,6 +2295,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         // Update time
                         profileRNNkernels(handle, 1);
 
+                        GemmGeometry gg;
                         gg = CreateGemmGeometryRNN(in_n[cur_time],
                                                    hy_h,
                                                    hy_h,
@@ -2713,6 +2729,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         // r gate
                         if(ti == 0)
                         {
+                            GemmGeometry gg;
                             gg = CreateGemmGeometryRNN(in_n[cur_time],
                                                        hy_h,
                                                        hy_h,
@@ -2743,6 +2760,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         {
                             if(in_n[use_time2] > 0)
                             {
+                                GemmGeometry gg;
                                 gg = CreateGemmGeometryRNN(in_n[use_time2],
                                                            hy_h,
                                                            hy_h,
@@ -2980,6 +2998,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
                     if(rnnMode == miopenLSTM)
                     {
+                        GemmGeometry gg;
                         gg = CreateGemmGeometryRNN(in_n[cur_time],
                                                    hy_h,
                                                    hy_h * 4,
@@ -3052,6 +3071,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         // Update time
                         profileRNNkernels(handle, 1);
 
+                        GemmGeometry gg;
                         gg = CreateGemmGeometryRNN(in_n[cur_time],
                                                    hy_h,
                                                    hy_h,
@@ -3100,27 +3120,28 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         // Update time
                         profileRNNkernels(handle, 1);
 
-                        gg = CreateGemmGeometryRNN(in_n[cur_time],
-                                                   hy_h,
-                                                   hy_h * 2,
-                                                   1,
-                                                   1,
-                                                   false,
-                                                   false,
-                                                   false,
-                                                   hy_stride,
-                                                   uni_stride,
-                                                   uni_stride,
-                                                   false,
-                                                   network_config);
-                        gg.FindSolution(.003, handle, workSpace, w, dhx, false);
-                        gg.RunGemm(handle,
-                                   workSpace,
-                                   w,
-                                   dhx,
-                                   pretime_shift + ri * 3 * hy_h,
-                                   weitime_shift + ri * 3 * hy_h * uni_stride,
-                                   hx_shift + ri * hy_n * hy_h);
+                        GemmGeometry gg2;
+                        gg2 = CreateGemmGeometryRNN(in_n[cur_time],
+                                                    hy_h,
+                                                    hy_h * 2,
+                                                    1,
+                                                    1,
+                                                    false,
+                                                    false,
+                                                    false,
+                                                    hy_stride,
+                                                    uni_stride,
+                                                    uni_stride,
+                                                    false,
+                                                    network_config);
+                        gg2.FindSolution(.003, handle, workSpace, w, dhx, false);
+                        gg2.RunGemm(handle,
+                                    workSpace,
+                                    w,
+                                    dhx,
+                                    pretime_shift + ri * 3 * hy_h,
+                                    weitime_shift + ri * 3 * hy_h * uni_stride,
+                                    hx_shift + ri * hy_n * hy_h);
 
                         // Update time
                         profileRNNkernels(handle, 1);
@@ -3166,6 +3187,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     }
     else
     {
+        GemmGeometry gg;
         gg = CreateGemmGeometryRNN(batch_n,
                                    in_h,
                                    wei_len * bi,
@@ -3313,7 +3335,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     w_stride[2]  = wei_stride;
 
 #if MIOPEN_USE_MIOPENGEMM
-    GemmGeometry gg;
 
     int wei_len   = 0;
     int hid_off   = 0;
@@ -3351,6 +3372,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         {
             if(inputMode == miopenRNNlinear)
             {
+                GemmGeometry gg;
                 gg = CreateGemmGeometryRNN(wei_len * bi,
                                            in_h,
                                            batch_n,
@@ -3375,6 +3397,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         {
             int prelayer_shift = (li - 1) * batch_n * hy_stride + hid_off;
 
+            GemmGeometry gg;
             gg = CreateGemmGeometryRNN(wei_len * bi,
                                        hy_h * bi,
                                        batch_n,
@@ -3517,6 +3540,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                     if(ti == 0)
                     {
+                        GemmGeometry gg;
                         gg = CreateGemmGeometryRNN(wei_len,
                                                    hy_h,
                                                    in_n[cur_time],
@@ -3553,6 +3577,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                         if(in_n[use_time] > 0)
                         {
+                            GemmGeometry gg;
                             gg = CreateGemmGeometryRNN(wei_len,
                                                        hy_h,
                                                        in_n[use_time],
