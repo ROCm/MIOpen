@@ -97,20 +97,20 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
                                                         ? 16
                                                         : 32; // size of input data per ALU plane
 
-    result.out_pix_tile0 = std::max(params.kernel_stride0, ((result.in_tile0 == 8) ? 1 : 2)); // size of ouptput tile per wk-item (ALU))
+    result.out_pix_tile0 =
+        std::max(params.kernel_stride0,
+                 ((result.in_tile0 == 8) ? 1 : 2)); // size of ouptput tile per wk-item (ALU))
     result.out_pix_tile1 = std::max(params.kernel_stride1, ((result.in_tile1 == 8) ? 1 : 2)); //
 
-	result.grp_tile0 = std::max(8, (result.in_tile0 / result.out_pix_tile0));
-	result.grp_tile1 = std::max(8, (result.in_tile1 / result.out_pix_tile1));
-	result.in_tile0 = result.grp_tile0 * result.out_pix_tile0;
-	result.in_tile1 = result.grp_tile1 * result.out_pix_tile1;
-
+    result.grp_tile0 = std::max(8, (result.in_tile0 / result.out_pix_tile0));
+    result.grp_tile1 = std::max(8, (result.in_tile1 / result.out_pix_tile1));
+    result.in_tile0  = result.grp_tile0 * result.out_pix_tile0;
+    result.in_tile1  = result.grp_tile1 * result.out_pix_tile1;
 
     result.n_out_pix_tiles = 8; // # output pixel tiles per wk-item (ALU)
     result.n_in_data_tiles = 2; // # of blocks of different inputs in LDS
 
     result.n_stacks = 1; // # of diff stacks (part of batch).
-
 
     if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
     {
