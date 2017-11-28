@@ -121,7 +121,6 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
         batch_n += batchval;
     }
 
-    int bacc, baccbi;
     int bi = dirMode ? 2 : 1;
     if(out_h != (bi * hy_h))
     {
@@ -178,11 +177,10 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
     GemmGeometry gg;
-    int hid_shift, hx_shift, wei_shift_bias_temp, wei_shift, prelayer_shift;
+    int wei_shift, prelayer_shift;
     int wei_len   = 0;
     int wei_len_t = 0;
     int hid_off   = 0;
-    int cur_time, cur_batch;
 
     switch(rnnMode)
     {
@@ -221,9 +219,9 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 
     for(int li = 0; li < nLayers; li++)
     {
-        hid_shift           = li * batch_n * hy_stride;
-        hx_shift            = li * hy_n * bi_stride;
-        wei_shift_bias_temp = inputMode == miopenRNNskip
+        int hid_shift           = li * batch_n * hy_stride;
+        int hx_shift            = li * hy_n * bi_stride;
+        int wei_shift_bias_temp = inputMode == miopenRNNskip
                                   ? (wei_shift_bias + wei_stride + (li - 1) * 2 * wei_stride)
                                   : (wei_shift_bias + li * 2 * wei_stride);
 
@@ -396,8 +394,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
         }
 
         // from hidden state
-        bacc   = 0;
-        baccbi = batch_n;
+        int bacc   = 0;
+        int baccbi = batch_n;
         for(int ti = 0; ti < seqLen; ti++)
         {
             baccbi -= in_n[seqLen - 1 - ti];
@@ -405,8 +403,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 
             for(int ri = 0; ri < bi; ri++)
             {
-                cur_time  = ri == 0 ? ti : seqLen - 1 - ti;
-                cur_batch = ri == 0 ? bacc : baccbi;
+                int cur_time  = ri == 0 ? ti : seqLen - 1 - ti;
+                int cur_batch = ri == 0 ? bacc : baccbi;
                 offset    = hid_shift + cur_batch * hy_stride;
 
                 if(in_n[cur_time] > 0)
@@ -1006,7 +1004,6 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         batch_n += batchval;
     }
 
-    int bacc, baccbi;
     int bi = dirMode ? 2 : 1;
     if(out_h != (bi * hy_h))
     {
@@ -1063,11 +1060,10 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
     GemmGeometry gg;
-    int hid_shift, hx_shift, wei_shift_bias_temp, wei_shift, prelayer_shift;
+    int wei_shift, prelayer_shift;
     int wei_len   = 0;
     int wei_len_t = 0;
     int hid_off   = 0;
-    int cur_time, cur_batch;
 
     switch(rnnMode)
     {
@@ -1106,9 +1102,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
     for(int li = 0; li < nLayers; li++)
     {
-        hid_shift           = li * batch_n * hy_stride;
-        hx_shift            = li * hy_n * bi_stride;
-        wei_shift_bias_temp = inputMode == miopenRNNskip
+        int hid_shift           = li * batch_n * hy_stride;
+        int hx_shift            = li * hy_n * bi_stride;
+        int wei_shift_bias_temp = inputMode == miopenRNNskip
                                   ? (wei_shift_bias + wei_stride + (li - 1) * 2 * wei_stride)
                                   : (wei_shift_bias + li * 2 * wei_stride);
 
@@ -1281,8 +1277,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         }
 
         // from hidden state
-        bacc   = 0;
-        baccbi = batch_n;
+        int bacc   = 0;
+        int baccbi = batch_n;
         for(int ti = 0; ti < seqLen; ti++)
         {
             baccbi -= in_n[seqLen - 1 - ti];
@@ -1290,7 +1286,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
             for(int ri = 0; ri < bi; ri++)
             {
-                cur_time  = ri == 0 ? ti : seqLen - 1 - ti;
+                int cur_time  = ri == 0 ? ti : seqLen - 1 - ti;
                 cur_batch = ri == 0 ? bacc : baccbi;
                 offset    = hid_shift + cur_batch * hy_stride;
 
@@ -1901,7 +1897,6 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         batch_n += dxDesc[i].GetLengths()[0];
     }
 
-    int bacc, baccbi;
     int bi = dirMode ? 2 : 1;
     if(out_h != (bi * hy_h))
     {
@@ -1952,7 +1947,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
     GemmGeometry gg;
-    int hid_shift, hx_shift, weitime_shift, wei_shift, prelayer_shift, pretime_shift, cur_time,
+    int prelayer_shift, pretime_shift, cur_time,
         cur_batch;
     int wei_len    = 0;
     int wei_len_t  = 0;
@@ -1999,10 +1994,10 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
     for(int li = nLayers - 1; li >= 0; li--)
     {
-        wei_shift     = (in_h + hy_h) * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
-        hid_shift     = li * batch_n * hy_stride;
-        hx_shift      = li * hy_n * bi_stride;
-        weitime_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+        int wei_shift     = (in_h + hy_h) * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+        int hid_shift     = li * batch_n * hy_stride;
+        int hx_shift      = li * hy_n * bi_stride;
+        int weitime_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
         // feedback from output
         if(li == nLayers - 1)
@@ -2061,8 +2056,8 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         }
 
         // from hidden state
-        bacc   = batch_n;
-        baccbi = 0;
+        int bacc   = batch_n;
+        int baccbi = 0;
         for(int ti = seqLen - 1; ti >= 0; ti--)
         {
             bacc -= in_n[ti];
@@ -3280,7 +3275,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         batch_n += xDesc[i].GetLengths()[0];
     }
 
-    int bacc, baccbi;
     int bi = dirMode ? 2 : 1;
     if(out_h != (bi * hy_h))
     {
@@ -3321,7 +3315,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
     GemmGeometry gg;
-    int hid_shift, hx_shift, wei_shift, prelayer_shift, pretime_shift, cur_time;
+
     int wei_len   = 0;
     int hid_off   = 0;
     int use_time  = 0;
@@ -3350,8 +3344,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
     for(int li = 0; li < nLayers; li++)
     {
-        hid_shift = li * batch_n * hy_stride;
-        wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
+        int hid_shift = li * batch_n * hy_stride;
+        int wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
 
         // between layers
         if(li == 0)
@@ -3380,7 +3374,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         }
         else
         {
-            prelayer_shift = (li - 1) * batch_n * hy_stride + hid_off;
+            int prelayer_shift = (li - 1) * batch_n * hy_stride + hid_off;
 
             gg = CreateGemmGeometryRNN(wei_len * bi,
                                        hy_h * bi,
@@ -3468,20 +3462,20 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         }
 
         // between time
-        bacc   = 0;
-        baccbi = batch_n;
+        int bacc   = 0;
+        int baccbi = batch_n;
         for(int ti = 0; ti < seqLen; ti++)
         {
             baccbi -= in_n[seqLen - 1 - ti];
 
-            hx_shift  = li * hy_n * bi_stride;
+            int hx_shift  = li * hy_n * bi_stride;
             wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
             for(int ri = 0; ri < bi; ri++)
             {
                 hid_shift = ri == 0 ? (li * batch_n * hy_stride + bacc * hy_stride)
                                     : (li * batch_n * hy_stride + baccbi * hy_stride);
-                cur_time = ri == 0 ? ti : seqLen - 1 - ti;
+                int cur_time = ri == 0 ? ti : seqLen - 1 - ti;
                 if(ti > 0)
                 {
                     pre_batch = ri == 0 ? bacc - in_n[ti - 1] : baccbi + in_n[seqLen - 1 - ti];
@@ -3555,7 +3549,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     }
                     else
                     {
-                        pretime_shift = li * batch_n * hy_stride + pre_batch * hy_stride + hid_off;
+                        int pretime_shift = li * batch_n * hy_stride + pre_batch * hy_stride + hid_off;
 
                         if(in_n[use_time] > 0)
                         {
