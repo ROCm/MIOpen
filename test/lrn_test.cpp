@@ -87,11 +87,12 @@ struct verify_lrn_foward
             par_ford(n_batch, channels)([&](int b, int c) {
                 double scale = 0;
                 ford(height, width)([&](int h, int w) {
-                    auto left          = (w - radius) < 0 ? 0 : (w - radius);
-                    auto right         = (w + radius) > width ? width : (w + radius);
-                    auto top           = (h - radius) < 0 ? 0 : (h - radius);
-                    auto bottom        = (h + radius) > height ? height : (h + radius);
-                    auto alphaoverarea = radius == 0 ? 0 : alpha / ((right - left) * (bottom - top));
+                    auto left   = (w - radius) < 0 ? 0 : (w - radius);
+                    auto right  = (w + radius) > width ? width : (w + radius);
+                    auto top    = (h - radius) < 0 ? 0 : (h - radius);
+                    auto bottom = (h + radius) > height ? height : (h + radius);
+                    auto alphaoverarea =
+                        radius == 0 ? 0 : alpha / ((right - left) * (bottom - top));
 
                     for(auto i = left; i < right; i++)
                     {
