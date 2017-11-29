@@ -204,8 +204,8 @@ void RNN_mm_cpu(const Dtype* a_ptr,
                 double d_beta)
 {
 
-    Dtype alpha = Dtype(d_alpha);
-    Dtype beta  = Dtype(d_beta);
+    auto alpha = Dtype(d_alpha);
+    auto beta  = Dtype(d_beta);
     if((!(a_flags & RNN_MM_TRANSPOSE) && !(b_flags & RNN_MM_TRANSPOSE) &&
         ((a_cols != b_rows) || (a_rows != c_rows) || (b_cols != c_cols))) ||
        ((a_flags & RNN_MM_TRANSPOSE) && (b_flags & RNN_MM_TRANSPOSE) &&
@@ -233,7 +233,7 @@ void RNN_mm_cpu(const Dtype* a_ptr,
         {
             for(size_t k = 0; k < c_cols; ++k)
             {
-                Dtype mm_e = 0;
+                double mm_e = 0;
                 for(size_t m = 0; m < inner_loop; ++m)
                 {
                     mm_e += a_ptr[n * a_stride + m] * b_ptr[m * b_stride + k];
@@ -249,7 +249,7 @@ void RNN_mm_cpu(const Dtype* a_ptr,
             for(size_t k = 0; k < c_cols; ++k)
             {
 
-                Dtype mm_e = 0;
+                double mm_e = 0;
                 for(size_t m = 0; m < inner_loop; ++m)
                 {
                     mm_e += a_ptr[m * a_stride + n] * b_ptr[m * b_stride + k];
@@ -280,7 +280,7 @@ void RNN_mm_cpu(const Dtype* a_ptr,
         {
             for(size_t k = 0; k < c_cols; ++k)
             {
-                Dtype mm_e = 0;
+                double mm_e = 0;
 
                 for(size_t m = 0; m < inner_loop; ++m)
                 {
@@ -302,7 +302,7 @@ void RNN_mm_cpu(const Dtype* a_ptr,
         {
             for(size_t k = 0; k < c_cols; ++k)
             {
-                Dtype mm_e = 0;
+                double mm_e = 0;
                 for(size_t m = 0; m < inner_loop; ++m)
                 {
                     c_ptr[n * c_stride + k] += a_ptr[m * a_stride + n] * b_ptr[k * b_stride + m];
