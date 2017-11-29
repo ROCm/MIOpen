@@ -126,8 +126,8 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
     int n_batch_blks =
         (params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) / (N_BATCH_LOOPS * result.n_stacks);
 
-
-	while (n_batch_blks > 1 && wei_bstride * params.n_inputs * n_batch_blks > 16 * 1024 * 1024)
+	// guard not to grab too much system memory
+	while (n_batch_blks > 1 && wei_bstride * params.n_inputs * n_batch_blks > 4 * 1024 * 1024)
 	{
 		N_BATCH_LOOPS <<= 1;
 		n_batch_blks =
