@@ -111,10 +111,10 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
 
     construct_params.doBackward(do_backward);
 
-	if (construct_params.mloConstruct() != 0)
-	{
-		MIOPEN_THROW("Pooling kernel construction error");
-	}
+    if(construct_params.mloConstruct() != 0)
+    {
+        MIOPEN_THROW("Pooling kernel construction error");
+    }
 
     std::string program_name = construct_params.getKernelFile();      // CL kernel filename
     std::string kernel_name  = construct_params.getKernelName();      // kernel name
@@ -253,10 +253,10 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     construct_params.setPoolingDescr(
         pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
 
-	if (construct_params.mloConstruct() != 0)
-	{
-		MIOPEN_THROW("Pooling kernel construction error");
-	}
+    if(construct_params.mloConstruct() != 0)
+    {
+        MIOPEN_THROW("Pooling kernel construction error");
+    }
 
     std::string program_name = construct_params.getKernelFile();      // CL kernel filename
     std::string kernel_name  = construct_params.getKernelName();      // kernel name
