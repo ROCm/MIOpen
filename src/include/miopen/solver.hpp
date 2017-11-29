@@ -364,7 +364,7 @@ struct ConvBinWinograd3x3U : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
-struct ConvBinWinogradRxSFwd : SolverBase<ConvolutionContext>
+struct ConvBinWinogradRxS : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
