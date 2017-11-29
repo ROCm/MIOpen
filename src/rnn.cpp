@@ -722,6 +722,11 @@ std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r)
     stream << r.nLayers << ", ";
     stream << r.nHiddenTensorsPerLayer << ", ";
     stream << r.workspaceScale << ", ";
+    stream << r.rnnMode << ", ";
+    stream << r.dirMode << ", ";
+    stream << r.algoMode << ", ";
+    stream << r.inputMode << ", ";
+    stream << r.biasMode << ", ";
     return stream;
 }
 
