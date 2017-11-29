@@ -701,7 +701,7 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* __restrict weight_df_tmp,
         pvt_accum_wei[i] = 0;
     }
 
-    uint batch_loop = MLO_N_BATCH_BLKS; 
+    uint batch_loop = MLO_N_BATCH_BLKS;
 
     for(uint i = 0; i < batch_loop; ++i)
     {

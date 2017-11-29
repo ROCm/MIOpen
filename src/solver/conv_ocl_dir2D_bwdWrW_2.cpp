@@ -115,10 +115,9 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
 
     const auto _hw_wave_sz = 64;
     //_dev_local_mem_sz = localMemSize; // in bytes
-	// inpout are outputs
-	int wei_cstride = params.kernel_size0 * params.kernel_size1;
-	int wei_bstride = params.n_outputs * wei_cstride;
-
+    // inpout are outputs
+    int wei_cstride = params.kernel_size0 * params.kernel_size1;
+    int wei_bstride = params.n_outputs * wei_cstride;
 
     // number  of batch iterations
     result.n_stacks = 1;
@@ -126,13 +125,13 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
     int n_batch_blks =
         (params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) / (N_BATCH_LOOPS * result.n_stacks);
 
-	// guard not to grab too much system memory
-	while (n_batch_blks > 1 && wei_bstride * params.n_inputs * n_batch_blks > 4 * 1024 * 1024)
-	{
-		N_BATCH_LOOPS <<= 1;
-		n_batch_blks =
-			(params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) / (N_BATCH_LOOPS * result.n_stacks);
-	}
+    // guard not to grab too much system memory
+    while(n_batch_blks > 1 && wei_bstride * params.n_inputs * n_batch_blks > 4 * 1024 * 1024)
+    {
+        N_BATCH_LOOPS <<= 1;
+        n_batch_blks = (params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) /
+                       (N_BATCH_LOOPS * result.n_stacks);
+    }
 
     if(params.n_passes)
     {
@@ -163,7 +162,6 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
 
     // each wave is a filter row
     int GRP_SZ = _hw_wave_sz * n_waves;
-
 
     //	int read_unit = 6;
     std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
