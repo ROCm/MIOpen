@@ -184,7 +184,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     uint o_idx_base = get_group_id(1); // output map index base
     uint ib_base    = get_group_id(2); // batch index base
 
-    uint ib = ib_base * MLO_N_LCL_BATCHS;
+    uint ib = ib_base * (MLO_N_BATCH_LOOPS * MLO_N_LCL_BATCHS);
 
     uint c_idx = c_idx_base * MLO_N_LCL_IN_MAPS; // input map index
 
@@ -646,7 +646,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 #endif
             // send it out
             // inputs are outputs
-            uint wei_df_off = ((ib * MLO_N_OUTPUTS + o_idx) * (uint)MLO_WEI_BATCH_STRIDE)
+            uint wei_df_off = ((ib_base * MLO_N_OUTPUTS + o_idx) * (uint)MLO_WEI_BATCH_STRIDE)
                               // this input channel
                               + mul24(c_idx, (uint)MLO_WEI_CHANNEL_STRIDE);
 
@@ -701,8 +701,8 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* __restrict weight_df_tmp,
         pvt_accum_wei[i] = 0;
     }
 
-    uint batch_loop = (MLO_BATCH_SZ + (MLO_N_BATCH_LOOPS * MLO_N_LCL_BATCHS) - 1) /
-                      (MLO_N_BATCH_LOOPS * MLO_N_LCL_BATCHS);
+    uint batch_loop = MLO_N_BATCH_BLKS; 
+
     for(uint i = 0; i < batch_loop; ++i)
     {
         for(uint j = 0; j < MLO_UT_READ_UNIT; ++j)
