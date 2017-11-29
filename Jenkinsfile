@@ -71,6 +71,7 @@ def rocmnode(body) {
     rocmnode('rocmtest || rocm', body)
 }
 
+// Static checks
 rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
     stage('Clang Tidy') {
         sh '''
@@ -95,20 +96,6 @@ rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
             | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-3.8 -style=file {} | diff - {}\'
         '''
     }
-}, opencl: rocmnode('vega') { cmake_build ->
-    stage('Clang Debug') {
-        cmake_build('clang++-3.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
-    }
-    stage('GCC Debug') {
-        cmake_build('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
-    }
-    stage('GCC Release') {
-        cmake_build('g++-5', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
-    }
-}, fiji: rocmnode('fiji') { cmake_build ->
-    stage('Fiji GCC Debug') {
-        cmake_build('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
-    }
 }, hip_tidy: rocmnode('rocm') { cmake_build ->
     stage('Hip Tidy') {
         sh '''
@@ -119,15 +106,46 @@ rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
             make -j8 tidy
         '''
     }
+}
+
+// Quick tests
+rocmtest opencl: rocmnode('vega') { cmake_build ->
+    stage('Clang Debug') {
+        cmake_build('clang++-3.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+    }
+    stage('Clang Release') {
+        cmake_build('clang++-3.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
+    }
+    stage('GCC Debug') {
+        cmake_build('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+    }
+    stage('GCC Release') {
+        cmake_build('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
+    }
+}, fiji: rocmnode('fiji') { cmake_build ->
+    stage('Fiji GCC Debug') {
+        cmake_build('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+    }
 }, hip: rocmnode('vega') { cmake_build ->
     // stage('Hip Debug') {
     //     cmake_build('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
     // }
     stage('Hip Release') {
-        cmake_build('hcc', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+        cmake_build('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
     }
 // }, windows: rocmnode('fiji') { cmake_build ->
 //     stage('Windows Release') {
 //         cmake_build('x86_64-w64-mingw32-g++', '-DBUILD_DEV=On -DCMAKE_TOOLCHAIN_FILE=/usr/local/x86_64-w64-mingw32/cmake/toolchain.cmake -DCMAKE_BUILD_TYPE=release')
 //     }
+}
+
+// All tests
+rocmtest opencl: rocmnode('vega') { cmake_build ->
+    stage('GCC Release All') {
+        cmake_build('g++-5', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+    }
+}, hip: rocmnode('vega') { cmake_build ->
+    stage('Hip Release All') {
+        cmake_build('hcc', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+    }
 }
