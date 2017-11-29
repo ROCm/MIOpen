@@ -43,8 +43,11 @@ bool DbRecord::SetValues(const std::string& id, const std::string& values)
     if(it == map.end() || it->second != values)
     {
         MIOPEN_LOG_I("Record under key: " << key << ", content "
-                                          << (it == map.end() ? "inserted" : "overwritten") << ": "
-                                          << id << ':' << values);
+                                          << (it == map.end() ? "inserted" : "overwritten")
+                                          << ": "
+                                          << id
+                                          << ':'
+                                          << values);
         map[id] = values;
         return true;
     }
