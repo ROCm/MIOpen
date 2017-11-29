@@ -245,7 +245,8 @@ bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& 
     bool supported_filters =
         ((_kernel_size0 == 1 && _kernel_size1 == 1) || (_kernel_size0 == 3 && _kernel_size1 == 3) ||
          (_kernel_size0 == 5 && _kernel_size1 == 5) || (_kernel_size0 == 7 && _kernel_size1 == 7) ||
-			(_kernel_size0 == 9 && _kernel_size1 == 9) || (_kernel_size0 == 11 && _kernel_size1 == 11) ||
+         (_kernel_size0 == 9 && _kernel_size1 == 9) ||
+         (_kernel_size0 == 11 && _kernel_size1 == 11) ||
          (_kernel_size0 == 5 && _kernel_size1 == 10 && u == 2 && v == 2 && pad_h == 0 &&
           pad_w == 0) ||
          (_kernel_size0 == 5 && _kernel_size1 == 20 && u == 2 && v == 2 && pad_h == 0 &&
@@ -277,9 +278,8 @@ bool ConvolutionDescriptor::IsDirectSupported(const TensorDescriptor& wDesc) con
     bool supported_filters =
         ((_kernel_size0 == 1 && _kernel_size1 == 1) || (_kernel_size0 == 3 && _kernel_size1 == 3) ||
          (_kernel_size0 == 5 && _kernel_size1 == 5 && u == 1 && v == 1) ||
-         (_kernel_size0 == 7 && _kernel_size1 == 7) ||
-			(_kernel_size0 == 9 && _kernel_size1 == 9) ||
-			(_kernel_size0 == 11 && _kernel_size1 == 11) ||
+         (_kernel_size0 == 7 && _kernel_size1 == 7) || (_kernel_size0 == 9 && _kernel_size1 == 9) ||
+         (_kernel_size0 == 11 && _kernel_size1 == 11) ||
          (_kernel_size0 == 5 && _kernel_size1 == 10 && u == 2 && v == 2 && pad_h == 0 &&
           pad_w == 0) ||
          (_kernel_size0 == 5 && _kernel_size1 == 20 && u == 2 && v == 2 && pad_h == 0 &&
