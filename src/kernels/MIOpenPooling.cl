@@ -53,23 +53,24 @@
 #define MLO_POOLING_OP(A, B) (A + B);
 #endif
 
-
 /*********************************************************************************
 
 **********************************************************************************/
 
-#define MLO_BOT_DATA_SZ0 (MLO_POOLING_N_HORIZ_OUT_PIX * MLO_POOLING_STRIDE0 + MLO_POOLING_KERNEL_SZ0 - 1)
-#define MLO_BOT_DATA_SZ1 (MLO_POOLING_N_VERT_OUT_PIX * MLO_POOLING_STRIDE1 + MLO_POOLING_KERNEL_SZ1 - 1)
+#define MLO_BOT_DATA_SZ0 \
+    (MLO_POOLING_N_HORIZ_OUT_PIX * MLO_POOLING_STRIDE0 + MLO_POOLING_KERNEL_SZ0 - 1)
+#define MLO_BOT_DATA_SZ1 \
+    (MLO_POOLING_N_VERT_OUT_PIX * MLO_POOLING_STRIDE1 + MLO_POOLING_KERNEL_SZ1 - 1)
 
 __attribute__((reqd_work_group_size(MLO_POOLING_GROUP_SZ0,
                                     MLO_POOLING_GROUP_SZ1,
                                     MLO_POOLING_GROUP_SZ2))) __kernel void
 mloPoolingG(const __global _FLOAT* bot,
-           __global _FLOAT* top,
+            __global _FLOAT* top,
 #if !defined(MLO_POOLING_DO_BACKWARD) || MLO_POOLING_OP_ID != MLO_POOLING_OP_MAX
-           UNUSED
+            UNUSED
 #endif
-               __global _INT_MASK_GLOBAL* mask)
+                __global _INT_MASK_GLOBAL* mask)
 {
 
     uint x       = get_group_id(0) * MLO_POOLING_GROUP_SZ0 * MLO_POOLING_N_HORIZ_OUT_PIX;
@@ -80,8 +81,8 @@ mloPoolingG(const __global _FLOAT* bot,
     uint ob      = get_global_id(2); // output * batch_sz
     uint b       = ob / MLO_POOLING_N_OUTPUTS;
     uint o       = ob - b * MLO_POOLING_N_OUTPUTS;
-    uint bot_x   = (x + lcl_id0*MLO_POOLING_N_HORIZ_OUT_PIX) * MLO_POOLING_STRIDE0;
-    uint bot_y   = (y + lcl_id1*MLO_POOLING_N_VERT_OUT_PIX) * MLO_POOLING_STRIDE1;
+    uint bot_x   = (x + lcl_id0 * MLO_POOLING_N_HORIZ_OUT_PIX) * MLO_POOLING_STRIDE0;
+    uint bot_y   = (y + lcl_id1 * MLO_POOLING_N_VERT_OUT_PIX) * MLO_POOLING_STRIDE1;
     uint bot_off = b * MLO_POOLING_BOT_BATCH_STRIDE + o * MLO_POOLING_BOT_CHANNEL_STRIDE;
 
     _FLOAT bot_data[MLO_BOT_DATA_SZ1][MLO_BOT_DATA_SZ0];
@@ -96,24 +97,26 @@ mloPoolingG(const __global _FLOAT* bot,
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
             res[k][l] = -FLT_MAX;
 #elif MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
-            res[k][l] = 0;
+            res[k][l]         = 0;
 #endif
         }
     }
 
-	for(uint j = 0; j < MLO_BOT_DATA_SZ1; ++j)
-	{
-		int run_y = (int) bot_y + j - MLO_POOLING_PAD1;
+    for(uint j = 0; j < MLO_BOT_DATA_SZ1; ++j)
+    {
+        int run_y = (int)bot_y + j - MLO_POOLING_PAD1;
 
-		for(uint i = 0; i < MLO_BOT_DATA_SZ0; ++i)
-		{
-			int run_x = (int) bot_x + i - MLO_POOLING_PAD0;
-			uint bot_gbl_off = bot_off + (uint)run_y*MLO_POOLING_BOT_STRIDE + (uint)run_x;
-			bool vis = ((run_y >= 0 && run_y < MLO_POOLING_BOT_HEIGHT) && (run_x >= 0 && run_x < MLO_POOLING_BOT_WIDTH)) ? true : false;
-			bot_data[j][i] = (vis) ? bot[bot_gbl_off] : 0;
-
-		}
-	}
+        for(uint i = 0; i < MLO_BOT_DATA_SZ0; ++i)
+        {
+            int run_x        = (int)bot_x + i - MLO_POOLING_PAD0;
+            uint bot_gbl_off = bot_off + (uint)run_y * MLO_POOLING_BOT_STRIDE + (uint)run_x;
+            bool vis         = ((run_y >= 0 && run_y < MLO_POOLING_BOT_HEIGHT) &&
+                        (run_x >= 0 && run_x < MLO_POOLING_BOT_WIDTH))
+                           ? true
+                           : false;
+            bot_data[j][i] = (vis) ? bot[bot_gbl_off] : 0;
+        }
+    }
 
     for(uint k = 0; k < MLO_POOLING_N_VERT_OUT_PIX; k++)
     {
@@ -141,7 +144,8 @@ mloPoolingG(const __global _FLOAT* bot,
                 for(uint i = 0; i < MLO_POOLING_KERNEL_SZ0; i++)
                 {
 
-                    _FLOAT bot_val = bot_data[j+k*MLO_POOLING_STRIDE1][i+l*MLO_POOLING_STRIDE0];
+                    _FLOAT bot_val =
+                        bot_data[j + k * MLO_POOLING_STRIDE1][i + l * MLO_POOLING_STRIDE0];
 #if 0
 						if (y_dst == 0 && x_dst == 6)
 						{
@@ -174,7 +178,7 @@ mloPoolingG(const __global _FLOAT* bot,
     uint top_y   = (y + lcl_id1 * MLO_POOLING_N_VERT_OUT_PIX);
     uint top_x   = (x + lcl_id0 * MLO_POOLING_N_HORIZ_OUT_PIX);
     uint top_off = b * MLO_POOLING_TOP_BATCH_STRIDE + o * MLO_POOLING_TOP_CHANNEL_STRIDE +
-                  top_y * MLO_POOLING_TOP_STRIDE + top_x;
+                   top_y * MLO_POOLING_TOP_STRIDE + top_x;
     for(uint k = 0; k < MLO_POOLING_N_VERT_OUT_PIX; k++)
     {
         for(uint l = 0; l < MLO_POOLING_N_HORIZ_OUT_PIX; l++)
