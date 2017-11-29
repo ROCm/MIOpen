@@ -72,7 +72,6 @@ int mlo_construct_pooling2D::mloConstruct()
 int mlo_construct_pooling2D::mloConstructFwd()
 {
     int ret = 0;
-	size_t localMemSize = 8 * 1024; // per group, floats
 
     _grp_tile0 = 8;
     _grp_tile1 = 8;
