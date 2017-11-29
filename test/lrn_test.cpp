@@ -91,7 +91,7 @@ struct verify_lrn_foward
                     auto right         = (w + radius) > width ? width : (w + radius);
                     auto top           = (h - radius) < 0 ? 0 : (h - radius);
                     auto bottom        = (h + radius) > height ? height : (h + radius);
-                    auto alphaoverarea = alpha / ((right - left) * (bottom - top));
+                    auto alphaoverarea = radius == 0 ? 0 : alpha / ((right - left) * (bottom - top));
 
                     for(auto i = left; i < right; i++)
                     {
