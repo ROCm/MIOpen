@@ -78,7 +78,7 @@ rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
             mkdir build
             cd build
             CXX='clang++-3.8' cmake -DBUILD_DEV=On .. 
-            make tidy
+            make -j8 tidy
         '''
     }
 }, format: rocmnode('rocm') { cmake_build ->
@@ -99,9 +99,6 @@ rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
     stage('Clang Debug') {
         cmake_build('clang++-3.8', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
     }
-    stage('Clang Release') {
-        cmake_build('clang++-3.8', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
-    }
     stage('GCC Debug') {
         cmake_build('g++-5', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
     }
@@ -119,7 +116,7 @@ rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
             mkdir build
             cd build
             CXX='hcc' cmake -DBUILD_DEV=On .. 
-            make tidy
+            make -j8 tidy
         '''
     }
 }, hip: rocmnode('vega') { cmake_build ->
