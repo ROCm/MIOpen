@@ -716,6 +716,9 @@ void RNNBwdWeightCPUVerify(std::vector<T>& in,
     int bi_stride  = hy_h * bi;
 
     (void)hy_n;
+    (void)out_h;
+    (void)dout;
+    (void)squash;
 
     if(inputMode == 1)
     {
