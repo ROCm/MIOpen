@@ -147,9 +147,9 @@ inline std::vector<std::vector<int>> generate_batchSeq(const int batchSize, cons
 inline int sumvc(std::vector<int>& x)
 {
     int sum = 0;
-    for(int i = 0; i < x.size(); i++)
+    for(int i : x)
     {
-        sum += x[i];
+        sum += i;
     }
     return sum;
 }
@@ -165,11 +165,11 @@ inline float activfunc(float x, int actvf)
     }
     else if(actvf == 2)
     {
-        return 1 / (1 + exp(-x));
+        return 1 / (1 + std::exp(-x));
     }
 
     //    return tanh(x);
-    return alpha * tanh(beta1 * x);
+    return alpha * std::tanh(beta1 * x);
 }
 
 inline float dervactivfunc(float x, int actvf)
@@ -180,10 +180,10 @@ inline float dervactivfunc(float x, int actvf)
     }
     else if(actvf == 2)
     {
-        return exp(-x) / (1 + exp(-x)) / (1 + exp(-x));
+        return std::exp(-x) / (1 + std::exp(-x)) / (1 + std::exp(-x));
     }
 
-    return 1 / cosh(x) / cosh(x);
+    return 1 / std::cosh(x) / std::cosh(x);
 }
 
 template <typename Dtype>
@@ -206,8 +206,8 @@ void RNN_mm_cpu(const Dtype* a_ptr,
                 double d_beta)
 {
 
-    Dtype alpha = Dtype(d_alpha);
-    Dtype beta  = Dtype(d_beta);
+    auto alpha = Dtype(d_alpha);
+    auto beta  = Dtype(d_beta);
     if((!(a_flags & RNN_MM_TRANSPOSE) && !(b_flags & RNN_MM_TRANSPOSE) &&
         ((a_cols != b_rows) || (a_rows != c_rows) || (b_cols != c_cols))) ||
        ((a_flags & RNN_MM_TRANSPOSE) && (b_flags & RNN_MM_TRANSPOSE) &&
