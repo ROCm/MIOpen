@@ -56,19 +56,20 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
     result.n_out_pix_tiles = std::min(params.n_outputs, searched_params.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
-    result.out_pix_tile1 = (params.direction.IsForward() == 0 && params.kernel_stride1 > 1 &&
-                            searched_params.out_pix_tile1 == 1)
-                               ? 2
+    result.out_pix_tile1 = (params.direction.IsForward() == 0 && params.kernel_stride1 > 1)
+                               ? params.kernel_stride1
                                : searched_params.out_pix_tile1;
-    result.out_pix_tile0 = (params.direction.IsForward() == 0 && params.kernel_stride0 > 1 &&
-                            searched_params.out_pix_tile0 == 1)
-                               ? 2
+    result.out_pix_tile0 = (params.direction.IsForward() == 0 && params.kernel_stride0 > 1)
+                               ? params.kernel_stride0
                                : searched_params.out_pix_tile0;
 
-    int alu_tile0 = (searched_params.in_tile0 + searched_params.out_pix_tile0 - 1) /
-                    searched_params.out_pix_tile0;
-    int alu_tile1 = (searched_params.in_tile1 + searched_params.out_pix_tile1 - 1) /
-                    searched_params.out_pix_tile1;
+    result.grp_tile0 = std::max(8, (result.in_tile0 / result.out_pix_tile0));
+    result.grp_tile1 = std::max(8, (result.in_tile1 / result.out_pix_tile1));
+    result.in_tile0  = result.grp_tile0 * result.out_pix_tile0;
+    result.in_tile1  = result.grp_tile1 * result.out_pix_tile1;
+
+    int alu_tile0    = (result.in_tile0 + result.out_pix_tile0 - 1) / result.out_pix_tile0;
+    int alu_tile1    = (result.in_tile1 + result.out_pix_tile1 - 1) / result.out_pix_tile1;
     int alu_tiles_sz = (alu_tile0 * alu_tile1);
     if(alu_tiles_sz > 256)
     {
@@ -76,36 +77,31 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
         return ConvSolution(static_cast<miopenStatus_t>(-1));
     }
 
-    int n_alus_total = (searched_params.grp_tile0 * searched_params.grp_tile1);
+    int n_alus_total = (result.grp_tile0 * result.grp_tile1);
 
-    result.n_stacks =
-        std::min(searched_params.n_stacks, (n_alus_total + alu_tiles_sz - 1) / alu_tiles_sz);
+    result.n_stacks = std::min(result.n_stacks, (n_alus_total + alu_tiles_sz - 1) / alu_tiles_sz);
     result.n_stacks = std::min(params.batch_sz, result.n_stacks);
 
     int n_alus_perstack = (n_alus_total + result.n_stacks - 1) / result.n_stacks;
 
     int n_read_procs;
-    if((searched_params.grp_tile1 * searched_params.grp_tile0) <=
-       static_cast<float>(searched_params.in_tile1 * searched_params.in_tile0))
+    if((result.grp_tile1 * result.grp_tile0) <=
+       static_cast<float>(result.in_tile1 * result.in_tile0))
     {
-        n_read_procs = searched_params.grp_tile1 * searched_params.grp_tile0;
+        n_read_procs = result.grp_tile1 * result.grp_tile0;
     }
     else
     {
-        float proc_data_ratio =
-            static_cast<float>(searched_params.in_tile1 * searched_params.in_tile0) /
-            static_cast<float>(searched_params.grp_tile1 * searched_params.grp_tile0);
+        float proc_data_ratio = static_cast<float>(result.in_tile1 * result.in_tile0) /
+                                static_cast<float>(result.grp_tile1 * result.grp_tile0);
         n_read_procs = (proc_data_ratio <= 0.25)
-                           ? (searched_params.grp_tile1 * searched_params.grp_tile0) / 4
-                           : (proc_data_ratio <= 0.5)
-                                 ? (searched_params.grp_tile1 * searched_params.grp_tile0) / 2
-                                 : (searched_params.grp_tile1 * searched_params.grp_tile0);
+                           ? (result.grp_tile1 * result.grp_tile0) / 4
+                           : (proc_data_ratio <= 0.5) ? (result.grp_tile1 * result.grp_tile0) / 2
+                                                      : (result.grp_tile1 * result.grp_tile0);
     }
 
-    int n_out_tile_blocks0 =
-        (params.out_width + searched_params.in_tile0 - 1) / (searched_params.in_tile0);
-    int n_out_tile_blocks1 =
-        (params.out_height + searched_params.in_tile1 - 1) / (searched_params.in_tile1);
+    int n_out_tile_blocks0 = (params.out_width + result.in_tile0 - 1) / (result.in_tile0);
+    int n_out_tile_blocks1 = (params.out_height + result.in_tile1 - 1) / (result.in_tile1);
 
     int n_alu_tiles_perstack = (n_alus_perstack + alu_tiles_sz - 1) / alu_tiles_sz;
     int n_out_tiles_perstack = n_alu_tiles_perstack * result.n_out_pix_tiles;
@@ -150,20 +146,18 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
         std::string(" -DMLO_IN_STRIDE=") + std::to_string(static_cast<long long>(params.in_stride))
         // algorithm parameters
         + std::string(" -DMLO_IN_TILE0=") +
-        std::to_string(
-            static_cast<long long>(searched_params.in_tile0)) // size of input data per ALU plane
+        std::to_string(static_cast<long long>(result.in_tile0)) // size of input data per ALU plane
         + std::string(" -DMLO_IN_TILE1=") +
-        std::to_string(
-            static_cast<long long>(searched_params.in_tile1)) // size of input data per ALU plane
+        std::to_string(static_cast<long long>(result.in_tile1)) // size of input data per ALU plane
         + std::string(" -DMLO_GRP_TILE0=") +
-        std::to_string(static_cast<long long>(searched_params.grp_tile0)) // # of ALUs (group size)
+        std::to_string(static_cast<long long>(result.grp_tile0)) // # of ALUs (group size)
         + std::string(" -DMLO_GRP_TILE1=") +
-        std::to_string(static_cast<long long>(searched_params.grp_tile1)) //
+        std::to_string(static_cast<long long>(result.grp_tile1)) //
         + std::string(" -DMLO_OUT_TILE0=") +
-        std::to_string(static_cast<long long>(
-            searched_params.out_pix_tile0)) // size of ouptput tile per wk-item (ALU))
+        std::to_string(
+            static_cast<long long>(result.out_pix_tile0)) // size of ouptput tile per wk-item (ALU))
         + std::string(" -DMLO_OUT_TILE1=") +
-        std::to_string(static_cast<long long>(searched_params.out_pix_tile1)) //
+        std::to_string(static_cast<long long>(result.out_pix_tile1)) //
         + std::string(" -DMLO_N_STACKS=") +
         std::to_string(static_cast<long long>(result.n_stacks)) // # of diff stacks (part of batch).
         + std::string(" -DMLO_N_OUT_TILES=") +
@@ -180,7 +174,7 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
         std::to_string(static_cast<long long>(alu_tile0)) + std::string(" -DMLO_ALU_VTILE1=") +
         std::to_string(static_cast<long long>(alu_tile1)) + params.general_compile_options;
 
-    kernel_params.l_wk.push_back(searched_params.grp_tile1 * searched_params.grp_tile0);
+    kernel_params.l_wk.push_back(result.grp_tile1 * result.grp_tile0);
     kernel_params.l_wk.push_back(1);
     kernel_params.l_wk.push_back(1);
 
