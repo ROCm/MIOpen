@@ -44,11 +44,11 @@
 
 struct superTensorTest : test_driver
 {
-    miopenRNNDescriptor_t rnnDesc;
+    miopenRNNDescriptor_t rnnDesc{};
 
-    int num_layer;
-    int wei_hh;
-    int batch_size;
+    int num_layer{};
+    int wei_hh{};
+    int batch_size{};
 
     miopenRNNMode_t mode;
     miopenRNNBiasMode_t biasMode;
@@ -57,13 +57,13 @@ struct superTensorTest : test_driver
     miopenRNNAlgo_t algo = miopenRNNdefault;
     miopenDataType_t dataType;
 
-    int seqLen;
-    int in_size;
+    int seqLen{};
+    int in_size{};
 
-    miopenTensorDescriptor_t inputTensor;
-    miopenTensorDescriptor_t weightTensor;
-    miopenTensorDescriptor_t paramTensor;
-    miopenTensorDescriptor_t biasTensor;
+    miopenTensorDescriptor_t inputTensor{};
+    miopenTensorDescriptor_t weightTensor{};
+    miopenTensorDescriptor_t paramTensor{};
+    miopenTensorDescriptor_t biasTensor{};
 
     miopen::Allocator::ManageDataPtr wei_dev;
 
@@ -356,10 +356,10 @@ struct superTensorTest : test_driver
 
                 auto param_h_out = handle.Read<float>(param_dev_out, paramSize);
 
-                for(int i = 0; i < param_h_out.size(); i++)
+                for(float i : param_h_out)
                 {
 
-                    EXPECT(static_cast<int>(param_h_out[i]) == 10 * layer + layerID);
+                    EXPECT(static_cast<int>(i) == 10 * layer + layerID);
                     // if(static_cast<int>(param_h_out[i]) != 10 * layer + layerID)
                     //{
                     // fprintf(stderr,
@@ -394,9 +394,9 @@ struct superTensorTest : test_driver
 
                     auto bias_h_out = handle.Read<float>(bias_dev_out, biasSize);
 
-                    for(int i = 0; i < bias_h_out.size(); i++)
+                    for(float i : bias_h_out)
                     {
-                        EXPECT(static_cast<int>(bias_h_out[i]) == 10 * layer + layerID);
+                        EXPECT(static_cast<int>(i) == 10 * layer + layerID);
                         // if(static_cast<int>(bias_h_out[i]) != 10 * layer + layerID)
                         //{
                         // fprintf(stderr,
