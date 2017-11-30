@@ -29,19 +29,15 @@
 #include "ford.hpp"
 #include <miopen/returns.hpp>
 
-template<class AF, class BF, class CF>
+template <class AF, class BF, class CF>
 void gemm(std::size_t n, std::size_t m, std::size_t k, AF a, BF b, CF c)
 {
-    auto inner_loop = [&](int i, int j)
-    {
+    auto inner_loop = [&](int i, int j) {
         double x = 0.0;
-        ford(k)([&](int kk)
-        {
-            x += a(i, kk) * b(kk, j);
-        });
+        ford(k)([&](int kk) { x += a(i, kk) * b(kk, j); });
         c(i, j, x);
     };
-    if (n*m > 32)
+    if(n * m > 32)
     {
         par_ford(n, m)(inner_loop);
     }
@@ -51,31 +47,23 @@ void gemm(std::size_t n, std::size_t m, std::size_t k, AF a, BF b, CF c)
     }
 }
 
-struct with_stride_impl 
+struct with_stride_impl
 {
-    template<class T>
-    auto operator()(T& data, std::size_t stride, std::size_t x, std::size_t y) const MIOPEN_RETURNS
-    (
-        data[x * stride + y]
-    );
+    template <class T>
+    auto operator()(T& data, std::size_t stride, std::size_t x, std::size_t y) const
+        MIOPEN_RETURNS(data[x * stride + y]);
 
-    template<class T>
-    auto operator()(std::vector<T>& data, std::size_t stride, std::size_t x, std::size_t y) const MIOPEN_RETURNS
-    (
-        data.at(x * stride + y)
-    );
+    template <class T>
+    auto operator()(std::vector<T>& data, std::size_t stride, std::size_t x, std::size_t y) const
+        MIOPEN_RETURNS(data.at(x* stride + y));
 };
 
-template<class T>
-auto with_stride(T& data, std::size_t stride) MIOPEN_RETURNS
-(
-    std::bind(with_stride_impl{}, std::ref(data), stride, std::placeholders::_1, std::placeholders::_2)
-);
+template <class T>
+auto with_stride(T& data, std::size_t stride) MIOPEN_RETURNS(std::bind(
+    with_stride_impl{}, std::ref(data), stride, std::placeholders::_1, std::placeholders::_2));
 
-template<class T>
-auto with_stride(T* data, std::size_t stride) MIOPEN_RETURNS
-(
-    std::bind(with_stride_impl{}, data, stride, std::placeholders::_1, std::placeholders::_2)
-);
+template <class T>
+auto with_stride(T* data, std::size_t stride) MIOPEN_RETURNS(
+    std::bind(with_stride_impl{}, data, stride, std::placeholders::_1, std::placeholders::_2));
 
 #endif
