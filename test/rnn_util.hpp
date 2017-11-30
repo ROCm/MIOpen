@@ -253,10 +253,12 @@ void RNN_mm_cpu(const Dtype* a_ptr,
     }
     else if(!(a_flags & RNN_MM_TRANSPOSE) && (b_flags & RNN_MM_TRANSPOSE))
     {
-        gemm(c_rows, c_cols, inner_loop,
-            with_stride(a_ptr, a_stride),
-            miopen::flip(with_stride(b_ptr, b_stride)),
-            c_out);
+        gemm(c_rows,
+             c_cols,
+             inner_loop,
+             with_stride(a_ptr, a_stride),
+             miopen::flip(with_stride(b_ptr, b_stride)),
+             c_out);
     }
     else
     {
