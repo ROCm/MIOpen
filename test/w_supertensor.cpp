@@ -46,18 +46,27 @@
 struct verify_w_tensor_get
 {
     miopenRNNDescriptor_t rnnDesc;
+
+    int num_layer;
+    int wei_hh;
+    int batch_size;
+
     miopenRNNMode_t mode;
     miopenRNNInputMode_t inMode;
+    miopenRNNAlgo_t algo = miopenRNNdefault;
+    miopenDataType_t dataType;
     miopenRNNDirectionMode_t directionMode;
     miopenRNNBiasMode_t biasMode;
+
+    int seqLen{};
+    int in_size{};
+
     miopenTensorDescriptor_t inputTensor;
     miopenTensorDescriptor_t weightTensor;
     miopenTensorDescriptor_t paramTensor;
     miopenTensorDescriptor_t biasTensor;
 
     miopen::Allocator::ManageDataPtr wei_dev;
-
-    int num_layer;
 
     verify_w_tensor_get(miopenRNNDescriptor_t p_rnnDesc,
                         miopenRNNMode_t p_mode,
@@ -81,11 +90,8 @@ struct verify_w_tensor_get
         biasTensor    = p_biasTensor;
         num_layer     = p_num_layer;
 
-        // size_t wei_sz = 0;
         auto&& handle = get_handle();
-        // miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopenFloat);
-        wei_dev = handle.Write(fill_weight());
-        // wei_dev = handle.Create(wei_sz);
+        wei_dev       = handle.Write(fill_weight());
     }
 
     std::vector<float> gpu()

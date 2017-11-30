@@ -34,6 +34,8 @@
 #include <vector>
 #include <cstdlib>
 
+#include "gemm.hpp"
+
 #define RNN_MM_TRANSPOSE 1
 
 // RNN VANILLA configs
@@ -145,9 +147,9 @@ inline std::vector<std::vector<int>> generate_batchSeq(const int batchSize, cons
 inline int sumvc(std::vector<int>& x)
 {
     int sum = 0;
-    for(int i = 0; i < x.size(); i++)
+    for(int i : x)
     {
-        sum += x[i];
+        sum += i;
     }
     return sum;
 }
@@ -163,11 +165,11 @@ inline float activfunc(float x, int actvf)
     }
     else if(actvf == 2)
     {
-        return 1 / (1 + exp(-x));
+        return 1 / (1 + std::exp(-x));
     }
 
     //    return tanh(x);
-    return alpha * tanh(beta1 * x);
+    return alpha * std::tanh(beta1 * x);
 }
 
 inline float dervactivfunc(float x, int actvf)
@@ -178,10 +180,10 @@ inline float dervactivfunc(float x, int actvf)
     }
     else if(actvf == 2)
     {
-        return exp(-x) / (1 + exp(-x)) / (1 + exp(-x));
+        return std::exp(-x) / (1 + std::exp(-x)) / (1 + std::exp(-x));
     }
 
-    return 1 / cosh(x) / cosh(x);
+    return 1 / std::cosh(x) / std::cosh(x);
 }
 
 template <typename Dtype>
@@ -204,8 +206,8 @@ void RNN_mm_cpu(const Dtype* a_ptr,
                 double d_beta)
 {
 
-    Dtype alpha = Dtype(d_alpha);
-    Dtype beta  = Dtype(d_beta);
+    auto alpha = Dtype(d_alpha);
+    auto beta  = Dtype(d_beta);
     if((!(a_flags & RNN_MM_TRANSPOSE) && !(b_flags & RNN_MM_TRANSPOSE) &&
         ((a_cols != b_rows) || (a_rows != c_rows) || (b_cols != c_cols))) ||
        ((a_flags & RNN_MM_TRANSPOSE) && (b_flags & RNN_MM_TRANSPOSE) &&
@@ -225,91 +227,47 @@ void RNN_mm_cpu(const Dtype* a_ptr,
         return;
     }
 
+    auto c_out = [&](int i, int j, double x) {
+        c_ptr[i * c_stride + j] = beta * c_ptr[i * c_stride + j] + alpha * x;
+    };
+
     size_t inner_loop = (!(a_flags & RNN_MM_TRANSPOSE)) ? a_cols : a_rows;
 
     if(!(a_flags & RNN_MM_TRANSPOSE) && !(b_flags & RNN_MM_TRANSPOSE))
     {
-        for(size_t n = 0; n < c_rows; ++n)
-        {
-            for(size_t k = 0; k < c_cols; ++k)
-            {
-                Dtype mm_e = 0;
-                for(size_t m = 0; m < inner_loop; ++m)
-                {
-                    mm_e += a_ptr[n * a_stride + m] * b_ptr[m * b_stride + k];
-                }
-                c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
-            }
-        }
+        gemm(c_rows,
+             c_cols,
+             inner_loop,
+             with_stride(a_ptr, a_stride),
+             with_stride(b_ptr, b_stride),
+             c_out);
     }
     else if((a_flags & RNN_MM_TRANSPOSE) && !(b_flags & RNN_MM_TRANSPOSE))
     {
-        for(size_t n = 0; n < c_rows; ++n)
-        {
-            for(size_t k = 0; k < c_cols; ++k)
-            {
-
-                Dtype mm_e = 0;
-                for(size_t m = 0; m < inner_loop; ++m)
-                {
-                    mm_e += a_ptr[m * a_stride + n] * b_ptr[m * b_stride + k];
-#if 0
-					if (
-						(n == 0 && k == 33
-						|| n == 1 && k == 32
-						|| n == 3 && k == 1
-						|| n == 4 && k == 0
-
-						)
-						&& a_ptr[m*a_stride + n] * b_ptr[m*b_stride + k] != 0
-						)
-					{
-						printf("C:mm:%d %d %d   %11.9f %11.9f %11.9f %11.9f\n",
-							n, k, m,
-							mm_e, a_ptr[m*a_stride + n], b_ptr[m*b_stride + k], a_ptr[m*a_stride + n] * b_ptr[m*b_stride + k]);
-					}
-#endif
-                }
-                c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
-            }
-        }
+        gemm(c_rows,
+             c_cols,
+             inner_loop,
+             miopen::flip(with_stride(a_ptr, a_stride)),
+             with_stride(b_ptr, b_stride),
+             c_out);
     }
     else if(!(a_flags & RNN_MM_TRANSPOSE) && (b_flags & RNN_MM_TRANSPOSE))
     {
-        for(size_t n = 0; n < c_rows; ++n)
-        {
-            for(size_t k = 0; k < c_cols; ++k)
-            {
-                Dtype mm_e = 0;
-
-                for(size_t m = 0; m < inner_loop; ++m)
-                {
-                    mm_e += a_ptr[n * a_stride + m] * b_ptr[k * b_stride + m];
-#if 0
-					if (n == 0 && k == 6 && a_ptr[n*a_stride + m] * b_ptr[k*b_stride + m] != 0)
-					{
-						printf("%4d  %11.9f %11.9f %11.9f\n", m, mm_e, a_ptr[n*a_stride + m], b_ptr[k*b_stride + m]);
-					}
-#endif
-                }
-                c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
-            }
-        }
+        gemm(c_rows,
+             c_cols,
+             inner_loop,
+             with_stride(a_ptr, a_stride),
+             miopen::flip(with_stride(b_ptr, b_stride)),
+             c_out);
     }
     else
     {
-        for(size_t n = 0; n < c_rows; ++n)
-        {
-            for(size_t k = 0; k < c_cols; ++k)
-            {
-                Dtype mm_e = 0;
-                for(size_t m = 0; m < inner_loop; ++m)
-                {
-                    c_ptr[n * c_stride + k] += a_ptr[m * a_stride + n] * b_ptr[k * b_stride + m];
-                }
-                c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
-            }
-        }
+        gemm(c_rows,
+             c_cols,
+             inner_loop,
+             miopen::flip(with_stride(a_ptr, a_stride)),
+             miopen::flip(with_stride(b_ptr, b_stride)),
+             c_out);
     }
 }
 
