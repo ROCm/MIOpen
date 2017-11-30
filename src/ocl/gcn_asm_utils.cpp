@@ -202,7 +202,9 @@ static int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostr
         {
             while(!in->eof())
             {
-                in->read(buffer.data(), buffer.size());
+                in->read(buffer.data(), buffer.size() - 1);
+                buffer[in->gcount()] = 0;
+
                 if(fputs(buffer.data(), pipe.get()) == EOF)
                     MIOPEN_THROW("Error: X-AMDGCN-ASM: fputs()");
             }
