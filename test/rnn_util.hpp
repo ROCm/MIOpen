@@ -227,16 +227,20 @@ void RNN_mm_cpu(const Dtype* a_ptr,
         return;
     }
 
-    auto c_out = [&](int i, int j, double x) { c_ptr[i * c_stride + j] = beta * c_ptr[i * c_stride + j] + alpha * x; };
+    auto c_out = [&](int i, int j, double x) {
+        c_ptr[i * c_stride + j] = beta * c_ptr[i * c_stride + j] + alpha * x;
+    };
 
     size_t inner_loop = (!(a_flags & RNN_MM_TRANSPOSE)) ? a_cols : a_rows;
 
     if(!(a_flags & RNN_MM_TRANSPOSE) && !(b_flags & RNN_MM_TRANSPOSE))
     {
-        gemm(c_rows, c_cols, inner_loop, 
-            with_stride(a_ptr, a_stride), 
-            with_stride(b_ptr, b_stride), 
-            c_out);
+        gemm(c_rows,
+             c_cols,
+             inner_loop,
+             with_stride(a_ptr, a_stride),
+             with_stride(b_ptr, b_stride),
+             c_out);
         // for(size_t n = 0; n < c_rows; ++n)
         // {
         //     for(size_t k = 0; k < c_cols; ++k)
@@ -252,45 +256,31 @@ void RNN_mm_cpu(const Dtype* a_ptr,
     }
     else if((a_flags & RNN_MM_TRANSPOSE) && !(b_flags & RNN_MM_TRANSPOSE))
     {
-        gemm(c_rows, c_cols, inner_loop, 
-            miopen::flip(with_stride(a_ptr, a_stride)), 
-            with_stride(b_ptr, b_stride), 
-            c_out);
-//         for(size_t n = 0; n < c_rows; ++n)
-//         {
-//             for(size_t k = 0; k < c_cols; ++k)
-//             {
+        gemm(c_rows,
+             c_cols,
+             inner_loop,
+             miopen::flip(with_stride(a_ptr, a_stride)),
+             with_stride(b_ptr, b_stride),
+             c_out);
+        // for(size_t n = 0; n < c_rows; ++n)
+        // {
+        //     for(size_t k = 0; k < c_cols; ++k)
+        //     {
 
-//                 Dtype mm_e = 0;
-//                 for(size_t m = 0; m < inner_loop; ++m)
-//                 {
-//                     mm_e += a_ptr[m * a_stride + n] * b_ptr[m * b_stride + k];
-// #if 0
-// 					if (
-// 						(n == 0 && k == 33
-// 						|| n == 1 && k == 32
-// 						|| n == 3 && k == 1
-// 						|| n == 4 && k == 0
-
-// 						)
-// 						&& a_ptr[m*a_stride + n] * b_ptr[m*b_stride + k] != 0
-// 						)
-// 					{
-// 						printf("C:mm:%d %d %d   %11.9f %11.9f %11.9f %11.9f\n",
-// 							n, k, m,
-// 							mm_e, a_ptr[m*a_stride + n], b_ptr[m*b_stride + k], a_ptr[m*a_stride + n] * b_ptr[m*b_stride + k]);
-// 					}
-// #endif
-//                 }
-//                 c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
-//             }
-//         }
+        //         Dtype mm_e = 0;
+        //         for(size_t m = 0; m < inner_loop; ++m)
+        //         {
+        //             mm_e += a_ptr[m * a_stride + n] * b_ptr[m * b_stride + k];
+        //         }
+        //         c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
+        //     }
+        // }
     }
     else if(!(a_flags & RNN_MM_TRANSPOSE) && (b_flags & RNN_MM_TRANSPOSE))
     {
-        // gemm(c_rows, c_cols, inner_loop, 
-        //     with_stride(a_ptr, a_stride), 
-        //     miopen::flip(with_stride(b_ptr, b_stride)), 
+        // gemm(c_rows, c_cols, inner_loop,
+        //     with_stride(a_ptr, a_stride),
+        //     miopen::flip(with_stride(b_ptr, b_stride)),
         //     c_out);
         for(size_t n = 0; n < c_rows; ++n)
         {
@@ -301,12 +291,6 @@ void RNN_mm_cpu(const Dtype* a_ptr,
                 for(size_t m = 0; m < inner_loop; ++m)
                 {
                     mm_e += a_ptr[n * a_stride + m] * b_ptr[k * b_stride + m];
-#if 0
-					if (n == 0 && k == 6 && a_ptr[n*a_stride + m] * b_ptr[k*b_stride + m] != 0)
-					{
-						printf("%4d  %11.9f %11.9f %11.9f\n", m, mm_e, a_ptr[n*a_stride + m], b_ptr[k*b_stride + m]);
-					}
-#endif
                 }
                 c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
             }
@@ -314,10 +298,12 @@ void RNN_mm_cpu(const Dtype* a_ptr,
     }
     else
     {
-        gemm(c_rows, c_cols, inner_loop, 
-            miopen::flip(with_stride(a_ptr, a_stride)), 
-            miopen::flip(with_stride(b_ptr, b_stride)), 
-            c_out);
+        gemm(c_rows,
+             c_cols,
+             inner_loop,
+             miopen::flip(with_stride(a_ptr, a_stride)),
+             miopen::flip(with_stride(b_ptr, b_stride)),
+             c_out);
         // for(size_t n = 0; n < c_rows; ++n)
         // {
         //     for(size_t k = 0; k < c_cols; ++k)
