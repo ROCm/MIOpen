@@ -26,6 +26,7 @@
 
 #include "test.hpp"
 #include <array>
+#include <cmath>
 #include <iostream>
 #include <iterator>
 #include <limits>
@@ -57,9 +58,9 @@ struct verify_forward_sofmax
             ford(in_c)([&](int w) { max_c = std::max(max_c, input(o, w, i, j)); });
 
             T sum = 0;
-            ford(in_c)([&](int w) { sum += exp(input(o, w, i, j) - max_c); });
+            ford(in_c)([&](int w) { sum += std::exp(input(o, w, i, j) - max_c); });
 
-            ford(in_c)([&](int w) { out(o, w, i, j) = exp(input(o, w, i, j) - max_c) / sum; });
+            ford(in_c)([&](int w) { out(o, w, i, j) = std::exp(input(o, w, i, j) - max_c) / sum; });
 
         });
         return out;

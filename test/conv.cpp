@@ -55,8 +55,8 @@ struct conv_base
     tensor<T> weights;
     tensor<T> out;
     miopen::ConvolutionDescriptor filter;
-    int bias;
-    int search;
+    int bias{};
+    int search{};
 
     void fail(float = 0)
     {
