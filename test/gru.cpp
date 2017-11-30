@@ -2676,14 +2676,14 @@ template <class T>
 struct gru_driver : test_driver
 {
     std::vector<int> batchSeq;
-    int seqLength;
-    int inVecLen;
-    int hiddenSize;
-    int numLayers;
-    int inputMode;
-    int biasMode;
-    int dirMode;
-    int batchSize;
+    int seqLength{};
+    int inVecLen{};
+    int hiddenSize{};
+    int numLayers{};
+    int inputMode{};
+    int biasMode{};
+    int dirMode{};
+    int batchSize{};
 
     gru_driver()
     {
