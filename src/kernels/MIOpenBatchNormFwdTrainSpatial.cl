@@ -274,9 +274,11 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #pragma unroll
         for(unsigned int n = 0; n < MIO_BN_NLOOP; n++)
         {
-            nid                    = n * segihw + lidihw;
-            index                  = nid * MIO_BN_CHW + chwid;
-            mean += batchvalues[n] = (index < MIO_BN_NCHW) ? in[index] : 0.;
+            nid            = n * segihw + lidihw;
+            index          = nid * MIO_BN_CHW + chwid;
+            batchvalues[n] = (index < MIO_BN_NCHW) ? in[index] : 0.;
+            mean += batchvalues[n]; // = 1.;//(index < MIO_BN_NCHW) ? in[index] : 0.;
+            // printf("mean: %f\n",mean);
         }
     }
     // barrier(CLK_LOCAL_MEM_FENCE);
@@ -308,13 +310,15 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #pragma unroll
         for(unsigned int n = 0; n < MIO_BN_NLOOP; n++)
         {
-            nid = n * segihw + lidihw;
+            nid            = n * segihw + lidihw;
+            batchvalues[n] = (batchvalues[n] - mean);
             if(nid < MIO_BN_N)
             {
-                // elemStd  = (batchvalues[n] - mean);
-                batchvalues[n] = (batchvalues[n] - mean);
-                variance       = mad(batchvalues[n], batchvalues[n], variance);
-                // variance = mad(elemStd, elemStd, variance);
+                variance = mad(batchvalues[n], batchvalues[n], variance);
+            }
+            else
+            {
+                variance = 0.;
             }
         }
     }
