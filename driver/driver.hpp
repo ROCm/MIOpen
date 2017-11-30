@@ -60,16 +60,16 @@ struct GPUMem
     GPUMem(){};
     GPUMem(cl_context& ctx, size_t psz, size_t pdata_sz) : sz(psz), data_sz(pdata_sz)
     {
-        buf = clCreateBuffer(ctx, CL_MEM_READ_WRITE, data_sz * sz, NULL, NULL);
+        buf = clCreateBuffer(ctx, CL_MEM_READ_WRITE, data_sz * sz, nullptr, nullptr);
     }
 
     int ToGPU(cl_command_queue& q, void* p)
     {
-        return clEnqueueWriteBuffer(q, buf, CL_TRUE, 0, data_sz * sz, p, 0, NULL, NULL);
+        return clEnqueueWriteBuffer(q, buf, CL_TRUE, 0, data_sz * sz, p, 0, nullptr, nullptr);
     }
     int FromGPU(cl_command_queue& q, void* p)
     {
-        return clEnqueueReadBuffer(q, buf, CL_TRUE, 0, data_sz * sz, p, 0, NULL, NULL);
+        return clEnqueueReadBuffer(q, buf, CL_TRUE, 0, data_sz * sz, p, 0, nullptr, nullptr);
     }
 
     cl_mem GetMem() { return buf; }
