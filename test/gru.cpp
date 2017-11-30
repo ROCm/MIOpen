@@ -88,29 +88,6 @@ void GRUFwdCPUVerify(std::vector<T>& in,
     int uni_stride = hy_h;
     int bi_stride  = hy_h * bi;
 
-    std::vector<double> hid_state(numlayer * batch_n * hy_stride * 2, 0.);
-    // std::vector<double> out_state(batch_n * out_h, 0.);
-
-    // initial input
-    // std::vector<double> in_state(batch_n * in_h, 0.);
-    //    for(int h = 0; h < batch_n; h++)
-    //    {
-    //        for(int w = 0; w < in_h; w++)
-    //        {
-    //            in_state[h * in_stride + w] = in[h * in_stride + w];
-    //        }
-    //    }
-
-    // initial hidden states
-    //    auto ihs = hy_d * hy_n * hy_h;
-    //    std::vector<double> hy_state(ihs, 0.);
-    //
-    //    std::vector<double> hx_state(ihs, 0.);
-    //    for(int h = 0; h < ihs; h++)
-    //    {
-    //        hx_state[h] = hx[h];
-    //    }
-
     if(inputMode == 1)
     {
         if(in_h != hy_h)
@@ -129,13 +106,6 @@ void GRUFwdCPUVerify(std::vector<T>& in,
         int in_bias = inputMode == 1 ? 1 : 2;
         wei_len += (in_bias + (numlayer - 1) * 2) * wei_stride;
     }
-
-    // initial weights
-    //    std::vector<double> wei_state(wei_len, 0.);
-    //    for(int h = 0; h < wei_len; h++)
-    //    {
-    //        wei_state[h] = wei[h];
-    //    }
 
     // forward emulator
     for(int li = 0; li < numlayer; li++)
@@ -229,7 +199,7 @@ void GRUFwdCPUVerify(std::vector<T>& in,
                            in_n[ti],
                            uni_stride,
                            0,
-                           &wei[wei_shift], //&wei_state[wei_shift],
+                           &wei[wei_shift],
                            hy_h,
                            hy_h * 2,
                            uni_stride,
@@ -247,8 +217,7 @@ void GRUFwdCPUVerify(std::vector<T>& in,
                            in_n[ti],
                            uni_stride,
                            0,
-                           &wei[wei_shift + 2 * hy_h * uni_stride], //&wei_state[wei_shift + 2 *
-                                                                    //hy_h * uni_stride],
+                           &wei[wei_shift + 2 * hy_h * uni_stride],
                            hy_h,
                            hy_h,
                            uni_stride,
@@ -268,8 +237,7 @@ void GRUFwdCPUVerify(std::vector<T>& in,
                                in_n[seqLength - 1 - ti],
                                uni_stride,
                                0,
-                               &wei[wei_shift + 3 * hy_h * uni_stride], //&wei_state[wei_shift + 3 *
-                                                                        //hy_h * uni_stride],
+                               &wei[wei_shift + 3 * hy_h * uni_stride],
                                hy_h,
                                hy_h * 2,
                                uni_stride,
@@ -287,8 +255,7 @@ void GRUFwdCPUVerify(std::vector<T>& in,
                                in_n[seqLength - 1 - ti],
                                uni_stride,
                                0,
-                               &wei[wei_shift + 5 * hy_h * uni_stride], //&wei_state[wei_shift + 5 *
-                                                                        //hy_h * uni_stride],
+                               &wei[wei_shift + 5 * hy_h * uni_stride],
                                hy_h,
                                hy_h,
                                uni_stride,
@@ -309,7 +276,7 @@ void GRUFwdCPUVerify(std::vector<T>& in,
                            in_n[ti],
                            uni_stride,
                            0,
-                           &wei[wei_shift], //&wei_state[wei_shift],
+                           &wei[wei_shift],
                            hy_h,
                            hy_h * 2,
                            uni_stride,
@@ -327,8 +294,7 @@ void GRUFwdCPUVerify(std::vector<T>& in,
                            in_n[ti],
                            uni_stride,
                            0,
-                           &wei[wei_shift + 2 * hy_h * uni_stride], //&wei_state[wei_shift + 2 *
-                                                                    //hy_h * uni_stride],
+                           &wei[wei_shift + 2 * hy_h * uni_stride],
                            hy_h,
                            hy_h,
                            uni_stride,
@@ -348,8 +314,7 @@ void GRUFwdCPUVerify(std::vector<T>& in,
                                in_n[seqLength - 1 - ti],
                                uni_stride,
                                0,
-                               &wei[wei_shift + 3 * hy_h * uni_stride], //&wei_state[wei_shift + 3 *
-                                                                        //hy_h * uni_stride],
+                               &wei[wei_shift + 3 * hy_h * uni_stride],
                                hy_h,
                                hy_h * 2,
                                uni_stride,
@@ -367,8 +332,7 @@ void GRUFwdCPUVerify(std::vector<T>& in,
                                in_n[seqLength - 1 - ti],
                                uni_stride,
                                0,
-                               &wei[wei_shift + 5 * hy_h * uni_stride], //&wei_state[wei_shift + 5 *
-                                                                        //hy_h * uni_stride],
+                               &wei[wei_shift + 5 * hy_h * uni_stride],
                                hy_h,
                                hy_h,
                                uni_stride,
