@@ -2007,15 +2007,15 @@ template <class T>
 struct rnn_vanilla_driver : test_driver
 {
     std::vector<int> batchSeq;
-    int seqLength;
-    int inVecLen;
-    int hiddenSize;
-    int numLayers;
-    int inputMode;
-    int biasMode;
-    int dirMode;
-    int rnnMode;
-    int batchSize;
+    int seqLength{};
+    int inVecLen{};
+    int hiddenSize{};
+    int numLayers{};
+    int inputMode{};
+    int biasMode{};
+    int dirMode{};
+    int rnnMode{};
+    int batchSize{};
 
     rnn_vanilla_driver()
     {
