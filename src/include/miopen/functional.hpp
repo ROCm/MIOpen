@@ -72,7 +72,7 @@ struct flip_t
 {
     F f;
     template <class T, class U>
-    auto operator()(T&& x, U&& y) const MIOPEN_RETURNS(f(std::forward<T>(x), std::forward<U>(y)))
+    auto operator()(T&& x, U&& y) const MIOPEN_RETURNS(f(std::forward<U>(y), std::forward<T>(x)))
 };
 
 template <class F>
