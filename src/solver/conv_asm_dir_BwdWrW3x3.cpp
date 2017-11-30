@@ -459,7 +459,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
               && (params.kernel_stride1 <= 2)    // -v  stride_h
               && params.kernel_size0 == 3        // -x  S wei_w
               && params.kernel_size1 == 3        // -y  R wei_h
-              && params.kernal_dilation0 == 1 && params.kernal_dilation1 == 1 && params.bias == 0 &&
+              && params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1 && params.bias == 0 &&
               params.in_layout == "NCHW";
     // && _weights_layout == "KCHW"
     if(!ok)
