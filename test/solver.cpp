@@ -26,7 +26,7 @@
 
 #include <miopen/solver.hpp>
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <functional>
 #include <sstream>
 #include <typeinfo>
@@ -183,7 +183,7 @@ class SolverTest
         });
 
         const auto& searchable_solver = StaticContainer<const SearchableTestSolver>::Instance();
-        const auto searches           = searchable_solver.searches_done();
+        const auto searches           = miopen::tests::SearchableTestSolver::searches_done();
 
         // Should read in both cases: result is already in DB, solver is searchable.
         ConstructTest(db_path, SearchableTestSolver::FileName(), [](mlo_construct_direct2D&) {});
