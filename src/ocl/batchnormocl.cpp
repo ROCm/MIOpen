@@ -177,6 +177,10 @@ void BatchNormForwardTraining(Handle& handle,
 #if(MIOPEN_BN_CPP_DEBUG == 1)
             std::cout << kernel_name << ":: ";
             std::cout << parms << std::endl;
+            std::cout << "in_nhw: "
+                      << ":: " << in_nhw << std::endl;
+            std::cout << "inhw: "
+                      << ":: " << inhw << std::endl;
 #endif
             bnFwdTrainSelectSingle(handle,
                                    program_name,
