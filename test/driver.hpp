@@ -44,7 +44,7 @@ struct rand_gen
         static_assert(sizeof...(Ts) < 6, "Dimensions in rand_gen must be less than 6.");
         std::array<unsigned long, sizeof...(Ts)> left = {{Xs...}};
         std::array<unsigned long, 5> right            = {{613, 547, 701, 877, 1049}};
-        unsigned long dot = std::inner_product(left.begin(), left.end(), right.begin(), 173);
+        unsigned long dot = std::inner_product(left.begin(), left.end(), right.begin(), 173ul);
         return double(dot % 17);
     };
 };
@@ -70,7 +70,7 @@ struct test_driver
 
         void post_write()
         {
-            for(auto pw : post_write_actions)
+            for(const auto& pw : post_write_actions)
             {
                 pw();
             }
@@ -578,7 +578,7 @@ struct show_help
     {
         std::cout << std::endl;
         std::string prefix = "    ";
-        for(std::string a : x)
+        for(const std::string& a : x)
         {
             std::cout << prefix;
             std::cout << a;

@@ -101,7 +101,7 @@ set( MIOpen_Source
     solver/conv_asm_7x7c3h224w224k64u2v2p3q3f1.cpp
     solver/conv_asm_dir_BwdWrW3x3.cpp
     solver/conv_bin_wino3x3U.cpp
-    solver/conv_bin_winoRxSFwd.cpp
+    solver/conv_bin_winoRxS.cpp
     solver/conv_ocl_dir2D_bwdWrW_2.cpp
     solver/conv_ocl_dir2D_bwdWrW_53.cpp
     solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
@@ -155,14 +155,18 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv7x7c3h224w224k64u2v2p3q3f1.s
         kernels/MIOpenTensorKernels.cl
         kernels/MIOpenTensorScaleKernel.cl
-        kernels/conv_u1v1_wheel_alpha_v8_4_4_gfx803_md10.so
-        kernels/conv_u1v1_wheel_alpha_v8_4_4_gfx900_md10.so
-        kernels/conv_u2v2_wheel_alpha_v8_4_4_gfx803_md10.so
-        kernels/conv_u2v2_wheel_alpha_v8_4_4_gfx900_md10.so
-        kernels/conv_u1v1_wheel_alpha_v8_4_4_gfx803.so
-        kernels/conv_u1v1_wheel_alpha_v8_4_4_gfx900.so
-        kernels/conv_u2v2_wheel_alpha_v8_4_4_gfx803.so
-        kernels/conv_u2v2_wheel_alpha_v8_4_4_gfx900.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx803_m30.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx803_m30.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx803_m30.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx900_m30.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx900_m30.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx900_m30.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx803_md10.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx803_md10.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx803_md10.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx900_md10.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx900_md10.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx900_md10.so
         kernels/conv_3x3_wheel_alpha_v7_0_3b_gfx900_md10.so
         kernels/conv_3x3_wheel_alpha_v7_0_3b_gfx900.so
         kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_md10.so

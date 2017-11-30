@@ -107,7 +107,7 @@ miopen::solver::ConvSolution mlo_construct_winograd::FindSolution()
     // clang-format off
     return miopen::solver::SearchForSolution<
         miopen::solver::ConvBinWinograd3x3U,
-        miopen::solver::ConvBinWinogradRxSFwd
+        miopen::solver::ConvBinWinogradRxS
     >(_search_params, this->GetDb());
     // clang-format on
 }

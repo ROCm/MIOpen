@@ -184,7 +184,6 @@ include(ClangTidy)
 enable_clang_tidy(
     CHECKS
         *
-        -cert-env33-c
         -android-cloexec-fopen
         # Yea we shouldn't be using rand()
         -cert-msc30-c
