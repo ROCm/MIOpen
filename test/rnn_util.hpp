@@ -34,7 +34,10 @@
 #include <vector>
 #include <cstdlib>
 
+#include "gemm.hpp"
+
 #define RNN_MM_TRANSPOSE 1
+#define RNN_MM_USEPARAGEMM 1
 
 // RNN VANILLA configs
 inline std::vector<int> get_rnn_num_layers()
@@ -145,9 +148,9 @@ inline std::vector<std::vector<int>> generate_batchSeq(const int batchSize, cons
 inline int sumvc(std::vector<int>& x)
 {
     int sum = 0;
-    for(int i = 0; i < x.size(); i++)
+    for(int i : x)
     {
-        sum += x[i];
+        sum += i;
     }
     return sum;
 }
@@ -163,11 +166,11 @@ inline float activfunc(float x, int actvf)
     }
     else if(actvf == 2)
     {
-        return 1 / (1 + exp(-x));
+        return 1 / (1 + std::exp(-x));
     }
 
     //    return tanh(x);
-    return alpha * tanh(beta1 * x);
+    return alpha * std::tanh(beta1 * x);
 }
 
 inline float dervactivfunc(float x, int actvf)
@@ -178,10 +181,10 @@ inline float dervactivfunc(float x, int actvf)
     }
     else if(actvf == 2)
     {
-        return exp(-x) / (1 + exp(-x)) / (1 + exp(-x));
+        return std::exp(-x) / (1 + std::exp(-x)) / (1 + std::exp(-x));
     }
 
-    return 1 / cosh(x) / cosh(x);
+    return 1 / std::cosh(x) / std::cosh(x);
 }
 
 template <typename Dtype>
@@ -225,10 +228,15 @@ void RNN_mm_cpu(const Dtype* a_ptr,
         return;
     }
 
+    auto c_out = [&](int i, int j, double x) {
+        c_ptr[i * c_stride + j] = beta * c_ptr[i * c_stride + j] + alpha * x;
+    };
+
     size_t inner_loop = (!(a_flags & RNN_MM_TRANSPOSE)) ? a_cols : a_rows;
 
     if(!(a_flags & RNN_MM_TRANSPOSE) && !(b_flags & RNN_MM_TRANSPOSE))
     {
+#if(!RNN_MM_USEPARAGEMM)
         for(size_t n = 0; n < c_rows; ++n)
         {
             for(size_t k = 0; k < c_cols; ++k)
@@ -310,6 +318,41 @@ void RNN_mm_cpu(const Dtype* a_ptr,
                 c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
             }
         }
+#else
+        gemm(c_rows,
+             c_cols,
+             inner_loop,
+             with_stride(a_ptr, a_stride),
+             with_stride(b_ptr, b_stride),
+             c_out);
+    }
+    else if((a_flags & RNN_MM_TRANSPOSE) && !(b_flags & RNN_MM_TRANSPOSE))
+    {
+        gemm(c_rows,
+             c_cols,
+             inner_loop,
+             miopen::flip(with_stride(a_ptr, a_stride)),
+             with_stride(b_ptr, b_stride),
+             c_out);
+    }
+    else if(!(a_flags & RNN_MM_TRANSPOSE) && (b_flags & RNN_MM_TRANSPOSE))
+    {
+        gemm(c_rows,
+             c_cols,
+             inner_loop,
+             with_stride(a_ptr, a_stride),
+             miopen::flip(with_stride(b_ptr, b_stride)),
+             c_out);
+    }
+    else
+    {
+        gemm(c_rows,
+             c_cols,
+             inner_loop,
+             miopen::flip(with_stride(a_ptr, a_stride)),
+             miopen::flip(with_stride(b_ptr, b_stride)),
+             c_out);
+#endif
     }
 }
 

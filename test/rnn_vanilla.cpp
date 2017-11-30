@@ -30,6 +30,7 @@
 #include "test.hpp"
 #include "verify.hpp"
 #include "rnn_util.hpp"
+#include "gemm.hpp"
 #include <array>
 #include <cmath>
 #include <ctime>
@@ -2006,15 +2007,15 @@ template <class T>
 struct rnn_vanilla_driver : test_driver
 {
     std::vector<int> batchSeq;
-    int seqLength;
-    int inVecLen;
-    int hiddenSize;
-    int numLayers;
-    int inputMode;
-    int biasMode;
-    int dirMode;
-    int rnnMode;
-    int batchSize;
+    int seqLength{};
+    int inVecLen{};
+    int hiddenSize{};
+    int numLayers{};
+    int inputMode{};
+    int biasMode{};
+    int dirMode{};
+    int rnnMode{};
+    int batchSize{};
 
     rnn_vanilla_driver()
     {
