@@ -68,6 +68,20 @@ compose_t<F, G> compose(F f, G g)
 }
 
 template <class F>
+struct flip_t
+{
+    F f;
+    template <class T, class U>
+    auto operator()(T&& x, U&& y) const MIOPEN_RETURNS(f(std::forward<T>(x), std::forward<U>(y)))
+};
+
+template <class F>
+flip_t<F> flip(F f)
+{
+    return {std::move(f)};
+}
+
+template <class F>
 struct sequence_t
 {
     F f;
