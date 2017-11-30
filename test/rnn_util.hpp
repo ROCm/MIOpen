@@ -241,18 +241,6 @@ void RNN_mm_cpu(const Dtype* a_ptr,
              with_stride(a_ptr, a_stride),
              with_stride(b_ptr, b_stride),
              c_out);
-        // for(size_t n = 0; n < c_rows; ++n)
-        // {
-        //     for(size_t k = 0; k < c_cols; ++k)
-        //     {
-        //         Dtype mm_e = 0;
-        //         for(size_t m = 0; m < inner_loop; ++m)
-        //         {
-        //             mm_e += a_ptr[n * a_stride + m] * b_ptr[m * b_stride + k];
-        //         }
-        //         c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
-        //     }
-        // }
     }
     else if((a_flags & RNN_MM_TRANSPOSE) && !(b_flags & RNN_MM_TRANSPOSE))
     {
@@ -262,39 +250,13 @@ void RNN_mm_cpu(const Dtype* a_ptr,
              miopen::flip(with_stride(a_ptr, a_stride)),
              with_stride(b_ptr, b_stride),
              c_out);
-        // for(size_t n = 0; n < c_rows; ++n)
-        // {
-        //     for(size_t k = 0; k < c_cols; ++k)
-        //     {
-
-        //         Dtype mm_e = 0;
-        //         for(size_t m = 0; m < inner_loop; ++m)
-        //         {
-        //             mm_e += a_ptr[m * a_stride + n] * b_ptr[m * b_stride + k];
-        //         }
-        //         c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
-        //     }
-        // }
     }
     else if(!(a_flags & RNN_MM_TRANSPOSE) && (b_flags & RNN_MM_TRANSPOSE))
     {
-        // gemm(c_rows, c_cols, inner_loop,
-        //     with_stride(a_ptr, a_stride),
-        //     miopen::flip(with_stride(b_ptr, b_stride)),
-        //     c_out);
-        for(size_t n = 0; n < c_rows; ++n)
-        {
-            for(size_t k = 0; k < c_cols; ++k)
-            {
-                Dtype mm_e = 0;
-
-                for(size_t m = 0; m < inner_loop; ++m)
-                {
-                    mm_e += a_ptr[n * a_stride + m] * b_ptr[k * b_stride + m];
-                }
-                c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
-            }
-        }
+        gemm(c_rows, c_cols, inner_loop,
+            with_stride(a_ptr, a_stride),
+            miopen::flip(with_stride(b_ptr, b_stride)),
+            c_out);
     }
     else
     {
@@ -304,18 +266,6 @@ void RNN_mm_cpu(const Dtype* a_ptr,
              miopen::flip(with_stride(a_ptr, a_stride)),
              miopen::flip(with_stride(b_ptr, b_stride)),
              c_out);
-        // for(size_t n = 0; n < c_rows; ++n)
-        // {
-        //     for(size_t k = 0; k < c_cols; ++k)
-        //     {
-        //         Dtype mm_e = 0;
-        //         for(size_t m = 0; m < inner_loop; ++m)
-        //         {
-        //             c_ptr[n * c_stride + k] += a_ptr[m * a_stride + n] * b_ptr[k * b_stride + m];
-        //         }
-        //         c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
-        //     }
-        // }
     }
 }
 
