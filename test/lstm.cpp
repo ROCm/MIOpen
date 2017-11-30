@@ -91,31 +91,6 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
     int uni_stride = hy_h;
     int bi_stride  = hy_h * bi;
 
-    std::vector<double> hid_state(numlayer * batch_n * hy_stride * 2, 0.);
-    std::vector<double> out_state(batch_n * out_h, 0.);
-
-    // initial input
-    std::vector<double> in_state(batch_n * in_h, 0.);
-    for(int h = 0; h < batch_n; h++)
-    {
-        for(int w = 0; w < in_h; w++)
-        {
-            in_state.at(h * in_stride + w) = in.at(h * in_stride + w);
-        }
-    }
-
-    // initial hidden states
-    auto hStateSize = hy_d * hy_n * hy_h;
-    std::vector<double> hy_state(hStateSize, 0.);
-    std::vector<double> hx_state(hStateSize, 0.);
-    std::vector<double> cy_state(hStateSize, 0.);
-    std::vector<double> cx_state(hStateSize, 0.);
-    for(int h = 0; h < hStateSize; h++)
-    {
-        hx_state.at(h) = hx.at(h);
-        cx_state.at(h) = cx.at(h);
-    }
-
     if(inputMode == 1)
     {
         if(in_h != hy_h)
@@ -135,14 +110,6 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
         wei_len += (in_bias + (numlayer - 1) * 2) * wei_stride;
     }
 
-    // initial weights
-    std::vector<double> wei_state(wei_len, 0.);
-    ;
-    for(int h = 0; h < wei_len; h++)
-    {
-        wei_state.at(h) = wei.at(h);
-    }
-
     // forward emulator
     for(int li = 0; li < numlayer; li++)
     {
@@ -160,12 +127,12 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
                     {
                         for(int gi = 0; gi < 4; gi++)
                         {
-                            hid_state.at(hid_shift + bs * hy_stride + gi * hy_h + h) +=
-                                in_state.at(bs * in_stride + h);
+                            rsvspace.at(hid_shift + bs * hy_stride + gi * hy_h + h) +=
+                                in.at(bs * in_stride + h);
                             if(bidirection)
                             {
-                                hid_state.at(hid_shift + bs * hy_stride + (gi + 4) * hy_h + h) +=
-                                    in_state.at(bs * in_stride + h);
+                                rsvspace.at(hid_shift + bs * hy_stride + (gi + 4) * hy_h + h) +=
+                                    in.at(bs * in_stride + h);
                             }
                         }
                     }
@@ -178,7 +145,7 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
                     {
                         for(int h = 0; h < wei_stride; h++)
                         {
-                            hid_state.at(hid_shift + bs * hy_stride + h) +=
+                            rsvspace.at(hid_shift + bs * hy_stride + h) +=
                                 wei.at(wei_shift_bias + h);
                         }
                     }
@@ -186,23 +153,23 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
             }
             else
             {
-                RNN_mm_cpu<double>(in_state.data(),
-                                   in_h,
-                                   batch_n,
-                                   in_stride,
-                                   0,
-                                   wei_state.data(),
-                                   in_h,
-                                   hy_h * bi * 4,
-                                   in_stride,
-                                   RNN_MM_TRANSPOSE,
-                                   &hid_state[hid_shift],
-                                   hy_h * bi * 4,
-                                   batch_n,
-                                   hy_stride,
-                                   0,
-                                   1,
-                                   1);
+                RNN_mm_cpu<T>(in.data(),
+                              in_h,
+                              batch_n,
+                              in_stride,
+                              0,
+                              wei.data(),
+                              in_h,
+                              hy_h * bi * 4,
+                              in_stride,
+                              RNN_MM_TRANSPOSE,
+                              &rsvspace[hid_shift],
+                              hy_h * bi * 4,
+                              batch_n,
+                              hy_stride,
+                              0,
+                              1,
+                              1);
 
                 // from bias
                 if(biased)
@@ -211,7 +178,7 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
                     {
                         for(int h = 0; h < wei_stride; h++)
                         {
-                            hid_state.at(hid_shift + bs * hy_stride + h) +=
+                            rsvspace.at(hid_shift + bs * hy_stride + h) +=
                                 (wei.at(wei_shift_bias + h) +
                                  wei.at(wei_shift_bias + wei_stride + h));
                         }
@@ -224,23 +191,23 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
             int wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
             int prelayer_shift = (li - 1) * batch_n * hy_stride + bi * 5 * hy_h;
 
-            RNN_mm_cpu<double>(&hid_state[prelayer_shift],
-                               hy_h * bi,
-                               batch_n,
-                               hy_stride,
-                               0,
-                               &wei_state[wei_shift],
-                               hy_h * bi,
-                               hy_h * bi * 4,
-                               bi_stride,
-                               RNN_MM_TRANSPOSE,
-                               &hid_state[hid_shift],
-                               hy_h * bi * 4,
-                               batch_n,
-                               hy_stride,
-                               0,
-                               1,
-                               1);
+            RNN_mm_cpu<T>(&rsvspace[prelayer_shift],
+                          hy_h * bi,
+                          batch_n,
+                          hy_stride,
+                          0,
+                          &wei[wei_shift],
+                          hy_h * bi,
+                          hy_h * bi * 4,
+                          bi_stride,
+                          RNN_MM_TRANSPOSE,
+                          &rsvspace[hid_shift],
+                          hy_h * bi * 4,
+                          batch_n,
+                          hy_stride,
+                          0,
+                          1,
+                          1);
 
             // from bias
             if(biased)
@@ -253,7 +220,7 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
                 {
                     for(int h = 0; h < wei_stride; h++)
                     {
-                        hid_state.at(hid_shift + bs * hy_stride + h) +=
+                        rsvspace.at(hid_shift + bs * hy_stride + h) +=
                             (wei.at(wei_shift_bias_temp + h) +
                              wei.at(wei_shift_bias_temp + wei_stride + h));
                     }
@@ -271,84 +238,84 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
 
             if(ti == 0)
             {
-                RNN_mm_cpu<double>(&hx_state[hx_shift],
-                                   hy_h,
-                                   in_n.at(ti),
-                                   uni_stride,
-                                   0,
-                                   &wei_state[wei_shift],
-                                   hy_h,
-                                   hy_h * 4,
-                                   uni_stride,
-                                   RNN_MM_TRANSPOSE,
-                                   &hid_state[hid_shift + bacc * hy_stride],
-                                   hy_h * 4,
-                                   in_n.at(ti),
-                                   hy_stride,
-                                   0,
-                                   1,
-                                   1);
+                RNN_mm_cpu<T>(&hx[hx_shift],
+                              hy_h,
+                              in_n.at(ti),
+                              uni_stride,
+                              0,
+                              &wei[wei_shift],
+                              hy_h,
+                              hy_h * 4,
+                              uni_stride,
+                              RNN_MM_TRANSPOSE,
+                              &rsvspace[hid_shift + bacc * hy_stride],
+                              hy_h * 4,
+                              in_n.at(ti),
+                              hy_stride,
+                              0,
+                              1,
+                              1);
 
                 if(bidirection)
                 {
-                    RNN_mm_cpu<double>(&hx_state[hx_shift + hy_n * hy_h],
-                                       hy_h,
-                                       in_n.at(seqLength - 1 - ti),
-                                       uni_stride,
-                                       0,
-                                       &wei_state[wei_shift + 4 * hy_h * uni_stride],
-                                       hy_h,
-                                       hy_h * 4,
-                                       uni_stride,
-                                       RNN_MM_TRANSPOSE,
-                                       &hid_state[hid_shift + baccbi * hy_stride + 4 * hy_h],
-                                       hy_h * 4,
-                                       in_n.at(seqLength - 1 - ti),
-                                       hy_stride,
-                                       0,
-                                       1,
-                                       1);
+                    RNN_mm_cpu<T>(&hx[hx_shift + hy_n * hy_h],
+                                  hy_h,
+                                  in_n.at(seqLength - 1 - ti),
+                                  uni_stride,
+                                  0,
+                                  &wei[wei_shift + 4 * hy_h * uni_stride],
+                                  hy_h,
+                                  hy_h * 4,
+                                  uni_stride,
+                                  RNN_MM_TRANSPOSE,
+                                  &rsvspace[hid_shift + baccbi * hy_stride + 4 * hy_h],
+                                  hy_h * 4,
+                                  in_n.at(seqLength - 1 - ti),
+                                  hy_stride,
+                                  0,
+                                  1,
+                                  1);
                 }
             }
             else
             {
-                RNN_mm_cpu<double>(&hy_state[hx_shift],
-                                   hy_h,
-                                   in_n.at(ti),
-                                   uni_stride,
-                                   0,
-                                   &wei_state[wei_shift],
-                                   hy_h,
-                                   hy_h * 4,
-                                   uni_stride,
-                                   RNN_MM_TRANSPOSE,
-                                   &hid_state[hid_shift + bacc * hy_stride],
-                                   hy_h * 4,
-                                   in_n.at(ti),
-                                   hy_stride,
-                                   0,
-                                   1,
-                                   1);
+                RNN_mm_cpu<T>(&hy_host[hx_shift],
+                              hy_h,
+                              in_n.at(ti),
+                              uni_stride,
+                              0,
+                              &wei[wei_shift],
+                              hy_h,
+                              hy_h * 4,
+                              uni_stride,
+                              RNN_MM_TRANSPOSE,
+                              &rsvspace[hid_shift + bacc * hy_stride],
+                              hy_h * 4,
+                              in_n.at(ti),
+                              hy_stride,
+                              0,
+                              1,
+                              1);
 
                 if(bidirection)
                 {
-                    RNN_mm_cpu<double>(&hy_state[hx_shift + hy_n * hy_h],
-                                       hy_h,
-                                       in_n.at(seqLength - 1 - ti),
-                                       uni_stride,
-                                       0,
-                                       &wei_state[wei_shift + 4 * hy_h * uni_stride],
-                                       hy_h,
-                                       hy_h * 4,
-                                       uni_stride,
-                                       RNN_MM_TRANSPOSE,
-                                       &hid_state[hid_shift + baccbi * hy_stride + 4 * hy_h],
-                                       hy_h * 4,
-                                       in_n.at(seqLength - 1 - ti),
-                                       hy_stride,
-                                       0,
-                                       1,
-                                       1);
+                    RNN_mm_cpu<T>(&hy_host[hx_shift + hy_n * hy_h],
+                                  hy_h,
+                                  in_n.at(seqLength - 1 - ti),
+                                  uni_stride,
+                                  0,
+                                  &wei[wei_shift + 4 * hy_h * uni_stride],
+                                  hy_h,
+                                  hy_h * 4,
+                                  uni_stride,
+                                  RNN_MM_TRANSPOSE,
+                                  &rsvspace[hid_shift + baccbi * hy_stride + 4 * hy_h],
+                                  hy_h * 4,
+                                  in_n.at(seqLength - 1 - ti),
+                                  hy_stride,
+                                  0,
+                                  1,
+                                  1);
                 }
             }
 
@@ -356,59 +323,59 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
             {
                 for(int h = 0; h < hy_h; h++)
                 {
-                    hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
-                        activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + h), 2) *
-                        activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + 3 * hy_h + h),
+                    rsvspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
+                        activfunc(rsvspace.at(hid_shift + (bacc + bs) * hy_stride + h), 2) *
+                        activfunc(rsvspace.at(hid_shift + (bacc + bs) * hy_stride + 3 * hy_h + h),
                                   1);
                     if(ti == 0)
                     {
-                        hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
-                            activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h),
+                        rsvspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
+                            activfunc(rsvspace.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h),
                                       2) *
-                            cx_state.at(hx_shift + bs * uni_stride + h);
+                            cx.at(hx_shift + bs * uni_stride + h);
                     }
                     else
                     {
                         int prec_shift = li * batch_n * hy_stride +
                                          (bacc - in_n.at(ti - 1)) * hy_stride + bi * 4 * hy_h;
 
-                        hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
-                            activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h),
+                        rsvspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
+                            activfunc(rsvspace.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h),
                                       2) *
-                            hid_state.at(prec_shift + bs * hy_stride + h);
+                            rsvspace.at(prec_shift + bs * hy_stride + h);
                     }
 
-                    hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 5 * hy_h + h) +=
-                        activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h),
+                    rsvspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 5 * hy_h + h) +=
+                        activfunc(rsvspace.at(hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h),
                                   2) *
                         activfunc(
-                            hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h),
+                            rsvspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h),
                             1);
 
-                    hid_state.at(hid_shift + (bacc + bs) * hy_stride + h +
-                                 numlayer * batch_n * hy_stride) =
-                        activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + h), 2);
-                    hid_state.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h +
-                                 numlayer * batch_n * hy_stride) =
-                        activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h), 2);
-                    hid_state.at(hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h +
-                                 numlayer * batch_n * hy_stride) =
-                        activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h),
+                    rsvspace.at(hid_shift + (bacc + bs) * hy_stride + h +
+                                numlayer * batch_n * hy_stride) =
+                        activfunc(rsvspace.at(hid_shift + (bacc + bs) * hy_stride + h), 2);
+                    rsvspace.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h +
+                                numlayer * batch_n * hy_stride) =
+                        activfunc(rsvspace.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h), 2);
+                    rsvspace.at(hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h +
+                                numlayer * batch_n * hy_stride) =
+                        activfunc(rsvspace.at(hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h),
                                   2);
-                    hid_state.at(hid_shift + (bacc + bs) * hy_stride + 3 * hy_h + h +
-                                 numlayer * batch_n * hy_stride) =
-                        activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + 3 * hy_h + h),
+                    rsvspace.at(hid_shift + (bacc + bs) * hy_stride + 3 * hy_h + h +
+                                numlayer * batch_n * hy_stride) =
+                        activfunc(rsvspace.at(hid_shift + (bacc + bs) * hy_stride + 3 * hy_h + h),
                                   1);
-                    hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h +
-                                 numlayer * batch_n * hy_stride) =
+                    rsvspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h +
+                                numlayer * batch_n * hy_stride) =
                         activfunc(
-                            hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h),
+                            rsvspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h),
                             1);
 
-                    cy_state.at(hx_shift + bs * uni_stride + h) =
-                        hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h);
-                    hy_state.at(hx_shift + bs * uni_stride + h) =
-                        hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 5 * hy_h + h);
+                    cy_host.at(hx_shift + bs * uni_stride + h) =
+                        rsvspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h);
+                    hy_host.at(hx_shift + bs * uni_stride + h) =
+                        rsvspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 5 * hy_h + h);
                 }
             }
 
@@ -418,22 +385,22 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
                 {
                     for(int h = 0; h < hy_h; h++)
                     {
-                        hid_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h + hy_h +
-                                     h) +=
+                        rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h + hy_h +
+                                    h) +=
                             activfunc(
-                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h),
+                                rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h),
                                 2) *
                             activfunc(
-                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 7 * hy_h + h),
+                                rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + 7 * hy_h + h),
                                 1);
                         if(ti == 0)
                         {
-                            hid_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
-                                         hy_h + h) +=
-                                activfunc(hid_state.at(hid_shift + (baccbi + bs) * hy_stride +
-                                                       5 * hy_h + h),
+                            rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
+                                        hy_h + h) +=
+                                activfunc(rsvspace.at(hid_shift + (baccbi + bs) * hy_stride +
+                                                      5 * hy_h + h),
                                           2) *
-                                cx_state.at(hx_shift + bs * uni_stride + hy_n * hy_h + h);
+                                cx.at(hx_shift + bs * uni_stride + hy_n * hy_h + h);
                         }
                         else
                         {
@@ -444,53 +411,53 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
                                     (baccbi + in_n.at(seqLength - 1 - ti)) * hy_stride +
                                     bi * 4 * hy_h + hy_h;
 
-                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
-                                             hy_h + h) +=
-                                    activfunc(hid_state.at(hid_shift + (baccbi + bs) * hy_stride +
-                                                           5 * hy_h + h),
+                                rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
+                                            hy_h + h) +=
+                                    activfunc(rsvspace.at(hid_shift + (baccbi + bs) * hy_stride +
+                                                          5 * hy_h + h),
                                               2) *
-                                    hid_state.at(prec_shift + bs * hy_stride + h);
+                                    rsvspace.at(prec_shift + bs * hy_stride + h);
                             }
                         }
 
-                        hid_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 5 * hy_h + hy_h +
-                                     h) +=
+                        rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 5 * hy_h + hy_h +
+                                    h) +=
                             activfunc(
-                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 6 * hy_h + h),
+                                rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + 6 * hy_h + h),
                                 2) *
-                            activfunc(hid_state.at(hid_shift + (baccbi + bs) * hy_stride +
-                                                   bi * 4 * hy_h + hy_h + h),
+                            activfunc(rsvspace.at(hid_shift + (baccbi + bs) * hy_stride +
+                                                  bi * 4 * hy_h + hy_h + h),
                                       1);
 
-                        hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h +
-                                     numlayer * batch_n * hy_stride) =
+                        rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h +
+                                    numlayer * batch_n * hy_stride) =
                             activfunc(
-                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h),
+                                rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h),
                                 2);
-                        hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h +
-                                     numlayer * batch_n * hy_stride) =
+                        rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h +
+                                    numlayer * batch_n * hy_stride) =
                             activfunc(
-                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h),
+                                rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h),
                                 2);
-                        hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 6 * hy_h + h +
-                                     numlayer * batch_n * hy_stride) =
+                        rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + 6 * hy_h + h +
+                                    numlayer * batch_n * hy_stride) =
                             activfunc(
-                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 6 * hy_h + h),
+                                rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + 6 * hy_h + h),
                                 2);
-                        hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 7 * hy_h + h +
-                                     numlayer * batch_n * hy_stride) =
+                        rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + 7 * hy_h + h +
+                                    numlayer * batch_n * hy_stride) =
                             activfunc(
-                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + 7 * hy_h + h),
+                                rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + 7 * hy_h + h),
                                 1);
-                        hid_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h + hy_h +
-                                     h + numlayer * batch_n * hy_stride) =
-                            activfunc(hid_state.at(hid_shift + (baccbi + bs) * hy_stride +
-                                                   bi * 4 * hy_h + hy_h + h),
+                        rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h + hy_h +
+                                    h + numlayer * batch_n * hy_stride) =
+                            activfunc(rsvspace.at(hid_shift + (baccbi + bs) * hy_stride +
+                                                  bi * 4 * hy_h + hy_h + h),
                                       1);
 
-                        cy_state.at(hx_shift + bs * uni_stride + hy_n * hy_h + h) = hid_state.at(
+                        cy_host.at(hx_shift + bs * uni_stride + hy_n * hy_h + h) = rsvspace.at(
                             hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h + hy_h + h);
-                        hy_state.at(hx_shift + bs * uni_stride + hy_n * hy_h + h) = hid_state.at(
+                        hy_host.at(hx_shift + bs * uni_stride + hy_n * hy_h + h) = rsvspace.at(
                             hid_shift + (baccbi + bs) * hy_stride + bi * 5 * hy_h + hy_h + h);
                     }
                 }
@@ -504,8 +471,8 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
         {
             for(int h = 0; h < hy_h; h++)
             {
-                cy_state.at(hx_shift + bs * uni_stride + h) = 0;
-                hy_state.at(hx_shift + bs * uni_stride + h) = 0;
+                cy_host.at(hx_shift + bs * uni_stride + h) = 0;
+                hy_host.at(hx_shift + bs * uni_stride + h) = 0;
             }
         }
     }
@@ -513,22 +480,11 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
     // output
     int prelayer_shift = (numlayer - 1) * batch_n * hy_stride + bi * 5 * hy_h;
 
-    for(int i = 0; i < numlayer * batch_n * hy_stride * 2; i++)
-    {
-        rsvspace.at(i) = hid_state.at(i);
-    }
-
-    for(int i = 0; i < hy_d * hy_n * hy_h; i++)
-    {
-        hy_host.at(i) = hy_state.at(i);
-        cy_host.at(i) = cy_state.at(i);
-    }
-
     for(int bs = 0; bs < batch_n; bs++)
     {
         for(int h = 0; h < out_h; h++)
         {
-            out_host.at(bs * out_stride + h) = hid_state.at(prelayer_shift + bs * hy_stride + h);
+            out_host.at(bs * out_stride + h) = rsvspace.at(prelayer_shift + bs * hy_stride + h);
         }
     }
 }
@@ -564,6 +520,7 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
 {
     int batch_n = sumvc(in_n);
     (void)out;
+    (void)hx;
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
     int bacc, baccbi; // accumulation of batch
@@ -576,35 +533,6 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
     int h_stride   = bi * hy_h;
     int uni_stride = hy_h;
     int bi_stride  = hy_h * bi;
-
-    std::vector<double> dh_state(numlayer * batch_n * hy_stride, 0.);
-    std::vector<double> din_state(batch_n * in_h, 0.);
-
-    // initial dout
-    std::vector<double> dout_state(batch_n * out_h, 0.);
-    for(int h = 0; h < batch_n; h++)
-    {
-        for(int w = 0; w < out_h; w++)
-        {
-            dout_state.at(h * out_stride + w) = dout.at(h * out_stride + w);
-        }
-    }
-
-    // initial hidden states
-    auto hStateSize = hy_d * hy_n * hy_h;
-    std::vector<double> dhx_state(hStateSize, 0.);
-    std::vector<double> dhy_state(hStateSize, 0.);
-    std::vector<double> dcx_state(hStateSize, 0.);
-    std::vector<double> dcy_state(hStateSize, 0.);
-    std::vector<double> hx_state(hStateSize, 0.);
-    std::vector<double> cx_state(hStateSize, 0.);
-    for(int h = 0; h < hStateSize; h++)
-    {
-        dhy_state.at(h) = dhy.at(h);
-        dcy_state.at(h) = dcy.at(h);
-        hx_state.at(h)  = hx.at(h);
-        cx_state.at(h)  = cx.at(h);
-    }
 
     if(inputMode == 1)
     {
@@ -624,13 +552,6 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
         wei_len += (in_bias + (numlayer - 1) * 2) * wei_stride;
     }
 
-    // initial weights
-    std::vector<double> wei_state(wei_len, 0.);
-    for(int h = 0; h < wei_len; h++)
-    {
-        wei_state.at(h) = wei.at(h);
-    }
-
     // bwd data emulator
     for(int li = numlayer - 1; li >= 0; li--)
     {
@@ -644,8 +565,8 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
             {
                 for(int h = 0; h < out_h; h++)
                 {
-                    dh_state.at(hid_shift + bi * 5 * hy_h + bs * hy_stride + h) +=
-                        dout_state.at(bs * out_stride + h);
+                    wkspace.at(hid_shift + bi * 5 * hy_h + bs * hy_stride + h) +=
+                        dout.at(bs * out_stride + h);
                 }
             }
         }
@@ -653,23 +574,23 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
         {
             int prelayer_shift = (li + 1) * batch_n * hy_stride;
 
-            RNN_mm_cpu<double>(&dh_state[prelayer_shift],
-                               hy_h * bi * 4,
-                               batch_n,
-                               hy_stride,
-                               0,
-                               &wei_state[wei_shift],
-                               hy_h * bi,
-                               hy_h * bi * 4,
-                               bi_stride,
-                               0,
-                               &dh_state[hid_shift + bi * 5 * hy_h],
-                               hy_h * bi,
-                               batch_n,
-                               hy_stride,
-                               0,
-                               1,
-                               1);
+            RNN_mm_cpu<T>(&wkspace[prelayer_shift],
+                          hy_h * bi * 4,
+                          batch_n,
+                          hy_stride,
+                          0,
+                          &wei[wei_shift],
+                          hy_h * bi,
+                          hy_h * bi * 4,
+                          bi_stride,
+                          0,
+                          &wkspace[hid_shift + bi * 5 * hy_h],
+                          hy_h * bi,
+                          batch_n,
+                          hy_stride,
+                          0,
+                          1,
+                          1);
         }
 
         // from hidden state
@@ -685,10 +606,10 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
                 {
                     for(int h = 0; h < hy_h; h++)
                     {
-                        dh_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 5 * hy_h + h) +=
-                            dhy_state.at(hx_shift + bs * uni_stride + h);
-                        dh_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
-                            dcy_state.at(hx_shift + bs * uni_stride + h);
+                        wkspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 5 * hy_h + h) +=
+                            dhy.at(hx_shift + bs * uni_stride + h);
+                        wkspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
+                            dcy.at(hx_shift + bs * uni_stride + h);
                     }
                 }
 
@@ -698,12 +619,12 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
                     {
                         for(int h = 0; h < hy_h; h++)
                         {
-                            dh_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 5 * hy_h +
-                                        hy_h + h) +=
-                                dhy_state.at(hx_shift + bs * uni_stride + hy_n * hy_h + h);
-                            dh_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
-                                        hy_h + h) +=
-                                dcy_state.at(hx_shift + bs * uni_stride + hy_n * hy_h + h);
+                            wkspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 5 * hy_h +
+                                       hy_h + h) +=
+                                dhy.at(hx_shift + bs * uni_stride + hy_n * hy_h + h);
+                            wkspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
+                                       hy_h + h) +=
+                                dcy.at(hx_shift + bs * uni_stride + hy_n * hy_h + h);
                         }
                     }
                 }
@@ -713,23 +634,23 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
                 int pretime_shift = li * batch_n * hy_stride + (bacc + in_n.at(ti)) * hy_stride;
                 int weitime_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
-                RNN_mm_cpu<double>(&dh_state[pretime_shift],
-                                   hy_h * 4,
-                                   in_n.at(ti + 1),
-                                   hy_stride,
-                                   0,
-                                   &wei_state[weitime_shift],
-                                   hy_h,
-                                   hy_h * 4,
-                                   uni_stride,
-                                   0,
-                                   &dh_state[hid_shift + bacc * hy_stride + bi * 5 * hy_h],
-                                   hy_h,
-                                   in_n.at(ti + 1),
-                                   hy_stride,
-                                   0,
-                                   1,
-                                   1);
+                RNN_mm_cpu<T>(&wkspace[pretime_shift],
+                              hy_h * 4,
+                              in_n.at(ti + 1),
+                              hy_stride,
+                              0,
+                              &wei[weitime_shift],
+                              hy_h,
+                              hy_h * 4,
+                              uni_stride,
+                              0,
+                              &wkspace[hid_shift + bacc * hy_stride + bi * 5 * hy_h],
+                              hy_h,
+                              in_n.at(ti + 1),
+                              hy_stride,
+                              0,
+                              1,
+                              1);
 
                 if(bidirection)
                 {
@@ -738,24 +659,23 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
                     weitime_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride +
                                     hy_h * 4 * uni_stride;
 
-                    RNN_mm_cpu<double>(
-                        &dh_state[pretime_shift],
-                        hy_h * 4,
-                        in_n.at(seqLength - 1 - ti),
-                        hy_stride,
-                        0,
-                        &wei_state[weitime_shift],
-                        hy_h,
-                        hy_h * 4,
-                        uni_stride,
-                        0,
-                        &dh_state[hid_shift + baccbi * hy_stride + bi * 5 * hy_h + hy_h],
-                        hy_h,
-                        in_n.at(seqLength - 1 - ti),
-                        hy_stride,
-                        0,
-                        1,
-                        1);
+                    RNN_mm_cpu<T>(&wkspace[pretime_shift],
+                                  hy_h * 4,
+                                  in_n.at(seqLength - 1 - ti),
+                                  hy_stride,
+                                  0,
+                                  &wei[weitime_shift],
+                                  hy_h,
+                                  hy_h * 4,
+                                  uni_stride,
+                                  0,
+                                  &wkspace[hid_shift + baccbi * hy_stride + bi * 5 * hy_h + hy_h],
+                                  hy_h,
+                                  in_n.at(seqLength - 1 - ti),
+                                  hy_stride,
+                                  0,
+                                  1,
+                                  1);
                 }
             }
 
@@ -770,14 +690,14 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
                             int pretime_shift =
                                 li * batch_n * hy_stride + (bacc + in_n.at(ti)) * hy_stride;
 
-                            dh_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
-                                dh_state.at(pretime_shift + bs * hy_stride + bi * 4 * hy_h + h) *
+                            wkspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
+                                wkspace.at(pretime_shift + bs * hy_stride + bi * 4 * hy_h + h) *
                                 activfunc(rsvspace.at(pretime_shift + bs * hy_stride + hy_h + h),
                                           2);
                         }
                     }
-                    dh_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
-                        dh_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 5 * hy_h + h) *
+                    wkspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
+                        wkspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 5 * hy_h + h) *
                         dervactivfunc(
                             rsvspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h),
                             1) *
@@ -786,9 +706,9 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
 
                     if(ti == 0)
                     {
-                        dh_state.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h) +=
-                            dh_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) *
-                            cx_state.at(hx_shift + bs * uni_stride + h) *
+                        wkspace.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h) +=
+                            wkspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) *
+                            cx.at(hx_shift + bs * uni_stride + h) *
                             dervactivfunc(
                                 rsvspace.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h), 2);
                     }
@@ -797,26 +717,26 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
                         int pretime_shift =
                             li * batch_n * hy_stride + (bacc - in_n.at(ti - 1)) * hy_stride;
 
-                        dh_state.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h) +=
-                            dh_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) *
+                        wkspace.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h) +=
+                            wkspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) *
                             rsvspace.at(pretime_shift + bs * hy_stride + bi * 4 * hy_h + h) *
                             dervactivfunc(
                                 rsvspace.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h), 2);
                     }
-                    dh_state.at(hid_shift + (bacc + bs) * hy_stride + h) +=
-                        dh_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) *
+                    wkspace.at(hid_shift + (bacc + bs) * hy_stride + h) +=
+                        wkspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) *
                         activfunc(rsvspace.at(hid_shift + (bacc + bs) * hy_stride + 3 * hy_h + h),
                                   1) *
                         dervactivfunc(rsvspace.at(hid_shift + (bacc + bs) * hy_stride + h), 2);
-                    dh_state.at(hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h) +=
-                        dh_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 5 * hy_h + h) *
+                    wkspace.at(hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h) +=
+                        wkspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 5 * hy_h + h) *
                         activfunc(
                             rsvspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h),
                             1) *
                         dervactivfunc(
                             rsvspace.at(hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h), 2);
-                    dh_state.at(hid_shift + (bacc + bs) * hy_stride + 3 * hy_h + h) +=
-                        dh_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) *
+                    wkspace.at(hid_shift + (bacc + bs) * hy_stride + 3 * hy_h + h) +=
+                        wkspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) *
                         activfunc(rsvspace.at(hid_shift + (bacc + bs) * hy_stride + h), 2) *
                         dervactivfunc(
                             rsvspace.at(hid_shift + (bacc + bs) * hy_stride + 3 * hy_h + h), 1);
@@ -834,17 +754,17 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
                             int pretime_shift = li * batch_n * hy_stride +
                                                 (baccbi - in_n.at(seqLength - 2 - ti)) * hy_stride;
 
-                            dh_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
-                                        hy_h + h) +=
-                                dh_state.at(pretime_shift + bs * hy_stride + bi * 4 * hy_h + hy_h +
-                                            h) *
+                            wkspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
+                                       hy_h + h) +=
+                                wkspace.at(pretime_shift + bs * hy_stride + bi * 4 * hy_h + hy_h +
+                                           h) *
                                 activfunc(
                                     rsvspace.at(pretime_shift + bs * hy_stride + 5 * hy_h + h), 2);
                         }
-                        dh_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h + hy_h +
-                                    h) +=
-                            dh_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 5 * hy_h +
-                                        hy_h + h) *
+                        wkspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h + hy_h +
+                                   h) +=
+                            wkspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 5 * hy_h +
+                                       hy_h + h) *
                             dervactivfunc(rsvspace.at(hid_shift + (baccbi + bs) * hy_stride +
                                                       bi * 4 * hy_h + hy_h + h),
                                           1) *
@@ -854,10 +774,10 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
 
                         if(ti == 0)
                         {
-                            dh_state.at(hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h) +=
-                                dh_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
-                                            hy_h + h) *
-                                cx_state.at(hx_shift + bs * uni_stride + hy_n * hy_h + h) *
+                            wkspace.at(hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h) +=
+                                wkspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
+                                           hy_h + h) *
+                                cx.at(hx_shift + bs * uni_stride + hy_n * hy_h + h) *
                                 dervactivfunc(rsvspace.at(hid_shift + (baccbi + bs) * hy_stride +
                                                           5 * hy_h + h),
                                               2);
@@ -870,9 +790,9 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
                                     li * batch_n * hy_stride +
                                     (baccbi + in_n.at(seqLength - 1 - ti)) * hy_stride;
 
-                                dh_state.at(hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h) +=
-                                    dh_state.at(hid_shift + (baccbi + bs) * hy_stride +
-                                                bi * 4 * hy_h + hy_h + h) *
+                                wkspace.at(hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h) +=
+                                    wkspace.at(hid_shift + (baccbi + bs) * hy_stride +
+                                               bi * 4 * hy_h + hy_h + h) *
                                     rsvspace.at(pretime_shift + bs * hy_stride + bi * 4 * hy_h +
                                                 hy_h + h) *
                                     dervactivfunc(rsvspace.at(hid_shift +
@@ -881,27 +801,27 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
                                                   2);
                             }
                         }
-                        dh_state.at(hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h) +=
-                            dh_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
-                                        hy_h + h) *
+                        wkspace.at(hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h) +=
+                            wkspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
+                                       hy_h + h) *
                             activfunc(
                                 rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + 7 * hy_h + h),
                                 1) *
                             dervactivfunc(
                                 rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h),
                                 2);
-                        dh_state.at(hid_shift + (baccbi + bs) * hy_stride + 6 * hy_h + h) +=
-                            dh_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 5 * hy_h +
-                                        hy_h + h) *
+                        wkspace.at(hid_shift + (baccbi + bs) * hy_stride + 6 * hy_h + h) +=
+                            wkspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 5 * hy_h +
+                                       hy_h + h) *
                             activfunc(rsvspace.at(hid_shift + (baccbi + bs) * hy_stride +
                                                   bi * 4 * hy_h + hy_h + h),
                                       1) *
                             dervactivfunc(
                                 rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + 6 * hy_h + h),
                                 2);
-                        dh_state.at(hid_shift + (baccbi + bs) * hy_stride + 7 * hy_h + h) +=
-                            dh_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
-                                        hy_h + h) *
+                        wkspace.at(hid_shift + (baccbi + bs) * hy_stride + 7 * hy_h + h) +=
+                            wkspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
+                                       hy_h + h) *
                             activfunc(
                                 rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h),
                                 2) *
@@ -919,30 +839,30 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
         int pretime_shift = li * batch_n * hy_stride;
         int weitime_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
-        RNN_mm_cpu<double>(&dh_state[pretime_shift],
-                           hy_h * 4,
-                           in_n.at(0),
-                           hy_stride,
-                           0,
-                           &wei_state[weitime_shift],
-                           hy_h,
-                           hy_h * 4,
-                           uni_stride,
-                           0,
-                           &dhx_state[hx_shift],
-                           hy_h,
-                           in_n.at(0),
-                           uni_stride,
-                           0,
-                           1,
-                           1);
+        RNN_mm_cpu<T>(&wkspace[pretime_shift],
+                      hy_h * 4,
+                      in_n.at(0),
+                      hy_stride,
+                      0,
+                      &wei[weitime_shift],
+                      hy_h,
+                      hy_h * 4,
+                      uni_stride,
+                      0,
+                      &dhx_host[hx_shift],
+                      hy_h,
+                      in_n.at(0),
+                      uni_stride,
+                      0,
+                      1,
+                      1);
 
         for(int bs = 0; bs < in_n.at(0); bs++)
         {
             for(int h = 0; h < hy_h; h++)
             {
-                dcx_state.at(hx_shift + bs * uni_stride + h) +=
-                    dh_state.at(pretime_shift + bs * hy_stride + bi * 4 * hy_h + h) *
+                dcx_host.at(hx_shift + bs * uni_stride + h) +=
+                    wkspace.at(pretime_shift + bs * hy_stride + bi * 4 * hy_h + h) *
                     activfunc(rsvspace.at(pretime_shift + bs * hy_stride + hy_h + h), 2);
             }
         }
@@ -952,30 +872,30 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
             pretime_shift =
                 li * batch_n * hy_stride + (batch_n - in_n.at(seqLength - 1)) * hy_stride;
 
-            RNN_mm_cpu<double>(&dh_state[pretime_shift + 4 * hy_h],
-                               hy_h * 4,
-                               in_n.at(seqLength - 1),
-                               hy_stride,
-                               0,
-                               &wei_state[weitime_shift + 4 * hy_h * uni_stride],
-                               hy_h,
-                               hy_h * 4,
-                               uni_stride,
-                               0,
-                               &dhx_state[hx_shift + hy_n * hy_h],
-                               hy_h,
-                               in_n.at(seqLength - 1),
-                               uni_stride,
-                               0,
-                               1,
-                               1);
+            RNN_mm_cpu<T>(&wkspace[pretime_shift + 4 * hy_h],
+                          hy_h * 4,
+                          in_n.at(seqLength - 1),
+                          hy_stride,
+                          0,
+                          &wei[weitime_shift + 4 * hy_h * uni_stride],
+                          hy_h,
+                          hy_h * 4,
+                          uni_stride,
+                          0,
+                          &dhx_host[hx_shift + hy_n * hy_h],
+                          hy_h,
+                          in_n.at(seqLength - 1),
+                          uni_stride,
+                          0,
+                          1,
+                          1);
 
             for(int bs = 0; bs < in_n.at(seqLength - 1); bs++)
             {
                 for(int h = 0; h < hy_h; h++)
                 {
-                    dcx_state.at(hx_shift + bs * uni_stride + hy_n * hy_h + h) +=
-                        dh_state.at(pretime_shift + bs * hy_stride + bi * 4 * hy_h + hy_h + h) *
+                    dcx_host.at(hx_shift + bs * uni_stride + hy_n * hy_h + h) +=
+                        wkspace.at(pretime_shift + bs * hy_stride + bi * 4 * hy_h + hy_h + h) *
                         activfunc(rsvspace.at(pretime_shift + bs * hy_stride + 5 * hy_h + h), 2);
                 }
             }
@@ -991,11 +911,11 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
             {
                 for(int gi = 0; gi < 4; gi++)
                 {
-                    din_state.at(bs * in_stride + h) += dh_state.at(bs * hy_stride + gi * hy_h + h);
+                    din_host.at(bs * in_stride + h) += wkspace.at(bs * hy_stride + gi * hy_h + h);
                     if(bidirection)
                     {
-                        din_state.at(bs * in_stride + h) +=
-                            dh_state.at(bs * hy_stride + (gi + 4) * hy_h + h);
+                        din_host.at(bs * in_stride + h) +=
+                            wkspace.at(bs * hy_stride + (gi + 4) * hy_h + h);
                     }
                 }
             }
@@ -1003,42 +923,23 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
     }
     else
     {
-        RNN_mm_cpu<double>(dh_state.data(),
-                           hy_h * bi * 4,
-                           batch_n,
-                           hy_stride,
-                           0,
-                           wei_state.data(),
-                           in_h,
-                           hy_h * bi * 4,
-                           in_stride,
-                           0,
-                           din_state.data(),
-                           in_h,
-                           batch_n,
-                           in_stride,
-                           0,
-                           1,
-                           1);
-    }
-
-    for(int i = 0; i < numlayer * batch_n * hy_stride; i++)
-    {
-        wkspace.at(i) = dh_state.at(i);
-    }
-
-    for(int i = 0; i < hy_d * hy_n * hy_h; i++)
-    {
-        dhx_host.at(i) = dhx_state.at(i);
-        dcx_host.at(i) = dcx_state.at(i);
-    }
-
-    for(int bs = 0; bs < batch_n; bs++)
-    {
-        for(int h = 0; h < in_stride; h++)
-        {
-            din_host.at(bs * in_stride + h) = din_state.at(bs * in_stride + h);
-        }
+        RNN_mm_cpu<T>(wkspace.data(),
+                      hy_h * bi * 4,
+                      batch_n,
+                      hy_stride,
+                      0,
+                      wei.data(),
+                      in_h,
+                      hy_h * bi * 4,
+                      in_stride,
+                      0,
+                      din_host.data(),
+                      in_h,
+                      batch_n,
+                      in_stride,
+                      0,
+                      1,
+                      1);
     }
 }
 
@@ -1078,42 +979,8 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
     int h_stride   = bi * hy_h;
     int uni_stride = hy_h;
     int bi_stride  = hy_h * bi;
-
-    // initial input
-    std::vector<double> in_state(batch_n * in_h, 0.);
-    for(int h = 0; h < batch_n; h++)
-    {
-        for(int w = 0; w < in_h; w++)
-        {
-            in_state.at(h * in_h + w) = in.at(h * in_h + w);
-        }
-    }
-
-    // initial output difference
-    std::vector<double> dout_state(batch_n * out_h, 0.);
-    for(int h = 0; h < batch_n; h++)
-    {
-        for(int w = 0; w < out_h; w++)
-        {
-            dout_state.at(h * out_h + w) = dout.at(h * out_h + w);
-        }
-    }
-
-    // initial saved data
-    std::vector<double> wkspace_state(numlayer * batch_n * hy_stride, 0.);
-    std::vector<double> rsvspace_state(numlayer * batch_n * hy_stride, 0.);
-    for(int h = 0; h < numlayer * batch_n * hy_stride; h++)
-    {
-        rsvspace_state.at(h) = rsvspace.at(h);
-        wkspace_state.at(h)  = wkspace.at(h);
-    }
-
-    // initial hidden states
-    std::vector<double> hx_state(hy_d * hy_n * hy_h, 0.);
-    for(int h = 0; h < hy_d * hy_n * hy_h; h++)
-    {
-        hx_state.at(h) = hx.at(h);
-    }
+    (void)dout;
+    (void)out_h;
 
     if(inputMode == 1)
     {
@@ -1134,9 +1001,6 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
         wei_len += (in_bias + (numlayer - 1) * 2) * wei_stride;
     }
 
-    // initial dwei
-    std::vector<double> dwei_state(wei_len, 0.);
-
     // bwd weights emulator
     for(int li = 0; li < numlayer; li++)
     {
@@ -1151,30 +1015,30 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
                     {
                         for(int w = 0; w < batch_n; w++)
                         {
-                            dwei_state.at(wei_shift_bias + h) += wkspace.at(w * hy_stride + h);
+                            dwei_host.at(wei_shift_bias + h) += wkspace.at(w * hy_stride + h);
                         }
                     }
                 }
             }
             else
             {
-                RNN_mm_cpu<double>(wkspace_state.data(),
-                                   hy_h * bi * 4,
-                                   batch_n,
-                                   hy_stride,
-                                   RNN_MM_TRANSPOSE,
-                                   in_state.data(),
-                                   in_h,
-                                   batch_n,
-                                   in_stride,
-                                   0,
-                                   dwei_state.data(),
-                                   in_h,
-                                   hy_h * bi * 4,
-                                   in_stride,
-                                   0,
-                                   1,
-                                   1);
+                RNN_mm_cpu<T>(wkspace.data(),
+                              hy_h * bi * 4,
+                              batch_n,
+                              hy_stride,
+                              RNN_MM_TRANSPOSE,
+                              in.data(),
+                              in_h,
+                              batch_n,
+                              in_stride,
+                              0,
+                              dwei_host.data(),
+                              in_h,
+                              hy_h * bi * 4,
+                              in_stride,
+                              0,
+                              1,
+                              1);
 
                 if(biased)
                 {
@@ -1182,10 +1046,10 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
                     {
                         for(int w = 0; w < batch_n; w++)
                         {
-                            dwei_state.at(wei_shift_bias + h) += wkspace.at(w * hy_stride + h);
+                            dwei_host.at(wei_shift_bias + h) += wkspace.at(w * hy_stride + h);
                         }
-                        dwei_state.at(wei_shift_bias + wei_stride + h) =
-                            dwei_state.at(wei_shift_bias + h);
+                        dwei_host.at(wei_shift_bias + wei_stride + h) =
+                            dwei_host.at(wei_shift_bias + h);
                     }
                 }
             }
@@ -1196,23 +1060,23 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
             int hid_shift      = li * batch_n * hy_stride;
             int wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
 
-            RNN_mm_cpu<double>(&wkspace_state[hid_shift],
-                               hy_h * bi * 4,
-                               batch_n,
-                               hy_stride,
-                               RNN_MM_TRANSPOSE,
-                               &rsvspace_state[prelayer_shift],
-                               hy_h * bi,
-                               batch_n,
-                               hy_stride,
-                               0,
-                               &dwei_state[wei_shift],
-                               hy_h * bi,
-                               hy_h * bi * 4,
-                               bi_stride,
-                               0,
-                               1,
-                               1);
+            RNN_mm_cpu<T>(&wkspace[hid_shift],
+                          hy_h * bi * 4,
+                          batch_n,
+                          hy_stride,
+                          RNN_MM_TRANSPOSE,
+                          &rsvspace[prelayer_shift],
+                          hy_h * bi,
+                          batch_n,
+                          hy_stride,
+                          0,
+                          &dwei_host[wei_shift],
+                          hy_h * bi,
+                          hy_h * bi * 4,
+                          bi_stride,
+                          0,
+                          1,
+                          1);
 
             if(biased)
             {
@@ -1224,9 +1088,9 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
                 {
                     for(int w = 0; w < batch_n; w++)
                     {
-                        dwei_state.at(wei_shift + h) += wkspace.at(hid_shift + w * hy_stride + h);
+                        dwei_host.at(wei_shift + h) += wkspace.at(hid_shift + w * hy_stride + h);
                     }
-                    dwei_state.at(wei_shift + wei_stride + h) = dwei_state.at(wei_shift + h);
+                    dwei_host.at(wei_shift + wei_stride + h) = dwei_host.at(wei_shift + h);
                 }
             }
         }
@@ -1243,102 +1107,97 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
             // between time
             if(ti == 0)
             {
-                RNN_mm_cpu<double>(&wkspace_state[hid_shift],
-                                   hy_h * 4,
-                                   in_n.at(ti),
-                                   hy_stride,
-                                   RNN_MM_TRANSPOSE,
-                                   &hx_state[hx_shift],
-                                   hy_h,
-                                   in_n.at(ti),
-                                   uni_stride,
-                                   0,
-                                   &dwei_state[wei_shift],
-                                   hy_h,
-                                   hy_h * 4,
-                                   uni_stride,
-                                   0,
-                                   1,
-                                   1);
+                RNN_mm_cpu<T>(&wkspace[hid_shift],
+                              hy_h * 4,
+                              in_n.at(ti),
+                              hy_stride,
+                              RNN_MM_TRANSPOSE,
+                              &hx[hx_shift],
+                              hy_h,
+                              in_n.at(ti),
+                              uni_stride,
+                              0,
+                              &dwei_host[wei_shift],
+                              hy_h,
+                              hy_h * 4,
+                              uni_stride,
+                              0,
+                              1,
+                              1);
             }
             else
             {
                 pretime_shift =
                     li * batch_n * hy_stride + (bacc - in_n.at(ti - 1)) * hy_stride + bi * 5 * hy_h;
 
-                RNN_mm_cpu<double>(&wkspace_state[hid_shift],
-                                   hy_h * 4,
-                                   in_n.at(ti),
-                                   hy_stride,
-                                   RNN_MM_TRANSPOSE,
-                                   &rsvspace_state[pretime_shift],
-                                   hy_h,
-                                   in_n.at(ti),
-                                   hy_stride,
-                                   0,
-                                   &dwei_state[wei_shift],
-                                   hy_h,
-                                   hy_h * 4,
-                                   uni_stride,
-                                   0,
-                                   1,
-                                   1);
+                RNN_mm_cpu<T>(&wkspace[hid_shift],
+                              hy_h * 4,
+                              in_n.at(ti),
+                              hy_stride,
+                              RNN_MM_TRANSPOSE,
+                              &rsvspace[pretime_shift],
+                              hy_h,
+                              in_n.at(ti),
+                              hy_stride,
+                              0,
+                              &dwei_host[wei_shift],
+                              hy_h,
+                              hy_h * 4,
+                              uni_stride,
+                              0,
+                              1,
+                              1);
             }
 
             if(bidirection)
             {
                 if(ti == seqLength - 1)
                 {
-                    RNN_mm_cpu<double>(&wkspace_state[hid_shift + 4 * hy_h],
-                                       hy_h * 4,
-                                       in_n.at(ti),
-                                       hy_stride,
-                                       RNN_MM_TRANSPOSE,
-                                       &hx_state[hx_shift + hy_n * hy_h],
-                                       hy_h,
-                                       in_n.at(ti),
-                                       uni_stride,
-                                       0,
-                                       &dwei_state[wei_shift + 4 * hy_h * uni_stride],
-                                       hy_h,
-                                       hy_h * 4,
-                                       uni_stride,
-                                       0,
-                                       1,
-                                       1);
+                    RNN_mm_cpu<T>(&wkspace[hid_shift + 4 * hy_h],
+                                  hy_h * 4,
+                                  in_n.at(ti),
+                                  hy_stride,
+                                  RNN_MM_TRANSPOSE,
+                                  &hx[hx_shift + hy_n * hy_h],
+                                  hy_h,
+                                  in_n.at(ti),
+                                  uni_stride,
+                                  0,
+                                  &dwei_host[wei_shift + 4 * hy_h * uni_stride],
+                                  hy_h,
+                                  hy_h * 4,
+                                  uni_stride,
+                                  0,
+                                  1,
+                                  1);
                 }
                 else
                 {
                     pretime_shift =
                         li * batch_n * hy_stride + (bacc + in_n.at(ti)) * hy_stride + bi * 5 * hy_h;
 
-                    RNN_mm_cpu<double>(&wkspace_state[hid_shift + 4 * hy_h],
-                                       hy_h * 4,
-                                       in_n.at(ti + 1),
-                                       hy_stride,
-                                       RNN_MM_TRANSPOSE,
-                                       &rsvspace_state[pretime_shift + hy_h],
-                                       hy_h,
-                                       in_n.at(ti + 1),
-                                       hy_stride,
-                                       0,
-                                       &dwei_state[wei_shift + 4 * hy_h * uni_stride],
-                                       hy_h,
-                                       hy_h * 4,
-                                       uni_stride,
-                                       0,
-                                       1,
-                                       1);
+                    RNN_mm_cpu<T>(&wkspace[hid_shift + 4 * hy_h],
+                                  hy_h * 4,
+                                  in_n.at(ti + 1),
+                                  hy_stride,
+                                  RNN_MM_TRANSPOSE,
+                                  &rsvspace[pretime_shift + hy_h],
+                                  hy_h,
+                                  in_n.at(ti + 1),
+                                  hy_stride,
+                                  0,
+                                  &dwei_host[wei_shift + 4 * hy_h * uni_stride],
+                                  hy_h,
+                                  hy_h * 4,
+                                  uni_stride,
+                                  0,
+                                  1,
+                                  1);
                 }
             }
 
             bacc += in_n.at(ti);
         }
-    }
-
-    for(int i = 0; i < wei_len; i++)
-    {
-        dwei_host.at(i) = dwei_state.at(i);
     }
 }
 //////=========END CPU VERIFICATION FUNCTIONS=============
