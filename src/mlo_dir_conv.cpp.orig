@@ -74,7 +74,10 @@ void mlo_construct_direct2D::setupRocm()
     }
 }
 
-miopen::Db mlo_construct_direct2D::GetDb() const { return {db_path()}; }
+miopen::Db mlo_construct_direct2D::GetDb() const
+{
+    return {db_path()};
+}
 
 /*
    construction has been split into 2
@@ -104,8 +107,13 @@ miopen::solver::ConvSolution mlo_construct_winograd::FindSolution()
     // clang-format off
     return miopen::solver::SearchForSolution<
         miopen::solver::ConvBinWinograd3x3U,
-        miopen::solver::ConvBinWinogradRxS
+<<<<<<< HEAD
+        miopen::solver::ConvBinWinogradRxSFwd
     >(_search_params, this->GetDb());
+=======
+        miopen::solver::ConvBinWinogradRxS
+    >(_search_params, this->GetDbRecord());
+>>>>>>> develop
     // clang-format on
 }
 
