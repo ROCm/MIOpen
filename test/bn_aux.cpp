@@ -41,8 +41,8 @@
 struct deriveSpatialTensorTest
 {
 
-    miopenTensorDescriptor_t ctensor;
-    miopenTensorDescriptor_t derivedTensor;
+    miopenTensorDescriptor_t ctensor{};
+    miopenTensorDescriptor_t derivedTensor{};
 
     deriveSpatialTensorTest()
     {
@@ -53,7 +53,7 @@ struct deriveSpatialTensorTest
 
     void run()
     {
-        std::array<int, 4> lens;
+        std::array<int, 4> lens{};
         miopenDataType_t dt;
 
         miopenDeriveBNTensorDescriptor(derivedTensor, ctensor, miopenBNSpatial);
@@ -76,8 +76,8 @@ struct deriveSpatialTensorTest
 struct derivePerActTensorTest
 {
 
-    miopenTensorDescriptor_t ctensor;
-    miopenTensorDescriptor_t derivedTensor;
+    miopenTensorDescriptor_t ctensor{};
+    miopenTensorDescriptor_t derivedTensor{};
 
     derivePerActTensorTest()
     {
@@ -88,7 +88,7 @@ struct derivePerActTensorTest
 
     void run()
     {
-        std::array<int, 4> lens;
+        std::array<int, 4> lens{};
         miopenDataType_t dt;
 
         miopenDeriveBNTensorDescriptor(derivedTensor, ctensor, miopenBNPerActivation);
