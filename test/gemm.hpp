@@ -23,44 +23,47 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_TENSOR_OPPS_HPP_
-#define GUARD_MIOPEN_TENSOR_OPPS_HPP_
+#ifndef GUARD_GEMM_HPP
+#define GUARD_GEMM_HPP
 
-#include <miopen/common.hpp>
-#include <miopen/datatype.hpp>
-#include <miopen/handle.hpp>
-#include <miopen/miopen.h>
-#include <miopen/object.hpp>
-#include <vector>
+#include "ford.hpp"
+#include <miopen/returns.hpp>
 
-namespace miopen {
+template <class AF, class BF, class CF>
+void gemm(std::size_t n, std::size_t m, std::size_t k, AF a, BF b, CF c)
+{
+    auto inner_loop = [&](int i, int j) {
+        double x = 0.0;
+        ford(k)([&](int kk) { x += a(i, kk) * b(kk, j); });
+        c(i, j, x);
+    };
+    if(n * m > 32)
+    {
+        par_ford(n, m)(inner_loop);
+    }
+    else
+    {
+        ford(n, m)(inner_loop);
+    }
+}
 
-void ScaleTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha);
+struct with_stride_impl
+{
+    template <class T>
+    auto operator()(T& data, std::size_t stride, std::size_t x, std::size_t y) const
+        MIOPEN_RETURNS(data[x * stride + y]);
 
-void SetTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha);
+    template <class T>
+    auto operator()(std::vector<T>& data, std::size_t stride, std::size_t x, std::size_t y) const
+        MIOPEN_RETURNS(data.at(x* stride + y));
+};
 
-void OpTensor(Handle& handle,
-              miopenTensorOp_t tensorOp,
-              const void* alpha0,
-              const TensorDescriptor& aTensorDesc,
-              ConstData_t ATensor,
-              const void* alpha1,
-              const TensorDescriptor& bTensorDesc,
-              ConstData_t BTensor,
-              const void* beta,
-              const TensorDescriptor& cTensorDesc,
-              Data_t CTensor,
-              size_t Aoffset = 0,
-              size_t Boffset = 0,
-              size_t Coffset = 0);
+template <class T>
+auto with_stride(T& data, std::size_t stride) MIOPEN_RETURNS(std::bind(
+    with_stride_impl{}, std::ref(data), stride, std::placeholders::_1, std::placeholders::_2));
 
-void CopyTensor(Handle& handle,
-                const TensorDescriptor& srcDesc,
-                ConstData_t src,
-                const TensorDescriptor& destDesc,
-                Data_t dest,
-                int srcOffset  = 0,
-                int destOffset = 0);
+template <class T>
+auto with_stride(T* data, std::size_t stride) MIOPEN_RETURNS(
+    std::bind(with_stride_impl{}, data, stride, std::placeholders::_1, std::placeholders::_2));
 
-} // namespace miopen
-#endif // GUARD_MIOPEN_TENSOR_OPPS_HPP_
+#endif
