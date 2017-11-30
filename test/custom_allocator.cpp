@@ -43,7 +43,7 @@ struct test_allocator : allocator_fixture
         h.SetAllocator(
             +[](void*, std::size_t n) -> void* {
                 CHECK(n == size);
-                throw "Called allocator";
+                throw "Called allocator"; // NOLINT
             },
             nullptr,
             nullptr);

@@ -31,9 +31,14 @@
 #ifndef GUARD_TEST_TEST_HPP_
 #define GUARD_TEST_TEST_HPP_
 
-[[gnu::noreturn]] void failed_abort(const char* msg, const char* file, int line)
+inline void failed(const char* msg, const char* file, int line)
 {
-    printf("FAILED: %s: %s:%i\n", msg, file, line);
+    std::cout << "FAILED: " << msg << ": " << file << ": " << line << std::endl;
+}
+
+[[gnu::noreturn]] inline void failed_abort(const char* msg, const char* file, int line)
+{
+    failed(msg, file, line);
     std::abort();
 }
 
@@ -51,11 +56,6 @@ inline void expect_equality(const TLeft& left,
     std::cout << "FAILED: " << left_s << "(" << left << ") == " << riglt_s << "(" << right
               << "): " << file << ':' << line << std::endl;
     std::abort();
-}
-
-void failed(const char* msg, const char* file, int line)
-{
-    printf("FAILED: %s: %s:%i\n", msg, file, line);
 }
 
 #define CHECK(...)     \
