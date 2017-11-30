@@ -30,7 +30,7 @@
 #include <cmath>
 #include <iomanip>
 
-#define MIO_HEIRARCH_SEL 1
+#define MIO_HEIRARCH_SEL 0
 
 #if(MIO_HEIRARCH_SEL == 1)
 #define MIO_BN_DIST 32

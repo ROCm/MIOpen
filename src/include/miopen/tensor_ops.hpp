@@ -41,10 +41,10 @@ void SetTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const vo
 
 void OpTensor(Handle& handle,
               miopenTensorOp_t tensorOp,
-              const void* alpha1,
+              const void* alpha0,
               const TensorDescriptor& aTensorDesc,
               ConstData_t ATensor,
-              const void* alpha2,
+              const void* alpha1,
               const TensorDescriptor& bTensorDesc,
               ConstData_t BTensor,
               const void* beta,
