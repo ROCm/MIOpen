@@ -39,9 +39,9 @@
 
 struct handle_fixture
 {
-    miopenHandle_t handle;
+    miopenHandle_t handle{};
 #if MIOPEN_BACKEND_OPENCL
-    cl_command_queue q;
+    cl_command_queue q{};
 #endif
 
     handle_fixture()
@@ -57,7 +57,7 @@ struct handle_fixture
 
 struct input_tensor_fixture
 {
-    miopenTensorDescriptor_t inputTensor;
+    miopenTensorDescriptor_t inputTensor{};
 
     input_tensor_fixture()
     {
@@ -90,8 +90,8 @@ struct input_tensor_fixture
 
 struct conv_filter_fixture : virtual handle_fixture
 {
-    miopenTensorDescriptor_t convFilter;
-    miopenConvolutionDescriptor_t convDesc;
+    miopenTensorDescriptor_t convFilter{};
+    miopenConvolutionDescriptor_t convDesc{};
 
     static const miopenConvolutionMode_t c_mode = miopenConvolution;
     static const miopenPaddingMode_t p_mode     = miopenPaddingDefault;
@@ -137,7 +137,7 @@ struct conv_filter_fixture : virtual handle_fixture
 
 struct output_tensor_fixture : conv_filter_fixture, input_tensor_fixture
 {
-    miopenTensorDescriptor_t outputTensor;
+    miopenTensorDescriptor_t outputTensor{};
     output_tensor_fixture()
     {
         int x, y, z, a;

@@ -133,7 +133,24 @@ struct tensor
             loop(xs...)(std::move(f));
         }
 
-        void operator()(...) const
+        struct any
+        {
+            any() {}
+            template <class X>
+            any(X)
+            {
+            }
+        };
+
+        void operator()(any = {},
+                        any = {},
+                        any = {},
+                        any = {},
+                        any = {},
+                        any = {},
+                        any = {},
+                        any = {},
+                        any = {}) const
         {
             throw std::runtime_error("Arguments to for_each do not match tensor size");
         }
