@@ -140,11 +140,11 @@ rocmtest opencl: rocmnode('vega') { cmake_build ->
 }
 
 // All tests
-rocmtest opencl: rocmnode('vega') { cmake_build ->
+rocmtest opencl_all: rocmnode('vega') { cmake_build ->
     stage('GCC Release All') {
         cmake_build('g++-5', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
-}, hip: rocmnode('vega') { cmake_build ->
+}, hip_all: rocmnode('vega') { cmake_build ->
     stage('Hip Release All') {
         cmake_build('hcc', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
