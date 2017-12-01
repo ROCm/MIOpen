@@ -1178,6 +1178,16 @@ int BatchNormDriver<T>::VerifyForward()
 #if(MIO_BN_DEBUG == 1)
         for(int i = 0; i < out.size() && i < out_host.size(); i++)
         {
+            //            if(std::isnan(out[i]))
+            //            {
+            //                std::cout << "out[" << i << "] produced a nan: " << out[i] <<
+            //                std::endl;
+            //            }
+            //            if(std::isnan(out_host[i]))
+            //            {
+            //                std::cout << "out_host[" << i << "] produced a nan: " << out_host[i]
+            //                << std::endl;
+            //            }
             diff   = double(fabs(out[i]) - fabs(out_host[i]));
             maxval = maxval < diff ? diff : maxval;
             if(diff > tolerance)

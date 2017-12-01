@@ -45,7 +45,7 @@
 struct joinable_thread : std::thread
 {
     template <class... Xs>
-    joinable_thread(Xs&&... xs) : std::thread(std::forward<Xs>(xs)...)
+    joinable_thread(Xs&&... xs) : std::thread(std::forward<Xs>(xs)...) // NOLINT
     {
     }
 
