@@ -35,7 +35,7 @@ namespace detail {
 
 template <class F, std::size_t... Ns>
 auto each_i_impl(F f, seq<Ns...>) MIOPEN_RETURNS(f(std::integral_constant<std::size_t, Ns>{}...));
-}
+} // namespace detail
 
 template <class F, class P>
 struct by_t

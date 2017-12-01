@@ -27,7 +27,7 @@
 #include <algorithm>
 #include <cassert>
 #include <functional>
-#include <iso646.h>
+
 #include <miopen/each_args.hpp>
 #include <sstream>
 #include <stdexcept>
@@ -90,7 +90,7 @@ template <class T, long N>
 struct requires_unwrap : T
 {
 };
-}
+} // namespace detail
 
 template <class T>
 struct is_container : decltype(detail::is_container(miopen::rank<1>{}, std::declval<T>()))
@@ -236,4 +236,4 @@ struct write_value
         }
     }
 };
-}
+} // namespace args
