@@ -37,6 +37,7 @@
 #include "gemm.hpp"
 
 #define RNN_MM_TRANSPOSE 1
+#define RNN_MM_USEPARAGEMM 0
 
 // RNN VANILLA configs
 inline std::vector<int> get_rnn_num_layers()
@@ -217,21 +218,102 @@ void RNN_mm_cpu(const Dtype* a_ptr,
        (!(a_flags & RNN_MM_TRANSPOSE) && (b_flags & RNN_MM_TRANSPOSE) &&
         ((a_cols != b_cols) || (a_rows != c_rows) || (b_rows != c_cols))))
     {
-        printf("MM_CPU ERROR; %zd %zd   %zd %zd   %zd %zd\n",
-               a_cols,
-               a_rows,
-               b_cols,
-               b_rows,
-               c_rows,
-               c_cols);
+        std::cout << "MM_CPU ERROR: " << a_cols << ", " << a_rows << "   " << b_cols << ", "
+                  << b_rows << "   " << c_cols << ", " << c_rows << std::endl;
         return;
     }
 
+    size_t inner_loop = (!(a_flags & RNN_MM_TRANSPOSE)) ? a_cols : a_rows;
+#if(!RNN_MM_USEPARAGEMM)
+    if(!(a_flags & RNN_MM_TRANSPOSE) && !(b_flags & RNN_MM_TRANSPOSE))
+    {
+
+        for(size_t n = 0; n < c_rows; ++n)
+        {
+            for(size_t k = 0; k < c_cols; ++k)
+            {
+                double mm_e = 0;
+                for(size_t m = 0; m < inner_loop; ++m)
+                {
+                    mm_e += a_ptr[n * a_stride + m] * b_ptr[m * b_stride + k];
+                }
+                c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
+            }
+        }
+    }
+    else if((a_flags & RNN_MM_TRANSPOSE) && !(b_flags & RNN_MM_TRANSPOSE))
+    {
+        for(size_t n = 0; n < c_rows; ++n)
+        {
+            for(size_t k = 0; k < c_cols; ++k)
+            {
+
+                double mm_e = 0;
+                for(size_t m = 0; m < inner_loop; ++m)
+                {
+                    mm_e += a_ptr[m * a_stride + n] * b_ptr[m * b_stride + k];
+#if 0
+					if (
+						(n == 0 && k == 33
+						|| n == 1 && k == 32
+						|| n == 3 && k == 1
+						|| n == 4 && k == 0
+
+						)
+						&& a_ptr[m*a_stride + n] * b_ptr[m*b_stride + k] != 0
+						)
+					{
+                        std::cout << "C:mm: " << n << ", " << k << ", " << m << ", " <<
+							mm_e, a_ptr[m*a_stride + n] << ", " <<
+                                b_ptr[m*b_stride + k] << ", " <<
+                                a_ptr[m*a_stride + n] * b_ptr[m*b_stride + k] << std::endl;
+					}
+#endif
+                }
+                c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
+            }
+        }
+    }
+    else if(!(a_flags & RNN_MM_TRANSPOSE) && (b_flags & RNN_MM_TRANSPOSE))
+    {
+        for(size_t n = 0; n < c_rows; ++n)
+        {
+            for(size_t k = 0; k < c_cols; ++k)
+            {
+                double mm_e = 0;
+
+                for(size_t m = 0; m < inner_loop; ++m)
+                {
+                    mm_e += a_ptr[n * a_stride + m] * b_ptr[k * b_stride + m];
+#if 0
+					if (n == 0 && k == 6 && a_ptr[n*a_stride + m] * b_ptr[k*b_stride + m] != 0)
+					{
+                        std::cout << m << ", " << mm_e << ", " << ", " << a_ptr[n*a_stride + m] << ", " << b_ptr[k*b_stride + m] << std::endl;
+					}
+#endif
+                }
+                c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
+            }
+        }
+    }
+    else
+    {
+        for(size_t n = 0; n < c_rows; ++n)
+        {
+            for(size_t k = 0; k < c_cols; ++k)
+            {
+                double mm_e = 0;
+                for(size_t m = 0; m < inner_loop; ++m)
+                {
+                    c_ptr[n * c_stride + k] += a_ptr[m * a_stride + n] * b_ptr[k * b_stride + m];
+                }
+                c_ptr[n * c_stride + k] = beta * c_ptr[n * c_stride + k] + alpha * mm_e;
+            }
+        }
+#else
     auto c_out = [&](int i, int j, double x) {
         c_ptr[i * c_stride + j] = beta * c_ptr[i * c_stride + j] + alpha * x;
     };
-
-    size_t inner_loop = (!(a_flags & RNN_MM_TRANSPOSE)) ? a_cols : a_rows;
 
     if(!(a_flags & RNN_MM_TRANSPOSE) && !(b_flags & RNN_MM_TRANSPOSE))
     {
@@ -268,6 +350,7 @@ void RNN_mm_cpu(const Dtype* a_ptr,
              miopen::flip(with_stride(a_ptr, a_stride)),
              miopen::flip(with_stride(b_ptr, b_stride)),
              c_out);
+#endif
     }
 }
 
