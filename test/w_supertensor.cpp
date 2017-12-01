@@ -54,8 +54,7 @@ struct verify_w_tensor_get
     miopenRNNDirectionMode_t directionMode;
     miopenRNNBiasMode_t biasMode;
 
-    int seqLen;
-    int in_size;
+    int num_layer;
 
     miopenTensorDescriptor_t inputTensor;
     miopenTensorDescriptor_t weightTensor;
