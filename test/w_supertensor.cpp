@@ -50,7 +50,6 @@ struct verify_w_tensor_get
     miopenRNNMode_t mode;
     miopenRNNInputMode_t inMode;
     miopenRNNAlgo_t algo = miopenRNNdefault;
-    miopenDataType_t dataType;
     miopenRNNDirectionMode_t directionMode;
     miopenRNNBiasMode_t biasMode;
 
