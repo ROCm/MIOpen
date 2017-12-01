@@ -23,7 +23,7 @@ void test_try()
            miopenStatusInternalError);
     EXPECT(miopen::try_([] { MIOPEN_THROW(""); }) == miopenStatusUnknownError);
     EXPECT(miopen::try_([] { throw std::runtime_error(""); }) == miopenStatusUnknownError);
-    EXPECT(miopen::try_([] { throw ""; }) == miopenStatusUnknownError);
+    EXPECT(miopen::try_([] { throw ""; }) == miopenStatusUnknownError); // NOLINT
 }
 
 int main()
