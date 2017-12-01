@@ -18,11 +18,12 @@ void test_invalid_ocl_error()
 
 void test_try()
 {
-    EXPECT(miopen::try_([]{}) == miopenStatusSuccess);
-    EXPECT(miopen::try_([]{ MIOPEN_THROW(miopenStatusInternalError); }) == miopenStatusInternalError);
-    EXPECT(miopen::try_([]{ MIOPEN_THROW(""); }) == miopenStatusUnknownError);
-    EXPECT(miopen::try_([]{ throw std::runtime_error(""); }) == miopenStatusUnknownError);
-    EXPECT(miopen::try_([]{ throw ""; }) == miopenStatusUnknownError);
+    EXPECT(miopen::try_([] {}) == miopenStatusSuccess);
+    EXPECT(miopen::try_([] { MIOPEN_THROW(miopenStatusInternalError); }) ==
+           miopenStatusInternalError);
+    EXPECT(miopen::try_([] { MIOPEN_THROW(""); }) == miopenStatusUnknownError);
+    EXPECT(miopen::try_([] { throw std::runtime_error(""); }) == miopenStatusUnknownError);
+    EXPECT(miopen::try_([] { throw ""; }) == miopenStatusUnknownError);
 }
 
 int main()
