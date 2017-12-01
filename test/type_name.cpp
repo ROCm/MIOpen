@@ -17,7 +17,7 @@ struct ns_class
     {
     };
 };
-}
+} // namespace foo
 
 int main()
 {
