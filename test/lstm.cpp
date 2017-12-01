@@ -95,8 +95,9 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
     {
         if(in_h != hy_h)
         {
-            printf("Verification cannot be completed: The input tensor size must equal to the "
-                   "hidden state size of the network in SKIP_INPUT mode!\n");
+            std::cout
+                << "Verification cannot be completed: The input tensor size must equal to the "
+                << "hidden state size of the network in SKIP_INPUT mode!" << std::endl;
             return;
         }
         in_h = 0;
@@ -538,8 +539,9 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
     {
         if(in_h != hy_h)
         {
-            printf("Verification cannot be completed: The input tensor size must equal to the "
-                   "hidden state size of the network in SKIP_INPUT mode!\n");
+            std::cout
+                << "Verification cannot be completed: The input tensor size must equal to the "
+                << "hidden state size of the network in SKIP_INPUT mode!" << std::endl;
             return;
         }
         in_h = 0;
@@ -986,8 +988,9 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
     {
         if(in_h != hy_h)
         {
-            printf("Verification cannot be completed: The input tensor size must equal to the "
-                   "hidden state size of the network in SKIP_INPUT mode!\n");
+            std::cout
+                << "Verification cannot be completed: The input tensor size must equal to the "
+                << "hidden state size of the network in SKIP_INPUT mode!" << std::endl;
             return;
         }
         in_h = 0;
@@ -1269,29 +1272,14 @@ struct verify_forward_infer_lstm
 
         size_t reserveSpaceSize;
 
-        miopenTensorDescriptor_t inDesc;
+        std::vector<miopen::TensorDescriptor> inputCPPDescs;
         std::vector<miopenTensorDescriptor_t> inputDescs;
-        std::vector<int> inlens(2, 0);
-        inlens.at(1) = inputVecLen;
+        createTensorDescArray(inputCPPDescs, inputDescs, batch_seq, inputVecLen);
 
-        miopenTensorDescriptor_t outDesc;
+        std::vector<miopen::TensorDescriptor> outputCPPDescs;
         std::vector<miopenTensorDescriptor_t> outputDescs;
-        std::vector<int> outlens(2, 0);
-        outlens.at(1) = hiddenSize * ((dirMode) ? 2 : 1);
-        // -----------------------
-        for(int i = 0; i < batch_seq.size(); i++)
-        {
-            inlens.at(0) = batch_seq.at(i);
-            miopenCreateTensorDescriptor(&inDesc);
-            miopenSetTensorDescriptor(inDesc, miopenFloat, 2, inlens.data(), nullptr);
-            inputDescs.push_back(inDesc);
-
-            outlens.at(0) = batch_seq.at(i);
-            miopenCreateTensorDescriptor(&outDesc);
-            miopenSetTensorDescriptor(outDesc, miopenFloat, 2, outlens.data(), nullptr);
-            outputDescs.push_back(outDesc);
-        }
-
+        createTensorDescArray(
+            outputCPPDescs, outputDescs, batch_seq, hiddenSize * ((dirMode) ? 2 : 1));
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
         miopenGetRNNTrainingReserveSize(
             &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
@@ -1357,28 +1345,15 @@ struct verify_forward_infer_lstm
 
         size_t out_sz        = 0;
         size_t workSpaceSize = 0;
-        miopenTensorDescriptor_t inDesc;
+
+        std::vector<miopen::TensorDescriptor> inputCPPDescs;
         std::vector<miopenTensorDescriptor_t> inputDescs;
-        std::vector<int> inlens(2, 0);
-        inlens[1] = inputVecLen;
+        createTensorDescArray(inputCPPDescs, inputDescs, batch_seq, inputVecLen);
 
-        miopenTensorDescriptor_t outDesc;
+        std::vector<miopen::TensorDescriptor> outputCPPDescs;
         std::vector<miopenTensorDescriptor_t> outputDescs;
-        std::vector<int> outlens(2, 0);
-        outlens[1] = hiddenSize * ((dirMode) ? 2 : 1);
-        // -----------------------
-        for(int i = 0; i < batch_seq.size(); i++)
-        {
-            inlens[0] = batch_seq[i];
-            miopenCreateTensorDescriptor(&inDesc);
-            miopenSetTensorDescriptor(inDesc, miopenFloat, 2, inlens.data(), nullptr);
-            inputDescs.push_back(inDesc);
-
-            outlens[0] = batch_seq[i];
-            miopenCreateTensorDescriptor(&outDesc);
-            miopenSetTensorDescriptor(outDesc, miopenFloat, 2, outlens.data(), nullptr);
-            outputDescs.push_back(outDesc);
-        }
+        createTensorDescArray(
+            outputCPPDescs, outputDescs, batch_seq, hiddenSize * ((dirMode) ? 2 : 1));
 
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
 
@@ -1473,13 +1448,10 @@ struct verify_forward_infer_lstm
                   << " -l " << nLayers << " -F 0 -r " << dirMode << " -b " << biasMode << " -p "
                   << inputMode << std::endl;
 
-        printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
-        printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
-               hiddenSize,
-               batch_n,
-               seqLength,
-               inputVecLen,
-               nLayers);
+        std::cout << "inputMode: " << inputMode << " biasMode: " << biasMode
+                  << " dirMode: " << dirMode << std::endl;
+        std::cout << "hz: " << hiddenSize << " batch_n: " << batch_n << " seqLength: " << seqLength
+                  << " inputLen: " << inputVecLen << " numLayers: " << nLayers << std::endl;
         std::cout << "Forward Inference LSTM: " << std::endl;
         std::cout << "Output tensor output failed verification." << std::endl;
     }
@@ -1553,28 +1525,14 @@ struct verify_forward_train_lstm
         size_t out_sz = 0;
         size_t reserveSpaceSize;
 
-        miopenTensorDescriptor_t inDesc;
+        std::vector<miopen::TensorDescriptor> inputCPPDescs;
         std::vector<miopenTensorDescriptor_t> inputDescs;
-        std::vector<int> inlens(2, 0);
-        inlens[1] = inputVecLen;
+        createTensorDescArray(inputCPPDescs, inputDescs, batch_seq, inputVecLen);
 
-        miopenTensorDescriptor_t outDesc;
+        std::vector<miopen::TensorDescriptor> outputCPPDescs;
         std::vector<miopenTensorDescriptor_t> outputDescs;
-        std::vector<int> outlens(2, 0);
-        outlens[1] = hiddenSize * ((dirMode) ? 2 : 1);
-        // -----------------------
-        for(int i = 0; i < batch_seq.size(); i++)
-        {
-            inlens[0] = batch_seq[i];
-            miopenCreateTensorDescriptor(&inDesc);
-            miopenSetTensorDescriptor(inDesc, miopenFloat, 2, inlens.data(), nullptr);
-            inputDescs.push_back(inDesc);
-
-            outlens[0] = batch_seq[i];
-            miopenCreateTensorDescriptor(&outDesc);
-            miopenSetTensorDescriptor(outDesc, miopenFloat, 2, outlens.data(), nullptr);
-            outputDescs.push_back(outDesc);
-        }
+        createTensorDescArray(
+            outputCPPDescs, outputDescs, batch_seq, hiddenSize * ((dirMode) ? 2 : 1));
 
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
         miopenGetRNNTrainingReserveSize(
@@ -1611,7 +1569,7 @@ struct verify_forward_train_lstm
 #if(MIO_LSTM_TEST_DEBUG == 2)
         for(int i = 0; i < output.size(); i++)
         {
-            printf("CPU outdata[%d]: %f\n", i, output[i]);
+            std::cout << "CPU outdata[" << i << "]: " << output[i] << std::endl;
         }
 #endif
 
@@ -1643,28 +1601,14 @@ struct verify_forward_train_lstm
         size_t workSpaceSize    = 0;
         size_t reserveSpaceSize = 0;
 
-        miopenTensorDescriptor_t inDesc;
+        std::vector<miopen::TensorDescriptor> inputCPPDescs;
         std::vector<miopenTensorDescriptor_t> inputDescs;
-        std::vector<int> inlens(2, 0);
-        inlens[1] = inputVecLen;
+        createTensorDescArray(inputCPPDescs, inputDescs, batch_seq, inputVecLen);
 
-        miopenTensorDescriptor_t outDesc;
+        std::vector<miopen::TensorDescriptor> outputCPPDescs;
         std::vector<miopenTensorDescriptor_t> outputDescs;
-        std::vector<int> outlens(2, 0);
-        outlens[1] = hiddenSize * ((dirMode) ? 2 : 1);
-        // -----------------------
-        for(int i = 0; i < batch_seq.size(); i++)
-        {
-            inlens[0] = batch_seq[i];
-            miopenCreateTensorDescriptor(&inDesc);
-            miopenSetTensorDescriptor(inDesc, miopenFloat, 2, inlens.data(), nullptr);
-            inputDescs.push_back(inDesc);
-
-            outlens[0] = batch_seq[i];
-            miopenCreateTensorDescriptor(&outDesc);
-            miopenSetTensorDescriptor(outDesc, miopenFloat, 2, outlens.data(), nullptr);
-            outputDescs.push_back(outDesc);
-        }
+        createTensorDescArray(
+            outputCPPDescs, outputDescs, batch_seq, hiddenSize * ((dirMode) ? 2 : 1));
 
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
         miopenGetRNNTrainingReserveSize(
@@ -1773,13 +1717,10 @@ struct verify_forward_train_lstm
                   << nLayers << " -F 0 "
                   << " -r " << dirMode << " -b " << biasMode << " -p " << inputMode << std::endl;
 
-        printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
-        printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
-               hiddenSize,
-               batch_n,
-               seqLength,
-               inputVecLen,
-               nLayers);
+        std::cout << "inputMode: " << inputMode << " biasMode: " << biasMode
+                  << " dirMode: " << dirMode << std::endl;
+        std::cout << "hz: " << hiddenSize << " batch_n: " << batch_n << " seqLength: " << seqLength
+                  << " inputLen: " << inputVecLen << " numLayers: " << nLayers << std::endl;
         std::cout << "Forward Train LSTM: " << std::endl;
 
         switch(badtensor)
@@ -1871,29 +1812,9 @@ struct verify_backward_data_lstm
         int bi_stride = bi * hy_h;
         size_t workSpaceSize;
 
-        miopenTensorDescriptor_t inDesc;
+        std::vector<miopen::TensorDescriptor> inputCPPDescs;
         std::vector<miopenTensorDescriptor_t> inputDescs;
-        std::vector<int> inlens(2, 0);
-        inlens[1] = inputVecLen;
-
-        miopenTensorDescriptor_t oneYdesc;
-        std::vector<miopenTensorDescriptor_t> yDescs;
-
-        std::vector<int> ylens(2, 0);
-        ylens[1] = hiddenSize * ((dirMode) ? 2 : 1);
-        // -----------------------
-        for(int i = 0; i < batch_seq.size(); i++)
-        {
-            inlens[0] = batch_seq[i];
-            miopenCreateTensorDescriptor(&inDesc);
-            miopenSetTensorDescriptor(inDesc, miopenFloat, 2, inlens.data(), nullptr);
-            inputDescs.push_back(inDesc);
-
-            ylens[0] = batch_seq[i];
-            miopenCreateTensorDescriptor(&oneYdesc);
-            miopenSetTensorDescriptor(oneYdesc, miopenFloat, 2, ylens.data(), nullptr);
-            yDescs.push_back(oneYdesc);
-        }
+        createTensorDescArray(inputCPPDescs, inputDescs, batch_seq, inputVecLen);
 
         // Outputs ----------
         size_t in_sz = 0;
@@ -1956,37 +1877,21 @@ struct verify_backward_data_lstm
 
         auto&& handle = get_handle();
 
-        size_t out_sz        = 0;
         size_t workSpaceSize = 0;
 
-        miopenTensorDescriptor_t inDesc;
+        std::vector<miopen::TensorDescriptor> inputCPPDescs;
         std::vector<miopenTensorDescriptor_t> inputDescs;
-        std::vector<int> inlens(2, 0);
-        inlens[1] = inputVecLen;
+        createTensorDescArray(inputCPPDescs, inputDescs, batch_seq, inputVecLen);
 
-        miopenTensorDescriptor_t outDesc;
+        std::vector<miopen::TensorDescriptor> outputCPPDescs;
         std::vector<miopenTensorDescriptor_t> outputDescs;
-        std::vector<int> outlens(2, 0);
-        outlens[1] = hiddenSize * ((dirMode) ? 2 : 1);
-        // -----------------------
-        for(int i = 0; i < batch_seq.size(); i++)
-        {
-            inlens[0] = batch_seq[i];
-            miopenCreateTensorDescriptor(&inDesc);
-            miopenSetTensorDescriptor(inDesc, miopenFloat, 2, inlens.data(), nullptr);
-            inputDescs.push_back(inDesc);
-
-            outlens[0] = batch_seq[i];
-            miopenCreateTensorDescriptor(&outDesc);
-            miopenSetTensorDescriptor(outDesc, miopenFloat, 2, outlens.data(), nullptr);
-            outputDescs.push_back(outDesc);
-        }
+        createTensorDescArray(
+            outputCPPDescs, outputDescs, batch_seq, hiddenSize * ((dirMode) ? 2 : 1));
 
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
         std::vector<T> workSpace(workSpaceSize / sizeof(T), 0.);
         auto workSpace_dev = handle.Write(workSpace);
 
-        miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
         auto yin_dev          = handle.Write(yin);
         auto dyin_dev         = handle.Write(dy);
         auto dhyin_dev        = handle.Write(dhy);
@@ -2084,13 +1989,10 @@ struct verify_backward_data_lstm
                   << nLayers << " -F 0 "
                   << " -r " << dirMode << " -b " << biasMode << " -p " << inputMode << std::endl;
 
-        printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
-        printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
-               hiddenSize,
-               batch_n,
-               seqLength,
-               inputVecLen,
-               nLayers);
+        std::cout << "inputMode: " << inputMode << " biasMode: " << biasMode
+                  << " dirMode: " << dirMode << std::endl;
+        std::cout << "hz: " << hiddenSize << " batch_n: " << batch_n << " seqLength: " << seqLength
+                  << " inputLen: " << inputVecLen << " numLayers: " << nLayers << std::endl;
         std::cout << "Backward Data LSTM: " << std::endl;
 
         switch(badtensor)
@@ -2221,28 +2123,14 @@ struct verify_backward_weights_lstm
 
         auto&& handle = get_handle();
 
-        miopenTensorDescriptor_t inDesc;
+        std::vector<miopen::TensorDescriptor> inputCPPDescs;
         std::vector<miopenTensorDescriptor_t> inputDescs;
-        std::vector<int> inlens(2, 0);
-        inlens[1] = inputVecLen;
+        createTensorDescArray(inputCPPDescs, inputDescs, batch_seq, inputVecLen);
 
-        miopenTensorDescriptor_t outDesc;
+        std::vector<miopen::TensorDescriptor> outputCPPDescs;
         std::vector<miopenTensorDescriptor_t> outputDescs;
-        std::vector<int> outlens(2, 0);
-        outlens[1] = hiddenSize * ((dirMode) ? 2 : 1);
-        // -----------------------
-        for(int i = 0; i < batch_seq.size(); i++)
-        {
-            inlens[0] = batch_seq[i];
-            miopenCreateTensorDescriptor(&inDesc);
-            miopenSetTensorDescriptor(inDesc, miopenFloat, 2, inlens.data(), nullptr);
-            inputDescs.push_back(inDesc);
-
-            outlens[0] = batch_seq[i];
-            miopenCreateTensorDescriptor(&outDesc);
-            miopenSetTensorDescriptor(outDesc, miopenFloat, 2, outlens.data(), nullptr);
-            outputDescs.push_back(outDesc);
-        }
+        createTensorDescArray(
+            outputCPPDescs, outputDescs, batch_seq, hiddenSize * ((dirMode) ? 2 : 1));
 
         auto workSpace_dev    = handle.Write(workSpace);
         auto reserveSpace_dev = handle.Write(reserveSpace);
@@ -2311,13 +2199,10 @@ struct verify_backward_weights_lstm
                   << nLayers << " -F 0 "
                   << " -r " << dirMode << " -b " << biasMode << " -p " << inputMode << std::endl;
 
-        printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
-        printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
-               hiddenSize,
-               batch_n,
-               seqLength,
-               inputVecLen,
-               nLayers);
+        std::cout << "inputMode: " << inputMode << " biasMode: " << biasMode
+                  << " dirMode: " << dirMode << std::endl;
+        std::cout << "hz: " << hiddenSize << " batch_n: " << batch_n << " seqLength: " << seqLength
+                  << " inputLen: " << inputVecLen << " numLayers: " << nLayers << std::endl;
         std::cout << "Backward Weights LSTM: " << std::endl;
     }
 };

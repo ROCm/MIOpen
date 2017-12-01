@@ -39,6 +39,21 @@
 #define RNN_MM_TRANSPOSE 1
 #define RNN_MM_USEPARAGEMM 0
 
+inline void createTensorDescArray(std::vector<miopen::TensorDescriptor>& td,
+                                  std::vector<miopenTensorDescriptor_t>& ptd,
+                                  const std::vector<int> bs,
+                                  const int secondDim)
+{
+
+    std::transform(bs.begin(), bs.end(), std::back_inserter(td), [&](int x) {
+        return miopen::TensorDescriptor(
+            miopenFloat, {static_cast<std::size_t>(x), static_cast<std::size_t>(secondDim)});
+    });
+    std::transform(td.begin(), td.end(), std::back_inserter(ptd), [](miopen::TensorDescriptor& x) {
+        return &x;
+    });
+}
+
 // RNN VANILLA configs
 inline std::vector<int> get_rnn_num_layers()
 {
