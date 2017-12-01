@@ -380,10 +380,10 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
     }
 
     std::size_t inputBatchLenSum = 0;
-    for(int i = 0; i < seqLength; i++)
-    {
-        inputBatchLenSum += xDesc[i].GetLengths()[0];
-    }
+    inputBatchLenSum             = std::accumulate(
+        xDesc.data, xDesc.data + seqLength, 0, [](size_t x, miopenTensorDescriptor_t y) {
+            return x + deref(y).GetLengths()[0];
+        });
     auto x = workspaceScale * nLayers * inputBatchLenSum * hsize * typeSize;
     return size_t(dirMode == miopenRNNbidirection ? 2 * x : x);
 }
@@ -398,11 +398,10 @@ size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
     }
     std::size_t inputBatchLenSum = 0;
-    for(int i = 0; i < seqLength; i++)
-    {
-        inputBatchLenSum += xDesc[i].GetLengths()[0];
-    }
-
+    inputBatchLenSum             = std::accumulate(
+        xDesc.data, xDesc.data + seqLength, 0, [](size_t x, miopenTensorDescriptor_t y) {
+            return x + deref(y).GetLengths()[0];
+        });
     auto x = 2 * workspaceScale * nLayers * inputBatchLenSum * hsize * typeSize;
     return size_t(dirMode == miopenRNNbidirection ? 2 * x : x);
 }
@@ -443,11 +442,10 @@ size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& /* handle */,
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
     }
     std::size_t inputBatchLenSum = 0;
-    for(int i = 0; i < seqLength; i++)
-    {
-        inputBatchLenSum += xDesc[i].GetLengths()[0];
-    }
-
+    inputBatchLenSum             = std::accumulate(
+        xDesc.data, xDesc.data + seqLength, 0, [](size_t x, miopenTensorDescriptor_t y) {
+            return x + deref(y).GetLengths()[0];
+        });
     auto x = inputBatchLenSum * xDesc[0].GetLengths()[1] * typeSize;
     return size_t(x);
 }
