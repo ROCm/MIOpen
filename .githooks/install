@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-cd $(git rev - parse-- git - dir)
+cd $(git rev-parse --git-dir)
 
 echo "Installing hooks..." 
 ln -s ../.githooks hooks
