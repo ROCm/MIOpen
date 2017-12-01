@@ -80,6 +80,10 @@ typedef unsigned int uint;
 #include <cstdbool>
 #include <sys/time.h>
 #include <sys/resource.h>
+#if __APPLE__
+#include <mach/mach.h>
+#include <mach/mach_time.h>
+#endif
 using __int64 = long long;
 #endif
 
