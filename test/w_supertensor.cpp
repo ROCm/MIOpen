@@ -619,24 +619,24 @@ struct superTensorTest : test_driver
 {
     miopenRNNDescriptor_t rnnDesc;
 
-    int num_layer;
-    int wei_hh;
-    int batch_size;
+    int num_layer{};
+    int wei_hh{};
+    int batch_size{};
 
-    miopenRNNMode_t mode;
-    miopenRNNBiasMode_t biasMode;
-    miopenRNNDirectionMode_t directionMode;
-    miopenRNNInputMode_t inMode;
+    miopenRNNMode_t mode{};
+    miopenRNNBiasMode_t biasMode{};
+    miopenRNNDirectionMode_t directionMode{};
+    miopenRNNInputMode_t inMode{};
     miopenRNNAlgo_t algo = miopenRNNdefault;
-    miopenDataType_t dataType;
+    miopenDataType_t dataType{};
 
     int seqLen;
     int in_size;
 
-    miopenTensorDescriptor_t inputTensor;
-    miopenTensorDescriptor_t weightTensor;
-    miopenTensorDescriptor_t paramTensor;
-    miopenTensorDescriptor_t biasTensor;
+    miopenTensorDescriptor_t inputTensor{};
+    miopenTensorDescriptor_t weightTensor{};
+    miopenTensorDescriptor_t paramTensor{};
+    miopenTensorDescriptor_t biasTensor{};
 
     superTensorTest()
     {
