@@ -447,6 +447,7 @@ size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& /* handle */,
     {
         inputBatchLenSum += xDesc[i].GetLengths()[0];
     }
+
     auto x = inputBatchLenSum * xDesc[0].GetLengths()[1] * typeSize;
     return size_t(x);
 }
