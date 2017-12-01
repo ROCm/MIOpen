@@ -84,14 +84,15 @@ function(add_custom_test NAME)
 endfunction()
 
 if(MIOPEN_TEST_ALL)
-    add_custom_test(test_extra
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1, 1, 1, 1 --weights 1, 1, 2, 2 --filter 0 0 3 3
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 1 161 700  --weights 1 1 5 20 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 1 161 700  --weights 1 1 5 20 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 32 79 341  --weights 1 32 5 10 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 32 79 341  --weights 1 32 5 10 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 3 227 227  --weights 1 3 11 11 --filter 0 0 4 4 --disable-backward-data
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 3 224 224  --weights 1 3 11 11 --filter 2 2 4 4
+    add_custom_test(test_conv_extra
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 1 1 1 --weights 1 1 2 2 --filter 0 0 3 3
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 1 161 700  --weights 4 1 5 20 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 1 161 700  --weights 4 1 5 20 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 32 79 341  --weights 4 32 5 10 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 32 79 341  --weights 4 32 5 10 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 3 227 227  --weights 4 3 11 11 --filter 0 0 4 4 --disable-backward-data
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 3 224 224  --weights 4 3 11 11 --filter 2 2 4 4
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 1 48 480 --weights 16 1 3 3 --filter 1 1 1 1 1 1
     )
 endif()
 
@@ -177,5 +178,4 @@ if(MIOPEN_TEST_CONV)
     add_test(NAME test_conv_input_1x32x16x16_weights_1x32x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 32, 16, 16 --weights 1, 32, 5, 5 --filter 0 0 4 4)
     add_test(NAME test_conv_input_1x32x28x28_weights_1x32x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 32, 28, 28 --weights 1, 32, 5, 5 --filter 0 0 4 4)
     add_test(NAME test_conv_input_1x48x7x7_weights_1x48x5x5_filter_0_0_4_4 COMMAND $<TARGET_FILE:test_conv> --input 1, 48, 7, 7 --weights 1, 48, 5, 5 --filter 0 0 4 4)
-    add_test(NAME test_conv_input_16x1x48x480_weights_16x1x3x3_filter_1_1_1_1_1_1 COMMAND $<TARGET_FILE:test_conv> --input 16, 1, 48, 480 --weights 16, 1, 3, 3 --filter 1 1 1 1 1 1)
 endif()
