@@ -64,7 +64,7 @@ struct c_array_view
     value_type& operator[](size_t i) { return deref(data[i]); }
 };
 
-void profileRNNkernels(Handle& handle, unsigned char select);
+void profileRNNkernels(Handle& handle, unsigned char select, float& ctime);
 
 struct RNNDescriptor : miopenRNNDescriptor
 {

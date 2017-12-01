@@ -39,11 +39,10 @@
 
 namespace miopen {
 
-void profileRNNkernels(Handle& handle, unsigned char select)
+void profileRNNkernels(Handle& handle, unsigned char select, float& ctime)
 {
 
-    float ktime        = 0.;
-    static float ctime = 0.;
+    float ktime = 0.;
     assert((select < 3) && "profileSequence case incorrect");
     switch(select)
     {
@@ -380,7 +379,7 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& /* handle */,
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
     }
 
-    int inputBatchLenSum = 0;
+    std::size_t inputBatchLenSum = 0;
     for(int i = 0; i < seqLength; i++)
     {
         inputBatchLenSum += xDesc[i].GetLengths()[0];
@@ -398,7 +397,7 @@ size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
     {
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
     }
-    int inputBatchLenSum = 0;
+    std::size_t inputBatchLenSum = 0;
     for(int i = 0; i < seqLength; i++)
     {
         inputBatchLenSum += xDesc[i].GetLengths()[0];
@@ -443,7 +442,7 @@ size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& /* handle */,
     {
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
     }
-    int inputBatchLenSum = 0;
+    std::size_t inputBatchLenSum = 0;
     for(int i = 0; i < seqLength; i++)
     {
         inputBatchLenSum += xDesc[i].GetLengths()[0];
@@ -722,6 +721,11 @@ std::ostream& operator<<(std::ostream& stream, const RNNDescriptor& r)
     stream << r.nLayers << ", ";
     stream << r.nHiddenTensorsPerLayer << ", ";
     stream << r.workspaceScale << ", ";
+    stream << r.rnnMode << ", ";
+    stream << r.dirMode << ", ";
+    stream << r.algoMode << ", ";
+    stream << r.inputMode << ", ";
+    stream << r.biasMode << ", ";
     return stream;
 }
 
