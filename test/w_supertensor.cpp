@@ -617,7 +617,7 @@ struct verify_w_tensor_set
 
 struct superTensorTest : test_driver
 {
-    miopenRNNDescriptor_t rnnDesc;
+    miopenRNNDescriptor_t rnnDesc{};
 
     int num_layer{};
     int wei_hh{};
@@ -630,8 +630,8 @@ struct superTensorTest : test_driver
     miopenRNNAlgo_t algo = miopenRNNdefault;
     miopenDataType_t dataType{};
 
-    int seqLen;
-    int in_size;
+    int seqLen{};
+    int in_size{};
 
     miopenTensorDescriptor_t inputTensor{};
     miopenTensorDescriptor_t weightTensor{};
