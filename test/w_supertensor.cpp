@@ -47,19 +47,13 @@ struct verify_w_tensor_get
 {
     miopenRNNDescriptor_t rnnDesc;
 
-    int num_layer;
-    int wei_hh;
-    int batch_size;
-
     miopenRNNMode_t mode;
     miopenRNNInputMode_t inMode;
     miopenRNNAlgo_t algo = miopenRNNdefault;
-    miopenDataType_t dataType;
     miopenRNNDirectionMode_t directionMode;
     miopenRNNBiasMode_t biasMode;
 
-    int seqLen{};
-    int in_size{};
+    int num_layer;
 
     miopenTensorDescriptor_t inputTensor;
     miopenTensorDescriptor_t weightTensor;
