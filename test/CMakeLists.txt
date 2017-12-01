@@ -93,6 +93,7 @@ if(MIOPEN_TEST_ALL)
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 3 227 227  --weights 4 3 11 11 --filter 0 0 4 4 --disable-backward-data
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 3 224 224  --weights 4 3 11 11 --filter 2 2 4 4
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 1 48 480 --weights 16 1 3 3 --filter 1 1 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 64 27 27 --weights 192 64 5 5 --filter 2 2 1 1
     )
 endif()
 
