@@ -58,7 +58,7 @@ macro(enable_cppcheck)
 
     set(CPPCHECK_INCLUDES)
     foreach(INC ${PARSE_INCLUDE})
-        list(APPEND CPPCHECK_INCLUDES -I ${INC})
+        list(APPEND CPPCHECK_INCLUDES -include=${INC})
     endforeach()
 
     set(CPPCHECK_COMMAND 
