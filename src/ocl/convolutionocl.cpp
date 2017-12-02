@@ -394,12 +394,12 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         if(dilation_h == 1 && dilation_w == 1)
         {
             // Winograd algo
-            float time_wino = 0;
             WinogradKernelParams k_p;
             KernelInvoke kernel_wino;
             if(FindWinogradKernel(handle, xDesc, wDesc, yDesc, k_p, kernel_wino, 1) == 0)
             { // TODO: be more graceful
                 // Execute the winograd kernel
+                float time_wino = 0;
                 int flags        = 0;
                 int reserved     = 0;
                 int* return_addr = nullptr;
@@ -441,13 +441,13 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             }
 
             // Direct algo
-            float time_direct = 0;
             std::vector<KernelInvoke> kernel_direct;
             if(FindDirectKernel(handle, xDesc, wDesc, yDesc, kernel_direct, exhaustiveSearch, 1) ==
                0)
             { // Forward
 
                 // Execute the direct kernel
+                float time_direct = 0;
                 float padding_val = 0;
                 for(auto& k : kernel_direct)
                 {
@@ -459,7 +459,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             }
 
             // FFT algo
-            float time_fft = 0;
             std::vector<KernelInvoke> kernels_fft;
             size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
             if(FindFwdFFTKernel(handle, xDesc, wDesc, yDesc, workspace_fft, kernels_fft) == 0)
@@ -467,7 +466,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 (void)kernels_fft; // not used now, but needed as fft coverage widens
                 if(workSpace != nullptr && workSpaceSize >= workspace_fft)
                 {
-                    time_fft = ExecuteFwdFFTKernel(handle,
+                    float time_fft = ExecuteFwdFFTKernel(handle,
                                                    xDesc,
                                                    x,
                                                    wDesc,
@@ -1070,7 +1069,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             }
 
             // FFT algo
-            float time_fft = 0;
             std::vector<KernelInvoke> kernels_fft;
             size_t workspace_fft = BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc);
             if(FindBwdFFTKernel(handle, dyDesc, wDesc, dxDesc, workspace_fft, kernels_fft) == 0)
@@ -1078,7 +1076,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 (void)kernels_fft; // not used now, but needed as fft coverage widens
                 if(workSpace != nullptr && workSpaceSize >= workspace_fft)
                 {
-                    time_fft = ExecuteBwdFFTKernel(handle,
+                    float time_fft = ExecuteBwdFFTKernel(handle,
                                                    dyDesc,
                                                    dy,
                                                    wDesc,

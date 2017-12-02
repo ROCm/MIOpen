@@ -208,9 +208,8 @@ void OpTensor(Handle& handle,
 
     auto d = std::distance(blens.begin(), first_not_one.base());
 
-    int num_wg = 1;
     // quick fix
-    num_wg = first_not_one != blens.rend() ? (*first_not_one == 0 ? 1 : *first_not_one) : 1;
+    int num_wg = first_not_one != blens.rend() ? (*first_not_one == 0 ? 1 : *first_not_one) : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
