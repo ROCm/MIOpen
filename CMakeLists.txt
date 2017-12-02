@@ -246,8 +246,10 @@ include(CppCheck)
 enable_cppcheck(
     CHECKS 
         all
+    FORCE
     SUPPRESS 
         ConfigurationNotChecked
+        unmatchedSuppression
         constStatement
         noExplicitConstructor
         passedByValue
@@ -262,6 +264,8 @@ enable_cppcheck(
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/include
+    DEFINE
+        MIOPEN_USE_MIOPENGEMM=1
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
