@@ -258,10 +258,10 @@ enable_cppcheck(
         include/
         src/
         # test/
-    # INCLUDE
-    #     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    #     ${CMAKE_CURRENT_BINARY_DIR}/include
-    #     ${CMAKE_CURRENT_SOURCE_DIR}/src/include
+    INCLUDE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_BINARY_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/include
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
