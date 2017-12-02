@@ -399,7 +399,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             if(FindWinogradKernel(handle, xDesc, wDesc, yDesc, k_p, kernel_wino, 1) == 0)
             { // TODO: be more graceful
                 // Execute the winograd kernel
-                float time_wino = 0;
+                float time_wino  = 0;
                 int flags        = 0;
                 int reserved     = 0;
                 int* return_addr = nullptr;
@@ -467,15 +467,15 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 if(workSpace != nullptr && workSpaceSize >= workspace_fft)
                 {
                     float time_fft = ExecuteFwdFFTKernel(handle,
-                                                   xDesc,
-                                                   x,
-                                                   wDesc,
-                                                   w,
-                                                   yDesc,
-                                                   tmp_y.get(),
-                                                   workSpace,
-                                                   workSpaceSize,
-                                                   true);
+                                                         xDesc,
+                                                         x,
+                                                         wDesc,
+                                                         w,
+                                                         yDesc,
+                                                         tmp_y.get(),
+                                                         workSpace,
+                                                         workSpaceSize,
+                                                         true);
                     perf_db.push_back(
                         PerfField{"miopenConvolutionFwdAlgoFFT", time_fft, workspace_fft});
                 }
@@ -1077,15 +1077,15 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 if(workSpace != nullptr && workSpaceSize >= workspace_fft)
                 {
                     float time_fft = ExecuteBwdFFTKernel(handle,
-                                                   dyDesc,
-                                                   dy,
-                                                   wDesc,
-                                                   w,
-                                                   dxDesc,
-                                                   tmp_dx.get(),
-                                                   workSpace,
-                                                   workSpaceSize,
-                                                   true);
+                                                         dyDesc,
+                                                         dy,
+                                                         wDesc,
+                                                         w,
+                                                         dxDesc,
+                                                         tmp_dx.get(),
+                                                         workSpace,
+                                                         workSpaceSize,
+                                                         true);
                     perf_db.push_back(
                         PerfField{"miopenConvolutionBwdDataAlgoFFT", time_fft, workspace_fft});
                 }
