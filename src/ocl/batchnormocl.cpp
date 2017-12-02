@@ -148,7 +148,7 @@ void BatchNormForwardTraining(Handle& handle,
             ylocalsize = 1;
             zlocalsize = 1;
 
-            unsigned int variant              = 255;
+            unsigned int variant = 255;
             unsigned int segment = in_cstride * (xlocalsize / in_cstride);
             unsigned int nloops  = (in_nhw + segment - 1) / segment;
 
@@ -203,10 +203,10 @@ void BatchNormForwardTraining(Handle& handle,
         }
         else if(in_cstride > 1024)
         {
-            unsigned int variant    = 3;
-            xlocalsize = 1;
-            ylocalsize = 1024;
-            zlocalsize = 1;
+            unsigned int variant = 3;
+            xlocalsize           = 1;
+            ylocalsize           = 1024;
+            zlocalsize           = 1;
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
             vld.push_back(zlocalsize);
@@ -656,7 +656,6 @@ void BatchNormBackward(Handle& handle,
     std::vector<size_t> vld;
     std::vector<size_t> vgd;
 
-
     bool useSaved = false;
 
     if(bn_mode == miopenBNSpatial)
@@ -679,9 +678,9 @@ void BatchNormBackward(Handle& handle,
         if(in_cstride <= 512 && n > 3 && in_cstride > 4)
         {
             unsigned int variant = 0;
-            xlocalsize = 1024;
-            ylocalsize = 1;
-            zlocalsize = 1;
+            xlocalsize           = 1024;
+            ylocalsize           = 1;
+            zlocalsize           = 1;
 
             unsigned int segment = in_cstride * (xlocalsize / in_cstride);
             unsigned int nloops  = (in_nhw + segment - 1) / segment;
@@ -731,10 +730,10 @@ void BatchNormBackward(Handle& handle,
         }
         else if(in_cstride > 1024)
         {
-            unsigned int variant    = 4;
-            xlocalsize = 1;
-            ylocalsize = 1024;
-            zlocalsize = 1;
+            unsigned int variant = 4;
+            xlocalsize           = 1;
+            ylocalsize           = 1024;
+            zlocalsize           = 1;
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
             vld.push_back(zlocalsize);
