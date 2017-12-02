@@ -443,6 +443,10 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 
+    if(!(params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
+    {
+        return false;
+    }
     const std::string name = params.GetStream().GetDeviceName();
     if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
     {
@@ -455,7 +459,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
               && (params.kernel_stride1 <= 2)    // -v  stride_h
               && params.kernel_size0 == 3        // -x  S wei_w
               && params.kernel_size1 == 3        // -y  R wei_h
-              && params.kernal_dilation0 == 1 && params.kernal_dilation1 == 1 && params.bias == 0 &&
+              && params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1 && params.bias == 0 &&
               params.in_layout == "NCHW";
     // && _weights_layout == "KCHW"
     if(!ok)
@@ -513,6 +517,8 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "stride_w", params.kernel_stride0);
     GenerateClangDefsym(options, "weights_layout", 0);
     GenerateClangDefsym(options, "reverse_weights", 0);
+    GenerateClangDefsym(
+        options, "ROCM_METADATA_VERSION", (params.rmv == rocm_meta_version::V3) ? 3 : 4);
     // Perf tune:
     GenerateClangDefsym(options, "limit_wave_cnt", config.GetLimitWaveCnt());
     GenerateClangDefsym(options, "chunk_size", config.GetChunkSize());
