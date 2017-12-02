@@ -450,16 +450,16 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
             n_in_tiles_rg[0] = 2;
             n_in_tiles_rg[1] = (params.n_inputs % 8 == 0) ? 3 : 2;
 
-            grp_tl_ln[0] = 64;
-            grp_tl_ln[1] = 128;
-            grp_tl_ln[2] = 256;
-            n_grp_tiles0 = 3;
+            grp_tl_ln[0]     = 64;
+            grp_tl_ln[1]     = 128;
+            grp_tl_ln[2]     = 256;
+            n_grp_tiles0     = 3;
             int n_grp_tiles1 = 1;
 
             int n_grp_tiles = n_grp_tiles1 * n_grp_tiles0;
-            n_out_tls   = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
-            n_in_tls    = 2;
-            runs_left   = n_grp_tiles * out_pix_tl_cnt * n_out_tls * n_in_tls;
+            n_out_tls       = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
+            n_in_tls        = 2;
+            runs_left       = n_grp_tiles * out_pix_tl_cnt * n_out_tls * n_in_tls;
 
             result.out_pix_tile1 = 0;
         }
@@ -562,11 +562,10 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
         runs_left = /*n_grp_tiles * */ n_tiles_cnt * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls *
                     n_in_tls * stack_cnt;
 
-
         // tile1
         for(int j = 0; j < n_tile1_sz; ++j)
         {
-            int tile_sz[3]         = {8, 16, 32};
+            int tile_sz[3]  = {8, 16, 32};
             result.in_tile1 = tile_sz1[j];
             if(params.out_height * 2 <= result.in_tile1 && result.in_tile1 > tile_sz[0])
             {

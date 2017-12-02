@@ -348,7 +348,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 
         {
             // std::cout << comp_options << std::endl;
-            int grp_tile2    = 1;
+            int grp_tile2 = 1;
             KernelInfo kernel;
 
             kernel.l_wk.push_back(result.grp_tile0);
@@ -601,8 +601,8 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 
     // wrt to W
     {
-        int n_batch_blks = 1;  // (params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) /
-                               // (N_BATCH_LOOPS * result.n_stacks);
+        int n_batch_blks = 1; // (params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) /
+                              // (N_BATCH_LOOPS * result.n_stacks);
         KernelInfo kernel;
 
         kernel.l_wk.push_back(result.grp_tile0);
