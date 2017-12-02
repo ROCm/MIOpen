@@ -26,6 +26,8 @@
 
 #include "miopen/solver.hpp"
 
+#define TWO_PASSES 1
+
 namespace miopen {
 namespace solver {
 
@@ -34,7 +36,7 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     bool result = (params.kernel_size0 == 1) && (params.kernel_size1 == 1);
 
     // Does not support C, K != 16X yet  Still in to-do-list
-    if((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) &&
+    if(/*(params.kernel_stride0 > 1 || params.kernel_stride1 > 1) &&*/
        ((params.n_inputs & 0xF) > 0 || (params.n_outputs & 0xF) > 0))
         result = false;
 
@@ -44,10 +46,17 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
-    if(params.n_passes)
+#if TWO_PASSES
+    if((params.batch_sz >= 16 || 2 * params.n_outputs > params.n_inputs) && params.pad1 == 0 &&
+       params.pad0 == 0 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
+    {
+
+        result.passes = 2;
+    }
+    else
+#endif
     {
         result.passes = 1;
-        return result;
     }
 
     // FIX ME! FIX ME! FIX ME! Does not support C, K != 16X yet
@@ -72,7 +81,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 
         /*if(4 *((params.n_outputs+63)/64) * ((params.n_inputs+63)/64) >=512)
         {
-            n_lcl_in_maps =64;
+                n_lcl_in_maps =64;
         }
         else
         */
@@ -107,159 +116,238 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         int grp_tile2    = 1;
 
         // workload and Kernel name
+
+        /*#if 0//nef ML_OPEN_RUNNING
+        // W 28 x H 28 x C 512 x K 256 X N 16
+        //#define MLO_GRP_SZ
+        #define MLO_GRP_SZ0 256
+        #define MLO_GRP_SZ1  1
+        #define MLO_GRP_SZ2  1
+        #define MLO_FILTER_SIZE0    1
+        #define MLO_FILTER_SIZE1    1
+        #define MLO_FILTER_PAD0     0
+        #define MLO_FILTER_PAD1     0
+        #define MLO_FILTER_STRIDE0  2
+        #define MLO_FILTER_STRIDE1  2
+        #define STRIDE_W            1
+        #define STRIDE_H            1
+        #define MLO_N_OUTPUTS       256
+        #define MLO_N_INPUTS        512
+        #define MLO_BATCH_SZ        16
+        #define MLO_IN_WIDTH            28
+        #define MLO_IN_HEIGHT           28
+        #define MLO_OUT_WIDTH           14
+        #define MLO_OUT_HEIGHT          14
+        //64x64 16x16 ==> 16, 8x8 ==> 64
+        #define MLO_N_LOAD_DWORDS_PER_MAP_ONCE 64
+        #define MLO_N_LCL_IN_MAPS        8
+        #define MLO_N_LCL_OUT_MAPS       8
+
+        #define MLO_READ_UNIT          4
+
+        #define MLO_OUT_BATCH_STRIDE   (MLO_OUT_WIDTH*MLO_OUT_HEIGHT*MLO_N_OUTPUTS)
+        #define MLO_OUT_CHANNEL_STRIDE (MLO_OUT_WIDTH*MLO_OUT_WIDTH)
+
+        #define MLO_IN_BATCH_STRIDE    (MLO_IN_WIDTH*MLO_IN_HEIGHT* MLO_N_INPUTS)
+        #define MLO_IN_CHANNEL_STRIDE  (MLO_IN_WIDTH*MLO_IN_HEIGHT)
+        #define MLO_WEI_BATCH_STRIDE   (MLO_N_INPUTS*MLO_N_OUTPUTS)
+        #define MLO_WEI_CHANNEL_STRIDE (1*1*MLO_N_INPUTS)
+        #define MLO_MAX_LOADS     ((MLO_OUT_CHANNEL_STRIDE / MLO_READ_UNIT) * MLO_BATCH_SZ)
+
+        #define MLO_ACCUM_SZ      ( MLO_N_LCL_IN_MAPS * MLO_N_LCL_OUT_MAPS)
+        #define MLO_OUT_READ_SZ    (N_LCL_OUT_MAPS * MLO_READ_UNIT)
+        #define MLO_IN_READ_SZ     (MLO_N_LCL_IN_MAPS * MLO_READ_UNIT)
+
+        #define MLO_OUT_CHANNEL_READ_SZ (MLO_OUT_CHANNEL_STRIDE/MLO_READ_UNIT)
+        #define MLO_N_IN_TILE_BLOCK  4
+        #endif*/
+
+        int read_unit = 4;
+        // subsampled input
+        int in_width  = (result.passes > 1) ? params.in_width : params.out_width;
+        int in_height = (result.passes > 1) ? params.in_height : params.out_height;
+        int in_stride = (result.passes > 1) ? params.in_stride : params.out_stride;
+        int in_channel_stride =
+            (result.passes > 1) ? in_stride * in_height : params.out_channel_stride;
+        int in_batch_stride =
+            (result.passes > 1) ? in_channel_stride * params.n_outputs : params.out_batch_stride;
+        int out_batch_stride   = params.in_batch_stride;
+        int out_channel_stride = params.in_channel_stride;
+        int out_stride         = params.in_stride;
+        int wei_batch_stride =
+            params.n_inputs * params.n_outputs * params.kernel_size0 * params.kernel_size1;
+        int wei_channel_stride     = params.n_outputs * params.kernel_size0 * params.kernel_size1;
+        int max_loads_per_readunit = (out_channel_stride / read_unit) * params.batch_sz;
+
+        // limited shape size shows better performance with ead_uint == 3
+        /*
+        if( (out_channel_stride % 3) == 1)
         {
-            /*#if 0//nef ML_OPEN_RUNNING
-            // W 28 x H 28 x C 512 x K 256 X N 16
-            //#define MLO_GRP_SZ
-            #define MLO_GRP_SZ0 256
-            #define MLO_GRP_SZ1  1
-            #define MLO_GRP_SZ2  1
-            #define MLO_FILTER_SIZE0    1
-            #define MLO_FILTER_SIZE1    1
-            #define MLO_FILTER_PAD0     0
-            #define MLO_FILTER_PAD1     0
-            #define MLO_FILTER_STRIDE0  2
-            #define MLO_FILTER_STRIDE1  2
-            #define STRIDE_W            1
-            #define STRIDE_H            1
-            #define MLO_N_OUTPUTS       256
-            #define MLO_N_INPUTS        512
-            #define MLO_BATCH_SZ        16
-            #define MLO_IN_WIDTH            28
-            #define MLO_IN_HEIGHT           28
-            #define MLO_OUT_WIDTH           14
-            #define MLO_OUT_HEIGHT          14
-            //64x64 16x16 ==> 16, 8x8 ==> 64
-            #define MLO_N_LOAD_DWORDS_PER_MAP_ONCE 64
-            #define MLO_N_LCL_IN_MAPS        8
-            #define MLO_N_LCL_OUT_MAPS       8
-
-            #define MLO_READ_UNIT          4
-
-            #define MLO_OUT_BATCH_STRIDE   (MLO_OUT_WIDTH*MLO_OUT_HEIGHT*MLO_N_OUTPUTS)
-            #define MLO_OUT_CHANNEL_STRIDE (MLO_OUT_WIDTH*MLO_OUT_WIDTH)
-
-            #define MLO_IN_BATCH_STRIDE    (MLO_IN_WIDTH*MLO_IN_HEIGHT* MLO_N_INPUTS)
-            #define MLO_IN_CHANNEL_STRIDE  (MLO_IN_WIDTH*MLO_IN_HEIGHT)
-            #define MLO_WEI_BATCH_STRIDE   (MLO_N_INPUTS*MLO_N_OUTPUTS)
-            #define MLO_WEI_CHANNEL_STRIDE (1*1*MLO_N_INPUTS)
-            #define MLO_MAX_LOADS     ((MLO_OUT_CHANNEL_STRIDE / MLO_READ_UNIT) * MLO_BATCH_SZ)
-
-            #define MLO_ACCUM_SZ      ( MLO_N_LCL_IN_MAPS * MLO_N_LCL_OUT_MAPS)
-            #define MLO_OUT_READ_SZ    (N_LCL_OUT_MAPS * MLO_READ_UNIT)
-            #define MLO_IN_READ_SZ     (MLO_N_LCL_IN_MAPS * MLO_READ_UNIT)
-
-            #define MLO_OUT_CHANNEL_READ_SZ (MLO_OUT_CHANNEL_STRIDE/MLO_READ_UNIT)
-            #define MLO_N_IN_TILE_BLOCK  4
-            #endif*/
-
-            int read_unit          = 4;
-            int in_batch_stride    = params.n_outputs * params.out_width * params.out_height;
-            int in_channel_stride  = params.out_width * params.out_height;
-            int out_batch_stride   = params.n_inputs * params.in_width * params.in_height;
-            int out_channel_stride = params.in_width * params.in_height;
-            int wei_batch_stride =
-                params.n_inputs * params.n_outputs * params.kernel_size0 * params.kernel_size1;
-            int wei_channel_stride = params.n_outputs * params.kernel_size0 * params.kernel_size1;
-            int max_loads_per_readunit = (out_channel_stride / read_unit) * params.batch_sz;
-
-            // limited shape size shows better performance with ead_uint == 3
-            /*
-            if( (out_channel_stride % 3) == 1)
-            {
                 read_unit              = 3;
                 max_loads_per_readunit = (out_channel_stride / read_unit) * params.batch_sz;
-            }
-            */
+        }
+        */
 
-            int out_pad_min_x  = 0;
-            int out_pad_min_y  = 0;
-            int out_pad_width  = params.in_width;
-            int out_pad_height = params.in_height;
+        int out_pad_min_x  = 0;
+        int out_pad_min_y  = 0;
+        int out_pad_width  = params.in_width;
+        int out_pad_height = params.in_height;
 
-            int in_pad_min_x = 0;
-            int in_pad_min_y = 0;
+        int in_pad_min_x = 0;
+        int in_pad_min_y = 0;
 
-            if(params.pad0 > 0)
-            {
-                in_pad_min_x = params.kernel_stride0 - (params.pad0 % params.kernel_stride0);
-                // In case PAD == STRIDE
-                in_pad_min_x = in_pad_min_x % params.kernel_stride0;
+        if(params.pad0 > 0)
+        {
+            in_pad_min_x = params.kernel_stride0 - (params.pad0 % params.kernel_stride0);
+            // In case PAD == STRIDE
+            in_pad_min_x = in_pad_min_x % params.kernel_stride0;
 
-                out_pad_min_x = (params.pad0 + params.kernel_stride0 - 1) / params.kernel_stride0;
-                out_pad_width = (params.out_width - in_pad_min_x + params.kernel_stride0 - 1) /
-                                params.kernel_stride0;
-            }
-            if(params.pad1 > 0)
-            {
-                in_pad_min_y = params.kernel_stride1 - (params.pad1 % params.kernel_stride1);
-                // In case PAD == STRIDE
-                in_pad_min_y = in_pad_min_y % params.kernel_stride1;
+            out_pad_min_x = (params.pad0 + params.kernel_stride0 - 1) / params.kernel_stride0;
+            out_pad_width = (params.out_width - in_pad_min_x + params.kernel_stride0 - 1) /
+                            params.kernel_stride0;
+        }
+        if(params.pad1 > 0)
+        {
+            in_pad_min_y = params.kernel_stride1 - (params.pad1 % params.kernel_stride1);
+            // In case PAD == STRIDE
+            in_pad_min_y = in_pad_min_y % params.kernel_stride1;
 
-                out_pad_min_y  = (params.pad1 + params.kernel_stride1 - 1) / params.kernel_stride1;
-                out_pad_height = (params.out_height - in_pad_min_y + params.kernel_stride1 - 1) /
-                                 params.kernel_stride1;
-            }
+            out_pad_min_y  = (params.pad1 + params.kernel_stride1 - 1) / params.kernel_stride1;
+            out_pad_height = (params.out_height - in_pad_min_y + params.kernel_stride1 - 1) /
+                             params.kernel_stride1;
+        }
 
-            if(params.pad0 > 0 || params.pad1 > 0 || params.kernel_stride0 > 1 ||
-               params.kernel_stride1 > 1)
-            {
-                read_unit              = 1;
-                max_loads_per_readunit = out_pad_width * out_pad_height * params.batch_sz;
-            }
+        if(params.pad0 > 0 || params.pad1 > 0 ||
+           (result.passes == 1 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1)))
+        {
+            read_unit = (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0)
+                                                           ? 3
+                                                           : (out_pad_width % 2 == 0) ? 2 : 1;
+            // read_unit = (out_pad_width % 7 == 0) ? 7 : (out_pad_width % 5 == 0) ? 5 :
+            // (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0) ? 3 : (out_pad_width % 2
+            // == 0) ? 2 : 1;
+            max_loads_per_readunit = (out_pad_width / read_unit) * out_pad_height * params.batch_sz;
+        }
 
-            int out_read_sz         = n_lcl_out_maps * read_unit;
-            int in_read_sz          = n_lcl_in_maps * read_unit;
-            int out_channel_read_sz = out_channel_stride / read_unit;
-            int n_in_tile_block     = 8;
-            int n_lcl_out_map_once  = 8;
-            int n_lcl_in_map_once   = 8;
-            int accum_sz            = n_lcl_out_map_once * n_lcl_in_map_once;
+        int kernel_stride0 = params.kernel_stride0;
+        int kernel_stride1 = params.kernel_stride1;
 
-            const auto comp_options =
-                std::string(" -DMLO_GRP_SZ0=") + std::to_string(n_grp_size0) +
-                std::string(" -DMLO_GRP_SZ1=1 ") + std::string(" -DMLO_GRP_SZ2=1 ") +
-                std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(params.kernel_size0) +
-                std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(params.kernel_size1) +
-                std::string(" -DMLO_FILTER_PAD0=") + std::to_string(params.pad0) +
-                std::string(" -DMLO_FILTER_PAD1=") + std::to_string(params.pad1) +
-                std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(params.kernel_stride0) +
-                std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(params.kernel_stride1) +
-                std::string(" -DMLO_N_OUTPUTS=") + std::to_string(params.n_inputs) +
-                std::string(" -DMLO_N_INPUTS=") + std::to_string(params.n_outputs) +
-                std::string(" -DMLO_BATCH_SZ=") + std::to_string(params.batch_sz) +
-                std::string(" -DMLO_IN_WIDTH=") + std::to_string(params.out_width) +
-                std::string(" -DMLO_IN_HEIGHT=") + std::to_string(params.out_height) +
-                std::string(" -DMLO_OUT_WIDTH=") + std::to_string(params.in_width) +
-                std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(params.in_height) +
-                std::string(" -DMLO_N_LOAD_DWORDS_PER_MAP_ONCE=") +
-                std::to_string(n_load_dwords_per_map_once) + std::string(" -DMLO_N_LCL_IN_MAPS=") +
-                std::to_string(n_lcl_in_maps) + std::string(" -DMLO_N_LCL_OUT_MAPS=") +
-                std::to_string(n_lcl_out_maps) + std::string(" -DMLO_READ_UNIT=") +
-                std::to_string(read_unit) + std::string(" -DMLO_OUT_BATCH_STRIDE=") +
-                std::to_string(out_batch_stride) + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
-                std::to_string(out_channel_stride) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
-                std::to_string(in_batch_stride) + std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
-                std::to_string(in_channel_stride) + std::string(" -DMLO_WEI_BATCH_STRIDE=") +
-                std::to_string(wei_batch_stride) + std::string(" -DMLO_WEI_CHANNEL_STRIDE=") +
-                std::to_string(wei_channel_stride) + std::string(" -DMLO_MAX_LOADS=") +
-                std::to_string(max_loads_per_readunit) + std::string(" -DMLO_ACCUM_SZ=") +
-                std::to_string(accum_sz) + std::string(" -DMLO_OUT_READ_SZ=") +
-                std::to_string(out_read_sz) + std::string(" -DMLO_IN_READ_SZ=") +
-                std::to_string(in_read_sz) + std::string(" -DMLO_OUT_CHANNEL_READ_SZ=") +
-                std::to_string(out_channel_read_sz) + std::string(" -DMLO_N_IN_TILE_BLOCK=") +
-                std::to_string(n_in_tile_block) + std::string(" -DMLO_N_LCL_OUT_MAPS_ONCE=") +
-                std::to_string(n_lcl_out_map_once) + std::string(" -DMLO_N_LCL_IN_MAPS_ONCE=") +
-                std::to_string(n_lcl_in_map_once) + std::string(" -DMLO_IN_PAD_MIN_X=") +
-                std::to_string(in_pad_min_x) + std::string(" -DMLO_IN_PAD_MIN_Y=") +
-                std::to_string(in_pad_min_y) + std::string(" -DMLO_OUT_PAD_MIN_X=") +
-                std::to_string(out_pad_min_x) + std::string(" -DMLO_OUT_PAD_MIN_Y=") +
-                std::to_string(out_pad_min_y) + std::string(" -DMLO_OUT_PAD_WIDTH=") +
-                std::to_string(out_pad_width) + std::string(" -DMLO_OUT_PAD_HEIGHT=") +
-                std::to_string(out_pad_height) +
+        if(result.passes > 1 && params.pad1 == 0 && params.pad0 == 0 &&
+           (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
+        {
+            kernel_stride0 = 1;
+            kernel_stride1 = 1;
+        }
 
-                params.general_compile_options;
+        int out_read_sz         = n_lcl_out_maps * read_unit;
+        int in_read_sz          = n_lcl_in_maps * read_unit;
+        int out_channel_read_sz = out_channel_stride / read_unit;
+        int n_in_tile_block     = 8;
+        int n_lcl_out_map_once  = 8;
+        int n_lcl_in_map_once   = 8;
+        int accum_sz            = n_lcl_out_map_once * n_lcl_in_map_once;
 
+        int write_unit = (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0)
+                                                            ? 3
+                                                            : (out_pad_width % 2 == 0) ? 2 : 1;
+        int n_grp0_size0 = 256;
+        // real input strides
+        int in0_stride         = params.out_stride;
+        int in0_channel_stride = params.out_channel_stride;
+        int in0_batch_stride   = params.out_batch_stride;
+        int kernel0_stride0    = params.kernel_stride0;
+        int kernel0_stride1    = params.kernel_stride1;
+
+        if(params.n_passes)
+        {
+
+            return result;
+        }
+
+        const auto comp_options =
+            std::string(" -DMLO_GRP_SZ0=") + std::to_string(n_grp_size0) +
+            std::string(" -DMLO_GRP_SZ1=1 ") + std::string(" -DMLO_GRP_SZ2=1 ") +
+            std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
+            std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
+            std::string(" -DMLO_FILTER_SIZE0=") + std::to_string(params.kernel_size0) +
+            std::string(" -DMLO_FILTER_SIZE1=") + std::to_string(params.kernel_size1) +
+            std::string(" -DMLO_FILTER_PAD0=") + std::to_string(params.pad0) +
+            std::string(" -DMLO_FILTER_PAD1=") + std::to_string(params.pad1) +
+            std::string(" -DMLO_FILTER_STRIDE0=") + std::to_string(kernel_stride0) +
+            std::string(" -DMLO_FILTER_STRIDE1=") + std::to_string(kernel_stride1) +
+            std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(kernel0_stride0) +
+            std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(kernel0_stride1) +
+            std::string(" -DMLO_N_OUTPUTS=") + std::to_string(params.n_inputs) +
+            std::string(" -DMLO_N_INPUTS=") + std::to_string(params.n_outputs) +
+            std::string(" -DMLO_BATCH_SZ=") + std::to_string(params.batch_sz) +
+            std::string(" -DMLO_IN_WIDTH=") + std::to_string(in_width) +
+            std::string(" -DMLO_IN_HEIGHT=") + std::to_string(in_height) +
+            std::string(" -DMLO_OUT_WIDTH=") + std::to_string(params.in_width) +
+            std::string(" -DMLO_OUT_HEIGHT=") + std::to_string(params.in_height) +
+            std::string(" -DMLO_N_LOAD_DWORDS_PER_MAP_ONCE=") +
+            std::to_string(n_load_dwords_per_map_once) + std::string(" -DMLO_N_LCL_IN_MAPS=") +
+            std::to_string(n_lcl_in_maps) + std::string(" -DMLO_N_LCL_OUT_MAPS=") +
+            std::to_string(n_lcl_out_maps) + std::string(" -DMLO_READ_UNIT=") +
+            std::to_string(read_unit) + std::string(" -DMLO_WRITE_UNIT=") +
+            std::to_string(write_unit) + std::string(" -DMLO_OUT_BATCH_STRIDE=") +
+            std::to_string(out_batch_stride) + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
+            std::to_string(out_channel_stride) + std::string(" -DMLO_OUT_STRIDE=") +
+            std::to_string(out_stride) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
+            std::to_string(in_batch_stride) + std::string(" -DMLO_IN_CHANNEL_STRIDE=") +
+            std::to_string(in_channel_stride) + std::string(" -DMLO_IN_STRIDE=") +
+            std::to_string(in_stride) + std::string(" -DMLO_IN0_BATCH_STRIDE=") +
+            std::to_string(in0_batch_stride) + std::string(" -DMLO_IN0_CHANNEL_STRIDE=") +
+            std::to_string(in0_channel_stride) + std::string(" -DMLO_IN0_STRIDE=") +
+            std::to_string(in0_stride) + std::string(" -DMLO_WEI_BATCH_STRIDE=") +
+            std::to_string(wei_batch_stride) + std::string(" -DMLO_WEI_CHANNEL_STRIDE=") +
+            std::to_string(wei_channel_stride) + std::string(" -DMLO_MAX_LOADS=") +
+            std::to_string(max_loads_per_readunit) + std::string(" -DMLO_ACCUM_SZ=") +
+            std::to_string(accum_sz) + std::string(" -DMLO_OUT_READ_SZ=") +
+            std::to_string(out_read_sz) + std::string(" -DMLO_IN_READ_SZ=") +
+            std::to_string(in_read_sz) + std::string(" -DMLO_OUT_CHANNEL_READ_SZ=") +
+            std::to_string(out_channel_read_sz) + std::string(" -DMLO_N_IN_TILE_BLOCK=") +
+            std::to_string(n_in_tile_block) + std::string(" -DMLO_N_LCL_OUT_MAPS_ONCE=") +
+            std::to_string(n_lcl_out_map_once) + std::string(" -DMLO_N_LCL_IN_MAPS_ONCE=") +
+            std::to_string(n_lcl_in_map_once) + std::string(" -DMLO_IN_PAD_MIN_X=") +
+            std::to_string(in_pad_min_x) + std::string(" -DMLO_IN_PAD_MIN_Y=") +
+            std::to_string(in_pad_min_y) + std::string(" -DMLO_OUT_PAD_MIN_X=") +
+            std::to_string(out_pad_min_x) + std::string(" -DMLO_OUT_PAD_MIN_Y=") +
+            std::to_string(out_pad_min_y) + std::string(" -DMLO_OUT_PAD_WIDTH=") +
+            std::to_string(out_pad_width) + std::string(" -DMLO_OUT_PAD_HEIGHT=") +
+            std::to_string(out_pad_height) + std::string(" -DMLO_TWO_PASSES=") +
+            std::to_string((result.passes == 1) ? 0 : 1) + params.general_compile_options;
+
+        result.workspce_sz = 0;
+
+        if(result.passes > 1 && params.pad1 == 0 && params.pad0 == 0 &&
+           (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
+        {
+            KernelInfo kernel;
+
+            kernel.l_wk.push_back(n_grp0_size0);
+            kernel.l_wk.push_back(1);
+            kernel.l_wk.push_back(1);
+            // output is number of subsampled input maps
+            size_t gbl_wk0 = (in_batch_stride / write_unit);
+            size_t gbl_wk1 = params.batch_sz;
+            size_t gbl_wk2 = 1;
+
+            kernel.g_wk.push_back(gbl_wk0);
+            kernel.g_wk.push_back(gbl_wk1);
+            kernel.g_wk.push_back(gbl_wk2);
+
+            kernel.kernel_file = "MIOpenConvBwdWrW1x1_PAD_read4.cl";
+
+            kernel.kernel_name = "MIOpenSubsample";
+
+            kernel.comp_options = comp_options;
+
+            result.construction_params.push_back(kernel);
+
+            result.workspce_sz = in_batch_stride * params.batch_sz * sizeof(float);
+        }
+
+        {
             // std::cout << comp_options << std::endl;
 
             KernelInfo kernel;
@@ -302,7 +390,6 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             kernel.comp_options = comp_options;
 
             result.construction_params.push_back(kernel);
-            result.workspce_sz = 0;
         }
 
         return result;

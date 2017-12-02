@@ -67,7 +67,7 @@ macro(enable_cppcheck)
         --force
         # --report-progress
         --platform=native
-        --template '{file}:{line}: {severity} ({id}): {message}'
+        --template='{file}:{line}: {severity}[{id}]: {message}'
         --error-exitcode=1
         # -i /usr/local/include
         -j ${CPPCHECK_JOBS}

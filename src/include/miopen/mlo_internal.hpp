@@ -123,11 +123,14 @@ inline int AlignUp(int val, unsigned step)
     return ((val + step - 1) / step) * step;
 }
 
-enum rocm_meta_version
+enum class rocm_meta_version
 {
+    Unknown,
     V1,
     V2,
-    V3
+    V3,
+    AMDHSA_1_0,   // 1.0, see https://llvm.org/docs/AMDGPUUsage.html#code-object-metadata
+    Default = V3, // Assumption for HIP backend. To be updated together with ROCm release.
 };
 
 namespace miopen {
@@ -158,8 +161,8 @@ struct ProblemDescription
     int pad1             = 0;
     int kernel_stride0   = 0;
     int kernel_stride1   = 0;
-    int kernal_dilation0 = 0;
-    int kernal_dilation1 = 0;
+    int kernel_dilation0 = 0;
+    int kernel_dilation1 = 0;
     int bias             = 0;
     struct Direction
     {
@@ -190,6 +193,8 @@ struct ProblemDescription
     } direction;
     std::string in_layout;
     std::string in_data_type;
+    int GetBackwardPad0() const { return kernel_size0 - pad0 - 1; }
+    int GetBackwardPad1() const { return kernel_size1 - pad1 - 1; }
 
     void Serialize(std::ostream& stream) const
     {
@@ -205,7 +210,7 @@ struct ProblemDescription
             << sep << batch_sz
             << sep << pad1 << 'x' << pad0
             << sep << kernel_stride1 << 'x' << kernel_stride0
-            << sep << kernal_dilation1 << 'x' << kernal_dilation1
+            << sep << kernel_dilation1 << 'x' << kernel_dilation1
             << sep << bias
             << sep << in_layout
             << sep << in_data_type
@@ -240,6 +245,12 @@ struct ProblemDescription
             << sep << (direction.IsForward() ? "1" : "0"); // clang-format on
     }
 #endif
+
+    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
+    {
+        obj.Serialize(os);
+        return os;
+    }
 };
 
 /// A leftover of the legacy design, houses problem config,
@@ -269,7 +280,7 @@ struct ConvolutionContext : ProblemDescription
     int out_channel_stride = 0;
     int out_batch_stride   = 0;
     int n_timer_iter       = 0;
-    rocm_meta_version rmv  = V3;
+    rocm_meta_version rmv  = rocm_meta_version::Default;
     std::string general_compile_options;
 
     inline Handle& GetStream() const { return *_stream; }
@@ -355,8 +366,8 @@ struct mlo_construct_direct2D
         _search_params.kernel_size1     = 3;
         _search_params.kernel_stride0   = 1;
         _search_params.kernel_stride1   = 1;
-        _search_params.kernal_dilation0 = 1;
-        _search_params.kernal_dilation1 = 1;
+        _search_params.kernel_dilation0 = 1;
+        _search_params.kernel_dilation1 = 1;
         _search_params.deconvolution    = 0;
         _search_params.bot_sz           = 0; // bytes
         _search_params.top_sz           = 0; // bytes
@@ -395,24 +406,40 @@ struct mlo_construct_direct2D
     * arguments.
     */
     inline void getCompiledInParameters(
-        int* N, int* C, int* H, int* W, int* K, int* n_groups, int* R = nullptr, int* S = nullptr)
+        int* const N, int* const C, int* const H, int* const W, int* const K, int* const n_groups)
     {
         assert(N && C && H && W && K && n_groups);
-
         *N        = _search_params.batch_sz;
         *C        = _search_params.n_inputs;
         *H        = _search_params.in_height;
         *W        = _search_params.in_width;
         *K        = _search_params.n_outputs;
         *n_groups = _search_params.GetStream().GetMaxComputeUnits();
-        if(R)
-        {
-            *R = _search_params.kernel_size1;
-        } // R is height (sic!)
-        if(S)
-        {
-            *S = _search_params.kernel_size0;
-        }
+    }
+
+    inline void getCompiledInParameters(int* const N,
+                                        int* const C,
+                                        int* const H,
+                                        int* const W,
+                                        int* const K,
+                                        int* const n_groups,
+                                        int* const out_H,
+                                        int* const out_W,
+                                        int* const R,
+                                        int* const S,
+                                        int* const pad_H,
+                                        int* const pad_W)
+    {
+        getCompiledInParameters(N, C, H, W, K, n_groups);
+        assert(out_H && out_W && R && S && pad_H && pad_W);
+        *out_H = _search_params.out_height;
+        *out_W = _search_params.out_width;
+        *R     = _search_params.kernel_size1;
+        *S     = _search_params.kernel_size0;
+        *pad_H = _search_params.direction.IsForward() ? _search_params.pad1
+                                                      : _search_params.GetBackwardPad1();
+        *pad_W = _search_params.direction.IsForward() ? _search_params.pad0
+                                                      : _search_params.GetBackwardPad0();
     }
 
     /*
@@ -826,7 +853,7 @@ struct mlo_construct_direct2D
 
     std::string db_path() const { return _db_path ? _db_path : _search_params.GetPerfDbPath(); }
 
-    bool mloIsAmdOpenclRocm(rocm_meta_version& rmv) const;
+    bool mloIsAmdRocmOpencl(rocm_meta_version& rmv) const;
 
     int mloConstructBwd() { return (0); }
     int mloConstructFwd() { return (0); }
