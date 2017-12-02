@@ -548,7 +548,6 @@ struct copyTensorDesc
     int dims;
     int lens[5];
     int strides[5];
-    long realsize;
 };
 
 void CopyTensor(Handle& handle,
