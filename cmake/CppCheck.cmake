@@ -38,7 +38,7 @@ find_program(CPPCHECK_EXE
 ProcessorCount(CPPCHECK_JOBS)
 
 macro(enable_cppcheck)
-    set(options)
+    set(options FORCE)
     set(oneValueArgs)
     set(multiValueArgs CHECKS SUPPRESS DEFINE UNDEFINE INCLUDE SOURCES)
 
@@ -61,22 +61,26 @@ macro(enable_cppcheck)
         list(APPEND CPPCHECK_INCLUDES -include=${INC})
     endforeach()
 
+    # set(CPPCHECK_FORCE "--project=${CMAKE_BINARY_DIR}/compile_commands.json")
+    set(CPPCHECK_FORCE)
+    if(PARSE_FORCE)
+        set(CPPCHECK_FORCE --force)
+    endif()
+
     set(CPPCHECK_COMMAND 
         ${CPPCHECK_EXE}
         -q
-        --force
         # --report-progress
+        ${CPPCHECK_FORCE}
         --platform=native
         --template='{file}:{line}: {severity}[{id}]: {message}'
         --error-exitcode=1
-        # -i /usr/local/include
         -j ${CPPCHECK_JOBS}
         ${CPPCHECK_DEFINES}
         ${CPPCHECK_UNDEFINES}
         ${CPPCHECK_INCLUDES}
         "--enable=${CPPCHECK_CHECKS}"
         "--suppressions-list=${CMAKE_BINARY_DIR}/cppcheck-supressions"
-        # "--project=${CMAKE_BINARY_DIR}/compile_commands.json"
         ${PARSE_SOURCES}
     )
 
