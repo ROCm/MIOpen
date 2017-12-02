@@ -57,10 +57,10 @@ GemmGeometry CreateGemmGeometryTranBwdData(const TensorDescriptor& dyDesc,
 
     MIOpenGEMM::Geometry tgg{};
     GemmGeometry gg;
-    if (!isDataColMajor) 
+    if(!isDataColMajor)
     {
         tgg = MIOpenGEMM::Geometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f');
-        gg = GemmGeometry{"miopenTransposeBwdDataAlgoGEMM", alpha, beta, tgg};
+        gg  = GemmGeometry{"miopenTransposeBwdDataAlgoGEMM", alpha, beta, tgg};
     }
     else
     {
@@ -101,12 +101,12 @@ GemmGeometry CreateGemmGeometryConvBwdData(const TensorDescriptor& dyDesc,
 
     MIOpenGEMM::Geometry tgg{};
     GemmGeometry gg;
-	if (!isDataColMajor) 
+    if(!isDataColMajor)
     {
-		tgg = MIOpenGEMM::Geometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f'); 
-		gg = GemmGeometry{"miopenConvolutionBwdDataAlgoGEMM",alpha, beta, tgg };
-	}
-	else
+        tgg = MIOpenGEMM::Geometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f');
+        gg  = GemmGeometry{"miopenConvolutionBwdDataAlgoGEMM", alpha, beta, tgg};
+    }
+    else
     {
         tgg = MIOpenGEMM::Geometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f');
         gg  = GemmGeometry{"miopenConvolutionBwdDataAlgoGEMM", alpha, beta, tgg};
