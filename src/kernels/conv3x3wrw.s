@@ -61,6 +61,11 @@ gid_z = 4
    .ifnotdef \symbol
       \symbol = \value
    .endif
+   .if \symbol < 0
+      .error "\symbol is negative"
+      // reset to default - quiet further error messages
+      \symbol = \value
+   .endif
 .endm
 
 .macro static_assert fufufu

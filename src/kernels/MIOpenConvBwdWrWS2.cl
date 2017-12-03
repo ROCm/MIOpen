@@ -24,14 +24,33 @@
  *
  *******************************************************************************/
 
-#define _FLOAT float
-#define _FLOAT2 float2
-#define _FLOAT4 float4
-#define _FLOAT8 float8
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
 
-#ifndef FLT_MAX
-#define FLT_MAX 3.402823466e+38F /* max value */
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
 #endif
+#endif
+#if MIOPEN_USE_FP32 == 1
+#define _FLOAT float
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #define UNUSED __attribute__((__unused__))
 
@@ -144,9 +163,9 @@ input.
 //		until end of output map (MLO_N_OUT_BLK)
 //			load input map block in LDS
 //			load output maps in LDS
-//          for j in output scans
-//				for i in output scan interval
-//                  accumulate the weights into sub-tiles
+//		for j in output scans
+//			for i in output scan interval
+//				accumulate the weights into sub-tiles
 //
 //		reduce sub-tiles into a single filter for each output
 //		write accululated weights
@@ -567,7 +586,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             } // for(; og < (MLO_N_OUT_BLK_GRP; ++og )
 
             // move the input data tail inside LDS to reduce mem bandwidth
-            for(uint c_scan3 = 0; c_scan3 < (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1); ++c_scan3)
+            for(uint c_scan3 = 0; c_scan3 < (uint)(MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1);
+                ++c_scan3)
             {
                 barrier(CLK_LOCAL_MEM_FENCE);
 
