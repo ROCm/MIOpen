@@ -115,10 +115,10 @@ A single test can be built and ran, by doing:
 
 ```
 cmake --build . --config Release --target test_tensor
-./test/test_tensor
+./bin/test_tensor
 ```
 
-If building for HIP and `boost` was installed via `apt-get` in Ubuntu v16, add the following to the cmake line [above](#configure-with-cmake):
+If `boost` was installed via `apt-get` in Ubuntu v16, add the following to the cmake line [above](#configure-with-cmake):
 ```
 -DMIOPEN_MAKE_BOOST_PUBLIC=ON
 ```

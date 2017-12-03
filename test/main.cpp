@@ -39,9 +39,9 @@
 
 struct handle_fixture
 {
-    miopenHandle_t handle;
+    miopenHandle_t handle{};
 #if MIOPEN_BACKEND_OPENCL
-    cl_command_queue q;
+    cl_command_queue q{};
 #endif
 
     handle_fixture()
@@ -57,7 +57,7 @@ struct handle_fixture
 
 struct input_tensor_fixture
 {
-    miopenTensorDescriptor_t inputTensor;
+    miopenTensorDescriptor_t inputTensor{};
 
     input_tensor_fixture()
     {
@@ -90,10 +90,11 @@ struct input_tensor_fixture
 
 struct conv_filter_fixture : virtual handle_fixture
 {
-    miopenTensorDescriptor_t convFilter;
-    miopenConvolutionDescriptor_t convDesc;
+    miopenTensorDescriptor_t convFilter{};
+    miopenConvolutionDescriptor_t convDesc{};
 
-    static const miopenConvolutionMode_t mode = miopenConvolution;
+    static const miopenConvolutionMode_t c_mode = miopenConvolution;
+    static const miopenPaddingMode_t p_mode     = miopenPaddingDefault;
 
     conv_filter_fixture()
     {
@@ -108,7 +109,7 @@ struct conv_filter_fixture : virtual handle_fixture
 
         STATUS(miopenCreateConvolutionDescriptor(&convDesc));
         // convolution with padding 2
-        STATUS(miopenInitConvolutionDescriptor(convDesc, mode, 0, 0, 1, 1, 1, 1));
+        STATUS(miopenInitConvolutionDescriptor(convDesc, c_mode, 0, 0, 1, 1, 1, 1));
     }
     ~conv_filter_fixture()
     {
@@ -119,12 +120,12 @@ struct conv_filter_fixture : virtual handle_fixture
     void run()
     {
         // TODO: Update API to not require mode by pointer
-        miopenConvolutionMode_t lmode = mode;
+        miopenConvolutionMode_t lcmode = c_mode;
         int pad_w, pad_h, u, v, upx, upy;
         STATUS(
-            miopenGetConvolutionDescriptor(convDesc, &lmode, &pad_h, &pad_w, &u, &v, &upx, &upy));
+            miopenGetConvolutionDescriptor(convDesc, &lcmode, &pad_h, &pad_w, &u, &v, &upx, &upy));
 
-        EXPECT(mode == 0);
+        EXPECT(lcmode == 0);
         EXPECT(pad_h == 0);
         EXPECT(pad_w == 0);
         EXPECT(u == 1);
@@ -136,7 +137,7 @@ struct conv_filter_fixture : virtual handle_fixture
 
 struct output_tensor_fixture : conv_filter_fixture, input_tensor_fixture
 {
-    miopenTensorDescriptor_t outputTensor;
+    miopenTensorDescriptor_t outputTensor{};
     output_tensor_fixture()
     {
         int x, y, z, a;

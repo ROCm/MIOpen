@@ -24,34 +24,21 @@
  *
  *******************************************************************************/
 
-#include "miopen/db_record.hpp"
-#include "miopen/solver.hpp"
+#include <miopen/solver.hpp>
+#include <ostream>
 
 namespace miopen {
 namespace solver {
 
-ConvSolution Solver::FindSolution(const ConvolutionContext& context, DbRecord& dbRecord) const
+std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
 {
-    std::unique_ptr<PerformanceConfig> config = PerformanceConfigImpl();
-    if(!IsSearchable())
-    {
-        InitPerformanceConfigImpl(context, *config);
-        return GetSolution(context, *config);
-    }
-    if(dbRecord.Load(SolverId(), *config))
-    {
-        return GetSolution(context, *config);
-    }
-    if(context.do_search)
-    {
-        Search(context, *config);
-        dbRecord.Store(SolverId(), *config);
-    }
-    else
-    {
-        InitPerformanceConfigImpl(context, *config);
-    }
-    return GetSolution(context, *config);
+    os << k.kernel_file << ", " << k.kernel_name << " g_wk={ ";
+    for(const auto& size : k.g_wk)
+        os << size << ' ';
+    os << "}, l_wk={ ";
+    for(const auto& size : k.l_wk)
+        os << size << ' ';
+    return os << "} '" << k.comp_options << '\'';
 }
 
 } // namespace solver

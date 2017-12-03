@@ -32,6 +32,10 @@ namespace solver {
 
 bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
 {
+    // FIE ME:  it sounds a bug to enable kernel_size1x1 from original condition
+    if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
+        return false;
+
     return ((params.kernel_size0 >= params.kernel_size1) &&
             ((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) ||
              (params.kernel_size0 > 5) || (params.kernel_size0 == 5 && params.in_width >= 64))) ||
@@ -39,8 +43,7 @@ bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
             (params.kernel_size0 != 1 || params.kernel_size1 != 1));
 }
 
-ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
-                                         const PerformanceConfig&) const
+ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
 {
     static const char* s_stride_table[32][2] = {
         //
@@ -92,7 +95,7 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
     result.n_out_pix_tiles = 2;
     int read_unit          = 6;
 
-    int N_ALIGNED_OUT_SCAN_BLK = (params.out_width > 512) ? 1 : 2;
+    int N_ALIGNED_OUT_SCAN_BLK = 2;
 
     if(found)
     {
@@ -183,10 +186,12 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params,
     std::string UT_READ_TYPE =
         (ut_read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((ut_read_unit));
 
+    if(!params.direction.IsBackwardWrW())
+        MIOPEN_THROW("!params.direction.IsBackwardWrW()");
     // it's backward - inputs are outputs and vs versa
     const auto comp_options =
-        std::string(" -DMLO_DIR_FORWARD=") + std::to_string((params.forward)) +
-        std::string(" -DMLO_GRP_SZ=") + std::to_string((GRP_SZ)) + std::string(" -DMLO_GRP_SZ0=") +
+        std::string(" -DMLO_DIR_FORWARD=0") + std::string(" -DMLO_GRP_SZ=") +
+        std::to_string((GRP_SZ)) + std::string(" -DMLO_GRP_SZ0=") +
         std::to_string((result.grp_tile0)) + std::string(" -DMLO_GRP_SZ1=") +
         std::to_string((result.grp_tile1)) + std::string(" -DMLO_GRP_SZ2=") +
         std::to_string((grp_tile2)) + std::string(" -DMLO_FILTER_SIZE0=") +

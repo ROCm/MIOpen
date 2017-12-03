@@ -48,7 +48,7 @@
 // Run CPU emulations in hierarchical reduction mode.
 //#define MIO_HEIRARCH_SEL 0
 #define MIO_BN_TEST_EXPAVGFACTOR 0.1
-#define MIO_BN_TEST_EPSILON 1e-6
+#define MIO_BN_TEST_EPSILON 1e-5
 
 //****************************************************
 // FORWARD TRAIN
@@ -577,7 +577,6 @@ struct verify_backward_bn_per_activation_use_saved
                         dxhathat += tmp1 * xhat[xhat_index];
 
                     } // end for(n_batchs)
-                    dscale(0, cidx, row, column) /= n;
 
                     for(int bidx = 0; bidx < n_batch; bidx++)
                     { // via mini_batch
@@ -771,7 +770,6 @@ struct verify_backward_bn_per_activation_recalc
                         dxhathat += tmp1 * xhat[xhat_index];
 
                     } // end for(n_batchs)
-                    dscale(0, cidx, row, column) /= n;
 
                     for(int bidx = 0; bidx < n_batch; bidx++)
                     { // via mini_batch

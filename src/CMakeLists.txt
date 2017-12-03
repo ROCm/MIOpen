@@ -61,6 +61,7 @@ set( MIOpen_Source
     convolution_api.cpp
     convolution_fft.cpp
     db_record.cpp
+    find_controls.cpp
     load_file.cpp
     pooling_api.cpp
     kernel_warnings.cpp
@@ -72,6 +73,7 @@ set( MIOpen_Source
     batch_norm.cpp
     batch_norm_api.cpp
     include/miopen/db_record.hpp
+    include/miopen/find_controls.hpp
     include/miopen/batch_norm.hpp
     include/miopen/check_numerics.hpp
     include/miopen/common.hpp
@@ -99,7 +101,7 @@ set( MIOpen_Source
     solver/conv_asm_7x7c3h224w224k64u2v2p3q3f1.cpp
     solver/conv_asm_dir_BwdWrW3x3.cpp
     solver/conv_bin_wino3x3U.cpp
-    solver/conv_bin_winoRxSFwd.cpp
+    solver/conv_bin_winoRxS.cpp
     solver/conv_ocl_dir2D_bwdWrW_2.cpp
     solver/conv_ocl_dir2D_bwdWrW_53.cpp
     solver/conv_ocl_dir2D_bwdWrW_1x1.cpp
@@ -112,9 +114,7 @@ set( MIOpen_Source
     solver/conv_ocl_dir2Dfwd1x1.cpp
     )
 
-if(MIOPEN_USE_CACHE)
-    list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
-endif()
+list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     set(MIOPEN_KERNELS
@@ -143,6 +143,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvBwdWrWS2.cl
         kernels/MIOpenConvBwdWrW_LxG_P53.cl
         kernels/MIOpenConvBwdWrW_LxG_5x5.cl
+        kernels/MIOpenConvBwdWrW1x1_PAD_read4.cl
         kernels/MIOpenConvBwdWrW1x1.cl
         kernels/MIOpenConvBwdWrW1x1Mmap.cl
         kernels/MIOpenConvFwd_LxL_11.cl
@@ -154,11 +155,21 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv7x7c3h224w224k64u2v2p3q3f1.s
         kernels/MIOpenTensorKernels.cl
         kernels/MIOpenTensorScaleKernel.cl
-        kernels/conv_u1v1_wheel_alpha_v8_4_4_gfx803.so
-        kernels/conv_u1v1_wheel_alpha_v8_4_4_gfx900.so
-        kernels/conv_u2v2_wheel_alpha_v8_4_4_gfx803.so
-        kernels/conv_u2v2_wheel_alpha_v8_4_4_gfx900.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx803_m30.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx803_m30.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx803_m30.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx900_m30.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx900_m30.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx900_m30.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx803_md10.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx803_md10.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx803_md10.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_gfx900_md10.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx900_md10.so
+        kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx900_md10.so
+        kernels/conv_3x3_wheel_alpha_v7_0_3b_gfx900_md10.so
         kernels/conv_3x3_wheel_alpha_v7_0_3b_gfx900.so
+        kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_md10.so
         kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so
         kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so
         kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so
@@ -286,7 +297,6 @@ if(WIN32 AND NOT MSVC)
     target_link_libraries(MIOpen PUBLIC -Wl,--whole-archive -lgcc -lstdc++-6 -Wl,--no-whole-archive -Wl,--allow-multiple-definition)
 endif()
 
-if(MIOPEN_USE_CACHE)
 target_link_libraries(MIOpen PRIVATE OpenSSL::Crypto)
 target_include_directories(MIOpen PUBLIC $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>)
 set(MIOPEN_MAKE_BOOST_PUBLIC Off CACHE BOOL "")
@@ -301,14 +311,23 @@ target_link_libraries(MIOpen ${MIOPEN_BOOST_LIB_VISIBILITY}
     debug ${Boost_FILESYSTEM_LIBRARY_DEBUG} 
     debug ${Boost_SYSTEM_LIBRARY_DEBUG}
 )
-if(UNIX)
-    if(NOT BUILD_DEV)
-        set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET hidden)
-        if(NOT APPLE)
-            target_link_libraries(MIOpen PRIVATE "-Wl,--exclude-libs,ALL")
-        endif()
-    endif()
-endif()
+if(NOT WIN32 AND NOT APPLE)
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/lib.def "
+MIOPEN_${MIOPEN_BACKEND}_1
+{
+global:
+    *;
+local:
+    *;
+};
+")
+    target_link_libraries(MIOpen PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_BINARY_DIR}/lib.def")
+    # if(NOT BUILD_DEV)
+    #     set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET hidden)
+    #     if(NOT APPLE)
+    #         target_link_libraries(MIOpen PRIVATE "-Wl,--exclude-libs,ALL")
+    #     endif()
+    # endif()
 endif()
 
 ############################################################

@@ -66,6 +66,10 @@ endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(CLANG_TIDY_FIXIT_DIR ${CMAKE_BINARY_DIR}/fixits)
+file(MAKE_DIRECTORY ${CLANG_TIDY_FIXIT_DIR})
+set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${CLANG_TIDY_FIXIT_DIR})
+
 macro(enable_clang_tidy)
     set(options ANALYZE_TEMPORARY_DTORS)
     set(oneValueArgs HEADER_FILTER)
@@ -88,6 +92,12 @@ macro(enable_clang_tidy)
         set(CLANG_TIDY_ERRORS_ARG "-warnings-as-errors='${CLANG_TIDY_ERRORS}'")
     endif()
 
+    if (${CLANG_TIDY_VERSION} VERSION_LESS "3.9.0")
+        set(CLANG_TIDY_QUIET_ARG "")
+    else()
+        set(CLANG_TIDY_QUIET_ARG "-quiet")
+    endif()
+
     if(PARSE_HEADER_FILTER)
         string(REPLACE "$" "$$" CLANG_TIDY_HEADER_FILTER "${PARSE_HEADER_FILTER}")
     else()
@@ -96,7 +106,7 @@ macro(enable_clang_tidy)
 
     set(CLANG_TIDY_COMMAND 
         ${CLANG_TIDY_EXE}
-        -quiet 
+        ${CLANG_TIDY_QUIET_ARG} 
         -p ${CMAKE_BINARY_DIR} 
         -checks='${CLANG_TIDY_CHECKS}'
         ${CLANG_TIDY_ERRORS_ARG}
@@ -105,6 +115,11 @@ macro(enable_clang_tidy)
         -header-filter='${CLANG_TIDY_HEADER_FILTER}'
     )
     add_custom_target(tidy)
+    add_custom_target(tidy-base)
+    add_custom_target(tidy-make-fixit-dir COMMAND ${CMAKE_COMMAND} -E make_directory ${CLANG_TIDY_FIXIT_DIR})
+    add_custom_target(tidy-rm-fixit-dir COMMAND ${CMAKE_COMMAND} -E remove_directory ${CLANG_TIDY_FIXIT_DIR})
+    add_dependencies(tidy-make-fixit-dir tidy-rm-fixit-dir)
+    add_dependencies(tidy-base tidy-make-fixit-dir)
 endmacro()
 
 function(clang_tidy_check TARGET)
@@ -114,14 +129,16 @@ function(clang_tidy_check TARGET)
     # COMMAND ${CLANG_TIDY_COMMAND} $<JOIN:$<TARGET_PROPERTY:${TARGET},SOURCES>, >
     foreach(SOURCE ${SOURCES})
         if(NOT "${SOURCE}" MATCHES "(h|hpp|hxx)$")
+            set(tidy_target tidy-target-${TARGET}-${tidy_file})
             string(MAKE_C_IDENTIFIER "${SOURCE}" tidy_file)        
-            add_custom_target(tidy-${TARGET}-${tidy_file}
-                COMMAND ${CLANG_TIDY_COMMAND} ${SOURCE}
+            add_custom_target(${tidy_target}
+                COMMAND ${CLANG_TIDY_COMMAND} ${SOURCE} "-export-fixes=${CLANG_TIDY_FIXIT_DIR}/${TARGET}-${tidy_file}.yaml"
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                 COMMENT "clang-tidy: Running clang-tidy on target ${SOURCE}..."
             )
-            add_dependencies(tidy-${TARGET}-${tidy_file} ${TARGET})
-            add_dependencies(tidy tidy-${TARGET}-${tidy_file})
+            add_dependencies(${tidy_target} ${TARGET})
+            add_dependencies(${tidy_target} tidy-base)
+            add_dependencies(tidy ${tidy_target})
         endif()
     endforeach()
 endfunction()

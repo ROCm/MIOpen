@@ -50,6 +50,12 @@ include(ROCMSetupVersion)
 include(ROCMInstallSymlinks)
 include(ROCMCreatePackage)
 
+# Strip symbols for release
+if(NOT WIN32 AND NOT APPLE)
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
+endif()
+
 rocm_setup_version(VERSION 1.1.5)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
@@ -136,12 +142,10 @@ else()
     set(MIOPEN_USE_MIOPENGEMM 0)
 endif()
 
-find_package(OpenSSL)
+find_package(OpenSSL REQUIRED)
 set(BOOST_COMPONENTS filesystem system)
 add_definitions(-DBOOST_ALL_NO_LIB=1)
-find_package(Boost COMPONENTS ${BOOST_COMPONENTS})
-
-set(MIOPEN_USE_CACHE On CACHE BOOL "")
+find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 
@@ -179,6 +183,7 @@ include(ClangTidy)
 enable_clang_tidy(
     CHECKS 
         *
+        -cert-env33-c
         -android-cloexec-fopen
         # Yea we shouldn't be using rand()
         -cert-msc30-c
@@ -187,6 +192,7 @@ enable_clang_tidy(
         -clang-analyzer-optin.performance.Padding
         -clang-diagnostic-deprecated-declarations
         -clang-diagnostic-extern-c-compat
+        -clang-diagnostic-unused-command-line-argument
         -cppcoreguidelines-pro-bounds-array-to-pointer-decay
         -cppcoreguidelines-pro-bounds-constant-array-index
         -cppcoreguidelines-pro-bounds-pointer-arithmetic
@@ -202,6 +208,7 @@ enable_clang_tidy(
         -google-runtime-references
         -hicpp-braces-around-statements
         -hicpp-explicit-conversions
+        -hicpp-no-array-decay
         # We really shouldn't use bitwise operators with signed integers, but
         # opencl leaves us no choice
         -hicpp-signed-bitwise

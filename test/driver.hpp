@@ -29,11 +29,12 @@
 #include "network_data.hpp"
 #include "tensor_holder.hpp"
 #include "test.hpp"
-#include "type_name.hpp"
 #include "verify.hpp"
 
 #include <functional>
+#include <deque>
 #include <miopen/functional.hpp>
+#include <miopen/type_name.hpp>
 
 struct rand_gen
 {
@@ -43,7 +44,7 @@ struct rand_gen
         static_assert(sizeof...(Ts) < 6, "Dimensions in rand_gen must be less than 6.");
         std::array<unsigned long, sizeof...(Ts)> left = {{Xs...}};
         std::array<unsigned long, 5> right            = {{613, 547, 701, 877, 1049}};
-        unsigned long dot = std::inner_product(left.begin(), left.end(), right.begin(), 173);
+        unsigned long dot = std::inner_product(left.begin(), left.end(), right.begin(), 173ul);
         return double(dot % 17);
     };
 };
@@ -60,10 +61,16 @@ struct test_driver
         std::vector<std::function<void()>> post_write_actions;
         std::vector<std::function<void(std::function<void()>)>> data_sources;
         std::string type;
+        std::string name;
+
+        // Function may refer to the argument by reference so this needs to be noncopyable
+        argument()                = default;
+        argument(const argument&) = delete;
+        argument& operator=(const argument&) = delete;
 
         void post_write()
         {
-            for(auto pw : post_write_actions)
+            for(const auto& pw : post_write_actions)
             {
                 pw();
             }
@@ -89,13 +96,22 @@ struct test_driver
         }
     };
 
-    std::unordered_map<std::string, argument> arguments;
+    std::deque<argument> arguments;
+    std::unordered_map<std::string, std::size_t> argument_index;
     bool full_set    = false;
     bool verbose     = false;
     double tolerance = 80;
     bool time        = false;
     int batch_factor = 0;
     bool no_validate = false;
+
+    argument& get_argument(const std::string& s)
+    {
+        assert(arguments.at(argument_index.at(s)).name == s);
+        return arguments.at(argument_index.at(s));
+    }
+
+    bool has_argument(const std::string& arg) { return argument_index.count(arg) > 0; }
 
     template <class Visitor>
     void parse(Visitor v)
@@ -122,13 +138,16 @@ struct test_driver
     template <class T, class... Fs>
     void add(T& x, std::string name, Fs... fs)
     {
-        arguments.insert(std::make_pair(name, argument{}));
+        argument_index.insert(std::make_pair(name, arguments.size()));
+        arguments.emplace_back();
 
-        argument& arg   = arguments[name];
-        arg.type        = get_type_name<T>();
+        argument& arg   = arguments.back();
+        arg.name        = name;
+        arg.type        = miopen::get_type_name<T>();
         arg.write_value = [&](std::vector<std::string> params) { args::write_value{}(x, params); };
         miopen::each_args(std::bind(per_arg{}, std::ref(x), std::ref(arg), std::placeholders::_1),
                           fs...);
+        assert(get_argument(name).name == name);
     }
 
     template <class X>
@@ -203,7 +222,7 @@ struct test_driver
     template <class X>
     struct generate_data_t
     {
-        std::function<std::vector<X>()> get_data;
+        std::function<X()> get_data;
         template <class T>
         void operator()(T& x, argument& arg) const
         {
@@ -212,7 +231,7 @@ struct test_driver
     };
 
     template <class T>
-    generate_data_t<T> generate_data(std::vector<T> dims, T single)
+    generate_data_t<std::vector<T>> generate_data(std::vector<T> dims, T single)
     {
         return {[=]() -> std::vector<T> {
             if(full_set)
@@ -223,20 +242,20 @@ struct test_driver
     }
 
     template <class T>
-    generate_data_t<T> generate_data(std::initializer_list<T> dims)
+    generate_data_t<std::vector<T>> generate_data(std::initializer_list<T> dims)
     {
         return generate_data(std::vector<T>(dims));
     }
 
     template <class T>
-    generate_data_t<std::vector<T>>
+    generate_data_t<std::vector<std::vector<T>>>
     generate_data(std::initializer_list<std::initializer_list<T>> dims)
     {
         return generate_data(std::vector<std::vector<T>>(dims.begin(), dims.end()));
     }
 
     template <class T>
-    generate_data_t<T> generate_data(std::vector<T> dims)
+    generate_data_t<std::vector<T>> generate_data(std::vector<T> dims)
     {
         return {[=]() -> std::vector<T> {
             if(full_set)
@@ -246,8 +265,30 @@ struct test_driver
         }};
     }
 
+    template <class F, class T>
+    auto lazy_generate_data(F f, T single) -> generate_data_t<decltype(f())>
+    {
+        return {[=]() -> decltype(f()) {
+            if(full_set)
+                return f();
+            else
+                return {single};
+        }};
+    }
+
+    template <class F>
+    auto lazy_generate_data(F f) -> generate_data_t<decltype(f())>
+    {
+        return {[=]() -> decltype(f()) {
+            if(full_set)
+                return f();
+            else
+                return {f().front()};
+        }};
+    }
+
     template <class T>
-    generate_data_t<T> generate_single(T single)
+    generate_data_t<std::vector<T>> generate_single(T single)
     {
         return {[=]() -> std::vector<T> { return {single}; }};
     }
@@ -394,6 +435,70 @@ struct test_driver
             throw;
         }
     }
+
+    template <class V, class... Ts>
+    auto verify_equals(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
+    {
+        if(verbose or time)
+            v.fail(std::integral_constant<int, -1>{}, xs...);
+        try
+        {
+            auto&& h = get_handle();
+            if(time)
+            {
+                h.EnableProfiling();
+                h.ResetKernelTime();
+            }
+            auto gpu = v.gpu(xs...);
+            if(time)
+            {
+                std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
+                h.EnableProfiling(false);
+            }
+            if(no_validate)
+            {
+                return std::make_pair(gpu, gpu);
+            }
+            else
+            {
+                auto cpu = v.cpu(xs...);
+
+                if(miopen::range_zero(cpu))
+                {
+                    std::cout << "Cpu data is all zeros" << std::endl;
+                    v.fail(-1, xs...);
+                }
+
+                if(miopen::range_zero(gpu))
+                {
+                    std::cout << "Gpu data is all zeros" << std::endl;
+                    v.fail(-1, xs...);
+                }
+
+                auto idx = miopen::mismatch_idx(cpu, gpu, miopen::float_equal);
+                if(idx < miopen::range_distance(cpu))
+                {
+                    std::cout << "Mismatch at " << idx << ": " << cpu[idx] << " != " << gpu[idx]
+                              << std::endl;
+                    v.fail(-1, xs...);
+                }
+
+                return std::make_pair(cpu, gpu);
+            }
+        }
+        catch(const std::exception& ex)
+        {
+            std::cout << "FAILED: " << ex.what() << std::endl;
+            v.fail(-1, xs...);
+            throw;
+        }
+        catch(...)
+        {
+            std::cout << "FAILED with unknown exception" << std::endl;
+            v.fail(-1, xs...);
+            throw;
+        }
+    }
 };
 
 template <class Iterator, class Action>
@@ -473,14 +578,14 @@ struct show_help
     {
         std::cout << std::endl;
         std::string prefix = "    ";
-        for(std::string a : x)
+        for(const std::string& a : x)
         {
             std::cout << prefix;
             std::cout << a;
             prefix = ", ";
         }
         if(not std::is_same<T, bool>{})
-            std::cout << " [" << get_type_name<T>() << "]";
+            std::cout << " [" << miopen::get_type_name<T>() << "]";
         std::cout << std::endl;
         std::cout << "        " << help << std::endl;
     }
@@ -496,7 +601,7 @@ void test_drive(int argc, const char* argv[])
     d.parse(keyword_set{keywords});
     auto arg_map = args::parse(as, [&](std::string x) {
         return (keywords.count(x) > 0) or
-               ((x.compare(0, 2, "--") == 0) and d.arguments.count(x.substr(2)) > 0);
+               ((x.compare(0, 2, "--") == 0) and d.has_argument(x.substr(2)) > 0);
     });
 
     // Show help
@@ -506,11 +611,11 @@ void test_drive(int argc, const char* argv[])
         d.parse(show_help{});
         std::cout << std::endl;
         std::cout << "Test inputs: " << std::endl;
-        for(auto&& p : d.arguments)
+        for(auto&& arg : d.arguments)
         {
-            std::cout << "    --" << p.first;
-            if(not p.second.type.empty())
-                std::cout << " [" << p.second.type << "]";
+            std::cout << "    --" << arg.name;
+            if(not arg.type.empty())
+                std::cout << " [" << arg.type << "]";
             std::cout << std::endl;
         }
         std::cout << std::endl;
@@ -527,7 +632,7 @@ void test_drive(int argc, const char* argv[])
             auto name = p.first.substr(2);
             try
             {
-                auto&& arg = d.arguments.at(name);
+                auto&& arg = d.get_argument(name);
                 arg.write(p.second);
             }
             catch(const std::exception& ex)
@@ -552,11 +657,11 @@ void test_drive(int argc, const char* argv[])
 
     // Run data on arguments that are not passed in
     std::vector<typename Driver::argument*> data_args;
-    for(auto&& p : d.arguments)
+    for(auto&& arg : d.arguments)
     {
-        if(arg_map.count("--" + p.first) == 0)
+        if(arg_map.count("--" + arg.name) == 0)
         {
-            data_args.push_back(&p.second);
+            data_args.push_back(&arg);
         }
     }
 
