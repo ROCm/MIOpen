@@ -41,21 +41,26 @@ void SetTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const vo
 
 void OpTensor(Handle& handle,
               miopenTensorOp_t tensorOp,
-              const void* alpha1,
+              const void* alpha0,
               const TensorDescriptor& aTensorDesc,
               ConstData_t ATensor,
-              const void* alpha2,
+              const void* alpha1,
               const TensorDescriptor& bTensorDesc,
               ConstData_t BTensor,
               const void* beta,
               const TensorDescriptor& cTensorDesc,
-              Data_t CTensor);
+              Data_t CTensor,
+              size_t Aoffset = 0,
+              size_t Boffset = 0,
+              size_t Coffset = 0);
 
 void CopyTensor(Handle& handle,
                 const TensorDescriptor& srcDesc,
                 ConstData_t src,
                 const TensorDescriptor& destDesc,
-                Data_t dest);
+                Data_t dest,
+                int srcOffset  = 0,
+                int destOffset = 0);
 
 } // namespace miopen
 #endif // GUARD_MIOPEN_TENSOR_OPPS_HPP_

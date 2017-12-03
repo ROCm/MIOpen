@@ -122,6 +122,27 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
                         epsilon,
                         resultSaveMean,
                         resultSaveInvVariance);
+
+    if(miopen::IsLoggingCmd())
+    {
+        std::cerr << MIOPEN_DRIVER_CMD("bnorm") << " -n " << miopen::deref(xDesc).GetLengths()[0]
+                  << " -c " << miopen::deref(xDesc).GetLengths()[1] << " -H "
+                  << miopen::deref(xDesc).GetLengths()[2] << " -W "
+                  << miopen::deref(xDesc).GetLengths()[3]
+
+                  << " -m " << bn_mode;
+
+        if(resultRunningMean && resultRunningVariance)
+        {
+            std::cerr << " -s " << 1;
+        }
+        if(resultSaveMean && resultSaveInvVariance)
+        {
+            std::cerr << " -r " << 1;
+        }
+        std::cerr << "\n";
+    }
+
     return miopen::try_([&] {
         miopen::BatchNormForwardTraining(miopen::deref(handle),
                                          bn_mode,
@@ -179,6 +200,10 @@ miopenBatchNormalizationBackward(miopenHandle_t handle,
                         epsilon,
                         savedMean,
                         savedInvVariance);
+    if(miopen::IsLoggingCmd())
+    {
+        std::cerr << MIOPEN_DRIVER_CMD("bnorm") << "\n";
+    }
     return miopen::try_([&] {
         miopen::BatchNormBackward(miopen::deref(handle),
                                   bn_mode,

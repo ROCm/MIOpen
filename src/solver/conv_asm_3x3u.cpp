@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include <unordered_map>
+#include <sstream>
 #include "miopen/env.hpp"
 #include "miopen/solver.hpp"
 #include "miopen/handle.hpp"
@@ -38,6 +39,11 @@ namespace solver {
 bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
 {
     if(!params.assembler_available)
+    {
+        return false;
+    }
+    if(!(params.rmv == rocm_meta_version::V1 || params.rmv == rocm_meta_version::V2 ||
+         params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
     {
         return false;
     }
@@ -58,8 +64,7 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
 
 bool ConvAsm3x3U::IsFast(const ConvolutionContext& params) const { return params.in_width >= 50; }
 
-ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
-                                      const PerformanceConfig&) const
+ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
     std::string perf_vals;
@@ -97,18 +102,18 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
                 {MakeLutKey(240, 24, 16, 16, 32, 0), "420"},
                 {MakeLutKey(240, 24, 16, 16, 32, 1), "810"},
             });
-            const auto key = params.forward ? MakeLutKey(params.in_width,
-                                                         params.in_height,
-                                                         params.n_inputs,
-                                                         params.batch_sz,
-                                                         params.n_outputs,
-                                                         1)
-                                            : MakeLutKey(params.in_width,
-                                                         params.in_height,
-                                                         params.n_outputs,
-                                                         params.batch_sz,
-                                                         params.n_inputs,
-                                                         0);
+            const auto key = params.direction.IsForward() ? MakeLutKey(params.in_width,
+                                                                       params.in_height,
+                                                                       params.n_inputs,
+                                                                       params.batch_sz,
+                                                                       params.n_outputs,
+                                                                       1)
+                                                          : MakeLutKey(params.in_width,
+                                                                       params.in_height,
+                                                                       params.n_outputs,
+                                                                       params.batch_sz,
+                                                                       params.n_inputs,
+                                                                       0);
             const auto found = perf_vals_map.find(key);
             if(found != perf_vals_map.end())
             {
@@ -129,15 +134,20 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "img_height", params.in_height);
     GenerateClangDefsym(options, "input_channels", params.n_inputs);
     GenerateClangDefsym(options, "output_channels", params.n_outputs);
-    GenerateClangDefsym(options, "weights_layout", params.forward ? 0 : 1);
-    GenerateClangDefsym(options, "reverse_weights", params.forward ? 0 : 1);
+    GenerateClangDefsym(options, "weights_layout", params.direction.IsForward() ? 0 : 1);
+    GenerateClangDefsym(options, "reverse_weights", params.direction.IsForward() ? 0 : 1);
     GenerateClangDefsym(options, "filters_per_wave", filters_per_wave);
     GenerateClangDefsym(options, "output_lines_per_wave", output_lines_per_wave);
     GenerateClangDefsym(options, "limit_wave_cnt", limit_wave_cnt);
     GenerateClangDefsym(options, "no_params_file", 1);
     GenerateClangDefsym(options, "enable_debug_output", 0);
-    GenerateClangDefsym(
-        options, "ROCM_METADATA_VERSION", (params.rmv == V1) ? 1 : ((params.rmv == V2) ? 2 : 3));
+    GenerateClangDefsym(options,
+                        "ROCM_METADATA_VERSION",
+                        (params.rmv == rocm_meta_version::V1)
+                            ? 1
+                            : (params.rmv == rocm_meta_version::V2)
+                                  ? 2
+                                  : (params.rmv == rocm_meta_version::V3) ? 3 : 4);
 
     KernelInfo construction_params;
     construction_params.comp_options = options.str();

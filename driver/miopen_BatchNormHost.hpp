@@ -38,8 +38,9 @@
 
 template <typename T>
 int miopenBNFwdTrainPerActivationRunHost(
-    /*	T alpha,
-            T beta,
+    /*
+        T alpha,
+        T beta,
     */
     int n_batchs,
     int channels,
@@ -743,7 +744,6 @@ int miopenBNBwdPerActivationRunHost(
                         dxhat += tmp1;
                         dxhathat += tmp1 * xhat[xhat_index];
                     } // end for(n_batchs)
-                    dscale_ptr[adjIndex] /= double(n_batchs);
 
                     for(int bidx = 0; bidx < n_batchs; bidx++)
                     { // via mini_batch
@@ -812,7 +812,6 @@ int miopenBNBwdPerActivationRunHost(
                         dxhat += tmp1;
                         dxhathat += tmp1 * xhat[xhat_index];
                     } // end for(n_batchs)
-                    dscale_ptr[adjIndex] /= double(n_batchs);
 
                     for(int bidx = 0; bidx < n_batchs; bidx++)
                     { // via mini_batch
@@ -891,7 +890,7 @@ int miopenBNBwdSpatialRunHost(
                     } // end for(n_batchs)
                 }     // for (column)
             }         // for (row)
-            dscale_ptr[cidx] /= NHW;
+
             // process the batch per channel
             for(int row = 0; row < height; row++)
             { // via rows
@@ -1087,17 +1086,15 @@ int miopenBNBwdSpatialRunHost(
             }
 #endif
 
-            dscale_ptr[cidx] /= NHW;
 // printf("dscale: %f\n",dscale_ptr[cidx]);
 // printf("dbias: %f\n",dbias_ptr[cidx]);
-// printf("HELLO BASTARDS!!!");
+
 #if(MIO_HEIRARCH_SEL == 0)
             for(int row = 0; row < height; row++)
             { // via rows
                 for(int column = 0; column < width; column++)
                 { // via columns
                     adjIndex = Csubindex + width * row + column;
-
                     for(int bidx = 0; bidx < n_batchs; bidx++)
                     { // via mini_batch
                         index         = in_nstride * bidx + adjIndex;

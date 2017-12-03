@@ -140,5 +140,5 @@ extern "C" miopenStatus_t miopenLRNBackward(miopenHandle_t handle,
 extern "C" miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lrnDesc)
 {
     MIOPEN_LOG_FUNCTION(lrnDesc);
-    return miopen::try_([&] { delete lrnDesc; });
+    return miopen::try_([&] { miopen_destroy_object(lrnDesc); });
 }
