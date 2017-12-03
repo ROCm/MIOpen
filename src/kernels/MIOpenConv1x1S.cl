@@ -24,14 +24,33 @@
  *
  *******************************************************************************/
 
-#define _FLOAT float
-#define _FLOAT2 float2
-#define _FLOAT4 float4
-#define _FLOAT8 float8
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
 
-#ifndef FLT_MAX
-#define FLT_MAX 3.402823466e+38F /* max value */
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
 #endif
+#endif
+#if MIOPEN_USE_FP32 == 1
+#define _FLOAT float
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #define UNUSED __attribute__((__unused__))
 
@@ -81,16 +100,27 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #endif
         ;
 
-    _FLOAT accum[MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT];
+#if MIOPEN_USE_FP32 == 1
+    _FLOAT accum[MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT] = {(_FLOAT)(0)};
     _FLOAT dat[MLO_N_LCL_IN_MAPS][MLO_READ_UNIT];
+#endif
+#if MIOPEN_USE_FP16 == 1
+    _FLOAT accum[MLO_N_LCL_OUT_MAPS * MLO_READ_UNIT];
+    _FLOAT dat[MLO_N_LCL_IN_MAPS * MLO_READ_UNIT];
+#endif
 
-    for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
-    {
-        for(uint i = 0; i < MLO_READ_UNIT; ++i)
-        {
-            accum[o][i] = 0;
-        }
-    }
+    // for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
+    //{
+    //    for(uint i = 0; i < MLO_READ_UNIT; ++i)
+    //    {
+    //#if MIOPEN_USE_FP32 == 1
+    //        accum[o][i] = (_FLOAT)(0);
+    //#endif
+    //#if MIOPEN_USE_FP16 == 1
+    //        accum[o * MLO_READ_UNIT + i] = (_FLOAT)(0);
+    //#endif
+    //    }
+    //}
 
     for(uint ci = 0; ci < MLO_CLOOP0; ++ci,
              // move input offset
@@ -142,7 +172,12 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
         {
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
             {
+#if MIOPEN_USE_FP32 == 1
                 dat[j][i] = in_ptr[gbl_in_off1 + i];
+#endif
+#if MIOPEN_USE_FP16 == 1
+                dat[j * MLO_READ_UNIT + i] = in_ptr[gbl_in_off1 + i];
+#endif
 #if DBG_OUT_OF_RNGE
                 if(gbl_in_off1 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
                 {
@@ -159,7 +194,12 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
             {
                 for(uint i = 0; i < MLO_READ_UNIT; ++i)
                 {
+#if MIOPEN_USE_FP32 == 1
                     accum[o][i] += dat[c][i] * weights[o][c];
+#endif
+#if MIOPEN_USE_FP16 == 1
+                    accum[o * MLO_READ_UNIT + i] += dat[c * MLO_READ_UNIT + i] * weights[o][c];
+#endif
                 }
             }
         }
@@ -172,7 +212,12 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
     {
         for(uint i = 0; i < MLO_READ_UNIT; ++i)
         {
+#if MIOPEN_USE_FP32 == 1
             out_ptr[gbl_out_off1 + i] = accum[o][i];
+#endif
+#if MIOPEN_USE_FP16 == 1
+            out_ptr[gbl_out_off1 + i] = accum[o * MLO_READ_UNIT + i];
+#endif
         }
     }
 }
