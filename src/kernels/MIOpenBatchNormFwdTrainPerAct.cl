@@ -24,14 +24,33 @@
  *
  *******************************************************************************/
 
-#define _FLOAT float
-#define _FLOAT2 float2
-#define _FLOAT4 float4
-#define _FLOAT8 float8
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
 
-#ifndef FLT_MAX
-#define FLT_MAX 3.402823466e+38F /* max value */
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
 #endif
+#endif
+#if MIOPEN_USE_FP32 == 1
+#define _FLOAT float
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #ifndef MIO_BN_LDS_SIZE
 #define MIO_BN_LDS_SIZE 1
@@ -127,7 +146,7 @@ __kernel void BatchNormFwdTrainPerActivation(
         // iterating through the stack of images in the mini_batch
         if(inImgIndex < in_cstride)
         {
-            mean_accum = 0.;
+            mean_accum = (_FLOAT)0.;
             adjIndex   = Cidx + inImgIndex; // gamma and beta tensor index
 
 #pragma unroll
@@ -160,8 +179,8 @@ Note from cuDNN: expAvgFactor
                 (_FLOAT)mean_accum, (_FLOAT)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
 #endif
 
-            elemStd        = 0.;
-            variance_accum = 0.;
+            elemStd        = (_FLOAT)0.;
+            variance_accum = (_FLOAT)0.;
 // #2 calculate the variances
 // sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
 

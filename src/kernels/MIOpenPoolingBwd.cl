@@ -23,17 +23,35 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
 
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
+#endif
+#endif
+#if MIOPEN_USE_FP32 == 1
 #define _FLOAT float
-#define _FLOAT2 float2
-#define _FLOAT4 float4
-#define _FLOAT8 float8
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 #define _INT_MASK_GLOBAL uchar
 #define _INT_MASK_LOCAL uchar
-
-#ifndef FLT_MAX
-#define FLT_MAX 3.402823466e+38F /* max value */
-#endif
 
 #define MLO_POOLING_OP_AVE 0
 #define MLO_POOLING_OP_MAX 1
@@ -303,7 +321,8 @@ mloPoolingMaxBwd(const __global _FLOAT* top_df,
                     bool match = visible && (filter_idx == lcl_mask[lcl_idx]) && (filter_x >= 0) &&
                                  (filter_y >= 0);
 
-                    _FLOAT add_val = lcl_top_df[lcl_idx] * match;
+                    //_FLOAT add_val = lcl_top_df[lcl_idx] * match;
+                    _FLOAT add_val = match ? lcl_top_df[lcl_idx] : (_FLOAT)0;
                     res[k][l] += add_val;
                 }
             }

@@ -24,14 +24,33 @@
  *
  *******************************************************************************/
 
-#define _FLOAT float
-#define _FLOAT2 float2
-#define _FLOAT4 float4
-#define _FLOAT8 float8
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
 
-#ifndef FLT_MAX
-#define FLT_MAX 3.402823466e+38F /* max value */
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
 #endif
+#endif
+#if MIOPEN_USE_FP32 == 1
+#define _FLOAT float
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #ifndef MLO_OUT_ALIGNED
 #define MLO_OUT_ALIGNED 0
@@ -135,7 +154,7 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
 #endif
              __global _FLOAT* __restrict top,
              _FLOAT padding_val
-             //	   int in_main_loop
+             //      int in_main_loop
              )
 {
     __local _FLOAT lcl_img[MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS];
@@ -291,26 +310,27 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
                     for(uint pi = 0; pi < MLO_N_OUT_PIX_SZ0; ++pi)
                     {
 
+                        _FLOAT sum = (_FLOAT)0;
                         for(uint m = 0; m < MLO_FLTR_SZ0; ++m)
                         {
-                            pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + pj) * MLO_N_OUT_PIX_SZ0 + pi] +=
-                                pvt_bot_dat[pj * MLO_FLTR_STRIDE1 * MLO_PVT_COL_STG_WIDTH +
-                                            pi * MLO_FLTR_STRIDE0 + m] *
-                                pvt_wei_dat[m];
+                            sum += pvt_bot_dat[pj * MLO_FLTR_STRIDE1 * MLO_PVT_COL_STG_WIDTH +
+                                               pi * MLO_FLTR_STRIDE0 + m] *
+                                   pvt_wei_dat[m];
 
 #if 0
-								if (y_out + pj == 0 && x_out + pi == 14)
-								{
+                                                                if (y_out + pj == 0 && x_out + pi == 14)
+                                                                {
 
-									printf("K:cnv: %f %f %f\n",
-										pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + pj) * MLO_N_OUT_PIX_SZ0 + pi],
-										pvt_bot_dat[pj * MLO_FLTR_STRIDE1 * MLO_PVT_COL_STG_WIDTH + pi* MLO_FLTR_STRIDE0 + m],
-										pvt_wei_dat[m]
-										);
-								}
+                                                                        printf("K:cnv: %f %f %f\n",
+                                                                                pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + pj) * MLO_N_OUT_PIX_SZ0 + pi],
+                                                                                pvt_bot_dat[pj * MLO_FLTR_STRIDE1 * MLO_PVT_COL_STG_WIDTH + pi* MLO_FLTR_STRIDE0 + m],
+                                                                                pvt_wei_dat[m]
+                                                                                );
+                                                                }
 
 #endif
                         }
+                        pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + pj) * MLO_N_OUT_PIX_SZ0 + pi] += sum;
                     }
                 }
             }
@@ -363,15 +383,15 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
 #endif
                                 ;
 #if 0
-						if (y_out + j == 0 && x_out + i == 14)
-						{
+                                                if (y_out + j == 0 && x_out + i == 14)
+                                                {
 
-							printf("K:out: %d %f %f\n",
-								top_off2 + i,
-								pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i],
-								top[top_off2 + i]
-								);
-						}
+                                                        printf("K:out: %d %f %f\n",
+                                                                top_off2 + i,
+                                                                pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i],
+                                                                top[top_off2 + i]
+                                                                );
+                                                }
 
 #endif
                     }
@@ -389,7 +409,7 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
 #endif
               __global _FLOAT* __restrict top,
               _FLOAT padding_val
-              //	   int in_main_loop
+              //         int in_main_loop
               )
 {
     __local _FLOAT lcl_img[MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS * MLO_IN_STACKS];
@@ -499,7 +519,7 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
         }
 
         // convolve with the filter
-        int lcl_wei_off = 0;
+        uint lcl_wei_off = 0;
         for(uint k = 0; k < MLO_FLTR_SZ1;
             ++k, ++j, lcl_off2 += MLO_LCL_IMG_WIDTH, lcl_wei_off += MLO_FLTR_SZ0)
         {
@@ -529,30 +549,31 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
                     for(uint pi = 0; pi < MLO_N_OUT_PIX_SZ0; ++pi)
                     {
 
+                        _FLOAT sum = (_FLOAT)0;
                         for(uint m = 0; m < MLO_FLTR_SZ0; ++m)
                         {
-                            pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + pj) * MLO_N_OUT_PIX_SZ0 + pi] +=
-                                pvt_bot_dat[pj * MLO_FLTR_STRIDE1 * MLO_PVT_COL_STG_WIDTH +
-                                            pi * MLO_FLTR_STRIDE0 + m] *
-                                pvt_wei_dat[m];
+                            sum += pvt_bot_dat[pj * MLO_FLTR_STRIDE1 * MLO_PVT_COL_STG_WIDTH +
+                                               pi * MLO_FLTR_STRIDE0 + m] *
+                                   pvt_wei_dat[m];
 
 #if 0
-							if (get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0 && proc_tile1 == 0 && o == 0 && y_out + pj == 2 && x_out + pi == 0)
-							{
+                                                        if (get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0 && proc_tile1 == 0 && o == 0 && y_out + pj == 2 && x_out + pi == 0)
+                                                        {
 
-								printf("K:cnv: %d %d %d %d %f %f %f\n",
-									get_local_id(1),
-									get_local_id(0),
-									y_out,
-									x_out,
-									pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + pj) * MLO_N_OUT_PIX_SZ0 + pi],
-									pvt_bot_dat[pj * MLO_FLTR_STRIDE1 * MLO_PVT_COL_STG_WIDTH + pi* MLO_FLTR_STRIDE0 + m],
-									pvt_wei_dat[m]
-									);
-							}
+                                                                printf("K:cnv: %d %d %d %d %f %f %f\n",
+                                                                        get_local_id(1),
+                                                                        get_local_id(0),
+                                                                        y_out,
+                                                                        x_out,
+                                                                        pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + pj) * MLO_N_OUT_PIX_SZ0 + pi],
+                                                                        pvt_bot_dat[pj * MLO_FLTR_STRIDE1 * MLO_PVT_COL_STG_WIDTH + pi* MLO_FLTR_STRIDE0 + m],
+                                                                        pvt_wei_dat[m]
+                                                                        );
+                                                        }
 
 #endif
                         }
+                        pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + pj) * MLO_N_OUT_PIX_SZ0 + pi] += sum;
                     }
                 }
             }
@@ -587,7 +608,7 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
             bias_val = bias[o_id * MLO_LCL_N_OUT_CHNLS + o];
 #endif
 
-            int top_off2 = top_off;
+            uint top_off2 = top_off;
 
             for(uint j = 0; j < MLO_N_OUT_PIX_SZ1; ++j, top_off2 += MLO_OUT_STRIDE)
             {
@@ -606,15 +627,15 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
                                 ;
 
 #if 0
-						if (get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0 && proc_tile1 == 0 && o == 0 && y_out + j == 2 && x_out + i == 0)
-						{
+                                                if (get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0 && proc_tile1 == 0 && o == 0 && y_out + j == 2 && x_out + i == 0)
+                                                {
 
-							printf("K:out: %d %f %f\n",
-								top_off2 + i,
-								pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i],
-								top[top_off2 + i]
-								);
-						}
+                                                        printf("K:out: %d %f %f\n",
+                                                                top_off2 + i,
+                                                                pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i],
+                                                                top[top_off2 + i]
+                                                                );
+                                                }
 
 #endif
                     }
@@ -631,7 +652,7 @@ aDNNConv_img2col(const __global _FLOAT* __restrict img,
 {
     __local _FLOAT lcl_img[MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS];
     _FLOAT col_stg[MLO_PVT_COL_STG_HEIGHT * MLO_PVT_COL_STG_WIDTH];
-    //	_FLOAT col_out[MLO_PVT_COL_OUT_HEIGHT * MLO_PVT_COL_OUT_WIDTH];
+    //        _FLOAT col_out[MLO_PVT_COL_OUT_HEIGHT * MLO_PVT_COL_OUT_WIDTH];
 
     uint x_out_grp = get_group_id(0) * MLO_N_PROCS0 * MLO_N_OUT_PIX_SZ0;
     uint y_out_grp = get_group_id(1) * MLO_N_PROCS1 * MLO_N_OUT_PIX_SZ1;
@@ -728,8 +749,8 @@ aDNNConv_img2col(const __global _FLOAT* __restrict img,
 #endif
 
     // concatinate
-    int col_off = c * MLO_OUT_STRIDE * MLO_FLTR_SZ1 * MLO_FLTR_SZ0 +
-                  (b * MLO_OUT_HEIGHT + y_out) * MLO_OUT_WIDTH + x_out;
+    uint col_off = c * MLO_OUT_STRIDE * MLO_FLTR_SZ1 * MLO_FLTR_SZ0 +
+                   (b * MLO_OUT_HEIGHT + y_out) * MLO_OUT_WIDTH + x_out;
 
     // get first MLO_N_OUT_PIX_SZ1 lines
 
@@ -760,20 +781,20 @@ aDNNConv_img2col(const __global _FLOAT* __restrict img,
                 lcl_img[lcl_off + i];
 
 #if 0
-			if( b==0 && c==0 && x_out==0 && y_out==0)
-			{
-				printf("k: j=%d i=%d y_l=%d x_l=%d l_of=%d v00=%f v10=%f  v01=%f v11=%f\n",
-				j,
-				i,
-				y_in_lcl,
-				x_in_lcl,
-				lcl_off + y_in_lcl * MLO_LCL_IMG_WIDTH + x_in_lcl,
-				lcl_img[lcl_off + (y_in_lcl-1) * MLO_LCL_IMG_WIDTH + x_in_lcl - 1],
-				lcl_img[lcl_off + (y_in_lcl-1) * MLO_LCL_IMG_WIDTH + x_in_lcl],
-				lcl_img[lcl_off + y_in_lcl * MLO_LCL_IMG_WIDTH + x_in_lcl - 1],
-				lcl_img[lcl_off + y_in_lcl * MLO_LCL_IMG_WIDTH + x_in_lcl]
-				);
-			}
+                        if(b==0 && c==0 && x_out==0 && y_out==0)
+                        {
+                                printf("k: j=%d i=%d y_l=%d x_l=%d l_of=%d v00=%f v10=%f  v01=%f v11=%f\n",
+                                j,
+                                i,
+                                y_in_lcl,
+                                x_in_lcl,
+                                lcl_off + y_in_lcl * MLO_LCL_IMG_WIDTH + x_in_lcl,
+                                lcl_img[lcl_off + (y_in_lcl-1) * MLO_LCL_IMG_WIDTH + x_in_lcl - 1],
+                                lcl_img[lcl_off + (y_in_lcl-1) * MLO_LCL_IMG_WIDTH + x_in_lcl],
+                                lcl_img[lcl_off + y_in_lcl * MLO_LCL_IMG_WIDTH + x_in_lcl - 1],
+                                lcl_img[lcl_off + y_in_lcl * MLO_LCL_IMG_WIDTH + x_in_lcl]
+                                );
+                        }
 #endif
         }
 
