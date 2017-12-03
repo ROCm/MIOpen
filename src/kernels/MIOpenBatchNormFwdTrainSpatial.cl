@@ -303,7 +303,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
             index          = nid * MIO_BN_CHW + chwid;
             batchvalues[n] = (index < MIO_BN_NCHW) ? in[index] : 0.;
             mean += batchvalues[n]; // = 1.;//(index < MIO_BN_NCHW) ? in[index] : 0.;
-            // printf("mean: %f\n",mean);
+                                    // printf("mean: %f\n",mean);
 >>>>>>> develop
         }
     }

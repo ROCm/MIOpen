@@ -28,7 +28,7 @@
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 =======
 >>>>>>> develop
-#ifndef MIOPEN_ALPHA_TYPE
+    #ifndef MIOPEN_ALPHA_TYPE
 #define MIOPEN_ALPHA_TYPE float
 #endif
 
@@ -36,8 +36,8 @@
 #define MIOPEN_TYPE float
 #endif
 
-__kernel void
-ScaleTensor(global MIOPEN_TYPE* __restrict dst, MIOPEN_ALPHA_TYPE alpha, long num_elems)
+        __kernel void
+        ScaleTensor(global MIOPEN_TYPE* __restrict dst, MIOPEN_ALPHA_TYPE alpha, long num_elems)
 {
     uint gid = get_global_id(0);
     if(gid < num_elems)
