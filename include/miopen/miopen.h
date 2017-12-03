@@ -273,6 +273,16 @@ typedef enum {
     miopenTranspose   = 1, /*!< Transpose convolutions */
 } miopenConvolutionMode_t;
 
+/*! @ingroup padding
+ *  @enum miopenPaddingMode_t
+ * Padding mode selection for convolution/Pooling layer preference
+*/
+typedef enum {
+    miopenPaddingDefault = 0, /*!< MIOPEN Default Padding */
+    miopenPaddingSame    = 1, /*!< Tensorflow SAME Padding */
+    miopenPaddingValid   = 2, /*!< Tensorflow VALID Padding */
+} miopenPaddingMode_t;
+
 /*! @ingroup pooling
  * @enum miopenPoolingMode_t
  * Pooling layer mode
@@ -376,8 +386,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptor(miopenTensorDescriptor_
  * @param tensorDesc   Tensor descriptor type (input)
  * @param dataType     Currently only miopenFloat is implemented (input)
  * @param nbDims       Number of dimensions in the dimsA array (input)
- * @param dimsA        Array containing the size of dimensions (output)
- * @param stridesA     Array containing the size of stride (output)
+ * @param dimsA        Array containing the size of dimensions (input)
+ * @param stridesA     Array containing the size of stride (input)
  * @return             miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenSetTensorDescriptor(miopenTensorDescriptor_t tensorDesc,
@@ -419,8 +429,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescripto
 
 /*! @brief Execute element-wise tensor operations
  *
- * This function implements the equation \f$ C = op ( alpha1[0] * A, alpha2[0] * B * ) + beta[0] *
- * C \f$
+ * This function implements: \f$ C = op ( alpha1[0] * A, alpha2[0] * B ) + beta[0] * C \f$
  *
  * For Forward Bias one can also use, miopenConvolutionForwardBias()
  *

@@ -56,18 +56,16 @@ POSSIBILITY OF SUCH DAMAGE.
 // backward propogagation has a bug in cross map normalization when numper of maps less than
 // normalization region
 
-int mlo_construct_norm::mloConstruct()
+void mlo_construct_norm::mloConstruct()
 {
-    int ret = 0;
-    if(_search_params.forward == 1)
+    if(_search_params.direction.IsForward())
     {
-        ret = mloConstructFwd();
+        mloConstructFwd();
     }
     else
     {
-        ret = mloConstructBwd();
+        mloConstructBwd();
     }
-    return (ret);
 }
 
 int mlo_construct_norm::mloConstructFwd()

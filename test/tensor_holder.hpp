@@ -131,7 +131,24 @@ struct tensor
             loop(xs...)(std::move(f));
         }
 
-        void operator()(...) const
+        struct any
+        {
+            any() {}
+            template <class X>
+            any(X)
+            {
+            }
+        };
+
+        void operator()(any = {},
+                        any = {},
+                        any = {},
+                        any = {},
+                        any = {},
+                        any = {},
+                        any = {},
+                        any = {},
+                        any = {}) const
         {
             throw std::runtime_error("Arguments to for_each do not match tensor size");
         }
@@ -203,6 +220,17 @@ tensor<T> make_tensor(const std::vector<X>& dims)
     // TODO: Compute float
     return tensor<T>{
         miopen::TensorDescriptor{miopenFloat, dims.data(), static_cast<int>(dims.size())}};
+}
+
+template <class T, class X>
+tensor<T>
+make_tensor(const tensor<T> super_tensor, const std::vector<X>& dims, const std::vector<X>& strides)
+{
+    // TODO: Compute float
+    tensor<T> t = tensor<T>{miopen::TensorDescriptor{
+        miopenFloat, dims.data(), strides.data(), static_cast<int>(dims.size())}};
+    t.data = super_tensor.data;
+    return t;
 }
 
 template <class T, class X, class G>

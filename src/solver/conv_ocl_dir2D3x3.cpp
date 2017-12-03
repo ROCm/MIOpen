@@ -34,13 +34,12 @@ bool ConvOclDirectFwd3x3::IsApplicable(const ConvolutionContext& params) const
 {
     return (params.kernel_size0 == 3 && params.kernel_size1 == 3 && params.pad1 == 1 &&
             params.pad0 == 1 && params.kernel_stride0 == 1 && params.kernel_stride1 == 1 &&
-            params.forward) &&
+            params.direction.IsForward()) &&
            (params.out_width == 512 || params.out_width == 64 || params.out_width == 128 ||
             params.out_width == 256);
 }
 
-ConvSolution ConvOclDirectFwd3x3::GetSolution(const ConvolutionContext& params,
-                                              const PerformanceConfig&) const
+ConvSolution ConvOclDirectFwd3x3::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
     // size_t localMemSize = params.stream.GetLocalMemorySize();
@@ -76,7 +75,7 @@ ConvSolution ConvOclDirectFwd3x3::GetSolution(const ConvolutionContext& params,
     int logical_wave_sz = std::max(1, ALU_EXTENT_X / hw_wave_sz) * hw_wave_sz;
     if(logical_wave_sz > GRP_SZ)
     {
-        printf("Conv3x3 conf error\n");
+        std::cout << "Conv3x3 conf error\n";
         return ConvSolution(static_cast<miopenStatus_t>(-1));
     }
     int logical_n_waves = std::max(1, GRP_SZ / logical_wave_sz);
@@ -109,8 +108,7 @@ ConvSolution ConvOclDirectFwd3x3::GetSolution(const ConvolutionContext& params,
     KernelInfo construction_parameters;
 
     construction_parameters.comp_options =
-        std::string(" -DMLO_DIR_FORWARD=") +
-        std::to_string(static_cast<long long>(params.forward ? 1 : 0)) +
+        std::string(" -DMLO_DIR_FORWARD=") + (params.direction.IsForward() ? "1" : "0") +
         std::string(" -DMLO_GRP_SZ=") + std::to_string(static_cast<long long>(GRP_SZ)) +
         std::string(" -DMLO_GRP_SZ0=") + std::to_string(static_cast<long long>(result.grp_tile0)) +
         std::string(" -DMLO_GRP_SZ1=") + std::to_string(static_cast<long long>(result.grp_tile1)) +

@@ -45,7 +45,7 @@
 #define MIO_BN_DEBUG 1
 #define MIO_BN_MAX_DEBUGLOOP 65536
 
-#define EPSILON 1e-6
+#define EPSILON 1e-4
 
 #define ERRTOL 1e-6
 #define RMSTOL 1e-6
@@ -1178,6 +1178,16 @@ int BatchNormDriver<T>::VerifyForward()
 #if(MIO_BN_DEBUG == 1)
         for(int i = 0; i < out.size() && i < out_host.size(); i++)
         {
+            //            if(std::isnan(out[i]))
+            //            {
+            //                std::cout << "out[" << i << "] produced a nan: " << out[i] <<
+            //                std::endl;
+            //            }
+            //            if(std::isnan(out_host[i]))
+            //            {
+            //                std::cout << "out_host[" << i << "] produced a nan: " << out_host[i]
+            //                << std::endl;
+            //            }
             diff   = double(fabs(out[i]) - fabs(out_host[i]));
             maxval = maxval < diff ? diff : maxval;
             if(diff > tolerance)
@@ -1286,8 +1296,8 @@ int BatchNormDriver<T>::VerifyBackward()
     if(!back)
         return miopenStatusSuccess;
 
-    const double tolerance = ERRTOL;
-    const double maxrms    = RMSTOL;
+    const double tolerance = ERRTOL * 1000;
+    const double maxrms    = RMSTOL * 1000;
     double diff            = 0.;
     bool anError           = false;
 
