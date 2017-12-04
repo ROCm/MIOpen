@@ -258,7 +258,17 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                            hy_stride,
                                            false,
                                            network_config);
-                gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, x, w, workSpace, false);
+				
+				auto gemm_iterator = gemm_geo_map().find(std::make_pair("miopenRNNGEMM", network_config));
+				if (gemm_iterator != gemm_geo_map().end())
+				{
+					gg = gemm_iterator->second;
+				}
+				else
+				{
+					gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, x, w, workSpace, false);
+				}
+
                 gg.RunGemm(handle, x, w, workSpace, 0, 0, hid_shift);
 
                 // Update time
