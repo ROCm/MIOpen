@@ -120,6 +120,7 @@ miopen::solver::ConvSolution mlo_construct_BwdWrW2D::FindSolution()
 {
     // clang-format off
     return miopen::solver::SearchForSolution<
+        miopen::solver::ConvAsmBwdWrW1x1,
         miopen::solver::ConvAsmBwdWrW3x3,
         miopen::solver::ConvOclBwdWrW2,
         miopen::solver::ConvOclBwdWrW53,
