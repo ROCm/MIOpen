@@ -38,7 +38,7 @@
 #endif
 
 //#define MIO_RNN_OCL_DEBUG 1
-#define MIO_RNN_FINDSOL_TIMEOUT 0.0000000000001
+#define MIO_RNN_FINDSOL_TIMEOUT 0.003
 
 namespace miopen {
 

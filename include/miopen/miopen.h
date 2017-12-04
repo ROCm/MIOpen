@@ -101,7 +101,24 @@ typedef enum {
     miopenStatusUnknownError   = 7, /*!< Unknown error occurred. */
 } miopenStatus_t;
 
+/*! @brief Custom allocator function
+ *
+ * This function allow for user-defined custom allocator
+ *
+ * @param context     A pointer a context (input)
+ * @param sizeBytes   Number of bytes to allocate (input)
+ *
+*/
 typedef void* (*miopenAllocatorFunction)(void* context, size_t sizeBytes);
+
+/*! @brief Custom deallocator function
+ *
+ * This function allow for user-defined custom deallocation function
+ *
+ * @param context     A pointer context (input)
+ * @param memory      A pointer allocated memory (input)
+ *
+*/
 typedef void (*miopenDeallocatorFunction)(void* context, void* memory);
 
 /*! @brief Method to create the MIOpen handle object.
@@ -1691,15 +1708,15 @@ typedef enum {
     miopenRNNskip   = 1, /*!< No operation is performed at the input of the first layer. */
 } miopenRNNInputMode_t;
 
-/*! @enum miopenRNNInputMode_t
- * Recurrent Neural Network layer initial input mode
+/*! @enum miopenRNNAlgo_t
+ * Recurrent Neural Network algorithm mode
 */
 typedef enum {
     miopenRNNdefault = 0, /*!< Supported */
 } miopenRNNAlgo_t;
 
-/*! @enum miopenDirectionMode_t
- * Recurrent Neural Network direction behavior
+/*! @enum miopenRNNDirectionMode_t
+ * Recurrent Neural Network bi-directional behavior
 */
 typedef enum {
     miopenRNNunidirection = 0, /*!< Forward in time only. */
@@ -1714,7 +1731,7 @@ typedef enum {
     miopenRNNwithBias = 1, /*!< No biases will be applied to GEMM operations */
 } miopenRNNBiasMode_t;
 
-/*! @enum miopenRNNBiasMode_t
+/*! @enum miopenRNNGEMMalgoMode_t
  * Recurrent Neural Network add on bias
 */
 typedef enum {
