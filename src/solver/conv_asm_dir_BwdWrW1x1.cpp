@@ -35,13 +35,11 @@
 #include <miopen/handle.hpp>
 #include <miopen/solver.hpp>
 
-#define MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED 0
-
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_SEARCH_QUICK)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS)
 
 namespace miopen {
 
+/// \todo Factor out this (to generic search implementation)
 class Timer
 {
     public:
@@ -62,13 +60,11 @@ class Timer
 
 namespace solver {
 
-static bool IsReverseInOutAllowed(const ConvolutionContext& config)
-{
-    return config.kernel_stride0 == 1 && config.kernel_stride1 == 1;
-}
+/// \todo Factor out this (to generic search implementation)
+class VirtualIteratorWrW1x1;
 
-class VirtualIterator;
-
+/// \todo Factor out this (to generic search implementation)
+///
 /// This container (together with corresponding iterator) provies access
 /// to a set of performance configs which, by definition, must be
 /// suitable for the given problem config.
@@ -83,28 +79,28 @@ class VirtualContainer
 {
     // Valid iterator shall denote an element of a container.
     const ConvolutionContext& config;
-    friend class VirtualIterator;
+    friend class VirtualIteratorWrW1x1;
 
     public:
-    using const_iterator = VirtualIterator;
+    using const_iterator = VirtualIteratorWrW1x1;
     VirtualContainer(const ConvolutionContext& config_) : config(config_) {}
-    VirtualIterator begin() const;
-    VirtualIterator end() const;
+    VirtualIteratorWrW1x1 begin() const;
+    VirtualIteratorWrW1x1 end() const;
 };
 
 // Iterator shall advance to the next valid config, i.e. the one which
 // satisfies PerformanceConfig.IsValid(ProblemConfig)
-class VirtualIterator
-    : public std::iterator<std::input_iterator_tag, PerformanceConfigAsmDirect3x3WrW>
+class VirtualIteratorWrW1x1
+    : public std::iterator<std::input_iterator_tag, PerformanceConfigConvAsmBwdWrW1x1>
 {
-    value_type v; // PerformanceConfigAsmDirect3x3WrW
+    value_type v; // PerformanceConfigConvAsmBwdWrW1x1
     const VirtualContainer* container;
 
     static const value_type& GetMinValue();
     static const value_type& GetOutOfRangeValue();
 
     /// Implements begin()
-    VirtualIterator(const VirtualContainer* container_) : v(GetMinValue()), container(container_)
+    VirtualIteratorWrW1x1(const VirtualContainer* container_) : v(GetMinValue()), container(container_)
     {
         if(!IsValid())
             Next();
@@ -115,48 +111,65 @@ class VirtualIterator
 
     public:
     /// Implementes end() and also serves as a default ctor.
-    VirtualIterator() : v(GetOutOfRangeValue()), container(nullptr) {}
-    VirtualIterator(const VirtualIterator& it) : v(it.v), container(it.container) {}
+    VirtualIteratorWrW1x1() : v(GetOutOfRangeValue()), container(nullptr) {}
+    VirtualIteratorWrW1x1(const VirtualIteratorWrW1x1& it) : v(it.v), container(it.container) {}
 
-    bool operator!=(VirtualIterator const& other) const;
+    bool operator!=(VirtualIteratorWrW1x1 const& other) const;
     const value_type& operator*() const { return v; }
     const value_type* operator->() const { return &v; }
-    VirtualIterator& operator++()
+    VirtualIteratorWrW1x1& operator++()
     {
         Next();
         return *this;
     }
 };
 
-inline VirtualIterator VirtualContainer::begin() const { return VirtualIterator(this); }
+inline VirtualIteratorWrW1x1 VirtualContainer::begin() const { return VirtualIteratorWrW1x1(this); }
 
-inline VirtualIterator VirtualContainer::end() const { return VirtualIterator(); }
+inline VirtualIteratorWrW1x1 VirtualContainer::end() const { return VirtualIteratorWrW1x1(); }
 
-const VirtualIterator::value_type& VirtualIterator::GetMinValue()
+const VirtualIteratorWrW1x1::value_type& VirtualIteratorWrW1x1::GetMinValue()
 {
-    static const value_type val(0, 0, 8, 1, 1, 1);
+    static const value_type val(1, 1, 1, 1, 1);
     return val;
 }
 
-const VirtualIterator::value_type& VirtualIterator::GetOutOfRangeValue()
+const VirtualIteratorWrW1x1::value_type& VirtualIteratorWrW1x1::GetOutOfRangeValue()
 {
-    static const value_type val(-1, -1, -1, -1, -1, -1);
+    static const value_type val(-1, -1, -1, -1, -1);
     return val;
 }
 
-inline bool VirtualIterator::IsValid()
+inline bool VirtualIteratorWrW1x1::IsValid()
 {
     if(!container)
         return false;
     return v.IsValid(container->config);
 }
 
-inline bool VirtualIterator::operator!=(VirtualIterator const& other) const
+inline bool VirtualIteratorWrW1x1::operator!=(VirtualIteratorWrW1x1 const& other) const
 {
     return !(v.IsEqual(other.v) && container == other.container);
 }
 
-void VirtualIterator::Next()
+inline static bool Inc_1_2_4_8_16(int& v)
+{
+    assert(v == 1 || v == 2 || v == 4 || v == 8 || v == 16);
+    if(v == 16)
+    {
+        v = 1;
+        return true;
+    }
+    v = v * 2;
+    return false;
+}
+
+inline static bool Is_1_2_4_8_16(const int& v)
+{
+    return v == 1 || v == 2 || v == 4 || v == 8 || v == 16;
+}
+
+void VirtualIteratorWrW1x1::Next()
 {
     if(container == nullptr)
     {
@@ -168,48 +181,17 @@ void VirtualIterator::Next()
         // Increment with wrap-around:
         do
         {
-#if MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED == 0
-            if(!miopen::IsEnabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_SEARCH_QUICK{}))
-            {
-                // (0 <= limit_wave_cnt && limit_wave_cnt <= 9)
-                if(++v.limit_wave_cnt <= 9)
-                    break;
-            }
-#endif
-            v.limit_wave_cnt = 0;
-            // (0 <= reverse_inout && reverse_inout <= 1)
-            if(++v.reverse_inout <= 1)
+            if(!Inc_1_2_4_8_16(v.c_per_gpr))
                 break;
-            v.reverse_inout = 0;
-            // (8 == chunk_size || 16 == chunk_size)
-            if((v.chunk_size += 8) <= 16)
+            if(!Inc_1_2_4_8_16(v.c_mult))
                 break;
-            v.chunk_size = 8;
-            // (1 == k_per_wave || 2 == k_per_wave || 4 == k_per_wave || 8 == k_per_wave)
-            if(1 == v.k_per_wave)
-            {
-                v.k_per_wave = 2;
+            if(!Inc_1_2_4_8_16(v.k_per_gpr))
                 break;
-            }
-            if(2 == v.k_per_wave)
-            {
-                v.k_per_wave = 4;
+            if(!Inc_1_2_4_8_16(v.k_mult))
                 break;
-            }
-            if(4 == v.k_per_wave)
-            {
-                v.k_per_wave = 8;
+            if(++v.read_size <= 4)
                 break;
-            }
-            v.k_per_wave = 1;
-            // (1 <= pipe_lines_depth && pipe_lines_depth <= 16)
-            if(++v.pipe_lines_depth <= 16)
-                break;
-            v.pipe_lines_depth = 1;
-            // (1 <= n_per_group && n_per_group <= 8);
-            if(++v.n_per_group <= 8)
-                break;
-            v.n_per_group = 1;
+            v.read_size = 1;
             // All the fields (components) of performance confic have wrapped around.
             // The next one is not the min (in the allowed range) but a one beyond the end.
             // Iterator is useless from now.
@@ -220,192 +202,123 @@ void VirtualIterator::Next()
     } while(!IsValid());
 }
 
-PerformanceConfigAsmDirect3x3WrW::PerformanceConfigAsmDirect3x3WrW(
-    int lwc, int rio, int csz, int kpw, int pld, int npg)
-    : limit_wave_cnt(lwc),
-      reverse_inout(rio),
-      chunk_size(csz),
-      k_per_wave(kpw),
-      pipe_lines_depth(pld),
-      n_per_group(npg)
+PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(int c_per_gpr_,
+                                                                     int c_mult_,
+                                                                     int k_per_gpr_,
+                                                                     int k_mult_,
+                                                                     int read_size_)
+    : c_per_gpr(c_per_gpr_), c_mult(c_mult_), k_per_gpr(k_per_gpr_), k_mult(k_mult_), read_size(read_size_)
 {
 }
 
 inline bool
-PerformanceConfigAsmDirect3x3WrW::IsEqual(const PerformanceConfigAsmDirect3x3WrW& other) const
+PerformanceConfigConvAsmBwdWrW1x1::IsEqual(const PerformanceConfigConvAsmBwdWrW1x1& other) const
 {
-    return limit_wave_cnt == other.limit_wave_cnt && reverse_inout == other.reverse_inout &&
-           chunk_size == other.chunk_size && k_per_wave == other.k_per_wave &&
-           pipe_lines_depth == other.pipe_lines_depth && n_per_group == other.n_per_group;
+    return c_per_gpr == other.c_per_gpr && c_mult == other.c_mult && k_per_gpr == other.k_per_gpr &&
+           k_mult == other.k_mult && read_size == other.read_size;
 }
 
-bool PerformanceConfigAsmDirect3x3WrW::IsValidRange() const
+bool PerformanceConfigConvAsmBwdWrW1x1::IsValidRange() const
 {
-    return (0 <= limit_wave_cnt && limit_wave_cnt <= 9) &&
-           (0 <= reverse_inout && reverse_inout <= 1) && (8 == chunk_size || 16 == chunk_size) &&
-           (1 == k_per_wave || 2 == k_per_wave || 4 == k_per_wave || 8 == k_per_wave) &&
-           (1 <= pipe_lines_depth && pipe_lines_depth <= 16) &&
-           (1 <= n_per_group && n_per_group <= 8);
+    return Is_1_2_4_8_16(c_per_gpr) && Is_1_2_4_8_16(c_mult) && Is_1_2_4_8_16(k_per_gpr) &&
+           Is_1_2_4_8_16(k_mult) && (1 <= read_size && read_size <= 4);
 }
 
-bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config) const
+bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config) const
 {
     if(!IsValidRange())
         return false;
-    assert(chunk_size != 0);
-    if((config.n_outputs % (64 / chunk_size) != 0) && (config.n_inputs % (64 / chunk_size) != 0))
+    assert((GetChunkSize() * c_per_gpr) == 16);
+    if(!(k_per_gpr <= c_per_gpr))
         return false;
-    if((reverse_inout ? config.n_inputs : config.n_outputs) % GetCPerWave() != 0)
-        return false;
-    if(!(chunk_size * k_per_wave <= 64))
-        return false;
-    if((reverse_inout ? config.n_outputs : config.n_inputs) % k_per_wave != 0)
-        return false;
-    if(!(n_per_group <= config.batch_sz))
-        return false;
-    if(!(1 <= pipe_lines_depth && pipe_lines_depth <= std::min(config.out_height, 16)))
-        return false;
-    if(reverse_inout && !IsReverseInOutAllowed(config))
-        return false;
-
+    if(c_mult > 1 || k_mult > 1)
     {
-        const int accums_cnt =
-            (config.kernel_size0 * config.kernel_size1 * GetCPerWave() * k_per_wave * chunk_size) /
-            64;
-        assert(chunk_size);
-        int gprs_per_line_in = (config.out_width + chunk_size - 1) / chunk_size;
-        if(chunk_size != 16)
-        {
-            assert(chunk_size - config.pad0);
-            gprs_per_line_in =
-                (config.out_width + chunk_size - config.pad0 - 1) / (chunk_size - config.pad0);
-        }
-        assert(config.kernel_stride0);
-        gprs_per_line_in += gprs_per_line_in % config.kernel_stride0;
-        const int gprs_per_line_out =
-            (gprs_per_line_in > 1) ? gprs_per_line_in / config.kernel_stride0 : 1;
-
-        const int lines_in = pipe_lines_depth + config.kernel_size1 - 1;
-        assert(config.kernel_stride1);
-        const int lines_out =
-            (pipe_lines_depth + config.kernel_stride1 - 1) / config.kernel_stride1;
-        const int vgprs =
-            accums_cnt + lines_in * gprs_per_line_in + lines_out * gprs_per_line_out + 6;
-        if(!(vgprs <= 256))
+        assert(c_per_gpr * c_mult != 0);
+        if(!(config.n_outputs % (c_per_gpr * c_mult) == 0))
             return false;
-        if(n_per_group > 4)
-            if(!(vgprs <= 128))
-                return false;
-        if(limit_wave_cnt != 0 && limit_wave_cnt * 4 < n_per_group)
+        assert(k_per_gpr * k_mult != 0);
+        if(!(config.n_inputs % (k_per_gpr * k_mult) == 0))
             return false;
-        const int lds_size = (n_per_group - 1) * 64 /*wavesize*/ * sizeof(float) * accums_cnt;
-        if(!(lds_size <= 65536))
-            return false;
-
-        const int unroll_factor = pipe_lines_depth * (pipe_lines_depth + 2);
-        const int steps         = std::max(0, config.out_height - 1 - pipe_lines_depth);
-        assert(unroll_factor);
-        const int loops   = pipe_lines_depth + unroll_factor + steps % unroll_factor + 1;
-        const int m_instr = 3 + (gprs_per_line_in + 3) / 4;
-        const int v_instr =
-            (k_per_wave * config.kernel_size1 * gprs_per_line_out * config.kernel_size0 * 4) / 3;
-        const int total = loops * (m_instr + v_instr); // instructions
-        if(total >= 32000)                             // Estimation, a bit smaller than 32K.
-            return false;
+    }
+    if(!(c_mult * k_mult * k_per_gpr + 9 + (c_mult + k_mult) * read_size * GetPipeDepth() <= 256))
+    {
+        return false;
     }
     return true;
 }
 
-void PerformanceConfigAsmDirect3x3WrW::EuristicInit(const ConvolutionContext& config)
+void PerformanceConfigConvAsmBwdWrW1x1::EuristicInit(const ConvolutionContext& config)
 {
-    limit_wave_cnt = 0;
-
-    chunk_size = (config.out_width < 48) ? 8 : 16;
-    if((config.n_outputs % (64 / chunk_size) != 0) && (config.n_inputs % (64 / chunk_size) != 0))
-        chunk_size = 16; // Fixup for correctness
-
-    reverse_inout = 0;
-    if(IsReverseInOutAllowed(config) && ((config.n_outputs % 4 != 0) || (config.out_width < 8)))
-        reverse_inout = 1;
-
-    const auto c_k = config.n_outputs * config.n_inputs; // C*K
-    if(c_k < 256)
-        k_per_wave = 1;
-    else if(c_k < 16384)
-        k_per_wave = 2;
-    else // C*K >= 16k
-        k_per_wave = ((chunk_size == 8) ? 2 : 4);
-    while((reverse_inout ? config.n_outputs : config.n_inputs) % k_per_wave != 0)
-        k_per_wave /= 2; // Fixup for correctness
-
-    if(c_k <= 512)
-        n_per_group = 8;
-    else if(c_k <= 4096)
-        n_per_group = 4;
-    else if(c_k <= 8192)
-        n_per_group = 2;
-    else
-        n_per_group = 1;
-    if(n_per_group > config.batch_sz)
-        n_per_group = config.batch_sz; // n_per_group should never be > batch size.
-    if(config.out_width >= 256 &&
-       n_per_group > 4) // when width >= 256, n_per_group should not be > 4.
-        n_per_group = 4;
-
-    pipe_lines_depth = (config.out_height <= 1) ? 1 : 2;
-    if((config.out_height < 8) && (config.out_width < 64))
+    read_size = 4;
+    const auto c_k_256 = config.n_outputs * config.n_inputs / 256; // C*K/256
+    if(c_k_256 < 2)
     {
-        pipe_lines_depth = config.out_height; // Special case.
+        c_per_gpr = 1;
+        c_mult    = 1;
+        k_per_gpr = 1;
+        k_mult    = 1;
+    }
+    else if(c_k_256 < (2 * 4))
+    {
+        c_per_gpr = 1;
+        c_mult    = 2;
+        k_per_gpr = 1;
+        k_mult    = 2;
+    }
+    else if(c_k_256 < (2 * 4 * 4))
+    {
+        c_per_gpr = 2;
+        c_mult    = 2;
+        k_per_gpr = 2;
+        k_mult    = 2;
+    }
+    else if(c_k_256 < (2 * 4 * 4 * 4))
+    {
+        c_per_gpr = 2;
+        c_mult    = 4;
+        k_per_gpr = 2;
+        k_mult    = 4;
+    }
+    else
+    {
+        c_per_gpr = 4;
+        c_mult    = 4;
+        k_per_gpr = 4;
+        k_mult    = 4;
     }
 
     if(!IsValid(config))
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
-        limit_wave_cnt   = 0;
-        reverse_inout    = 0;
-        chunk_size       = 16; // CPerWave() = 4;
-        k_per_wave       = 1;
-        pipe_lines_depth = 2;
-        n_per_group      = 1;
-        if(config.n_outputs % 4 != 0)
-        {
-            /// (1) If reverse is Off, then both (C % c_per_wave) and (K % k_per_wave) must be 0.
-            /// Toggling reverse swaps C and K in the condition above.
-            /// (2) From the other hand, IsApplicable() ensures that either C or K is evenly
-            /// divisable by 4.
-            /// (3) We just set k_per_wave=1, c_per_wave=4. Therefore, (1) always can be satisfied
-            /// here. If (C % c_per_wave) is not zero, just push reverse button so K and C will
-            /// swap.
-            ///
-            /// \note C (input channels) resides in n_outputs, K (output channels) - in n_inputs,
-            /// because that's how reverse convolutions are handled in MIOpen.
-            reverse_inout = 1;
-        }
+        c_per_gpr = 4;
+        c_mult    = 1;
+        k_per_gpr = 4;
+        k_mult    = 1;
         assert(IsValid(config));
     }
     MIOPEN_LOG_I(ToString());
 }
 
-std::string PerformanceConfigAsmDirect3x3WrW::ToString() const
+std::string PerformanceConfigConvAsmBwdWrW1x1::ToString() const
 {
     std::ostringstream ss;
     Serialize(ss);
     return ss.str();
 }
 
-PerformanceConfigAsmDirect3x3WrW
-ConvAsmBwdWrW3x3::GetPerformanceConfig(const ConvolutionContext& params) const
+PerformanceConfigConvAsmBwdWrW1x1
+ConvAsmBwdWrW1x1::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     std::string s;
-    PerformanceConfigAsmDirect3x3WrW pp;
-    const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS{});
+    PerformanceConfigConvAsmBwdWrW1x1 pp;
+    const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS{});
     if(p_asciz)
     {
         s = std::string(p_asciz);
     }
     if(!s.empty()) // Otherwise, nothing is set in env -> nothing to parse.
     {
-        static const std::string h("MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS: ");
+        static const std::string h("MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS: ");
         if(!pp.Deserialize(s))
         {
             MIOPEN_THROW(h + "Bad format:" + s);
@@ -424,13 +337,13 @@ ConvAsmBwdWrW3x3::GetPerformanceConfig(const ConvolutionContext& params) const
     return pp;
 }
 
-bool ConvAsmBwdWrW3x3::IsValidPerformanceConfig(const ConvolutionContext& problem,
-                                                const PerformanceConfigAsmDirect3x3WrW& c) const
+bool ConvAsmBwdWrW1x1::IsValidPerformanceConfig(const ConvolutionContext& problem,
+                                                const PerformanceConfigConvAsmBwdWrW1x1& c) const
 {
     return c.IsValidRange() && c.IsValid(problem);
 }
 
-bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
+bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
     if(!params.assembler_available)
     {
@@ -452,15 +365,17 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
     assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
-    bool ok = params.pad0 == 1                   // -q  pad_w
-              && params.pad1 == 1                // -p  pad_h
-              && (params.kernel_stride0 <= 2)    // -u  stride_w
-              && (params.kernel_stride1 <= 2)    // -v  stride_h
-              && params.kernel_size0 == 3        // -x  S wei_w
-              && params.kernel_size1 == 3        // -y  R wei_h
-              && params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1 && params.bias == 0 &&
-              params.in_layout == "NCHW";
-    // && _weights_layout == "KCHW"
+    // clang-format off
+    bool ok = params.pad0 == 0          // -q  pad_w
+        && params.pad1 == 0             // -p  pad_h
+        && params.kernel_stride0 == 1   // -u  stride_w
+        && params.kernel_stride1 == 1   // -v  stride_h
+        && params.kernel_size0 == 1     // -x  S wei_w
+        && params.kernel_size1 == 1     // -y  R wei_h
+        && params.kernel_dilation0 == 1
+        && params.kernel_dilation1 == 1
+        && params.bias == 0
+        && params.in_layout == "NCHW";
     if(!ok)
     {
         return false; // Early exit to speed up the check.
@@ -470,35 +385,32 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
     const auto r_s     = static_cast<long>(params.kernel_size1) * params.kernel_size0;
     const auto c_h_w   = static_cast<long>(params.n_outputs) * h_w;   // C*H*W
     const auto k_h_w   = static_cast<long>(params.n_inputs) * h_w;    // K*H*W
-    const auto c_r_s   = static_cast<long>(params.n_outputs) * r_s;   // C*R*S
-    const auto k_r_s   = static_cast<long>(params.n_inputs) * r_s;    // K*R*S
     const auto n_c_h_w = static_cast<long>(params.batch_sz) * c_h_w;  // N*C*H*W
     const auto n_k_h_w = static_cast<long>(params.batch_sz) * k_h_w;  // N*K*H*W
-    const auto c_k_r_s = static_cast<long>(params.n_outputs) * k_r_s; // C*K*R*S
-    // clang-format off
-    ok = params.out_width > 0
-         && params.out_width <= 512
-         && (IsReverseInOutAllowed(params)
-                ? ((params.n_outputs % 4 == 0) || (params.n_inputs % 4 == 0))
-                : (params.n_outputs % 4 == 0))
-         && params.out_height < std::pow(2, 16) // -H   H img_h
-         && params.batch_sz < std::pow(2, 16)   // -n   N batch_size
+    const auto c_k_r_s = static_cast<long>(params.n_outputs) * params.n_inputs * r_s; // C*K*R*S
+    ok = params.batch_sz < std::pow(2, 16)      // -n   N batch_size
          && params.n_outputs < std::pow(2, 16)  // -c   C input_channels
          && params.n_inputs < std::pow(2, 16)   // -k   K output_channels
-         && c_h_w < std::pow(2, 22)
-         && k_h_w < std::pow(2, 22)
-         && c_r_s < std::pow(2, 22)
-         && k_r_s < std::pow(2, 22)
+         && c_h_w < std::pow(2, 24)
+         && k_h_w < std::pow(2, 24)
          && n_c_h_w < std::pow(2, 29)
          && n_k_h_w < std::pow(2, 29)
-         && c_k_r_s < std::pow(2, 29);                                    // clang-format on
+         && c_k_r_s < std::pow(2, 29); // clang-format on
     return ok;
 }
 
-bool ConvAsmBwdWrW3x3::IsFast(const ConvolutionContext&) const { return true; }
+bool ConvAsmBwdWrW1x1::IsFast(const ConvolutionContext&) const { return true; }
 
-ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
-                                           const PerformanceConfigAsmDirect3x3WrW& config) const
+static int divide_round_plus_inf(const int x, const int y)
+{
+    assert(x >= 0 && y > 0);
+    if(x % y != 0)
+        return x / y + 1;
+    return x / y;
+}
+
+ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
+                                           const PerformanceConfigConvAsmBwdWrW1x1& config) const
 {
     ConvSolution result;
     std::ostringstream options;
@@ -519,47 +431,41 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(
         options, "ROCM_METADATA_VERSION", (params.rmv == rocm_meta_version::V3) ? 3 : 4);
     // Perf tune:
-    GenerateClangDefsym(options, "limit_wave_cnt", config.GetLimitWaveCnt());
+    GenerateClangDefsym(options, "do_not_use_default_perf_params", 1);
+    GenerateClangDefsym(options, "n_per_gpr", config.GetNPerGpr());
+    GenerateClangDefsym(options, "pipe_depth", config.GetPipeDepth());
+    GenerateClangDefsym(options, "c_per_gpr", config.GetCPerGpr());
+    GenerateClangDefsym(options, "c_mult", config.GetCMult());
+    GenerateClangDefsym(options, "k_per_gpr", config.GetKPerGpr());
+    GenerateClangDefsym(options, "k_mult", config.GetKMult());
+    GenerateClangDefsym(options, "read_size", config.GetReadSize());
     GenerateClangDefsym(options, "chunk_size", config.GetChunkSize());
-    GenerateClangDefsym(options, "c_per_wave", config.GetCPerWave());
-    GenerateClangDefsym(options, "k_per_wave", config.GetKPerWave());
-    GenerateClangDefsym(options, "n_per_group", config.GetNPerGroup());
-    GenerateClangDefsym(options, "pipe_lines_depth", config.GetPipeLinesDepth());
-    GenerateClangDefsym(options, "reverse_inout", config.GetReverseInout());
-    // Debugging:
-    GenerateClangDefsym(options, "enable_debug_output", 0);
 
     KernelInfo kernel;
 
     kernel.comp_options = options.str();
 
     kernel.l_wk.clear(); // workgroupsize
-    kernel.l_wk.push_back(64 * config.GetNPerGroup());
+    kernel.l_wk.push_back(64);
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
     kernel.g_wk.clear(); // gridsize
-    kernel.g_wk.push_back(64 * config.GetNPerGroup());
+    kernel.g_wk.push_back(64);
+    kernel.g_wk.push_back(
+        divide_round_plus_inf(params.n_outputs, config.GetCPerGpr() * config.GetCMult()));
+    kernel.g_wk.push_back(
+        divide_round_plus_inf(params.n_inputs, config.GetKPerGpr() * config.GetKMult()));
 
-    if(config.GetReverseInout() == 0)
-    {
-        kernel.g_wk.push_back(params.n_outputs / config.GetCPerWave());
-        kernel.g_wk.push_back(params.n_inputs / config.GetKPerWave());
-    }
-    else
-    {
-        kernel.g_wk.push_back(params.n_outputs / config.GetKPerWave());
-        kernel.g_wk.push_back(params.n_inputs / config.GetCPerWave());
-    }
-
-    kernel.kernel_file = "conv3x3wrw.s";
-    kernel.kernel_name = "gcnAsmConv3x3WrW";
+    kernel.kernel_file = "conv1x1wrw.s";
+    kernel.kernel_name = "gcnAsmConv1x1WrW";
 
     result.construction_params.push_back(kernel);
     result.workspce_sz = 0;
     return result;
 }
 
+/// \todo Factor out this (to generic search implementation)
 class Heartbeat
 {
     size_t n_within_beat;
@@ -567,7 +473,7 @@ class Heartbeat
     float best_time; // within beat
     float elapsed_cumulative;
     miopen::Timer timer;
-    PerformanceConfigAsmDirect3x3WrW best_config;
+    PerformanceConfigConvAsmBwdWrW1x1 best_config;
 
     void Continue()
     {
@@ -582,7 +488,7 @@ class Heartbeat
     void Start()
     {
         elapsed_cumulative = 0.0f;
-        best_config        = PerformanceConfigAsmDirect3x3WrW();
+        best_config        = PerformanceConfigConvAsmBwdWrW1x1();
         Continue();
     }
 
@@ -591,7 +497,7 @@ class Heartbeat
                  const float total_best,
                  size_t n_failed,
                  size_t n_total,
-                 const PerformanceConfigAsmDirect3x3WrW& recent_config)
+                 const PerformanceConfigConvAsmBwdWrW1x1& recent_config)
     {
         ++n_within_beat;
         if(recent_time < best_time)
@@ -632,6 +538,7 @@ static int RunSolution(miopen::Handle& profile_h,
                        const ConvSolution& solution,
                        float& elapsed_time)
 {
+    (void)params; // -warning
     const KernelInfo k_info = solution.construction_params[0];
 #ifdef NDEBUG
     try
@@ -649,15 +556,13 @@ static int RunSolution(miopen::Handle& profile_h,
                                           k_info.comp_options);
         int unused       = 0;
         int* return_addr = nullptr;
-        auto n_groups =
-            static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
 
-        kernel(params.batch_sz,   // N
-               params.n_outputs,  // C
-               params.out_height, // H
-               params.out_width,  // W
-               params.n_inputs,   // K
-               n_groups,          // n_groups
+        kernel(unused, // N
+               unused, // C
+               unused, // H
+               unused, // W
+               unused, // K
+               unused, // n_groups
                unused,
                unused,
                top_ocl_buf,
@@ -683,9 +588,9 @@ InitRandomly(std::vector<float>& vec, const double offset = 0.0, const double fa
         *p++ = static_cast<float>((rand() * (1.0 / RAND_MAX) + offset) * factor);
 }
 
-PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params) const
+PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& params) const
 {
-    PerformanceConfigAsmDirect3x3WrW best_config;
+    PerformanceConfigConvAsmBwdWrW1x1 best_config;
     miopen::Handle profile_h;
     profile_h.EnableProfiling(true);
 
@@ -764,7 +669,7 @@ PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ConvolutionConte
                           << ' '
                           << best_config);
     if(!is_passed)
-        MIOPEN_THROW("Search failed for PerformanceConfigAsmDirect3x3WrW");
+        MIOPEN_THROW("Search failed for PerformanceConfigConvAsmBwdWrW1x1");
     return best_config;
 }
 
