@@ -109,7 +109,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
         __constant _FLOAT* w1 = wei_ptr + wei_off;
 
-        for(uint o = 0, o < MLO_N_LCL_OUT_MAPS; ++o,
+        for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o,
                  w1 +=
 #if MLO_DIR_FORWARD == 1
                                                 MLO_WEI_BSTRIDE
@@ -119,7 +119,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
             )
         {
             __constant _FLOAT* w2 = w1;
-            for(uint c = 0 c < MLO_N_LCL_IN_MAPS; ++c,
+            for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c,
                      w2 +=
 #if MLO_DIR_FORWARD == 1
                                                   MLO_WEI_CHANNEL_STRIDE
@@ -175,7 +175,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
     uint gbl_out_off =
         batch_id * MLO_OUT_BATCH_STRIDE + pos * MLO_READ_UNIT + out_id * MLO_OUT_CHANNEL_STRIDE;
-    _global _FLOAT* q = out_ptr + gbl_out_off;
+    __global _FLOAT* q = out_ptr + gbl_out_off;
 
     for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o, q += MLO_OUT_CHANNEL_STRIDE)
     {
@@ -358,14 +358,14 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
     uint gbl_out_off = batch_id * MLO_OUT_BATCH_STRIDE + out_id * MLO_OUT_CHANNEL_STRIDE +
                        out_y * MLO_OUT_STRIDE + out_x * MLO_READ_UNIT;
 
-    _global _FLOAT* q = out_ptr + gbl_out_off;
+    __global _FLOAT* q = out_ptr + gbl_out_off;
 
     for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o, q += MLO_OUT_CHANNEL_STRIDE)
     {
 
         for(uint i = 0; i < MLO_READ_UNIT; ++i)
         {
-            _global _FLOAT* q1 = q;
+            __global _FLOAT* q1 = q;
             q1 += i
 #if MLO_DIR_FORWARD == 0
 
@@ -388,7 +388,7 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
         }
 
 #if MLO_DIR_FORWARD == 0
-        _global _FLOAT* q2 = q;
+        __global _FLOAT* q2 = q;
         for(uint j = 1; j < MLO_FILTER_STRIDE1; ++j)
         {
             q2 += MLO_OUT_STRIDE;
