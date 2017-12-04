@@ -309,7 +309,7 @@ void Handle::Finish() const
     }
 #else
     // hipStreamSynchronize is broken, so we use hipEventSynchronize instead
-    auto ev    = make_hip_event();
+    auto ev = make_hip_event();
     hipEventRecord(ev.get(), this->GetStream());
     auto status = hipEventSynchronize(ev.get());
     if(status != hipSuccess)
