@@ -254,7 +254,7 @@ enable_cppcheck(
         noExplicitConstructor
         passedByValue
         # preprocessorErrorDirective
-        unusedVariable
+        unusedStructMember
         *:*.cl
     SOURCES
         include/

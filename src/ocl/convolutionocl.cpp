@@ -278,9 +278,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
 
     std::string network_config;
-    std::string program_name;
-    std::string kernel_name;
-    std::string parms;
 
     if(mode == miopenTranspose)
     {
@@ -911,9 +908,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
     std::string network_config;
-    std::string program_name;
-    std::string kernel_name;
-    std::string parms;
 
     if(mode == miopenTranspose)
     {

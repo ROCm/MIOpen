@@ -277,8 +277,6 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
 
     miopen::Handle profile_h;
     double processing_time;
-    std::string conf_key;
-    std::string conf_val;
 
     int min_grp_tile0 = 16;
     int min_grp_tile1 = 16;
