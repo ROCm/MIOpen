@@ -428,7 +428,7 @@ struct conv_driver : test_driver
         add(do_backward_data, "disable-backward-data", set_value(false));
         add(search, "search", set_value(1));
         add(conv_mode, "cmode", generate_data({"conv", "trans"}));
-        add(pad_mode, "pmode", generate_data({"default", "same", "valid"}));
+        add(pad_mode, "pmode", generate_data({"default" /*, "same"*/, "valid"}));
     }
 
     std::vector<miopen::ConvolutionDescriptor> get_filters()
@@ -458,12 +458,15 @@ struct conv_driver : test_driver
             {
                 if(filter.u == 0 || filter.v == 0)
                     return;
-                filter.pad_h = (input_h % filter.u == 0)
-                                   ? (std::max(static_cast<int>(wei_h - filter.u), 0))
-                                   : (std::max(static_cast<int>(wei_h - (input_h % filter.u)), 0));
-                filter.pad_w = (input_w % filter.v == 0)
-                                   ? (std::max(static_cast<int>(wei_w - filter.v), 0))
-                                   : (std::max(static_cast<int>(wei_w - (input_w % filter.v)), 0));
+                auto _pad_h = (input_h % filter.u == 0)
+                                  ? (std::max(static_cast<int>(wei_h - filter.u), 0))
+                                  : (std::max(static_cast<int>(wei_h - (input_h % filter.u)), 0));
+                auto _pad_w = (input_w % filter.v == 0)
+                                  ? (std::max(static_cast<int>(wei_w - filter.v), 0))
+                                  : (std::max(static_cast<int>(wei_w - (input_w % filter.v)), 0));
+
+                filter.pad_h = _pad_h / 2;
+                filter.pad_w = _pad_w / 2;
 
                 out_h = std::ceil(static_cast<double>(input_h) / filter.u);
                 out_w = std::ceil(static_cast<double>(input_w) / filter.v);
