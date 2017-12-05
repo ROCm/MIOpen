@@ -258,16 +258,19 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                            hy_stride,
                                            false,
                                            network_config);
-				
-				auto gemm_iterator = gemm_geo_map().find(std::make_pair("miopenRNNGEMM", network_config));
-				if (gemm_iterator != gemm_geo_map().end())
-				{
-					gg = gemm_iterator->second;
-				}
-				else
-				{
-					gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, x, w, workSpace, false);
-				}
+
+                auto gemm_iterator =
+                    gemm_geo_map().find(std::make_pair("miopenRNNGEMM", network_config));
+                if(gemm_iterator != gemm_geo_map().end())
+                {
+                    printf("reach1\n");
+                    gg = gemm_iterator->second;
+                }
+                else
+                {
+                    printf("reach2\n");
+                    gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, x, w, workSpace, false);
+                }
 
                 gg.RunGemm(handle, x, w, workSpace, 0, 0, hid_shift);
 
@@ -294,7 +297,20 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        hy_stride,
                                        false,
                                        network_config);
-            gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, w, workSpace, false);
+
+            auto gemm_iterator =
+                gemm_geo_map().find(std::make_pair("miopenRNNGEMM", network_config));
+            if(gemm_iterator != gemm_geo_map().end())
+            {
+                printf("reach1\n");
+                gg = gemm_iterator->second;
+            }
+            else
+            {
+                printf("reach2\n");
+                gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, w, workSpace, false);
+            }
+
             gg.RunGemm(handle, workSpace, w, workSpace, prelayer_shift, wei_shift, hid_shift);
 
             // Update time
@@ -428,7 +444,21 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                    hy_stride,
                                                    false,
                                                    network_config);
-                        gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, hx, w, workSpace, false);
+
+                        auto gemm_iterator =
+                            gemm_geo_map().find(std::make_pair("miopenRNNGEMM", network_config));
+                        if(gemm_iterator != gemm_geo_map().end())
+                        {
+                            printf("reach1\n");
+                            gg = gemm_iterator->second;
+                        }
+                        else
+                        {
+                            printf("reach2\n");
+                            gg.FindSolution(
+                                MIO_RNN_FINDSOL_TIMEOUT, handle, hx, w, workSpace, false);
+                        }
+
                         gg.RunGemm(handle,
                                    hx,
                                    w,
@@ -456,7 +486,21 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                         hy_stride,
                                                         false,
                                                         network_config);
-                            gg2.FindSolution(.003, handle, hx, w, workSpace, false);
+
+                            auto gemm_iterator2 = gemm_geo_map().find(
+                                std::make_pair("miopenRNNGEMM", network_config));
+                            if(gemm_iterator2 != gemm_geo_map().end())
+                            {
+                                printf("reach1\n");
+                                gg2 = gemm_iterator2->second;
+                            }
+                            else
+                            {
+                                printf("reach2\n");
+                                gg2.FindSolution(
+                                    MIO_RNN_FINDSOL_TIMEOUT, handle, hx, w, workSpace, false);
+                            }
+
                             gg2.RunGemm(handle,
                                         hx,
                                         w,
@@ -486,7 +530,21 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                    hy_stride,
                                                    false,
                                                    network_config);
-                        gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, hy, w, workSpace, false);
+
+                        auto gemm_iterator =
+                            gemm_geo_map().find(std::make_pair("miopenRNNGEMM", network_config));
+                        if(gemm_iterator != gemm_geo_map().end())
+                        {
+                            printf("reach1\n");
+                            gg = gemm_iterator->second;
+                        }
+                        else
+                        {
+                            printf("reach2\n");
+                            gg.FindSolution(
+                                MIO_RNN_FINDSOL_TIMEOUT, handle, hy, w, workSpace, false);
+                        }
+
                         gg.RunGemm(handle,
                                    hy,
                                    w,
@@ -514,7 +572,21 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                         hy_stride,
                                                         false,
                                                         network_config);
-                            gg2.FindSolution(.003, handle, hy, w, workSpace, false);
+
+                            auto gemm_iterator2 = gemm_geo_map().find(
+                                std::make_pair("miopenRNNGEMM", network_config));
+                            if(gemm_iterator2 != gemm_geo_map().end())
+                            {
+                                printf("reach1\n");
+                                gg = gemm_iterator2->second;
+                            }
+                            else
+                            {
+                                printf("reach2\n");
+                                gg2.FindSolution(
+                                    MIO_RNN_FINDSOL_TIMEOUT, handle, hy, w, workSpace, false);
+                            }
+
                             gg2.RunGemm(handle,
                                         hy,
                                         w,
