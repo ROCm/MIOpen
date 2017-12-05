@@ -452,7 +452,8 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
     /// - fwd_K := Num output channels for forward convolution (-k).
     ///   For backward, this is actually n_inputs.
 
-    PerformanceConfigConvAsmBwdWrW1x1(int c_per_gpr_, int c_mult_, int k_per_gpr_, int k_mult_, int read_size_);
+    PerformanceConfigConvAsmBwdWrW1x1(
+        int c_per_gpr_, int c_mult_, int k_per_gpr_, int k_mult_, int read_size_);
     PerformanceConfigConvAsmBwdWrW1x1() : PerformanceConfigConvAsmBwdWrW1x1(-1, -1, -1, -1, -1) {}
 
     template <class Self, class F>
@@ -495,7 +496,7 @@ struct ConvAsmBwdWrW1x1 : SolverBase<ConvolutionContext>
     bool IsFast(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsmBwdWrW1x1& config,
-                             const bool disableConfigOverrideFromEnv = false) const;
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct ConvOclBwdWrW2 : SolverBase<ConvolutionContext>
