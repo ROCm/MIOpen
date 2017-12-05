@@ -1013,7 +1013,7 @@ struct mlo_construct_pooling2D : mlo_construct_direct2D
     }
 
     inline int getPoolingMethod() const { return (_pooling_method); }
-    void mloConstruct();
+    int mloConstruct();
 
     protected:
     int _pooling_method;
