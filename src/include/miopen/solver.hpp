@@ -494,7 +494,8 @@ struct ConvAsmBwdWrW1x1 : SolverBase<ConvolutionContext>
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsFast(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfigConvAsmBwdWrW1x1& config) const;
+                             const PerformanceConfigConvAsmBwdWrW1x1& config,
+                             const bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct ConvOclBwdWrW2 : SolverBase<ConvolutionContext>
