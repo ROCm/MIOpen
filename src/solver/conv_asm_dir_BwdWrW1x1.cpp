@@ -28,6 +28,7 @@
 #include <limits>
 #include <iterator>
 #include <chrono>
+#include <cmath> // for sqrt()
 
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/env.hpp>
@@ -384,7 +385,14 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     return ok;
 }
 
-bool ConvAsmBwdWrW1x1::IsFast(const ConvolutionContext&) const { return true; }
+bool ConvAsmBwdWrW1x1::IsFast(const ConvolutionContext& params) const
+{
+    const double w = params.out_height;
+    const double h = params.out_width;
+    const double c = params.n_outputs;
+    const double k = params.n_inputs;
+    return (!(w * h * std::sqrt(std::sqrt(c * k)) > 56000)); // Heuristic.
+}
 
 static int divide_round_plus_inf(const int x, const int y)
 {
@@ -705,7 +713,8 @@ PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionCont
                              << ret);
             ++n_failed;
         }
-        heartbeat.Monitor(ret != 0, elapsed_time, n_current, best_time, n_failed, n_runs_total, current_config);
+        heartbeat.Monitor(
+            ret != 0, elapsed_time, n_current, best_time, n_failed, n_runs_total, current_config);
         ++n_current;
     }
 
