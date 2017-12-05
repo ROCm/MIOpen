@@ -57,7 +57,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 1.1.5)
+rocm_setup_version(VERSION 1.2.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
