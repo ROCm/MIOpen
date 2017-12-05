@@ -58,9 +58,9 @@
 **********************************************************************************/
 
 #define MLO_BOT_DATA_SZ0 \
-    (MLO_POOLING_N_HORIZ_OUT_PIX * MLO_POOLING_STRIDE0 + MLO_POOLING_KERNEL_SZ0 - 1)
+    (MLO_POOLING_N_HORIZ_OUT_PIX * MLO_POOLING_STRIDE0 + MLO_POOLING_PAD0 + MLO_POOLING_PAD0)
 #define MLO_BOT_DATA_SZ1 \
-    (MLO_POOLING_N_VERT_OUT_PIX * MLO_POOLING_STRIDE1 + MLO_POOLING_KERNEL_SZ1 - 1)
+    (MLO_POOLING_N_VERT_OUT_PIX * MLO_POOLING_STRIDE1 + MLO_POOLING_PAD1 + MLO_POOLING_PAD1)
 
 __attribute__((reqd_work_group_size(MLO_POOLING_GROUP_SZ0,
                                     MLO_POOLING_GROUP_SZ1,
@@ -114,26 +114,32 @@ mloPoolingG(const __global _FLOAT* bot,
                         (run_x >= 0 && run_x < MLO_POOLING_BOT_WIDTH))
                            ? true
                            : false;
-            bot_data[j][i] = (vis) ? bot[bot_gbl_off] : 0;
+            bot_data[j][i] = (vis) ? bot[bot_gbl_off] : 
+#if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
+            -FLT_MAX
+#elif MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
+            0
+#endif
+            ;
         }
     }
 
     for(uint k = 0; k < MLO_POOLING_N_VERT_OUT_PIX; k++)
     {
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
-        uint y_dst = y + lcl_id1 * MLO_POOLING_N_VERT_OUT_PIX + k;
+        uint y_dst  = y + lcl_id1 * MLO_POOLING_N_VERT_OUT_PIX + k;
         int hstart = (int)y_dst * MLO_POOLING_STRIDE1 - MLO_POOLING_PAD1;
         int hend   = min((hstart + MLO_POOLING_KERNEL_SZ1),
-                       (int)(MLO_POOLING_BOT_HEIGHT + MLO_POOLING_PAD1));
+                        (int)(MLO_POOLING_BOT_HEIGHT + MLO_POOLING_PAD1));
 #endif
         for(uint l = 0; l < MLO_POOLING_N_HORIZ_OUT_PIX; l++)
         {
 
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
-            uint x_dst = x + lcl_id0 * MLO_POOLING_N_HORIZ_OUT_PIX + l;
+            uint x_dst  = x + lcl_id0 * MLO_POOLING_N_HORIZ_OUT_PIX + l;
             int wstart = (int)x_dst * MLO_POOLING_STRIDE0 - MLO_POOLING_PAD0;
             int wend   = min((wstart + MLO_POOLING_KERNEL_SZ0),
-                           (int)(MLO_POOLING_BOT_WIDTH + MLO_POOLING_PAD0));
+                            (int)(MLO_POOLING_BOT_WIDTH + MLO_POOLING_PAD0));
             uint pool_size = (hend - hstart) * (wend - wstart);
 #endif
 #if defined(MLO_POOLING_DO_BACKWARD) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
