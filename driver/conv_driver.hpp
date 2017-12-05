@@ -334,17 +334,17 @@ int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs()
 {
 
     miopenConvolutionMode_t mode;
-    miopenPaddingMode_t pmode;
-    int in_h       = inflags.GetValueInt("in_h");
-    int in_w       = inflags.GetValueInt("in_w");
-    int wei_h      = inflags.GetValueInt("fil_h");
-    int wei_w      = inflags.GetValueInt("fil_w");
-    int pad_h      = inflags.GetValueInt("pad_h");
-    int pad_w      = inflags.GetValueInt("pad_w");
-    int u          = inflags.GetValueInt("conv_stride_0");
-    int v          = inflags.GetValueInt("conv_stride_1");
-    int dilation_h = inflags.GetValueInt("dilation_h");
-    int dilation_w = inflags.GetValueInt("dilation_w");
+    miopenPaddingMode_t pmode = miopenPaddingDefault;
+    int in_h                  = inflags.GetValueInt("in_h");
+    int in_w                  = inflags.GetValueInt("in_w");
+    int wei_h                 = inflags.GetValueInt("fil_h");
+    int wei_w                 = inflags.GetValueInt("fil_w");
+    int pad_h                 = inflags.GetValueInt("pad_h");
+    int pad_w                 = inflags.GetValueInt("pad_w");
+    int u                     = inflags.GetValueInt("conv_stride_0");
+    int v                     = inflags.GetValueInt("conv_stride_1");
+    int dilation_h            = inflags.GetValueInt("dilation_h");
+    int dilation_w            = inflags.GetValueInt("dilation_w");
     if((inflags.GetValueStr("mode")) == "conv")
     {
         pmode = miopenPaddingDefault;
@@ -367,6 +367,8 @@ int ConvDriver<T>::SetConvDescriptorFromCmdLineArgs()
         pmode = miopenPaddingSame;
         pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
         pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+        pad_h /= 2;
+        pad_w /= 2;
     }
     else if((inflags.GetValueStr("pad_mode")) == "valid")
     {
@@ -728,6 +730,8 @@ int ConvDriver<T>::RunForwardCPU()
     {
         pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
         pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+        pad_h /= 2;
+        pad_w /= 2;
     }
     else if(pmode == miopenPaddingValid)
     {
@@ -1082,6 +1086,8 @@ int ConvDriver<T>::RunBackwardWeightsCPU()
     {
         pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
         pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+        pad_h /= 2;
+        pad_w /= 2;
     }
     else if(pmode == miopenPaddingValid)
     {
@@ -1334,6 +1340,8 @@ int ConvDriver<T>::RunBackwardDataCPU()
     {
         pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
         pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+        pad_h /= 2;
+        pad_w /= 2;
     }
     else if(pmode == miopenPaddingValid)
     {
