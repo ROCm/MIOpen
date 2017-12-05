@@ -23,55 +23,47 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_MANAGE_PTR_HPP
-#define GUARD_MIOPEN_MANAGE_PTR_HPP
+#ifndef GUARD_GEMM_HPP
+#define GUARD_GEMM_HPP
 
-#include <memory>
-#include <type_traits>
+#include "ford.hpp"
+#include <miopen/returns.hpp>
 
-namespace miopen {
+template <class AF, class BF, class CF>
+void gemm(std::size_t n, std::size_t m, std::size_t k, AF a, BF b, CF c)
+{
+    auto inner_loop = [&](int i, int j) {
+        double x = 0.0;
+        ford(k)([&](int kk) { x += a(i, kk) * b(kk, j); });
+        c(i, j, x);
+    };
+    if(n * m > 32)
+    {
+        par_ford(n, m)(inner_loop);
+    }
+    else
+    {
+        ford(n, m)(inner_loop);
+    }
+}
 
-template <class F, F f>
-struct manage_deleter
+struct with_stride_impl
 {
     template <class T>
-    void operator()(T* x) const
-    {
-        if(x != nullptr)
-        {
-            f(x);
-        }
-    }
-};
+    auto operator()(T& data, std::size_t stride, std::size_t x, std::size_t y) const
+        MIOPEN_RETURNS(data[x * stride + y]);
 
-struct null_deleter
-{
     template <class T>
-    void operator()(T* /*x*/) const
-    {
-    }
-};
-
-template <class T, class F, F f>
-using manage_ptr = std::unique_ptr<T, manage_deleter<F, f>>;
-
-template <class T>
-struct element_type
-{
-    using type = typename T::element_type;
+    auto operator()(std::vector<T>& data, std::size_t stride, std::size_t x, std::size_t y) const
+        MIOPEN_RETURNS(data.at(x* stride + y));
 };
 
 template <class T>
-using remove_ptr = typename std::conditional<std::is_pointer<T>::value,
-                                             std::remove_pointer<T>,
-                                             element_type<T>>::type::type;
+auto with_stride(T& data, std::size_t stride) MIOPEN_RETURNS(std::bind(
+    with_stride_impl{}, std::ref(data), stride, std::placeholders::_1, std::placeholders::_2));
 
 template <class T>
-using shared = std::shared_ptr<remove_ptr<T>>;
-
-} // namespace miopen
-
-#define MIOPEN_MANAGE_PTR(T, F) \
-    miopen::manage_ptr<typename std::remove_pointer<T>::type, decltype(&F), &F>
+auto with_stride(T* data, std::size_t stride) MIOPEN_RETURNS(
+    std::bind(with_stride_impl{}, data, stride, std::placeholders::_1, std::placeholders::_2));
 
 #endif
