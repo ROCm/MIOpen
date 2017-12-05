@@ -260,15 +260,13 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                            network_config);
 
                 auto gemm_iterator =
-                    gemm_geo_map().find(std::make_pair("miopenRNNGEMM", network_config));
+                    gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
                 if(gemm_iterator != gemm_geo_map().end())
                 {
-                    printf("reach1\n");
                     gg = gemm_iterator->second;
                 }
                 else
                 {
-                    printf("reach2\n");
                     gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, x, w, workSpace, false);
                 }
 
@@ -299,15 +297,13 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                        network_config);
 
             auto gemm_iterator =
-                gemm_geo_map().find(std::make_pair("miopenRNNGEMM", network_config));
+                gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
             if(gemm_iterator != gemm_geo_map().end())
             {
-                printf("reach1\n");
                 gg = gemm_iterator->second;
             }
             else
             {
-                printf("reach2\n");
                 gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, w, workSpace, false);
             }
 
@@ -445,16 +441,14 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                    false,
                                                    network_config);
 
-                        auto gemm_iterator =
-                            gemm_geo_map().find(std::make_pair("miopenRNNGEMM", network_config));
+                        auto gemm_iterator = gemm_geo_map().find(
+                            std::make_pair("miopenRNNAlgoGEMM", network_config));
                         if(gemm_iterator != gemm_geo_map().end())
                         {
-                            printf("reach1\n");
                             gg = gemm_iterator->second;
                         }
                         else
                         {
-                            printf("reach2\n");
                             gg.FindSolution(
                                 MIO_RNN_FINDSOL_TIMEOUT, handle, hx, w, workSpace, false);
                         }
@@ -488,15 +482,13 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                         network_config);
 
                             auto gemm_iterator2 = gemm_geo_map().find(
-                                std::make_pair("miopenRNNGEMM", network_config));
+                                std::make_pair("miopenRNNAlgoGEMM", network_config));
                             if(gemm_iterator2 != gemm_geo_map().end())
                             {
-                                printf("reach1\n");
                                 gg2 = gemm_iterator2->second;
                             }
                             else
                             {
-                                printf("reach2\n");
                                 gg2.FindSolution(
                                     MIO_RNN_FINDSOL_TIMEOUT, handle, hx, w, workSpace, false);
                             }
@@ -531,16 +523,14 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                    false,
                                                    network_config);
 
-                        auto gemm_iterator =
-                            gemm_geo_map().find(std::make_pair("miopenRNNGEMM", network_config));
+                        auto gemm_iterator = gemm_geo_map().find(
+                            std::make_pair("miopenRNNAlgoGEMM", network_config));
                         if(gemm_iterator != gemm_geo_map().end())
                         {
-                            printf("reach1\n");
                             gg = gemm_iterator->second;
                         }
                         else
                         {
-                            printf("reach2\n");
                             gg.FindSolution(
                                 MIO_RNN_FINDSOL_TIMEOUT, handle, hy, w, workSpace, false);
                         }
@@ -574,15 +564,13 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                                         network_config);
 
                             auto gemm_iterator2 = gemm_geo_map().find(
-                                std::make_pair("miopenRNNGEMM", network_config));
+                                std::make_pair("miopenRNNAlgoGEMM", network_config));
                             if(gemm_iterator2 != gemm_geo_map().end())
                             {
-                                printf("reach1\n");
-                                gg = gemm_iterator2->second;
+                                gg2 = gemm_iterator2->second;
                             }
                             else
                             {
-                                printf("reach2\n");
                                 gg2.FindSolution(
                                     MIO_RNN_FINDSOL_TIMEOUT, handle, hy, w, workSpace, false);
                             }
@@ -1218,7 +1206,18 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                            hy_stride,
                                            false,
                                            network_config);
-                gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, x, w, reserveSpace, false);
+
+                auto gemm_iterator =
+                    gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
+                if(gemm_iterator != gemm_geo_map().end())
+                {
+                    gg = gemm_iterator->second;
+                }
+                else
+                {
+                    gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, x, w, reserveSpace, false);
+                }
+
                 gg.RunGemm(handle, x, w, reserveSpace, 0, 0, hid_shift);
 
                 // Update time
@@ -1244,7 +1243,19 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        hy_stride,
                                        false,
                                        network_config);
-            gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, reserveSpace, w, reserveSpace, false);
+
+            auto gemm_iterator =
+                gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
+            if(gemm_iterator != gemm_geo_map().end())
+            {
+                gg = gemm_iterator->second;
+            }
+            else
+            {
+                gg.FindSolution(
+                    MIO_RNN_FINDSOL_TIMEOUT, handle, reserveSpace, w, reserveSpace, false);
+            }
+
             gg.RunGemm(handle, reserveSpace, w, reserveSpace, prelayer_shift, wei_shift, hid_shift);
 
             // Update time
@@ -1378,8 +1389,19 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                    hy_stride,
                                                    false,
                                                    network_config);
-                        gg.FindSolution(
-                            MIO_RNN_FINDSOL_TIMEOUT, handle, hx, w, reserveSpace, false);
+
+                        auto gemm_iterator = gemm_geo_map().find(
+                            std::make_pair("miopenRNNAlgoGEMM", network_config));
+                        if(gemm_iterator != gemm_geo_map().end())
+                        {
+                            gg = gemm_iterator->second;
+                        }
+                        else
+                        {
+                            gg.FindSolution(
+                                MIO_RNN_FINDSOL_TIMEOUT, handle, hx, w, reserveSpace, false);
+                        }
+
                         gg.RunGemm(handle,
                                    hx,
                                    w,
@@ -1407,7 +1429,19 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                         hy_stride,
                                                         false,
                                                         network_config);
-                            gg2.FindSolution(.003, handle, hx, w, reserveSpace, false);
+
+                            auto gemm_iterator2 = gemm_geo_map().find(
+                                std::make_pair("miopenRNNAlgoGEMM", network_config));
+                            if(gemm_iterator2 != gemm_geo_map().end())
+                            {
+                                gg2 = gemm_iterator2->second;
+                            }
+                            else
+                            {
+                                gg2.FindSolution(
+                                    MIO_RNN_FINDSOL_TIMEOUT, handle, hx, w, reserveSpace, false);
+                            }
+
                             gg2.RunGemm(handle,
                                         hx,
                                         w,
@@ -1437,8 +1471,19 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                    hy_stride,
                                                    false,
                                                    network_config);
-                        gg.FindSolution(
-                            MIO_RNN_FINDSOL_TIMEOUT, handle, hy, w, reserveSpace, false);
+
+                        auto gemm_iterator = gemm_geo_map().find(
+                            std::make_pair("miopenRNNAlgoGEMM", network_config));
+                        if(gemm_iterator != gemm_geo_map().end())
+                        {
+                            gg = gemm_iterator->second;
+                        }
+                        else
+                        {
+                            gg.FindSolution(
+                                MIO_RNN_FINDSOL_TIMEOUT, handle, hy, w, reserveSpace, false);
+                        }
+
                         gg.RunGemm(handle,
                                    hy,
                                    w,
@@ -1466,7 +1511,19 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                         hy_stride,
                                                         false,
                                                         network_config);
-                            gg2.FindSolution(.003, handle, hy, w, reserveSpace, false);
+
+                            auto gemm_iterator2 = gemm_geo_map().find(
+                                std::make_pair("miopenRNNAlgoGEMM", network_config));
+                            if(gemm_iterator2 != gemm_geo_map().end())
+                            {
+                                gg2 = gemm_iterator2->second;
+                            }
+                            else
+                            {
+                                gg2.FindSolution(
+                                    MIO_RNN_FINDSOL_TIMEOUT, handle, hy, w, reserveSpace, false);
+                            }
+
                             gg2.RunGemm(handle,
                                         hy,
                                         w,
@@ -2120,7 +2177,18 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                        hy_stride,
                                        false,
                                        network_config);
-            gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, w, workSpace, false);
+
+            auto gemm_iterator =
+                gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
+            if(gemm_iterator != gemm_geo_map().end())
+            {
+                gg = gemm_iterator->second;
+            }
+            else
+            {
+                gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, w, workSpace, false);
+            }
+
             gg.RunGemm(
                 handle, workSpace, w, workSpace, prelayer_shift, wei_shift, hid_shift + dhd_off);
 
@@ -2237,12 +2305,23 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                            hy_stride,
                                                            false,
                                                            network_config);
-                                gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT,
-                                                handle,
-                                                workSpace,
-                                                w,
-                                                workSpace,
-                                                false);
+
+                                auto gemm_iterator = gemm_geo_map().find(
+                                    std::make_pair("miopenRNNAlgoGEMM", network_config));
+                                if(gemm_iterator != gemm_geo_map().end())
+                                {
+                                    gg = gemm_iterator->second;
+                                }
+                                else
+                                {
+                                    gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT,
+                                                    handle,
+                                                    workSpace,
+                                                    w,
+                                                    workSpace,
+                                                    false);
+                                }
+
                                 gg.RunGemm(handle,
                                            workSpace,
                                            w,
@@ -2317,7 +2396,23 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                                 hy_stride,
                                                                 false,
                                                                 network_config);
-                                    gg2.FindSolution(.003, handle, workSpace, w, workSpace, false);
+
+                                    auto gemm_iterator2 = gemm_geo_map().find(
+                                        std::make_pair("miopenRNNAlgoGEMM", network_config));
+                                    if(gemm_iterator2 != gemm_geo_map().end())
+                                    {
+                                        gg2 = gemm_iterator2->second;
+                                    }
+                                    else
+                                    {
+                                        gg2.FindSolution(MIO_RNN_FINDSOL_TIMEOUT,
+                                                         handle,
+                                                         workSpace,
+                                                         w,
+                                                         workSpace,
+                                                         false);
+                                    }
+
                                     gg2.RunGemm(handle,
                                                 workSpace,
                                                 w,
@@ -2375,7 +2470,19 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                    uni_stride,
                                                    false,
                                                    network_config);
-                        gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, w, dhx, false);
+
+                        auto gemm_iterator = gemm_geo_map().find(
+                            std::make_pair("miopenRNNAlgoGEMM", network_config));
+                        if(gemm_iterator != gemm_geo_map().end())
+                        {
+                            gg = gemm_iterator->second;
+                        }
+                        else
+                        {
+                            gg.FindSolution(
+                                MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, w, dhx, false);
+                        }
+
                         gg.RunGemm(handle,
                                    workSpace,
                                    w,
@@ -2809,8 +2916,19 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                        hy_stride,
                                                        false,
                                                        network_config);
-                            gg.FindSolution(
-                                MIO_RNN_FINDSOL_TIMEOUT, handle, hx, w, workSpace, false);
+
+                            auto gemm_iterator = gemm_geo_map().find(
+                                std::make_pair("miopenRNNAlgoGEMM", network_config));
+                            if(gemm_iterator != gemm_geo_map().end())
+                            {
+                                gg = gemm_iterator->second;
+                            }
+                            else
+                            {
+                                gg.FindSolution(
+                                    MIO_RNN_FINDSOL_TIMEOUT, handle, hx, w, workSpace, false);
+                            }
+
                             gg.RunGemm(handle,
                                        hx,
                                        w,
@@ -2841,12 +2959,23 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                            hy_stride,
                                                            false,
                                                            network_config);
-                                gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT,
-                                                handle,
-                                                reserveSpace,
-                                                w,
-                                                workSpace,
-                                                false);
+
+                                auto gemm_iterator = gemm_geo_map().find(
+                                    std::make_pair("miopenRNNAlgoGEMM", network_config));
+                                if(gemm_iterator != gemm_geo_map().end())
+                                {
+                                    gg = gemm_iterator->second;
+                                }
+                                else
+                                {
+                                    gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT,
+                                                    handle,
+                                                    reserveSpace,
+                                                    w,
+                                                    workSpace,
+                                                    false);
+                                }
+
                                 gg.RunGemm(handle,
                                            reserveSpace,
                                            w,
@@ -3084,7 +3213,19 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                    uni_stride,
                                                    false,
                                                    network_config);
-                        gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, w, dhx, false);
+
+                        auto gemm_iterator = gemm_geo_map().find(
+                            std::make_pair("miopenRNNAlgoGEMM", network_config));
+                        if(gemm_iterator != gemm_geo_map().end())
+                        {
+                            gg = gemm_iterator->second;
+                        }
+                        else
+                        {
+                            gg.FindSolution(
+                                MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, w, dhx, false);
+                        }
+
                         gg.RunGemm(handle,
                                    workSpace,
                                    w,
@@ -3157,8 +3298,19 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                    uni_stride,
                                                    false,
                                                    network_config);
-                        gg.FindSolution(
-                            MIO_RNN_FINDSOL_TIMEOUT, handle, reserveSpace, w, dhx, false);
+
+                        auto gemm_iterator = gemm_geo_map().find(
+                            std::make_pair("miopenRNNAlgoGEMM", network_config));
+                        if(gemm_iterator != gemm_geo_map().end())
+                        {
+                            gg = gemm_iterator->second;
+                        }
+                        else
+                        {
+                            gg.FindSolution(
+                                MIO_RNN_FINDSOL_TIMEOUT, handle, reserveSpace, w, dhx, false);
+                        }
+
                         gg.RunGemm(handle,
                                    reserveSpace,
                                    w,
@@ -3207,7 +3359,19 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                     uni_stride,
                                                     false,
                                                     network_config);
-                        gg2.FindSolution(.003, handle, workSpace, w, dhx, false);
+
+                        auto gemm_iterator2 = gemm_geo_map().find(
+                            std::make_pair("miopenRNNAlgoGEMM", network_config));
+                        if(gemm_iterator2 != gemm_geo_map().end())
+                        {
+                            gg2 = gemm_iterator2->second;
+                        }
+                        else
+                        {
+                            gg2.FindSolution(
+                                MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, w, dhx, false);
+                        }
+
                         gg2.RunGemm(handle,
                                     workSpace,
                                     w,
@@ -3274,7 +3438,18 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                    in_stride,
                                    false,
                                    network_config);
-        gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, w, dx, false);
+
+        auto gemm_iterator =
+            gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
+        if(gemm_iterator != gemm_geo_map().end())
+        {
+            gg = gemm_iterator->second;
+        }
+        else
+        {
+            gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, w, dx, false);
+        }
+
         gg.RunGemm(handle, workSpace, w, dx, 0, 0, 0);
 
         // Update time
@@ -3459,7 +3634,18 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                            in_stride,
                                            false,
                                            network_config);
-                gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, x, dw, false);
+
+                auto gemm_iterator =
+                    gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
+                if(gemm_iterator != gemm_geo_map().end())
+                {
+                    gg = gemm_iterator->second;
+                }
+                else
+                {
+                    gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, x, dw, false);
+                }
+
                 gg.RunGemm(handle, workSpace, x, dw, 0, 0, 0);
 
                 // Update time
@@ -3484,7 +3670,19 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        bi_stride,
                                        false,
                                        network_config);
-            gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, reserveSpace, dw, false);
+
+            auto gemm_iterator =
+                gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
+            if(gemm_iterator != gemm_geo_map().end())
+            {
+                gg = gemm_iterator->second;
+            }
+            else
+            {
+                gg.FindSolution(
+                    MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, reserveSpace, dw, false);
+            }
+
             gg.RunGemm(handle, workSpace, reserveSpace, dw, hid_shift, prelayer_shift, wei_shift);
 
             // Update time
@@ -3621,7 +3819,19 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                    uni_stride,
                                                    false,
                                                    network_config);
-                        gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, hx, dw, false);
+
+                        auto gemm_iterator = gemm_geo_map().find(
+                            std::make_pair("miopenRNNAlgoGEMM", network_config));
+                        if(gemm_iterator != gemm_geo_map().end())
+                        {
+                            gg = gemm_iterator->second;
+                        }
+                        else
+                        {
+                            gg.FindSolution(
+                                MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, hx, dw, false);
+                        }
+
                         gg.RunGemm(handle,
                                    workSpace,
                                    hx,
@@ -3658,12 +3868,23 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                        uni_stride,
                                                        false,
                                                        network_config);
-                            gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT,
-                                            handle,
-                                            workSpace,
-                                            reserveSpace,
-                                            dw,
-                                            false);
+
+                            auto gemm_iterator = gemm_geo_map().find(
+                                std::make_pair("miopenRNNAlgoGEMM", network_config));
+                            if(gemm_iterator != gemm_geo_map().end())
+                            {
+                                gg = gemm_iterator->second;
+                            }
+                            else
+                            {
+                                gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT,
+                                                handle,
+                                                workSpace,
+                                                reserveSpace,
+                                                dw,
+                                                false);
+                            }
+
                             gg.RunGemm(handle,
                                        workSpace,
                                        reserveSpace,
