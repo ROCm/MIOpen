@@ -244,31 +244,25 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
             }
             else
             {
-                GemmGeometry gg;
-                gg = CreateGemmGeometryRNN(batch_n,
-                                           wei_len * bi,
-                                           in_h,
-                                           1,
-                                           1,
-                                           false,
-                                           true,
-                                           false,
-                                           in_stride,
-                                           in_stride,
-                                           hy_stride,
-                                           false,
-                                           network_config);
 
-                auto gemm_iterator =
-                    gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
-                if(gemm_iterator != gemm_geo_map().end())
-                {
-                    gg = gemm_iterator->second;
-                }
-                else
-                {
-                    gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, x, w, workSpace, false);
-                }
+                auto gg = ScanGemmGeometryRNN(handle,
+                                              x,
+                                              w,
+                                              workSpace,
+                                              batch_n,
+                                              wei_len * bi,
+                                              in_h,
+                                              1,
+                                              1,
+                                              false,
+                                              true,
+                                              false,
+                                              in_stride,
+                                              in_stride,
+                                              hy_stride,
+                                              false,
+                                              network_config,
+                                              MIO_RNN_FINDSOL_TIMEOUT);
 
                 gg.RunGemm(handle, x, w, workSpace, 0, 0, hid_shift);
 
@@ -281,31 +275,24 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
             wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
             prelayer_shift = (li - 1) * batch_n * hy_stride + hid_off;
 
-            GemmGeometry gg;
-            gg = CreateGemmGeometryRNN(batch_n,
-                                       wei_len * bi,
-                                       hy_h * bi,
-                                       1,
-                                       1,
-                                       false,
-                                       true,
-                                       false,
-                                       hy_stride,
-                                       bi_stride,
-                                       hy_stride,
-                                       false,
-                                       network_config);
-
-            auto gemm_iterator =
-                gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
-            if(gemm_iterator != gemm_geo_map().end())
-            {
-                gg = gemm_iterator->second;
-            }
-            else
-            {
-                gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, w, workSpace, false);
-            }
+            auto gg = ScanGemmGeometryRNN(handle,
+                                          workSpace,
+                                          w,
+                                          workSpace,
+                                          batch_n,
+                                          wei_len * bi,
+                                          hy_h * bi,
+                                          1,
+                                          1,
+                                          false,
+                                          true,
+                                          false,
+                                          hy_stride,
+                                          bi_stride,
+                                          hy_stride,
+                                          false,
+                                          network_config,
+                                          MIO_RNN_FINDSOL_TIMEOUT);
 
             gg.RunGemm(handle, workSpace, w, workSpace, prelayer_shift, wei_shift, hid_shift);
 
@@ -426,32 +413,25 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                 {
                     if(ti == 0)
                     {
-                        GemmGeometry gg;
-                        gg = CreateGemmGeometryRNN(in_n[cur_time],
-                                                   wei_len_t,
-                                                   hy_h,
-                                                   1,
-                                                   1,
-                                                   false,
-                                                   true,
-                                                   false,
-                                                   uni_stride,
-                                                   uni_stride,
-                                                   hy_stride,
-                                                   false,
-                                                   network_config);
 
-                        auto gemm_iterator = gemm_geo_map().find(
-                            std::make_pair("miopenRNNAlgoGEMM", network_config));
-                        if(gemm_iterator != gemm_geo_map().end())
-                        {
-                            gg = gemm_iterator->second;
-                        }
-                        else
-                        {
-                            gg.FindSolution(
-                                MIO_RNN_FINDSOL_TIMEOUT, handle, hx, w, workSpace, false);
-                        }
+                        auto gg = ScanGemmGeometryRNN(handle,
+                                                      hx,
+                                                      w,
+                                                      workSpace,
+                                                      in_n.at(cur_time),
+                                                      wei_len_t,
+                                                      hy_h,
+                                                      1,
+                                                      1,
+                                                      false,
+                                                      true,
+                                                      false,
+                                                      uni_stride,
+                                                      uni_stride,
+                                                      hy_stride,
+                                                      false,
+                                                      network_config,
+                                                      MIO_RNN_FINDSOL_TIMEOUT);
 
                         gg.RunGemm(handle,
                                    hx,
@@ -466,33 +446,25 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 
                         if(rnnMode == miopenGRU)
                         {
-                            GemmGeometry gg2;
-                            gg2 = CreateGemmGeometryRNN(in_n[cur_time],
-                                                        hy_h,
-                                                        hy_h,
-                                                        1,
-                                                        1,
-                                                        false,
-                                                        true,
-                                                        false,
-                                                        uni_stride,
-                                                        uni_stride,
-                                                        hy_stride,
-                                                        false,
-                                                        network_config);
 
-                            auto gemm_iterator2 = gemm_geo_map().find(
-                                std::make_pair("miopenRNNAlgoGEMM", network_config));
-                            if(gemm_iterator2 != gemm_geo_map().end())
-                            {
-                                gg2 = gemm_iterator2->second;
-                            }
-                            else
-                            {
-                                gg2.FindSolution(
-                                    MIO_RNN_FINDSOL_TIMEOUT, handle, hx, w, workSpace, false);
-                            }
-
+                            auto gg2 = ScanGemmGeometryRNN(handle,
+                                                           hx,
+                                                           w,
+                                                           workSpace,
+                                                           in_n.at(cur_time),
+                                                           hy_h,
+                                                           hy_h,
+                                                           1,
+                                                           1,
+                                                           false,
+                                                           true,
+                                                           false,
+                                                           uni_stride,
+                                                           uni_stride,
+                                                           hy_stride,
+                                                           false,
+                                                           network_config,
+                                                           MIO_RNN_FINDSOL_TIMEOUT);
                             gg2.RunGemm(handle,
                                         hx,
                                         w,
@@ -508,32 +480,25 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                     }
                     else
                     {
-                        GemmGeometry gg;
-                        gg = CreateGemmGeometryRNN(in_n[cur_time],
-                                                   wei_len_t,
-                                                   hy_h,
-                                                   1,
-                                                   1,
-                                                   false,
-                                                   true,
-                                                   false,
-                                                   uni_stride,
-                                                   uni_stride,
-                                                   hy_stride,
-                                                   false,
-                                                   network_config);
 
-                        auto gemm_iterator = gemm_geo_map().find(
-                            std::make_pair("miopenRNNAlgoGEMM", network_config));
-                        if(gemm_iterator != gemm_geo_map().end())
-                        {
-                            gg = gemm_iterator->second;
-                        }
-                        else
-                        {
-                            gg.FindSolution(
-                                MIO_RNN_FINDSOL_TIMEOUT, handle, hy, w, workSpace, false);
-                        }
+                        auto gg = ScanGemmGeometryRNN(handle,
+                                                      hy,
+                                                      w,
+                                                      workSpace,
+                                                      in_n.at(cur_time),
+                                                      wei_len_t,
+                                                      hy_h,
+                                                      1,
+                                                      1,
+                                                      false,
+                                                      true,
+                                                      false,
+                                                      uni_stride,
+                                                      uni_stride,
+                                                      hy_stride,
+                                                      false,
+                                                      network_config,
+                                                      MIO_RNN_FINDSOL_TIMEOUT);
 
                         gg.RunGemm(handle,
                                    hy,
@@ -548,32 +513,25 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 
                         if(rnnMode == miopenGRU)
                         {
-                            GemmGeometry gg2;
-                            gg2 = CreateGemmGeometryRNN(in_n[cur_time],
-                                                        hy_h,
-                                                        hy_h,
-                                                        1,
-                                                        1,
-                                                        false,
-                                                        true,
-                                                        false,
-                                                        uni_stride,
-                                                        uni_stride,
-                                                        hy_stride,
-                                                        false,
-                                                        network_config);
 
-                            auto gemm_iterator2 = gemm_geo_map().find(
-                                std::make_pair("miopenRNNAlgoGEMM", network_config));
-                            if(gemm_iterator2 != gemm_geo_map().end())
-                            {
-                                gg2 = gemm_iterator2->second;
-                            }
-                            else
-                            {
-                                gg2.FindSolution(
-                                    MIO_RNN_FINDSOL_TIMEOUT, handle, hy, w, workSpace, false);
-                            }
+                            auto gg2 = ScanGemmGeometryRNN(handle,
+                                                           hy,
+                                                           w,
+                                                           workSpace,
+                                                           in_n.at(cur_time),
+                                                           hy_h,
+                                                           hy_h,
+                                                           1,
+                                                           1,
+                                                           false,
+                                                           true,
+                                                           false,
+                                                           uni_stride,
+                                                           uni_stride,
+                                                           hy_stride,
+                                                           false,
+                                                           network_config,
+                                                           MIO_RNN_FINDSOL_TIMEOUT);
 
                             gg2.RunGemm(handle,
                                         hy,
@@ -1192,31 +1150,24 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             }
             else
             {
-                GemmGeometry gg;
-                gg = CreateGemmGeometryRNN(batch_n,
-                                           wei_len * bi,
-                                           in_h,
-                                           1,
-                                           1,
-                                           false,
-                                           true,
-                                           false,
-                                           in_stride,
-                                           in_stride,
-                                           hy_stride,
-                                           false,
-                                           network_config);
-
-                auto gemm_iterator =
-                    gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
-                if(gemm_iterator != gemm_geo_map().end())
-                {
-                    gg = gemm_iterator->second;
-                }
-                else
-                {
-                    gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, x, w, reserveSpace, false);
-                }
+                auto gg = ScanGemmGeometryRNN(handle,
+                                              x,
+                                              w,
+                                              reserveSpace,
+                                              batch_n,
+                                              wei_len * bi,
+                                              in_h,
+                                              1,
+                                              1,
+                                              false,
+                                              true,
+                                              false,
+                                              in_stride,
+                                              in_stride,
+                                              hy_stride,
+                                              false,
+                                              network_config,
+                                              MIO_RNN_FINDSOL_TIMEOUT);
 
                 gg.RunGemm(handle, x, w, reserveSpace, 0, 0, hid_shift);
 
@@ -1229,32 +1180,24 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
             prelayer_shift = (li - 1) * batch_n * hy_stride + hid_off;
 
-            GemmGeometry gg;
-            gg = CreateGemmGeometryRNN(batch_n,
-                                       wei_len * bi,
-                                       hy_h * bi,
-                                       1,
-                                       1,
-                                       false,
-                                       true,
-                                       false,
-                                       hy_stride,
-                                       bi_stride,
-                                       hy_stride,
-                                       false,
-                                       network_config);
-
-            auto gemm_iterator =
-                gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
-            if(gemm_iterator != gemm_geo_map().end())
-            {
-                gg = gemm_iterator->second;
-            }
-            else
-            {
-                gg.FindSolution(
-                    MIO_RNN_FINDSOL_TIMEOUT, handle, reserveSpace, w, reserveSpace, false);
-            }
+            auto gg = ScanGemmGeometryRNN(handle,
+                                          reserveSpace,
+                                          w,
+                                          reserveSpace,
+                                          batch_n,
+                                          wei_len * bi,
+                                          hy_h * bi,
+                                          1,
+                                          1,
+                                          false,
+                                          true,
+                                          false,
+                                          hy_stride,
+                                          bi_stride,
+                                          hy_stride,
+                                          false,
+                                          network_config,
+                                          MIO_RNN_FINDSOL_TIMEOUT);
 
             gg.RunGemm(handle, reserveSpace, w, reserveSpace, prelayer_shift, wei_shift, hid_shift);
 
@@ -1375,32 +1318,24 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 {
                     if(ti == 0)
                     {
-                        GemmGeometry gg;
-                        gg = CreateGemmGeometryRNN(in_n[cur_time],
-                                                   wei_len_t,
-                                                   hy_h,
-                                                   1,
-                                                   1,
-                                                   false,
-                                                   true,
-                                                   false,
-                                                   uni_stride,
-                                                   uni_stride,
-                                                   hy_stride,
-                                                   false,
-                                                   network_config);
-
-                        auto gemm_iterator = gemm_geo_map().find(
-                            std::make_pair("miopenRNNAlgoGEMM", network_config));
-                        if(gemm_iterator != gemm_geo_map().end())
-                        {
-                            gg = gemm_iterator->second;
-                        }
-                        else
-                        {
-                            gg.FindSolution(
-                                MIO_RNN_FINDSOL_TIMEOUT, handle, hx, w, reserveSpace, false);
-                        }
+                        auto gg = ScanGemmGeometryRNN(handle,
+                                                      hx,
+                                                      w,
+                                                      reserveSpace,
+                                                      in_n.at(cur_time),
+                                                      wei_len_t,
+                                                      hy_h,
+                                                      1,
+                                                      1,
+                                                      false,
+                                                      true,
+                                                      false,
+                                                      uni_stride,
+                                                      uni_stride,
+                                                      hy_stride,
+                                                      false,
+                                                      network_config,
+                                                      MIO_RNN_FINDSOL_TIMEOUT);
 
                         gg.RunGemm(handle,
                                    hx,
@@ -1415,32 +1350,25 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                         if(rnnMode == miopenGRU)
                         {
-                            GemmGeometry gg2;
-                            gg2 = CreateGemmGeometryRNN(in_n[cur_time],
-                                                        hy_h,
-                                                        hy_h,
-                                                        1,
-                                                        1,
-                                                        false,
-                                                        true,
-                                                        false,
-                                                        uni_stride,
-                                                        uni_stride,
-                                                        hy_stride,
-                                                        false,
-                                                        network_config);
 
-                            auto gemm_iterator2 = gemm_geo_map().find(
-                                std::make_pair("miopenRNNAlgoGEMM", network_config));
-                            if(gemm_iterator2 != gemm_geo_map().end())
-                            {
-                                gg2 = gemm_iterator2->second;
-                            }
-                            else
-                            {
-                                gg2.FindSolution(
-                                    MIO_RNN_FINDSOL_TIMEOUT, handle, hx, w, reserveSpace, false);
-                            }
+                            auto gg2 = ScanGemmGeometryRNN(handle,
+                                                           hx,
+                                                           w,
+                                                           reserveSpace,
+                                                           in_n.at(cur_time),
+                                                           hy_h,
+                                                           hy_h,
+                                                           1,
+                                                           1,
+                                                           false,
+                                                           true,
+                                                           false,
+                                                           uni_stride,
+                                                           uni_stride,
+                                                           hy_stride,
+                                                           false,
+                                                           network_config,
+                                                           MIO_RNN_FINDSOL_TIMEOUT);
 
                             gg2.RunGemm(handle,
                                         hx,
@@ -1457,32 +1385,25 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     }
                     else
                     {
-                        GemmGeometry gg;
-                        gg = CreateGemmGeometryRNN(in_n[cur_time],
-                                                   wei_len_t,
-                                                   hy_h,
-                                                   1,
-                                                   1,
-                                                   false,
-                                                   true,
-                                                   false,
-                                                   uni_stride,
-                                                   uni_stride,
-                                                   hy_stride,
-                                                   false,
-                                                   network_config);
 
-                        auto gemm_iterator = gemm_geo_map().find(
-                            std::make_pair("miopenRNNAlgoGEMM", network_config));
-                        if(gemm_iterator != gemm_geo_map().end())
-                        {
-                            gg = gemm_iterator->second;
-                        }
-                        else
-                        {
-                            gg.FindSolution(
-                                MIO_RNN_FINDSOL_TIMEOUT, handle, hy, w, reserveSpace, false);
-                        }
+                        auto gg = ScanGemmGeometryRNN(handle,
+                                                      hx,
+                                                      w,
+                                                      reserveSpace,
+                                                      in_n.at(cur_time),
+                                                      wei_len_t,
+                                                      hy_h,
+                                                      1,
+                                                      1,
+                                                      false,
+                                                      true,
+                                                      false,
+                                                      uni_stride,
+                                                      uni_stride,
+                                                      hy_stride,
+                                                      false,
+                                                      network_config,
+                                                      MIO_RNN_FINDSOL_TIMEOUT);
 
                         gg.RunGemm(handle,
                                    hy,
@@ -1497,32 +1418,25 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
                         if(rnnMode == miopenGRU)
                         {
-                            GemmGeometry gg2;
-                            gg2 = CreateGemmGeometryRNN(in_n[cur_time],
-                                                        hy_h,
-                                                        hy_h,
-                                                        1,
-                                                        1,
-                                                        false,
-                                                        true,
-                                                        false,
-                                                        uni_stride,
-                                                        uni_stride,
-                                                        hy_stride,
-                                                        false,
-                                                        network_config);
 
-                            auto gemm_iterator2 = gemm_geo_map().find(
-                                std::make_pair("miopenRNNAlgoGEMM", network_config));
-                            if(gemm_iterator2 != gemm_geo_map().end())
-                            {
-                                gg2 = gemm_iterator2->second;
-                            }
-                            else
-                            {
-                                gg2.FindSolution(
-                                    MIO_RNN_FINDSOL_TIMEOUT, handle, hy, w, reserveSpace, false);
-                            }
+                            auto gg2 = ScanGemmGeometryRNN(handle,
+                                                           hy,
+                                                           w,
+                                                           reserveSpace,
+                                                           in_n.at(cur_time),
+                                                           hy_h,
+                                                           hy_h,
+                                                           1,
+                                                           1,
+                                                           false,
+                                                           true,
+                                                           false,
+                                                           uni_stride,
+                                                           uni_stride,
+                                                           hy_stride,
+                                                           false,
+                                                           network_config,
+                                                           MIO_RNN_FINDSOL_TIMEOUT);
 
                             gg2.RunGemm(handle,
                                         hy,
@@ -2163,32 +2077,24 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         {
             prelayer_shift = (li + 1) * batch_n * hy_stride;
 
-            GemmGeometry gg;
-            gg = CreateGemmGeometryRNN(batch_n,
-                                       hy_h * bi,
-                                       wei_len * bi,
-                                       1,
-                                       1,
-                                       false,
-                                       false,
-                                       false,
-                                       hy_stride,
-                                       bi_stride,
-                                       hy_stride,
-                                       false,
-                                       network_config);
-
-            auto gemm_iterator =
-                gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
-            if(gemm_iterator != gemm_geo_map().end())
-            {
-                gg = gemm_iterator->second;
-            }
-            else
-            {
-                gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, w, workSpace, false);
-            }
-
+            auto gg = ScanGemmGeometryRNN(handle,
+                                          workSpace,
+                                          w,
+                                          workSpace,
+                                          batch_n,
+                                          hy_h * bi,
+                                          wei_len * bi,
+                                          1,
+                                          1,
+                                          false,
+                                          false,
+                                          false,
+                                          hy_stride,
+                                          bi_stride,
+                                          hy_stride,
+                                          false,
+                                          network_config,
+                                          MIO_RNN_FINDSOL_TIMEOUT);
             gg.RunGemm(
                 handle, workSpace, w, workSpace, prelayer_shift, wei_shift, hid_shift + dhd_off);
 
@@ -2291,36 +2197,25 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         {
                             if(in_n[use_time] > 0)
                             {
-                                GemmGeometry gg;
-                                gg = CreateGemmGeometryRNN(in_n[use_time],
-                                                           hy_h,
-                                                           wei_len_t,
-                                                           1,
-                                                           1,
-                                                           false,
-                                                           false,
-                                                           false,
-                                                           hy_stride,
-                                                           uni_stride,
-                                                           hy_stride,
-                                                           false,
-                                                           network_config);
 
-                                auto gemm_iterator = gemm_geo_map().find(
-                                    std::make_pair("miopenRNNAlgoGEMM", network_config));
-                                if(gemm_iterator != gemm_geo_map().end())
-                                {
-                                    gg = gemm_iterator->second;
-                                }
-                                else
-                                {
-                                    gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT,
-                                                    handle,
-                                                    workSpace,
-                                                    w,
-                                                    workSpace,
-                                                    false);
-                                }
+                                auto gg = ScanGemmGeometryRNN(handle,
+                                                              workSpace,
+                                                              w,
+                                                              workSpace,
+                                                              in_n.at(use_time),
+                                                              hy_h,
+                                                              wei_len_t,
+                                                              1,
+                                                              1,
+                                                              false,
+                                                              false,
+                                                              false,
+                                                              hy_stride,
+                                                              uni_stride,
+                                                              hy_stride,
+                                                              false,
+                                                              network_config,
+                                                              MIO_RNN_FINDSOL_TIMEOUT);
 
                                 gg.RunGemm(handle,
                                            workSpace,
@@ -2382,36 +2277,24 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                     // Update time
                                     profileRNNkernels(handle, 1, ctime);
 
-                                    GemmGeometry gg2;
-                                    gg2 = CreateGemmGeometryRNN(in_n[use_time],
-                                                                hy_h,
-                                                                hy_h,
-                                                                1,
-                                                                1,
-                                                                false,
-                                                                false,
-                                                                false,
-                                                                hy_stride,
-                                                                uni_stride,
-                                                                hy_stride,
-                                                                false,
-                                                                network_config);
-
-                                    auto gemm_iterator2 = gemm_geo_map().find(
-                                        std::make_pair("miopenRNNAlgoGEMM", network_config));
-                                    if(gemm_iterator2 != gemm_geo_map().end())
-                                    {
-                                        gg2 = gemm_iterator2->second;
-                                    }
-                                    else
-                                    {
-                                        gg2.FindSolution(MIO_RNN_FINDSOL_TIMEOUT,
-                                                         handle,
-                                                         workSpace,
-                                                         w,
-                                                         workSpace,
-                                                         false);
-                                    }
+                                    auto gg2 = ScanGemmGeometryRNN(handle,
+                                                                   workSpace,
+                                                                   w,
+                                                                   workSpace,
+                                                                   in_n.at(use_time),
+                                                                   hy_h,
+                                                                   hy_h,
+                                                                   1,
+                                                                   1,
+                                                                   false,
+                                                                   false,
+                                                                   false,
+                                                                   hy_stride,
+                                                                   uni_stride,
+                                                                   hy_stride,
+                                                                   false,
+                                                                   network_config,
+                                                                   MIO_RNN_FINDSOL_TIMEOUT);
 
                                     gg2.RunGemm(handle,
                                                 workSpace,
@@ -2456,32 +2339,24 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
-                        GemmGeometry gg;
-                        gg = CreateGemmGeometryRNN(in_n[cur_time],
-                                                   hy_h,
-                                                   hy_h,
-                                                   1,
-                                                   0,
-                                                   false,
-                                                   false,
-                                                   false,
-                                                   hy_stride,
-                                                   uni_stride,
-                                                   uni_stride,
-                                                   false,
-                                                   network_config);
-
-                        auto gemm_iterator = gemm_geo_map().find(
-                            std::make_pair("miopenRNNAlgoGEMM", network_config));
-                        if(gemm_iterator != gemm_geo_map().end())
-                        {
-                            gg = gemm_iterator->second;
-                        }
-                        else
-                        {
-                            gg.FindSolution(
-                                MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, w, dhx, false);
-                        }
+                        auto gg = ScanGemmGeometryRNN(handle,
+                                                      workSpace,
+                                                      w,
+                                                      dhx,
+                                                      in_n.at(cur_time),
+                                                      hy_h,
+                                                      hy_h,
+                                                      1,
+                                                      0,
+                                                      false,
+                                                      false,
+                                                      false,
+                                                      hy_stride,
+                                                      uni_stride,
+                                                      uni_stride,
+                                                      false,
+                                                      network_config,
+                                                      MIO_RNN_FINDSOL_TIMEOUT);
 
                         gg.RunGemm(handle,
                                    workSpace,
@@ -2902,32 +2777,25 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         // r gate
                         if(ti == 0)
                         {
-                            GemmGeometry gg;
-                            gg = CreateGemmGeometryRNN(in_n[cur_time],
-                                                       hy_h,
-                                                       hy_h,
-                                                       1,
-                                                       1,
-                                                       false,
-                                                       true,
-                                                       false,
-                                                       uni_stride,
-                                                       uni_stride,
-                                                       hy_stride,
-                                                       false,
-                                                       network_config);
 
-                            auto gemm_iterator = gemm_geo_map().find(
-                                std::make_pair("miopenRNNAlgoGEMM", network_config));
-                            if(gemm_iterator != gemm_geo_map().end())
-                            {
-                                gg = gemm_iterator->second;
-                            }
-                            else
-                            {
-                                gg.FindSolution(
-                                    MIO_RNN_FINDSOL_TIMEOUT, handle, hx, w, workSpace, false);
-                            }
+                            auto gg = ScanGemmGeometryRNN(handle,
+                                                          hx,
+                                                          w,
+                                                          workSpace,
+                                                          in_n.at(cur_time),
+                                                          hy_h,
+                                                          hy_h,
+                                                          1,
+                                                          1,
+                                                          false,
+                                                          true,
+                                                          false,
+                                                          uni_stride,
+                                                          uni_stride,
+                                                          hy_stride,
+                                                          false,
+                                                          network_config,
+                                                          MIO_RNN_FINDSOL_TIMEOUT);
 
                             gg.RunGemm(handle,
                                        hx,
@@ -2945,36 +2813,25 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         {
                             if(in_n[use_time2] > 0)
                             {
-                                GemmGeometry gg;
-                                gg = CreateGemmGeometryRNN(in_n[use_time2],
-                                                           hy_h,
-                                                           hy_h,
-                                                           1,
-                                                           1,
-                                                           false,
-                                                           true,
-                                                           false,
-                                                           hy_stride,
-                                                           uni_stride,
-                                                           hy_stride,
-                                                           false,
-                                                           network_config);
 
-                                auto gemm_iterator = gemm_geo_map().find(
-                                    std::make_pair("miopenRNNAlgoGEMM", network_config));
-                                if(gemm_iterator != gemm_geo_map().end())
-                                {
-                                    gg = gemm_iterator->second;
-                                }
-                                else
-                                {
-                                    gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT,
-                                                    handle,
-                                                    reserveSpace,
-                                                    w,
-                                                    workSpace,
-                                                    false);
-                                }
+                                auto gg = ScanGemmGeometryRNN(handle,
+                                                              reserveSpace,
+                                                              w,
+                                                              workSpace,
+                                                              in_n.at(use_time2),
+                                                              hy_h,
+                                                              hy_h,
+                                                              1,
+                                                              1,
+                                                              false,
+                                                              true,
+                                                              false,
+                                                              hy_stride,
+                                                              uni_stride,
+                                                              hy_stride,
+                                                              false,
+                                                              network_config,
+                                                              MIO_RNN_FINDSOL_TIMEOUT);
 
                                 gg.RunGemm(handle,
                                            reserveSpace,
@@ -3199,32 +3056,25 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
                     if(rnnMode == miopenLSTM)
                     {
-                        GemmGeometry gg;
-                        gg = CreateGemmGeometryRNN(in_n[cur_time],
-                                                   hy_h,
-                                                   hy_h * 4,
-                                                   1,
-                                                   1,
-                                                   false,
-                                                   false,
-                                                   false,
-                                                   hy_stride,
-                                                   uni_stride,
-                                                   uni_stride,
-                                                   false,
-                                                   network_config);
 
-                        auto gemm_iterator = gemm_geo_map().find(
-                            std::make_pair("miopenRNNAlgoGEMM", network_config));
-                        if(gemm_iterator != gemm_geo_map().end())
-                        {
-                            gg = gemm_iterator->second;
-                        }
-                        else
-                        {
-                            gg.FindSolution(
-                                MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, w, dhx, false);
-                        }
+                        auto gg = ScanGemmGeometryRNN(handle,
+                                                      workSpace,
+                                                      w,
+                                                      dhx,
+                                                      in_n.at(cur_time),
+                                                      hy_h,
+                                                      hy_h * 4,
+                                                      1,
+                                                      1,
+                                                      false,
+                                                      false,
+                                                      false,
+                                                      hy_stride,
+                                                      uni_stride,
+                                                      uni_stride,
+                                                      false,
+                                                      network_config,
+                                                      MIO_RNN_FINDSOL_TIMEOUT);
 
                         gg.RunGemm(handle,
                                    workSpace,
@@ -3284,32 +3134,24 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
-                        GemmGeometry gg;
-                        gg = CreateGemmGeometryRNN(in_n[cur_time],
-                                                   hy_h,
-                                                   hy_h,
-                                                   1,
-                                                   0,
-                                                   false,
-                                                   false,
-                                                   false,
-                                                   hy_stride,
-                                                   uni_stride,
-                                                   uni_stride,
-                                                   false,
-                                                   network_config);
-
-                        auto gemm_iterator = gemm_geo_map().find(
-                            std::make_pair("miopenRNNAlgoGEMM", network_config));
-                        if(gemm_iterator != gemm_geo_map().end())
-                        {
-                            gg = gemm_iterator->second;
-                        }
-                        else
-                        {
-                            gg.FindSolution(
-                                MIO_RNN_FINDSOL_TIMEOUT, handle, reserveSpace, w, dhx, false);
-                        }
+                        auto gg = ScanGemmGeometryRNN(handle,
+                                                      reserveSpace,
+                                                      w,
+                                                      dhx,
+                                                      in_n.at(cur_time),
+                                                      hy_h,
+                                                      hy_h,
+                                                      1,
+                                                      0,
+                                                      false,
+                                                      false,
+                                                      false,
+                                                      hy_stride,
+                                                      uni_stride,
+                                                      uni_stride,
+                                                      false,
+                                                      network_config,
+                                                      MIO_RNN_FINDSOL_TIMEOUT);
 
                         gg.RunGemm(handle,
                                    reserveSpace,
@@ -3345,32 +3187,24 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
-                        GemmGeometry gg2;
-                        gg2 = CreateGemmGeometryRNN(in_n[cur_time],
-                                                    hy_h,
-                                                    hy_h * 2,
-                                                    1,
-                                                    1,
-                                                    false,
-                                                    false,
-                                                    false,
-                                                    hy_stride,
-                                                    uni_stride,
-                                                    uni_stride,
-                                                    false,
-                                                    network_config);
-
-                        auto gemm_iterator2 = gemm_geo_map().find(
-                            std::make_pair("miopenRNNAlgoGEMM", network_config));
-                        if(gemm_iterator2 != gemm_geo_map().end())
-                        {
-                            gg2 = gemm_iterator2->second;
-                        }
-                        else
-                        {
-                            gg2.FindSolution(
-                                MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, w, dhx, false);
-                        }
+                        auto gg2 = ScanGemmGeometryRNN(handle,
+                                                       workSpace,
+                                                       w,
+                                                       dhx,
+                                                       in_n.at(cur_time),
+                                                       hy_h,
+                                                       hy_h * 2,
+                                                       1,
+                                                       1,
+                                                       false,
+                                                       false,
+                                                       false,
+                                                       hy_stride,
+                                                       uni_stride,
+                                                       uni_stride,
+                                                       false,
+                                                       network_config,
+                                                       MIO_RNN_FINDSOL_TIMEOUT);
 
                         gg2.RunGemm(handle,
                                     workSpace,
@@ -3424,31 +3258,25 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     }
     else
     {
-        GemmGeometry gg;
-        gg = CreateGemmGeometryRNN(batch_n,
-                                   in_h,
-                                   wei_len * bi,
-                                   1,
-                                   1,
-                                   false,
-                                   false,
-                                   false,
-                                   hy_stride,
-                                   in_stride,
-                                   in_stride,
-                                   false,
-                                   network_config);
 
-        auto gemm_iterator =
-            gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
-        if(gemm_iterator != gemm_geo_map().end())
-        {
-            gg = gemm_iterator->second;
-        }
-        else
-        {
-            gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, w, dx, false);
-        }
+        auto gg = ScanGemmGeometryRNN(handle,
+                                      workSpace,
+                                      w,
+                                      dx,
+                                      batch_n,
+                                      in_h,
+                                      wei_len * bi,
+                                      1,
+                                      1,
+                                      false,
+                                      false,
+                                      false,
+                                      hy_stride,
+                                      in_stride,
+                                      in_stride,
+                                      false,
+                                      network_config,
+                                      MIO_RNN_FINDSOL_TIMEOUT);
 
         gg.RunGemm(handle, workSpace, w, dx, 0, 0, 0);
 
@@ -3620,31 +3448,25 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         {
             if(inputMode == miopenRNNlinear)
             {
-                GemmGeometry gg;
-                gg = CreateGemmGeometryRNN(wei_len * bi,
-                                           in_h,
-                                           batch_n,
-                                           1,
-                                           1,
-                                           true,
-                                           false,
-                                           false,
-                                           hy_stride,
-                                           in_stride,
-                                           in_stride,
-                                           false,
-                                           network_config);
 
-                auto gemm_iterator =
-                    gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
-                if(gemm_iterator != gemm_geo_map().end())
-                {
-                    gg = gemm_iterator->second;
-                }
-                else
-                {
-                    gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, x, dw, false);
-                }
+                auto gg = ScanGemmGeometryRNN(handle,
+                                              workSpace,
+                                              x,
+                                              dw,
+                                              wei_len * bi,
+                                              in_h,
+                                              batch_n,
+                                              1,
+                                              1,
+                                              true,
+                                              false,
+                                              false,
+                                              hy_stride,
+                                              in_stride,
+                                              in_stride,
+                                              false,
+                                              network_config,
+                                              MIO_RNN_FINDSOL_TIMEOUT);
 
                 gg.RunGemm(handle, workSpace, x, dw, 0, 0, 0);
 
@@ -3656,32 +3478,24 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         {
             int prelayer_shift = (li - 1) * batch_n * hy_stride + hid_off;
 
-            GemmGeometry gg;
-            gg = CreateGemmGeometryRNN(wei_len * bi,
-                                       hy_h * bi,
-                                       batch_n,
-                                       1,
-                                       1,
-                                       true,
-                                       false,
-                                       false,
-                                       hy_stride,
-                                       hy_stride,
-                                       bi_stride,
-                                       false,
-                                       network_config);
-
-            auto gemm_iterator =
-                gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
-            if(gemm_iterator != gemm_geo_map().end())
-            {
-                gg = gemm_iterator->second;
-            }
-            else
-            {
-                gg.FindSolution(
-                    MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, reserveSpace, dw, false);
-            }
+            auto gg = ScanGemmGeometryRNN(handle,
+                                          workSpace,
+                                          reserveSpace,
+                                          dw,
+                                          wei_len * bi,
+                                          hy_h * bi,
+                                          batch_n,
+                                          1,
+                                          1,
+                                          true,
+                                          false,
+                                          false,
+                                          hy_stride,
+                                          hy_stride,
+                                          bi_stride,
+                                          false,
+                                          network_config,
+                                          MIO_RNN_FINDSOL_TIMEOUT);
 
             gg.RunGemm(handle, workSpace, reserveSpace, dw, hid_shift, prelayer_shift, wei_shift);
 
@@ -3805,32 +3619,25 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                     if(ti == 0)
                     {
-                        GemmGeometry gg;
-                        gg = CreateGemmGeometryRNN(wei_len,
-                                                   hy_h,
-                                                   in_n[cur_time],
-                                                   1,
-                                                   1,
-                                                   true,
-                                                   false,
-                                                   false,
-                                                   hy_stride,
-                                                   uni_stride,
-                                                   uni_stride,
-                                                   false,
-                                                   network_config);
 
-                        auto gemm_iterator = gemm_geo_map().find(
-                            std::make_pair("miopenRNNAlgoGEMM", network_config));
-                        if(gemm_iterator != gemm_geo_map().end())
-                        {
-                            gg = gemm_iterator->second;
-                        }
-                        else
-                        {
-                            gg.FindSolution(
-                                MIO_RNN_FINDSOL_TIMEOUT, handle, workSpace, hx, dw, false);
-                        }
+                        auto gg = ScanGemmGeometryRNN(handle,
+                                                      workSpace,
+                                                      hx,
+                                                      dw,
+                                                      wei_len,
+                                                      hy_h,
+                                                      in_n.at(cur_time),
+                                                      1,
+                                                      1,
+                                                      true,
+                                                      false,
+                                                      false,
+                                                      hy_stride,
+                                                      uni_stride,
+                                                      uni_stride,
+                                                      false,
+                                                      network_config,
+                                                      MIO_RNN_FINDSOL_TIMEOUT);
 
                         gg.RunGemm(handle,
                                    workSpace,
@@ -3854,36 +3661,25 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                         if(in_n[use_time] > 0)
                         {
-                            GemmGeometry gg;
-                            gg = CreateGemmGeometryRNN(wei_len,
-                                                       hy_h,
-                                                       in_n[use_time],
-                                                       1,
-                                                       1,
-                                                       true,
-                                                       false,
-                                                       false,
-                                                       hy_stride,
-                                                       hy_stride,
-                                                       uni_stride,
-                                                       false,
-                                                       network_config);
 
-                            auto gemm_iterator = gemm_geo_map().find(
-                                std::make_pair("miopenRNNAlgoGEMM", network_config));
-                            if(gemm_iterator != gemm_geo_map().end())
-                            {
-                                gg = gemm_iterator->second;
-                            }
-                            else
-                            {
-                                gg.FindSolution(MIO_RNN_FINDSOL_TIMEOUT,
-                                                handle,
-                                                workSpace,
-                                                reserveSpace,
-                                                dw,
-                                                false);
-                            }
+                            auto gg = ScanGemmGeometryRNN(handle,
+                                                          workSpace,
+                                                          reserveSpace,
+                                                          dw,
+                                                          wei_len,
+                                                          hy_h,
+                                                          in_n.at(use_time),
+                                                          1,
+                                                          1,
+                                                          true,
+                                                          false,
+                                                          false,
+                                                          hy_stride,
+                                                          hy_stride,
+                                                          uni_stride,
+                                                          false,
+                                                          network_config,
+                                                          MIO_RNN_FINDSOL_TIMEOUT);
 
                             gg.RunGemm(handle,
                                        workSpace,
