@@ -86,7 +86,7 @@ __kernel void CopyTensor(global MIOPEN_TYPE* __restrict src,
     switch(dims)
     {
     case 1:
-        for(int idx = gidx ; idx < dstLen0;  idx+=65536)
+        for(int idx = gidx; idx < dstLen0; idx += 65536)
         {
             if(idx < dstRealsize && idx < srcRealsize)
             {
@@ -96,10 +96,10 @@ __kernel void CopyTensor(global MIOPEN_TYPE* __restrict src,
         break;
 
     case 2:
-        for(int xidx = gidx ; xidx < dstLen0;  xidx+=256)
+        for(int xidx = gidx; xidx < dstLen0; xidx += 256)
         {
-            for(int yidx = gidy ; yidx < dstLen1;  yidx+=256)
-            {                
+            for(int yidx = gidy; yidx < dstLen1; yidx += 256)
+            {
                 dindex = dstStride0 * xidx + yidx;
                 sindex = srcStride0 * xidx + yidx;
                 if(dindex < dstRealsize && sindex < srcRealsize)
@@ -111,17 +111,17 @@ __kernel void CopyTensor(global MIOPEN_TYPE* __restrict src,
         break;
 
     case 3:
-        
-        for(int xidx = gidx ; xidx < dstLen0;  xidx+=16)
+
+        for(int xidx = gidx; xidx < dstLen0; xidx += 16)
         {
-            for(int yidx = gidy ; yidx < dstLen1;  yidx+=64)
-            {  
-                for(int zidx = gidz ; zidx < dstLen2;  zidx+=64)
-                {  
-        
+            for(int yidx = gidy; yidx < dstLen1; yidx += 64)
+            {
+                for(int zidx = gidz; zidx < dstLen2; zidx += 64)
+                {
+
                     dindex = dstStride0 * xidx + dstStride1 * yidx + zidx;
                     sindex = srcStride0 * xidx + srcStride1 * yidx + zidx;
-                    
+
                     if(dindex < dstRealsize && sindex < srcRealsize)
                     {
                         dst[dindex + dstOffset] = src[sindex + srcOffset];
@@ -132,13 +132,13 @@ __kernel void CopyTensor(global MIOPEN_TYPE* __restrict src,
         break;
 
     case 4:
-        
-        for(int xidx = gidx ; xidx < dstLen1;  xidx+=16)
+
+        for(int xidx = gidx; xidx < dstLen1; xidx += 16)
         {
-            for(int yidx = gidy ; yidx < dstLen2;  yidx+=64)
-            {  
-                for(int zidx = gidz ; zidx < dstLen3;  zidx+=64)
-                { 
+            for(int yidx = gidy; yidx < dstLen2; yidx += 64)
+            {
+                for(int zidx = gidz; zidx < dstLen3; zidx += 64)
+                {
                     stmp = srcStride1 * xidx + srcStride2 * yidx + srcStride3 * zidx;
                     dtmp = dstStride1 * xidx + dstStride2 * yidx + dstStride3 * zidx;
 #pragma unroll
@@ -158,15 +158,15 @@ __kernel void CopyTensor(global MIOPEN_TYPE* __restrict src,
         break;
 
     case 5:
-        for(int xidx = gidx ; xidx < dstLen2;  xidx+=16)
+        for(int xidx = gidx; xidx < dstLen2; xidx += 16)
         {
-            for(int yidx = gidy ; yidx < dstLen3;  yidx+=64)
-            {  
-                for(int zidx = gidz ; zidx < dstLen4;  zidx+=64)
+            for(int yidx = gidy; yidx < dstLen3; yidx += 64)
+            {
+                for(int zidx = gidz; zidx < dstLen4; zidx += 64)
                 {
                     stmp = srcStride2 * xidx + srcStride3 * yidx + zidx;
                     dtmp = dstStride2 * xidx + dstStride3 * yidx + zidx;
-        
+
 #pragma unroll
                     for(int idx = 0; idx < srcLen0; idx++)
                     {
