@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <miopen/gemm.hpp>
+#include <miopen/handle.hpp>
 
 namespace miopen {
 
@@ -283,4 +284,41 @@ GemmGeometry CreateGemmGeometryRNN(int M,
     network_config = tgg.get_networkconfig_string();
     return gg;
 }
+
+GemmGeometry ScanGemmGeometryRNN(Handle& handle,
+                                 ConstData_t A,
+                                 ConstData_t B,
+                                 Data_t C,
+                                 int M,
+                                 int N,
+                                 int K,
+                                 float alpha,
+                                 float beta,
+                                 bool tA,
+                                 bool tB,
+                                 bool tC,
+                                 int lda,
+                                 int ldb,
+                                 int ldc,
+                                 bool isDataColMajor,
+                                 std::string& network_config,
+                                 float timeout)
+{
+
+    auto gg = CreateGemmGeometryRNN(
+        M, N, K, alpha, beta, tA, tB, tC, lda, ldb, ldc, isDataColMajor, network_config);
+
+    auto gemm_iterator = gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
+    if(gemm_iterator != gemm_geo_map().end())
+    {
+        gg = gemm_iterator->second;
+    }
+    else
+    {
+        gg.FindSolution(timeout, handle, A, B, C, false);
+    }
+
+    return gg;
+}
+
 } // namespace miopen
