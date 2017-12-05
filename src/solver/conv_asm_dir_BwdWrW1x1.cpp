@@ -478,7 +478,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 }
 
 /// \todo Factor out this (to generic search implementation)
-class Heartbeat
+class Heartbeat1x1WrW
 {
     size_t n_within_beat;
     size_t n_best;
@@ -495,7 +495,7 @@ class Heartbeat
     }
 
     public:
-    Heartbeat() : n_within_beat(), n_best(), best_time(), elapsed_cumulative() {}
+    Heartbeat1x1WrW() : n_within_beat(), n_best(), best_time(), elapsed_cumulative() {}
 
     void Start()
     {
@@ -504,7 +504,8 @@ class Heartbeat
         Continue();
     }
 
-    void Monitor(const float recent_time,
+    void Monitor(const bool is_recent_failed,
+                 const float recent_time,
                  const size_t n_recent,
                  const float total_best,
                  size_t n_failed,
@@ -512,7 +513,7 @@ class Heartbeat
                  const PerformanceConfigConvAsmBwdWrW1x1& recent_config)
     {
         ++n_within_beat;
-        if(recent_time < best_time)
+        if(!is_recent_failed && (recent_time < best_time))
         {
             best_time   = recent_time;
             n_best      = n_recent;
@@ -626,50 +627,85 @@ PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionCont
         }
     }
     MIOPEN_LOG_W("Searching the best solution among " << n_runs_total << "...");
-    bool is_passed   = false;
+    bool is_passed   = false; // left false only if all iterations failed.
     float best_time  = std::numeric_limits<float>::max();
     size_t n_failed  = 0;
     size_t n_current = 0;
     size_t n_best    = 0;
-    Heartbeat heartbeat;
+    Heartbeat1x1WrW heartbeat;
     heartbeat.Start();
     for(const auto& current_config : all_configs)
     {
         float elapsed_time;
         MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_runs_total << ' '
                           << current_config);
-        const auto ret = RunSolution(profile_h,
-                                     bot_ocl_buf.get(),
-                                     top_ocl_buf.get(),
-                                     wei_ocl_buf.get(),
-                                     params,
-                                     GetSolution(params, current_config, true),
-                                     elapsed_time);
+        // Smooth the jitter of the measured time.:
+        // If 1st probe isn't worse than the best one by 5%,
+        // then re-run 4 more times and compute average time,
+        // and decide using average vs. the best.
+        auto ret = RunSolution(profile_h,
+                               bot_ocl_buf.get(),
+                               top_ocl_buf.get(),
+                               wei_ocl_buf.get(),
+                               params,
+                               GetSolution(params, current_config, true),
+                               elapsed_time);
         if(ret == 0)
         {
-            is_passed = true;
-            if(elapsed_time < best_time)
+            if(elapsed_time / best_time < 1.05f)
             {
-                MIOPEN_LOG_I('#' << n_current << '/' << n_failed << '/' << n_runs_total << ' '
-                                 << elapsed_time
-                                 << " < "
-                                 << best_time
-                                 << ' '
-                                 << current_config);
-                best_config = current_config;
-                best_time   = elapsed_time;
-                n_best      = n_current;
+                MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time << " = "
+                                                      << (elapsed_time / best_time));
+                float temp;
+                for(int i = 0; i < 4; ++i)
+                {
+                    ret = RunSolution(profile_h,
+                                      bot_ocl_buf.get(),
+                                      top_ocl_buf.get(),
+                                      wei_ocl_buf.get(),
+                                      params,
+                                      GetSolution(params, current_config, true),
+                                      temp);
+                    if(ret != 0)
+                    {
+                        break;
+                    }
+                    elapsed_time += temp;
+                }
+                if(ret == 0)
+                {
+                    is_passed = true;
+                    elapsed_time /= 5;
+                    if(elapsed_time < best_time)
+                    {
+                        MIOPEN_LOG_I('#' << n_current << '/' << n_failed << '/' << n_runs_total
+                                         << ' '
+                                         << elapsed_time
+                                         << " < "
+                                         << best_time
+                                         << ' '
+                                         << current_config);
+                        best_config = current_config;
+                        best_time   = elapsed_time;
+                        n_best      = n_current;
+                    }
+                    else
+                    {
+                        MIOPEN_LOG_I2(
+                            "Average is not better: " << elapsed_time << " >= " << best_time);
+                    }
+                }
             }
         }
-        else
+
+        if(ret != 0)
         {
             MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
                              << " Failed rc="
                              << ret);
             ++n_failed;
         }
-        heartbeat.Monitor(
-            elapsed_time, n_current, best_time, n_failed, n_runs_total, current_config);
+        heartbeat.Monitor(ret != 0, elapsed_time, n_current, best_time, n_failed, n_runs_total, current_config);
         ++n_current;
     }
 
