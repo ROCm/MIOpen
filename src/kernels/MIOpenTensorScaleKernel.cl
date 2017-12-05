@@ -86,47 +86,22 @@ __kernel void CopyTensor(global MIOPEN_TYPE* __restrict src,
     switch(dims)
     {
     case 1:
-        if(gidx < dstRealsize && gidx < srcRealsize)
+        for(int idx = gidx ; idx < dstLen0;  idx+=65536)
         {
-            dst[gidx + dstOffset] = src[gidx + srcOffset];
+            if(idx < dstRealsize && idx < srcRealsize)
+            {
+                dst[idx + dstOffset] = src[idx + srcOffset];
+            }
         }
         break;
 
     case 2:
-        if(gidx < dstLen0 && gidy < dstLen1)
+        for(int xidx = gidx ; xidx < dstLen0;  xidx+=256)
         {
-            dindex = dstStride0 * gidx + gidy;
-            sindex = srcStride0 * gidx + gidy;
-            if(dindex < dstRealsize && sindex < srcRealsize)
-            {
-                dst[dindex + dstOffset] = src[sindex + srcOffset];
-            }
-        }
-        break;
-
-    case 3:
-        if(gidx < dstLen0 && gidy < dstLen1 && gidz < dstLen2)
-        {
-            dindex = dstStride0 * gidx + dstStride1 * gidy + gidz;
-            sindex = srcStride0 * gidx + srcStride1 * gidy + gidz;
-            if(dindex < dstRealsize && sindex < srcRealsize)
-            {
-                dst[dindex + dstOffset] = src[sindex + srcOffset];
-            }
-        }
-        break;
-
-    case 4:
-        if(gidx < dstLen1 && gidy < dstLen2 && gidz < dstLen3)
-        {
-            stmp = srcStride1 * gidx + srcStride2 * gidy + srcStride3 * gidz;
-            dtmp = dstStride1 * gidx + dstStride2 * gidy + dstStride3 * gidz;
-#pragma unroll
-            for(uint i = 0; i < srcLen0; i++)
-            {
-                sindex = stmp + srcStride0 * i;
-                dindex = dtmp + dstStride0 * i;
-
+            for(int yidx = gidy ; yidx < dstLen1;  yidx+=256)
+            {                
+                dindex = dstStride0 * xidx + yidx;
+                sindex = srcStride0 * xidx + yidx;
                 if(dindex < dstRealsize && sindex < srcRealsize)
                 {
                     dst[dindex + dstOffset] = src[sindex + srcOffset];
@@ -135,24 +110,78 @@ __kernel void CopyTensor(global MIOPEN_TYPE* __restrict src,
         }
         break;
 
-    case 5:
-        if(gidx < dstLen2 && gidy < dstLen3 && gidz < dstLen4)
+    case 3:
+        
+        for(int xidx = gidx ; xidx < dstLen0;  xidx+=16)
         {
-            stmp = srcStride2 * gidx + srcStride3 * gidy + gidz;
-            dtmp = dstStride2 * gidx + dstStride3 * gidy + gidz;
-#pragma unroll
-            for(uint i = 0; i < srcLen0; i++)
-            {
-                stmp2 = stmp + srcStride0 * i;
-                dtmp2 = dtmp + dstStride0 * i;
-#pragma unroll
-                for(uint j = 0; j < srcLen1; j++)
-                {
-                    sindex = stmp2 + srcStride1 * j;
-                    dindex = dtmp2 + dstStride1 * j;
+            for(int yidx = gidy ; yidx < dstLen1;  yidx+=64)
+            {  
+                for(int zidx = gidz ; zidx < dstLen2;  zidx+=64)
+                {  
+        
+                    dindex = dstStride0 * xidx + dstStride1 * yidx + zidx;
+                    sindex = srcStride0 * xidx + srcStride1 * yidx + zidx;
+                    
                     if(dindex < dstRealsize && sindex < srcRealsize)
                     {
                         dst[dindex + dstOffset] = src[sindex + srcOffset];
+                    }
+                }
+            }
+        }
+        break;
+
+    case 4:
+        
+        for(int xidx = gidx ; xidx < dstLen1;  xidx+=16)
+        {
+            for(int yidx = gidy ; yidx < dstLen2;  yidx+=64)
+            {  
+                for(int zidx = gidz ; zidx < dstLen3;  zidx+=64)
+                { 
+                    stmp = srcStride1 * xidx + srcStride2 * yidx + srcStride3 * zidx;
+                    dtmp = dstStride1 * xidx + dstStride2 * yidx + dstStride3 * zidx;
+#pragma unroll
+                    for(int idx = 0; idx < srcLen0; idx++)
+                    {
+                        sindex = stmp + srcStride0 * idx;
+                        dindex = dtmp + dstStride0 * idx;
+
+                        if(dindex < dstRealsize && sindex < srcRealsize)
+                        {
+                            dst[dindex + dstOffset] = src[sindex + srcOffset];
+                        }
+                    }
+                }
+            }
+        }
+        break;
+
+    case 5:
+        for(int xidx = gidx ; xidx < dstLen2;  xidx+=16)
+        {
+            for(int yidx = gidy ; yidx < dstLen3;  yidx+=64)
+            {  
+                for(int zidx = gidz ; zidx < dstLen4;  zidx+=64)
+                {
+                    stmp = srcStride2 * xidx + srcStride3 * yidx + zidx;
+                    dtmp = dstStride2 * xidx + dstStride3 * yidx + zidx;
+        
+#pragma unroll
+                    for(int idx = 0; idx < srcLen0; idx++)
+                    {
+                        stmp2 = stmp + srcStride0 * idx;
+                        dtmp2 = dtmp + dstStride0 * idx;
+#pragma unroll
+                        for(int jdx = 0; jdx < srcLen1; jdx++)
+                        {
+                            sindex = stmp2 + srcStride1 * jdx;
+                            dindex = dtmp2 + dstStride1 * jdx;
+                            if(dindex < dstRealsize && sindex < srcRealsize)
+                            {
+                                dst[dindex + dstOffset] = src[sindex + srcOffset];
+                            }
+                        }
                     }
                 }
             }
