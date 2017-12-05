@@ -75,7 +75,7 @@ class VirtualIteratorWrW1x1;
 /// The container holds problem config information instead. This info
 /// is required for advancing the iterator to the next valid configuration.
 /// Also it provides const_iterator, begin() and end().
-class VirtualContainer
+class VirtualContainer1x1WrW
 {
     // Valid iterator shall denote an element of a container.
     const ConvolutionContext& config;
@@ -83,7 +83,7 @@ class VirtualContainer
 
     public:
     using const_iterator = VirtualIteratorWrW1x1;
-    VirtualContainer(const ConvolutionContext& config_) : config(config_) {}
+    VirtualContainer1x1WrW(const ConvolutionContext& config_) : config(config_) {}
     VirtualIteratorWrW1x1 begin() const;
     VirtualIteratorWrW1x1 end() const;
 };
@@ -94,18 +94,18 @@ class VirtualIteratorWrW1x1
     : public std::iterator<std::input_iterator_tag, PerformanceConfigConvAsmBwdWrW1x1>
 {
     value_type v; // PerformanceConfigConvAsmBwdWrW1x1
-    const VirtualContainer* container;
+    const VirtualContainer1x1WrW* container;
 
     static const value_type& GetMinValue();
     static const value_type& GetOutOfRangeValue();
 
     /// Implements begin()
-    VirtualIteratorWrW1x1(const VirtualContainer* container_) : v(GetMinValue()), container(container_)
+    VirtualIteratorWrW1x1(const VirtualContainer1x1WrW* container_) : v(GetMinValue()), container(container_)
     {
         if(!IsValid())
             Next();
     }
-    friend class VirtualContainer; // Passes itself to private ctor in order to construct begin().
+    friend class VirtualContainer1x1WrW; // Passes itself to private ctor in order to construct begin().
     void Next();
     bool IsValid();
 
@@ -124,9 +124,9 @@ class VirtualIteratorWrW1x1
     }
 };
 
-inline VirtualIteratorWrW1x1 VirtualContainer::begin() const { return VirtualIteratorWrW1x1(this); }
+inline VirtualIteratorWrW1x1 VirtualContainer1x1WrW::begin() const { return VirtualIteratorWrW1x1(this); }
 
-inline VirtualIteratorWrW1x1 VirtualContainer::end() const { return VirtualIteratorWrW1x1(); }
+inline VirtualIteratorWrW1x1 VirtualContainer1x1WrW::end() const { return VirtualIteratorWrW1x1(); }
 
 const VirtualIteratorWrW1x1::value_type& VirtualIteratorWrW1x1::GetMinValue()
 {
@@ -311,28 +311,7 @@ ConvAsmBwdWrW1x1::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     std::string s;
     PerformanceConfigConvAsmBwdWrW1x1 pp;
-    const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS{});
-    if(p_asciz)
-    {
-        s = std::string(p_asciz);
-    }
-    if(!s.empty()) // Otherwise, nothing is set in env -> nothing to parse.
-    {
-        static const std::string h("MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS: ");
-        if(!pp.Deserialize(s))
-        {
-            MIOPEN_THROW(h + "Bad format:" + s);
-        }
-        if(!pp.IsValid(params))
-        {
-            MIOPEN_THROW(h + "Out of range of invalid for the problem config:" + s);
-        }
-        MIOPEN_LOG_I("From env: " << pp.ToString());
-    }
-    else
-    {
-        pp.EuristicInit(params);
-    }
+    pp.EuristicInit(params);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
@@ -410,7 +389,8 @@ static int divide_round_plus_inf(const int x, const int y)
 }
 
 ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
-                                           const PerformanceConfigConvAsmBwdWrW1x1& config) const
+                                           const PerformanceConfigConvAsmBwdWrW1x1& config,
+                                           const bool disableConfigOverrideFromEnv) const
 {
     ConvSolution result;
     std::ostringstream options;
@@ -432,14 +412,39 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         options, "ROCM_METADATA_VERSION", (params.rmv == rocm_meta_version::V3) ? 3 : 4);
     // Perf tune:
     GenerateClangDefsym(options, "do_not_use_default_perf_params", 1);
-    GenerateClangDefsym(options, "n_per_gpr", config.GetNPerGpr());
-    GenerateClangDefsym(options, "pipe_depth", config.GetPipeDepth());
-    GenerateClangDefsym(options, "c_per_gpr", config.GetCPerGpr());
-    GenerateClangDefsym(options, "c_mult", config.GetCMult());
-    GenerateClangDefsym(options, "k_per_gpr", config.GetKPerGpr());
-    GenerateClangDefsym(options, "k_mult", config.GetKMult());
-    GenerateClangDefsym(options, "read_size", config.GetReadSize());
-    GenerateClangDefsym(options, "chunk_size", config.GetChunkSize());
+
+    const PerformanceConfigConvAsmBwdWrW1x1* pcfg = &config;
+    PerformanceConfigConvAsmBwdWrW1x1 fromEnv;
+    if (!disableConfigOverrideFromEnv)
+    {
+        std::string s;
+        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS{});
+        if(p_asciz)
+        {
+            s = std::string(p_asciz);
+            if(!s.empty()) // else nothing to parse.
+            {
+                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
+                {
+                    MIOPEN_LOG_E("MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS: "
+                                 "Bad format or invalid for the problem config: " << s);
+                }
+                else
+                {
+                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                    pcfg = &fromEnv;
+                }
+            }
+        }
+    }
+    GenerateClangDefsym(options, "n_per_gpr", pcfg->GetNPerGpr());
+    GenerateClangDefsym(options, "pipe_depth", pcfg->GetPipeDepth());
+    GenerateClangDefsym(options, "c_per_gpr", pcfg->GetCPerGpr());
+    GenerateClangDefsym(options, "c_mult", pcfg->GetCMult());
+    GenerateClangDefsym(options, "k_per_gpr", pcfg->GetKPerGpr());
+    GenerateClangDefsym(options, "k_mult", pcfg->GetKMult());
+    GenerateClangDefsym(options, "read_size", pcfg->GetReadSize());
+    GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
 
     KernelInfo kernel;
 
@@ -453,9 +458,9 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     kernel.g_wk.clear(); // gridsize
     kernel.g_wk.push_back(64);
     kernel.g_wk.push_back(
-        divide_round_plus_inf(params.n_outputs, config.GetCPerGpr() * config.GetCMult()));
+        divide_round_plus_inf(params.n_outputs, pcfg->GetCPerGpr() * pcfg->GetCMult()));
     kernel.g_wk.push_back(
-        divide_round_plus_inf(params.n_inputs, config.GetKPerGpr() * config.GetKMult()));
+        divide_round_plus_inf(params.n_inputs, pcfg->GetKPerGpr() * pcfg->GetKMult()));
 
     kernel.kernel_file = "conv1x1wrw.s";
     kernel.kernel_name = "gcnAsmConv1x1WrW";
@@ -605,7 +610,7 @@ PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionCont
     auto wei_ocl_buf = profile_h.Write(wei);
 
     int n_runs_total = 0;
-    const VirtualContainer all_configs(params);
+    const VirtualContainer1x1WrW all_configs(params);
     {
         for(const auto& dummy : all_configs)
         {
@@ -631,7 +636,7 @@ PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionCont
                                      top_ocl_buf.get(),
                                      wei_ocl_buf.get(),
                                      params,
-                                     GetSolution(params, current_config),
+                                     GetSolution(params, current_config, true),
                                      elapsed_time);
         if(ret == 0)
         {
