@@ -391,7 +391,7 @@ bool ConvAsmBwdWrW1x1::IsFast(const ConvolutionContext& params) const
     const double h = params.out_width;
     const double c = params.n_outputs;
     const double k = params.n_inputs;
-    return (!(w * h * std::sqrt(std::sqrt(c * k)) > 56000)); // Heuristic.
+    return (!(w * h * std::sqrt(std::sqrt(c * k)) > 59600)); // Heuristic.
 }
 
 static int divide_round_plus_inf(const int x, const int y)
