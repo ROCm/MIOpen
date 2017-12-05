@@ -2593,16 +2593,8 @@ struct gru_driver : test_driver
                                                                     inVecReal});
 
         // RETURNS:  std::make_tuple(dx, dhx, reserveSpace, workSpace);
-        // auto reserveSpaceBwdData = std::get<2>(bwdDataOutputPair.second);
+        // BUGGY: auto reserveSpaceBwdData = std::get<2>(bwdDataOutputPair.second);
         auto workSpaceBwdData = std::get<2>(bwdDataOutputPair.second);
-#if(MIO_GRU_TEST_DEBUG > 0)
-        printf("Running backward weights GRU.\n");
-        printf("reserve sz: %d, workSpace sz: %d, weight sz: %d\n",
-               reserveSpaceBwdData.size(),
-               workSpaceBwdData.size(),
-               wei_sz);
-        fflush(nullptr);
-#endif
         auto dweights_pair =
             verify(verify_backward_weights_gru<T>{rnnDesc,
                                                   input,
