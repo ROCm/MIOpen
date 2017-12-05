@@ -100,12 +100,14 @@ class VirtualIteratorWrW1x1
     static const value_type& GetOutOfRangeValue();
 
     /// Implements begin()
-    VirtualIteratorWrW1x1(const VirtualContainer1x1WrW* container_) : v(GetMinValue()), container(container_)
+    VirtualIteratorWrW1x1(const VirtualContainer1x1WrW* container_)
+        : v(GetMinValue()), container(container_)
     {
         if(!IsValid())
             Next();
     }
-    friend class VirtualContainer1x1WrW; // Passes itself to private ctor in order to construct begin().
+    friend class VirtualContainer1x1WrW; // Passes itself to private ctor in order to construct
+                                         // begin().
     void Next();
     bool IsValid();
 
@@ -124,7 +126,10 @@ class VirtualIteratorWrW1x1
     }
 };
 
-inline VirtualIteratorWrW1x1 VirtualContainer1x1WrW::begin() const { return VirtualIteratorWrW1x1(this); }
+inline VirtualIteratorWrW1x1 VirtualContainer1x1WrW::begin() const
+{
+    return VirtualIteratorWrW1x1(this);
+}
 
 inline VirtualIteratorWrW1x1 VirtualContainer1x1WrW::end() const { return VirtualIteratorWrW1x1(); }
 
@@ -202,12 +207,13 @@ void VirtualIteratorWrW1x1::Next()
     } while(!IsValid());
 }
 
-PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(int c_per_gpr_,
-                                                                     int c_mult_,
-                                                                     int k_per_gpr_,
-                                                                     int k_mult_,
-                                                                     int read_size_)
-    : c_per_gpr(c_per_gpr_), c_mult(c_mult_), k_per_gpr(k_per_gpr_), k_mult(k_mult_), read_size(read_size_)
+PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(
+    int c_per_gpr_, int c_mult_, int k_per_gpr_, int k_mult_, int read_size_)
+    : c_per_gpr(c_per_gpr_),
+      c_mult(c_mult_),
+      k_per_gpr(k_per_gpr_),
+      k_mult(k_mult_),
+      read_size(read_size_)
 {
 }
 
@@ -249,7 +255,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 
 void PerformanceConfigConvAsmBwdWrW1x1::EuristicInit(const ConvolutionContext& config)
 {
-    read_size = 4;
+    read_size          = 4;
     const auto c_k_256 = config.n_outputs * config.n_inputs / 256; // C*K/256
     if(c_k_256 < 2)
     {
@@ -415,7 +421,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
     const PerformanceConfigConvAsmBwdWrW1x1* pcfg = &config;
     PerformanceConfigConvAsmBwdWrW1x1 fromEnv;
-    if (!disableConfigOverrideFromEnv)
+    if(!disableConfigOverrideFromEnv)
     {
         std::string s;
         const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS{});
@@ -427,7 +433,8 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
                 if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
                 {
                     MIOPEN_LOG_E("MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS: "
-                                 "Bad format or invalid for the problem config: " << s);
+                                 "Bad format or invalid for the problem config: "
+                                 << s);
                 }
                 else
                 {
