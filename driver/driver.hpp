@@ -30,7 +30,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
-#include <float.h>
+#include <cfloat>
 #include <memory>
 #include <miopen/miopen.h>
 #include <numeric>
@@ -60,16 +60,16 @@ struct GPUMem
     GPUMem(){};
     GPUMem(cl_context& ctx, size_t psz, size_t pdata_sz) : sz(psz), data_sz(pdata_sz)
     {
-        buf = clCreateBuffer(ctx, CL_MEM_READ_WRITE, data_sz * sz, NULL, NULL);
+        buf = clCreateBuffer(ctx, CL_MEM_READ_WRITE, data_sz * sz, nullptr, nullptr);
     }
 
     int ToGPU(cl_command_queue& q, void* p)
     {
-        return clEnqueueWriteBuffer(q, buf, CL_TRUE, 0, data_sz * sz, p, 0, NULL, NULL);
+        return clEnqueueWriteBuffer(q, buf, CL_TRUE, 0, data_sz * sz, p, 0, nullptr, nullptr);
     }
     int FromGPU(cl_command_queue& q, void* p)
     {
-        return clEnqueueReadBuffer(q, buf, CL_TRUE, 0, data_sz * sz, p, 0, NULL, NULL);
+        return clEnqueueReadBuffer(q, buf, CL_TRUE, 0, data_sz * sz, p, 0, nullptr, nullptr);
     }
 
     cl_mem GetMem() { return buf; }
@@ -125,7 +125,7 @@ void PadBufferSize(size_t& sz, int datatype_sz)
 [[gnu::noreturn]] void Usage()
 {
     printf("Usage: ./driver *base_arg* *other_args*\n");
-    printf("Supported Base Arguments: conv, pool, lrn, activ, softmax, bnorm, gemm\n");
+    printf("Supported Base Arguments: conv, pool, lrn, activ, softmax, bnorm, rnn, gemm\n");
     exit(0);
 }
 
@@ -140,7 +140,8 @@ std::string ParseBaseArg(int argc, char* argv[])
     std::string arg = argv[1];
 
     if(arg != "conv" && arg != "pool" && arg != "lrn" && arg != "activ" && arg != "softmax" &&
-       arg != "bnorm" && arg != "gemm")
+       arg != "bnorm" && arg != "rnn" && arg != "gemm")
+
     {
         printf("Invalid Base Input Argument\n");
         Usage();
