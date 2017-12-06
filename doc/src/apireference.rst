@@ -11,7 +11,8 @@ API Reference
     tensor
     activation
     convolution
+    rnn
+    batchnorm
+    lrn
     pooling
     softmax
-    lrn
-    batchnorm
