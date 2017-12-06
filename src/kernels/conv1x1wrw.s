@@ -257,12 +257,16 @@ gcnAsmConv1x1WrW:
 	v_bfe_u32 v[c_id], v[tid], 0 + chunk_size_log2, 0 + c_per_gpr_log2
 	v_bfe_u32 v[k_id], v[tid], 0 + chunk_size_log2 + c_per_gpr_log2 - k_per_gpr_log2, 0 + k_per_gpr_log2
 	
-	v_mul_u32_u24 v[voffset_in], 0 + input_feature_map_size, v[c_id]
-	v_mul_u32_u24 v[vtmp], 0 + input_stack_size, v[n_id]
+	s_mov_b32 s[stmp], 0 + input_feature_map_size
+	v_mul_lo_u32 v[voffset_in], s[stmp], v[c_id]
+	s_mov_b32 s[stmp], 0 + input_stack_size
+	v_mul_lo_u32 v[vtmp], s[stmp], v[n_id]
 	vadd_u32 v[voffset_in], v[voffset_in], v[vtmp] // c_off + n_off
 	
-	v_mul_u32_u24 v[voffset_out], 0 + output_feature_map_size, v[k_id]
-	v_mul_u32_u24 v[vtmp], 0 + output_stack_size, v[n_id]
+	s_mov_b32 s[stmp], 0 + output_feature_map_size
+	v_mul_lo_u32 v[voffset_out], s[stmp], v[k_id]
+	s_mov_b32 s[stmp], 0 + output_stack_size
+	v_mul_lo_u32 v[vtmp], s[stmp], v[n_id]
 	vadd_u32 v[voffset_out], v[voffset_out], v[vtmp] // k_off + n_off
 	
 	vtmp2 = permute_addr
