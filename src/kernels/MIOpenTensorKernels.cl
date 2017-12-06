@@ -249,7 +249,6 @@ __kernel void OpTensorLeadingOnes(global MIOPEN_TYPE* a,
     {
         int index    = o_n * c_nstride + o_c * c_cstride + o_h * c_w + lid;
         c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
-
         lid += get_local_size(0);
     }
 #elif FIRST_NOT_ONE == 1 // bitmap = 1,1,0,0
@@ -276,7 +275,6 @@ __kernel void OpTensorLeadingOnes(global MIOPEN_TYPE* a,
     {
         int index    = gid * c_nstride + lid;
         c_off[index] = MIOPEN_TENSOR_OP(a_off[index] * alpha0, operand) + beta * c_off[index];
-
         lid += get_local_size(0);
     }
 #endif
@@ -512,6 +510,7 @@ __kernel void Op5dTensorGeneric(global MIOPEN_TYPE* a,
     global MIOPEN_TYPE* c_off = c + Coffset;
 
     // if(gid>=b_nstride) return;
+
     int o_h_div = bitmap & (1 << 0) ? 1 : c_w;
     int o_d_div = o_h_div * (bitmap & (1 << 1) ? 1 : c_h);
     int o_c_div = o_d_div * (bitmap & (1 << 2) ? 1 : c_d);
@@ -539,6 +538,7 @@ __kernel void Op5dTensorGeneric(global MIOPEN_TYPE* a,
         int aindex = o_n * a_nstride + o_c * a_cstride + o_d * a_dstride + o_h * a_hstride + o_w;
         int cindex = o_n * c_nstride + o_c * c_cstride + o_d * c_dstride + o_h * c_hstride + o_w;
         // printf("lid: %d, index: %d\n",lid, index);
+
         // c[index + Coffset] = MIOPEN_TENSOR_OP(a[index + Aoffset], operand);
         c_off[cindex] = MIOPEN_TENSOR_OP(a_off[aindex] * alpha0, operand) + beta * c_off[cindex];
 

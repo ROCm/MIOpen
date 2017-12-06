@@ -113,7 +113,6 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 
         result.grp_tile0 = n_grp_size0;
         result.grp_tile1 = 1;
-        int grp_tile2    = 1;
 
         // workload and Kernel name
 
@@ -349,7 +348,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 
         {
             // std::cout << comp_options << std::endl;
-
+            int grp_tile2 = 1;
             KernelInfo kernel;
 
             kernel.l_wk.push_back(result.grp_tile0);
@@ -413,8 +412,6 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
     // param
     int N_BATCH_LOOPS = 1; // (params.n_inputs*params.n_outputs <= 8 * 1024) ? 1 : params.batch_sz /
                            // result.n_stacks;
-    int n_batch_blks = 1;  // (params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) /
-                           // (N_BATCH_LOOPS * result.n_stacks);
 
     result.out_pix_tile0 = 1;
     result.out_pix_tile1 = 1;
@@ -599,11 +596,13 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         std::to_string(read_unit) + std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(hw_wave_sz) +
         std::string(" -DMLO_LG2_PHYS_WAVE_SZ=") + std::to_string(mloLg2(hw_wave_sz))
 
-        //		+ std::string(" -limit-vector-registers=64 ")
+        //      + std::string(" -limit-vector-registers=64 ")
         + params.general_compile_options;
 
     // wrt to W
     {
+        int n_batch_blks = 1; // (params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) /
+                              // (N_BATCH_LOOPS * result.n_stacks);
         KernelInfo kernel;
 
         kernel.l_wk.push_back(result.grp_tile0);

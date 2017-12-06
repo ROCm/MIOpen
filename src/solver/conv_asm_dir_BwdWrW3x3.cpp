@@ -116,7 +116,6 @@ class VirtualIterator
     public:
     /// Implementes end() and also serves as a default ctor.
     VirtualIterator() : v(GetOutOfRangeValue()), container(nullptr) {}
-    VirtualIterator(const VirtualIterator& it) : v(it.v), container(it.container) {}
 
     bool operator!=(VirtualIterator const& other) const;
     const value_type& operator*() const { return v; }
@@ -128,9 +127,9 @@ class VirtualIterator
     }
 };
 
-inline VirtualIterator VirtualContainer::begin() const { return VirtualIterator(this); }
+inline VirtualIterator VirtualContainer::begin() const { return {this}; }
 
-inline VirtualIterator VirtualContainer::end() const { return VirtualIterator(); }
+inline VirtualIterator VirtualContainer::end() const { return {}; }
 
 const VirtualIterator::value_type& VirtualIterator::GetMinValue()
 {
