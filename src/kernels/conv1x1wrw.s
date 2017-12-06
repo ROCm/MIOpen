@@ -317,12 +317,6 @@ gcnAsmConv1x1WrW:
 	v_cmp_gt_u32 vcc, 0 + output_channels, v[k_id]
 	v_cndmask_b32_e32 v[voffset_out], -1, v[voffset_out], vcc
 	
-	//v_cmp_gt_u32 vcc, 16, v[tid]
-	//v_cndmask_b32_e32 v[voffset_in], -1, v[voffset_in], vcc
-	//v_cndmask_b32_e32 v[voffset_out], -1, v[voffset_out], vcc
-	//s_mov_b32 exec_hi, 0
-	//s_mov_b32 exec_lo, 0xFFFF
-	
 	v_mov_b32 v[vtmp], 0x7FFFFFFF
 	v_cmp_gt_u32 vcc, 0 + active_lanes_in_full_chunks, v[vtmp2]
 	v_cndmask_b32_e32 v[voffset_in],  v[vtmp], v[voffset_in], vcc
