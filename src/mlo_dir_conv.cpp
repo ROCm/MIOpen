@@ -258,8 +258,7 @@ bool mlo_construct_direct2D::mloIsAmdRocmOpencl(rocm_meta_version& rmv) const
 
 bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
 {
-    bool ret = false;
-    ret =
+    bool ret =
         (_search_params.in_height == 227 && _search_params.in_width == 227 &&
          _search_params.n_inputs == 1 && _search_params.kernel_size0 == 3 &&
          _search_params.kernel_size1 == 3 && _search_params.pad0 == 1 && _search_params.pad1 == 1 &&
