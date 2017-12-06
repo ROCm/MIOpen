@@ -316,7 +316,6 @@ std::string PerformanceConfigConvAsmBwdWrW1x1::ToString() const
 PerformanceConfigConvAsmBwdWrW1x1
 ConvAsmBwdWrW1x1::GetPerformanceConfig(const ConvolutionContext& params) const
 {
-    std::string s;
     PerformanceConfigConvAsmBwdWrW1x1 pp;
     pp.EuristicInit(params);
     MIOPEN_LOG_I(pp.ToString());
