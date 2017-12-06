@@ -243,6 +243,31 @@ enable_clang_tidy(
     ANALYZE_TEMPORARY_DTORS ON
 
 )
+include(CppCheck)
+enable_cppcheck(
+    CHECKS 
+        all
+    FORCE
+    SUPPRESS 
+        ConfigurationNotChecked
+        unmatchedSuppression
+        constStatement
+        noExplicitConstructor
+        passedByValue
+        # preprocessorErrorDirective
+        unusedStructMember
+        *:*.cl
+    SOURCES
+        include/
+        src/
+        # test/
+    INCLUDE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_BINARY_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/include
+    DEFINE
+        MIOPEN_USE_MIOPENGEMM=1
+)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)

@@ -278,9 +278,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
 
     std::string network_config;
-    std::string program_name;
-    std::string kernel_name;
-    std::string parms;
 
     if(mode == miopenTranspose)
     {
@@ -289,7 +286,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 #if MIOPEN_USE_MIOPENGEMM
         size_t workspace_req = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc);
         float time_gemm      = 0;
-        GemmGeometry gg = CreateGemmGeometryConvBwdData(xDesc, wDesc, yDesc, false, network_config);
+        GemmGeometry gg = CreateGemmGeometryConvBwdData(xDesc, wDesc, yDesc, true, network_config);
 
         // 1x1 does not require im2col or workspace
         if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
@@ -394,12 +391,12 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         if(dilation_h == 1 && dilation_w == 1)
         {
             // Winograd algo
-            float time_wino = 0;
             WinogradKernelParams k_p;
             KernelInvoke kernel_wino;
             if(FindWinogradKernel(handle, xDesc, wDesc, yDesc, k_p, kernel_wino, 1) == 0)
             { // TODO: be more graceful
                 // Execute the winograd kernel
+                float time_wino  = 0;
                 int flags        = 0;
                 int reserved     = 0;
                 int* return_addr = nullptr;
@@ -441,13 +438,13 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             }
 
             // Direct algo
-            float time_direct = 0;
             std::vector<KernelInvoke> kernel_direct;
             if(FindDirectKernel(handle, xDesc, wDesc, yDesc, kernel_direct, exhaustiveSearch, 1) ==
                0)
             { // Forward
 
                 // Execute the direct kernel
+                float time_direct = 0;
                 float padding_val = 0;
                 for(auto& k : kernel_direct)
                 {
@@ -459,7 +456,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             }
 
             // FFT algo
-            float time_fft = 0;
             std::vector<KernelInvoke> kernels_fft;
             size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
             if(FindFwdFFTKernel(handle, xDesc, wDesc, yDesc, workspace_fft, kernels_fft) == 0)
@@ -467,16 +463,16 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 (void)kernels_fft; // not used now, but needed as fft coverage widens
                 if(workSpace != nullptr && workSpaceSize >= workspace_fft)
                 {
-                    time_fft = ExecuteFwdFFTKernel(handle,
-                                                   xDesc,
-                                                   x,
-                                                   wDesc,
-                                                   w,
-                                                   yDesc,
-                                                   tmp_y.get(),
-                                                   workSpace,
-                                                   workSpaceSize,
-                                                   true);
+                    float time_fft = ExecuteFwdFFTKernel(handle,
+                                                         xDesc,
+                                                         x,
+                                                         wDesc,
+                                                         w,
+                                                         yDesc,
+                                                         tmp_y.get(),
+                                                         workSpace,
+                                                         workSpaceSize,
+                                                         true);
                     perf_db.push_back(
                         PerfField{"miopenConvolutionFwdAlgoFFT", time_fft, workspace_fft});
                 }
@@ -799,7 +795,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         std::string network_config;
 
 #if MIOPEN_USE_MIOPENGEMM
-        CreateGemmGeometryConvBwdData(xDesc, wDesc, yDesc, false, network_config);
+        CreateGemmGeometryConvBwdData(xDesc, wDesc, yDesc, true, network_config);
         GemmGeometry gg = GetGemmGeometry("miopenConvolutionBwdDataAlgoGEMM", network_config);
 
         float time_0 = 0;
@@ -912,9 +908,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
     std::string network_config;
-    std::string program_name;
-    std::string kernel_name;
-    std::string parms;
 
     if(mode == miopenTranspose)
     {
@@ -925,7 +918,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         size_t workspace_req = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, dxDesc);
         float time_gemm      = 0;
         GemmGeometry gg =
-            CreateGemmGeometryTranBwdData(dyDesc, wDesc, dxDesc, false, network_config);
+            CreateGemmGeometryTranBwdData(dyDesc, wDesc, dxDesc, true, network_config);
 
         // 1x1 does not require im2col or workspace
         if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
@@ -1070,7 +1063,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             }
 
             // FFT algo
-            float time_fft = 0;
             std::vector<KernelInvoke> kernels_fft;
             size_t workspace_fft = BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc);
             if(FindBwdFFTKernel(handle, dyDesc, wDesc, dxDesc, workspace_fft, kernels_fft) == 0)
@@ -1078,16 +1070,16 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 (void)kernels_fft; // not used now, but needed as fft coverage widens
                 if(workSpace != nullptr && workSpaceSize >= workspace_fft)
                 {
-                    time_fft = ExecuteBwdFFTKernel(handle,
-                                                   dyDesc,
-                                                   dy,
-                                                   wDesc,
-                                                   w,
-                                                   dxDesc,
-                                                   tmp_dx.get(),
-                                                   workSpace,
-                                                   workSpaceSize,
-                                                   true);
+                    float time_fft = ExecuteBwdFFTKernel(handle,
+                                                         dyDesc,
+                                                         dy,
+                                                         wDesc,
+                                                         w,
+                                                         dxDesc,
+                                                         tmp_dx.get(),
+                                                         workSpace,
+                                                         workSpaceSize,
+                                                         true);
                     perf_db.push_back(
                         PerfField{"miopenConvolutionBwdDataAlgoFFT", time_fft, workspace_fft});
                 }
@@ -1101,7 +1093,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         size_t workspace_req = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
         float time_gemm      = 0;
         GemmGeometry gg =
-            CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, false, network_config);
+            CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, true, network_config);
 
         // 1x1 does not require col2im or workspace
         if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
@@ -1322,7 +1314,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
             std::string network_config;
 #if MIOPEN_USE_MIOPENGEMM
-            CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, false, network_config);
+            CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, true, network_config);
             GemmGeometry gg = GetGemmGeometry("miopenConvolutionBwdDataAlgoGEMM", network_config);
 
             handle.ResetKernelTime();
@@ -1436,7 +1428,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
         std::string network_config;
 #if MIOPEN_USE_MIOPENGEMM
-        CreateGemmGeometryTranBwdData(dyDesc, wDesc, dxDesc, false, network_config);
+        CreateGemmGeometryTranBwdData(dyDesc, wDesc, dxDesc, true, network_config);
         GemmGeometry gg = GetGemmGeometry("miopenTransposeBwdDataAlgoGEMM", network_config);
 
         float time_0 = 0;
