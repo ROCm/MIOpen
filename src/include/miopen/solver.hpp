@@ -433,6 +433,7 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
     int k_per_gpr; // {1,2,4,8,16}
     int k_mult;    // {1,2,4,8,16}
     int read_size; // [1..4]
+    int n_per_gpr; // {1,2,4}
 
     /// The following conditions must be met.
     ///
@@ -453,8 +454,10 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
     ///   For backward, this is actually n_inputs.
 
     PerformanceConfigConvAsmBwdWrW1x1(
-        int c_per_gpr_, int c_mult_, int k_per_gpr_, int k_mult_, int read_size_);
-    PerformanceConfigConvAsmBwdWrW1x1() : PerformanceConfigConvAsmBwdWrW1x1(-1, -1, -1, -1, -1) {}
+        int c_per_gpr_, int c_mult_, int k_per_gpr_, int k_mult_, int read_size_, int n_per_gpr_);
+    PerformanceConfigConvAsmBwdWrW1x1() : PerformanceConfigConvAsmBwdWrW1x1(-1, -1, -1, -1, -1, -1)
+    {
+    }
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -464,17 +467,20 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
         f(self.k_per_gpr, "k_per_gpr");
         f(self.k_mult, "k_mult");
         f(self.read_size, "read_size");
+        f(self.n_per_gpr, "n_per_gpr");
     }
 
     // clang-format off
-    int GetNPerGpr() const { return 4; }
+    int GetNPerGpr() const { return n_per_gpr; }
     int GetPipeDepth() const { return 1; }
     int GetCPerGpr() const { return c_per_gpr; }
     int GetCMult() const { return c_mult; }
     int GetKPerGpr() const { return k_per_gpr; }
     int GetKMult() const { return k_mult; }
     int GetReadSize() const { return read_size; }
-    int GetChunkSize() const { assert(c_per_gpr); return 16 / c_per_gpr; } // clang-format on
+    int GetChunkSize() const { assert(c_per_gpr); return 16 / c_per_gpr; }
+    int GetHwPerGpr() const { assert(n_per_gpr); return 4 / n_per_gpr; } // "hw" stands for "height-and-width".
+    // clang-format on
 
     void EuristicInit(const ConvolutionContext& config);
     bool IsValidRange() const;
