@@ -24,10 +24,6 @@
  * 
  *******************************************************************************/
 
-// construct address fo ds_bpermute to swap lanes [0:31] <-> lanes [32:63]
-//	v_xor_b32 v[permute_addr], 0 + (1 << 5), v[tid]
-//	v_lshlrev_b32 v[permute_addr], 2, v[permute_addr]
-
 .macro .adjust_sptr_gpr ptr, off
 	s_add_u32 s[\ptr], s[\ptr], \off
 	s_addc_u32 s[1+\ptr], 0, s[1+\ptr]
