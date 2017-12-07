@@ -369,7 +369,7 @@ int BatchNormDriver<T>::createSaveBuffers()
 #if MIOPEN_BACKEND_OPENCL
     cl_int status = CL_SUCCESS;
     cl_context ctx;
-    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
+    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
     int status   = 0;
     uint32_t ctx = 0;
@@ -433,7 +433,7 @@ int BatchNormDriver<T>::createRunningBuffers()
 #if MIOPEN_BACKEND_OPENCL
     cl_int status = CL_SUCCESS;
     cl_context ctx;
-    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
+    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
     int status   = 0;
     uint32_t ctx = 0;
@@ -496,7 +496,7 @@ int BatchNormDriver<T>::AllocateBuffersAndCopy()
 #if MIOPEN_BACKEND_OPENCL
     cl_int status = CL_SUCCESS;
     cl_context ctx;
-    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
+    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
     int status   = 0;
     uint32_t ctx = 0;
@@ -1178,6 +1178,16 @@ int BatchNormDriver<T>::VerifyForward()
 #if(MIO_BN_DEBUG == 1)
         for(int i = 0; i < out.size() && i < out_host.size(); i++)
         {
+            //            if(std::isnan(out[i]))
+            //            {
+            //                std::cout << "out[" << i << "] produced a nan: " << out[i] <<
+            //                std::endl;
+            //            }
+            //            if(std::isnan(out_host[i]))
+            //            {
+            //                std::cout << "out_host[" << i << "] produced a nan: " << out_host[i]
+            //                << std::endl;
+            //            }
             diff   = double(fabs(out[i]) - fabs(out_host[i]));
             maxval = maxval < diff ? diff : maxval;
             if(diff > tolerance)

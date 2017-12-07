@@ -82,7 +82,6 @@ void BatchNormForwardTraining(Handle& handle,
     std::string program_name = "MIOpenBatchNormFwdTrain";
     std::string algo_name    = "miopenBatchNormalizationForwardTraining";
     std::string kernel_name  = "BatchNormFwdTrain";
-    std::string kernel_subname{};
     std::string network_config{};
 
     int n, c, h, w;
@@ -100,8 +99,6 @@ void BatchNormForwardTraining(Handle& handle,
     size_t xgridsize = 0;
     size_t ygridsize = 0;
     size_t zgridsize = 0;
-
-    unsigned int variant = 3;
 
     std::vector<size_t> vld;
     std::vector<size_t> vgd;
@@ -151,7 +148,7 @@ void BatchNormForwardTraining(Handle& handle,
             ylocalsize = 1;
             zlocalsize = 1;
 
-            variant              = 255;
+            unsigned int variant = 255;
             unsigned int segment = in_cstride * (xlocalsize / in_cstride);
             unsigned int nloops  = (in_nhw + segment - 1) / segment;
 
@@ -177,6 +174,10 @@ void BatchNormForwardTraining(Handle& handle,
 #if(MIOPEN_BN_CPP_DEBUG == 1)
             std::cout << kernel_name << ":: ";
             std::cout << parms << std::endl;
+            std::cout << "in_nhw: "
+                      << ":: " << in_nhw << std::endl;
+            std::cout << "inhw: "
+                      << ":: " << inhw << std::endl;
 #endif
             bnFwdTrainSelectSingle(handle,
                                    program_name,
@@ -202,10 +203,10 @@ void BatchNormForwardTraining(Handle& handle,
         }
         else if(in_cstride > 1024)
         {
-            variant    = 3;
-            xlocalsize = 1;
-            ylocalsize = 1024;
-            zlocalsize = 1;
+            unsigned int variant = 3;
+            xlocalsize           = 1;
+            ylocalsize           = 1024;
+            zlocalsize           = 1;
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
             vld.push_back(zlocalsize);
@@ -259,6 +260,8 @@ void BatchNormForwardTraining(Handle& handle,
 
             xlocalsize = 1;
             zlocalsize = 1;
+
+            unsigned int variant;
 
             if(in_cstride < 257 && in_cstride > n && n <= 64 && in_cstride > 1)
             {
@@ -464,7 +467,6 @@ void BatchNormForwardInference(Handle& handle,
         std::string algo_name    = "miopenBatchNormalizationForwardInference";
         std::string program_name = "MIOpenBatchNormFwdInfer"; // build this up
         std::string kernel_name  = "BatchNormFwdInfer";
-        std::string kernel_subname{};
         std::string network_config{};
         std::string parms{}; // compiler parameters
 
@@ -623,7 +625,6 @@ void BatchNormBackward(Handle& handle,
     std::string algo_name    = "miopenBatchNormalizationBackwardProp";
     std::string program_name = "MIOpenBatchNormBwd"; // build this up
     std::string kernel_name  = "BatchNormBwd";
-    std::string kernel_subname{};
     std::string network_config{};
     std::string parms{};
 
@@ -655,8 +656,6 @@ void BatchNormBackward(Handle& handle,
     std::vector<size_t> vld;
     std::vector<size_t> vgd;
 
-    unsigned int variant = 0;
-
     bool useSaved = false;
 
     if(bn_mode == miopenBNSpatial)
@@ -678,9 +677,10 @@ void BatchNormBackward(Handle& handle,
 
         if(in_cstride <= 512 && n > 3 && in_cstride > 4)
         {
-            xlocalsize = 1024;
-            ylocalsize = 1;
-            zlocalsize = 1;
+            unsigned int variant = 0;
+            xlocalsize           = 1024;
+            ylocalsize           = 1;
+            zlocalsize           = 1;
 
             unsigned int segment = in_cstride * (xlocalsize / in_cstride);
             unsigned int nloops  = (in_nhw + segment - 1) / segment;
@@ -730,10 +730,10 @@ void BatchNormBackward(Handle& handle,
         }
         else if(in_cstride > 1024)
         {
-            variant    = 4;
-            xlocalsize = 1;
-            ylocalsize = 1024;
-            zlocalsize = 1;
+            unsigned int variant = 4;
+            xlocalsize           = 1;
+            ylocalsize           = 1024;
+            zlocalsize           = 1;
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
             vld.push_back(zlocalsize);
@@ -786,6 +786,8 @@ void BatchNormBackward(Handle& handle,
         {
             xlocalsize = 1;
             zlocalsize = 1;
+
+            unsigned int variant;
 
             if(in_cstride < 257 && in_cstride > n && n <= 64 && in_cstride > 1)
             {
