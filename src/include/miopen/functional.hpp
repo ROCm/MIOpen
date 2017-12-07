@@ -35,7 +35,7 @@ namespace detail {
 
 template <class F, std::size_t... Ns>
 auto each_i_impl(F f, seq<Ns...>) MIOPEN_RETURNS(f(std::integral_constant<std::size_t, Ns>{}...));
-}
+} // namespace detail
 
 template <class F, class P>
 struct by_t
@@ -65,6 +65,20 @@ template <class F, class G>
 compose_t<F, G> compose(F f, G g)
 {
     return {std::move(f), std::move(g)};
+}
+
+template <class F>
+struct flip_t
+{
+    F f;
+    template <class T, class U>
+    auto operator()(T&& x, U&& y) const MIOPEN_RETURNS(f(std::forward<U>(y), std::forward<T>(x)))
+};
+
+template <class F>
+flip_t<F> flip(F f)
+{
+    return {std::move(f)};
 }
 
 template <class F>

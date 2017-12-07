@@ -179,7 +179,6 @@ struct verify_tensor_ops : tensor_ops_base<T>
                                 CtenOffset);
             }
         }
-        return;
     }
 
     tensor<T> cpu()
@@ -241,7 +240,7 @@ struct verify_tensor_ops : tensor_ops_base<T>
         return c;
     }
 
-    void fail(float = 0)
+    void fail(int = 0)
     {
         std::cout << "TensorOp: " << std::endl;
         this->tensor_ops_base<T>::fail();

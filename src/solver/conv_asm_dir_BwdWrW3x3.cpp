@@ -117,7 +117,6 @@ class VirtualIterator
     public:
     /// Implementes end() and also serves as a default ctor.
     VirtualIterator() : v(GetOutOfRangeValue()), container(nullptr) {}
-    VirtualIterator(const VirtualIterator& it) : v(it.v), container(it.container) {}
 
     bool operator!=(VirtualIterator const& other) const;
     const value_type& operator*() const { return v; }
@@ -129,9 +128,9 @@ class VirtualIterator
     }
 };
 
-inline VirtualIterator VirtualContainer::begin() const { return VirtualIterator(this); }
+inline VirtualIterator VirtualContainer::begin() const { return {this}; }
 
-inline VirtualIterator VirtualContainer::end() const { return VirtualIterator(); }
+inline VirtualIterator VirtualContainer::end() const { return {}; }
 
 const VirtualIterator::value_type& VirtualIterator::GetMinValue()
 {
@@ -459,7 +458,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
               && (params.kernel_stride1 <= 2)    // -v  stride_h
               && params.kernel_size0 == 3        // -x  S wei_w
               && params.kernel_size1 == 3        // -y  R wei_h
-              && params.kernal_dilation0 == 1 && params.kernal_dilation1 == 1 && params.bias == 0 &&
+              && params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1 && params.bias == 0 &&
               params.in_layout == "NCHW";
     // && _weights_layout == "KCHW"
     if(!ok)

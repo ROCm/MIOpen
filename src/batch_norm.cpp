@@ -26,6 +26,7 @@
 
 #include <miopen/errors.hpp>
 #include <miopen/batch_norm.hpp>
+#include <cassert>
 
 #define MIOPEN_BN_SYNCH 0
 
@@ -58,13 +59,14 @@ inline void profileSequence(Handle& handle, unsigned char select)
 
     float ktime        = 0.;
     static float ctime = 0.;
-
+    assert((select < 3) && "profileSequence case incorrect");
     switch(select)
     {
 
     case 0:
         if(handle.IsProfilingEnabled())
         {
+            ctime = 0.;
             ktime = handle.GetKernelTime();
             ctime = ktime;
 
@@ -73,12 +75,12 @@ inline void profileSequence(Handle& handle, unsigned char select)
             printf("ctime: %f\n", ctime);
 #endif
         }
+#if(MIOPEN_BN_SYNCH == 1)
         else
         {
-#if(MIOPEN_BN_SYNCH)
             handle.Finish();
-#endif
         }
+#endif
         break;
     case 1:
         if(handle.IsProfilingEnabled())
@@ -91,12 +93,12 @@ inline void profileSequence(Handle& handle, unsigned char select)
             printf("ctime: %f\n", ctime);
 #endif
         }
+#if(MIOPEN_BN_SYNCH == 1)
         else
         {
-#if(MIOPEN_BN_SYNCH)
             handle.Finish();
-#endif
         }
+#endif
         break;
 
     case 2:
@@ -104,7 +106,7 @@ inline void profileSequence(Handle& handle, unsigned char select)
         {
             handle.GetKernelTime();
             handle.AccumKernelTime(ctime);
-        } //
+        }
         break;
     }
 }

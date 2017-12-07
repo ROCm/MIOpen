@@ -43,6 +43,7 @@
 #define FLT_MAX 3.402823466e+38F /* max value */
 #endif
 
+#ifndef MLO_NEURON_PASTHRU
 #define MLO_NEURON_PASTHRU 0                       // x
 #define MLO_NEURON_LOGISTIC MLO_NEURON_PASTHRU + 1 //	1 / (1 + e^-x)	//Sigmoid
 #define MLO_NEURON_TANH MLO_NEURON_LOGISTIC + 1    //	a * tanh( b * x)
@@ -56,6 +57,7 @@
 //#define MLO_NEURON_SQR			MLO_NEURON_SQUARE + 1		//	sqr(x)
 //#define MLO_NEURON_LINEAR		MLO_NEURON_SQR	+ 1			//	a + b * x
 #define MLO_NEURON_TOTAL MLO_NEURON_POWER + 1
+#endif
 
 const float kBNLL_THRESHOLD = 50.;
 

@@ -205,12 +205,10 @@ void OpTensor(Handle& handle,
 
     // first_not_one is incorrect if btensor size equal to 1
     auto first_not_one = std::find_if(blens.rbegin(), blens.rend(), [](int i) { return i != 1; });
+    auto d             = std::distance(blens.begin(), first_not_one.base());
 
-    auto d = std::distance(blens.begin(), first_not_one.base());
-
-    int num_wg = 1;
     // quick fix
-    num_wg = first_not_one != blens.rend() ? (*first_not_one == 0 ? 1 : *first_not_one) : 1;
+    int num_wg = first_not_one != blens.rend() ? (*first_not_one == 0 ? 1 : *first_not_one) : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
@@ -549,7 +547,6 @@ struct copyTensorDesc
     int dims;
     int lens[5];
     int strides[5];
-    long realsize;
 };
 
 void CopyTensor(Handle& handle,
@@ -618,28 +615,38 @@ void CopyTensor(Handle& handle,
 
         if(sKernDesc.dims > 2)
         {
-            vld[0] = vld[1] = 4;
-            vld[2]          = 16;
-            vgd[0]          = (srcDesc.GetLengths()[sKernDesc.dims - 3] > vld[0]
+            vld[0] = 4;
+            vld[1] = 8;
+            vld[2] = 8;
+
+            vgd[0] = (srcDesc.GetLengths()[sKernDesc.dims - 3] > vld[0]
                           ? srcDesc.GetLengths()[sKernDesc.dims - 3]
                           : vld[0]);
+            vgd[0] = (vgd[0] > 16) ? 16 : vgd[0];
+
             vgd[1] = (srcDesc.GetLengths()[sKernDesc.dims - 2] > vld[1]
                           ? srcDesc.GetLengths()[sKernDesc.dims - 2]
                           : vld[1]);
+            vgd[1] = (vgd[1] > 64) ? 64 : vgd[1];
+
             vgd[2] = (srcDesc.GetLengths()[sKernDesc.dims - 1] > vld[2]
                           ? srcDesc.GetLengths()[sKernDesc.dims - 1]
                           : vld[2]);
+            vgd[2] = (vgd[2] > 64) ? 64 : vgd[2];
         }
         else if(sKernDesc.dims == 1)
         {
             vld[0] = 256;
             vgd[0] = (srcDesc.GetLengths()[0] > vld[0] ? srcDesc.GetLengths()[0] : vld[0]);
+            vgd[0] = (vgd[0] > 65536) ? 65536 : vgd[0];
         }
         else if(sKernDesc.dims == 2)
         {
             vld[0] = vld[1] = 16;
             vgd[0]          = (srcDesc.GetLengths()[0] > vld[0] ? srcDesc.GetLengths()[0] : vld[0]);
+            vgd[0]          = (vgd[0] > 256) ? 256 : vgd[0];
             vgd[1]          = (srcDesc.GetLengths()[1] > vld[1] ? srcDesc.GetLengths()[1] : vld[1]);
+            vgd[1]          = (vgd[1] > 256) ? 256 : vgd[1];
         }
         std::string program_name = "MIOpenTensorScaleKernel.cl";
         handle.GetKernel("CopyTensor", "", program_name, "CopyTensor", vld, vgd, parms)(
