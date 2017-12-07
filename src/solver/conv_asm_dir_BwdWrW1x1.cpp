@@ -115,7 +115,6 @@ class VirtualIteratorWrW1x1
     public:
     /// Implementes end() and also serves as a default ctor.
     VirtualIteratorWrW1x1() : v(GetOutOfRangeValue()), container(nullptr) {}
-    VirtualIteratorWrW1x1(const VirtualIteratorWrW1x1& it) : v(it.v), container(it.container) {}
 
     bool operator!=(VirtualIteratorWrW1x1 const& other) const;
     const value_type& operator*() const { return v; }
