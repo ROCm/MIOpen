@@ -28,7 +28,6 @@
 #include <limits>
 #include <iterator>
 #include <chrono>
-#include <cmath> // for sqrt()
 
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/env.hpp>
@@ -132,13 +131,13 @@ inline VirtualIteratorWrW1x1 VirtualContainer1x1WrW::end() const { return {}; }
 
 const VirtualIteratorWrW1x1::value_type& VirtualIteratorWrW1x1::GetMinValue()
 {
-    static const value_type val(1, 1, 1, 1, 1);
+    static const value_type val(1, 1, 1, 1, 1, 1);
     return val;
 }
 
 const VirtualIteratorWrW1x1::value_type& VirtualIteratorWrW1x1::GetOutOfRangeValue()
 {
-    static const value_type val(-1, -1, -1, -1, -1);
+    static const value_type val(-1, -1, -1, -1, -1, -1);
     return val;
 }
 
@@ -171,6 +170,20 @@ inline static bool Is_1_2_4_8_16(const int& v)
     return v == 1 || v == 2 || v == 4 || v == 8 || v == 16;
 }
 
+inline static bool Inc_1_2_4(int& v)
+{
+    assert(v == 1 || v == 2 || v == 4);
+    if(v == 4)
+    {
+        v = 1;
+        return true;
+    }
+    v = v * 2;
+    return false;
+}
+
+inline static bool Is_1_2_4(const int& v) { return v == 1 || v == 2 || v == 4; }
+
 void VirtualIteratorWrW1x1::Next()
 {
     if(container == nullptr)
@@ -194,6 +207,8 @@ void VirtualIteratorWrW1x1::Next()
             if(++v.read_size <= 4)
                 break;
             v.read_size = 1;
+            if(!Inc_1_2_4(v.n_per_gpr))
+                break;
             // All the fields (components) of performance confic have wrapped around.
             // The next one is not the min (in the allowed range) but a one beyond the end.
             // Iterator is useless from now.
@@ -205,26 +220,37 @@ void VirtualIteratorWrW1x1::Next()
 }
 
 PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(
-    int c_per_gpr_, int c_mult_, int k_per_gpr_, int k_mult_, int read_size_)
+    int c_per_gpr_, int c_mult_, int k_per_gpr_, int k_mult_, int read_size_, int n_per_gpr_)
     : c_per_gpr(c_per_gpr_),
       c_mult(c_mult_),
       k_per_gpr(k_per_gpr_),
       k_mult(k_mult_),
-      read_size(read_size_)
+      read_size(read_size_),
+      n_per_gpr(n_per_gpr_)
 {
 }
 
 inline bool
 PerformanceConfigConvAsmBwdWrW1x1::IsEqual(const PerformanceConfigConvAsmBwdWrW1x1& other) const
 {
-    return c_per_gpr == other.c_per_gpr && c_mult == other.c_mult && k_per_gpr == other.k_per_gpr &&
-           k_mult == other.k_mult && read_size == other.read_size;
+    // clang-format off
+    return c_per_gpr == other.c_per_gpr
+        && c_mult == other.c_mult
+        && k_per_gpr == other.k_per_gpr
+        && k_mult == other.k_mult
+        && read_size == other.read_size
+        && n_per_gpr == other.n_per_gpr; // clang-format on
 }
 
 bool PerformanceConfigConvAsmBwdWrW1x1::IsValidRange() const
 {
-    return Is_1_2_4_8_16(c_per_gpr) && Is_1_2_4_8_16(c_mult) && Is_1_2_4_8_16(k_per_gpr) &&
-           Is_1_2_4_8_16(k_mult) && (1 <= read_size && read_size <= 4);
+    // clang-format off
+    return Is_1_2_4_8_16(c_per_gpr)
+        && Is_1_2_4_8_16(c_mult)
+        && Is_1_2_4_8_16(k_per_gpr)
+        && Is_1_2_4_8_16(k_mult)
+        && (1 <= read_size && read_size <= 4)
+        && Is_1_2_4(n_per_gpr); // clang-format on
 }
 
 bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config) const
@@ -252,7 +278,9 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 
 void PerformanceConfigConvAsmBwdWrW1x1::EuristicInit(const ConvolutionContext& config)
 {
-    read_size          = 4;
+    read_size = 4;
+    n_per_gpr = (config.batch_sz >= 4 && (config.out_height * config.out_width) <= 128) ? 4 : 1;
+
     const auto c_k_256 = config.n_outputs * config.n_inputs / 256; // C*K/256
     if(c_k_256 < 2)
     {
@@ -380,14 +408,7 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     return ok;
 }
 
-bool ConvAsmBwdWrW1x1::IsFast(const ConvolutionContext& params) const
-{
-    const double w = params.out_height;
-    const double h = params.out_width;
-    const double c = params.n_outputs;
-    const double k = params.n_inputs;
-    return (!(w * h * std::sqrt(std::sqrt(c * k)) > 59600)); // Heuristic.
-}
+bool ConvAsmBwdWrW1x1::IsFast(const ConvolutionContext&) const { return true; }
 
 static int divide_round_plus_inf(const int x, const int y)
 {
@@ -455,6 +476,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "k_mult", pcfg->GetKMult());
     GenerateClangDefsym(options, "read_size", pcfg->GetReadSize());
     GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
+    GenerateClangDefsym(options, "hw_per_gpr", pcfg->GetHwPerGpr());
 
     KernelInfo kernel;
 
