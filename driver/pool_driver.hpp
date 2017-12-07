@@ -190,13 +190,13 @@ int PoolDriver<T>::SetPoolDescriptorFromCmdLineArgs()
 {
 
     miopenPoolingMode_t mode;
-    miopenPaddingMode_t pmode;
-    int pad_h = inflags.GetValueInt("pad_h");
-    int pad_w = inflags.GetValueInt("pad_w");
-    int u     = inflags.GetValueInt("pool_stride_0");
-    int v     = inflags.GetValueInt("pool_stride_1");
-    int win_h = inflags.GetValueInt("win_h");
-    int win_w = inflags.GetValueInt("win_w");
+    miopenPaddingMode_t pmode = miopenPaddingDefault;
+    int pad_h                 = inflags.GetValueInt("pad_h");
+    int pad_w                 = inflags.GetValueInt("pad_w");
+    int u                     = inflags.GetValueInt("pool_stride_0");
+    int v                     = inflags.GetValueInt("pool_stride_1");
+    int win_h                 = inflags.GetValueInt("win_h");
+    int win_w                 = inflags.GetValueInt("win_w");
     if((inflags.GetValueStr("mode")) == "max")
     {
         mode  = miopenPoolingMax;
@@ -259,7 +259,7 @@ int PoolDriver<T>::AllocateBuffersAndCopy()
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
-    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
+    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
     uint32_t ctx = 0;
 #endif
@@ -452,6 +452,9 @@ int PoolDriver<T>::VerifyForward()
                                : (std::max((windowHeight - (hIn % u)), 0));
         pad_w = (wIn % v == 0) ? (std::max((windowWidth - v), 0))
                                : (std::max((windowWidth - (wIn % v)), 0));
+
+        pad_h /= 2;
+        pad_w /= 2;
     }
     else if(pmode == miopenPaddingValid)
     {
@@ -536,6 +539,8 @@ int PoolDriver<T>::VerifyBackward()
                                : (std::max((windowHeight - (hIn % u)), 0));
         pad_w = (wIn % v == 0) ? (std::max((windowWidth - v), 0))
                                : (std::max((windowWidth - (wIn % v)), 0));
+        pad_h /= 2;
+        pad_w /= 2;
     }
     else if(pmode == miopenPaddingValid)
     {

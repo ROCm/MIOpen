@@ -53,6 +53,7 @@ endfunction()
 
 function(add_test_executable TEST_NAME)
     add_executable (${TEST_NAME} EXCLUDE_FROM_ALL ${ARGN})
+    clang_tidy_check(${TEST_NAME})
     target_link_libraries(${TEST_NAME} ${CMAKE_THREAD_LIBS_INIT})
     # Cmake does not add flags correctly for gcc
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU") 
@@ -71,6 +72,7 @@ function(add_test_executable TEST_NAME)
 endfunction(add_test_executable)
 
 file(GLOB TESTS *.cpp)
+
 foreach(TEST ${TESTS})
     get_filename_component(BASE_NAME ${TEST} NAME_WE)
     add_test_executable(test_${BASE_NAME} ${TEST})
@@ -83,14 +85,16 @@ function(add_custom_test NAME)
 endfunction()
 
 if(MIOPEN_TEST_ALL)
-    add_custom_test(test_extra
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1, 1, 1, 1 --weights 1, 1, 2, 2 --filter 0 0 3 3
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 1 161 700  --weights 1 1 5 20 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 1 161 700  --weights 1 1 5 20 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 32 79 341  --weights 1 32 5 10 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 32 79 341  --weights 1 32 5 10 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 3 227 227  --weights 1 3 11 11 --filter 0 0 4 4 --disable-backward-data
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 3 224 224  --weights 1 3 11 11 --filter 2 2 4 4
+    add_custom_test(test_conv_extra
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 1 1 1 --weights 1 1 2 2 --filter 0 0 3 3
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 1 161 700  --weights 4 1 5 20 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 1 161 700  --weights 4 1 5 20 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 32 79 341  --weights 4 32 5 10 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 32 79 341  --weights 4 32 5 10 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 3 227 227  --weights 4 3 11 11 --filter 0 0 4 4 --disable-backward-data
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 3 224 224  --weights 4 3 11 11 --filter 2 2 4 4
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 1 48 480 --weights 16 1 3 3 --filter 1 1 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 64 27 27 --weights 192 64 5 5 --filter 2 2 1 1
     )
 endif()
 

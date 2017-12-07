@@ -64,7 +64,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
     int N_FILTER_SPLITS1 =
         ((params.kernel_size1 + params.kernel_stride1 - 1) / params.kernel_stride1);
 
-    int data_multiplier0 =
+    static const int data_multiplier0 =
 // win runs Catalyst right now
 #ifdef _WIN32
         1
@@ -73,7 +73,7 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
 #endif
         ;
 
-    int data_multiplier1 = 1;
+    static const int data_multiplier1 = 1;
 
     result.out_pix_tile0 =
         (is_forward) ? N_FILTER_SPLITS0 : data_multiplier0 * params.kernel_stride0;
@@ -104,12 +104,14 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
 
     // define a special size for a specific width as a devisor to avoid dealing with out of range
     // param
-    int read_unit = 10; // (((_in_width / 8) * 8) == _in_width) ? 8 : (((_in_width / 4) * 4) ==
-                        // _in_width) ? 4 : (((_in_width / 2) * 2) == _in_width) ? 2 : 1;
+    static const int read_unit =
+        10; // (((_in_width / 8) * 8) == _in_width) ? 8 : (((_in_width / 4) * 4) ==
+            // _in_width) ? 4 : (((_in_width / 2) * 2) == _in_width) ? 2 : 1;
 
     // this one is valid only till _FLOAT8
     // but it's not an error, the kernel does not use these types at all
-    std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
+    static const std::string READ_TYPE =
+        (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
 
     // param
     int n_out_stacks = 1;
@@ -122,10 +124,10 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
 
     // param
     // 6 get us the min
-    result.n_out_pix_tiles =
-        (is_forward)
-            ? std::min(6, (params.n_outputs + n_out_stacks - 1) / n_out_stacks)
-            : std::min(params.n_outputs, ((data_multiplier1 > 1 || data_multiplier0 > 1) ? 1 : 4));
+    static const int backwards_min_output = (data_multiplier1 > 1 || data_multiplier0 > 1) ? 1 : 4;
+    result.n_out_pix_tiles                = (is_forward)
+                                 ? std::min(6, (params.n_outputs + n_out_stacks - 1) / n_out_stacks)
+                                 : std::min(params.n_outputs, backwards_min_output);
 
     // number of maps in a stack or number of input read blocks written into 1 wk-item (lane)
     // param

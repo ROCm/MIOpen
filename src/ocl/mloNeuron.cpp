@@ -56,8 +56,7 @@ void mlo_construct_neuron::mloConstruct()
 {
     _hw_wave_sz = 64;
 
-    int read_unit         = 4;
-    std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
+    const int read_unit = 4;
 
     size_t map_size = _search_params.in_width * _search_params.in_height * _search_params.n_inputs *
                       _search_params.batch_sz;
