@@ -122,9 +122,9 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
             for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c,
                      w2 +=
 #if MLO_DIR_FORWARD == 1
-                                                  MLO_WEI_CHANNEL_STRIDE
+                                                   MLO_WEI_CHANNEL_STRIDE
 #else
-                                                  MLO_WEI_BSTRIDE
+                                                   MLO_WEI_BSTRIDE
 #endif
                 )
             {
