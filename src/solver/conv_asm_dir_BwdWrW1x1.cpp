@@ -126,12 +126,9 @@ class VirtualIteratorWrW1x1
     }
 };
 
-inline VirtualIteratorWrW1x1 VirtualContainer1x1WrW::begin() const
-{
-    return VirtualIteratorWrW1x1(this);
-}
+inline VirtualIteratorWrW1x1 VirtualContainer1x1WrW::begin() const { return {this}; }
 
-inline VirtualIteratorWrW1x1 VirtualContainer1x1WrW::end() const { return VirtualIteratorWrW1x1(); }
+inline VirtualIteratorWrW1x1 VirtualContainer1x1WrW::end() const { return {}; }
 
 const VirtualIteratorWrW1x1::value_type& VirtualIteratorWrW1x1::GetMinValue()
 {
