@@ -410,7 +410,7 @@ struct test_driver
             std::future<decltype(v.cpu(xs...))> cpuf;
             if(not no_validate)
             {
-                cpuf = detach_async([&]{ return v.cpu(xs...); });
+                cpuf = detach_async([&] { return v.cpu(xs...); });
             }
             // Compute gpu
             if(time)
@@ -460,7 +460,7 @@ struct test_driver
             std::future<decltype(v.cpu(xs...))> cpuf;
             if(not no_validate)
             {
-                cpuf = detach_async([&]{ return v.cpu(xs...); });
+                cpuf = detach_async([&] { return v.cpu(xs...); });
             }
             // Compute gpu
             if(time)
