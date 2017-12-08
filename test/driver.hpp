@@ -406,6 +406,13 @@ struct test_driver
         try
         {
             auto&& h = get_handle();
+            // Compute cpu
+            std::future<decltype(v.cpu(xs...))> cpuf;
+            if(not no_validate)
+            {
+                cpuf = detach_async([&]{ return v.cpu(xs...); });
+            }
+            // Compute gpu
             if(time)
             {
                 h.EnableProfiling();
@@ -417,13 +424,14 @@ struct test_driver
                 std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
                 h.EnableProfiling(false);
             }
+            // Return
             if(no_validate)
             {
                 return std::make_pair(gpu, gpu);
             }
             else
             {
-                return verify_check(v.cpu(xs...), gpu, [&](int mode) { v.fail(mode, xs...); });
+                return verify_check(cpuf.get(), gpu, [&](int mode) { v.fail(mode, xs...); });
             }
         }
         catch(const std::exception& ex)
@@ -448,6 +456,13 @@ struct test_driver
         try
         {
             auto&& h = get_handle();
+            // Compute cpu
+            std::future<decltype(v.cpu(xs...))> cpuf;
+            if(not no_validate)
+            {
+                cpuf = detach_async([&]{ return v.cpu(xs...); });
+            }
+            // Compute gpu
             if(time)
             {
                 h.EnableProfiling();
@@ -459,13 +474,14 @@ struct test_driver
                 std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
                 h.EnableProfiling(false);
             }
+
             if(no_validate)
             {
                 return std::make_pair(gpu, gpu);
             }
             else
             {
-                auto cpu = v.cpu(xs...);
+                auto cpu = cpuf.get();
 
                 if(miopen::range_zero(cpu))
                 {

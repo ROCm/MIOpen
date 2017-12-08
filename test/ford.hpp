@@ -42,6 +42,21 @@
 #include <thread>
 #endif
 
+#include <future>
+
+// An improved async, that doesn't block
+template< class Function>
+std::future<typename std::result_of<Function()>::type>
+detach_async( Function&& f )
+{
+    typedef typename std::result_of<Function()>::type result_type;
+    std::packaged_task<result_type()> task(std::forward<Function>(f));
+    auto fut = task.get_future(); 
+    std::thread(std::move(task)).detach();
+    return std::move(fut);
+}
+
+
 struct joinable_thread : std::thread
 {
     template <class... Xs>
