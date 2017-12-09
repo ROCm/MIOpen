@@ -332,7 +332,8 @@ struct HandleImpl
 
     void SetProfilingResult(cl_event& e)
     {
-        if(this->enable_profiling) {
+        if(this->enable_profiling)
+        {
             size_t st, end;
             clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, nullptr);
             clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, nullptr);
