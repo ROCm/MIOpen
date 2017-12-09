@@ -332,10 +332,12 @@ struct HandleImpl
 
     void SetProfilingResult(cl_event& e)
     {
-        size_t st, end;
-        clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, nullptr);
-        clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, nullptr);
-        profiling_result = ((end - st) * 1e-6);
+        if(this->enable_profiling) {
+            size_t st, end;
+            clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_START, sizeof(size_t), &st, nullptr);
+            clGetEventProfilingInfo(e, CL_PROFILING_COMMAND_END, sizeof(size_t), &end, nullptr);
+            profiling_result = ((end - st) * 1e-6);
+        }
     }
 };
 
@@ -476,7 +478,7 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm,
 #ifndef NDEBUG
 // dumpKernel(obj.GetKernel(), kernel_name, vld, vgd, params);
 #endif
-    if(this->impl->enable_profiling)
+    if(this->impl->enable_profiling || MIOPEN_BUILD_DEV)
     {
         return obj.Invoke(q,
                           std::bind(&HandleImpl::SetProfilingResult,
@@ -493,7 +495,7 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm, const std::string& 
 {
     auto q         = this->GetStream();
     const auto obj = this->impl->cache.GetKernel(algorithm, network_config);
-    if(this->impl->enable_profiling)
+    if(this->impl->enable_profiling || MIOPEN_BUILD_DEV)
     {
         return obj.Invoke(q,
                           std::bind(&HandleImpl::SetProfilingResult,

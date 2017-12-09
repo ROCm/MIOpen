@@ -136,7 +136,7 @@ struct HandleImpl
 
     void elapsed_time(hipEvent_t start, hipEvent_t stop)
     {
-        hipEventElapsedTime(&this->profiling_result, start, stop);
+        if (enable_profiling) hipEventElapsedTime(&this->profiling_result, start, stop);
     }
 
     std::function<void(hipEvent_t, hipEvent_t)> elapsed_time_handler()
@@ -252,7 +252,7 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm,
     this->impl->set_ctx();
     auto k = this->impl->cache.GetKernel(
         *this, algorithm, network_config, program_name, kernel_name, vld, vgd, params);
-    if(this->impl->enable_profiling)
+    if(this->impl->enable_profiling || MIOPEN_BUILD_DEV)
         return k.Invoke(this->GetStream(), this->impl->elapsed_time_handler());
     else
         return k.Invoke(this->GetStream());
@@ -262,7 +262,7 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm, const std::string& 
 {
     this->impl->set_ctx();
     auto k = this->impl->cache.GetKernel(algorithm, network_config);
-    if(this->impl->enable_profiling)
+    if(this->impl->enable_profiling || MIOPEN_BUILD_DEV)
         return k.Invoke(this->GetStream(), this->impl->elapsed_time_handler());
     else
         return k.Invoke(this->GetStream());

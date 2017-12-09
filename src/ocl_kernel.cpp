@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <miopen/oclkernel.hpp>
+#include <miopen/handle_lock.hpp>
 
 namespace miopen {
 
@@ -58,6 +59,8 @@ void OCLKernelInvoke::run() const
                                          : DimToFormattedString(local_work_dim.data(), work_dim));
     std::cout << std::endl;
 #endif // !NDEBUG
+
+    auto g = miopen::get_handle_lock();
 
     cl_event ev;
     /* way to run OCL group larger than 256
