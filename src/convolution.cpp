@@ -262,7 +262,7 @@ bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& 
          // && ((c & 0xF) > 0 || (k & 0xF) > 0)) ||
          (_kernel_size0 == 7 && _kernel_size1 == 7 && (pad_h == 0 || pad_w == 0)) ||
          (_kernel_size0 == 3 && _kernel_size1 == 3 && (pad_h > 1 || pad_w > 1 || u > 2 || v > 2)) ||
-         (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0) || (k < 16 || (k % 2 != 0)));
+         (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0) /*|| (k < 16 || (k % 2 != 0))*/);
 
     bool knowns = (_kernel_size0 == 5 && _kernel_size1 == 5 && c == 1 && u == 2 && v == 2);
 
