@@ -47,7 +47,17 @@ function(add_test_command NAME EXE)
                     %1 ${ARGN}")
         add_test(NAME ${NAME} COMMAND ${WINE_CMD} cmd /c "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmd" $<TARGET_FILE:${EXE}>)
     else()
-        add_test(NAME ${NAME} COMMAND ${EXE} ${ARGN})
+        file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmake"
+            CONTENT "
+            execute_process(COMMAND $<TARGET_FILE:${EXE}> ${ARGN} RESULT_VARIABLE RESULT)
+            if(NOT RESULT EQUAL 0)
+                if(EXISTS core)
+                    execute_process(COMMAND gdb $<TARGET_FILE:${EXE}> core -batch -ex bt)
+                endif()
+                message(FATAL_ERROR \"Test failed\")
+            endif()
+        ")
+        add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmake")
     endif()
 endfunction()
 
