@@ -464,7 +464,11 @@ struct test_driver
             std::future<decltype(v.cpu(xs...))> cpuf;
             if(not no_validate)
             {
+#if MIOPEN_BACKEND_OPENCL
+                cpuf = std::async(std::launch::deferred, [&] { return v.cpu(xs...); });
+#else
                 cpuf = detach_async([&] { return v.cpu(xs...); });
+#endif
             }
             // Compute gpu
             if(time)
