@@ -36,6 +36,14 @@
 #include <miopen/functional.hpp>
 #include <miopen/type_name.hpp>
 
+#ifndef MIOPEN_PARALLEL_CPU_VERIFY
+#if MIOPEN_BACKEND_OPENCL
+#define MIOPEN_PARALLEL_CPU_VERIFY 0
+#else
+#define MIOPEN_PARALLEL_CPU_VERIFY 1
+#endif
+#endif
+
 struct rand_gen
 {
     template <class... Ts>
@@ -410,10 +418,10 @@ struct test_driver
             std::future<decltype(v.cpu(xs...))> cpuf;
             if(not no_validate)
             {
-#if MIOPEN_BACKEND_OPENCL
-                cpuf = std::async(std::launch::deferred, [&] { return v.cpu(xs...); });
-#else
+#if MIOPEN_PARALLEL_CPU_VERIFY
                 cpuf = detach_async([&] { return v.cpu(xs...); });
+#else
+                cpuf = std::async(std::launch::deferred, [&] { return v.cpu(xs...); });
 #endif
             }
             // Compute gpu
@@ -464,10 +472,10 @@ struct test_driver
             std::future<decltype(v.cpu(xs...))> cpuf;
             if(not no_validate)
             {
-#if MIOPEN_BACKEND_OPENCL
-                cpuf = std::async(std::launch::deferred, [&] { return v.cpu(xs...); });
-#else
+#if MIOPEN_PARALLEL_CPU_VERIFY
                 cpuf = detach_async([&] { return v.cpu(xs...); });
+#else
+                cpuf = std::async(std::launch::deferred, [&] { return v.cpu(xs...); });
 #endif
             }
             // Compute gpu
