@@ -171,9 +171,10 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
 
     int N_OUT_BLK = (params.in_height + N_ALIGNED_OUT_SCAN_BLK - 1) / N_ALIGNED_OUT_SCAN_BLK;
 
-    int lcl_mem_sz = N_ALIGNED_OUT_SCAN_BLK * ALIGNED_OUT_SCAN_LN * read_unit +
-                     (((params.out_width + read_unit - 1) / read_unit)*read_unit + params.kernel_size0 -1) * ((N_ALIGNED_OUT_SCAN_BLK - 1) * params.kernel_stride1 +
-                                         params.kernel_size1);
+    int lcl_mem_sz =
+        N_ALIGNED_OUT_SCAN_BLK * ALIGNED_OUT_SCAN_LN * read_unit +
+        (((params.out_width + read_unit - 1) / read_unit) * read_unit + params.kernel_size0 - 1) *
+            ((N_ALIGNED_OUT_SCAN_BLK - 1) * params.kernel_stride1 + params.kernel_size1);
     if(lcl_mem_sz > 8 * 1024)
     {
         return ConvSolution(miopenStatusNotInitialized);
