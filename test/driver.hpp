@@ -37,11 +37,7 @@
 #include <miopen/type_name.hpp>
 
 #ifndef MIOPEN_PARALLEL_CPU_VERIFY
-#if MIOPEN_BACKEND_OPENCL
 #define MIOPEN_PARALLEL_CPU_VERIFY 0
-#else
-#define MIOPEN_PARALLEL_CPU_VERIFY 1
-#endif
 #endif
 
 struct rand_gen
