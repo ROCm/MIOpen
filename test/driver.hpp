@@ -429,8 +429,7 @@ struct test_driver
                 h.EnableProfiling();
                 h.ResetKernelTime();
             }
-            auto gpu = [&]
-            {
+            auto gpu = [&] {
                 auto g = miopen::get_handle_lock(gpu_verify_mutex{});
                 return v.gpu(xs...);
             }();
@@ -487,8 +486,7 @@ struct test_driver
                 h.EnableProfiling();
                 h.ResetKernelTime();
             }
-            auto gpu = [&]
-            {
+            auto gpu = [&] {
                 auto g = miopen::get_handle_lock(gpu_verify_mutex{});
                 return v.gpu(xs...);
             }();
