@@ -480,7 +480,7 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm,
 #ifndef NDEBUG
 // dumpKernel(obj.GetKernel(), kernel_name, vld, vgd, params);
 #endif
-    if(this->impl->enable_profiling || MIOPEN_BUILD_DEV)
+    if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
     {
         return obj.Invoke(q,
                           std::bind(&HandleImpl::SetProfilingResult,
@@ -497,7 +497,7 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm, const std::string& 
 {
     auto q         = this->GetStream();
     const auto obj = this->impl->cache.GetKernel(algorithm, network_config);
-    if(this->impl->enable_profiling || MIOPEN_BUILD_DEV)
+    if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
     {
         return obj.Invoke(q,
                           std::bind(&HandleImpl::SetProfilingResult,
@@ -560,16 +560,16 @@ std::size_t Handle::GetMaxComputeUnits()
     return miopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(miopen::GetDevice(this->GetStream()));
 }
 
-Allocator::ManageDataPtr Handle::Create(std::size_t sz)
-{
-    auto g = miopen::get_handle_lock();
-    return this->impl->allocator(sz);
+Allocator::ManageDataPtr Handle::Create(std::size_t sz) 
+{ 
+    MIOPEN_HANDLE_LOCK 
+    return this->impl->allocator(sz); 
 }
 
 Allocator::ManageDataPtr&
 Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz)
 {
-    auto g        = miopen::get_handle_lock();
+    MIOPEN_HANDLE_LOCK
     cl_int status = clEnqueueWriteBuffer(
         this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
     if(status != CL_SUCCESS)
@@ -581,7 +581,7 @@ Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t s
 
 void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz)
 {
-    auto g      = miopen::get_handle_lock();
+    MIOPEN_HANDLE_LOCK
     auto status = clEnqueueReadBuffer(
         this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
     if(status != CL_SUCCESS)
@@ -592,7 +592,7 @@ void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size
 
 void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size)
 {
-    auto g = miopen::get_handle_lock();
+    MIOPEN_HANDLE_LOCK
     auto status =
         clEnqueueCopyBuffer(this->GetStream(), src, dest, 0, 0, size, 0, nullptr, nullptr);
     if(status != CL_SUCCESS)
@@ -603,7 +603,7 @@ void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size)
 
 shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::size_t size)
 {
-    auto g = miopen::get_handle_lock();
+    MIOPEN_HANDLE_LOCK
     struct region
     {
         std::size_t origin;
