@@ -33,31 +33,45 @@
 
 namespace miopen {
 
+#define MIOPEN_DECLARE_HANDLE_MUTEX(x)                 \
+    struct x                                      \
+    {                                             \
+        static const char* value() { return ".miopen-" #x ".lock"; } \
+    };
+
 #if MIOPEN_GPU_SYNC
+MIOPEN_DECLARE_HANDLE_MUTEX(gpu_handle_mutex)
+#define MIOPEN_HANDLE_LOCK auto miopen_handle_lock_guard_##__LINE__ = miopen::get_handle_lock(miopen::gpu_handle_mutex{});
+#else
+#define MIOPEN_HANDLE_LOCK
+#endif
 
-#define MIOPEN_HANDLE_LOCK auto miopen_handle_lock_guard_##__LINE__ = miopen::get_handle_lock();
-
-inline boost::filesystem::path get_handle_lock_path()
+inline boost::filesystem::path get_handle_lock_path(const char * name)
 {
-    auto tmp = boost::filesystem::current_path() / boost::filesystem::unique_path();
-    auto p   = boost::filesystem::current_path() / ".miopen-gpu-handle.lock";
-    boost::filesystem::ofstream{tmp};
-    boost::filesystem::rename(tmp, p);
+    auto p = boost::filesystem::current_path() / name;
+    if(!boost::filesystem::exists(p)) 
+    {
+        auto tmp = boost::filesystem::current_path() / boost::filesystem::unique_path();
+        boost::filesystem::ofstream{tmp};
+        boost::filesystem::rename(tmp, p);
+    }
     return p;
 }
 
 using handle_mutex = boost::interprocess::file_lock;
-inline handle_mutex& get_handle_mutex()
+template<class T>
+inline handle_mutex& get_handle_mutex(T)
 {
-    static handle_mutex m{get_handle_lock_path().c_str()};
+    static handle_mutex m{get_handle_lock_path(T::value()).c_str()};
     return m;
 }
 
 using handle_lock = std::unique_lock<handle_mutex>;
-inline handle_lock get_handle_lock()
+template<class T>
+inline handle_lock get_handle_lock(T)
 {
-    auto& m = get_handle_mutex();
-    if(m.timed_lock(boost::posix_time::second_clock::local_time() +
+    auto& m = get_handle_mutex(T{});
+    if(m.timed_lock(boost::posix_time::second_clock::universal_time() +
                     boost::posix_time::seconds(120)))
     {
         return {m, std::adopt_lock_t{}};
@@ -69,10 +83,5 @@ inline handle_lock get_handle_lock()
     }
 }
 
-#else
-
-#define MIOPEN_HANDLE_LOCK
-
-#endif
 
 } // namespace miopen
