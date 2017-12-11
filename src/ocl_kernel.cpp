@@ -60,7 +60,7 @@ void OCLKernelInvoke::run() const
     std::cout << std::endl;
 #endif // !NDEBUG
 
-    auto g = miopen::get_handle_lock();
+    MIOPEN_HANDLE_LOCK
 
     cl_event ev;
     /* way to run OCL group larger than 256

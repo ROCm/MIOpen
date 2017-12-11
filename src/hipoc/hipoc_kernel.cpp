@@ -57,7 +57,7 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
 
     // std::cerr << "Launch kernel: " << name << std::endl;
 
-    auto g = miopen::get_handle_lock();
+    MIOPEN_HANDLE_LOCK
 
     auto status = hipHccModuleLaunchKernel(fun,
                                            gdims[0],

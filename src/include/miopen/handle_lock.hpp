@@ -24,29 +24,23 @@
  *
  *******************************************************************************/
 
-#include <boost/interprocess/sync/named_mutex.hpp>
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <mutex>
 #include <miopen/errors.hpp>
+#include <miopen/config.h>
 
 namespace miopen {
 
-#if MIOPEN_BUILD_DEV
+#if MIOPEN_GPU_SYNC
 
-#if 0
-using handle_mutex = boost::interprocess::named_mutex;
-inline handle_mutex& get_handle_mutex()
-{
-    static handle_mutex m{boost::interprocess::open_or_create, "miopen_gpu_handle_lock"};
-    return m;
-}
-#else
+#define MIOPEN_HANDLE_LOCK auto miopen_handle_lock_guard_ ## __LINE__ = miopen::get_handle_lock();
+
 inline boost::filesystem::path get_handle_lock_path()
 {
     auto tmp = boost::filesystem::current_path() / boost::filesystem::unique_path();
-    auto p   = boost::filesystem::current_path() / ".miopen-gpu-handle.lock";
+    auto p = boost::filesystem::current_path() / ".miopen-gpu-handle.lock";
     boost::filesystem::ofstream{tmp};
     boost::filesystem::rename(tmp, p);
     return p;
@@ -58,13 +52,12 @@ inline handle_mutex& get_handle_mutex()
     static handle_mutex m{get_handle_lock_path().c_str()};
     return m;
 }
-#endif
+
 using handle_lock = std::unique_lock<handle_mutex>;
 inline handle_lock get_handle_lock()
 {
-    auto& m = get_handle_mutex();
-    if(m.timed_lock(boost::posix_time::second_clock::local_time() +
-                    boost::posix_time::seconds(120)))
+    auto & m = get_handle_mutex();
+    if (m.timed_lock(boost::posix_time::second_clock::local_time()+boost::posix_time::seconds(120)))
     {
         return {m, std::adopt_lock_t{}};
     }
@@ -77,10 +70,7 @@ inline handle_lock get_handle_lock()
 
 #else
 
-struct handle_lock
-{
-};
-inline handle_lock get_handle_lock() { return {}; }
+#define MIOPEN_HANDLE_LOCK
 
 #endif
 

@@ -215,14 +215,14 @@ float Handle::GetKernelTime() const { return this->impl->profiling_result; }
 
 Allocator::ManageDataPtr Handle::Create(std::size_t sz)
 {
-    auto g = miopen::get_handle_lock();
+    MIOPEN_HANDLE_LOCK
     this->Finish();
     return this->impl->allocator(sz);
 }
 Allocator::ManageDataPtr&
 Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz)
 {
-    auto g = miopen::get_handle_lock();
+    MIOPEN_HANDLE_LOCK
     this->Finish();
     auto status = hipMemcpy(ddata.get(), data, sz, hipMemcpyHostToDevice);
     if(status != hipSuccess)
@@ -231,7 +231,7 @@ Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t s
 }
 void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz)
 {
-    auto g = miopen::get_handle_lock();
+    MIOPEN_HANDLE_LOCK
     this->Finish();
     auto status = hipMemcpy(data, ddata.get(), sz, hipMemcpyDeviceToHost);
     if(status != hipSuccess)
@@ -240,7 +240,7 @@ void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size
 
 void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size)
 {
-    auto g = miopen::get_handle_lock();
+    MIOPEN_HANDLE_LOCK
     this->impl->set_ctx();
     auto status = hipMemcpy(dest, src, size, hipMemcpyDeviceToDevice);
     if(status != hipSuccess)
@@ -258,7 +258,7 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm,
     this->impl->set_ctx();
     auto k = this->impl->cache.GetKernel(
         *this, algorithm, network_config, program_name, kernel_name, vld, vgd, params);
-    if(this->impl->enable_profiling || MIOPEN_BUILD_DEV)
+    if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
         return k.Invoke(this->GetStream(), this->impl->elapsed_time_handler());
     else
         return k.Invoke(this->GetStream());
@@ -268,7 +268,7 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm, const std::string& 
 {
     this->impl->set_ctx();
     auto k = this->impl->cache.GetKernel(algorithm, network_config);
-    if(this->impl->enable_profiling || MIOPEN_BUILD_DEV)
+    if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
         return k.Invoke(this->GetStream(), this->impl->elapsed_time_handler());
     else
         return k.Invoke(this->GetStream());
