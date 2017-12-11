@@ -70,6 +70,7 @@ struct conv_base
 template <class T>
 struct verify_forward_conv : conv_base<T>
 {
+    using conv_base<T>::out;
     using conv_base<T>::input;
     using conv_base<T>::weights;
     using conv_base<T>::filter;
