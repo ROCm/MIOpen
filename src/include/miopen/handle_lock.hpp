@@ -64,33 +64,26 @@ struct handle_mutex
     std::recursive_timed_mutex m;
     boost::interprocess::file_lock flock;
 
-    handle_mutex(const char * name)
-    : flock(name)
-    {}
+    handle_mutex(const char* name) : flock(name) {}
 
-    bool try_lock()
-    {
-        return std::try_lock(m, flock);
-    }
+    bool try_lock() { return std::try_lock(m, flock); }
 
-    void lock()
-    {
-        std::lock(m, flock);
-    }
+    void lock() { std::lock(m, flock); }
 
-    template<class Duration>
+    template <class Duration>
     bool try_lock_for(Duration d)
     {
-        return m.try_lock_for(d) && flock.timed_lock(boost::posix_time::second_clock::universal_time() +
-                    boost::posix_time::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(d).count()));
-
+        return m.try_lock_for(d) &&
+               flock.timed_lock(
+                   boost::posix_time::second_clock::universal_time() +
+                   boost::posix_time::milliseconds(
+                       std::chrono::duration_cast<std::chrono::milliseconds>(d).count()));
     }
 
-    template<class Point>
+    template <class Point>
     bool try_lock_until(Point p)
     {
         return m.try_lock_for(p - std::chrono::system_clock::now());
-
     }
 
     void unlock()
@@ -99,7 +92,6 @@ struct handle_mutex
         m.unlock();
     }
 };
-
 
 template <class T>
 inline std::unique_lock<handle_mutex> get_handle_lock(T, int timeout = 60)
