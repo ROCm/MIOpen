@@ -33,23 +33,24 @@
 
 namespace miopen {
 
-#define MIOPEN_DECLARE_HANDLE_MUTEX(x)                 \
-    struct x                                      \
-    {                                             \
+#define MIOPEN_DECLARE_HANDLE_MUTEX(x)                               \
+    struct x                                                         \
+    {                                                                \
         static const char* value() { return ".miopen-" #x ".lock"; } \
     };
 
 #if MIOPEN_GPU_SYNC
 MIOPEN_DECLARE_HANDLE_MUTEX(gpu_handle_mutex)
-#define MIOPEN_HANDLE_LOCK auto miopen_handle_lock_guard_##__LINE__ = miopen::get_handle_lock(miopen::gpu_handle_mutex{});
+#define MIOPEN_HANDLE_LOCK \
+    auto miopen_handle_lock_guard_##__LINE__ = miopen::get_handle_lock(miopen::gpu_handle_mutex{});
 #else
 #define MIOPEN_HANDLE_LOCK
 #endif
 
-inline boost::filesystem::path get_handle_lock_path(const char * name)
+inline boost::filesystem::path get_handle_lock_path(const char* name)
 {
     auto p = boost::filesystem::current_path() / name;
-    if(!boost::filesystem::exists(p)) 
+    if(!boost::filesystem::exists(p))
     {
         auto tmp = boost::filesystem::current_path() / boost::filesystem::unique_path();
         boost::filesystem::ofstream{tmp};
@@ -59,7 +60,7 @@ inline boost::filesystem::path get_handle_lock_path(const char * name)
 }
 
 using handle_mutex = boost::interprocess::file_lock;
-template<class T>
+template <class T>
 inline handle_mutex& get_handle_mutex(T)
 {
     static handle_mutex m{get_handle_lock_path(T::value()).c_str()};
@@ -67,7 +68,7 @@ inline handle_mutex& get_handle_mutex(T)
 }
 
 using handle_lock = std::unique_lock<handle_mutex>;
-template<class T>
+template <class T>
 inline handle_lock get_handle_lock(T)
 {
     auto& m = get_handle_mutex(T{});
@@ -82,6 +83,5 @@ inline handle_lock get_handle_lock(T)
         MIOPEN_THROW("GPU is stalled");
     }
 }
-
 
 } // namespace miopen
