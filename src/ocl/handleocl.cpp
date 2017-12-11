@@ -560,10 +560,10 @@ std::size_t Handle::GetMaxComputeUnits()
     return miopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(miopen::GetDevice(this->GetStream()));
 }
 
-Allocator::ManageDataPtr Handle::Create(std::size_t sz) 
-{ 
-    MIOPEN_HANDLE_LOCK 
-    return this->impl->allocator(sz); 
+Allocator::ManageDataPtr Handle::Create(std::size_t sz)
+{
+    MIOPEN_HANDLE_LOCK
+    return this->impl->allocator(sz);
 }
 
 Allocator::ManageDataPtr&
