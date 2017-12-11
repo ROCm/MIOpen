@@ -92,7 +92,7 @@ struct verify_forward_conv : conv_base<T>
 
     tensor<T> cpu()
     {
-        auto out = get_output_tensor(filter, input, weights);
+        out = get_output_tensor(filter, input, weights);
 
         int in_h, in_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
