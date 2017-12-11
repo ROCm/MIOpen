@@ -74,7 +74,7 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
 
     if(callback)
     {
-#if MIOPEN_BUILD_DEV
+#if 0
         auto start_time = std::chrono::system_clock::now();
         while(hipEventQuery(stop.get()) == hipErrorNotReady)
         {
