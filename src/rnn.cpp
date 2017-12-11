@@ -35,7 +35,7 @@
 #define MIO_RNN_DEBUG 0
 
 #define MIOPEN_RNN_SYNCH 0
-#define MIO_RNN_CPP_PROF 0
+#define MIO_RNN_CPP_PROF 1
 
 namespace miopen {
 
@@ -50,6 +50,7 @@ void profileRNNkernels(Handle& handle, unsigned char select, float& ctime)
     case 0:
         if(handle.IsProfilingEnabled())
         {
+            handle.ResetKernelTime();
             ctime = 0.;
             ktime = handle.GetKernelTime();
             ctime = ktime;
