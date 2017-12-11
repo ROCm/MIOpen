@@ -238,6 +238,11 @@ void OpTensor(Handle& handle,
         num_wg *= clens[0];      // c_n;
         incr_wg = 1;
     }
+
+    int num_wg_1   = num_wg;
+    int max_num_wg = 4096;
+    num_wg         = num_wg > max_num_wg ? max_num_wg : num_wg;
+
     size_t local_threads = 256;
 
     // Does the bitmap contain leading ones, i.e. 1,1,1,0 or 1,1,0,0
@@ -252,7 +257,8 @@ void OpTensor(Handle& handle,
                         std::to_string(incr_wg) + " -DLEADING_ONES=" +
                         std::to_string(leading_ones) + " -DMIOPEN_TYPE=" +
                         GetDataType(bTensorDesc.GetType()) + " -DFIRST_NOT_ONE=" +
-                        std::to_string(d - 1) + " -DMIOPEN_TENSOR_DIMS=" + std::to_string(bsize);
+                        std::to_string(d - 1) + " -DMIOPEN_TENSOR_DIMS=" + std::to_string(bsize) +
+                        " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
 
     parms += " -DMIOPEN_TENSOR_OP=";
     switch(tensorOp)
@@ -334,7 +340,8 @@ void OpTensor(Handle& handle,
             work_per_wg,
             long(Aoffset),
             long(Boffset),
-            long(Coffset));
+            long(Coffset),
+            int(num_wg_1));
     }
     else if(bsize == 3)
     {
@@ -360,7 +367,8 @@ void OpTensor(Handle& handle,
             work_per_wg,
             long(Aoffset),
             long(Boffset),
-            long(Coffset));
+            long(Coffset),
+            int(num_wg_1));
     }
     else if(bsize == 2)
     {
@@ -381,7 +389,8 @@ void OpTensor(Handle& handle,
             work_per_wg,
             long(Aoffset),
             long(Boffset),
-            long(Coffset));
+            long(Coffset),
+            int(num_wg_1));
     }
     else if(bsize == 1)
     {
@@ -399,7 +408,8 @@ void OpTensor(Handle& handle,
             work_per_wg,
             long(Aoffset),
             long(Boffset),
-            long(Coffset));
+            long(Coffset),
+            int(num_wg_1));
     }
     else if(fwd_conv_bias)
     {
@@ -421,7 +431,8 @@ void OpTensor(Handle& handle,
                 miopen_beta,
                 long(Aoffset),
                 long(Boffset),
-                long(Coffset));
+                long(Coffset),
+                int(num_wg_1));
         }
         else
         {
@@ -451,7 +462,8 @@ void OpTensor(Handle& handle,
                                     work_per_wg,
                                     long(Aoffset),
                                     long(Boffset),
-                                    long(Coffset));
+                                    long(Coffset),
+                                    int(num_wg_1));
         }
     }
     else if(leading_ones)
@@ -474,7 +486,8 @@ void OpTensor(Handle& handle,
                 miopen_beta,
                 long(Aoffset),
                 long(Boffset),
-                long(Coffset));
+                long(Coffset),
+                int(num_wg_1));
         }
         else
         {
@@ -506,7 +519,8 @@ void OpTensor(Handle& handle,
                                     work_per_wg,
                                     long(Aoffset),
                                     long(Boffset),
-                                    long(Coffset));
+                                    long(Coffset),
+                                    int(num_wg_1));
         }
     }
     else
@@ -538,7 +552,8 @@ void OpTensor(Handle& handle,
             work_per_wg,
             long(Aoffset),
             long(Boffset),
-            long(Coffset));
+            long(Coffset),
+            int(num_wg_1));
     }
 }
 

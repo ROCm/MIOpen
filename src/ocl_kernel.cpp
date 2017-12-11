@@ -48,6 +48,7 @@ static std::string DimToFormattedString(const size_t* dims, size_t count)
 void OCLKernelInvoke::run() const
 {
 #ifndef NDEBUG
+    std::cout << "kernel_name = " << GetName();
     std::cout << ", work_dim = " << work_dim;
     std::cout << ", global_work_offset = "
               << (work_dim == 0 ? "NULL"
