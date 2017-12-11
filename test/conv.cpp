@@ -120,7 +120,7 @@ struct verify_forward_conv : conv_base<T>
     tensor<T> gpu()
     {
         auto&& handle = get_handle();
-        auto out           = get_output_tensor(filter, input, weights);
+        auto out      = get_output_tensor(filter, input, weights);
 
         auto in_dev  = handle.Write(input.data);
         auto wei_dev = handle.Write(weights.data);

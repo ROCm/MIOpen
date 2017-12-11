@@ -560,16 +560,16 @@ std::size_t Handle::GetMaxComputeUnits()
     return miopen::GetDeviceInfo<CL_DEVICE_MAX_COMPUTE_UNITS>(miopen::GetDevice(this->GetStream()));
 }
 
-Allocator::ManageDataPtr Handle::Create(std::size_t sz) 
-{ 
-    auto g = miopen::get_handle_lock(); 
-    return this->impl->allocator(sz); 
+Allocator::ManageDataPtr Handle::Create(std::size_t sz)
+{
+    auto g = miopen::get_handle_lock();
+    return this->impl->allocator(sz);
 }
 
 Allocator::ManageDataPtr&
 Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz)
 {
-    auto g = miopen::get_handle_lock();
+    auto g        = miopen::get_handle_lock();
     cl_int status = clEnqueueWriteBuffer(
         this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
     if(status != CL_SUCCESS)
@@ -581,7 +581,7 @@ Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t s
 
 void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz)
 {
-    auto g = miopen::get_handle_lock();
+    auto g      = miopen::get_handle_lock();
     auto status = clEnqueueReadBuffer(
         this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
     if(status != CL_SUCCESS)
