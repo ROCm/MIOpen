@@ -69,11 +69,11 @@ inline handle_mutex& get_handle_mutex(T)
 
 using handle_lock = std::unique_lock<handle_mutex>;
 template <class T>
-inline handle_lock get_handle_lock(T)
+inline handle_lock get_handle_lock(T, int timeout = 120)
 {
     auto& m = get_handle_mutex(T{});
     if(m.timed_lock(boost::posix_time::second_clock::universal_time() +
-                    boost::posix_time::seconds(120)))
+                    boost::posix_time::seconds(timeout)))
     {
         return {m, std::adopt_lock_t{}};
     }
