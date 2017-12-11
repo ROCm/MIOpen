@@ -157,10 +157,12 @@ set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen 
 
 if(BUILD_DEV)
     set(MIOPEN_BUILD_DEV 1)
+    set(MIOPEN_GPU_SYNC On CACHE BOOL "")
     set(MIOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels")
     set(MIOPEN_CACHE_DIR "" CACHE STRING "")
 else()
     set(MIOPEN_BUILD_DEV 0)
+    set(MIOPEN_GPU_SYNC Off CACHE BOOL "")
     set(MIOPEN_DB_PATH "${CMAKE_INSTALL_PREFIX}/${DATA_INSTALL_DIR}/db" CACHE PATH "Default path to search for db")
     set(MIOPEN_CACHE_DIR "~/.cache/miopen/" CACHE STRING "")
 endif()
