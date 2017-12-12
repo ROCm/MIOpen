@@ -145,7 +145,61 @@ void BatchNormForwardTraining(Handle& handle,
         program_name += "Spatial.cl";
         kernel_name += "Spatial";
 
-        if(in_cstride <= 512 && n > 3 && in_cstride > 4)
+        if(in_cstride > 1024)
+        {
+            xlocalsize = 1024;
+            ylocalsize = 1;
+            zlocalsize = 1;
+
+            unsigned int variant = 5;
+           
+            parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize);
+            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
+            parms += " -DMIO_BN_GRP0=" + std::to_string(xlocalsize);
+            parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
+            parms += " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+            vld.push_back(xlocalsize);
+            vld.push_back(ylocalsize);
+            vld.push_back(zlocalsize);
+
+            xgridsize = 1024 * c;
+            ygridsize = 1;
+            zgridsize = 1;
+            vgd.push_back(xgridsize);
+            vgd.push_back(ygridsize);
+            vgd.push_back(zgridsize);
+
+#if(MIOPEN_BN_CPP_DEBUG == 1)
+            std::cout << kernel_name << ":: ";
+            std::cout << parms << std::endl;
+            std::cout << "in_nhw: "
+                      << ":: " << in_nhw << std::endl;
+            std::cout << "inhw: "
+                      << ":: " << inhw << std::endl;
+#endif
+            bnFwdTrainSelectSingle(handle,
+                                   program_name,
+                                   algo_name,
+                                   kernel_name,
+                                   network_config,
+                                   parms,
+                                   vld,
+                                   vgd,
+                                   x,
+                                   y,
+                                   bnScale,
+                                   bnBias,
+                                   resultsave,
+                                   resultrunning,
+                                   expAvgFactor,
+                                   resultRunningMean,
+                                   resultRunningVariance,
+                                   epsilon,
+                                   resultSaveMean,
+                                   resultSaveInvVariance,
+                                   inhw);
+        }
+        else if(in_cstride <= 512 && n > 3 && in_cstride > 4)
         {
             xlocalsize = 1024;
             ylocalsize = 1;
