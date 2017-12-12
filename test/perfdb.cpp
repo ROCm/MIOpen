@@ -132,8 +132,15 @@ class DbTest
         return data;
     }
 
+    static const TestData& value2()
+    {
+        static const TestData data(7, 8);
+        return data;
+    }
+
     static const char* id0() { return "0"; }
     static const char* id1() { return "1"; }
+    static const char* id2() { return "2"; }
     static const char* missing_id() { return "2"; }
     const char* temp_file_path() const { return _temp_file_path; }
 
@@ -415,6 +422,46 @@ class DbOperationsTest : public DbTest
     }
 };
 
+class DbParallelTest : public DbTest
+{
+public:
+    inline void Run()
+    {
+        {
+            Db db(temp_file_path());
+            EXPECT(db.Store(key(), id0(), value0()));
+        }
+
+        {
+            Db db0(temp_file_path());
+            Db db1(temp_file_path());
+
+            auto r0 = db0.FindRecord(key());
+            auto r1 = db0.FindRecord(key());
+
+            EXPECT(r0);
+            EXPECT(r1);
+
+            EXPECT(r0->SetValues(id1(), value1()));
+            EXPECT(r1->SetValues(id2(), value2()));
+
+            EXPECT(db0.UpdateRecord(*r0));
+            EXPECT(db1.UpdateRecord(*r1));
+        }
+
+        {
+            Db db(temp_file_path());
+            TestData read1, read2;
+
+            EXPECT(db.Load(key(), id1(), read1));
+            EXPECT(db.Load(key(), id2(), read2));
+
+            EXPECT_EQUAL(read1, value1());
+            EXPECT_EQUAL(read2, value2());
+        }
+    }
+};
+
 } // namespace tests
 } // namespace miopen
 
@@ -427,6 +474,7 @@ int main()
     miopen::tests::DbReadTest().Run();
     miopen::tests::DbWriteTest().Run();
     miopen::tests::DbOperationsTest().Run();
+    miopen::tests::DbParallelTest().Run();
 
     return 0;
 }
