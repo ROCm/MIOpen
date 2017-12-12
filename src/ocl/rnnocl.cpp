@@ -2056,20 +2056,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             alpha1 = 0;
             beta_t = 1;
 
-            OpTensor(handle,
-                     miopenTensorOpAdd,
-                     &alpha0,
-                     y_desc,
-                     dy,
-                     &alpha1,
-                     y_desc,
-                     dy,
-                     &beta_t,
-                     sp_desc,
-                     workSpace,
-                     0,
-                     0,
-                     hid_shift + dhd_off);
+            CopyTensor(handle, y_desc, dy, sp_desc, workSpace, 0, hid_shift + dhd_off);
             // Update time
             profileRNNkernels(handle, 0, ctime); // start timing
         }
