@@ -83,7 +83,7 @@ struct verify_forward_pooling
 {
     template <class T>
     tensor<T>
-    cpu(const tensor<T>& input, const miopen::PoolingDescriptor& filter, std::vector<uint8_t>&)
+    cpu(const tensor<T>& input, const miopen::PoolingDescriptor& filter, std::vector<uint8_t>&) const
     {
         auto out = get_output_tensor(filter, input);
 
@@ -123,7 +123,7 @@ struct verify_forward_pooling
     template <class T>
     tensor<T> gpu(const tensor<T>& input,
                   const miopen::PoolingDescriptor& filter,
-                  std::vector<uint8_t>& indices)
+                  std::vector<uint8_t>& indices) const
     {
         auto&& handle = get_handle();
         auto out      = get_output_tensor(filter, input);
@@ -154,7 +154,7 @@ struct verify_forward_pooling
     void fail(float,
               const tensor<T>& input,
               const miopen::PoolingDescriptor& filter,
-              const std::vector<uint8_t>&)
+              const std::vector<uint8_t>&) const
     {
         std::cout << "Forward pooling: ";
         if(filter.GetMode() == miopenPoolingAverage)
@@ -181,7 +181,7 @@ struct verify_backward_pooling
                   const tensor<T>& dout,
                   const tensor<T>& out,
                   const miopen::PoolingDescriptor& filter,
-                  const std::vector<uint8_t>& indices)
+                  const std::vector<uint8_t>& indices) const
     {
         auto dinput = input;
         CHECK(dout.desc == out.desc);
@@ -242,7 +242,7 @@ struct verify_backward_pooling
                   const tensor<T>& dout,
                   const tensor<T>& out,
                   const miopen::PoolingDescriptor& filter,
-                  const std::vector<uint8_t>& indices)
+                  const std::vector<uint8_t>& indices) const
     {
         auto&& handle = get_handle();
         auto dinput   = input;
@@ -284,7 +284,7 @@ struct verify_backward_pooling
               const tensor<T>&,
               const tensor<T>& out,
               const miopen::PoolingDescriptor& filter,
-              const std::vector<uint8_t>&)
+              const std::vector<uint8_t>&) const
     {
         std::cout << "Backward pooling: ";
         if(filter.GetMode() == miopenPoolingAverage)
