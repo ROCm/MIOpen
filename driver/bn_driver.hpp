@@ -647,13 +647,6 @@ void BatchNormDriver<T>::runGPUFwdInference(double epsilon, T alpha, T beta)
                                                  epsilon);
     }
 
-    if(inflags.GetValueStr("time") == "1")
-    {
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-        printf("GPU Kernel Time Forward Batch Normalization Elapsed: %f ms\n", time);
-    }
-
     return;
 }
 
@@ -741,13 +734,6 @@ void BatchNormDriver<T>::runGPUFwdTrain(double epsilon, double eAF, T alpha, T b
                                                 nullptr);
     }
 
-    if(inflags.GetValueStr("time") == "1")
-    {
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-        printf("GPU Kernel Time Forward Batch Normalization Elapsed: %f ms\n", time);
-    }
-
 #ifdef BN_RUNFOR_PROFILER
     miopenBatchNormalizationForwardTraining(GetHandle(),
                                             bn_mode,
@@ -778,8 +764,12 @@ int BatchNormDriver<T>::RunForwardGPU()
     double eAF     = 1.0;
 
     Timer t;
-
-    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    double fulltime = 0.;
+    auto iters = inflags.GetValueInt("iter");
+    float lowtime = 100000000.0;
+    float avgtime = 0.;
+    
+    for(int i = 0; i < iters; i++)
     {
 
         START_TIME;
@@ -801,9 +791,32 @@ int BatchNormDriver<T>::RunForwardGPU()
         }
 
         STOP_TIME;
-        if(WALL_CLOCK)
+        if(WALL_CLOCK && (i > 0 || !iters))
+        {
+            fulltime += t.gettime_ms();
+        }
+        if(inflags.GetValueStr("time") == "1")
+        {
+            float time = 0.0;
+            miopenGetKernelTime(GetHandle(), &time);
+            lowtime = (time < lowtime) ? time : lowtime;
+            if(i > 0 || !iters)
+            {
+                avgtime += time;
+            }
+        }
+    }
+    
+    if(WALL_CLOCK)
+    {
             printf("Wall-clock Time Forward GPU Batch Norm Elapsed: %f ms\n",
-                   t.gettime_ms()); // / inflags.GetValueInt("iter"));
+                   fulltime / (iters-1));
+    }
+    
+    if(inflags.GetValueStr("time") == "1")
+    {
+        printf("GPU Kernel Min Time Forward Batch Normalization Elapsed: %f ms\n", lowtime);
+        printf("GPU Kernel Avg Time Forward Batch Normalization Elapsed: %f ms\n", avgtime / (iters-1));
     }
     return miopenStatusSuccess;
 }
@@ -954,8 +967,12 @@ int BatchNormDriver<T>::RunBackwardGPU()
     double epsilon = EPSILON;
 
     Timer t;
-
-    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    double fulltime = 0.;
+    auto iters = inflags.GetValueInt("iter");
+    float lowtime = 100000000.0;
+    float avgtime = 0.;
+    
+    for(int i = 0; i < iters; i++)
     {
         START_TIME;
 
@@ -1004,17 +1021,36 @@ int BatchNormDriver<T>::RunBackwardGPU()
                                              nullptr);
         }
         STOP_TIME;
-        if(WALL_CLOCK)
-            printf("Wall-clock Time Backwards GPU Batch Norm Elapsed: %f ms\n",
-                   t.gettime_ms()); // / inflags.GetValueInt("iter"));
-
+        if(WALL_CLOCK && (i > 0 || !iters))
+        {
+            fulltime += t.gettime_ms();
+        }
+        
         if(inflags.GetValueStr("time") == "1")
         {
             float time = 0.0;
             miopenGetKernelTime(GetHandle(), &time);
-            printf("GPU Kernel Time Backwards Batch Normalization Elapsed: %f ms\n", time);
+            lowtime = (time < lowtime) ? time : lowtime;
+            if(i > 0 || !iters)
+            {
+                avgtime += time;
+            }
+                        
         }
+
     }
+       
+    if(WALL_CLOCK)
+    {
+        printf("Wall-clock Time Backward GPU Batch Norm Elapsed: %f ms\n",
+               fulltime / (iters-1));
+    }
+    if(inflags.GetValueStr("time") == "1")
+    {     
+        printf("GPU Kernel Min Time Backwards Batch Normalization Elapsed: %f ms\n", lowtime);
+        printf("GPU Kernel Avg Time Backward Batch Normalization Elapsed: %f ms\n", avgtime / (iters-1));
+    }
+    
 
     return miopenStatusSuccess;
 }

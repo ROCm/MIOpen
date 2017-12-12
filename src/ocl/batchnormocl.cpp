@@ -28,6 +28,9 @@
 #include <miopen/float_equal.hpp>
 #include <miopen/check_numerics.hpp>
 
+#include <chrono>
+
+
 namespace miopen {
 
 void BatchNormForwardTraining(Handle& handle,
@@ -582,6 +585,10 @@ void BatchNormBackward(Handle& handle,
                        ConstData_t savedMean,
                        ConstData_t savedInvVariance)
 {
+    
+    //#if(MIO_BN_TIME_EVERYTHING == 1)
+        auto t_start = std::chrono::high_resolution_clock::now();
+    //#endif
     if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsInput(handle, xDesc, x);
@@ -762,6 +769,13 @@ void BatchNormBackward(Handle& handle,
 #endif
             parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
             // MULTI
+            
+            //#if(MIO_BN_TIME_EVERYTHING == 1)
+    auto t_end = std::chrono::high_resolution_clock::now();
+
+    std::cout << "Wall clock: PREAMBLE: "
+              << std::chrono::duration<double>(t_end - t_start).count()*1000.0 << " ms." << std::endl;
+//#endif
             bnBwdTrainSelectMulti(handle,
                                   program_name,
                                   algo_name,
