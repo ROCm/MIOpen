@@ -83,6 +83,7 @@ macro(enable_cppcheck)
 
     file(WRITE ${CMAKE_BINARY_DIR}/cppcheck.cmake "
         file(GLOB_RECURSE GSRCS ${GLOBS})
+        message(\"${CPPCHECK_EXE} ${GLOBS}\")
         message(\"${CPPCHECK_EXE} ${SOURCES} \${GSRCS}\")
         execute_process(
             COMMAND ${CPPCHECK_EXE}
