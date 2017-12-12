@@ -35,9 +35,6 @@
 #include <deque>
 #include <miopen/functional.hpp>
 #include <miopen/type_name.hpp>
-#include <miopen/handle_lock.hpp>
-
-MIOPEN_DECLARE_HANDLE_MUTEX(gpu_verify_mutex)
 
 struct rand_gen
 {
@@ -434,10 +431,7 @@ struct test_driver
                 h.EnableProfiling();
                 h.ResetKernelTime();
             }
-            auto gpu = [&] {
-                auto g = miopen::get_handle_lock(gpu_verify_mutex{});
-                return v.gpu(xs...);
-            }();
+            auto gpu = v.gpu(xs...);
             if(time)
             {
                 std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
@@ -487,10 +481,7 @@ struct test_driver
                 h.EnableProfiling();
                 h.ResetKernelTime();
             }
-            auto gpu = [&] {
-                auto g = miopen::get_handle_lock(gpu_verify_mutex{});
-                return v.gpu(xs...);
-            }();
+            auto gpu = v.gpu(xs...);
             if(time)
             {
                 std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
