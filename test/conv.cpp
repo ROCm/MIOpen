@@ -121,7 +121,7 @@ struct verify_forward_conv : conv_base<T>
     tensor<T> gpu() const
     {
         auto&& handle = get_handle();
-        auto rout           = get_output_tensor(filter, input, weights);
+        auto rout     = get_output_tensor(filter, input, weights);
 
         auto in_dev  = handle.Write(input.data);
         auto wei_dev = handle.Write(weights.data);
@@ -233,7 +233,7 @@ struct verify_backward_conv : conv_base<T>
     tensor<T> gpu() const
     {
         auto&& handle = get_handle();
-        auto rinput = input;
+        auto rinput   = input;
         std::fill(rinput.begin(), rinput.end(), 0);
 
         auto out_dev = handle.Write(out.data);

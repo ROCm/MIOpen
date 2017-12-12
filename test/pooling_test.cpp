@@ -82,8 +82,9 @@ struct pooling_operators
 struct verify_forward_pooling
 {
     template <class T>
-    tensor<T>
-    cpu(const tensor<T>& input, const miopen::PoolingDescriptor& filter, std::vector<uint8_t>&) const
+    tensor<T> cpu(const tensor<T>& input,
+                  const miopen::PoolingDescriptor& filter,
+                  std::vector<uint8_t>&) const
     {
         auto out = get_output_tensor(filter, input);
 

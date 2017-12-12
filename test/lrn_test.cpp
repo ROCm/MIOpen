@@ -161,11 +161,11 @@ struct verify_lrn_bwd
         std::tie(n_batch, channels, height, width) = miopen::tien<4>(inputY.desc.GetLengths());
 
         auto routputDX = outputDX;
-        auto alpha  = lrn.GetAlpha();
-        auto beta   = lrn.GetBeta();
-        auto lrn_n  = lrn.GetN();
-        auto mode   = lrn.GetMode();
-        auto radius = (lrn_n - 1) / 2;
+        auto alpha     = lrn.GetAlpha();
+        auto beta      = lrn.GetBeta();
+        auto lrn_n     = lrn.GetN();
+        auto mode      = lrn.GetMode();
+        auto radius    = (lrn_n - 1) / 2;
 
         if(mode == miopenLRNWithinChannel)
         {
@@ -188,7 +188,7 @@ struct verify_lrn_bwd
                     }
 
                     routputDX(b, c, h, w) = pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
-                                           cache_ratio_value * inputX(b, c, h, w) * ydy;
+                                            cache_ratio_value * inputX(b, c, h, w) * ydy;
                 });
             });
         }
@@ -208,7 +208,7 @@ struct verify_lrn_bwd
                     }
 
                     routputDX(b, c, h, w) = pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
-                                           cache_ratio_value * inputX(b, c, h, w) * ydy;
+                                            cache_ratio_value * inputX(b, c, h, w) * ydy;
                 });
             });
         }
@@ -219,7 +219,7 @@ struct verify_lrn_bwd
     tensor<T> gpu() const
     {
         auto&& handle     = get_handle();
-        auto routputDX = outputDX;
+        auto routputDX    = outputDX;
         auto inputY_dev   = handle.Write(inputY.data);
         auto inputDY_dev  = handle.Write(inputDY.data);
         auto inputX_dev   = handle.Write(inputX.data);
