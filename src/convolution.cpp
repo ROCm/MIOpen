@@ -253,23 +253,11 @@ bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& 
           pad_w == 0));
 
     bool workarounds =
-        // temp enalbe PAD/STRIDE mode: but C,K must be 16x,  non-16x C/K will be developed later
-        //((_kernel_size0 == 1 && _kernel_size1 == 1 && (u != 1 || v != 1)) ||
+        (((_kernel_size0 == 1 && _kernel_size1 == 1 && ((c & 0xF) > 0 || (k & 0xF) > 0))) ||
+         (_kernel_size0 == 3 && _kernel_size1 == 3 && (u > 2 || v > 2)) ||
+         (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0));
 
-        ((_kernel_size0 == 1 && _kernel_size1 == 1 &&
-          (/*u != 1 || v != 1 ||*/ ((c & 0xF) > 0) || ((k & 0xF) > 0))) ||
-         // MD: Disabling all stride=2 configs
-         // && ((c & 0xF) > 0 || (k & 0xF) > 0)) ||
-         (_kernel_size0 == 7 && _kernel_size1 == 7 && (pad_h == 0 || pad_w == 0)) ||
-         (_kernel_size0 == 3 && _kernel_size1 == 3 && (pad_h > 1 || pad_w > 1 || u > 2 || v > 2)) ||
-         (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0) || (k < 16 || (k % 2 != 0)));
-
-    bool knowns = (_kernel_size0 == 5 && _kernel_size1 == 5 && c == 1 && u == 2 && v == 2) ||
-                  (_kernel_size0 == 1 && _kernel_size1 == 1 && pad_h == 0 && pad_w == 0 && u == 1 &&
-                   v == 1); // ConvAsmBwdWrW1x1
-
-    /// \todo Remove constraints from here to relevant IsApplicable() methods!!!
-    return knowns || (supported_filters && !workarounds);
+    return (supported_filters && !workarounds);
 }
 
 bool ConvolutionDescriptor::IsDirectSupported(const TensorDescriptor& wDesc) const
@@ -280,24 +268,19 @@ bool ConvolutionDescriptor::IsDirectSupported(const TensorDescriptor& wDesc) con
 
     bool supported_filters =
         ((_kernel_size0 == 1 && _kernel_size1 == 1) || (_kernel_size0 == 3 && _kernel_size1 == 3) ||
-         (_kernel_size0 == 5 && _kernel_size1 == 5 && u == 1 && v == 1) ||
-         (_kernel_size0 == 7 && _kernel_size1 == 7) || (_kernel_size0 == 9 && _kernel_size1 == 9) ||
+         (_kernel_size0 == 5 && _kernel_size1 == 5) || (_kernel_size0 == 7 && _kernel_size1 == 7) ||
+         (_kernel_size0 == 9 && _kernel_size1 == 9) ||
          (_kernel_size0 == 11 && _kernel_size1 == 11) ||
          (_kernel_size0 == 5 && _kernel_size1 == 10 && u == 2 && v == 2 && pad_h == 0 &&
           pad_w == 0) ||
          (_kernel_size0 == 5 && _kernel_size1 == 20 && u == 2 && v == 2 && pad_h == 0 &&
           pad_w == 0));
 
-    bool workarounds =
-        ((_kernel_size0 == 3 && _kernel_size1 == 3 && (pad_h > 1 || pad_w > 1 || u > 1 || v > 1)) ||
-         (_kernel_size0 == 1 && _kernel_size1 == 1 && (pad_h > 0 || pad_w > 0)) ||
-         (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0)); // ||
-    //(!(_kernel_size0 == 1 && _kernel_size1 == 1) && (k < 16 || (k % 2 != 0))));
+    bool workarounds = ((_kernel_size0 == 3 && _kernel_size1 == 3 && (u > 2 || v > 2)) ||
+                        (_kernel_size0 == 1 && _kernel_size1 == 1 && (pad_h > 0 || pad_w > 0)) ||
+                        (_kernel_size0 % 2 == 0 && _kernel_size1 % 2 == 0));
 
-    bool knowns = ((_kernel_size0 == 3 && _kernel_size1 == 3 && c == 3 && u == 2 && v == 2) ||
-                   (_kernel_size0 == 5 && _kernel_size1 == 5 && c == 1 && u == 2 && v == 2));
-
-    return knowns || !(!supported_filters || workarounds);
+    return (supported_filters && !workarounds);
 }
 
 size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
