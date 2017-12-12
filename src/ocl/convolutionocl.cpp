@@ -1691,7 +1691,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                        std::get<3>(bwd_wrw),  // _g_wk
                                                        std::get<2>(bwd_wrw)); // _comp_options
 
-                        if(std::get<0>(bwd_wrw) == "gcnAsmConv3x3WrW")
+                        if((std::get<0>(bwd_wrw) == "gcnAsmConv3x3WrW") ||
+                           (std::get<0>(bwd_wrw) == "gcnAsmConv1x1WrW"))
                         {
                             int unused       = 0;
                             int* return_addr = nullptr;
@@ -1985,7 +1986,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 auto kernel =
                     handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main", network_config);
 
-                if(kernel.GetName() == "gcnAsmConv3x3WrW")
+                if((kernel.GetName() == "gcnAsmConv3x3WrW") ||
+                   (kernel.GetName() == "gcnAsmConv1x1WrW"))
                 {
                     int unused       = 0;
                     int* return_addr = nullptr;
