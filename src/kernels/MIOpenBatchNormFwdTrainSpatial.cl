@@ -1586,18 +1586,9 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
 
 
-
-
-
-
-
-
-
-
-
 // ************ NEW STUFF
 
-
+//#undef __AMDGCN__
 
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
@@ -1621,7 +1612,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 {
 
     // SPATIAL
-    _FLOAT mean[MIO_BN_C];
+    _FLOAT mean        = 0.;
     _FLOAT variance    = 0.;
     _FLOAT invVariance = 0.;
     _FLOAT inhat       = 0.;
@@ -1629,9 +1620,6 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     _FLOAT pvscale     = elemStd;
     _FLOAT pvbias      = 0.;
 
-    _FLOAT batchvalues[MIO_BN_C][MIO_BN_N];
-
-    __local _FLOAT lcl_mean;
     __local _FLOAT lcl_bias;
     __local _FLOAT lcl_scale;
     __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
@@ -1640,8 +1628,6 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     unsigned int chwid  = 0;
     unsigned int lid    = get_local_id(0);
     unsigned int grpid  = get_group_id(0);
-    unsigned int lsz    = get_local_size(0);
-    unsigned int nid    = 0;
     
     if(lid == 0)
     {
@@ -1651,29 +1637,19 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
     
 //==== CALC MEAN =======================
-    for(unsigned int c = 0; c < MIO_BN_C; c++)
-    {
         mean = 0.;
-        if(lid < MIO_BN_HW)
-        {
 #pragma unroll
-            for(unsigned int n = 0; n < MIO_BN_N; n++)
+        for(unsigned int n = 0; n < MIO_BN_N; n++)
+        {
+            for(unsigned int hw = lid; hw < MIO_BN_HW; hw+=get_local_size(0))
             {
-                for(unsigned int hw = lid; hw < MIO_BN_HW; hw+=get_local_size(0))
-                {
-                    chwid  = c * MIO_BN_HW + hw;
-                    index  = n * MIO_BN_CHW + chwid;
-                    batchvalues[c][n] = (index < MIO_BN_NCHW) ? *(in+index) : 0.;
-                    mean += batchvalues[c][n];
+                chwid  = grpid * MIO_BN_HW + hw;
+                index  = n * MIO_BN_CHW + chwid;
+                mean += (index < MIO_BN_NCHW) ? *(in+index) : 0.;
             }
         }
-        else
-        {
-            mean = 0.;
-        }
     
-    
-        lcl_data[lid] = mean[c];
+        lcl_data[lid] = mean;
         barrier(CLK_LOCAL_MEM_FENCE);
 
 #ifdef __AMDGCN__
@@ -1686,24 +1662,32 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         }
         dppLDSReduce64(&mean, lcl_data, lid, INHW);
 #else
-
+    for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 256; red >>= 1)
+    {
         if(lid < red)
             lcl_data[lid] += lcl_data[lid + red];
         barrier(CLK_LOCAL_MEM_FENCE);        
+    }
         regLDSreduce(&mean, lcl_data, lid, INHW);
+
 #endif
     
         barrier(CLK_LOCAL_MEM_FENCE);
-        
-        if(lid == 0)
-        {
-           __global _FLOAT *q = out + MIO_BN_HW*c;
-           AtomicAdd(q, mean);
-        }
-        
-        barrier(CLK_GLOBAL_MEM_FENCE | CLK_LOCAL_MEM_FENCE);
-        
 
+        variance = 0.;
+#pragma unroll
+        for(unsigned int n = 0; n < MIO_BN_N; n++)
+        {
+            for(unsigned int hw = lid; hw < MIO_BN_HW; hw+=get_local_size(0))
+            {
+                chwid  = grpid * MIO_BN_HW + hw;
+                index  = n * MIO_BN_CHW + chwid;
+                variance += (index < MIO_BN_NCHW) ? *(in+index) - mean : 0.;
+            }
+        }
+                
+        
+        
 #ifdef __AMDGCN__
 #pragma unroll
         for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 32; red >>= 1)
@@ -1712,30 +1696,63 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                 lcl_data[lid] += lcl_data[lid + red];
             barrier(CLK_LOCAL_MEM_FENCE);
         }
-        dppLDSReduce64(&mean, lcl_data, lid, INHW);
+        dppLDSReduce64(&variance, lcl_data, lid, INHW);
 #else
-
+for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 256; red >>= 1)
+    {
         if(lid < red)
             lcl_data[lid] += lcl_data[lid + red];
         barrier(CLK_LOCAL_MEM_FENCE);        
-        regLDSreduce(&mean, lcl_data, lid, INHW);
+}
+        regLDSreduce(&variance, lcl_data, lid, INHW);
 #endif
     
         barrier(CLK_LOCAL_MEM_FENCE);
+        invVariance = rsqrt(variance + epsilon);
+
         
-        if(lid == 0)
+           //==== CALC NORM =======================
+        pvscale = lcl_scale;
+        pvbias  = lcl_bias;
+
+        #pragma unroll
+        for(unsigned int n = 0; n < MIO_BN_N; n++)
         {
-           __global _FLOAT *q = out + MIO_BN_HW*c + 1;
-           
-           lcl_mean = AtomicAdd(q, mean);
-        }        
-        barrier(CLK_LOCAL_MEM_FENCE);
-        mean = lcl_mean;
+            for(unsigned int hw = lid; hw < MIO_BN_HW; hw+=get_local_size(0))
+            {
+                chwid  = grpid * MIO_BN_HW + hw;
+                index  = n * MIO_BN_CHW + chwid;
+                if(index < MIO_BN_NCHW)
+                    out[index] = mad(pvscale, *(in+index) - mean, pvbias);
+            }
+        } // end for
+        
+#if(MIO_SAVE_MEAN_VARIANCE == 1 || MIO_RUNNING_RESULT == 1)
+    if(lid == 0)
+    {
+
+// Save mean and calculate and save running mean
+#if(MIO_SAVE_MEAN_VARIANCE == 1)
+        resultSaveMean[grpid]        = mean;
+        resultSaveInvVariance[grpid] = invVariance;
+#endif
+
+#if(MIO_RUNNING_RESULT == 1)
+        _FLOAT pvt_runMean = *(resultRunningMean+grpid);
+        _FLOAT pvt_newRunMean =
+            mad((_FLOAT)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
+        resultRunningMean[grpid] =
+            mad(mean, (_FLOAT)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
+        const _FLOAT adjust = (MIO_BN_NHW == 1)
+                                  ? variance
+                                  : variance * ((_FLOAT)MIO_BN_NHW / (_FLOAT)(MIO_BN_NHW - 1.0));
+        resultRunningVariance[grpid] = (1 - (_FLOAT)expAvgFactor) * *(resultRunningVariance+grpid) +
+                                       (_FLOAT)expAvgFactor * adjust;
+#endif
+    }
+#endif     
        
-   }// for c-loop 
-    
-    
-
+}
 
 #endif
 
