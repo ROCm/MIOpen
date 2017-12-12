@@ -37,7 +37,7 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
                                       const TensorDescriptor& yDesc,
                                       Data_t y,
                                       bool do_backward,
-                                      Data_t workSpace)
+                                      Data_t workSpace) const
 {
 
     miopenStatus_t status = miopenStatusSuccess;
@@ -139,7 +139,7 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
                                        const void* /*beta*/,
                                        const TensorDescriptor& dxDesc,
                                        Data_t dx,
-                                       ConstData_t workSpace)
+                                       ConstData_t workSpace) const
 {
     miopenStatus_t status = miopenStatusSuccess;
     mlo_construct_norm construct_params(0); // backward
