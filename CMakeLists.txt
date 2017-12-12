@@ -256,6 +256,8 @@ enable_cppcheck(
         passedByValue
         # preprocessorErrorDirective
         unusedStructMember
+        # TODO: Try to reenable this without needing inline suppressions
+        leakReturnValNotUsed
         *:*.cl
     SOURCES
         include/
