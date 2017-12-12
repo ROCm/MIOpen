@@ -44,7 +44,7 @@ struct verify_lrn_foward
     miopen::LRNDescriptor lrn;
     tensor<T> input;
 
-    tensor<T> cpu()
+    tensor<T> cpu() const
     {
         auto output = input;
         int n_batch, channels, height, width;
@@ -112,7 +112,7 @@ struct verify_lrn_foward
         return output;
     }
 
-    tensor<T> gpu()
+    tensor<T> gpu() const
     {
         auto&& handle = get_handle();
         auto out      = input;
@@ -136,7 +136,7 @@ struct verify_lrn_foward
         return out;
     }
 
-    void fail(int)
+    void fail(int) const
     {
         std::cout << "verify_lrn_foward" << std::endl;
         std::cout << "Input Tensor"
@@ -155,11 +155,12 @@ struct verify_lrn_bwd
     tensor<T> outputDX;
     tensor<T> scale;
 
-    tensor<T> cpu()
+    tensor<T> cpu() const
     {
         int n_batch, channels, height, width;
         std::tie(n_batch, channels, height, width) = miopen::tien<4>(inputY.desc.GetLengths());
 
+        auto routputDX = outputDX;
         auto alpha  = lrn.GetAlpha();
         auto beta   = lrn.GetBeta();
         auto lrn_n  = lrn.GetN();
@@ -186,7 +187,7 @@ struct verify_lrn_bwd
                         }
                     }
 
-                    outputDX(b, c, h, w) = pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
+                    routputDX(b, c, h, w) = pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
                                            cache_ratio_value * inputX(b, c, h, w) * ydy;
                 });
             });
@@ -206,22 +207,23 @@ struct verify_lrn_bwd
                         ydy += (inputY(b, k, h, w) * inputDY(b, k, h, w) / scale(b, k, h, w));
                     }
 
-                    outputDX(b, c, h, w) = pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
+                    routputDX(b, c, h, w) = pow(scale(b, c, h, w), -beta) * inputDY(b, c, h, w) -
                                            cache_ratio_value * inputX(b, c, h, w) * ydy;
                 });
             });
         }
 
-        return outputDX;
+        return routputDX;
     }
 
-    tensor<T> gpu()
+    tensor<T> gpu() const
     {
         auto&& handle     = get_handle();
+        auto routputDX = outputDX;
         auto inputY_dev   = handle.Write(inputY.data);
         auto inputDY_dev  = handle.Write(inputDY.data);
         auto inputX_dev   = handle.Write(inputX.data);
-        auto outputDX_dev = handle.Create<T>(outputDX.data.size());
+        auto outputDX_dev = handle.Create<T>(routputDX.data.size());
         auto scale_dev    = handle.Write(scale.data);
 
         auto alpha = lrn.GetAlpha(), beta = lrn.GetBeta();
@@ -234,15 +236,15 @@ struct verify_lrn_bwd
                      inputX.desc, // X
                      inputX_dev.get(),
                      &beta,
-                     outputDX.desc, // DX
+                     routputDX.desc, // DX
                      outputDX_dev.get(),
                      scale_dev.get());
 
-        outputDX.data = handle.Read<T>(outputDX_dev, outputDX.data.size());
-        return outputDX;
+        routputDX.data = handle.Read<T>(outputDX_dev, routputDX.data.size());
+        return routputDX;
     }
 
-    void fail(int)
+    void fail(int) const
     {
         std::cout << "verify_lrn_bwd" << std::endl;
         std::cout << "Input Tensor Y"

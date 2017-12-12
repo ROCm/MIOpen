@@ -37,10 +37,6 @@
 #include <miopen/type_name.hpp>
 #include <miopen/handle_lock.hpp>
 
-#ifndef MIOPEN_PARALLEL_CPU_VERIFY
-#define MIOPEN_PARALLEL_CPU_VERIFY 0
-#endif
-
 MIOPEN_DECLARE_HANDLE_MUTEX(gpu_verify_mutex)
 
 struct rand_gen
@@ -55,6 +51,19 @@ struct rand_gen
         return double(dot % 17);
     };
 };
+
+// Run cpu in parallel if it can be ran as const
+template<class V, class... Ts>
+auto cpu_async(const V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
+{
+    return detach_async([&] { return v.cpu(xs...); });
+}
+
+template<class V, class... Ts>
+auto cpu_async(V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
+{
+    return std::async(std::launch::deferred, [&] { return v.cpu(xs...); });
+}
 
 struct test_driver
 {
@@ -417,11 +426,7 @@ struct test_driver
             std::future<decltype(v.cpu(xs...))> cpuf;
             if(not no_validate)
             {
-#if MIOPEN_PARALLEL_CPU_VERIFY
-                cpuf = detach_async([&] { return v.cpu(xs...); });
-#else
-                cpuf = std::async(std::launch::deferred, [&] { return v.cpu(xs...); });
-#endif
+                cpuf = cpu_async(v, xs...);
             }
             // Compute gpu
             if(time)
@@ -474,11 +479,7 @@ struct test_driver
             std::future<decltype(v.cpu(xs...))> cpuf;
             if(not no_validate)
             {
-#if MIOPEN_PARALLEL_CPU_VERIFY
-                cpuf = detach_async([&] { return v.cpu(xs...); });
-#else
-                cpuf = std::async(std::launch::deferred, [&] { return v.cpu(xs...); });
-#endif
+                cpuf = cpu_async(v, xs...);
             }
             // Compute gpu
             if(time)
