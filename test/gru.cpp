@@ -53,7 +53,7 @@
  **********************************************/
 template <typename T>
 void GRUFwdCPUVerify(std::vector<T>& in,
-                    std::vector<T>& wei, // [ input_state_weight_trans
+                     std::vector<T>& wei, // [ input_state_weight_trans
                                           // hidden_state_weight0_trans input1_trans
                                           // hidden1_trans ... output_weight;
                                           // bidirectional reversed weights ]
@@ -61,10 +61,10 @@ void GRUFwdCPUVerify(std::vector<T>& in,
                      std::vector<T>& hx,  // initial hidden state
                      std::vector<T>& out,
                      const std::vector<int>& in_n, // input batch size
-                     int in_h,               // input data length
-                     int seqLength,          // Number of iterations to unroll over
-                     bool bidirection,       // whether using bidirectional net
-                     bool biased,            // whether using bias
+                     int in_h,                     // input data length
+                     int seqLength,                // Number of iterations to unroll over
+                     bool bidirection,             // whether using bidirectional net
+                     bool biased,                  // whether using bias
                      int hy_d,  // 1 by numlayer (number of stacks of hidden layers) for
                                 // unidirection, 2 by numlayer for bidirection
                      int hy_n,  // equal to input batch size in_n[0]
@@ -572,10 +572,10 @@ void GRUBwdDataCPUVerify(std::vector<T>& din,
                          std::vector<T>& out,
                          std::vector<T>& dout,
                          const std::vector<int>& in_n, // input batch size
-                         int in_h,               // input data length
-                         int seqLength,          // Number of iterations to unroll over
-                         bool bidirection,       // whether using bidirectional net
-                         bool biased,            // whether using bias
+                         int in_h,                     // input data length
+                         int seqLength,                // Number of iterations to unroll over
+                         bool bidirection,             // whether using bidirectional net
+                         bool biased,                  // whether using bias
                          int hy_d,  // 1 by numlayer (number of stacks of hidden layers)
                                     // for unidirection, 2 by numlayer for bidirection
                          int hy_n,  // equal to input batch size in_n[0]
@@ -1151,23 +1151,23 @@ void GRUBwdDataCPUVerify(std::vector<T>& din,
 
 template <typename T>
 void GRUBwdWeightCPUVerify(std::vector<T>& in,
-                           std::vector<T>& dwei,   // [ input_state_weight_trans
-                                                   // hidden_state_weight0_trans
-                                                   // input1_trans hidden1_trans ...
-                                                   // output_weight; bidirectional
-                                                   // reversed weights ]
-                           std::vector<T>& hx,     // initial hidden state
+                           std::vector<T>& dwei,         // [ input_state_weight_trans
+                                                         // hidden_state_weight0_trans
+                                                         // input1_trans hidden1_trans ...
+                                                         // output_weight; bidirectional
+                                                         // reversed weights ]
+                           std::vector<T>& hx,           // initial hidden state
                            const std::vector<int>& in_n, // input batch size
-                           int in_h,               // input data length
-                           int seqLength,          // Number of iterations to unroll over
-                           bool bidirection,       // whether using bidirectional net
-                           bool biased,            // whether using bias
-                           int hy_d,               // 1 by numlayer (number of stacks of hidden
-                                                   // layers) for unidirection, 2 by numlayer for
-                                                   // bidirection
-                           int hy_n,               // equal to input batch size in_n[0]
-                           int hy_h,               // hidden state number
-                                                   // by hy_h related function for bidirection
+                           int in_h,                     // input data length
+                           int seqLength,                // Number of iterations to unroll over
+                           bool bidirection,             // whether using bidirectional net
+                           bool biased,                  // whether using bias
+                           int hy_d, // 1 by numlayer (number of stacks of hidden
+                                     // layers) for unidirection, 2 by numlayer for
+                                     // bidirection
+                           int hy_n, // equal to input batch size in_n[0]
+                           int hy_h, // hidden state number
+                                     // by hy_h related function for bidirection
                            int inputMode,
                            std::vector<T>& rsvspace,
                            std::vector<T>& wkspace)

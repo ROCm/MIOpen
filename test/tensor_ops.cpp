@@ -107,20 +107,20 @@ struct verify_tensor_ops : tensor_ops_base<T>
     static T min_elem(T aelem, T belem) { return ((aelem < belem) ? aelem : belem); }
 
     static void tensor_for_loop(const tensor<T>& aten,
-                         const tensor<T>& bten,
-                         tensor<T>& cten,
-                         const std::vector<size_t>& a_dims,
-                         const std::vector<size_t>& b_dims,
-                         float palpha0,
-                         float palpha1,
-                         float pbeta,
-                         int recurr_aoffset,
-                         int recurr_boffset,
-                         int recurr_coffset,
-                         int dim,
-                         int AtenOffset,
-                         int BtenOffset,
-                         int CtenOffset)
+                                const tensor<T>& bten,
+                                tensor<T>& cten,
+                                const std::vector<size_t>& a_dims,
+                                const std::vector<size_t>& b_dims,
+                                float palpha0,
+                                float palpha1,
+                                float pbeta,
+                                int recurr_aoffset,
+                                int recurr_boffset,
+                                int recurr_coffset,
+                                int dim,
+                                int AtenOffset,
+                                int BtenOffset,
+                                int CtenOffset)
     {
 
         int astride = aten.desc.GetStrides()[dim];
@@ -203,7 +203,7 @@ struct verify_tensor_ops : tensor_ops_base<T>
     tensor<T> gpu() const
     {
         auto&& handle = get_handle();
-        auto r = c;
+        auto r        = c;
 
         // return c;
         std::fill(r.begin(), r.end(), 1);

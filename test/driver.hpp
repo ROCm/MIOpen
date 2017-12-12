@@ -53,13 +53,13 @@ struct rand_gen
 };
 
 // Run cpu in parallel if it can be ran as const
-template<class V, class... Ts>
+template <class V, class... Ts>
 auto cpu_async(const V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
 {
     return detach_async([&] { return v.cpu(xs...); });
 }
 
-template<class V, class... Ts>
+template <class V, class... Ts>
 auto cpu_async(V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
 {
     return std::async(std::launch::deferred, [&] { return v.cpu(xs...); });
