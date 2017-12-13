@@ -25,7 +25,6 @@
  *******************************************************************************/
 
 #include <sstream>
-#include <unordered_map>
 #include <limits>
 #include <iterator>
 #include <chrono>
