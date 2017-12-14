@@ -16,6 +16,6 @@ inline void WriteFile(const std::string& content, const boost::filesystem::path&
     if(std::fwrite(content.c_str(), 1, content.size(), f.get()) != content.size())
         MIOPEN_THROW("Failed to write to src file");
 }
-}
+} // namespace miopen
 
 #endif
