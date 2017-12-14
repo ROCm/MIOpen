@@ -281,6 +281,7 @@ struct ConvolutionContext : ProblemDescription
     int out_batch_stride   = 0;
     int n_timer_iter       = 0;
     rocm_meta_version rmv  = rocm_meta_version::Default;
+    bool gcn_assembler_has34765 = true;
     std::string general_compile_options;
 
     inline Handle& GetStream() const { return *_stream; }
