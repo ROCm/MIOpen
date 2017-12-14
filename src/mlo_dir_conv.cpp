@@ -57,23 +57,6 @@ bool mlo_construct_direct2D::mloIsCompilerWorkarounds() const
  **
  ************************************************************************************************************************/
 
-void mlo_construct_direct2D::setupRocm()
-{
-    // Detect assembly kernels
-    _search_params.use_binaries        = false;
-    _search_params.assembler_available = false;
-    _search_params.rmv                 = rocm_meta_version::Default;
-    if(mloIsAmdRocmOpencl(_search_params.rmv))
-    {
-        _search_params.assembler_available =
-            !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
-#ifndef HIP_OC_FINALIZER
-        _search_params.use_binaries =
-            !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
-#endif
-    }
-}
-
 miopen::DbRecord mlo_construct_direct2D::GetDbRecord() const
 {
 #if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
@@ -239,20 +222,45 @@ static rocm_meta_version DetectAmdRocmOpenclVersion(const miopen::ConvolutionCon
 }
 #endif // MIOPEN_BACKEND_OPENCL
 
-bool mlo_construct_direct2D::mloIsAmdRocmOpencl(rocm_meta_version& rmv) const
+static bool mloIsAmdRocmOpencl(miopen::ConvolutionContext& context)
 {
 #if MIOPEN_BACKEND_OPENCL
-    static const bool ret_bool = IsAmdRocmOpencl(_search_params);
+    static const bool ret_bool = IsAmdRocmOpencl(context);
     if(ret_bool)
     {
-        static const rocm_meta_version ret_rmv = DetectAmdRocmOpenclVersion(_search_params);
-        rmv                                    = ret_rmv;
+        static const rocm_meta_version ret_rmv = DetectAmdRocmOpenclVersion(context);
+        context.rmv                            = ret_rmv;
     }
     return ret_bool;
 #else
-    (void)rmv; // We don't care about metada version
+    (void)context; // We don't care about metada version
     return true;
 #endif // MIOPEN_BACKEND_OPENCL
+}
+
+void mlo_construct_direct2D::setupFloats()
+{
+    if(_search_params.float_size == 32)
+    {
+        _search_params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
+    }
+}
+
+void mlo_construct_direct2D::setupRocm()
+{
+    // Detect assembly kernels
+    _search_params.use_binaries        = false;
+    _search_params.assembler_available = false;
+    _search_params.rmv                 = rocm_meta_version::Default;
+    if(mloIsAmdRocmOpencl(_search_params))
+    {
+        _search_params.assembler_available =
+            !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
+#ifndef HIP_OC_FINALIZER
+        _search_params.use_binaries =
+            !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
+#endif
+    }
 }
 
 bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
@@ -365,6 +373,8 @@ mlo_construct_direct2D::setWeightDescFromMLDesc(const miopen::TensorDescriptor& 
     std::tie(nWeiStride, cWeiStride, hWeiStride, wWeiStride) =
         miopen::tien<4>(weight_tensor.GetStrides());
 
+    std::string data_type = weight_tensor.GetType() == miopenFloat ? "FP32" : "FP16";
+
     setWeightsDescr(
         "NCHW", "FP32", nWei, cWei, hWei, wWei, nWeiStride, cWeiStride, hWeiStride, wWeiStride);
 
@@ -389,6 +399,8 @@ mlo_construct_direct2D::setOutputDescFromMLDesc(const miopen::TensorDescriptor& 
     std::tie(nOutStride, cOutStride, hOutStride, wOutStride) =
         miopen::tien<4>(output_tensor.GetStrides());
 
+    std::string data_type = output_tensor.GetType() == miopenFloat ? "FP32" : "FP16";
+
     setOutputDescr(
         "NCHW", "FP32", nOut, cOut, hOut, wOut, nOutStride, cOutStride, hOutStride, wOutStride);
 
@@ -411,6 +423,8 @@ size_t mlo_construct_direct2D::setInputDescFromMLDesc(const miopen::TensorDescri
     std::tie(nIn, cIn, hIn, wIn) = miopen::tien<4>(input_tensor.GetLengths());
     std::tie(nInStride, cInStride, hInStride, wInStride) =
         miopen::tien<4>(input_tensor.GetStrides());
+
+    std::string data_type = input_tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
     setInputDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
 

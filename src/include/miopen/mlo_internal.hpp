@@ -164,6 +164,8 @@ struct ProblemDescription
     int kernel_dilation0 = 0;
     int kernel_dilation1 = 0;
     int bias             = 0;
+    // TODO: Serialize this field
+    int float_size       = 32;
     struct Direction
     {
         enum class Value
@@ -314,12 +316,14 @@ template <class T>
 void mloConstructImpl(miopen::rank<0>, T& x)
 {
     x.setupRocm();
+    x.setupFloats();
     x.mloUseSolution(x.FindSolution());
 }
 
 template <class T>
 auto mloConstructImpl(miopen::rank<1>, T& x) -> decltype(x.mloConstruct(), void())
 {
+    x.setupFloats();
     x.mloConstruct();
 }
 
@@ -384,6 +388,7 @@ struct mlo_construct_direct2D
     }
 
     void setupRocm();
+    void setupFloats();
 
     /*
     * major interface
@@ -556,6 +561,7 @@ struct mlo_construct_direct2D
         _search_params.kernel_size0 = width;
         _search_params.kernel_size1 = height;
         int data_len                = (data_type == "FP32" ? 4 : 8);
+        _search_params.float_size                = (data_type == "FP32" ? 32 : 16);
         size_t size                 = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
@@ -578,6 +584,7 @@ struct mlo_construct_direct2D
     {
         _search_params.batch_sz = batch;
         int data_len            = (data_type == "FP32" ? 4 : 8);
+        _search_params.float_size            = (data_type == "FP32" ? 32 : 16);
         size_t size             = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
@@ -627,6 +634,7 @@ struct mlo_construct_direct2D
     {
         _search_params.batch_sz = batch;
         int data_len            = (data_type == "FP32" ? 4 : 8);
+        _search_params.float_size            = (data_type == "FP32" ? 32 : 16);
         size_t size             = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
@@ -853,7 +861,7 @@ struct mlo_construct_direct2D
 
     std::string db_path() const { return _db_path ? _db_path : _search_params.GetPerfDbPath(); }
 
-    bool mloIsAmdRocmOpencl(rocm_meta_version& rmv) const;
+    // bool mloIsAmdRocmOpencl(rocm_meta_version& rmv) const;
 
     int mloConstructBwd() { return (0); }
     int mloConstructFwd() { return (0); }
