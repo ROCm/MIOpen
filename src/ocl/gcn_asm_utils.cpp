@@ -304,12 +304,12 @@ static bool GcnAssemblerHas34765Impl()
     auto p = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
     miopen::WriteFile(miopen::GetKernelSrc("bugzilla_34765_detect"), p);
     auto src = p.string();
-    try 
+    try
     {
         AmdgcnAssemble(src, "-mcpu=gfx900");
         return true;
     }
-    catch(...) 
+    catch(...)
     {
         return false;
     }
