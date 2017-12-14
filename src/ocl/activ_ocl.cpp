@@ -85,7 +85,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 
     construct_params.setNeuronDescr(static_cast<int>(mode), activ_power, activ_beta, activ_alpha);
 
-    construct_params.mloConstruct();
+    mloConstruct(construct_params);
 
     std::string program_name     = construct_params.getKernelFile();      // CL kernel filename
     std::string kernel_name      = construct_params.getKernelName();      // kernel name
@@ -212,7 +212,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 
     construct_params.setNeuronDescr(activ_mode, activ_power, activ_beta, activ_alpha);
 
-    construct_params.mloConstruct();
+    mloConstruct(construct_params);
 
     std::string program_name     = construct_params.getKernelFile();      // CL kernel filename
     std::string kernel_name      = construct_params.getKernelName();      // kernel name
