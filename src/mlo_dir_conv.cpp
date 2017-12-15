@@ -67,6 +67,10 @@ void mlo_construct_direct2D::setupRocm()
     {
         _search_params.assembler_available =
             !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
+        if(_search_params.assembler_available)
+        {
+            _search_params.gcn_assembler_has34765 = GcnAssemblerHas34765();
+        }
 #ifndef HIP_OC_FINALIZER
         _search_params.use_binaries =
             !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
