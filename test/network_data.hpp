@@ -290,7 +290,7 @@ get_bn_peract_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
         { pick_batch_size(32, n),  64,   28,  28  },
         { pick_batch_size(32, n),  64,   56,  56  },
         { pick_batch_size(32, n),  96,   28,  28  },
-        { pick_batch_size(32, n),  192,  256, 512 },
+        //{ pick_batch_size(32, n),  192,  256, 512 }, //Killing this config. Takes way too long on the CPU
         { pick_batch_size(32, n),  256,  28,  28  },
         { pick_batch_size(32, n),  3,    224, 224 },
         { pick_batch_size(32, n),  480,  128, 256 },
@@ -341,7 +341,7 @@ get_bn_spatial_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
         { pick_batch_size(32, n),  64,   28,  28  },
         { pick_batch_size(32, n),  64,   56,  56  },
         { pick_batch_size(32, n),  96,   28,  28  },
-        { pick_batch_size(32, n),  192,  256, 512 },
+        //{ pick_batch_size(32, n),  192,  256, 512 }, // Killing 
         //{ pick_batch_size(32, n),  256,  28,  28  },
         { pick_batch_size(32, n),  3,    224, 224 },
         { pick_batch_size(32, n),  480,  128, 256 },
