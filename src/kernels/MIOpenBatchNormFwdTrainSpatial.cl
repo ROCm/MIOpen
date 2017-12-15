@@ -1586,7 +1586,6 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     _FLOAT mean        = 0.;
     _FLOAT variance    = 0.;
     _FLOAT invVariance = 0.;
-    _FLOAT inhat       = 0.;
     _FLOAT elemStd     = 0.;
     _FLOAT pvscale     = elemStd;
     _FLOAT pvbias      = 0.;
@@ -1772,7 +1771,6 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     _FLOAT mean        = 0.;
     _FLOAT variance    = 0.;
     _FLOAT invVariance = 0.;
-    _FLOAT inhat       = 0.;
     _FLOAT elemStd     = 0.;
     _FLOAT pvscale     = elemStd;
     _FLOAT pvbias      = 0.;
