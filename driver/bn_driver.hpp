@@ -1335,9 +1335,8 @@ int BatchNormDriver<T>::VerifyBackward()
     if(!back)
         return miopenStatusSuccess;
 
-    const double tolerance = ERRTOL * 1000;
-    const double maxrms    = RMSTOL * 1000;
-    bool anError           = false;
+    const double maxrms = RMSTOL * 1000;
+    bool anError        = false;
 
     RunBackwardCPU();
 
@@ -1352,7 +1351,8 @@ int BatchNormDriver<T>::VerifyBackward()
         std::cout << "Backwards prop batch norm verification failed on dx: " << errordxout << "\n";
         anError = true;
 #if(MIO_BN_DEBUG == 1)
-        double diff = 0.;
+        const double tolerance = ERRTOL * 1000;
+        double diff            = 0.;
         for(int i = 0; i < dxout.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
         {
             diff   = fabs(float(fabs(dxout[i]) - fabs(dxout_host[i])));
