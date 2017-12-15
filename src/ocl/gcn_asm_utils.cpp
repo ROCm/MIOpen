@@ -33,6 +33,8 @@
 #include <miopen/errors.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/manage_ptr.hpp>
+#include <miopen/write_file.hpp>
+#include <miopen/kernel.hpp>
 #include <sstream>
 
 #ifdef __linux__
@@ -295,6 +297,28 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
     (void)params; // -warning
     MIOPEN_THROW("Error: X-AMDGCN-ASM: online assembly under Windows is not supported");
 #endif //__linux__
+}
+
+static bool GcnAssemblerHas34765Impl()
+{
+    auto p = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+    miopen::WriteFile(miopen::GetKernelSrc("bugzilla_34765_detect"), p);
+    auto src = p.string();
+    try
+    {
+        AmdgcnAssemble(src, "-mcpu=gfx900");
+        return true;
+    }
+    catch(...)
+    {
+        return false;
+    }
+}
+
+bool GcnAssemblerHas34765()
+{
+    const static bool b = GcnAssemblerHas34765Impl();
+    return b;
 }
 
 template <>

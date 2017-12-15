@@ -152,6 +152,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvBwdWrW1x1Mmap.cl
         kernels/MIOpenConvFwd_LxL_11.cl
         kernels/MIOpenConvFFT.cl
+        kernels/bugzilla_34765_detect.s
         kernels/conv3x3.s
         kernels/conv3x3wrw.s
         kernels/conv1x1wrw.s
