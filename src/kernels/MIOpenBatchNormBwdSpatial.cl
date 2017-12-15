@@ -1992,13 +1992,11 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 {
 
     // SPATIAL
-    _FLOAT mean     = 0.;
-    _FLOAT variance = 0.;
-    _FLOAT invVar   = 0.;
-    _FLOAT pscale   = 0.;
-    _FLOAT pvbias   = 0.;
-    _FLOAT db       = 0.;
-    _FLOAT ds       = 0.;
+    _FLOAT mean   = 0.;
+    _FLOAT invVar = 0.;
+    _FLOAT pscale = 0.;
+    _FLOAT db     = 0.;
+    _FLOAT ds     = 0.;
 
 #if(MIO_BN_USESAVED == 1)
     __local _FLOAT lmean, lvar;
@@ -2027,7 +2025,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
 
 #if(MIO_BN_USESAVED == 0)
-
+    _FLOAT variance = 0.;
     //==== CALC MEAN =======================
     mean = 0.;
 
@@ -2269,13 +2267,11 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 {
 
     // SPATIAL
-    _FLOAT mean     = 0.;
-    _FLOAT variance = 0.;
-    _FLOAT invVar   = 0.;
-    _FLOAT pscale   = 0.;
-    _FLOAT pvbias   = 0.;
-    _FLOAT db       = 0.;
-    _FLOAT ds       = 0.;
+    _FLOAT mean   = 0.;
+    _FLOAT invVar = 0.;
+    _FLOAT pscale = 0.;
+    _FLOAT db     = 0.;
+    _FLOAT ds     = 0.;
 
 #if(MIO_BN_USESAVED == 1)
     __local _FLOAT lmean, lvar;
@@ -2303,6 +2299,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #if(MIO_BN_USESAVED == 0)
 
+    _FLOAT variance = 0.;
     //==== CALC MEAN =======================
     mean = 0.;
 

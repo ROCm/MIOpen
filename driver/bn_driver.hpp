@@ -1208,14 +1208,14 @@ int BatchNormDriver<T>::VerifyForward()
 
     // Check output tensor error
     out_dev->FromGPU(GetStream(), out.data());
-    maxval             = 0.;
-    unsigned int count = 0;
-    auto errorOut      = miopen::rms_range(out_host, out);
+    maxval        = 0.;
+    auto errorOut = miopen::rms_range(out_host, out);
     if(errorOut > maxrms || std::isnan(errorOut))
     {
         std::cout << "Forward batch norm verification failed on output: " << errorOut << "\n";
         anError = true;
 #if(MIO_BN_DEBUG == 1)
+        unsigned int count = 0;
         for(int i = 0; i < out.size() && i < out_host.size(); i++)
         {
             if(std::isnan(out[i]))
@@ -1337,7 +1337,6 @@ int BatchNormDriver<T>::VerifyBackward()
 
     const double tolerance = ERRTOL * 1000;
     const double maxrms    = RMSTOL * 1000;
-    double diff            = 0.;
     bool anError           = false;
 
     RunBackwardCPU();
@@ -1353,6 +1352,7 @@ int BatchNormDriver<T>::VerifyBackward()
         std::cout << "Backwards prop batch norm verification failed on dx: " << errordxout << "\n";
         anError = true;
 #if(MIO_BN_DEBUG == 1)
+        double diff = 0.;
         for(int i = 0; i < dxout.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
         {
             diff   = fabs(float(fabs(dxout[i]) - fabs(dxout_host[i])));

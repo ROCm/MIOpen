@@ -37,7 +37,7 @@
 #define MIO_BN_CPP_PROF 0
 #define MIOPEN_BN_CPP_DEBUG 0
 #define MIO_BN_STATIC_WGSIZE 256
-#define MIO_BN_TIME_EVERYTHING 1
+#define MIO_BN_TIME_EVERYTHING 0
 
 namespace miopen {
 
