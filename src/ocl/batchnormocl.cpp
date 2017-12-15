@@ -30,7 +30,6 @@
 
 #include <chrono>
 
-
 namespace miopen {
 
 void BatchNormForwardTraining(Handle& handle,
@@ -90,10 +89,10 @@ void BatchNormForwardTraining(Handle& handle,
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
 
-    unsigned int in_nstride = c * h * w;
     unsigned int in_cstride = h * w;
-    unsigned int in_nhw     = n * h * w;
-    unsigned int in_nchw    = n * c * h * w;
+    unsigned int in_nstride = c * in_cstride;
+    unsigned int in_nhw     = n * in_cstride;
+    unsigned int in_nchw    = n * in_nstride;
 
     size_t xlocalsize = 0;
     size_t ylocalsize = 0;
@@ -145,14 +144,15 @@ void BatchNormForwardTraining(Handle& handle,
         program_name += "Spatial.cl";
         kernel_name += "Spatial";
 
-        if(in_cstride > 1024)
+        if(in_cstride > 1024 && in_nhw < 33554432)
         {
+            // unsigned int variant = (in_cstride < 2097152)? 5: 6;
+            unsigned int variant = (h == w) ? 5 : 6;
+
             xlocalsize = 1024;
             ylocalsize = 1;
             zlocalsize = 1;
 
-            unsigned int variant = 5;
-           
             parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize);
             parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
             parms += " -DMIO_BN_GRP0=" + std::to_string(xlocalsize);
@@ -162,7 +162,7 @@ void BatchNormForwardTraining(Handle& handle,
             vld.push_back(ylocalsize);
             vld.push_back(zlocalsize);
 
-            xgridsize = 1024 * c;
+            xgridsize = xlocalsize * c;
             ygridsize = 1;
             zgridsize = 1;
             vgd.push_back(xgridsize);
@@ -639,9 +639,9 @@ void BatchNormBackward(Handle& handle,
                        ConstData_t savedMean,
                        ConstData_t savedInvVariance)
 {
-    
+
     //#if(MIO_BN_TIME_EVERYTHING == 1)
-        auto t_start = std::chrono::high_resolution_clock::now();
+    auto t_start = std::chrono::high_resolution_clock::now();
     //#endif
     if(miopen::CheckNumericsEnabled())
     {
@@ -692,12 +692,12 @@ void BatchNormBackward(Handle& handle,
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
 
-    unsigned int in_nstride = c * h * w;
     unsigned int in_cstride = h * w;
-    unsigned int in_nhw     = n * h * w;
-    unsigned int in_nchw    = n * c * h * w;
+    unsigned int in_nstride = c * in_cstride;
+    unsigned int in_nhw     = n * in_cstride;
+    unsigned int in_nchw    = n * in_nstride;
 
-    auto inhw = float(1.0 / (n * h * w));
+    auto inhw = float(1.0 / in_nhw);
 
     parms += "-DMIO_BN_N=" + std::to_string(n);
     parms += " -DMIO_BN_C=" + std::to_string(c);
@@ -736,7 +736,57 @@ void BatchNormBackward(Handle& handle,
         program_name += "Spatial.cl";
         kernel_name += "Spatial";
 
-        if(in_cstride <= 512 && n > 3 && in_cstride > 4)
+        if(in_cstride > 1024 && in_nhw < 33554432)
+        {
+            // unsigned int variant = (in_cstride < 2097152)? 5: 6;
+            unsigned int variant = (h == w) ? 5 : 6;
+
+            xlocalsize = 1024;
+            ylocalsize = 1;
+            zlocalsize = 1;
+
+            parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize);
+            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
+            parms += " -DMIO_BN_GRP0=" + std::to_string(xlocalsize);
+            parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
+            parms += " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+
+            vld.push_back(xlocalsize);
+            vld.push_back(ylocalsize);
+            vld.push_back(zlocalsize);
+
+            xgridsize = xlocalsize * c;
+            ygridsize = 1;
+            zgridsize = 1;
+            vgd.push_back(xgridsize);
+            vgd.push_back(ygridsize);
+            vgd.push_back(zgridsize);
+
+#if(MIOPEN_BN_CPP_DEBUG == 1)
+            std::cout << kernel_name << ":: ";
+            std::cout << parms << std::endl;
+#endif
+            bnBwdTrainSelectSingle(handle,
+                                   program_name,
+                                   algo_name,
+                                   kernel_name,
+                                   network_config,
+                                   parms,
+                                   vld,
+                                   vgd,
+                                   x,
+                                   dy,
+                                   dx,
+                                   bnScale,
+                                   resultBnScaleDiff,
+                                   resultBnBiasDiff,
+                                   useSaved,
+                                   epsilon,
+                                   savedMean,
+                                   savedInvVariance,
+                                   inhw);
+        }
+        else if(in_cstride <= 512 && n > 3 && in_cstride > 4)
         {
             unsigned int variant = 0;
             xlocalsize           = 1024;
@@ -823,13 +873,14 @@ void BatchNormBackward(Handle& handle,
 #endif
             parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
             // MULTI
-            
-            //#if(MIO_BN_TIME_EVERYTHING == 1)
-    auto t_end = std::chrono::high_resolution_clock::now();
 
-    std::cout << "Wall clock: PREAMBLE: "
-              << std::chrono::duration<double>(t_end - t_start).count()*1000.0 << " ms." << std::endl;
-//#endif
+            //#if(MIO_BN_TIME_EVERYTHING == 1)
+            auto t_end = std::chrono::high_resolution_clock::now();
+
+            std::cout << "Wall clock: PREAMBLE: "
+                      << std::chrono::duration<double>(t_end - t_start).count() * 1000.0 << " ms."
+                      << std::endl;
+            //#endif
             bnBwdTrainSelectMulti(handle,
                                   program_name,
                                   algo_name,
