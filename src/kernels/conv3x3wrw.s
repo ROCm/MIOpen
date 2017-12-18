@@ -23,6 +23,8 @@
  * SOFTWARE.
  * 
  *******************************************************************************/
+.include "gcn_asm_workarounds.inc"
+
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
 
@@ -335,15 +337,15 @@ gcnAsmConv3x3WrW:
 
    v_and_b32 v[vtmp2], 0 + (1 << chunk_size_log2) - 1, v[tid] // vtmp = lane in wave part
    v_mul_u32_u24 v[vtmp], 4 * gprs_per_line_in, v[vtmp2]
-   v_add_u32 v[voffset_in], vcc, v[voffset_in], v[vtmp]
+  _v_add_co_u32 v[voffset_in], vcc, v[voffset_in], v[vtmp]
    .if stride_w == 1 || chunks_in > 1
       v_mul_u32_u24 v[vtmp], 4 * gprs_per_line_out, v[vtmp2]
-      v_add_u32 v[voffset_out], vcc, v[voffset_out], v[vtmp]
+     _v_add_co_u32 v[voffset_out], vcc, v[voffset_out], v[vtmp]
    .else
       static_assert (stride_w == 2)
       v_lshrrev_b32 v[vtmp2], 1, v[vtmp2]
       v_mul_u32_u24 v[vtmp], 4 * gprs_per_line_out, v[vtmp2]
-      v_add_u32 v[voffset_out], vcc, v[voffset_out], v[vtmp]
+     _v_add_co_u32 v[voffset_out], vcc, v[voffset_out], v[vtmp]
       s_mov_b32 exec_lo, 0xAAAAAAAA
       s_mov_b32 exec_hi, 0xAAAAAAAA
       v_mov_b32 v[voffset_out], 0x80000000
@@ -661,10 +663,10 @@ loop_n_end:
 
       s_mulk_i32 s[wave_id], 4 * 64 * accums_cnt
       //v_lshlrev_b32 v[lds_off], 4, v[tid]
-      //v_add_u32 v[lds_off], vcc, s[wave_id], v[lds_off]
+      //_v_add_co_u32 v[lds_off], vcc, s[wave_id], v[lds_off]
       //.ds_write_all
       v_lshlrev_b32 v[lds_off], 2, v[tid]
-      v_add_u32 v[lds_off], vcc, s[wave_id], v[lds_off]
+     _v_add_co_u32 v[lds_off], vcc, s[wave_id], v[lds_off]
       imm_off = 0
       cur_accum = accums
       .rept accums_cnt
@@ -690,7 +692,7 @@ last_wave:
             imm_off = imm_off + 4 * 64
             cur_accum = cur_accum + 1
          .endr
-         v_add_u32 v[lds_off], vcc, 4 * 64 * accums_cnt, v[lds_off]
+        _v_add_co_u32 v[lds_off], vcc, 4 * 64 * accums_cnt, v[lds_off]
       .endr
    .endif
 
@@ -766,7 +768,7 @@ last_wave:
       .if \B == 1
          v_xor_b32 v[k_pattern], 0 + \A, v[k_pattern]
          v_mul_u32_u24 v[voffset_wei], 0 + filter_k_stride, v[k_pattern]
-         v_add_u32 v[voffset_wei], vcc, v[voffset_wei], v[c_offset]
+        _v_add_co_u32 v[voffset_wei], vcc, v[voffset_wei], v[c_offset]
          store_accums curr_accum
          curr_accum = curr_accum + 1
       .else
