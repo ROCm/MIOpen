@@ -349,30 +349,30 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
 #endif
         uint glb_in_off = glb_in_off0 + batch_id * MLO_IN_BATCH_STRIDE + in_image_off;
 
-        // Address offset mode is not used in shader compiler
-        // Most VGPRs are used up by Address
+        // *(p+index) Pointer Mode will use OFfset mode in ASSEMBLY
+        //  P[Index] will not use OFfset mode in ASSEMBLY
+
+        const __global _FLOAT* bot1 = bot + glb_in_off;
         for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
         {
-            uint bot_off                = glb_in_off + c * MLO_IN_CHANNEL_STRIDE;
-            const __global _FLOAT* bot1 = &bot[bot_off];
-
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
             {
-                load_buf_bot[c * MLO_READ_UNIT + i] = bot1[i * MLO_FILTER_STRIDE0];
+                load_buf_bot[c * MLO_READ_UNIT + i] = *(bot1 + i * MLO_FILTER_STRIDE0);
             }
+            bot1 += MLO_IN_CHANNEL_STRIDE;
         }
 
         uint glb_out_off = glb_out_off0 + batch_id * MLO_OUT_BATCH_STRIDE + out_image_off;
+
+        const __global _FLOAT* top1 = top_df + glb_out_off;
         for(uint k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
         {
-            uint top_off = glb_out_off + k * MLO_OUT_CHANNEL_STRIDE;
-
-            const __global _FLOAT* top1 = &top_df[top_off];
 
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
             {
-                load_buf_top[k * MLO_READ_UNIT + i] = top1[i];
+                load_buf_top[k * MLO_READ_UNIT + i] = *(top1 + i);
             }
+            top1 += MLO_OUT_CHANNEL_STRIDE;
         }
 
         // processing
@@ -411,30 +411,30 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
 
         uint glb_in_off = glb_in_off0 + batch_id * MLO_IN_BATCH_STRIDE + in_image_off;
 
-        // Address offset mode is not used in shader compiler
-        // Most VGPRs are used up by Address
+        // *(p+index) Pointer Mode will use OFfset mode in ASSEMBLY
+        //  P[Index] will not use OFfset mode in ASSEMBLY
+
+        const __global _FLOAT* bot1 = bot + glb_in_off;
+
         for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
         {
-            uint bot_off                = glb_in_off + c * MLO_IN_CHANNEL_STRIDE;
-            const __global _FLOAT* bot1 = &bot[bot_off];
-
             for(uint i = 0; i < 1; ++i)
             {
-                load_buf_bot[c * MLO_READ_UNIT + i] = bot1[i];
+                load_buf_bot[c * MLO_READ_UNIT + i] = *(bot1 + i);
             }
+            bot1 += MLO_IN_CHANNEL_STRIDE;
         }
 
         uint glb_out_off = glb_out_off0 + batch_id * MLO_OUT_BATCH_STRIDE + out_image_off;
+
+        const __global _FLOAT* top1 = top_df + glb_out_off;
         for(uint k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
         {
-            uint top_off = glb_out_off + k * MLO_OUT_CHANNEL_STRIDE;
-
-            const __global _FLOAT* top1 = &top_df[top_off];
-
             for(uint i = 0; i < 1; ++i)
             {
-                load_buf_top[k * MLO_READ_UNIT + i] = top1[i];
+                load_buf_top[k * MLO_READ_UNIT + i] = *(top1 + i);
             }
+            top1 += MLO_OUT_CHANNEL_STRIDE;
         }
 
         // processing
@@ -620,30 +620,31 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
 #endif
         uint glb_in_off = glb_in_off0 + batch_id * MLO_IN_BATCH_STRIDE + in_image_off;
 
-        // Address offset mode is not used in shader compiler
-        // Most VGPRs are used up by Address
+        // *(p+index) Pointer Mode will use OFfset mode in ASSEMBLY
+        //  P[Index] will not use OFfset mode in ASSEMBLY
+
+        const __global _FLOAT* bot1 = bot + glb_in_off;
+
         for(uint c = 0; c < MLO_N_LCL_IN_MAPS_ONCE; ++c)
         {
-            uint bot_off                = glb_in_off + c * MLO_IN_CHANNEL_STRIDE;
-            const __global _FLOAT* bot1 = &bot[bot_off];
-
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
             {
-                load_buf_bot[c * MLO_READ_UNIT + i] = bot1[i * MLO_FILTER_STRIDE0];
+                load_buf_bot[c * MLO_READ_UNIT + i] = *(bot1 + i * MLO_FILTER_STRIDE0);
             }
+            bot1 += MLO_IN_CHANNEL_STRIDE;
         }
 
         uint glb_out_off = glb_out_off0 + batch_id * MLO_OUT_BATCH_STRIDE + out_image_off;
+
+        const __global _FLOAT* top1 = top_df + glb_out_off;
+
         for(uint k = 0; k < MLO_N_LCL_OUT_MAPS_ONCE; ++k)
         {
-            uint top_off = glb_out_off + k * MLO_OUT_CHANNEL_STRIDE;
-
-            const __global _FLOAT* top1 = &top_df[top_off];
-
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
             {
-                load_buf_top[k * MLO_READ_UNIT + i] = top1[i];
+                load_buf_top[k * MLO_READ_UNIT + i] = *(top1 + i);
             }
+            top1 += MLO_OUT_CHANNEL_STRIDE;
         }
 
         // processing
@@ -686,30 +687,30 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
 
         uint glb_in_off = glb_in_off0 + batch_id * MLO_IN_BATCH_STRIDE + image_off * 1;
 
-        // Address offset mode is not used in shader compiler
-        // Most VGPRs are used up by Address
+        // *(p+index) Pointer Mode will use OFfset mode in ASSEMBLY
+        //  P[Index] will not use OFfset mode in ASSEMBLY
+
+        const __global _FLOAT* bot1 = bot + glb_in_off;
         for(uint c = 0; c < MLO_N_LCL_IN_MAPS_ONCE; ++c)
         {
-            uint bot_off                = glb_in_off + c * MLO_IN_CHANNEL_STRIDE;
-            const __global _FLOAT* bot1 = &bot[bot_off];
-
             for(uint i = 0; i < 1; ++i)
             {
-                load_buf_bot[c * MLO_READ_UNIT + i] = bot1[i];
+                load_buf_bot[c * MLO_READ_UNIT + i] = *(bot1 + i);
             }
+            bot1 += MLO_IN_CHANNEL_STRIDE;
         }
 
         uint glb_out_off = glb_out_off0 + batch_id * MLO_OUT_BATCH_STRIDE + image_off * 1;
+
+        const __global _FLOAT* top1 = top_df + glb_out_off;
+
         for(uint k = 0; k < MLO_N_LCL_OUT_MAPS_ONCE; ++k)
         {
-            uint top_off = glb_out_off + k * MLO_OUT_CHANNEL_STRIDE;
-
-            const __global _FLOAT* top1 = &top_df[top_off];
-
             for(uint i = 0; i < 1; ++i)
             {
-                load_buf_top[k * MLO_READ_UNIT + i] = top1[i];
+                load_buf_top[k * MLO_READ_UNIT + i] = *(top1 + i);
             }
+            top1 += MLO_OUT_CHANNEL_STRIDE;
         }
 
         // processing

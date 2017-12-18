@@ -48,17 +48,17 @@ macro(enable_cppcheck)
     file(WRITE ${CMAKE_BINARY_DIR}/cppcheck-supressions "${CPPCHECK_SUPPRESS}")
     set(CPPCHECK_DEFINES)
     foreach(DEF ${PARSE_DEFINE})
-        list(APPEND CPPCHECK_DEFINES -D ${DEF})
+        set(CPPCHECK_DEFINES "${CPPCHECK_DEFINES} -D${DEF}")
     endforeach()
 
     set(CPPCHECK_UNDEFINES)
     foreach(DEF ${PARSE_UNDEFINE})
-        list(APPEND CPPCHECK_UNDEFINES -U ${DEF})
+        set(CPPCHECK_UNDEFINES "${CPPCHECK_UNDEFINES} -U${DEF}")
     endforeach()
 
     set(CPPCHECK_INCLUDES)
     foreach(INC ${PARSE_INCLUDE})
-        list(APPEND CPPCHECK_INCLUDES -include=${INC})
+        set(CPPCHECK_INCLUDES "${CPPCHECK_INCLUDES} -I${INC}")
     endforeach()
 
     # set(CPPCHECK_FORCE "--project=${CMAKE_BINARY_DIR}/compile_commands.json")
@@ -67,25 +67,51 @@ macro(enable_cppcheck)
         set(CPPCHECK_FORCE --force)
     endif()
 
-    set(CPPCHECK_COMMAND 
-        ${CPPCHECK_EXE}
-        -q
-        # --report-progress
-        ${CPPCHECK_FORCE}
-        --platform=native
-        --template='{file}:{line}: {severity}[{id}]: {message}'
-        --error-exitcode=1
-        -j ${CPPCHECK_JOBS}
-        ${CPPCHECK_DEFINES}
-        ${CPPCHECK_UNDEFINES}
-        ${CPPCHECK_INCLUDES}
-        "--enable=${CPPCHECK_CHECKS}"
-        "--suppressions-list=${CMAKE_BINARY_DIR}/cppcheck-supressions"
-        ${PARSE_SOURCES}
-    )
+    set(SOURCES)
+    set(GLOBS)
+    foreach(SOURCE ${PARSE_SOURCES})
+        get_filename_component(ABS_SOURCE ${SOURCE} ABSOLUTE)
+        if(EXISTS ${ABS_SOURCE})
+            if(IS_DIRECTORY ${ABS_SOURCE})
+                set(GLOBS "${GLOBS} ${ABS_SOURCE}/*.cpp ${ABS_SOURCE}/*.hpp ${ABS_SOURCE}/*.cxx ${ABS_SOURCE}/*.c ${ABS_SOURCE}/*.h")
+            else()
+                set(SOURCES "${SOURCES} ${ABS_SOURCE}")
+            endif()
+        else()
+            set(GLOBS "${GLOBS} ${ABS_SOURCE}")
+        endif()
+    endforeach()
+
+    file(WRITE ${CMAKE_BINARY_DIR}/cppcheck.cmake "
+        file(GLOB_RECURSE GSRCS ${GLOBS})
+        message(\"${CPPCHECK_EXE} ${GLOBS}\")
+        message(\"${CPPCHECK_EXE} ${SOURCES} \${GSRCS}\")
+        execute_process(
+            COMMAND ${CPPCHECK_EXE}
+            -q
+            # -v
+            # --report-progress
+            ${CPPCHECK_FORCE}
+            --platform=native
+            \"--template={file}:{line}: {severity}[{id}]: {message}\"
+            --error-exitcode=1
+            -j ${CPPCHECK_JOBS}
+            ${CPPCHECK_DEFINES}
+            ${CPPCHECK_UNDEFINES}
+            ${CPPCHECK_INCLUDES}
+            --enable=${CPPCHECK_CHECKS}
+            --suppressions-list=${CMAKE_BINARY_DIR}/cppcheck-supressions
+            ${SOURCES} \${GSRCS}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            RESULT_VARIABLE RESULT
+        )
+        if(NOT RESULT EQUAL 0)
+            message(FATAL_ERROR \"Cppcheck failed\")
+        endif()
+")
 
     add_custom_target(cppcheck
-        COMMAND ${CPPCHECK_COMMAND}
+        COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/cppcheck.cmake
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "cppcheck: Running cppcheck..."
     )

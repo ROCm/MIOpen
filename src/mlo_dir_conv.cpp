@@ -124,6 +124,7 @@ miopen::solver::ConvSolution mlo_construct_BwdWrW2D::FindSolution()
 {
     // clang-format off
     return miopen::solver::SearchForSolution<
+        miopen::solver::ConvAsmBwdWrW1x1,
         miopen::solver::ConvAsmBwdWrW3x3,
         miopen::solver::ConvOclBwdWrW2,
         miopen::solver::ConvOclBwdWrW53,
@@ -263,14 +264,13 @@ bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
 {
     bool ret =
         (_search_params.in_height == 227 && _search_params.in_width == 227 &&
-         _search_params.n_inputs == 1 && _search_params.kernel_size0 == 3 &&
+         (_search_params.n_inputs & 0x3) > 0 && _search_params.kernel_size0 == 3 &&
          _search_params.kernel_size1 == 3 && _search_params.pad0 == 1 && _search_params.pad1 == 1 &&
          _search_params.kernel_stride0 == 1 && _search_params.kernel_stride1 == 1) ||
         (_search_params.in_height == 231 && _search_params.in_width == 231 &&
          _search_params.n_inputs == 1 && _search_params.kernel_size0 == 3 &&
          _search_params.kernel_size1 == 3 && _search_params.pad0 == 1 && _search_params.pad1 == 1 &&
          _search_params.kernel_stride0 == 1 && _search_params.kernel_stride1 == 1);
-
     return ret;
 }
 
