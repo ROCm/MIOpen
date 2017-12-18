@@ -24,7 +24,11 @@
  * 
  *******************************************************************************/
 
-// Wrapper macros to workaround asm bugs.
+// Wrapper macros for some instructions.
+// Macros contain workarounds for some assembler bugs.
+// Also these allow for unifying source text when different
+// ISA versions require different assembler syntax (mostly mnemonics).
+
 .if ((.option.machine_version_major == 8) || (.option.machine_version_major == 9))
 .else
     .error "Only Gfx8 and Gfx9 ISA is supported"
@@ -36,6 +40,7 @@
 .endif
 
 // Let's use Gfx10-like naming conventions for wrapper macros.
+// ADD_NC
 .macro _v_add_nc_u32 dst, src0, src1, dpp=
     .if (.option.machine_version_major == 8)
         // None No-Carry instruction in Gfx8, modifies VCC.
@@ -45,6 +50,7 @@
     .endif
 .endm
 
+// ADD_CO (gfx8 add)
 .macro _v_add_co_u32 dst, co, src0, src1, dpp=
     .if ((.option.machine_version_major == 8) || ((.option.machine_version_major == 9) && (WORKAROUND_BUG_34765 == 1)))
         v_add_u32 \dst, \co, \src0, \src1 \dpp
@@ -53,6 +59,7 @@
     .endif
 .endm
 
+// ADD_CO_CI (gfx8 addc)
 .macro _v_add_co_ci_u32 dst, co, src0, src1, ci, dpp=
     .if ((.option.machine_version_major == 8) || ((.option.machine_version_major == 9) && (WORKAROUND_BUG_34765 == 1)))
 		v_addc_u32 \dst, \co, \src0, \src1, \ci \dpp
@@ -61,12 +68,21 @@
     .endif
 .endm
 
-.macro _v_subrev_co_u32 dst, co, src0, src1
+// SUB_CO (gfx8 sub)
+.macro _v_sub_co_u32 dst, co, src0, src1, dpp=
     .if ((.option.machine_version_major == 8) || ((.option.machine_version_major == 9) && (WORKAROUND_BUG_34765 == 1)))
-        v_subrev_u32 \dst, \co, \src0, \src1
+        v_sub_u32 \dst, \co, \src0, \src1 \dpp
     .else
-        v_subrev_co_u32 \dst, \co, \src0, \src1
+        v_sub_co_u32 \dst, \co, \src0, \src1 \dpp
     .endif
 .endm
 
+// SUBREV_CO (gfx8 subrev)
+.macro _v_subrev_co_u32 dst, co, src0, src1, dpp=
+    .if ((.option.machine_version_major == 8) || ((.option.machine_version_major == 9) && (WORKAROUND_BUG_34765 == 1)))
+        v_subrev_u32 \dst, \co, \src0, \src1 \dpp
+    .else
+        v_subrev_co_u32 \dst, \co, \src0, \src1 \dpp
+    .endif
+.endm
 
