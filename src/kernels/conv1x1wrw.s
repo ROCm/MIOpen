@@ -35,7 +35,7 @@
 
 .include "gpr_alloc.inc"
 .include "common.inc"
-.include "gcn_asm_workarounds.inc"
+.include "inst_wrappers.inc"
 
 // initial state (s[0:4] are overlapped with filtersA):
 // s[0:1] - kernarg address

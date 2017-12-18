@@ -122,7 +122,7 @@ list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     set(MIOPEN_KERNEL_INCLUDES
-        kernels/gcn_asm_workarounds.inc
+        kernels/inst_wrappers.inc
         kernels/common.inc
         kernels/conv_sizes.inc
         kernels/macro1x1wrw.inc

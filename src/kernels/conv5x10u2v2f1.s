@@ -27,7 +27,7 @@
  * Convolution Kernel for 5x10 kernel with stride equal to 2 (i.e., -x 10 -y 5 -u 2 -v 2)
  * works on devices compatible with GCN3 ISA, but not XNACK.
  */
-.include "gcn_asm_workarounds.inc"
+.include "inst_wrappers.inc"
 
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
