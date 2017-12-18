@@ -75,7 +75,7 @@ FindEnforce GetFindEnforceImpl()
         return FindEnforce::Search;
     else if(str == "SEARCH_DB_UPDATE")
         return FindEnforce::SearchDbUpdate;
-    else if(str == "CLEAN")
+    else if(str == "DB_CLEAN")
         return FindEnforce::Clean;
     else
     { // Nop. Fall down & try numerics.
