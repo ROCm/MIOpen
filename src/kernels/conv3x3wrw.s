@@ -23,7 +23,7 @@
  * SOFTWARE.
  * 
  *******************************************************************************/
-.include "gcn_asm_workarounds.inc"
+.include "inst_wrappers.inc"
 
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
