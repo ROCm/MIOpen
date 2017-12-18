@@ -853,7 +853,7 @@ struct mlo_construct_direct2D
 
     std::string db_path() const { return _db_path ? _db_path : _search_params.GetPerfDbPath(); }
 
-    bool mloIsAmdRocmOpencl(rocm_meta_version& rmv) const;
+    bool mloIsAmdRocm(rocm_meta_version& rmv) const;
 
     int mloConstructBwd() { return (0); }
     int mloConstructFwd() { return (0); }
