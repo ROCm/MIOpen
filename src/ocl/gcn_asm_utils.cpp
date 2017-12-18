@@ -247,6 +247,8 @@ static std::string CleanupPath(const char* p)
     return path;
 }
 
+static bool GcnAssemblerHasBug34765();
+
 /*
  * Temporary function which emulates online assembly feature of OpenCL-on-ROCm being developed.
  * Not intended to be used in production code, so error handling is very straghtforward,
@@ -342,7 +344,7 @@ static bool GcnAssemblerHasBug34765Impl()
     }
 }
 
-bool GcnAssemblerHasBug34765()
+static bool GcnAssemblerHasBug34765()
 {
     const static bool b = GcnAssemblerHasBug34765Impl();
     return b;

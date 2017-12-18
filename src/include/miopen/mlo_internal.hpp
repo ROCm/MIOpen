@@ -268,20 +268,19 @@ struct ConvolutionContext : ProblemDescription
     std::string weights_layout;
     std::string out_data_type;
     std::string out_layout;
-    size_t bot_sz                    = 0;
-    size_t top_sz                    = 0;
-    size_t weights_sz                = 0;
-    size_t bias_sz                   = 0;
-    int deconvolution                = 0;
-    int in_stride                    = 0;
-    int out_stride                   = 0;
-    int in_channel_stride            = 0;
-    int in_batch_stride              = 0;
-    int out_channel_stride           = 0;
-    int out_batch_stride             = 0;
-    int n_timer_iter                 = 0;
-    rocm_meta_version rmv            = rocm_meta_version::Default;
-    bool gcn_assembler_has_bug_34765 = true;
+    size_t bot_sz          = 0;
+    size_t top_sz          = 0;
+    size_t weights_sz      = 0;
+    size_t bias_sz         = 0;
+    int deconvolution      = 0;
+    int in_stride          = 0;
+    int out_stride         = 0;
+    int in_channel_stride  = 0;
+    int in_batch_stride    = 0;
+    int out_channel_stride = 0;
+    int out_batch_stride   = 0;
+    int n_timer_iter       = 0;
+    rocm_meta_version rmv  = rocm_meta_version::Default;
     std::string general_compile_options;
 
     inline Handle& GetStream() const { return *_stream; }
