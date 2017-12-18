@@ -33,7 +33,6 @@
 std::string GetGcnAssemblerPath();
 bool ValidateGcnAssembler();
 void AmdgcnAssemble(std::string& source, const std::string& params);
-bool GcnAssemblerHasBug34765();
 
 template <typename TValue>
 void GenerateClangDefsym(std::ostream& stream, const std::string& name, TValue value)
