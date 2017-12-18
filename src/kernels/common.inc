@@ -97,18 +97,3 @@ maxU24 = 1 << 24
 wave_size = 64
 log2 wave_size_log2, wave_size
 
-.if (.option.machine_version_major == 8)
-	.macro vadd_u32 dst, src0, src1, dpp=
-		v_add_u32 \dst, vcc, \src0, \src1 \dpp
-	.endm
-	.macro vaddc_u32 dst, src0, src1, dpp=
-		v_add_u32 \dst, vcc, \src0, \src1, vcc \dpp
-	.endm
-.elseif (.option.machine_version_major == 9)
-	.macro vadd_u32 dst, src0, src1, dpp=
-		v_add_u32 \dst, \src0, \src1 \dpp
-	.endm
-	.macro vaddc_u32 dst, src0, src1, dpp=
-		v_add_u32 \dst, \src0, \src1, vcc \dpp
-	.endm
-.endif
