@@ -258,11 +258,12 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
     TempFile outfile("amdgcn-asm-out-XXXXXX");
 
     std::ostringstream workaround_options;
-    if (GcnAssemblerHasBug34765())
+    if(GcnAssemblerHasBug34765())
     {
         GenerateClangDefsym(workaround_options, "WORKAROUND_BUG_34765", 1);
     }
-    const auto args = " -x assembler -target amdgcn--amdhsa " + params + workaround_options.str() + " - -o " + outfile.Path();
+    const auto args = " -x assembler -target amdgcn--amdhsa " + params + workaround_options.str() +
+                      " - -o " + outfile.Path();
 
     std::istringstream clang_stdin(source);
     const auto clang_path = GetGcnAssemblerPath();
@@ -310,9 +311,11 @@ static void AmdgcnAssemble4BugDetection(std::string& source, const std::string& 
 #ifdef __linux__
     std::stringstream clang_stdout_unused;
     const auto clang_path = GetGcnAssemblerPath();
-    const auto args = " -x assembler -target amdgcn--amdhsa " + params + " " + source + " 2>&1"; // Keep console clean from error messages.
+    const auto args       = " -x assembler -target amdgcn--amdhsa " + params + " " + source +
+                      " 2>&1"; // Keep console clean from error messages.
     MIOPEN_LOG_I2(clang_path << " " << args);
-    const int clang_rc = ExecuteGcnAssembler(clang_path + " " + args , nullptr, &clang_stdout_unused);
+    const int clang_rc =
+        ExecuteGcnAssembler(clang_path + " " + args, nullptr, &clang_stdout_unused);
     if(clang_rc != 0)
         MIOPEN_THROW("Assembly error(" + std::to_string(clang_rc) + ")");
 #else
