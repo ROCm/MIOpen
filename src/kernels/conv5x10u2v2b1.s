@@ -23,6 +23,8 @@
  * SOFTWARE.
  * 
  *******************************************************************************/
+.include "gcn_asm_workarounds.inc"
+
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
 .if (.option.machine_version_major != 8) && (.option.machine_version_major != 9)
@@ -126,13 +128,13 @@ conv5x10u2v2b1:
   s_load_dwordx2 s[12:13], s[0:1], 16
   s_mul_i32 s22, s2, 0x00000200
   s_lshl_b32 s8, s2, 6
-  v_add_u32 v12, vcc, s8, v0
-  v_subrev_u32 v12, vcc, 4, v12
+ _v_add_co_u32 v12, vcc, s8, v0
+ _v_subrev_co_u32 v12, vcc, 4, v12
   s_lshr_b32 s33, s3, wei_c_bits-4
   s_mul_i32 s23, s33, 8
   s_mul_i32 s33, s33, 4
-  v_add_u32 v13, vcc, s33, v1
-  v_subrev_u32 v13, vcc, 2, v13
+ _v_add_co_u32 v13, vcc, s33, v1
+ _v_subrev_co_u32 v13, vcc, 2, v13
   v_readfirstlane_b32 s21, v1
   s_lshl_b32 s8, s3, 3
   s_add_u32 s21, s21, s8
@@ -241,7 +243,7 @@ loop_channel:
   buffer_load_dword v1, v4, s[16:19], 0 offen offset:256
   s_mov_b64 exec, -1
   s_mov_b32 s8, out_stride_k
-  v_add_u32 v4, vcc, s8, v4
+ _v_add_co_u32 v4, vcc, s8, v4
   v_readlane_b32 s6, v7, 0
   v_readlane_b32 s7, v7, 1
   s_waitcnt vmcnt(0) lgkmcnt(0)
@@ -723,15 +725,15 @@ loop_channel:
   s_mov_b32 s14, 2*inp_stride_c
   s_mov_b32 s15, 0x00020000
   v_mul_u32_u24 v0, 2, v6
-  v_add_u32 v0, vcc, s22, v0
+ _v_add_co_u32 v0, vcc, s22, v0
   v_cmp_gt_u32 vcc, 4 * inp_w, v0
   s_mov_b64 s[0:1], vcc
   v_cmp_gt_u32 vcc, 4 * (inp_w - 1), v0
   s_mov_b64 s[2:3], vcc
   s_mul_i32 s32, s23, inp_stride_y
-  v_add_u32 v0, vcc, s32, v0
+ _v_add_co_u32 v0, vcc, s32, v0
   s_mov_b32 s8, inp_stride_c
-  v_add_u32 v1, vcc, s8, v0
+ _v_add_co_u32 v1, vcc, s8, v0
   s_mov_b32 s8, 0
   s_mov_b64 exec, s[0:1]
   buffer_store_dword v8, v0, s[12:15], s8 offen offset:0

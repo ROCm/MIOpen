@@ -69,7 +69,7 @@ void mlo_construct_direct2D::setupRocm()
             !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
         if(_search_params.assembler_available)
         {
-            _search_params.gcn_assembler_has34765 = GcnAssemblerHas34765();
+            _search_params.gcn_assembler_has_bug_34765 = GcnAssemblerHasBug34765();
         }
 #ifndef HIP_OC_FINALIZER
         _search_params.use_binaries =
