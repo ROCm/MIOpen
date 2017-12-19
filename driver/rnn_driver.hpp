@@ -227,7 +227,7 @@ int RNNDriver<T>::AddCmdLineArgs()
     inflags.AddInputFlag("batchsize", 'n', "4", "Mini-batch size (Default=4)", "vector");
     inflags.AddInputFlag("hid_h", 'H', "32", "Hidden State Length (Default=32)", "int");
     inflags.AddInputFlag("in_h", 'W', "32", "Input Length (Default=32)", "int");
-    inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
+    inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("verification_cache",
                          'C',
