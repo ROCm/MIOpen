@@ -1343,7 +1343,10 @@ int BatchNormDriver<T>::VerifyBackward()
     dxout_dev->FromGPU(GetStream(), dxout.data());
     dscale_dev->FromGPU(GetStream(), dscale.data());
     dbias_dev->FromGPU(GetStream(), dbias.data());
-
+#if(MIO_BN_DEBUG == 1)
+    const double tolerance = ERRTOL * 1000;
+    double diff;
+#endif
     maxval          = 0.;
     auto errordxout = miopen::rms_range(dxout_host, dxout);
     if(errordxout > maxrms || std::isnan(errordxout))
@@ -1351,8 +1354,6 @@ int BatchNormDriver<T>::VerifyBackward()
         std::cout << "Backwards prop batch norm verification failed on dx: " << errordxout << "\n";
         anError = true;
 #if(MIO_BN_DEBUG == 1)
-        const double tolerance = ERRTOL * 1000;
-        double diff            = 0.;
         for(int i = 0; i < dxout.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
         {
             diff   = fabs(float(fabs(dxout[i]) - fabs(dxout_host[i])));
