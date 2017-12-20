@@ -1,28 +1,28 @@
 /*******************************************************************************
- *
- * MIT License
- *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
- *******************************************************************************/
+*
+* MIT License
+*
+* Copyright (c) 2017 Advanced Micro Devices, Inc.
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*
+*******************************************************************************/
 
 #include <cassert>
 #include <condition_variable>
@@ -71,7 +71,7 @@ struct TestData
 
     inline TestData(int x_, int y_) : x(x_), y(y_) {}
 
-    template<unsigned int seed>
+    template <unsigned int seed>
     static inline TestData Seeded()
     {
         return TestData(NextRandom<seed>(), NextRandom<seed>());
@@ -484,12 +484,17 @@ class DbParallelTest : public DbTest
 class DBMultiThreadedTestWork
 {
     public:
-    static constexpr unsigned char threads_count = 8;
+    static constexpr unsigned char threads_count   = 8;
     static constexpr unsigned int common_part_size = 128;
     static constexpr unsigned int unique_part_size = 128;
-    static constexpr unsigned int ids_per_key = 16;
+    static constexpr unsigned int ids_per_key      = 16;
     static constexpr unsigned int common_part_seed = 435345;
-    static std::array<TestData, common_part_size> common_part;
+
+    static inline const std::array<TestData, common_part_size>& common_part()
+    {
+        static const std::array<TestData, common_part_size>& ref = common_part_init();
+        return ref;
+    }
 
     static inline void WorkItem(const std::string& db_path)
     {
@@ -501,11 +506,11 @@ class DBMultiThreadedTestWork
     {
         Db db(db_path);
 
-        for (auto i = 0u; i < common_part_size; i++)
+        for(auto i = 0u; i < common_part_size; i++)
         {
-            const auto key = i / ids_per_key;
-            const auto id = i % ids_per_key;
-            const auto data = common_part[i];
+            const auto key  = i / ids_per_key;
+            const auto id   = i % ids_per_key;
+            const auto data = common_part()[i];
             TestData read;
 
             EXPECT(db.Load(std::to_string(key), std::to_string(id), read));
@@ -521,17 +526,19 @@ class DBMultiThreadedTestWork
             CommonPartSection(0u, common_part_size / 2, [&db]() { return db; });
         }
 
-        CommonPartSection(common_part_size / 2, common_part_size, [&db_path]() { return Db(db_path); });
+        CommonPartSection(
+            common_part_size / 2, common_part_size, [&db_path]() { return Db(db_path); });
     }
 
-    template<class TDbGetter>
-    static inline void CommonPartSection(unsigned int start, unsigned int end, const TDbGetter& db_getter)
+    template <class TDbGetter>
+    static inline void
+    CommonPartSection(unsigned int start, unsigned int end, const TDbGetter& db_getter)
     {
-        for (auto i = start; i < end; i++)
+        for(auto i = start; i < end; i++)
         {
-            const auto key = i / ids_per_key;
-            const auto id = i % ids_per_key;
-            const auto data = common_part[i];
+            const auto key  = i / ids_per_key;
+            const auto id   = i % ids_per_key;
+            const auto data = common_part()[i];
 
             db_getter().Store(std::to_string(key), std::to_string(id), data);
         }
@@ -544,16 +551,18 @@ class DBMultiThreadedTestWork
             UniquePartSection(0, unique_part_size / 2, [&db]() { return db; });
         }
 
-        UniquePartSection(unique_part_size / 2, unique_part_size, [&db_path]() { return Db(db_path); });
+        UniquePartSection(
+            unique_part_size / 2, unique_part_size, [&db_path]() { return Db(db_path); });
     }
 
-    template<class TDbGetter>
-    static inline void UniquePartSection(unsigned int start, unsigned int end, const TDbGetter& db_getter)
+    template <class TDbGetter>
+    static inline void
+    UniquePartSection(unsigned int start, unsigned int end, const TDbGetter& db_getter)
     {
-        for (auto i = start; i < end; i++)
+        for(auto i = start; i < end; i++)
         {
             auto key = LimitedRandom(common_part_size / ids_per_key + 2);
-            auto id = LimitedRandom(ids_per_key + 1);
+            auto id  = LimitedRandom(ids_per_key + 1);
             TestData data;
 
             db_getter().Store(std::to_string(key), std::to_string(id), data);
@@ -566,23 +575,21 @@ class DBMultiThreadedTestWork
 
         do
             key = NextRandom();
-        while (key < min);
+        while(key < min);
 
         return key;
     }
 
-    class CommonPartInitializer
+    static inline const std::array<TestData, common_part_size>& common_part_init()
     {
-        inline CommonPartInitializer()
-        {
-            for (auto i = 0u; i < common_part_size; i++)
-                common_part[i] = TestData::Seeded<common_part_seed>();
-        }
-    } static const cpi;
-};
+        static std::array<TestData, common_part_size> data;
 
-std::array<TestData, DBMultiThreadedTestWork::common_part_size>
-DBMultiThreadedTestWork::common_part;
+        for(auto i  = 0u; i < common_part_size; i++)
+            data[i] = TestData::Seeded<common_part_seed>();
+
+        return data;
+    }
+};
 
 class DbMultiThreadedTest : public DbTest
 {
@@ -592,17 +599,19 @@ class DbMultiThreadedTest : public DbTest
         std::mutex mutex;
         std::vector<std::thread> threads;
 
+        threads.reserve(DBMultiThreadedTestWork::threads_count);
+
         {
             std::unique_lock<std::mutex> lock(mutex);
 
-            for (auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
                 threads.emplace_back([this, &mutex]() {
                     (void)std::unique_lock<std::mutex>(mutex);
                     DBMultiThreadedTestWork::WorkItem(temp_file_path());
                 });
         }
 
-        for (auto& thread : threads)
+        for(auto& thread : threads)
             thread.join();
 
         DBMultiThreadedTestWork::ValidateCommonPart(temp_file_path());
@@ -616,21 +625,21 @@ class DbMultiProcessTest : public DbTest
 
     inline void Run() const
     {
-        std::vector<FILE*> children;
+        std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
 
         {
             exclusive_lock lock(Mutex());
 
-            for (auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            for(auto& child : children)
             {
                 const auto command = exe_path.string() + " " + arg + " " + temp_file_path();
-                children.emplace_back(popen(command.c_str(), "w"));
+                child              = popen(command.c_str(), "w");
             }
         }
 
-        for (auto child : children)
+        for(auto child : children)
         {
-            auto status = pclose(child);
+            auto status          = pclose(child);
             const auto exit_code = WEXITSTATUS(status);
 
             EXPECT_EQUAL(exit_code, 0);
@@ -646,7 +655,7 @@ class DbMultiProcessTest : public DbTest
     }
 
     private:
-    using mutex_t = boost::interprocess::named_recursive_mutex;
+    using mutex_t        = boost::interprocess::named_recursive_mutex;
     using exclusive_lock = boost::interprocess::scoped_lock<mutex_t>;
 
     static inline mutex_t& Mutex()
@@ -654,7 +663,6 @@ class DbMultiProcessTest : public DbTest
         static mutex_t mutex(boost::interprocess::open_or_create, "DbMultiProcessTest");
         return mutex;
     }
-
 };
 
 } // namespace tests
@@ -664,7 +672,7 @@ int main(int argsn, char** argsc)
 {
     using namespace miopen::tests;
 
-    if (argsn >= 3 && argsc[1] == std::string(DbMultiProcessTest::arg))
+    if(argsn >= 3 && argsc[1] == std::string(DbMultiProcessTest::arg))
     {
         DbMultiProcessTest::WorkItem(argsc[2]);
         return 0;
