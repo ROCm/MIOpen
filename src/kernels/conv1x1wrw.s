@@ -35,6 +35,7 @@
 
 .include "gpr_alloc.inc"
 .include "common.inc"
+.include "inst_wrappers.inc"
 
 // initial state (s[0:4] are overlapped with filtersA):
 // s[0:1] - kernarg address
@@ -261,31 +262,31 @@ gcnAsmConv1x1WrW:
     v_mul_lo_u32 v[voffset_in], s[stmp], v[c_id]
     s_mov_b32 s[stmp], 0 + input_stack_size
     v_mul_lo_u32 v[vtmp], s[stmp], v[n_id]
-    vadd_u32 v[voffset_in], v[voffset_in], v[vtmp] // c_off + n_off
+   _v_add_nc_u32 v[voffset_in], v[voffset_in], v[vtmp] // c_off + n_off
     
     s_mov_b32 s[stmp], 0 + output_feature_map_size
     v_mul_lo_u32 v[voffset_out], s[stmp], v[k_id]
     s_mov_b32 s[stmp], 0 + output_stack_size
     v_mul_lo_u32 v[vtmp], s[stmp], v[n_id]
-    vadd_u32 v[voffset_out], v[voffset_out], v[vtmp] // k_off + n_off
+   _v_add_nc_u32 v[voffset_out], v[voffset_out], v[vtmp] // k_off + n_off
     
     vtmp2 = permute_addr
     v_bfe_u32 v[vtmp], v[tid], 0 + chunk_size_log2 + c_per_gpr_log2, 0 + hw_per_gpr_log2 // hw peice id
     v_lshlrev_b32 v[vtmp], 0 + chunk_size_log2, v[vtmp]
     v_and_b32 v[vtmp2], 0 + chunk_size - 1, v[tid] // lane in chunk
-    vadd_u32 v[vtmp2], v[vtmp2], v[vtmp] // lane in metachunk
+   _v_add_nc_u32 v[vtmp2], v[vtmp2], v[vtmp] // lane in metachunk
     
     v_mul_u32_u24 v[vtmp], 4 * part1_chunks, v[vtmp2]
-    vadd_u32 v[voffset_part1_in],  v[voffset_in], v[vtmp] // +hw_off
-    vadd_u32 v[voffset_part1_out], v[voffset_out], v[vtmp] // +hw_off
+   _v_add_nc_u32 v[voffset_part1_in],  v[voffset_in], v[vtmp] // +hw_off
+   _v_add_nc_u32 v[voffset_part1_out], v[voffset_out], v[vtmp] // +hw_off
     
     v_mul_u32_u24 v[vtmp], 4 * part2_chunks, v[vtmp2]
-    vadd_u32 v[voffset_part2_in],  v[voffset_in], v[vtmp] // +hw_off
-    vadd_u32 v[voffset_part2_out], v[voffset_out], v[vtmp] // +hw_off
+   _v_add_nc_u32 v[voffset_part2_in],  v[voffset_in], v[vtmp] // +hw_off
+   _v_add_nc_u32 v[voffset_part2_out], v[voffset_out], v[vtmp] // +hw_off
     
     v_mul_u32_u24 v[vtmp], 4 * read_size, v[vtmp2]
-    vadd_u32 v[voffset_in], v[voffset_in], v[vtmp] // +hw_off
-    vadd_u32 v[voffset_out], v[voffset_out], v[vtmp] // +hw_off
+   _v_add_nc_u32 v[voffset_in], v[voffset_in], v[vtmp] // +hw_off
+   _v_add_nc_u32 v[voffset_out], v[voffset_out], v[vtmp] // +hw_off
     
     
     
@@ -309,9 +310,9 @@ gcnAsmConv1x1WrW:
     
     
     // mask unused lanes
-    vadd_u32 v[c_id], s[c_base], v[c_id]
-    vadd_u32 v[k_id], s[k_base], v[k_id]
-    vadd_u32 v[n_id], s[n_base], v[n_id]
+   _v_add_nc_u32 v[c_id], s[c_base], v[c_id]
+   _v_add_nc_u32 v[k_id], s[k_base], v[k_id]
+   _v_add_nc_u32 v[n_id], s[n_base], v[n_id]
     v_cmp_gt_u32 vcc, 0 + input_channels, v[c_id]
     v_cndmask_b32_e32 v[voffset_in], -1, v[voffset_in], vcc
     v_cmp_gt_u32 vcc, 0 + output_channels, v[k_id]
@@ -418,7 +419,7 @@ loop_n_begin: // loop over batch (n)
     s_sub_u32 s[desc_in+2], s[desc_in+2], 0 + input_stack_size * n_per_wg * n_per_gpr //todo: adjust for n_per_wg
     s_sub_u32 s[desc_out+2], s[desc_out+2], 0 + output_stack_size * n_per_wg * n_per_gpr
 loop_n_end:
-    vadd_u32 v[n_id], 0 + n_per_gpr * n_per_wg, v[n_id]
+   _v_add_nc_u32 v[n_id], 0 + n_per_gpr * n_per_wg, v[n_id]
     s_addk_i32 s[loop_n_cnt], 1
     s_cmpk_ge_u32 s[loop_n_cnt], 0 + (batch_size + n_per_wg * n_per_gpr - 1) / (n_per_wg * n_per_gpr)
     s_cbranch_scc0 loop_n_begin
@@ -465,13 +466,13 @@ loop_n_end:
     v_mov_b32 v[invalid_addr], 0x7FFFFFFF
     //v_mov_b32 v[invalid_addr], 0x40000000
     
-    vadd_u32 v[vtmp], s[c_base], v[tid]
+   _v_add_nc_u32 v[vtmp], s[c_base], v[tid]
     v_mul_u32_u24 v[c_off], 0 + filter_c_stride, v[tid]
     v_cmp_gt_u32 vcc, 0 + input_channels, v[vtmp]
     v_cndmask_b32_e32 v[c_off], v[invalid_addr], v[c_off], vcc
     
     v_bfe_u32 v[k_off], v[tid], 0 + c_per_gpr_log2 - k_per_gpr_log2, 0 + k_per_gpr_log2
-    vadd_u32 v[vtmp], s[k_base], v[k_off]
+   _v_add_nc_u32 v[vtmp], s[k_base], v[k_off]
     v_mul_u32_u24 v[k_off], 0 + filter_k_stride, v[k_off]
     v_cmp_gt_u32 vcc, 0 + output_channels, v[vtmp]
     v_cndmask_b32_e32 v[k_off], v[invalid_addr], v[k_off], vcc
@@ -490,12 +491,12 @@ loop_n_end:
     .rept k_per_gpr
         b = (k * c_per_gpr / k_per_gpr) % 16 // lanes to ror
         .if b == 0
-            vadd_u32 v[voffset_wei], v[k_off], v[c_off]
+           _v_add_nc_u32 v[voffset_wei], v[k_off], v[c_off]
         .else
             .if (.option.machine_version_major == 8) // workaround for asm
                 vadd_u32_ror voffset_wei, k_off, c_off, b
             .else
-                vadd_u32 v[voffset_wei], v[k_off], v[c_off] row_ror:b
+               _v_add_nc_u32 v[voffset_wei], v[k_off], v[c_off] row_ror:b
             .endif
         .endif
         cx = 0

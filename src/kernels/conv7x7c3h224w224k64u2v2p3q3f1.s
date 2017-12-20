@@ -23,6 +23,7 @@
  * SOFTWARE.
  * 
  *******************************************************************************/
+.include "inst_wrappers.inc"
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
 .if (.option.machine_version_major != 8) && (.option.machine_version_major != 9)
@@ -60,7 +61,7 @@ gcnAsmConv7x7c3h224w224k64u2v2p3q3f1:
   s_load_dwordx2 s[16:17], s[0:1], 16
   s_load_dword s36, s[0:1], 24
   s_lshl_b32 s8, s2, 6
-  v_add_u32 v21, vcc, s8, v0
+ _v_add_co_u32 v21, vcc, s8, v0
   s_lshr_b32 s22, s3, 2
   s_lshl_b32 s22, s22, 2
   v_readfirstlane_b32 s20, v1
@@ -76,17 +77,17 @@ gcnAsmConv7x7c3h224w224k64u2v2p3q3f1:
   s_add_u32 s23, s23, s9
   v_lshlrev_b32 v7, 1, v0
   v_mov_b32 v8, v1
-  v_subrev_u32 v4, vcc, 5, v1
+ _v_subrev_co_u32 v4, vcc, 5, v1
   v_lshlrev_b32 v4, 6, v4
-  v_add_u32 v4, vcc, v4, v0
+ _v_add_co_u32 v4, vcc, v4, v0
   s_movk_i32 s8, 5462
   v_mul_u32_u24 v10, s8, v4
   v_lshrrev_b32 v10, 14, v10
   v_mul_u32_u24 v9, 3, v10
-  v_sub_u32 v9, vcc, v4, v9
+ _v_sub_co_u32 v9, vcc, v4, v9
   v_lshlrev_b32 v9, 1, v9
-  v_add_u32 v9, vcc, 128, v9
-  v_add_u32 v3, vcc, 8, v8
+ _v_add_co_u32 v9, vcc, 128, v9
+ _v_add_co_u32 v3, vcc, 8, v8
   v_cmp_le_u32 vcc, 5, v1
   v_cndmask_b32 v9, v7, v9, vcc
   v_cndmask_b32 v10, v3, v10, vcc
@@ -99,10 +100,10 @@ gcnAsmConv7x7c3h224w224k64u2v2p3q3f1:
   s_lshl_b32 s38, s22, 1
   s_sub_u32 s37, s37, 3
   s_sub_u32 s38, s38, 3
-  v_add_u32 v11, vcc, s37, v7
-  v_add_u32 v12, vcc, s38, v8
-  v_add_u32 v13, vcc, s37, v9
-  v_add_u32 v14, vcc, s38, v10
+ _v_add_co_u32 v11, vcc, s37, v7
+ _v_add_co_u32 v12, vcc, s38, v8
+ _v_add_co_u32 v13, vcc, s37, v9
+ _v_add_co_u32 v14, vcc, s38, v10
   v_max_i32 v16, 0, v11
   v_lshlrev_b32 v16, 2, v16
   v_max_i32 v17, 0, v13
@@ -200,8 +201,8 @@ loop_channel:
   buffer_load_dwordx2 v[2:3], v17, s[12:15], 0 offen offset:0
   s_mov_b64 exec, -1
   v_mov_b32 v4, 200704
-  v_add_u32 v16, vcc, v16, v4
-  v_add_u32 v17, vcc, v17, v4
+ _v_add_co_u32 v16, vcc, v16, v4
+ _v_add_co_u32 v17, vcc, v17, v4
   v_readlane_b32 s28, v22, 18
   v_readlane_b32 s29, v22, 19
   v_readlane_b32 s32, v22, 20
