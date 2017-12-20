@@ -557,6 +557,14 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
 #elif(MIO_BN_VARIANT == 1)
 
+/*
+#if(MIO_BN_HW == 1) // DPP cannot handle this config
+#ifdef __AMDGCN__
+#undef __AMDGCN__
+#endif
+#endif
+*/
+
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                          __global _FLOAT* __restrict out,
@@ -652,18 +660,6 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #endif // HW
 #endif // GCN
 
-/*
-    if(ylid < MIO_BN_HW)
-    {
-#pragma unroll
-        for(unsigned int n = 0; n < MIO_BN_N; n++)
-        {
-            minibatch[n] = minibatch[n] - mean;
-            variance     = mad(minibatch[n], minibatch[n], variance);
-        }
-    }
-*/
-
 #ifdef __AMDGCN__
 #if(MIO_BN_HW > 16)
     dppRegReduce64(&variance, INHW);
@@ -705,7 +701,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         { // apply normalization
             index      = n * MIO_BN_CHW + idx;
-            inhat      = minibatch[n] * invVariance;
+            inhat      = (minibatch[n] - mean) * invVariance;
             out[index] = mad(pvscale, inhat, pvbias);
         } // end for
     }     // end if
@@ -842,24 +838,6 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     regLDSreduce(&mean, lcl_data, ylid, INHW);
 #endif
 
-    /*
-        // VARIANCE
-        if(ylid < MIO_BN_HW)
-        {
-    #pragma unroll
-            for(unsigned int n = 0; n < MIO_BN_N; n++)
-            {
-
-    #if(MIO_BN_N < MIO_BN_MAXN)
-                elemStd = minibatch[n] = minibatch[n] - mean; //(in[index] - mean);
-    #else
-                index   = n * MIO_BN_CHW + xgid * MIO_BN_HW + ylid;
-                elemStd = (*(in + index) - mean);
-    #endif
-                variance               = mad(elemStd, elemStd, variance);
-            }
-        }
-    */
     barrier(CLK_LOCAL_MEM_FENCE);
     lcl_data[ylid] = variance;
     barrier(CLK_LOCAL_MEM_FENCE);
@@ -905,7 +883,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         { // apply normalization
             index      = n * MIO_BN_CHW + xgid * MIO_BN_HW + ylid;
 #if(MIO_BN_N < MIO_BN_MAXN)
-            inhat      = minibatch[n] * invVariance; // (in[index] - mean) * invVariance;
+            inhat      = (minibatch[n] - mean) * invVariance; // (in[index] - mean) * invVariance;
 #else
             inhat = (*(in + index) - mean) * invVariance;
 #endif
