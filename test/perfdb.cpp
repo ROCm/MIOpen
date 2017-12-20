@@ -47,9 +47,10 @@ namespace tests {
 
 boost::filesystem::path exe_path;
 
+template <unsigned int sequence = 0>
 std::mt19937::result_type NextRandom()
 {
-    const int seed = 42;
+    const unsigned int seed = 42;
 
     static std::mt19937 rng(seed);
     static std::uniform_int_distribution<std::mt19937::result_type> dist{};
@@ -62,21 +63,27 @@ struct TestData
     int x;
     int y;
 
-    TestData()
+    inline TestData()
     {
         x = NextRandom();
         y = NextRandom();
     }
 
-    TestData(int x_, int y_) : x(x_), y(y_) {}
+    inline TestData(int x_, int y_) : x(x_), y(y_) {}
 
-    void Serialize(std::ostream& s) const
+    template<unsigned int seed>
+    static inline TestData Seeded()
+    {
+        return TestData(NextRandom<seed>(), NextRandom<seed>());
+    }
+
+    inline void Serialize(std::ostream& s) const
     {
         static const auto sep = ',';
         s << x << sep << y;
     }
 
-    bool Deserialize(const std::string& s)
+    inline bool Deserialize(const std::string& s)
     {
         static const auto sep = ',';
         TestData t;
@@ -91,10 +98,10 @@ struct TestData
         return true;
     }
 
-    bool operator==(const TestData& other) const { return x == other.x && y == other.y; }
+    inline bool operator==(const TestData& other) const { return x == other.x && y == other.y; }
 
     private:
-    inline static bool DeserializeField(std::istream& from, int* ret, char separator)
+    static inline bool DeserializeField(std::istream& from, int* ret, char separator)
     {
         std::string part;
 
@@ -481,7 +488,8 @@ class DBMultiThreadedTestWork
     static constexpr unsigned int common_part_size = 128;
     static constexpr unsigned int unique_part_size = 128;
     static constexpr unsigned int ids_per_key = 16;
-    static std::array<const TestData, common_part_size> common_part;
+    static constexpr unsigned int common_part_seed = 435345;
+    static std::array<TestData, common_part_size> common_part;
 
     static inline void WorkItem(const std::string& db_path)
     {
@@ -562,9 +570,18 @@ class DBMultiThreadedTestWork
 
         return key;
     }
+
+    class CommonPartInitializer
+    {
+        inline CommonPartInitializer()
+        {
+            for (auto i = 0u; i < common_part_size; i++)
+                common_part[i] = TestData::Seeded<common_part_seed>();
+        }
+    } static const cpi;
 };
 
-std::array<const TestData, DBMultiThreadedTestWork::common_part_size>
+std::array<TestData, DBMultiThreadedTestWork::common_part_size>
 DBMultiThreadedTestWork::common_part;
 
 class DbMultiThreadedTest : public DbTest
@@ -606,7 +623,7 @@ class DbMultiProcessTest : public DbTest
 
             for (auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
             {
-                const auto command = exe_path.string() + " " + arg;
+                const auto command = exe_path.string() + " " + arg + " " + temp_file_path();
                 children.emplace_back(popen(command.c_str(), "w"));
             }
         }
@@ -622,10 +639,10 @@ class DbMultiProcessTest : public DbTest
         DBMultiThreadedTestWork::ValidateCommonPart(temp_file_path());
     }
 
-    inline void WorkItem() const
+    static inline void WorkItem(const std::string& db_path)
     {
         (void)exclusive_lock(Mutex());
-        DBMultiThreadedTestWork::WorkItem(temp_file_path());
+        DBMultiThreadedTestWork::WorkItem(db_path);
     }
 
     private:
@@ -647,9 +664,9 @@ int main(int argsn, char** argsc)
 {
     using namespace miopen::tests;
 
-    if (argsn >= 2 && argsc[1] == std::string(DbMultiProcessTest::arg))
+    if (argsn >= 3 && argsc[1] == std::string(DbMultiProcessTest::arg))
     {
-        DbMultiProcessTest().WorkItem();
+        DbMultiProcessTest::WorkItem(argsc[2]);
         return 0;
     }
 
