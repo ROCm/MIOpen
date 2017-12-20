@@ -726,8 +726,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
     _FLOAT invVar   = 0.;
     _FLOAT pscale   = 0.;
-    _FLOAT elemStd  = 0.;
-    _FLOAT ds       = elemStd;
+    _FLOAT ds       = 0.;
     _FLOAT db       = 0.;
     _FLOAT batchvalues[MIO_BN_HW];
     _FLOAT dyvalues[MIO_BN_HW];
@@ -1000,8 +999,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
     _FLOAT invVar   = 0.;
     _FLOAT pscale   = 0.;
-    _FLOAT elemStd  = 0.;
-    _FLOAT ds       = elemStd;
+    _FLOAT ds       = 0.;
     _FLOAT db       = 0.;
 #if(MIO_BN_N < MIO_BN_MAXN)
     _FLOAT batchvalues[MIO_BN_N];
@@ -1150,10 +1148,6 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             ds = mad(batchvalues[n], dyvalues[n], ds);
 #else  // maxn
             db += *(dy_in + index);
-            _FLOAT elemStd;
-
-            elemStd = (*(x_in + index) - mean);
-
             _FLOAT xhat = ((*(x_in + index) - mean) * invVar);
             ds           = mad(xhat, *(dy_in + index), ds);
 #endif
@@ -1432,9 +1426,9 @@ BatchNormBwdSpatialVariance(const __global _FLOAT* __restrict in, /* x input */
 #pragma unroll
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         {
-            index   = n * MIO_BN_CHW + cidx + ygid;
-            elemStd = (*(in + index) - mean);
-            variance += elemStd * elemStd;
+            index    = n * MIO_BN_CHW + cidx + ygid;
+            elemStd  = (*(in + index) - mean);
+            variance = mad(elemStd, elemStd, variance);
         }
     }
 
