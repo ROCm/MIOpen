@@ -477,6 +477,105 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "read_size", pcfg->GetReadSize());
     GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
     GenerateClangDefsym(options, "hw_per_gpr", pcfg->GetHwPerGpr());
+	
+#if 1
+	if ((params.batch_sz >= 16 || 2 * params.n_outputs > params.n_inputs) && params.pad1 == 0 &&
+		params.pad0 == 0 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
+	{
+
+		result.passes = 2;
+	}
+	else
+#endif
+	{
+		result.passes = 1;
+	}
+
+	// subsampled input
+	int in_width = (result.passes > 1) ? params.in_width : params.out_width;
+	int in_height = (result.passes > 1) ? params.in_height : params.out_height;
+	int in_stride = (result.passes > 1) ? params.in_stride : params.out_stride;
+	int in_channel_stride =
+		(result.passes > 1) ? in_stride * in_height : params.out_channel_stride;
+	int in_batch_stride =
+		(result.passes > 1) ? in_channel_stride * params.n_outputs : params.out_batch_stride;
+	int out_channel_stride = params.in_channel_stride;
+	int out_stride = params.in_stride;
+
+	int out_pad_width = params.in_width;
+	int in_pad_min_x = 0;
+	
+	if (params.pad0 > 0)
+	{
+		in_pad_min_x = params.kernel_stride0 - (params.pad0 % params.kernel_stride0);
+		// In case PAD == STRIDE
+		in_pad_min_x = in_pad_min_x % params.kernel_stride0;
+
+		out_pad_width = (params.out_width - in_pad_min_x + params.kernel_stride0 - 1) /
+			params.kernel_stride0;
+	}
+	
+	int write_unit = (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0)
+		? 3
+		: (out_pad_width % 2 == 0) ? 2 : 1;
+	int n_grp0_size0 = 256;
+	// real input strides
+	int in0_stride = params.out_stride;
+	int in0_channel_stride = params.out_channel_stride;
+	int in0_batch_stride = params.out_batch_stride;
+	int kernel0_stride0 = params.kernel_stride0;
+	int kernel0_stride1 = params.kernel_stride1;
+
+	if (params.n_passes)
+	{
+
+		return result;
+	}
+
+	const auto comp_options =
+		std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
+		std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
+		std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(kernel0_stride0) +
+		std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(kernel0_stride1) +
+		std::string(" -DMLO_WRITE_UNIT=") +
+		std::to_string(write_unit) + std::string(" -DMLO_OUT_CHANNEL_STRIDE=") +
+		std::to_string(out_channel_stride) + std::string(" -DMLO_OUT_STRIDE=") +
+		std::to_string(out_stride) + std::string(" -DMLO_IN_BATCH_STRIDE=") +
+		std::to_string(in_batch_stride) + std::string(" -DMLO_IN0_BATCH_STRIDE=") +
+		std::to_string(in0_batch_stride) + std::string(" -DMLO_IN0_CHANNEL_STRIDE=") +
+		std::to_string(in0_channel_stride) + std::string(" -DMLO_IN0_STRIDE=") +
+		std::to_string(in0_stride) + params.general_compile_options;
+
+	result.workspce_sz = 0;
+
+	if (result.passes > 1 && params.pad1 == 0 && params.pad0 == 0 &&
+		(params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
+	{
+		KernelInfo kernel;
+
+		kernel.l_wk.push_back(n_grp0_size0);
+		kernel.l_wk.push_back(1);
+		kernel.l_wk.push_back(1);
+		// output is number of subsampled input maps
+		size_t gbl_wk0 = (in_batch_stride / write_unit);
+		size_t gbl_wk1 = params.batch_sz;
+		size_t gbl_wk2 = 1;
+
+		kernel.g_wk.push_back(gbl_wk0);
+		kernel.g_wk.push_back(gbl_wk1);
+		kernel.g_wk.push_back(gbl_wk2);
+
+		kernel.kernel_file = "MIOpenUtilKernels3.cl";
+
+		kernel.kernel_name = "SubSample";
+
+		kernel.comp_options = comp_options;
+
+		result.construction_params.push_back(kernel);
+
+		int data_len = (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
+		result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
+	}
 
     KernelInfo kernel;
 
@@ -498,7 +597,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     kernel.kernel_name = "gcnAsmConv1x1WrW";
 
     result.construction_params.push_back(kernel);
-    result.workspce_sz = 0;
+
     return result;
 }
 
