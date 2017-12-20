@@ -428,7 +428,7 @@ struct conv_driver : test_driver
         add(do_backward_data, "disable-backward-data", set_value(false));
         add(search, "search", set_value(1));
         add(conv_mode, "cmode", generate_data({"conv", "trans"}));
-        add(pad_mode, "pmode", generate_data({"default" /*, "same"*/, "valid"}));
+        add(pad_mode, "pmode", generate_data({"default", "same", "valid"}));
     }
 
     std::vector<miopen::ConvolutionDescriptor> get_filters()
