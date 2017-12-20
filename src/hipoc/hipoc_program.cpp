@@ -30,22 +30,13 @@
 #include <miopen/kernel_warnings.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/tmp_dir.hpp>
+#include <miopen/write_file.hpp>
 #include <boost/optional.hpp>
 #include <sstream>
 
 #include <unistd.h>
 
 namespace miopen {
-
-using FilePtr = MIOPEN_MANAGE_PTR(FILE*, std::fclose);
-
-void WriteFile(const std::string& content, const boost::filesystem::path& name)
-{
-    // std::cerr << "Write file: " << name << std::endl;
-    FilePtr f{std::fopen(name.c_str(), "w")};
-    if(std::fwrite(content.c_str(), 1, content.size(), f.get()) != content.size())
-        MIOPEN_THROW("Failed to write to src file");
-}
 
 hipModulePtr CreateModule(const std::string& program_name, std::string params, bool is_kernel_str)
 {
