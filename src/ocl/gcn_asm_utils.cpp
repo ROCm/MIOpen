@@ -33,6 +33,9 @@
 #include <miopen/errors.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/manage_ptr.hpp>
+#include <miopen/write_file.hpp>
+#include <miopen/kernel.hpp>
+#include <miopen/logger.hpp>
 #include <sstream>
 
 #ifdef __linux__
@@ -254,7 +257,13 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
 #ifdef __linux__
     TempFile outfile("amdgcn-asm-out-XXXXXX");
 
-    const auto args = " -x assembler -target amdgcn--amdhsa " + params + " - -o " + outfile.Path();
+    std::ostringstream workaround_options;
+    if(GcnAssemblerHasBug34765())
+    {
+        GenerateClangDefsym(workaround_options, "WORKAROUND_BUG_34765", 1);
+    }
+    const auto args = " -x assembler -target amdgcn--amdhsa " + params + workaround_options.str() +
+                      " - -o " + outfile.Path();
 
     std::istringstream clang_stdin(source);
     const auto clang_path = GetGcnAssemblerPath();
@@ -295,6 +304,48 @@ void AmdgcnAssemble(std::string& source, const std::string& params)
     (void)params; // -warning
     MIOPEN_THROW("Error: X-AMDGCN-ASM: online assembly under Windows is not supported");
 #endif //__linux__
+}
+
+static void AmdgcnAssemble4BugDetection(std::string& source, const std::string& params)
+{
+#ifdef __linux__
+    std::stringstream clang_stdout_unused;
+    const auto clang_path = GetGcnAssemblerPath();
+    const auto args       = " -x assembler -target amdgcn--amdhsa " + params + " " + source +
+                      " 2>&1"; // Keep console clean from error messages.
+    MIOPEN_LOG_I2(clang_path << " " << args);
+    const int clang_rc =
+        ExecuteGcnAssembler(clang_path + " " + args, nullptr, &clang_stdout_unused);
+    if(clang_rc != 0)
+        MIOPEN_THROW("Assembly error(" + std::to_string(clang_rc) + ")");
+#else
+    (void)source; // -warning
+    (void)params; // -warning
+    MIOPEN_THROW("Error: X-AMDGCN-ASM: online assembly under Windows is not supported");
+#endif //__linux__
+}
+
+static bool GcnAssemblerHasBug34765Impl()
+{
+    auto p = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
+    miopen::WriteFile(miopen::GetKernelSrc("bugzilla_34765_detect"), p);
+    auto src = p.string();
+    try
+    {
+        AmdgcnAssemble4BugDetection(src, "-mcpu=gfx900");
+        return false;
+    }
+    catch(...)
+    {
+        MIOPEN_LOG_I("Detected");
+        return true;
+    }
+}
+
+bool GcnAssemblerHasBug34765()
+{
+    const static bool b = GcnAssemblerHasBug34765Impl();
+    return b;
 }
 
 template <>

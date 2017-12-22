@@ -27,6 +27,7 @@
  * Convolution Kernel for 5x10 kernel with stride equal to 2 (i.e., -x 10 -y 5 -u 2 -v 2)
  * works on devices compatible with GCN3 ISA, but not XNACK.
  */
+.include "inst_wrappers.inc"
 
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
@@ -298,7 +299,7 @@ conv5x10u2v2f1:
 .endif
     // compute: sreg_dx, sreg_dy, sreg_k
     s_lshl_b32 s[sreg_tmp0], s[sreg_group_0], 6
-    v_add_u32  v[vreg_dx], vcc, s[sreg_tmp0], v[vreg_local_0]
+   _v_add_co_u32 v[vreg_dx], vcc, s[sreg_tmp0], v[vreg_local_0]
     s_lshr_b32 s[sreg_dy], s[sreg_group_1], wei_k_bits-4
     s_lshl_b32 s[sreg_dy], s[sreg_dy], 2
     v_readfirstlane_b32 s[sreg_k], v[vreg_local_1]
@@ -320,9 +321,9 @@ conv5x10u2v2f1:
     v_mov_b32     v[vreg_ly0], v[vreg_local_1]
     v_and_b32     v[vreg_lx1], 3, v[vreg_local_0]
     v_lshlrev_b32 v[vreg_lx1], 1, v[vreg_lx1]
-    v_add_u32     v[vreg_lx1], vcc, 128, v[vreg_lx1]
+   _v_add_co_u32  v[vreg_lx1], vcc, 128, v[vreg_lx1]
     v_lshrrev_b32 v[vreg_ly1], 2, v[vreg_local_0]
-    v_add_u32     v[vreg_tmp0], vcc, 8, v[vreg_ly0]
+   _v_add_co_u32  v[vreg_tmp0], vcc, 8, v[vreg_ly0]
     v_cmp_eq_u32  vcc, 3, v[vreg_local_1]
     v_cndmask_b32 v[vreg_lx1], v[vreg_lx0], v[vreg_lx1], vcc
     v_cndmask_b32 v[vreg_ly1], v[vreg_tmp0], v[vreg_ly1], vcc
@@ -335,10 +336,10 @@ conv5x10u2v2f1:
     s_lshl_b32    s[sreg_sy], s[sreg_dy], 1
     s_sub_u32     s[sreg_sx], s[sreg_sx], 0+pad_w
     s_sub_u32     s[sreg_sy], s[sreg_sy], 0+pad_h
-    v_add_u32     v[vreg_sx0], vcc, s[sreg_sx], v[vreg_lx0]
-    v_add_u32     v[vreg_sy0], vcc, s[sreg_sy], v[vreg_ly0]
-    v_add_u32     v[vreg_sx1], vcc, s[sreg_sx], v[vreg_lx1]
-    v_add_u32     v[vreg_sy1], vcc, s[sreg_sy], v[vreg_ly1]
+   _v_add_co_u32  v[vreg_sx0], vcc, s[sreg_sx], v[vreg_lx0]
+   _v_add_co_u32  v[vreg_sy0], vcc, s[sreg_sy], v[vreg_ly0]
+   _v_add_co_u32  v[vreg_sx1], vcc, s[sreg_sx], v[vreg_lx1]
+   _v_add_co_u32  v[vreg_sy1], vcc, s[sreg_sy], v[vreg_ly1]
     v_max_i32     v[vreg_iinc0], 0, v[vreg_sx0]
     v_max_i32     v[vreg_iinc1], 0, v[vreg_sx1]
     v_lshlrev_b32 v[vreg_iinc0], 2, v[vreg_iinc0]
@@ -495,8 +496,8 @@ loop_channel:
     buffer_load_dwordx2 v[vreg_ival+2:vreg_ival+3], v[vreg_iinc1], s[sreg_wval+0:sreg_wval+3], 0 offen offset:0
     s_mov_b64 exec, -1
     v_mov_b32  v[vreg_ival+4], 0+inp_stride_c
-    v_add_u32  v[vreg_iinc0], vcc, v[vreg_iinc0], v[vreg_ival+4]
-    v_add_u32  v[vreg_iinc1], vcc, v[vreg_iinc1], v[vreg_ival+4]
+   _v_add_co_u32 v[vreg_iinc0], vcc, v[vreg_iinc0], v[vreg_ival+4]
+   _v_add_co_u32 v[vreg_iinc1], vcc, v[vreg_iinc1], v[vreg_ival+4]
 .if padding_enabled
 .if dspl0_enabled
     v_readlane_b32 s[sreg_dspl0vcc+0], v[vreg_save], 0+lane_vreg_save_pl0vcc0
