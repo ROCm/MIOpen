@@ -63,7 +63,7 @@ void mlo_construct_direct2D::setupRocm()
     _search_params.use_binaries        = false;
     _search_params.assembler_available = false;
     _search_params.rmv                 = rocm_meta_version::Default;
-    if(mloIsAmdRocmOpencl(_search_params.rmv))
+    if(mloIsAmdRocm(_search_params.rmv))
     {
         _search_params.assembler_available =
             !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
@@ -201,6 +201,7 @@ static bool IsAmdRocmOpencl(const miopen::ConvolutionContext& context)
     const char* delimiters    = " (),*";                    // Specific for ROCm OCL driver version.
     return IsTokenWithin(driver_version, delimiters, "LC"); // Lightning Compiler.
 }
+#endif // MIOPEN_BACKEND_OPENCL
 
 static std::ostream& operator<<(std::ostream& os, const rocm_meta_version& rmv)
 {
@@ -215,8 +216,9 @@ static std::ostream& operator<<(std::ostream& os, const rocm_meta_version& rmv)
     return os << "<Error>";
 }
 
-static rocm_meta_version DetectAmdRocmOpenclVersion(const miopen::ConvolutionContext& context)
+static rocm_meta_version DetectAmdRocmMetadataVersion(const miopen::ConvolutionContext& context)
 {
+#if MIOPEN_BACKEND_OPENCL
     const auto dev                     = miopen::GetDevice(context.GetStream().GetStream());
     const auto platform                = miopen::GetDeviceInfo<CL_DEVICE_PLATFORM>(dev);
     const std::string platform_version = miopen::GetPlatformInfo<CL_PLATFORM_VERSION>(
@@ -235,25 +237,36 @@ static rocm_meta_version DetectAmdRocmOpenclVersion(const miopen::ConvolutionCon
         else
             rmv = rocm_meta_version::AMDHSA_1_0;
     }
+#else
+    /// \todo Rework this using clang-ocl.
+    (void)context;
+    rocm_meta_version rmv = rocm_meta_version::Default;
+    // Assembler is always available for HIP backend.
+    // ROCm 1.7, which uses AMDHSA_1_0 metadata, does not have bug 34765 in
+    // the assembler. Previous ROCm versions have this bug.
+    if(!GcnAssemblerHasBug34765())
+    {
+        rmv = rocm_meta_version::AMDHSA_1_0;
+    }
+#endif // MIOPEN_BACKEND_OPENCL
     MIOPEN_LOG_I(rmv);
     return rmv;
 }
-#endif // MIOPEN_BACKEND_OPENCL
 
-bool mlo_construct_direct2D::mloIsAmdRocmOpencl(rocm_meta_version& rmv) const
+bool mlo_construct_direct2D::mloIsAmdRocm(rocm_meta_version& rmv) const
 {
+    static const bool ret_bool
 #if MIOPEN_BACKEND_OPENCL
-    static const bool ret_bool = IsAmdRocmOpencl(_search_params);
+        = IsAmdRocmOpencl(_search_params);
+#else
+        = true;
+#endif // MIOPEN_BACKEND_OPENCL
     if(ret_bool)
     {
-        static const rocm_meta_version ret_rmv = DetectAmdRocmOpenclVersion(_search_params);
+        static const rocm_meta_version ret_rmv = DetectAmdRocmMetadataVersion(_search_params);
         rmv                                    = ret_rmv;
     }
     return ret_bool;
-#else
-    (void)rmv; // We don't care about metada version
-    return true;
-#endif // MIOPEN_BACKEND_OPENCL
 }
 
 bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const

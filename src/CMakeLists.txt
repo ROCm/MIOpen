@@ -121,6 +121,13 @@ set( MIOpen_Source
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
+    set(MIOPEN_KERNEL_INCLUDES
+        kernels/inst_wrappers.inc
+        kernels/common.inc
+        kernels/conv_sizes.inc
+        kernels/macro1x1wrw.inc
+        kernels/gpr_alloc.inc)
+
     set(MIOPEN_KERNELS
         kernels/MIOpenCheckNumerics.cl
         kernels/MIOpenBatchNormFwdTrainSpatial.cl
@@ -153,6 +160,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvBwdWrW1x1Mmap.cl
         kernels/MIOpenConvFwd_LxL_11.cl
         kernels/MIOpenConvFFT.cl
+        kernels/bugzilla_34765_detect.s
         kernels/conv3x3.s
         kernels/conv3x3wrw.s
         kernels/conv1x1wrw.s
@@ -240,7 +248,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     add_custom_command(
         OUTPUT ${PROJECT_BINARY_DIR}/include/miopen_kernels.h
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        DEPENDS addkernels ${MIOPEN_KERNELS}
+        DEPENDS addkernels ${MIOPEN_KERNELS} ${MIOPEN_KERNEL_INCLUDES}
         COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -guard GUARD_MIOPEN_KERNELS_HPP_ -target ${PROJECT_BINARY_DIR}/include/miopen_kernels.h -source ${MIOPEN_KERNELS}
         COMMENT "Inlining MIOpen kernels"
         )
