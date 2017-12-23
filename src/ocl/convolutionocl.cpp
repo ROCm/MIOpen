@@ -1694,7 +1694,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         if((std::get<0>(bwd_wrw) == "gcnAsmConv3x3WrW") ||
                            (std::get<0>(bwd_wrw) == "gcnAsmConv1x1WrW"))
                         {
-                            printf(" \n reach cond. 1 \n \n");
                             int unused       = 0;
                             int* return_addr = nullptr;
                             int N, C, H, W, K, n_groups;
@@ -1714,7 +1713,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         }
                         else
                         {
-                            printf(" \n reach cond. 2 \n \n");
                             float padding_val = 0;
                             kernel(dy, x, tmp_dw.get(), padding_val);
                         }
@@ -1761,7 +1759,6 @@ time_direct += handle.GetKernelTime();
 
                                 if((std::get<0>(bwd_wrw_main) == "gcnAsmConv1x1WrW"))
                                 {
-                                    printf(" \n reach cond. 3 \n \n");
                                     auto kernel = handle.GetKernel(
                                         "miopenConvolutionBwdWeightsAlgoDirect_Main1",
                                         network_config,
@@ -1776,15 +1773,6 @@ time_direct += handle.GetKernelTime();
                                     int N, C, H, W, K, n_groups;
                                     construct_params.getCompiledInParameters(
                                         &N, &C, &H, &W, &K, &n_groups);
-                                    printf("1x1 pram  %d  %d  %d  %d  %d  %d       %d  %d \n",
-                                           N,
-                                           C,
-                                           out_h,
-                                           out_w,
-                                           K,
-                                           n_groups,
-                                           H,
-                                           W);
                                     kernel(N,
                                            C,
                                            H,
@@ -1800,7 +1788,6 @@ time_direct += handle.GetKernelTime();
                                 }
                                 else
                                 {
-                                    printf(" \n reach cond. 4 \n \n");
                                     float padding_val = 0;
 
                                     handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main2",
@@ -1816,7 +1803,6 @@ time_direct += handle.GetKernelTime();
                             }
                             else
                             {
-                                printf(" \n reach cond. 5 \n \n");
                                 auto bwd_wrw_main = bwd_wrw_info[0];
 
                                 float padding_val = 0;
@@ -2040,7 +2026,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 int n_steps = construct_params.mloMultiStep();
                 const std::vector<mlo_kernel_info>& bwd_wrw_info =
                     construct_params.getKernelsInfo();
-                printf("steps %d    %d \n", n_steps, bwd_wrw_info.size());
                 handle.ResetKernelTime();
 
                 auto kernel =
@@ -2087,15 +2072,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                             int* return_addr = nullptr;
                             int N, C, H, W, K, n_groups;
                             construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-                            printf("1x1 exe pram  %d  %d  %d  %d  %d  %d       %d  %d \n",
-                                   N,
-                                   C,
-                                   out_h,
-                                   out_w,
-                                   K,
-                                   n_groups,
-                                   H,
-                                   W);
                             handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main1",
                                              network_config)(N,
                                                              C,
