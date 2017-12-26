@@ -38,13 +38,26 @@ enum class FindEnforce
     DbUpdate,
     Search,
     SearchDbUpdate,
-    Clean,
-    Last_    = Clean,
+    DbClean,
+    Last_    = DbClean,
     Default_ = None,
+};
+
+enum class FindEnforceScope
+{
+    First_ = 1, // 0 is returned for non-numeric env.vars.
+    All   = First_,
+    ConvFwd,
+    ConvBwd,
+    ConvWrW,
+    Last_    = ConvWrW,
+    Default_ = All,
 };
 
 FindEnforce GetFindEnforce();
 std::ostream& operator<<(std::ostream&, FindEnforce);
+FindEnforceScope GetFindEnforceScope();
+std::ostream& operator<<(std::ostream&, FindEnforceScope);
 
 } // namespace miopen
 
