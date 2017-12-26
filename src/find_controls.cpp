@@ -37,18 +37,6 @@ namespace miopen {
 
 namespace {
 
-template <typename T>
-bool operator<=(const T& lhs, const int& rhs)
-{
-    return static_cast<int>(lhs) <= rhs;
-}
-
-template <typename T>
-bool operator<=(const int& lhs, const T& rhs)
-{
-    return lhs <= static_cast<int>(rhs);
-}
-
 const char* ToCString(const FindEnforceAction mode)
 {
     switch(mode)
@@ -83,9 +71,9 @@ FindEnforceAction GetFindEnforceActionImpl()
     else
     { // Nop. Fall down & try numerics.
     }
-    const int val = miopen::Value(MIOPEN_FIND_ENFORCE{});
+    const auto val = static_cast<FindEnforceAction>(miopen::Value(MIOPEN_FIND_ENFORCE{}));
     if(FindEnforceAction::First_ <= val && val <= FindEnforceAction::Last_)
-        return static_cast<FindEnforceAction>(val);
+        return val;
     MIOPEN_LOG_E("Wrong MIOPEN_FIND_ENFORCE, using default.");
     return FindEnforceAction::Default_;
 }
@@ -127,9 +115,9 @@ FindEnforceScope GetFindEnforceScopeImpl()
     else
     { // Nop. Fall down & try numerics.
     }
-    const int val = miopen::Value(MIOPEN_FIND_ENFORCE_SCOPE{});
+    const auto val = static_cast<FindEnforceScope>(miopen::Value(MIOPEN_FIND_ENFORCE_SCOPE{}));
     if(FindEnforceScope::First_ <= val && val <= FindEnforceScope::Last_)
-        return static_cast<FindEnforceScope>(val);
+        return val;
     MIOPEN_LOG_E("Wrong MIOPEN_FIND_ENFORCE_SCOPE, using default.");
     return FindEnforceScope::Default_;
 }
