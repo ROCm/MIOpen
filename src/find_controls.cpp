@@ -37,13 +37,13 @@ namespace miopen {
 
 namespace {
 
-template<typename T>
+template <typename T>
 bool operator<=(const T& lhs, const int& rhs)
 {
     return static_cast<int>(lhs) <= rhs;
 }
 
-template<typename T>
+template <typename T>
 bool operator<=(const int& lhs, const T& rhs)
 {
     return lhs <= static_cast<int>(rhs);
@@ -142,9 +142,10 @@ FindEnforceScope GetFindEnforceScope()
 
 } // namespace
 
-FindEnforce GetFindEnforce()
+FindEnforce::FindEnforce()
 {
-    return { GetFindEnforceAction(), GetFindEnforceScope() };
+    action = GetFindEnforceAction();
+    scope  = GetFindEnforceScope();
 }
 
 std::ostream& operator<<(std::ostream& os, const FindEnforce& val)
