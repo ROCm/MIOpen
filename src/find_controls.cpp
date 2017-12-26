@@ -31,17 +31,20 @@
 #include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_ENFORCE)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_ENFORCE_SCOPE)
 
 namespace miopen {
 
 namespace {
 
-inline bool operator<=(const FindEnforce& lhs, const int& rhs)
+template<typename T>
+bool operator<=(const T& lhs, const int& rhs)
 {
     return static_cast<int>(lhs) <= rhs;
 }
 
-inline bool operator<=(const int& lhs, const FindEnforce& rhs)
+template<typename T>
+bool operator<=(const int& lhs, const T& rhs)
 {
     return lhs <= static_cast<int>(rhs);
 }
@@ -54,7 +57,7 @@ const char* FindEnforce2CString(const FindEnforce mode)
     case FindEnforce::DbUpdate: return "DB_UPDATE";
     case FindEnforce::Search: return "SEARCH";
     case FindEnforce::SearchDbUpdate: return "SEARCH_DB_UPDATE";
-    case FindEnforce::Clean: return "CLEAN";
+    case FindEnforce::DbClean: return "CLEAN";
     }
     return "<Unknown>";
 }
@@ -76,7 +79,7 @@ FindEnforce GetFindEnforceImpl()
     else if(str == "SEARCH_DB_UPDATE")
         return FindEnforce::SearchDbUpdate;
     else if(str == "DB_CLEAN")
-        return FindEnforce::Clean;
+        return FindEnforce::DbClean;
     else
     { // Nop. Fall down & try numerics.
     }
@@ -98,6 +101,59 @@ FindEnforce GetFindEnforce()
 std::ostream& operator<<(std::ostream& os, const FindEnforce sm)
 {
     return os << FindEnforce2CString(sm) << " (" << static_cast<int>(sm) << ')';
+}
+
+namespace {
+
+const char* FindEnforceScope2CString(const FindEnforceScope mode)
+{
+    switch(mode)
+    {
+    case FindEnforceScope::All: return "ALL";
+    case FindEnforceScope::ConvFwd: return "CONV_FWD";
+    case FindEnforceScope::ConvBwd: return "CONV_BWD";
+    case FindEnforceScope::ConvWrW: return "CONV_WRW";
+    }
+    return "<Unknown>";
+}
+
+FindEnforceScope GetFindEnforceScopeImpl()
+{
+    const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_ENFORCE_SCOPE{});
+    if(!p_asciz)
+        return FindEnforceScope::Default_;
+    std::string str = p_asciz;
+    for(auto& c : str)
+        c = toupper(static_cast<unsigned char>(c));
+    if(str == "ALL")
+        return FindEnforceScope::All;
+    else if(str == "CONV_FWD")
+        return FindEnforceScope::ConvFwd;
+    else if(str == "CONV_BWD")
+        return FindEnforceScope::ConvBwd;
+    else if(str == "CONV_WRW")
+        return FindEnforceScope::ConvWrW;
+    else
+    { // Nop. Fall down & try numerics.
+    }
+    const int val = miopen::Value(MIOPEN_FIND_ENFORCE_SCOPE{});
+    if(FindEnforceScope::First_ <= val && val <= FindEnforceScope::Last_)
+        return static_cast<FindEnforceScope>(val);
+    MIOPEN_LOG_E("Wrong MIOPEN_FIND_ENFORCE_SCOPE, using default.");
+    return FindEnforceScope::Default_;
+}
+
+} // namespace
+
+FindEnforceScope GetFindEnforceScope()
+{
+    static const FindEnforceScope val = GetFindEnforceScopeImpl();
+    return val;
+}
+
+std::ostream& operator<<(std::ostream& os, const FindEnforceScope sm)
+{
+    return os << FindEnforceScope2CString(sm) << " (" << static_cast<int>(sm) << ')';
 }
 
 } // namespace miopen
