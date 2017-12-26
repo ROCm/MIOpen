@@ -122,55 +122,20 @@ const std::string& SolverDbId(Solver solver)
     return result;
 }
 
-template <class Context>
-bool IsFindEnforceScopeMatch(const Context& context, const FindEnforceScope scope)
-{
-    switch(scope)
-    {
-    case FindEnforceScope::All:     return true;
-    case FindEnforceScope::ConvFwd: return context.direction.IsForward();
-    case FindEnforceScope::ConvBwd: return context.direction.IsBackwardData();
-    case FindEnforceScope::ConvWrW: return context.direction.IsBackwardWrW();
-    }
-    return false;
-}
-
-template <class Context>
-bool IsDbCleanEnforced(const Context& context, const FindEnforce& enforce)
-{
-    return IsFindEnforceScopeMatch(context, enforce.scope) &&
-        enforce.action == FindEnforceAction::DbClean;
-}
-
-template <class Context>
-bool IsSearchEnforced(const Context& context, const FindEnforce& enforce)
-{
-    return IsFindEnforceScopeMatch(context, enforce.scope) &&
-        (enforce.action == FindEnforceAction::Search || enforce.action == FindEnforceAction::SearchDbUpdate);
-}
-
-
-template <class Context>
-bool IsDbUpdateEnforced(const Context& context, const FindEnforce& enforce)
-{
-    return IsFindEnforceScopeMatch(context, enforce.scope) &&
-        (enforce.action == FindEnforceAction::DbUpdate || enforce.action == FindEnforceAction::SearchDbUpdate);
-}
-
 template <class Solver, class Context>
 auto FindSolutionImpl(rank<1>, Solver s, const Context& context, DbRecord& dbRecord)
     -> decltype(s.GetSolution(context, s.Search(context)))
 {
-    const FindEnforce enforce = GetFindEnforce();
+    const FindEnforce enforce;
     MIOPEN_LOG_I(SolverDbId(s));
-    if(IsDbCleanEnforced(context, enforce))
+    if(enforce.IsDbClean(context))
     {
         if(dbRecord.Remove(SolverDbId(s)))
             MIOPEN_LOG_W("Perf Db: record removed: " << SolverDbId(s) << ", enforce: " << enforce);
     }
     else
     {
-        if((context.do_search || IsSearchEnforced(context, enforce)) && IsDbUpdateEnforced(context, enforce))
+        if((context.do_search || enforce.IsSearch(context)) && enforce.IsDbUpdate(context))
         {
             MIOPEN_LOG_W("Perf Db: load skipped: " << SolverDbId(s) << ", enforce: " << enforce);
         }
@@ -190,7 +155,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, DbRecord& dbRec
             }
         }
 
-        if(context.do_search || IsSearchEnforced(context, enforce)) // TODO: Make it a customization point
+        if(context.do_search || enforce.IsSearch(context)) // TODO: Make it a customization point
         {
             MIOPEN_LOG_I("Starting search: " << SolverDbId(s) << ", enforce: " << enforce);
             try

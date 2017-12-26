@@ -46,7 +46,7 @@ enum class FindEnforceAction
 enum class FindEnforceScope
 {
     First_ = 1, // 0 is returned for non-numeric env.vars.
-    All   = First_,
+    All    = First_,
     ConvFwd,
     ConvBwd,
     ConvWrW,
@@ -54,14 +54,50 @@ enum class FindEnforceScope
     Default_ = All,
 };
 
-struct FindEnforce
+class FindEnforce
 {
     FindEnforceAction action;
     FindEnforceScope scope;
-};
 
-FindEnforce GetFindEnforce();
-std::ostream& operator<<(std::ostream&, const FindEnforce&);
+    private:
+    template <class Context>
+    bool IsScopeMatch(const Context& context) const
+    {
+        switch(scope)
+        {
+        case FindEnforceScope::All: return true;
+        case FindEnforceScope::ConvFwd: return context.direction.IsForward();
+        case FindEnforceScope::ConvBwd: return context.direction.IsBackwardData();
+        case FindEnforceScope::ConvWrW: return context.direction.IsBackwardWrW();
+        }
+        return false;
+    }
+
+    public:
+    FindEnforce();
+
+    template <class Context>
+    bool IsDbClean(const Context& context) const
+    {
+        return IsScopeMatch(context) && action == FindEnforceAction::DbClean;
+    }
+
+    template <class Context>
+    bool IsSearch(const Context& context) const
+    {
+        return IsScopeMatch(context) &&
+               (action == FindEnforceAction::Search || action == FindEnforceAction::SearchDbUpdate);
+    }
+
+    template <class Context>
+    bool IsDbUpdate(const Context& context) const
+    {
+        return IsScopeMatch(context) && (action == FindEnforceAction::DbUpdate ||
+                                         action == FindEnforceAction::SearchDbUpdate);
+    }
+
+    friend std::ostream& operator<<(std::ostream&, const FindEnforce&);
+};
 
 } // namespace miopen
 
