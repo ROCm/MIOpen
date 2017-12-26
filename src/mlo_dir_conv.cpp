@@ -232,7 +232,7 @@ static rocm_meta_version DetectAmdRocmMetadataVersion(const miopen::ConvolutionC
             rmv = rocm_meta_version::V1;
         else if(num < 2389) // Switched to V3 somewhere within [2388,2389]
             rmv = rocm_meta_version::V2;
-        else if(num < 2536) // Switched to newer version at 2536 for sure.
+        else if(num < 2535) // Switched to newer version at 2535 for sure.
             rmv = rocm_meta_version::V3;
         else
             rmv = rocm_meta_version::AMDHSA_1_0;
