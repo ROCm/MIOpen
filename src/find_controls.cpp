@@ -49,63 +49,54 @@ bool operator<=(const int& lhs, const T& rhs)
     return lhs <= static_cast<int>(rhs);
 }
 
-const char* FindEnforce2CString(const FindEnforce mode)
+const char* ToCString(const FindEnforceAction mode)
 {
     switch(mode)
     {
-    case FindEnforce::None: return "NONE";
-    case FindEnforce::DbUpdate: return "DB_UPDATE";
-    case FindEnforce::Search: return "SEARCH";
-    case FindEnforce::SearchDbUpdate: return "SEARCH_DB_UPDATE";
-    case FindEnforce::DbClean: return "CLEAN";
+    case FindEnforceAction::None: return "NONE";
+    case FindEnforceAction::DbUpdate: return "DB_UPDATE";
+    case FindEnforceAction::Search: return "SEARCH";
+    case FindEnforceAction::SearchDbUpdate: return "SEARCH_DB_UPDATE";
+    case FindEnforceAction::DbClean: return "CLEAN";
     }
     return "<Unknown>";
 }
 
-FindEnforce GetFindEnforceImpl()
+FindEnforceAction GetFindEnforceActionImpl()
 {
     const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_ENFORCE{});
     if(!p_asciz)
-        return FindEnforce::Default_;
+        return FindEnforceAction::Default_;
     std::string str = p_asciz;
     for(auto& c : str)
         c = toupper(static_cast<unsigned char>(c));
     if(str == "NONE")
-        return FindEnforce::None;
+        return FindEnforceAction::None;
     else if(str == "DB_UPDATE")
-        return FindEnforce::DbUpdate;
+        return FindEnforceAction::DbUpdate;
     else if(str == "SEARCH")
-        return FindEnforce::Search;
+        return FindEnforceAction::Search;
     else if(str == "SEARCH_DB_UPDATE")
-        return FindEnforce::SearchDbUpdate;
+        return FindEnforceAction::SearchDbUpdate;
     else if(str == "DB_CLEAN")
-        return FindEnforce::DbClean;
+        return FindEnforceAction::DbClean;
     else
     { // Nop. Fall down & try numerics.
     }
     const int val = miopen::Value(MIOPEN_FIND_ENFORCE{});
-    if(FindEnforce::First_ <= val && val <= FindEnforce::Last_)
-        return static_cast<FindEnforce>(val);
+    if(FindEnforceAction::First_ <= val && val <= FindEnforceAction::Last_)
+        return static_cast<FindEnforceAction>(val);
     MIOPEN_LOG_E("Wrong MIOPEN_FIND_ENFORCE, using default.");
-    return FindEnforce::Default_;
+    return FindEnforceAction::Default_;
 }
 
-} // namespace
-
-FindEnforce GetFindEnforce()
+FindEnforceAction GetFindEnforceAction()
 {
-    static const FindEnforce val = GetFindEnforceImpl();
+    static const FindEnforceAction val = GetFindEnforceActionImpl();
     return val;
 }
 
-std::ostream& operator<<(std::ostream& os, const FindEnforce sm)
-{
-    return os << FindEnforce2CString(sm) << " (" << static_cast<int>(sm) << ')';
-}
-
-namespace {
-
-const char* FindEnforceScope2CString(const FindEnforceScope mode)
+const char* ToCString(const FindEnforceScope mode)
 {
     switch(mode)
     {
@@ -143,17 +134,23 @@ FindEnforceScope GetFindEnforceScopeImpl()
     return FindEnforceScope::Default_;
 }
 
-} // namespace
-
 FindEnforceScope GetFindEnforceScope()
 {
     static const FindEnforceScope val = GetFindEnforceScopeImpl();
     return val;
 }
 
-std::ostream& operator<<(std::ostream& os, const FindEnforceScope sm)
+} // namespace
+
+FindEnforce GetFindEnforce()
 {
-    return os << FindEnforceScope2CString(sm) << " (" << static_cast<int>(sm) << ')';
+    return { GetFindEnforceAction(), GetFindEnforceScope() };
+}
+
+std::ostream& operator<<(std::ostream& os, const FindEnforce& val)
+{
+    return os << ToCString(val.action) << "(" << static_cast<int>(val.action) << "), "
+              << ToCString(val.scope) << "(" << static_cast<int>(val.scope) << ')';
 }
 
 } // namespace miopen

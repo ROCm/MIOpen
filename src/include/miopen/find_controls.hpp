@@ -31,7 +31,7 @@
 
 namespace miopen {
 
-enum class FindEnforce
+enum class FindEnforceAction
 {
     First_ = 1, // 0 is returned for non-numeric env.vars.
     None   = First_,
@@ -54,10 +54,14 @@ enum class FindEnforceScope
     Default_ = All,
 };
 
+struct FindEnforce
+{
+    FindEnforceAction action;
+    FindEnforceScope scope;
+};
+
 FindEnforce GetFindEnforce();
-std::ostream& operator<<(std::ostream&, FindEnforce);
-FindEnforceScope GetFindEnforceScope();
-std::ostream& operator<<(std::ostream&, FindEnforceScope);
+std::ostream& operator<<(std::ostream&, const FindEnforce&);
 
 } // namespace miopen
 
