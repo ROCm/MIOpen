@@ -228,6 +228,93 @@ auto SearchForSolution(const Context& search_params, miopen::DbRecord dbRecord) 
     return solution;
 }
 
+/// This STL-like container together with corresponding iterator provide access
+/// to a set of all available performance configs for the given problem config.
+///
+/// Implementation does not hold values themselves as these would take too much memory.
+/// The container holds problem config information instead. This info
+/// is required for advancing the iterator to the next valid configuration.
+///
+/// PerformanceConfig type requirements:
+/// - (ctor)()
+///     Constructs an instance with invalid value.
+/// - (ctor)(bool)
+///     Constructs an instance with minimal value.
+/// - SetNextValue()
+///     Advances instance value to the next available value and returns true.
+///     If max value reached, returns false.
+/// - IsValid(const Context& c) const
+///     Checks if instance is valid for the given c.
+///     For convolutions, Context represents a problem configuration.
+/// - operator==(const PerformanceConfig&)
+///     Ordinary semantics.
+template<typename PerformanceConfig, typename Context>
+struct ComputedContainer;
+
+template<typename PerformanceConfig, typename Context>
+class ComputedIterator : public std::iterator<std::input_iterator_tag, PerformanceConfig>
+{
+    PerformanceConfig v;
+    const Context* p; // For Next().
+
+    ComputedIterator& Next()
+    {
+        if(p != nullptr)
+        {
+            do
+            {
+                if(!v.SetNextValue())
+                { // Wraparound, end reached. Iterator is useless from now.
+                    p = nullptr;
+                    break;
+                }
+            } while(!v.IsValid(*p));
+        }
+        return *this;
+    }
+
+    // Implements container's begin()
+    ComputedIterator(const Context& problem) : v(true), p(&problem)
+    {
+        if(!v.IsValid(*p))
+            Next();
+    }
+
+    public:
+    // STL-like iterator shall be default contructible. Also implements container's end()
+    ComputedIterator() : v(), p(nullptr) {}
+    // STL-like iterator shall be copy contructible.
+    ComputedIterator(const ComputedIterator& iter) : v(iter.v), p(iter.p) {}
+
+    ComputedIterator& operator++() { return Next(); }
+    const PerformanceConfig& operator*() const { return v; } /// \todo v shall live in the container!
+    bool operator!=(ComputedIterator const& other) const
+    {
+        if(p == other.p)
+            if(p == nullptr // Ends are always equal.
+               || v == other.v)
+                return false;
+        return true;
+    }
+    
+    friend class ComputedContainer<PerformanceConfig, Context>;
+};
+
+template<typename PerformanceConfig, typename Context>
+class ComputedContainer
+{
+    const Context problem; // Hold a copy to be independent of environment.
+    public:
+    using const_iterator = ComputedIterator<PerformanceConfig, Context>;
+
+    ComputedContainer(const Context& problem_)
+        : problem(problem_)
+    {
+    }
+    const const_iterator begin() const { return { problem }; }
+    const const_iterator end() const { return {}; }
+};
+
 /// Base class for problem solvers.
 ///
 /// Solvers are to be instantiated as const objects and shall not have any variable
@@ -260,10 +347,10 @@ struct SolverBase
     /// Returns true if solution can work on given SW/HW platform (runtime/device)
     /// and provides correct result for the problem config.
     ///
-    /// Every SolverBase which IsApplicable() for some problem config, must be able to
-    /// GetPerformanceConfig() in a way that GetSolution() would return valid
+    /// Every SolverBase which IsApplicable() for some problem config must be able to
+    /// GetPerformanceConfig() so that GetSolution() would return valid
     /// solution for a problem (i.e. convolution). In other words, if a Solution
-    /// says "i'am suitable" for a problem, it agrees to solve the problem correctly.
+    /// says "I'm suitable" for a problem, it agrees to solve that problem correctly.
     bool IsApplicable(const Context&) const { return true; }
 
     /// Legacy euristic method which shall return false when a solution
@@ -279,6 +366,16 @@ struct SolverBase
     /// Searchable solvers provide a GetSolution that takes a Context and PerformanceConfig
     /// ConvSolution GetSolution(const ConvolutionContext& params,
     ///                          const PerformanceConfig& config) const;
+    
+    /// Temporary solver-specific method until we have generic means for running solutions.
+    /// int RunAndMeasureSolution(miopen::Handle& profile_h,
+    ///                          Data_t bot_ocl_buf,
+    ///                          Data_t top_ocl_buf,
+    ///                          Data_t wei_ocl_buf,
+    ///                          Data_t bias_ocl_buf,
+    ///                          const ConvolutionContext& params,
+    ///                          const ConvSolution& solution,
+    ///                          float& elapsed_time) const;
 };
 
 struct ConvAsm3x3U : SolverBase<ConvolutionContext>
@@ -403,13 +500,12 @@ struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirec
     int GetCPerWave() const { assert(chunk_size); return 64 / chunk_size; } // clang-format on
 
     void EuristicInit(const ConvolutionContext& config);
-    bool IsValidRange() const;
+    bool IsValidValue() const;
     bool IsValid(const ConvolutionContext& config) const;
-    // TOOD: Use operator==
     bool IsEqual(const PerformanceConfigAsmDirect3x3WrW& other) const;
     std::string ToString() const;
 
-    friend class VirtualIterator; // Modifies private data when advancing.
+    friend class VirtualIterator3x3WrW; // Modifies private data when advancing.
 };
 
 struct ConvAsmBwdWrW3x3 : SolverBase<ConvolutionContext>
@@ -456,6 +552,9 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
     PerformanceConfigConvAsmBwdWrW1x1() : PerformanceConfigConvAsmBwdWrW1x1(-1, -1, -1, -1, -1, -1)
     {
     }
+    PerformanceConfigConvAsmBwdWrW1x1(bool) : PerformanceConfigConvAsmBwdWrW1x1(1, 1, 1, 1, 1, 1)
+    {
+    }
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -481,13 +580,13 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
     // clang-format on
 
     void EuristicInit(const ConvolutionContext& config);
-    bool IsValidRange() const;
+    bool IsValidValue() const;
+    bool SetNextValue();
     bool IsValid(const ConvolutionContext& config) const;
-    // TOOD: Use operator==
-    bool IsEqual(const PerformanceConfigConvAsmBwdWrW1x1& other) const;
+    bool operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const;
     std::string ToString() const;
 
-    friend class VirtualIteratorWrW1x1; // Modifies private data when advancing.
+//    friend class ComputedIterator<PerformanceConfigConvAsmBwdWrW1x1, ConvolutionContext>;
 };
 
 struct ConvAsmBwdWrW1x1 : SolverBase<ConvolutionContext>
@@ -501,6 +600,14 @@ struct ConvAsmBwdWrW1x1 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsmBwdWrW1x1& config,
                              bool disableConfigOverrideFromEnv = false) const;
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                       Data_t bot_ocl_buf,
+                       Data_t top_ocl_buf,
+                       Data_t wei_ocl_buf,
+                       Data_t bias_ocl_buf,
+                       const ConvolutionContext& params,
+                       const ConvSolution& solution,
+                       float& elapsed_time) const;
 };
 
 struct ConvOclBwdWrW2 : SolverBase<ConvolutionContext>
