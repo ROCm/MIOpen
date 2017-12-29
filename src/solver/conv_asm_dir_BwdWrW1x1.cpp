@@ -60,99 +60,6 @@ class Timer
 
 namespace solver {
 
-/// \todo Factor out this (to generic search implementation)
-class VirtualIteratorWrW1x1;
-
-/// \todo Factor out this (to generic search implementation)
-///
-/// This container (together with corresponding iterator) provies access
-/// to a set of performance configs which, by definition, must be
-/// suitable for the given problem config.
-///
-/// It does not hold values themselves as these would take too much memory
-/// but can be easily computed (and that is what iterator actually does).
-///
-/// The container holds problem config information instead. This info
-/// is required for advancing the iterator to the next valid configuration.
-/// Also it provides const_iterator, begin() and end().
-class VirtualContainer1x1WrW
-{
-    // Valid iterator shall denote an element of a container.
-    const ConvolutionContext& config;
-    friend class VirtualIteratorWrW1x1;
-
-    public:
-    using const_iterator = VirtualIteratorWrW1x1;
-    VirtualContainer1x1WrW(const ConvolutionContext& config_) : config(config_) {}
-    VirtualIteratorWrW1x1 begin() const;
-    VirtualIteratorWrW1x1 end() const;
-};
-
-// Iterator shall advance to the next valid config, i.e. the one which
-// satisfies PerformanceConfig.IsValid(ProblemConfig)
-class VirtualIteratorWrW1x1
-    : public std::iterator<std::input_iterator_tag, PerformanceConfigConvAsmBwdWrW1x1>
-{
-    value_type v; // PerformanceConfigConvAsmBwdWrW1x1
-    const VirtualContainer1x1WrW* container;
-
-    static const value_type& GetMinValue();
-    static const value_type& GetOutOfRangeValue();
-
-    /// Implements begin()
-    VirtualIteratorWrW1x1(const VirtualContainer1x1WrW* container_)
-        : v(GetMinValue()), container(container_)
-    {
-        if(!IsValid())
-            Next();
-    }
-    friend class VirtualContainer1x1WrW; // Passes itself to private ctor in order to construct
-                                         // begin().
-    void Next();
-    bool IsValid();
-
-    public:
-    /// Implementes end() and also serves as a default ctor.
-    VirtualIteratorWrW1x1() : v(GetOutOfRangeValue()), container(nullptr) {}
-
-    bool operator!=(VirtualIteratorWrW1x1 const& other) const;
-    const value_type& operator*() const { return v; }
-    const value_type* operator->() const { return &v; }
-    VirtualIteratorWrW1x1& operator++()
-    {
-        Next();
-        return *this;
-    }
-};
-
-inline VirtualIteratorWrW1x1 VirtualContainer1x1WrW::begin() const { return {this}; }
-
-inline VirtualIteratorWrW1x1 VirtualContainer1x1WrW::end() const { return {}; }
-
-const VirtualIteratorWrW1x1::value_type& VirtualIteratorWrW1x1::GetMinValue()
-{
-    static const value_type val(1, 1, 1, 1, 1, 1);
-    return val;
-}
-
-const VirtualIteratorWrW1x1::value_type& VirtualIteratorWrW1x1::GetOutOfRangeValue()
-{
-    static const value_type val(-1, -1, -1, -1, -1, -1);
-    return val;
-}
-
-inline bool VirtualIteratorWrW1x1::IsValid()
-{
-    if(!container)
-        return false;
-    return v.IsValid(container->config);
-}
-
-inline bool VirtualIteratorWrW1x1::operator!=(VirtualIteratorWrW1x1 const& other) const
-{
-    return !(v.IsEqual(other.v) && container == other.container);
-}
-
 inline static bool Inc_1_2_4_8_16(int& v)
 {
     assert(v == 1 || v == 2 || v == 4 || v == 8 || v == 16);
@@ -184,39 +91,28 @@ inline static bool Inc_1_2_4(int& v)
 
 inline static bool Is_1_2_4(const int& v) { return v == 1 || v == 2 || v == 4; }
 
-void VirtualIteratorWrW1x1::Next()
+bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
 {
-    if(container == nullptr)
-    {
-        v = GetOutOfRangeValue();
-        return;
-    }
+    // Increment with wrap-around:
     do
     {
-        // Increment with wrap-around:
-        do
-        {
-            if(!Inc_1_2_4_8_16(v.c_per_gpr))
-                break;
-            if(!Inc_1_2_4_8_16(v.c_mult))
-                break;
-            if(!Inc_1_2_4_8_16(v.k_per_gpr))
-                break;
-            if(!Inc_1_2_4_8_16(v.k_mult))
-                break;
-            if(++v.read_size <= 4)
-                break;
-            v.read_size = 1;
-            if(!Inc_1_2_4(v.n_per_gpr))
-                break;
-            // All the fields (components) of performance confic have wrapped around.
-            // The next one is not the min (in the allowed range) but a one beyond the end.
-            // Iterator is useless from now.
-            v         = GetOutOfRangeValue();
-            container = nullptr;
-            return;
-        } while(false);
-    } while(!IsValid());
+        if(!Inc_1_2_4_8_16(c_per_gpr))
+            break;
+        if(!Inc_1_2_4_8_16(c_mult))
+            break;
+        if(!Inc_1_2_4_8_16(k_per_gpr))
+            break;
+        if(!Inc_1_2_4_8_16(k_mult))
+            break;
+        if(++read_size <= 4)
+            break;
+        read_size = 1;
+        if(!Inc_1_2_4(n_per_gpr))
+            break;
+        // All the fields (components) of performance confic have wrapped around.
+        return false;
+    } while(false);
+    return true;
 }
 
 PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(
@@ -231,7 +127,7 @@ PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(
 }
 
 inline bool
-PerformanceConfigConvAsmBwdWrW1x1::IsEqual(const PerformanceConfigConvAsmBwdWrW1x1& other) const
+PerformanceConfigConvAsmBwdWrW1x1::operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const
 {
     // clang-format off
     return c_per_gpr == other.c_per_gpr
@@ -242,7 +138,7 @@ PerformanceConfigConvAsmBwdWrW1x1::IsEqual(const PerformanceConfigConvAsmBwdWrW1
         && n_per_gpr == other.n_per_gpr; // clang-format on
 }
 
-bool PerformanceConfigConvAsmBwdWrW1x1::IsValidRange() const
+bool PerformanceConfigConvAsmBwdWrW1x1::IsValidValue() const
 {
     // clang-format off
     return Is_1_2_4_8_16(c_per_gpr)
@@ -255,7 +151,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValidRange() const
 
 bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config) const
 {
-    if(!IsValidRange())
+    if(!IsValidValue())
         return false;
     assert((GetChunkSize() * c_per_gpr) == 16);
     if(!(k_per_gpr <= c_per_gpr))
@@ -349,7 +245,7 @@ ConvAsmBwdWrW1x1::GetPerformanceConfig(const ConvolutionContext& params) const
 bool ConvAsmBwdWrW1x1::IsValidPerformanceConfig(const ConvolutionContext& problem,
                                                 const PerformanceConfigConvAsmBwdWrW1x1& c) const
 {
-    return c.IsValidRange() && c.IsValid(problem);
+    return c.IsValidValue() && c.IsValid(problem);
 }
 
 bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
@@ -568,15 +464,17 @@ class Heartbeat1x1WrW
     }
 };
 
-static int RunSolution(miopen::Handle& profile_h,
+int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
                        Data_t bot_ocl_buf,
                        Data_t top_ocl_buf,
                        Data_t wei_ocl_buf,
+                       Data_t bias_ocl_buf,
                        const ConvolutionContext& params,
                        const ConvSolution& solution,
-                       float& elapsed_time)
+                       float& elapsed_time) const
 {
-    (void)params; // -warning
+    assert(bias_ocl_buf == nullptr);
+    (void)bias_ocl_buf;
     const KernelInfo k_info = solution.construction_params[0];
 #ifdef NDEBUG
     try
@@ -594,13 +492,14 @@ static int RunSolution(miopen::Handle& profile_h,
                                           k_info.comp_options);
         int unused       = 0;
         int* return_addr = nullptr;
-
-        kernel(unused, // N
-               unused, // C
-               unused, // H
-               unused, // W
-               unused, // K
-               unused, // n_groups
+        auto n_groups =
+            static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
+        kernel(params.batch_sz,   // N
+               params.n_outputs,  // C
+               params.out_height, // H
+               params.out_width,  // W
+               params.n_inputs,   // K
+               n_groups,          // n_groups
                unused,
                unused,
                top_ocl_buf,
@@ -626,24 +525,35 @@ InitRandomly(std::vector<float>& vec, const double offset = 0.0, const double fa
         *p++ = static_cast<float>((rand() * (1.0 / RAND_MAX) + offset) * factor);
 }
 
-PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& params) const
+template <class Solver, class Context>
+auto GenericSearch(const Solver s, const Context& context)
+    -> decltype(s.GetPerformanceConfig(context))
 {
-    PerformanceConfigConvAsmBwdWrW1x1 best_config;
+    using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
+    PerformanceConfig best_config;
     miopen::Handle profile_h;
     profile_h.EnableProfiling(true);
 
     // Allocate buffers, init input buffers.
-    std::vector<float> bot(params.bot_sz / sizeof(float));
-    std::vector<float> top(params.top_sz / sizeof(float));
-    std::vector<float> wei(params.weights_sz / sizeof(float));
-    InitRandomly(bot);
-    InitRandomly(top);
+    std::vector<float> bot(context.bot_sz / sizeof(float));
+    std::vector<float> top(context.top_sz / sizeof(float));
+    std::vector<float> wei(context.weights_sz / sizeof(float));
+    std::vector<float> bias(context.bias_sz / sizeof(float));
+    if (!context.direction.IsForward())
+        InitRandomly(bot);
+    if (!context.direction.IsBackwardData())
+        InitRandomly(top);
+    if (!context.direction.IsBackwardWrW())
+        InitRandomly(wei, -0.5, 0.001);
+    if (context.bias)
+        InitRandomly(bias);
     auto bot_ocl_buf = profile_h.Write(bot);
     auto top_ocl_buf = profile_h.Write(top);
     auto wei_ocl_buf = profile_h.Write(wei);
+    auto bias_ocl_buf = context.bias ? profile_h.Write(bias) : nullptr;
 
     int n_runs_total = 0;
-    const VirtualContainer1x1WrW all_configs(params);
+    const ComputedContainer<PerformanceConfig, Context> all_configs(context);
     {
         for(const auto& dummy : all_configs)
         {
@@ -664,16 +574,17 @@ PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionCont
         float elapsed_time;
         MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_runs_total << ' '
                           << current_config);
-        // Smooth the jitter of the measured time.:
-        // If 1st probe isn't worse than the best one by 5%,
-        // then re-run 4 more times and compute average time,
-        // and decide using average vs. the best.
-        auto ret = RunSolution(profile_h,
+        // Smooth the jitter of measurements:
+        // If the 1st probe is NOT too bad (measured time <= 1.05 * best known time),
+        // then re-run it 4 times more and compute average time,
+        // and decide using average of all 5 attempts vs. the best.
+        auto ret = s.RunAndMeasureSolution(profile_h,
                                bot_ocl_buf.get(),
                                top_ocl_buf.get(),
                                wei_ocl_buf.get(),
-                               params,
-                               GetSolution(params, current_config, true),
+                               context.bias ? bias_ocl_buf.get() : nullptr,
+                               context,
+                               s.GetSolution(context, current_config, true),
                                elapsed_time);
         if(ret == 0)
         {
@@ -684,12 +595,13 @@ PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionCont
                 float temp;
                 for(int i = 0; i < 4; ++i)
                 {
-                    ret = RunSolution(profile_h,
+                    ret = s.RunAndMeasureSolution(profile_h,
                                       bot_ocl_buf.get(),
                                       top_ocl_buf.get(),
                                       wei_ocl_buf.get(),
-                                      params,
-                                      GetSolution(params, current_config, true),
+                                      context.bias ? bias_ocl_buf.get() : nullptr,
+                                      context,
+                                      s.GetSolution(context, current_config, true),
                                       temp);
                     if(ret != 0)
                     {
@@ -746,6 +658,12 @@ PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionCont
         MIOPEN_THROW("Search failed for PerformanceConfigConvAsmBwdWrW1x1");
     return best_config;
 }
+
+PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& context) const
+{
+    return GenericSearch(*this, context);
+}
+
 
 } // namespace solver
 } // namespace miopen
