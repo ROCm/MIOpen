@@ -126,8 +126,8 @@ PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(
 {
 }
 
-inline bool
-PerformanceConfigConvAsmBwdWrW1x1::operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const
+inline bool PerformanceConfigConvAsmBwdWrW1x1::
+operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const
 {
     // clang-format off
     return c_per_gpr == other.c_per_gpr
@@ -465,13 +465,13 @@ class Heartbeat1x1WrW
 };
 
 int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
-                       Data_t bot_ocl_buf,
-                       Data_t top_ocl_buf,
-                       Data_t wei_ocl_buf,
-                       Data_t bias_ocl_buf,
-                       const ConvolutionContext& params,
-                       const ConvSolution& solution,
-                       float& elapsed_time) const
+                                            Data_t bot_ocl_buf,
+                                            Data_t top_ocl_buf,
+                                            Data_t wei_ocl_buf,
+                                            Data_t bias_ocl_buf,
+                                            const ConvolutionContext& params,
+                                            const ConvSolution& solution,
+                                            float& elapsed_time) const
 {
     assert(bias_ocl_buf == nullptr);
     (void)bias_ocl_buf;
@@ -494,12 +494,12 @@ int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
         int* return_addr = nullptr;
         auto n_groups =
             static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
-        kernel(params.batch_sz,   // N
-               params.n_outputs,  // C
-               params.out_height, // H
-               params.out_width,  // W
-               params.n_inputs,   // K
-               n_groups,          // n_groups
+        kernel(params.batch_sz,                                        // N
+               params.n_outputs,                                       // C
+               params.out_height,                                      // H
+               params.out_width,                                       // W
+               params.n_inputs,                                        // K
+               n_groups,                                               // n_groups
                unused,
                unused,
                top_ocl_buf,
@@ -539,17 +539,17 @@ auto GenericSearch(const Solver s, const Context& context)
     std::vector<float> top(context.top_sz / sizeof(float));
     std::vector<float> wei(context.weights_sz / sizeof(float));
     std::vector<float> bias(context.bias_sz / sizeof(float));
-    if (!context.direction.IsForward())
+    if(!context.direction.IsForward())
         InitRandomly(bot);
-    if (!context.direction.IsBackwardData())
+    if(!context.direction.IsBackwardData())
         InitRandomly(top);
-    if (!context.direction.IsBackwardWrW())
+    if(!context.direction.IsBackwardWrW())
         InitRandomly(wei, -0.5, 0.001);
-    if (context.bias)
+    if(context.bias)
         InitRandomly(bias);
-    auto bot_ocl_buf = profile_h.Write(bot);
-    auto top_ocl_buf = profile_h.Write(top);
-    auto wei_ocl_buf = profile_h.Write(wei);
+    auto bot_ocl_buf  = profile_h.Write(bot);
+    auto top_ocl_buf  = profile_h.Write(top);
+    auto wei_ocl_buf  = profile_h.Write(wei);
     auto bias_ocl_buf = context.bias ? profile_h.Write(bias) : nullptr;
 
     int n_runs_total = 0;
@@ -579,13 +579,13 @@ auto GenericSearch(const Solver s, const Context& context)
         // then re-run it 4 times more and compute average time,
         // and decide using average of all 5 attempts vs. the best.
         auto ret = s.RunAndMeasureSolution(profile_h,
-                               bot_ocl_buf.get(),
-                               top_ocl_buf.get(),
-                               wei_ocl_buf.get(),
-                               context.bias ? bias_ocl_buf.get() : nullptr,
-                               context,
-                               s.GetSolution(context, current_config, true),
-                               elapsed_time);
+                                           bot_ocl_buf.get(),
+                                           top_ocl_buf.get(),
+                                           wei_ocl_buf.get(),
+                                           context.bias ? bias_ocl_buf.get() : nullptr,
+                                           context,
+                                           s.GetSolution(context, current_config, true),
+                                           elapsed_time);
         if(ret == 0)
         {
             if(elapsed_time / best_time < 1.05f)
@@ -596,13 +596,13 @@ auto GenericSearch(const Solver s, const Context& context)
                 for(int i = 0; i < 4; ++i)
                 {
                     ret = s.RunAndMeasureSolution(profile_h,
-                                      bot_ocl_buf.get(),
-                                      top_ocl_buf.get(),
-                                      wei_ocl_buf.get(),
-                                      context.bias ? bias_ocl_buf.get() : nullptr,
-                                      context,
-                                      s.GetSolution(context, current_config, true),
-                                      temp);
+                                                  bot_ocl_buf.get(),
+                                                  top_ocl_buf.get(),
+                                                  wei_ocl_buf.get(),
+                                                  context.bias ? bias_ocl_buf.get() : nullptr,
+                                                  context,
+                                                  s.GetSolution(context, current_config, true),
+                                                  temp);
                     if(ret != 0)
                     {
                         break;
@@ -663,7 +663,6 @@ PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionCont
 {
     return GenericSearch(*this, context);
 }
-
 
 } // namespace solver
 } // namespace miopen
