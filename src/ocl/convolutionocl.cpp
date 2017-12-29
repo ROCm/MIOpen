@@ -1799,7 +1799,7 @@ time_direct += handle.GetKernelTime();
                                                      std::get<2>(bwd_wrw_main))(
                                         dy, workSpace, tmp_dw.get(), padding_val);
                                 }
-                                time_direct = handle.GetKernelTime();
+                                time_direct += handle.GetKernelTime();
                             }
                             else
                             {
@@ -2023,7 +2023,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
                 std::string network_config;
                 construct_params.mloBuildConf_Key(network_config);
-                int n_steps = construct_params.mloMultiStep();
+                //                int n_steps = construct_params.mloMultiStep();
                 const std::vector<mlo_kernel_info>& bwd_wrw_info =
                     construct_params.getKernelsInfo();
                 handle.ResetKernelTime();
