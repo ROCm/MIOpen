@@ -104,12 +104,14 @@ class VirtualIterator3x3WrW
     static const value_type& GetOutOfRangeValue();
 
     /// Implements begin()
-    VirtualIterator3x3WrW(const VirtualContainer3x3WrW* container_) : v(GetMinValue()), container(container_)
+    VirtualIterator3x3WrW(const VirtualContainer3x3WrW* container_)
+        : v(GetMinValue()), container(container_)
     {
         if(!IsValid())
             Next();
     }
-    friend class VirtualContainer3x3WrW; // Passes itself to private ctor in order to construct begin().
+    friend class VirtualContainer3x3WrW; // Passes itself to private ctor in order to construct
+                                         // begin().
     void Next();
     bool IsValid();
 

@@ -248,10 +248,10 @@ auto SearchForSolution(const Context& search_params, miopen::DbRecord dbRecord) 
 ///     For convolutions, Context represents a problem configuration.
 /// - operator==(const PerformanceConfig&)
 ///     Ordinary semantics.
-template<typename PerformanceConfig, typename Context>
+template <typename PerformanceConfig, typename Context>
 struct ComputedContainer;
 
-template<typename PerformanceConfig, typename Context>
+template <typename PerformanceConfig, typename Context>
 class ComputedIterator : public std::iterator<std::input_iterator_tag, PerformanceConfig>
 {
     PerformanceConfig v;
@@ -287,31 +287,32 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
     ComputedIterator(const ComputedIterator& iter) : v(iter.v), p(iter.p) {}
 
     ComputedIterator& operator++() { return Next(); }
-    const PerformanceConfig& operator*() const { return v; } /// \todo v shall live in the container!
+    const PerformanceConfig& operator*() const
+    {
+        return v;
+    } /// \todo v shall live in the container!
     bool operator!=(ComputedIterator const& other) const
     {
         if(p == other.p)
             if(p == nullptr // Ends are always equal.
-               || v == other.v)
+               ||
+               v == other.v)
                 return false;
         return true;
     }
-    
+
     friend class ComputedContainer<PerformanceConfig, Context>;
 };
 
-template<typename PerformanceConfig, typename Context>
+template <typename PerformanceConfig, typename Context>
 class ComputedContainer
 {
     const Context problem; // Hold a copy to be independent of environment.
     public:
     using const_iterator = ComputedIterator<PerformanceConfig, Context>;
 
-    ComputedContainer(const Context& problem_)
-        : problem(problem_)
-    {
-    }
-    const const_iterator begin() const { return { problem }; }
+    ComputedContainer(const Context& problem_) : problem(problem_) {}
+    const const_iterator begin() const { return {problem}; }
     const const_iterator end() const { return {}; }
 };
 
@@ -366,7 +367,7 @@ struct SolverBase
     /// Searchable solvers provide a GetSolution that takes a Context and PerformanceConfig
     /// ConvSolution GetSolution(const ConvolutionContext& params,
     ///                          const PerformanceConfig& config) const;
-    
+
     /// Temporary solver-specific method until we have generic means for running solutions.
     /// int RunAndMeasureSolution(miopen::Handle& profile_h,
     ///                          Data_t bot_ocl_buf,
@@ -552,9 +553,7 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
     PerformanceConfigConvAsmBwdWrW1x1() : PerformanceConfigConvAsmBwdWrW1x1(-1, -1, -1, -1, -1, -1)
     {
     }
-    PerformanceConfigConvAsmBwdWrW1x1(bool) : PerformanceConfigConvAsmBwdWrW1x1(1, 1, 1, 1, 1, 1)
-    {
-    }
+    PerformanceConfigConvAsmBwdWrW1x1(bool) : PerformanceConfigConvAsmBwdWrW1x1(1, 1, 1, 1, 1, 1) {}
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -585,8 +584,6 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const;
     std::string ToString() const;
-
-//    friend class ComputedIterator<PerformanceConfigConvAsmBwdWrW1x1, ConvolutionContext>;
 };
 
 struct ConvAsmBwdWrW1x1 : SolverBase<ConvolutionContext>
@@ -601,13 +598,13 @@ struct ConvAsmBwdWrW1x1 : SolverBase<ConvolutionContext>
                              const PerformanceConfigConvAsmBwdWrW1x1& config,
                              bool disableConfigOverrideFromEnv = false) const;
     int RunAndMeasureSolution(miopen::Handle& profile_h,
-                       Data_t bot_ocl_buf,
-                       Data_t top_ocl_buf,
-                       Data_t wei_ocl_buf,
-                       Data_t bias_ocl_buf,
-                       const ConvolutionContext& params,
-                       const ConvSolution& solution,
-                       float& elapsed_time) const;
+                              Data_t bot_ocl_buf,
+                              Data_t top_ocl_buf,
+                              Data_t wei_ocl_buf,
+                              Data_t bias_ocl_buf,
+                              const ConvolutionContext& params,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
 };
 
 struct ConvOclBwdWrW2 : SolverBase<ConvolutionContext>
