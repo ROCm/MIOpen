@@ -67,7 +67,7 @@ static bool IsReverseInOutAllowed(const ConvolutionContext& config)
     return config.kernel_stride0 == 1 && config.kernel_stride1 == 1;
 }
 
-class VirtualIterator;
+class VirtualIterator3x3WrW;
 
 /// This container (together with corresponding iterator) provies access
 /// to a set of performance configs which, by definition, must be
@@ -79,83 +79,83 @@ class VirtualIterator;
 /// The container holds problem config information instead. This info
 /// is required for advancing the iterator to the next valid configuration.
 /// Also it provides const_iterator, begin() and end().
-class VirtualContainer
+class VirtualContainer3x3WrW
 {
     // Valid iterator shall denote an element of a container.
     const ConvolutionContext& config;
-    friend class VirtualIterator;
+    friend class VirtualIterator3x3WrW;
 
     public:
-    using const_iterator = VirtualIterator;
-    VirtualContainer(const ConvolutionContext& config_) : config(config_) {}
-    VirtualIterator begin() const;
-    VirtualIterator end() const;
+    using const_iterator = VirtualIterator3x3WrW;
+    VirtualContainer3x3WrW(const ConvolutionContext& config_) : config(config_) {}
+    VirtualIterator3x3WrW begin() const;
+    VirtualIterator3x3WrW end() const;
 };
 
 // Iterator shall advance to the next valid config, i.e. the one which
 // satisfies PerformanceConfig.IsValid(ProblemConfig)
-class VirtualIterator
+class VirtualIterator3x3WrW
     : public std::iterator<std::input_iterator_tag, PerformanceConfigAsmDirect3x3WrW>
 {
     value_type v; // PerformanceConfigAsmDirect3x3WrW
-    const VirtualContainer* container;
+    const VirtualContainer3x3WrW* container;
 
     static const value_type& GetMinValue();
     static const value_type& GetOutOfRangeValue();
 
     /// Implements begin()
-    VirtualIterator(const VirtualContainer* container_) : v(GetMinValue()), container(container_)
+    VirtualIterator3x3WrW(const VirtualContainer3x3WrW* container_) : v(GetMinValue()), container(container_)
     {
         if(!IsValid())
             Next();
     }
-    friend class VirtualContainer; // Passes itself to private ctor in order to construct begin().
+    friend class VirtualContainer3x3WrW; // Passes itself to private ctor in order to construct begin().
     void Next();
     bool IsValid();
 
     public:
     /// Implementes end() and also serves as a default ctor.
-    VirtualIterator() : v(GetOutOfRangeValue()), container(nullptr) {}
+    VirtualIterator3x3WrW() : v(GetOutOfRangeValue()), container(nullptr) {}
 
-    bool operator!=(VirtualIterator const& other) const;
+    bool operator!=(VirtualIterator3x3WrW const& other) const;
     const value_type& operator*() const { return v; }
     const value_type* operator->() const { return &v; }
-    VirtualIterator& operator++()
+    VirtualIterator3x3WrW& operator++()
     {
         Next();
         return *this;
     }
 };
 
-inline VirtualIterator VirtualContainer::begin() const { return {this}; }
+inline VirtualIterator3x3WrW VirtualContainer3x3WrW::begin() const { return {this}; }
 
-inline VirtualIterator VirtualContainer::end() const { return {}; }
+inline VirtualIterator3x3WrW VirtualContainer3x3WrW::end() const { return {}; }
 
-const VirtualIterator::value_type& VirtualIterator::GetMinValue()
+const VirtualIterator3x3WrW::value_type& VirtualIterator3x3WrW::GetMinValue()
 {
     static const value_type val(0, 0, 8, 1, 1, 1);
     return val;
 }
 
-const VirtualIterator::value_type& VirtualIterator::GetOutOfRangeValue()
+const VirtualIterator3x3WrW::value_type& VirtualIterator3x3WrW::GetOutOfRangeValue()
 {
     static const value_type val(-1, -1, -1, -1, -1, -1);
     return val;
 }
 
-inline bool VirtualIterator::IsValid()
+inline bool VirtualIterator3x3WrW::IsValid()
 {
     if(!container)
         return false;
     return v.IsValid(container->config);
 }
 
-inline bool VirtualIterator::operator!=(VirtualIterator const& other) const
+inline bool VirtualIterator3x3WrW::operator!=(VirtualIterator3x3WrW const& other) const
 {
     return !(v.IsEqual(other.v) && container == other.container);
 }
 
-void VirtualIterator::Next()
+void VirtualIterator3x3WrW::Next()
 {
     if(container == nullptr)
     {
@@ -238,7 +238,7 @@ PerformanceConfigAsmDirect3x3WrW::IsEqual(const PerformanceConfigAsmDirect3x3WrW
            pipe_lines_depth == other.pipe_lines_depth && n_per_group == other.n_per_group;
 }
 
-bool PerformanceConfigAsmDirect3x3WrW::IsValidRange() const
+bool PerformanceConfigAsmDirect3x3WrW::IsValidValue() const
 {
     return (0 <= limit_wave_cnt && limit_wave_cnt <= 9) &&
            (0 <= reverse_inout && reverse_inout <= 1) && (8 == chunk_size || 16 == chunk_size) &&
@@ -249,7 +249,7 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValidRange() const
 
 bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config) const
 {
-    if(!IsValidRange())
+    if(!IsValidValue())
         return false;
     assert(chunk_size != 0);
     if((config.n_outputs % (64 / chunk_size) != 0) && (config.n_inputs % (64 / chunk_size) != 0))
@@ -426,7 +426,7 @@ ConvAsmBwdWrW3x3::GetPerformanceConfig(const ConvolutionContext& params) const
 bool ConvAsmBwdWrW3x3::IsValidPerformanceConfig(const ConvolutionContext& problem,
                                                 const PerformanceConfigAsmDirect3x3WrW& c) const
 {
-    return c.IsValidRange() && c.IsValid(problem);
+    return c.IsValidValue() && c.IsValid(problem);
 }
 
 bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
@@ -559,7 +559,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
-class Heartbeat
+class Heartbeat3x3WrW
 {
     size_t n_within_beat;
     size_t n_best;
@@ -576,7 +576,7 @@ class Heartbeat
     }
 
     public:
-    Heartbeat() : n_within_beat(), n_best(), best_time(), elapsed_cumulative() {}
+    Heartbeat3x3WrW() : n_within_beat(), n_best(), best_time(), elapsed_cumulative() {}
 
     void Start()
     {
@@ -699,7 +699,7 @@ PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ConvolutionConte
     auto wei_ocl_buf = profile_h.Write(wei);
 
     int n_runs_total = 0;
-    const VirtualContainer all_configs(params);
+    const VirtualContainer3x3WrW all_configs(params);
     {
         for(const auto& dummy : all_configs)
         {
@@ -713,7 +713,7 @@ PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ConvolutionConte
     size_t n_failed  = 0;
     size_t n_current = 0;
     size_t n_best    = 0;
-    Heartbeat heartbeat;
+    Heartbeat3x3WrW heartbeat;
     heartbeat.Start();
     for(const auto& current_config : all_configs)
     {
