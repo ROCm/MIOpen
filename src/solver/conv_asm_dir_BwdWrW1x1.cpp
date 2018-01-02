@@ -426,7 +426,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     ConvSolution result;
     std::ostringstream options;
 
-	assert(params.pad1 == 0 && params.pad0 == 0);
+    assert(params.pad1 == 0 && params.pad0 == 0);
     if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
     {
 
@@ -447,7 +447,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     int out_stride         = params.in_stride;
 
     int out_pad_width = params.in_width;
-    int write_unit = (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0)
+    int write_unit    = (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0)
                                                         ? 3
                                                         : (out_pad_width % 2 == 0) ? 2 : 1;
     int n_grp0_size0 = 256;
@@ -504,7 +504,8 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
         result.construction_params.push_back(kernel);
 
-		assert(params.out_data_type == "FP16" || params.out_data_type == "FP32" || params.out_data_type == "FP64");
+        assert(params.out_data_type == "FP16" || params.out_data_type == "FP32" ||
+               params.out_data_type == "FP64");
         int data_len =
             (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
         result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
