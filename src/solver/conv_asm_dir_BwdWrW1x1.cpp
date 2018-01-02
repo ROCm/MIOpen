@@ -377,18 +377,9 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     // clang-format off
     bool ok = (params.pad0 == 0          // -q  pad_w
         && params.pad1 == 0             // -p  pad_h
-        && params.kernel_stride0 == 1   // -u  stride_w
-        && params.kernel_stride1 == 1   // -v  stride_h
-        && params.kernel_size0 == 1     // -x  S wei_w
-        && params.kernel_size1 == 1     // -y  R wei_h
-        && params.kernel_dilation0 == 1
-        && params.kernel_dilation1 == 1
-        && params.bias == 0
-        && params.in_layout == "NCHW")
-        || (params.pad0 == 0          // -q  pad_w
-        && params.pad1 == 0             // -p  pad_h
-        && params.kernel_stride0 == 2   // -u  stride_w
-        && params.kernel_stride1 == 2   // -v  stride_h
+        && params.kernel_stride0 <= 2   // -u  stride_w
+        && params.kernel_stride1 <= 2   // -v  stride_h
+		&& params.kernel_stride0 == params.kernel_stride1
         && params.kernel_size0 == 1     // -x  S wei_w
         && params.kernel_size1 == 1     // -y  R wei_h
         && params.kernel_dilation0 == 1
@@ -435,17 +426,13 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     ConvSolution result;
     std::ostringstream options;
 
-#if 1
-    //	if ((params.batch_sz >= 16 || 2 * params.n_outputs > params.n_inputs) && params.pad1 == 0 &&
-    //		params.pad0 == 0 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
-    if(params.pad1 == 0 && params.pad0 == 0 &&
-       (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
+	assert(params.pad1 == 0 && params.pad0 == 0);
+    if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
     {
 
         result.passes = 2;
     }
     else
-#endif
     {
         result.passes = 1;
     }
@@ -460,18 +447,6 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     int out_stride         = params.in_stride;
 
     int out_pad_width = params.in_width;
-    int in_pad_min_x  = 0;
-
-    if(params.pad0 > 0)
-    {
-        in_pad_min_x = params.kernel_stride0 - (params.pad0 % params.kernel_stride0);
-        // In case PAD == STRIDE
-        in_pad_min_x = in_pad_min_x % params.kernel_stride0;
-
-        out_pad_width =
-            (params.out_width - in_pad_min_x + params.kernel_stride0 - 1) / params.kernel_stride0;
-    }
-
     int write_unit = (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0)
                                                         ? 3
                                                         : (out_pad_width % 2 == 0) ? 2 : 1;
@@ -489,7 +464,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         return result;
     }
 
-    const auto comp_options =
+    const auto subsample_kernel_compilation_options =
         std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
         std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
         std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(kernel0_stride0) +
@@ -505,8 +480,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
     result.workspce_sz = 0;
 
-    if(result.passes > 1 && params.pad1 == 0 && params.pad0 == 0 &&
-       (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
+    if(result.passes > 1 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
     {
         KernelInfo kernel;
 
@@ -526,10 +500,11 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
         kernel.kernel_name = "SubSample";
 
-        kernel.comp_options = comp_options;
+        kernel.comp_options = subsample_kernel_compilation_options;
 
         result.construction_params.push_back(kernel);
 
+		assert(params.out_data_type == "FP16" || params.out_data_type == "FP32" || params.out_data_type == "FP64");
         int data_len =
             (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
         result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
@@ -548,8 +523,6 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     }
 
     GenerateClangDefsym(options, "batch_size", params.batch_sz); // N
-    //    GenerateClangDefsym(options, "img_h", params.out_height);    // H
-    //    GenerateClangDefsym(options, "img_w", params.out_width);     // W
     // Note that params.n_outputs and params.n_inputs are swapped for backward convolutions.
     GenerateClangDefsym(options, "input_channels", params.n_outputs); // C
     GenerateClangDefsym(options, "output_channels", params.n_inputs); // K
@@ -557,8 +530,6 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "wei_w", params.kernel_size0);       // S
     GenerateClangDefsym(options, "pad_h", params.pad1);
     GenerateClangDefsym(options, "pad_w", params.pad0);
-    //    GenerateClangDefsym(options, "stride_h", params.kernel_stride1);
-    //    GenerateClangDefsym(options, "stride_w", params.kernel_stride0);
     GenerateClangDefsym(options, "weights_layout", 0);
     GenerateClangDefsym(options, "reverse_weights", 0);
     GenerateClangDefsym(
@@ -700,7 +671,6 @@ static int RunSolution(miopen::Handle& profile_h,
                        float& elapsed_time)
 {
     (void)params; // -warning
-                  //    const KernelInfo k_info = solution.construction_params[0];
     const KernelInfo k_info = solution.construction_params.back();
 #ifdef NDEBUG
     try

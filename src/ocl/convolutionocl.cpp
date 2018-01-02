@@ -1730,23 +1730,10 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                             auto bwd_wrw = bwd_wrw_info[0];
 
                             // bwd stride 2
-                            //                            if(std::get<0>(bwd_wrw) ==
-                            //                            "MIOpenSubsample")
                             if(std::get<0>(bwd_wrw) == "SubSample")
                             {
                                 auto bwd_wrw_sub = bwd_wrw_info[0];
                                 // subsampling
-                                /*
-handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
-                 network_config,
-                 std::get<1>(bwd_wrw_sub),
-                 std::get<0>(bwd_wrw_sub),
-                 std::get<4>(bwd_wrw_sub),
-                 std::get<3>(bwd_wrw_sub),
-                 std::get<2>(bwd_wrw_sub))(x, workSpace);
-time_direct += handle.GetKernelTime();
-                                */
-
                                 float time_sub = 0;
                                 time_sub =
                                     SubSampleGPU(handle, bwd_wrw_sub, network_config, x, workSpace);
@@ -2055,7 +2042,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                         MIOPEN_THROW("Workspace is required");
                     }
 
-                    //                   if(kernel.GetName() == "MIOpenSubsample")
                     if(kernel.GetName() == "SubSample")
                     {
                         // subsampling kernel
