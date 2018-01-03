@@ -59,14 +59,6 @@
 #define MLO_LRN_GROUP_SZ (MLO_LRN_GROUP_SZ2 * MLO_LRN_GROUP_SZ1 * MLO_LRN_GROUP_SZ0)
 //#define MLO_LRN_PREPAD_SZ (MLO_LRN_KERNEL_SZ - 1)/2
 
-struct LRNForwardParam
-{
-    _FLOAT alphaoverarea;
-    _FLOAT alpha;
-    _FLOAT beta;
-    _FLOAT K;
-};
-
 static inline int iDiv(int v, int d)
 {
     int r = (int)((float)v / d + 0.00001f);
@@ -85,13 +77,11 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
 #if MLO_LRN_DO_SCALE
                           __global _FLOAT* scale,
 #endif
-                          struct LRNForwardParam Param)
+                          _FLOAT alphaoverarea,
+                          UNUSED _FLOAT alpha,
+                          _FLOAT beta,
+                          _FLOAT K)
 {
-
-    _FLOAT alphaoverarea = Param.alphaoverarea;
-    UNUSED _FLOAT alpha  = Param.alpha;
-    _FLOAT beta          = Param.beta;
-    _FLOAT K             = Param.K;
     // IT's taken from POOLING AVE with stride = 1'
     __local _FLOAT bot_data[MLO_LRN_LCL_DATA_WIDTH * MLO_LRN_LCL_DATA_HEIGHT];
     int x       = get_group_id(0) * MLO_LRN_GROUP_SZ0 * MLO_LRN_N_HORIZ_OUT_PIX;
@@ -421,13 +411,11 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
 #if MLO_LRN_DO_SCALE
                          __global _FLOAT* scale,
 #endif
-                         struct LRNForwardParam Param)
+                         _FLOAT alphaoverarea,
+                         UNUSED _FLOAT alpha,
+                         _FLOAT beta,
+                         _FLOAT K)
 {
-
-    _FLOAT alphaoverarea = Param.alphaoverarea;
-    UNUSED _FLOAT alpha  = Param.alpha;
-    _FLOAT beta          = Param.beta;
-    _FLOAT K             = Param.K;
     int pix_id           = get_global_id(0); //
     int b                = get_global_id(2); // batch
     MLO_READ_TYPE accum  = 0;
