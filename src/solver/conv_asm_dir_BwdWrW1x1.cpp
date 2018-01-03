@@ -437,24 +437,16 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         result.passes = 1;
     }
 
-    if(params.n_passes)
-    {
-
-        return result;
-    }
-
     result.workspce_sz = 0;
 
     if(result.passes > 1 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
     {
 
-        // subsampled input
-        int in_height = (result.passes > 1) ? params.in_height : params.out_height;
-        int in_stride = (result.passes > 1) ? params.in_stride : params.out_stride;
-        int in_channel_stride =
-            (result.passes > 1) ? in_stride * in_height : params.out_channel_stride;
-        int in_batch_stride =
-            (result.passes > 1) ? in_channel_stride * params.n_outputs : params.out_batch_stride;
+        // subsampled input, in_height equals to image size after downsampling
+        int in_height          = params.in_height;
+        int in_stride          = params.in_stride;
+        int in_channel_stride  = in_stride * in_height;
+        int in_batch_stride    = in_channel_stride * params.n_outputs;
         int out_channel_stride = params.in_channel_stride;
         int out_stride         = params.in_stride;
 
@@ -512,6 +504,8 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
             (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
         result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
 
+        // Note that params.in_height/params.in_width are swapped for output size when initialized
+        // in mlo_internal.hpp for backward convolutions
         GenerateClangDefsym(options, "img_h", params.in_height); // H
         GenerateClangDefsym(options, "img_w", params.in_width);  // W
         GenerateClangDefsym(options, "stride_h", 1);
@@ -519,6 +513,8 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     }
     else
     {
+        // Note that params.out_height/params.out_width are swapped for input size when initialized
+        // in mlo_internal.hpp for backward convolutions
         GenerateClangDefsym(options, "img_h", params.out_height); // H
         GenerateClangDefsym(options, "img_w", params.out_width);  // W
         GenerateClangDefsym(options, "stride_h", params.kernel_stride1);
