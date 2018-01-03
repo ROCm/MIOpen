@@ -379,7 +379,7 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         && params.pad1 == 0             // -p  pad_h
         && params.kernel_stride0 <= 2   // -u  stride_w
         && params.kernel_stride1 <= 2   // -v  stride_h
-		&& params.kernel_stride0 == params.kernel_stride1
+	&& params.kernel_stride0 == params.kernel_stride1
         && params.kernel_size0 == 1     // -x  S wei_w
         && params.kernel_size1 == 1     // -y  R wei_h
         && params.kernel_dilation0 == 1
@@ -437,51 +437,53 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         result.passes = 1;
     }
 
-    // subsampled input
-    int in_height         = (result.passes > 1) ? params.in_height : params.out_height;
-    int in_stride         = (result.passes > 1) ? params.in_stride : params.out_stride;
-    int in_channel_stride = (result.passes > 1) ? in_stride * in_height : params.out_channel_stride;
-    int in_batch_stride =
-        (result.passes > 1) ? in_channel_stride * params.n_outputs : params.out_batch_stride;
-    int out_channel_stride = params.in_channel_stride;
-    int out_stride         = params.in_stride;
-
-    int out_pad_width = params.in_width;
-    int write_unit    = (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0)
-                                                        ? 3
-                                                        : (out_pad_width % 2 == 0) ? 2 : 1;
-    int n_grp0_size0 = 256;
-    // real input strides
-    int in0_stride         = params.out_stride;
-    int in0_channel_stride = params.out_channel_stride;
-    int in0_batch_stride   = params.out_batch_stride;
-    int kernel0_stride0    = params.kernel_stride0;
-    int kernel0_stride1    = params.kernel_stride1;
-
     if(params.n_passes)
     {
 
         return result;
     }
 
-    const auto subsample_kernel_compilation_options =
-        std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
-        std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
-        std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(kernel0_stride0) +
-        std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(kernel0_stride1) +
-        std::string(" -DMLO_WRITE_UNIT=") + std::to_string(write_unit) +
-        std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(out_channel_stride) +
-        std::string(" -DMLO_OUT_STRIDE=") + std::to_string(out_stride) +
-        std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(in_batch_stride) +
-        std::string(" -DMLO_IN0_BATCH_STRIDE=") + std::to_string(in0_batch_stride) +
-        std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(in0_channel_stride) +
-        std::string(" -DMLO_IN0_STRIDE=") + std::to_string(in0_stride) +
-        params.general_compile_options;
-
     result.workspce_sz = 0;
 
     if(result.passes > 1 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
     {
+
+        // subsampled input
+        int in_height = (result.passes > 1) ? params.in_height : params.out_height;
+        int in_stride = (result.passes > 1) ? params.in_stride : params.out_stride;
+        int in_channel_stride =
+            (result.passes > 1) ? in_stride * in_height : params.out_channel_stride;
+        int in_batch_stride =
+            (result.passes > 1) ? in_channel_stride * params.n_outputs : params.out_batch_stride;
+        int out_channel_stride = params.in_channel_stride;
+        int out_stride         = params.in_stride;
+
+        int out_pad_width = params.in_width;
+        int write_unit    = (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0)
+                                                            ? 3
+                                                            : (out_pad_width % 2 == 0) ? 2 : 1;
+        int n_grp0_size0 = 256;
+        // real input strides
+        int in0_stride         = params.out_stride;
+        int in0_channel_stride = params.out_channel_stride;
+        int in0_batch_stride   = params.out_batch_stride;
+        int kernel0_stride0    = params.kernel_stride0;
+        int kernel0_stride1    = params.kernel_stride1;
+
+        const auto subsample_kernel_compilation_options =
+            std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
+            std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
+            std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(kernel0_stride0) +
+            std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(kernel0_stride1) +
+            std::string(" -DMLO_WRITE_UNIT=") + std::to_string(write_unit) +
+            std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(out_channel_stride) +
+            std::string(" -DMLO_OUT_STRIDE=") + std::to_string(out_stride) +
+            std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(in_batch_stride) +
+            std::string(" -DMLO_IN0_BATCH_STRIDE=") + std::to_string(in0_batch_stride) +
+            std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(in0_channel_stride) +
+            std::string(" -DMLO_IN0_STRIDE=") + std::to_string(in0_stride) +
+            params.general_compile_options;
+
         KernelInfo kernel;
 
         kernel.l_wk.push_back(n_grp0_size0);
