@@ -180,8 +180,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
             {
 <<<<<<< HEAD
-#if MIOPEN_USE_FP32 == 1
-                dat[j][i] = in_ptr[gbl_in_off1 + i];
+                #if MIOPEN_USE_FP32 == 1 dat[j][i] = in_ptr[gbl_in_off1 + i];
 #endif
 #if MIOPEN_USE_FP16 == 1
                 dat[j * MLO_READ_UNIT + i] = in_ptr[gbl_in_off1 + i];
@@ -189,8 +188,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 =======
                 dat[j][i] = *(p + i);
 >>>>>>> develop
-#if DBG_OUT_OF_RNGE
-                if(gbl_in_off1 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+                #if DBG_OUT_OF_RNGE if(gbl_in_off1 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
                 {
                     printf("K:oor: inputs\n");
                 }
@@ -226,8 +224,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
         for(uint i = 0; i < MLO_READ_UNIT; ++i)
         {
 <<<<<<< HEAD
-#if MIOPEN_USE_FP32 == 1
-            out_ptr[gbl_out_off1 + i] = accum[o][i];
+            #if MIOPEN_USE_FP32 == 1 out_ptr[gbl_out_off1 + i] = accum[o][i];
 #endif
 #if MIOPEN_USE_FP16 == 1
             out_ptr[gbl_out_off1 + i] = accum[o * MLO_READ_UNIT + i];

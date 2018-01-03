@@ -134,7 +134,7 @@ mloPoolingG(const __global _FLOAT* bot,
                            : false;
             bot_data[j][i] = (vis) ? bot[bot_gbl_off] :
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-                                  -MAX_VAL
+                                   -MAX_VAL
 #elif MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
                                    0
 #endif

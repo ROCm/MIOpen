@@ -470,8 +470,7 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
                 UNUSED _FLOAT diff_scale,
                 UNUSED _FLOAT power,
                 _FLOAT scale,
-                UNUSED _FLOAT shift
-                const long dxOffset,
+                UNUSED _FLOAT shift const long dxOffset,
                 const long dyOffset,
                 const long xOffset,
                 const long yOffset)
