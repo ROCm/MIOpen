@@ -59,21 +59,6 @@
 //#define MLO_NEURON_LINEAR		MLO_NEURON_SQR	+ 1			//	a + b * x
 #define MLO_NEURON_TOTAL MLO_NEURON_POWER + 1
 
-struct ActivationForwardParam
-{
-    _FLOAT power;
-    _FLOAT scale;
-    _FLOAT shift;
-};
-
-struct ActivationBackwardParam
-{
-    _FLOAT diff_scale;
-    _FLOAT power;
-    _FLOAT scale;
-    _FLOAT shift;
-};
-
 __attribute__((always_inline)) void ActivationFunction_PassThru(_FLOAT* res, const _FLOAT* data)
 {
     for(int i = 0; i < 4; i++)
@@ -335,11 +320,8 @@ __attribute__((reqd_work_group_size(MLO_NRN_GROUP_SZ0, MLO_NRN_GROUP_SZ1, MLO_NR
 __kernel void
 MIOpenNeuronFwd(const __global _FLOAT* bot,
                 __global _FLOAT* top,
-                struct ActivationForwardParam Param)
+                _FLOAT power, _FLOAT scale, _FLOAT shift)
 {
-    _FLOAT power = Param.power;
-    _FLOAT scale = Param.scale;
-    _FLOAT shift = Param.shift;
     int x        = get_global_id(0); // channel x
 
     _FLOAT data[MLO_READ_UNIT];
@@ -392,13 +374,11 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
                 __global const _FLOAT* top_diff,
                 __global const _FLOAT* bot_data,
                 __global const _FLOAT* top_data,
-                struct ActivationBackwardParam Param)
+                UNUSED _FLOAT diff_scale,
+                UNUSED _FLOAT power,
+                _FLOAT scale,
+                UNUSED _FLOAT shift)
 {
-
-    UNUSED _FLOAT diff_scale = Param.diff_scale;
-    UNUSED _FLOAT power      = Param.power;
-    _FLOAT scale             = Param.scale;
-    UNUSED _FLOAT shift      = Param.shift;
 
     int x = get_global_id(0); // channel x
 

@@ -432,3 +432,97 @@ size_t mlo_construct_direct2D::setInputDescFromMLDesc(const miopen::TensorDescri
 
     return input_sz;
 }
+
+size_t mlo_construct_direct2D::setTopDescFromMLDesc(const miopen::TensorDescriptor& tensor)
+{
+    int nIn;
+    int cIn;
+    int hIn;
+    int wIn;
+    int nInStride;
+    int cInStride;
+    int hInStride;
+    int wInStride;
+
+    std::tie(nIn, cIn, hIn, wIn) = miopen::tien<4>(tensor.GetLengths());
+    std::tie(nInStride, cInStride, hInStride, wInStride) =
+        miopen::tien<4>(tensor.GetStrides());
+
+    std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
+
+    setBotDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+
+    size_t input_sz = nIn * cIn * hIn * wIn * sizeof(float);
+
+    return input_sz;
+}
+size_t mlo_construct_direct2D::setBotDescFromMLDesc(const miopen::TensorDescriptor& tensor)
+{
+    int nIn;
+    int cIn;
+    int hIn;
+    int wIn;
+    int nInStride;
+    int cInStride;
+    int hInStride;
+    int wInStride;
+
+    std::tie(nIn, cIn, hIn, wIn) = miopen::tien<4>(tensor.GetLengths());
+    std::tie(nInStride, cInStride, hInStride, wInStride) =
+        miopen::tien<4>(tensor.GetStrides());
+
+    std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
+
+    setTopDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+
+    size_t input_sz = nIn * cIn * hIn * wIn * sizeof(float);
+
+    return input_sz;
+}
+
+size_t mlo_construct_direct2D::setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
+{
+    int nIn;
+    int cIn;
+    int hIn;
+    int wIn;
+    int nInStride;
+    int cInStride;
+    int hInStride;
+    int wInStride;
+
+    std::tie(nIn, cIn, hIn, wIn) = miopen::tien<4>(tensor.GetLengths());
+    std::tie(nInStride, cInStride, hInStride, wInStride) =
+        miopen::tien<4>(tensor.GetStrides());
+
+    std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
+
+    setBotDfDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+
+    size_t input_sz = nIn * cIn * hIn * wIn * sizeof(float);
+
+    return input_sz;
+}
+size_t mlo_construct_direct2D::setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
+{
+    int nIn;
+    int cIn;
+    int hIn;
+    int wIn;
+    int nInStride;
+    int cInStride;
+    int hInStride;
+    int wInStride;
+
+    std::tie(nIn, cIn, hIn, wIn) = miopen::tien<4>(tensor.GetLengths());
+    std::tie(nInStride, cInStride, hInStride, wInStride) =
+        miopen::tien<4>(tensor.GetStrides());
+
+    std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
+
+    setTopDfDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+
+    size_t input_sz = nIn * cIn * hIn * wIn * sizeof(float);
+
+    return input_sz;
+}

@@ -51,21 +51,6 @@
 #define MLO_LRN_GROUP_SZ (MLO_LRN_GROUP_SZ2 * MLO_LRN_GROUP_SZ1 * MLO_LRN_GROUP_SZ0)
 //#define MLO_LRN_PREPAD_SZ (MLO_LRN_KERNEL_SZ - 1)/2
 
-struct LRNForwardParam
-{
-    _FLOAT alphaoverarea;
-    _FLOAT alpha;
-    _FLOAT beta;
-    _FLOAT K;
-};
-
-struct LRNBackwardParam
-{
-    _FLOAT ratio;
-    _FLOAT alpha;
-    _FLOAT beta;
-};
-
 /*
 
 This is a naive implementation.
@@ -80,11 +65,10 @@ MIOpenLRNWithinChannelBwd(const __global _FLOAT* top,
                           const __global _FLOAT* top_df,
                           const __global _FLOAT* scale,
                           __global _FLOAT* bot_df,
-                          struct LRNBackwardParam Param)
+                          UNUSED _FLOAT ratio,
+                          _FLOAT alpha,
+                          _FLOAT beta)
 {
-    UNUSED _FLOAT ratio = Param.ratio;
-    _FLOAT alpha        = Param.alpha;
-    _FLOAT beta         = Param.beta;
     __local _FLOAT top_df_data[MLO_LRN_LCL_DATA_WIDTH * MLO_LRN_LCL_DATA_HEIGHT];
     __local _FLOAT ratio_data[MLO_LRN_LCL_DATA_WIDTH * MLO_LRN_LCL_DATA_HEIGHT];
     int x          = get_group_id(0) * MLO_LRN_GROUP_SZ0 * MLO_LRN_N_HORIZ_OUT_PIX;
@@ -269,12 +253,10 @@ MIOpenLRNAcrossChannelsBwd1(const __global _FLOAT* top,
                             const __global _FLOAT* top_df,
                             const __global _FLOAT* scale,
                             __global _FLOAT* bot_df,
-                            struct LRNBackwardParam Param)
+                            UNUSED _FLOAT ratio,
+                          _FLOAT alpha,
+                          _FLOAT beta)
 {
-
-    _FLOAT ratio        = Param.ratio;
-    UNUSED _FLOAT alpha = Param.alpha;
-    _FLOAT beta         = Param.beta;
     int x               = get_global_id(0); // channel x
     int y               = get_global_id(1); // channel y
     int b               = get_global_id(2); // batch

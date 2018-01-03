@@ -734,7 +734,6 @@ struct mlo_construct_direct2D
         //			_tens_layout = layout;
         //			_tens_data_format = data_type;
     }
-
     /*
     * set top df tensor
     */
@@ -850,6 +849,10 @@ struct mlo_construct_direct2D
     size_t setInputDescFromMLDesc(const miopen::TensorDescriptor& input_tensor);
     size_t setOutputDescFromMLDesc(const miopen::TensorDescriptor& output_tensor);
     size_t setWeightDescFromMLDesc(const miopen::TensorDescriptor& weight_tensor);
+    size_t setTopDescFromMLDesc(const miopen::TensorDescriptor& tensor);
+    size_t setBotDescFromMLDesc(const miopen::TensorDescriptor& tensor);
+    size_t setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor);
+    size_t setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor);
 
     bool mloIsCompilerWorkarounds() const;
     bool mloIsFastBinaryWinograd3x3U() const;
