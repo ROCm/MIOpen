@@ -113,7 +113,7 @@
 #define MLO_IN_N_PIXS_OFF \
     (MLO_N_IN_HORIZ_PIX_READS - (MLO_N_IN_HORIZ_PIX_READS / MLO_READ_UNIT) * MLO_READ_UNIT)
 
-#define MLO_IN_LCL_WIDTH (MLO_N_IN_HORIZ_READS * MLO_READ_UNIT + 2 * MLO_FILTER_PAD0)
+#define MLO_IN_LCL_WIDTH (MLO_N_IN_HORIZ_READS * MLO_READ_UNIT + MLO_FILTER_SIZE0 - 1)
 #define MLO_IN_BLK_GRP_PIX_SZ (MLO_IN_LCL_WIDTH * MLO_IN_LCL_HEIGHT)
 #define MLO_IN_BLK_GRP_WK_SZ (MLO_IN_BLK_GRP_PIX_SZ / MLO_READ_UNIT)
 #define MLO_IN_LCL_SZ (MLO_IN_BLK_GRP_PIX_SZ)
@@ -203,7 +203,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     uint o_idx_base = get_group_id(1); // output map index base
     uint ib_base    = get_group_id(2); // batch index base
 
-    uint ib = ib_base * MLO_N_LCL_BATCHS;
+    uint ib = ib_base * (MLO_N_BATCH_LOOPS * MLO_N_LCL_BATCHS);
 
     uint c_idx = c_idx_base * MLO_N_LCL_IN_MAPS; // input map index
 
@@ -666,7 +666,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 #endif
             // send it out
             // inputs are outputs
-            uint wei_df_off = ((ib * MLO_N_OUTPUTS + o_idx) * (uint)MLO_WEI_BATCH_STRIDE)
+            uint wei_df_off = ((ib_base * MLO_N_OUTPUTS + o_idx) * (uint)MLO_WEI_BATCH_STRIDE)
                               // this input channel
                               + mul24(c_idx, (uint)MLO_WEI_CHANNEL_STRIDE);
 
@@ -721,8 +721,8 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* __restrict weight_df_tmp,
         pvt_accum_wei[i] = 0;
     }
 
-    uint batch_loop = (MLO_BATCH_SZ + (MLO_N_BATCH_LOOPS * MLO_N_LCL_BATCHS) - 1) /
-                      (MLO_N_BATCH_LOOPS * MLO_N_LCL_BATCHS);
+    uint batch_loop = MLO_N_BATCH_BLKS;
+
     for(uint i = 0; i < batch_loop; ++i)
     {
         for(uint j = 0; j < MLO_UT_READ_UNIT; ++j)

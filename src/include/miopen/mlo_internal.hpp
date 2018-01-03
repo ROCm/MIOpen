@@ -864,7 +864,7 @@ struct mlo_construct_direct2D
 
     std::string db_path() const { return _db_path ? _db_path : _search_params.GetPerfDbPath(); }
 
-    // bool mloIsAmdRocmOpencl(rocm_meta_version& rmv) const;
+    // bool mloIsAmdRocm(rocm_meta_version& rmv) const;
 
     int mloConstructBwd() { return (0); }
     int mloConstructFwd() { return (0); }
@@ -1024,7 +1024,7 @@ struct mlo_construct_pooling2D : mlo_construct_direct2D
     }
 
     inline int getPoolingMethod() const { return (_pooling_method); }
-    void mloConstruct();
+    int mloConstruct();
 
     protected:
     int _pooling_method;
