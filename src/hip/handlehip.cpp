@@ -148,6 +148,7 @@ struct HandleImpl
     void set_ctx()
     {
         miopen::set_ctx(this->ctx);
+        // miopen::set_device(this->device);
         // TODO: Check device matches
     }
 
@@ -293,7 +294,7 @@ Program Handle::LoadProgram(const std::string& program_name, std::string params,
 void Handle::Finish() const
 {
     this->impl->set_ctx();
-#if MIOPEN_BUILD_DEV
+#if 0
     auto start = std::chrono::system_clock::now();
     auto ev    = make_hip_event();
     hipEventRecord(ev.get(), this->GetStream());
@@ -307,7 +308,10 @@ void Handle::Finish() const
         }
     }
 #else
-    auto status        = hipStreamSynchronize(this->GetStream());
+    // hipStreamSynchronize is broken, so we use hipEventSynchronize instead
+    auto ev = make_hip_event();
+    hipEventRecord(ev.get(), this->GetStream());
+    auto status = hipEventSynchronize(ev.get());
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status, "Failed hip sychronization");
 #endif
@@ -347,5 +351,17 @@ std::string Handle::GetDeviceName()
     hipGetDeviceProperties(&props, this->impl->device);
     std::string n("gfx" + std::to_string(props.gcnArch));
     return GetDeviceNameFromMap(n);
+}
+
+shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::size_t)
+{
+    auto cdata = reinterpret_cast<char*>(data);
+    return {cdata + offset, null_deleter{}};
+}
+
+shared<ConstData_t> Handle::CreateSubBuffer(ConstData_t data, std::size_t offset, std::size_t)
+{
+    auto cdata = reinterpret_cast<const char*>(data);
+    return {cdata + offset, null_deleter{}};
 }
 } // namespace miopen

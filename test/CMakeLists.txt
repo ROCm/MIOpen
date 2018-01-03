@@ -72,6 +72,7 @@ function(add_test_executable TEST_NAME)
 endfunction(add_test_executable)
 
 file(GLOB TESTS *.cpp)
+
 foreach(TEST ${TESTS})
     get_filename_component(BASE_NAME ${TEST} NAME_WE)
     add_test_executable(test_${BASE_NAME} ${TEST})
