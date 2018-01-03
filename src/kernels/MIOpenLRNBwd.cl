@@ -254,13 +254,13 @@ MIOpenLRNAcrossChannelsBwd1(const __global _FLOAT* top,
                             const __global _FLOAT* scale,
                             __global _FLOAT* bot_df,
                             UNUSED _FLOAT ratio,
-                          _FLOAT alpha,
-                          _FLOAT beta)
+                            _FLOAT alpha,
+                            _FLOAT beta)
 {
-    int x               = get_global_id(0); // channel x
-    int y               = get_global_id(1); // channel y
-    int b               = get_global_id(2); // batch
-    _FLOAT accum_ratio  = 0;
+    int x              = get_global_id(0); // channel x
+    int y              = get_global_id(1); // channel y
+    int b              = get_global_id(2); // batch
+    _FLOAT accum_ratio = 0;
     _FLOAT top_df_in[MLO_LRN_KERNEL_SZ];
     _FLOAT scale_in[MLO_LRN_KERNEL_SZ];
     _FLOAT ratio_dta[MLO_LRN_KERNEL_SZ];
