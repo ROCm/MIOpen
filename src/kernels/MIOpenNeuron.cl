@@ -149,14 +149,8 @@ __attribute__((always_inline)) void ActivationFunction_Power(
     {
         // (shift + scale * x ) ^power
         _FLOAT arg = alpha + data[i] * beta;
-//		_FLOAT run_arg = (arg == (_FLOAT)0) ? (_FLOAT)1 : arg;
-//		res[i] = (arg == (_FLOAT)0) ? (_FLOAT)0 : pow(run_arg, power);
-#if MIOPEN_USE_FP16 == 1
-        res[i] = (fabs(arg) < (_FLOAT)(0.0001)) ? (_FLOAT)(0) : pow(arg, power);
-#endif
-#if MIOPEN_USE_FP32 == 1
-        res[i] = (fabs(arg) < (_FLOAT)(0.000001)) ? (_FLOAT)(0) : pow(arg, power);
-#endif
+		_FLOAT run_arg = (arg == (_FLOAT)0) ? (_FLOAT)1 : arg;
+		res[i] = (arg == (_FLOAT)0) ? (_FLOAT)0 : pow(run_arg, power);
     }
 }
 
@@ -265,14 +259,7 @@ ActivationFunction_Abs_Diff(int n, _FLOAT* bot_diff, const _FLOAT* top_diff, con
 {
     for(int i = 0; i < n; i++)
     {
-//		bot_diff[i] = top_diff[i] * ((bot_data[i] >= 0 ) ? 1 : -1);
-#if MIOPEN_USE_FP16 == 1
-        bot_diff[i] = top_diff[i] * ((fabs(bot_data[i]) < (_FLOAT)0.0001) ? (_FLOAT)1 : (_FLOAT)-1);
-#endif
-#if MIOPEN_USE_FP32 == 1
-        bot_diff[i] =
-            top_diff[i] * ((fabs(bot_data[i]) < (_FLOAT)0.000001) ? (_FLOAT)1 : (_FLOAT)-1);
-#endif
+		bot_diff[i] = top_diff[i] * ((bot_data[i] >= 0 ) ? 1 : -1);
     }
 }
 
