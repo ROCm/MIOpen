@@ -1,6 +1,30 @@
 
 ## MIOpen Release notes
 
+
+### 12/15/2017 [ 1.2.0 ]
+
+Notes:
+
+- This release adds the support for recurrent neural networks (RNNs) for three flavors - Vanilla, LSTMs, and GRU
+- Users can now themselves update the perf-db file, which hosts the tuning parameters for convolutions, by setting appropriate environment variables
+
+Changes:
+
+- Over 50% improvement in ResNet performance since the last release
+- Multiple padding modes like Same and Valid added
+- Winograd convolution kernels added for strided bwd-data convolutions
+- Tensor Ops allow for beta and alpha scaling values and support up to 5 dimensions with strides and offsets
+- Tensor Copy supports up to 5 dimesnional copies with strides and offsets
+- Unit-tests for LRN are added
+- Several bug fixes for all the layers of the library
+
+Known issues:
+
+- RNNs may give incorrect result due to a known compiler bug; issue may particulary arise during some RNNs configs with GEMM of size power of 4
+- Potential issue where OpenCL resources will be exhausted for large RNN
+
+
 ### 09/08/2017 [ 1.1.0 ]
 
 Notes: 

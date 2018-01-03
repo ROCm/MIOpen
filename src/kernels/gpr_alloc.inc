@@ -1,9 +1,41 @@
+/*******************************************************************************
+ * 
+ * MIT License
+ * 
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ * 
+ *******************************************************************************/
+
 .set __auto_gpr_count_guard, 1
 
+.set .WAVE_SIZE, 64
+.set .WAVE_SIZE_LOG2, 6
+.set .MAX_VGPRS, 256
+.set .MAX_SGPRS, 102
+.set .MAX_LDS, 65536
+
 .macro .GPR_ALLOC_BEGIN
-    .set .AVAILABLE_VGPRS, 256
-    .set .AVAILABLE_SGPRS, 102
-	.set .AVAILABLE_LDS, 65536
+    .set .AVAILABLE_VGPRS, .MAX_VGPRS
+    .set .AVAILABLE_SGPRS, .MAX_SGPRS
+	.set .AVAILABLE_LDS, .MAX_LDS
 	.set .SGPR_NEXT_FREE, 0
 	.set .VGPR_NEXT_FREE, 0
 	.set .LDS_NEXT_FREE, 0
@@ -22,22 +54,22 @@
 
 .macro .CHECK_SGPR_ALLOCATION gprs_to_allocate=0
 	.if (.SGPR_NEXT_FREE + \gprs_to_allocate) >= .AVAILABLE_SGPRS
-		.set .SGPR_NEXT_FREE, 0 // suppress further errors
 		.error "Error: out of free sgprs"
+        .end
 	.endif
 .endm
 
 .macro .CHECK_VGPR_ALLOCATION gprs_to_allocate=0
 	.if (.VGPR_NEXT_FREE + \gprs_to_allocate) >= .AVAILABLE_VGPRS
-		.set .VGPR_NEXT_FREE, 0 // suppress further errors
 		.error "Error: out of free vgprs"
+        .end
 	.endif
 .endm
 
 .macro .CHECK_LDS_ALLOCATION bytes_to_allocate=0
 	.if (.LDS_NEXT_FREE + \bytes_to_allocate) >= .AVAILABLE_LDS
-		.set .LDS_NEXT_FREE, 0 // suppress further errors
 		.error "Error: out of free lds"
+        .end
 	.endif
 .endm
 

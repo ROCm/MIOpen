@@ -15,6 +15,7 @@ Welcome to MIOpen
     install
     driver
     cache
+    perfdatabase
     apireference
     
 
