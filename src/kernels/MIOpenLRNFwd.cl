@@ -416,9 +416,9 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
                          _FLOAT beta,
                          _FLOAT K)
 {
-    int pix_id           = get_global_id(0); //
-    int b                = get_global_id(2); // batch
-    MLO_READ_TYPE accum  = 0;
+    int pix_id          = get_global_id(0); //
+    int b               = get_global_id(2); // batch
+    MLO_READ_TYPE accum = 0;
     MLO_READ_TYPE bot_in2[MLO_LRN_KERNEL_SZ];
     int c_i = 0, c_o = 0;
     for(int i = 0; i < MLO_LRN_KERNEL_SZ; ++i)
