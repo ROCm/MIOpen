@@ -2057,6 +2057,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                             int unused       = 0;
                             int* return_addr = nullptr;
                             int N, C, H, W, K, n_groups;
+                            // H/W are image size after downsampling, parsed from img_h/img_w in
+                            // conv_asm_dir_BwdWrW1x1.cpp
                             construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
                             handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main1",
                                              network_config)(N,
