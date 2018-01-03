@@ -148,9 +148,9 @@ __attribute__((always_inline)) void ActivationFunction_Power(
     for(int i = 0; i < n; i++)
     {
         // (shift + scale * x ) ^power
-        _FLOAT arg = alpha + data[i] * beta;
-		_FLOAT run_arg = (arg == (_FLOAT)0) ? (_FLOAT)1 : arg;
-		res[i] = (arg == (_FLOAT)0) ? (_FLOAT)0 : pow(run_arg, power);
+        _FLOAT arg     = alpha + data[i] * beta;
+        _FLOAT run_arg = (arg == (_FLOAT)0) ? (_FLOAT)1 : arg;
+        res[i]         = (arg == (_FLOAT)0) ? (_FLOAT)0 : pow(run_arg, power);
     }
 }
 
@@ -259,7 +259,7 @@ ActivationFunction_Abs_Diff(int n, _FLOAT* bot_diff, const _FLOAT* top_diff, con
 {
     for(int i = 0; i < n; i++)
     {
-		bot_diff[i] = top_diff[i] * ((bot_data[i] >= 0 ) ? 1 : -1);
+        bot_diff[i] = top_diff[i] * ((bot_data[i] >= 0) ? 1 : -1);
     }
 }
 
