@@ -57,7 +57,7 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     std::tie(nOut, cOut, hOut, wOut)                         = tien<4>(yDesc.GetLengths());
     std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tien<4>(yDesc.GetStrides());
 
-    construct_params.setBotDescFromMLDesc(yDesc);
+    construct_params.setTopDescFromMLDesc(yDesc);
 
     int nIn;
     int cIn;
