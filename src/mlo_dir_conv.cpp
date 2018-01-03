@@ -461,7 +461,7 @@ size_t mlo_construct_direct2D::setTopDescFromMLDesc(const miopen::TensorDescript
 
     std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
-    setBotDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+    setTopDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
 
     size_t input_sz = nIn * cIn * hIn * wIn * sizeof(float);
 
@@ -483,7 +483,7 @@ size_t mlo_construct_direct2D::setBotDescFromMLDesc(const miopen::TensorDescript
 
     std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
-    setTopDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+    setBotDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
 
     size_t input_sz = nIn * cIn * hIn * wIn * sizeof(float);
 
@@ -506,7 +506,7 @@ size_t mlo_construct_direct2D::setTopDfDescFromMLDesc(const miopen::TensorDescri
 
     std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
-    setBotDfDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+    setTopDfDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
 
     size_t input_sz = nIn * cIn * hIn * wIn * sizeof(float);
 
@@ -528,7 +528,7 @@ size_t mlo_construct_direct2D::setBotDfDescFromMLDesc(const miopen::TensorDescri
 
     std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
-    setTopDfDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+    setBotDfDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
 
     size_t input_sz = nIn * cIn * hIn * wIn * sizeof(float);
 
