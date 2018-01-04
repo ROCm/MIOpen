@@ -93,14 +93,15 @@ BatchNormFwdInferPerActivationEst(
             mean        = estimatedMean[adjIndex];
             variance    = estimatedVariance[adjIndex];
             invVariance = rsqrt(fabs(variance + epsilon));
-            pvt_scale   = scale[adjIndex];
-            pvt_bias    = bias[adjIndex];
+            pvt_scale   = *(scale + adjIndex);
+            pvt_bias    = *(bias + adjIndex);
+
 #pragma unroll
             for(int n = 0; n < MIO_BN_N; n++)
             {
                 // per (x-dims) channel load a block of data into LDS
                 index      = MIO_BN_CHW * n + adjIndex;
-                elemStd    = in[index] - mean; // (x_i - mean)
+                elemStd    = *(in + index) - mean; // (x_i - mean)
                 inhat      = elemStd * invVariance;
                 out[index] = mad(pvt_scale, inhat, pvt_bias); //	y_i = gamma*x_hat + beta
             }                                                 // end for
