@@ -391,7 +391,11 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         return false; // Early exit to speed up the check.
     }
     // Check limits:
-    const auto h_w     = static_cast<long>(params.out_height) * params.out_width;
+    auto h_w = static_cast<long>(params.out_height) * params.out_width;
+    if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
+    {
+        h_w = static_cast<long>(params.in_height) * params.in_width;
+    }
     const auto r_s     = static_cast<long>(params.kernel_size1) * params.kernel_size0;
     const auto c_h_w   = static_cast<long>(params.n_outputs) * h_w;   // C*H*W
     const auto k_h_w   = static_cast<long>(params.n_inputs) * h_w;    // K*H*W
