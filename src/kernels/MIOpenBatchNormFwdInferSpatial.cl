@@ -92,10 +92,10 @@ BatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x input */
 
     if(get_local_id(1) == 0)
     {
-        lmean  = estimatedMean[xgid];
-        lvar   = estimatedVariance[xgid];
-        lscale = scale[xgid]; // dims 1xCx1x1
-        lbias  = bias[xgid];
+        lmean  = *(estimatedMean + xgid);
+        lvar   = *(estimatedVariance + xgid);
+        lscale = *(scale + xgid); // dims 1xCx1x1
+        lbias  = *(bias + xgid);
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     // move across the sections of the image mini_batch stack
@@ -111,7 +111,7 @@ BatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x input */
         for(int n = 0; n < MIO_BN_N; n++)
         {
             index      = n * MIO_BN_CHW + cidx + ygid;
-            inhat      = (in[index] - mean) * invVariance;
+            inhat      = (*(in + index) - mean) * invVariance;
             out[index] = mad(pscale, inhat, pbias); // y_i = gamma*x_hat + beta
         }                                           // end for(img_offset)
     }
