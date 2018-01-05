@@ -707,7 +707,7 @@ void test_drive(int argc, const char* argv[])
     test_drive_impl<Driver>(std::move(as));
 }
 
-template <template<class...> class Driver>
+template <template <class...> class Driver>
 void test_drive(int argc, const char* argv[])
 {
     std::vector<std::string> as(argv + 1, argv + argc);
