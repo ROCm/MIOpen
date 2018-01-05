@@ -58,7 +58,7 @@ struct verify_forward_train_bn_spatial
     const tensor<T> input;
     const tensor<T> scale;
     const tensor<T> shift;
-    std::tuple<tensor<T>, tensor<T>, tensor<T>, tensor<T>, tensor<T>> cpu()
+    std::tuple<tensor<T>, tensor<T>, tensor<T>, tensor<T>, tensor<T>> cpu() const
     {
 
 #if(MIO_BN_TIME_EVERYTHING == 1)
@@ -205,7 +205,7 @@ struct verify_forward_train_bn_spatial
         return std::make_tuple(out, runMean, runVar, saveMean, saveInvVar);
     }
 
-    std::tuple<tensor<T>, tensor<T>, tensor<T>, tensor<T>, tensor<T>> gpu()
+    std::tuple<tensor<T>, tensor<T>, tensor<T>, tensor<T>, tensor<T>> gpu() const
     {
 
 #if(MIO_BN_TIME_EVERYTHING == 1)
@@ -284,7 +284,7 @@ struct verify_forward_train_bn_spatial
         return std::make_tuple(out, runMean, runVar, saveMean, saveInvVar);
     }
 
-    void fail(int badtensor)
+    void fail(int badtensor) const
     {
 
         std::cout << "Forward Train Spatial Batch Normalization: " << std::endl;
@@ -314,7 +314,7 @@ struct verify_forward_infer_bn_spatial_recalc
     const tensor<T> scale;
     const tensor<T> shift;
 
-    tensor<T> cpu()
+    tensor<T> cpu() const
     {
 
 #if(MIO_BN_TIME_EVERYTHING == 1)
@@ -406,7 +406,7 @@ struct verify_forward_infer_bn_spatial_recalc
         return out;
     }
 
-    tensor<T> gpu()
+    tensor<T> gpu() const
     {
 
 #if(MIO_BN_TIME_EVERYTHING == 1)
@@ -451,7 +451,7 @@ struct verify_forward_infer_bn_spatial_recalc
         return out;
     }
 
-    void fail(int)
+    void fail(int) const
     {
         std::cout << "Forward Inference Spatial Batch Normalization Recalc: " << std::endl;
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
@@ -467,7 +467,7 @@ struct verify_forward_infer_bn_spatial_use_est
     const tensor<T> shift;
     const tensor<T> estMean;
     const tensor<T> estVar;
-    tensor<T> cpu()
+    tensor<T> cpu() const
     {
 
 #if(MIO_BN_TIME_EVERYTHING == 1)
@@ -519,7 +519,7 @@ struct verify_forward_infer_bn_spatial_use_est
         return out;
     }
 
-    tensor<T> gpu()
+    tensor<T> gpu() const
     {
 #if(MIO_BN_TIME_EVERYTHING == 1)
         auto t_start = std::chrono::high_resolution_clock::now();
@@ -564,7 +564,7 @@ struct verify_forward_infer_bn_spatial_use_est
         return out;
     }
 
-    void fail(int)
+    void fail(int) const
     {
         std::cout << "Forward Inference Spatial Batch Normalization Use Estimated: " << std::endl;
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
@@ -582,7 +582,7 @@ struct verify_backward_bn_spatial_recalc
     const tensor<T> dy_input;
     const tensor<T> scale;
 
-    std::tuple<tensor<T>, tensor<T>, tensor<T>> cpu()
+    std::tuple<tensor<T>, tensor<T>, tensor<T>> cpu() const
     {
 
 #if(MIO_BN_TIME_EVERYTHING == 1)
@@ -757,7 +757,7 @@ struct verify_backward_bn_spatial_recalc
         return std::make_tuple(dx_out, dscale, dshift);
     }
 
-    std::tuple<tensor<T>, tensor<T>, tensor<T>> gpu()
+    std::tuple<tensor<T>, tensor<T>, tensor<T>> gpu() const
     {
 #if(MIO_BN_TIME_EVERYTHING == 1)
         auto t_start = std::chrono::high_resolution_clock::now();
@@ -827,7 +827,7 @@ struct verify_backward_bn_spatial_recalc
         return std::make_tuple(dx_out, dscale, dshift);
     }
 
-    void fail(int badtensor)
+    void fail(int badtensor) const
     {
         std::cout << "Backward Batch Spatial Normalization Recalc Mean and Variance: " << std::endl;
         std::cout << "X Input tensor: " << x_input.desc.ToString() << std::endl;
@@ -852,7 +852,7 @@ struct verify_backward_bn_spatial_use_saved
     const tensor<T> scale;
     const tensor<T> savedMean;
     const tensor<T> savedInvVar;
-    std::tuple<tensor<T>, tensor<T>, tensor<T>> cpu()
+    std::tuple<tensor<T>, tensor<T>, tensor<T>> cpu() const
     {
 
 #if(MIO_BN_TIME_EVERYTHING == 1)
@@ -967,7 +967,7 @@ struct verify_backward_bn_spatial_use_saved
         return std::make_tuple(dx_out, dscale, dshift);
     }
 
-    std::tuple<tensor<T>, tensor<T>, tensor<T>> gpu()
+    std::tuple<tensor<T>, tensor<T>, tensor<T>> gpu() const
     {
 
 #if(MIO_BN_TIME_EVERYTHING == 1)
@@ -1041,7 +1041,7 @@ struct verify_backward_bn_spatial_use_saved
         return std::make_tuple(dx_out, dscale, dshift);
     }
 
-    void fail(int badtensor)
+    void fail(int badtensor) const
     {
         std::cout << "Backward Batch Spatial Normalization Use Saved Mean and Variance: "
                   << std::endl;

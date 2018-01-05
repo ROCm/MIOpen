@@ -88,7 +88,7 @@ struct verify_w_tensor_get
         wei_dev       = handle.Write(fill_weight());
     }
 
-    std::vector<float> gpu()
+    std::vector<float> gpu() const
     {
         auto&& handle       = get_handle();
         int num_HiddenLayer = (mode == miopenRNNRELU) ? 1 : (mode == miopenGRU ? 3 : 4);
@@ -292,7 +292,7 @@ struct verify_w_tensor_get
         return wei_h;
     }
 
-    std::vector<float> cpu()
+    std::vector<float> cpu() const
     {
         auto&& handle       = get_handle();
         int num_HiddenLayer = (mode == miopenRNNRELU) ? 1 : (mode == miopenGRU ? 3 : 4);
@@ -357,7 +357,7 @@ struct verify_w_tensor_get
         return wei_h;
     }
 
-    void fail(float = 0) {}
+    void fail(float = 0) const {}
 };
 
 struct verify_w_tensor_set
@@ -404,7 +404,7 @@ struct verify_w_tensor_set
         wei_dev = handle.Create(wei_sz);
     }
 
-    std::vector<float> cpu()
+    std::vector<float> cpu() const
     {
         auto&& handle = get_handle();
         size_t wei_sz = 0;
@@ -522,7 +522,7 @@ struct verify_w_tensor_set
         return wei_h;
     }
 
-    std::vector<float> gpu()
+    std::vector<float> gpu() const
     {
         auto&& handle       = get_handle();
         int num_HiddenLayer = (mode == miopenRNNRELU) ? 1 : (mode == miopenGRU ? 3 : 4);
@@ -612,7 +612,7 @@ struct verify_w_tensor_set
         return handle.Read<float>(wei_dev, wei_sz);
     }
 
-    void fail(float = 0) {}
+    void fail(float = 0) const {}
 };
 
 struct superTensorTest : test_driver

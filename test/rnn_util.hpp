@@ -160,7 +160,7 @@ inline std::vector<std::vector<int>> generate_batchSeq(const int batchSize, cons
     return {batchSeq};
 }
 
-inline int sumvc(std::vector<int>& x)
+inline int sumvc(const std::vector<int>& x)
 {
     int sum = 0;
     for(int i : x)
