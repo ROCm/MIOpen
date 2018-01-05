@@ -57,7 +57,7 @@ ADD cmake/mingw-toolchain.cmake $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
 RUN cget -p $PREFIX/x86_64-w64-mingw32 init -t $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
 
 # Build hcc
-RUN git clone --depth 1 https://github.com/RadeonOpenCompute/hcc.git -b roc-1.7.x /hcc && \
+RUN git clone --depth 1 https://github.com/RadeonOpenCompute/hcc.git -b amp-flag /hcc && \
     cd hcc && \
     git submodule init && \
     git submodule update --recursive && \
