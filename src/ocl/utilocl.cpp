@@ -155,4 +155,27 @@ float Col2ImGPU(Handle& handle,
     return handle.GetKernelTime();
 }
 
+float SubSampleGPU(
+    Handle& handle,
+    const std::
+        tuple<std::string, std::string, std::string, std::vector<size_t>, std::vector<size_t>>&
+            kernel_info,
+    std::string& network_config,
+    ConstData_t in,
+    Data_t out)
+{
+    std::string program_name = "MIOpenUtilKernels3.cl";
+    std::string kernel_name  = "SubSample";
+
+    handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
+                     network_config,
+                     program_name,
+                     kernel_name,
+                     std::get<4>(kernel_info),
+                     std::get<3>(kernel_info),
+                     std::get<2>(kernel_info))(in, out);
+
+    return handle.GetKernelTime();
+}
+
 } // namespace miopen
