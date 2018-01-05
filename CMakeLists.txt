@@ -69,7 +69,7 @@ endif()
 
 ############################################################
 # require C++14
-add_compile_options(-std=gnu++14)
+add_compile_options(-std=c++14)
 
 ############################################################
 # OPTION - MIOpen Backend
