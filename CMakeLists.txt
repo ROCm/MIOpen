@@ -202,6 +202,7 @@ enable_clang_tidy(
         -cppcoreguidelines-pro-type-union-access
         -cppcoreguidelines-pro-type-vararg
         -cppcoreguidelines-special-member-functions
+        -fuchsia-*
         -google-explicit-constructor
         -google-readability-braces-around-statements
         -google-readability-todo
