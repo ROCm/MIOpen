@@ -68,7 +68,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
 
 ############################################################
-# require C++11
+# require C++14
 add_compile_options(-std=gnu++14)
 
 ############################################################
