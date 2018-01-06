@@ -82,7 +82,7 @@ RUN cget -p $PREFIX install pfultz2/rocm-recipes
 # Install dependencies
 ADD dev-requirements.txt /dev-requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /dev-requirements.txt
-RUN cget -p $PREFIX install RadeonOpenCompute/clang-ocl@2f118b5b6b05f0b17467ef07a8bd3b8e5d8b3aac
+RUN cget -p $PREFIX install RadeonOpenCompute/clang-ocl@a180592885ecae5b8beadf667c633c246cec82b6
 
 # Install doc requirements
 ADD doc/requirements.txt /doc-requirements.txt
