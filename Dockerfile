@@ -29,6 +29,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     libelf-dev \
     libncurses5-dev \
     libpthread-stubs0-dev \
+    libnuma-dev \
     libunwind-dev \
     mingw-w64 \
     mingw-w64-tools \
