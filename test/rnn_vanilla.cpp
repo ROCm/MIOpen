@@ -1167,7 +1167,7 @@ struct verify_forward_infer_rnn
         return (handle.Read<T>(output_dev, output.size()));
     }
 
-    void fail(int)
+    void fail(int) const
     {
         std::cout << "./bin/MIOpenDriver rnn -n ";
         for(int i = 0; i < seqLength; i++)
@@ -1421,7 +1421,7 @@ struct verify_forward_train_rnn
         return retSet;
     }
 
-    void fail(int badtensor)
+    void fail(int badtensor) const
     {
         std::cout << "./bin/MIOpenDriver rnn -n ";
         for(int i = 0; i < seqLength; i++)
@@ -1675,7 +1675,7 @@ struct verify_backward_data_rnn
         return retSet;
     }
 
-    void fail(int badtensor)
+    void fail(int badtensor) const
     {
         std::cout << "./bin/MIOpenDriver rnn -n ";
         for(int i = 0; i < seqLength; i++)
@@ -1879,7 +1879,7 @@ struct verify_backward_weights_rnn
         return retvec;
     }
 
-    void fail(int)
+    void fail(int) const
     {
         std::cout << "./bin/MIOpenDriver rnn -n ";
         for(int i = 0; i < seqLength; i++)

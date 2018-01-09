@@ -49,6 +49,19 @@ struct rand_gen
     };
 };
 
+// Run cpu in parallel if it can be ran as const
+template <class V, class... Ts>
+auto cpu_async(const V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
+{
+    return detach_async([&] { return v.cpu(xs...); });
+}
+
+template <class V, class... Ts>
+auto cpu_async(V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
+{
+    return std::async(std::launch::deferred, [&] { return v.cpu(xs...); });
+}
+
 struct test_driver
 {
     test_driver()                   = default;
@@ -406,6 +419,13 @@ struct test_driver
         try
         {
             auto&& h = get_handle();
+            // Compute cpu
+            std::future<decltype(v.cpu(xs...))> cpuf;
+            if(not no_validate)
+            {
+                cpuf = cpu_async(v, xs...);
+            }
+            // Compute gpu
             if(time)
             {
                 h.EnableProfiling();
@@ -417,13 +437,14 @@ struct test_driver
                 std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
                 h.EnableProfiling(false);
             }
+            // Return
             if(no_validate)
             {
                 return std::make_pair(gpu, gpu);
             }
             else
             {
-                return verify_check(v.cpu(xs...), gpu, [&](int mode) { v.fail(mode, xs...); });
+                return verify_check(cpuf.get(), gpu, [&](int mode) { v.fail(mode, xs...); });
             }
         }
         catch(const std::exception& ex)
@@ -448,6 +469,13 @@ struct test_driver
         try
         {
             auto&& h = get_handle();
+            // Compute cpu
+            std::future<decltype(v.cpu(xs...))> cpuf;
+            if(not no_validate)
+            {
+                cpuf = cpu_async(v, xs...);
+            }
+            // Compute gpu
             if(time)
             {
                 h.EnableProfiling();
@@ -459,13 +487,14 @@ struct test_driver
                 std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
                 h.EnableProfiling(false);
             }
+
             if(no_validate)
             {
                 return std::make_pair(gpu, gpu);
             }
             else
             {
-                auto cpu = v.cpu(xs...);
+                auto cpu = cpuf.get();
 
                 if(miopen::range_zero(cpu))
                 {

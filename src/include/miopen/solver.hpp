@@ -126,17 +126,16 @@ template <class Solver, class Context>
 auto FindSolutionImpl(rank<1>, Solver s, const Context& context, DbRecord& dbRecord)
     -> decltype(s.GetSolution(context, s.Search(context)))
 {
-    const FindEnforce enforce = GetFindEnforce();
+    const FindEnforce enforce;
     MIOPEN_LOG_I(SolverDbId(s));
-    if(enforce == FindEnforce::Clean)
+    if(enforce.IsDbClean(context))
     {
         if(dbRecord.Remove(SolverDbId(s)))
             MIOPEN_LOG_W("Perf Db: record removed: " << SolverDbId(s) << ", enforce: " << enforce);
     }
     else
     {
-        if((context.do_search && enforce == FindEnforce::DbUpdate) ||
-           enforce == FindEnforce::SearchDbUpdate)
+        if((context.do_search || enforce.IsSearch(context)) && enforce.IsDbUpdate(context))
         {
             MIOPEN_LOG_W("Perf Db: load skipped: " << SolverDbId(s) << ", enforce: " << enforce);
         }
@@ -156,8 +155,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, DbRecord& dbRec
             }
         }
 
-        if(context.do_search || enforce == FindEnforce::Search ||
-           enforce == FindEnforce::SearchDbUpdate) // TODO: Make it a customization point
+        if(context.do_search || enforce.IsSearch(context)) // TODO: Make it a customization point
         {
             MIOPEN_LOG_I("Starting search: " << SolverDbId(s) << ", enforce: " << enforce);
             try
