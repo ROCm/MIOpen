@@ -325,7 +325,7 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
 #if MLO_FILTER_PAD0 > 0 || MLO_FILTER_PAD1 > 0 || \
     (!TWO_PASSES && (MLO_FILTER_STRIDE0 > 1 || MLO_FILTER_STRIDE1 > 1))
 
-        uint batch_id = faked_off / ((MLO_OUT_PAD_WIDTH / MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT); 
+        uint batch_id = faked_off / ((MLO_OUT_PAD_WIDTH / MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT);
         uint faked_off2 =
             iMod(faked_off, batch_id, ((MLO_OUT_PAD_WIDTH / MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT));
 
@@ -342,7 +342,7 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
         uint in_image_off = in_y_off * MLO_IN_STRIDE + in_x_off;
 
 #else
-        uint batch_id      = faked_off/ (MLO_OUT_CHANNEL_READ_SZ);           // batch
+        uint batch_id      = faked_off / (MLO_OUT_CHANNEL_READ_SZ);                // batch
         uint image_off     = iMod(faked_off, batch_id, (MLO_OUT_CHANNEL_READ_SZ)); // pixel offset
         uint in_image_off  = image_off * MLO_READ_UNIT;
         uint out_image_off = image_off * MLO_READ_UNIT;
@@ -613,7 +613,7 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
 
 #else
 
-        uint batch_id      = faked_off / (MLO_OUT_CHANNEL_READ_SZ);           // batch
+        uint batch_id      = faked_off / (MLO_OUT_CHANNEL_READ_SZ);                // batch
         uint image_off     = iMod(faked_off, batch_id, (MLO_OUT_CHANNEL_READ_SZ)); // pixel offset
         uint in_image_off  = image_off * MLO_READ_UNIT;
         uint out_image_off = image_off * MLO_READ_UNIT;
@@ -681,7 +681,7 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
     for(uint faked_off = (local_Id0 % (MLO_GRP_SZ0 / 4)); faked_off < MLO_MAX_LOADS2;
         faked_off += (MLO_GRP_SZ0 / 4))
     {
-        uint batch_id  = (faked_off / (LAST_PIXELS));           // batch
+        uint batch_id  = (faked_off / (LAST_PIXELS));              // batch
         uint image_off = iMod(faked_off, batch_id, (LAST_PIXELS)); // pixel offset
         image_off += MLO_LAST_PIXEL_OFFSET;
 
