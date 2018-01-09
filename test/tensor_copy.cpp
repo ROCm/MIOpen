@@ -206,5 +206,5 @@ int main(int argc, const char* argv[])
 #if(MIO_TENSORCOPY_DEBUG == 1)
     printf("Starting.\n");
 #endif
-    test_drive<tensor_copy_driver<float>>(argc, argv);
+    test_drive<tensor_copy_driver>(argc, argv);
 }
