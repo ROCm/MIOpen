@@ -238,18 +238,18 @@ static rocm_meta_version DetectAmdRocmMetadataVersion(const miopen::ConvolutionC
 
 static bool mloIsAmdRocmOpencl(miopen::ConvolutionContext& context)
 {
+    static const bool ret_bool = 
 #if MIOPEN_BACKEND_OPENCL
-    static const bool ret_bool = IsAmdRocmOpencl(context);
+        IsAmdRocmOpencl(context);
+#else
+        true;
+#endif // MIOPEN_BACKEND_OPENCL
     if(ret_bool)
     {
         static const rocm_meta_version ret_rmv = DetectAmdRocmMetadataVersion(context);
         context.rmv                            = ret_rmv;
     }
     return ret_bool;
-#else
-    (void)context; // We don't care about metada version
-    return true;
-#endif // MIOPEN_BACKEND_OPENCL
 }
 
 void mlo_construct_direct2D::setupFloats()
