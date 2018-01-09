@@ -381,9 +381,9 @@ mlo_construct_direct2D::setWeightDescFromMLDesc(const miopen::TensorDescriptor& 
     int hWeiStride;
     int wWeiStride;
 
-    std::tie(nWei, cWei, hWei, wWei) = miopen::tien<4>(weight_tensor.GetLengths());
+    std::tie(nWei, cWei, hWei, wWei) = miopen::tien<4>(weight_tensor.GetLengths(), 1);
     std::tie(nWeiStride, cWeiStride, hWeiStride, wWeiStride) =
-        miopen::tien<4>(weight_tensor.GetStrides());
+        miopen::tien<4>(weight_tensor.GetStrides(), 0);
 
     std::string data_type = weight_tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
@@ -407,9 +407,9 @@ mlo_construct_direct2D::setOutputDescFromMLDesc(const miopen::TensorDescriptor& 
     int hOutStride;
     int wOutStride;
 
-    std::tie(nOut, cOut, hOut, wOut) = miopen::tien<4>(output_tensor.GetLengths());
+    std::tie(nOut, cOut, hOut, wOut) = miopen::tien<4>(output_tensor.GetLengths(), 1);
     std::tie(nOutStride, cOutStride, hOutStride, wOutStride) =
-        miopen::tien<4>(output_tensor.GetStrides());
+        miopen::tien<4>(output_tensor.GetStrides(), 0);
 
     std::string data_type = output_tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
@@ -432,9 +432,9 @@ size_t mlo_construct_direct2D::setInputDescFromMLDesc(const miopen::TensorDescri
     int hInStride;
     int wInStride;
 
-    std::tie(nIn, cIn, hIn, wIn) = miopen::tien<4>(input_tensor.GetLengths());
+    std::tie(nIn, cIn, hIn, wIn) = miopen::tien<4>(input_tensor.GetLengths(), 1);
     std::tie(nInStride, cInStride, hInStride, wInStride) =
-        miopen::tien<4>(input_tensor.GetStrides());
+        miopen::tien<4>(input_tensor.GetStrides(), 0);
 
     std::string data_type = input_tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
@@ -456,8 +456,8 @@ size_t mlo_construct_direct2D::setTopDescFromMLDesc(const miopen::TensorDescript
     int hInStride;
     int wInStride;
 
-    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tien<4>(tensor.GetLengths());
-    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tien<4>(tensor.GetStrides());
+    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tien<4>(tensor.GetLengths(), 1);
+    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tien<4>(tensor.GetStrides(), 0);
 
     std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
@@ -478,8 +478,8 @@ size_t mlo_construct_direct2D::setBotDescFromMLDesc(const miopen::TensorDescript
     int hInStride;
     int wInStride;
 
-    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tien<4>(tensor.GetLengths());
-    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tien<4>(tensor.GetStrides());
+    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tien<4>(tensor.GetLengths(), 1);
+    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tien<4>(tensor.GetStrides(), 0);
 
     std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
@@ -501,8 +501,8 @@ size_t mlo_construct_direct2D::setTopDfDescFromMLDesc(const miopen::TensorDescri
     int hInStride;
     int wInStride;
 
-    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tien<4>(tensor.GetLengths());
-    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tien<4>(tensor.GetStrides());
+    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tien<4>(tensor.GetLengths(), 1);
+    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tien<4>(tensor.GetStrides(), 0);
 
     std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
@@ -523,8 +523,8 @@ size_t mlo_construct_direct2D::setBotDfDescFromMLDesc(const miopen::TensorDescri
     int hInStride;
     int wInStride;
 
-    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tien<4>(tensor.GetLengths());
-    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tien<4>(tensor.GetStrides());
+    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tien<4>(tensor.GetLengths(), 1);
+    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tien<4>(tensor.GetStrides(), 0);
 
     std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
