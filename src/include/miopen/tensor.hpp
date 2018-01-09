@@ -56,7 +56,8 @@ template <std::size_t N, class T>
 auto tien(T&& x) MIOPEN_RETURNS(tie_impl(std::forward<T>(x), typename detail::gens<N>::type{}));
 
 template <std::size_t N, class T, class U>
-auto tien(T&& x, U y) MIOPEN_RETURNS(tie_impl(std::forward<T>(x), y, typename detail::gens<N>::type{}));
+auto tien(T&& x, U y)
+    MIOPEN_RETURNS(tie_impl(std::forward<T>(x), y, typename detail::gens<N>::type{}));
 
 struct TensorDescriptor : miopenTensorDescriptor
 {
