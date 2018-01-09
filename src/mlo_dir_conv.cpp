@@ -238,7 +238,7 @@ static rocm_meta_version DetectAmdRocmMetadataVersion(const miopen::ConvolutionC
 
 static bool mloIsAmdRocmOpencl(miopen::ConvolutionContext& context)
 {
-    static const bool ret_bool = 
+    static const bool ret_bool =
 #if MIOPEN_BACKEND_OPENCL
         IsAmdRocmOpencl(context);
 #else
