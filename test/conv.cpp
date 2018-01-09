@@ -511,4 +511,4 @@ struct conv_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<conv_driver<float>>(argc, argv); }
+int main(int argc, const char* argv[]) { test_drive<conv_driver>(argc, argv); }
