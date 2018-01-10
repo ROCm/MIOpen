@@ -414,7 +414,7 @@ struct conv_driver : test_driver
     bool enable_backward_weights = false;
     bool do_backward_data        = true;
     int search                   = 0;
-    unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
+    unsigned long max_value      = miopen_type<T>{} == miopenHalf ? 5 : 17;
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
         {"CONV", miopenConvolution}, {"TRANS", miopenTranspose}};
