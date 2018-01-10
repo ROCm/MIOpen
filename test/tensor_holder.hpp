@@ -73,18 +73,18 @@ void visit_tensor_size(std::size_t n, F f)
     }
 }
 
-template<class T>
+template <class T>
 struct miopen_type;
 
-template<>
-struct miopen_type<float>
-: std::integral_constant<miopenDataType_t, miopenFloat>
-{};
+template <>
+struct miopen_type<float> : std::integral_constant<miopenDataType_t, miopenFloat>
+{
+};
 
-template<>
-struct miopen_type<half_float::half>
-: std::integral_constant<miopenDataType_t, miopenHalf>
-{};
+template <>
+struct miopen_type<half_float::half> : std::integral_constant<miopenDataType_t, miopenHalf>
+{
+};
 
 template <class T>
 struct tensor
@@ -96,7 +96,8 @@ struct tensor
 
     template <class X>
     tensor(const std::vector<X>& dims)
-        : desc(miopen_type<T>{}, dims.data(), static_cast<int>(dims.size())), data(desc.GetElementSize())
+        : desc(miopen_type<T>{}, dims.data(), static_cast<int>(dims.size())),
+          data(desc.GetElementSize())
     {
     }
 
@@ -135,7 +136,8 @@ struct tensor
             *iterator = x;
             ++iterator;
         };
-        this->for_each(miopen::compose(miopen::compose(assign, miopen::cast_to<T>()), std::move(g)));
+        this->for_each(
+            miopen::compose(miopen::compose(assign, miopen::cast_to<T>()), std::move(g)));
     }
 
     template <class Loop, class F>
@@ -168,7 +170,9 @@ struct tensor
                         any = {},
                         any = {}) const
         {
-            throw std::runtime_error("Arguments to for_each do not match tensor size or the function " + miopen::get_type_name<F>() + " can not be called.");
+            throw std::runtime_error(
+                "Arguments to for_each do not match tensor size or the function " +
+                miopen::get_type_name<F>() + " can not be called.");
         }
     };
 
