@@ -39,6 +39,7 @@
 
 struct rand_gen
 {
+    unsigned long max_value;
     template <class... Ts>
     double operator()(Ts... Xs) const
     {
@@ -46,7 +47,7 @@ struct rand_gen
         std::array<unsigned long, sizeof...(Ts)> left = {{Xs...}};
         std::array<unsigned long, 5> right            = {{613, 547, 701, 877, 1049}};
         unsigned long dot = std::inner_product(left.begin(), left.end(), right.begin(), 173ul);
-        return double(dot % 17);
+        return double(dot % max_value);
     };
 };
 
@@ -172,7 +173,9 @@ struct test_driver
         void operator()(T& x, argument& arg) const
         {
             arg.add_source(get_data, x);
-            arg.post_write_actions.push_back([&x] { tensor_generate{}(x, rand_gen{}); });
+            unsigned long max_value = x.desc.GetType() == miopenHalf ? 5 : 17;
+            std::cout << "max_value: " << max_value << std::endl;
+            arg.post_write_actions.push_back([&x,max_value] { tensor_generate{}(x, rand_gen{max_value}); });
         }
     };
 
@@ -358,8 +361,6 @@ struct test_driver
             {
                 std::cout << "Mismatch at " << idx << ": " << out_cpu[idx] << " != " << out_gpu[idx]
                           << std::endl;
-                std::cout << "---------------------------------------------------------\n"
-                          << std::endl;
             }
 
             auto cpu_nan_idx = find_idx(out_cpu, miopen::not_finite);
@@ -377,6 +378,8 @@ struct test_driver
             std::cout << "Warning: Both CPU and GPU data is all zero" << std::endl;
             fail(-1);
         }
+        std::cout << "---------------------------------------------------------\n"
+                  << std::endl;
         return std::make_pair(std::move(out_cpu), std::move(out_gpu));
     }
 
