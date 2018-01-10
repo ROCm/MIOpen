@@ -38,10 +38,6 @@ TensorDescriptor::TensorDescriptor() {}
 TensorDescriptor::TensorDescriptor(miopenDataType_t t, std::initializer_list<std::size_t> plens)
     : lens(plens), type(t)
 {
-    if(t != miopenFloat)
-    {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
-    }
     this->CalculateStrides();
 }
 
@@ -50,19 +46,11 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    std::initializer_list<std::size_t> pstrides)
     : lens(plens), strides(pstrides), type(t)
 {
-    if(t != miopenFloat)
-    {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
-    }
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t, const int* plens, int size)
     : lens(plens, plens + size), type(t)
 {
-    if(t != miopenFloat)
-    {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
-    }
     if(!std::all_of(plens, plens + size, [](int x) { return x >= 0; }))
         MIOPEN_THROW("Invalid length. Length must be greater than 0.");
     this->CalculateStrides();
@@ -73,10 +61,6 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    int size)
     : lens(plens, plens + size), strides(pstrides, pstrides + size), type(t)
 {
-    if(t != miopenFloat)
-    {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
-    }
     if(!std::all_of(plens, plens + size, [](int x) { return x >= 0; }))
         MIOPEN_THROW("Invalid length. Length must be greater than 0.");
     if(!std::all_of(pstrides, pstrides + size, [](int x) { return x >= 0; }))
