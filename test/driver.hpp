@@ -175,7 +175,8 @@ struct test_driver
             arg.add_source(get_data, x);
             unsigned long max_value = x.desc.GetType() == miopenHalf ? 5 : 17;
             std::cout << "max_value: " << max_value << std::endl;
-            arg.post_write_actions.push_back([&x,max_value] { tensor_generate{}(x, rand_gen{max_value}); });
+            arg.post_write_actions.push_back(
+                [&x, max_value] { tensor_generate{}(x, rand_gen{max_value}); });
         }
     };
 
@@ -378,8 +379,7 @@ struct test_driver
             std::cout << "Warning: Both CPU and GPU data is all zero" << std::endl;
             fail(-1);
         }
-        std::cout << "---------------------------------------------------------\n"
-                  << std::endl;
+        std::cout << "---------------------------------------------------------\n" << std::endl;
         return std::make_pair(std::move(out_cpu), std::move(out_gpu));
     }
 
