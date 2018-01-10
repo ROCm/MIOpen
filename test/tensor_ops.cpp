@@ -155,8 +155,8 @@ struct verify_tensor_ops : tensor_ops_base<T>
                     // palpha1) +
                     // min_elem(aten[aindex + AtenOffset] * palpha0, bten[bindex + BtenOffset] *
                     // palpha1) +
-                    mul_elem(aten[aindex + AtenOffset] * palpha0,
-                             bten[bindex + BtenOffset] * palpha1) +
+                    mul_elem(T(aten[aindex + AtenOffset] * palpha0),
+                             T(bten[bindex + BtenOffset] * palpha1)) +
                     pbeta * cten[cindex + CtenOffset];
             }
             if(dim < (a_dims.size() - 1))

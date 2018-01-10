@@ -33,6 +33,7 @@
 
 #include <functional>
 #include <deque>
+#include <half.hpp>
 #include <miopen/functional.hpp>
 #include <miopen/type_name.hpp>
 
@@ -629,7 +630,7 @@ void test_drive_impl(std::vector<std::string> as)
 {
     Driver d{};
 
-    std::set<std::string> keywords{"--help", "-h"};
+    std::set<std::string> keywords{"--help", "-h", "--half", "--float", "--double"};
     d.parse(keyword_set{keywords});
     auto arg_map = args::parse(as, [&](std::string x) {
         return (keywords.count(x) > 0) or
@@ -711,6 +712,23 @@ template <template <class...> class Driver>
 void test_drive(int argc, const char* argv[])
 {
     std::vector<std::string> as(argv + 1, argv + argc);
-    // Always use float for now
-    test_drive_impl<Driver<float>>(std::move(as));
+    as.emplace_back("--float");
+    for(auto&& arg:as)
+    {
+        if(arg == "--half")
+        {
+            test_drive_impl<Driver<half_float::half>>(std::move(as));
+            break;
+        }
+        if(arg == "--float")
+        {
+            test_drive_impl<Driver<float>>(std::move(as));
+            break;
+        }
+        if(arg == "--double")
+        {
+            test_drive_impl<Driver<double>>(std::move(as));
+            break;
+        }
+    }
 }
