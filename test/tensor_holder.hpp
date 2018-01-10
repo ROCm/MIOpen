@@ -92,7 +92,9 @@ struct tensor
     miopen::TensorDescriptor desc;
     std::vector<T> data;
 
-    tensor() {}
+    tensor() 
+    : desc(miopen_type<T>{}, {})
+    {}
 
     template <class X>
     tensor(const std::vector<X>& dims)
