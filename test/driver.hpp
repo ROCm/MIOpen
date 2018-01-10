@@ -713,7 +713,7 @@ void test_drive(int argc, const char* argv[])
 {
     std::vector<std::string> as(argv + 1, argv + argc);
     as.emplace_back("--float");
-    for(auto&& arg:as)
+    for(auto&& arg : as)
     {
         if(arg == "--half")
         {
