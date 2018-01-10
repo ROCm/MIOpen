@@ -97,10 +97,10 @@ sequence_t<F> sequence(F f)
     return {std::move(f)};
 }
 
-template<class T>
+template <class T>
 struct cast_to
 {
-    template<class X>
+    template <class X>
     T operator()(X&& x) const
     {
         return static_cast<T>(std::forward<X>(x));
