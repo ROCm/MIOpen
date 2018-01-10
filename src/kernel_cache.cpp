@@ -126,7 +126,6 @@ Kernel KernelCache::GetKernel(Handle& h,
                               const std::vector<size_t>& vgd,
                               std::string params)
 {
-
     if(params.length() > 0)
     {
         // Ensure only one space after the -cl-std.
