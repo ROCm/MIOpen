@@ -727,7 +727,7 @@ void test_drive(int argc, const char* argv[])
         }
         if(arg == "--double")
         {
-            test_drive_impl<Driver<double>>(std::move(as));
+            // test_drive_impl<Driver<double>>(std::move(as));
             break;
         }
     }
