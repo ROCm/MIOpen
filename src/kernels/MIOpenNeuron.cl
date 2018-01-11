@@ -322,13 +322,12 @@ __attribute__((reqd_work_group_size(MLO_NRN_GROUP_SZ0, MLO_NRN_GROUP_SZ1, MLO_NR
 __kernel void
 MIOpenNeuronFwd(const __global _FLOAT* bot,
                 __global _FLOAT* top,
-                struct ActivationForwardParam Param,
+                _FLOAT power,
+                _FLOAT scale,
+                _FLOAT shift,
                 const long xOffset,
                 const long yOffset)
 {
-    _FLOAT power = Param.power;
-    _FLOAT scale = Param.scale;
-    _FLOAT shift = Param.shift;
     int x        = get_global_id(0); // channel x
 #if MLO_N_OUT_STRIDE > MLO_OUT_BLOCK_SZ
     int n_out_stride = MLO_N_OUT_STRIDE;

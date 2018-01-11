@@ -29,12 +29,8 @@
 #define FOUR 4
 #define EIGHT 8
 
-<<<<<<< HEAD
 #if MIOPEN_USE_FP16 == 1
-=======
-#if 0 // MIOPEN_USE_FP16 == 1
->>>>>>> fp16_kernels
-    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
 #ifndef HALF_MAX
 #define MAX_VAL 65504 /* max value */
@@ -42,12 +38,8 @@
 #define MAX_VAL HALF_MAX
 #endif
 #endif
-<<<<<<< HEAD
-                                           #if MIOPEN_USE_FP32 == 1
-=======
-                                           #if 1 // MIOPEN_USE_FP32 == 1
->>>>>>> fp16_kernels
-                                           #define _FLOAT float
+#if MIOPEN_USE_FP32 == 1
+#define _FLOAT float
 #ifndef FLT_MAX
 #define MAX_VAL 3.402823466e+38F /* max value */
 #else
