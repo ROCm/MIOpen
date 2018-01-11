@@ -328,7 +328,7 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
                 const long xOffset,
                 const long yOffset)
 {
-    int x        = get_global_id(0); // channel x
+    int x = get_global_id(0); // channel x
 #if MLO_N_OUT_STRIDE > MLO_OUT_BLOCK_SZ
     int n_out_stride = MLO_N_OUT_STRIDE;
     int c_out        = MLO_C_OUT;
