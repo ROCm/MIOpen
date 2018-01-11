@@ -39,7 +39,7 @@
 
 struct rand_gen
 {
-    unsigned long max_value;
+    unsigned long max_value = 17;
     template <class... Ts>
     double operator()(Ts... Xs) const
     {
