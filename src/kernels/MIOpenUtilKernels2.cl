@@ -34,7 +34,7 @@
 =======
 #if 0 // MIOPEN_USE_FP16 == 1
 >>>>>>> fp16_kernels
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
 #ifndef HALF_MAX
 #define MAX_VAL 65504 /* max value */
@@ -43,11 +43,11 @@
 #endif
 #endif
 <<<<<<< HEAD
-#if MIOPEN_USE_FP32 == 1
+                                           #if MIOPEN_USE_FP32 == 1
 =======
-#if 1 // MIOPEN_USE_FP32 == 1
+                                           #if 1 // MIOPEN_USE_FP32 == 1
 >>>>>>> fp16_kernels
-#define _FLOAT float
+                                           #define _FLOAT float
 #ifndef FLT_MAX
 #define MAX_VAL 3.402823466e+38F /* max value */
 #else
@@ -59,21 +59,22 @@
 #define _FLOAT4 PPCAT(_FLOAT, FOUR)
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
-__kernel void Col2Im(global _FLOAT* col,
-                     const int col_h,
-                     const int col_w,
-                     const int wei_h,
-                     const int wei_w,
-                     const int pad_h,
-                     const int pad_w,
-                     const int stride_h,
-                     const int stride_w,
-                     const int dilation_h,
-                     const int dilation_w,
-                     const int height,
-                     const int width,
-                     global _FLOAT* im,
-                     size_t im_offset)
+                                               __kernel void
+                                               Col2Im(global _FLOAT * col,
+                                                      const int col_h,
+                                                      const int col_w,
+                                                      const int wei_h,
+                                                      const int wei_w,
+                                                      const int pad_h,
+                                                      const int pad_w,
+                                                      const int stride_h,
+                                                      const int stride_w,
+                                                      const int dilation_h,
+                                                      const int dilation_w,
+                                                      const int height,
+                                                      const int width,
+                                                      global _FLOAT* im,
+                                                      size_t im_offset)
 {
     global _FLOAT* im_off = im + im_offset;
     int gid               = (int)get_global_id(0);
