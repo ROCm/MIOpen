@@ -456,7 +456,10 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
                 __global const _FLOAT* top_data,
                 UNUSED _FLOAT diff_scale,
                 UNUSED _FLOAT power,
-                _FLOAT scale,
+#if MLO_NRN_OP_ID != MLO_NEURON_RELU
+                UNUSED
+#endif
+                    _FLOAT scale,
                 UNUSED _FLOAT shift,
                 const long dxOffset,
                 const long dyOffset,

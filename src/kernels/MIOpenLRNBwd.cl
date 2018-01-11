@@ -253,8 +253,8 @@ MIOpenLRNAcrossChannelsBwd1(const __global _FLOAT* top,
                             const __global _FLOAT* top_df,
                             const __global _FLOAT* scale,
                             __global _FLOAT* bot_df,
-                            UNUSED _FLOAT ratio,
-                            _FLOAT alpha,
+                            _FLOAT ratio,
+                            UNUSED _FLOAT alpha,
                             _FLOAT beta)
 {
     int x              = get_global_id(0); // channel x
