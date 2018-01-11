@@ -53,6 +53,8 @@
 // example
 #if 0 // ndef MLopen_RUNNING
 #define BATCHSIZE 32
+#define MLO_N_LCL_IN_MAPS_ONCE 8
+
 #define H 28
 #define W 28
 #define C 192
@@ -85,8 +87,6 @@
 #define MLO_WEI_BSTRIDE (1 * 1 * C * K)
 #define MLO_WEI_CHANNEL_STRIDE (1 * 1 * C)
 
-#define MLO_N_LCL_IN_MAPS_ONCE 8
-
 #define MLO_OUT_BATCH_STRIDE (H_out * W_out * K)
 #define MLO_OUT_CHANNEL_STRIDE (H_out * W_out)
 
@@ -98,7 +98,24 @@
 #define MLO_GRP_SZ1 1
 #define MLO_GRP_SZ2 1
 
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
+
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#endif
+#if MIOPEN_USE_FP32 == 1
 #define _FLOAT float
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
+
 #define MLO_CONV_BIAS 0
 #define UNUSED __attribute((__unused__))
 
@@ -181,7 +198,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
         for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
         {
-            *q = 0;
+            *q = (_FLOAT)0;
             q += MLO_OUT_CHANNEL_STRIDE;
         }
     }
@@ -189,7 +206,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
     for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
     {
-        accum[o] = 0;
+        accum[o] = (_FLOAT)0;
     }
 
 #if MLO_N_INPUTS == ((MLO_N_INPUTS / MLO_N_LCL_IN_MAPS) * MLO_N_LCL_IN_MAPS)
@@ -221,8 +238,8 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
 #endif
     {
-        __global const float* p = in_ptr + gbl_in_off;
-        __constant _FLOAT* w    = wei_ptr + wei_off;
+        __global const _FLOAT* p = in_ptr + gbl_in_off;
+        __constant _FLOAT* w     = wei_ptr + wei_off;
 
         // read data
         for(uint j = 0; j < MLO_N_LCL_IN_MAPS_ONCE; ++j)
