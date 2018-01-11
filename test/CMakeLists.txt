@@ -24,6 +24,8 @@
 # 
 ################################################################################
 
+cmake_policy(SET CMP0057 NEW)
+
 include(CTest)
 
 option( MIOPEN_TEST_ALL "Run the full test suite" OFF )
@@ -39,7 +41,10 @@ add_custom_target(tests)
 set(SKIP_TESTS test_gru)
 
 function(add_test_command NAME EXE)
-    if(WIN32)
+    if(NAME IN_LIST SKIP_TESTS)
+        add_test(NAME ${NAME} COMMAND echo skipped)
+        set_tests_properties(${NAME} PROPERTIES DISABLED On)
+    elseif(WIN32)
         set(WINPATH)
         foreach(PATH ${CMAKE_FIND_ROOT_PATH})
             list(APPEND WINPATH ${PATH}/bin)
