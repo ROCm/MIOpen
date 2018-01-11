@@ -23,7 +23,23 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
+
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#endif
+#if MIOPEN_USE_FP32 == 1
 #define _FLOAT float
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 static inline int iDiv(int v, int d)
 {
@@ -39,7 +55,7 @@ static inline int iMod(int v, int u, int d)
 
 static inline void ReduceKernel(__local _FLOAT* lcl_mem, int sum_stride, int unit_id, int unit_len)
 {
-    _FLOAT sum     = 0;
+    _FLOAT sum     = (_FLOAT)(0);
     int lcl_offset = unit_id * unit_len;
     for(int i = 0; i < unit_len; i += sum_stride)
     {
@@ -55,7 +71,7 @@ MIOpenConvBwdB(const __global _FLOAT* top_df, __global _FLOAT* bias_df)
     int output_map = get_group_id(1);
 
     __local _FLOAT lcl_sum[MLO_CONVBWDB_LCL_MEMSZ];
-    _FLOAT sum = 0;
+    _FLOAT sum = (_FLOAT)(0);
 
     for(int j = lid; j < MLO_WK_SIZE * MLO_OUT_BATCH_SZ; j += MLO_CONVBWD_GROUP_SZ0)
     {

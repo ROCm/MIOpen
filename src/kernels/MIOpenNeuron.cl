@@ -23,11 +23,23 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
 
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#endif
+#if MIOPEN_USE_FP32 == 1
 #define _FLOAT float
-#define _FLOAT2 float2
-#define _FLOAT4 float4
-#define _FLOAT8 float8
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #define UNUSED __attribute__((__unused__))
 
@@ -46,6 +58,21 @@
 //#define MLO_NEURON_SQR			MLO_NEURON_SQUARE + 1		//	sqr(x)
 //#define MLO_NEURON_LINEAR		MLO_NEURON_SQR	+ 1			//	a + b * x
 #define MLO_NEURON_TOTAL MLO_NEURON_POWER + 1
+
+struct ActivationForwardParam
+{
+    _FLOAT power;
+    _FLOAT scale;
+    _FLOAT shift;
+};
+
+struct ActivationBackwardParam
+{
+    _FLOAT diff_scale;
+    _FLOAT power;
+    _FLOAT scale;
+    _FLOAT shift;
+};
 
 __attribute__((always_inline)) void ActivationFunction_PassThru(_FLOAT* res, const _FLOAT* data)
 {
@@ -80,7 +107,7 @@ ActivationFunction_Sigmoid(int n, _FLOAT* res, const _FLOAT* data)
     for(int i = 0; i < n; i++)
     {
         // 1/(1 + exp(-x))
-        res[i] = 1.f / (1.f + exp(-data[i]));
+        res[i] = (_FLOAT)1.f / ((_FLOAT)1.f + exp(-data[i]));
     }
 }
 
@@ -136,9 +163,15 @@ __attribute__((always_inline)) void ActivationFunction_Power(
     for(int i = 0; i < n; i++)
     {
         // (shift + scale * x ) ^power
-        _FLOAT arg     = alpha + data[i] * beta;
-        _FLOAT run_arg = (arg == 0) ? 1 : arg;
-        res[i]         = (arg == 0) ? 0 : pow(run_arg, power);
+        _FLOAT arg = alpha + data[i] * beta;
+//		_FLOAT run_arg = (arg == (_FLOAT)0) ? (_FLOAT)1 : arg;
+//		res[i] = (arg == (_FLOAT)0) ? (_FLOAT)0 : pow(run_arg, power);
+#if MIOPEN_USE_FP16 == 1
+        res[i] = (fabs(arg) < (_FLOAT)(0.0001)) ? (_FLOAT)(0) : pow(arg, power);
+#endif
+#if MIOPEN_USE_FP32 == 1
+        res[i] = (fabs(arg) < (_FLOAT)(0.000001)) ? (_FLOAT)(0) : pow(arg, power);
+#endif
     }
 }
 
@@ -148,7 +181,8 @@ __attribute__((always_inline)) void ActivationFunction_BNLL(int n, _FLOAT* res, 
     for(int i = 0; i < n; i++)
     {
         //	log(1 + exp(x))
-        res[i] = (data[i] > 0) ? data[i] + log(1.f + exp(-data[i])) : log(1.f + exp(data[i]));
+        res[i] = (data[i] > 0) ? data[i] + log((_FLOAT)1.f + exp(-data[i]))
+                               : log((_FLOAT)(1.f) + exp(data[i]));
     }
 }
 
@@ -200,7 +234,7 @@ void ActivationFunction(
 /*									DIFF */
 /******************************************************************************/
 
-static __constant _FLOAT kBNLL_THRESHOLD = 50.;
+static __constant _FLOAT kBNLL_THRESHOLD = (_FLOAT)50.;
 
 __attribute__((always_inline)) void ActivationFunction_ReLU_Diff(int n,
                                                                  _FLOAT* bot_diff,
@@ -237,7 +271,7 @@ __attribute__((always_inline)) void ActivationFunction_Sigmoid_Diff(int n,
     {
         // 1/(1 + exp(-x))
         _FLOAT sigmoid_x = top_data[i];
-        bot_diff[i]      = top_diff[i] * sigmoid_x * (1.f - sigmoid_x);
+        bot_diff[i]      = top_diff[i] * sigmoid_x * ((_FLOAT)1.f - sigmoid_x);
     }
 }
 
@@ -246,7 +280,14 @@ ActivationFunction_Abs_Diff(int n, _FLOAT* bot_diff, const _FLOAT* top_diff, con
 {
     for(int i = 0; i < n; i++)
     {
-        bot_diff[i] = top_diff[i] * ((bot_data != 0) ? 1 : -1);
+//        bot_diff[i] = top_diff[i] * ((bot_data[i] >= 0 ) ? 1 : -1);
+#if MIOPEN_USE_FP16 == 1
+        bot_diff[i] = top_diff[i] * ((fabs(bot_data[i]) < (_FLOAT)0.0001) ? (_FLOAT)1 : (_FLOAT)-1);
+#endif
+#if MIOPEN_USE_FP32 == 1
+        bot_diff[i] =
+            top_diff[i] * ((fabs(bot_data[i]) < (_FLOAT)0.000001) ? (_FLOAT)1 : (_FLOAT)-1);
+#endif
     }
 }
 
@@ -265,8 +306,14 @@ __attribute__((always_inline)) void ActivationFunction_Power_Diff(int n,
 
     for(int i = 0; i < n; i++)
     {
-        _FLOAT arg  = shift + bot_data[i] * scale;
-        bot_diff[i] = (arg == 0) ? 0 : diff_scale * top_data[i] / arg;
+        _FLOAT arg = shift + bot_data[i] * scale;
+//        bot_diff[i] = (arg == 0) ? 0 : diff_scale * top_data[i] / arg;
+#if MIOPEN_USE_FP16 == 1
+        bot_diff[i] = (fabs(arg) < (_FLOAT)0.0001) ? (_FLOAT)0 : diff_scale * top_data[i] / arg;
+#endif
+#if MIOPEN_USE_FP32 == 1
+        bot_diff[i] = (fabs(arg) < (_FLOAT)0.000001) ? (_FLOAT)0 : diff_scale * top_data[i] / arg;
+#endif
     }
 }
 
@@ -279,7 +326,7 @@ __attribute__((always_inline)) void ActivationFunction_BNLL_Diff(int n,
     {
         //	(log(1 + exp(x)))' = 1/ (1 + exp(-x))
         _FLOAT expval = exp(fmin(bot_data[i], kBNLL_THRESHOLD));
-        bot_diff[i]   = top_diff[i] * expval / (expval + 1.f);
+        bot_diff[i]   = top_diff[i] * expval / (expval + (_FLOAT)1.f);
     }
 }
 
@@ -287,14 +334,14 @@ __attribute__((reqd_work_group_size(MLO_NRN_GROUP_SZ0, MLO_NRN_GROUP_SZ1, MLO_NR
 __kernel void
 MIOpenNeuronFwd(const __global _FLOAT* bot,
                 __global _FLOAT* top,
-                _FLOAT power,
-                _FLOAT scale,
-                _FLOAT shift,
+                struct ActivationForwardParam Param,
                 const long xOffset,
                 const long yOffset)
 {
-    int x = get_global_id(0); // channel x
-
+    _FLOAT power = Param.power;
+    _FLOAT scale = Param.scale;
+    _FLOAT shift = Param.shift;
+    int x        = get_global_id(0); // channel x
 #if MLO_N_OUT_STRIDE > MLO_OUT_BLOCK_SZ
     int n_out_stride = MLO_N_OUT_STRIDE;
     int c_out        = MLO_C_OUT;
@@ -339,7 +386,7 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
         }
         for(; i < MLO_READ_UNIT; ++i)
         {
-            data[i] = 1.f;
+            data[i] = (_FLOAT)1.f;
         }
     }
     else
@@ -434,20 +481,17 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
                 __global const _FLOAT* top_diff,
                 __global const _FLOAT* bot_data,
                 __global const _FLOAT* top_data,
-                _FLOAT diff_scale,
-                _FLOAT power,
-                _FLOAT scale,
-                _FLOAT shift,
+                struct ActivationBackwardParam Param,
                 const long dxOffset,
                 const long dyOffset,
                 const long xOffset,
                 const long yOffset)
 {
 
-    (void)diff_scale;
-    (void)power;
-    (void)scale;
-    (void)shift;
+    UNUSED _FLOAT diff_scale = Param.diff_scale;
+    UNUSED _FLOAT power      = Param.power;
+    UNUSED _FLOAT scale      = Param.scale;
+    UNUSED _FLOAT shift      = Param.shift;
 
     int x = get_global_id(0); // channel x
 
@@ -542,9 +586,9 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
         }
         for(; i < MLO_READ_UNIT; ++i)
         {
-            top_diff_dat[i] = 1.f;
-            bot_dat[i]      = 1.f;
-            top_dat[i]      = 1.f;
+            top_diff_dat[i] = (_FLOAT)1.f;
+            bot_dat[i]      = (_FLOAT)1.f;
+            top_dat[i]      = (_FLOAT)1.f;
         }
     }
     else
