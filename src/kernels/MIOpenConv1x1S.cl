@@ -191,8 +191,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 <<<<<<< HEAD
                     acc[i] += d[i] * we;
 =======
-#if MIOPEN_USE_FP32 == 1
-                    accum[o][i] += dat[c][i] * weights[o][c];
+                    #if MIOPEN_USE_FP32 == 1 accum[o][i] += dat[c][i] * weights[o][c];
 #endif
 #if MIOPEN_USE_FP16 == 1
                     accum[o * MLO_READ_UNIT + i] += dat[c * MLO_READ_UNIT + i] * weights[o][c];
