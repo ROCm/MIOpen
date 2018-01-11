@@ -85,13 +85,11 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
 #if MLO_LRN_DO_SCALE
                           __global _FLOAT* scale,
 #endif
-                          struct LRNForwardParam Param)
+                          _FLOAT alphaoverarea,
+                          UNUSED _FLOAT alpha,
+                          _FLOAT beta,
+                          _FLOAT K)
 {
-
-    _FLOAT alphaoverarea = Param.alphaoverarea;
-    UNUSED _FLOAT alpha  = Param.alpha;
-    _FLOAT beta          = Param.beta;
-    _FLOAT K             = Param.K;
     // IT's taken from POOLING AVE with stride = 1'
     __local _FLOAT bot_data[MLO_LRN_LCL_DATA_WIDTH * MLO_LRN_LCL_DATA_HEIGHT];
     int x       = get_group_id(0) * MLO_LRN_GROUP_SZ0 * MLO_LRN_N_HORIZ_OUT_PIX;
@@ -421,16 +419,14 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
 #if MLO_LRN_DO_SCALE
                          __global _FLOAT* scale,
 #endif
-                         struct LRNForwardParam Param)
+                         _FLOAT alphaoverarea,
+                         UNUSED _FLOAT alpha,
+                         _FLOAT beta,
+                         _FLOAT K)
 {
-
-    _FLOAT alphaoverarea = Param.alphaoverarea;
-    UNUSED _FLOAT alpha  = Param.alpha;
-    _FLOAT beta          = Param.beta;
-    _FLOAT K             = Param.K;
-    int pix_id           = get_global_id(0); //
-    int b                = get_global_id(2); // batch
-    MLO_READ_TYPE accum  = 0;
+    int pix_id          = get_global_id(0); //
+    int b               = get_global_id(2); // batch
+    MLO_READ_TYPE accum = 0;
     MLO_READ_TYPE bot_in2[MLO_LRN_KERNEL_SZ];
     int c_i = 0, c_o = 0;
     for(int i = 0; i < MLO_LRN_KERNEL_SZ; ++i)

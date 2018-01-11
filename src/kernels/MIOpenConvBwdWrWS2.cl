@@ -163,9 +163,9 @@ input.
 //		until end of output map (MLO_N_OUT_BLK)
 //			load input map block in LDS
 //			load output maps in LDS
-//          for j in output scans
-//				for i in output scan interval
-//                  accumulate the weights into sub-tiles
+//		for j in output scans
+//			for i in output scan interval
+//				accumulate the weights into sub-tiles
 //
 //		reduce sub-tiles into a single filter for each output
 //		write accululated weights
