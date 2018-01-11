@@ -625,9 +625,8 @@ struct show_help
 };
 
 template <class Driver>
-void test_drive(int argc, const char* argv[])
+void test_drive_impl(std::vector<std::string> as)
 {
-    std::vector<std::string> as(argv + 1, argv + argc);
     Driver d{};
 
     std::set<std::string> keywords{"--help", "-h"};
@@ -699,4 +698,19 @@ void test_drive(int argc, const char* argv[])
     }
 
     run_data(data_args.begin(), data_args.end(), [&] { d.run(); });
+}
+
+template <class Driver>
+void test_drive(int argc, const char* argv[])
+{
+    std::vector<std::string> as(argv + 1, argv + argc);
+    test_drive_impl<Driver>(std::move(as));
+}
+
+template <template <class...> class Driver>
+void test_drive(int argc, const char* argv[])
+{
+    std::vector<std::string> as(argv + 1, argv + argc);
+    // Always use float for now
+    test_drive_impl<Driver<float>>(std::move(as));
 }
