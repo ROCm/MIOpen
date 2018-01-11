@@ -65,7 +65,7 @@ struct OCLSetKernelArg
         if(status != CL_SUCCESS)
         {
             MIOPEN_THROW("Error setting argument #" + std::to_string(i) + " to kernel (size = " +
-                         std::to_string(sizeof(T)) + "): " + std::to_string(status));
+                         std::to_string(sizeof(T)) + "): " + OpenCLErrorMessage(status));
         }
     }
 
@@ -76,7 +76,7 @@ struct OCLSetKernelArg
         if(status != CL_SUCCESS)
         {
             MIOPEN_THROW("Error setting argument #" + std::to_string(i) + " to kernel: " +
-                         std::to_string(status));
+                         OpenCLErrorMessage(status));
         }
     }
 };

@@ -314,7 +314,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         {
             nid            = n * segihw + lidihw;
             index          = nid * MIO_BN_CHW + chwid;
-            batchvalues[n] = (index < MIO_BN_NCHW) ? *(x_in + index) : 0.;
+            batchvalues[n] = (index < MIO_BN_NCHW) ? *(x_in + index) : (_FLOAT)0.;
             mean += batchvalues[n];
             variance = mad(batchvalues[n], batchvalues[n], variance);
         }

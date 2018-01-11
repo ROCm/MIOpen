@@ -162,6 +162,7 @@ __kernel void BatchNormFwdTrainPerActivation(
             pvt_runMean = *(resultRunningMean + adjIndex); // previous: oldRunMean
             pvt_newRunMean =
                 mad((_FLOAT)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
+
             resultRunningMean[adjIndex] =
                 mad((_FLOAT)mean, (_FLOAT)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
 

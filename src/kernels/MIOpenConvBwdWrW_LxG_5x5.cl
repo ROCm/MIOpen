@@ -200,7 +200,7 @@ __attribute__((always_inline)) void Processing(UNUSED int sc,
 #if 0
 				if (bot_val * top_val != 0 && get_global_id(1) == 0 && get_global_id(2) == 0 && get_local_id(0) == 0 && l == 1 && n == 2)
 				{
-					printf("G: %d %d  %f %f %f %f\n",
+					printf("G: %d %d %f %f %f %f\n",
 						sc,
 						sc_lcl_off,
 						pvt_accum[l*MLO_FILTER_SIZE0 + n],
