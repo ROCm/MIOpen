@@ -78,8 +78,8 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     std::tie(nOut, cOut, hOut, wOut)                         = tien<4>(yDesc.GetLengths());
     std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tien<4>(yDesc.GetStrides());
 
-    construct_params.setTopDescr(
-        "NCHW", "FP32", nOut, cOut, hOut, wOut, nOutStride, cOutStride, hOutStride, wOutStride);
+    construct_params.setTopDescFromMLDesc(yDesc);
+
     int nIn;
     int cIn;
     int hIn;
@@ -97,8 +97,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
         MIOPEN_THROW("Pooling window too large to do backwards");
     }
 
-    construct_params.setBotDescr(
-        "NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+    construct_params.setBotDescFromMLDesc(xDesc);
 
     if(mode == miopenPoolingMax && do_backward && workSpace == nullptr)
     {
@@ -111,10 +110,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
 
     construct_params.doBackward(do_backward);
 
-    if(construct_params.mloConstruct() != 0)
-    {
-        MIOPEN_THROW("Pooling kernel construction error");
-    }
+    mloConstruct(construct_params);
 
     std::string program_name = construct_params.getKernelFile();      // CL kernel filename
     std::string kernel_name  = construct_params.getKernelName();      // kernel name
@@ -184,16 +180,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     std::tie(ndOut, cdOut, hdOut, wdOut)                         = tien<4>(dyDesc.GetLengths());
     std::tie(ndOutStride, cdOutStride, hdOutStride, wdOutStride) = tien<4>(dyDesc.GetStrides());
 
-    construct_params.setTopDfDescr("NCHW",
-                                   "FP32",
-                                   ndOut,
-                                   cdOut,
-                                   hdOut,
-                                   wdOut,
-                                   ndOutStride,
-                                   cdOutStride,
-                                   hdOutStride,
-                                   wdOutStride);
+    construct_params.setTopDfDescFromMLDesc(dyDesc);
 
     int nOut;
     int cOut;
@@ -207,8 +194,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     std::tie(nOut, cOut, hOut, wOut)                         = tien<4>(yDesc.GetLengths());
     std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tien<4>(yDesc.GetStrides());
 
-    construct_params.setTopDescr(
-        "NCHW", "FP32", nOut, cOut, hOut, wOut, nOutStride, cOutStride, hOutStride, wOutStride);
+    construct_params.setTopDescFromMLDesc(yDesc);
 
     int ndIn;
     int cdIn;
@@ -222,8 +208,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     std::tie(ndIn, cdIn, hdIn, wdIn)                         = tien<4>(dxDesc.GetLengths());
     std::tie(ndInStride, cdInStride, hdInStride, wdInStride) = tien<4>(dxDesc.GetStrides());
 
-    construct_params.setBotDfDescr(
-        "NCHW", "FP32", ndIn, cdIn, hdIn, wdIn, ndInStride, cdInStride, hdInStride, wdInStride);
+    construct_params.setBotDfDescFromMLDesc(dxDesc);
 
     int nIn;
     int cIn;
@@ -242,8 +227,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
         MIOPEN_THROW("Pooling window too large to do backwards");
     }
 
-    construct_params.setBotDescr(
-        "NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+    construct_params.setBotDescFromMLDesc(xDesc);
 
     if(mode == miopenPoolingMax && workSpace == nullptr)
     {
@@ -253,10 +237,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     construct_params.setPoolingDescr(
         pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
 
-    if(construct_params.mloConstruct() != 0)
-    {
-        MIOPEN_THROW("Pooling kernel construction error");
-    }
+    mloConstruct(construct_params);
 
     std::string program_name = construct_params.getKernelFile();      // CL kernel filename
     std::string kernel_name  = construct_params.getKernelName();      // kernel name
