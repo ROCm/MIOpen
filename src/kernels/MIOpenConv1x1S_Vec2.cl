@@ -81,7 +81,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
               )
 {
 
-    _FLOAT weights[MLO_N_LCL_OUT_MAPS][MLO_N_LCL_IN_MAPS];
+    _FLOAT2 weights[MLO_N_LCL_OUT_MAPS][MLO_N_LCL_IN_MAPS];
 
     uint gbl_id0  = get_global_id(0);
     uint batch_id = gbl_id0 / MLO_MAP_SZ4; // batch
@@ -90,66 +90,77 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
     uint out_grp_block = get_group_id(1); // block of outputs for the entire group
     uint out_id        = out_grp_block * MLO_N_LCL_OUT_MAPS;
 
-    uint gbl_in_off = batch_id * MLO_IN_BATCH_STRIDE + pos * MLO_READ_UNIT;
+    uint2 gbl_in_off = (uint2)(batch_id * MLO_IN_BATCH_STRIDE + pos * MLO_READ_UNIT) +
+                       (uint2)(0, MLO_N_LCL_IN_MAPS * MLO_IN_CHANNEL_STRIDE);
 
-    uint wei_off = out_id *
+    uint2 wei_off = (uint2)(out_id) *
 #if MLO_DIR_FORWARD == 1
-                   MLO_WEI_BSTRIDE
+                        (uint2)(MLO_WEI_BSTRIDE) +
+                    (uint2)(0, MLO_N_LCL_IN_MAPS * MLO_WEI_CHANNEL_STRIDE)
 #else
-                   MLO_WEI_CHANNEL_STRIDE
+                        (uint2)(MLO_WEI_CHANNEL_STRIDE) +
+                    (uint2)(0, MLO_N_LCL_IN_MAPS * MLO_WEI_BSTRIDE)
 #endif
         ;
 
-    _FLOAT accum[MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT] = {(_FLOAT)(0)};
-    _FLOAT dat[MLO_N_LCL_IN_MAPS][MLO_READ_UNIT];
+    _FLOAT2 accum[MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT] = {(_FLOAT2)(0, 0)};
+    _FLOAT2 dat[MLO_N_LCL_IN_MAPS][MLO_READ_UNIT];
 
     for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
     {
         for(uint i = 0; i < MLO_READ_UNIT; ++i)
         {
-            accum[o][i] = (_FLOAT)(0);
+            accum[o][i] = (_FLOAT2)(0, 0);
         }
     }
 
-    for(uint ci = 0; ci < MLO_CLOOP0; ++ci,
+    for(uint ci = 0; ci < MLO_CLOOP0;
+        ci += 2,
              // move input offset
-                                      gbl_in_off += MLO_N_LCL_IN_MAPS * MLO_IN_CHANNEL_STRIDE,
+        gbl_in_off += (uint2)(2 * MLO_N_LCL_IN_MAPS * MLO_IN_CHANNEL_STRIDE),
 
              // move weights offset
-                                      wei_off += MLO_N_LCL_IN_MAPS *
+        wei_off += (uint2)(2 * MLO_N_LCL_IN_MAPS) *
 #if MLO_DIR_FORWARD == 1
-                                                 MLO_WEI_CHANNEL_STRIDE
+                   (uint2)(MLO_WEI_CHANNEL_STRIDE)
 #else
-                                                 MLO_WEI_BSTRIDE
+                   (uint2)(MLO_WEI_BSTRIDE)
 #endif
-        )
+            )
     {
         // read weights
 
-        __constant _FLOAT* w1 = wei_ptr + wei_off;
-
-        for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o,
-                 w1 +=
+        uint o;
+        uint2 wei_off1;
+        for(o = 0, wei_off1 = wei_off; o < MLO_N_LCL_OUT_MAPS; ++o,
+        wei_off1 +=
 #if MLO_DIR_FORWARD == 1
-                                                MLO_WEI_BSTRIDE
+                                                               (uint2)(MLO_WEI_BSTRIDE)
 #else
-                                                MLO_WEI_CHANNEL_STRIDE
-#endif
-            )
-        {
-            __constant _FLOAT* w2 = w1;
-            for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c,
-                     w2 +=
-#if MLO_DIR_FORWARD == 1
-                                                   MLO_WEI_CHANNEL_STRIDE
-#else
-                                                   MLO_WEI_BSTRIDE
+                                                               (uint2)(MLO_WEI_CHANNEL_STRIDE)
 #endif
                 )
+        {
+            uint c;
+            uint2 wei_off2;
+            for(c = 0, wei_off2 = wei_off1; c < MLO_N_LCL_IN_MAPS; ++c,
+            wei_off2 +=
+#if MLO_DIR_FORWARD == 1
+                                                                   (uint2)(MLO_WEI_CHANNEL_STRIDE)
+#else
+                                                                   (uint2)(MLO_WEI_BSTRIDE)
+#endif
+                    )
             {
-                weights[o][c] = *w2;
+#if MLO_CLOOP0 % 2 == 0
+                weights[o][c] = (_FLOAT2)(wei_ptr[wei_off2.x], wei_ptr[wei_off2.y]);
+#else
+                weights[o][c].x = wei_ptr[wei_off2.x];
+                weights[o][c].y = (ci + 1 >= MLO_CLOOP0) ? (_FLOAT)(0) : wei_ptr[wei_off2.y];
+#endif
 #if DBG_OUT_OF_RNGE
-                if(wei_off2 >= MLO_N_INPUTS * MLO_N_OUTPUTS)
+                if((wei_off2.x >= MLO_N_INPUTS * MLO_N_OUTPUTS) ||
+                   (wei_off2.y >= MLO_N_INPUTS * MLO_N_OUTPUTS))
                 {
                     printf("K:oor: weights\n");
                 }
@@ -159,34 +170,37 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
         // convolve with all weights
         // read data
-        // Shader compiler will use      GLOAL_LOAD_DWORD's OFFSET for *(ptr+index) access
-        // Shader compiler will not use  GLOAL_LOAD_DWORD's OFFSET for ptr[index] access
-
-        __global const _FLOAT* p = in_ptr + gbl_in_off;
-
-        for(uint j = 0; j < MLO_N_LCL_IN_MAPS; j++)
+        uint j;
+        uint2 gbl_in_off1;
+        for(j = 0, gbl_in_off1 = gbl_in_off; j < MLO_N_LCL_IN_MAPS;
+            ++j, gbl_in_off1 += (uint2)(MLO_IN_CHANNEL_STRIDE))
         {
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
             {
-                dat[j][i] = *(p + i);
+#if MLO_CLOOP0 % 2 == 0
+                dat[j][i] = (_FLOAT2)(in_ptr[gbl_in_off1.x + i], in_ptr[gbl_in_off1.y + i]);
+#else
+                dat[j][i].x     = in_ptr[gbl_in_off1.x + i];
+                dat[j][i].y     = (ci + 1 >= MLO_CLOOP0) ? (_FLOAT)(0) : in_ptr[gbl_in_off1.y + i];
+#endif
 #if DBG_OUT_OF_RNGE
-                if(gbl_in_off1 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+                if((gbl_in_off1.x + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ) ||
+                   (gbl_in_off1.y + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ))
                 {
                     printf("K:oor: inputs\n");
                 }
 #endif
             }
-            p += MLO_IN_CHANNEL_STRIDE;
         }
 
         // convolve
         for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
         {
-            _FLOAT acc[MLO_READ_UNIT] = {(_FLOAT)(0)};
+            _FLOAT2 acc[MLO_READ_UNIT] = {(_FLOAT2)(0, 0)};
             for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
             {
-                _FLOAT we = weights[o][c];
-                _FLOAT* d = &dat[c][0];
+                _FLOAT2 we = weights[o][c];
+                _FLOAT2* d = &dat[c][0];
                 for(uint i = 0; i < MLO_READ_UNIT; ++i)
                 {
                     acc[i] += d[i] * we;
@@ -199,13 +213,12 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
     uint gbl_out_off =
         batch_id * MLO_OUT_BATCH_STRIDE + pos * MLO_READ_UNIT + out_id * MLO_OUT_CHANNEL_STRIDE;
-    __global _FLOAT* q = out_ptr + gbl_out_off;
-
-    for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o, q += MLO_OUT_CHANNEL_STRIDE)
+    for(uint o = 0, gbl_out_off1 = gbl_out_off; o < MLO_N_LCL_OUT_MAPS;
+        ++o, gbl_out_off1 += MLO_OUT_CHANNEL_STRIDE)
     {
         for(uint i = 0; i < MLO_READ_UNIT; ++i)
         {
-            *(q + i) = accum[o][i];
+            out_ptr[gbl_out_off1 + i] = accum[o][i].x + accum[o][i].y;
         }
     }
 }
@@ -237,8 +250,8 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
     uint pos_in_y = pos_out_y * MLO_FILTER_STRIDE1;
     uint pos_in_x = pos_out_x * MLO_FILTER_STRIDE0;
 #else
-    uint pos_in_y = pos_out_y; /// MLO_FILTER_STRIDE1;   - divided already
-    uint pos_in_x = pos_out_x; // MLO_FILTER_STRIDE0;  - divided already
+    uint pos_in_y               = pos_out_y; /// MLO_FILTER_STRIDE1;   - divided already
+    uint pos_in_x               = pos_out_x; // MLO_FILTER_STRIDE0;  - divided already
 #endif
 
     uint out_grp_block = get_group_id(1); // block of outputs for the entire group

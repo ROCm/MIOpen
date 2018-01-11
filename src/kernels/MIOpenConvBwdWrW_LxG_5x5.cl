@@ -24,14 +24,33 @@
  *
  *******************************************************************************/
 
-#define _FLOAT float
-#define _FLOAT2 float2
-#define _FLOAT4 float4
-#define _FLOAT8 float8
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
 
-#ifndef FLT_MAX
-#define FLT_MAX 3.402823466e+38F /* max value */
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
 #endif
+#endif
+#if MIOPEN_USE_FP32 == 1
+#define _FLOAT float
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #define UNUSED __attribute__((__unused__))
 
@@ -280,7 +299,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
     for(int i = 0; i < MLO_TOP_DAT_SZ; ++i)
     {
-        top_dat[i] = 0;
+        top_dat[i] = (_FLOAT)(0);
     }
 
 #define MLO_ACCUM_SZ (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0)
@@ -289,13 +308,13 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
     for(int i = 0; i < MLO_ACCUM_SZ; ++i)
     {
-        pvt_accum[i] = 0;
+        pvt_accum[i] = (_FLOAT)(0);
     }
 
     // zero out LDS
     for(int i = lcl_id; i < (MLO_LCL_SZ); i += MLO_GRP_SZ)
     {
-        lcl[i] = 0;
+        lcl[i] = (_FLOAT)(0);
     }
 
     // over all batches
@@ -306,7 +325,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     {
         for(int i = 0; i < MLO_TOP_DAT_SZ; ++i)
         {
-            top_dat[i] = 0;
+            top_dat[i] = (_FLOAT)(0);
         }
 
         int gbl_in_scan_off  = gbl_in_off;
@@ -321,10 +340,10 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         for(int j = 0; j < MLO_FILTER_SIZE1 - 1; ++j, gbl_out_scan_off += MLO_OUT_STRIDE)
         {
             int top_df_off = gbl_out_scan_off;
-            _FLOAT mask    = 1;
+            _FLOAT mask    = (_FLOAT)(1);
 #if MLO_IN_HEIGHT != MLO_OUT_HEIGHT || MLO_FILTER_SIZE1 - 1 > MLO_OUT_HEIGHT
             top_df_off = (j < MLO_OUT_HEIGHT) ? top_df_off : 0;
-            mask       = (j < MLO_OUT_HEIGHT) ? 1 : 0;
+            mask       = (j < MLO_OUT_HEIGHT) ? 1 : (_FLOAT)(0);
 #endif
 
 #if MLO_OUT_N_PIXS_OFF > 0
@@ -343,7 +362,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 }
                 for(; i < MLO_IN_TILE0; ++i)
                 {
-                    top_dat[j * MLO_IN_TILE0 + i] = 0;
+                    top_dat[j * MLO_IN_TILE0 + i] = (_FLOAT)(0);
                 }
             }
             else
@@ -385,11 +404,11 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         {
 
             int top_df_off = gbl_out_scan_off;
-            _FLOAT mask    = 1;
+            _FLOAT mask    = (_FLOAT)(1);
 
 #if MLO_IN_HEIGHT != MLO_OUT_HEIGHT || MLO_FILTER_SIZE1 > MLO_OUT_HEIGHT
             top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
-            mask       = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
+            mask       = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? (_FLOAT)(1) : (_FLOAT)(0);
 #endif
 // move in the last output scans
 #if MLO_OUT_N_PIXS_OFF > 0
@@ -409,7 +428,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 }
                 for(; i < MLO_IN_TILE0; ++i)
                 {
-                    top_dat[(MLO_FILTER_SIZE1 - 1) * MLO_IN_TILE0 + i] = 0;
+                    top_dat[(MLO_FILTER_SIZE1 - 1) * MLO_IN_TILE0 + i] = (_FLOAT)(0);
                 }
             }
             else
@@ -511,7 +530,7 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* weight_df_tmp, __global _FLOAT* weight
     _FLOAT pvt_accum_wei[MLO_UT_READ_UNIT];
     for(int i = 0; i < MLO_UT_READ_UNIT; ++i)
     {
-        pvt_accum_wei[i] = 0;
+        pvt_accum_wei[i] = (_FLOAT)(0);
     }
 
     int batch_loop = (MLO_BATCH_SZ + (MLO_N_BATCH_LOOPS * MLO_N_LCL_BATCHS) - 1) /
