@@ -2647,7 +2647,7 @@ int main(int argc, const char* argv[])
 #if(MIO_RNN_TIME_EVERYTHING > 0)
     auto t_start = std::chrono::high_resolution_clock::now();
 #endif
-    test_drive<gru_driver<float>>(argc, argv);
+    test_drive<gru_driver>(argc, argv);
 
 #if(MIO_RNN_TIME_EVERYTHING > 0)
     auto t_end = std::chrono::high_resolution_clock::now();
