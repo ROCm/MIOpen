@@ -54,15 +54,9 @@ static boost::filesystem::path& exe_path()
 class Random
 {
     public:
-    Random(unsigned int seed = 0)
-        : rng(seed)
-        , dist()
-    {}
+    Random(unsigned int seed = 0) : rng(seed), dist() {}
 
-    std::mt19937::result_type Next()
-    {
-        return dist(rng);
-    }
+    std::mt19937::result_type Next() { return dist(rng); }
 
     private:
     std::mt19937 rng;
@@ -74,11 +68,7 @@ struct TestData
     int x;
     int y;
 
-    inline TestData()
-        : x(Rnd().Next())
-        , y(Rnd().Next())
-    {
-    }
+    inline TestData() : x(Rnd().Next()), y(Rnd().Next()) {}
 
     inline TestData(int x_, int y_) : x(x_), y(y_) {}
 
@@ -589,7 +579,8 @@ class DBMultiThreadedTestWork
         }
     }
 
-    static inline std::mt19937::result_type LimitedRandom(Random& rnd, std::mt19937::result_type min)
+    static inline std::mt19937::result_type LimitedRandom(Random& rnd,
+                                                          std::mt19937::result_type min)
     {
         std::mt19937::result_type key;
 
@@ -654,8 +645,9 @@ class DbMultiProcessTest : public DbTest
 
             for(auto& child : children)
             {
-                const auto command = exe_path().string() + " " + arg + " " + std::to_string(id++) + " " + temp_file_path();
-                child              = popen(command.c_str(), "w");
+                const auto command = exe_path().string() + " " + arg + " " + std::to_string(id++) +
+                                     " " + temp_file_path();
+                child = popen(command.c_str(), "w");
             }
         }
 
