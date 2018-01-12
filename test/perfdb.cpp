@@ -35,6 +35,7 @@
 #include <thread>
 #include <vector>
 
+#include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 
@@ -640,7 +641,7 @@ class DbMultiProcessTest : public DbTest
         std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
 
         {
-            exclusive_lock lock(Mutex());
+            FileLock lock(temp_file_path());
             auto id = 0;
 
             for(auto& child : children)
@@ -659,24 +660,38 @@ class DbMultiProcessTest : public DbTest
             EXPECT_EQUAL(exit_code, 0);
         }
 
+        std::remove((temp_file_path() + std::string(FileLock::Postfix())).c_str());
         DBMultiThreadedTestWork::ValidateCommonPart(temp_file_path());
     }
 
     static inline void WorkItem(unsigned int id, const std::string& db_path)
     {
-        (void)exclusive_lock(Mutex());
+        (void)FileLock(db_path);
         DBMultiThreadedTestWork::WorkItem(id, db_path);
     }
 
     private:
-    using mutex_t        = boost::interprocess::named_recursive_mutex;
-    using exclusive_lock = boost::interprocess::scoped_lock<mutex_t>;
-
-    static inline mutex_t& Mutex()
+    class FileLock
     {
-        static mutex_t mutex(boost::interprocess::open_or_create, "DbMultiProcessTest");
-        return mutex;
-    }
+        public:
+        static constexpr const char* Postfix() { return ".test.lock"; }
+        FileLock(const std::string& path) : _path(path), _f_lock(InitLock(path)), _lock(_f_lock) {}
+
+        private:
+        using file_lock      = boost::interprocess::file_lock;
+        using exclusive_lock = boost::interprocess::scoped_lock<file_lock>;
+
+        const std::string _path;
+        file_lock _f_lock;
+        exclusive_lock _lock;
+
+        static inline file_lock InitLock(const std::string& path)
+        {
+            const auto lock_path = path + Postfix();
+            (void)std::ofstream(lock_path);
+            return file_lock(lock_path.c_str());
+        }
+    };
 };
 
 } // namespace tests
