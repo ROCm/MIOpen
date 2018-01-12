@@ -45,18 +45,29 @@
 namespace miopen {
 namespace tests {
 
-boost::filesystem::path exe_path;
-
-template <unsigned int sequence = 0>
-std::mt19937::result_type NextRandom()
+static boost::filesystem::path& exe_path()
 {
-    const unsigned int seed = 42;
-
-    static std::mt19937 rng(seed);
-    static std::uniform_int_distribution<std::mt19937::result_type> dist{};
-
-    return dist(rng);
+    static boost::filesystem::path exe_path;
+    return exe_path;
 }
+
+class Random
+{
+    public:
+    Random(unsigned int seed = 0)
+        : rng(seed)
+        , dist()
+    {}
+
+    std::mt19937::result_type Next()
+    {
+        return dist(rng);
+    }
+
+    private:
+    std::mt19937 rng;
+    std::uniform_int_distribution<std::mt19937::result_type> dist;
+};
 
 struct TestData
 {
@@ -64,9 +75,9 @@ struct TestData
     int y;
 
     inline TestData()
+        : x(Rnd().Next())
+        , y(Rnd().Next())
     {
-        x = NextRandom();
-        y = NextRandom();
     }
 
     inline TestData(int x_, int y_) : x(x_), y(y_) {}
@@ -74,7 +85,8 @@ struct TestData
     template <unsigned int seed>
     static inline TestData Seeded()
     {
-        return TestData(NextRandom<seed>(), NextRandom<seed>());
+        static Random rnd(seed);
+        return TestData(rnd.Next(), rnd.Next());
     }
 
     inline void Serialize(std::ostream& s) const
@@ -117,6 +129,12 @@ struct TestData
 
         *ret = value;
         return true;
+    }
+
+    static inline Random& Rnd()
+    {
+        static Random rnd;
+        return rnd;
     }
 };
 
@@ -496,10 +514,10 @@ class DBMultiThreadedTestWork
         return ref;
     }
 
-    static inline void WorkItem(const std::string& db_path)
+    static inline void WorkItem(unsigned int id, const std::string& db_path)
     {
         CommonPart(db_path);
-        UniquePart(db_path);
+        UniquePart(id, db_path);
     }
 
     static inline void ValidateCommonPart(const std::string& db_path)
@@ -544,37 +562,39 @@ class DBMultiThreadedTestWork
         }
     }
 
-    static inline void UniquePart(const std::string& db_path)
+    static inline void UniquePart(unsigned int id, const std::string& db_path)
     {
+        Random rnd(123123 + id);
+
         {
             Db db(db_path);
-            UniquePartSection(0, unique_part_size / 2, [&db]() { return db; });
+            UniquePartSection(rnd, 0, unique_part_size / 2, [&db]() { return db; });
         }
 
         UniquePartSection(
-            unique_part_size / 2, unique_part_size, [&db_path]() { return Db(db_path); });
+            rnd, unique_part_size / 2, unique_part_size, [&db_path]() { return Db(db_path); });
     }
 
     template <class TDbGetter>
     static inline void
-    UniquePartSection(unsigned int start, unsigned int end, const TDbGetter& db_getter)
+    UniquePartSection(Random& rnd, unsigned int start, unsigned int end, const TDbGetter& db_getter)
     {
         for(auto i = start; i < end; i++)
         {
-            auto key = LimitedRandom(common_part_size / ids_per_key + 2);
-            auto id  = LimitedRandom(ids_per_key + 1);
+            auto key = LimitedRandom(rnd, common_part_size / ids_per_key + 2);
+            auto id  = LimitedRandom(rnd, ids_per_key + 1);
             TestData data;
 
             db_getter().Store(std::to_string(key), std::to_string(id), data);
         }
     }
 
-    static inline auto LimitedRandom(decltype(NextRandom()) min) -> decltype(NextRandom())
+    static inline std::mt19937::result_type LimitedRandom(Random& rnd, std::mt19937::result_type min)
     {
-        decltype(NextRandom()) key;
+        std::mt19937::result_type key;
 
         do
-            key = NextRandom();
+            key = rnd.Next();
         while(key < min);
 
         return key;
@@ -603,11 +623,12 @@ class DbMultiThreadedTest : public DbTest
 
         {
             std::unique_lock<std::mutex> lock(mutex);
+            auto id = 0;
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
-                threads.emplace_back([this, &mutex]() {
+                threads.emplace_back([this, &mutex, &id]() {
                     (void)std::unique_lock<std::mutex>(mutex);
-                    DBMultiThreadedTestWork::WorkItem(temp_file_path());
+                    DBMultiThreadedTestWork::WorkItem(id++, temp_file_path());
                 });
         }
 
@@ -629,10 +650,11 @@ class DbMultiProcessTest : public DbTest
 
         {
             exclusive_lock lock(Mutex());
+            auto id = 0;
 
             for(auto& child : children)
             {
-                const auto command = exe_path.string() + " " + arg + " " + temp_file_path();
+                const auto command = exe_path().string() + " " + arg + " " + std::to_string(id++) + " " + temp_file_path();
                 child              = popen(command.c_str(), "w");
             }
         }
@@ -648,10 +670,10 @@ class DbMultiProcessTest : public DbTest
         DBMultiThreadedTestWork::ValidateCommonPart(temp_file_path());
     }
 
-    static inline void WorkItem(const std::string& db_path)
+    static inline void WorkItem(unsigned int id, const std::string& db_path)
     {
         (void)exclusive_lock(Mutex());
-        DBMultiThreadedTestWork::WorkItem(db_path);
+        DBMultiThreadedTestWork::WorkItem(id, db_path);
     }
 
     private:
@@ -672,13 +694,13 @@ int main(int argsn, char** argsc)
 {
     using namespace miopen::tests;
 
-    if(argsn >= 3 && argsc[1] == std::string(DbMultiProcessTest::arg))
+    if(argsn >= 4 && argsc[1] == std::string(DbMultiProcessTest::arg))
     {
-        DbMultiProcessTest::WorkItem(argsc[2]);
+        DbMultiProcessTest::WorkItem(atoi(argsc[2]), argsc[3]);
         return 0;
     }
 
-    exe_path = boost::filesystem::system_complete(boost::filesystem::path(argsc[0]));
+    exe_path() = boost::filesystem::system_complete(boost::filesystem::path(argsc[0]));
 
     DbFindTest().Run();
     DbStoreTest().Run();
