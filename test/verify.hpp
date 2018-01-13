@@ -60,20 +60,24 @@ struct max_fn
 };
 static constexpr max_fn max{};
 
-struct abs_diff_fn
+namespace abs_diff_detail {
+using std::fabs;
+struct fn
 {
     template <class T, class U>
     auto operator()(T x, U y) const MIOPEN_RETURNS(fabs(x - y));
 };
 
-static constexpr abs_diff_fn abs_diff{};
+} // namespace abs_diff_detail
+
+static constexpr abs_diff_detail::fn abs_diff{};
 
 struct not_finite_fn
 {
     template <class T>
     bool operator()(T x) const
     {
-        using namespace std;
+        using std::isfinite;
         return not isfinite(x);
     }
 };
@@ -90,7 +94,7 @@ struct compare_mag_fn
     template <class T, class U>
     bool operator()(T x, U y) const
     {
-        using namespace std;
+        using std::fabs;
         return fabs(x) < fabs(y);
     }
 };
