@@ -194,14 +194,19 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 
     visit_float(xDesc.GetType(), [&](auto as_float) {
 
-    handle.GetKernel("miopenActivationForward",
-                     network_config,
-                     program_name,
-                     kernel_name,
-                     vld,
-                     vgd,
-                     compiler_options)(
-        x, y, as_float(f_activ_power), as_float(f_activ_beta), as_float(f_activ_alpha), long(xOffset), long(yOffset));
+        handle.GetKernel("miopenActivationForward",
+                         network_config,
+                         program_name,
+                         kernel_name,
+                         vld,
+                         vgd,
+                         compiler_options)(x,
+                                           y,
+                                           as_float(f_activ_power),
+                                           as_float(f_activ_beta),
+                                           as_float(f_activ_alpha),
+                                           long(xOffset),
+                                           long(yOffset));
 
     });
 
@@ -473,24 +478,24 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 
     visit_float(xDesc.GetType(), [&](auto as_float) {
 
-    handle.GetKernel("miopenActivationBackward",
-                     network_config,
-                     program_name,
-                     kernel_name,
-                     vld,
-                     vgd,
-                     compiler_options)(dx,
-                                       dy,
-                                       x,
-                                       y,
-                                       as_float(f_diff_scale),
-                                       as_float(f_activ_power),
-                                       as_float(f_activ_beta),
-                                       as_float(f_activ_alpha),
-                                       long(dxOffset),
-                                       long(dyOffset),
-                                       long(xOffset),
-                                       long(yOffset));
+        handle.GetKernel("miopenActivationBackward",
+                         network_config,
+                         program_name,
+                         kernel_name,
+                         vld,
+                         vgd,
+                         compiler_options)(dx,
+                                           dy,
+                                           x,
+                                           y,
+                                           as_float(f_diff_scale),
+                                           as_float(f_activ_power),
+                                           as_float(f_activ_beta),
+                                           as_float(f_activ_alpha),
+                                           long(dxOffset),
+                                           long(dyOffset),
+                                           long(xOffset),
+                                           long(yOffset));
     });
 
     return (status);
