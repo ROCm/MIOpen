@@ -257,8 +257,8 @@ void mlo_construct_direct2D::setupFloats()
     if(_search_params.float_size == 32)
     {
         _search_params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
-    } 
-    else if (_search_params.float_size == 16)
+    }
+    else if(_search_params.float_size == 16)
     {
         _search_params.general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
     }
