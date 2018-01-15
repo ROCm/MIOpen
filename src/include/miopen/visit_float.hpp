@@ -32,35 +32,34 @@
 
 namespace miopen {
 
-template<class T>
+template <class T>
 struct as_float
 {
     using type = T;
-    template<class X>
+    template <class X>
     type operator()(X x) const
     {
         return static_cast<T>(x);
     }
 };
 
-template<class F>
+template <class F>
 void visit_float(miopenDataType_t t, F f)
 {
     switch(t)
     {
-        case miopenFloat:
-        {
-            f(as_float<float>{});
-            break;
-        }
-        case miopenHalf:
-        {
-            f(as_float<half_float::half>{});
-            break;
-        }
+    case miopenFloat:
+    {
+        f(as_float<float>{});
+        break;
+    }
+    case miopenHalf:
+    {
+        f(as_float<half_float::half>{});
+        break;
+    }
     }
 }
-
 
 } // namespace miopen
 
