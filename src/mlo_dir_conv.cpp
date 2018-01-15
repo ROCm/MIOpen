@@ -257,6 +257,10 @@ void mlo_construct_direct2D::setupFloats()
     if(_search_params.float_size == 32)
     {
         _search_params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
+    } 
+    else if (_search_params.float_size == 16)
+    {
+        _search_params.general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
     }
 }
 
@@ -388,7 +392,7 @@ mlo_construct_direct2D::setWeightDescFromMLDesc(const miopen::TensorDescriptor& 
     std::string data_type = weight_tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
     setWeightsDescr(
-        "NCHW", "FP32", nWei, cWei, hWei, wWei, nWeiStride, cWeiStride, hWeiStride, wWeiStride);
+        "NCHW", data_type, nWei, cWei, hWei, wWei, nWeiStride, cWeiStride, hWeiStride, wWeiStride);
 
     size_t weights_sz = nWei * cWei * hWei * wWei * sizeof(float);
     return weights_sz;
