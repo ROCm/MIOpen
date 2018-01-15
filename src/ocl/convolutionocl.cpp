@@ -30,6 +30,7 @@
 #include <miopen/util.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/float_equal.hpp>
+#include <miopen/visit_float.hpp>
 #include <miopen/check_numerics.hpp>
 
 #if MIOPEN_USE_MIOPENGEMM
@@ -446,11 +447,13 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 // Execute the direct kernel
                 float time_direct = 0;
                 float padding_val = 0;
+                visit_float(xDesc.GetType(), [&](auto as_float) {
                 for(auto& k : kernel_direct)
                 {
-                    k(x, w, tmp_y.get(), padding_val);
+                    k(x, w, tmp_y.get(), as_float(padding_val));
                     time_direct += handle.GetKernelTime();
                 }
+            });
 
                 perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoDirect", time_direct, 0});
             }
@@ -568,46 +571,49 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             float padding_val          = 0;
             auto kernel                = handle.GetKernel(algorithm_name, network_config);
 
-            // if not 11x11
-            if((kernel.GetName() != "MIOpenCvFwd11x11"))
+            visit_float(xDesc.GetType(), [&](auto as_float)
             {
-
-                kernel(x, w, y, padding_val);
-            }
-            else
-            {
-                /// \todo Something unusual is happening here, why? Shall we rework this?
-                ConvolutionContext context;
-                construct_params.mloCopyTo(context);
-                context.n_passes = true;
-
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-                DbRecord dbRecord(context.GetPerfDbPath(), context, true);
-#else
-                DbRecord dbRecord(context.GetPerfDbPath(), context);
-#endif
-                solver::ConvSolution solution =
-                    FindSolution(solver::ConvOclDirectFwd11x11{}, context, dbRecord);
-
-                if(solution.passes == 1)
+                // if not 11x11
+                if((kernel.GetName() != "MIOpenCvFwd11x11"))
                 {
-                    kernel(x, w, y, padding_val);
+
+                    kernel(x, w, y, as_float(padding_val));
                 }
                 else
                 {
-                    // second kernel has
-                    network_config += "x1";
-                    auto kernel2 = handle.GetKernel(algorithm_name + "_pass2", network_config);
+                    /// \todo Something unusual is happening here, why? Shall we rework this?
+                    ConvolutionContext context;
+                    construct_params.mloCopyTo(context);
+                    context.n_passes = true;
 
-                    handle.ResetKernelTime();
-                    kernel(x, w, y, padding_val);
+#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
+                    DbRecord dbRecord(context.GetPerfDbPath(), context, true);
+#else
+                    DbRecord dbRecord(context.GetPerfDbPath(), context);
+#endif
+                    solver::ConvSolution solution =
+                        FindSolution(solver::ConvOclDirectFwd11x11{}, context, dbRecord);
 
-                    float time0 = handle.GetKernelTime();
-                    kernel2(x, w, y, padding_val);
+                    if(solution.passes == 1)
+                    {
+                        kernel(x, w, y, as_float(padding_val));
+                    }
+                    else
+                    {
+                        // second kernel has
+                        network_config += "x1";
+                        auto kernel2 = handle.GetKernel(algorithm_name + "_pass2", network_config);
 
-                    handle.AccumKernelTime(time0);
+                        handle.ResetKernelTime();
+                        kernel(x, w, y, as_float(padding_val));
+
+                        float time0 = handle.GetKernelTime();
+                        kernel2(x, w, y, as_float(padding_val));
+
+                        handle.AccumKernelTime(time0);
+                    }
                 }
-            }
+            });
         }
         break;
 
@@ -1053,11 +1059,14 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 float time_direct = 0;
                 float padding_val = 0;
 
-                for(auto& k : kernel_direct)
+                visit_float(dyDesc.GetType(), [&](auto as_float)
                 {
-                    k(dy, w, tmp_dx.get(), padding_val);
-                    time_direct += handle.GetKernelTime();
-                }
+                    for(auto& k : kernel_direct)
+                    {
+                        k(dy, w, tmp_dx.get(), as_float(padding_val));
+                        time_direct += handle.GetKernelTime();
+                    }
+                });
 
                 perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoDirect", time_direct, 0});
             }
@@ -1234,8 +1243,12 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             construct_params.mloBuildConf_Key(network_config);
 
             float padding_val = 0;
+            visit_float(dyDesc.GetType(), [&](auto as_float)
+            {
+
             handle.GetKernel("miopenConvolutionBwdDataAlgoDirect",
-                             network_config)(dy, w, dx, padding_val);
+                             network_config)(dy, w, dx, as_float(padding_val));
+            });
             break;
         }
 
@@ -1668,6 +1681,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 {
                     construct_params.mloBuildConf_Key(network_config);
 
+                    visit_float(dyDesc.GetType(), [&](auto as_float) {
+
+
                     const std::vector<mlo_kernel_info>& bwd_wrw_info =
                         construct_params.getKernelsInfo();
                     /*
@@ -1714,7 +1730,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         else
                         {
                             float padding_val = 0;
-                            kernel(dy, x, tmp_dw.get(), padding_val);
+                            kernel(dy, x, tmp_dw.get(), as_float(padding_val));
                         }
                         time_direct = handle.GetKernelTime();
                         perf_db.push_back(
@@ -1784,7 +1800,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                      std::get<4>(bwd_wrw_main),
                                                      std::get<3>(bwd_wrw_main),
                                                      std::get<2>(bwd_wrw_main))(
-                                        dy, workSpace, tmp_dw.get(), padding_val);
+                                        dy, workSpace, tmp_dw.get(), as_float(padding_val));
                                 }
                                 time_direct += handle.GetKernelTime();
                             }
@@ -1801,7 +1817,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                  std::get<4>(bwd_wrw_main),
                                                  std::get<3>(bwd_wrw_main),
                                                  std::get<2>(bwd_wrw_main))(
-                                    dy, x, workSpace, padding_val);
+                                    dy, x, workSpace, as_float(padding_val));
 
                                 time_direct += handle.GetKernelTime();
 
@@ -1825,6 +1841,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                         workspace_req});
                         }
                     }
+                });
                 }
             }
         }
@@ -2008,6 +2025,9 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
                 mloConstruct(construct_params);
 
+                visit_float(dyDesc.GetType(), [&](auto as_float) {
+
+
                 std::string network_config;
                 construct_params.mloBuildConf_Key(network_config);
                 //                int n_steps = construct_params.mloMultiStep();
@@ -2031,7 +2051,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 else if(bwd_wrw_info.size() == 1)
                 {
                     float padding_val = 0;
-                    kernel(dy, x, dw, padding_val);
+                    kernel(dy, x, dw, as_float(padding_val));
                 }
                 else
                 {
@@ -2078,7 +2098,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                         {
                             float padding_val = 0;
                             handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main2",
-                                             network_config)(dy, workSpace, dw, padding_val);
+                                             network_config)(dy, workSpace, dw, as_float(padding_val));
                         }
 
                         handle.AccumKernelTime(time0);
@@ -2086,7 +2106,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     else
                     {
                         float padding_val = 0;
-                        kernel(dy, x, workSpace, padding_val);
+                        kernel(dy, x, workSpace, as_float(padding_val));
 
                         float time0 = handle.GetKernelTime();
                         // second kernel has
@@ -2098,6 +2118,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                         handle.AccumKernelTime(time0);
                     }
                 }
+                });
             }
         }
         break;
