@@ -27,6 +27,7 @@
 #include <miopen/kernel_cache.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/float_equal.hpp>
+#include <miopen/visit_float.hpp>
 
 namespace miopen {
 
@@ -96,8 +97,8 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
         MIOPEN_THROW("activation does not support tensor size larger than 4 or smaller than 1");
     }
 
-    construct_params.setTopDescr(
-        "NCHW", "FP32", nOut, cOut, hOut, wOut, nOutStride, cOutStride, hOutStride, wOutStride);
+    construct_params.setTopDescFromMLDesc(yDesc);
+
     int nIn       = 1;
     int cIn       = 1;
     int hIn       = 1;
@@ -191,6 +192,8 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
         " -DMLO_OUT_BLOCK_SZ=" + std::to_string(cOut * hOut * wOut) + " -DMLO_DIN_BLOCK_SZ=" +
         std::to_string(1) + " -DMLO_DOUT_BLOCK_SZ=" + std::to_string(1);
 
+    visit_float(xDesc.GetType(), [&](auto as_float) {
+
     handle.GetKernel("miopenActivationForward",
                      network_config,
                      program_name,
@@ -198,7 +201,9 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                      vld,
                      vgd,
                      compiler_options)(
-        x, y, f_activ_power, f_activ_beta, f_activ_alpha, long(xOffset), long(yOffset));
+        x, y, as_float(f_activ_power), as_float(f_activ_beta), as_float(f_activ_alpha), long(xOffset), long(yOffset));
+
+    });
 
     return (status);
 }
@@ -466,6 +471,8 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         std::to_string(cdIn * hdIn * wdIn) + " -DMLO_DOUT_BLOCK_SZ=" +
         std::to_string(cdOut * hdOut * wdOut);
 
+    visit_float(xDesc.GetType(), [&](auto as_float) {
+
     handle.GetKernel("miopenActivationBackward",
                      network_config,
                      program_name,
@@ -476,14 +483,15 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                                        dy,
                                        x,
                                        y,
-                                       f_diff_scale,
-                                       f_activ_power,
-                                       f_activ_beta,
-                                       f_activ_alpha,
+                                       as_float(f_diff_scale),
+                                       as_float(f_activ_power),
+                                       as_float(f_activ_beta),
+                                       as_float(f_activ_alpha),
                                        long(dxOffset),
                                        long(dyOffset),
                                        long(xOffset),
                                        long(yOffset));
+    });
 
     return (status);
 }
