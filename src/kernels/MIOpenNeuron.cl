@@ -454,19 +454,19 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
                 __global const _FLOAT* top_diff,
                 __global const _FLOAT* bot_data,
                 __global const _FLOAT* top_data,
-                UNUSED _FLOAT diff_scale,
-                UNUSED _FLOAT power,
-#if MLO_NRN_OP_ID != MLO_NEURON_RELU
-                UNUSED
-#endif
-                    _FLOAT scale,
-                UNUSED _FLOAT shift,
+                _FLOAT diff_scale,
+                _FLOAT power,
+                _FLOAT scale,
+                _FLOAT shift,
                 const long dxOffset,
                 const long dyOffset,
                 const long xOffset,
                 const long yOffset)
 {
-
+    (void)diff_scale;
+    (void)power;
+    (void)scale;
+    (void)shift;
     int x = get_global_id(0); // channel x
 
 #if MLO_N_OUT_STRIDE > MLO_OUT_BLOCK_SZ || MLO_N_DOUT_STRIDE > MLO_DOUT_BLOCK_SZ || \

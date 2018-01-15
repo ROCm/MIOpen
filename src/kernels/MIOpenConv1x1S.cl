@@ -101,7 +101,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
         ;
 
 #if MIOPEN_USE_FP32 == 1
-    _FLOAT accum[MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT] = {(_FLOAT)(0)};
+    _FLOAT accum[MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT] = {{(_FLOAT)(0)}};
     _FLOAT dat[MLO_N_LCL_IN_MAPS][MLO_READ_UNIT];
 #endif
 #if MIOPEN_USE_FP16 == 1
