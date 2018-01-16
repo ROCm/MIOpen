@@ -152,13 +152,16 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
     result.n_in_data_tiles = 1;
 
     // select output mapping
-    int total_out_maps   = result.n_out_pix_tiles * result.out_pix_tile1;
-    result.out_pix_tile1 = (total_out_maps > params.n_inputs) ? 1 : result.out_pix_tile1;
-    total_out_maps       = result.n_out_pix_tiles * result.out_pix_tile1;
+
+    result.n_out_pix_tiles = std::min(result.n_out_pix_tiles, params.n_inputs);
     result.n_out_pix_tiles =
-        (total_out_maps > params.n_inputs) ? params.n_inputs : result.n_out_pix_tiles;
-    int N_OUT_BLK_GRP = result.out_pix_tile1;
-    total_out_maps    = result.n_out_pix_tiles * result.out_pix_tile1;
+        (params.n_inputs % result.n_out_pix_tiles != 0) ? 1 : result.n_out_pix_tiles;
+    result.out_pix_tile1 = std::min(result.out_pix_tile1, params.n_inputs);
+    result.out_pix_tile1 = (params.n_inputs % result.out_pix_tile1 != 0) ? 1 : result.out_pix_tile1;
+    int total_out_maps   = result.n_out_pix_tiles * result.out_pix_tile1;
+    result.out_pix_tile1 = (params.n_inputs % total_out_maps != 0) ? 1 : result.out_pix_tile1;
+    int N_OUT_BLK_GRP    = result.out_pix_tile1;
+    total_out_maps       = result.n_out_pix_tiles * result.out_pix_tile1;
 
     // each wave is a filter row
     int GRP_SZ = _hw_wave_sz * n_waves;

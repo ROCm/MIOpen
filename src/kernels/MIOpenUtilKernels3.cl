@@ -1,0 +1,67 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
+#define _FLOAT float
+
+__attribute__((always_inline)) uint iDiv(uint v, uint d)
+{
+    uint r = (uint)((float)v * (1.f / (float)d) + 0.0000000001f);
+    return (r);
+}
+
+__attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
+{
+    uint r = v - mul24(u, d);
+    return (r);
+}
+
+#define MLO_OUT_CHANNEL_STRIDE_ALIGNED (MLO_OUT_CHANNEL_STRIDE / MLO_WRITE_UNIT)
+#define MLO_OUT_STRIDE_ALIGNED (MLO_OUT_STRIDE / MLO_WRITE_UNIT)
+
+__attribute__((reqd_work_group_size(MLO_GRP0_SZ0, MLO_GRP0_SZ1, MLO_GRP0_SZ2))) __kernel void
+SubSample(const __global _FLOAT* __restrict in, __global _FLOAT* __restrict out)
+{
+    uint stack_pos = get_global_id(0);
+    uint batch_id  = get_global_id(1);
+    uint map_id    = iDiv(stack_pos, MLO_OUT_CHANNEL_STRIDE_ALIGNED);
+    uint pix_pos   = iMod(stack_pos, map_id, MLO_OUT_CHANNEL_STRIDE_ALIGNED);
+    uint out_y     = iDiv(pix_pos, MLO_OUT_STRIDE_ALIGNED);
+    uint out_x     = iMod(pix_pos, out_y, MLO_OUT_STRIDE_ALIGNED) * MLO_WRITE_UNIT;
+
+    uint out_off = batch_id * MLO_IN_BATCH_STRIDE + stack_pos * MLO_WRITE_UNIT;
+    uint in_y    = out_y * MLO_FILTER0_STRIDE1;
+    uint in_x    = out_x * MLO_FILTER0_STRIDE0;
+    uint in_off  = batch_id * MLO_IN0_BATCH_STRIDE + map_id * MLO_IN0_CHANNEL_STRIDE +
+                  in_y * MLO_IN0_STRIDE + in_x;
+
+    const __global _FLOAT* in_ptr = &in[in_off];
+    __global _FLOAT* out_ptr      = &out[out_off];
+
+    for(uint i = 0; i < MLO_WRITE_UNIT; ++i, in_ptr += MLO_FILTER0_STRIDE0, out_ptr++)
+    {
+        *out_ptr = *in_ptr;
+    }
+}
