@@ -23,6 +23,40 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
+
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
+#endif
+#endif
+#if MIOPEN_USE_FP32 == 1
+#define _FLOAT float
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
+
+typedef union GPtr
+{
+    _FLOAT* f;
+    _FLOAT2* fv;
+} GPtr;
+
 /* Steps to compute softmax:
  * 1. Compute the max per channel.
  * 2. Subtract the max from each value in the channel.
@@ -30,14 +64,15 @@
  * 4. Compute the sum of the vales per channel.
  * 5. Normalize based on the sum.
  *
- * We use CSR-{Vector / Stream} apprach to pick an algorithm depending on the
+ * We use CSR-{Vector / Stream} approach to pick an algorithm depending on the
  * number of channels each workgroup has to work with.
  * J. L. Greathouse, M. Daga, Efficient sparse matrix-vector multiplication
  * on GPUs using the CSR storage format, in: Proc. Int'l Conf. High Performance
  * Computing, Networking, Storage and Analysis (SC'14)
 */
 
-kernel void SoftmaxForward(global float* y, const int c, const int grid_size, const int spatial_dim)
+__kernel void
+SoftmaxForward(global _FLOAT* y, const int c, const int grid_size, const int spatial_dim)
 {
 #if NUM_BATCH == 1 // CSR-Vector like appraoch
 
@@ -49,7 +84,7 @@ kernel void SoftmaxForward(global float* y, const int c, const int grid_size, co
      * is working on and iterates over the entire grid until finished.
      */
 
-    local float l_helper[256];
+    local _FLOAT l_helper[256];
 
     int gid = get_group_id(0);
     int lid = get_local_id(0);
@@ -61,9 +96,9 @@ kernel void SoftmaxForward(global float* y, const int c, const int grid_size, co
         int n = gid / spatial_dim; // nth image
         int s = gid % spatial_dim; // spatial dimension (h*w)
 
-        l_helper[lid] = -FLT_MAX;
+        l_helper[lid] = (_FLOAT)-MAX_VAL;
 
-        float t_helper = -FLT_MAX; // thread_local helper var
+        _FLOAT t_helper = (_FLOAT)-MAX_VAL; // thread_local helper var
 
         // Compute max per channel
         // Iterate over all the channels one thread is supposed to loop over
@@ -87,13 +122,13 @@ kernel void SoftmaxForward(global float* y, const int c, const int grid_size, co
             barrier(CLK_LOCAL_MEM_FENCE);
         }
 
-        float channel_max = l_helper[0];
-        t_helper          = 0.;
+        _FLOAT channel_max = l_helper[0];
+        t_helper           = 0.;
 
         // Subtract channel_max from each value
         for(int i = lid; i < c; i += get_local_size(0))
         {
-            float value = y[mad24(n, c, i) * spatial_dim + s];
+            _FLOAT value = y[mad24(n, c, i) * spatial_dim + s];
 
             // Compute exponent of each value
             // Then sum all the values touched by this thread
@@ -114,12 +149,12 @@ kernel void SoftmaxForward(global float* y, const int c, const int grid_size, co
             barrier(CLK_LOCAL_MEM_FENCE);
         }
 
-        float channel_sum = l_helper[0];
+        _FLOAT channel_sum = l_helper[0];
 
         // Normalize each value in the channel by the channel_sum
         for(int i = lid; i < c; i += get_local_size(0))
         {
-            float value = y[mad24(n, c, i) * spatial_dim + s];
+            _FLOAT value = y[mad24(n, c, i) * spatial_dim + s];
 
             // Subtracting max again because we do not write the output of
             // value-max to DRAM above. Doing a subtraction again is much
@@ -141,7 +176,7 @@ kernel void SoftmaxForward(global float* y, const int c, const int grid_size, co
      * hence, there is no for-loop.
     */
 
-    local float l_helper[256];
+    local _FLOAT l_helper[256];
 
     int gid = get_group_id(0);
     int lid = get_local_id(0);
@@ -154,25 +189,31 @@ kernel void SoftmaxForward(global float* y, const int c, const int grid_size, co
     int batch_n = (NUM_BATCH * gid + batch) / spatial_dim; // nth image
     int batch_s = (NUM_BATCH * gid + batch) % spatial_dim; // which spatial_dim/pixel
 
-    l_helper[lid] = -FLT_MAX;
+    l_helper[lid] = (_FLOAT)-MAX_VAL;
 
-    float t_helper = -FLT_MAX; // thread_local helper var
+    _FLOAT t_helper = (_FLOAT)-MAX_VAL; // thread_local helper var
 
     // stores all the values touched by one thread so that we do not have load
     // again as the CSR-Vector approach
-    float value[U_BATCH_SIZE];
-    for(int i = 0; i < U_BATCH_SIZE; i++)
+    _FLOAT value[U_BATCH_SIZE];
+    GPtr Uvalue;
+    Uvalue.f = value;
+    for(int i = 0; i < U_BATCH_SIZE / 2; i++)
     {
-        value[i] = -FLT_MAX;
+        Uvalue.fv[i] = (_FLOAT2)(-MAX_VAL);
     }
 
     // Compute max per channel
     // BATCH_SIZE threads iterate over the channels
-    for(int i = batch_lid; i < c; i += BATCH_SIZE)
+    int index0 = batch_lid / BATCH_SIZE;
+    int index  = index0;
+    for(int i = batch_lid; i < c; i += BATCH_SIZE, index++)
     {
         if(mad24(batch_n, c, i) * spatial_dim + batch_s < c * grid_size)
-            value[i / BATCH_SIZE] = y[mad24(batch_n, c, i) * spatial_dim + batch_s];
-        t_helper                  = max(value[i / BATCH_SIZE], t_helper);
+        {
+            Uvalue.f[index] = y[mad24(batch_n, c, i) * spatial_dim + batch_s];
+            t_helper        = max(Uvalue.f[index], t_helper);
+        }
     }
 
     // Now we have to compute the max from 256 values (one per each thread)
@@ -189,16 +230,19 @@ kernel void SoftmaxForward(global float* y, const int c, const int grid_size, co
         barrier(CLK_LOCAL_MEM_FENCE);
     }
 
-    float channel_max = l_helper[batch * BATCH_SIZE];
-    t_helper          = 0.;
+    _FLOAT channel_max = l_helper[batch * BATCH_SIZE];
+    t_helper           = (_FLOAT)0.;
 
     // Subtract channel_max from each value
-    for(int i = batch_lid; i < c; i += BATCH_SIZE)
+    index = index0;
+    for(int i = batch_lid; i < c; i += BATCH_SIZE, index++)
     {
 
         // Compute exponent of each value
         // Then sum all the values touched by this thread
-        t_helper += exp(value[i / BATCH_SIZE] - channel_max);
+        _FLOAT tmp = exp(Uvalue.f[index] - channel_max);
+        t_helper += tmp;
+        value[index] = tmp;
     }
 
     l_helper[lid] = t_helper;
@@ -215,26 +259,26 @@ kernel void SoftmaxForward(global float* y, const int c, const int grid_size, co
         barrier(CLK_LOCAL_MEM_FENCE);
     }
 
-    float channel_sum = l_helper[batch * BATCH_SIZE];
+    _FLOAT channel_sum = l_helper[batch * BATCH_SIZE];
 
     // Normalize each value in the channel by the channel_sum
-    for(int i = batch_lid; i < c; i += BATCH_SIZE)
+    index = index0;
+    for(int i = batch_lid; i < c; i += BATCH_SIZE, index++)
     {
-        value[i / BATCH_SIZE] = exp(value[i / BATCH_SIZE] - channel_max);
 
         if(mad24(batch_n, c, i) * spatial_dim + batch_s < c * grid_size)
-            y[mad24(batch_n, c, i) * spatial_dim + batch_s] = value[i / BATCH_SIZE] / channel_sum;
+            y[mad24(batch_n, c, i) * spatial_dim + batch_s] = Uvalue.f[index] / channel_sum;
     }
 
 #endif // CSR-Vector vs CSR-Stream
 }
 
-kernel void SoftmaxBackward(
-    global float* y, global float* dx, const int c, const int grid_size, const int spatial_dim)
+__kernel void SoftmaxBackward(
+    global _FLOAT* y, global _FLOAT* dx, const int c, const int grid_size, const int spatial_dim)
 {
 
 #if NUM_BATCH == 1 // CSR-Vector like appraoch
-    local float l_helper[256];
+    local _FLOAT l_helper[256];
 
     int gid = get_group_id(0);
     int lid = get_local_id(0);
@@ -246,7 +290,7 @@ kernel void SoftmaxBackward(
         int n = gid / spatial_dim; // nth image
         int s = gid % spatial_dim; // spatial dimension (h*w)
 
-        float channel_dot = 0.f; // thread_local helper var
+        _FLOAT channel_dot = (_FLOAT)0; // thread_local helper var
 
         // Compute dot product per channel
         // Iterate over all the channels one thread is supposed to loop over
@@ -276,7 +320,7 @@ kernel void SoftmaxBackward(
         // Subtract and element-wise multiplication
         for(int i = lid; i < c; i += get_local_size(0))
         {
-            float value = dx[mad24(n, c, i) * spatial_dim + s] - channel_dot;
+            _FLOAT value = dx[mad24(n, c, i) * spatial_dim + s] - channel_dot;
 
             dx[mad24(n, c, i) * spatial_dim + s] = y[mad24(n, c, i) * spatial_dim + s] * value;
         }
@@ -284,35 +328,46 @@ kernel void SoftmaxBackward(
 
 #else
 
-    local float l_helper[256];
+    local _FLOAT l_helper[256];
 
     int gid = get_group_id(0);
     int lid = get_local_id(0);
 
     // ID of the thread within the batch
-    int batch_lid = lid & (BATCH_SIZE - 1);
-    int batch     = lid / BATCH_SIZE;
+    int batch_lid = lid & (BATCH_SIZE - 1); // thread specific channel_st
+    int batch     = lid / BATCH_SIZE;       // which spatial_dim or pixel
 
     // Batch specific n and s
-    int batch_n = (NUM_BATCH * gid + batch) / spatial_dim;
-    int batch_s = (NUM_BATCH * gid + batch) % spatial_dim;
+    int batch_n = (NUM_BATCH * gid + batch) / spatial_dim; // nth image
+    int batch_s = (NUM_BATCH * gid + batch) % spatial_dim; // which spatial_dim/pixel
 
-    float channel_dot = 0.f; // thread_local helper var
+    _FLOAT channel_dot = (_FLOAT)(0); // thread_local helper var
 
     // stores all the values touched by one thread so that we do not have load
     // again as the CSR-Vector approach
-    float y_value[U_BATCH_SIZE];
-    float dx_value[U_BATCH_SIZE];
+    _FLOAT y_value[U_BATCH_SIZE];
+    _FLOAT dx_value[U_BATCH_SIZE];
+    GPtr Uy_value, Udx_value;
+    Uy_value.f  = y_value;
+    Udx_value.f = dx_value;
+    for(int i = 0; i < U_BATCH_SIZE / 2; i++)
+    {
+        Uy_value.fv[i]  = (_FLOAT2)(0);
+        Udx_value.fv[i] = (_FLOAT2)(0);
+    }
 
     // Compute dot product per channel
-    for(int i = batch_lid; i < c; i += BATCH_SIZE)
+    // BATCH_SIZE threads iterate over the channels
+    int index0 = batch_lid / BATCH_SIZE;
+    int index  = index0;
+    for(int i = batch_lid; i < c; i += BATCH_SIZE, index++)
     {
         if(mad24(batch_n, c, i) * spatial_dim + batch_s < c * grid_size)
         {
-            y_value[i / BATCH_SIZE]  = y[mad24(batch_n, c, i) * spatial_dim + batch_s];
-            dx_value[i / BATCH_SIZE] = dx[mad24(batch_n, c, i) * spatial_dim + batch_s];
+            Uy_value.f[index]  = y[mad24(batch_n, c, i) * spatial_dim + batch_s];
+            Udx_value.f[index] = dx[mad24(batch_n, c, i) * spatial_dim + batch_s];
         }
-        channel_dot += y_value[i / BATCH_SIZE] * dx_value[i / BATCH_SIZE];
+        channel_dot += Uy_value.f[index] * Udx_value.f[index];
     }
 
     // Now we have to compute the sum from 256 values (one per each thread)
@@ -332,13 +387,14 @@ kernel void SoftmaxBackward(
     channel_dot = l_helper[batch * BATCH_SIZE];
 
     // Subtract and element-wise multiplication
-    for(int i = batch_lid; i < c; i += BATCH_SIZE)
+    index = index0;
+    for(int i = batch_lid; i < c; i += BATCH_SIZE, index++)
     {
-        dx_value[i / BATCH_SIZE] -= channel_dot;
+        Udx_value.f[index] -= channel_dot;
 
         if(mad24(batch_n, c, i) * spatial_dim + batch_s < c * grid_size)
             dx[mad24(batch_n, c, i) * spatial_dim + batch_s] =
-                y_value[i / BATCH_SIZE] * dx_value[i / BATCH_SIZE];
+                Uy_value.f[index] * Udx_value.f[index];
     }
 
 #endif // CSR-Vector vs CSR-Stream
