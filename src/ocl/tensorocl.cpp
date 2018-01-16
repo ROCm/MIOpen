@@ -260,6 +260,17 @@ void OpTensor(Handle& handle,
                         std::to_string(d - 1) + " -DMIOPEN_TENSOR_DIMS=" + std::to_string(bsize) +
                         " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
 
+    if(aTensorDesc.GetType() == miopenFloat)
+    {
+        parms += " -DMIOPEN_USE_FP16=0";
+        parms += " -DMIOPEN_USE_FP32=1";
+    }
+    else if(aTensorDesc.GetType() == miopenHalf)
+    {
+        parms += " -DMIOPEN_USE_FP16=1";
+        parms += " -DMIOPEN_USE_FP32=0";
+    }
+
     parms += " -DMIOPEN_TENSOR_OP=";
     switch(tensorOp)
     {
