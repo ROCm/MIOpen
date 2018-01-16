@@ -58,7 +58,7 @@ struct conv_base
     int bias{};
     int search{};
 
-    void fail(float = 0)
+    void fail(float = 0) const
     {
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
         std::cout << "Weights tensor: " << weights.desc.ToString() << std::endl;
@@ -70,9 +70,9 @@ struct conv_base
 template <class T>
 struct verify_forward_conv : conv_base<T>
 {
+    using conv_base<T>::out;
     using conv_base<T>::input;
     using conv_base<T>::weights;
-    using conv_base<T>::out;
     using conv_base<T>::filter;
     using conv_base<T>::bias;
     using conv_base<T>::search;
@@ -90,9 +90,9 @@ struct verify_forward_conv : conv_base<T>
         search  = psearch;
     }
 
-    tensor<T> cpu()
+    tensor<T> cpu() const
     {
-        out = get_output_tensor(filter, input, weights);
+        auto rout = get_output_tensor(filter, input, weights);
 
         int in_h, in_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
@@ -100,7 +100,7 @@ struct verify_forward_conv : conv_base<T>
         int wei_c, wei_h, wei_w;
         std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
 
-        out.par_for_each([&](int o, int w, int i, int j) {
+        rout.par_for_each([&](int o, int w, int i, int j) {
             const int start_x = i * filter.u - filter.pad_h;
             const int start_y = j * filter.v - filter.pad_w;
 
@@ -113,22 +113,22 @@ struct verify_forward_conv : conv_base<T>
                     acc += input(o, k, in_x, in_y) * weights(w, k, x, y);
                 }
             });
-            out(o, w, i, j) = acc;
+            rout(o, w, i, j) = acc;
         });
-        return out;
+        return rout;
     }
 
-    tensor<T> gpu()
+    tensor<T> gpu() const
     {
         auto&& handle = get_handle();
-        out           = get_output_tensor(filter, input, weights);
+        auto rout     = get_output_tensor(filter, input, weights);
 
         auto in_dev  = handle.Write(input.data);
         auto wei_dev = handle.Write(weights.data);
-        auto out_dev = handle.Write(out.data);
+        auto out_dev = handle.Write(rout.data);
 
         size_t workspace_size =
-            filter.ForwardGetWorkSpaceSize(handle, weights.desc, input.desc, out.desc);
+            filter.ForwardGetWorkSpaceSize(handle, weights.desc, input.desc, rout.desc);
 
         std::vector<char> workspace(workspace_size);
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -143,7 +143,7 @@ struct verify_forward_conv : conv_base<T>
                                     in_dev.get(),
                                     weights.desc,
                                     wei_dev.get(),
-                                    out.desc,
+                                    rout.desc,
                                     out_dev.get(),
                                     1,
                                     &ret_algo_count,
@@ -160,16 +160,16 @@ struct verify_forward_conv : conv_base<T>
                                   wei_dev.get(),
                                   perf.fwd_algo,
                                   &beta,
-                                  out.desc,
+                                  rout.desc,
                                   out_dev.get(),
                                   workspace_dev.get(),
                                   workspace_size);
 
-        out.data = handle.Read<T>(out_dev, out.data.size());
-        return out;
+        rout.data = handle.Read<T>(out_dev, rout.data.size());
+        return rout;
     }
 
-    void fail(float = 0)
+    void fail(float = 0) const
     {
         std::cout << "Forward convolution: " << std::endl;
         this->conv_base<T>::fail();
@@ -201,12 +201,13 @@ struct verify_backward_conv : conv_base<T>
         search  = psearch;
     }
 
-    tensor<T> cpu()
+    tensor<T> cpu() const
     {
-        std::fill(input.begin(), input.end(), 0);
+        auto rinput = input;
+        std::fill(rinput.begin(), rinput.end(), 0);
 
         int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(rinput.desc.GetLengths());
 
         int wei_c, wei_h, wei_w;
         std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
@@ -222,24 +223,25 @@ struct verify_backward_conv : conv_base<T>
                 const int in_y    = start_y + y;
                 if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
                 {
-                    input(o, k, in_x, in_y) += out(o, w, i, j) * weights(w, k, x, y);
+                    rinput(o, k, in_x, in_y) += out(o, w, i, j) * weights(w, k, x, y);
                 }
             });
         });
-        return input;
+        return rinput;
     }
 
-    tensor<T> gpu()
+    tensor<T> gpu() const
     {
         auto&& handle = get_handle();
-        std::fill(input.begin(), input.end(), 0);
+        auto rinput   = input;
+        std::fill(rinput.begin(), rinput.end(), 0);
 
         auto out_dev = handle.Write(out.data);
         auto wei_dev = handle.Write(weights.data);
-        auto in_dev  = handle.Write(input.data);
+        auto in_dev  = handle.Write(rinput.data);
 
         size_t workspace_size =
-            filter.BackwardDataGetWorkSpaceSize(handle, weights.desc, out.desc, input.desc);
+            filter.BackwardDataGetWorkSpaceSize(handle, weights.desc, out.desc, rinput.desc);
 
         std::vector<char> workspace(workspace_size);
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -254,7 +256,7 @@ struct verify_backward_conv : conv_base<T>
                                         out_dev.get(),
                                         weights.desc,
                                         wei_dev.get(),
-                                        input.desc,
+                                        rinput.desc,
                                         in_dev.get(),
                                         1,
                                         &ret_algo_count,
@@ -271,16 +273,16 @@ struct verify_backward_conv : conv_base<T>
                                        wei_dev.get(),
                                        perf.bwd_data_algo,
                                        &beta,
-                                       input.desc,
+                                       rinput.desc,
                                        in_dev.get(),
                                        workspace_dev.get(),
                                        workspace_size);
 
-        input.data = handle.Read<T>(in_dev, input.data.size());
-        return input;
+        rinput.data = handle.Read<T>(in_dev, rinput.data.size());
+        return rinput;
     }
 
-    void fail(float)
+    void fail(float) const
     {
         std::cout << "Backward convolution: " << std::endl;
         this->conv_base<T>::fail();
@@ -312,15 +314,16 @@ struct verify_backward_weights_conv : conv_base<T>
         search  = psearch;
     }
 
-    tensor<T> cpu()
+    tensor<T> cpu() const
     {
-        std::fill(weights.begin(), weights.end(), 0);
+        auto rweights = weights;
+        std::fill(rweights.begin(), rweights.end(), 0);
 
         int in_h, in_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
         int wei_c, wei_h, wei_w;
-        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
+        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(rweights.desc.GetLengths());
 
         int out_n, out_c, out_h, out_w;
         std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(out.desc.GetLengths());
@@ -337,22 +340,23 @@ struct verify_backward_weights_conv : conv_base<T>
                     acc += input(o, k, in_x, in_y) * out(o, w, i, j);
                 }
             });
-            weights(w, k, x, y) = acc;
+            rweights(w, k, x, y) = acc;
         });
-        return weights;
+        return rweights;
     }
 
-    tensor<T> gpu()
+    tensor<T> gpu() const
     {
         auto&& handle = get_handle();
-        std::fill(weights.begin(), weights.end(), 0);
+        auto rweights = weights;
+        std::fill(rweights.begin(), rweights.end(), 0);
 
         auto out_dev = handle.Write(out.data);
-        auto wei_dev = handle.Write(weights.data);
+        auto wei_dev = handle.Write(rweights.data);
         auto in_dev  = handle.Write(input.data);
 
         std::size_t workspace_size = filter.ConvolutionBackwardWeightsGetWorkSpaceSize(
-            handle, out.desc, input.desc, weights.desc);
+            handle, out.desc, input.desc, rweights.desc);
 
         std::vector<char> workspace(workspace_size);
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
@@ -366,7 +370,7 @@ struct verify_backward_weights_conv : conv_base<T>
                                            out_dev.get(),
                                            input.desc,
                                            in_dev.get(),
-                                           weights.desc,
+                                           rweights.desc,
                                            wei_dev.get(),
                                            1,
                                            &ret_algo_count,
@@ -383,16 +387,16 @@ struct verify_backward_weights_conv : conv_base<T>
                                           in_dev.get(),
                                           perf.bwd_weights_algo,
                                           &beta,
-                                          weights.desc,
+                                          rweights.desc,
                                           wei_dev.get(),
                                           workspace_dev.get(),
                                           workspace_size);
 
-        weights.data = handle.Read<T>(wei_dev, weights.data.size());
-        return weights;
+        rweights.data = handle.Read<T>(wei_dev, rweights.data.size());
+        return rweights;
     }
 
-    void fail(float)
+    void fail(float) const
     {
         std::cout << "Backward weights convolution: " << std::endl;
         this->conv_base<T>::fail();
@@ -507,4 +511,4 @@ struct conv_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<conv_driver<float>>(argc, argv); }
+int main(int argc, const char* argv[]) { test_drive<conv_driver>(argc, argv); }

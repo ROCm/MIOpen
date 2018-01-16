@@ -37,7 +37,7 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
                                       const TensorDescriptor& yDesc,
                                       Data_t y,
                                       bool do_backward,
-                                      Data_t workSpace)
+                                      Data_t workSpace) const
 {
 
     miopenStatus_t status = miopenStatusSuccess;
@@ -57,8 +57,8 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     std::tie(nOut, cOut, hOut, wOut)                         = tien<4>(yDesc.GetLengths());
     std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tien<4>(yDesc.GetStrides());
 
-    construct_params.setTopDescr(
-        "NCHW", "FP32", nOut, cOut, hOut, wOut, nOutStride, cOutStride, hOutStride, wOutStride);
+    construct_params.setTopDescFromMLDesc(yDesc);
+
     int nIn;
     int cIn;
     int hIn;
@@ -71,8 +71,7 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     std::tie(nIn, cIn, hIn, wIn)                         = tien<4>(xDesc.GetLengths());
     std::tie(nInStride, cInStride, hInStride, wInStride) = tien<4>(xDesc.GetStrides());
 
-    construct_params.setBotDescr(
-        "NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+    construct_params.setBotDescFromMLDesc(xDesc);
 
     int norm_reg     = GetMode();
     int local_area   = GetN();
@@ -83,7 +82,7 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     construct_params.doBackward(do_backward);
     construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
 
-    construct_params.mloConstruct();
+    mloConstruct(construct_params);
 
     std::string program_name          = construct_params.getKernelFile();      // CL kernel filename
     std::string kernel_name           = construct_params.getKernelName();      // kernel name
@@ -139,7 +138,7 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
                                        const void* /*beta*/,
                                        const TensorDescriptor& dxDesc,
                                        Data_t dx,
-                                       ConstData_t workSpace)
+                                       ConstData_t workSpace) const
 {
     miopenStatus_t status = miopenStatusSuccess;
     mlo_construct_norm construct_params(0); // backward
@@ -157,16 +156,7 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
     std::tie(ndOut, cdOut, hdOut, wdOut)                         = tien<4>(dyDesc.GetLengths());
     std::tie(ndOutStride, cdOutStride, hdOutStride, wdOutStride) = tien<4>(dyDesc.GetStrides());
 
-    construct_params.setTopDfDescr("NCHW",
-                                   "FP32",
-                                   ndOut,
-                                   cdOut,
-                                   hdOut,
-                                   wdOut,
-                                   ndOutStride,
-                                   cdOutStride,
-                                   hdOutStride,
-                                   wdOutStride);
+    construct_params.setTopDfDescFromMLDesc(dyDesc);
 
     int nOut;
     int cOut;
@@ -180,8 +170,7 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
     std::tie(nOut, cOut, hOut, wOut)                         = tien<4>(yDesc.GetLengths());
     std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tien<4>(yDesc.GetStrides());
 
-    construct_params.setTopDescr(
-        "NCHW", "FP32", nOut, cOut, hOut, wOut, nOutStride, cOutStride, hOutStride, wOutStride);
+    construct_params.setTopDescFromMLDesc(yDesc);
 
     int ndIn;
     int cdIn;
@@ -195,8 +184,7 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
     std::tie(ndIn, cdIn, hdIn, wdIn)                         = tien<4>(dxDesc.GetLengths());
     std::tie(ndInStride, cdInStride, hdInStride, wdInStride) = tien<4>(dxDesc.GetStrides());
 
-    construct_params.setBotDfDescr(
-        "NCHW", "FP32", ndIn, cdIn, hdIn, wdIn, ndInStride, cdInStride, hdInStride, wdInStride);
+    construct_params.setBotDfDescFromMLDesc(dxDesc);
 
     int nIn;
     int cIn;
@@ -210,8 +198,7 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
     std::tie(nIn, cIn, hIn, wIn)                         = tien<4>(xDesc.GetLengths());
     std::tie(nInStride, cInStride, hInStride, wInStride) = tien<4>(xDesc.GetStrides());
 
-    construct_params.setBotDescr(
-        "NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+    construct_params.setBotDescFromMLDesc(xDesc);
 
     int norm_reg = GetMode();
 
@@ -223,7 +210,7 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
 
     construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
 
-    construct_params.mloConstruct();
+    mloConstruct(construct_params);
 
     std::string program_name   = construct_params.getKernelFile();      // CL kernel filename
     std::string kernel_name    = construct_params.getKernelName();      // kernel name

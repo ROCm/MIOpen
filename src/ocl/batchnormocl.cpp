@@ -107,6 +107,16 @@ void BatchNormForwardTraining(Handle& handle,
 
     // compile parameters
     std::string parms;
+    if(xDesc.GetType() == miopenFloat)
+    {
+        parms += "-DMIOPEN_USE_FP16=0 ";
+        parms += "-DMIOPEN_USE_FP32=1 ";
+    }
+    else if(xDesc.GetType() == miopenHalf)
+    {
+        parms += "-DMIOPEN_USE_FP16=1 ";
+        parms += "-DMIOPEN_USE_FP32=0 ";
+    }
     bool resultsave = false;
     if(resultSaveMean != nullptr && resultSaveInvVariance != nullptr)
     {
@@ -144,7 +154,7 @@ void BatchNormForwardTraining(Handle& handle,
         program_name += "Spatial.cl";
         kernel_name += "Spatial";
 
-        if(in_cstride > 1024 && in_nhw < 33554432)
+        if(in_cstride >= 1024 && in_nhw < 33554432)
         {
             // unsigned int variant = (in_cstride < 2097152)? 5: 6;
             unsigned int variant = (h == w) ? 5 : 6;
@@ -172,10 +182,10 @@ void BatchNormForwardTraining(Handle& handle,
 #if(MIOPEN_BN_CPP_DEBUG == 1)
             std::cout << kernel_name << ":: ";
             std::cout << parms << std::endl;
-            std::cout << "in_nhw: "
-                      << ":: " << in_nhw << std::endl;
-            std::cout << "inhw: "
-                      << ":: " << inhw << std::endl;
+//            std::cout << "in_nhw: "
+//                      << ":: " << in_nhw << std::endl;
+//            std::cout << "inhw: "
+//                      << ":: " << inhw << std::endl;
 #endif
             bnFwdTrainSelectSingle(handle,
                                    program_name,
@@ -231,10 +241,10 @@ void BatchNormForwardTraining(Handle& handle,
 #if(MIOPEN_BN_CPP_DEBUG == 1)
             std::cout << kernel_name << ":: ";
             std::cout << parms << std::endl;
-            std::cout << "in_nhw: "
-                      << ":: " << in_nhw << std::endl;
-            std::cout << "inhw: "
-                      << ":: " << inhw << std::endl;
+//            std::cout << "in_nhw: "
+//                      << ":: " << in_nhw << std::endl;
+//            std::cout << "inhw: "
+//                      << ":: " << inhw << std::endl;
 #endif
             bnFwdTrainSelectSingle(handle,
                                    program_name,
@@ -527,6 +537,17 @@ void BatchNormForwardInference(Handle& handle,
         std::string network_config{};
         std::string parms{}; // compiler parameters
 
+        if(xDesc.GetType() == miopenFloat)
+        {
+            parms += "-DMIOPEN_USE_FP16=0 ";
+            parms += "-DMIOPEN_USE_FP32=1 ";
+        }
+        else if(xDesc.GetType() == miopenHalf)
+        {
+            parms += "-DMIOPEN_USE_FP16=1 ";
+            parms += "-DMIOPEN_USE_FP32=0 ";
+        }
+
         int n, c, h, w;
         std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
 
@@ -688,6 +709,17 @@ void BatchNormBackward(Handle& handle,
     std::string kernel_name  = "BatchNormBwd";
     std::string network_config{};
     std::string parms{};
+
+    if(xDesc.GetType() == miopenFloat)
+    {
+        parms += "-DMIOPEN_USE_FP16=0 ";
+        parms += "-DMIOPEN_USE_FP32=1 ";
+    }
+    else if(xDesc.GetType() == miopenHalf)
+    {
+        parms += "-DMIOPEN_USE_FP16=1 ";
+        parms += "-DMIOPEN_USE_FP32=0 ";
+    }
 
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());

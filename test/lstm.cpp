@@ -1430,7 +1430,7 @@ struct verify_forward_infer_lstm
         return (handle.Read<T>(output_dev, output.size()));
     }
 
-    void fail(int)
+    void fail(int) const
     {
         std::cout << "./bin/MIOpenDriver rnn -n ";
         for(int i = 0; i < seqLength; i++)
@@ -1697,7 +1697,7 @@ struct verify_forward_train_lstm
         return retSet;
     }
 
-    void fail(int badtensor)
+    void fail(int badtensor) const
     {
 
         std::cout << "./bin/MIOpenDriver rnn -n ";
@@ -1969,7 +1969,7 @@ struct verify_backward_data_lstm
         return retSet;
     }
 
-    void fail(int badtensor)
+    void fail(int badtensor) const
     {
 
         std::cout << "./bin/MIOpenDriver rnn -n ";
@@ -2180,7 +2180,7 @@ struct verify_backward_weights_lstm
         return retvec;
     }
 
-    void fail(int)
+    void fail(int) const
     {
         std::cout << "./bin/MIOpenDriver rnn -n ";
         for(int i = 0; i < seqLength; i++)
@@ -2436,7 +2436,7 @@ int main(int argc, const char* argv[])
 #if(MIO_RNN_TIME_EVERYTHING > 0)
     auto t_start = std::chrono::high_resolution_clock::now();
 #endif
-    test_drive<lstm_driver<float>>(argc, argv);
+    test_drive<lstm_driver>(argc, argv);
 
 #if(MIO_RNN_TIME_EVERYTHING > 0)
     auto t_end = std::chrono::high_resolution_clock::now();

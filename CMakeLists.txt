@@ -68,8 +68,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
 
 ############################################################
-# require C++11
-add_compile_options(-std=gnu++14)
+# require C++14
+add_compile_options(-std=c++14)
 
 ############################################################
 # OPTION - MIOpen Backend
@@ -155,6 +155,7 @@ option( BUILD_DEV "Build for development only" OFF)
 set( MIOPEN_INSTALL_DIR miopen)
 set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen )
 
+set(MIOPEN_GPU_SYNC Off CACHE BOOL "")
 if(BUILD_DEV)
     set(MIOPEN_BUILD_DEV 1)
     set(MIOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels")
@@ -202,6 +203,7 @@ enable_clang_tidy(
         -cppcoreguidelines-pro-type-union-access
         -cppcoreguidelines-pro-type-vararg
         -cppcoreguidelines-special-member-functions
+        -fuchsia-*
         -google-explicit-constructor
         -google-readability-braces-around-statements
         -google-readability-todo

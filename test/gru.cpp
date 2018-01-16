@@ -60,11 +60,11 @@ void GRUFwdCPUVerify(std::vector<T>& in,
                      std::vector<T>& hy,  // current/final hidden state
                      std::vector<T>& hx,  // initial hidden state
                      std::vector<T>& out,
-                     std::vector<int>& in_n, // input batch size
-                     int in_h,               // input data length
-                     int seqLength,          // Number of iterations to unroll over
-                     bool bidirection,       // whether using bidirectional net
-                     bool biased,            // whether using bias
+                     const std::vector<int>& in_n, // input batch size
+                     int in_h,                     // input data length
+                     int seqLength,                // Number of iterations to unroll over
+                     bool bidirection,             // whether using bidirectional net
+                     bool biased,                  // whether using bias
                      int hy_d,  // 1 by numlayer (number of stacks of hidden layers) for
                                 // unidirection, 2 by numlayer for bidirection
                      int hy_n,  // equal to input batch size in_n[0]
@@ -571,11 +571,11 @@ void GRUBwdDataCPUVerify(std::vector<T>& din,
                          std::vector<T>& hx, // initial hidden state
                          std::vector<T>& out,
                          std::vector<T>& dout,
-                         std::vector<int>& in_n, // input batch size
-                         int in_h,               // input data length
-                         int seqLength,          // Number of iterations to unroll over
-                         bool bidirection,       // whether using bidirectional net
-                         bool biased,            // whether using bias
+                         const std::vector<int>& in_n, // input batch size
+                         int in_h,                     // input data length
+                         int seqLength,                // Number of iterations to unroll over
+                         bool bidirection,             // whether using bidirectional net
+                         bool biased,                  // whether using bias
                          int hy_d,  // 1 by numlayer (number of stacks of hidden layers)
                                     // for unidirection, 2 by numlayer for bidirection
                          int hy_n,  // equal to input batch size in_n[0]
@@ -1151,23 +1151,23 @@ void GRUBwdDataCPUVerify(std::vector<T>& din,
 
 template <typename T>
 void GRUBwdWeightCPUVerify(std::vector<T>& in,
-                           std::vector<T>& dwei,   // [ input_state_weight_trans
-                                                   // hidden_state_weight0_trans
-                                                   // input1_trans hidden1_trans ...
-                                                   // output_weight; bidirectional
-                                                   // reversed weights ]
-                           std::vector<T>& hx,     // initial hidden state
-                           std::vector<int>& in_n, // input batch size
-                           int in_h,               // input data length
-                           int seqLength,          // Number of iterations to unroll over
-                           bool bidirection,       // whether using bidirectional net
-                           bool biased,            // whether using bias
-                           int hy_d,               // 1 by numlayer (number of stacks of hidden
-                                                   // layers) for unidirection, 2 by numlayer for
-                                                   // bidirection
-                           int hy_n,               // equal to input batch size in_n[0]
-                           int hy_h,               // hidden state number
-                                                   // by hy_h related function for bidirection
+                           std::vector<T>& dwei,         // [ input_state_weight_trans
+                                                         // hidden_state_weight0_trans
+                                                         // input1_trans hidden1_trans ...
+                                                         // output_weight; bidirectional
+                                                         // reversed weights ]
+                           std::vector<T>& hx,           // initial hidden state
+                           const std::vector<int>& in_n, // input batch size
+                           int in_h,                     // input data length
+                           int seqLength,                // Number of iterations to unroll over
+                           bool bidirection,             // whether using bidirectional net
+                           bool biased,                  // whether using bias
+                           int hy_d, // 1 by numlayer (number of stacks of hidden
+                                     // layers) for unidirection, 2 by numlayer for
+                                     // bidirection
+                           int hy_n, // equal to input batch size in_n[0]
+                           int hy_h, // hidden state number
+                                     // by hy_h related function for bidirection
                            int inputMode,
                            std::vector<T>& rsvspace,
                            std::vector<T>& wkspace)
@@ -1656,7 +1656,7 @@ struct verify_forward_infer_gru
         return (handle.Read<T>(output_dev, output.size()));
     }
 
-    void fail(int)
+    void fail(int) const
     {
         std::cout << "./bin/MIOpenDriver rnn -n ";
         for(int i = 0; i < seqLength; i++)
@@ -1924,7 +1924,7 @@ struct verify_forward_train_gru
         return retSet;
     }
 
-    void fail(int badtensor)
+    void fail(int badtensor) const
     {
         std::cout << "./bin/MIOpenDriver rnn -n ";
         for(int i = 0; i < seqLength; i++)
@@ -2196,7 +2196,7 @@ struct verify_backward_data_gru
         return retSet;
     }
 
-    void fail(int badtensor)
+    void fail(int badtensor) const
     {
         std::cout << "./bin/MIOpenDriver rnn -n ";
         for(int i = 0; i < seqLength; i++)
@@ -2412,7 +2412,7 @@ struct verify_backward_weights_gru
         return retvec;
     }
 
-    void fail(int)
+    void fail(int) const
     {
         std::cout << "./bin/MIOpenDriver rnn -n ";
         for(int i = 0; i < seqLength; i++)
@@ -2647,7 +2647,7 @@ int main(int argc, const char* argv[])
 #if(MIO_RNN_TIME_EVERYTHING > 0)
     auto t_start = std::chrono::high_resolution_clock::now();
 #endif
-    test_drive<gru_driver<float>>(argc, argv);
+    test_drive<gru_driver>(argc, argv);
 
 #if(MIO_RNN_TIME_EVERYTHING > 0)
     auto t_end = std::chrono::high_resolution_clock::now();
