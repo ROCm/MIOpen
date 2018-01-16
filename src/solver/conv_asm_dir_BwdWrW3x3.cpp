@@ -676,14 +676,6 @@ static int RunSolution(miopen::Handle& profile_h,
     return 0;
 }
 
-static void
-InitRandomly(std::vector<float>& vec, const double offset = 0.0, const double factor = 1.0)
-{
-    float* p = vec.data();
-    for(int i = 0; i < vec.size(); ++i)
-        *p++ = static_cast<float>((rand() * (1.0 / RAND_MAX) + offset) * factor);
-}
-
 PerformanceConfigAsmDirect3x3WrW ConvAsmBwdWrW3x3::Search(const ConvolutionContext& params) const
 {
     PerformanceConfigAsmDirect3x3WrW best_config;
