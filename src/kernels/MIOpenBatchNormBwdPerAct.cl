@@ -24,14 +24,33 @@
  *
  *******************************************************************************/
 
-#define _FLOAT float
-#define _FLOAT2 float2
-#define _FLOAT4 float4
-#define _FLOAT8 float8
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
 
-#ifndef FLT_MAX
-#define FLT_MAX 3.402823466e+38F /* max value */
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
 #endif
+#endif
+#if MIOPEN_USE_FP32 == 1
+#define _FLOAT float
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #ifndef MIO_BN_LDS_SIZE
 #define MIO_BN_LDS_SIZE 1
@@ -109,12 +128,12 @@ __kernel void BatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
 
     unsigned int inImgIndex, index, adjIndex;
     _FLOAT mean, invVar;
-    _FLOAT elemStd, xhat, dyelem;
+    _FLOAT xhat, dyelem;
     _FLOAT pvt_scale, pvt_dscale;
     _FLOAT pvt_dbias;
     _FLOAT tmp1, tmp2, tmp3;
-    _FLOAT dxhat    = 0.;
-    _FLOAT dxhathat = 0.;
+    _FLOAT dxhat    = (_FLOAT)0.;
+    _FLOAT dxhathat = (_FLOAT)0.;
 
     // move across the sections of an image in the mini_batch stack
     for(int img_offset = 0; img_offset < in_cstride; img_offset += yglb_sz)
@@ -128,18 +147,17 @@ __kernel void BatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
             mean       = savedMean[adjIndex];
             invVar     = savedInvVariance[adjIndex];
             pvt_scale  = scale[adjIndex];
-            pvt_dscale = 0.;
-            pvt_dbias  = 0.;
-            dxhat      = 0.;
-            dxhathat   = 0.;
+            pvt_dscale = (_FLOAT)0.;
+            pvt_dbias  = (_FLOAT)0.;
+            dxhat      = (_FLOAT)0.;
+            dxhathat   = (_FLOAT)0.;
 
             for(int n = 0; n < N; n++)
             {
                 // per (x-dims) channel load a block of data into LDS
-                index   = in_nstride * n + adjIndex;
-                elemStd = x_in[index] - mean; // (x_i - mean)
-                xhat    = elemStd * invVar;
-                dyelem  = dy_in[index];
+                index  = in_nstride * n + adjIndex;
+                xhat   = (*(x_in + index) - mean) * invVar;
+                dyelem = dy_in[index];
                 pvt_dbias += dyelem;
                 pvt_dscale = mad(xhat, dyelem, pvt_dscale);
                 tmp1       = pvt_scale * dyelem;
@@ -150,8 +168,7 @@ __kernel void BatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
             for(int n = 0; n < N; n++)
             {
                 index         = in_nstride * n + adjIndex;
-                elemStd       = x_in[index] - mean; // (x_i - mean)
-                xhat          = elemStd * invVar;
+                xhat          = (*(x_in + index) - mean) * invVar;
                 tmp1          = mad(xhat, dxhathat, dxhat);
                 tmp2          = mad((_FLOAT)N, dxhat, -tmp1);
                 tmp3          = invVar / ((_FLOAT)N);
@@ -187,14 +204,15 @@ __kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
     _FLOAT pvt_scale, pvt_dscale;
     _FLOAT pvt_dbias;
     _FLOAT tmp1, tmp2, tmp3;
-    _FLOAT elemStd, variance;
-    _FLOAT dxhat    = 0.;
-    _FLOAT dxhathat = 0.;
+    _FLOAT variance;
+    _FLOAT dxhat    = (_FLOAT)0.;
+    _FLOAT dxhathat = (_FLOAT)0.;
 
     // move across the sections of the image mini_batch stack
     for(int img_offset = 0; img_offset < in_cstride; img_offset += yglb_sz)
     {
-        mean       = 0.;
+        mean       = (_FLOAT)0.;
+        variance   = (_FLOAT)0.;
         inImgIndex = ygid + img_offset;
 
         // #1 calculate the mean
@@ -205,28 +223,17 @@ __kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
             adjIndex = Cidx + inImgIndex; // gamma and beta tensor index
             for(int n = 0; n < N; n++)
             {
-                index = in_nstride * n + adjIndex;
-                mean += x_in[index];
+                index     = in_nstride * n + adjIndex;
+                _FLOAT in = *(x_in + index);
+                mean += in;
+                variance = mad(in, in, variance);
             } // end for(n)
             mean /= (_FLOAT)N;
+            variance /= (_FLOAT)N;
+            variance = mad(-mean, mean, variance);
+            invVar   = rsqrt(fabs(variance + epsilon));
 
-            elemStd  = 0.;
-            variance = 0.;
-            // #2 calculate the variances
-            // sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
-            for(int n = 0; n < N; n++)
-            {
-                // per (x-dims) channel load a block of data into LDS
-                index    = in_nstride * n + adjIndex;
-                elemStd  = x_in[index] - mean; // (x_i - mean) //this is reused but needs recalc
-                variance = mad(elemStd, elemStd, variance); // sum{ (x_i - mean)^2 }
-            }                                               // end for(n)
-            variance /= (_FLOAT)N;                          // (1/N)*sum{ (x_i - mean)^2 }
-
-            // #3 add epsilon for numeric stability, sqr_root, and invert
-            invVar = rsqrt(fabs(variance + epsilon));
-
-            pvt_scale  = scale[adjIndex];
+            pvt_scale  = *(scale + adjIndex);
             pvt_dscale = 0.;
             pvt_dbias  = 0.;
             dxhat      = 0.;
@@ -235,10 +242,9 @@ __kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
             for(int n = 0; n < N; n++)
             {
                 // per (x-dims) channel load a block of data into LDS
-                index   = in_nstride * n + adjIndex;
-                elemStd = x_in[index] - mean; // (x_i - mean)
-                xhat    = elemStd * invVar;
-                dyelem  = dy_in[index];
+                index  = in_nstride * n + adjIndex;
+                xhat   = (*(x_in + index) - mean) * invVar;
+                dyelem = dy_in[index];
                 pvt_dbias += dyelem;
                 pvt_dscale = mad(xhat, dyelem, pvt_dscale);
                 tmp1       = pvt_scale * dyelem;
@@ -249,8 +255,7 @@ __kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
             for(int n = 0; n < N; n++)
             {
                 index         = in_nstride * n + adjIndex;
-                elemStd       = x_in[index] - mean; // (x_i - mean)
-                xhat          = elemStd * invVar;
+                xhat          = (*(x_in + index) - mean) * invVar;
                 tmp1          = mad(xhat, dxhathat, dxhat);
                 tmp2          = mad((_FLOAT)N, dxhat, -tmp1);
                 tmp3          = invVar / ((_FLOAT)N);

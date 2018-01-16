@@ -49,7 +49,7 @@ struct tensor_ops_base
     tensor<T> b;
     tensor<T> c;
 
-    void fail(float = 0)
+    void fail(float = 0) const
     {
         std::cout << "A tensor: " << a.desc.ToString() << std::endl;
         std::cout << "B tensor: " << b.desc.ToString() << std::endl;
@@ -101,26 +101,26 @@ struct verify_tensor_ops : tensor_ops_base<T>
     // c = pc(dims);
     //}
 
-    T add_elem(T aelem, T belem) { return aelem + belem; }
-    T mul_elem(T aelem, T belem) { return aelem * belem; }
-    T max_elem(T aelem, T belem) { return ((aelem > belem) ? aelem : belem); }
-    T min_elem(T aelem, T belem) { return ((aelem < belem) ? aelem : belem); }
+    static T add_elem(T aelem, T belem) { return aelem + belem; }
+    static T mul_elem(T aelem, T belem) { return aelem * belem; }
+    static T max_elem(T aelem, T belem) { return ((aelem > belem) ? aelem : belem); }
+    static T min_elem(T aelem, T belem) { return ((aelem < belem) ? aelem : belem); }
 
-    void tensor_for_loop(const tensor<T>& aten,
-                         const tensor<T>& bten,
-                         tensor<T>& cten,
-                         const std::vector<size_t>& a_dims,
-                         const std::vector<size_t>& b_dims,
-                         float palpha0,
-                         float palpha1,
-                         float pbeta,
-                         int recurr_aoffset,
-                         int recurr_boffset,
-                         int recurr_coffset,
-                         int dim,
-                         int AtenOffset,
-                         int BtenOffset,
-                         int CtenOffset)
+    static void tensor_for_loop(const tensor<T>& aten,
+                                const tensor<T>& bten,
+                                tensor<T>& cten,
+                                const std::vector<size_t>& a_dims,
+                                const std::vector<size_t>& b_dims,
+                                float palpha0,
+                                float palpha1,
+                                float pbeta,
+                                int recurr_aoffset,
+                                int recurr_boffset,
+                                int recurr_coffset,
+                                int dim,
+                                int AtenOffset,
+                                int BtenOffset,
+                                int CtenOffset)
     {
 
         int astride = aten.desc.GetStrides()[dim];
@@ -157,7 +157,7 @@ struct verify_tensor_ops : tensor_ops_base<T>
                     // palpha1) +
                     mul_elem(aten[aindex + AtenOffset] * palpha0,
                              bten[bindex + BtenOffset] * palpha1) +
-                    pbeta * cten[cindex + Coffset];
+                    pbeta * cten[cindex + CtenOffset];
             }
             if(dim < (a_dims.size() - 1))
             {
@@ -181,32 +181,34 @@ struct verify_tensor_ops : tensor_ops_base<T>
         }
     }
 
-    tensor<T> cpu()
+    tensor<T> cpu() const
     {
-        std::fill(c.begin(), c.end(), 1);
-        auto clens    = c.desc.GetLengths();
+        auto r = c;
+        std::fill(r.begin(), r.end(), 1);
+        auto clens    = r.desc.GetLengths();
         auto blens    = b.desc.GetLengths();
         auto bstrides = b.desc.GetStrides();
-        auto cstrides = c.desc.GetStrides();
+        auto cstrides = r.desc.GetStrides();
 
         tensor_for_loop(
-            a, b, c, clens, blens, alpha0, alpha1, beta, 0, 0, 0, 0, Aoffset, Boffset, Coffset);
+            a, b, r, clens, blens, alpha0, alpha1, beta, 0, 0, 0, 0, Aoffset, Boffset, Coffset);
 
 #if(MIO_OPS_DEBUG)
-        for(int i = 0; i < c.desc.GetElementSize(); i++)
-            printf("CPU_C[%d]: %f\n", i, c.data[i + Coffset]);
+        for(int i = 0; i < r.desc.GetElementSize(); i++)
+            printf("CPU_C[%d]: %f\n", i, r.data[i + Coffset]);
 #endif
-        return c;
+        return r;
     }
 
-    tensor<T> gpu()
+    tensor<T> gpu() const
     {
         auto&& handle = get_handle();
+        auto r        = c;
 
         // return c;
-        std::fill(c.begin(), c.end(), 1);
+        std::fill(r.begin(), r.end(), 1);
 
-        auto c_dev = handle.Write(c.data);
+        auto c_dev = handle.Write(r.data);
         auto a_dev = handle.Write(a.data);
         auto b_dev = handle.Write(b.data);
 
@@ -222,25 +224,25 @@ struct verify_tensor_ops : tensor_ops_base<T>
                          b.desc,
                          b_dev.get(),
                          &beta,
-                         c.desc,
+                         r.desc,
                          c_dev.get(),
                          Aoffset,
                          Boffset,
                          Coffset);
 
-        c.data = handle.Read<T>(c_dev, c.data.size());
+        r.data = handle.Read<T>(c_dev, r.data.size());
 
 #if(MIO_OPS_DEBUG)
         handle.Finish();
-        auto clens    = c.desc.GetLengths();
-        auto cstrides = c.desc.GetStrides();
-        for(int i = 0; i < c.desc.GetElementSize(); i++)
+        auto clens    = r.desc.GetLengths();
+        auto cstrides = r.desc.GetStrides();
+        for(int i = 0; i < r.desc.GetElementSize(); i++)
             printf("GPU_C[%d]: %f\n", i, c.data[i + Coffset]);
 #endif
-        return c;
+        return r;
     }
 
-    void fail(int = 0)
+    void fail(int = 0) const
     {
         std::cout << "TensorOp: " << std::endl;
         this->tensor_ops_base<T>::fail();
@@ -337,4 +339,4 @@ struct tensor_ops_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<tensor_ops_driver<float>>(argc, argv); }
+int main(int argc, const char* argv[]) { test_drive<tensor_ops_driver>(argc, argv); }

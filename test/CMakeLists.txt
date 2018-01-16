@@ -24,6 +24,8 @@
 # 
 ################################################################################
 
+cmake_policy(SET CMP0057 NEW)
+
 include(CTest)
 
 option( MIOPEN_TEST_ALL "Run the full test suite" OFF )
@@ -31,13 +33,19 @@ option(MIOPEN_TEST_CONV Off)
 option(MIOPEN_TEST_DEEPBENCH Off)
 
 set(MIOPEN_TEST_FLAGS "" CACHE STRING "")
+set(MIOPEN_TEST_GDB On CACHE BOOL "")
 
 find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
 
+set(SKIP_TESTS test_gru)
+
 function(add_test_command NAME EXE)
-    if(WIN32)
+    if(NAME IN_LIST SKIP_TESTS)
+        add_test(NAME ${NAME} COMMAND echo skipped)
+        set_tests_properties(${NAME} PROPERTIES DISABLED On)
+    elseif(WIN32)
         set(WINPATH)
         foreach(PATH ${CMAKE_FIND_ROOT_PATH})
             list(APPEND WINPATH ${PATH}/bin)
@@ -47,7 +55,21 @@ function(add_test_command NAME EXE)
                     %1 ${ARGN}")
         add_test(NAME ${NAME} COMMAND ${WINE_CMD} cmd /c "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmd" $<TARGET_FILE:${EXE}>)
     else()
-        add_test(NAME ${NAME} COMMAND ${EXE} ${ARGN})
+        if(MIOPEN_TEST_GDB)
+            file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmake"
+                CONTENT "
+                execute_process(COMMAND $<TARGET_FILE:${EXE}> ${ARGN} RESULT_VARIABLE RESULT)
+                if(NOT RESULT EQUAL 0)
+                    if(EXISTS core)
+                        execute_process(COMMAND gdb $<TARGET_FILE:${EXE}> core -batch -ex bt)
+                    endif()
+                    message(FATAL_ERROR \"Test failed\")
+                endif()
+            ")
+            add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmake")
+        else()
+            add_test(NAME ${NAME} COMMAND ${EXE} ${ARGN})
+        endif()
     endif()
 endfunction()
 
