@@ -471,11 +471,12 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm,
                                const std::string& kernel_name,
                                const std::vector<size_t>& vld,
                                const std::vector<size_t>& vgd,
-                               const std::string& params)
+                               const std::string& params,
+                               std::size_t cache_index)
 {
     auto q   = this->GetStream();
-    auto obj = this->impl->cache.GetKernel(
-        *this, algorithm, network_config, program_name, kernel_name, vld, vgd, params);
+    auto obj = this->impl->cache.AddKernel(
+        *this, algorithm, network_config, program_name, kernel_name, vld, vgd, params, cache_index);
 
 #ifndef NDEBUG
 // dumpKernel(obj.GetKernel(), kernel_name, vld, vgd, params);
@@ -496,7 +497,7 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm,
 KernelInvoke Handle::GetKernel(const std::string& algorithm, const std::string& network_config)
 {
     auto q         = this->GetStream();
-    const auto obj = this->impl->cache.GetKernel(algorithm, network_config);
+    const auto obj = this->impl->cache.GetKernels(algorithm, network_config).at(0);
     if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
     {
         return obj.Invoke(q,
