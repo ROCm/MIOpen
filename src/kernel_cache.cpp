@@ -97,7 +97,8 @@ static void dump_kernel_params(const std::string& program_name,
 }
 #endif
 
-std::vector<Kernel> KernelCache::GetKernels(const std::string& algorithm, const std::string& network_config)
+std::vector<Kernel> KernelCache::GetKernels(const std::string& algorithm,
+                                            const std::string& network_config)
 {
 
     std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
@@ -173,10 +174,10 @@ Kernel KernelCache::AddKernel(Handle& h,
 
 void KernelCache::AddKernel(Key key, Kernel k, std::size_t cache_index)
 {
-    auto && v = kernel_map[key];
+    auto&& v = kernel_map[key];
     if(cache_index >= v.size())
     {
-        v.resize(cache_index+1);
+        v.resize(cache_index + 1);
     }
     v[cache_index] = k;
 }
