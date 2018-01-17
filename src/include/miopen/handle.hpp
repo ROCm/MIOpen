@@ -69,7 +69,8 @@ struct Handle : miopenHandle
                            const std::string& kernel_name,
                            const std::vector<size_t>& vld,
                            const std::vector<size_t>& vgd,
-                           const std::string& params);
+                           const std::string& params,
+                           std::size_t cache_index = 0);
 
     KernelInvoke GetKernel(const std::string& algorithm, const std::string& network_config);
 
