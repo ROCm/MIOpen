@@ -72,7 +72,7 @@ struct verify_backwards_bias
 
         float alpha = 1, beta = 0;
         ConvolutionBackwardBias(
-            handle, &alpha, rbias.desc, bias_dev.get(), &beta, output.desc, out_dev.get());
+            handle, &alpha, output.desc, out_dev.get(), &beta, rbias.desc, bias_dev.get());
 
         rbias.data = handle.Read<T>(bias_dev, rbias.data.size());
         return rbias;
