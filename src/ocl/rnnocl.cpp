@@ -3534,6 +3534,39 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         }
 
         // between time
+		// Calculate feedback for c gate in GRU 
+		if (rnnMode == miopenGRU)
+		{
+			alpha0 = 1;
+			alpha1 = 1;
+			beta_t = 0;
+
+			sp_size[1] = batch_n;
+			sp_size[2] = hy_h;
+			sp_desc = miopen::TensorDescriptor(
+				miopenFloat, sp_size.data(), sp_stride.data(), 3);
+
+			for (int ri = 0; ri < bi; ri++)
+			{
+				OpTensor(handle,
+					miopenTensorOpMul,
+					&alpha0,
+					sp_desc,
+					reserveSpace,
+					&alpha1,
+					sp_desc,
+					workSpace,
+					&beta_t,
+					sp_desc,
+					workSpace,
+					hid_shift + hy_h + ri * 3 * hy_h + nLayers * batch_n * hy_stride,
+					hid_shift + 2 * hy_h + ri * 3 * hy_h,
+					hid_shift + 2 * hy_h + ri * 3 * hy_h);
+				// Update time
+				profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
+			}
+		}
+
         int bacc   = 0;
         int baccbi = batch_n;
         for(int ti = 0; ti < seqLen; ti++)
@@ -3556,38 +3589,6 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
                 if(in_n[cur_time] > 0)
                 {
-                    if(rnnMode == miopenGRU)
-                    {
-                        if(ri == 0)
-                        {
-                            alpha0 = 1;
-                            alpha1 = 1;
-                            beta_t = 0;
-                        }
-
-                        sp_size[1] = in_n[cur_time];
-                        sp_size[2] = hy_h;
-                        sp_desc    = miopen::TensorDescriptor(
-                            miopenFloat, sp_size.data(), sp_stride.data(), 3);
-
-                        OpTensor(handle,
-                                 miopenTensorOpMul,
-                                 &alpha0,
-                                 sp_desc,
-                                 reserveSpace,
-                                 &alpha1,
-                                 sp_desc,
-                                 workSpace,
-                                 &beta_t,
-                                 sp_desc,
-                                 workSpace,
-                                 hid_shift + hy_h + ri * 3 * hy_h + nLayers * batch_n * hy_stride,
-                                 hid_shift + 2 * hy_h + ri * 3 * hy_h,
-                                 hid_shift + 2 * hy_h + ri * 3 * hy_h);
-                        // Update time
-                        profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
-                    }
-
                     if(ti == 0)
                     {
 
