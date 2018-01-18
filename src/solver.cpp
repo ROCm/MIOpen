@@ -41,14 +41,5 @@ std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
     return os << "} '" << k.comp_options << '\'';
 }
 
-void InitRandomly(std::vector<float>& vec,
-                  const double offset /*= 0.0*/,
-                  const double factor /*= 1.0*/)
-{
-    float* p = vec.data();
-    for(int i = 0; i < vec.size(); ++i)
-        *p++ = static_cast<float>((rand() * (1.0 / RAND_MAX) + offset) * factor);
-}
-
 } // namespace solver
 } // namespace miopen
