@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #include <sstream>
 #include <limits>
 #include <cassert>
@@ -253,7 +254,7 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         && params.pad1 == 0             // -p  pad_h
         && params.kernel_stride0 <= 2   // -u  stride_w
         && params.kernel_stride1 <= 2   // -v  stride_h
-	&& params.kernel_stride0 == params.kernel_stride1
+        && params.kernel_stride0 == params.kernel_stride1
         && params.kernel_size0 == 1     // -x  S wei_w
         && params.kernel_size1 == 1     // -y  R wei_h
         && params.kernel_dilation0 == 1
@@ -490,12 +491,13 @@ int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
         int* return_addr = nullptr;
         auto n_groups =
             static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
-        kernel(params.batch_sz,                                        // N
-               params.n_outputs,                                       // C
-               params.out_height,                                      // H
-               params.out_width,                                       // W
-               params.n_inputs,                                        // K
-               n_groups,                                               // n_groups
+
+        kernel(params.batch_sz,   // N
+               params.n_outputs,  // C
+               params.out_height, // H
+               params.out_width,  // W
+               params.n_inputs,   // K
+               n_groups,          // n_groups
                unused,
                unused,
                top_ocl_buf,
