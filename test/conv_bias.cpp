@@ -54,13 +54,9 @@ struct verify_backwards_bias
         int out_n, out_c, out_h, out_w;
         std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(output.desc.GetLengths());
 
-        par_ford(out_c)([&](int c)
-        {
+        par_ford(out_c)([&](int c) {
             double acc = 0;
-            ford(out_n, out_h, out_w)([&](int n, int h, int w)
-            {
-                acc += output(n, c, h, w);
-            });
+            ford(out_n, out_h, out_w)([&](int n, int h, int w) { acc += output(n, c, h, w); });
             rbias[c] = acc;
         });
         return rbias;
@@ -69,20 +65,14 @@ struct verify_backwards_bias
     tensor<T> gpu() const
     {
         auto&& handle = get_handle();
-        auto rbias = bias;
+        auto rbias    = bias;
 
-        auto out_dev = handle.Write(output.data);
+        auto out_dev  = handle.Write(output.data);
         auto bias_dev = handle.Write(rbias.data);
 
         float alpha = 1, beta = 0;
-        ConvolutionBackwardBias(handle,
-                                         &alpha,
-                                         rbias.desc,
-                                         bias_dev.get(),
-                                         &beta,
-                                         output.desc,
-                                         out_dev.get());
-
+        ConvolutionBackwardBias(
+            handle, &alpha, rbias.desc, bias_dev.get(), &beta, output.desc, out_dev.get());
 
         rbias.data = handle.Read<T>(bias_dev, rbias.data.size());
         return rbias;
@@ -105,14 +95,11 @@ struct conv_bias_driver : test_driver
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
         {"CONV", miopenConvolution}, {"TRANS", miopenTranspose}};
 
-    conv_bias_driver()
-    {
-        add(output, "output", get_input_tensor());
-    }
+    conv_bias_driver() { add(output, "output", get_input_tensor()); }
 
     void run()
     {
-        auto mode        = cmode_lookup[miopen::ToUpper(conv_mode)];
+        auto mode      = cmode_lookup[miopen::ToUpper(conv_mode)];
         tensor<T> bias = {1, output.desc.GetLengths()[1], 1, 1};
         verify(verify_backwards_bias<T>{output, bias, mode});
     }
