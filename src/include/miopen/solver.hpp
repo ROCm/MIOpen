@@ -394,6 +394,7 @@ struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirec
 
     PerformanceConfigAsmDirect3x3WrW(int lwc, int rio, int csz, int kpw, int pld, int npg);
     PerformanceConfigAsmDirect3x3WrW() : PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1) {}
+    PerformanceConfigAsmDirect3x3WrW(bool) : PerformanceConfigAsmDirect3x3WrW(0, 0, 8, 1, 1, 1) {}
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -417,11 +418,10 @@ struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirec
 
     void EuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
+    bool SetNextValue();
     bool IsValid(const ConvolutionContext& config) const;
-    bool IsEqual(const PerformanceConfigAsmDirect3x3WrW& other) const;
+    bool operator==(const PerformanceConfigAsmDirect3x3WrW& other) const;
     std::string ToString() const;
-
-    friend class VirtualIterator3x3WrW; // Modifies private data when advancing.
 };
 
 struct ConvAsmBwdWrW3x3 : SolverBase<ConvolutionContext>
@@ -433,7 +433,16 @@ struct ConvAsmBwdWrW3x3 : SolverBase<ConvolutionContext>
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsFast(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfigAsmDirect3x3WrW& config) const;
+                             const PerformanceConfigAsmDirect3x3WrW& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                              Data_t bot_ocl_buf,
+                              Data_t top_ocl_buf,
+                              Data_t wei_ocl_buf,
+                              Data_t bias_ocl_buf,
+                              const ConvolutionContext& params,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
 };
 
 struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsmBwdWrW1x1>
@@ -754,7 +763,7 @@ auto GenericSearch(const Solver s, const Context& context)
             (void)dummy;
         }
     }
-    MIOPEN_LOG_W("Searching the best solution among " << n_runs_total << "...");
+    MIOPEN_LOG_W(SolverDbId(s) << ": Searching the best solution among " << n_runs_total << "...");
     bool is_passed   = false; // left false only if all iterations failed.
     float best_time  = std::numeric_limits<float>::max();
     size_t n_failed  = 0;
@@ -848,7 +857,7 @@ auto GenericSearch(const Solver s, const Context& context)
                           << ' '
                           << best_config);
     if(!is_passed)
-        MIOPEN_THROW("Search failed for PerformanceConfigConvAsmBwdWrW1x1");
+        MIOPEN_THROW("Search failed");
     return best_config;
 }
 
