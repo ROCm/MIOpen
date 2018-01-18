@@ -210,7 +210,7 @@ MIOpenLRNWithinChannelBwd(const __global _FLOAT* top,
         int lcl_v_off_v = (v_off_v + MLO_LRN_PAD) * MLO_LRN_LCL_DATA_WIDTH;
         for(int i = 0; i < MLO_LRN_N_HORIZ_OUT_PIX; i++)
         {
-            _FLOAT prv_ratio_accum = 0;
+            _FLOAT prv_ratio_accum = (_FLOAT)0;
             int v_off_h            = lcl_id0 * MLO_LRN_N_HORIZ_OUT_PIX + i;
 
             int wstart = x + v_off_h - MLO_LRN_PAD;

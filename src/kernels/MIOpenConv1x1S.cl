@@ -100,6 +100,9 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #endif
         ;
 
+    _FLOAT accum[MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT];
+    _FLOAT dat[MLO_N_LCL_IN_MAPS][MLO_READ_UNIT];
+
     for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
     {
         for(uint i = 0; i < MLO_READ_UNIT; ++i)
@@ -165,11 +168,9 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
         {
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
             {
-
                 dat[j][i] = *(p + i);
-
 #if DBG_OUT_OF_RNGE
-                if(gbl_in_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+                if(gbl_in_off1 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
                 {
                     printf("K:oor: inputs\n");
                 }
@@ -188,15 +189,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
                 _FLOAT* d = &dat[c][0];
                 for(uint i = 0; i < MLO_READ_UNIT; ++i)
                 {
-<<<<<<< HEAD
                     acc[i] += d[i] * we;
-=======
-                    #if MIOPEN_USE_FP32 == 1 accum[o][i] += dat[c][i] * weights[o][c];
-#endif
-#if MIOPEN_USE_FP16 == 1
-                    accum[o * MLO_READ_UNIT + i] += dat[c * MLO_READ_UNIT + i] * weights[o][c];
-#endif
->>>>>>> fp16_kernels
                 }
             }
             for(uint i = 0; i < MLO_READ_UNIT; ++i)

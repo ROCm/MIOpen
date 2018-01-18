@@ -53,8 +53,6 @@
 // example
 #if 0 // ndef MLopen_RUNNING
 #define BATCHSIZE 32
-#define MLO_N_LCL_IN_MAPS_ONCE 8
-
 #define H 28
 #define W 28
 #define C 192
@@ -86,6 +84,8 @@
 
 #define MLO_WEI_BSTRIDE (1 * 1 * C * K)
 #define MLO_WEI_CHANNEL_STRIDE (1 * 1 * C)
+
+#define MLO_N_LCL_IN_MAPS_ONCE 8
 
 #define MLO_OUT_BATCH_STRIDE (H_out * W_out * K)
 #define MLO_OUT_CHANNEL_STRIDE (H_out * W_out)
