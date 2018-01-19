@@ -119,11 +119,22 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     visit_float(xDesc.GetType(), [&](auto as_float) {
         if(do_backward)
         {
-            obj(x, y, workSpace, as_float(f_norm_alphaoverarea), as_float(f_norm_alpha), as_float(f_norm_beta), as_float(f_norm_K));
+            obj(x,
+                y,
+                workSpace,
+                as_float(f_norm_alphaoverarea),
+                as_float(f_norm_alpha),
+                as_float(f_norm_beta),
+                as_float(f_norm_K));
         }
         else
         {
-            obj(x, y, as_float(f_norm_alphaoverarea), as_float(f_norm_alpha), as_float(f_norm_beta), as_float(f_norm_K));
+            obj(x,
+                y,
+                as_float(f_norm_alphaoverarea),
+                as_float(f_norm_alpha),
+                as_float(f_norm_beta),
+                as_float(f_norm_K));
         }
     });
 
@@ -245,9 +256,20 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
         MIOPEN_THROW("Expect non-zero bias/K");
 
     visit_float(xDesc.GetType(), [&](auto as_float) {
-        handle.GetKernel(
-            "miopenLRNBackward", network_config, program_name, kernel_name, vld, vgd, compiler_parms)(
-            y, x, dy, workSpace, dx, as_float(f_norm_ratio), as_float(f_norm_alpha), as_float(f_norm_beta));
+        handle.GetKernel("miopenLRNBackward",
+                         network_config,
+                         program_name,
+                         kernel_name,
+                         vld,
+                         vgd,
+                         compiler_parms)(y,
+                                         x,
+                                         dy,
+                                         workSpace,
+                                         dx,
+                                         as_float(f_norm_ratio),
+                                         as_float(f_norm_alpha),
+                                         as_float(f_norm_beta));
     });
 
     return (status);

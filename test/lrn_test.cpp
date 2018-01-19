@@ -262,9 +262,9 @@ struct lrn_driver : test_driver
     tensor<T> input;
 
     unsigned int n = 0;
-    double alpha        = 0;
-    double beta         = 0;
-    double k            = 0;
+    double alpha   = 0;
+    double beta    = 0;
+    double k       = 0;
     std::string mode;
 
     std::unordered_map<std::string, miopenLRNMode_t> mode_lookup = {
