@@ -317,6 +317,11 @@ void OpTensor(Handle& handle,
     printf("packed_tensor: %d\n", packed_tensor);
 #endif
 
+	// for naive tensor ops
+	size_t RD_BLCK = (clens[2] % 8 == 0) ? 8 : (clens[2] % 4 == 0) ? 4 : (clens[2] % 3 == 0) ? 3 : (clens[2] % 2 == 0) ? 2 : 1;
+	size_t MAP_RD = clens[2] / RD_BLCK;
+	parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" + std::to_string(MAP_RD);
+
     if(bsize == 5)
     {
         handle.GetKernel(
@@ -358,12 +363,8 @@ void OpTensor(Handle& handle,
     {
 		if (clens[0] == 1 && blens[0] == 1 && alens[0] == 1 && blens[1] == clens[1] && blens[2] == clens[2])
 		{
-			size_t RD_BLCK = (clens[2] % 8 == 0) ? 8 : (clens[2] % 4 == 0) ? 4 : (clens[2] % 3 == 0) ? 3 : (clens[2] % 2 == 0) ? 2 : 1;
-			size_t MAP_RD = clens[2] / RD_BLCK;
 			const std::vector<size_t> vgd1{ MAP_RD, clens[1], 1 };
-			parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" + std::to_string(MAP_RD);
 
-			printf("use rnn optensor\n");
 			handle.GetKernel(
 				"Op3dTensorRNN", "", program_name, "Op3dTensorRNN", vld, vgd1, parms)(
 					ATensor,
