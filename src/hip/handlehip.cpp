@@ -253,11 +253,12 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm,
                                const std::string& kernel_name,
                                const std::vector<size_t>& vld,
                                const std::vector<size_t>& vgd,
-                               const std::string& params)
+                               const std::string& params,
+                               std::size_t cache_index)
 {
     this->impl->set_ctx();
-    auto k = this->impl->cache.GetKernel(
-        *this, algorithm, network_config, program_name, kernel_name, vld, vgd, params);
+    auto k = this->impl->cache.AddKernel(
+        *this, algorithm, network_config, program_name, kernel_name, vld, vgd, params, cache_index);
     if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
         return k.Invoke(this->GetStream(), this->impl->elapsed_time_handler());
     else
@@ -267,7 +268,7 @@ KernelInvoke Handle::GetKernel(const std::string& algorithm,
 KernelInvoke Handle::GetKernel(const std::string& algorithm, const std::string& network_config)
 {
     this->impl->set_ctx();
-    auto k = this->impl->cache.GetKernel(algorithm, network_config);
+    auto k = this->impl->cache.GetKernels(algorithm, network_config).at(0);
     if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
         return k.Invoke(this->GetStream(), this->impl->elapsed_time_handler());
     else
