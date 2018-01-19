@@ -2261,6 +2261,16 @@ void ConvolutionBackwardBias(Handle& handle,
     params += " -DMLO_OUT_BATCH_STRIDE=" + std::to_string(stride_n);
     params += " -DMLO_WK_SIZE=" + std::to_string(map_size_aligned);
     params += " -DMLO_N_PIX_OFF=" + std::to_string(off_pix);
+    if(dyDesc.GetType() == miopenFloat)
+    {
+        params += " -DMIOPEN_USE_FP16=0 ";
+        params += " -DMIOPEN_USE_FP32=1 ";
+    }
+    else if(dyDesc.GetType() == miopenHalf)
+    {
+        params += " -DMIOPEN_USE_FP16=1 ";
+        params += " -DMIOPEN_USE_FP32=0 ";
+    }
 
     const std::vector<size_t> vld = {lcl_grp_size0, size_t{1}, size_t{1}};
     const std::vector<size_t> vgd = {lcl_grp_size0, static_cast<size_t>(out_c), size_t{1}};

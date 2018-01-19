@@ -198,6 +198,17 @@ struct test_driver
         return generate_tensor<std::vector<X>>(dims, single);
     }
 
+    template <class F>
+    auto lazy_generate_tensor(F f) -> generate_tensor_t<miopen::range_value<decltype(f())>>
+    {
+        return {[=]() -> decltype(f()) {
+            if(full_set)
+                return f();
+            else
+                return {*f().begin()};
+        }};
+    }
+
     template <class F, class X>
     generate_tensor_t<X> lazy_generate_tensor(F f, X single)
     {
