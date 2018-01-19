@@ -96,9 +96,17 @@ struct tensor
 
     template <class X>
     tensor(const std::vector<X>& dims)
-        : desc(miopen_type<T>{}, dims.data(), static_cast<int>(dims.size())),
+        : desc(miopen_type<T>{}, dims),
           data(desc.GetElementSize())
     {
+    }
+
+    template <class X>
+    tensor(const std::vector<X>& dims, const std::vector<X>& strides)
+        : desc(miopen_type<T>{}, dims, strides),
+          data(desc.GetElementSize())
+    {
+        assert(dims.size() == strides.size());
     }
 
     tensor(std::size_t n, std::size_t c, std::size_t h, std::size_t w)
@@ -110,6 +118,7 @@ struct tensor
 
     tensor(miopen::TensorDescriptor rhs) : desc(std::move(rhs))
     {
+        assert(rhs.GetType() == miopen_type<T>{});
         data.resize(desc.GetElementSpace());
     }
 
