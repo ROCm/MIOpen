@@ -356,6 +356,36 @@ void OpTensor(Handle& handle,
     }
     else if(bsize == 3)
     {
+		size_t RD_BLCK = (clens[2] % 8 == 0) ? 8 : (clens[2] % 4 == 0) ? 4 : (clens[2] % 3 == 0) ? 3 : (clens[2] % 2 == 0) ? 2 : 1;
+		size_t MAP_RD = clens[2] / RD_BLCK;
+		const std::vector<size_t> vgd1{ MAP_RD, clens[1], 1 };
+		parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" + std::to_string(MAP_RD);
+
+		handle.GetKernel(
+			"Op3dTensorRNN", "", program_name, "Op3dTensorRNN", vld, vgd1, parms)(
+				ATensor,
+				int(astrides[0]), // a_nstride,
+				int(astrides[1]), // a_cstride,
+				BTensor,
+				int(blens[1]),    // b_c,
+				int(blens[2]),    // b_h,
+				int(bstrides[0]), // b_nstride,
+				int(bstrides[1]), // b_cstride,
+				CTensor,
+				int(clens[1]),    // c_c,
+				int(clens[2]),    // c_h,
+				int(cstrides[0]), // c_nstride,
+				int(cstrides[1]), // c_cstride,
+				miopen_alpha0,
+				miopen_alpha1,
+				miopen_beta,
+				bitmap,
+				work_per_wg,
+				long(Aoffset),
+				long(Boffset),
+				long(Coffset),
+				int(num_wg_1));
+		/*
         handle.GetKernel(
             "Op3dTensorGeneric", "", program_name, "Op3dTensorGeneric", vld, vgd, parms)(
             ATensor,
@@ -379,7 +409,7 @@ void OpTensor(Handle& handle,
             long(Aoffset),
             long(Boffset),
             long(Coffset),
-            int(num_wg_1));
+            int(num_wg_1));*/
     }
     else if(bsize == 2)
     {
