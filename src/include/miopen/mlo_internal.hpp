@@ -683,10 +683,10 @@ struct mlo_construct_direct2D
                      int stride,
                      int w_stride)
     {
-        _search_params.batch_sz = batch;
-        int data_len            = (data_type == "FP32" ? 4 : 8);
+        _search_params.batch_sz   = batch;
+        int data_len              = (data_type == "FP32" ? 4 : 8);
         _search_params.float_size = (data_type == "FP32" ? 32 : 16);
-        size_t size             = (layout == "NCHW")
+        size_t size               = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
@@ -717,10 +717,10 @@ struct mlo_construct_direct2D
                      int stride,
                      int w_stride)
     {
-        _search_params.batch_sz = batch;
-        int data_len            = (data_type == "FP32" ? 4 : 8);
+        _search_params.batch_sz   = batch;
+        int data_len              = (data_type == "FP32" ? 4 : 8);
         _search_params.float_size = (data_type == "FP32" ? 32 : 16);
-        size_t size             = (layout == "NCHW")
+        size_t size               = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
@@ -750,10 +750,10 @@ struct mlo_construct_direct2D
                        int stride,
                        int w_stride)
     {
-        _search_params.batch_sz = batch;
-        int data_len            = (data_type == "FP32" ? 4 : 8);
+        _search_params.batch_sz   = batch;
+        int data_len              = (data_type == "FP32" ? 4 : 8);
         _search_params.float_size = (data_type == "FP32" ? 32 : 16);
-        size_t size             = (layout == "NCHW")
+        size_t size               = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
@@ -783,10 +783,10 @@ struct mlo_construct_direct2D
                        int stride,
                        int w_stride)
     {
-        _search_params.batch_sz = batch;
-        int data_len            = (data_type == "FP32" ? 4 : 8);
+        _search_params.batch_sz   = batch;
+        int data_len              = (data_type == "FP32" ? 4 : 8);
         _search_params.float_size = (data_type == "FP32" ? 32 : 16);
-        size_t size             = (layout == "NCHW")
+        size_t size               = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
