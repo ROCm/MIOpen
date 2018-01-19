@@ -158,7 +158,6 @@ void OpTensor(Handle& handle,
               const size_t Boffset,
               const size_t Coffset)
 {
-
     if(ATensor == nullptr || BTensor == nullptr || CTensor == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
