@@ -192,6 +192,17 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
         " -DMLO_OUT_BLOCK_SZ=" + std::to_string(cOut * hOut * wOut) + " -DMLO_DIN_BLOCK_SZ=" +
         std::to_string(1) + " -DMLO_DOUT_BLOCK_SZ=" + std::to_string(1);
 
+    if(xDesc.GetType() == miopenFloat)
+    {
+        compiler_options += " -DMIOPEN_USE_FP16=0 ";
+        compiler_options += " -DMIOPEN_USE_FP32=1 ";
+    }
+    else if(xDesc.GetType() == miopenHalf)
+    {
+        compiler_options += " -DMIOPEN_USE_FP16=1 ";
+        compiler_options += " -DMIOPEN_USE_FP32=0 ";
+    }
+
     visit_float(xDesc.GetType(), [&](auto as_float) {
 
         handle.GetKernel("miopenActivationForward",
@@ -475,6 +486,17 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         std::to_string(cOut * hOut * wOut) + " -DMLO_DIN_BLOCK_SZ=" +
         std::to_string(cdIn * hdIn * wdIn) + " -DMLO_DOUT_BLOCK_SZ=" +
         std::to_string(cdOut * hdOut * wdOut);
+
+    if(dyDesc.GetType() == miopenFloat)
+    {
+        compiler_options += " -DMIOPEN_USE_FP16=0 ";
+        compiler_options += " -DMIOPEN_USE_FP32=1 ";
+    }
+    else if(dyDesc.GetType() == miopenHalf)
+    {
+        compiler_options += " -DMIOPEN_USE_FP16=1 ";
+        compiler_options += " -DMIOPEN_USE_FP32=0 ";
+    }
 
     visit_float(xDesc.GetType(), [&](auto as_float) {
 
