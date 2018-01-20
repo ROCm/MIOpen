@@ -709,44 +709,41 @@ __kernel void Op3dTensorGeneric(global MIOPEN_TYPE* a,
     }
 }
 
-__kernel void Op3dTensorRNN(global MIOPEN_TYPE* a,
-	const int a_nstride,
-	const int a_cstride,
-	global MIOPEN_TYPE* b,
-	const int b_c,
-	const int b_h,
-	const int b_nstride,
-	const int b_cstride,
-	global MIOPEN_TYPE* c,
-	const int c_c,
-	const int c_h,
-	const int c_nstride,
-	const int c_cstride,
-	const float alpha0,
-	const float alpha1,
-	const float beta,
-	const unsigned int bitmap,
-	const int work_per_wg,
-	const long Aoffset,
-	const long Boffset,
-	const long Coffset,
-	const int num_wg)
-{	
-	int gid0 = get_global_id(0);
-	int gid1 = get_global_id(1);
+__kernel void Op2dTensorLite(global MIOPEN_TYPE* a,
+                             const int a_nstride,
+                             global MIOPEN_TYPE* b,
+                             const int b_nstride,
+                             global MIOPEN_TYPE* c,
+                             const int c_n,
+                             const int c_c,
+                             const int c_nstride,
+                             const float alpha0,
+                             const float alpha1,
+                             const float beta,
+                             const unsigned int bitmap,
+                             const int work_per_wg,
+                             const long Aoffset,
+                             const long Boffset,
+                             const long Coffset,
+                             const int num_wg)
+{
+    int gid0 = get_global_id(0);
+    int gid1 = get_global_id(1);
 
-	global MIOPEN_TYPE* a_off = a + Aoffset;
-	global MIOPEN_TYPE* b_off = b + Boffset;
-	global MIOPEN_TYPE* c_off = c + Coffset;
+    global MIOPEN_TYPE* a_off = a + Aoffset;
+    global MIOPEN_TYPE* b_off = b + Boffset;
+    global MIOPEN_TYPE* c_off = c + Coffset;
 
-	int a_index = gid1 * a_cstride + gid0 * RD_BLCK;
-	int b_index = gid1 * b_cstride + gid0 * RD_BLCK;
-	int c_index = gid1 * c_cstride + gid0 * RD_BLCK;
+    int a_index = gid1 * a_nstride + gid0 * RD_BLCK;
+    int b_index = gid1 * b_nstride + gid0 * RD_BLCK;
+    int c_index = gid1 * c_nstride + gid0 * RD_BLCK;
 
-	for (int i = 0; i < RD_BLCK; ++i)
-	{
-		c_off[c_index + i] = MIOPEN_TENSOR_OP(a_off[a_index + i] * alpha0, b_off[b_index + i] * alpha1) + beta * c_off[c_index + i];
-	}
+    for(int i = 0; i < RD_BLCK; ++i)
+    {
+        c_off[c_index + i] =
+            MIOPEN_TENSOR_OP(a_off[a_index + i] * alpha0, b_off[b_index + i] * alpha1) +
+            beta * c_off[c_index + i];
+    }
 }
 
 // NC
