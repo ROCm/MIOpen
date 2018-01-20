@@ -709,9 +709,9 @@ __kernel void Op3dTensorGeneric(global MIOPEN_TYPE* a,
     }
 }
 
-__kernel void Op2dTensorLite(global MIOPEN_TYPE* a,
+__kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
                              const int a_nstride,
-                             global MIOPEN_TYPE* b,
+                             const global MIOPEN_TYPE* b,
                              const int b_nstride,
                              global MIOPEN_TYPE* c,
                              const int c_n,
@@ -730,20 +730,32 @@ __kernel void Op2dTensorLite(global MIOPEN_TYPE* a,
     int gid0 = get_global_id(0);
     int gid1 = get_global_id(1);
 
-    global MIOPEN_TYPE* a_off = a + Aoffset;
-    global MIOPEN_TYPE* b_off = b + Boffset;
-    global MIOPEN_TYPE* c_off = c + Coffset;
-
     int a_index = gid1 * a_nstride + gid0 * RD_BLCK;
     int b_index = gid1 * b_nstride + gid0 * RD_BLCK;
     int c_index = gid1 * c_nstride + gid0 * RD_BLCK;
 
+    float a_dat[RD_BLCK];
+    float b_dat[RD_BLCK];
+    float c_dat[RD_BLCK];
+
+    *((READ_TYPE*)a_dat) = *((const global READ_TYPE*)(a + Aoffset + a_index));
+    *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + Boffset + b_index));
+#ifdef BETA
+    *((READ_TYPE*)c_dat) = *((const global READ_TYPE*)(c + Coffset + c_index));
+#endif
+
     for(int i = 0; i < RD_BLCK; ++i)
     {
-        c_off[c_index + i] =
-            MIOPEN_TENSOR_OP(a_off[a_index + i] * alpha0, b_off[b_index + i] * alpha1) +
-            beta * c_off[c_index + i];
+        c_dat[i] =
+            MIOPEN_TENSOR_OP(a_dat[i] * alpha0, b_dat[i] * alpha1)
+#ifdef BETA
+            + beta * c_dat[i]
+#endif
+			;
     }
+
+    *((global READ_TYPE*)(c + Coffset + c_index)) = *((READ_TYPE*)c_dat);
+   
 }
 
 // NC
