@@ -319,11 +319,19 @@ void OpTensor(Handle& handle,
 
     // for naive tensor ops
     size_t RD_BLCK =
-        (clens[2] % 8 == 0) ? 8 : (clens[2] % 4 == 0) ? 4 : (clens[2] % 3 == 0)
-                                                                ? 3
-                                                                : (clens[2] % 2 == 0) ? 2 : 1;
+        (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
+	const std::string data_type = GetDataType(bTensorDesc.GetType());
+	const std::string READ_TYPE =
+		(RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
+
     size_t MAP_RD = clens[2] / RD_BLCK;
-    parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" + std::to_string(MAP_RD);
+    parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" + std::to_string(MAP_RD)
+		+ " -DREAD_TYPE=" + READ_TYPE;
+
+    if (miopen_beta != 0)
+    {
+       parms += " -DBETA";
+    }
 
     if(bsize == 5)
     {
