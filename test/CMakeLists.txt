@@ -36,6 +36,8 @@ find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
 
+set(SKIP_TESTS test_gru)
+
 function(add_test_command NAME EXE)
     if(WIN32)
         set(WINPATH)
