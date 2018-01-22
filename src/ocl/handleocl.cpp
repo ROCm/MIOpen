@@ -480,20 +480,21 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
     return this->Run(obj);
 }
 
-std::vector<Kernel> Handle::GetKernels(const std::string& algorithm, const std::string& network_config)
+std::vector<Kernel> Handle::GetKernels(const std::string& algorithm,
+                                       const std::string& network_config)
 {
     return this->impl->cache.GetKernels(algorithm, network_config);
 }
 
 KernelInvoke Handle::Run(Kernel k)
 {
-    auto q         = this->GetStream();
+    auto q = this->GetStream();
     if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
     {
         return k.Invoke(q,
-                          std::bind(&HandleImpl::SetProfilingResult,
-                                    std::ref(*this->impl),
-                                    std::placeholders::_1));
+                        std::bind(&HandleImpl::SetProfilingResult,
+                                  std::ref(*this->impl),
+                                  std::placeholders::_1));
     }
     else
     {
