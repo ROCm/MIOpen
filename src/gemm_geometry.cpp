@@ -104,7 +104,7 @@ void GemmGeometry::FindSolution(
     std::vector<size_t> vld{local_work_size, 1, 1};
     std::vector<size_t> vgd{global_work_size, 1, 1};
 
-    handle.GetKernel(algorithm_name, network_config, kernel_clstring, kernel_name, vld, vgd, "");
+    handle.AddKernel(algorithm_name, network_config, kernel_clstring, kernel_name, vld, vgd, "");
 
     if(soln.v_tgks.size() == 2)
     {
@@ -126,7 +126,7 @@ void GemmGeometry::FindSolution(
         vld[0] = local_work_size;
         vgd[0] = global_work_size;
 
-        handle.GetKernel(
+        handle.AddKernel(
             algorithm_name + "_beta",
             network_config, // jn : different network_configs require different beta kernels
             beta_program_name,

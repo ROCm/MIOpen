@@ -111,7 +111,7 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     auto f_norm_K             = static_cast<float>(norm_K);
     auto f_norm_alphaoverarea = static_cast<float>(norm_alphaoverarea);
 
-    KernelInvoke obj = handle.GetKernel(
+    KernelInvoke obj = handle.AddKernel(
         "miopenLRNForward", network_config, program_name, kernel_name, vld, vgd, compiler_parms);
 
     if(float_equal(f_norm_K, 0.0))
@@ -254,7 +254,7 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
     if(float_equal(norm_K, 0.0))
         MIOPEN_THROW("Expect non-zero bias/K");
 
-    handle.GetKernel(
+    handle.AddKernel(
         "miopenLRNBackward", network_config, program_name, kernel_name, vld, vgd, compiler_parms)(
         y, x, dy, workSpace, dx, f_norm_ratio, f_norm_alpha, f_norm_beta);
 

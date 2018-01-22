@@ -126,7 +126,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     const std::vector<size_t>& vld = construct_params.getLocalWkSize();
     const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
 
-    handle.GetKernel("miopenPooling2dDForward", "", program_name, kernel_name, vld, vgd, parms)(
+    handle.AddKernel("miopenPooling2dDForward", "", program_name, kernel_name, vld, vgd, parms)(
         x, y, workSpace);
 
     if(miopen::CheckNumericsEnabled())
@@ -270,7 +270,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
 
     // Compile the kernel if not aleady compiled
     auto k =
-        handle.GetKernel("miopenPooling2dBackward", "", program_name, kernel_name, vld, vgd, parms);
+        handle.AddKernel("miopenPooling2dBackward", "", program_name, kernel_name, vld, vgd, parms);
 
     // Set kernel arguments
     // Use proper arguments
