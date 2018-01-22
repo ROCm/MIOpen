@@ -465,7 +465,7 @@ void Handle::AccumKernelTime(float curr_time) { this->impl->AccumProfilingResult
 
 float Handle::GetKernelTime() const { return this->impl->profiling_result; }
 
-KernelInvoke Handle::GetKernel(const std::string& algorithm,
+KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::string& network_config,
                                const std::string& program_name,
                                const std::string& kernel_name,

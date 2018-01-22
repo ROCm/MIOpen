@@ -408,7 +408,7 @@ void BatchNormForwardTraining(Handle& handle,
 #endif
         if(resultsave && resultrunning)
         {
-            handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 x,
                 in_nstride,
                 in_cstride,
@@ -424,7 +424,7 @@ void BatchNormForwardTraining(Handle& handle,
         }
         else if(resultsave)
         {
-            handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 x,
                 in_nstride,
                 in_cstride,
@@ -438,7 +438,7 @@ void BatchNormForwardTraining(Handle& handle,
         }
         else if(resultrunning)
         {
-            handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 x,
                 in_nstride,
                 in_cstride,
@@ -452,7 +452,7 @@ void BatchNormForwardTraining(Handle& handle,
         }
         else
         {
-            handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 x, in_nstride, in_cstride, y, bnScale, bnBias, expAvgFactor, epsilon);
         }
     } // end per-activation
@@ -584,7 +584,7 @@ void BatchNormForwardInference(Handle& handle,
         std::cout << kernel_name << ":: ";
         std::cout << parms << std::endl;
 #endif
-        handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
             x, y, estimatedMean, estimatedVariance, bnScale, bnBias, epsilon);
     }
     else
@@ -1007,7 +1007,7 @@ void BatchNormBackward(Handle& handle,
         if(useSaved)
         {
             kernel_name += "Saved";
-            handle.GetKernel("miopenBatchNormalizationBwd",
+            handle.AddKernel("miopenBatchNormalizationBwd",
                              network_config,
                              program_name,
                              kernel_name,
@@ -1027,7 +1027,7 @@ void BatchNormBackward(Handle& handle,
         }
         else
         {
-            handle.GetKernel("miopenBatchNormalizationBwd",
+            handle.AddKernel("miopenBatchNormalizationBwd",
                              network_config,
                              program_name,
                              kernel_name,

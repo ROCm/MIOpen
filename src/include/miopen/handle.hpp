@@ -63,7 +63,7 @@ struct Handle : miopenHandle
     float GetKernelTime() const;
     bool IsProfilingEnabled() const;
 
-    KernelInvoke GetKernel(const std::string& algorithm,
+    KernelInvoke AddKernel(const std::string& algorithm,
                            const std::string& network_config,
                            const std::string& program_name,
                            const std::string& kernel_name,
