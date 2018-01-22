@@ -144,7 +144,7 @@ void BatchNormForwardTraining(Handle& handle,
         program_name += "Spatial.cl";
         kernel_name += "Spatial";
 
-        if(in_cstride > 1024 && in_nhw < 33554432)
+        if(in_cstride >= 1024 && in_nhw < 33554432)
         {
             // unsigned int variant = (in_cstride < 2097152)? 5: 6;
             unsigned int variant = (h == w) ? 5 : 6;
@@ -172,10 +172,10 @@ void BatchNormForwardTraining(Handle& handle,
 #if(MIOPEN_BN_CPP_DEBUG == 1)
             std::cout << kernel_name << ":: ";
             std::cout << parms << std::endl;
-            std::cout << "in_nhw: "
-                      << ":: " << in_nhw << std::endl;
-            std::cout << "inhw: "
-                      << ":: " << inhw << std::endl;
+//            std::cout << "in_nhw: "
+//                      << ":: " << in_nhw << std::endl;
+//            std::cout << "inhw: "
+//                      << ":: " << inhw << std::endl;
 #endif
             bnFwdTrainSelectSingle(handle,
                                    program_name,
@@ -231,10 +231,10 @@ void BatchNormForwardTraining(Handle& handle,
 #if(MIOPEN_BN_CPP_DEBUG == 1)
             std::cout << kernel_name << ":: ";
             std::cout << parms << std::endl;
-            std::cout << "in_nhw: "
-                      << ":: " << in_nhw << std::endl;
-            std::cout << "inhw: "
-                      << ":: " << inhw << std::endl;
+//            std::cout << "in_nhw: "
+//                      << ":: " << in_nhw << std::endl;
+//            std::cout << "inhw: "
+//                      << ":: " << inhw << std::endl;
 #endif
             bnFwdTrainSelectSingle(handle,
                                    program_name,
