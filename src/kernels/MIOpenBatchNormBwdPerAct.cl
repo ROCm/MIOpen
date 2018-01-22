@@ -192,17 +192,19 @@ __kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
     // move across the sections of the image mini_batch stack
     for(int img_offset = 0; img_offset < in_cstride; img_offset += yglb_sz)
     {
-        mean       = 0.;
-        variance   = 0.;
+
         inImgIndex = ygid + img_offset;
 
         // #1 calculate the mean
         // iterating through the stack of images in the mini_batch
         if(inImgIndex < in_cstride)
         {
-
+            mean     = 0.;
+            variance = 0.;
             adjIndex = Cidx + inImgIndex; // gamma and beta tensor index
-            for(int n = 0; n < N; n++)
+
+#pragma unroll
+            for(int n = 0; n < MIO_BN_N; n++)
             {
                 index     = in_nstride * n + adjIndex;
                 _FLOAT in = *(x_in + index);
@@ -212,7 +214,7 @@ __kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
             mean /= (_FLOAT)N;
             variance /= (_FLOAT)N;
             variance = mad(-mean, mean, variance);
-            invVar   = rsqrt(fabs(variance + epsilon));
+            invVar   = rsqrt(variance + epsilon);
 
             pvt_scale  = *(scale + adjIndex);
             pvt_dscale = 0.;
@@ -220,12 +222,13 @@ __kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
             dxhat      = 0.;
             dxhathat   = 0.;
 
-            for(int n = 0; n < N; n++)
+#pragma unroll
+            for(int n = 0; n < MIO_BN_N; n++)
             {
                 // per (x-dims) channel load a block of data into LDS
                 index  = in_nstride * n + adjIndex;
                 xhat   = (*(x_in + index) - mean) * invVar;
-                dyelem = dy_in[index];
+                dyelem = *(dy_in + index);
                 pvt_dbias += dyelem;
                 pvt_dscale = mad(xhat, dyelem, pvt_dscale);
                 tmp1       = pvt_scale * dyelem;
@@ -233,7 +236,8 @@ __kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
                 dxhathat = mad(tmp1, xhat, dxhathat);
             } // end for(n)
 
-            for(int n = 0; n < N; n++)
+#pragma unroll
+            for(int n = 0; n < MIO_BN_N; n++)
             {
                 index         = in_nstride * n + adjIndex;
                 xhat          = (*(x_in + index) - mean) * invVar;
