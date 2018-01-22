@@ -247,7 +247,7 @@ void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size)
         MIOPEN_THROW_HIP_STATUS(status, "Hip error copying buffer: ");
 }
 
-KernelInvoke Handle::GetKernel(const std::string& algorithm,
+KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::string& network_config,
                                const std::string& program_name,
                                const std::string& kernel_name,
