@@ -72,7 +72,13 @@ struct Handle : miopenHandle
                            const std::string& params,
                            std::size_t cache_index = 0);
 
-    KernelInvoke GetKernel(const std::string& algorithm, const std::string& network_config);
+    std::vector<Kernel> GetKernels(const std::string& algorithm, const std::string& network_config);
+    KernelInvoke GetKernel(const std::string& algorithm, const std::string& network_config)
+    {
+        return this->Run(this->GetKernels(algorithm, network_config).at(0));
+    }
+
+    KernelInvoke Run(Kernel k);
 
     Program LoadProgram(const std::string& program_name, std::string params, bool is_kernel_str);
 
