@@ -394,4 +394,4 @@ struct pooling_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<pooling_driver<float>>(argc, argv); }
+int main(int argc, const char* argv[]) { test_drive<pooling_driver>(argc, argv); }

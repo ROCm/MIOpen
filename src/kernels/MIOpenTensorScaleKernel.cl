@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #ifndef MIOPEN_ALPHA_TYPE
 #define MIOPEN_ALPHA_TYPE float
 #endif

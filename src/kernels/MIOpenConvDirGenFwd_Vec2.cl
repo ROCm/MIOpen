@@ -52,22 +52,23 @@
 #define _FLOAT4 PPCAT(_FLOAT, FOUR)
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
+#define INLINE __attribute__((always_inline))
 #ifndef MLO_OUT_ALIGNED
 #define MLO_OUT_ALIGNED 0
 #endif
 
 // MLO_GRP_SZ0              group size in dim 0
-// MLO_GRP_SZ1				group size in dim 1
-// MLO_GRP_SZ2				group size in dim 2
+// MLO_GRP_SZ1              group size in dim 1
+// MLO_GRP_SZ2              group size in dim 2
 // MLO_GRP_SZ               n of wk-item in the group
-// MLO_N_IN_CHNLS			total number of input channels
+// MLO_N_IN_CHNLS           total number of input channels
 // MLO_LCL_N_IN_CHNLS		n of localy kept input channels
 // MLO_IN_WIDTH				input width in NCHW layout
 // MLO_IN_HEIGHT			input height stride in NCHW layout
 // MLO_IN_STRIDE			input stride in NCHW layout
 // MLO_IN_CHNL_STRIDE       input channel stride in NCHW layout
 // MLO_IN_BATCH_STRIDE      input batch stride in NCHW layout
-// MLO_BATCH_SZ		        batch szie
+// MLO_BATCH_SZ		        batch size
 // MLO_FLTR_SZ0             filter 0 dim size
 // MLO_FLTR_PAD_SZ0				filter 0 dim pad
 // MLO_FLTR_STRIDE0			filter 0 dim stride
@@ -99,49 +100,50 @@
 #define MLO_PVT_OUT_DATA_HEIGHT MLO_N_OUT_PIX_SZ1* MLO_LCL_N_OUT_CHNLS
 #define MLO_PVT_OUT_DATA_SZ MLO_PVT_OUT_DATA_HEIGHT* MLO_N_OUT_PIX_SZ0
 
-__attribute__((always_inline)) void readDataTile(__local _FLOAT* lcl_data,
-                                                 const __global _FLOAT* gbl_data,
-                                                 int tile_y,
-                                                 int tile_x,
-                                                 uint gbl_stride,
-                                                 uint gbl_base,
-                                                 uint lcl_stride,
-                                                 uint lcl_base,
-                                                 uint gbl_height,
-                                                 uint gbl_width,
-                                                 uint lcl_height,
-                                                 uint lcl_width,
-                                                 uint lcl_id1,
-                                                 uint lcl_id0,
-                                                 uint lcl_grp_sz1,
-                                                 uint lcl_grp_sz0,
-                                                 uint fltr_pad1,
-                                                 uint fltr_pad0,
-                                                 _FLOAT padding_val)
+INLINE
+void readDataTileVec2(__local _FLOAT2* lcl_data,
+                      const __global _FLOAT* gbl_data,
+                      int tile_y,
+                      int tile_x,
+                      uint gbl_stride,
+                      uint2 gbl_base, //
+                      uint lcl_stride,
+                      uint lcl_base,
+                      uint gbl_height,
+                      uint gbl_width,
+                      uint lcl_height,
+                      uint lcl_width,
+                      uint lcl_id1,
+                      uint lcl_id0,
+                      uint lcl_grp_sz1,
+                      uint lcl_grp_sz0,
+                      uint fltr_pad1,
+                      uint fltr_pad0,
+#if MLO_N_IN_CHNLS % 2 == 1
+                      bool IsLast,
+#endif
+                      _FLOAT padding_val)
 {
     for(uint j = lcl_id1; j < lcl_height; j += lcl_grp_sz1)
     {
-        int y_act       = (j - fltr_pad1);
-        bool invisibleY = (tile_y + y_act < 0) || (tile_y + y_act >= gbl_height);
-
-        uint y_gbl_off = y_act * gbl_stride + gbl_base;
-
-        uint y_lcl_off = j * lcl_stride + lcl_base;
-
+        int y_act          = (j - fltr_pad1);
+        bool invisibleY    = (tile_y + y_act < 0) || (tile_y + y_act >= gbl_height);
+        uint2 y_gbl_off_v2 = (uint2)(y_act * gbl_stride) + gbl_base;
+        uint y_lcl_off     = j * lcl_stride + lcl_base;
         for(uint i = lcl_id0; i < lcl_width; i += lcl_grp_sz0)
         {
             int x_act       = (i - fltr_pad0);
             bool invisibleX = (tile_x + x_act < 0) || (tile_x + x_act >= gbl_width);
-
-            bool invis = invisibleX || invisibleY;
-
-            uint g_off = (invis) ? 0 : y_gbl_off + x_act;
-
-            _FLOAT val = gbl_data[g_off];
-
-            val = (invis) ? padding_val : val;
-
-            lcl_data[y_lcl_off + i] = val;
+            bool invis      = invisibleX || invisibleY;
+            uint2 g_off     = (invis) ? (uint2)(0) : y_gbl_off_v2 + (uint2)(x_act);
+#if MLO_N_IN_CHNLS % 2 == 0
+            lcl_data[y_lcl_off + i] =
+                (invis) ? (_FLOAT2)(padding_val) : (_FLOAT2)(gbl_data[g_off.x], gbl_data[g_off.y]);
+#else
+            lcl_data[y_lcl_off + i].x = (invis) ? padding_val : gbl_data[g_off.x];
+            lcl_data[y_lcl_off + i].y =
+                (IsLast) ? (_FLOAT)0 : (invis) ? padding_val : gbl_data[g_off.y];
+#endif
         }
     }
 }
@@ -157,12 +159,13 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
              //      int in_main_loop
              )
 {
-    __local _FLOAT lcl_img[MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS];
-    __local _FLOAT lcl_wei[MLO_LCL_WEI_SIZE];
+    // Local and private arrays are defined as _FLOAT2
+    __local _FLOAT2 lcl_img[MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS];
+    __local _FLOAT2 lcl_wei[MLO_LCL_WEI_SIZE];
 
-    _FLOAT pvt_bot_dat[MLO_PVT_COL_STG_HEIGHT * MLO_PVT_COL_STG_WIDTH];
-    _FLOAT pvt_top_dat[MLO_PVT_OUT_DATA_SZ];
-    _FLOAT pvt_wei_dat[MLO_FLTR_SZ0];
+    _FLOAT2 pvt_bot_dat[MLO_PVT_COL_STG_HEIGHT * MLO_PVT_COL_STG_WIDTH];
+    _FLOAT2 pvt_top_dat[MLO_PVT_OUT_DATA_SZ] = {MLO_PVT_OUT_DATA_SZ * ((_FLOAT2)(0))};
+    _FLOAT2 pvt_wei_dat[MLO_FLTR_SZ0];
 
     uint x_out_grp = get_group_id(0) * MLO_N_PROCS0 * MLO_N_OUT_PIX_SZ0;
     uint y_out_grp = get_group_id(1) * MLO_N_PROCS1 * MLO_N_OUT_PIX_SZ1;
@@ -208,23 +211,28 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
         mul24(o_id, (uint)(MLO_LCL_N_OUT_CHNLS * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1));
     uint lcl_off =
         mul24(lcl_proc, (uint)MLO_LCL_IMG_SIZE) + y_in_lcl * MLO_LCL_IMG_WIDTH + x_in_lcl;
+    uint2 in_offv2  = (uint2)(in_off, in_off + MLO_IN_CHNL_STRIDE);
+    uint2 wei_offv2 = (uint2)(wei_off, wei_off + MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
 
 #if MLO_BIG == 0
     for(uint i = lcl_id; i < MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS; i += MLO_GRP_SZ)
     {
-        lcl_img[i] = 0;
+        lcl_img[i] = (_FLOAT2)(0);
     }
 #endif
-    for(uint i = 0; i < MLO_PVT_OUT_DATA_SZ; ++i)
-    {
-        pvt_top_dat[i] = 0;
-    }
 
-    for(uint c = 0; c < MLO_N_IN_CHNLS;
-        c++, in_off += MLO_IN_CHNL_STRIDE, wei_off += MLO_FLTR_SZ0 * MLO_FLTR_SZ1)
+    // Two consecutive input channels are packecked into _FLOAT2 vectors. care is taken of even
+    // values for MLO_N_IN_CHNLS
+    // MLO_N_IN_CHNLS total number of input channels
+    for(uint c = 0; c < MLO_N_IN_CHNLS; c += 2,
+             in_offv2 += (uint2)(2 * MLO_IN_CHNL_STRIDE),
+             wei_offv2 += (uint2)(2 * MLO_FLTR_SZ0 * MLO_FLTR_SZ1))
     {
 
         barrier(CLK_LOCAL_MEM_FENCE);
+#if MLO_N_IN_CHNLS % 2 == 1
+        bool IsLast = (c == MLO_N_IN_CHNLS - 1);
+#endif
         // put weights for all our outputs for this input into LDS
         for(uint i = lcl_id; i < MLO_LCL_N_OUT_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1; i += MLO_GRP_SZ)
         {
@@ -236,29 +244,42 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
             uint lcl_o_i = i & (MLO_FLTR_SZ0 * MLO_FLTR_SZ1 - 1);
 #endif
 
-            lcl_wei[i] =
-                weights[wei_off + lcl_o * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1 + lcl_o_i];
+            // One load 2 input channels
+            lcl_wei[i].x = weights[wei_offv2.x +
+                                   lcl_o * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1 + lcl_o_i];
+#if MLO_N_IN_CHNLS % 2 == 1
+            lcl_wei[i].y =
+                IsLast ? (_FLOAT)0
+                       : weights[wei_offv2.y +
+                                 lcl_o * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1 + lcl_o_i];
+#else
+            lcl_wei[i].y = weights[wei_offv2.y +
+                                   lcl_o * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1 + lcl_o_i];
+#endif
         }
 
-        readDataTile(lcl_img,
-                     bot,
-                     y_in_grp,
-                     x_in_grp,
-                     MLO_IN_STRIDE,
-                     (in_off + y_in_grp * MLO_IN_STRIDE + x_in_grp),
-                     MLO_LCL_IMG_WIDTH,
-                     0,
-                     MLO_IN_HEIGHT,
-                     MLO_IN_WIDTH,
-                     MLO_LCL_IMG_HEIGHT,
-                     MLO_LCL_IMG_WIDTH,
-                     lcl_proc_id1,
-                     lcl_proc_id0,
-                     MLO_N_PROCS1,
-                     MLO_N_PROCS0,
-                     MLO_FLTR_PAD_SZ1,
-                     MLO_FLTR_PAD_SZ0,
-                     padding_val);
+        readDataTileVec2(lcl_img,
+                         bot,
+                         y_in_grp,
+                         x_in_grp,
+                         MLO_IN_STRIDE,
+                         (in_offv2 + (uint2)(y_in_grp * MLO_IN_STRIDE + x_in_grp)),
+                         MLO_LCL_IMG_WIDTH,
+                         0,
+                         MLO_IN_HEIGHT,
+                         MLO_IN_WIDTH,
+                         MLO_LCL_IMG_HEIGHT,
+                         MLO_LCL_IMG_WIDTH,
+                         lcl_proc_id1,
+                         lcl_proc_id0,
+                         MLO_N_PROCS1,
+                         MLO_N_PROCS0,
+                         MLO_FLTR_PAD_SZ1,
+                         MLO_FLTR_PAD_SZ0,
+#if MLO_N_IN_CHNLS % 2 == 1
+                         IsLast,
+#endif
+                         padding_val);
 
         barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -271,7 +292,7 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
         for(; j < MLO_PVT_COL_STG_HEIGHT - 1; ++j, lcl_off2 += MLO_LCL_IMG_WIDTH)
         {
 
-            // read input data
+            // read input data for 2 input channels
 
             for(uint i = 0; i < MLO_PVT_COL_STG_WIDTH; ++i)
             {
@@ -285,7 +306,7 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
             ++k, ++j, lcl_off2 += MLO_LCL_IMG_WIDTH, lcl_wei_off += MLO_FLTR_SZ0)
         {
 
-            // read input data
+            // read input data for 2 input channels
             for(uint i = 0; i < MLO_PVT_COL_STG_WIDTH; ++i)
             {
                 pvt_bot_dat[(MLO_PVT_COL_STG_HEIGHT - 1) * MLO_PVT_COL_STG_WIDTH + i] =
@@ -298,7 +319,7 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
             for(uint o = 0; o < MLO_LCL_N_OUT_CHNLS;
                 ++o, lcl_wei_off2 += MLO_FLTR_SZ1 * MLO_FLTR_SZ0)
             {
-                // read weights
+                // read weights for 2 input channels
                 for(uint w = 0; w < MLO_FLTR_SZ0; ++w)
                 {
                     pvt_wei_dat[w] = lcl_wei[lcl_wei_off2 + w];
@@ -310,7 +331,7 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
                     for(uint pi = 0; pi < MLO_N_OUT_PIX_SZ0; ++pi)
                     {
 
-                        _FLOAT sum = (_FLOAT)0;
+                        _FLOAT2 sum = (_FLOAT2)(0);
                         for(uint m = 0; m < MLO_FLTR_SZ0; ++m)
                         {
                             sum += pvt_bot_dat[pj * MLO_FLTR_STRIDE1 * MLO_PVT_COL_STG_WIDTH +
@@ -367,17 +388,23 @@ MIOpenCDFGen(const __global _FLOAT* __restrict bot,
 
             uint top_off2 = top_off;
 
-            for(uint j = 0; j < MLO_N_OUT_PIX_SZ1; ++j, top_off2 += MLO_OUT_STRIDE)
+            for(uint jj = 0; jj < MLO_N_OUT_PIX_SZ1; ++jj, top_off2 += MLO_OUT_STRIDE)
             {
-                if(y_out + j < MLO_OUT_HEIGHT)
+                if(y_out + jj < MLO_OUT_HEIGHT)
                 {
-                    for(uint i = 0; i < MLO_N_OUT_PIX_SZ0; ++i)
+                    for(uint ii = 0; ii < MLO_N_OUT_PIX_SZ0; ++ii)
                     {
 #if MLO_ALIGNED == 0
-                        if(x_out + i < MLO_OUT_WIDTH)
+                        if(x_out + ii < MLO_OUT_WIDTH)
 #endif
-                            top[top_off2 + i] =
-                                pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i]
+#if MLO_N_IN_CHNLS == 1
+                            top[top_off2 + ii] =
+                                pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + jj) * MLO_N_OUT_PIX_SZ0 + ii].x
+#else
+                        top[top_off2 + ii] =
+                            pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + jj) * MLO_N_OUT_PIX_SZ0 + ii].x +
+                            pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + jj) * MLO_N_OUT_PIX_SZ0 + ii].y
+#endif
 #if MLO_CONV_BIAS == 1
                                 + bias_val
 #endif
@@ -412,12 +439,13 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
               //         int in_main_loop
               )
 {
-    __local _FLOAT lcl_img[MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS * MLO_IN_STACKS];
-    __local _FLOAT lcl_wei[MLO_LCL_WEI_SIZE * MLO_OUT_STACKS];
+    // Local and private arrays are defined as _FLOAT2
+    __local _FLOAT2 lcl_img[MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS * MLO_IN_STACKS];
+    __local _FLOAT2 lcl_wei[MLO_LCL_WEI_SIZE * MLO_OUT_STACKS];
 
-    _FLOAT pvt_bot_dat[MLO_PVT_COL_STG_HEIGHT * MLO_PVT_COL_STG_WIDTH];
-    _FLOAT pvt_top_dat[MLO_PVT_OUT_DATA_SZ];
-    _FLOAT pvt_wei_dat[MLO_FLTR_SZ0];
+    _FLOAT2 pvt_bot_dat[MLO_PVT_COL_STG_HEIGHT * MLO_PVT_COL_STG_WIDTH];
+    _FLOAT2 pvt_top_dat[MLO_PVT_OUT_DATA_SZ] = {MLO_PVT_OUT_DATA_SZ * ((_FLOAT2)(0))};
+    _FLOAT2 pvt_wei_dat[MLO_FLTR_SZ0];
 
     uint x_out_grp = get_group_id(0) * MLO_N_PROCS0 * MLO_N_OUT_PIX_SZ0;
     uint y_out_grp = get_group_id(1) * MLO_N_PROCS1 * MLO_N_OUT_PIX_SZ1;
@@ -445,25 +473,30 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
     uint in_off = b * MLO_IN_BATCH_STRIDE;
     uint wei_off =
         mul24(o_id, (uint)(MLO_LCL_N_OUT_CHNLS * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1));
-    uint lcl_off = MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS * proc_tile1 +
+    uint2 in_offv2  = (uint2)(in_off, in_off + MLO_IN_CHNL_STRIDE);
+    uint2 wei_offv2 = (uint2)(wei_off, wei_off + MLO_FLTR_SZ0 * MLO_FLTR_SZ1);
+    uint lcl_off    = MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS * proc_tile1 +
                    y_in_lcl * MLO_LCL_IMG_WIDTH + x_in_lcl;
 
 #if MLO_BIG == 0
     for(uint i = lcl_id; i < MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS; i += MLO_GRP_SZ)
     {
-        lcl_img[i] = 0;
+        lcl_img[i] = (_FLOAT2)(0);
     }
 #endif
-    for(uint i = 0; i < MLO_PVT_OUT_DATA_SZ; ++i)
-    {
-        pvt_top_dat[i] = 0;
-    }
 
-    for(uint c = 0; c < MLO_N_IN_CHNLS;
-        c++, in_off += MLO_IN_CHNL_STRIDE, wei_off += MLO_FLTR_SZ0 * MLO_FLTR_SZ1)
+    // Two consecutive input channels are packecked into _FLOAT2 vectors. care is taken of even
+    // values for MLO_N_IN_CHNLS
+    // MLO_N_IN_CHNLS total number of input channels
+    for(uint c = 0; c < MLO_N_IN_CHNLS; c += 2,
+             in_offv2 += (uint2)(2 * MLO_IN_CHNL_STRIDE),
+             wei_offv2 += (uint2)(2 * MLO_FLTR_SZ0 * MLO_FLTR_SZ1))
     {
 
         barrier(CLK_LOCAL_MEM_FENCE);
+#if MLO_N_IN_CHNLS % 2 == 1
+        bool IsLast = (c == MLO_N_IN_CHNLS - 1);
+#endif
         // put weights for all our outputs for this input into LDS
         for(uint i = lcl_id; i < MLO_LCL_N_OUT_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1; i += MLO_GRP_SZ)
         {
@@ -475,29 +508,42 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
             uint lcl_o_i = i & (MLO_FLTR_SZ0 * MLO_FLTR_SZ1 - 1);
 #endif
 
-            lcl_wei[i] =
-                weights[wei_off + lcl_o * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1 + lcl_o_i];
+            // One load 2 input channels
+            lcl_wei[i].x = weights[wei_offv2.x +
+                                   lcl_o * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1 + lcl_o_i];
+#if MLO_N_IN_CHNLS % 2 == 1
+            lcl_wei[i].y =
+                IsLast ? (_FLOAT)0
+                       : weights[wei_offv2.y +
+                                 lcl_o * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1 + lcl_o_i];
+#else
+            lcl_wei[i].y = weights[wei_offv2.y +
+                                   lcl_o * MLO_N_IN_CHNLS * MLO_FLTR_SZ0 * MLO_FLTR_SZ1 + lcl_o_i];
+#endif
         }
 
-        readDataTile(&lcl_img[MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS * proc_tile1],
-                     bot,
-                     y_in_grp,
-                     x_in_grp,
-                     MLO_IN_STRIDE,
-                     (in_off + y_in_grp * MLO_IN_STRIDE + x_in_grp),
-                     MLO_LCL_IMG_WIDTH,
-                     0,
-                     MLO_IN_HEIGHT,
-                     MLO_IN_WIDTH,
-                     MLO_LCL_IMG_HEIGHT,
-                     MLO_LCL_IMG_WIDTH,
-                     lcl_proc_id1,
-                     lcl_proc_id0,
-                     MLO_N_PROCS1,
-                     MLO_N_PROCS0,
-                     MLO_FLTR_PAD_SZ1,
-                     MLO_FLTR_PAD_SZ0,
-                     padding_val);
+        readDataTileVec2(&lcl_img[MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS * proc_tile1],
+                         bot,
+                         y_in_grp,
+                         x_in_grp,
+                         MLO_IN_STRIDE,
+                         (in_offv2 + (uint2)(y_in_grp * MLO_IN_STRIDE + x_in_grp)),
+                         MLO_LCL_IMG_WIDTH,
+                         0,
+                         MLO_IN_HEIGHT,
+                         MLO_IN_WIDTH,
+                         MLO_LCL_IMG_HEIGHT,
+                         MLO_LCL_IMG_WIDTH,
+                         lcl_proc_id1,
+                         lcl_proc_id0,
+                         MLO_N_PROCS1,
+                         MLO_N_PROCS0,
+                         MLO_FLTR_PAD_SZ1,
+                         MLO_FLTR_PAD_SZ0,
+#if MLO_N_IN_CHNLS % 2 == 1
+                         IsLast,
+#endif
+                         padding_val);
 
         barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -510,7 +556,7 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
         for(; j < MLO_PVT_COL_STG_HEIGHT - 1; ++j, lcl_off2 += MLO_LCL_IMG_WIDTH)
         {
 
-            // read input data
+            // read input data for 2 input channels
 
             for(uint i = 0; i < MLO_PVT_COL_STG_WIDTH; ++i)
             {
@@ -524,7 +570,7 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
             ++k, ++j, lcl_off2 += MLO_LCL_IMG_WIDTH, lcl_wei_off += MLO_FLTR_SZ0)
         {
 
-            // read input data
+            // read input data for 2 input channels
             for(uint i = 0; i < MLO_PVT_COL_STG_WIDTH; ++i)
             {
                 pvt_bot_dat[(MLO_PVT_COL_STG_HEIGHT - 1) * MLO_PVT_COL_STG_WIDTH + i] =
@@ -537,7 +583,7 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
             for(uint o = 0; o < MLO_LCL_N_OUT_CHNLS;
                 ++o, lcl_wei_off2 += MLO_FLTR_SZ1 * MLO_FLTR_SZ0)
             {
-                // read weights
+                // read weights for 2 input channels
                 for(uint w = 0; w < MLO_FLTR_SZ0; ++w)
                 {
                     pvt_wei_dat[w] = lcl_wei[lcl_wei_off2 + w];
@@ -549,7 +595,7 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
                     for(uint pi = 0; pi < MLO_N_OUT_PIX_SZ0; ++pi)
                     {
 
-                        _FLOAT sum = (_FLOAT)0;
+                        _FLOAT2 sum = (_FLOAT2)(0);
                         for(uint m = 0; m < MLO_FLTR_SZ0; ++m)
                         {
                             sum += pvt_bot_dat[pj * MLO_FLTR_STRIDE1 * MLO_PVT_COL_STG_WIDTH +
@@ -610,17 +656,23 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
 
             uint top_off2 = top_off;
 
-            for(uint j = 0; j < MLO_N_OUT_PIX_SZ1; ++j, top_off2 += MLO_OUT_STRIDE)
+            for(uint jj = 0; jj < MLO_N_OUT_PIX_SZ1; ++jj, top_off2 += MLO_OUT_STRIDE)
             {
-                if(y_out + j < MLO_OUT_HEIGHT)
+                if(y_out + jj < MLO_OUT_HEIGHT)
                 {
-                    for(uint i = 0; i < MLO_N_OUT_PIX_SZ0; ++i)
+                    for(uint ii = 0; ii < MLO_N_OUT_PIX_SZ0; ++ii)
                     {
 #if MLO_ALIGNED == 0
-                        if(x_out + i < MLO_OUT_WIDTH)
+                        if(x_out + ii < MLO_OUT_WIDTH)
 #endif
-                            top[top_off2 + i] =
-                                pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + j) * MLO_N_OUT_PIX_SZ0 + i]
+#if MLO_N_IN_CHNLS == 1
+                            top[top_off2 + ii] =
+                                pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + jj) * MLO_N_OUT_PIX_SZ0 + ii].x
+#else
+                        top[top_off2 + ii] =
+                            pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + jj) * MLO_N_OUT_PIX_SZ0 + ii].x +
+                            pvt_top_dat[(o * MLO_N_OUT_PIX_SZ1 + jj) * MLO_N_OUT_PIX_SZ0 + ii].y
+#endif
 #if MLO_CONV_BIAS == 1
                                 + bias_val
 #endif
@@ -645,140 +697,148 @@ MIOpenCDFGen4(const __global _FLOAT* __restrict bot,
     }
 }
 
-__attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __kernel void
-aDNNConv_img2col(const __global _FLOAT* __restrict img,
-                 __global _FLOAT* __restrict col,
-                 _FLOAT padding_val)
+#if 0
+__attribute__((reqd_work_group_size(MLO_GRP_SZ0,MLO_GRP_SZ1,MLO_GRP_SZ2)))
+__kernel void aDNNConv_img2col(
+        const __global _FLOAT * __restrict img,
+        __global _FLOAT * __restrict col,
+        _FLOAT padding_val
+        )
 {
-    __local _FLOAT lcl_img[MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS];
-    _FLOAT col_stg[MLO_PVT_COL_STG_HEIGHT * MLO_PVT_COL_STG_WIDTH];
-    //        _FLOAT col_out[MLO_PVT_COL_OUT_HEIGHT * MLO_PVT_COL_OUT_WIDTH];
+        __local _FLOAT lcl_img[MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS];
+        _FLOAT col_stg[MLO_PVT_COL_STG_HEIGHT * MLO_PVT_COL_STG_WIDTH];
+//        _FLOAT col_out[MLO_PVT_COL_OUT_HEIGHT * MLO_PVT_COL_OUT_WIDTH];
 
-    uint x_out_grp = get_group_id(0) * MLO_N_PROCS0 * MLO_N_OUT_PIX_SZ0;
-    uint y_out_grp = get_group_id(1) * MLO_N_PROCS1 * MLO_N_OUT_PIX_SZ1;
-    uint y_in_grp  = y_out_grp * MLO_FLTR_STRIDE1;
-    uint x_in_grp  = x_out_grp * MLO_FLTR_STRIDE0;
 
-    uint lcl_id = mad24(get_local_id(1), (uint)MLO_GRP_SZ0, get_local_id(0));
+        uint x_out_grp = get_group_id(0) * MLO_N_PROCS0 *  MLO_N_OUT_PIX_SZ0;
+        uint y_out_grp = get_group_id(1) * MLO_N_PROCS1 * MLO_N_OUT_PIX_SZ1;
+        uint y_in_grp = y_out_grp * MLO_FLTR_STRIDE1;
+        uint x_in_grp = x_out_grp * MLO_FLTR_STRIDE0;
+
+
+        uint lcl_id = mad24(get_local_id(1),(uint)MLO_GRP_SZ0, get_local_id(0));
 #if(MLO_N_PROCS0 * MLO_N_PROCS1) & (MLO_N_PROCS0 * MLO_N_PROCS1 - 1)
-    uint lcl_proc =
-        (uint)((float)lcl_id / (MLO_N_PROCS0 * MLO_N_PROCS1)); // input id from diff stack
-    uint lcl_in_proc_id = -mad24((int)lcl_proc,
-                                 (MLO_N_PROCS0 * MLO_N_PROCS1),
-                                 -(int)lcl_id); // wk item id for the input to make a coalesed read
+        uint lcl_proc = (uint)((float)lcl_id/(MLO_N_PROCS0*MLO_N_PROCS1));  // input id from diff stack
+        uint lcl_in_proc_id = -mad24((int)lcl_proc, (MLO_N_PROCS0*MLO_N_PROCS1), -(int)lcl_id);  // wk item id for the input to make a coalesed read
 #else
-    uint lcl_proc        = lcl_id / (MLO_N_PROCS0 * MLO_N_PROCS1); // input id from diff stack
-    uint lcl_in_proc_id  = lcl_id & (MLO_N_PROCS0 * MLO_N_PROCS1 -
-                                    1);                      // wk item id for the input to make a coalesed read
+        uint lcl_proc = lcl_id / (MLO_N_PROCS0*MLO_N_PROCS1);  // input id from diff stack
+        uint lcl_in_proc_id = lcl_id & (MLO_N_PROCS0*MLO_N_PROCS1 - 1);  // wk item id for the input to make a coalesed read
 #endif
-    uint lcl_proc_id1 = (uint)((float)lcl_in_proc_id / MLO_N_PROCS0); //
+        uint lcl_proc_id1 = (uint)((float)lcl_in_proc_id/ MLO_N_PROCS0);  //
 #if MLO_N_PROCS0 & (MLO_N_PROCS0 - 1)
-    uint lcl_proc_id0 = -mad24((int)lcl_proc_id1, MLO_N_PROCS0, -(int)lcl_in_proc_id); //
+        uint lcl_proc_id0 = -mad24((int)lcl_proc_id1, MLO_N_PROCS0, -(int)lcl_in_proc_id);  //
 #else
-    uint lcl_proc_id0 = lcl_in_proc_id & (MLO_N_PROCS0 - 1); //
+        uint lcl_proc_id0 = lcl_in_proc_id & (MLO_N_PROCS0 - 1);  //
 #endif
-    uint x_out_lcl = mul24(lcl_proc_id0, (uint)MLO_N_OUT_PIX_SZ0);
-    uint y_out_lcl = mul24(lcl_proc_id1, (uint)MLO_N_OUT_PIX_SZ1);
+        uint x_out_lcl = mul24(lcl_proc_id0, (uint)MLO_N_OUT_PIX_SZ0);
+        uint y_out_lcl = mul24(lcl_proc_id1, (uint)MLO_N_OUT_PIX_SZ1);
 
-    uint cb = get_global_id(2);
+        uint cb = get_global_id(2);
 #if MLO_N_IN_CHNLS & (MLO_N_IN_CHNLS - 1)
-    uint b_id = (uint)((float)cb / (float)MLO_N_IN_CHNLS);   // batch block
-    uint c    = -mad24((int)b_id, MLO_N_IN_CHNLS, -(int)cb); // channel
+        uint b_id = (uint)((float)cb / (float)MLO_N_IN_CHNLS);  // batch block
+        uint c = -mad24((int)b_id, MLO_N_IN_CHNLS, -(int)cb);         // channel
 #else
-    uint b_id         = cb / MLO_N_IN_CHNLS;                 // batch block
-    uint c            = cb & (MLO_N_IN_CHNLS - 1);           // channel
+        uint b_id = cb / MLO_N_IN_CHNLS;  // batch block
+        uint c = cb & (MLO_N_IN_CHNLS - 1);         // channel
 #endif
-    // my batch
-    uint b = b_id * MLO_LCL_N_IN_CHNLS + lcl_proc;
+// my batch
+        uint b = b_id* MLO_LCL_N_IN_CHNLS + lcl_proc;
 
-    uint x_out = x_out_grp + x_out_lcl;
-    uint y_out = y_out_grp + y_out_lcl;
 
-    uint in_off = b * MLO_IN_BATCH_STRIDE + c * MLO_IN_CHNL_STRIDE;
+        uint x_out = x_out_grp + x_out_lcl;
+        uint y_out = y_out_grp + y_out_lcl;
 
-    for(uint i = lcl_id; i < MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS; i += MLO_GRP_SZ)
-    {
-        lcl_img[i] = 0;
-    }
+        uint in_off = b * MLO_IN_BATCH_STRIDE + c*MLO_IN_CHNL_STRIDE;
 
-    barrier(CLK_LOCAL_MEM_FENCE);
+
+        for(uint i = lcl_id; i < MLO_LCL_IMG_SIZE * MLO_LCL_N_IN_CHNLS;  i += MLO_GRP_SZ)
+        {
+                lcl_img[i] = 0;
+        }
+
+
+        barrier(CLK_LOCAL_MEM_FENCE);
 
 #if MLO_BIG
 
-    readDataTile(lcl_img,
-                 img,
-                 y_in_grp,
-                 x_in_grp,
-                 MLO_IN_STRIDE,
-                 (in_off + y_in_grp * MLO_IN_STRIDE + x_in_grp),
-                 MLO_LCL_IMG_WIDTH,
-                 0,
-                 MLO_IN_HEIGHT,
-                 MLO_IN_WIDTH,
-                 MLO_LCL_IMG_HEIGHT,
-                 MLO_LCL_IMG_WIDTH,
-                 lcl_proc_id1,
-                 lcl_proc_id0,
-                 MLO_N_PROCS1,
-                 MLO_N_PROCS0,
-                 MLO_FLTR_PAD_SZ1,
-                 MLO_FLTR_PAD_SZ0,
-                 padding_val);
+        readDataTileVec2(lcl_img,
+                                img,
+                                y_in_grp,
+                                x_in_grp,
+                                MLO_IN_STRIDE,
+                                (in_off + y_in_grp * MLO_IN_STRIDE + x_in_grp),
+                                (uint2)(in_off + y_in_grp * MLO_IN_STRIDE + x_in_grp)),
+                                MLO_LCL_IMG_WIDTH,
+                                0,
+                                MLO_IN_HEIGHT,
+                                MLO_IN_WIDTH,
+                                MLO_LCL_IMG_HEIGHT,
+                                MLO_LCL_IMG_WIDTH,
+                                lcl_proc_id1,
+                                lcl_proc_id0,
+                                MLO_N_PROCS1,
+                                MLO_N_PROCS0,
+                                MLO_FLTR_PAD_SZ1,
+                                MLO_FLTR_PAD_SZ0,
+                                true,
+                                padding_val);
 
 #else
-    uint lcl_base     = MLO_LCL_IMG_WIDTH * MLO_FLTR_PAD_SZ1 + MLO_FLTR_PAD_SZ0;
-    readData(&lcl_img[lcl_proc * MLO_LCL_IMG_SIZE + lcl_base],
-             img,
-             lcl_in_proc_id,
-             (MLO_N_PROCS0 * MLO_N_PROCS1),
-             (MLO_IN_WIDTH * MLO_IN_HEIGHT),
-             MLO_IN_WIDTH,
-             MLO_IN_STRIDE,
-             in_off,
-             MLO_LCL_IMG_WIDTH,
-             0);
+                        uint lcl_base = MLO_LCL_IMG_WIDTH * MLO_FLTR_PAD_SZ1 + MLO_FLTR_PAD_SZ0;
+                        readData(&lcl_img[lcl_proc * MLO_LCL_IMG_SIZE + lcl_base],
+                                img,
+                                lcl_in_proc_id,
+                                (MLO_N_PROCS0*MLO_N_PROCS1),
+                                (MLO_IN_WIDTH*MLO_IN_HEIGHT),
+                                MLO_IN_WIDTH,
+                                MLO_IN_STRIDE,
+                                in_off,
+                                MLO_LCL_IMG_WIDTH,
+                                0);
 
 #endif
-    barrier(CLK_LOCAL_MEM_FENCE);
+                barrier(CLK_LOCAL_MEM_FENCE);
 
 #if MLO_BATCH_ALIGNED == 0
-    if(b >= MLO_BATCH_SZ)
-    {
-        return;
-    }
+        if (b >= MLO_BATCH_SZ)
+        {
+                return;
+        }
 #endif
 
-    // concatinate
-    uint col_off = c * MLO_OUT_STRIDE * MLO_FLTR_SZ1 * MLO_FLTR_SZ0 +
-                   (b * MLO_OUT_HEIGHT + y_out) * MLO_OUT_WIDTH + x_out;
+// concatinate
+        uint col_off = c * MLO_OUT_STRIDE*MLO_FLTR_SZ1*MLO_FLTR_SZ0 + (b * MLO_OUT_HEIGHT + y_out) * MLO_OUT_WIDTH + x_out;
 
-    // get first MLO_N_OUT_PIX_SZ1 lines
+// get first MLO_N_OUT_PIX_SZ1 lines
 
-    uint j        = 0;
-    uint y_in_lcl = y_out * MLO_FLTR_STRIDE1 - y_in_grp;
-    uint x_in_lcl = x_out * MLO_FLTR_STRIDE0 - x_in_grp;
+        uint j = 0;
+        uint y_in_lcl = y_out * MLO_FLTR_STRIDE1 - y_in_grp;
+        uint x_in_lcl = x_out * MLO_FLTR_STRIDE0 - x_in_grp;
 
-    uint lcl_off = lcl_proc * MLO_LCL_IMG_SIZE + y_in_lcl * MLO_LCL_IMG_WIDTH + x_in_lcl;
+        uint lcl_off = lcl_proc * MLO_LCL_IMG_SIZE + y_in_lcl * MLO_LCL_IMG_WIDTH + x_in_lcl;
 
-    for(; j < MLO_PVT_COL_STG_HEIGHT - 1; ++j, lcl_off += MLO_LCL_IMG_WIDTH)
-    {
-
-        // read input data
-
-        for(uint i = 0; i < MLO_PVT_COL_STG_WIDTH; ++i)
+        for(; j < MLO_PVT_COL_STG_HEIGHT - 1; ++j, lcl_off += MLO_LCL_IMG_WIDTH)
         {
-            col_stg[j * MLO_PVT_COL_STG_WIDTH + i] = lcl_img[lcl_off + i];
+
+
+// read input data
+
+                for(uint i = 0; i < MLO_PVT_COL_STG_WIDTH; ++i)
+                {
+                        col_stg[j * MLO_PVT_COL_STG_WIDTH + i] = lcl_img[lcl_off + i];
+
+                }
+
         }
-    }
 
-    for(uint k = 0; k < MLO_FLTR_SZ1; ++k, ++j, lcl_off += MLO_LCL_IMG_WIDTH)
-    {
 
-        // read input data
-        for(uint i = 0; i < MLO_PVT_COL_STG_WIDTH; ++i)
+        for(uint k = 0; k < MLO_FLTR_SZ1; ++k, ++j, lcl_off += MLO_LCL_IMG_WIDTH)
         {
-            col_stg[(MLO_PVT_COL_STG_HEIGHT - 1) * MLO_PVT_COL_STG_WIDTH + i] =
-                lcl_img[lcl_off + i];
+
+// read input data
+                for(uint i = 0; i < MLO_PVT_COL_STG_WIDTH; ++i)
+                {
+                        col_stg[(MLO_PVT_COL_STG_HEIGHT - 1) * MLO_PVT_COL_STG_WIDTH + i] = lcl_img[lcl_off + i];
 
 #if 0
                         if(b==0 && c==0 && x_out==0 && y_out==0)
@@ -796,56 +856,62 @@ aDNNConv_img2col(const __global _FLOAT* __restrict img,
                                 );
                         }
 #endif
-        }
 
-        // transpose
-        uint out_offsets[MLO_N_OUT_PIX_SZ1 * MLO_N_OUT_PIX_SZ0];
-        _FLOAT out_vals[MLO_N_OUT_PIX_SZ1 * MLO_N_OUT_PIX_SZ0];
+                }
 
-        for(uint l = 0; l < MLO_FLTR_SZ0; ++l, col_off += MLO_OUT_STRIDE)
-        {
-            for(uint ii = 0; ii < MLO_N_OUT_PIX_SZ0; ++ii)
-            {
 
-                for(uint jj = 0, col_off3 = 0; jj < MLO_N_OUT_PIX_SZ1;
-                    ++jj, col_off3 += MLO_OUT_WIDTH)
+// transpose
+                uint out_offsets[MLO_N_OUT_PIX_SZ1 * MLO_N_OUT_PIX_SZ0];
+                _FLOAT out_vals[MLO_N_OUT_PIX_SZ1 * MLO_N_OUT_PIX_SZ0];
+
+                for(uint l = 0; l < MLO_FLTR_SZ0; ++l, col_off += MLO_OUT_STRIDE)
                 {
-                    out_vals[jj * MLO_N_OUT_PIX_SZ0 + ii] =
-                        col_stg[jj * MLO_FLTR_STRIDE1 * MLO_PVT_COL_STG_WIDTH +
-                                ii * MLO_FLTR_STRIDE0 + l];
-                    out_offsets[jj * MLO_N_OUT_PIX_SZ0 + ii] = col_off + col_off3 + ii;
+                        for(uint ii = 0; ii < MLO_N_OUT_PIX_SZ0; ++ii)
+                        {
+
+                                for(uint jj = 0, col_off3 = 0; jj < MLO_N_OUT_PIX_SZ1; ++jj, col_off3 += MLO_OUT_WIDTH)
+                                {
+                                        out_vals[jj*MLO_N_OUT_PIX_SZ0 + ii] = col_stg[jj * MLO_FLTR_STRIDE1 * MLO_PVT_COL_STG_WIDTH + ii* MLO_FLTR_STRIDE0 + l];
+                                        out_offsets[jj*MLO_N_OUT_PIX_SZ0 + ii] = col_off + col_off3 + ii;
 #if MLO_ALIGNED == 0
-                    if(y_out + jj >= MLO_OUT_HEIGHT || x_out + ii >= MLO_OUT_WIDTH)
-                    {
-                        out_vals[jj * MLO_N_OUT_PIX_SZ0 + ii]    = 0;
-                        out_offsets[jj * MLO_N_OUT_PIX_SZ0 + ii] = 0;
-                    }
+                                        if (y_out + jj >= MLO_OUT_HEIGHT || x_out + ii >= MLO_OUT_WIDTH)
+                                        {
+                                                out_vals[jj*MLO_N_OUT_PIX_SZ0 + ii] = 0;
+                                                out_offsets[jj*MLO_N_OUT_PIX_SZ0 + ii] = 0;
+                                        }
 #endif
+
+                                }
+                        }
+
+                        for(uint ii = 0; ii < MLO_N_OUT_PIX_SZ0; ++ii)
+                        {
+
+                                for(uint jj = 0, col_off3 = 0; jj < MLO_N_OUT_PIX_SZ1; ++jj, col_off3 += MLO_OUT_WIDTH)
+                                {
+                                                col[out_offsets[jj*MLO_N_OUT_PIX_SZ0 + ii]]
+                                                        = out_vals[jj*MLO_N_OUT_PIX_SZ0 + ii];
+
+
+                                }
+                        }
                 }
-            }
 
-            for(uint ii = 0; ii < MLO_N_OUT_PIX_SZ0; ++ii)
-            {
+// move up
 
-                for(uint jj = 0, col_off3 = 0; jj < MLO_N_OUT_PIX_SZ1;
-                    ++jj, col_off3 += MLO_OUT_WIDTH)
+                for(uint jj = 0; jj < MLO_PVT_COL_STG_HEIGHT - 1; ++jj)
                 {
-                    col[out_offsets[jj * MLO_N_OUT_PIX_SZ0 + ii]] =
-                        out_vals[jj * MLO_N_OUT_PIX_SZ0 + ii];
+
+                        for(uint ii = 0; ii < MLO_PVT_COL_STG_WIDTH; ++ii)
+                        {
+                                col_stg[jj * MLO_PVT_COL_STG_WIDTH + ii] = col_stg[(jj+1) * MLO_PVT_COL_STG_WIDTH + ii];
+                        }
+
                 }
-            }
+
+
         }
 
-        // move up
 
-        for(uint jj = 0; jj < MLO_PVT_COL_STG_HEIGHT - 1; ++jj)
-        {
-
-            for(uint ii = 0; ii < MLO_PVT_COL_STG_WIDTH; ++ii)
-            {
-                col_stg[jj * MLO_PVT_COL_STG_WIDTH + ii] =
-                    col_stg[(jj + 1) * MLO_PVT_COL_STG_WIDTH + ii];
-            }
-        }
-    }
 }
+#endif

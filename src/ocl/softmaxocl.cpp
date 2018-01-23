@@ -75,6 +75,17 @@ miopenStatus_t SoftmaxForward(
     // compile parameters
     std::string parms = "-DNUM_BATCH=" + std::to_string(num_batch);
 
+    if(yDesc.GetType() == miopenFloat)
+    {
+        parms += " -DMIOPEN_USE_FP16=0 ";
+        parms += " -DMIOPEN_USE_FP32=1 ";
+    }
+    else if(yDesc.GetType() == miopenHalf)
+    {
+        parms += " -DMIOPEN_USE_FP16=1 ";
+        parms += " -DMIOPEN_USE_FP32=0 ";
+    }
+
     // See Kernels/MIOpenSoftmax.cl for description
     if(num_batch == 1)
     { // CSR-Vector like approach
@@ -149,6 +160,17 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
 
     // compile parameters
     std::string parms = "-DNUM_BATCH=" + std::to_string(num_batch);
+
+    if(yDesc.GetType() == miopenFloat)
+    {
+        parms += " -DMIOPEN_USE_FP16=0 ";
+        parms += " -DMIOPEN_USE_FP32=1 ";
+    }
+    else if(yDesc.GetType() == miopenHalf)
+    {
+        parms += " -DMIOPEN_USE_FP16=1 ";
+        parms += " -DMIOPEN_USE_FP32=0 ";
+    }
 
     // See Kernels/MIOpenSoftmax.cl for description
     if(num_batch == 1)

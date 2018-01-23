@@ -23,17 +23,35 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
 
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
+#endif
+#endif
+#if MIOPEN_USE_FP32 == 1
 #define _FLOAT float
-#define _FLOAT2 float2
-#define _FLOAT4 float4
-#define _FLOAT8 float8
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 #define _INT_MASK_GLOBAL uchar
 #define _INT_MASK_LOCAL uchar
-
-#ifndef FLT_MAX
-#define FLT_MAX 3.402823466e+38F /* max value */
-#endif
 
 #define UNUSED __attribute__((__unused__))
 
@@ -95,7 +113,7 @@ mloPoolingG(const __global _FLOAT* bot,
         for(int l = 0; l < MLO_POOLING_N_HORIZ_OUT_PIX; l++)
         {
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-            res[k][l] = -FLT_MAX;
+            res[k][l] = -MAX_VAL;
 #elif MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
             res[k][l] = 0;
 #endif
@@ -116,7 +134,7 @@ mloPoolingG(const __global _FLOAT* bot,
                            : false;
             bot_data[j][i] = (vis) ? bot[bot_gbl_off] :
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-                                   -FLT_MAX
+                                   -MAX_VAL
 #elif MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
                                    0
 #endif

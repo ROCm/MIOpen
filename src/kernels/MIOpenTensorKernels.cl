@@ -23,6 +23,24 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
+#endif
+#endif
+#if MIOPEN_USE_FP32 == 1
+#define _FLOAT float
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
+
 /* Only works for NCHW
  * bitmap tracks which dims are the same between 'a' and 'c'.
  * Example: 0, 1, 1, 0 means that C and H dims are the same and the rest are ones

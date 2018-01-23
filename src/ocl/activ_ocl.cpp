@@ -143,8 +143,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
             "Activation does not support tensor dimension larger than 4 or smaller than 1");
     }
 
-    construct_params.setBotDescr(
-        "NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+    construct_params.setBotDescFromMLDesc(xDesc);
 
     double activ_alpha = GetAlpha();
     double activ_beta  = GetBeta();
@@ -152,7 +151,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 
     construct_params.setNeuronDescr(static_cast<int>(mode), activ_power, activ_beta, activ_alpha);
 
-    construct_params.mloConstruct();
+    mloConstruct(construct_params);
 
     std::string program_name     = construct_params.getKernelFile();      // CL kernel filename
     std::string kernel_name      = construct_params.getKernelName();      // kernel name
@@ -275,16 +274,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         MIOPEN_THROW("activation does not support tensor size larger than 4 or smaller than 1");
     }
 
-    construct_params.setTopDfDescr("NCHW",
-                                   "FP32",
-                                   ndOut,
-                                   cdOut,
-                                   hdOut,
-                                   wdOut,
-                                   ndOutStride,
-                                   cdOutStride,
-                                   hdOutStride,
-                                   wdOutStride);
+    construct_params.setTopDfDescFromMLDesc(dyDesc);
 
     int nOut       = 1;
     int cOut       = 1;
@@ -331,8 +321,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
             "Activation does not support tensor dimensions larger than 4 or smaller than 1");
     }
 
-    construct_params.setTopDescr(
-        "NCHW", "FP32", nOut, cOut, hOut, wOut, nOutStride, cOutStride, hOutStride, wOutStride);
+    construct_params.setTopDescFromMLDesc(yDesc);
 
     int ndIn       = 1;
     int cdIn       = 1;
@@ -379,8 +368,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
             "Activation does not support tensor dimensions larger than 4 or smaller than 1");
     }
 
-    construct_params.setBotDfDescr(
-        "NCHW", "FP32", ndIn, cdIn, hdIn, wdIn, ndInStride, cdInStride, hdInStride, wdInStride);
+    construct_params.setBotDfDescFromMLDesc(dxDesc);
 
     int nIn       = 1;
     int cIn       = 1;
@@ -427,8 +415,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
             "Activation does not support tensor dimensions larger than 4 or smaller than 1");
     }
 
-    construct_params.setBotDescr(
-        "NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+    construct_params.setBotDescFromMLDesc(xDesc);
 
     int activ_mode     = GetMode();
     double activ_alpha = GetAlpha();
@@ -437,7 +424,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 
     construct_params.setNeuronDescr(activ_mode, activ_power, activ_beta, activ_alpha);
 
-    construct_params.mloConstruct();
+    mloConstruct(construct_params);
 
     std::string program_name     = construct_params.getKernelFile();      // CL kernel filename
     std::string kernel_name      = construct_params.getKernelName();      // kernel name
