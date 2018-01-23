@@ -1261,7 +1261,7 @@ int main(int argc, const char* argv[])
 #if(MIO_BN_TIME_EVERYTHING == 1)
     auto t_start = std::chrono::high_resolution_clock::now();
 #endif
-    test_drive<batch_norm_spatial_driver<float>>(argc, argv);
+    test_drive<batch_norm_spatial_driver>(argc, argv);
 
 #if(MIO_BN_TIME_EVERYTHING == 1)
     auto t_end = std::chrono::high_resolution_clock::now();

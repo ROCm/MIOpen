@@ -193,6 +193,17 @@ struct test_driver
         return generate_tensor<std::vector<X>>(dims, single);
     }
 
+    template <class F>
+    auto lazy_generate_tensor(F f) -> generate_tensor_t<miopen::range_value<decltype(f())>>
+    {
+        return {[=]() -> decltype(f()) {
+            if(full_set)
+                return f();
+            else
+                return {*f().begin()};
+        }};
+    }
+
     template <class F, class X>
     generate_tensor_t<X> lazy_generate_tensor(F f, X single)
     {
@@ -625,9 +636,8 @@ struct show_help
 };
 
 template <class Driver>
-void test_drive(int argc, const char* argv[])
+void test_drive_impl(std::vector<std::string> as)
 {
-    std::vector<std::string> as(argv + 1, argv + argc);
     Driver d{};
 
     std::set<std::string> keywords{"--help", "-h"};
@@ -699,4 +709,19 @@ void test_drive(int argc, const char* argv[])
     }
 
     run_data(data_args.begin(), data_args.end(), [&] { d.run(); });
+}
+
+template <class Driver>
+void test_drive(int argc, const char* argv[])
+{
+    std::vector<std::string> as(argv + 1, argv + argc);
+    test_drive_impl<Driver>(std::move(as));
+}
+
+template <template <class...> class Driver>
+void test_drive(int argc, const char* argv[])
+{
+    std::vector<std::string> as(argv + 1, argv + argc);
+    // Always use float for now
+    test_drive_impl<Driver<float>>(std::move(as));
 }
