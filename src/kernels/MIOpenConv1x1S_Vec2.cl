@@ -90,7 +90,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
     uint out_grp_block = get_group_id(1); // block of outputs for the entire group
     uint out_id        = out_grp_block * MLO_N_LCL_OUT_MAPS;
 
-    uint2 gbl_in_off   = (uint2)(batch_id * MLO_IN_BATCH_STRIDE + pos * MLO_READ_UNIT) +
+    uint2 gbl_in_off = (uint2)(batch_id * MLO_IN_BATCH_STRIDE + pos * MLO_READ_UNIT) +
                        (uint2)(0, MLO_N_LCL_IN_MAPS * MLO_IN_CHANNEL_STRIDE);
 
     uint2 wei_off = (uint2)(out_id) *
