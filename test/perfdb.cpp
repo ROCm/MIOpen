@@ -77,7 +77,7 @@ struct TestData
     static inline TestData Seeded()
     {
         static Random rnd(seed);
-        return TestData(rnd.Next(), rnd.Next());
+        return { static_cast<int>(rnd.Next()), static_cast<int>(rnd.Next()) };
     }
 
     inline void Serialize(std::ostream& s) const
@@ -699,26 +699,24 @@ class DbMultiProcessTest : public DbTest
 
 int main(int argsn, char** argsc)
 {
-    using namespace miopen::tests;
-
-    if(argsn >= 4 && argsc[1] == std::string(DbMultiProcessTest::arg))
+    if(argsn >= 4 && argsc[1] == std::string(miopen::tests::DbMultiProcessTest::arg))
     {
-        DbMultiProcessTest::WorkItem(atoi(argsc[2]), argsc[3]);
+        miopen::tests::DbMultiProcessTest::WorkItem(strtol(argsc[2], nullptr, 10), argsc[3]);
         return 0;
     }
 
-    exe_path() = boost::filesystem::system_complete(boost::filesystem::path(argsc[0]));
+    miopen::tests::exe_path() = boost::filesystem::system_complete(boost::filesystem::path(argsc[0]));
 
-    DbFindTest().Run();
-    DbStoreTest().Run();
-    DbUpdateTest().Run();
-    DbRemoveTest().Run();
-    DbReadTest().Run();
-    DbWriteTest().Run();
-    DbOperationsTest().Run();
-    DbParallelTest().Run();
-    DbMultiThreadedTest().Run();
-    DbMultiProcessTest().Run();
+    miopen::tests::DbFindTest().Run();
+    miopen::tests::DbStoreTest().Run();
+    miopen::tests::DbUpdateTest().Run();
+    miopen::tests::DbRemoveTest().Run();
+    miopen::tests::DbReadTest().Run();
+    miopen::tests::DbWriteTest().Run();
+    miopen::tests::DbOperationsTest().Run();
+    miopen::tests::DbParallelTest().Run();
+    miopen::tests::DbMultiThreadedTest().Run();
+    miopen::tests::DbMultiProcessTest().Run();
 
     return 0;
 }
