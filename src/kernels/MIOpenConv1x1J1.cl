@@ -98,27 +98,60 @@
 #define MLO_GRP_SZ1 1
 #define MLO_GRP_SZ2 1
 
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
+
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#define _UNION_FLOAT_T half2
+#define INIT(A) ((half2)(A[0], A[1]))
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
+#endif
+#endif
+#if MIOPEN_USE_FP32 == 1
 #define _FLOAT float
+#define _UNION_FLOAT_T float
+#define INIT(A) (A[0])
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
+
 #define MLO_CONV_BIAS 0
 #define UNUSED __attribute((__unused__))
 
+typedef union
+{
+    unsigned int intVal;
+    _UNION_FLOAT_T floatVal;
+} starVal;
+
 inline void AtomicAdd(volatile __global _FLOAT* source, const _FLOAT operand)
 {
-    union
-    {
-        unsigned int intVal;
-        _FLOAT floatVal;
-    } newVal;
-    union
-    {
-        unsigned int intVal;
-        _FLOAT floatVal;
-    } prevVal;
+    starVal newVal, prevVal;
 
-    prevVal.floatVal = *source;
+    prevVal.floatVal = INIT(source);
     while(true)
     {
+#if MIOPEN_USE_FP16 == 1
+        newVal.floatVal = (_FLOAT2)(prevVal.floatVal.x + operand, source[1]);
+#endif
+#if MIOPEN_USE_FP32 == 1
         newVal.floatVal = prevVal.floatVal + operand;
+#endif
         newVal.intVal =
             atomic_cmpxchg((volatile __global unsigned int*)source, prevVal.intVal, newVal.intVal);
 
@@ -181,7 +214,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
         for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
         {
-            *q = 0;
+            *q = (_FLOAT)0;
             q += MLO_OUT_CHANNEL_STRIDE;
         }
     }
@@ -189,7 +222,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
     for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
     {
-        accum[o] = 0;
+        accum[o] = (_FLOAT)0;
     }
 
 #if MLO_N_INPUTS == ((MLO_N_INPUTS / MLO_N_LCL_IN_MAPS) * MLO_N_LCL_IN_MAPS)
@@ -221,8 +254,8 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
 #endif
     {
-        __global const float* p = in_ptr + gbl_in_off;
-        __constant _FLOAT* w    = wei_ptr + wei_off;
+        __global const _FLOAT* p = in_ptr + gbl_in_off;
+        __constant _FLOAT* w     = wei_ptr + wei_off;
 
         // read data
         for(uint j = 0; j < MLO_N_LCL_IN_MAPS_ONCE; ++j)

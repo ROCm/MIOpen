@@ -24,14 +24,33 @@
  *
  *******************************************************************************/
 
-#define _FLOAT float
-#define _FLOAT2 float2
-#define _FLOAT4 float4
-#define _FLOAT8 float8
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
 
-#ifndef FLT_MAX
-#define FLT_MAX 3.402823466e+38F /* max value */
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
 #endif
+#endif
+#if MIOPEN_USE_FP32 == 1
+#define _FLOAT float
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #ifndef MIO_BN_LDS_SIZE
 #define MIO_BN_LDS_SIZE 1
@@ -113,8 +132,8 @@ __kernel void BatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
     _FLOAT pvt_scale, pvt_dscale;
     _FLOAT pvt_dbias;
     _FLOAT tmp1, tmp2, tmp3;
-    _FLOAT dxhat    = 0.;
-    _FLOAT dxhathat = 0.;
+    _FLOAT dxhat    = (_FLOAT)0.;
+    _FLOAT dxhathat = (_FLOAT)0.;
 
     // move across the sections of an image in the mini_batch stack
     for(int img_offset = 0; img_offset < in_cstride; img_offset += yglb_sz)
@@ -128,10 +147,10 @@ __kernel void BatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
             mean       = savedMean[adjIndex];
             invVar     = savedInvVariance[adjIndex];
             pvt_scale  = scale[adjIndex];
-            pvt_dscale = 0.;
-            pvt_dbias  = 0.;
-            dxhat      = 0.;
-            dxhathat   = 0.;
+            pvt_dscale = (_FLOAT)0.;
+            pvt_dbias  = (_FLOAT)0.;
+            dxhat      = (_FLOAT)0.;
+            dxhathat   = (_FLOAT)0.;
 
             for(int n = 0; n < N; n++)
             {
@@ -186,14 +205,14 @@ __kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
     _FLOAT pvt_dbias;
     _FLOAT tmp1, tmp2, tmp3;
     _FLOAT variance;
-    _FLOAT dxhat    = 0.;
-    _FLOAT dxhathat = 0.;
+    _FLOAT dxhat    = (_FLOAT)0.;
+    _FLOAT dxhathat = (_FLOAT)0.;
 
     // move across the sections of the image mini_batch stack
     for(int img_offset = 0; img_offset < in_cstride; img_offset += yglb_sz)
     {
-        mean       = 0.;
-        variance   = 0.;
+        mean       = (_FLOAT)0.;
+        variance   = (_FLOAT)0.;
         inImgIndex = ygid + img_offset;
 
         // #1 calculate the mean
