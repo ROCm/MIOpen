@@ -97,7 +97,7 @@ static void dump_kernel_params(const std::string& program_name,
 }
 #endif
 
-std::vector<Kernel> KernelCache::GetKernels(const std::string& algorithm,
+const std::vector<Kernel>& KernelCache::GetKernels(const std::string& algorithm,
                                             const std::string& network_config)
 {
 
