@@ -98,7 +98,7 @@ static void dump_kernel_params(const std::string& program_name,
 #endif
 
 const std::vector<Kernel>& KernelCache::GetKernels(const std::string& algorithm,
-                                            const std::string& network_config)
+                                                   const std::string& network_config)
 {
 
     std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
