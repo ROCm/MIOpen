@@ -34,6 +34,7 @@
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
 #include <miopen/allocator.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 #include <vector>
 
 namespace miopen {
@@ -72,13 +73,17 @@ struct Handle : miopenHandle
                            const std::string& params,
                            std::size_t cache_index = 0);
 
-    std::vector<Kernel> GetKernels(const std::string& algorithm, const std::string& network_config);
+    auto GetKernels(const std::string& algorithm, const std::string& network_config)
+    {
+        return this->GetKernelsImpl(algorithm, network_config) | boost::adaptors::transformed([this](Kernel k) { return this->Run(k); });
+    }
     KernelInvoke GetKernel(const std::string& algorithm, const std::string& network_config)
     {
-        return this->Run(this->GetKernels(algorithm, network_config).at(0));
+        return this->Run(this->GetKernelsImpl(algorithm, network_config).at(0));
     }
 
     KernelInvoke Run(Kernel k);
+    const std::vector<Kernel>& GetKernelsImpl(const std::string& algorithm, const std::string& network_config);
 
     Program LoadProgram(const std::string& program_name, std::string params, bool is_kernel_str);
 
