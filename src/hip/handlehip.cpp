@@ -263,7 +263,7 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
 }
 
 const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
-                                       const std::string& network_config)
+                                                  const std::string& network_config)
 {
     return this->impl->cache.GetKernels(algorithm, network_config);
 }
