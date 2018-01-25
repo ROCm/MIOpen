@@ -241,6 +241,7 @@ GemmGeometry CreateMIOpenGemmGeometry(int M,
 
 GemmGeometry GetGemmGeometry(std::string algorithm_name, std::string network_config)
 {
+    auto guard         = get_gemm_geo_map_lock();
     auto gemm_iterator = gemm_geo_map().find(std::make_pair(algorithm_name, network_config));
     if(gemm_iterator != gemm_geo_map().end())
     {

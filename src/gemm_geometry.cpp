@@ -57,6 +57,12 @@ std::unordered_map<GemmKey, GemmGeometry, SimpleHash>& gemm_geo_map()
     return data;
 }
 
+std::unique_lock<std::mutex> get_gemm_geo_map_lock()
+{
+    static std::mutex m{};
+    return std::unique_lock<std::mutex>{m};
+}
+
 void GemmGeometry::EnableBetaKernel(bool enable) { beta_kern_req = enable; }
 
 void GemmGeometry::FindSolution(
@@ -135,7 +141,7 @@ void GemmGeometry::FindSolution(
             vgd,
             "");
     }
-
+    auto guard = get_gemm_geo_map_lock();
     gemm_geo_map()[std::make_pair(algorithm_name, network_config)] = *this;
 }
 
