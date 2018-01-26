@@ -57,7 +57,7 @@ void SetTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const vo
         std::string parms =
             " -DMIOPEN_TYPE=" + GetDataType(yDesc.GetType()) + " -DMIOPEN_ALPHA_TYPE=float";
 
-        handle.GetKernel("SetTensor", "", program_name, "SetTensor", vld, vgd, parms)(
+        handle.AddKernel("SetTensor", "", program_name, "SetTensor", vld, vgd, parms)(
             y, miopen_alpha, global_threads);
     }
     break;
@@ -87,7 +87,7 @@ void ScaleTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const 
         std::string parms =
             " -DMIOPEN_TYPE=" + GetDataType(yDesc.GetType()) + " -DMIOPEN_ALPHA_TYPE=float";
 
-        handle.GetKernel("ScaleTensor", "", program_name, "ScaleTensor", vld, vgd, parms)(
+        handle.AddKernel("ScaleTensor", "", program_name, "ScaleTensor", vld, vgd, parms)(
             y, miopen_alpha, global_threads);
     }
     break;
@@ -319,7 +319,7 @@ void OpTensor(Handle& handle,
 
     if(bsize == 5)
     {
-        handle.GetKernel(
+        handle.AddKernel(
             "Op5dTensorGeneric", "", program_name, "Op5dTensorGeneric", vld, vgd, parms)(
             ATensor,
             int(astrides[0]),
@@ -356,7 +356,7 @@ void OpTensor(Handle& handle,
     }
     else if(bsize == 3)
     {
-        handle.GetKernel(
+        handle.AddKernel(
             "Op3dTensorGeneric", "", program_name, "Op3dTensorGeneric", vld, vgd, parms)(
             ATensor,
             int(astrides[0]), // a_nstride,
@@ -383,7 +383,7 @@ void OpTensor(Handle& handle,
     }
     else if(bsize == 2)
     {
-        handle.GetKernel(
+        handle.AddKernel(
             "Op2dTensorGeneric", "", program_name, "Op2dTensorGeneric", vld, vgd, parms)(
             ATensor,
             int(astrides[0]),
@@ -405,7 +405,7 @@ void OpTensor(Handle& handle,
     }
     else if(bsize == 1)
     {
-        handle.GetKernel(
+        handle.AddKernel(
             "Op1dTensorGeneric", "", program_name, "Op1dTensorGeneric", vld, vgd, parms)(
             ATensor,
             BTensor,
@@ -427,7 +427,7 @@ void OpTensor(Handle& handle,
 
         if(packed_tensor)
         {
-            handle.GetKernel(
+            handle.AddKernel(
                 "OpTensorFwdBias", "", program_name, "OpTensorFwdBias", vld, vgd, parms)(
                 ATensor,
                 BTensor,
@@ -448,7 +448,7 @@ void OpTensor(Handle& handle,
         else
         {
 
-            handle.GetKernel("OpTensorFwdBiasGeneric",
+            handle.AddKernel("OpTensorFwdBiasGeneric",
                              "",
                              program_name,
                              "OpTensorFwdBiasGeneric",
@@ -481,7 +481,7 @@ void OpTensor(Handle& handle,
     {
         if(packed_tensor)
         {
-            handle.GetKernel(
+            handle.AddKernel(
                 "OpTensorLeadingOnes", "", program_name, "OpTensorLeadingOnes", vld, vgd, parms)(
                 ATensor,
                 BTensor,
@@ -503,7 +503,7 @@ void OpTensor(Handle& handle,
         else
         {
 
-            handle.GetKernel("OpTensorLeadingOnesGeneric",
+            handle.AddKernel("OpTensorLeadingOnesGeneric",
                              "",
                              program_name,
                              "OpTensorLeadingOnesGeneric",
@@ -536,7 +536,7 @@ void OpTensor(Handle& handle,
     }
     else
     {
-        handle.GetKernel(
+        handle.AddKernel(
             "Op4dTensorGeneric", "", program_name, "Op4dTensorGeneric", vld, vgd, parms)(
             ATensor,
             int(astrides[0]), // a_nstride,
@@ -675,7 +675,7 @@ void CopyTensor(Handle& handle,
             vgd[1]          = (vgd[1] > 256) ? 256 : vgd[1];
         }
         std::string program_name = "MIOpenTensorScaleKernel.cl";
-        handle.GetKernel("CopyTensor", "", program_name, "CopyTensor", vld, vgd, parms)(
+        handle.AddKernel("CopyTensor", "", program_name, "CopyTensor", vld, vgd, parms)(
             src,
             dest,
             srcOffset,

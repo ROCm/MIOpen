@@ -42,7 +42,7 @@ bool checkNumericsImpl(
     std::string kernel_name       = "MIOpenCheckNumerics";
     const std::vector<size_t> vld = {size_t{blockSize}, size_t{1}, size_t{1}};
     const std::vector<size_t> vgd = {numGlobalWorkItems, size_t{1}, size_t{1}};
-    handle.GetKernel("MIOpenCheckNumerics", "", program_name, kernel_name, vld, vgd, "")(
+    handle.AddKernel("MIOpenCheckNumerics", "", program_name, kernel_name, vld, vgd, "")(
         data, numElements, abnormal_d.get(), computeStats);
 
     handle.ReadTo(&abnormal_h, abnormal_d, sizeof(CheckNumericsResult));
