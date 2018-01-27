@@ -30,6 +30,22 @@
 
 namespace miopen {
 
+static bool IsPackedTensor(const std::vector<std::size_t>& strides, const std::vector<std::size_t>& lens)
+{
+		int acc_lens = 1;
+
+		for (auto i = lens.size() - 1; i > 0; i--)
+		{
+			if (acc_lens != strides[i])
+				return false;
+
+			acc_lens *= lens[i];
+		}
+
+		return true;
+}
+
+
 miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                                              const void* alpha,
                                              const TensorDescriptor& xDesc,
@@ -55,12 +71,16 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 
 	std::string network_config;
 	construct_params.mloBuildConf_Key(network_config);
+	size_t elem_space = xDesc.GetElementSpace();
+	size_t elem_size = xDesc.GetElementSize();
 
 
-	if (xDesc.GetElementSize() == yDesc.GetElementSize())
+	bool t2D = (xDesc.GetLengths().size() == yDesc.GetLengths().size() && xDesc.GetLengths().size() == 2);
+	bool packed = IsPackedTensor(xDesc.GetStrides(), xDesc.GetLengths()) && IsPackedTensor(yDesc.GetStrides(), yDesc.GetLengths());
+
+	if (xDesc.GetElementSize() == yDesc.GetElementSize() && (packed || t2D))
 	{
 		std::string compiler_options;
-
 		size_t read_unit = (xDesc.GetElementSize() % 4 == 0) ? 4 : (xDesc.GetElementSize() % 2 == 0) ? 2 : 1;
 
 
@@ -293,7 +313,10 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 	construct_params.mloBuildConf_Key(network_config);
 
 
-	if (xDesc.GetElementSize() == yDesc.GetElementSize())
+	bool t2D = (xDesc.GetLengths().size() == yDesc.GetLengths().size() && xDesc.GetLengths().size() == 2);
+	bool packed = IsPackedTensor(xDesc.GetStrides(), xDesc.GetLengths()) && IsPackedTensor(yDesc.GetStrides(), yDesc.GetLengths());
+
+	if (xDesc.GetElementSize() == yDesc.GetElementSize() && (packed || t2D))
 	{
 		std::string compiler_options;
 
