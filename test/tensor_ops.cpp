@@ -323,7 +323,8 @@ struct tensor_ops_driver : test_driver
             tensor<T> bTensor = packed ? tensorlens_b : get_subtensors(super_b, tensorlens_b);
             tensor<T> cTensor = packed ? tensorlens_ac : get_subtensors(super_c, tensorlens_ac);
 
-            if(packed) offsets = {0, 0, 0, 0, 0};
+            if(packed)
+                offsets = {0, 0, 0, 0, 0};
 
             verify(verify_tensor_ops<T>{
                 aTensor, bTensor, cTensor, offsets, alphabeta[0], alphabeta[1], alphabeta[2]});
