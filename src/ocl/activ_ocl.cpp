@@ -47,159 +47,218 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
     miopenStatus_t status = miopenStatusSuccess;
+	mlo_construct_neuron construct_params(1); // forward
 
-    mlo_construct_neuron construct_params(1); // forward
+	double activ_alpha = GetAlpha();
+	double activ_beta = GetBeta();
+	double activ_power = GetPower();
 
-    construct_params.setStream(&handle);
+	std::string network_config;
+	construct_params.mloBuildConf_Key(network_config);
 
-    int nOut       = 1;
-    int cOut       = 1;
-    int hOut       = 1;
-    int wOut       = 1;
-    int nOutStride = 0;
-    int cOutStride = 0;
-    int hOutStride = 0;
-    int wOutStride = 0;
 
-    if(yDesc.GetSize() == 4)
-    {
-        std::tie(nOut, cOut, hOut, wOut)                         = tien<4>(yDesc.GetLengths());
-        std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tien<4>(yDesc.GetStrides());
-    }
-    else if(yDesc.GetSize() < 4 && yDesc.GetSize() > 0)
-    {
-        auto tensor_size = yDesc.GetSize();
-        switch(tensor_size)
-        {
-        case 1:
-            std::tie(wOut)       = tien<1>(yDesc.GetLengths());
-            std::tie(wOutStride) = tien<1>(yDesc.GetStrides());
-            nOutStride           = wOut * wOutStride;
-            cOutStride           = wOut * wOutStride;
-            hOutStride           = wOut * wOutStride;
-            break;
-        case 2:
-            std::tie(hOut, wOut)             = tien<2>(yDesc.GetLengths());
-            std::tie(hOutStride, wOutStride) = tien<2>(yDesc.GetStrides());
-            nOutStride = hOut * hOutStride;
-            cOutStride = hOut * hOutStride;
-            break;
-        case 3:
-            std::tie(cOut, hOut, wOut)                   = tien<3>(yDesc.GetLengths());
-            std::tie(cOutStride, hOutStride, wOutStride) = tien<3>(yDesc.GetStrides());
-            nOutStride = cOut * cOutStride;
-            break;
-        }
-    }
-    else
-    {
-        MIOPEN_THROW("activation does not support tensor size larger than 4 or smaller than 1");
-    }
+	if (xDesc.GetElementSize() == yDesc.GetElementSize())
+	{
+		std::string compiler_options;
 
-    construct_params.setTopDescr(
-        "NCHW", "FP32", nOut, cOut, hOut, wOut, nOutStride, cOutStride, hOutStride, wOutStride);
-    int nIn       = 1;
-    int cIn       = 1;
-    int hIn       = 1;
-    int wIn       = 1;
-    int nInStride = 0;
-    int cInStride = 0;
-    int hInStride = 0;
-    int wInStride = 0;
+		size_t read_unit = (xDesc.GetElementSize() % 4 == 0) ? 4 : (xDesc.GetElementSize() % 2 == 0) ? 2 : 1;
 
-    if(xDesc.GetSize() == 4)
-    {
-        std::tie(nIn, cIn, hIn, wIn)                         = tien<4>(xDesc.GetLengths());
-        std::tie(nInStride, cInStride, hInStride, wInStride) = tien<4>(xDesc.GetStrides());
-    }
-    else if(xDesc.GetSize() < 4 && xDesc.GetSize() > 0)
-    {
-        auto tensor_size = xDesc.GetSize();
-        switch(tensor_size)
-        {
-        case 1:
-            std::tie(wIn)       = tien<1>(xDesc.GetLengths());
-            std::tie(wInStride) = tien<1>(xDesc.GetStrides());
-            nInStride           = wIn * wInStride;
-            cInStride           = wIn * wInStride;
-            hInStride           = wIn * wInStride;
-            break;
-        case 2:
-            std::tie(hIn, wIn)             = tien<2>(xDesc.GetLengths());
-            std::tie(hInStride, wInStride) = tien<2>(xDesc.GetStrides());
-            nInStride = hIn * hInStride;
-            cInStride = hIn * hInStride;
-            break;
-        case 3:
-            std::tie(cIn, hIn, wIn)                   = tien<3>(xDesc.GetLengths());
-            std::tie(cInStride, hInStride, wInStride) = tien<3>(xDesc.GetStrides());
-            nInStride = cIn * cInStride;
-            break;
-        }
-    }
-    else
-    {
-        MIOPEN_THROW(
-            "Activation does not support tensor dimension larger than 4 or smaller than 1");
-    }
 
-    construct_params.setBotDescFromMLDesc(xDesc);
+		size_t MAP_RD = xDesc.GetElementSize() / read_unit;
 
-    double activ_alpha = GetAlpha();
-    double activ_beta  = GetBeta();
-    double activ_power = GetPower();
+		const std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
 
-    construct_params.setNeuronDescr(static_cast<int>(mode), activ_power, activ_beta, activ_alpha);
+		compiler_options = " -DLITE -DMLO_READ_UNIT=" + std::to_string(read_unit) + " -DMLO_READ_TYPE=" + READ_TYPE + " -DMLO_NRN_OP_ID=" + std::to_string(mode);
+		if (xDesc.GetType() == miopenFloat)
+		{
+			compiler_options += " -DMIOPEN_USE_FP16=0";
+			compiler_options += " -DMIOPEN_USE_FP32=1";
+		}
+		else if (xDesc.GetType() == miopenHalf)
+		{
+			compiler_options += " -DMIOPEN_USE_FP16=1";
+			compiler_options += " -DMIOPEN_USE_FP32=0";
+		}
+			
+		float f_activ_alpha = static_cast<float>(activ_alpha);
+		float f_activ_beta = static_cast<float>(activ_beta);
+		float f_activ_power = static_cast<float>(activ_power);
 
-    mloConstruct(construct_params);
+		std::vector<size_t> vld;
+		std::vector<size_t> vgd;
 
-    std::string program_name     = construct_params.getKernelFile();      // CL kernel filename
-    std::string kernel_name      = construct_params.getKernelName();      // kernel name
-    std::string compiler_options = construct_params.getCompilerOptions(); // kernel parameters
+		vld.push_back(256);
+		vld.push_back(1);
+		vld.push_back(1);
 
-    std::string network_config;
-    construct_params.mloBuildConf_Key(network_config);
+		vgd.push_back(MAP_RD);
+		vgd.push_back(1);
+		vgd.push_back(1);
 
-    const std::vector<size_t>& vld = construct_params.getLocalWkSize();
-    const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
+		cl_long xOffset = 0;
+		cl_long yOffset = 0;
 
-    int imode = mode;
-    construct_params.getNeuronDescr(imode, activ_power, activ_beta, activ_alpha);
-    auto f_activ_alpha = static_cast<float>(activ_alpha);
-    auto f_activ_beta  = static_cast<float>(activ_beta);
-    auto f_activ_power = static_cast<float>(activ_power);
+		std::string program_name = "MIOpenNeuron.cl";
+		std::string kernel_name = "MIOpenActiveFwdLite";
+		handle.AddKernel("miopenActivationForward",
+			network_config,
+			program_name,
+			kernel_name,
+			vld,
+			vgd,
+			compiler_options)(
+				x, y, f_activ_power, f_activ_beta, f_activ_alpha, cl_long(xOffset), cl_long(yOffset));
 
-    compiler_options +=
-        " -DMLO_N_IN=" + std::to_string(nIn) + " -DMLO_C_IN=" + std::to_string(cIn) +
-        " -DMLO_H_IN=" + std::to_string(hIn) + " -DMLO_W_IN=" + std::to_string(wIn) +
-        " -DMLO_N_IN_STRIDE=" + std::to_string(nInStride) + " -DMLO_C_IN_STRIDE=" +
-        std::to_string(cInStride) + " -DMLO_H_IN_STRIDE=" + std::to_string(hInStride) +
-        " -DMLO_W_IN_STRIDE=" + std::to_string(wInStride) + " -DMLO_N_OUT=" + std::to_string(nOut) +
-        " -DMLO_C_OUT=" + std::to_string(cOut) + " -DMLO_H_OUT=" + std::to_string(hOut) +
-        " -DMLO_W_OUT=" + std::to_string(wOut) + " -DMLO_N_OUT_STRIDE=" +
-        std::to_string(nOutStride) + " -DMLO_C_OUT_STRIDE=" + std::to_string(cOutStride) +
-        " -DMLO_H_OUT_STRIDE=" + std::to_string(hOutStride) + " -DMLO_W_OUT_STRIDE=" +
-        std::to_string(wOutStride) + " -DMLO_N_DIN=" + std::to_string(1) + " -DMLO_C_DIN=" +
-        std::to_string(1) + " -DMLO_H_DIN=" + std::to_string(1) + " -DMLO_W_DIN=" +
-        std::to_string(1) + " -DMLO_N_DIN_STRIDE=" + std::to_string(1) + " -DMLO_C_DIN_STRIDE=" +
-        std::to_string(1) + " -DMLO_H_DIN_STRIDE=" + std::to_string(1) + " -DMLO_W_DIN_STRIDE=" +
-        std::to_string(1) + " -DMLO_N_DOUT=" + std::to_string(1) + " -DMLO_C_DOUT=" +
-        std::to_string(1) + " -DMLO_H_DOUT=" + std::to_string(1) + " -DMLO_W_DOUT=" +
-        std::to_string(1) + " -DMLO_N_DOUT_STRIDE=" + std::to_string(1) + " -DMLO_C_DOUT_STRIDE=" +
-        std::to_string(1) + " -DMLO_H_DOUT_STRIDE=" + std::to_string(1) + " -DMLO_W_DOUT_STRIDE=" +
-        std::to_string(1) + " -DMLO_IN_BLOCK_SZ=" + std::to_string(cIn * hIn * wIn) +
-        " -DMLO_OUT_BLOCK_SZ=" + std::to_string(cOut * hOut * wOut) + " -DMLO_DIN_BLOCK_SZ=" +
-        std::to_string(1) + " -DMLO_DOUT_BLOCK_SZ=" + std::to_string(1);
+	}
+	else
+	{
+		construct_params.setStream(&handle);
 
-    handle.AddKernel("miopenActivationForward",
-                     network_config,
-                     program_name,
-                     kernel_name,
-                     vld,
-                     vgd,
-                     compiler_options)(
-        x, y, f_activ_power, f_activ_beta, f_activ_alpha, long(xOffset), long(yOffset));
+		int nOut = 1;
+		int cOut = 1;
+		int hOut = 1;
+		int wOut = 1;
+		int nOutStride = 0;
+		int cOutStride = 0;
+		int hOutStride = 0;
+		int wOutStride = 0;
 
+		if (yDesc.GetSize() == 4)
+		{
+			std::tie(nOut, cOut, hOut, wOut) = tien<4>(yDesc.GetLengths());
+			std::tie(nOutStride, cOutStride, hOutStride, wOutStride) = tien<4>(yDesc.GetStrides());
+		}
+		else if (yDesc.GetSize() < 4 && yDesc.GetSize() > 0)
+		{
+			auto tensor_size = yDesc.GetSize();
+			switch (tensor_size)
+			{
+			case 1:
+				std::tie(wOut) = tien<1>(yDesc.GetLengths());
+				std::tie(wOutStride) = tien<1>(yDesc.GetStrides());
+				nOutStride = wOut * wOutStride;
+				cOutStride = wOut * wOutStride;
+				hOutStride = wOut * wOutStride;
+				break;
+			case 2:
+				std::tie(hOut, wOut) = tien<2>(yDesc.GetLengths());
+				std::tie(hOutStride, wOutStride) = tien<2>(yDesc.GetStrides());
+				nOutStride = hOut * hOutStride;
+				cOutStride = hOut * hOutStride;
+				break;
+			case 3:
+				std::tie(cOut, hOut, wOut) = tien<3>(yDesc.GetLengths());
+				std::tie(cOutStride, hOutStride, wOutStride) = tien<3>(yDesc.GetStrides());
+				nOutStride = cOut * cOutStride;
+				break;
+			}
+		}
+		else
+		{
+			MIOPEN_THROW("activation does not support tensor size larger than 4 or smaller than 1");
+		}
+
+		construct_params.setTopDescr(
+			"NCHW", "FP32", nOut, cOut, hOut, wOut, nOutStride, cOutStride, hOutStride, wOutStride);
+		int nIn = 1;
+		int cIn = 1;
+		int hIn = 1;
+		int wIn = 1;
+		int nInStride = 0;
+		int cInStride = 0;
+		int hInStride = 0;
+		int wInStride = 0;
+
+		if (xDesc.GetSize() == 4)
+		{
+			std::tie(nIn, cIn, hIn, wIn) = tien<4>(xDesc.GetLengths());
+			std::tie(nInStride, cInStride, hInStride, wInStride) = tien<4>(xDesc.GetStrides());
+		}
+		else if (xDesc.GetSize() < 4 && xDesc.GetSize() > 0)
+		{
+			auto tensor_size = xDesc.GetSize();
+			switch (tensor_size)
+			{
+			case 1:
+				std::tie(wIn) = tien<1>(xDesc.GetLengths());
+				std::tie(wInStride) = tien<1>(xDesc.GetStrides());
+				nInStride = wIn * wInStride;
+				cInStride = wIn * wInStride;
+				hInStride = wIn * wInStride;
+				break;
+			case 2:
+				std::tie(hIn, wIn) = tien<2>(xDesc.GetLengths());
+				std::tie(hInStride, wInStride) = tien<2>(xDesc.GetStrides());
+				nInStride = hIn * hInStride;
+				cInStride = hIn * hInStride;
+				break;
+			case 3:
+				std::tie(cIn, hIn, wIn) = tien<3>(xDesc.GetLengths());
+				std::tie(cInStride, hInStride, wInStride) = tien<3>(xDesc.GetStrides());
+				nInStride = cIn * cInStride;
+				break;
+			}
+		}
+		else
+		{
+			MIOPEN_THROW(
+				"Activation does not support tensor dimension larger than 4 or smaller than 1");
+		}
+
+		construct_params.setBotDescFromMLDesc(xDesc);
+
+
+
+		construct_params.setNeuronDescr(static_cast<int>(mode), activ_power, activ_beta, activ_alpha);
+
+		mloConstruct(construct_params);
+
+		std::string program_name = construct_params.getKernelFile();      // CL kernel filename
+		std::string kernel_name = construct_params.getKernelName();      // kernel name
+		std::string compiler_options = construct_params.getCompilerOptions(); // kernel parameters
+
+
+		const std::vector<size_t>& vld = construct_params.getLocalWkSize();
+		const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
+
+		int imode = mode;
+		construct_params.getNeuronDescr(imode, activ_power, activ_beta, activ_alpha);
+
+		auto f_activ_alpha = static_cast<float>(activ_alpha);
+		auto f_activ_beta = static_cast<float>(activ_beta);
+		auto f_activ_power = static_cast<float>(activ_power);
+
+		compiler_options +=
+			" -DMLO_N_IN=" + std::to_string(nIn) + " -DMLO_C_IN=" + std::to_string(cIn) +
+			" -DMLO_H_IN=" + std::to_string(hIn) + " -DMLO_W_IN=" + std::to_string(wIn) +
+			" -DMLO_N_IN_STRIDE=" + std::to_string(nInStride) + " -DMLO_C_IN_STRIDE=" +
+			std::to_string(cInStride) + " -DMLO_H_IN_STRIDE=" + std::to_string(hInStride) +
+			" -DMLO_W_IN_STRIDE=" + std::to_string(wInStride) + " -DMLO_N_OUT=" + std::to_string(nOut) +
+			" -DMLO_C_OUT=" + std::to_string(cOut) + " -DMLO_H_OUT=" + std::to_string(hOut) +
+			" -DMLO_W_OUT=" + std::to_string(wOut) + " -DMLO_N_OUT_STRIDE=" +
+			std::to_string(nOutStride) + " -DMLO_C_OUT_STRIDE=" + std::to_string(cOutStride) +
+			" -DMLO_H_OUT_STRIDE=" + std::to_string(hOutStride) + " -DMLO_W_OUT_STRIDE=" +
+			std::to_string(wOutStride) + " -DMLO_N_DIN=" + std::to_string(1) + " -DMLO_C_DIN=" +
+			std::to_string(1) + " -DMLO_H_DIN=" + std::to_string(1) + " -DMLO_W_DIN=" +
+			std::to_string(1) + " -DMLO_N_DIN_STRIDE=" + std::to_string(1) + " -DMLO_C_DIN_STRIDE=" +
+			std::to_string(1) + " -DMLO_H_DIN_STRIDE=" + std::to_string(1) + " -DMLO_W_DIN_STRIDE=" +
+			std::to_string(1) + " -DMLO_N_DOUT=" + std::to_string(1) + " -DMLO_C_DOUT=" +
+			std::to_string(1) + " -DMLO_H_DOUT=" + std::to_string(1) + " -DMLO_W_DOUT=" +
+			std::to_string(1) + " -DMLO_N_DOUT_STRIDE=" + std::to_string(1) + " -DMLO_C_DOUT_STRIDE=" +
+			std::to_string(1) + " -DMLO_H_DOUT_STRIDE=" + std::to_string(1) + " -DMLO_W_DOUT_STRIDE=" +
+			std::to_string(1) + " -DMLO_IN_BLOCK_SZ=" + std::to_string(cIn * hIn * wIn) +
+			" -DMLO_OUT_BLOCK_SZ=" + std::to_string(cOut * hOut * wOut) + " -DMLO_DIN_BLOCK_SZ=" +
+			std::to_string(1) + " -DMLO_DOUT_BLOCK_SZ=" + std::to_string(1);
+
+		handle.AddKernel("miopenActivationForward",
+			network_config,
+			program_name,
+			kernel_name,
+			vld,
+			vgd,
+			compiler_options)(
+				x, y, f_activ_power, f_activ_beta, f_activ_alpha, cl_long(xOffset), cl_long(yOffset));
+	}
     return (status);
 }
 
@@ -466,24 +525,24 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         std::to_string(cdIn * hdIn * wdIn) + " -DMLO_DOUT_BLOCK_SZ=" +
         std::to_string(cdOut * hdOut * wdOut);
 
-    handle.AddKernel("miopenActivationBackward",
-                     network_config,
-                     program_name,
-                     kernel_name,
-                     vld,
-                     vgd,
-                     compiler_options)(dx,
-                                       dy,
-                                       x,
-                                       y,
-                                       f_diff_scale,
-                                       f_activ_power,
-                                       f_activ_beta,
-                                       f_activ_alpha,
-                                       long(dxOffset),
-                                       long(dyOffset),
-                                       long(xOffset),
-                                       long(yOffset));
+	handle.AddKernel("miopenActivationBackward",
+		network_config,
+		program_name,
+		kernel_name,
+		vld,
+		vgd,
+		compiler_options)(dx,
+			dy,
+			x,
+			y,
+			f_diff_scale,
+			f_activ_power,
+			f_activ_beta,
+			f_activ_alpha,
+			cl_long(dxOffset),
+			cl_long(dyOffset),
+			cl_long(xOffset),
+			cl_long(yOffset));
 
     return (status);
 }
