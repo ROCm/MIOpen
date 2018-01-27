@@ -43,26 +43,11 @@
 #define MIO_OPS_DEBUG 0
 
 template <class T>
-struct tensor_ops_base
+struct verify_tensor_ops
 {
     tensor<T> a;
     tensor<T> b;
     tensor<T> c;
-
-    void fail(float = 0) const
-    {
-        std::cout << "A tensor: " << a.desc.ToString() << std::endl;
-        std::cout << "B tensor: " << b.desc.ToString() << std::endl;
-        std::cout << "C tensor: " << a.desc.ToString() << std::endl;
-    }
-};
-
-template <class T>
-struct verify_tensor_ops : tensor_ops_base<T>
-{
-    using tensor_ops_base<T>::a;
-    using tensor_ops_base<T>::b;
-    using tensor_ops_base<T>::c;
 
     int Aoffset;
     int Boffset;
@@ -245,7 +230,10 @@ struct verify_tensor_ops : tensor_ops_base<T>
     void fail(int = 0) const
     {
         std::cout << "TensorOp: " << std::endl;
-        this->tensor_ops_base<T>::fail();
+        std::cout << "A tensor: " << a.desc.ToString() << std::endl;
+        std::cout << "B tensor: " << b.desc.ToString() << std::endl;
+        std::cout << "C tensor: " << a.desc.ToString() << std::endl;
+        std::cout << "Offsets: " << Aoffset << "," << Boffset << "," << Coffset << std::endl;
     }
 };
 
@@ -334,6 +322,8 @@ struct tensor_ops_driver : test_driver
             tensor<T> aTensor = packed ? tensorlens_ac : get_subtensors(super_a, tensorlens_ac);
             tensor<T> bTensor = packed ? tensorlens_b : get_subtensors(super_b, tensorlens_b);
             tensor<T> cTensor = packed ? tensorlens_ac : get_subtensors(super_c, tensorlens_ac);
+
+            if(packed) offsets = {0, 0, 0, 0, 0};
 
             verify(verify_tensor_ops<T>{
                 aTensor, bTensor, cTensor, offsets, alphabeta[0], alphabeta[1], alphabeta[2]});
