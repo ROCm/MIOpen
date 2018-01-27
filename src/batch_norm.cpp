@@ -146,28 +146,28 @@ void bnFwdTrainSelectMulti(Handle& handle,
     if(resultsave && resultrunning)
     {
         kernel_subname = kernel_name + "Mean";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, y);
         profileSequence(handle, 0);
 
         kernel_subname = kernel_name + "FinalMean";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             y, inhw, expAvgFactor, resultRunningMean, resultSaveMean);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "Variance";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, y);
 
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "FinalVariance";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             y, inhw, expAvgFactor, resultRunningVariance, epsilon, resultSaveInvVariance);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "Norm";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, y, bnScale, bnBias);
         profileSequence(handle, 2);
     }
@@ -175,28 +175,28 @@ void bnFwdTrainSelectMulti(Handle& handle,
     {
 
         kernel_subname = kernel_name + "Mean";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, y);
         profileSequence(handle, 0);
 
         kernel_subname = kernel_name + "FinalMean";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             y, inhw, resultSaveMean);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "Variance";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, y);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "FinalVariance";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             y, inhw, epsilon, resultSaveInvVariance);
 
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "Norm";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, y, bnScale, bnBias);
         profileSequence(handle, 2);
     }
@@ -204,27 +204,27 @@ void bnFwdTrainSelectMulti(Handle& handle,
     {
 
         kernel_subname = kernel_name + "Mean";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, y);
         profileSequence(handle, 0);
 
         kernel_subname = kernel_name + "FinalMean";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             y, inhw, expAvgFactor, resultRunningMean);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "Variance";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, y);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "FinalVariance";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             y, inhw, expAvgFactor, resultRunningVariance, epsilon);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "Norm";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, y, bnScale, bnBias);
         profileSequence(handle, 2);
     }
@@ -232,27 +232,27 @@ void bnFwdTrainSelectMulti(Handle& handle,
     {
 
         kernel_subname = kernel_name + "Mean";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, y);
         profileSequence(handle, 0);
 
         kernel_subname = kernel_name + "FinalMean";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             y, inhw);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "Variance";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, y);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "FinalVariance";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             y, inhw, epsilon);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "Norm";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, y, bnScale, bnBias);
         profileSequence(handle, 2);
     }
@@ -289,7 +289,7 @@ void bnFwdTrainSelectSingle(Handle& handle,
 
     if(resultsave && resultrunning)
     {
-        handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
             x,
             y,
             bnScale,
@@ -304,12 +304,12 @@ void bnFwdTrainSelectSingle(Handle& handle,
     }
     else if(resultsave)
     {
-        handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
             x, y, bnScale, bnBias, inhw, epsilon, resultSaveMean, resultSaveInvVariance);
     }
     else if(resultrunning)
     {
-        handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
             x,
             y,
             bnScale,
@@ -322,7 +322,7 @@ void bnFwdTrainSelectSingle(Handle& handle,
     }
     else
     {
-        handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
             x, y, bnScale, bnBias, inhw, epsilon);
     }
 }
@@ -350,7 +350,7 @@ void bnBwdTrainSelectSingle(Handle& handle,
 
     if(useSaved)
     {
-        handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
             x, dy, dx, bnScale, dScale, dBias, savedMean, savedInvVariance, inhw);
     }
     else
@@ -358,7 +358,7 @@ void bnBwdTrainSelectSingle(Handle& handle,
         if(handle.GetDeviceName() == "gfx803")
             parms += " -DMIO_BN_NODPP=1";
 
-        handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
             x, dy, dx, bnScale, dScale, dBias, epsilon, inhw);
     }
 }
@@ -393,27 +393,27 @@ void bnBwdTrainSelectMulti(Handle& handle,
     {
 
         kernel_subname = kernel_name + "DBias";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             dy, dx);
         profileSequence(handle, 0);
 
         kernel_subname = kernel_name + "DScale";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, dy, dx, savedMean, savedInvVariance);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "FinalDBias";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             dx, dBias);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "FinalDScale";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             dx, dScale);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "DX";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, dy, dx, bnScale, dScale, dBias, savedMean, savedInvVariance, inhw);
         profileSequence(handle, 2);
     }
@@ -423,47 +423,47 @@ void bnBwdTrainSelectMulti(Handle& handle,
             parms += " -DMIO_BN_NODPP=1";
 
         kernel_subname = kernel_name + "Mean";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, dx);
         profileSequence(handle, 0);
 
         kernel_subname = kernel_name + "DBias";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             dy, dx);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "FinalDBias";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             dx, dBias);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "FinalMean";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             dx, inhw);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "Variance";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, dx);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "FinalVariance";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             dx, inhw, epsilon);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "DScale";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, dy, dx);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "FinalDScale";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             dx, dScale);
         profileSequence(handle, 1);
 
         kernel_subname = kernel_name + "DX";
-        handle.GetKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_subname, vld, vgd, parms)(
             x, dy, dx, bnScale, dScale, dBias, inhw);
         profileSequence(handle, 2);
     }
