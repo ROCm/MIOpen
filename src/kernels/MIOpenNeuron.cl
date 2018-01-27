@@ -327,8 +327,6 @@ __kernel void MIOpenActiveFwdLite(const __global _FLOAT* bot,
 
     int index = gid0 * MLO_READ_UNIT;
 
-
-
     _FLOAT data[MLO_READ_UNIT];
     _FLOAT response[MLO_READ_UNIT];
 
@@ -341,6 +339,83 @@ __kernel void MIOpenActiveFwdLite(const __global _FLOAT* bot,
 
 }
 
+__kernel void
+MIOpenActiveBwdLite(__global _FLOAT* bot_diff,
+                __global const _FLOAT* top_diff,
+                __global const _FLOAT* bot,
+                __global const _FLOAT* top,
+                _FLOAT diff_scale,
+                _FLOAT power,
+                _FLOAT scale,
+                _FLOAT shift,
+                const long dxOffset,
+                const long dyOffset,
+                const long xOffset,
+                const long yOffset)
+{
+    (void)diff_scale;
+    (void)power;
+    (void)scale;
+    (void)shift;
+
+    int gid0 = get_global_id(0);
+
+    int index = gid0 * MLO_READ_UNIT;
+
+    _FLOAT bot_diff_dat[MLO_READ_UNIT];
+    _FLOAT top_diff_dat[MLO_READ_UNIT];
+    _FLOAT bot_dat[MLO_READ_UNIT];
+    _FLOAT top_dat[MLO_READ_UNIT];
+
+    *((MLO_READ_TYPE*)top_diff_dat) = *((const __global MLO_READ_TYPE*)(top_diff + index));
+    *((MLO_READ_TYPE*)bot_dat) = *((const __global MLO_READ_TYPE*)(bot + index));
+    *((MLO_READ_TYPE*)top_dat) = *((const __global MLO_READ_TYPE*)(top + index));
+
+
+#if MLO_NRN_OP_ID == MLO_NEURON_RELU
+    {
+        ActivationFunction_ReLU_Diff(MLO_READ_UNIT,
+                                     bot_diff_dat,
+                                     (const _FLOAT*)top_diff_dat,
+                                     (const _FLOAT*)bot_dat,
+                                     scale);
+    }
+#elif MLO_NRN_OP_ID == MLO_NEURON_LOGISTIC
+    // 1/(1 + exp(-x))
+    ActivationFunction_Sigmoid_Diff(
+        MLO_READ_UNIT, bot_diff_dat, (const _FLOAT*)top_diff_dat, (const _FLOAT*)top_dat);
+#elif MLO_NRN_OP_ID == MLO_NEURON_TANH
+    // (exp(2x) -1) / (exp(2x) + 1)
+
+    ActivationFunction_TanH_Diff(
+        MLO_READ_UNIT, bot_diff_dat, (const _FLOAT*)top_diff_dat, (const _FLOAT*)top_dat);
+
+#elif MLO_NRN_OP_ID == MLO_NEURON_ABS
+
+    ActivationFunction_Abs_Diff(
+        MLO_READ_UNIT, bot_diff_dat, (const _FLOAT*)top_diff_dat, (const _FLOAT*)bot_dat);
+#elif MLO_NRN_OP_ID == MLO_NEURON_POWER
+    // (shift + scale * x ) ^power
+
+    ActivationFunction_Power_Diff(MLO_READ_UNIT,
+                                  bot_diff_dat,
+                                  (const _FLOAT*)top_diff_dat,
+                                  (const _FLOAT*)top_dat,
+                                  (const _FLOAT*)bot_dat,
+                                  diff_scale,
+                                  power,
+                                  scale,
+                                  shift);
+
+#elif MLO_NRN_OP_ID == MLO_NEURON_SOFTRELU
+    //	log(1 + exp(x))
+    ActivationFunction_BNLL_Diff(
+        MLO_READ_UNIT, bot_diff_dat, (const _FLOAT*)top_diff_dat, (const _FLOAT*)bot_dat);
+#endif
+
+    *((__global MLO_READ_TYPE*)(bot_diff + index)) = *((MLO_READ_TYPE*)bot_diff_dat); 
+
+}
 
 /**************************************************************************************************************/
 
