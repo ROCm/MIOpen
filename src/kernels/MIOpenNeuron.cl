@@ -303,6 +303,51 @@ __attribute__((always_inline)) void ActivationFunction_BNLL_Diff(int n,
     }
 }
 
+#ifdef LITE
+// N - batch size
+// C - # of maps
+// H - map height
+// W - map width
+// TENS_LEN = (N*C*H*W);
+// RD_BLCK = (TENS_LEN%4==0) ? 4 : (TENS_LEN%3==0)? 3 : (TENS_LEN%2==0)? 2 : 1;
+// READ_TYPE = (RD_BLCK==4) ? "float4" : (RD_BLCK == 3) ? "float3" : (RD_BLC==2) ? "float2" :
+// "float";
+// local size = (256, 1, 1)
+// global size = ((TENS_LEN/RD_BLCK), 1, 1)
+
+__kernel void MIOpenActiveFwdLite(const __global _FLOAT* bot,
+                __global _FLOAT* top,
+                _FLOAT power,
+                _FLOAT scale,
+                _FLOAT shift,
+                const long xOffset,
+                const long yOffset)
+{
+    int gid0 = get_global_id(0);
+
+    int index = gid0 * MLO_READ_UNIT;
+
+
+
+    _FLOAT data[MLO_READ_UNIT];
+    _FLOAT response[MLO_READ_UNIT];
+
+    *((MLO_READ_TYPE*)data) = *((const __global MLO_READ_TYPE*)(bot + index));
+
+    ActivationFunction(MLO_READ_UNIT, response, (const _FLOAT*)data, power, scale, shift);
+
+
+    *((__global MLO_READ_TYPE*)(top + index)) = *((MLO_READ_TYPE*)response);
+
+}
+
+
+/**************************************************************************************************************/
+
+#else
+
+
+/***************************************************************************************************************/
 __attribute__((reqd_work_group_size(MLO_NRN_GROUP_SZ0, MLO_NRN_GROUP_SZ1, MLO_NRN_GROUP_SZ2)))
 __kernel void
 MIOpenNeuronFwd(const __global _FLOAT* bot,
@@ -447,6 +492,7 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
         }
     }
 }
+
 
 __attribute__((reqd_work_group_size(MLO_NRN_GROUP_SZ0, MLO_NRN_GROUP_SZ1, MLO_NRN_GROUP_SZ2)))
 __kernel void
@@ -735,3 +781,6 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
         }
     }
 }
+
+
+#endif // #ifdef LITE
