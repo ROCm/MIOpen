@@ -30,6 +30,8 @@
 #include <miopen/tensor.hpp>
 #include <miopengemm/miogemm.hpp>
 
+#include <mutex>
+
 namespace miopen {
 
 struct GemmGeometry
@@ -80,6 +82,7 @@ struct GemmGeometry
 
 using GemmKey = std::pair<std::string, std::string>;
 std::unordered_map<GemmKey, GemmGeometry, SimpleHash>& gemm_geo_map();
+std::unique_lock<std::mutex> get_gemm_geo_map_lock();
 
 } // namespace miopen
 
