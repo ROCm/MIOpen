@@ -74,17 +74,28 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 	size_t elem_space = xDesc.GetElementSpace();
 	size_t elem_size = xDesc.GetElementSize();
 
+// short cut for packed tensors and 2D tensors with stride != width
+	auto x_lens = xDesc.GetLengths();
+	auto y_lens = xDesc.GetLengths();
 
-	bool t2D = (xDesc.GetLengths().size() == yDesc.GetLengths().size() && xDesc.GetLengths().size() == 2);
-	bool packed = IsPackedTensor(xDesc.GetStrides(), xDesc.GetLengths()) && IsPackedTensor(yDesc.GetStrides(), yDesc.GetLengths());
+	auto x_strides = xDesc.GetStrides();
+	auto y_strides = xDesc.GetStrides();
+
+	bool t2D = (x_lens.size() == y_lens.size()
+		&& (x_lens.size() == 2 || (x_lens.size()==3 && x_lens[0] ==1 && y_lens.size() == 3 && y_lens[0] == 1)
+			|| (x_lens.size() == 4 && x_lens[0] == 1 && x_lens[1] == 1 && y_lens.size() == 4 && y_lens[0] == 1 && y_lens[1] == 1)
+			|| (x_lens.size() == 5 && x_lens[0] == 1 && x_lens[1] == 1 && x_lens[2] == 1 && y_lens.size() == 5 && y_lens[0] == 1 && y_lens[1] == 1 && y_lens[2] == 1)));
+	bool packed = IsPackedTensor(x_strides, x_lens) && IsPackedTensor(y_strides, y_lens);
 
 	if (xDesc.GetElementSize() == yDesc.GetElementSize() && (packed || t2D))
 	{
 		std::string compiler_options;
-		size_t read_unit = (xDesc.GetElementSize() % 4 == 0) ? 4 : (xDesc.GetElementSize() % 2 == 0) ? 2 : 1;
 
 
-		size_t MAP_RD = xDesc.GetElementSize() / read_unit;
+		size_t read_len = (packed) ? xDesc.GetElementSize() : (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3) ? x_lens[1] : (x_lens.size() == 4) ? x_lens[2] : x_lens[3];
+
+		size_t read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
+		size_t MAP_RD = read_len / read_unit;
 
 		const std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
 
@@ -116,15 +127,35 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 		vgd.push_back(1);
 
 		std::string program_name = "MIOpenNeuron.cl";
-		std::string kernel_name = "MIOpenActiveFwdLite";
-		handle.AddKernel("miopenActivationForward",
-			network_config,
-			program_name,
-			kernel_name,
-			vld,
-			vgd,
-			compiler_options)(
-				x, y, f_activ_power, f_activ_beta, f_activ_alpha);
+		std::string kernel_name = (packed) ? "MIOpenActiveFwdLite" : "MIOpenActiveFwd2DLite";
+		if (packed)
+		{
+			handle.AddKernel("miopenActivationForward",
+				network_config,
+				program_name,
+				kernel_name,
+				vld,
+				vgd,
+				compiler_options)(
+					x, y, f_activ_power, f_activ_beta, f_activ_alpha);
+		}
+		else
+		{
+			unsigned int x_stride = (unsigned int)((x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3) ? x_strides[1] : (x_lens.size() == 4) ? x_strides[2] : x_strides[3]);
+			unsigned int y_stride = (unsigned int)((y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3) ? y_strides[1] : (y_lens.size() == 4) ? y_strides[2] : y_strides[3]);
+			handle.AddKernel("miopenActivationForward",
+				network_config,
+				program_name,
+				kernel_name,
+				vld,
+				vgd,
+				compiler_options)(
+					x, y, f_activ_power, f_activ_beta, f_activ_alpha,
+					cl_long(xOffset), cl_long(yOffset),
+					x_stride,
+					y_stride);
+
+		}
 
 	}
 	else
