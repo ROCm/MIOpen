@@ -124,7 +124,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 			vld,
 			vgd,
 			compiler_options)(
-				x, y, f_activ_power, f_activ_beta, f_activ_alpha, cl_long(xOffset), cl_long(yOffset));
+				x, y, f_activ_power, f_activ_beta, f_activ_alpha);
 
 	}
 	else
@@ -371,11 +371,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 				f_diff_scale,
 				f_activ_power,
 				f_activ_beta,
-				f_activ_alpha,
-				cl_long(dxOffset),
-				cl_long(dyOffset),
-				cl_long(xOffset),
-				cl_long(yOffset));
+				f_activ_alpha);
 
 	}
 	else

@@ -222,7 +222,7 @@ __attribute__((always_inline)) void ActivationFunction_ReLU_Diff(int n,
                                                                  UNUSED _FLOAT negative_slope)
 {
 
-    for(int i = 0; i < n; ++i)
+    for(uint i = 0; i < n; ++i)
     {
         bot_diff[i] = top_diff[i] * (bot_data[i] > 0);
     }
@@ -233,7 +233,7 @@ __attribute__((always_inline)) void ActivationFunction_TanH_Diff(int n,
                                                                  const _FLOAT* top_diff,
                                                                  const _FLOAT* top_data)
 {
-    for(int i = 0; i < n; i++)
+    for(uint i = 0; i < n; i++)
     {
         // (exp(2x) -1) / (exp(2x) + 1)
         _FLOAT tanh_x = top_data[i];
@@ -246,7 +246,7 @@ __attribute__((always_inline)) void ActivationFunction_Sigmoid_Diff(int n,
                                                                     const _FLOAT* top_diff,
                                                                     const _FLOAT* top_data)
 {
-    for(int i = 0; i < n; i++)
+    for(uint i = 0; i < n; i++)
     {
         // 1/(1 + exp(-x))
         _FLOAT sigmoid_x = top_data[i];
@@ -257,7 +257,7 @@ __attribute__((always_inline)) void ActivationFunction_Sigmoid_Diff(int n,
 __attribute__((always_inline)) void
 ActivationFunction_Abs_Diff(int n, _FLOAT* bot_diff, const _FLOAT* top_diff, const _FLOAT* bot_data)
 {
-    for(int i = 0; i < n; i++)
+    for(uint i = 0; i < n; i++)
     {
         bot_diff[i] = top_diff[i] * ((bot_data[i] >= 0) ? 1 : -1);
     }
@@ -276,7 +276,7 @@ __attribute__((always_inline)) void ActivationFunction_Power_Diff(int n,
                                                                   _FLOAT shift)
 {
 
-    for(int i = 0; i < n; i++)
+    for(uint i = 0; i < n; i++)
     {
         _FLOAT arg = shift + bot_data[i] * scale;
 //		bot_diff[i] = (arg == 0) ? 0 : diff_scale * top_data[i] / arg;
@@ -294,7 +294,7 @@ __attribute__((always_inline)) void ActivationFunction_BNLL_Diff(int n,
                                                                  const _FLOAT* top_diff,
                                                                  const _FLOAT* bot_data)
 {
-    for(int i = 0; i < n; i++)
+    for(uint i = 0; i < n; i++)
     {
         //	(log(1 + exp(x)))' = 1/ (1 + exp(-x))
         //		_FLOAT kBNLL_THRESHOLD = (_FLOAT)50.;
@@ -304,6 +304,10 @@ __attribute__((always_inline)) void ActivationFunction_BNLL_Diff(int n,
 }
 
 #ifdef LITE
+
+/**********************************************************************************************
+**********************************************************************************************/
+
 // N - batch size
 // C - # of maps
 // H - map height
@@ -319,13 +323,11 @@ __kernel void MIOpenActiveFwdLite(const __global _FLOAT* bot,
                 __global _FLOAT* top,
                 _FLOAT power,
                 _FLOAT scale,
-                _FLOAT shift,
-                const long xOffset,
-                const long yOffset)
+                _FLOAT shift)
 {
-    int gid0 = get_global_id(0);
+    uint gid0 = get_global_id(0);
 
-    int index = gid0 * MLO_READ_UNIT;
+    uint index = gid0 * MLO_READ_UNIT;
 
     _FLOAT data[MLO_READ_UNIT];
     _FLOAT response[MLO_READ_UNIT];
@@ -339,6 +341,39 @@ __kernel void MIOpenActiveFwdLite(const __global _FLOAT* bot,
 
 }
 
+/**********************************************************************************************
+**********************************************************************************************/
+
+__kernel void MIOpenActiveFwd2DLite(const __global _FLOAT* bot,
+                __global _FLOAT* top,
+                _FLOAT power,
+                _FLOAT scale,
+                _FLOAT shift,
+                const long bot_offset,
+                const long top_offset,
+				const uint bot_stride,
+				const uint top_stride)
+{
+    uint x_id = get_global_id(0);
+    uint y = get_global_id(1);
+
+    uint bot_index = y * bot_stride + x_id * MLO_READ_UNIT;
+    uint top_index = y * top_stride + x_id * MLO_READ_UNIT;
+
+    _FLOAT data[MLO_READ_UNIT];
+    _FLOAT response[MLO_READ_UNIT];
+
+    *((MLO_READ_TYPE*)data) = *((const __global MLO_READ_TYPE*)(bot + bot_offset + bot_index));
+
+    ActivationFunction(MLO_READ_UNIT, response, (const _FLOAT*)data, power, scale, shift);
+
+
+    *((__global MLO_READ_TYPE*)(top + bot_offset + top_index)) = *((MLO_READ_TYPE*)response);
+}
+
+/**********************************************************************************************
+**********************************************************************************************/
+
 __kernel void
 MIOpenActiveBwdLite(__global _FLOAT* bot_diff,
                 __global const _FLOAT* top_diff,
@@ -347,11 +382,7 @@ MIOpenActiveBwdLite(__global _FLOAT* bot_diff,
                 _FLOAT diff_scale,
                 _FLOAT power,
                 _FLOAT scale,
-                _FLOAT shift,
-                const long dxOffset,
-                const long dyOffset,
-                const long xOffset,
-                const long yOffset)
+                _FLOAT shift)
 {
     (void)diff_scale;
     (void)power;
