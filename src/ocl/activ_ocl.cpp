@@ -374,10 +374,10 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 	if (x_elem_sz == y_elem_sz && dx_elem_sz == dy_elem_sz && x_elem_sz == dx_elem_sz && (packed || t2D)) {
 		std::string compiler_options;
 
-		size_t read_unit = (xDesc.GetElementSize() % 4 == 0) ? 4 : (xDesc.GetElementSize() % 2 == 0) ? 2 : 1;
+		size_t read_len = (packed) ? x_elem_sz : (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3) ? x_lens[1] : (x_lens.size() == 4) ? x_lens[2] : x_lens[3];
 
-
-		size_t MAP_RD = xDesc.GetElementSize() / read_unit;
+		size_t read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
+		size_t MAP_RD = read_len / read_unit;
 
 		const std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
 
