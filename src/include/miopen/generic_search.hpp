@@ -96,8 +96,7 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
     public:
     // STL-like iterator shall be default contructible. Also implements container's end()
     ComputedIterator() : v(), p(nullptr) {}
-    // STL-like iterator shall be copy contructible.
-    ComputedIterator(const ComputedIterator& iter) : v(iter.v), p(iter.p) {}
+    // STL-like iterator shall be copy contructible. The default copy ctor is ok.
 
     ComputedIterator& operator++() { return Next(); }
     const PerformanceConfig& operator*() const { return v; }
@@ -117,7 +116,11 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
 template <typename PerformanceConfig, typename Context>
 class ComputedContainer
 {
-    const Context problem; // Hold a copy to be independent of the environment.
+    Context problem; // Hold a copy make the object independent of the environment.
+    /// \note We do not add 'const' to keep the object assignable
+    /// for the sake of flexibility. Nevertheless, all element accesses of
+    /// the "computed container" shall be const.
+
     public:
     using const_iterator = ComputedIterator<PerformanceConfig, Context>;
 
@@ -256,15 +259,8 @@ auto GenericSearch(const Solver s, const Context& context)
     auto wei_ocl_buf  = profile_h.Write(wei);
     auto bias_ocl_buf = context.bias ? profile_h.Write(bias) : nullptr;
 
-    int n_runs_total = 0;
     const ComputedContainer<PerformanceConfig, Context> all_configs(context);
-    {
-        for(const auto& dummy : all_configs)
-        {
-            ++n_runs_total;
-            (void)dummy;
-        }
-    }
+    const int n_runs_total = std::distance(all_configs.begin(), all_configs.end());
     MIOPEN_LOG_W(SolverDbId(s) << ": Searching the best solution among " << n_runs_total << "...");
     bool is_passed   = false; // left false only if all iterations failed.
     float best_time  = std::numeric_limits<float>::max();
