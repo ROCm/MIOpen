@@ -247,27 +247,30 @@ void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size)
         MIOPEN_THROW_HIP_STATUS(status, "Hip error copying buffer: ");
 }
 
-KernelInvoke Handle::GetKernel(const std::string& algorithm,
+KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::string& network_config,
                                const std::string& program_name,
                                const std::string& kernel_name,
                                const std::vector<size_t>& vld,
                                const std::vector<size_t>& vgd,
-                               const std::string& params)
+                               const std::string& params,
+                               std::size_t cache_index)
 {
-    this->impl->set_ctx();
-    auto k = this->impl->cache.GetKernel(
-        *this, algorithm, network_config, program_name, kernel_name, vld, vgd, params);
-    if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
-        return k.Invoke(this->GetStream(), this->impl->elapsed_time_handler());
-    else
-        return k.Invoke(this->GetStream());
+
+    auto obj = this->impl->cache.AddKernel(
+        *this, algorithm, network_config, program_name, kernel_name, vld, vgd, params, cache_index);
+    return this->Run(obj);
 }
 
-KernelInvoke Handle::GetKernel(const std::string& algorithm, const std::string& network_config)
+const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
+                                                  const std::string& network_config)
+{
+    return this->impl->cache.GetKernels(algorithm, network_config);
+}
+
+KernelInvoke Handle::Run(Kernel k)
 {
     this->impl->set_ctx();
-    auto k = this->impl->cache.GetKernel(algorithm, network_config);
     if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
         return k.Invoke(this->GetStream(), this->impl->elapsed_time_handler());
     else

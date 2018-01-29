@@ -16,7 +16,7 @@ void run(std::size_t n)
     std::vector<int> data_in(n, 1);
     auto data_dev = h.Write(data_in);
 
-    h.GetKernel("GEMM", "", Write2s(), "write", {n, 1, 1}, {n, 1, 1}, "")(data_dev.get());
+    h.AddKernel("GEMM", "", Write2s(), "write", {n, 1, 1}, {n, 1, 1}, "")(data_dev.get());
     std::fill(data_in.begin(), data_in.end(), 2);
 
     auto data_out = h.Read<int>(data_dev, n);
