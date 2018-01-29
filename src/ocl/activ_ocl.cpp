@@ -96,7 +96,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 		std::string compiler_options;
 
 
-		size_t read_len = (packed) ? x_elem_sz : (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3) ? x_lens[1] : (x_lens.size() == 4) ? x_lens[2] : x_lens[3];
+		size_t read_len = (packed) ? x_elem_sz : (x_lens.size() == 2) ? x_lens[1] : (x_lens.size() == 3) ? x_lens[2] : (x_lens.size() == 4) ? x_lens[3] : x_lens[4];
 
 		size_t read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
 		size_t MAP_RD = read_len / read_unit;
@@ -127,13 +127,14 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 		vld.push_back(1);
 
 		vgd.push_back(MAP_RD);
-		vgd.push_back(1);
-		vgd.push_back(1);
 
 		std::string program_name = "MIOpenNeuron.cl";
 		std::string kernel_name = (packed) ? "MIOpenActiveFwdLite" : "MIOpenActiveFwd2DLite";
 		if (packed)
 		{
+			vgd.push_back(1);
+			vgd.push_back(1);
+
 			handle.AddKernel("miopenActivationForward",
 				network_config,
 				program_name,
@@ -147,6 +148,10 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 		{
 			unsigned int x_stride = (unsigned int)((x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3) ? x_strides[1] : (x_lens.size() == 4) ? x_strides[2] : x_strides[3]);
 			unsigned int y_stride = (unsigned int)((y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3) ? y_strides[1] : (y_lens.size() == 4) ? y_strides[2] : y_strides[3]);
+		    size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3) ? x_lens[1] : (x_lens.size() == 4) ? x_lens[2] : x_lens[3];
+			vgd.push_back(height);
+			vgd.push_back(1);
+
 			handle.AddKernel("miopenActivationForward",
 				network_config,
 				program_name,
@@ -406,26 +411,68 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 		vld.push_back(1);
 
 		vgd.push_back(MAP_RD);
-		vgd.push_back(1);
-		vgd.push_back(1);
 
 
 		std::string program_name = "MIOpenNeuron.cl";
-		std::string kernel_name = "MIOpenActiveBwdLite";
-		handle.AddKernel("miopenActivationBackward",
-			network_config,
-			program_name,
-			kernel_name,
-			vld,
-			vgd,
-			compiler_options)(dx,
-				dy,
-				x,
-				y,
-				f_diff_scale,
-				f_activ_power,
-				f_activ_beta,
-				f_activ_alpha);
+		std::string kernel_name = (packed) ? "MIOpenActiveBwdLite" : "MIOpenActiveBwd2DLite";
+		if (packed)
+		{
+			vgd.push_back(1);
+			vgd.push_back(1);
+
+			handle.AddKernel("miopenActivationBackward",
+				network_config,
+				program_name,
+				kernel_name,
+				vld,
+				vgd,
+				compiler_options)(dx,
+					dy,
+					x,
+					y,
+					f_diff_scale,
+					f_activ_power,
+					f_activ_beta,
+					f_activ_alpha);
+		}
+		else
+		{
+
+
+			unsigned int x_stride = (unsigned int)((x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3) ? x_strides[1] : (x_lens.size() == 4) ? x_strides[2] : x_strides[3]);
+			unsigned int y_stride = (unsigned int)((y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3) ? y_strides[1] : (y_lens.size() == 4) ? y_strides[2] : y_strides[3]);
+			unsigned int dx_stride = (unsigned int)((dx_lens.size() == 2) ? dx_strides[0] : (dx_lens.size() == 3) ? dx_strides[1] : (x_lens.size() == 4) ? dx_strides[2] : dx_strides[3]);
+			unsigned int dy_stride = (unsigned int)((dy_lens.size() == 2) ? dy_strides[0] : (dy_lens.size() == 3) ? dy_strides[1] : (dy_lens.size() == 4) ? dy_strides[2] : dy_strides[3]);
+
+			size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3) ? x_lens[1] : (x_lens.size() == 4) ? x_lens[2] : x_lens[3];
+			vgd.push_back(height);
+			vgd.push_back(1);
+
+			handle.AddKernel("miopenActivationBackward",
+				network_config,
+				program_name,
+				kernel_name,
+				vld,
+				vgd,
+				compiler_options)(dx,
+					dy,
+					x,
+					y,
+					f_diff_scale,
+					f_activ_power,
+					f_activ_beta,
+					f_activ_alpha,
+					cl_long(dxOffset),
+					cl_long(dyOffset),
+					cl_long(xOffset),
+					cl_long(yOffset),
+					dx_stride,
+					dy_stride,
+					x_stride,
+					y_stride
+					);
+
+		}
 
 	}
 	else
