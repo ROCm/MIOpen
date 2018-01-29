@@ -368,7 +368,7 @@ __kernel void MIOpenActiveFwd2DLite(const __global _FLOAT* bot,
     ActivationFunction(MLO_READ_UNIT, response, (const _FLOAT*)data, power, scale, shift);
 
 
-    *((__global MLO_READ_TYPE*)(top + bot_offset + top_index)) = *((MLO_READ_TYPE*)response);
+    *((__global MLO_READ_TYPE*)(top + top_offset + top_index)) = *((MLO_READ_TYPE*)response);
 }
 
 /**********************************************************************************************
@@ -447,6 +447,92 @@ MIOpenActiveBwdLite(__global _FLOAT* bot_diff,
     *((__global MLO_READ_TYPE*)(bot_diff + index)) = *((MLO_READ_TYPE*)bot_diff_dat); 
 
 }
+
+
+/**********************************************************************************************
+**********************************************************************************************/
+
+__kernel void MIOpenActiveBwd2DLite(__global _FLOAT* bot_diff,
+                __global const _FLOAT* top_diff,
+                __global const _FLOAT* bot,
+                __global const _FLOAT* top,
+                _FLOAT diff_scale,
+                _FLOAT power,
+                _FLOAT scale,
+                _FLOAT shift,
+                const long bot_diff_offset,
+                const long top_diff_offset,
+                const long bot_offset,
+                const long top_offset,
+				const uint bot_diff_stride,
+				const uint top_diff_stride,
+				const uint bot_stride,
+				const uint top_stride
+				)
+{
+    uint x_id = get_global_id(0);
+    uint y = get_global_id(1);
+
+    uint bot_diff_index = y * bot_diff_stride + x_id * MLO_READ_UNIT;
+    uint top_diff_index = y * top_diff_stride + x_id * MLO_READ_UNIT;
+    uint bot_index = y * bot_stride + x_id * MLO_READ_UNIT;
+    uint top_index = y * top_stride + x_id * MLO_READ_UNIT;
+
+    _FLOAT bot_diff_dat[MLO_READ_UNIT];
+    _FLOAT top_diff_dat[MLO_READ_UNIT];
+    _FLOAT bot_dat[MLO_READ_UNIT];
+    _FLOAT top_dat[MLO_READ_UNIT];
+
+    *((MLO_READ_TYPE*)top_diff_dat) = *((const __global MLO_READ_TYPE*)(top_diff + top_diff_offset + top_diff_index));
+    *((MLO_READ_TYPE*)bot_dat) = *((const __global MLO_READ_TYPE*)(bot + bot_offset + bot_index));
+    *((MLO_READ_TYPE*)top_dat) = *((const __global MLO_READ_TYPE*)(top + top_offset + top_index));
+
+
+#if MLO_NRN_OP_ID == MLO_NEURON_RELU
+    {
+        ActivationFunction_ReLU_Diff(MLO_READ_UNIT,
+                                     bot_diff_dat,
+                                     (const _FLOAT*)top_diff_dat,
+                                     (const _FLOAT*)bot_dat,
+                                     scale);
+    }
+#elif MLO_NRN_OP_ID == MLO_NEURON_LOGISTIC
+    // 1/(1 + exp(-x))
+    ActivationFunction_Sigmoid_Diff(
+        MLO_READ_UNIT, bot_diff_dat, (const _FLOAT*)top_diff_dat, (const _FLOAT*)top_dat);
+#elif MLO_NRN_OP_ID == MLO_NEURON_TANH
+    // (exp(2x) -1) / (exp(2x) + 1)
+
+    ActivationFunction_TanH_Diff(
+        MLO_READ_UNIT, bot_diff_dat, (const _FLOAT*)top_diff_dat, (const _FLOAT*)top_dat);
+
+#elif MLO_NRN_OP_ID == MLO_NEURON_ABS
+
+    ActivationFunction_Abs_Diff(
+        MLO_READ_UNIT, bot_diff_dat, (const _FLOAT*)top_diff_dat, (const _FLOAT*)bot_dat);
+#elif MLO_NRN_OP_ID == MLO_NEURON_POWER
+    // (shift + scale * x ) ^power
+
+    ActivationFunction_Power_Diff(MLO_READ_UNIT,
+                                  bot_diff_dat,
+                                  (const _FLOAT*)top_diff_dat,
+                                  (const _FLOAT*)top_dat,
+                                  (const _FLOAT*)bot_dat,
+                                  diff_scale,
+                                  power,
+                                  scale,
+                                  shift);
+
+#elif MLO_NRN_OP_ID == MLO_NEURON_SOFTRELU
+    //	log(1 + exp(x))
+    ActivationFunction_BNLL_Diff(
+        MLO_READ_UNIT, bot_diff_dat, (const _FLOAT*)top_diff_dat, (const _FLOAT*)bot_dat);
+#endif
+
+
+    *((__global MLO_READ_TYPE*)(top + bot_diff_index + bot_diff_index)) = *((MLO_READ_TYPE*)bot_diff_dat);
+}
+
 
 /**************************************************************************************************************/
 
