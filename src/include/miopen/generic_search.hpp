@@ -109,6 +109,7 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
                 return false;
         return true;
     }
+    bool operator==(ComputedIterator const& other) const { return !(*this != other); }
 
     friend class ComputedContainer<PerformanceConfig, Context>;
 };
