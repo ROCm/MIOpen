@@ -69,8 +69,8 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 	double activ_beta = GetBeta();
 	double activ_power = GetPower();
 
-	std::string network_config;
-	construct_params.mloBuildConf_Key(network_config);
+	std::string network_config = "";
+
 	size_t elem_space = xDesc.GetElementSpace();
 	size_t elem_size = xDesc.GetElementSize();
 
@@ -82,9 +82,9 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 	auto y_strides = xDesc.GetStrides();
 
 	bool t2D = (x_lens.size() == y_lens.size()
-		&& (x_lens.size() == 2 || (x_lens.size()==3 && x_lens[0] ==1 && y_lens.size() == 3 && y_lens[0] == 1)
-			|| (x_lens.size() == 4 && x_lens[0] == 1 && x_lens[1] == 1 && y_lens.size() == 4 && y_lens[0] == 1 && y_lens[1] == 1)
-			|| (x_lens.size() == 5 && x_lens[0] == 1 && x_lens[1] == 1 && x_lens[2] == 1 && y_lens.size() == 5 && y_lens[0] == 1 && y_lens[1] == 1 && y_lens[2] == 1)));
+		&& (x_lens.size() == 2 || (x_lens.size()==3 && x_lens[0] ==1 && y_lens[0] == 1)
+			|| (x_lens.size() == 4 && x_lens[0] == 1 && x_lens[1] == 1 && y_lens[0] == 1 && y_lens[1] == 1)
+			|| (x_lens.size() == 5 && x_lens[0] == 1 && x_lens[1] == 1 && x_lens[2] == 1 && y_lens[0] == 1 && y_lens[1] == 1 && y_lens[2] == 1)));
 	bool packed = IsPackedTensor(x_strides, x_lens) && IsPackedTensor(y_strides, y_lens);
 
 	if (xDesc.GetElementSize() == yDesc.GetElementSize() && (packed || t2D))
@@ -340,8 +340,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 	double activ_beta = GetBeta();
 	double activ_power = GetPower();
 
-	std::string network_config;
-	construct_params.mloBuildConf_Key(network_config);
+	std::string network_config = "";
 
 
 	bool t2D = (xDesc.GetLengths().size() == yDesc.GetLengths().size() && xDesc.GetLengths().size() == 2);
