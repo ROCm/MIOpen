@@ -120,7 +120,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         else if(in_n_vert_reads < 2)
         {
             std::cout << "CONFIG ERROR: not enough local memory for the configuration\n";
-            return ConvSolution(static_cast<miopenStatus_t>(-1));
+            return ConvSolution(miopenStatusUnknownError);
         }
     }
     int in_n_vert_read_loops = (params.in_height + in_n_vert_reads - 1) / in_n_vert_reads;

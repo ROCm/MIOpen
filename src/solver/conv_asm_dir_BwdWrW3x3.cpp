@@ -472,7 +472,7 @@ int ConvAsmBwdWrW3x3::RunAndMeasureSolution(miopen::Handle& profile_h,
         elapsed_time = std::numeric_limits<float>::max();
         // ConvolutionContext::general_compile_options is for OpenCL kernels
         // and thus not applicable for assembly.
-        auto kernel = profile_h.GetKernel("",
+        auto kernel = profile_h.AddKernel("",
                                           "",
                                           k_info.kernel_file,
                                           k_info.kernel_name,

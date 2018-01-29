@@ -92,7 +92,7 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
         std::string algorithm = (direction == 1) ? "miopenConvolutionFwdAlgoWinograd"
                                                  : "miopenConvolutionBwdDataAlgoWinograd";
         kernel =
-            handle.GetKernel(algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
+            handle.AddKernel(algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
 
         int N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W;
         construct_params.getCompiledInParameters(
@@ -171,7 +171,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
     {
 
         auto k =
-            handle.GetKernel(algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
+            handle.AddKernel(algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
 
         kernels.push_back(k);
     }
@@ -191,7 +191,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
         {
             const mlo_kernel_info& bwd_wrw = bwd_wrw_info[0];
 
-            auto k1 = handle.GetKernel(algorithm,
+            auto k1 = handle.AddKernel(algorithm,
                                        network_config,
                                        std::get<1>(bwd_wrw),
                                        std::get<0>(bwd_wrw),
@@ -205,7 +205,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
         {
             auto bwd_wrw_main = bwd_wrw_info[0];
 
-            auto k1 = handle.GetKernel(algorithm,
+            auto k1 = handle.AddKernel(algorithm,
                                        network_config,
                                        std::get<1>(bwd_wrw_main),
                                        std::get<0>(bwd_wrw_main),
@@ -220,7 +220,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
             // second pass  kernel
             auto bwd_wrw_red = bwd_wrw_info[1];
 
-            auto k2 = handle.GetKernel(algorithm + "_pass2",
+            auto k2 = handle.AddKernel(algorithm + "_pass2",
                                        network_config,
                                        std::get<1>(bwd_wrw_red),
                                        std::get<0>(bwd_wrw_red),
@@ -1683,7 +1683,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     if(bwd_wrw_info.size() == 1)
                     {
                         const mlo_kernel_info& bwd_wrw = bwd_wrw_info[0];
-                        auto kernel = handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
+                        auto kernel = handle.AddKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
                                                        network_config,
                                                        std::get<1>(bwd_wrw),  // _kernel_file
                                                        std::get<0>(bwd_wrw),  // _kernel_name
@@ -1746,7 +1746,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
                                 if((std::get<0>(bwd_wrw_main) == "gcnAsmConv1x1WrW"))
                                 {
-                                    auto kernel = handle.GetKernel(
+                                    auto kernel = handle.AddKernel(
                                         "miopenConvolutionBwdWeightsAlgoDirect_Main1",
                                         network_config,
                                         std::get<1>(bwd_wrw_main),  // _kernel_file
@@ -1777,7 +1777,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                 {
                                     float padding_val = 0;
 
-                                    handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main2",
+                                    handle.AddKernel("miopenConvolutionBwdWeightsAlgoDirect_Main2",
                                                      network_config,
                                                      std::get<1>(bwd_wrw_main),
                                                      std::get<0>(bwd_wrw_main),
@@ -1794,7 +1794,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
                                 float padding_val = 0;
 
-                                handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
+                                handle.AddKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
                                                  network_config,
                                                  std::get<1>(bwd_wrw_main),
                                                  std::get<0>(bwd_wrw_main),
@@ -1810,7 +1810,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                 // reduction  kernel
                                 auto bwd_wrw_red = bwd_wrw_info[1];
 
-                                handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Red",
+                                handle.AddKernel("miopenConvolutionBwdWeightsAlgoDirect_Red",
                                                  network_config,
                                                  std::get<1>(bwd_wrw_red),
                                                  std::get<0>(bwd_wrw_red),
@@ -2239,11 +2239,21 @@ void ConvolutionBackwardBias(Handle& handle,
     params += " -DMLO_OUT_BATCH_STRIDE=" + std::to_string(stride_n);
     params += " -DMLO_WK_SIZE=" + std::to_string(map_size_aligned);
     params += " -DMLO_N_PIX_OFF=" + std::to_string(off_pix);
+    if(dyDesc.GetType() == miopenFloat)
+    {
+        params += " -DMIOPEN_USE_FP16=0 ";
+        params += " -DMIOPEN_USE_FP32=1 ";
+    }
+    else if(dyDesc.GetType() == miopenHalf)
+    {
+        params += " -DMIOPEN_USE_FP16=1 ";
+        params += " -DMIOPEN_USE_FP32=0 ";
+    }
 
     const std::vector<size_t> vld = {lcl_grp_size0, size_t{1}, size_t{1}};
     const std::vector<size_t> vgd = {lcl_grp_size0, static_cast<size_t>(out_c), size_t{1}};
 
-    handle.GetKernel("miopenConvolutionBwdBias", "", program_name, kernel_name, vld, vgd, params)(
+    handle.AddKernel("miopenConvolutionBwdBias", "", program_name, kernel_name, vld, vgd, params)(
         dy, db);
 
     if(miopen::CheckNumericsEnabled())
