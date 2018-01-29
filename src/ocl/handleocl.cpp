@@ -465,48 +465,40 @@ void Handle::AccumKernelTime(float curr_time) { this->impl->AccumProfilingResult
 
 float Handle::GetKernelTime() const { return this->impl->profiling_result; }
 
-KernelInvoke Handle::GetKernel(const std::string& algorithm,
+KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                const std::string& network_config,
                                const std::string& program_name,
                                const std::string& kernel_name,
                                const std::vector<size_t>& vld,
                                const std::vector<size_t>& vgd,
-                               const std::string& params)
+                               const std::string& params,
+                               std::size_t cache_index)
 {
-    auto q   = this->GetStream();
-    auto obj = this->impl->cache.GetKernel(
-        *this, algorithm, network_config, program_name, kernel_name, vld, vgd, params);
 
-#ifndef NDEBUG
-// dumpKernel(obj.GetKernel(), kernel_name, vld, vgd, params);
-#endif
-    if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
-    {
-        return obj.Invoke(q,
-                          std::bind(&HandleImpl::SetProfilingResult,
-                                    std::ref(*this->impl),
-                                    std::placeholders::_1));
-    }
-    else
-    {
-        return obj.Invoke(q);
-    }
+    auto obj = this->impl->cache.AddKernel(
+        *this, algorithm, network_config, program_name, kernel_name, vld, vgd, params, cache_index);
+    return this->Run(obj);
 }
 
-KernelInvoke Handle::GetKernel(const std::string& algorithm, const std::string& network_config)
+const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
+                                                  const std::string& network_config)
 {
-    auto q         = this->GetStream();
-    const auto obj = this->impl->cache.GetKernel(algorithm, network_config);
+    return this->impl->cache.GetKernels(algorithm, network_config);
+}
+
+KernelInvoke Handle::Run(Kernel k)
+{
+    auto q = this->GetStream();
     if(this->impl->enable_profiling || MIOPEN_GPU_SYNC)
     {
-        return obj.Invoke(q,
-                          std::bind(&HandleImpl::SetProfilingResult,
-                                    std::ref(*this->impl),
-                                    std::placeholders::_1));
+        return k.Invoke(q,
+                        std::bind(&HandleImpl::SetProfilingResult,
+                                  std::ref(*this->impl),
+                                  std::placeholders::_1));
     }
     else
     {
-        return obj.Invoke(q);
+        return k.Invoke(q);
     }
 }
 

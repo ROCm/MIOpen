@@ -177,7 +177,9 @@ struct HIPOCKernel
         kernel_module = name;
         auto status   = hipModuleGetFunction(&fun, program.GetModule(), kernel_module.c_str());
         if(hipSuccess != status)
-            MIOPEN_THROW_HIP_STATUS(status, "Failed to get function: " + kernel_module);
+            MIOPEN_THROW_HIP_STATUS(status,
+                                    "Failed to get function: " + kernel_module + " from " +
+                                        program.GetBinary().string());
     }
 
     HIPOCKernelInvoke Invoke(hipStream_t stream,

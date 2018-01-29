@@ -90,7 +90,7 @@ float Im2ColGPU(Handle& handle,
     size_t global_threads = 256 * std::max(1, (c / num_ch_per_wg)) * num_blks;
     const std::vector<size_t> vgd{global_threads, 1, 1};
 
-    handle.GetKernel("miopenIm2Col", "", program_name, kernel_name, vld, vgd, params)(data_size_off,
+    handle.AddKernel("miopenIm2Col", "", program_name, kernel_name, vld, vgd, params)(data_size_off,
                                                                                       im,
                                                                                       im_offset,
                                                                                       h,
@@ -136,7 +136,7 @@ float Col2ImGPU(Handle& handle,
     size_t global_threads = c * h * w;
     const std::vector<size_t> vgd{global_threads, 1, 1};
 
-    handle.GetKernel("miopenCol2Im", "", program_name, kernel_name, vld, vgd, params)(col,
+    handle.AddKernel("miopenCol2Im", "", program_name, kernel_name, vld, vgd, params)(col,
                                                                                       col_h,
                                                                                       col_w,
                                                                                       wei_h,
@@ -167,7 +167,7 @@ float SubSampleGPU(
     std::string program_name = "MIOpenUtilKernels3.cl";
     std::string kernel_name  = "SubSample";
 
-    handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
+    handle.AddKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
                      network_config,
                      program_name,
                      kernel_name,
