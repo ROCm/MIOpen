@@ -55,7 +55,7 @@ namespace miopen {
             Impl operator=(const Impl&) = delete;
 
         public:
-            Impl(const char* path) : _file_lock(PrepareLock(path)) {}
+            Impl(const char* path) : _file(path), _file_lock(path) {}
 
             ~Impl()
             {
@@ -66,8 +66,8 @@ namespace miopen {
             void lock()
             {
                 _mutex.lock();
-                _file_lock.lock();
                 _locked = true;
+                _file_lock.lock();
             }
 
             void unlock() 
@@ -80,13 +80,8 @@ namespace miopen {
         private:
             bool _locked;
             std::mutex _mutex;
+            std::ofstream _file;
             boost::interprocess::file_lock _file_lock;
-
-            boost::interprocess::file_lock PrepareLock(const char* path)
-            {
-                (void)std::ofstream(path);
-                return {path};
-            }
         };
 
     public:
@@ -117,9 +112,9 @@ namespace miopen {
         }
 
     private:
-        static std::map<const char*, LockFile::Impl>& LockFiles()
+        static std::map<std::string, LockFile::Impl>& LockFiles()
         {
-            static std::map<const char*, LockFile::Impl> lock_files;
+            static std::map<std::string, LockFile::Impl> lock_files;
             return lock_files;
         }
     };
