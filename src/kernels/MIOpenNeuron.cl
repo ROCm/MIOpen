@@ -319,11 +319,8 @@ __attribute__((always_inline)) void ActivationFunction_BNLL_Diff(int n,
 // local size = (256, 1, 1)
 // global size = ((TENS_LEN/RD_BLCK), 1, 1)
 
-__kernel void MIOpenActiveFwdLite(const __global _FLOAT* bot,
-                __global _FLOAT* top,
-                _FLOAT power,
-                _FLOAT scale,
-                _FLOAT shift)
+__kernel void MIOpenActiveFwdLite(
+    const __global _FLOAT* bot, __global _FLOAT* top, _FLOAT power, _FLOAT scale, _FLOAT shift)
 {
     uint gid0 = get_global_id(0);
 
@@ -336,26 +333,24 @@ __kernel void MIOpenActiveFwdLite(const __global _FLOAT* bot,
 
     ActivationFunction(MLO_READ_UNIT, response, (const _FLOAT*)data, power, scale, shift);
 
-
     *((__global MLO_READ_TYPE*)(top + index)) = *((MLO_READ_TYPE*)response);
-
 }
 
 /**********************************************************************************************
 **********************************************************************************************/
 
 __kernel void MIOpenActiveFwd2DLite(const __global _FLOAT* bot,
-                __global _FLOAT* top,
-                _FLOAT power,
-                _FLOAT scale,
-                _FLOAT shift,
-                const long bot_offset,
-                const long top_offset,
-				const uint bot_stride,
-				const uint top_stride)
+                                    __global _FLOAT* top,
+                                    _FLOAT power,
+                                    _FLOAT scale,
+                                    _FLOAT shift,
+                                    const long bot_offset,
+                                    const long top_offset,
+                                    const uint bot_stride,
+                                    const uint top_stride)
 {
     uint x_id = get_global_id(0);
-    uint y = get_global_id(1);
+    uint y    = get_global_id(1);
 
     uint bot_index = y * bot_stride + x_id * MLO_READ_UNIT;
     uint top_index = y * top_stride + x_id * MLO_READ_UNIT;
@@ -367,22 +362,20 @@ __kernel void MIOpenActiveFwd2DLite(const __global _FLOAT* bot,
 
     ActivationFunction(MLO_READ_UNIT, response, (const _FLOAT*)data, power, scale, shift);
 
-
     *((__global MLO_READ_TYPE*)(top + top_offset + top_index)) = *((MLO_READ_TYPE*)response);
 }
 
 /**********************************************************************************************
 **********************************************************************************************/
 
-__kernel void
-MIOpenActiveBwdLite(__global _FLOAT* bot_diff,
-                __global const _FLOAT* top_diff,
-                __global const _FLOAT* bot,
-                __global const _FLOAT* top,
-                _FLOAT diff_scale,
-                _FLOAT power,
-                _FLOAT scale,
-                _FLOAT shift)
+__kernel void MIOpenActiveBwdLite(__global _FLOAT* bot_diff,
+                                  __global const _FLOAT* top_diff,
+                                  __global const _FLOAT* bot,
+                                  __global const _FLOAT* top,
+                                  _FLOAT diff_scale,
+                                  _FLOAT power,
+                                  _FLOAT scale,
+                                  _FLOAT shift)
 {
     (void)diff_scale;
     (void)power;
@@ -399,9 +392,8 @@ MIOpenActiveBwdLite(__global _FLOAT* bot_diff,
     _FLOAT top_dat[MLO_READ_UNIT];
 
     *((MLO_READ_TYPE*)top_diff_dat) = *((const __global MLO_READ_TYPE*)(top_diff + index));
-    *((MLO_READ_TYPE*)bot_dat) = *((const __global MLO_READ_TYPE*)(bot + index));
-    *((MLO_READ_TYPE*)top_dat) = *((const __global MLO_READ_TYPE*)(top + index));
-
+    *((MLO_READ_TYPE*)bot_dat)      = *((const __global MLO_READ_TYPE*)(bot + index));
+    *((MLO_READ_TYPE*)top_dat)      = *((const __global MLO_READ_TYPE*)(top + index));
 
 #if MLO_NRN_OP_ID == MLO_NEURON_RELU
     {
@@ -444,49 +436,46 @@ MIOpenActiveBwdLite(__global _FLOAT* bot_diff,
         MLO_READ_UNIT, bot_diff_dat, (const _FLOAT*)top_diff_dat, (const _FLOAT*)bot_dat);
 #endif
 
-    *((__global MLO_READ_TYPE*)(bot_diff + index)) = *((MLO_READ_TYPE*)bot_diff_dat); 
-
+    *((__global MLO_READ_TYPE*)(bot_diff + index)) = *((MLO_READ_TYPE*)bot_diff_dat);
 }
-
 
 /**********************************************************************************************
 **********************************************************************************************/
 
 __kernel void MIOpenActiveBwd2DLite(__global _FLOAT* bot_diff,
-                __global const _FLOAT* top_diff,
-                __global const _FLOAT* bot,
-                __global const _FLOAT* top,
-                _FLOAT diff_scale,
-                _FLOAT power,
-                _FLOAT scale,
-                _FLOAT shift,
-                const long bot_diff_offset,
-                const long top_diff_offset,
-                const long bot_offset,
-                const long top_offset,
-				const uint bot_diff_stride,
-				const uint top_diff_stride,
-				const uint bot_stride,
-				const uint top_stride
-				)
+                                    __global const _FLOAT* top_diff,
+                                    __global const _FLOAT* bot,
+                                    __global const _FLOAT* top,
+                                    _FLOAT diff_scale,
+                                    _FLOAT power,
+                                    _FLOAT scale,
+                                    _FLOAT shift,
+                                    const long bot_diff_offset,
+                                    const long top_diff_offset,
+                                    const long bot_offset,
+                                    const long top_offset,
+                                    const uint bot_diff_stride,
+                                    const uint top_diff_stride,
+                                    const uint bot_stride,
+                                    const uint top_stride)
 {
     uint x_id = get_global_id(0);
-    uint y = get_global_id(1);
+    uint y    = get_global_id(1);
 
     uint bot_diff_index = y * bot_diff_stride + x_id * MLO_READ_UNIT;
     uint top_diff_index = y * top_diff_stride + x_id * MLO_READ_UNIT;
-    uint bot_index = y * bot_stride + x_id * MLO_READ_UNIT;
-    uint top_index = y * top_stride + x_id * MLO_READ_UNIT;
+    uint bot_index      = y * bot_stride + x_id * MLO_READ_UNIT;
+    uint top_index      = y * top_stride + x_id * MLO_READ_UNIT;
 
     _FLOAT bot_diff_dat[MLO_READ_UNIT];
     _FLOAT top_diff_dat[MLO_READ_UNIT];
     _FLOAT bot_dat[MLO_READ_UNIT];
     _FLOAT top_dat[MLO_READ_UNIT];
 
-    *((MLO_READ_TYPE*)top_diff_dat) = *((const __global MLO_READ_TYPE*)(top_diff + top_diff_offset + top_diff_index));
+    *((MLO_READ_TYPE*)top_diff_dat) =
+        *((const __global MLO_READ_TYPE*)(top_diff + top_diff_offset + top_diff_index));
     *((MLO_READ_TYPE*)bot_dat) = *((const __global MLO_READ_TYPE*)(bot + bot_offset + bot_index));
     *((MLO_READ_TYPE*)top_dat) = *((const __global MLO_READ_TYPE*)(top + top_offset + top_index));
-
 
 #if MLO_NRN_OP_ID == MLO_NEURON_RELU
     {
@@ -529,15 +518,13 @@ __kernel void MIOpenActiveBwd2DLite(__global _FLOAT* bot_diff,
         MLO_READ_UNIT, bot_diff_dat, (const _FLOAT*)top_diff_dat, (const _FLOAT*)bot_dat);
 #endif
 
-
-    *((__global MLO_READ_TYPE*)(bot_diff + bot_diff_offset + bot_diff_index)) = *((MLO_READ_TYPE*)bot_diff_dat);
+    *((__global MLO_READ_TYPE*)(bot_diff + bot_diff_offset + bot_diff_index)) =
+        *((MLO_READ_TYPE*)bot_diff_dat);
 }
-
 
 /**************************************************************************************************************/
 
 #else
-
 
 /***************************************************************************************************************/
 __attribute__((reqd_work_group_size(MLO_NRN_GROUP_SZ0, MLO_NRN_GROUP_SZ1, MLO_NRN_GROUP_SZ2)))
@@ -550,7 +537,7 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
                 const long xOffset,
                 const long yOffset)
 {
-    int x = get_global_id(0); // channel x
+    int x            = get_global_id(0); // channel x
 
 #if MLO_N_OUT_STRIDE > MLO_OUT_BLOCK_SZ
     int n_out_stride = MLO_N_OUT_STRIDE;
@@ -559,10 +546,10 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
     int w_out        = MLO_W_OUT;
 #endif
 #if MLO_N_IN_STRIDE > MLO_IN_BLOCK_SZ
-    int n_in_stride = MLO_N_IN_STRIDE;
-    int c_in        = MLO_C_IN;
-    int h_in        = MLO_H_IN;
-    int w_in        = MLO_W_IN;
+    int n_in_stride  = MLO_N_IN_STRIDE;
+    int c_in         = MLO_C_IN;
+    int h_in         = MLO_H_IN;
+    int w_in         = MLO_W_IN;
 #endif
 
     _FLOAT data[MLO_READ_UNIT];
@@ -685,7 +672,6 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
     }
 }
 
-
 __attribute__((reqd_work_group_size(MLO_NRN_GROUP_SZ0, MLO_NRN_GROUP_SZ1, MLO_NRN_GROUP_SZ2)))
 __kernel void
 MIOpenNeuronBwd(__global _FLOAT* bot_diff,
@@ -705,7 +691,7 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
     (void)power;
     (void)scale;
     (void)shift;
-    int x = get_global_id(0); // channel x
+    int x             = get_global_id(0); // channel x
 
 #if MLO_N_OUT_STRIDE > MLO_OUT_BLOCK_SZ || MLO_N_DOUT_STRIDE > MLO_DOUT_BLOCK_SZ || \
     MLO_N_IN_STRIDE > MLO_IN_BLOCK_SZ
@@ -724,10 +710,10 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
 #endif
 
 #if MLO_N_DIN_STRIDE > MLO_DIN_BLOCK_SZ
-    int n_din_stride = MLO_N_DIN_STRIDE;
-    int c_din        = MLO_C_DIN;
-    int h_din        = MLO_H_DIN;
-    int w_din        = MLO_W_DIN;
+    int n_din_stride  = MLO_N_DIN_STRIDE;
+    int c_din         = MLO_C_DIN;
+    int h_din         = MLO_H_DIN;
+    int w_din         = MLO_W_DIN;
 #endif
 
     _FLOAT bot_diff_dat[MLO_READ_UNIT];
@@ -973,6 +959,5 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
         }
     }
 }
-
 
 #endif // #ifdef LITE
