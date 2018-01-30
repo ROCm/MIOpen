@@ -318,19 +318,17 @@ void OpTensor(Handle& handle,
 #endif
 
     // for naive tensor ops
-    size_t RD_BLCK =
-        (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
-	const std::string data_type = GetDataType(bTensorDesc.GetType());
-	const std::string READ_TYPE =
-		(RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
+    size_t RD_BLCK              = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
+    const std::string data_type = GetDataType(bTensorDesc.GetType());
+    const std::string READ_TYPE = (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
 
     size_t MAP_RD = clens[2] / RD_BLCK;
-    parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" + std::to_string(MAP_RD)
-		+ " -DREAD_TYPE=" + READ_TYPE;
+    parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" + std::to_string(MAP_RD) +
+             " -DREAD_TYPE=" + READ_TYPE;
 
-    if (miopen_beta != 0)
+    if(miopen_beta != 0)
     {
-       parms += " -DBETA";
+        parms += " -DBETA";
     }
 
     if(bsize == 5)
@@ -377,7 +375,7 @@ void OpTensor(Handle& handle,
         {
             const std::vector<size_t> vgd1{MAP_RD, clens[1], 1};
 
-            handle.GetKernel(
+            handle.AddKernel(
                 "Op2dTensorLite", "", program_name, "Op2dTensorLite", vld, vgd1, parms)(
                 ATensor,
                 int(astrides[1]), // a_cstride,
@@ -399,7 +397,7 @@ void OpTensor(Handle& handle,
         }
         else
         {
-            handle.GetKernel(
+            handle.AddKernel(
                 "Op3dTensorGeneric", "", program_name, "Op3dTensorGeneric", vld, vgd, parms)(
                 ATensor,
                 int(astrides[0]), // a_nstride,
