@@ -530,7 +530,7 @@ __kernel void MIOpenActiveBwd2DLite(__global _FLOAT* bot_diff,
 #endif
 
 
-    *((__global MLO_READ_TYPE*)(top + bot_diff_index + bot_diff_index)) = *((MLO_READ_TYPE*)bot_diff_dat);
+    *((__global MLO_READ_TYPE*)(bot_diff + bot_diff_index + bot_diff_index)) = *((MLO_READ_TYPE*)bot_diff_dat);
 }
 
 
