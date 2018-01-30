@@ -151,7 +151,9 @@ struct HandleImpl
     {
         miopen::set_ctx(this->ctx);
         // miopen::set_device(this->device);
-        // TODO: Check device matches
+        // Check device matches
+        if (this->device != get_device_id())
+            MIOPEN_THROW("Running handle on wrong device");
     }
 
     bool enable_profiling  = false;
