@@ -2007,13 +2007,11 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 std::string network_config;
                 construct_params.mloBuildConf_Key(network_config);
 
-                auto num_kernels =
-                    handle.GetKernels("miopenConvolutionBwdWeightsAlgoDirect_Main", network_config)
-                        .size();
                 auto&& kernels =
                     handle.GetKernels("miopenConvolutionBwdWeightsAlgoDirect_Main", network_config);
-                auto p_kernel = std::begin(kernels);
-                auto kernel   = *p_kernel;
+                const auto num_kernels = kernels.size();
+                auto p_kernel          = std::begin(kernels);
+                auto kernel            = *p_kernel;
 
                 handle.ResetKernelTime();
 
@@ -2033,9 +2031,11 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 }
                 else
                 {
-                    if(workSpace == nullptr ||
-                       workSpaceSize <
-                           BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc))
+#ifndef NDEBUG
+                    assert(workSpaceSize <
+                           BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc));
+#endif
+                    if(workSpace == nullptr)
                     {
                         MIOPEN_THROW("Workspace is required");
                     }
