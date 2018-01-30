@@ -354,7 +354,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 
 	// short cut for packed tensors and 2D tensors with stride != width
 	auto x_lens = xDesc.GetLengths();
-	auto y_lens = xDesc.GetLengths();
+	auto y_lens = yDesc.GetLengths();
 	auto dx_lens = dxDesc.GetLengths();
 	auto dy_lens = dyDesc.GetLengths();
 
@@ -376,10 +376,11 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 				&& y_lens[2] == 1 && dy_lens[0] == 1 && dy_lens[1] == 1 && dy_lens[2] == 1 && dx_lens[0] == 1 && dx_lens[1] == 1 && dx_lens[2] == 1)));
 	bool packed = IsPackedTensor(x_strides, x_lens) && IsPackedTensor(y_strides, y_lens) && IsPackedTensor(dx_strides, dx_lens) && IsPackedTensor(dy_strides, dy_lens);
 
-	if (x_elem_sz == y_elem_sz && dx_elem_sz == dy_elem_sz && x_elem_sz == dx_elem_sz && (packed || t2D)) {
+	if (x_elem_sz == y_elem_sz && dx_elem_sz == dy_elem_sz && x_elem_sz == dx_elem_sz && (packed || t2D)) 
+	{
 		std::string compiler_options;
 
-		size_t read_len = (packed) ? x_elem_sz : (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3) ? x_lens[1] : (x_lens.size() == 4) ? x_lens[2] : x_lens[3];
+		size_t read_len = (packed) ? x_elem_sz : (x_lens.size() == 2) ? x_lens[1] : (x_lens.size() == 3) ? x_lens[2] : (x_lens.size() == 4) ? x_lens[3] : x_lens[4];
 
 		size_t read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
 		size_t MAP_RD = read_len / read_unit;
@@ -447,6 +448,11 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 			size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3) ? x_lens[1] : (x_lens.size() == 4) ? x_lens[2] : x_lens[3];
 			vgd.push_back(height);
 			vgd.push_back(1);
+
+			//printf("%d %d  %d %d  %d %d  %d %d  %d %d   %d %d\n",
+			//
+			//	);
+
 
 			handle.AddKernel("miopenActivationBackward",
 				network_config,
