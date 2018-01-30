@@ -2032,7 +2032,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 else
                 {
 #ifndef NDEBUG
-                    assert(workSpaceSize <
+                    assert(workSpaceSize >=
                            BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc));
 #endif
                     if(workSpace == nullptr)
