@@ -410,7 +410,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 		vld.push_back(256);
 		vld.push_back(1);
 		vld.push_back(1);
-
+// first dimension looks similar but for the packed it is a full image for the non-packaed 2D it's width
 		vgd.push_back(MAP_RD);
 
 
@@ -445,14 +445,11 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 			unsigned int dx_stride = (unsigned int)((dx_lens.size() == 2) ? dx_strides[0] : (dx_lens.size() == 3) ? dx_strides[1] : (x_lens.size() == 4) ? dx_strides[2] : dx_strides[3]);
 			unsigned int dy_stride = (unsigned int)((dy_lens.size() == 2) ? dy_strides[0] : (dy_lens.size() == 3) ? dy_strides[1] : (dy_lens.size() == 4) ? dy_strides[2] : dy_strides[3]);
 
+// second dim is heoght
 			size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3) ? x_lens[1] : (x_lens.size() == 4) ? x_lens[2] : x_lens[3];
+
 			vgd.push_back(height);
 			vgd.push_back(1);
-
-			//printf("%d %d  %d %d  %d %d  %d %d  %d %d   %d %d\n",
-			//
-			//	);
-
 
 			handle.AddKernel("miopenActivationBackward",
 				network_config,
