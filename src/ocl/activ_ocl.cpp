@@ -71,9 +71,6 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 
 	std::string network_config = "";
 
-	size_t elem_space = xDesc.GetElementSpace();
-	size_t elem_size = xDesc.GetElementSize();
-
 // short cut for packed tensors and 2D tensors with stride != width
 	auto x_lens = xDesc.GetLengths();
 	auto y_lens = xDesc.GetLengths();
