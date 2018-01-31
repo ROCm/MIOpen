@@ -749,6 +749,10 @@ __kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
     }
 
     *((global READ_TYPE*)(c + Coffset + c_index)) = *((READ_TYPE*)c_dat);
+
+#ifndef BETA
+    (void)beta;
+#endif
 }
 
 // NC
