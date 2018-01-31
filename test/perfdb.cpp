@@ -77,7 +77,7 @@ struct TestData
     static inline TestData Seeded()
     {
         static Random rnd(seed);
-        return { static_cast<int>(rnd.Next()), static_cast<int>(rnd.Next()) };
+        return {static_cast<int>(rnd.Next()), static_cast<int>(rnd.Next())};
     }
 
     inline void Serialize(std::ostream& s) const
@@ -705,7 +705,8 @@ int main(int argsn, char** argsc)
         return 0;
     }
 
-    miopen::tests::exe_path() = boost::filesystem::system_complete(boost::filesystem::path(argsc[0]));
+    miopen::tests::exe_path() =
+        boost::filesystem::system_complete(boost::filesystem::path(argsc[0]));
 
     miopen::tests::DbFindTest().Run();
     miopen::tests::DbStoreTest().Run();

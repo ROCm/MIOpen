@@ -143,7 +143,7 @@ else()
 endif()
 
 find_package(OpenSSL REQUIRED)
-set(BOOST_COMPONENTS filesystem system)
+set(BOOST_COMPONENTS filesystem system thread)
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 

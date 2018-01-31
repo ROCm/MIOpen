@@ -81,8 +81,10 @@ endforeach()
 target_link_libraries(test_perfdb
     optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE}
     optimized ${Boost_SYSTEM_LIBRARY_RELEASE}
+    optimized ${Boost_THREAD_LIBRARY_RELEASE}
     debug ${Boost_FILESYSTEM_LIBRARY_DEBUG}
     debug ${Boost_SYSTEM_LIBRARY_DEBUG}
+    debug ${Boost_THREAD_LIBRARY_DEBUG}
 )
 function(add_custom_test NAME)
     add_custom_target(${NAME} ${ARGN})
