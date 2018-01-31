@@ -2031,10 +2031,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 }
                 else
                 {
-#ifndef NDEBUG
                     assert(workSpaceSize >=
                            BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc));
-#endif
                     if(workSpace == nullptr)
                     {
                         MIOPEN_THROW("Workspace is required");
