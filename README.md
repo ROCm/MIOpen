@@ -175,4 +175,5 @@ sudo apt-get install libssl-dev
 sudo apt-get install libboost-dev
 sudo apt-get install libboost-system-dev
 sudo apt-get install libboost-filesystem-dev
+sudo apt-get install libboost-thread-dev
 ```
