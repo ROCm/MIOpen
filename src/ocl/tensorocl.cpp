@@ -326,7 +326,7 @@ void OpTensor(Handle& handle,
     parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" + std::to_string(MAP_RD) +
              " -DREAD_TYPE=" + READ_TYPE;
 
-    if(abs(miopen_beta) > 0.0)
+    if(std::abs(miopen_beta) > 0.0)
     {
         parms += " -DBETA";
     }
