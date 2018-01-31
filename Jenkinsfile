@@ -8,7 +8,7 @@ def rocmtestnode(variant, name, body) {
             rm -rf build
             mkdir build
             cd build
-            CXX=${compiler} CXXFLAGS='-Werror' cmake -DCMAKE_CXX_FLAGS_DEBUG='-g -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined' ${flags} .. 
+            CXX=${compiler} CXXFLAGS='-Werror' cmake -DMIOPEN_GPU_SYNC=On -DCMAKE_CXX_FLAGS_DEBUG='-g -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined' ${flags} .. 
             CTEST_PARALLEL_LEVEL=4 dumb-init make -j32 check doc MIOpenDriver
         """
         echo cmd
@@ -31,7 +31,7 @@ def rocmtestnode(variant, name, body) {
 
             }
         }
-        withDockerContainer(image: image, args: '--device=/dev/kfd') {
+        withDockerContainer(image: image, args: '--device=/dev/kfd --device=/dev/dri --group-add video') {
             timeout(time: 1, unit: 'HOURS') {
                 body(cmake_build)
             }
@@ -79,7 +79,7 @@ rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
             mkdir build
             cd build
             CXX='clang++-3.8' cmake -DBUILD_DEV=On .. 
-            make -j8 tidy
+            make -j8 -k analyze
         '''
     }
 }, format: rocmnode('rocm') { cmake_build ->
@@ -103,7 +103,7 @@ rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
             mkdir build
             cd build
             CXX='hcc' cmake -DBUILD_DEV=On .. 
-            make -j8 tidy
+            make -j8 -k analyze
         '''
     }
 }

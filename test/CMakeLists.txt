@@ -24,6 +24,8 @@
 # 
 ################################################################################
 
+cmake_policy(SET CMP0057 NEW)
+
 include(CTest)
 
 option( MIOPEN_TEST_ALL "Run the full test suite" OFF )
@@ -31,13 +33,19 @@ option(MIOPEN_TEST_CONV Off)
 option(MIOPEN_TEST_DEEPBENCH Off)
 
 set(MIOPEN_TEST_FLAGS "" CACHE STRING "")
+set(MIOPEN_TEST_GDB On CACHE BOOL "")
 
 find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
 
+set(SKIP_TESTS test_gru)
+
 function(add_test_command NAME EXE)
-    if(WIN32)
+    if(NAME IN_LIST SKIP_TESTS)
+        add_test(NAME ${NAME} COMMAND echo skipped)
+        set_tests_properties(${NAME} PROPERTIES DISABLED On)
+    elseif(WIN32)
         set(WINPATH)
         foreach(PATH ${CMAKE_FIND_ROOT_PATH})
             list(APPEND WINPATH ${PATH}/bin)
@@ -47,7 +55,21 @@ function(add_test_command NAME EXE)
                     %1 ${ARGN}")
         add_test(NAME ${NAME} COMMAND ${WINE_CMD} cmd /c "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmd" $<TARGET_FILE:${EXE}>)
     else()
-        add_test(NAME ${NAME} COMMAND ${EXE} ${ARGN})
+        if(MIOPEN_TEST_GDB)
+            file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmake"
+                CONTENT "
+                execute_process(COMMAND $<TARGET_FILE:${EXE}> ${ARGN} RESULT_VARIABLE RESULT)
+                if(NOT RESULT EQUAL 0)
+                    if(EXISTS core)
+                        execute_process(COMMAND gdb $<TARGET_FILE:${EXE}> core -batch -ex bt)
+                    endif()
+                    message(FATAL_ERROR \"Test failed\")
+                endif()
+            ")
+            add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmake")
+        else()
+            add_test(NAME ${NAME} COMMAND ${EXE} ${ARGN})
+        endif()
     endif()
 endfunction()
 
@@ -72,6 +94,7 @@ function(add_test_executable TEST_NAME)
 endfunction(add_test_executable)
 
 file(GLOB TESTS *.cpp)
+
 foreach(TEST ${TESTS})
     get_filename_component(BASE_NAME ${TEST} NAME_WE)
     add_test_executable(test_${BASE_NAME} ${TEST})
@@ -92,14 +115,16 @@ function(add_custom_test NAME)
 endfunction()
 
 if(MIOPEN_TEST_ALL)
-    add_custom_test(test_extra
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1, 1, 1, 1 --weights 1, 1, 2, 2 --filter 0 0 3 3
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 1 161 700  --weights 1 1 5 20 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 1 161 700  --weights 1 1 5 20 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 32 79 341  --weights 1 32 5 10 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 32 79 341  --weights 1 32 5 10 --filter 0 0 2 2
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 3 227 227  --weights 1 3 11 11 --filter 0 0 4 4 --disable-backward-data
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 3 224 224  --weights 1 3 11 11 --filter 2 2 4 4
+    add_custom_test(test_conv_extra
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 1 1 1 1 --weights 1 1 2 2 --filter 0 0 3 3
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 1 161 700  --weights 4 1 5 20 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 1 161 700  --weights 4 1 5 20 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 32 79 341  --weights 4 32 5 10 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 32 79 341  --weights 4 32 5 10 --filter 0 0 2 2
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 3 227 227  --weights 4 3 11 11 --filter 0 0 4 4 --disable-backward-data
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 3 224 224  --weights 4 3 11 11 --filter 2 2 4 4
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 1 48 480 --weights 16 1 3 3 --filter 1 1 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 64 27 27 --weights 192 64 5 5 --filter 2 2 1 1
     )
 endif()
 

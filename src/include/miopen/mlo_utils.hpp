@@ -80,6 +80,10 @@ typedef unsigned int uint;
 #include <cstdbool>
 #include <sys/time.h>
 #include <sys/resource.h>
+#ifdef __APPLE__
+#include <mach/mach.h>
+#include <mach/mach_time.h>
+#endif
 using __int64 = long long;
 #endif
 
@@ -162,7 +166,6 @@ class mloFile
      */
     bool open(const char* fileName)
     {
-        size_t size;
         std::vector<char> str;
         // Open file stream
         std::fstream f(fileName, (std::fstream::in | std::fstream::binary));
@@ -172,7 +175,7 @@ class mloFile
             size_t sizeFile;
             // Find the stream size
             f.seekg(0, std::fstream::end);
-            size = sizeFile = static_cast<size_t>(f.tellg());
+            size_t size = sizeFile = static_cast<size_t>(f.tellg());
             f.seekg(0, std::fstream::beg);
             str = std::vector<char>(size + 1);
             // Read file

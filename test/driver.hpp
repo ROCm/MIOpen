@@ -49,6 +49,19 @@ struct rand_gen
     };
 };
 
+// Run cpu in parallel if it can be ran as const
+template <class V, class... Ts>
+auto cpu_async(const V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
+{
+    return detach_async([&] { return v.cpu(xs...); });
+}
+
+template <class V, class... Ts>
+auto cpu_async(V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
+{
+    return std::async(std::launch::deferred, [&] { return v.cpu(xs...); });
+}
+
 struct test_driver
 {
     test_driver()                   = default;
@@ -178,6 +191,17 @@ struct test_driver
                                                       std::initializer_list<X> single)
     {
         return generate_tensor<std::vector<X>>(dims, single);
+    }
+
+    template <class F>
+    auto lazy_generate_tensor(F f) -> generate_tensor_t<miopen::range_value<decltype(f())>>
+    {
+        return {[=]() -> decltype(f()) {
+            if(full_set)
+                return f();
+            else
+                return {*f().begin()};
+        }};
     }
 
     template <class F, class X>
@@ -341,8 +365,12 @@ struct test_driver
 
             auto idx = miopen::mismatch_idx(out_cpu, out_gpu, miopen::float_equal);
             if(idx < miopen::range_distance(out_cpu))
+            {
                 std::cout << "Mismatch at " << idx << ": " << out_cpu[idx] << " != " << out_gpu[idx]
                           << std::endl;
+                std::cout << "---------------------------------------------------------\n"
+                          << std::endl;
+            }
 
             auto cpu_nan_idx = find_idx(out_cpu, miopen::not_finite);
             if(cpu_nan_idx >= 0)
@@ -356,7 +384,7 @@ struct test_driver
         }
         else if(miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu))
         {
-            std::cout << "Warning: data is all zero" << std::endl;
+            std::cout << "Warning: Both CPU and GPU data is all zero" << std::endl;
             fail(-1);
         }
         return std::make_pair(std::move(out_cpu), std::move(out_gpu));
@@ -402,6 +430,13 @@ struct test_driver
         try
         {
             auto&& h = get_handle();
+            // Compute cpu
+            std::future<decltype(v.cpu(xs...))> cpuf;
+            if(not no_validate)
+            {
+                cpuf = cpu_async(v, xs...);
+            }
+            // Compute gpu
             if(time)
             {
                 h.EnableProfiling();
@@ -413,13 +448,14 @@ struct test_driver
                 std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
                 h.EnableProfiling(false);
             }
+            // Return
             if(no_validate)
             {
                 return std::make_pair(gpu, gpu);
             }
             else
             {
-                return verify_check(v.cpu(xs...), gpu, [&](int mode) { v.fail(mode, xs...); });
+                return verify_check(cpuf.get(), gpu, [&](int mode) { v.fail(mode, xs...); });
             }
         }
         catch(const std::exception& ex)
@@ -444,6 +480,13 @@ struct test_driver
         try
         {
             auto&& h = get_handle();
+            // Compute cpu
+            std::future<decltype(v.cpu(xs...))> cpuf;
+            if(not no_validate)
+            {
+                cpuf = cpu_async(v, xs...);
+            }
+            // Compute gpu
             if(time)
             {
                 h.EnableProfiling();
@@ -455,13 +498,14 @@ struct test_driver
                 std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
                 h.EnableProfiling(false);
             }
+
             if(no_validate)
             {
                 return std::make_pair(gpu, gpu);
             }
             else
             {
-                auto cpu = v.cpu(xs...);
+                auto cpu = cpuf.get();
 
                 if(miopen::range_zero(cpu))
                 {
@@ -592,9 +636,8 @@ struct show_help
 };
 
 template <class Driver>
-void test_drive(int argc, const char* argv[])
+void test_drive_impl(std::vector<std::string> as)
 {
-    std::vector<std::string> as(argv + 1, argv + argc);
     Driver d{};
 
     std::set<std::string> keywords{"--help", "-h"};
@@ -666,4 +709,19 @@ void test_drive(int argc, const char* argv[])
     }
 
     run_data(data_args.begin(), data_args.end(), [&] { d.run(); });
+}
+
+template <class Driver>
+void test_drive(int argc, const char* argv[])
+{
+    std::vector<std::string> as(argv + 1, argv + argc);
+    test_drive_impl<Driver>(std::move(as));
+}
+
+template <template <class...> class Driver>
+void test_drive(int argc, const char* argv[])
+{
+    std::vector<std::string> as(argv + 1, argv + argc);
+    // Always use float for now
+    test_drive_impl<Driver<float>>(std::move(as));
 }

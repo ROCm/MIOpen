@@ -31,6 +31,7 @@
 #include "lrn_driver.hpp"
 #include "pool_driver.hpp"
 #include "softmax_driver.hpp"
+#include "rnn_driver.hpp"
 #include <cstdio>
 #include <iostream>
 
@@ -73,6 +74,10 @@ int main(int argc, char* argv[])
     {
         drv = new BatchNormDriver<float>();
     }
+    else if(base_arg == "rnn")
+    {
+        drv = new RNNDriver<float>();
+    }
     else
     {
         printf("Incorrect BaseArg\n");
@@ -85,7 +90,8 @@ int main(int argc, char* argv[])
 
     drv->AllocateBuffersAndCopy();
 
-    drv->RunForwardGPU();
+    if(drv->GetInputFlags().GetValueInt("forw") != 2)
+        drv->RunForwardGPU();
 
     if(drv->GetInputFlags().GetValueInt("verify") == 1)
     {
@@ -99,7 +105,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    if(drv->GetInputFlags().GetValueInt("forw") == 0)
+    if(drv->GetInputFlags().GetValueInt("forw") != 1)
     {
         if(!(base_arg == "gemm"))
         {

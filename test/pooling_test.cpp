@@ -82,8 +82,9 @@ struct pooling_operators
 struct verify_forward_pooling
 {
     template <class T>
-    tensor<T>
-    cpu(const tensor<T>& input, const miopen::PoolingDescriptor& filter, std::vector<uint8_t>&)
+    tensor<T> cpu(const tensor<T>& input,
+                  const miopen::PoolingDescriptor& filter,
+                  std::vector<uint8_t>&) const
     {
         auto out = get_output_tensor(filter, input);
 
@@ -123,7 +124,7 @@ struct verify_forward_pooling
     template <class T>
     tensor<T> gpu(const tensor<T>& input,
                   const miopen::PoolingDescriptor& filter,
-                  std::vector<uint8_t>& indices)
+                  std::vector<uint8_t>& indices) const
     {
         auto&& handle = get_handle();
         auto out      = get_output_tensor(filter, input);
@@ -154,7 +155,7 @@ struct verify_forward_pooling
     void fail(float,
               const tensor<T>& input,
               const miopen::PoolingDescriptor& filter,
-              const std::vector<uint8_t>&)
+              const std::vector<uint8_t>&) const
     {
         std::cout << "Forward pooling: ";
         if(filter.GetMode() == miopenPoolingAverage)
@@ -181,7 +182,7 @@ struct verify_backward_pooling
                   const tensor<T>& dout,
                   const tensor<T>& out,
                   const miopen::PoolingDescriptor& filter,
-                  const std::vector<uint8_t>& indices)
+                  const std::vector<uint8_t>& indices) const
     {
         auto dinput = input;
         CHECK(dout.desc == out.desc);
@@ -242,7 +243,7 @@ struct verify_backward_pooling
                   const tensor<T>& dout,
                   const tensor<T>& out,
                   const miopen::PoolingDescriptor& filter,
-                  const std::vector<uint8_t>& indices)
+                  const std::vector<uint8_t>& indices) const
     {
         auto&& handle = get_handle();
         auto dinput   = input;
@@ -284,7 +285,7 @@ struct verify_backward_pooling
               const tensor<T>&,
               const tensor<T>& out,
               const miopen::PoolingDescriptor& filter,
-              const std::vector<uint8_t>&)
+              const std::vector<uint8_t>&) const
     {
         std::cout << "Backward pooling: ";
         if(filter.GetMode() == miopenPoolingAverage)
@@ -351,12 +352,15 @@ struct pooling_driver : test_driver
         {
             if(filter.strides[0] == 0 || filter.strides[1] == 0)
                 return;
-            filter.pads[0] = (in_h % filter.strides[0] == 0)
-                                 ? (std::max((window_h - filter.strides[0]), 0))
-                                 : (std::max((window_h - (in_h % filter.strides[0])), 0));
-            filter.pads[1] = (in_w % filter.strides[1] == 0)
-                                 ? (std::max((window_w - filter.strides[1]), 0))
-                                 : (std::max((window_w - (in_w % filter.strides[1])), 0));
+            auto _pad_w = (in_h % filter.strides[0] == 0)
+                              ? (std::max((window_h - filter.strides[0]), 0))
+                              : (std::max((window_h - (in_h % filter.strides[0])), 0));
+            auto _pad_h = (in_w % filter.strides[1] == 0)
+                              ? (std::max((window_w - filter.strides[1]), 0))
+                              : (std::max((window_w - (in_w % filter.strides[1])), 0));
+
+            filter.pads[0] = _pad_w / 2;
+            filter.pads[1] = _pad_h / 2;
 
             out_h = std::ceil(static_cast<double>(in_h) / filter.strides[0]);
             out_w = std::ceil(static_cast<double>(in_w) / filter.strides[1]);
@@ -390,4 +394,4 @@ struct pooling_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<pooling_driver<float>>(argc, argv); }
+int main(int argc, const char* argv[]) { test_drive<pooling_driver>(argc, argv); }

@@ -28,6 +28,8 @@
 #include <miopen/float_equal.hpp>
 #include <miopen/check_numerics.hpp>
 
+#include <chrono>
+
 namespace miopen {
 
 void BatchNormForwardTraining(Handle& handle,
@@ -82,16 +84,15 @@ void BatchNormForwardTraining(Handle& handle,
     std::string program_name = "MIOpenBatchNormFwdTrain";
     std::string algo_name    = "miopenBatchNormalizationForwardTraining";
     std::string kernel_name  = "BatchNormFwdTrain";
-    std::string kernel_subname{};
     std::string network_config{};
 
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
 
-    unsigned int in_nstride = c * h * w;
     unsigned int in_cstride = h * w;
-    unsigned int in_nhw     = n * h * w;
-    unsigned int in_nchw    = n * c * h * w;
+    unsigned int in_nstride = c * in_cstride;
+    unsigned int in_nhw     = n * in_cstride;
+    unsigned int in_nchw    = n * in_nstride;
 
     size_t xlocalsize = 0;
     size_t ylocalsize = 0;
@@ -101,13 +102,21 @@ void BatchNormForwardTraining(Handle& handle,
     size_t ygridsize = 0;
     size_t zgridsize = 0;
 
-    unsigned int variant = 3;
-
     std::vector<size_t> vld;
     std::vector<size_t> vgd;
 
     // compile parameters
     std::string parms;
+    if(xDesc.GetType() == miopenFloat)
+    {
+        parms += "-DMIOPEN_USE_FP16=0 ";
+        parms += "-DMIOPEN_USE_FP32=1 ";
+    }
+    else if(xDesc.GetType() == miopenHalf)
+    {
+        parms += "-DMIOPEN_USE_FP16=1 ";
+        parms += "-DMIOPEN_USE_FP32=0 ";
+    }
     bool resultsave = false;
     if(resultSaveMean != nullptr && resultSaveInvVariance != nullptr)
     {
@@ -145,13 +154,68 @@ void BatchNormForwardTraining(Handle& handle,
         program_name += "Spatial.cl";
         kernel_name += "Spatial";
 
-        if(in_cstride <= 512 && n > 3 && in_cstride > 4)
+        if(in_cstride >= 1024 && in_nhw < 33554432)
+        {
+            // unsigned int variant = (in_cstride < 2097152)? 5: 6;
+            unsigned int variant = (h == w) ? 5 : 6;
+
+            xlocalsize = 1024;
+            ylocalsize = 1;
+            zlocalsize = 1;
+
+            parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize);
+            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
+            parms += " -DMIO_BN_GRP0=" + std::to_string(xlocalsize);
+            parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
+            parms += " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+            vld.push_back(xlocalsize);
+            vld.push_back(ylocalsize);
+            vld.push_back(zlocalsize);
+
+            xgridsize = xlocalsize * c;
+            ygridsize = 1;
+            zgridsize = 1;
+            vgd.push_back(xgridsize);
+            vgd.push_back(ygridsize);
+            vgd.push_back(zgridsize);
+
+#if(MIOPEN_BN_CPP_DEBUG == 1)
+            std::cout << kernel_name << ":: ";
+            std::cout << parms << std::endl;
+//            std::cout << "in_nhw: "
+//                      << ":: " << in_nhw << std::endl;
+//            std::cout << "inhw: "
+//                      << ":: " << inhw << std::endl;
+#endif
+            bnFwdTrainSelectSingle(handle,
+                                   program_name,
+                                   algo_name,
+                                   kernel_name,
+                                   network_config,
+                                   parms,
+                                   vld,
+                                   vgd,
+                                   x,
+                                   y,
+                                   bnScale,
+                                   bnBias,
+                                   resultsave,
+                                   resultrunning,
+                                   expAvgFactor,
+                                   resultRunningMean,
+                                   resultRunningVariance,
+                                   epsilon,
+                                   resultSaveMean,
+                                   resultSaveInvVariance,
+                                   inhw);
+        }
+        else if(in_cstride <= 512 && n > 3 && in_cstride > 4)
         {
             xlocalsize = 1024;
             ylocalsize = 1;
             zlocalsize = 1;
 
-            variant              = 255;
+            unsigned int variant = 255;
             unsigned int segment = in_cstride * (xlocalsize / in_cstride);
             unsigned int nloops  = (in_nhw + segment - 1) / segment;
 
@@ -177,10 +241,10 @@ void BatchNormForwardTraining(Handle& handle,
 #if(MIOPEN_BN_CPP_DEBUG == 1)
             std::cout << kernel_name << ":: ";
             std::cout << parms << std::endl;
-            std::cout << "in_nhw: "
-                      << ":: " << in_nhw << std::endl;
-            std::cout << "inhw: "
-                      << ":: " << inhw << std::endl;
+//            std::cout << "in_nhw: "
+//                      << ":: " << in_nhw << std::endl;
+//            std::cout << "inhw: "
+//                      << ":: " << inhw << std::endl;
 #endif
             bnFwdTrainSelectSingle(handle,
                                    program_name,
@@ -206,10 +270,10 @@ void BatchNormForwardTraining(Handle& handle,
         }
         else if(in_cstride > 1024)
         {
-            variant    = 3;
-            xlocalsize = 1;
-            ylocalsize = 1024;
-            zlocalsize = 1;
+            unsigned int variant = 3;
+            xlocalsize           = 1;
+            ylocalsize           = 1024;
+            zlocalsize           = 1;
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
             vld.push_back(zlocalsize);
@@ -263,6 +327,8 @@ void BatchNormForwardTraining(Handle& handle,
 
             xlocalsize = 1;
             zlocalsize = 1;
+
+            unsigned int variant;
 
             if(in_cstride < 257 && in_cstride > n && n <= 64 && in_cstride > 1)
             {
@@ -352,7 +418,7 @@ void BatchNormForwardTraining(Handle& handle,
 #endif
         if(resultsave && resultrunning)
         {
-            handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 x,
                 in_nstride,
                 in_cstride,
@@ -368,7 +434,7 @@ void BatchNormForwardTraining(Handle& handle,
         }
         else if(resultsave)
         {
-            handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 x,
                 in_nstride,
                 in_cstride,
@@ -382,7 +448,7 @@ void BatchNormForwardTraining(Handle& handle,
         }
         else if(resultrunning)
         {
-            handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 x,
                 in_nstride,
                 in_cstride,
@@ -396,7 +462,7 @@ void BatchNormForwardTraining(Handle& handle,
         }
         else
         {
-            handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 x, in_nstride, in_cstride, y, bnScale, bnBias, expAvgFactor, epsilon);
         }
     } // end per-activation
@@ -468,9 +534,19 @@ void BatchNormForwardInference(Handle& handle,
         std::string algo_name    = "miopenBatchNormalizationForwardInference";
         std::string program_name = "MIOpenBatchNormFwdInfer"; // build this up
         std::string kernel_name  = "BatchNormFwdInfer";
-        std::string kernel_subname{};
         std::string network_config{};
         std::string parms{}; // compiler parameters
+
+        if(xDesc.GetType() == miopenFloat)
+        {
+            parms += "-DMIOPEN_USE_FP16=0 ";
+            parms += "-DMIOPEN_USE_FP32=1 ";
+        }
+        else if(xDesc.GetType() == miopenHalf)
+        {
+            parms += "-DMIOPEN_USE_FP16=1 ";
+            parms += "-DMIOPEN_USE_FP32=0 ";
+        }
 
         int n, c, h, w;
         std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
@@ -529,7 +605,7 @@ void BatchNormForwardInference(Handle& handle,
         std::cout << kernel_name << ":: ";
         std::cout << parms << std::endl;
 #endif
-        handle.GetKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+        handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
             x, y, estimatedMean, estimatedVariance, bnScale, bnBias, epsilon);
     }
     else
@@ -584,6 +660,10 @@ void BatchNormBackward(Handle& handle,
                        ConstData_t savedMean,
                        ConstData_t savedInvVariance)
 {
+
+    //#if(MIO_BN_TIME_EVERYTHING == 1)
+    auto t_start = std::chrono::high_resolution_clock::now();
+    //#endif
     if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsInput(handle, xDesc, x);
@@ -627,19 +707,29 @@ void BatchNormBackward(Handle& handle,
     std::string algo_name    = "miopenBatchNormalizationBackwardProp";
     std::string program_name = "MIOpenBatchNormBwd"; // build this up
     std::string kernel_name  = "BatchNormBwd";
-    std::string kernel_subname{};
     std::string network_config{};
     std::string parms{};
+
+    if(xDesc.GetType() == miopenFloat)
+    {
+        parms += "-DMIOPEN_USE_FP16=0 ";
+        parms += "-DMIOPEN_USE_FP32=1 ";
+    }
+    else if(xDesc.GetType() == miopenHalf)
+    {
+        parms += "-DMIOPEN_USE_FP16=1 ";
+        parms += "-DMIOPEN_USE_FP32=0 ";
+    }
 
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
 
-    unsigned int in_nstride = c * h * w;
     unsigned int in_cstride = h * w;
-    unsigned int in_nhw     = n * h * w;
-    unsigned int in_nchw    = n * c * h * w;
+    unsigned int in_nstride = c * in_cstride;
+    unsigned int in_nhw     = n * in_cstride;
+    unsigned int in_nchw    = n * in_nstride;
 
-    auto inhw = float(1.0 / (n * h * w));
+    auto inhw = float(1.0 / in_nhw);
 
     parms += "-DMIO_BN_N=" + std::to_string(n);
     parms += " -DMIO_BN_C=" + std::to_string(c);
@@ -658,8 +748,6 @@ void BatchNormBackward(Handle& handle,
 
     std::vector<size_t> vld;
     std::vector<size_t> vgd;
-
-    unsigned int variant = 0;
 
     bool useSaved = false;
 
@@ -680,11 +768,62 @@ void BatchNormBackward(Handle& handle,
         program_name += "Spatial.cl";
         kernel_name += "Spatial";
 
-        if(in_cstride <= 512 && n > 3 && in_cstride > 4)
+        if(in_cstride > 1024 && in_nhw < 33554432)
         {
+            // unsigned int variant = (in_cstride < 2097152)? 5: 6;
+            unsigned int variant = (h == w) ? 5 : 6;
+
             xlocalsize = 1024;
             ylocalsize = 1;
             zlocalsize = 1;
+
+            parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize);
+            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
+            parms += " -DMIO_BN_GRP0=" + std::to_string(xlocalsize);
+            parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
+            parms += " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+
+            vld.push_back(xlocalsize);
+            vld.push_back(ylocalsize);
+            vld.push_back(zlocalsize);
+
+            xgridsize = xlocalsize * c;
+            ygridsize = 1;
+            zgridsize = 1;
+            vgd.push_back(xgridsize);
+            vgd.push_back(ygridsize);
+            vgd.push_back(zgridsize);
+
+#if(MIOPEN_BN_CPP_DEBUG == 1)
+            std::cout << kernel_name << ":: ";
+            std::cout << parms << std::endl;
+#endif
+            bnBwdTrainSelectSingle(handle,
+                                   program_name,
+                                   algo_name,
+                                   kernel_name,
+                                   network_config,
+                                   parms,
+                                   vld,
+                                   vgd,
+                                   x,
+                                   dy,
+                                   dx,
+                                   bnScale,
+                                   resultBnScaleDiff,
+                                   resultBnBiasDiff,
+                                   useSaved,
+                                   epsilon,
+                                   savedMean,
+                                   savedInvVariance,
+                                   inhw);
+        }
+        else if(in_cstride <= 512 && n > 3 && in_cstride > 4)
+        {
+            unsigned int variant = 0;
+            xlocalsize           = 1024;
+            ylocalsize           = 1;
+            zlocalsize           = 1;
 
             unsigned int segment = in_cstride * (xlocalsize / in_cstride);
             unsigned int nloops  = (in_nhw + segment - 1) / segment;
@@ -734,10 +873,10 @@ void BatchNormBackward(Handle& handle,
         }
         else if(in_cstride > 1024)
         {
-            variant    = 4;
-            xlocalsize = 1;
-            ylocalsize = 1024;
-            zlocalsize = 1;
+            unsigned int variant = 4;
+            xlocalsize           = 1;
+            ylocalsize           = 1024;
+            zlocalsize           = 1;
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
             vld.push_back(zlocalsize);
@@ -766,6 +905,14 @@ void BatchNormBackward(Handle& handle,
 #endif
             parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
             // MULTI
+
+            //#if(MIO_BN_TIME_EVERYTHING == 1)
+            auto t_end = std::chrono::high_resolution_clock::now();
+
+            std::cout << "Wall clock: PREAMBLE: "
+                      << std::chrono::duration<double>(t_end - t_start).count() * 1000.0 << " ms."
+                      << std::endl;
+            //#endif
             bnBwdTrainSelectMulti(handle,
                                   program_name,
                                   algo_name,
@@ -790,6 +937,8 @@ void BatchNormBackward(Handle& handle,
         {
             xlocalsize = 1;
             zlocalsize = 1;
+
+            unsigned int variant;
 
             if(in_cstride < 257 && in_cstride > n && n <= 64 && in_cstride > 1)
             {
@@ -890,7 +1039,7 @@ void BatchNormBackward(Handle& handle,
         if(useSaved)
         {
             kernel_name += "Saved";
-            handle.GetKernel("miopenBatchNormalizationBwd",
+            handle.AddKernel("miopenBatchNormalizationBwd",
                              network_config,
                              program_name,
                              kernel_name,
@@ -910,7 +1059,7 @@ void BatchNormBackward(Handle& handle,
         }
         else
         {
-            handle.GetKernel("miopenBatchNormalizationBwd",
+            handle.AddKernel("miopenBatchNormalizationBwd",
                              network_config,
                              program_name,
                              kernel_name,
