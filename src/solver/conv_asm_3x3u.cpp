@@ -256,7 +256,7 @@ int ConvAsm3x3U::RunAndMeasureSolution(miopen::Handle& profile_h,
                                           k_info.g_wk,
                                           k_info.comp_options);
         int padding_val = 0;
-        kernel(top_ocl_buf, wei_ocl_buf, bot_ocl_buf, padding_val);
+        kernel(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_val);
         elapsed_time = profile_h.GetKernelTime();
     }
 #ifdef NDEBUG
