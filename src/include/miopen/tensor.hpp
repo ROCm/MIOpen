@@ -32,6 +32,7 @@
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
 #include <miopen/each_args.hpp>
+#include <miopen/returns.hpp>
 #include <vector>
 // TODO(paul): remove this include later
 #include <cstdio>
@@ -45,11 +46,18 @@ auto tie_impl(T&& x, detail::seq<Ns...>) -> decltype(std::tie(x[Ns]...))
     return std::tie(x[Ns]...);
 }
 
-template <std::size_t N, class T>
-auto tien(T&& x) -> decltype(tie_impl(std::forward<T>(x), typename detail::gens<N>::type{}))
+template <class T, class U, std::size_t... Ns>
+auto tie_impl(T&& x, U y, detail::seq<Ns...>) -> decltype(std::make_tuple(x[Ns]...))
 {
-    return tie_impl(std::forward<T>(x), typename detail::gens<N>::type{});
+    return std::make_tuple((Ns < x.size() ? x[Ns] : y)...);
 }
+
+template <std::size_t N, class T>
+auto tien(T&& x) MIOPEN_RETURNS(tie_impl(std::forward<T>(x), typename detail::gens<N>::type{}));
+
+template <std::size_t N, class T, class U>
+auto tien(T&& x, U y)
+    MIOPEN_RETURNS(tie_impl(std::forward<T>(x), y, typename detail::gens<N>::type{}));
 
 struct TensorDescriptor : miopenTensorDescriptor
 {

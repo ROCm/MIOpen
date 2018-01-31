@@ -24,14 +24,33 @@
  *
  *******************************************************************************/
 
-#define _FLOAT float
-#define _FLOAT2 float2
-#define _FLOAT4 float4
-#define _FLOAT8 float8
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
 
-#ifndef FLT_MAX
-#define FLT_MAX 3.402823466e+38F /* max value */
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
 #endif
+#endif
+#if MIOPEN_USE_FP32 == 1
+#define _FLOAT float
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #define UNUSED __attribute__((__unused__))
 
@@ -117,7 +136,8 @@ static inline void calculateXYPos(uint linPos, uint width, uint* __restrict x, u
 
     (*y) = (uint)((float)linPos * (1.0f / (float)width) + 0.00001f);
 
-    (*x) = linPos - (*y) * width;
+    (*x) = linPos - mul24((*y), width);
+    //	(*x) = linPos - (*y) * width;
 }
 
 static inline uint calculateOffset(uint stride, uint x, uint y)
@@ -139,15 +159,15 @@ static inline void readDataElem(uint linPos,
                                 uint gbl_height,
                                 uint gbl_width,
                                 uint gbl_stride,
-                                int gbl_y,
-                                int gbl_x,
+                                uint gbl_y,
+                                uint gbl_x,
                                 bool vis,
                                 UNUSED bool debug)
 {
     uint x, y;
     calculateXYPos(linPos, lcl_width, &x, &y);
-    int g_x       = x + gbl_x;
-    int g_y       = y + gbl_y;
+    uint g_x      = x + gbl_x;
+    uint g_y      = y + gbl_y;
     uint gbl_off0 = calculateOffset(gbl_stride, g_x, g_y);
     uint gbl_off  = gbl_off0 + gbl_base;
 
@@ -163,7 +183,8 @@ static inline void readDataElem(uint linPos,
 #endif
 
 #if MLO_LARGE_MAP == 1
-    vis &= (g_x >= 0 && g_x < gbl_width && g_y >= 0 && g_y < gbl_height);
+    //	 vis &= (g_x >= 0 && g_x < gbl_width && g_y >= 0 && g_y < gbl_height);
+    vis &= (g_x < gbl_width && g_y < gbl_height);
 #else
     (void)gbl_width;
     (void)gbl_height;
@@ -190,8 +211,8 @@ static inline void readData(uint lcl_id,
                             uint gbl_height,
                             uint gbl_width,
                             uint gbl_stride,
-                            int gbl_y,
-                            int gbl_x,
+                            uint gbl_y,
+                            uint gbl_x,
                             bool vis,
                             bool debug)
 {
@@ -234,8 +255,8 @@ static inline void loadData(uint lcl_id,
                             uint gbl_height,
                             uint glb_width,
                             uint gbl_stride,
-                            int gbl_bot_y,
-                            int gbl_bot_x,
+                            uint gbl_bot_y,
+                            uint gbl_bot_x,
                             uint buf_block_ind,
                             uint max_n_bufs,
                             uint lcl_n_bufs,
@@ -336,6 +357,7 @@ static inline void Conv(uint o_map_base,
                 {
                     for(uint i = 0; i < MLO_OUT_PIX_TILE0; ++i)
                     {
+                        _FLOAT sum = (_FLOAT)0;
                         for(uint l = 0; l < MLO_FILTER_SIZE0; ++l)
                         {
 
@@ -349,9 +371,10 @@ static inline void Conv(uint o_map_base,
 
 #endif
 
-                            pvt_accum[(o_c * MLO_OUT_PIX_TILE1 + j) * MLO_OUT_PIX_TILE0 + i] +=
+                            sum +=
                                 pvt_in_stage[j * MLO_PVT_IN_WIDTH + i + l] * pvt_wei_stage[l_act];
                         }
+                        pvt_accum[(o_c * MLO_OUT_PIX_TILE1 + j) * MLO_OUT_PIX_TILE0 + i] += sum;
                     }
                 }
 
@@ -367,7 +390,7 @@ static inline void Conv(uint o_map_base,
                 }
             }
 
-            //				mem_fence(CLK_LOCAL_MEM_FENCE);
+            //			mem_fence(CLK_LOCAL_MEM_FENCE);
 
         } // for(uint k = 0; k < MLO_FILER_SIZE1; ++k,in_stg_off2+=MLO_IN_LCL_WIDTH)
 
@@ -397,10 +420,10 @@ MIOpenConvUniC(const __global _FLOAT* __restrict in,
 #else
 #if MLO_N_OUT_TILE_BLOCKS0 & (MLO_N_OUT_TILE_BLOCKS0 - 1)
     uint y_tile_blk = (uint)((float)grp_id0 * (1.0f / (float)MLO_N_OUT_TILE_BLOCKS0) + 0.00001f);
-    int x_tile_blk  = grp_id0 - mul24(y_tile_blk, (uint)MLO_N_OUT_TILE_BLOCKS0);
+    uint x_tile_blk = grp_id0 - mul24(y_tile_blk, (uint)MLO_N_OUT_TILE_BLOCKS0);
 #else
     uint y_tile_blk = grp_id0 / MLO_N_OUT_TILE_BLOCKS0;
-    int x_tile_blk  = grp_id0 & (MLO_N_OUT_TILE_BLOCKS0 - 1);
+    uint x_tile_blk = grp_id0 & (MLO_N_OUT_TILE_BLOCKS0 - 1);
 #endif
 #endif
     uint o_pack = get_group_id(1); // block of outputs
@@ -459,13 +482,13 @@ MIOpenConvUniC(const __global _FLOAT* __restrict in,
 #endif
 #endif
 
-    int x_grp  = x_tile_blk * MLO_IN_TILE0;
+    uint x_grp = x_tile_blk * MLO_IN_TILE0;
     uint y_grp = y_tile_blk * MLO_IN_TILE1;
 
 // TO DO: scale
 #if MLO_LARGE_MAP == 1
-    int x_in_grp = x_grp - MLO_FILTER_PAD0;
-    int y_in_grp = y_grp - MLO_FILTER_PAD1;
+    uint x_in_grp = x_grp - MLO_FILTER_PAD0;
+    uint y_in_grp = y_grp - MLO_FILTER_PAD1;
 #endif
 
     uint x_in_lcl = alu_tl0 * MLO_OUT_PIX_TILE0;
@@ -756,7 +779,7 @@ MIOpenConvUniC(const __global _FLOAT* __restrict in,
 #if 0
 						if ( out_off2 + i == 1 /*y_out_grp + y_out_lcl + j == 2 && x_out_grp + x_out_lcl + i == 0*/)
 						{
-							printf("K:out: %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d    %f %f %f\n",
+							printf("K:out: %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f %f %f\n",
 								MLO_OUT_TILE1,
 								MLO_OUT_TILE0,
 								grp_id0,

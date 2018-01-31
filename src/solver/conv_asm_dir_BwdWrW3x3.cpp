@@ -25,7 +25,6 @@
  *******************************************************************************/
 
 #include <sstream>
-#include <unordered_map>
 #include <limits>
 #include <iterator>
 #include <chrono>
@@ -117,7 +116,6 @@ class VirtualIterator
     public:
     /// Implementes end() and also serves as a default ctor.
     VirtualIterator() : v(GetOutOfRangeValue()), container(nullptr) {}
-    VirtualIterator(const VirtualIterator& it) : v(it.v), container(it.container) {}
 
     bool operator!=(VirtualIterator const& other) const;
     const value_type& operator*() const { return v; }
@@ -129,9 +127,9 @@ class VirtualIterator
     }
 };
 
-inline VirtualIterator VirtualContainer::begin() const { return VirtualIterator(this); }
+inline VirtualIterator VirtualContainer::begin() const { return {this}; }
 
-inline VirtualIterator VirtualContainer::end() const { return VirtualIterator(); }
+inline VirtualIterator VirtualContainer::end() const { return {}; }
 
 const VirtualIterator::value_type& VirtualIterator::GetMinValue()
 {
@@ -641,7 +639,7 @@ static int RunSolution(miopen::Handle& profile_h,
         elapsed_time = std::numeric_limits<float>::max();
         // ConvolutionContext::general_compile_options is for OpenCL kernels
         // and thus not applicable for assembly.
-        auto kernel = profile_h.GetKernel("",
+        auto kernel = profile_h.AddKernel("",
                                           "",
                                           k_info.kernel_file,
                                           k_info.kernel_name,

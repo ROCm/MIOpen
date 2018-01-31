@@ -160,7 +160,7 @@ static int MeasureLoop(Handle* profile_h,
         {
             processing_time = std::numeric_limits<float>::max();
 
-            auto k = profile_h->GetKernel("",
+            auto k = profile_h->AddKernel("",
                                           "",
                                           kernel_params.kernel_file,
                                           kernel_params.kernel_name,
@@ -183,7 +183,7 @@ static int MeasureLoop(Handle* profile_h,
             double s = 0, e = 0;
             int iter = (params.n_timer_iter <= 0) ? 1 : params.n_timer_iter;
 
-            auto k = params.GetStream().GetKernel("",
+            auto k = params.GetStream().AddKernel("",
                                                   "",
                                                   kernel_params.kernel_file,
                                                   kernel_params.kernel_name,
@@ -238,8 +238,6 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
 
     miopen::Handle profile_h;
     double processing_time;
-    std::string conf_key;
-    std::string conf_val;
 
     int min_grp_tile0 = 16;
     int min_grp_tile1 = 16;
@@ -306,7 +304,6 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
 
     // search loop here
     int grp_tl_ln[4]       = {8, 16, 32};
-    int tile_sz[3]         = {8, 16, 32};
     int tile_sz1[4]        = {8, 16, 32, 64};
     int tile_sz0[4]        = {8, 16, 32, 64};
     int out_pix_tile_sz[3] = {1, 2, 4};
@@ -318,8 +315,6 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
     double min_proc_time = std::numeric_limits<float>::max();
 
     size_t run_counter = 0;
-    int n_grp_tiles1   = 3;
-    int n_grp_tiles0   = 3;
 
     int out_pix_tl_cnt = 3; // out_pix_tile_sz[1];
     int n_out_tls      = 4;
@@ -342,8 +337,6 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
         n_tile1_sz  = 2;
     }
 
-    int n_grp_tiles;
-
     int n_tiles_cnt = n_tile0_sz * n_tile1_sz;
 
     size_t report_inteval = 25;
@@ -352,7 +345,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
 
     if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
     {
-
+        int n_grp_tiles0 = 3;
         std::cout << "Searching the best solution in the 4 dim space. Please, be patient it may "
                      "take few minutes."
                   << std::endl;
@@ -416,16 +409,16 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
             n_in_tiles_rg[0] = 2;
             n_in_tiles_rg[1] = (params.n_inputs % 8 == 0) ? 3 : 2;
 
-            grp_tl_ln[0] = 64;
-            grp_tl_ln[1] = 128;
-            grp_tl_ln[2] = 256;
-            n_grp_tiles0 = 3;
-            n_grp_tiles1 = 1;
+            grp_tl_ln[0]     = 64;
+            grp_tl_ln[1]     = 128;
+            grp_tl_ln[2]     = 256;
+            n_grp_tiles0     = 3;
+            int n_grp_tiles1 = 1;
 
-            n_grp_tiles = n_grp_tiles1 * n_grp_tiles0;
-            n_out_tls   = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
-            n_in_tls    = 2;
-            runs_left   = n_grp_tiles * out_pix_tl_cnt * n_out_tls * n_in_tls;
+            int n_grp_tiles = n_grp_tiles1 * n_grp_tiles0;
+            n_out_tls       = (n_out_tiles_rg[1] - n_out_tiles_rg[0] + 1);
+            n_in_tls        = 2;
+            runs_left       = n_grp_tiles * out_pix_tl_cnt * n_out_tls * n_in_tls;
 
             result.out_pix_tile1 = 0;
         }
@@ -531,6 +524,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
         // tile1
         for(int j = 0; j < n_tile1_sz; ++j)
         {
+            int tile_sz[3]  = {8, 16, 32};
             result.in_tile1 = tile_sz1[j];
             if(params.out_height * 2 <= result.in_tile1 && result.in_tile1 > tile_sz[0])
             {

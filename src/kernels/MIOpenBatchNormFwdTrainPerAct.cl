@@ -24,14 +24,33 @@
  *
  *******************************************************************************/
 
-#define _FLOAT float
-#define _FLOAT2 float2
-#define _FLOAT4 float4
-#define _FLOAT8 float8
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
 
-#ifndef FLT_MAX
-#define FLT_MAX 3.402823466e+38F /* max value */
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
 #endif
+#endif
+#if MIOPEN_USE_FP32 == 1
+#define _FLOAT float
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #ifndef MIO_BN_LDS_SIZE
 #define MIO_BN_LDS_SIZE 1
@@ -101,8 +120,7 @@ __kernel void BatchNormFwdTrainPerActivation(
 {
 
     // PER ACTIVATION
-    _FLOAT mean_accum, variance_accum = expAvgFactor;
-    _FLOAT elemStd;
+    _FLOAT mean, variance = expAvgFactor;
     _FLOAT invVariance, inhat;
     _FLOAT pvt_scale, pvt_bias;
 #if(MIO_RUNNING_RESULT == 1)
@@ -121,88 +139,53 @@ __kernel void BatchNormFwdTrainPerActivation(
     // move across the sections of the image mini_batch stack
     for(unsigned int img_offset = 0; img_offset < in_cstride; img_offset += yglb_sz)
     {
-
         inImgIndex = img_offset + ygid;
-        // #1 calculate the mean
-        // iterating through the stack of images in the mini_batch
         if(inImgIndex < in_cstride)
         {
-            mean_accum = 0.;
-            adjIndex   = Cidx + inImgIndex; // gamma and beta tensor index
+            mean     = (_FLOAT)0.;
+            variance = (_FLOAT)0.;
+            adjIndex = Cidx + inImgIndex; // gamma and beta tensor index
 
 #pragma unroll
             for(unsigned int n = 0; n < MIO_BN_N; n++)
             {
-                index = in_nstride * n + adjIndex;
-                mean_accum += in[index];
+                index      = in_nstride * n + adjIndex;
+                _FLOAT xin = *(in + index);
+                mean += xin;
+                variance = mad(xin, xin, variance);
             } // end for(n)
-            mean_accum /= N;
-#if(MIO_SAVE_MEAN_VARIANCE == 1)
-            resultSaveMean[adjIndex] = mean_accum;
-#endif
-/*
-Note from cuDNN: expAvgFactor
-    Factor used in the moving average computation:
-    runningMean = newMean*factor + runningMean*(1-factor).
-    Use a factor=1/(1+n) at N-th call to the function to get
-    Cumulative Moving Average (CMA) behavior:
-            CMA[n] = (x[1]+...+x[n])/n.
-    Since CMA[n+1]
-            = (n*CMA[n]+x[n+1])/(n+1)
-            = ((n+1)*CMA[n]-CMA[n])/(n+1) + x[n+1]/(n+1)
-            = CMA[n]*(1-1/(n+1))+x[n+1]*1/(n+1)
-*/
+            mean /= N;
+            variance /= N;
+            variance = mad(-mean, mean, variance);
+
 #if(MIO_RUNNING_RESULT == 1)
-            pvt_runMean = resultRunningMean[adjIndex]; // previous: oldRunMean
+            pvt_runMean = *(resultRunningMean + adjIndex); // previous: oldRunMean
             pvt_newRunMean =
                 mad((_FLOAT)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
-            resultRunningMean[adjIndex] = mad(
-                (_FLOAT)mean_accum, (_FLOAT)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
-#endif
 
-            elemStd        = 0.;
-            variance_accum = 0.;
-// #2 calculate the variances
-// sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
+            resultRunningMean[adjIndex] =
+                mad((_FLOAT)mean, (_FLOAT)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
 
-#pragma unroll
-            for(unsigned int n = 0; n < MIO_BN_N; n++)
-            {
-                // per (x-dims) channel load a block of data unsigned into LDS
-                index   = in_nstride * n + adjIndex;
-                elemStd = in[index] - mean_accum; // (x_i - mean) //this is reused but needs recalc
-                variance_accum =
-                    mad(elemStd, elemStd, (_FLOAT)variance_accum); // sum{ (x_i - mean)^2 }
-            }                                                      // end for(n)
-            variance_accum /= N;                                   // (1/N)*sum{ (x_i - mean)^2 }
-
-#if(MIO_RUNNING_RESULT == 1)
-            const _FLOAT adjust = (MIO_BN_N == 1) ? variance_accum : variance_accum * (N / (N - 1));
+            const _FLOAT adjust = (MIO_BN_N == 1) ? variance : variance * (N / (N - 1));
             resultRunningVariance[adjIndex] =
-                (1 - expAvgFactor) * resultRunningVariance[adjIndex] + expAvgFactor * adjust;
+                (1 - expAvgFactor) * *(resultRunningVariance + adjIndex) + expAvgFactor * adjust;
 #endif
 
-            // #3 add epsilon for numeric stability, sqr_root, and invert
-            invVariance = rsqrt(variance_accum + epsilon);
+            invVariance = rsqrt(variance + epsilon);
 
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
             resultSaveInvVariance[adjIndex] = invVariance; /*output only*/
+            resultSaveMean[adjIndex]        = mean;
 #endif
-
-            // #4 apply the normalization
-            // x_hat = (x_i - mean) / sqrt(variance_accum + epsilon)
-            pvt_scale = scale[adjIndex];
-            pvt_bias  = bias[adjIndex];
+            pvt_scale = *(scale + adjIndex);
+            pvt_bias  = *(bias + adjIndex);
 
 #pragma unroll
             for(unsigned int n = 0; n < MIO_BN_N; n++)
             {
                 // per (x-dims) channel load a block of data unsigned into LDS
-                index   = in_nstride * n + adjIndex;
-                elemStd = in[index] - mean_accum; // (x_i - mean)
-                inhat   = elemStd * invVariance;
-                // #5 Gamma and Beta adjust
-                //	y_i = gamma*x_hat + beta
+                index      = in_nstride * n + adjIndex;
+                inhat      = (*(in + index) - mean) * invVariance;
                 out[index] = mad(pvt_scale, inhat, pvt_bias);
             } // end for(n)
         }     // end if(inImgIndex)

@@ -42,13 +42,13 @@
 #include <numeric>
 #include <vector>
 
-#define MIO_BN_DEBUG 1
+#define MIO_BN_DEBUG 0
 #define MIO_BN_MAX_DEBUGLOOP 65536
 
 #define EPSILON 1e-4
 
-#define ERRTOL 1e-6
-#define RMSTOL 1e-6
+#define ERRTOL 1e-5
+#define RMSTOL 1e-5
 
 #ifdef MIOPEN_BACKEND_HIP
 #ifndef CL_SUCCESS
@@ -369,7 +369,7 @@ int BatchNormDriver<T>::createSaveBuffers()
 #if MIOPEN_BACKEND_OPENCL
     cl_int status = CL_SUCCESS;
     cl_context ctx;
-    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
+    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
     int status   = 0;
     uint32_t ctx = 0;
@@ -433,7 +433,7 @@ int BatchNormDriver<T>::createRunningBuffers()
 #if MIOPEN_BACKEND_OPENCL
     cl_int status = CL_SUCCESS;
     cl_context ctx;
-    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
+    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
     int status   = 0;
     uint32_t ctx = 0;
@@ -496,7 +496,7 @@ int BatchNormDriver<T>::AllocateBuffersAndCopy()
 #if MIOPEN_BACKEND_OPENCL
     cl_int status = CL_SUCCESS;
     cl_context ctx;
-    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, NULL);
+    clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
     int status   = 0;
     uint32_t ctx = 0;
@@ -647,13 +647,6 @@ void BatchNormDriver<T>::runGPUFwdInference(double epsilon, T alpha, T beta)
                                                  epsilon);
     }
 
-    if(inflags.GetValueStr("time") == "1")
-    {
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-        printf("GPU Kernel Time Forward Batch Normalization Elapsed: %f ms\n", time);
-    }
-
     return;
 }
 
@@ -741,13 +734,6 @@ void BatchNormDriver<T>::runGPUFwdTrain(double epsilon, double eAF, T alpha, T b
                                                 nullptr);
     }
 
-    if(inflags.GetValueStr("time") == "1")
-    {
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-        printf("GPU Kernel Time Forward Batch Normalization Elapsed: %f ms\n", time);
-    }
-
 #ifdef BN_RUNFOR_PROFILER
     miopenBatchNormalizationForwardTraining(GetHandle(),
                                             bn_mode,
@@ -778,8 +764,12 @@ int BatchNormDriver<T>::RunForwardGPU()
     double eAF     = 1.0;
 
     Timer t;
+    double fulltime = 0.;
+    auto iters      = inflags.GetValueInt("iter");
+    float lowtime   = 100000000.0;
+    float avgtime   = 0.;
 
-    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    for(int i = 0; i < iters; i++)
     {
 
         START_TIME;
@@ -802,8 +792,35 @@ int BatchNormDriver<T>::RunForwardGPU()
 
         STOP_TIME;
         if(WALL_CLOCK)
-            printf("Wall-clock Time Forward GPU Batch Norm Elapsed: %f ms\n",
-                   t.gettime_ms()); // / inflags.GetValueInt("iter"));
+        {
+            if(iters > 1 && i > 0)
+                fulltime += t.gettime_ms();
+            else if(iters == 1)
+                fulltime = t.gettime_ms();
+        }
+
+        if(inflags.GetValueStr("time") == "1")
+        {
+            float time = 0.0;
+            miopenGetKernelTime(GetHandle(), &time);
+            lowtime = (time < lowtime) ? time : lowtime;
+            if(iters > 1 && i > 0)
+                avgtime += time;
+        }
+    }
+
+    if(WALL_CLOCK)
+    {
+        printf("Wall-clock Time Forward GPU Batch Norm Elapsed: %f ms\n",
+               (iters > 1) ? t.gettime_ms() : (fulltime / float(iters)));
+    }
+
+    if(inflags.GetValueStr("time") == "1")
+    {
+        printf("GPU Kernel Min Time Forward Batch Normalization Elapsed: %f ms\n", lowtime);
+        if(iters > 1)
+            printf("GPU Kernel Avg Time Forward Batch Normalization Elapsed: %f ms\n",
+                   avgtime / (iters - 1));
     }
     return miopenStatusSuccess;
 }
@@ -954,8 +971,12 @@ int BatchNormDriver<T>::RunBackwardGPU()
     double epsilon = EPSILON;
 
     Timer t;
+    double fulltime = 0.;
+    auto iters      = inflags.GetValueInt("iter");
+    float lowtime   = 100000000.0;
+    float avgtime   = 0.;
 
-    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    for(int i = 0; i < iters; i++)
     {
         START_TIME;
 
@@ -1005,15 +1026,34 @@ int BatchNormDriver<T>::RunBackwardGPU()
         }
         STOP_TIME;
         if(WALL_CLOCK)
-            printf("Wall-clock Time Backwards GPU Batch Norm Elapsed: %f ms\n",
-                   t.gettime_ms()); // / inflags.GetValueInt("iter"));
+        {
+            if(iters > 1 && i > 0)
+                fulltime += t.gettime_ms();
+            else if(iters == 1)
+                fulltime = t.gettime_ms();
+        }
 
         if(inflags.GetValueStr("time") == "1")
         {
             float time = 0.0;
             miopenGetKernelTime(GetHandle(), &time);
-            printf("GPU Kernel Time Backwards Batch Normalization Elapsed: %f ms\n", time);
+            lowtime = (time < lowtime) ? time : lowtime;
+            if(iters > 1 && i > 0)
+                avgtime += time;
         }
+    }
+
+    if(WALL_CLOCK)
+    {
+        printf("Wall-clock Time Backward GPU Batch Norm Elapsed: %f ms\n",
+               (iters > 1) ? t.gettime_ms() : (fulltime / float(iters)));
+    }
+    if(inflags.GetValueStr("time") == "1")
+    {
+        printf("GPU Kernel Min Time Backwards Batch Normalization Elapsed: %f ms\n", lowtime);
+        if(iters > 1)
+            printf("GPU Kernel Avg Time Backward Batch Normalization Elapsed: %f ms\n",
+                   avgtime / (iters - 1));
     }
 
     return miopenStatusSuccess;
@@ -1110,7 +1150,7 @@ int BatchNormDriver<T>::VerifyForward()
                 std::cout << "Forward train batch norm verification failed on saved mean: "
                           << errorSaveMean << "\n";
                 anError = true;
-#if(MIO_BN_DEBUG == 1)
+                //#if(MIO_BN_DEBUG == 1)
                 for(int i = 0;
                     i < saveMean.size() && i < saveMean_host.size() && i < MIO_BN_MAX_DEBUGLOOP;
                     i++)
@@ -1126,7 +1166,7 @@ int BatchNormDriver<T>::VerifyForward()
                                   << std::endl;
                     }
                 }
-#endif
+                //#endif
                 std::cout << "max difference in saved mean: " << maxval << std::endl;
             }
             else
@@ -1168,26 +1208,24 @@ int BatchNormDriver<T>::VerifyForward()
 
     // Check output tensor error
     out_dev->FromGPU(GetStream(), out.data());
-    maxval             = 0.;
-    unsigned int count = 0;
-    auto errorOut      = miopen::rms_range(out_host, out);
+    maxval        = 0.;
+    auto errorOut = miopen::rms_range(out_host, out);
     if(errorOut > maxrms || std::isnan(errorOut))
     {
         std::cout << "Forward batch norm verification failed on output: " << errorOut << "\n";
         anError = true;
 #if(MIO_BN_DEBUG == 1)
+        unsigned int count = 0;
         for(int i = 0; i < out.size() && i < out_host.size(); i++)
         {
-            //            if(std::isnan(out[i]))
-            //            {
-            //                std::cout << "out[" << i << "] produced a nan: " << out[i] <<
-            //                std::endl;
-            //            }
-            //            if(std::isnan(out_host[i]))
-            //            {
-            //                std::cout << "out_host[" << i << "] produced a nan: " << out_host[i]
-            //                << std::endl;
-            //            }
+            if(std::isnan(out[i]))
+            {
+                std::cout << "out[" << i << "] produced a nan: " << out[i] << std::endl;
+            }
+            if(std::isnan(out_host[i]))
+            {
+                std::cout << "out_host[" << i << "] produced a nan: " << out_host[i] << std::endl;
+            }
             diff   = double(fabs(out[i]) - fabs(out_host[i]));
             maxval = maxval < diff ? diff : maxval;
             if(diff > tolerance)
@@ -1198,10 +1236,11 @@ int BatchNormDriver<T>::VerifyForward()
                 count++;
             }
         }
-#endif
+
         std::cout << "Number of elements: " << out.size() << std::endl;
         std::cout << "Number of bad elements: " << count << std::endl;
         std::cout << "max difference in output: " << maxval << std::endl;
+#endif
     }
     else
     {
@@ -1296,17 +1335,18 @@ int BatchNormDriver<T>::VerifyBackward()
     if(!back)
         return miopenStatusSuccess;
 
-    const double tolerance = ERRTOL * 1000;
-    const double maxrms    = RMSTOL * 1000;
-    double diff            = 0.;
-    bool anError           = false;
+    const double maxrms = RMSTOL * 1000;
+    bool anError        = false;
 
     RunBackwardCPU();
 
     dxout_dev->FromGPU(GetStream(), dxout.data());
     dscale_dev->FromGPU(GetStream(), dscale.data());
     dbias_dev->FromGPU(GetStream(), dbias.data());
-
+#if(MIO_BN_DEBUG == 1)
+    const double tolerance = ERRTOL * 1000;
+    double diff;
+#endif
     maxval          = 0.;
     auto errordxout = miopen::rms_range(dxout_host, dxout);
     if(errordxout > maxrms || std::isnan(errordxout))

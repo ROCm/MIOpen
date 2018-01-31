@@ -57,7 +57,7 @@ void SetTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const vo
         std::string parms =
             " -DMIOPEN_TYPE=" + GetDataType(yDesc.GetType()) + " -DMIOPEN_ALPHA_TYPE=float";
 
-        handle.GetKernel("SetTensor", "", program_name, "SetTensor", vld, vgd, parms)(
+        handle.AddKernel("SetTensor", "", program_name, "SetTensor", vld, vgd, parms)(
             y, miopen_alpha, global_threads);
     }
     break;
@@ -87,7 +87,7 @@ void ScaleTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const 
         std::string parms =
             " -DMIOPEN_TYPE=" + GetDataType(yDesc.GetType()) + " -DMIOPEN_ALPHA_TYPE=float";
 
-        handle.GetKernel("ScaleTensor", "", program_name, "ScaleTensor", vld, vgd, parms)(
+        handle.AddKernel("ScaleTensor", "", program_name, "ScaleTensor", vld, vgd, parms)(
             y, miopen_alpha, global_threads);
     }
     break;
@@ -205,12 +205,10 @@ void OpTensor(Handle& handle,
 
     // first_not_one is incorrect if btensor size equal to 1
     auto first_not_one = std::find_if(blens.rbegin(), blens.rend(), [](int i) { return i != 1; });
+    auto d             = std::distance(blens.begin(), first_not_one.base());
 
-    auto d = std::distance(blens.begin(), first_not_one.base());
-
-    int num_wg = 1;
     // quick fix
-    num_wg = first_not_one != blens.rend() ? (*first_not_one == 0 ? 1 : *first_not_one) : 1;
+    int num_wg = first_not_one != blens.rend() ? (*first_not_one == 0 ? 1 : *first_not_one) : 1;
     int work_per_wg = std::accumulate(clens.begin() + d, clens.end(), 1, std::multiplies<int>());
 
     unsigned int bitmap = 0;
@@ -240,6 +238,11 @@ void OpTensor(Handle& handle,
         num_wg *= clens[0];      // c_n;
         incr_wg = 1;
     }
+
+    int num_wg_1   = num_wg;
+    int max_num_wg = 4096;
+    num_wg         = num_wg > max_num_wg ? max_num_wg : num_wg;
+
     size_t local_threads = 256;
 
     // Does the bitmap contain leading ones, i.e. 1,1,1,0 or 1,1,0,0
@@ -254,7 +257,19 @@ void OpTensor(Handle& handle,
                         std::to_string(incr_wg) + " -DLEADING_ONES=" +
                         std::to_string(leading_ones) + " -DMIOPEN_TYPE=" +
                         GetDataType(bTensorDesc.GetType()) + " -DFIRST_NOT_ONE=" +
-                        std::to_string(d - 1) + " -DMIOPEN_TENSOR_DIMS=" + std::to_string(bsize);
+                        std::to_string(d - 1) + " -DMIOPEN_TENSOR_DIMS=" + std::to_string(bsize) +
+                        " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
+
+    if(aTensorDesc.GetType() == miopenFloat)
+    {
+        parms += " -DMIOPEN_USE_FP16=0";
+        parms += " -DMIOPEN_USE_FP32=1";
+    }
+    else if(aTensorDesc.GetType() == miopenHalf)
+    {
+        parms += " -DMIOPEN_USE_FP16=1";
+        parms += " -DMIOPEN_USE_FP32=0";
+    }
 
     parms += " -DMIOPEN_TENSOR_OP=";
     switch(tensorOp)
@@ -304,7 +319,7 @@ void OpTensor(Handle& handle,
 
     if(bsize == 5)
     {
-        handle.GetKernel(
+        handle.AddKernel(
             "Op5dTensorGeneric", "", program_name, "Op5dTensorGeneric", vld, vgd, parms)(
             ATensor,
             int(astrides[0]),
@@ -336,11 +351,12 @@ void OpTensor(Handle& handle,
             work_per_wg,
             long(Aoffset),
             long(Boffset),
-            long(Coffset));
+            long(Coffset),
+            int(num_wg_1));
     }
     else if(bsize == 3)
     {
-        handle.GetKernel(
+        handle.AddKernel(
             "Op3dTensorGeneric", "", program_name, "Op3dTensorGeneric", vld, vgd, parms)(
             ATensor,
             int(astrides[0]), // a_nstride,
@@ -362,11 +378,12 @@ void OpTensor(Handle& handle,
             work_per_wg,
             long(Aoffset),
             long(Boffset),
-            long(Coffset));
+            long(Coffset),
+            int(num_wg_1));
     }
     else if(bsize == 2)
     {
-        handle.GetKernel(
+        handle.AddKernel(
             "Op2dTensorGeneric", "", program_name, "Op2dTensorGeneric", vld, vgd, parms)(
             ATensor,
             int(astrides[0]),
@@ -383,11 +400,12 @@ void OpTensor(Handle& handle,
             work_per_wg,
             long(Aoffset),
             long(Boffset),
-            long(Coffset));
+            long(Coffset),
+            int(num_wg_1));
     }
     else if(bsize == 1)
     {
-        handle.GetKernel(
+        handle.AddKernel(
             "Op1dTensorGeneric", "", program_name, "Op1dTensorGeneric", vld, vgd, parms)(
             ATensor,
             BTensor,
@@ -401,14 +419,15 @@ void OpTensor(Handle& handle,
             work_per_wg,
             long(Aoffset),
             long(Boffset),
-            long(Coffset));
+            long(Coffset),
+            int(num_wg_1));
     }
     else if(fwd_conv_bias)
     {
 
         if(packed_tensor)
         {
-            handle.GetKernel(
+            handle.AddKernel(
                 "OpTensorFwdBias", "", program_name, "OpTensorFwdBias", vld, vgd, parms)(
                 ATensor,
                 BTensor,
@@ -423,12 +442,13 @@ void OpTensor(Handle& handle,
                 miopen_beta,
                 long(Aoffset),
                 long(Boffset),
-                long(Coffset));
+                long(Coffset),
+                int(num_wg_1));
         }
         else
         {
 
-            handle.GetKernel("OpTensorFwdBiasGeneric",
+            handle.AddKernel("OpTensorFwdBiasGeneric",
                              "",
                              program_name,
                              "OpTensorFwdBiasGeneric",
@@ -453,14 +473,15 @@ void OpTensor(Handle& handle,
                                     work_per_wg,
                                     long(Aoffset),
                                     long(Boffset),
-                                    long(Coffset));
+                                    long(Coffset),
+                                    int(num_wg_1));
         }
     }
     else if(leading_ones)
     {
         if(packed_tensor)
         {
-            handle.GetKernel(
+            handle.AddKernel(
                 "OpTensorLeadingOnes", "", program_name, "OpTensorLeadingOnes", vld, vgd, parms)(
                 ATensor,
                 BTensor,
@@ -476,12 +497,13 @@ void OpTensor(Handle& handle,
                 miopen_beta,
                 long(Aoffset),
                 long(Boffset),
-                long(Coffset));
+                long(Coffset),
+                int(num_wg_1));
         }
         else
         {
 
-            handle.GetKernel("OpTensorLeadingOnesGeneric",
+            handle.AddKernel("OpTensorLeadingOnesGeneric",
                              "",
                              program_name,
                              "OpTensorLeadingOnesGeneric",
@@ -508,12 +530,13 @@ void OpTensor(Handle& handle,
                                     work_per_wg,
                                     long(Aoffset),
                                     long(Boffset),
-                                    long(Coffset));
+                                    long(Coffset),
+                                    int(num_wg_1));
         }
     }
     else
     {
-        handle.GetKernel(
+        handle.AddKernel(
             "Op4dTensorGeneric", "", program_name, "Op4dTensorGeneric", vld, vgd, parms)(
             ATensor,
             int(astrides[0]), // a_nstride,
@@ -540,7 +563,8 @@ void OpTensor(Handle& handle,
             work_per_wg,
             long(Aoffset),
             long(Boffset),
-            long(Coffset));
+            long(Coffset),
+            int(num_wg_1));
     }
 }
 
@@ -549,7 +573,6 @@ struct copyTensorDesc
     int dims;
     int lens[5];
     int strides[5];
-    long realsize;
 };
 
 void CopyTensor(Handle& handle,
@@ -618,31 +641,41 @@ void CopyTensor(Handle& handle,
 
         if(sKernDesc.dims > 2)
         {
-            vld[0] = vld[1] = 4;
-            vld[2]          = 16;
-            vgd[0]          = (srcDesc.GetLengths()[sKernDesc.dims - 3] > vld[0]
+            vld[0] = 4;
+            vld[1] = 8;
+            vld[2] = 8;
+
+            vgd[0] = (srcDesc.GetLengths()[sKernDesc.dims - 3] > vld[0]
                           ? srcDesc.GetLengths()[sKernDesc.dims - 3]
                           : vld[0]);
+            vgd[0] = (vgd[0] > 16) ? 16 : vgd[0];
+
             vgd[1] = (srcDesc.GetLengths()[sKernDesc.dims - 2] > vld[1]
                           ? srcDesc.GetLengths()[sKernDesc.dims - 2]
                           : vld[1]);
+            vgd[1] = (vgd[1] > 64) ? 64 : vgd[1];
+
             vgd[2] = (srcDesc.GetLengths()[sKernDesc.dims - 1] > vld[2]
                           ? srcDesc.GetLengths()[sKernDesc.dims - 1]
                           : vld[2]);
+            vgd[2] = (vgd[2] > 64) ? 64 : vgd[2];
         }
         else if(sKernDesc.dims == 1)
         {
             vld[0] = 256;
             vgd[0] = (srcDesc.GetLengths()[0] > vld[0] ? srcDesc.GetLengths()[0] : vld[0]);
+            vgd[0] = (vgd[0] > 65536) ? 65536 : vgd[0];
         }
         else if(sKernDesc.dims == 2)
         {
             vld[0] = vld[1] = 16;
             vgd[0]          = (srcDesc.GetLengths()[0] > vld[0] ? srcDesc.GetLengths()[0] : vld[0]);
+            vgd[0]          = (vgd[0] > 256) ? 256 : vgd[0];
             vgd[1]          = (srcDesc.GetLengths()[1] > vld[1] ? srcDesc.GetLengths()[1] : vld[1]);
+            vgd[1]          = (vgd[1] > 256) ? 256 : vgd[1];
         }
         std::string program_name = "MIOpenTensorScaleKernel.cl";
-        handle.GetKernel("CopyTensor", "", program_name, "CopyTensor", vld, vgd, parms)(
+        handle.AddKernel("CopyTensor", "", program_name, "CopyTensor", vld, vgd, parms)(
             src,
             dest,
             srcOffset,

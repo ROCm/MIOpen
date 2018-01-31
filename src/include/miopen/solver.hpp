@@ -126,17 +126,16 @@ template <class Solver, class Context>
 auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
     -> decltype(s.GetSolution(context, s.Search(context)))
 {
-    const FindEnforce enforce = GetFindEnforce();
+    const FindEnforce enforce;
     MIOPEN_LOG_I(SolverDbId(s));
-    if(enforce == FindEnforce::Clean)
+    if(enforce.IsDbClean(context))
     {
         if(db.Remove(context, SolverDbId(s)))
             MIOPEN_LOG_W("Perf Db: record removed: " << SolverDbId(s) << ", enforce: " << enforce);
     }
     else
     {
-        if((context.do_search && enforce == FindEnforce::DbUpdate) ||
-           enforce == FindEnforce::SearchDbUpdate)
+        if((context.do_search || enforce.IsSearch(context)) && enforce.IsDbUpdate(context))
         {
             MIOPEN_LOG_W("Perf Db: load skipped: " << SolverDbId(s) << ", enforce: " << enforce);
         }
@@ -156,8 +155,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
             }
         }
 
-        if(context.do_search || enforce == FindEnforce::Search ||
-           enforce == FindEnforce::SearchDbUpdate) // TODO: Make it a customization point
+        if(context.do_search || enforce.IsSearch(context)) // TODO: Make it a customization point
         {
             MIOPEN_LOG_I("Starting search: " << SolverDbId(s) << ", enforce: " << enforce);
             try
@@ -424,6 +422,85 @@ struct ConvAsmBwdWrW3x3 : SolverBase<ConvolutionContext>
     bool IsFast(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigAsmDirect3x3WrW& config) const;
+};
+
+struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsmBwdWrW1x1>
+{
+    int c_per_gpr; // {1,2,4,8,16}
+    int c_mult;    // {1,2,4,8,16}
+    int k_per_gpr; // {1,2,4,8,16}
+    int k_mult;    // {1,2,4,8,16}
+    int read_size; // [1..4]
+    int n_per_gpr; // {1,2,4}
+
+    /// The following conditions must be met.
+    ///
+    /// Shader design-related constraints:
+    /// - (A) (chunk_size * c_per_gpr) == 16
+    /// - (B) k_per_gpr <= c_per_gpr
+    /// - (C) (c_mult > 1 || k_mult > 1)
+    ///         ? ((fwd_C % (c_per_gpr * c_mult) == 0) && (fwd_K % (k_per_gpr * k_mult) == 0))
+    ///         : (true)
+    ///
+    /// Resource-related constraints:
+    /// - (D) c_mult * k_mult * k_per_gpr + 9 + (c_mult + k_mult) * read_size * pipe_depth <= 256
+    ///
+    /// Where:
+    /// - fwd_C := Num input channels for forward convolution (-c).
+    ///   For backward, this is actually n_outputs.
+    /// - fwd_K := Num output channels for forward convolution (-k).
+    ///   For backward, this is actually n_inputs.
+
+    PerformanceConfigConvAsmBwdWrW1x1(
+        int c_per_gpr_, int c_mult_, int k_per_gpr_, int k_mult_, int read_size_, int n_per_gpr_);
+    PerformanceConfigConvAsmBwdWrW1x1() : PerformanceConfigConvAsmBwdWrW1x1(-1, -1, -1, -1, -1, -1)
+    {
+    }
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.c_per_gpr, "c_per_gpr");
+        f(self.c_mult, "c_mult");
+        f(self.k_per_gpr, "k_per_gpr");
+        f(self.k_mult, "k_mult");
+        f(self.read_size, "read_size");
+        f(self.n_per_gpr, "n_per_gpr");
+    }
+
+    // clang-format off
+    int GetNPerGpr() const { return n_per_gpr; }
+    int GetPipeDepth() const { return 1; }
+    int GetCPerGpr() const { return c_per_gpr; }
+    int GetCMult() const { return c_mult; }
+    int GetKPerGpr() const { return k_per_gpr; }
+    int GetKMult() const { return k_mult; }
+    int GetReadSize() const { return read_size; }
+    int GetChunkSize() const { assert(c_per_gpr); return 16 / c_per_gpr; }
+    int GetHwPerGpr() const { assert(n_per_gpr); return 4 / n_per_gpr; } // "hw" stands for "height-and-width".
+    // clang-format on
+
+    void EuristicInit(const ConvolutionContext& config);
+    bool IsValidRange() const;
+    bool IsValid(const ConvolutionContext& config) const;
+    // TOOD: Use operator==
+    bool IsEqual(const PerformanceConfigConvAsmBwdWrW1x1& other) const;
+    std::string ToString() const;
+
+    friend class VirtualIteratorWrW1x1; // Modifies private data when advancing.
+};
+
+struct ConvAsmBwdWrW1x1 : SolverBase<ConvolutionContext>
+{
+    PerformanceConfigConvAsmBwdWrW1x1 GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigConvAsmBwdWrW1x1&) const;
+    PerformanceConfigConvAsmBwdWrW1x1 Search(const ConvolutionContext&) const;
+    bool IsApplicable(const ConvolutionContext& params) const;
+    bool IsFast(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfigConvAsmBwdWrW1x1& config,
+                             bool disableConfigOverrideFromEnv = false) const;
 };
 
 struct ConvOclBwdWrW2 : SolverBase<ConvolutionContext>

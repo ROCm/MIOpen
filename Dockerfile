@@ -29,6 +29,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     libelf-dev \
     libncurses5-dev \
     libpthread-stubs0-dev \
+    libnuma-dev \
     libunwind-dev \
     mingw-w64 \
     mingw-w64-tools \
@@ -57,8 +58,9 @@ ADD cmake/mingw-toolchain.cmake $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
 RUN cget -p $PREFIX/x86_64-w64-mingw32 init -t $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
 
 # Build hcc
-RUN git clone --depth 1 https://github.com/RadeonOpenCompute/hcc.git -b roc-1.7.x /hcc && \
+RUN git clone https://github.com/RadeonOpenCompute/hcc.git -b roc-1.7.x /hcc && \
     cd hcc && \
+    git reset --hard 0faf3b594c0add0a05b26a7894744a943dc7b44c && \
     git submodule init && \
     git submodule update --recursive && \
     cget -p $PREFIX install hcc,. && cd .. && rm -rf /hcc
@@ -70,15 +72,18 @@ RUN ln -s $PREFIX /opt/rocm/hcc
 # Build using hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 
+# Install cppcheck
+RUN cget -p $PREFIX install danmar/cppcheck@1.81
+
 # Install hip
-RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@85975e719dcae7dbd4d0edf6e691c197c0a4f18c
+RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@852d5ae46ce1f62f4c5fdab89445d60f7464d965
 
 RUN cget -p $PREFIX install pfultz2/rocm-recipes
 
 # Install dependencies
 ADD dev-requirements.txt /dev-requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /dev-requirements.txt
-RUN cget -p $PREFIX install RadeonOpenCompute/clang-ocl@2f118b5b6b05f0b17467ef07a8bd3b8e5d8b3aac
+RUN cget -p $PREFIX install RadeonOpenCompute/clang-ocl@a180592885ecae5b8beadf667c633c246cec82b6
 
 # Install doc requirements
 ADD doc/requirements.txt /doc-requirements.txt

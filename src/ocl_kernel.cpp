@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <miopen/oclkernel.hpp>
+#include <miopen/handle_lock.hpp>
 
 namespace miopen {
 
@@ -48,6 +49,7 @@ static std::string DimToFormattedString(const size_t* dims, size_t count)
 void OCLKernelInvoke::run() const
 {
 #ifndef NDEBUG
+    std::cout << "kernel_name = " << GetName();
     std::cout << ", work_dim = " << work_dim;
     std::cout << ", global_work_offset = "
               << (work_dim == 0 ? "NULL"
@@ -58,6 +60,8 @@ void OCLKernelInvoke::run() const
                                          : DimToFormattedString(local_work_dim.data(), work_dim));
     std::cout << std::endl;
 #endif // !NDEBUG
+
+    MIOPEN_HANDLE_LOCK
 
     cl_event ev;
     /* way to run OCL group larger than 256

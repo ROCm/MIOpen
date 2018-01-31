@@ -34,6 +34,7 @@
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
 #include <miopen/allocator.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 #include <vector>
 
 namespace miopen {
@@ -63,15 +64,28 @@ struct Handle : miopenHandle
     float GetKernelTime() const;
     bool IsProfilingEnabled() const;
 
-    KernelInvoke GetKernel(const std::string& algorithm,
+    KernelInvoke AddKernel(const std::string& algorithm,
                            const std::string& network_config,
                            const std::string& program_name,
                            const std::string& kernel_name,
                            const std::vector<size_t>& vld,
                            const std::vector<size_t>& vgd,
-                           const std::string& params);
+                           const std::string& params,
+                           std::size_t cache_index = 0);
 
-    KernelInvoke GetKernel(const std::string& algorithm, const std::string& network_config);
+    auto GetKernels(const std::string& algorithm, const std::string& network_config)
+    {
+        return this->GetKernelsImpl(algorithm, network_config) |
+               boost::adaptors::transformed([this](Kernel k) { return this->Run(k); });
+    }
+    KernelInvoke GetKernel(const std::string& algorithm, const std::string& network_config)
+    {
+        return this->Run(this->GetKernelsImpl(algorithm, network_config).at(0));
+    }
+
+    KernelInvoke Run(Kernel k);
+    const std::vector<Kernel>& GetKernelsImpl(const std::string& algorithm,
+                                              const std::string& network_config);
 
     Program LoadProgram(const std::string& program_name, std::string params, bool is_kernel_str);
 
@@ -89,6 +103,10 @@ struct Handle : miopenHandle
     Allocator::ManageDataPtr&
     WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz);
     void ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz);
+    shared<Data_t> CreateSubBuffer(Data_t data, std::size_t offset, std::size_t size);
+#if MIOPEN_BACKEND_HIP
+    shared<ConstData_t> CreateSubBuffer(ConstData_t data, std::size_t offset, std::size_t size);
+#endif
 
     template <class T>
     Allocator::ManageDataPtr Create(std::size_t sz)
