@@ -382,18 +382,13 @@ void OpTensor(Handle& handle,
                 BTensor,
                 int(bstrides[1]), // b_cstride,
                 CTensor,
-                int(clens[1]),    // c_c,
-                int(clens[2]),    // c_h,
                 int(cstrides[1]), // c_cstride,
                 miopen_alpha0,
                 miopen_alpha1,
                 miopen_beta,
-                bitmap,
-                work_per_wg,
                 long(Aoffset),
                 long(Boffset),
-                long(Coffset),
-                int(num_wg_1));
+                long(Coffset));
         }
         else
         {

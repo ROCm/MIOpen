@@ -714,18 +714,13 @@ __kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
                              const global MIOPEN_TYPE* b,
                              const int b_nstride,
                              global MIOPEN_TYPE* c,
-                             const int c_n,
-                             const int c_c,
                              const int c_nstride,
                              const float alpha0,
                              const float alpha1,
                              const float beta,
-                             const unsigned int bitmap,
-                             const int work_per_wg,
                              const long Aoffset,
                              const long Boffset,
-                             const long Coffset,
-                             const int num_wg)
+                             const long Coffset)
 {
     int gid0 = get_global_id(0);
     int gid1 = get_global_id(1);
