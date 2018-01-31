@@ -293,9 +293,9 @@ struct SolverBase
 
 struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
 {
-    int limit_wave_cnt;         // [0..9]
-    int filters_per_wave;       // [1..8]
-    int output_lines_per_wave;  // [1..8]
+    int limit_wave_cnt;        // [0..9]
+    int filters_per_wave;      // [1..8]
+    int output_lines_per_wave; // [1..8]
 
     PerformanceConfigConvAsm3x3U(int lwc, int fpw, int olpw);
     PerformanceConfigConvAsm3x3U() : PerformanceConfigConvAsm3x3U(-1, -1, -1) {}
