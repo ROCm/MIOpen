@@ -308,8 +308,10 @@ endif()
 target_link_libraries(MIOpen ${MIOPEN_BOOST_LIB_VISIBILITY}
     optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE}
     optimized ${Boost_SYSTEM_LIBRARY_RELEASE}
+    optimized ${Boost_THREAD_LIBRARY_RELEASE}
     debug ${Boost_FILESYSTEM_LIBRARY_DEBUG}
     debug ${Boost_SYSTEM_LIBRARY_DEBUG}
+    debug ${Boost_THREAD_LIBRARY_DEBUG}
 )
 if(NOT WIN32 AND NOT APPLE)
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/lib.def "

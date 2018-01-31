@@ -145,7 +145,7 @@ void DbRecord::Merge(const DbRecord& that)
     }
 }
 
-boost::optional<DbRecord> Db::FindRecord(const std::string& key, RecordPositions* pos)
+boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPositions* pos)
 {
     if(pos)
     {
@@ -154,8 +154,6 @@ boost::optional<DbRecord> Db::FindRecord(const std::string& key, RecordPositions
     }
 
     MIOPEN_LOG_I("Looking for key: " << key);
-
-    exclusive_lock lock(lock_file);
 
     std::ifstream file(filename);
 
@@ -239,11 +237,9 @@ static void Copy(std::istream& from, std::ostream& to, std::streamoff count)
     }
 }
 
-bool Db::Flush(const DbRecord& record, const RecordPositions* pos)
+bool Db::FlushUnsafe(const DbRecord& record, const RecordPositions* pos)
 {
     assert(pos);
-
-    exclusive_lock lock(lock_file);
 
     if(pos->begin < 0 || pos->end < 0)
     {
@@ -295,20 +291,18 @@ bool Db::Flush(const DbRecord& record, const RecordPositions* pos)
     return true;
 }
 
-bool Db::StoreRecord(const DbRecord& record)
+bool Db::StoreRecordUnsafe(const DbRecord& record)
 {
     MIOPEN_LOG_I("Storing record: " << record.key);
-    exclusive_lock lock(lock_file);
     RecordPositions pos;
-    auto old_record = FindRecord(record.key, &pos);
-    return Flush(record, &pos);
+    auto old_record = FindRecordUnsafe(record.key, &pos);
+    return FlushUnsafe(record, &pos);
 }
 
-bool Db::UpdateRecord(DbRecord& record)
+bool Db::UpdateRecordUnsafe(DbRecord& record)
 {
-    exclusive_lock lock(lock_file);
     RecordPositions pos;
-    auto old_record = FindRecord(record.key, &pos);
+    auto old_record = FindRecordUnsafe(record.key, &pos);
     DbRecord new_record(record);
     if(old_record)
     {
@@ -319,21 +313,20 @@ bool Db::UpdateRecord(DbRecord& record)
     {
         MIOPEN_LOG_I("Storing record: " << record.key);
     }
-    bool result = Flush(new_record, &pos);
+    bool result = FlushUnsafe(new_record, &pos);
     if(result)
         record = std::move(new_record);
     return result;
 }
 
-bool Db::RemoveRecord(const std::string& key)
+bool Db::RemoveRecordUnsafe(const std::string& key)
 {
     // Create empty record with same key and replace original with that
     // This will remove record
     MIOPEN_LOG_I("Removing record: " << key);
-    exclusive_lock lock(lock_file);
     RecordPositions pos;
-    FindRecord(key, &pos);
+    FindRecordUnsafe(key, &pos);
     DbRecord empty_record(key);
-    return Flush(empty_record, &pos);
+    return FlushUnsafe(empty_record, &pos);
 }
 } // namespace miopen
