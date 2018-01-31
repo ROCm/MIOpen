@@ -75,6 +75,17 @@ miopenStatus_t SoftmaxForward(
     // compile parameters
     std::string parms = "-DNUM_BATCH=" + std::to_string(num_batch);
 
+    if(yDesc.GetType() == miopenFloat)
+    {
+        parms += " -DMIOPEN_USE_FP16=0 ";
+        parms += " -DMIOPEN_USE_FP32=1 ";
+    }
+    else if(yDesc.GetType() == miopenHalf)
+    {
+        parms += " -DMIOPEN_USE_FP16=1 ";
+        parms += " -DMIOPEN_USE_FP32=0 ";
+    }
+
     // See Kernels/MIOpenSoftmax.cl for description
     if(num_batch == 1)
     { // CSR-Vector like approach
@@ -84,7 +95,7 @@ miopenStatus_t SoftmaxForward(
         size_t workgroups = std::min(grid_size, 64 * 40 * 8);
         const std::vector<size_t> vgd{workgroups * vld[0], 1, 1};
 
-        handle.GetKernel("miopenSoftmaxForward", "", program_name, kernel_name, vld, vgd, parms)(
+        handle.AddKernel("miopenSoftmaxForward", "", program_name, kernel_name, vld, vgd, parms)(
             y, c, grid_size, spatial_dim);
     }
     else
@@ -102,7 +113,7 @@ miopenStatus_t SoftmaxForward(
         parms += " -DBATCH_SIZE=" + std::to_string(batch_size) + " -DU_BATCH_SIZE=" +
                  std::to_string(u_batch_size);
 
-        handle.GetKernel("miopenSoftmaxForward", "", program_name, kernel_name, vld, vgd, parms)(
+        handle.AddKernel("miopenSoftmaxForward", "", program_name, kernel_name, vld, vgd, parms)(
             y, c, grid_size, spatial_dim);
     }
     if(miopen::CheckNumericsEnabled())
@@ -150,6 +161,17 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
     // compile parameters
     std::string parms = "-DNUM_BATCH=" + std::to_string(num_batch);
 
+    if(yDesc.GetType() == miopenFloat)
+    {
+        parms += " -DMIOPEN_USE_FP16=0 ";
+        parms += " -DMIOPEN_USE_FP32=1 ";
+    }
+    else if(yDesc.GetType() == miopenHalf)
+    {
+        parms += " -DMIOPEN_USE_FP16=1 ";
+        parms += " -DMIOPEN_USE_FP32=0 ";
+    }
+
     // See Kernels/MIOpenSoftmax.cl for description
     if(num_batch == 1)
     { // CSR-Vector like approach
@@ -159,7 +181,7 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
         size_t workgroups = std::min(grid_size, 64 * 40 * 8);
         const std::vector<size_t> vgd{workgroups * vld[0], 1, 1};
 
-        handle.GetKernel("miopenSoftmaxBackward", "", program_name, kernel_name, vld, vgd, parms)(
+        handle.AddKernel("miopenSoftmaxBackward", "", program_name, kernel_name, vld, vgd, parms)(
             y, dx, c, grid_size, spatial_dim);
     }
     else
@@ -175,7 +197,7 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
         parms += " -DBATCH_SIZE=" + std::to_string(batch_size) + " -DU_BATCH_SIZE=" +
                  std::to_string(u_batch_size);
 
-        handle.GetKernel("miopenSoftmaxBackward", "", program_name, kernel_name, vld, vgd, parms)(
+        handle.AddKernel("miopenSoftmaxBackward", "", program_name, kernel_name, vld, vgd, parms)(
             y, dx, c, grid_size, spatial_dim);
     }
     if(miopen::CheckNumericsEnabled())

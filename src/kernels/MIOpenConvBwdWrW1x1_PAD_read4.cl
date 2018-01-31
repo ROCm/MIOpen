@@ -221,7 +221,7 @@
 
 __attribute__((always_inline)) uint iDiv(uint v, uint d)
 {
-    uint r = (uint)((float)v * (1.f / (float)d) + 0.0000000001f);
+    uint r = (uint)((float)v * (1.f / (float)d) + 0.000001f);
     return (r);
 }
 
@@ -325,7 +325,7 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
 #if MLO_FILTER_PAD0 > 0 || MLO_FILTER_PAD1 > 0 || \
     (!TWO_PASSES && (MLO_FILTER_STRIDE0 > 1 || MLO_FILTER_STRIDE1 > 1))
 
-        uint batch_id = iDiv(faked_off, ((MLO_OUT_PAD_WIDTH / MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT));
+        uint batch_id = faked_off / ((MLO_OUT_PAD_WIDTH / MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT);
         uint faked_off2 =
             iMod(faked_off, batch_id, ((MLO_OUT_PAD_WIDTH / MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT));
 
@@ -342,37 +342,37 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
         uint in_image_off = in_y_off * MLO_IN_STRIDE + in_x_off;
 
 #else
-        uint batch_id      = iDiv(faked_off, (MLO_OUT_CHANNEL_READ_SZ));           // batch
+        uint batch_id      = faked_off / (MLO_OUT_CHANNEL_READ_SZ);                // batch
         uint image_off     = iMod(faked_off, batch_id, (MLO_OUT_CHANNEL_READ_SZ)); // pixel offset
         uint in_image_off  = image_off * MLO_READ_UNIT;
         uint out_image_off = image_off * MLO_READ_UNIT;
 #endif
         uint glb_in_off = glb_in_off0 + batch_id * MLO_IN_BATCH_STRIDE + in_image_off;
 
-        // Address offset mode is not used in shader compiler
-        // Most VGPRs are used up by Address
+        // *(p+index) Pointer Mode will use OFfset mode in ASSEMBLY
+        //  P[Index] will not use OFfset mode in ASSEMBLY
+
+        const __global _FLOAT* bot1 = bot + glb_in_off;
         for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
         {
-            uint bot_off                = glb_in_off + c * MLO_IN_CHANNEL_STRIDE;
-            const __global _FLOAT* bot1 = &bot[bot_off];
-
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
             {
-                load_buf_bot[c * MLO_READ_UNIT + i] = bot1[i * MLO_FILTER_STRIDE0];
+                load_buf_bot[c * MLO_READ_UNIT + i] = *(bot1 + i * MLO_FILTER_STRIDE0);
             }
+            bot1 += MLO_IN_CHANNEL_STRIDE;
         }
 
         uint glb_out_off = glb_out_off0 + batch_id * MLO_OUT_BATCH_STRIDE + out_image_off;
+
+        const __global _FLOAT* top1 = top_df + glb_out_off;
         for(uint k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
         {
-            uint top_off = glb_out_off + k * MLO_OUT_CHANNEL_STRIDE;
-
-            const __global _FLOAT* top1 = &top_df[top_off];
 
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
             {
-                load_buf_top[k * MLO_READ_UNIT + i] = top1[i];
+                load_buf_top[k * MLO_READ_UNIT + i] = *(top1 + i);
             }
+            top1 += MLO_OUT_CHANNEL_STRIDE;
         }
 
         // processing
@@ -403,7 +403,7 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
     for(uint faked_off = local_Id0; faked_off < MLO_MAX_LOADS2; faked_off += MLO_GRP_SZ0)
     {
 
-        uint batch_id = iDiv(faked_off, (LAST_PIXELS)); // batch
+        uint batch_id = faked_off / (LAST_PIXELS); // batch
         uint image_off =
             iMod(faked_off, batch_id, (LAST_PIXELS)) + MLO_LAST_PIXEL_OFFSET; // pixel offset
         uint in_image_off  = image_off * 1;
@@ -411,30 +411,30 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
 
         uint glb_in_off = glb_in_off0 + batch_id * MLO_IN_BATCH_STRIDE + in_image_off;
 
-        // Address offset mode is not used in shader compiler
-        // Most VGPRs are used up by Address
+        // *(p+index) Pointer Mode will use OFfset mode in ASSEMBLY
+        //  P[Index] will not use OFfset mode in ASSEMBLY
+
+        const __global _FLOAT* bot1 = bot + glb_in_off;
+
         for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
         {
-            uint bot_off                = glb_in_off + c * MLO_IN_CHANNEL_STRIDE;
-            const __global _FLOAT* bot1 = &bot[bot_off];
-
             for(uint i = 0; i < 1; ++i)
             {
-                load_buf_bot[c * MLO_READ_UNIT + i] = bot1[i];
+                load_buf_bot[c * MLO_READ_UNIT + i] = *(bot1 + i);
             }
+            bot1 += MLO_IN_CHANNEL_STRIDE;
         }
 
         uint glb_out_off = glb_out_off0 + batch_id * MLO_OUT_BATCH_STRIDE + out_image_off;
+
+        const __global _FLOAT* top1 = top_df + glb_out_off;
         for(uint k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
         {
-            uint top_off = glb_out_off + k * MLO_OUT_CHANNEL_STRIDE;
-
-            const __global _FLOAT* top1 = &top_df[top_off];
-
             for(uint i = 0; i < 1; ++i)
             {
-                load_buf_top[k * MLO_READ_UNIT + i] = top1[i];
+                load_buf_top[k * MLO_READ_UNIT + i] = *(top1 + i);
             }
+            top1 += MLO_OUT_CHANNEL_STRIDE;
         }
 
         // processing
@@ -576,7 +576,7 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
     (!TWO_PASSES && (MLO_FILTER_STRIDE0 > 1 || MLO_FILTER_STRIDE1 > 1))
 
 #if 1 // MLO_READ_UNIT == 1
-        uint batch_id = iDiv(faked_off, ((MLO_OUT_PAD_WIDTH / MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT));
+        uint batch_id = faked_off / ((MLO_OUT_PAD_WIDTH / MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT);
         uint faked_off2 =
             iMod(faked_off, batch_id, ((MLO_OUT_PAD_WIDTH / MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT));
 
@@ -613,37 +613,38 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
 
 #else
 
-        uint batch_id      = iDiv(faked_off, (MLO_OUT_CHANNEL_READ_SZ));           // batch
+        uint batch_id      = faked_off / (MLO_OUT_CHANNEL_READ_SZ);                // batch
         uint image_off     = iMod(faked_off, batch_id, (MLO_OUT_CHANNEL_READ_SZ)); // pixel offset
         uint in_image_off  = image_off * MLO_READ_UNIT;
         uint out_image_off = image_off * MLO_READ_UNIT;
 #endif
         uint glb_in_off = glb_in_off0 + batch_id * MLO_IN_BATCH_STRIDE + in_image_off;
 
-        // Address offset mode is not used in shader compiler
-        // Most VGPRs are used up by Address
+        // *(p+index) Pointer Mode will use OFfset mode in ASSEMBLY
+        //  P[Index] will not use OFfset mode in ASSEMBLY
+
+        const __global _FLOAT* bot1 = bot + glb_in_off;
+
         for(uint c = 0; c < MLO_N_LCL_IN_MAPS_ONCE; ++c)
         {
-            uint bot_off                = glb_in_off + c * MLO_IN_CHANNEL_STRIDE;
-            const __global _FLOAT* bot1 = &bot[bot_off];
-
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
             {
-                load_buf_bot[c * MLO_READ_UNIT + i] = bot1[i * MLO_FILTER_STRIDE0];
+                load_buf_bot[c * MLO_READ_UNIT + i] = *(bot1 + i * MLO_FILTER_STRIDE0);
             }
+            bot1 += MLO_IN_CHANNEL_STRIDE;
         }
 
         uint glb_out_off = glb_out_off0 + batch_id * MLO_OUT_BATCH_STRIDE + out_image_off;
+
+        const __global _FLOAT* top1 = top_df + glb_out_off;
+
         for(uint k = 0; k < MLO_N_LCL_OUT_MAPS_ONCE; ++k)
         {
-            uint top_off = glb_out_off + k * MLO_OUT_CHANNEL_STRIDE;
-
-            const __global _FLOAT* top1 = &top_df[top_off];
-
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
             {
-                load_buf_top[k * MLO_READ_UNIT + i] = top1[i];
+                load_buf_top[k * MLO_READ_UNIT + i] = *(top1 + i);
             }
+            top1 += MLO_OUT_CHANNEL_STRIDE;
         }
 
         // processing
@@ -680,36 +681,36 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
     for(uint faked_off = (local_Id0 % (MLO_GRP_SZ0 / 4)); faked_off < MLO_MAX_LOADS2;
         faked_off += (MLO_GRP_SZ0 / 4))
     {
-        uint batch_id  = iDiv(faked_off, (LAST_PIXELS));           // batch
+        uint batch_id  = (faked_off / (LAST_PIXELS));              // batch
         uint image_off = iMod(faked_off, batch_id, (LAST_PIXELS)); // pixel offset
         image_off += MLO_LAST_PIXEL_OFFSET;
 
         uint glb_in_off = glb_in_off0 + batch_id * MLO_IN_BATCH_STRIDE + image_off * 1;
 
-        // Address offset mode is not used in shader compiler
-        // Most VGPRs are used up by Address
+        // *(p+index) Pointer Mode will use OFfset mode in ASSEMBLY
+        //  P[Index] will not use OFfset mode in ASSEMBLY
+
+        const __global _FLOAT* bot1 = bot + glb_in_off;
         for(uint c = 0; c < MLO_N_LCL_IN_MAPS_ONCE; ++c)
         {
-            uint bot_off                = glb_in_off + c * MLO_IN_CHANNEL_STRIDE;
-            const __global _FLOAT* bot1 = &bot[bot_off];
-
             for(uint i = 0; i < 1; ++i)
             {
-                load_buf_bot[c * MLO_READ_UNIT + i] = bot1[i];
+                load_buf_bot[c * MLO_READ_UNIT + i] = *(bot1 + i);
             }
+            bot1 += MLO_IN_CHANNEL_STRIDE;
         }
 
         uint glb_out_off = glb_out_off0 + batch_id * MLO_OUT_BATCH_STRIDE + image_off * 1;
+
+        const __global _FLOAT* top1 = top_df + glb_out_off;
+
         for(uint k = 0; k < MLO_N_LCL_OUT_MAPS_ONCE; ++k)
         {
-            uint top_off = glb_out_off + k * MLO_OUT_CHANNEL_STRIDE;
-
-            const __global _FLOAT* top1 = &top_df[top_off];
-
             for(uint i = 0; i < 1; ++i)
             {
-                load_buf_top[k * MLO_READ_UNIT + i] = top1[i];
+                load_buf_top[k * MLO_READ_UNIT + i] = *(top1 + i);
             }
+            top1 += MLO_OUT_CHANNEL_STRIDE;
         }
 
         // processing

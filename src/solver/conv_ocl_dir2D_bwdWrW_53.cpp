@@ -49,8 +49,9 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     int wei_cstride = params.kernel_size0 * params.kernel_size1;
     int wei_bstride = params.n_outputs * wei_cstride;
 
-    int read_unit         = 4;
-    std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
+    static const int read_unit = 4;
+    static const std::string READ_TYPE =
+        (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
 
     // number  of batch iterations
     result.n_stacks = 1;
@@ -119,7 +120,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         else if(in_n_vert_reads < 2)
         {
             std::cout << "CONFIG ERROR: not enough local memory for the configuration\n";
-            return ConvSolution(static_cast<miopenStatus_t>(-1));
+            return ConvSolution(miopenStatusUnknownError);
         }
     }
     int in_n_vert_read_loops = (params.in_height + in_n_vert_reads - 1) / in_n_vert_reads;

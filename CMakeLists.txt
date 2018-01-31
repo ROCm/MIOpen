@@ -50,13 +50,14 @@ include(ROCMSetupVersion)
 include(ROCMInstallSymlinks)
 include(ROCMCreatePackage)
 
+
 # Strip symbols for release
 if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 1.1.5)
+rocm_setup_version(VERSION 1.2.1)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
@@ -67,8 +68,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
 
 ############################################################
-# require C++11
-add_compile_options(-std=gnu++14)
+# require C++14
+add_compile_options(-std=c++14)
 
 ############################################################
 # OPTION - MIOpen Backend
@@ -155,6 +156,7 @@ set( MIOPEN_INSTALL_DIR miopen)
 set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen )
 set( MIOPEN_PERFDB_LOCK_NAME "miopen_perfdb_lock")
 
+set(MIOPEN_GPU_SYNC Off CACHE BOOL "")
 if(BUILD_DEV)
     set(MIOPEN_BUILD_DEV 1)
     set(MIOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels")
@@ -184,6 +186,7 @@ include(ClangTidy)
 enable_clang_tidy(
     CHECKS
         *
+        -cert-env33-c
         -android-cloexec-fopen
         # Yea we shouldn't be using rand()
         -cert-msc30-c
@@ -201,6 +204,7 @@ enable_clang_tidy(
         -cppcoreguidelines-pro-type-union-access
         -cppcoreguidelines-pro-type-vararg
         -cppcoreguidelines-special-member-functions
+        -fuchsia-*
         -google-explicit-constructor
         -google-readability-braces-around-statements
         -google-readability-todo
@@ -241,6 +245,33 @@ enable_clang_tidy(
         -DMIOPEN_USE_CLANG_TIDY
     ANALYZE_TEMPORARY_DTORS ON
 
+)
+include(CppCheck)
+enable_cppcheck(
+    CHECKS 
+        all
+    FORCE
+    SUPPRESS 
+        ConfigurationNotChecked
+        unmatchedSuppression
+        constStatement
+        noExplicitConstructor
+        passedByValue
+        # preprocessorErrorDirective
+        unusedStructMember
+        # TODO: Try to reenable this without needing inline suppressions
+        leakReturnValNotUsed
+        *:*.cl
+    SOURCES
+        include/
+        src/
+        # test/
+    INCLUDE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_BINARY_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/include
+    DEFINE
+        MIOPEN_USE_MIOPENGEMM=1
 )
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)

@@ -72,6 +72,8 @@ set( MIOpen_Source
     softmax_api.cpp
     batch_norm.cpp
     batch_norm_api.cpp
+    rnn.cpp
+    rnn_api.cpp
     include/miopen/db_record.hpp
     include/miopen/find_controls.hpp
     include/miopen/batch_norm.hpp
@@ -92,6 +94,7 @@ set( MIOpen_Source
     include/miopen/lrn.hpp
     include/miopen/activ.hpp
     include/miopen/softmax.hpp
+	include/miopen/rnn.hpp
     tensor.cpp
     tensor_api.cpp
     solver.cpp
@@ -100,6 +103,7 @@ set( MIOpen_Source
     solver/conv_asm_5x10u2v2b1.cpp
     solver/conv_asm_7x7c3h224w224k64u2v2p3q3f1.cpp
     solver/conv_asm_dir_BwdWrW3x3.cpp
+    solver/conv_asm_dir_BwdWrW1x1.cpp
     solver/conv_bin_wino3x3U.cpp
     solver/conv_bin_winoRxS.cpp
     solver/conv_ocl_dir2D_bwdWrW_2.cpp
@@ -117,6 +121,13 @@ set( MIOpen_Source
 list(APPEND MIOpen_Source tmp_dir.cpp binary_cache.cpp md5.cpp)
 
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
+    set(MIOPEN_KERNEL_INCLUDES
+        kernels/inst_wrappers.inc
+        kernels/common.inc
+        kernels/conv_sizes.inc
+        kernels/macro1x1wrw.inc
+        kernels/gpr_alloc.inc)
+
     set(MIOPEN_KERNELS
         kernels/MIOpenCheckNumerics.cl
         kernels/MIOpenBatchNormFwdTrainSpatial.cl
@@ -140,6 +151,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvD3x3.cl
         kernels/MIOpenUtilKernels.cl
         kernels/MIOpenUtilKernels2.cl
+        kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenConvBwdWrWS2.cl
         kernels/MIOpenConvBwdWrW_LxG_P53.cl
         kernels/MIOpenConvBwdWrW_LxG_5x5.cl
@@ -148,8 +160,10 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvBwdWrW1x1Mmap.cl
         kernels/MIOpenConvFwd_LxL_11.cl
         kernels/MIOpenConvFFT.cl
+        kernels/bugzilla_34765_detect.s
         kernels/conv3x3.s
         kernels/conv3x3wrw.s
+        kernels/conv1x1wrw.s
         kernels/conv5x10u2v2f1.s
         kernels/conv5x10u2v2b1.s
         kernels/conv7x7c3h224w224k64u2v2p3q3f1.s
@@ -193,6 +207,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/pooling_ocl.cpp
         ocl/tensorocl.cpp
         ocl/softmaxocl.cpp
+        ocl/rnnocl.cpp
         ocl/utilocl.cpp
         ocl/gcn_asm_utils.cpp
         pooling.cpp
@@ -233,7 +248,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     add_custom_command(
         OUTPUT ${PROJECT_BINARY_DIR}/include/miopen_kernels.h
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        DEPENDS addkernels ${MIOPEN_KERNELS}
+        DEPENDS addkernels ${MIOPEN_KERNELS} ${MIOPEN_KERNEL_INCLUDES}
         COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -guard GUARD_MIOPEN_KERNELS_HPP_ -target ${PROJECT_BINARY_DIR}/include/miopen_kernels.h -source ${MIOPEN_KERNELS}
         COMMENT "Inlining MIOpen kernels"
         )

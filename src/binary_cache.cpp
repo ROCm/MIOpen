@@ -66,7 +66,7 @@ boost::filesystem::path GetCachePath()
 bool IsCacheDisabled()
 {
 #ifdef MIOPEN_CACHE_DIR
-    return miopen::IsDisabled(MIOPEN_DISABLE_CACHE{});
+    return miopen::IsEnabled(MIOPEN_DISABLE_CACHE{});
 #else
     return true;
 #endif

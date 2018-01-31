@@ -4,7 +4,6 @@ AMD's library for high peformance machine learning primitives. MIOpen supports t
 1. OpenCL 
 2. [HIP](https://github.com/ROCm-Developer-Tools/HIP)
 
-
 ## Prerequisites
 * A ROCm enabled platform, more info [here](https://rocm.github.io/install.html)
 * Base software stack, which includes
@@ -20,7 +19,17 @@ AMD's library for high peformance machine learning primitives. MIOpen supports t
 
 Instructions to install the above dependencies are present in this [section](#installing-the-dependencies).
 
-## Configure with cmake
+## Installing MIOpen with pre-built packages
+
+MIOpen can be installed on Ubuntu using `apt-get`.
+
+For OpenCL backend: `apt-get install miopen-opencl`
+
+For HIP backend: `apt-get install miopen-hip`
+
+## Building MIOpen from source
+
+## Configuring with cmake
 
 First create a build directory:
 

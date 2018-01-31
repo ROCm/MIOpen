@@ -115,12 +115,23 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
 
     const auto _hw_wave_sz = 64;
     //_dev_local_mem_sz = localMemSize; // in bytes
+    // inpout are outputs
+    int wei_cstride = params.kernel_size0 * params.kernel_size1;
+    int wei_bstride = params.n_outputs * wei_cstride;
 
     // number  of batch iterations
     result.n_stacks = 1;
     result.n_stacks = std::min(params.batch_sz, result.n_stacks);
     int n_batch_blks =
         (params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) / (N_BATCH_LOOPS * result.n_stacks);
+
+    // guard not to grab too much system memory
+    while(n_batch_blks > 1 && wei_bstride * params.n_inputs * n_batch_blks > 4 * 1024 * 1024)
+    {
+        N_BATCH_LOOPS <<= 1;
+        n_batch_blks = (params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) /
+                       (N_BATCH_LOOPS * result.n_stacks);
+    }
 
     if(params.n_passes)
     {
@@ -141,20 +152,19 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
     result.n_in_data_tiles = 1;
 
     // select output mapping
-    int total_out_maps   = result.n_out_pix_tiles * result.out_pix_tile1;
-    result.out_pix_tile1 = (total_out_maps > params.n_inputs) ? 1 : result.out_pix_tile1;
-    total_out_maps       = result.n_out_pix_tiles * result.out_pix_tile1;
+
+    result.n_out_pix_tiles = std::min(result.n_out_pix_tiles, params.n_inputs);
     result.n_out_pix_tiles =
-        (total_out_maps > params.n_inputs) ? params.n_inputs : result.n_out_pix_tiles;
-    int N_OUT_BLK_GRP = result.out_pix_tile1;
-    total_out_maps    = result.n_out_pix_tiles * result.out_pix_tile1;
+        (params.n_inputs % result.n_out_pix_tiles != 0) ? 1 : result.n_out_pix_tiles;
+    result.out_pix_tile1 = std::min(result.out_pix_tile1, params.n_inputs);
+    result.out_pix_tile1 = (params.n_inputs % result.out_pix_tile1 != 0) ? 1 : result.out_pix_tile1;
+    int total_out_maps   = result.n_out_pix_tiles * result.out_pix_tile1;
+    result.out_pix_tile1 = (params.n_inputs % total_out_maps != 0) ? 1 : result.out_pix_tile1;
+    int N_OUT_BLK_GRP    = result.out_pix_tile1;
+    total_out_maps       = result.n_out_pix_tiles * result.out_pix_tile1;
 
     // each wave is a filter row
     int GRP_SZ = _hw_wave_sz * n_waves;
-
-    // inpout are outputs
-    int wei_cstride = params.kernel_size0 * params.kernel_size1;
-    int wei_bstride = params.n_outputs * wei_cstride;
 
     //	int read_unit = 6;
     std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
@@ -164,9 +174,10 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
 
     int N_OUT_BLK = (params.in_height + N_ALIGNED_OUT_SCAN_BLK - 1) / N_ALIGNED_OUT_SCAN_BLK;
 
-    int lcl_mem_sz = N_ALIGNED_OUT_SCAN_BLK * ALIGNED_OUT_SCAN_LN * read_unit +
-                     params.out_width * ((N_ALIGNED_OUT_SCAN_BLK - 1) * params.kernel_stride1 +
-                                         params.kernel_size1);
+    int lcl_mem_sz =
+        N_ALIGNED_OUT_SCAN_BLK * ALIGNED_OUT_SCAN_LN * read_unit +
+        (((params.out_width + read_unit - 1) / read_unit) * read_unit + params.kernel_size0 - 1) *
+            ((N_ALIGNED_OUT_SCAN_BLK - 1) * params.kernel_stride1 + params.kernel_size1);
     if(lcl_mem_sz > 8 * 1024)
     {
         return ConvSolution(miopenStatusNotInitialized);

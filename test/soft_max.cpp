@@ -45,7 +45,7 @@
 struct verify_forward_sofmax
 {
     template <class T>
-    tensor<T> cpu(const tensor<T>& input)
+    tensor<T> cpu(const tensor<T>& input) const
     {
         auto out = input;
         std::fill(out.begin(), out.end(), 0);
@@ -67,7 +67,7 @@ struct verify_forward_sofmax
     }
 
     template <class T>
-    tensor<T> gpu(const tensor<T>& input)
+    tensor<T> gpu(const tensor<T>& input) const
     {
         auto&& handle = get_handle();
         auto out      = input;
@@ -83,7 +83,7 @@ struct verify_forward_sofmax
     }
 
     template <class T>
-    void fail(float, const tensor<T>& input)
+    void fail(float, const tensor<T>& input) const
     {
         std::cout << "Forward Sofmax: " << std::endl;
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
@@ -93,7 +93,7 @@ struct verify_forward_sofmax
 struct verify_backward_sofmax
 {
     template <class T>
-    tensor<T> cpu(const tensor<T>& out, const tensor<T>& dout)
+    tensor<T> cpu(const tensor<T>& out, const tensor<T>& dout) const
     {
         auto input = dout;
 
@@ -111,7 +111,7 @@ struct verify_backward_sofmax
     }
 
     template <class T>
-    tensor<T> gpu(const tensor<T>& out, const tensor<T>& dout)
+    tensor<T> gpu(const tensor<T>& out, const tensor<T>& dout) const
     {
         auto&& handle = get_handle();
         auto input    = dout;
@@ -129,7 +129,7 @@ struct verify_backward_sofmax
     }
 
     template <class T>
-    void fail(float, const tensor<T>& output, const tensor<T>&)
+    void fail(float, const tensor<T>& output, const tensor<T>&) const
     {
         std::cout << "Backward Sofmax: " << std::endl;
         std::cout << "Output tensor: " << output.desc.ToString() << std::endl;
@@ -156,4 +156,4 @@ struct softmax_driver : test_driver
     }
 };
 
-int main(int argc, const char* argv[]) { test_drive<softmax_driver<float>>(argc, argv); }
+int main(int argc, const char* argv[]) { test_drive<softmax_driver>(argc, argv); }

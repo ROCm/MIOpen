@@ -24,14 +24,33 @@
  *
  *******************************************************************************/
 
-#define _FLOAT float
-#define _FLOAT2 float2
-#define _FLOAT4 float4
-#define _FLOAT8 float8
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
 
-#ifndef FLT_MAX
-#define FLT_MAX 3.402823466e+38F /* max value */
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
 #endif
+#endif
+#if MIOPEN_USE_FP32 == 1
+#define _FLOAT float
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #define UNUSED __attribute__((__unused__))
 
@@ -709,11 +728,11 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* __restrict weight_df_tmp,
     uint wei_idx     = wei_idx0 & (MLO_WEI_CHANNEL_STRIDE - 1);
 #endif
 
-    _FLOAT pvt_accum_wei[MLO_UT_READ_UNIT];
-    for(uint i = 0; i < MLO_UT_READ_UNIT; ++i)
-    {
-        pvt_accum_wei[i] = 0;
-    }
+    _FLOAT pvt_accum_wei[MLO_UT_READ_UNIT] = {MLO_UT_READ_UNIT * (_FLOAT)0};
+    //	for (uint i = 0; i < MLO_UT_READ_UNIT; ++i)
+    //	{
+    //		pvt_accum_wei[i] = 0;
+    //	}
 
     int batch_loop = (MLO_BATCH_SZ + (MLO_N_BATCH_LOOPS * MLO_N_LCL_BATCHS) - 1) /
                      (MLO_N_BATCH_LOOPS * MLO_N_LCL_BATCHS);

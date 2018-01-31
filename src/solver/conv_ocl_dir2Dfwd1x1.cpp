@@ -235,10 +235,6 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             const bool is_forward = params.direction.IsForward();
             int wei_bstride       = (is_forward ? params.n_inputs : params.n_outputs) * wei_cstride;
 
-            std::string READ_TYPE =
-                (read_unit == 1) ? "_FLOAT"
-                                 : "_FLOAT" + std::to_string(static_cast<long long>(read_unit));
-
             int OUT_WIDTH4 = params.out_width;
             int MAP_SZ4    = (OUT_WIDTH4 * params.out_height + read_unit - 1) / (read_unit);
             // stride > 1 and/or apdding

@@ -24,14 +24,33 @@
  *
  *******************************************************************************/
 
-#define _FLOAT float
-#define _FLOAT2 float2
-#define _FLOAT4 float4
-#define _FLOAT8 float8
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
 
-#ifndef FLT_MAX
-#define FLT_MAX 3.402823466e+38F /* max value */
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
 #endif
+#endif
+#if MIOPEN_USE_FP32 == 1
+#define _FLOAT float
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #define UNUSED __attribute__((__unused__))
 
@@ -175,42 +194,43 @@ static inline uint calculateOffset(uint stride, uint x, uint y)
 
 static inline void readDataElem(uint linPos,
                                 __local _FLOAT* lcl_data,
-                                int lcl_base,
+                                uint lcl_base,
                                 UNUSED uint lcl_height,
                                 uint lcl_width,
-                                int lcl_stride,
-                                int lcl_y,
-                                int lcl_x,
+                                uint lcl_stride,
+                                uint lcl_y,
+                                uint lcl_x,
                                 const __global _FLOAT* gbl_data,
-                                int gbl_base,
+                                uint gbl_base,
                                 uint gbl_height,
                                 uint gbl_width,
-                                int gbl_stride,
-                                int gbl_y,
-                                int gbl_x,
+                                uint gbl_stride,
+                                uint gbl_y,
+                                uint gbl_x,
                                 bool vis,
                                 UNUSED bool debug)
 {
     uint x, y;
     calculateXYPos(linPos, lcl_width, &x, &y);
-    int g_x       = x + gbl_x;
-    int g_y       = y + gbl_y;
+    uint g_x      = x + gbl_x;
+    uint g_y      = y + gbl_y;
     uint gbl_off0 = calculateOffset(gbl_stride, g_x, g_y);
-    int gbl_off   = gbl_off0 + gbl_base;
+    uint gbl_off  = gbl_off0 + gbl_base;
 
 #if MLO_LARGE_MAP == 1
-    int lcl_off = lcl_base + linPos;
+    uint lcl_off = lcl_base + linPos;
     (void)lcl_stride;
     (void)lcl_x;
     (void)lcl_y;
 #else
-    int l_x     = x + lcl_x;
-    int l_y     = y + lcl_y;
-    int lcl_off = lcl_base + mad24(l_y, lcl_stride, l_x);
+    uint l_x     = x + lcl_x;
+    uint l_y     = y + lcl_y;
+    uint lcl_off = lcl_base + mad24(l_y, lcl_stride, l_x);
 #endif
 
 #if MLO_LARGE_MAP == 1
-    vis &= (g_x >= 0 && g_x < gbl_width && g_y >= 0 && g_y < gbl_height);
+    //	vis &= (g_x >= 0 && g_x < gbl_width && g_y >= 0 && g_y < gbl_height);
+    vis &= (g_x < gbl_width && g_y < gbl_height);
 #else
     (void)gbl_width;
     (void)gbl_height;
@@ -223,22 +243,22 @@ static inline void readDataElem(uint linPos,
 }
 
 static inline void readData(uint lcl_id,
-                            int size,
-                            int lcl_p_stride,
+                            uint size,
+                            uint lcl_p_stride,
                             __local _FLOAT* lcl_data,
-                            int lcl_base,
+                            uint lcl_base,
                             uint lcl_height,
                             uint lcl_width,
-                            int lcl_stride,
-                            int lcl_y,
-                            int lcl_x,
+                            uint lcl_stride,
+                            uint lcl_y,
+                            uint lcl_x,
                             const __global _FLOAT* gbl_data,
-                            int gbl_base,
+                            uint gbl_base,
                             uint gbl_height,
                             uint gbl_width,
-                            int gbl_stride,
-                            int gbl_y,
-                            int gbl_x,
+                            uint gbl_stride,
+                            uint gbl_y,
+                            uint gbl_x,
                             bool vis,
                             bool debug)
 {
@@ -266,26 +286,26 @@ static inline void readData(uint lcl_id,
 }
 
 static inline void loadData(uint lcl_id,
-                            int lcl_p_stride,
+                            uint lcl_p_stride,
                             __local _FLOAT* lcl_data,
-                            int lcl_off,
-                            int lcl_size,
+                            uint lcl_off,
+                            uint lcl_size,
                             uint lcl_height,
                             uint lcl_width,
-                            int lcl_stride,
-                            int lcl_bot_y,
-                            int lcl_bot_x,
+                            uint lcl_stride,
+                            uint lcl_bot_y,
+                            uint lcl_bot_x,
                             const __global _FLOAT* gbl_data,
-                            int gbl_off,
-                            int gbl_size,
+                            uint gbl_off,
+                            uint gbl_size,
                             uint gbl_height,
                             uint glb_width,
-                            int gbl_stride,
-                            int gbl_bot_y,
-                            int gbl_bot_x,
-                            int buf_block_ind,
-                            int max_n_bufs,
-                            int lcl_n_bufs,
+                            uint gbl_stride,
+                            uint gbl_bot_y,
+                            uint gbl_bot_x,
+                            uint buf_block_ind,
+                            uint max_n_bufs,
+                            uint lcl_n_bufs,
                             bool debug)
 {
 
@@ -315,7 +335,7 @@ static inline void loadData(uint lcl_id,
 }
 
 static inline void Conv(uint o_map_base,
-                        int in_stg_off,
+                        uint in_stg_off,
                         __private _FLOAT* __restrict pvt_in_stage,
                         __local _FLOAT* __restrict lcl_indata,
                         __private _FLOAT* __restrict pvt_wei_stage,
@@ -325,14 +345,14 @@ static inline void Conv(uint o_map_base,
     // convolution
 
     // over all inputs in stack
-    int in_stg_off1 = in_stg_off;
+    uint in_stg_off1 = in_stg_off;
     for(uint i_c = 0; i_c < MLO_N_IN_TILES_PERSTACK; ++i_c, in_stg_off1 += MLO_IN_LCL_TILE_SZ)
     {
         // preload input
-        int wei_stg_base_off = mad24(o_map_base,
-                                     (uint)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ),
-                                     mul24(i_c, (uint)MLO_FILTER_SZ));
-        int in_stg_off2 = in_stg_off1;
+        uint wei_stg_base_off = mad24(o_map_base,
+                                      (uint)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ),
+                                      mul24(i_c, (uint)MLO_FILTER_SZ));
+        uint in_stg_off2 = in_stg_off1;
         for(uint j = 0; j < MLO_PVT_IN_HEIGHT - 1; ++j,
                  in_stg_off2 += (((j - MLO_PADDING_SHIFT1 + MLO_PADDING_FIX1) % MLO_FILTER_STRIDE1)
                                      ? 0
@@ -361,7 +381,7 @@ static inline void Conv(uint o_map_base,
                                      : MLO_IN_LCL_WIDTH))
 #endif
         {
-            int k_act = 0;
+            uint k_act = 0;
 #if MLO_DIR_FORWARD == 1
             k_act = k;
 #else
@@ -378,8 +398,9 @@ static inline void Conv(uint o_map_base,
             // over all outputs
             for(uint o_c = 0; o_c < MLO_N_OUT_TILES; ++o_c)
             {
-                int wei_stg_off = wei_stg_base_off + o_c * MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ +
-                                  k_act * MLO_FILTER_SIZE0;
+                uint wei_stg_off = wei_stg_base_off +
+                                   o_c * MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ +
+                                   k_act * MLO_FILTER_SIZE0;
                 for(uint i = 0; i < MLO_FILTER_SIZE0; ++i)
                 {
                     pvt_wei_stage[i] =
@@ -397,10 +418,11 @@ static inline void Conv(uint o_map_base,
 #endif
                         for(uint i = 0; i < MLO_OUT_TILE0; ++i)
                         {
+                            _FLOAT sum = (_FLOAT)0;
                             for(uint l = 0; l < MLO_FILTER_SIZE0; ++l)
                             {
 
-                                int l_act = 0;
+                                uint l_act = 0;
 #if MLO_DIR_FORWARD == 1
                                 l_act = l;
 
@@ -411,22 +433,21 @@ static inline void Conv(uint o_map_base,
 #endif
 
 #if MLO_DIR_FORWARD == 1
-                                pvt_accum[(o_c * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i] +=
-                                    pvt_in_stage[j * MLO_PVT_IN_WIDTH * MLO_FILTER_STRIDE1 +
-                                                 i * MLO_FILTER_STRIDE0 + l] *
-                                    pvt_wei_stage[l_act];
+                                sum += pvt_in_stage[j * MLO_PVT_IN_WIDTH * MLO_FILTER_STRIDE1 +
+                                                    i * MLO_FILTER_STRIDE0 + l] *
+                                       pvt_wei_stage[l_act];
 #else
                             if(((i + l + 1 - MLO_PADDING_SHIFT0 +
                                  (MLO_FILTER_SIZE0 % MLO_FILTER_STRIDE0)) %
                                 MLO_FILTER_STRIDE0) == 0)
                             {
-                                pvt_accum[(o_c * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i] +=
-                                    pvt_in_stage[(j / MLO_FILTER_STRIDE1) * MLO_PVT_IN_WIDTH +
-                                                 (i + l) / MLO_FILTER_STRIDE0] *
-                                    pvt_wei_stage[l_act];
+                                sum += pvt_in_stage[(j / MLO_FILTER_STRIDE1) * MLO_PVT_IN_WIDTH +
+                                                    (i + l) / MLO_FILTER_STRIDE0] *
+                                       pvt_wei_stage[l_act];
                             }
 #endif
                             }
+                            pvt_accum[(o_c * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i] += sum;
                         }
                 }
 
@@ -589,8 +610,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #if 1 // all inputs
 
 #if MLO_LARGE_MAP == 1
-        int in_lcl_off1 = 0;
-        int in_off1     = in_off;
+        uint in_lcl_off1 = 0;
+        uint in_off1     = in_off;
         for(uint i_b = 0; i_b < MLO_N_STACKS;
             ++i_b, in_off1 += MLO_IN_BATCH_STRIDE, in_lcl_off1 += MLO_IN_LCL_PERSTACK_SZ)
         {
@@ -600,8 +621,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #endif
 
             // over all inputs in stack
-            int in_off2     = in_off1;
-            int in_lcl_off2 = in_lcl_off1;
+            uint in_off2     = in_off1;
+            uint in_lcl_off2 = in_lcl_off1;
             for(uint i_c = 0; i_c < MLO_N_IN_TILES_PERSTACK;
                 ++i_c, in_off2 += MLO_IN_CHANNEL_STRIDE, in_lcl_off2 += MLO_IN_LCL_TILE_SZ)
             {
@@ -609,12 +630,12 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
                 vis &= (ic + i_c < MLO_N_INPUTS);
 #endif
 
-                uint elem_id     = lcl_id;
-                int lcl_p_stride = MLO_GRP_SZ0;
-                int lcl_base     = 0;
-                int lcl_y        = 0;
-                int lcl_x        = 0;
-                int gbl_base     = in_off2;
+                uint elem_id      = lcl_id;
+                uint lcl_p_stride = MLO_GRP_SZ0;
+                uint lcl_base     = 0;
+                uint lcl_y        = 0;
+                uint lcl_x        = 0;
+                uint gbl_base     = in_off2;
 
                 readData(elem_id,
                          (MLO_IN_LCL_HEIGHT * MLO_IN_LCL_WIDTH),
@@ -644,8 +665,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
             uint i_b = iDiv(i, MLO_N_IN_TILES_PERSTACK);
             uint i_c = iMod(i, i_b, MLO_N_IN_TILES_PERSTACK);
 #else
-            uint i_b  = i / MLO_N_IN_TILES_PERSTACK;
-            uint i_c  = i & (MLO_N_IN_TILES_PERSTACK - 1);
+            uint i_b   = i / MLO_N_IN_TILES_PERSTACK;
+            uint i_c   = i & (MLO_N_IN_TILES_PERSTACK - 1);
 #endif
 
             bool vis = true;
@@ -657,20 +678,20 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #if MLO_INPUTS_ALIGNED == 0
             vis &= (ic + i_c < MLO_N_INPUTS);
 #endif
-            int in_off2     = in_off + i_b * MLO_IN_BATCH_STRIDE + i_c * MLO_IN_CHANNEL_STRIDE;
-            int in_lcl_off2 = i_b * MLO_IN_LCL_PERSTACK_SZ + i_c * MLO_IN_LCL_TILE_SZ;
+            uint in_off2     = in_off + i_b * MLO_IN_BATCH_STRIDE + i_c * MLO_IN_CHANNEL_STRIDE;
+            uint in_lcl_off2 = i_b * MLO_IN_LCL_PERSTACK_SZ + i_c * MLO_IN_LCL_TILE_SZ;
 
-            uint elem_id     = wave_lcl_id;
-            int lcl_p_stride = MLO_N_READ_PROCS;
-            int lcl_base     = 0;
+            uint elem_id      = wave_lcl_id;
+            uint lcl_p_stride = MLO_N_READ_PROCS;
+            uint lcl_base     = 0;
 #if MLO_DIR_FORWARD == 1
-            int lcl_y        = MLO_FILTER_PAD1;
-            int lcl_x        = MLO_FILTER_PAD0;
+            uint lcl_y        = MLO_FILTER_PAD1;
+            uint lcl_x        = MLO_FILTER_PAD0;
 #else
-            int lcl_y = (MLO_FILTER_PAD1 / MLO_FILTER_STRIDE0);
-            int lcl_x = (MLO_FILTER_PAD0 / MLO_FILTER_STRIDE1);
+            uint lcl_y = (MLO_FILTER_PAD1 / MLO_FILTER_STRIDE0);
+            uint lcl_x = (MLO_FILTER_PAD0 / MLO_FILTER_STRIDE1);
 #endif
-            int gbl_base     = in_off2;
+            uint gbl_base     = in_off2;
 
             readData(elem_id,
                      (MLO_IN_HEIGHT * MLO_IN_WIDTH),
@@ -764,21 +785,21 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 // write results out
 #if MLO_DIR_FORWARD == 1
 #if MLO_FILTER_STRIDE0 == 1
-    int x_out_grp = x_grp;
+    uint x_out_grp = x_grp;
 #else
-    int x_out_grp = x_tile_blk * MLO_IN_TILE0;
+    uint x_out_grp = x_tile_blk * MLO_IN_TILE0;
 #endif
 #if MLO_FILTER_STRIDE1 == 1
-    int y_out_grp = y_grp;
+    uint y_out_grp = y_grp;
 #else
-    int y_out_grp = y_tile_blk * MLO_IN_TILE1;
+    uint y_out_grp = y_tile_blk * MLO_IN_TILE1;
 #endif
 #else
-    int x_out_grp         = x_grp * MLO_FILTER_STRIDE0;
-    int y_out_grp         = y_grp * MLO_FILTER_STRIDE1;
+    uint x_out_grp        = x_grp * MLO_FILTER_STRIDE0;
+    uint y_out_grp        = y_grp * MLO_FILTER_STRIDE1;
 #endif
-    int x_out_lcl = alu_tl0 * MLO_OUT_TILE0;
-    int y_out_lcl = alu_tl1 * MLO_OUT_TILE1;
+    uint x_out_lcl = alu_tl0 * MLO_OUT_TILE0;
+    uint y_out_lcl = alu_tl1 * MLO_OUT_TILE1;
 
     uint out_off = (b_index + stack) * MLO_OUT_BATCH_STRIDE + o_map * MLO_OUT_CHANNEL_STRIDE +
                    (y_out_grp + y_out_lcl) * MLO_OUT_STRIDE + x_out_grp + x_out_lcl;
@@ -789,7 +810,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
     {
 
         // over all local outputs
-        int out_off1 = out_off;
+        uint out_off1 = out_off;
         for(uint o = 0; o < MLO_N_OUT_TILES; ++o, out_off1 += MLO_OUT_CHANNEL_STRIDE)
         {
 #if MLO_OUTPUTS_ALIGNED == 0
@@ -797,13 +818,14 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #endif
             {
                 // over output tile
-                int out_off2 = out_off1;
+                uint out_off2 = out_off1;
 #if MLO_OUT_TILE0 == 1
-                for(int j = 0; j < MLO_OUT_TILE1 && y_out_grp + y_out_lcl + j < MLO_OUT_HEIGHT;
+                for(uint j = 0; j < MLO_OUT_TILE1 && y_out_grp + y_out_lcl + j < MLO_OUT_HEIGHT;
                     ++j, out_off2 += MLO_OUT_STRIDE)
                 {
-                    for(int i = 0; i < MLO_OUT_TILE0 && x_out_grp + x_out_lcl + i < MLO_OUT_WIDTH &&
-                                   out_off2 + i < MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ;
+                    for(uint i = 0;
+                        i < MLO_OUT_TILE0 && x_out_grp + x_out_lcl + i < MLO_OUT_WIDTH &&
+                        out_off2 + i < MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ;
                         ++i)
                     {
 #else

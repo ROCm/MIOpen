@@ -24,14 +24,33 @@
  *
  *******************************************************************************/
 
-#define _FLOAT float
-#define _FLOAT2 float2
-#define _FLOAT4 float4
-#define _FLOAT8 float8
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
 
-#ifndef FLT_MAX
-#define FLT_MAX 3.402823466e+38F /* max value */
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
 #endif
+#endif
+#if MIOPEN_USE_FP32 == 1
+#define _FLOAT float
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
+#endif
+
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #define UNUSED __attribute__((__unused__))
 
@@ -209,7 +228,7 @@ __attribute__((always_inline)) void fetchWeights(uint c,
 #if 0
 		if (ob == 0 && k == 1)
 		{
-			printf("G:w: %d %d %d %d   %f %f\n",
+			printf("G:w: %d %d %d %d %f %f\n",
 				//										lcl_id,
 				//										w,
 				//										f_s,
@@ -349,7 +368,7 @@ __attribute__((always_inline)) void Convolve(uint ex_row,
 #if 0
 				if (wei_val * in_val != 0 && ib + b + bb == 0 && k_idx + k == 1 && out_y + ex_row == 0 && ex_pix + n == 0)
 				{
-					printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
+					printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d %f %f %f %f\n",
 						f_s,
 						out_y,
 						ex_row,
@@ -752,7 +771,7 @@ __attribute__((always_inline)) void Convolve2(uint b,
 #if 0
 				if (wei_val * in_val != 0 && ib + b + bb == 0 && k_idx + k == 1 && out_y + ex_row == 0 && ex_pix + n == 0)
 				{
-					printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d  %f %f %f %f\n",
+					printf("G:c: %d %d %d %d %d %d %d %d %d %d %d %d %f %f %f %f\n",
 						f_s,
 						out_y,
 						ex_row,
