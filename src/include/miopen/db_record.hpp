@@ -51,10 +51,10 @@ class LockFile
     private:
     class Impl
     {
+        public:
         Impl(const Impl&) = delete;
         Impl operator=(const Impl&) = delete;
 
-        public:
         Impl(const char* path) : _file(path), _file_lock(path) {}
 
         void lock()
@@ -100,9 +100,9 @@ class LockFile
 
 class DbLockFileDispatcher
 {
+    public:
     DbLockFileDispatcher() = delete;
 
-    public:
     static LockFile Get(const char* path)
     {
         { // To guarantee that construction won't be called if not required.
