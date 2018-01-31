@@ -45,13 +45,13 @@ bool PerformanceConfigConvAsm3x3U::SetNextValue()
     // Increment with wrap-around:
     do
     {
-        if (++limit_wave_cnt <= 9) // [0..9]
+        if(++limit_wave_cnt <= 9) // [0..9]
             break;
         limit_wave_cnt = 0;
-        if (++filters_per_wave <= 8) // [1..8]
+        if(++filters_per_wave <= 8) // [1..8]
             break;
         filters_per_wave = 1;
-        if (++output_lines_per_wave <= 8) // [1..8]
+        if(++output_lines_per_wave <= 8) // [1..8]
             break;
         // All the fields (components) of performance confic have wrapped around.
         return false;
@@ -60,9 +60,7 @@ bool PerformanceConfigConvAsm3x3U::SetNextValue()
 }
 
 PerformanceConfigConvAsm3x3U::PerformanceConfigConvAsm3x3U(int lwc, int fpw, int olpw)
-    : limit_wave_cnt(lwc),
-      filters_per_wave(fpw),
-      output_lines_per_wave(olpw)
+    : limit_wave_cnt(lwc), filters_per_wave(fpw), output_lines_per_wave(olpw)
 {
 }
 
@@ -83,17 +81,16 @@ bool PerformanceConfigConvAsm3x3U::IsValidValue() const
         && (1 <= output_lines_per_wave && output_lines_per_wave <= 8); // clang-format on
 }
 
-bool PerformanceConfigConvAsm3x3U::IsValid(const ConvolutionContext& config) const
+bool PerformanceConfigConvAsm3x3U::IsValid(const ConvolutionContext&) const
 {
-    if(!IsValidValue())
-        return false;
-    return true;
+    // No more conditions to check.
+    return IsValidValue();
 }
 
-void PerformanceConfigConvAsm3x3U::EuristicInit(const ConvolutionContext& config)
+void PerformanceConfigConvAsm3x3U::EuristicInit(const ConvolutionContext&)
 {
-    limit_wave_cnt = 0;
-    filters_per_wave = 2;
+    limit_wave_cnt        = 0;
+    filters_per_wave      = 2;
     output_lines_per_wave = 2;
     MIOPEN_LOG_I(ToString());
 }
@@ -115,7 +112,7 @@ ConvAsm3x3U::GetPerformanceConfig(const ConvolutionContext& params) const
 }
 
 bool ConvAsm3x3U::IsValidPerformanceConfig(const ConvolutionContext& problem,
-                                                const PerformanceConfigConvAsm3x3U& c) const
+                                           const PerformanceConfigConvAsm3x3U& c) const
 {
     return c.IsValidValue() && c.IsValid(problem);
 }
@@ -151,7 +148,7 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && params.in_width <= 1000
         && params.in_layout == "NCHW";
      // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
-     // clang-format on
+    // clang-format on
 }
 
 bool ConvAsm3x3U::IsFast(const ConvolutionContext& params) const { return params.in_width >= 50; }
@@ -209,8 +206,8 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
     // Debugging:
     GenerateClangDefsym(options, "enable_debug_output", 0);
 
-    const auto w64_chunks           = (params.in_width + 63) / 64;
-    const auto active_lanes         = (params.in_width + w64_chunks - 1) / w64_chunks;
+    const auto w64_chunks   = (params.in_width + 63) / 64;
+    const auto active_lanes = (params.in_width + w64_chunks - 1) / w64_chunks;
 
     KernelInfo construction_params;
     construction_params.comp_options = options.str();
@@ -220,9 +217,9 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
     construction_params.l_wk.push_back(1);
 
     construction_params.g_wk.push_back(
-        active_lanes * ((params.n_outputs + filters_per_wave - 1) / filters_per_wave));
-    construction_params.g_wk.push_back((params.in_height + output_lines_per_wave - 1) /
-                                       output_lines_per_wave);
+        active_lanes * ((params.n_outputs + pcfg->filters_per_wave - 1) / pcfg->filters_per_wave));
+    construction_params.g_wk.push_back((params.in_height + pcfg->output_lines_per_wave - 1) /
+                                       pcfg->output_lines_per_wave);
     construction_params.g_wk.push_back(params.batch_sz);
 
     construction_params.kernel_file = "conv3x3.s";
@@ -233,13 +230,13 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
 }
 
 int ConvAsm3x3U::RunAndMeasureSolution(miopen::Handle& profile_h,
-                Data_t bot_ocl_buf,
-                Data_t top_ocl_buf,
-                Data_t wei_ocl_buf,
-                Data_t bias_ocl_buf,
-                const ConvolutionContext& params,
-                const ConvSolution& solution,
-                float& elapsed_time) const
+                                       Data_t bot_ocl_buf,
+                                       Data_t top_ocl_buf,
+                                       Data_t wei_ocl_buf,
+                                       Data_t bias_ocl_buf,
+                                       const ConvolutionContext&,
+                                       const ConvSolution& solution,
+                                       float& elapsed_time) const
 {
     assert(bias_ocl_buf == nullptr);
     (void)bias_ocl_buf;
@@ -258,23 +255,8 @@ int ConvAsm3x3U::RunAndMeasureSolution(miopen::Handle& profile_h,
                                           k_info.l_wk,
                                           k_info.g_wk,
                                           k_info.comp_options);
-        int unused       = 0;
-        int* return_addr = nullptr;
-        auto n_groups =
-            static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
-
-        kernel(params.batch_sz,   // N
-               params.n_outputs,  // C
-               params.out_height, // H
-               params.out_width,  // W
-               params.n_inputs,   // K
-               n_groups,          // n_groups
-               unused,
-               unused,
-               top_ocl_buf,
-               wei_ocl_buf,
-               bot_ocl_buf,
-               return_addr);
+        int padding_val = 0;
+        kernel(top_ocl_buf, wei_ocl_buf, bot_ocl_buf, padding_val);
         elapsed_time = profile_h.GetKernelTime();
     }
 #ifdef NDEBUG
@@ -286,6 +268,10 @@ int ConvAsm3x3U::RunAndMeasureSolution(miopen::Handle& profile_h,
     return 0;
 }
 
+PerformanceConfigConvAsm3x3U ConvAsm3x3U::Search(const ConvolutionContext& context) const
+{
+    return GenericSearch(*this, context);
+}
 
 } // namespace solver
 } // namespace miopen
