@@ -33,118 +33,97 @@
 #include <boost/interprocess/sync/named_recursive_mutex.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/optional.hpp>
+#include <boost/thread/shared_mutex.hpp>
 
 #include <atomic>
 #include <fstream>
 #include <iostream>
-#include <mutex>
 #include <sstream>
 #include <string>
 #include <unordered_map>
 
 namespace miopen {
 
-    class LockFile
-    {
-        friend class DbLockFileDispatcher;
+class LockFile
+{
+    friend class DbLockFileDispatcher;
 
     private:
-        class Impl
-        {
-            Impl(const Impl&) = delete;
-            Impl operator=(const Impl&) = delete;
+    class Impl
+    {
+        Impl(const Impl&) = delete;
+        Impl operator=(const Impl&) = delete;
 
         public:
-            Impl(const char* path) : _file(path), _file_lock(path) {}
-
-            ~Impl()
-            {
-                if (_locked)
-                    unlock();
-            }
-
-            void lock()
-            {
-                _mutex.lock();
-                _locked = true;
-                _file_lock.lock();
-            }
-
-            void unlock() 
-            {
-                _file_lock.unlock();
-                _locked = false;
-                _mutex.unlock();
-            }
-
-        private:
-            bool _locked;
-            std::mutex _mutex;
-            std::ofstream _file;
-            boost::interprocess::file_lock _file_lock;
-        };
-
-    public:
-        LockFile(Impl& impl) : _impl(impl) {}
-        void lock() { _impl.lock(); }
-        void unlock() { _impl.unlock(); }
-
-    private:
-        Impl& _impl;
-    };
-
-    class DbLockFileDispatcher
-    {
-        DbLockFileDispatcher() = delete;
-
-    public:
-        static LockFile Get(const char* path)
-        {
-            { // To guarantee that construction won't be called if not required.
-                auto found = LockFiles().find(path);
-
-                if (found != LockFiles().end())
-                    return found->second;
-            }
-
-            auto emplaced = LockFiles().emplace(std::piecewise_construct, std::forward_as_tuple(path), std::forward_as_tuple(path));
-            return { emplaced.first->second };
-        }
-
-    private:
-        static std::map<std::string, LockFile::Impl>& LockFiles()
-        {
-            static std::map<std::string, LockFile::Impl> lock_files;
-            return lock_files;
-        }
-    };
-
-    template<class TBase>
-    class RecursiveBasicLocakable
-    {
-    public:
-        template<class... TArgs>
-        RecursiveBasicLocakable(TArgs... args) : _base(args...) {}
+        Impl(const char* path) : _file(path), _file_lock(path) {}
 
         void lock()
         {
-            if (_locks++ > 0)
-                return;
-            _base.lock();
+            _mutex.lock();
+            _file_lock.lock();
+        }
+
+        void lock_shared()
+        {
+            _mutex.lock_shared();
+            _file_lock.lock_sharable();
         }
 
         void unlock()
         {
-            assert(_locks > 0);
-            if (--_locks > 0)
-                return;
-            _base.unlock();
+            _file_lock.unlock();
+            _mutex.unlock();
         }
 
-    private:
-        TBase _base;
-        unsigned _locks = 0;
+        void unlock_shared()
+        {
+            _file_lock.unlock_sharable();
+            _mutex.unlock_shared();
+        }
+
+        private:
+        boost::shared_mutex _mutex;
+        std::ofstream _file;
+        boost::interprocess::file_lock _file_lock;
     };
+
+    public:
+    LockFile(Impl& impl) : _impl(impl) {}
+    void lock() { _impl.lock(); }
+    void lock_shared() { _impl.lock_shared(); }
+    void unlock() { _impl.unlock(); }
+    void unlock_shared() { _impl.unlock_shared(); }
+
+    private:
+    Impl& _impl;
+};
+
+class DbLockFileDispatcher
+{
+    DbLockFileDispatcher() = delete;
+
+    public:
+    static LockFile Get(const char* path)
+    {
+        { // To guarantee that construction won't be called if not required.
+            auto found = LockFiles().find(path);
+
+            if(found != LockFiles().end())
+                return found->second;
+        }
+
+        auto emplaced = LockFiles().emplace(
+            std::piecewise_construct, std::forward_as_tuple(path), std::forward_as_tuple(path));
+        return {emplaced.first->second};
+    }
+
+    private:
+    static std::map<std::string, LockFile::Impl>& LockFiles()
+    {
+        static std::map<std::string, LockFile::Impl> lock_files;
+        return lock_files;
+    }
+};
 
 class Db;
 
@@ -256,61 +235,62 @@ class DbRecord
 /// No instance of this class should be used from several threads at the same time.
 class Db
 {
-    private:
-    struct RecordPositions
-    {
-        std::streamoff begin = -1;
-        std::streamoff end   = -1;
-    };
-
-    using exclusive_lock =
-        boost::interprocess::scoped_lock<RecursiveBasicLocakable<LockFile>>;
-
-    std::string filename;
-    RecursiveBasicLocakable<LockFile> lock_file;
-
-    boost::optional<DbRecord> FindRecord(const std::string& key, RecordPositions* pos);
-    bool Flush(const DbRecord& record, const RecordPositions* pos);
-
     public:
-    Db(const std::string& filename_) : filename(filename_), lock_file(DbLockFileDispatcher::Get((filename_ + ".lock").c_str())) {}
+    Db(const std::string& filename_)
+        : filename(filename_), lock_file(DbLockFileDispatcher::Get((filename_ + ".lock").c_str()))
+    {
+    }
 
     /// Searches db for provided key and returns found reconrd or none if key not found in database
     boost::optional<DbRecord> FindRecord(const std::string& key)
     {
-        return FindRecord(key, nullptr);
+        shared_lock lock(lock_file);
+        return FindRecordUnsafe(key, nullptr);
     }
 
     template <class T>
     boost::optional<DbRecord> FindRecord(const T& problem_config)
     {
-        std::string key = DbRecord::Serialize(problem_config);
-        return FindRecord(key, nullptr);
+        shared_lock lock(lock_file);
+        return FindRecordUnsafe(problem_config);
     }
 
     /// Stores provided record in database. If record with same key is already in database it is
     /// replaced by provided record.
     ///
     /// Returns true if store was successful, false otherwise.
-    bool StoreRecord(const DbRecord& record);
+    bool StoreRecord(const DbRecord& record)
+    {
+        exclusive_lock lock(lock_file);
+        return StoreRecordUnsafe(record);
+    }
 
     /// Stores provided record in database. If record with same key is already in database it is
     /// updated with values from provided record. Provided records data is also updated via
     /// DbRecord::Merge().
     ///
     /// Returns true if update was successful, false otherwise.
-    bool UpdateRecord(DbRecord& record);
+    bool UpdateRecord(DbRecord& record)
+    {
+        exclusive_lock lock(lock_file);
+        return UpdateRecordUnsafe(record);
+    }
 
     /// Removes record with provided key from db
     ///
     /// Returns true if remove was successful, false otherwise.
-    bool RemoveRecord(const std::string& key);
+    bool RemoveRecord(const std::string& key)
+    {
+        exclusive_lock lock(lock_file);
+        return RemoveRecordUnsafe(key);
+    }
 
     template <class T>
     bool RemoveRecord(const T& problem_config)
     {
+        exclusive_lock lock(lock_file);
         std::string key = DbRecord::Serialize(problem_config);
-        return RemoveRecord(key);
+        return RemoveRecordUnsafe(key);
     }
 
     /// Updates record under key PROBLEM_CONFIG  with data ID:VALUES in database.
@@ -319,8 +299,7 @@ class Db
     ///
     /// Returns updated record or none if update was unsuccessful.
     template <class T, class V>
-    boost::optional<DbRecord>
-    Store(const T& problem_config, const std::string& id, const V& values)
+    boost::optional<DbRecord> Store(const T& problem_config, const std::string& id, const V& values)
     {
         DbRecord record(problem_config);
         record.SetValues(id, values);
@@ -341,6 +320,7 @@ class Db
     bool Load(const T& problem_config, const std::string& id, V& values)
     {
         auto record = FindRecord(problem_config);
+
         if(!record)
             return false;
         return record->GetValues(id, values);
@@ -355,13 +335,39 @@ class Db
     bool Remove(const T& problem_config, const std::string& id)
     {
         exclusive_lock lock(lock_file);
-        auto record = FindRecord(problem_config);
+        auto record = FindRecordUnsafe(problem_config);
         if(!record)
             return false;
         bool erased = record->EraseValues(id);
         if(!erased)
             return false;
-        return StoreRecord(*record);
+        return StoreRecordUnsafe(*record);
+    }
+
+    private:
+    struct RecordPositions
+    {
+        std::streamoff begin = -1;
+        std::streamoff end   = -1;
+    };
+
+    using exclusive_lock = boost::interprocess::scoped_lock<LockFile>;
+    using shared_lock    = boost::shared_lock<LockFile>;
+
+    std::string filename;
+    LockFile lock_file;
+
+    boost::optional<DbRecord> FindRecordUnsafe(const std::string& key, RecordPositions* pos);
+    bool FlushUnsafe(const DbRecord& record, const RecordPositions* pos);
+    bool StoreRecordUnsafe(const DbRecord& record);
+    bool UpdateRecordUnsafe(DbRecord& record);
+    bool RemoveRecordUnsafe(const std::string& key);
+
+    template <class T>
+    boost::optional<DbRecord> FindRecordUnsafe(const T& problem_config)
+    {
+        std::string key = DbRecord::Serialize(problem_config);
+        return FindRecordUnsafe(key, nullptr);
     }
 };
 } // namespace miopen
