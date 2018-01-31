@@ -746,16 +746,14 @@ __kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
 
     for(int i = 0; i < RD_BLCK; ++i)
     {
-        c_dat[i] =
-            MIOPEN_TENSOR_OP(a_dat[i] * alpha0, b_dat[i] * alpha1)
+        c_dat[i] = MIOPEN_TENSOR_OP(a_dat[i] * alpha0, b_dat[i] * alpha1)
 #ifdef BETA
-            + beta * c_dat[i]
+                   + beta * c_dat[i]
 #endif
-			;
+            ;
     }
 
     *((global READ_TYPE*)(c + Coffset + c_index)) = *((READ_TYPE*)c_dat);
-   
 }
 
 // NC
