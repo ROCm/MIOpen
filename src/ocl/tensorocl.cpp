@@ -28,6 +28,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
+#include <miopen/float_equal.hpp>
 #include <numeric>
 
 #define MIO_TENSOROCL_DEBUG 0
@@ -326,7 +327,7 @@ void OpTensor(Handle& handle,
     parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" + std::to_string(MAP_RD) +
              " -DREAD_TYPE=" + READ_TYPE;
 
-    if(std::abs(miopen_beta) > 0.0)
+    if(!float_equal(miopen_beta, 0.0))
     {
         parms += " -DBETA";
     }
