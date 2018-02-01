@@ -181,8 +181,8 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                                                f_activ_power,
                                                f_activ_beta,
                                                f_activ_alpha,
-								               static_cast<long long>(xOffset),
-								               static_cast<long long>(yOffset),
+                                               static_cast<long long>(xOffset),
+                                               static_cast<long long>(yOffset),
                                                x_stride,
                                                y_stride);
         }
@@ -332,8 +332,13 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                          kernel_name,
                          vld,
                          vgd,
-                         compiler_options)(
-            x, y, f_activ_power, f_activ_beta, f_activ_alpha, static_cast<long long>(xOffset), static_cast<long long>(yOffset));
+                         compiler_options)(x,
+                                           y,
+                                           f_activ_power,
+                                           f_activ_beta,
+                                           f_activ_alpha,
+                                           static_cast<long long>(xOffset),
+                                           static_cast<long long>(yOffset));
     }
     return (status);
 }
@@ -515,10 +520,10 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                                                f_activ_power,
                                                f_activ_beta,
                                                f_activ_alpha,
-								               static_cast<long long>(dxOffset),
-								               static_cast<long long>(dyOffset),
-								               static_cast<long long>(xOffset),
-								               static_cast<long long>(yOffset),
+                                               static_cast<long long>(dxOffset),
+                                               static_cast<long long>(dyOffset),
+                                               static_cast<long long>(xOffset),
+                                               static_cast<long long>(yOffset),
                                                dx_stride,
                                                dy_stride,
                                                x_stride,
@@ -732,7 +737,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         auto f_activ_alpha = static_cast<float>(GetAlpha());
         auto f_activ_beta  = static_cast<float>(GetBeta());
         auto f_activ_power = static_cast<float>(GetPower());
-        auto f_diff_scale = f_activ_beta * f_activ_power;
+        auto f_diff_scale  = f_activ_beta * f_activ_power;
 
         compiler_options +=
             " -DMLO_N_IN=" + std::to_string(nIn) + " -DMLO_C_IN=" + std::to_string(cIn) +
@@ -773,10 +778,10 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                                            f_activ_power,
                                            f_activ_beta,
                                            f_activ_alpha,
-							               static_cast<long long>(dxOffset),
-							               static_cast<long long>(dyOffset),
-							               static_cast<long long>(xOffset),
-							               static_cast<long long>(yOffset));
+                                           static_cast<long long>(dxOffset),
+                                           static_cast<long long>(dyOffset),
+                                           static_cast<long long>(xOffset),
+                                           static_cast<long long>(yOffset));
     }
     return (status);
 }
