@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include <boost/interprocess/sync/file_lock.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <mutex>
