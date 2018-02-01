@@ -231,35 +231,6 @@ __attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
     return (r);
 }
 
-//#define MLO_WRITE_UNIT 4
-#define MLO_OUT_CHANNEL_STRIDE_ALIGNED (MLO_OUT_CHANNEL_STRIDE / MLO_WRITE_UNIT)
-#define MLO_OUT_STRIDE_ALIGNED (MLO_OUT_STRIDE / MLO_WRITE_UNIT)
-
-__attribute__((reqd_work_group_size(MLO_GRP0_SZ0, MLO_GRP0_SZ1, MLO_GRP0_SZ2))) __kernel void
-MIOpenSubsample(const __global _FLOAT* __restrict in, __global _FLOAT* __restrict out)
-{
-    uint stack_pos = get_global_id(0);
-    uint batch_id  = get_global_id(1);
-    uint map_id    = iDiv(stack_pos, MLO_OUT_CHANNEL_STRIDE_ALIGNED);
-    uint pix_pos   = iMod(stack_pos, map_id, MLO_OUT_CHANNEL_STRIDE_ALIGNED);
-    uint out_y     = iDiv(pix_pos, MLO_OUT_STRIDE_ALIGNED);
-    uint out_x     = iMod(pix_pos, out_y, MLO_OUT_STRIDE_ALIGNED) * MLO_WRITE_UNIT;
-
-    uint out_off = batch_id * MLO_IN_BATCH_STRIDE + stack_pos * MLO_WRITE_UNIT;
-    uint in_y    = out_y * MLO_FILTER0_STRIDE1;
-    uint in_x    = out_x * MLO_FILTER0_STRIDE0;
-    uint in_off  = batch_id * MLO_IN0_BATCH_STRIDE + map_id * MLO_IN0_CHANNEL_STRIDE +
-                  in_y * MLO_IN0_STRIDE + in_x;
-
-    const __global _FLOAT* in_ptr = &in[in_off];
-    __global _FLOAT* out_ptr      = &out[out_off];
-
-    for(uint i = 0; i < MLO_WRITE_UNIT; ++i, in_ptr += MLO_FILTER0_STRIDE0, out_ptr++)
-    {
-        *out_ptr = *in_ptr;
-    }
-}
-
 // top_df        ==> out        in [Batch][output][out_H][out_W]
 // bot           ==> gard_input in [Batch][inputs][IN_H][IN_W]
 // weights_df    ==> weights    in [output][input][filter][filter]
