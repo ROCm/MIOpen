@@ -120,9 +120,9 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                            " -DMLO_READ_TYPE=" + READ_TYPE + " -DMLO_NRN_OP_ID=" +
                            std::to_string(mode) + type_opt;
 
-        float f_activ_alpha = static_cast<float>(activ_alpha);
-        float f_activ_beta  = static_cast<float>(activ_beta);
-        float f_activ_power = static_cast<float>(activ_power);
+        auto f_activ_alpha = static_cast<float>(activ_alpha);
+        auto f_activ_beta  = static_cast<float>(activ_beta);
+        auto f_activ_power = static_cast<float>(activ_power);
 
         std::vector<size_t> vld;
         std::vector<size_t> vgd;
@@ -181,8 +181,8 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                                                f_activ_power,
                                                f_activ_beta,
                                                f_activ_alpha,
-                                               cl_long(xOffset),
-                                               cl_long(yOffset),
+								               static_cast<long long>(xOffset),
+								               static_cast<long long>(yOffset),
                                                x_stride,
                                                y_stride);
         }
@@ -333,7 +333,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                          vld,
                          vgd,
                          compiler_options)(
-            x, y, f_activ_power, f_activ_beta, f_activ_alpha, cl_long(xOffset), cl_long(yOffset));
+            x, y, f_activ_power, f_activ_beta, f_activ_alpha, static_cast<long long>(xOffset), static_cast<long long>(yOffset));
     }
     return (status);
 }
@@ -432,10 +432,10 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                            " -DMLO_READ_TYPE=" + READ_TYPE + " -DMLO_NRN_OP_ID=" +
                            std::to_string(mode) + type_opt;
 
-        float f_activ_alpha = static_cast<float>(activ_alpha);
-        float f_activ_beta  = static_cast<float>(activ_beta);
-        float f_activ_power = static_cast<float>(activ_power);
-        float f_diff_scale  = f_activ_beta * f_activ_power;
+        auto f_activ_alpha = static_cast<float>(activ_alpha);
+        auto f_activ_beta  = static_cast<float>(activ_beta);
+        auto f_activ_power = static_cast<float>(activ_power);
+        auto f_diff_scale  = f_activ_beta * f_activ_power;
 
         std::vector<size_t> vld;
         std::vector<size_t> vgd;
@@ -515,10 +515,10 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                                                f_activ_power,
                                                f_activ_beta,
                                                f_activ_alpha,
-                                               cl_long(dxOffset),
-                                               cl_long(dyOffset),
-                                               cl_long(xOffset),
-                                               cl_long(yOffset),
+								               static_cast<long long>(dxOffset),
+								               static_cast<long long>(dyOffset),
+								               static_cast<long long>(xOffset),
+								               static_cast<long long>(yOffset),
                                                dx_stride,
                                                dy_stride,
                                                x_stride,
@@ -732,7 +732,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         auto f_activ_alpha = static_cast<float>(GetAlpha());
         auto f_activ_beta  = static_cast<float>(GetBeta());
         auto f_activ_power = static_cast<float>(GetPower());
-        float f_diff_scale = f_activ_beta * f_activ_power;
+        auto f_diff_scale = f_activ_beta * f_activ_power;
 
         compiler_options +=
             " -DMLO_N_IN=" + std::to_string(nIn) + " -DMLO_C_IN=" + std::to_string(cIn) +
@@ -773,10 +773,10 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                                            f_activ_power,
                                            f_activ_beta,
                                            f_activ_alpha,
-                                           cl_long(dxOffset),
-                                           cl_long(dyOffset),
-                                           cl_long(xOffset),
-                                           cl_long(yOffset));
+							               static_cast<long long>(dxOffset),
+							               static_cast<long long>(dyOffset),
+							               static_cast<long long>(xOffset),
+							               static_cast<long long>(yOffset));
     }
     return (status);
 }
