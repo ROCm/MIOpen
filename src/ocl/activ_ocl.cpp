@@ -69,7 +69,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     double activ_beta  = GetBeta();
     double activ_power = GetPower();
 
-    std::string network_config = "";
+	std::string network_config{};
 
     // short cut for packed tensors and 2D tensors with stride != width
     auto x_lens = xDesc.GetLengths();
@@ -150,14 +150,14 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
         }
         else
         {
-            unsigned int x_stride =
-                (unsigned int)((x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3)
+            auto x_stride =
+				static_cast<unsigned int>((x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3)
                                                                          ? x_strides[1]
                                                                          : (x_lens.size() == 4)
                                                                                ? x_strides[2]
                                                                                : x_strides[3]);
-            unsigned int y_stride =
-                (unsigned int)((y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3)
+            auto y_stride =
+				static_cast<unsigned int>((y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3)
                                                                          ? y_strides[1]
                                                                          : (y_lens.size() == 4)
                                                                                ? y_strides[2]
@@ -373,7 +373,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
     double activ_beta  = GetBeta();
     double activ_power = GetPower();
 
-    std::string network_config = "";
+	std::string network_config = {};
 
     // short cut for packed tensors and 2D tensors with stride != width
     auto x_lens  = xDesc.GetLengths();
@@ -471,26 +471,26 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         else
         {
 
-            unsigned int x_stride =
-                (unsigned int)((x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3)
+            auto x_stride =
+				static_cast<unsigned int>((x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3)
                                                                          ? x_strides[1]
                                                                          : (x_lens.size() == 4)
                                                                                ? x_strides[2]
                                                                                : x_strides[3]);
-            unsigned int y_stride =
-                (unsigned int)((y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3)
+            auto y_stride =
+				static_cast<unsigned int>((y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3)
                                                                          ? y_strides[1]
                                                                          : (y_lens.size() == 4)
                                                                                ? y_strides[2]
                                                                                : y_strides[3]);
-            unsigned int dx_stride =
-                (unsigned int)((dx_lens.size() == 2) ? dx_strides[0] : (dx_lens.size() == 3)
+            auto dx_stride =
+				static_cast<unsigned int>((dx_lens.size() == 2) ? dx_strides[0] : (dx_lens.size() == 3)
                                                                            ? dx_strides[1]
                                                                            : (x_lens.size() == 4)
                                                                                  ? dx_strides[2]
                                                                                  : dx_strides[3]);
-            unsigned int dy_stride =
-                (unsigned int)((dy_lens.size() == 2) ? dy_strides[0] : (dy_lens.size() == 3)
+            auto dy_stride =
+				static_cast<unsigned int>((dy_lens.size() == 2) ? dy_strides[0] : (dy_lens.size() == 3)
                                                                            ? dy_strides[1]
                                                                            : (dy_lens.size() == 4)
                                                                                  ? dy_strides[2]
