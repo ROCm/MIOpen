@@ -191,7 +191,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
         " -DMLO_OUT_BLOCK_SZ=" + std::to_string(cOut * hOut * wOut) + " -DMLO_DIN_BLOCK_SZ=" +
         std::to_string(1) + " -DMLO_DOUT_BLOCK_SZ=" + std::to_string(1);
 
-    handle.GetKernel("miopenActivationForward",
+    handle.AddKernel("miopenActivationForward",
                      network_config,
                      program_name,
                      kernel_name,
@@ -466,7 +466,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         std::to_string(cdIn * hdIn * wdIn) + " -DMLO_DOUT_BLOCK_SZ=" +
         std::to_string(cdOut * hdOut * wdOut);
 
-    handle.GetKernel("miopenActivationBackward",
+    handle.AddKernel("miopenActivationBackward",
                      network_config,
                      program_name,
                      kernel_name,
