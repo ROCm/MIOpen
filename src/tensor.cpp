@@ -33,10 +33,10 @@
 
 namespace miopen {
 
-TensorDescriptor::TensorDescriptor() {}
+TensorDescriptor::TensorDescriptor() : packed(true) {}
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t, std::initializer_list<std::size_t> plens)
-    : lens(plens), type(t)
+    : lens(plens), packed(true), type(t)
 {
     if(t != miopenFloat)
     {
@@ -54,10 +54,11 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
     {
         MIOPEN_THROW(miopenStatusNotImplemented, "Only float datatype is supported");
     }
+    packed = (this->GetElementSize() == this->GetElementSpace());
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t, const int* plens, int size)
-    : lens(plens, plens + size), type(t)
+    : lens(plens, plens + size), packed(true), type(t)
 {
     if(t != miopenFloat)
     {
@@ -81,6 +82,7 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
         MIOPEN_THROW("Invalid length. Length must be greater than 0.");
     if(!std::all_of(pstrides, pstrides + size, [](int x) { return x >= 0; }))
         MIOPEN_THROW("Invalid strides. Strides must be greater than 0.");
+    packed = (this->GetElementSize() == this->GetElementSpace());
 }
 
 void TensorDescriptor::CalculateStrides()
@@ -135,6 +137,11 @@ std::size_t TensorDescriptor::GetNumBytes() const
     case miopenFloat: typesize = 4; break;
     }
     return typesize * this->GetElementSpace();
+}
+
+bool TensorDescriptor::IsPacked() const
+{
+    return this->packed;
 }
 
 bool TensorDescriptor::operator==(const TensorDescriptor& rhs) const
