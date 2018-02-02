@@ -36,7 +36,6 @@
 #include <ostream>
 
 #include <miopen/find_controls.hpp>
-#include <miopen/db_record.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/make_unique.hpp>
@@ -122,7 +121,7 @@ const std::string& SolverDbId(Solver solver)
     return result;
 }
 
-template <class Solver, class Context>
+template <class Solver, class Context, class Db>
 auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
     -> decltype(s.GetSolution(context, s.Search(context)))
 {
@@ -173,7 +172,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
     return s.GetSolution(context, s.GetPerformanceConfig(context));
 }
 
-template <class Solver, class Context>
+template <class Solver, class Context, class Db>
 auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&)
     -> decltype(s.GetSolution(context))
 {
@@ -187,7 +186,7 @@ auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&)
 /// solution-specific parameters and returns the Solution object.
 /// Could take long if an exhaustive search is requested/performed.
 /// May read/write perfDb.
-template <class Solver, class Context>
+template <class Solver, class Context, class Db>
 ConvSolution FindSolution(Solver s, const Context& context, Db& db)
 {
     static_assert(std::is_empty<Solver>{} && std::is_trivially_constructible<Solver>{},
@@ -197,8 +196,8 @@ ConvSolution FindSolution(Solver s, const Context& context, Db& db)
 }
 
 // Search for a solution among many solvers
-template <class... Solvers, class Context>
-auto SearchForSolution(const Context& search_params, miopen::Db db) ->
+template <class... Solvers, class Context, class Db>
+auto SearchForSolution(const Context& search_params, Db db) ->
     typename std::common_type<decltype(FindSolution(Solvers{}, search_params, db))...>::type
 {
     using Solution =
