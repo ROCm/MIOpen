@@ -338,7 +338,7 @@ static int FindFFTKernel(Handle& handle,
         vgd[2] = global_work_size[ik][2];
 
         auto k =
-            handle.GetKernel(algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
+            handle.AddKernel(algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
 
         kernels.push_back(k);
     }
