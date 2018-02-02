@@ -85,6 +85,7 @@ set( MIOpen_Source
     include/miopen/handle.hpp
     include/miopen/kernel_cache.hpp
     include/miopen/solver.hpp
+    include/miopen/generic_search.hpp
     include/miopen/mlo_internal.hpp
     include/miopen/mlo_utils.hpp
     include/miopen/oclkernel.hpp
