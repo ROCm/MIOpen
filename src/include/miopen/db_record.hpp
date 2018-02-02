@@ -28,13 +28,11 @@
 
 #include <miopen/config.h>
 #include <miopen/logger.hpp>
+#include <miopen/lock_file.hpp>
 
-#include <boost/interprocess/sync/file_lock.hpp>
-#include <boost/interprocess/sync/named_recursive_mutex.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/interprocess/sync/sharable_lock.hpp>
 #include <boost/optional.hpp>
-#include <boost/thread/shared_mutex.hpp>
 
 #include <atomic>
 #include <fstream>
@@ -44,92 +42,6 @@
 #include <unordered_map>
 
 namespace miopen {
-
-// LockFile::Impl class is a wrapper around boost::interprocess::file_lock providing MT-safety.
-// One process should never have more than one instance of this class with same path at the same
-// time. It may lead to undefined behaviour on Windows.
-// Also on windows mutex can be removed because file locks are MT-safe there.
-class LockFile
-{
-    friend class LockFileDispatcher;
-
-    private:
-    class Impl
-    {
-        public:
-        Impl(const Impl&) = delete;
-        Impl operator=(const Impl&) = delete;
-
-        Impl(const char* path) : _file(path), _file_lock(path) {}
-
-        void lock()
-        {
-            _mutex.lock();
-            _file_lock.lock();
-        }
-
-        void lock_sharable()
-        {
-            _mutex.lock_shared();
-            _file_lock.lock_sharable();
-        }
-
-        void unlock()
-        {
-            _file_lock.unlock();
-            _mutex.unlock();
-        }
-
-        void unlock_sharable()
-        {
-            _file_lock.unlock_sharable();
-            _mutex.unlock_shared();
-        }
-
-        private:
-        boost::shared_mutex _mutex;
-        std::ofstream _file;
-        boost::interprocess::file_lock _file_lock;
-    };
-
-    public:
-    LockFile(Impl& impl) : _impl(impl) {}
-
-    void lock() { _impl.lock(); }
-    void lock_sharable() { _impl.lock_sharable(); }
-    void unlock() { _impl.unlock(); }
-    void unlock_sharable() { _impl.unlock_sharable(); }
-
-    private:
-    Impl& _impl;
-};
-
-class LockFileDispatcher
-{
-    public:
-    LockFileDispatcher() = delete;
-
-    static LockFile Get(const char* path)
-    {
-        { // To guarantee that construction won't be called if not required.
-            auto found = LockFiles().find(path);
-
-            if(found != LockFiles().end())
-                return {found->second};
-        }
-
-        auto emplaced = LockFiles().emplace(
-            std::piecewise_construct, std::forward_as_tuple(path), std::forward_as_tuple(path));
-        return {emplaced.first->second};
-    }
-
-    private:
-    static std::map<std::string, LockFile::Impl>& LockFiles()
-    {
-        static std::map<std::string, LockFile::Impl> lock_files;
-        return lock_files;
-    }
-};
 
 class Db;
 
