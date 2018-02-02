@@ -361,7 +361,7 @@ __kernel void MIOpenActiveFwd2DLite(const __global _FLOAT* bot,
                                     const uint bot_stride,
                                     const uint top_stride)
 {
- 
+
     (void)power;
     (void)scale;
     (void)shift;
