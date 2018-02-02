@@ -161,7 +161,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
             try
             {
                 auto c = s.Search(context);
-                db.Store(context, SolverDbId(s), c);
+                db.Update(context, SolverDbId(s), c);
                 return s.GetSolution(context, c);
             }
             catch(const miopen::Exception& ex)
