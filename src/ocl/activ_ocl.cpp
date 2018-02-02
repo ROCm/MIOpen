@@ -69,7 +69,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     double activ_beta  = GetBeta();
     double activ_power = GetPower();
 
-    std::string network_config{};
+	std::string network_config{};
 
     // short cut for packed tensors and 2D tensors with stride != width
     auto x_lens = xDesc.GetLengths();
@@ -81,8 +81,36 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     auto x_elem_sz = xDesc.GetElementSize();
     auto y_elem_sz = yDesc.GetElementSize();
 
-    bool t2D = (x_lens.size() == y_lens.size() &&
-                (x_lens.size() == 2 || (x_lens.size() == 3 && x_lens[0] == 1 && y_lens[0] == 1) ||
+	auto x_stride2D =
+		static_cast<unsigned int>((x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3)
+			? x_strides[1]
+			: (x_lens.size() == 4)
+			? x_strides[2]
+			: x_strides[3]);
+	auto y_stride2D =
+		static_cast<unsigned int>((y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3)
+			? y_strides[1]
+			: (y_lens.size() == 4)
+			? y_strides[2]
+			: y_strides[3]);
+
+	auto x_width2D = ((x_lens.size() == 2) ? x_lens[1] : (x_lens.size() == 3)
+		? x_lens[2]
+		: (x_lens.size() == 4)
+		? x_lens[3]
+		: x_lens[4]);
+
+
+	auto y_width2D =
+		((y_lens.size() == 2) ? y_lens[1] : (y_lens.size() == 3)
+			? y_lens[2]
+			: (y_lens.size() == 4)
+			? y_lens[3]
+			: y_lens[4]);
+
+
+    bool t2D = (x_lens.size() == y_lens.size() && ((x_width2D != x_stride2D) || (y_width2D != y_stride2D))
+                && (x_lens.size() == 2 || (x_lens.size() == 3 && x_lens[0] == 1 && y_lens[0] == 1) ||
                  (x_lens.size() == 4 && x_lens[0] == 1 && x_lens[1] == 1 && y_lens[0] == 1 &&
                   y_lens[1] == 1) ||
                  (x_lens.size() == 5 && x_lens[0] == 1 && x_lens[1] == 1 && x_lens[2] == 1 &&
@@ -94,11 +122,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
         std::string compiler_options;
 
         size_t read_len =
-            (packed) ? x_elem_sz : (x_lens.size() == 2) ? x_lens[1] : (x_lens.size() == 3)
-                                                                          ? x_lens[2]
-                                                                          : (x_lens.size() == 4)
-                                                                                ? x_lens[3]
-                                                                                : x_lens[4];
+            (packed) ? x_elem_sz : x_width2D;
 
         size_t read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
         size_t MAP_RD    = read_len / read_unit;
@@ -150,16 +174,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
         }
         else
         {
-            auto x_stride = static_cast<unsigned int>(
-                (x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3)
-                                                          ? x_strides[1]
-                                                          : (x_lens.size() == 4) ? x_strides[2]
-                                                                                 : x_strides[3]);
-            auto y_stride = static_cast<unsigned int>(
-                (y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3)
-                                                          ? y_strides[1]
-                                                          : (y_lens.size() == 4) ? y_strides[2]
-                                                                                 : y_strides[3]);
+ 
             size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3)
                                                                    ? x_lens[1]
                                                                    : (x_lens.size() == 4)
@@ -181,8 +196,8 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                                                f_activ_alpha,
                                                static_cast<long long>(xOffset),
                                                static_cast<long long>(yOffset),
-                                               x_stride,
-                                               y_stride);
+                                               x_stride2D,
+                                               y_stride2D);
         }
     }
     else
@@ -371,7 +386,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
     double activ_beta  = GetBeta();
     double activ_power = GetPower();
 
-    std::string network_config = {};
+	std::string network_config = {};
 
     // short cut for packed tensors and 2D tensors with stride != width
     auto x_lens  = xDesc.GetLengths();
@@ -389,9 +404,65 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
     auto dx_elem_sz = dxDesc.GetElementSize();
     auto dy_elem_sz = dyDesc.GetElementSize();
 
+	auto x_stride2D =
+		static_cast<unsigned int>((x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3)
+			? x_strides[1]
+			: (x_lens.size() == 4)
+			? x_strides[2]
+			: x_strides[3]);
+	auto y_stride2D =
+		static_cast<unsigned int>((y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3)
+			? y_strides[1]
+			: (y_lens.size() == 4)
+			? y_strides[2]
+			: y_strides[3]);
+
+	auto dx_stride2D =
+		static_cast<unsigned int>((dx_lens.size() == 2) ? dx_strides[0] : (dx_lens.size() == 3)
+			? dx_strides[1]
+			: (dx_lens.size() == 4)
+			? dx_strides[2]
+			: dx_strides[3]);
+	auto dy_stride2D =
+		static_cast<unsigned int>((dy_lens.size() == 2) ? dy_strides[0] : (dy_lens.size() == 3)
+			? dy_strides[1]
+			: (dy_lens.size() == 4)
+			? dy_strides[2]
+			: dy_strides[3]);
+
+
+	auto x_width2D = ((x_lens.size() == 2) ? x_lens[1] : (x_lens.size() == 3)
+		? x_lens[2]
+		: (x_lens.size() == 4)
+		? x_lens[3]
+		: x_lens[4]);
+
+
+	auto y_width2D =
+		((y_lens.size() == 2) ? y_lens[1] : (y_lens.size() == 3)
+			? y_lens[2]
+			: (y_lens.size() == 4)
+			? y_lens[3]
+			: y_lens[4]);
+
+	auto dx_width2D = ((dx_lens.size() == 2) ? dx_lens[1] : (dx_lens.size() == 3)
+		? dx_lens[2]
+		: (dx_lens.size() == 4)
+		? dx_lens[3]
+		: dx_lens[4]);
+
+
+	auto dy_width2D =
+		((dy_lens.size() == 2) ? dy_lens[1] : (dy_lens.size() == 3)
+			? dy_lens[2]
+			: (dy_lens.size() == 4)
+			? dy_lens[3]
+			: dy_lens[4]);
+
     bool t2D = (x_lens.size() == y_lens.size() && dx_lens.size() == dy_lens.size() &&
-                x_lens.size() == dx_lens.size() &&
-                (x_lens.size() == 2 || (x_lens.size() == 3 && x_lens[0] == 1 && y_lens[0] == 1 &&
+                x_lens.size() == dx_lens.size() 
+		       && ((x_width2D != x_stride2D) || (y_width2D != y_stride2D) || (dx_width2D != dx_stride2D) || (dy_width2D != dy_stride2D))
+               && (x_lens.size() == 2 || (x_lens.size() == 3 && x_lens[0] == 1 && y_lens[0] == 1 &&
                                         dx_lens[0] == 1 && dy_lens[0] == 1) ||
                  (x_lens.size() == 4 && x_lens[0] == 1 && x_lens[1] == 1 && y_lens[0] == 1 &&
                   y_lens[1] == 1 && dy_lens[0] == 1 && dy_lens[1] == 1 && dx_lens[0] == 1 &&
@@ -409,11 +480,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         std::string compiler_options;
 
         size_t read_len =
-            (packed) ? x_elem_sz : (x_lens.size() == 2) ? x_lens[1] : (x_lens.size() == 3)
-                                                                          ? x_lens[2]
-                                                                          : (x_lens.size() == 4)
-                                                                                ? x_lens[3]
-                                                                                : x_lens[4];
+            (packed) ? x_elem_sz : dx_width2D;
 
         size_t read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
         size_t MAP_RD    = read_len / read_unit;
@@ -469,27 +536,6 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         else
         {
 
-            auto x_stride = static_cast<unsigned int>(
-                (x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3)
-                                                          ? x_strides[1]
-                                                          : (x_lens.size() == 4) ? x_strides[2]
-                                                                                 : x_strides[3]);
-            auto y_stride = static_cast<unsigned int>(
-                (y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3)
-                                                          ? y_strides[1]
-                                                          : (y_lens.size() == 4) ? y_strides[2]
-                                                                                 : y_strides[3]);
-            auto dx_stride = static_cast<unsigned int>(
-                (dx_lens.size() == 2) ? dx_strides[0] : (dx_lens.size() == 3)
-                                                            ? dx_strides[1]
-                                                            : (x_lens.size() == 4) ? dx_strides[2]
-                                                                                   : dx_strides[3]);
-            auto dy_stride = static_cast<unsigned int>(
-                (dy_lens.size() == 2) ? dy_strides[0] : (dy_lens.size() == 3)
-                                                            ? dy_strides[1]
-                                                            : (dy_lens.size() == 4)
-                                                                  ? dy_strides[2]
-                                                                  : dy_strides[3]);
 
             // second dim is heoght
             size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3)
@@ -519,10 +565,10 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                                                static_cast<long long>(dyOffset),
                                                static_cast<long long>(xOffset),
                                                static_cast<long long>(yOffset),
-                                               dx_stride,
-                                               dy_stride,
-                                               x_stride,
-                                               y_stride);
+                                               dx_stride2D,
+                                               dy_stride2D,
+                                               x_stride2D,
+                                               y_stride2D);
         }
     }
     else
