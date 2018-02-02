@@ -139,10 +139,7 @@ std::size_t TensorDescriptor::GetNumBytes() const
     return typesize * this->GetElementSpace();
 }
 
-bool TensorDescriptor::IsPacked() const
-{
-    return this->packed;
-}
+bool TensorDescriptor::IsPacked() const { return this->packed; }
 
 bool TensorDescriptor::operator==(const TensorDescriptor& rhs) const
 {

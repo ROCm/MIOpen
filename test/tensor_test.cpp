@@ -34,7 +34,7 @@
 struct tensor_base
 {
     miopenTensorDescriptor_t tensor{};
-    
+
     miopen::TensorDescriptor& get_tensor()
     {
         CHECK(this->tensor != nullptr);
@@ -52,7 +52,6 @@ struct tensor_fixture_4 : tensor_base
         miopenCreateTensorDescriptor(&tensor);
         miopenSet4dTensorDescriptor(tensor, miopenFloat, 100, 32, 8, 8);
     }
-
 };
 
 // 1-DIMENSIONAL -------------------
@@ -291,7 +290,6 @@ struct tensor_fixture_n3d : tensor_base
         std::array<int, 3> lens = {{100, 32, 8}};
         miopenSetTensorDescriptor(tensor, miopenFloat, 3, lens.data(), nullptr);
     }
-
 };
 
 struct tensor_fixture_n3d_strides : tensor_base
@@ -304,7 +302,6 @@ struct tensor_fixture_n3d_strides : tensor_base
         std::array<int, 3> strides = {{256, 8, 1}};
         miopenSetTensorDescriptor(tensor, miopenFloat, 3, lens.data(), strides.data());
     }
-
 };
 
 template <class Fixture>
@@ -441,7 +438,6 @@ struct tensor_fixture_n4d : tensor_base
         std::array<int, 4> lens = {{100, 32, 8, 8}};
         miopenSetTensorDescriptor(tensor, miopenFloat, 4, lens.data(), nullptr);
     }
-
 };
 
 struct tensor_fixture_n4d_strides : tensor_base
@@ -453,7 +449,6 @@ struct tensor_fixture_n4d_strides : tensor_base
         std::array<int, 4> strides = {{2048, 64, 8, 1}};
         miopenSetTensorDescriptor(tensor, miopenFloat, 4, lens.data(), strides.data());
     }
-
 };
 
 template <class Fixture>
@@ -485,7 +480,8 @@ struct tensor_test_suit_4d
         void run()
         {
             int nStride, cStride, hStride, wStride;
-            std::tie(nStride, cStride, hStride, wStride) = miopen::tien<4>(this->get_tensor().GetStrides());
+            std::tie(nStride, cStride, hStride, wStride) =
+                miopen::tien<4>(this->get_tensor().GetStrides());
             EXPECT(nStride == 32 * cStride);
             EXPECT(cStride == 8 * hStride);
             EXPECT(hStride == 8 * wStride);
@@ -823,7 +819,6 @@ struct check_tensor_support : tensor_base
         EXPECT(miopenSet4dTensorDescriptor(tensor, miopenHalf, 100, 32, 8, 8) !=
                miopenStatusSuccess);
     }
-
 };
 
 void check_null_tensor()
