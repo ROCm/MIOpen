@@ -264,12 +264,23 @@ struct ConvolutionContext : ProblemDescription
     {
         // clang-format off
         return GetDbPath()
-             + std::string("/")
+             + "/"
              + GetStream().GetDeviceName()
              + "_"
              + std::to_string(GetStream().GetMaxComputeUnits())
-             + "."
-             + std::string("cd.pdb.txt");
+             + ".cd.pdb.txt";
+        // clang-format on
+    }
+
+    std::string GetUserPerfDbPath() const
+    {
+        // clang-format off
+        return GetUserDbPath()
+             + "/"
+             + GetStream().GetDeviceName()
+             + "_"
+             + std::to_string(GetStream().GetMaxComputeUnits())
+             + ".cd.rdb.txt";
         // clang-format on
     }
 
@@ -376,7 +387,7 @@ struct mlo_construct_direct2D
 
     miopen::solver::ConvSolution FindSolution();
 
-    miopen::Db GetDb() const;
+    miopen::MultiFileDB GetDb() const;
 
     /*
     * returns parameter values that are compiled in legacy kernels for kernels using them as
