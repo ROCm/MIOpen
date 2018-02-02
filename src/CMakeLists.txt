@@ -75,6 +75,7 @@ set( MIOpen_Source
     rnn.cpp
     rnn_api.cpp
     include/miopen/db_record.hpp
+    include/miopen/lock_file.hpp
     include/miopen/find_controls.hpp
     include/miopen/batch_norm.hpp
     include/miopen/check_numerics.hpp
