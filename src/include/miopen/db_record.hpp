@@ -32,6 +32,7 @@
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/interprocess/sync/named_recursive_mutex.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
+#include <boost/interprocess/sync/sharable_lock.hpp>
 #include <boost/optional.hpp>
 #include <boost/thread/shared_mutex.hpp>
 
@@ -45,7 +46,8 @@
 namespace miopen {
 
 // LockFile::Impl class is a wrapper around boost::interprocess::file_lock providing MT-safety.
-// One process should never have more than one instance of this class with same path at the same time. It may lead to undefined behaviour on Windows.
+// One process should never have more than one instance of this class with same path at the same
+// time. It may lead to undefined behaviour on Windows.
 // Also on windows mutex can be removed because file locks are MT-safe there.
 class LockFile
 {
@@ -66,7 +68,7 @@ class LockFile
             _file_lock.lock();
         }
 
-        void lock_shared()
+        void lock_sharable()
         {
             _mutex.lock_shared();
             _file_lock.lock_sharable();
@@ -78,7 +80,7 @@ class LockFile
             _mutex.unlock();
         }
 
-        void unlock_shared()
+        void unlock_sharable()
         {
             _file_lock.unlock_sharable();
             _mutex.unlock_shared();
@@ -94,9 +96,9 @@ class LockFile
     LockFile(Impl& impl) : _impl(impl) {}
 
     void lock() { _impl.lock(); }
-    void lock_shared() { _impl.lock_shared(); }
+    void lock_sharable() { _impl.lock_sharable(); }
     void unlock() { _impl.unlock(); }
-    void unlock_shared() { _impl.unlock_shared(); }
+    void unlock_sharable() { _impl.unlock_sharable(); }
 
     private:
     Impl& _impl;
@@ -113,12 +115,12 @@ class LockFileDispatcher
             auto found = LockFiles().find(path);
 
             if(found != LockFiles().end())
-                return { found->second };
+                return {found->second};
         }
 
         auto emplaced = LockFiles().emplace(
             std::piecewise_construct, std::forward_as_tuple(path), std::forward_as_tuple(path));
-        return { emplaced.first->second };
+        return {emplaced.first->second};
     }
 
     private:
@@ -302,7 +304,8 @@ class Db
     ///
     /// Returns updated record or none if update was unsuccessful.
     template <class T, class V>
-    boost::optional<DbRecord> Update(const T& problem_config, const std::string& id, const V& values)
+    boost::optional<DbRecord>
+    Update(const T& problem_config, const std::string& id, const V& values)
     {
         DbRecord record(problem_config);
         record.SetValues(id, values);
@@ -355,7 +358,7 @@ class Db
     };
 
     using exclusive_lock = boost::interprocess::scoped_lock<LockFile>;
-    using shared_lock    = boost::shared_lock<LockFile>;
+    using shared_lock    = boost::interprocess::sharable_lock<LockFile>;
 
     std::string filename;
     LockFile lock_file;
