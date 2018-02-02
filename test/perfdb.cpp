@@ -356,8 +356,8 @@ class DbWriteTest : public DbTest
         {
             Db db(temp_file_path());
 
-            EXPECT(db.Store(key(), id0(), value0()));
-            EXPECT(db.Store(key(), id1(), value1()));
+            EXPECT(db.Update(key(), id0(), value0()));
+            EXPECT(db.Update(key(), id1(), value1()));
         }
 
         std::string read;
@@ -389,22 +389,22 @@ class DbOperationsTest : public DbTest
         {
             Db db(temp_file_path());
 
-            EXPECT(db.Store(key(), id0(), to_be_rewritten));
-            EXPECT(db.Store(key(), id1(), to_be_rewritten));
+            EXPECT(db.Update(key(), id0(), to_be_rewritten));
+            EXPECT(db.Update(key(), id1(), to_be_rewritten));
 
             // Rewritting existing value with other.
-            EXPECT(db.Store(key(), id1(), value1()));
+            EXPECT(db.Update(key(), id1(), value1()));
 
             // Rewritting existing value with same. In fact no DB manipulation should be performed
             // inside of store in such case.
-            EXPECT(db.Store(key(), id1(), value1()));
+            EXPECT(db.Update(key(), id1(), value1()));
         }
 
         {
             Db db(temp_file_path());
 
             // Rewriting existing value to store it to file.
-            EXPECT(db.Store(key(), id0(), value0()));
+            EXPECT(db.Update(key(), id0(), value0()));
         }
 
         {
@@ -457,7 +457,7 @@ class DbParallelTest : public DbTest
     {
         {
             Db db(temp_file_path());
-            EXPECT(db.Store(key(), id0(), value0()));
+            EXPECT(db.Update(key(), id0(), value0()));
         }
 
         {
@@ -549,7 +549,7 @@ class DBMultiThreadedTestWork
             const auto id   = i % ids_per_key;
             const auto data = common_part()[i];
 
-            db_getter().Store(std::to_string(key), std::to_string(id), data);
+            db_getter().Update(std::to_string(key), std::to_string(id), data);
         }
     }
 
@@ -576,7 +576,7 @@ class DBMultiThreadedTestWork
             auto id  = LimitedRandom(rnd, ids_per_key + 1);
             TestData data;
 
-            db_getter().Store(std::to_string(key), std::to_string(id), data);
+            db_getter().Update(std::to_string(key), std::to_string(id), data);
         }
     }
 

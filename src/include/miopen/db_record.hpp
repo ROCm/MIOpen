@@ -44,9 +44,12 @@
 
 namespace miopen {
 
+// LockFile::Impl class is a wrapper around boost::interprocess::file_lock providing MT-safety.
+// One process should never have more than one instance of this class with same path at the same time. It may lead to undefined behaviour on Windows.
+// Also on windows mutex can be removed because file locks are MT-safe there.
 class LockFile
 {
-    friend class DbLockFileDispatcher;
+    friend class LockFileDispatcher;
 
     private:
     class Impl
@@ -89,6 +92,7 @@ class LockFile
 
     public:
     LockFile(Impl& impl) : _impl(impl) {}
+
     void lock() { _impl.lock(); }
     void lock_shared() { _impl.lock_shared(); }
     void unlock() { _impl.unlock(); }
@@ -98,10 +102,10 @@ class LockFile
     Impl& _impl;
 };
 
-class DbLockFileDispatcher
+class LockFileDispatcher
 {
     public:
-    DbLockFileDispatcher() = delete;
+    LockFileDispatcher() = delete;
 
     static LockFile Get(const char* path)
     {
@@ -109,12 +113,12 @@ class DbLockFileDispatcher
             auto found = LockFiles().find(path);
 
             if(found != LockFiles().end())
-                return found->second;
+                return { found->second };
         }
 
         auto emplaced = LockFiles().emplace(
             std::piecewise_construct, std::forward_as_tuple(path), std::forward_as_tuple(path));
-        return {emplaced.first->second};
+        return { emplaced.first->second };
     }
 
     private:
@@ -155,7 +159,7 @@ class Db;
 /// Upon construction, allows getting and modifying contents of a record (IDs and VALUES).
 ///
 /// \todo Separate "db file" and "db record" abstractions.
-/// \todo The Store() operation is neither MP- nor MT-safe.
+/// \todo All operations are MP- and MT-safe.
 class DbRecord
 {
     private:
@@ -237,7 +241,7 @@ class Db
 {
     public:
     Db(const std::string& filename_)
-        : filename(filename_), lock_file(DbLockFileDispatcher::Get((filename_ + ".lock").c_str()))
+        : filename(filename_), lock_file(LockFileDispatcher::Get((filename_ + ".lock").c_str()))
     {
     }
 
@@ -288,9 +292,8 @@ class Db
     template <class T>
     bool RemoveRecord(const T& problem_config)
     {
-        exclusive_lock lock(lock_file);
-        std::string key = DbRecord::Serialize(problem_config);
-        return RemoveRecordUnsafe(key);
+        auto key = DbRecord::Serialize(problem_config);
+        return RemoveRecord(key);
     }
 
     /// Updates record under key PROBLEM_CONFIG  with data ID:VALUES in database.
@@ -299,7 +302,7 @@ class Db
     ///
     /// Returns updated record or none if update was unsuccessful.
     template <class T, class V>
-    boost::optional<DbRecord> Store(const T& problem_config, const std::string& id, const V& values)
+    boost::optional<DbRecord> Update(const T& problem_config, const std::string& id, const V& values)
     {
         DbRecord record(problem_config);
         record.SetValues(id, values);
