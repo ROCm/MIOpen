@@ -59,7 +59,8 @@
 //#define MLO_NEURON_LINEAR		MLO_NEURON_SQR	+ 1			//	a + b * x
 #define MLO_NEURON_TOTAL MLO_NEURON_POWER + 1
 
-__attribute__((always_inline)) void ActivationFunction_PassThru(uint n, _FLOAT* res, const _FLOAT* data)
+__attribute__((always_inline)) void
+ActivationFunction_PassThru(uint n, _FLOAT* res, const _FLOAT* data)
 {
     for(uint i = 0; i < n; i++)
     {
@@ -172,7 +173,7 @@ void ActivationFunction(
     (void)alpha;
     (void)beta;
 #if MLO_NRN_OP_ID == MLO_NEURON_PASTHRU
- 
+
     ActivationFunction_PassThru(n, res, data);
 
 #elif MLO_NRN_OP_ID == MLO_NEURON_LOGISTIC
@@ -254,8 +255,10 @@ __attribute__((always_inline)) void ActivationFunction_Sigmoid_Diff(uint n,
     }
 }
 
-__attribute__((always_inline)) void
-ActivationFunction_Abs_Diff(uint n, _FLOAT* bot_diff, const _FLOAT* top_diff, const _FLOAT* bot_data)
+__attribute__((always_inline)) void ActivationFunction_Abs_Diff(uint n,
+                                                                _FLOAT* bot_diff,
+                                                                const _FLOAT* top_diff,
+                                                                const _FLOAT* bot_data)
 {
     for(uint i = 0; i < n; i++)
     {
@@ -319,11 +322,13 @@ __attribute__((always_inline)) void ActivationFunction_BNLL_Diff(uint n,
 // local size = (256, 1, 1)
 // global size = ((TENS_LEN/RD_BLCK), 1, 1)
 
-__kernel void MIOpenActiveFwdLite(
-    const __global _FLOAT* bot, __global _FLOAT* top, _FLOAT power, _FLOAT scale, _FLOAT shift,
-	                                    const long bot_offset,
-                                        const long top_offset
-     )
+__kernel void MIOpenActiveFwdLite(const __global _FLOAT* bot,
+                                  __global _FLOAT* top,
+                                  _FLOAT power,
+                                  _FLOAT scale,
+                                  _FLOAT shift,
+                                  const long bot_offset,
+                                  const long top_offset)
 {
     uint gid0 = get_global_id(0);
 
@@ -379,11 +384,10 @@ __kernel void MIOpenActiveBwdLite(__global _FLOAT* bot_diff,
                                   _FLOAT power,
                                   _FLOAT scale,
                                   _FLOAT shift,
-                                    const long bot_diff_offset,
-                                    const long top_diff_offset,
-                                    const long bot_offset,
-                                    const long top_offset
-								  )
+                                  const long bot_diff_offset,
+                                  const long top_diff_offset,
+                                  const long bot_offset,
+                                  const long top_offset)
 {
     (void)diff_scale;
     (void)power;
@@ -399,9 +403,10 @@ __kernel void MIOpenActiveBwdLite(__global _FLOAT* bot_diff,
     _FLOAT bot_dat[MLO_READ_UNIT];
     _FLOAT top_dat[MLO_READ_UNIT];
 
-    *((MLO_READ_TYPE*)top_diff_dat) = *((const __global MLO_READ_TYPE*)(top_diff + top_diff_offset + index));
-    *((MLO_READ_TYPE*)bot_dat)      = *((const __global MLO_READ_TYPE*)(bot + bot_offset + index));
-    *((MLO_READ_TYPE*)top_dat)      = *((const __global MLO_READ_TYPE*)(top + top_offset + index));
+    *((MLO_READ_TYPE*)top_diff_dat) =
+        *((const __global MLO_READ_TYPE*)(top_diff + top_diff_offset + index));
+    *((MLO_READ_TYPE*)bot_dat) = *((const __global MLO_READ_TYPE*)(bot + bot_offset + index));
+    *((MLO_READ_TYPE*)top_dat) = *((const __global MLO_READ_TYPE*)(top + top_offset + index));
 
 #if MLO_NRN_OP_ID == MLO_NEURON_RELU
     {
@@ -444,7 +449,8 @@ __kernel void MIOpenActiveBwdLite(__global _FLOAT* bot_diff,
         MLO_READ_UNIT, bot_diff_dat, (const _FLOAT*)top_diff_dat, (const _FLOAT*)bot_dat);
 #endif
 
-    *((__global MLO_READ_TYPE*)(bot_diff + bot_diff_offset + index)) = *((MLO_READ_TYPE*)bot_diff_dat);
+    *((__global MLO_READ_TYPE*)(bot_diff + bot_diff_offset + index)) =
+        *((MLO_READ_TYPE*)bot_diff_dat);
 }
 
 /**********************************************************************************************
