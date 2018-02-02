@@ -330,6 +330,10 @@ __kernel void MIOpenActiveFwdLite(const __global _FLOAT* bot,
                                   const long bot_offset,
                                   const long top_offset)
 {
+    (void)power;
+    (void)scale;
+    (void)shift;
+
     uint gid0 = get_global_id(0);
 
     uint index = gid0 * MLO_READ_UNIT;
@@ -357,6 +361,11 @@ __kernel void MIOpenActiveFwd2DLite(const __global _FLOAT* bot,
                                     const uint bot_stride,
                                     const uint top_stride)
 {
+ 
+    (void)power;
+    (void)scale;
+    (void)shift;
+
     uint x_id = get_global_id(0);
     uint y    = get_global_id(1);
 
@@ -473,6 +482,11 @@ __kernel void MIOpenActiveBwd2DLite(__global _FLOAT* bot_diff,
                                     const uint bot_stride,
                                     const uint top_stride)
 {
+    (void)diff_scale;
+    (void)power;
+    (void)scale;
+    (void)shift;
+
     uint x_id = get_global_id(0);
     uint y    = get_global_id(1);
 
