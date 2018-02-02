@@ -26,132 +26,19 @@
 
 #include <sstream>
 #include <limits>
-#include <iterator>
-#include <chrono>
+#include <cassert>
 
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/env.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/solver.hpp>
+#include <miopen/generic_search.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS)
 
 namespace miopen {
-
-/// \todo Factor out this (to generic search implementation)
-class Timer
-{
-    public:
-    Timer(){};
-    void start() { st = std::chrono::steady_clock::now(); }
-    float elapsed_ms()
-    {
-        capture();
-        return std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(et - st)
-            .count();
-    }
-
-    private:
-    void capture() { et = std::chrono::steady_clock::now(); }
-    std::chrono::time_point<std::chrono::steady_clock> st;
-    std::chrono::time_point<std::chrono::steady_clock> et;
-};
-
 namespace solver {
-
-/// \todo Factor out this (to generic search implementation)
-class VirtualIteratorWrW1x1;
-
-/// \todo Factor out this (to generic search implementation)
-///
-/// This container (together with corresponding iterator) provies access
-/// to a set of performance configs which, by definition, must be
-/// suitable for the given problem config.
-///
-/// It does not hold values themselves as these would take too much memory
-/// but can be easily computed (and that is what iterator actually does).
-///
-/// The container holds problem config information instead. This info
-/// is required for advancing the iterator to the next valid configuration.
-/// Also it provides const_iterator, begin() and end().
-class VirtualContainer1x1WrW
-{
-    // Valid iterator shall denote an element of a container.
-    const ConvolutionContext& config;
-    friend class VirtualIteratorWrW1x1;
-
-    public:
-    using const_iterator = VirtualIteratorWrW1x1;
-    VirtualContainer1x1WrW(const ConvolutionContext& config_) : config(config_) {}
-    VirtualIteratorWrW1x1 begin() const;
-    VirtualIteratorWrW1x1 end() const;
-};
-
-// Iterator shall advance to the next valid config, i.e. the one which
-// satisfies PerformanceConfig.IsValid(ProblemConfig)
-class VirtualIteratorWrW1x1
-    : public std::iterator<std::input_iterator_tag, PerformanceConfigConvAsmBwdWrW1x1>
-{
-    value_type v; // PerformanceConfigConvAsmBwdWrW1x1
-    const VirtualContainer1x1WrW* container;
-
-    static const value_type& GetMinValue();
-    static const value_type& GetOutOfRangeValue();
-
-    /// Implements begin()
-    VirtualIteratorWrW1x1(const VirtualContainer1x1WrW* container_)
-        : v(GetMinValue()), container(container_)
-    {
-        if(!IsValid())
-            Next();
-    }
-    friend class VirtualContainer1x1WrW; // Passes itself to private ctor in order to construct
-                                         // begin().
-    void Next();
-    bool IsValid();
-
-    public:
-    /// Implementes end() and also serves as a default ctor.
-    VirtualIteratorWrW1x1() : v(GetOutOfRangeValue()), container(nullptr) {}
-
-    bool operator!=(VirtualIteratorWrW1x1 const& other) const;
-    const value_type& operator*() const { return v; }
-    const value_type* operator->() const { return &v; }
-    VirtualIteratorWrW1x1& operator++()
-    {
-        Next();
-        return *this;
-    }
-};
-
-inline VirtualIteratorWrW1x1 VirtualContainer1x1WrW::begin() const { return {this}; }
-
-inline VirtualIteratorWrW1x1 VirtualContainer1x1WrW::end() const { return {}; }
-
-const VirtualIteratorWrW1x1::value_type& VirtualIteratorWrW1x1::GetMinValue()
-{
-    static const value_type val(1, 1, 1, 1, 1, 1);
-    return val;
-}
-
-const VirtualIteratorWrW1x1::value_type& VirtualIteratorWrW1x1::GetOutOfRangeValue()
-{
-    static const value_type val(-1, -1, -1, -1, -1, -1);
-    return val;
-}
-
-inline bool VirtualIteratorWrW1x1::IsValid()
-{
-    if(!container)
-        return false;
-    return v.IsValid(container->config);
-}
-
-inline bool VirtualIteratorWrW1x1::operator!=(VirtualIteratorWrW1x1 const& other) const
-{
-    return !(v.IsEqual(other.v) && container == other.container);
-}
 
 inline static bool Inc_1_2_4_8_16(int& v)
 {
@@ -184,39 +71,28 @@ inline static bool Inc_1_2_4(int& v)
 
 inline static bool Is_1_2_4(const int& v) { return v == 1 || v == 2 || v == 4; }
 
-void VirtualIteratorWrW1x1::Next()
+bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
 {
-    if(container == nullptr)
-    {
-        v = GetOutOfRangeValue();
-        return;
-    }
+    // Increment with wrap-around:
     do
     {
-        // Increment with wrap-around:
-        do
-        {
-            if(!Inc_1_2_4_8_16(v.c_per_gpr))
-                break;
-            if(!Inc_1_2_4_8_16(v.c_mult))
-                break;
-            if(!Inc_1_2_4_8_16(v.k_per_gpr))
-                break;
-            if(!Inc_1_2_4_8_16(v.k_mult))
-                break;
-            if(++v.read_size <= 4)
-                break;
-            v.read_size = 1;
-            if(!Inc_1_2_4(v.n_per_gpr))
-                break;
-            // All the fields (components) of performance confic have wrapped around.
-            // The next one is not the min (in the allowed range) but a one beyond the end.
-            // Iterator is useless from now.
-            v         = GetOutOfRangeValue();
-            container = nullptr;
-            return;
-        } while(false);
-    } while(!IsValid());
+        if(!Inc_1_2_4_8_16(c_per_gpr))
+            break;
+        if(!Inc_1_2_4_8_16(c_mult))
+            break;
+        if(!Inc_1_2_4_8_16(k_per_gpr))
+            break;
+        if(!Inc_1_2_4_8_16(k_mult))
+            break;
+        if(++read_size <= 4)
+            break;
+        read_size = 1;
+        if(!Inc_1_2_4(n_per_gpr))
+            break;
+        // All the fields (components) of performance confic have wrapped around.
+        return false;
+    } while(false);
+    return true;
 }
 
 PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(
@@ -230,8 +106,8 @@ PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(
 {
 }
 
-inline bool
-PerformanceConfigConvAsmBwdWrW1x1::IsEqual(const PerformanceConfigConvAsmBwdWrW1x1& other) const
+inline bool PerformanceConfigConvAsmBwdWrW1x1::
+operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const
 {
     // clang-format off
     return c_per_gpr == other.c_per_gpr
@@ -242,7 +118,7 @@ PerformanceConfigConvAsmBwdWrW1x1::IsEqual(const PerformanceConfigConvAsmBwdWrW1
         && n_per_gpr == other.n_per_gpr; // clang-format on
 }
 
-bool PerformanceConfigConvAsmBwdWrW1x1::IsValidRange() const
+bool PerformanceConfigConvAsmBwdWrW1x1::IsValidValue() const
 {
     // clang-format off
     return Is_1_2_4_8_16(c_per_gpr)
@@ -255,7 +131,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValidRange() const
 
 bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config) const
 {
-    if(!IsValidRange())
+    if(!IsValidValue())
         return false;
     assert((GetChunkSize() * c_per_gpr) == 16);
     if(!(k_per_gpr <= c_per_gpr))
@@ -349,7 +225,7 @@ ConvAsmBwdWrW1x1::GetPerformanceConfig(const ConvolutionContext& params) const
 bool ConvAsmBwdWrW1x1::IsValidPerformanceConfig(const ConvolutionContext& problem,
                                                 const PerformanceConfigConvAsmBwdWrW1x1& c) const
 {
-    return c.IsValidRange() && c.IsValid(problem);
+    return c.IsValidValue() && c.IsValid(problem);
 }
 
 bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
@@ -379,7 +255,7 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         && params.pad1 == 0             // -p  pad_h
         && params.kernel_stride0 <= 2   // -u  stride_w
         && params.kernel_stride1 <= 2   // -v  stride_h
-	&& params.kernel_stride0 == params.kernel_stride1
+        && params.kernel_stride0 == params.kernel_stride1
         && params.kernel_size0 == 1     // -x  S wei_w
         && params.kernel_size1 == 1     // -y  R wei_h
         && params.kernel_dilation0 == 1
@@ -586,81 +462,17 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
-/// \todo Factor out this (to generic search implementation)
-class Heartbeat1x1WrW
+int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
+                                            Data_t bot_ocl_buf,
+                                            Data_t top_ocl_buf,
+                                            Data_t wei_ocl_buf,
+                                            Data_t bias_ocl_buf,
+                                            const ConvolutionContext& params,
+                                            const ConvSolution& solution,
+                                            float& elapsed_time) const
 {
-    size_t n_within_beat;
-    size_t n_best;
-    float best_time; // within beat
-    float elapsed_cumulative;
-    miopen::Timer timer;
-    PerformanceConfigConvAsmBwdWrW1x1 best_config;
-
-    void Continue()
-    {
-        best_time     = std::numeric_limits<float>::max();
-        n_within_beat = 0;
-        timer.start();
-    }
-
-    public:
-    Heartbeat1x1WrW() : n_within_beat(), n_best(), best_time(), elapsed_cumulative() {}
-
-    void Start()
-    {
-        elapsed_cumulative = 0.0f;
-        best_config        = PerformanceConfigConvAsmBwdWrW1x1();
-        Continue();
-    }
-
-    void Monitor(const bool is_recent_failed,
-                 const float recent_time,
-                 const size_t n_recent,
-                 const float total_best,
-                 size_t n_failed,
-                 size_t n_total,
-                 const PerformanceConfigConvAsmBwdWrW1x1& recent_config)
-    {
-        ++n_within_beat;
-        if(!is_recent_failed && (recent_time < best_time))
-        {
-            best_time   = recent_time;
-            n_best      = n_recent;
-            best_config = recent_config;
-        }
-        const float elapsed = timer.elapsed_ms();
-        if(elapsed > 3000)
-        {
-            elapsed_cumulative += elapsed;
-            const float eta_sec =
-                n_recent ? ((n_total - n_recent) * (elapsed_cumulative / n_recent) / 1000)
-                         : 0.0f; // paraniod
-            MIOPEN_LOG_W(n_recent << '/' << n_failed << '/' << n_total << ' ' << total_best
-                                  << ", best within recent "
-                                  << n_within_beat
-                                  << ": "
-                                  << best_time
-                                  << " #"
-                                  << n_best
-                                  << ' '
-                                  << best_config
-                                  << ", ETA:"
-                                  << eta_sec
-                                  << " sec.");
-            Continue();
-        }
-    }
-};
-
-static int RunSolution(miopen::Handle& profile_h,
-                       Data_t bot_ocl_buf,
-                       Data_t top_ocl_buf,
-                       Data_t wei_ocl_buf,
-                       const ConvolutionContext& params,
-                       const ConvSolution& solution,
-                       float& elapsed_time)
-{
-    (void)params; // -warning
+    assert(bias_ocl_buf == nullptr);
+    (void)bias_ocl_buf;
     const KernelInfo k_info = solution.construction_params.back();
 #ifdef NDEBUG
     try
@@ -678,13 +490,15 @@ static int RunSolution(miopen::Handle& profile_h,
                                           k_info.comp_options);
         int unused       = 0;
         int* return_addr = nullptr;
+        auto n_groups =
+            static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
 
-        kernel(unused, // N
-               unused, // C
-               unused, // H
-               unused, // W
-               unused, // K
-               unused, // n_groups
+        kernel(params.batch_sz,   // N
+               params.n_outputs,  // C
+               params.out_height, // H
+               params.out_width,  // W
+               params.n_inputs,   // K
+               n_groups,          // n_groups
                unused,
                unused,
                top_ocl_buf,
@@ -702,133 +516,9 @@ static int RunSolution(miopen::Handle& profile_h,
     return 0;
 }
 
-static void
-InitRandomly(std::vector<float>& vec, const double offset = 0.0, const double factor = 1.0)
+PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& context) const
 {
-    float* p = vec.data();
-    for(int i = 0; i < vec.size(); ++i)
-        *p++ = static_cast<float>((rand() * (1.0 / RAND_MAX) + offset) * factor);
-}
-
-PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& params) const
-{
-    PerformanceConfigConvAsmBwdWrW1x1 best_config;
-    miopen::Handle profile_h;
-    profile_h.EnableProfiling(true);
-
-    // Allocate buffers, init input buffers.
-    std::vector<float> bot(params.bot_sz / sizeof(float));
-    std::vector<float> top(params.top_sz / sizeof(float));
-    std::vector<float> wei(params.weights_sz / sizeof(float));
-    InitRandomly(bot);
-    InitRandomly(top);
-    auto bot_ocl_buf = profile_h.Write(bot);
-    auto top_ocl_buf = profile_h.Write(top);
-    auto wei_ocl_buf = profile_h.Write(wei);
-
-    int n_runs_total = 0;
-    const VirtualContainer1x1WrW all_configs(params);
-    {
-        for(const auto& dummy : all_configs)
-        {
-            ++n_runs_total;
-            (void)dummy;
-        }
-    }
-    MIOPEN_LOG_W("Searching the best solution among " << n_runs_total << "...");
-    bool is_passed   = false; // left false only if all iterations failed.
-    float best_time  = std::numeric_limits<float>::max();
-    size_t n_failed  = 0;
-    size_t n_current = 0;
-    size_t n_best    = 0;
-    Heartbeat1x1WrW heartbeat;
-    heartbeat.Start();
-    for(const auto& current_config : all_configs)
-    {
-        float elapsed_time;
-        MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_runs_total << ' '
-                          << current_config);
-        // Smooth the jitter of the measured time.:
-        // If 1st probe isn't worse than the best one by 5%,
-        // then re-run 4 more times and compute average time,
-        // and decide using average vs. the best.
-        auto ret = RunSolution(profile_h,
-                               bot_ocl_buf.get(),
-                               top_ocl_buf.get(),
-                               wei_ocl_buf.get(),
-                               params,
-                               GetSolution(params, current_config, true),
-                               elapsed_time);
-        if(ret == 0)
-        {
-            if(elapsed_time / best_time < 1.05f)
-            {
-                MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time << " = "
-                                                      << (elapsed_time / best_time));
-                float temp;
-                for(int i = 0; i < 4; ++i)
-                {
-                    ret = RunSolution(profile_h,
-                                      bot_ocl_buf.get(),
-                                      top_ocl_buf.get(),
-                                      wei_ocl_buf.get(),
-                                      params,
-                                      GetSolution(params, current_config, true),
-                                      temp);
-                    if(ret != 0)
-                    {
-                        break;
-                    }
-                    elapsed_time += temp;
-                }
-                if(ret == 0)
-                {
-                    is_passed = true;
-                    elapsed_time /= 5;
-                    if(elapsed_time < best_time)
-                    {
-                        MIOPEN_LOG_I('#' << n_current << '/' << n_failed << '/' << n_runs_total
-                                         << ' '
-                                         << elapsed_time
-                                         << " < "
-                                         << best_time
-                                         << ' '
-                                         << current_config);
-                        best_config = current_config;
-                        best_time   = elapsed_time;
-                        n_best      = n_current;
-                    }
-                    else
-                    {
-                        MIOPEN_LOG_I2(
-                            "Average is not better: " << elapsed_time << " >= " << best_time);
-                    }
-                }
-            }
-        }
-
-        if(ret != 0)
-        {
-            MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
-                             << " Failed rc="
-                             << ret);
-            ++n_failed;
-        }
-        heartbeat.Monitor(
-            ret != 0, elapsed_time, n_current, best_time, n_failed, n_runs_total, current_config);
-        ++n_current;
-    }
-
-    profile_h.EnableProfiling(false);
-    MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
-                          << n_best
-                          << ' '
-                          << best_time
-                          << ' '
-                          << best_config);
-    if(!is_passed)
-        MIOPEN_THROW("Search failed for PerformanceConfigConvAsmBwdWrW1x1");
-    return best_config;
+    return GenericSearch(*this, context);
 }
 
 } // namespace solver
