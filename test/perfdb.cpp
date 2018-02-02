@@ -55,7 +55,7 @@ static boost::filesystem::path& exe_path()
 class Random
 {
     public:
-    Random(unsigned int seed = 0) : rng(seed), dist() {}
+    Random(unsigned int seed = 0) : rng(seed) {}
 
     std::mt19937::result_type Next() { return dist(rng); }
 
