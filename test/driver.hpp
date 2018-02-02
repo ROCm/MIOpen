@@ -33,6 +33,7 @@
 
 #include <functional>
 #include <deque>
+#include <type_traits>
 #include <miopen/functional.hpp>
 #include <miopen/type_name.hpp>
 
@@ -98,7 +99,7 @@ struct test_driver
         void add_source(Source src, T& x)
         {
             data_sources.push_back([=, &x](std::function<void()> callback) {
-                for(auto&& y : src())
+                for(auto y : src()) // NOLINT
                 {
                     x = T(y);
                     post_write();

@@ -335,9 +335,9 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             kernel.g_wk.push_back(gbl_wk1);
             kernel.g_wk.push_back(gbl_wk2);
 
-            kernel.kernel_file = "MIOpenConvBwdWrW1x1_PAD_read4.cl";
+            kernel.kernel_file = "MIOpenUtilKernels3.cl";
 
-            kernel.kernel_name = "MIOpenSubsample";
+            kernel.kernel_name = "SubSample";
 
             kernel.comp_options = comp_options;
 
