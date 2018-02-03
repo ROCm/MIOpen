@@ -988,4 +988,6 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
     }
 }
 
-#endif // #ifdef LITE
+#endif
+// #ifdef LITE
+
