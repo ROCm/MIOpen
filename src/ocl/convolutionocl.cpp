@@ -741,16 +741,16 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     transpose_NCHW2CNHW_opt(handle, in_n, in_c, in_h, in_w, x, workSpace, 0, 0);
                 }
                 t1 = handle.GetKernelTime();
-                //printf("transpose_NCHW-CNHW Elapsed time: %f\n", handle.GetKernelTime());
+                // printf("transpose_NCHW-CNHW Elapsed time: %f\n", handle.GetKernelTime());
 
                 gg.RunGemm(handle, workSpace, w, workSpace, 0, 0, xDesc.GetElementSize());
                 t1 += handle.GetKernelTime();
-                //printf("GEMM Elapsed time: %f\n", handle.GetKernelTime());
+                // printf("GEMM Elapsed time: %f\n", handle.GetKernelTime());
 
                 transpose_CNHW2NCHW_opt(
                     handle, in_n, wei_n, out_h, out_w, workSpace, y, xDesc.GetElementSize(), 0);
                 t1 += handle.GetKernelTime();
-                //printf("transpose_CNHW-NCHW Elapsed time: %f\n", handle.GetKernelTime());
+                // printf("transpose_CNHW-NCHW Elapsed time: %f\n", handle.GetKernelTime());
 
                 if(handle.IsProfilingEnabled())
                 {
