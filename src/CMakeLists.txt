@@ -1,26 +1,26 @@
 ################################################################################
-#
-#MIT License
-#
-#Copyright(c) 2017 Advanced Micro Devices, Inc.
-#
-#Permission is hereby granted, free of charge, to any person obtaining a copy
-#of this software and associated documentation files(the "Software"), to deal
-#in the Software without restriction, including without limitation the rights
-#to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
-#copies of the Software, and to permit persons to whom the Software is
-#furnished to do so, subject to the following conditions:
-#
-#The above copyright notice and this permission notice shall be included in all
-#copies or substantial portions of the Software.
-#
-#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
-#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-#SOFTWARE.
+# 
+# MIT License
+# 
+# Copyright (c) 2017 Advanced Micro Devices, Inc.
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+# 
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 # 
 ################################################################################
 cmake_minimum_required( VERSION 2.8.12 )
@@ -29,27 +29,24 @@ include (GenerateExportHeader)
 
 configure_file("${PROJECT_SOURCE_DIR}/include/miopen/config.h.in" "${PROJECT_BINARY_DIR}/include/miopen/config.h")
 
-#configure a header file to pass the CMake version settings to the source, \
-    and package the header files in the output archive
+# configure a header file to pass the CMake version settings to the source, and package the header files in the output archive
 configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/version.h.in" "${PROJECT_BINARY_DIR}/include/miopen/version.h" )
 
 message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
 message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 
-#This is incremented when the ABI to the library changes
+# This is incremented when the ABI to the library changes
 set( MIOpen_SOVERSION 1 )
 
 function(add_kernels KERNEL_FILES)
     set(INIT_KERNELS_LIST)
     foreach(KERNEL_FILE ${KERNEL_FILES})
         if("${CMAKE_VERSION}" VERSION_LESS 3.0)
-            configure_file(${
-    KERNEL_FILE} ${KERNEL_FILE}.delete)
+            configure_file(${KERNEL_FILE} ${KERNEL_FILE}.delete)
         else()
             set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${KERNEL_FILE})
         endif()
-        get_filename_component(BASE_NAME ${
-    KERNEL_FILE} NAME_WE)
+        get_filename_component(BASE_NAME ${KERNEL_FILE} NAME_WE)
         string(TOUPPER "${BASE_NAME}" KEY_NAME)
         string(MAKE_C_IDENTIFIER "${KEY_NAME}" VAR_NAME)
         list(APPEND INIT_KERNELS_LIST "    { \"${KEY_NAME}\", std::string(reinterpret_cast<const char*>(${VAR_NAME}), ${VAR_NAME}_SIZE) }")
@@ -252,14 +249,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
  
     add_custom_command(
         OUTPUT ${PROJECT_BINARY_DIR}/include/miopen_kernels.h
-        WORKING_DIRECTORY ${
-    CMAKE_CURRENT_SOURCE_DIR}
-        DEPENDS addkernels ${
-    MIOPEN_KERNELS} ${
-    MIOPEN_KERNEL_INCLUDES}
-        COMMAND ${
-    WINE_CMD} $<TARGET_FILE:addkernels> -guard GUARD_MIOPEN_KERNELS_HPP_ -target ${PROJECT_BINARY_DIR}/include/miopen_kernels.h -source ${
-    MIOPEN_KERNELS}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        DEPENDS addkernels ${MIOPEN_KERNELS} ${MIOPEN_KERNEL_INCLUDES}
+        COMMAND ${WINE_CMD} $<TARGET_FILE:addkernels> -guard GUARD_MIOPEN_KERNELS_HPP_ -target ${PROJECT_BINARY_DIR}/include/miopen_kernels.h -source ${MIOPEN_KERNELS}
         COMMENT "Inlining MIOpen kernels"
         )
 
@@ -270,7 +262,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     add_dependencies(tidy miopen_tidy_inlining)
 endif()
 
-#build library
+# build library
 add_library( MIOpen
     ${MIOpen_Source}
     )
@@ -288,7 +280,7 @@ generate_export_header(MIOpen
 )
 set(PACKAGE_DEPENDS)
 ############################################################
-#MIOpen depends on OpenCL
+# MIOpen depends on OpenCL
 if( MIOPEN_BACKEND STREQUAL "OpenCL")
     MESSAGE( STATUS "MIOpen linking OpenCL: ${OPENCL_INCLUDE_DIRS}" )
     target_include_directories(MIOpen SYSTEM PUBLIC ${OPENCL_INCLUDE_DIRS} )
@@ -299,17 +291,17 @@ elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
     target_link_libraries( MIOpen PRIVATE hip::hip_hcc ${hcc_LIBRARIES} )
     target_link_libraries( MIOpen INTERFACE hip::hip_hcc )
     if(ENABLE_HIP_WORKAROUNDS)
-#Workaround hip not setting its usage requirements correctly
+        # Workaround hip not setting its usage requirements correctly
         target_compile_definitions( MIOpen PRIVATE -D__HIP_PLATFORM_HCC__=1 )
     endif()
-#This is helpful for the tests
+    # This is helpful for the tests
     target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:${hip_LIBRARIES}> )
     list(APPEND PACKAGE_DEPENDS PACKAGE hip)
     set(BACKEND_PACKAGE "hip")
 endif()
 
 ############################################################
-#MIOpen depends on miopengemm
+# MIOpen depends on miopengemm
 if(miopengemm_FOUND)
     list(APPEND PACKAGE_DEPENDS PACKAGE miopengemm)
     target_link_libraries( MIOpen PUBLIC miopengemm )
@@ -330,20 +322,15 @@ set(MIOPEN_BOOST_LIB_VISIBILITY PUBLIC)
 else()
 set(MIOPEN_BOOST_LIB_VISIBILITY PRIVATE)
 endif()
-target_link_libraries(MIOpen ${
-    MIOPEN_BOOST_LIB_VISIBILITY} 
-    optimized ${
-    Boost_FILESYSTEM_LIBRARY_RELEASE} 
-    optimized ${
-    Boost_SYSTEM_LIBRARY_RELEASE}
-    debug ${
-    Boost_FILESYSTEM_LIBRARY_DEBUG} 
+target_link_libraries(MIOpen ${MIOPEN_BOOST_LIB_VISIBILITY} 
+    optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE} 
+    optimized ${Boost_SYSTEM_LIBRARY_RELEASE}
+    debug ${Boost_FILESYSTEM_LIBRARY_DEBUG} 
     debug ${Boost_SYSTEM_LIBRARY_DEBUG}
 )
 if(NOT WIN32 AND NOT APPLE)
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/lib.def "
-MIOPEN_${
-    MIOPEN_BACKEND}_1
+MIOPEN_${MIOPEN_BACKEND}_1
 {
 global:
     *;
@@ -352,16 +339,16 @@ local:
 };
 ")
     target_link_libraries(MIOpen PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_BINARY_DIR}/lib.def")
-#if(NOT BUILD_DEV)
-#set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET hidden)
-#if(NOT APPLE)
-#target_link_libraries(MIOpen PRIVATE "-Wl,--exclude-libs,ALL")
-#endif()
-#endif()
+    # if(NOT BUILD_DEV)
+    #     set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET hidden)
+    #     if(NOT APPLE)
+    #         target_link_libraries(MIOpen PRIVATE "-Wl,--exclude-libs,ALL")
+    #     endif()
+    # endif()
 endif()
 
 ############################################################
-#Installation
+# Installation
 rocm_install_targets(
   TARGETS MIOpen
   INCLUDE 
@@ -372,13 +359,13 @@ rocm_install_targets(
 
 rocm_export_targets(
   TARGETS MIOpen
-  PREFIX ${
-    MIOPEN_INSTALL_DIR}
+  PREFIX ${MIOPEN_INSTALL_DIR}
   DEPENDS
     ${PACKAGE_DEPENDS} 
 )
 
-#Install db files
+
+# Install db files
 install(FILES 
     kernels/gfx803_64.cd.pdb.txt
     kernels/gfx900_64.cd.pdb.txt
