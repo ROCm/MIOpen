@@ -10,7 +10,7 @@ std::string Write2s()
     return "__kernel void write(__global int* data) { data[get_global_id(0)] *= 2; }\n";
 }
 
-void run(std::size_t n)
+void run2s(std::size_t n)
 {
     auto&& h = get_handle();
     std::vector<int> data_in(n, 1);
@@ -23,10 +23,29 @@ void run(std::size_t n)
     CHECK(data_out == data_in);
 }
 
+void test_multithreads()
+{
+    std::thread([&] { run2s(16); }).join();
+    std::thread([&] { run2s(32); }).join();
+    std::thread([&] { std::thread([&] { run2s(64); }).join(); }).join();
+    run2s(4);
+}
+
+std::string WriteNop()
+{
+    return "__kernel void write(__global int* data) {}\n";
+}
+
+void test_warnings()
+{
+    auto&& h = get_handle();
+#if MIOPEN_BUILD_DEV
+    EXPECT(throws([&] { h.AddKernel("GEMM", "", WriteNop(), "write", {1, 1, 1}, {1, 1, 1}, ""); }));
+#endif
+}
+
 int main()
 {
-    std::thread([&] { run(16); }).join();
-    std::thread([&] { run(32); }).join();
-    std::thread([&] { std::thread([&] { run(64); }).join(); }).join();
-    run(4);
+    test_multithreads();
+    test_warnings();
 }
