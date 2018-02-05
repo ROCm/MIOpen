@@ -86,9 +86,9 @@ CreateProgramWithBinary(cl_context ctx, cl_device_id device, const char* char_so
 static std::string BuildProgramInfo(cl_program program, cl_device_id device)
 {
     std::vector<char> errorbuf(1024 * 1024);
-        size_t psize;
-        clGetProgramBuildInfo(
-            program, device, CL_PROGRAM_BUILD_LOG, 1024 * 1024, errorbuf.data(), &psize);
+    size_t psize;
+    clGetProgramBuildInfo(
+        program, device, CL_PROGRAM_BUILD_LOG, 1024 * 1024, errorbuf.data(), &psize);
     return errorbuf.data();
 }
 
@@ -102,7 +102,9 @@ static void BuildProgram(cl_program program, cl_device_id device, const std::str
 
     if(status != CL_SUCCESS)
     {
-        MIOPEN_THROW_CL_STATUS(status, "Error Building OpenCL Program in BuildProgram()\n"+BuildProgramInfo(program, device));
+        MIOPEN_THROW_CL_STATUS(status,
+                               "Error Building OpenCL Program in BuildProgram()\n" +
+                                   BuildProgramInfo(program, device));
     }
 }
 

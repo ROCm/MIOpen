@@ -31,10 +31,7 @@ void test_multithreads()
     run2s(4);
 }
 
-std::string WriteNop()
-{
-    return "__kernel void write(__global int* data) {}\n";
-}
+std::string WriteNop() { return "__kernel void write(__global int* data) {}\n"; }
 
 void test_warnings()
 {
