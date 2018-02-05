@@ -83,23 +83,26 @@ CreateProgramWithBinary(cl_context ctx, cl_device_id device, const char* char_so
     return result;
 }
 
+static std::string BuildProgramInfo(cl_program program, cl_device_id device)
+{
+    std::vector<char> errorbuf(1024 * 1024);
+        size_t psize;
+        clGetProgramBuildInfo(
+            program, device, CL_PROGRAM_BUILD_LOG, 1024 * 1024, errorbuf.data(), &psize);
+    return errorbuf.data();
+}
+
 static void BuildProgram(cl_program program, cl_device_id device, const std::string& params = "")
 {
     auto status = clBuildProgram(program, 1, &device, params.c_str(), nullptr, nullptr);
 
+#ifndef NDEBUG
+    std::cout << BuildProgramInfo(program, device) << std::endl;
+#endif
+
     if(status != CL_SUCCESS)
     {
-        std::string msg = "Error Building OpenCL Program in BuildProgram()\n";
-        std::vector<char> errorbuf(1024 * 1024);
-        size_t psize;
-        clGetProgramBuildInfo(
-            program, device, CL_PROGRAM_BUILD_LOG, 1024 * 1024, errorbuf.data(), &psize);
-
-        msg += errorbuf.data();
-        if(status != CL_SUCCESS)
-        {
-            MIOPEN_THROW_CL_STATUS(status, msg);
-        }
+        MIOPEN_THROW_CL_STATUS(status, "Error Building OpenCL Program in BuildProgram()\n"+BuildProgramInfo(program, device));
     }
 }
 
@@ -145,6 +148,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
     {
         ClProgramPtr result{CreateProgram(ctx, source.data(), source.size())};
 #if MIOPEN_BUILD_DEV
+        // params += " -Werror";
         params += " -Werror";
 #ifdef __linux__
         params += KernelWarningsString();
