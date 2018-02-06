@@ -204,11 +204,11 @@ GemmGeometry CreateGemmGeometryConvFwd(const TensorDescriptor& xDesc,
     return gg;
 }
 
-GemmGeometry CreateGemmGeometryConvFwd2(const TensorDescriptor& xDesc,
-                                        const TensorDescriptor& wDesc,
-                                        const TensorDescriptor& yDesc,
-                                        bool isDataColMajor,
-                                        std::string& network_config)
+GemmGeometry CreateGemmGeometryConvFwdCNHW(const TensorDescriptor& xDesc,
+                                           const TensorDescriptor& wDesc,
+                                           const TensorDescriptor& yDesc,
+                                           bool isDataColMajor,
+                                           std::string& network_config)
 {
     int in_n, in_c;
     std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
