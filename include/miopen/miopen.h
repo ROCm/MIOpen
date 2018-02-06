@@ -1727,8 +1727,8 @@ typedef enum {
  * Recurrent Neural Network add on bias
 */
 typedef enum {
-    miopenRNNNoBias   = 0, /*!< Biases will be applied to GEMM operations */
-    miopenRNNwithBias = 1, /*!< No biases will be applied to GEMM operations */
+    miopenRNNNoBias   = 0, /*!< No Biases will be applied to GEMM operations */
+    miopenRNNwithBias = 1, /*!< Biases will be applied to GEMM operations */
 } miopenRNNBiasMode_t;
 
 /*! @enum miopenRNNGEMMalgoMode_t
