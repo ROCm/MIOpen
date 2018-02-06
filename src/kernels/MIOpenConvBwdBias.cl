@@ -55,7 +55,7 @@ static inline int iMod(int v, int u, int d)
 
 static inline void ReduceKernel(__local _FLOAT* lcl_mem, int sum_stride, int unit_id, int unit_len)
 {
-    _FLOAT sum     = 0;
+    _FLOAT sum     = (_FLOAT)(0);
     int lcl_offset = unit_id * unit_len;
     for(int i = 0; i < unit_len; i += sum_stride)
     {
@@ -71,7 +71,7 @@ MIOpenConvBwdB(const __global _FLOAT* top_df, __global _FLOAT* bias_df)
     int output_map = get_group_id(1);
 
     __local _FLOAT lcl_sum[MLO_CONVBWDB_LCL_MEMSZ];
-    _FLOAT sum = 0;
+    _FLOAT sum = (_FLOAT)(0);
 
     for(int j = lid; j < MLO_WK_SIZE * MLO_OUT_BATCH_SZ; j += MLO_CONVBWD_GROUP_SZ0)
     {
