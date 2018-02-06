@@ -84,7 +84,7 @@ float Im2ColGPU(Handle& handle,
     params += " -DSTRIDE_GT_1=" + std::to_string(stride_h * stride_w > 1);
     params += " -DTILE_SZ_X=" + std::to_string(tile_sz_x);
     params += " -DTILE_SZ_Y=" + std::to_string(tile_sz_y);
-    params += " -DUSE_IM_OFF_GUARD=1";
+    params += " -DUSE_IM_OFF_GUARD=1 -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
 
     const std::vector<size_t> vld{256, 1, 1};
     size_t global_threads = 256 * std::max(1, (c / num_ch_per_wg)) * num_blks;
@@ -131,7 +131,7 @@ float Col2ImGPU(Handle& handle,
     std::string program_name = "MIOpenUtilKernels2.cl";
     std::string kernel_name  = "Col2Im";
 
-    std::string params;
+    std::string params = "-DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
     const std::vector<size_t> vld{256, 1, 1};
     size_t global_threads = c * h * w;
     const std::vector<size_t> vgd{global_threads, 1, 1};
