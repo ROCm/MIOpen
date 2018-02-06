@@ -59,6 +59,21 @@
 //#define MLO_NEURON_LINEAR		MLO_NEURON_SQR	+ 1			//	a + b * x
 #define MLO_NEURON_TOTAL MLO_NEURON_POWER + 1
 
+struct ActivationForwardParam
+{
+    _FLOAT power;
+    _FLOAT scale;
+    _FLOAT shift;
+};
+
+struct ActivationBackwardParam
+{
+    _FLOAT diff_scale;
+    _FLOAT power;
+    _FLOAT scale;
+    _FLOAT shift;
+};
+
 __attribute__((always_inline)) void ActivationFunction_PassThru(_FLOAT* res, const _FLOAT* data)
 {
     for(int i = 0; i < 4; i++)
@@ -314,7 +329,6 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
                 const long yOffset)
 {
     int x = get_global_id(0); // channel x
-
 #if MLO_N_OUT_STRIDE > MLO_OUT_BLOCK_SZ
     int n_out_stride = MLO_N_OUT_STRIDE;
     int c_out        = MLO_C_OUT;
