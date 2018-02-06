@@ -57,11 +57,11 @@ GemmGeometry CreateGemmGeometryConvFwd(const TensorDescriptor& xDesc,
                                        bool isDataColMajor,
                                        std::string& network_config);
 
-GemmGeometry CreateGemmGeometryConvFwd2(const TensorDescriptor& xDesc,
-                                        const TensorDescriptor& wDesc,
-                                        const TensorDescriptor& yDesc,
-                                        bool isDataColMajor,
-                                        std::string& network_config);
+GemmGeometry CreateGemmGeometryConvFwdCNHW(const TensorDescriptor& xDesc,
+                                           const TensorDescriptor& wDesc,
+                                           const TensorDescriptor& yDesc,
+                                           bool isDataColMajor,
+                                           std::string& network_config);
 
 GemmGeometry CreateGemmGeometryRNN(int M,
                                    int N,

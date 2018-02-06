@@ -343,11 +343,10 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         size_t workspace_req = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
         float time_gemm      = 0;
 
-        if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 &&
-           ((u == 1 && v == 1) || (u == 2 && v == 2)))
+        if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)))
         {
             GemmGeometry gg =
-                CreateGemmGeometryConvFwd2(xDesc, wDesc, yDesc, false, network_config);
+                CreateGemmGeometryConvFwdCNHW(xDesc, wDesc, yDesc, false, network_config);
 
             if(u == 2 && v == 2)
             {
@@ -378,50 +377,35 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
             perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, 0});
         }
-        else
+        // if not 1x1
+        else if(workSpace != nullptr && workSpaceSize >= workspace_req)
         {
             GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
+            float time_im2col = 0;
+            size_t in_offset  = 0;
+            time_im2col       = Im2ColGPU(handle,
+                                    xDesc.GetElementSize(),
+                                    x,
+                                    in_offset,
+                                    in_c,
+                                    in_h,
+                                    in_w,
+                                    wei_h,
+                                    wei_w,
+                                    out_h,
+                                    out_w,
+                                    pad_h,
+                                    pad_w,
+                                    u,
+                                    v,
+                                    dilation_h,
+                                    dilation_w,
+                                    workSpace);
 
-            // 1x1 does not require im2col or workspace
-            if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
-            {
-                gg.FindSolution(.003, handle, x, w, tmp_y.get(), false);
-                gg.RunGemm(handle, x, w, tmp_y.get(), 0, 0, 0);
-
-                time_gemm = in_n * handle.GetKernelTime();
-                perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, 0});
-            }
-
-            // if not 1x1
-            else if(workSpace != nullptr && workSpaceSize >= workspace_req)
-            {
-                float time_im2col = 0;
-                size_t in_offset  = 0;
-                time_im2col       = Im2ColGPU(handle,
-                                        xDesc.GetElementSize(),
-                                        x,
-                                        in_offset,
-                                        in_c,
-                                        in_h,
-                                        in_w,
-                                        wei_h,
-                                        wei_w,
-                                        out_h,
-                                        out_w,
-                                        pad_h,
-                                        pad_w,
-                                        u,
-                                        v,
-                                        dilation_h,
-                                        dilation_w,
-                                        workSpace);
-
-                gg.FindSolution(.003, handle, workSpace, w, tmp_y.get(), false);
-                gg.RunGemm(handle, workSpace, w, tmp_y.get(), 0, 0, 0);
-                time_gemm = in_n * (time_im2col + handle.GetKernelTime());
-                perf_db.push_back(
-                    PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, workspace_req});
-            }
+            gg.FindSolution(.003, handle, workSpace, w, tmp_y.get(), false);
+            gg.RunGemm(handle, workSpace, w, tmp_y.get(), 0, 0, 0);
+            time_gemm = in_n * (time_im2col + handle.GetKernelTime());
+            perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, workspace_req});
         }
 #else
         (void)workSpace;     // Suppress warning
@@ -724,10 +708,10 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
 
             std::string network_config;
-            if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 &&
-               ((u == 1 && v == 1) || (u == 2 && v == 2)))
+#if MIOPEN_USE_MIOPENGEMM
+            if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)))
             {
-                CreateGemmGeometryConvFwd2(xDesc, wDesc, yDesc, false, network_config);
+                CreateGemmGeometryConvFwdCNHW(xDesc, wDesc, yDesc, false, network_config);
                 GemmGeometry gg = GetGemmGeometry("miopenConvolutionFwdAlgoGEMM", network_config);
 
                 float t1 = 0;
@@ -741,16 +725,13 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     transpose_NCHW2CNHW_opt(handle, in_n, in_c, in_h, in_w, x, workSpace, 0, 0);
                 }
                 t1 = handle.GetKernelTime();
-                // printf("transpose_NCHW-CNHW Elapsed time: %f\n", handle.GetKernelTime());
 
                 gg.RunGemm(handle, workSpace, w, workSpace, 0, 0, xDesc.GetElementSize());
                 t1 += handle.GetKernelTime();
-                // printf("GEMM Elapsed time: %f\n", handle.GetKernelTime());
 
                 transpose_CNHW2NCHW_opt(
                     handle, in_n, wei_n, out_h, out_w, workSpace, y, xDesc.GetElementSize(), 0);
                 t1 += handle.GetKernelTime();
-                // printf("transpose_CNHW-NCHW Elapsed time: %f\n", handle.GetKernelTime());
 
                 if(handle.IsProfilingEnabled())
                 {
@@ -760,7 +741,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else
             {
-#if MIOPEN_USE_MIOPENGEMM
                 CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
                 GemmGeometry gg = GetGemmGeometry("miopenConvolutionFwdAlgoGEMM", network_config);
 
@@ -805,21 +785,10 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                             time_0 += handle.GetKernelTime();
                         }
                     }
-                    else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
-                    {
-                        int in_offset = i * in_c * in_h * in_w;
-                        gg.RunGemm(handle, x, w, y, in_offset, 0, out_offset);
-                        if(handle.IsProfilingEnabled())
-                        {
-                            if(i == in_n - 1)
-                                handle.AccumKernelTime(time_0);
-                            time_0 += handle.GetKernelTime();
-                        }
-                    }
                 }
             }
 #else
-                MIOPEN_THROW("GEMM is not supported");
+            MIOPEN_THROW("GEMM is not supported");
 #endif
         }
 #if MIOPEN_USE_MIOPENGEMM
@@ -930,7 +899,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
         }
 #else
-            MIOPEN_THROW("GEMM is not supported");
+        MIOPEN_THROW("GEMM is not supported");
 #endif
     }
 
@@ -1038,8 +1007,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 PerfField{"miopenTransposeBwdDataAlgoGEMM", time_gemm, workspace_req});
         }
 #else
-            (void)workSpace;     // Suppress warning
-            (void)workSpaceSize; // Suppress warning
+        (void)workSpace;     // Suppress warning
+        (void)workSpaceSize; // Suppress warning
 #endif
     }
     else if(mode == miopenConvolution)
@@ -1215,8 +1184,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 PerfField{"miopenConvolutionBwdDataAlgoGEMM", time_gemm, workspace_req});
         }
 #else
-            (void)workSpace;     // Suppress warning
-            (void)workSpaceSize; // Suppress warning
+        (void)workSpace;     // Suppress warning
+        (void)workSpaceSize; // Suppress warning
 #endif
     }
 
@@ -1452,7 +1421,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 }
             }
 #else
-                MIOPEN_THROW("GEMM is not supported");
+            MIOPEN_THROW("GEMM is not supported");
 #endif
         }
 #if MIOPEN_USE_MIOPENGEMM
@@ -1562,7 +1531,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             }
         }
 #else
-            MIOPEN_THROW("GEMM is not supported");
+        MIOPEN_THROW("GEMM is not supported");
 #endif
     }
     if(miopen::CheckNumericsEnabled())
@@ -1669,8 +1638,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 PerfField{"miopenConvolutionBwdWeightsAlgoGEMM", time_gemm, workspace_req});
         }
 #else
-            (void)workSpace;     // Suppress warning
-            (void)workSpaceSize; // Suppress warning
+        (void)workSpace;     // Suppress warning
+        (void)workSpaceSize; // Suppress warning
 #endif
     }
     else if(mode == miopenConvolution)
@@ -1723,8 +1692,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 PerfField{"miopenConvolutionBwdWeightsAlgoGEMM", time_gemm, workspace_req});
         }
 #else
-            (void)workSpace;     // Suppress warning
-            (void)workSpaceSize; // Suppress warning
+        (void)workSpace;     // Suppress warning
+        (void)workSpaceSize; // Suppress warning
 #endif
 
         if(dilation_h == 1 && dilation_w == 1)
@@ -2063,7 +2032,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 }
             }
 #else
-                MIOPEN_THROW("GEMM is not supported");
+            MIOPEN_THROW("GEMM is not supported");
 #endif
         }
 #if MIOPEN_USE_MIOPENGEMM
@@ -2244,7 +2213,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             }
         }
 #else
-            MIOPEN_THROW("GEMM is not supported");
+        MIOPEN_THROW("GEMM is not supported");
 #endif
     }
 
