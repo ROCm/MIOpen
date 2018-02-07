@@ -24,21 +24,26 @@
 *
 *******************************************************************************/
 
-#include <cassert>
-#include <condition_variable>
+#include <array>
+#include <cstdio>
 #include <cstdlib>
 #include <fstream>
-#include <functional>
-#include <iostream>
+#include <mutex>
 #include <random>
-#include <sstream>
+#include <string>
 #include <thread>
 #include <vector>
 
+#include <boost/interprocess/sync/sharable_lock.hpp>
+#include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/optional.hpp>
 
+#include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
+#include <miopen/lock_file.hpp>
+
 #include "temp_file_path.hpp"
 #include "test.hpp"
 
