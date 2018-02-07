@@ -43,8 +43,6 @@
 
 namespace miopen {
 
-class Db;
-
 /// db consists of 0 or more records.
 /// Each record is an ASCII text line.
 /// Record format:
@@ -72,8 +70,7 @@ class Db;
 /// Ctor arguments are path to db file and a KEY (or an object able to provide a KEY).
 /// Upon construction, allows getting and modifying contents of a record (IDs and VALUES).
 ///
-/// \todo Separate "db file" and "db record" abstractions.
-/// \todo All operations are MP- and MT-safe.
+/// All operations are MP- and MT-safe.
 class DbRecord
 {
     private:
@@ -210,7 +207,7 @@ class Db
         return RemoveRecord(key);
     }
 
-    /// Updates record under key PROBLEM_CONFIG  with data ID:VALUES in database.
+    /// Updates record under key PROBLEM_CONFIG with data ID:VALUES in database.
     /// Both T and V classes should have "void Serialize(std::ostream&) const" member function
     /// available.
     ///
