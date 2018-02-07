@@ -191,7 +191,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvBwdBias.cl)
 
     add_kernels("${MIOPEN_KERNELS}")
-    configure_file(db.cpp.in ${PROJECT_BINARY_DIR}/db.cpp)
+    configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
     list(APPEND MIOpen_Source
         activ.cpp
         kernel_cache.cpp
@@ -212,7 +212,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/utilocl.cpp
         ocl/gcn_asm_utils.cpp
         pooling.cpp
-        ${PROJECT_BINARY_DIR}/db.cpp
+        ${PROJECT_BINARY_DIR}/db_path.cpp
         ${PROJECT_BINARY_DIR}/kernel.cpp
         )
 endif()
