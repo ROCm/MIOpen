@@ -45,7 +45,7 @@ class Db
     {
     }
 
-    /// Searches db for provided key and returns found reconrd or none if key not found in database
+    /// Searches db for provided key and returns found record or none if key not found in database
     inline boost::optional<DbRecord> FindRecord(const std::string& key)
     {
         shared_lock lock(lock_file);
