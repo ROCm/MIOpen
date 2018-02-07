@@ -60,6 +60,7 @@ set( MIOpen_Source
     convolution.cpp
     convolution_api.cpp
     convolution_fft.cpp
+    db.cpp
     db_record.cpp
     find_controls.cpp
     load_file.cpp
@@ -74,6 +75,7 @@ set( MIOpen_Source
     batch_norm_api.cpp
     rnn.cpp
     rnn_api.cpp
+    include/miopen/db.hpp
     include/miopen/db_record.hpp
     include/miopen/lock_file.hpp
     include/miopen/find_controls.hpp

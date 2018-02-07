@@ -25,7 +25,7 @@
  *******************************************************************************/
 #include <miopen/config.h>
 #include <miopen/convolution.hpp>
-#include <miopen/db_record.hpp>
+#include <miopen/db.hpp>
 #include <miopen/env.hpp>
 #include <miopen/util.hpp>
 #include <miopen/solver.hpp>
