@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 #include <cstdlib>
-#include <miopen/db.hpp>
+#include <miopen/db_path.hpp>
 
 namespace miopen {
 

@@ -27,7 +27,7 @@
 #define MIOPEN
 
 #include <miopen/allocator.hpp>
-#include <miopen/db.hpp>
+#include <miopen/db_path.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/mlo_utils.hpp>

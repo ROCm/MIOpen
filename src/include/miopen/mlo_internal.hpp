@@ -108,8 +108,8 @@ using mlo_kernel_info = std::tuple<const std::string,
 #endif
 #include <miopen/tensor.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/db_path.hpp>
 #include <miopen/db.hpp>
-#include <miopen/db_record.hpp>
 
 inline int mloLg2(int v)
 {
