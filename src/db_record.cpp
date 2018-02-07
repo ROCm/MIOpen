@@ -23,14 +23,13 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <algorithm>
-#include <cassert>
-#include <fstream>
 #include <iostream>
 #include <numeric>
-#include <sstream>
+#include <ostream>
+#include <string>
+#include <unordered_map>
+#include <utility>
 
-#include <miopen/errors.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/logger.hpp>
 
