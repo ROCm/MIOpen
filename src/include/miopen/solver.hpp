@@ -36,7 +36,7 @@
 #include <ostream>
 
 #include <miopen/find_controls.hpp>
-#include <miopen/db_record.hpp>
+#include <miopen/db.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/make_unique.hpp>
