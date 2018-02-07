@@ -57,7 +57,11 @@ bool mlo_construct_direct2D::mloIsCompilerWorkarounds() const
  **
  ************************************************************************************************************************/
 
-miopen::MultiFileDB mlo_construct_direct2D::GetDb() const { return { db_path(), _search_params.GetUserPerfDbPath() }; }
+#ifndef MIOPEN_SINGLE_FILE_DB
+miopen::MultiFileDb mlo_construct_direct2D::GetDb() const { return { db_path(), _search_params.GetUserPerfDbPath() }; }
+#else
+miopen::Db mlo_construct_direct2D::GetDb() const { return { db_path() }; }
+#endif
 
 /*
    construction has been split into 2

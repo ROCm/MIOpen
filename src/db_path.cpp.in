@@ -37,6 +37,7 @@ std::string GetDbPath()
         return p;
 }
 
+#ifndef MIOPEN_SINGLE_FILE_DB
 std::string GetUserDbPath()
 {
     auto p = std::getenv("MIOPEN_USER_DB_PATH"); /// \todo Read env once - use GetStringEnv().
@@ -45,5 +46,6 @@ std::string GetUserDbPath()
     else
         return p;
 }
+#endif // !MIOPEN_SINGLE_FILE_DB
 
 } // namespace miopen
