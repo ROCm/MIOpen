@@ -81,5 +81,54 @@ float SubSampleGPU(
     ConstData_t in,
     Data_t out);
 
+float transpose_NCHW2CNHW(Handle& handle,
+                          int n,
+                          int c,
+                          int h_in,
+                          int w_in,
+                          int h_out,
+                          int w_out,
+                          ConstData_t in,
+                          Data_t out,
+                          int in_offset,
+                          int out_offset,
+                          int h_stride,
+                          int w_stride);
+
+float transpose_CNHW2NCHW(Handle& handle,
+                          int n,
+                          int c,
+                          int h_in,
+                          int w_in,
+                          int h_out,
+                          int w_out,
+                          ConstData_t in,
+                          Data_t out,
+                          int in_offset,
+                          int out_offset,
+                          int h_stride,
+                          int w_stride);
+
+float transpose_NCHW2CNHW_opt(Handle& handle,
+                              int n,
+                              int c,
+                              int h,
+                              int w,
+                              ConstData_t in,
+                              Data_t out,
+                              int in_offset,
+                              int out_offset);
+
+float transpose_CNHW2NCHW_opt(Handle& handle,
+                              int n,
+                              int c,
+                              int h,
+                              int w,
+                              ConstData_t in,
+                              Data_t out,
+                              int in_offset,
+                              int out_offset);
+
 } // namespace miopen
+
 #endif // _MIOPEN_UTIL_HPP_

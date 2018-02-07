@@ -27,6 +27,8 @@
 #include <miopen/kernel_cache.hpp>
 #include <miopen/util.hpp>
 
+#define WG_SIZE 128
+
 namespace miopen {
 
 float Im2ColGPU(Handle& handle,
@@ -174,6 +176,192 @@ float SubSampleGPU(
                      std::get<4>(kernel_info),
                      std::get<3>(kernel_info),
                      std::get<2>(kernel_info))(in, out);
+
+    return handle.GetKernelTime();
+}
+
+float transpose_NCHW2CNHW(Handle& handle,
+                          int n,
+                          int c,
+                          int h_in,
+                          int w_in,
+                          int h_out,
+                          int w_out,
+                          ConstData_t in,
+                          Data_t out,
+                          int in_offset,
+                          int out_offset,
+                          int h_stride,
+                          int w_stride)
+{
+    std::string program_name = "MIOpenUtilKernels4.cl";
+    std::string kernel_name  = "transpose_NCHW2CNHW";
+
+    std::string params;
+    params += " -DNC_TRANS_NCHW";
+    params += " -DN=" + std::to_string(n);
+    params += " -DC=" + std::to_string(c);
+    params += " -DHW_IN=" + std::to_string(h_in * w_in);
+    params += " -DHW_OUT=" + std::to_string(h_out * w_out);
+    params += " -DW_IN=" + std::to_string(w_in);
+    params += " -DW_OUT=" + std::to_string(w_out);
+    params += " -DH_STRIDE=" + std::to_string(h_stride);
+    params += " -DW_STRIDE=" + std::to_string(w_stride);
+    params += " -DIN_OFF=" + std::to_string(in_offset);
+    params += " -DOUT_OFF=" + std::to_string(out_offset);
+
+    size_t ld0 = WG_SIZE;
+    size_t gd0 = c * h_out * w_out;
+    const std::vector<size_t> vld{ld0, 1, 1};
+    const std::vector<size_t> vgd{gd0, static_cast<size_t>(n), 1};
+
+    handle.AddKernel("miopen_transpose_NCHW2CNHW", "", program_name, kernel_name, vld, vgd, params)(
+        in, out);
+
+    // int nMB = n * c * h_out * w_out * 4/1024/1024;
+    // printf("NCHW->CNHW MB: %d time: %f GB/s: %f\n", nMB, handle.GetKernelTime(), 2 *
+    // nMB/handle.GetKernelTime());
+
+    return handle.GetKernelTime();
+}
+
+float transpose_CNHW2NCHW(Handle& handle,
+                          int n,
+                          int c,
+                          int h_in,
+                          int w_in,
+                          int h_out,
+                          int w_out,
+                          ConstData_t in,
+                          Data_t out,
+                          int in_offset,
+                          int out_offset,
+                          int h_stride,
+                          int w_stride)
+{
+    std::string program_name = "MIOpenUtilKernels4.cl";
+    std::string kernel_name  = "transpose_CNHW2NCHW";
+
+    std::string params;
+    params += " -DNC_TRANS_CNHW";
+    params += " -DN=" + std::to_string(n);
+    params += " -DC=" + std::to_string(c);
+    params += " -DHW_IN=" + std::to_string(h_in * w_in);
+    params += " -DHW_OUT=" + std::to_string(h_out * w_out);
+    params += " -DW_IN=" + std::to_string(w_in);
+    params += " -DW_OUT=" + std::to_string(w_out);
+    params += " -DH_STRIDE=" + std::to_string(h_stride);
+    params += " -DW_STRIDE=" + std::to_string(w_stride);
+    params += " -DIN_OFF=" + std::to_string(in_offset);
+    params += " -DOUT_OFF=" + std::to_string(out_offset);
+
+    size_t ld0 = WG_SIZE;
+    size_t gd0 = c * h_out * w_out;
+    const std::vector<size_t> vld{ld0, 1, 1};
+    const std::vector<size_t> vgd{gd0, static_cast<size_t>(n), 1};
+
+    handle.AddKernel("miopen_transpose_CNHW2NCHW", "", program_name, kernel_name, vld, vgd, params)(
+        in, out);
+
+    // int nMB = n * c * h_out * w_out * 4/1024/1024;
+    // printf("CNHW->NCHW MB: %d time: %f GB/s: %f\n", nMB, handle.GetKernelTime(), 2 *
+    // nMB/handle.GetKernelTime());
+
+    return handle.GetKernelTime();
+}
+
+float transpose_NCHW2CNHW_opt(Handle& handle,
+                              int n,
+                              int c,
+                              int h,
+                              int w,
+                              ConstData_t in,
+                              Data_t out,
+                              int in_offset,
+                              int out_offset)
+{
+    std::string program_name = "MIOpenUtilKernels4.cl";
+    std::string kernel_name  = "transpose_NCHW2CNHW_opt";
+
+    int N = n, C = c, H = h, W = w;
+    int RD_BLCK      = ((H * W) % 4 == 0) ? 4 : ((H * W) % 3 == 0) ? 3 : ((H * W) % 2 == 0) ? 2 : 1;
+    int HW_RD        = (H * W) / RD_BLCK;
+    size_t MAP_RD    = HW_RD * C;
+    size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
+
+    static const std::string READ_TYPE =
+        (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
+
+    std::string params;
+    params += " -DNC_TRANS_NCHW_OPT";
+    params += " -DIN_OFF=" + std::to_string(in_offset);
+    params += " -DOUT_OFF=" + std::to_string(out_offset);
+    params += " -DH=" + std::to_string(H);
+    params += " -DW=" + std::to_string(W);
+    params += " -DN=" + std::to_string(N);
+    params += " -DC=" + std::to_string(C);
+    params += " -DRD_BLCK=" + std::to_string(RD_BLCK);
+    params += " -DHW_RD=" + std::to_string(HW_RD);
+    params += " -DMAP_RD=" + std::to_string(MAP_RD);
+    params += " -DREAD_TYPE=" + READ_TYPE;
+
+    const std::vector<size_t> vld{lcl_size0, 1, 1};
+    const std::vector<size_t> vgd{MAP_RD, static_cast<size_t>(N), 1};
+
+    handle.AddKernel("miopen_transpose_NCHW2CNHW", "", program_name, kernel_name, vld, vgd, params)(
+        in, out);
+
+    // int nMB = N * C * H * W * 4/1024/1024;
+    // printf("NCHW->CNHW_opt MB: %d time: %f GB/s: %f\n", nMB, handle.GetKernelTime(), 2 *
+    // nMB/handle.GetKernelTime());
+
+    return handle.GetKernelTime();
+}
+
+float transpose_CNHW2NCHW_opt(Handle& handle,
+                              int n,
+                              int c,
+                              int h,
+                              int w,
+                              ConstData_t in,
+                              Data_t out,
+                              int in_offset,
+                              int out_offset)
+{
+    std::string program_name = "MIOpenUtilKernels4.cl";
+    std::string kernel_name  = "transpose_CNHW2NCHW_opt";
+
+    int N = n, C = c, H = h, W = w;
+    int RD_BLCK      = ((H * W) % 4 == 0) ? 4 : ((H * W) % 3 == 0) ? 3 : ((H * W) % 2 == 0) ? 2 : 1;
+    int HW_RD        = (H * W) / RD_BLCK;
+    size_t MAP_RD    = HW_RD * C;
+    size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
+
+    static const std::string READ_TYPE =
+        (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
+
+    std::string params;
+    params += " -DNC_TRANS_CNHW_OPT";
+    params += " -DIN_OFF=" + std::to_string(in_offset);
+    params += " -DOUT_OFF=" + std::to_string(out_offset);
+    params += " -DH=" + std::to_string(H);
+    params += " -DW=" + std::to_string(W);
+    params += " -DN=" + std::to_string(N);
+    params += " -DC=" + std::to_string(C);
+    params += " -DRD_BLCK=" + std::to_string(RD_BLCK);
+    params += " -DHW_RD=" + std::to_string(HW_RD);
+    params += " -DMAP_RD=" + std::to_string(MAP_RD);
+    params += " -DREAD_TYPE=" + READ_TYPE;
+
+    const std::vector<size_t> vld{lcl_size0, 1, 1};
+    const std::vector<size_t> vgd{MAP_RD, static_cast<size_t>(N), 1};
+
+    handle.AddKernel("miopen_transpose_CNHW2NCHW", "", program_name, kernel_name, vld, vgd, params)(
+        in, out);
+
+    // int nMB = N * C * H * W * 4/1024/1024;
+    // printf("CNHW->NCHW_opt MB: %d time: %f GB/s: %f\n", nMB, handle.GetKernelTime(), 2 *
+    // nMB/handle.GetKernelTime());
 
     return handle.GetKernelTime();
 }
