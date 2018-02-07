@@ -272,6 +272,7 @@ struct ConvolutionContext : ProblemDescription
         // clang-format on
     }
 
+#ifndef MIOPEN_SINGLE_FILE_DB
     std::string GetUserPerfDbPath() const
     {
         // clang-format off
@@ -283,6 +284,7 @@ struct ConvolutionContext : ProblemDescription
              + ".cd.rdb.txt";
         // clang-format on
     }
+#endif
 
     private:
     Handle* _stream = nullptr;
@@ -387,7 +389,11 @@ struct mlo_construct_direct2D
 
     miopen::solver::ConvSolution FindSolution();
 
-    miopen::MultiFileDB GetDb() const;
+#ifndef MIOPEN_SINGLE_FILE_DB
+    miopen::MultiFileDb GetDb() const;
+#else
+    miopen::Db GetDb() const;
+#endif
 
     /*
     * returns parameter values that are compiled in legacy kernels for kernels using them as

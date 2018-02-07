@@ -175,6 +175,64 @@ class Db
         return FindRecordUnsafe(key, nullptr);
     }
 };
+
+class MultiFileDb
+{
+public:
+    MultiFileDb(const std::string& installed_path, const std::string& user_path)
+        : _installed(installed_path)
+        , _user(user_path)
+    {}
+
+    boost::optional<DbRecord> FindRecord(const std::string& key)
+    {
+        auto users = _user.FindRecord(key);
+
+        if (users)
+            return users;
+
+        return _installed.FindRecord(key);
+    }
+
+    template <class T>
+    boost::optional<DbRecord> FindRecord(const T& problem_config)
+    {
+        auto users = _user.FindRecord(problem_config);
+
+        if (users)
+            return users;
+
+        return _installed.FindRecord(problem_config);
+    }
+
+    bool StoreRecord(const DbRecord& record) { return _user.StoreRecord(record); }
+
+    bool UpdateRecord(DbRecord& record) { return _user.UpdateRecord(record); }
+
+    bool RemoveRecord(const std::string& key) { return _user.RemoveRecord(key); }
+
+    template <class T>
+    bool RemoveRecord(const T& problem_config) { return _user.RemoveRecord(problem_config); }
+
+    template <class T, class V>
+    boost::optional<DbRecord>
+        Update(const T& problem_config, const std::string& id, const V& values) { return _user.Update(problem_config, id, values); }
+
+    template <class T, class V>
+    bool Load(const T& problem_config, const std::string& id, V& values)
+    {
+        if (_user.Load(problem_config, id, values))
+            return true;
+
+        return _installed.Load(problem_config, id, values);
+    }
+
+    template <class T>
+    bool Remove(const T& problem_config, const std::string& id) { return _user.Remove(problem_config, id); }
+
+private:
+    Db _installed, _user;
+};
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_DB_HPP_
