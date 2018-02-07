@@ -710,7 +710,7 @@ void test_drive_impl(std::vector<std::string> as)
             data_args.push_back(&arg);
         }
     }
-    for(int i=0;i<d.repeat;i++)
+    for(int i = 0; i < d.repeat; i++)
         run_data(data_args.begin(), data_args.end(), [&] { d.run(); });
 }
 
