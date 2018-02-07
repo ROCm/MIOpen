@@ -27,6 +27,7 @@
 #define GUARD_MIOPEN_DB_HPP_
 
 #include <string>
+#include <ios>
 
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/interprocess/sync/sharable_lock.hpp>
