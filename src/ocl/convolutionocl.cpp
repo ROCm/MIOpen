@@ -2071,8 +2071,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     std::string network_config;
                     construct_params.mloBuildConf_Key(network_config);
 
-                    auto&& kernels =
-                        handle.GetKernels("miopenConvolutionBwdWeightsAlgoDirect_Main", network_config);
+                    auto&& kernels = handle.GetKernels("miopenConvolutionBwdWeightsAlgoDirect_Main",
+                                                       network_config);
                     const auto num_kernels = kernels.size();
                     auto p_kernel          = std::begin(kernels);
                     auto kernel            = *p_kernel;
@@ -2095,8 +2095,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     }
                     else
                     {
-                        assert(workSpaceSize >=
-                               BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc));
+                        assert(workSpaceSize >= BackwardWeightsGetWorkSpaceSizeDirect(
+                                                    handle, dyDesc, xDesc, dwDesc));
                         if(workSpace == nullptr)
                         {
                             MIOPEN_THROW("Workspace is required");
@@ -2117,7 +2117,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                                 int N, C, H, W, K, n_groups;
                                 // H/W are image size after downsampling, parsed from img_h/img_w in
                                 // conv_asm_dir_BwdWrW1x1.cpp
-                                construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+                                construct_params.getCompiledInParameters(
+                                    &N, &C, &H, &W, &K, &n_groups);
                                 kernel2(N,
                                         C,
                                         H,
