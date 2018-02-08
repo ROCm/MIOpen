@@ -35,11 +35,11 @@
 #include <vector>
 #include <ostream>
 
+#include <miopen/logger.hpp>
 #include <miopen/find_controls.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/legacy_exhaustive_search.hpp>
-#include <miopen/make_unique.hpp>
 #include <miopen/env.hpp>
 #include <miopen/type_name.hpp>
 #include <miopen/miopen.h>
@@ -260,10 +260,10 @@ struct SolverBase
     /// Returns true if solution can work on given SW/HW platform (runtime/device)
     /// and provides correct result for the problem config.
     ///
-    /// Every SolverBase which IsApplicable() for some problem config, must be able to
-    /// GetPerformanceConfig() in a way that GetSolution() would return valid
+    /// Every SolverBase which IsApplicable() for some problem config must be able to
+    /// GetPerformanceConfig() so that GetSolution() would return valid
     /// solution for a problem (i.e. convolution). In other words, if a Solution
-    /// says "i'am suitable" for a problem, it agrees to solve the problem correctly.
+    /// says "I'm suitable" for a problem, it agrees to solve that problem correctly.
     bool IsApplicable(const Context&) const { return true; }
 
     /// Legacy euristic method which shall return false when a solution
@@ -279,13 +279,63 @@ struct SolverBase
     /// Searchable solvers provide a GetSolution that takes a Context and PerformanceConfig
     /// ConvSolution GetSolution(const ConvolutionContext& params,
     ///                          const PerformanceConfig& config) const;
+
+    /// Temporary solver-specific method until we have generic means for running solutions.
+    /// int RunAndMeasureSolution(miopen::Handle& profile_h,
+    ///                          Data_t bot_ocl_buf,
+    ///                          Data_t top_ocl_buf,
+    ///                          Data_t wei_ocl_buf,
+    ///                          Data_t bias_ocl_buf,
+    ///                          const ConvolutionContext& params,
+    ///                          const ConvSolution& solution,
+    ///                          float& elapsed_time) const;
+};
+
+struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
+{
+    int limit_wave_cnt;        // [0..9]
+    int filters_per_wave;      // [1..8]
+    int output_lines_per_wave; // [1..8]
+
+    PerformanceConfigConvAsm3x3U(int lwc, int fpw, int olpw);
+    PerformanceConfigConvAsm3x3U() : PerformanceConfigConvAsm3x3U(-1, -1, -1) {}
+    PerformanceConfigConvAsm3x3U(bool) : PerformanceConfigConvAsm3x3U(0, 1, 1) {}
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.limit_wave_cnt, "limit_wave_cnt");
+        f(self.filters_per_wave, "filters_per_wave");
+        f(self.output_lines_per_wave, "output_lines_per_wave");
+    }
+
+    void EuristicInit(const ConvolutionContext& config);
+    bool IsValidValue() const;
+    bool SetNextValue();
+    bool IsValid(const ConvolutionContext& config) const;
+    bool operator==(const PerformanceConfigConvAsm3x3U& other) const;
+    std::string ToString() const;
 };
 
 struct ConvAsm3x3U : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsFast(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params) const;
+    PerformanceConfigConvAsm3x3U GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigConvAsm3x3U&) const;
+    PerformanceConfigConvAsm3x3U Search(const ConvolutionContext&) const;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfigConvAsm3x3U& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                              Data_t bot_ocl_buf,
+                              Data_t top_ocl_buf,
+                              Data_t wei_ocl_buf,
+                              Data_t bias_ocl_buf,
+                              const ConvolutionContext& params,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
 };
 
 struct ConvAsm5x10u2v2f1 : SolverBase<ConvolutionContext>
@@ -381,6 +431,7 @@ struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirec
 
     PerformanceConfigAsmDirect3x3WrW(int lwc, int rio, int csz, int kpw, int pld, int npg);
     PerformanceConfigAsmDirect3x3WrW() : PerformanceConfigAsmDirect3x3WrW(-1, -1, -1, -1, -1, -1) {}
+    PerformanceConfigAsmDirect3x3WrW(bool) : PerformanceConfigAsmDirect3x3WrW(0, 0, 8, 1, 1, 1) {}
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -403,13 +454,11 @@ struct PerformanceConfigAsmDirect3x3WrW : Serializable<PerformanceConfigAsmDirec
     int GetCPerWave() const { assert(chunk_size); return 64 / chunk_size; } // clang-format on
 
     void EuristicInit(const ConvolutionContext& config);
-    bool IsValidRange() const;
+    bool IsValidValue() const;
+    bool SetNextValue();
     bool IsValid(const ConvolutionContext& config) const;
-    // TOOD: Use operator==
-    bool IsEqual(const PerformanceConfigAsmDirect3x3WrW& other) const;
+    bool operator==(const PerformanceConfigAsmDirect3x3WrW& other) const;
     std::string ToString() const;
-
-    friend class VirtualIterator; // Modifies private data when advancing.
 };
 
 struct ConvAsmBwdWrW3x3 : SolverBase<ConvolutionContext>
@@ -421,7 +470,16 @@ struct ConvAsmBwdWrW3x3 : SolverBase<ConvolutionContext>
     bool IsApplicable(const ConvolutionContext& params) const;
     bool IsFast(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
-                             const PerformanceConfigAsmDirect3x3WrW& config) const;
+                             const PerformanceConfigAsmDirect3x3WrW& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                              Data_t bot_ocl_buf,
+                              Data_t top_ocl_buf,
+                              Data_t wei_ocl_buf,
+                              Data_t bias_ocl_buf,
+                              const ConvolutionContext& params,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
 };
 
 struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsmBwdWrW1x1>
@@ -456,6 +514,7 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
     PerformanceConfigConvAsmBwdWrW1x1() : PerformanceConfigConvAsmBwdWrW1x1(-1, -1, -1, -1, -1, -1)
     {
     }
+    PerformanceConfigConvAsmBwdWrW1x1(bool) : PerformanceConfigConvAsmBwdWrW1x1(1, 1, 1, 1, 1, 1) {}
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -481,13 +540,11 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
     // clang-format on
 
     void EuristicInit(const ConvolutionContext& config);
-    bool IsValidRange() const;
+    bool IsValidValue() const;
+    bool SetNextValue();
     bool IsValid(const ConvolutionContext& config) const;
-    // TOOD: Use operator==
-    bool IsEqual(const PerformanceConfigConvAsmBwdWrW1x1& other) const;
+    bool operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const;
     std::string ToString() const;
-
-    friend class VirtualIteratorWrW1x1; // Modifies private data when advancing.
 };
 
 struct ConvAsmBwdWrW1x1 : SolverBase<ConvolutionContext>
@@ -501,6 +558,14 @@ struct ConvAsmBwdWrW1x1 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const PerformanceConfigConvAsmBwdWrW1x1& config,
                              bool disableConfigOverrideFromEnv = false) const;
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                              Data_t bot_ocl_buf,
+                              Data_t top_ocl_buf,
+                              Data_t wei_ocl_buf,
+                              Data_t bias_ocl_buf,
+                              const ConvolutionContext& params,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
 };
 
 struct ConvOclBwdWrW2 : SolverBase<ConvolutionContext>

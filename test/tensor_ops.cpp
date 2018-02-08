@@ -43,26 +43,11 @@
 #define MIO_OPS_DEBUG 0
 
 template <class T>
-struct tensor_ops_base
+struct verify_tensor_ops
 {
     tensor<T> a;
     tensor<T> b;
     tensor<T> c;
-
-    void fail(float = 0) const
-    {
-        std::cout << "A tensor: " << a.desc.ToString() << std::endl;
-        std::cout << "B tensor: " << b.desc.ToString() << std::endl;
-        std::cout << "C tensor: " << a.desc.ToString() << std::endl;
-    }
-};
-
-template <class T>
-struct verify_tensor_ops : tensor_ops_base<T>
-{
-    using tensor_ops_base<T>::a;
-    using tensor_ops_base<T>::b;
-    using tensor_ops_base<T>::c;
 
     int Aoffset;
     int Boffset;
@@ -245,7 +230,10 @@ struct verify_tensor_ops : tensor_ops_base<T>
     void fail(int = 0) const
     {
         std::cout << "TensorOp: " << std::endl;
-        this->tensor_ops_base<T>::fail();
+        std::cout << "A tensor: " << a.desc.ToString() << std::endl;
+        std::cout << "B tensor: " << b.desc.ToString() << std::endl;
+        std::cout << "C tensor: " << a.desc.ToString() << std::endl;
+        std::cout << "Offsets: " << Aoffset << "," << Boffset << "," << Coffset << std::endl;
     }
 };
 
@@ -261,6 +249,7 @@ struct tensor_ops_driver : test_driver
     std::vector<int> tensorlens_b;
     std::vector<int> offsets;
     std::vector<float> alphabeta;
+    bool packed = false;
 
     std::vector<std::vector<int>> get_sub_tensor_a()
     {
@@ -308,10 +297,11 @@ struct tensor_ops_driver : test_driver
         std::vector<std::vector<int>> get_offsets     = {{64, 32, 16}, {32, 16, 32}, {32, 16, 32}};
         std::vector<std::vector<float>> get_alphabeta = {{1, 1, 0}, {-1, 1, 1}, {1.0, 0.5, 0.3}};
 
-        add(tensorlens_ac, "tensorlens_ac", generate_data(get_sub_tensor_a()));
-        add(tensorlens_b, "tensorlens_b", generate_data(get_sub_tensor_b()));
+        add(tensorlens_ac, "a", generate_data(get_sub_tensor_a()));
+        add(tensorlens_b, "b", generate_data(get_sub_tensor_b()));
         add(offsets, "offsets", generate_data(get_offsets));
-        add(alphabeta, "alphabeta", generate_data(get_alphabeta));
+        add(alphabeta, "alpha-beta", generate_data(get_alphabeta));
+        add(packed, "packed", generate_data({false, true}));
     }
 
     tensor<T> get_subtensors(tensor<T>& super_tensor, std::vector<int>& lens)
@@ -327,9 +317,12 @@ struct tensor_ops_driver : test_driver
     {
         if(tensorlens_ac.size() == tensorlens_b.size())
         {
-            tensor<T> aTensor = get_subtensors(super_a, tensorlens_ac);
-            tensor<T> bTensor = get_subtensors(super_b, tensorlens_b);
-            tensor<T> cTensor = get_subtensors(super_c, tensorlens_ac);
+            tensor<T> aTensor = packed ? tensorlens_ac : get_subtensors(super_a, tensorlens_ac);
+            tensor<T> bTensor = packed ? tensorlens_b : get_subtensors(super_b, tensorlens_b);
+            tensor<T> cTensor = packed ? tensorlens_ac : get_subtensors(super_c, tensorlens_ac);
+
+            if(packed)
+                offsets = {0, 0, 0, 0, 0};
 
             verify(verify_tensor_ops<T>{
                 aTensor, bTensor, cTensor, offsets, alphabeta[0], alphabeta[1], alphabeta[2]});

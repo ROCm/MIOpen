@@ -34,6 +34,7 @@
 #include <functional>
 #include <deque>
 #include <half.hpp>
+#include <type_traits>
 #include <miopen/functional.hpp>
 #include <miopen/type_name.hpp>
 
@@ -101,7 +102,7 @@ struct test_driver
         void add_source(Source src, T& x)
         {
             data_sources.push_back([=, &x](std::function<void()> callback) {
-                for(auto&& y : src())
+                for(auto y : src()) // NOLINT
                 {
                     x = T(y);
                     post_write();
@@ -120,6 +121,7 @@ struct test_driver
     bool time        = false;
     int batch_factor = 0;
     bool no_validate = false;
+    int repeat       = 1;
 
     argument& get_argument(const std::string& s)
     {
@@ -140,6 +142,7 @@ struct test_driver
         v(no_validate,
           {"--disable-validation"},
           "Disable cpu validation, so only gpu version is ran");
+        v(repeat, {"--repeat"}, "Repeat the tests");
     }
 
     struct per_arg
@@ -711,8 +714,8 @@ void test_drive_impl(std::vector<std::string> as)
             data_args.push_back(&arg);
         }
     }
-
-    run_data(data_args.begin(), data_args.end(), [&] { d.run(); });
+    for(int i = 0; i < d.repeat; i++)
+        run_data(data_args.begin(), data_args.end(), [&] { d.run(); });
 }
 
 template <class Driver>

@@ -97,7 +97,8 @@ static void dump_kernel_params(const std::string& program_name,
 }
 #endif
 
-Kernel KernelCache::GetKernel(const std::string& algorithm, const std::string& network_config)
+const std::vector<Kernel>& KernelCache::GetKernels(const std::string& algorithm,
+                                                   const std::string& network_config)
 {
 
     std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
@@ -117,14 +118,15 @@ Kernel KernelCache::GetKernel(const std::string& algorithm, const std::string& n
     }
 }
 
-Kernel KernelCache::GetKernel(Handle& h,
+Kernel KernelCache::AddKernel(Handle& h,
                               const std::string& algorithm,
                               const std::string& network_config,
                               const std::string& program_name,
                               const std::string& kernel_name,
                               const std::vector<size_t>& vld,
                               const std::vector<size_t>& vgd,
-                              std::string params)
+                              std::string params,
+                              std::size_t cache_index)
 {
     if(params.length() > 0)
     {
@@ -164,9 +166,19 @@ Kernel KernelCache::GetKernel(Handle& h,
     Kernel kernel{program, kernel_name, vld, vgd};
     if(!network_config.empty() && !algorithm.empty())
     {
-        kernel_map[key] = kernel;
+        this->AddKernel(key, kernel, cache_index);
     }
     return kernel;
+}
+
+void KernelCache::AddKernel(Key key, Kernel k, std::size_t cache_index)
+{
+    auto&& v = kernel_map[key];
+    if(cache_index >= v.size())
+    {
+        v.resize(cache_index + 1);
+    }
+    v[cache_index] = k;
 }
 
 KernelCache::KernelCache() {}

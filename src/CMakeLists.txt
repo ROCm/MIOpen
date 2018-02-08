@@ -85,6 +85,7 @@ set( MIOpen_Source
     include/miopen/handle.hpp
     include/miopen/kernel_cache.hpp
     include/miopen/solver.hpp
+    include/miopen/generic_search.hpp
     include/miopen/mlo_internal.hpp
     include/miopen/mlo_utils.hpp
     include/miopen/oclkernel.hpp
@@ -152,6 +153,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenUtilKernels.cl
         kernels/MIOpenUtilKernels2.cl
         kernels/MIOpenUtilKernels3.cl
+        kernels/MIOpenUtilKernels4.cl
         kernels/MIOpenConvBwdWrWS2.cl
         kernels/MIOpenConvBwdWrW_LxG_P53.cl
         kernels/MIOpenConvBwdWrW_LxG_5x5.cl

@@ -204,6 +204,50 @@ GemmGeometry CreateGemmGeometryConvFwd(const TensorDescriptor& xDesc,
     return gg;
 }
 
+GemmGeometry CreateGemmGeometryConvFwdCNHW(const TensorDescriptor& xDesc,
+                                           const TensorDescriptor& wDesc,
+                                           const TensorDescriptor& yDesc,
+                                           bool isDataColMajor,
+                                           std::string& network_config)
+{
+    int in_n, in_c;
+    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+
+    int wei_n;
+    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
+
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
+
+    // GEMM
+    int K       = in_c;
+    int M       = wei_n;
+    int N       = in_n * out_h * out_w;
+    float alpha = 1.0;
+    float beta  = 0.0;
+    bool tA     = false;
+    bool tB     = false;
+    bool tC     = false;
+    int lda     = K;
+    int ldb     = N;
+    int ldc     = N;
+
+    MIOpenGEMM::Geometry tgg{};
+    GemmGeometry gg;
+    if(!isDataColMajor)
+    {
+        tgg = MIOpenGEMM::Geometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f');
+        gg  = GemmGeometry{"miopenConvolutionFwdAlgoGEMM", alpha, beta, tgg};
+    }
+    else
+    {
+        tgg = MIOpenGEMM::Geometry(true, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f');
+        gg  = GemmGeometry{"miopenConvolutionFwdAlgoGEMM", alpha, beta, tgg};
+    }
+    network_config = tgg.get_networkconfig_string();
+    return gg;
+}
+
 GemmGeometry CreateMIOpenGemmGeometry(int M,
                                       int N,
                                       int K,
@@ -241,6 +285,7 @@ GemmGeometry CreateMIOpenGemmGeometry(int M,
 
 GemmGeometry GetGemmGeometry(std::string algorithm_name, std::string network_config)
 {
+    auto guard         = get_gemm_geo_map_lock();
     auto gemm_iterator = gemm_geo_map().find(std::make_pair(algorithm_name, network_config));
     if(gemm_iterator != gemm_geo_map().end())
     {

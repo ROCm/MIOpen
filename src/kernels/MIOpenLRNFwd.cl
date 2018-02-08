@@ -59,6 +59,14 @@
 #define MLO_LRN_GROUP_SZ (MLO_LRN_GROUP_SZ2 * MLO_LRN_GROUP_SZ1 * MLO_LRN_GROUP_SZ0)
 //#define MLO_LRN_PREPAD_SZ (MLO_LRN_KERNEL_SZ - 1)/2
 
+struct LRNForwardParam
+{
+    _FLOAT alphaoverarea;
+    _FLOAT alpha;
+    _FLOAT beta;
+    _FLOAT K;
+};
+
 static inline int iDiv(int v, int d)
 {
     int r = (int)((float)v / d + 0.00001f);

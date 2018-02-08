@@ -199,7 +199,7 @@ static int MeasureLoop(Handle* profile_h,
         {
             processing_time = std::numeric_limits<float>::max();
 
-            auto k = profile_h->GetKernel("",
+            auto k = profile_h->AddKernel("",
                                           "",
                                           kernel_params.kernel_file,
                                           kernel_params.kernel_name,
@@ -222,7 +222,7 @@ static int MeasureLoop(Handle* profile_h,
             double s = 0, e = 0;
             int iter = (params.n_timer_iter <= 0) ? 1 : params.n_timer_iter;
 
-            auto k = params.GetStream().GetKernel("",
+            auto k = params.GetStream().AddKernel("",
                                                   "",
                                                   kernel_params.kernel_file,
                                                   kernel_params.kernel_name,

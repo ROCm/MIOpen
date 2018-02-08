@@ -160,7 +160,7 @@ static inline void ReduceKernel(__local _FLOAT* lcl_mem,
                                 unsigned int unit_id,
                                 unsigned int unit_len)
 {
-    _FLOAT sum              = 0;
+    _FLOAT sum              = (_FLOAT)0.;
     unsigned int lcl_offset = unit_id * unit_len;
 
 #pragma unroll
@@ -256,7 +256,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                          __global _FLOAT* __restrict out,
                          __constant _FLOAT* __restrict scale,
                          __constant _FLOAT* __restrict bias,
-                         float INHW,
+                         _FLOAT INHW,
 #if(MIO_RUNNING_RESULT == 1)
                          double expAvgFactor,
                          __global _FLOAT* __restrict resultRunningMean,
@@ -275,7 +275,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     _FLOAT mean        = (_FLOAT)0.;
     _FLOAT variance    = (_FLOAT)0.;
     _FLOAT invVariance = (_FLOAT)0.;
-    _FLOAT pvscale     = (_FLOAT)0;
+    _FLOAT pvscale     = (_FLOAT)0.;
     _FLOAT pvbias      = (_FLOAT)0.;
     _FLOAT batchvalues[MIO_BN_NLOOP];
 
@@ -306,7 +306,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         {
             nid            = n * segihw + lidihw;
             index          = nid * MIO_BN_CHW + chwid;
-            batchvalues[n] = (index < MIO_BN_NCHW) ? *(in + index) : 0.;
+            batchvalues[n] = (index < MIO_BN_NCHW) ? *(in + index) : (_FLOAT)0.;
             mean += batchvalues[n];
             variance = mad(batchvalues[n], batchvalues[n], variance);
         }
@@ -413,7 +413,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                          __global _FLOAT* __restrict out,
                          __constant _FLOAT* __restrict scale,
                          __constant _FLOAT* __restrict bias,
-                         float INHW,
+                         _FLOAT INHW,
 #if(MIO_RUNNING_RESULT == 1)
                          double expAvgFactor,
                          __global _FLOAT* __restrict resultRunningMean,
@@ -587,7 +587,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                          __global _FLOAT* __restrict out,
                          __constant _FLOAT* __restrict scale,
                          __constant _FLOAT* __restrict bias,
-                         float INHW,
+                         _FLOAT INHW,
 #if(MIO_RUNNING_RESULT == 1)
                          double expAvgFactor,
                          __global _FLOAT* __restrict resultRunningMean,
@@ -754,7 +754,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                          __global _FLOAT* __restrict out,
                          __constant _FLOAT* __restrict scale,
                          __constant _FLOAT* __restrict bias,
-                         float INHW,
+                         _FLOAT INHW,
 #if(MIO_RUNNING_RESULT == 1)
                          double expAvgFactor,
                          __global _FLOAT* __restrict resultRunningMean,
@@ -937,8 +937,8 @@ BatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
     // SPATIAL
     _FLOAT mean        = (_FLOAT)0.;
     _FLOAT invVariance = (_FLOAT)0.;
+    _FLOAT inhat       = (_FLOAT)0.;
     _FLOAT pvt_scale   = (_FLOAT)0.;
-    _FLOAT pvt_bias    = (_FLOAT)0.;
 
     __local _FLOAT lcl_mean, lcl_ivar, lcl_scale, lcl_bias;
 
@@ -980,7 +980,7 @@ BatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 BatchNormFwdTrainSpatialFinalVariance(__global _FLOAT* __restrict varbuff,
-                                      float INHW
+                                      _FLOAT INHW
 #if(MIO_RUNNING_RESULT == 1)
                                       ,
                                       double expAvgFactor,
@@ -1187,7 +1187,7 @@ BatchNormFwdTrainSpatialVariance(const __global _FLOAT* __restrict in, /* x inpu
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 BatchNormFwdTrainSpatialFinalMean(__global _FLOAT* __restrict meanvarbuff,
-                                  float INHW
+                                  _FLOAT INHW
 #if(MIO_RUNNING_RESULT == 1)
                                   ,
                                   double expAvgFactor /* input momentum */
@@ -1361,7 +1361,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                          __global _FLOAT* __restrict out,
                          __constant _FLOAT* __restrict scale,
                          __constant _FLOAT* __restrict bias,
-                         float INHW,
+                         _FLOAT INHW,
 #if(MIO_RUNNING_RESULT == 1)
                          double expAvgFactor,
                          __global _FLOAT* __restrict resultRunningMean,
@@ -1544,7 +1544,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                          __global _FLOAT* __restrict out,
                          __constant _FLOAT* __restrict scale,
                          __constant _FLOAT* __restrict bias,
-                         float INHW,
+                         _FLOAT INHW,
 #if(MIO_RUNNING_RESULT == 1)
                          double expAvgFactor,
                          __global _FLOAT* __restrict resultRunningMean,
@@ -1560,11 +1560,11 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 {
 
     // SPATIAL
-    _FLOAT mean        = 0.;
-    _FLOAT variance    = 0.;
-    _FLOAT invVariance = 0.;
-    _FLOAT pvscale     = 0.;
-    _FLOAT pvbias      = 0.;
+    _FLOAT mean        = (_FLOAT)0.;
+    _FLOAT variance    = (_FLOAT)0.;
+    _FLOAT invVariance = (_FLOAT)0.;
+    _FLOAT pvscale     = (_FLOAT)0.;
+    _FLOAT pvbias      = (_FLOAT)0.;
 
     __local _FLOAT lcl_bias;
     __local _FLOAT lcl_scale;
@@ -1577,7 +1577,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     unsigned int nidx  = 0;
     unsigned int hwidx = 0;
 
-    _FLOAT xin = 0.;
+    _FLOAT xin = (_FLOAT)0.;
 
     if(lid == 0)
     {
@@ -1711,7 +1711,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                          __global _FLOAT* __restrict out,
                          __constant _FLOAT* __restrict scale,
                          __constant _FLOAT* __restrict bias,
-                         float INHW,
+                         _FLOAT INHW,
 #if(MIO_RUNNING_RESULT == 1)
                          double expAvgFactor,
                          __global _FLOAT* __restrict resultRunningMean,
@@ -1727,11 +1727,11 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 {
 
     // SPATIAL
-    _FLOAT mean        = 0.;
-    _FLOAT variance    = 0.;
-    _FLOAT invVariance = 0.;
-    _FLOAT pvscale     = 0.;
-    _FLOAT pvbias      = 0.;
+    _FLOAT mean        = (_FLOAT)0.;
+    _FLOAT variance    = (_FLOAT)0.;
+    _FLOAT invVariance = (_FLOAT)0.;
+    _FLOAT pvscale     = (_FLOAT)0.;
+    _FLOAT pvbias      = (_FLOAT)0.;
 
     __local _FLOAT lcl_bias;
     __local _FLOAT lcl_scale;
@@ -1742,7 +1742,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     unsigned int grpid = get_group_id(0);
     unsigned int chwid = grpid * MIO_BN_HW;
 
-    _FLOAT xin = 0.;
+    _FLOAT xin = (_FLOAT)0.;
 
     if(lid == 0)
     {
