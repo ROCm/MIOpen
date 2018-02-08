@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  */
+
 inline uint iMod(uint v, uint u, uint d)
 {
     uint r = v - mul24(u, d);
@@ -49,13 +50,17 @@ __kernel void transpose_NCHW2CNHW_opt(const global float* in, global float* out)
     uint c_p_blck = get_global_id(0);
     uint c        = c_p_blck / HW_RD;
     uint p_blck   = iMod(c_p_blck, c, HW_RD);
-    uint b        = get_global_id(1);
 
-    uint in_off                 = b * C * H * W + c_p_blck * RD_BLCK + IN_OFF;
-    uint out_off                = b * H * W + c * N * H * W + p_blck * RD_BLCK + OUT_OFF;
+    uint in_off                 = c_p_blck * RD_BLCK + IN_OFF;
+    uint out_off                = c * N * H * W + p_blck * RD_BLCK + OUT_OFF;
     const global READ_TYPE* cin = (const global READ_TYPE*)(in + in_off);
     global READ_TYPE* cout      = (global READ_TYPE*)(out + out_off);
-    *cout                       = *cin;
+
+    int b;
+    for(b = 0; b < N; b++)
+    {
+        cout[b * HW_RD] = cin[b * C * HW_RD];
+    }
 }
 #endif
 
@@ -66,50 +71,77 @@ __kernel void transpose_CNHW2NCHW_opt(const global float* in, global float* out)
     uint c_p_blck = get_global_id(0);
     uint c        = c_p_blck / HW_RD;
     uint p_blck   = iMod(c_p_blck, c, HW_RD);
-    uint b        = get_global_id(1);
 
-    uint in_off                 = b * H * W + c * N * H * W + p_blck * RD_BLCK + IN_OFF;
-    uint out_off                = b * C * H * W + c_p_blck * RD_BLCK + OUT_OFF;
+    uint in_off                 = c * N * H * W + p_blck * RD_BLCK + IN_OFF;
+    uint out_off                = c_p_blck * RD_BLCK + OUT_OFF;
     const global READ_TYPE* cin = (const global READ_TYPE*)(in + in_off);
     global READ_TYPE* cout      = (global READ_TYPE*)(out + out_off);
-    *cout                       = *cin;
+
+    int b;
+    for(b = 0; b < N; b++)
+    {
+        cout[b * C * HW_RD] = cin[b * HW_RD];
+    }
 }
 #endif
 
 #ifdef NC_TRANS_NCHW
 __kernel void transpose_NCHW2CNHW(const global float* in, global float* out)
 {
-    int i   = get_global_id(0);
-    int n_i = get_group_id(1);
+    uint i = get_global_id(0);
 
-    int hw_i = i % HW_OUT;
-    int h_i  = hw_i / W_OUT;
-    int w_i  = hw_i % W_OUT;
-    int c_i  = i / HW_OUT;
+    uint hw_i = i % HW_OUT;
+    uint h_i  = hw_i / W_OUT;
+    uint w_i  = hw_i % W_OUT;
+    uint c_i  = i / HW_OUT;
 
-    const global float* in_off = in + IN_OFF;
-    global float* out_off      = out + OUT_OFF;
+    uint in_off             = c_i * HW_IN + h_i * H_STRIDE * W_IN + w_i * W_STRIDE + IN_OFF;
+    uint out_off            = c_i * N * HW_OUT + hw_i + OUT_OFF;
+    const global float* cin = (const global float*)(in + in_off);
+    global float* cout      = (global float*)(out + out_off);
 
-    out_off[c_i * N * HW_OUT + n_i * HW_OUT + hw_i] =
-        in_off[n_i * C * HW_IN + c_i * HW_IN + h_i * H_STRIDE * W_IN + w_i * W_STRIDE];
+    uint n_i;
+    for(n_i                = 0; n_i < N; n_i++)
+        cout[HW_OUT * n_i] = cin[C * HW_IN * n_i];
 }
 #endif
 
 #ifdef NC_TRANS_CNHW
 __kernel void transpose_CNHW2NCHW(const global float* in, global float* out)
 {
-    int i   = get_global_id(0);
-    int n_i = get_group_id(1);
+    uint i = get_global_id(0);
 
-    int hw_i = i % HW_OUT;
-    int h_i  = hw_i / W_OUT;
-    int w_i  = hw_i % W_OUT;
-    int c_i  = i / HW_OUT;
+    uint hw_i = i % HW_OUT;
+    uint h_i  = hw_i / W_OUT;
+    uint w_i  = hw_i % W_OUT;
+    uint c_i  = i / HW_OUT;
 
-    const global float* in_off = in + IN_OFF;
-    global float* out_off      = out + OUT_OFF;
+    uint in_off             = c_i * N * HW_OUT + hw_i + IN_OFF;
+    uint out_off            = c_i * HW_IN + h_i * H_STRIDE * W_IN + w_i * W_STRIDE + OUT_OFF;
+    const global float* cin = (const global float*)(in + in_off);
+    global float* cout      = (global float*)(out + out_off);
 
-    out_off[n_i * C * HW_OUT + c_i * HW_OUT + hw_i] =
-        in_off[c_i * N * HW_IN + n_i * HW_IN + h_i * H_STRIDE * W_IN + w_i * W_STRIDE];
+    uint n_i;
+    for(n_i                   = 0; n_i < N; n_i++)
+        cout[C * HW_IN * n_i] = cin[HW_OUT * n_i];
+}
+#endif
+
+#ifdef COPYMEM
+__kernel void memoryCopy(const global float* in, global float* out)
+{
+    // to reduce granularity loss
+    uint gid   = get_global_id(0);
+    uint index = gid;
+
+    const global READ_TYPE* cin = (const global READ_TYPE*)(in);
+    global READ_TYPE* cout      = (global READ_TYPE*)(out);
+
+    int i;
+    for(i = 0; i < N; i++)
+    {
+        cout[index] = cin[index];
+        index += C * HW_RD;
+    }
 }
 #endif

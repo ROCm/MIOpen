@@ -508,7 +508,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         MIOPEN_THROW("Fwd Convolution cannot be executed due to incorrect params");
 
     // sort the perf_db
-    std::sort(begin(perf_db), end(perf_db));
+    // std::sort(begin(perf_db), end(perf_db));
 
     // update perfResults
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));

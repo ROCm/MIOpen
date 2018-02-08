@@ -84,7 +84,7 @@ void OCLKernelInvoke::run() const
     }
     else if(callback)
     {
-        clFinish(queue);
+        // clFinish(queue);
         clWaitForEvents(1, &ev);
         callback(ev);
     }
