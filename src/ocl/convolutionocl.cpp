@@ -2071,8 +2071,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     std::string network_config;
                     construct_params.mloBuildConf_Key(network_config);
 
-                    auto&& kernels = handle.GetKernels("miopenConvolutionBwdWeightsAlgoDirect_Main",
-                                                       network_config);
+                    auto&& kernels =
+                        handle.GetKernels("miopenConvolutionBwdWeightsAlgoDirect_Main", network_config);
                     const auto num_kernels = kernels.size();
                     auto p_kernel          = std::begin(kernels);
                     auto kernel            = *p_kernel;
@@ -2091,22 +2091,18 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     else if(num_kernels == 1)
                     {
                         float padding_val = 0;
-                        kernel(dy, x, dw, padding_val);
+                        kernel(dy, x, dw, as_float(padding_val));
                     }
                     else
                     {
-                        assert(workSpaceSize >= BackwardWeightsGetWorkSpaceSizeDirect(
-                                                    handle, dyDesc, xDesc, dwDesc));
+                        assert(workSpaceSize >=
+                               BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc));
                         if(workSpace == nullptr)
                         {
-                            int unused       = 0;
-                            int* return_addr = nullptr;
-                            int N, C, H, W, K, n_groups;
-                            construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-                            kernel(N, C, H, W, K, n_groups, unused, unused, x, dw, dy, return_addr);
+                            MIOPEN_THROW("Workspace is required");
                         }
-                        //                else if(n_steps == 1)
-                        else if(bwd_wrw_info.size() == 1)
+
+                        if(kernel.GetName() == "SubSample")
                         {
                             // subsampling kernel
                             kernel(x, workSpace);
@@ -2121,8 +2117,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                                 int N, C, H, W, K, n_groups;
                                 // H/W are image size after downsampling, parsed from img_h/img_w in
                                 // conv_asm_dir_BwdWrW1x1.cpp
-                                construct_params.getCompiledInParameters(
-                                    &N, &C, &H, &W, &K, &n_groups);
+                                construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
                                 kernel2(N,
                                         C,
                                         H,
@@ -2139,15 +2134,15 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                             else
                             {
                                 float padding_val = 0;
-                                kernel2(dy, workSpace, dw, padding_val);
+                                kernel2(dy, workSpace, dw, as_float(padding_val));
                             }
 
-                            float time0 = handle.GetKernelTime();
-                            // second kernel has
-                            network_config += "x1";
-                            // reduction  kernel
-                            handle.GetKernel("miopenConvolutionBwdWeightsAlgoDirect_Red",
-                                             network_config)(workSpace, dw);
+                            handle.AccumKernelTime(time0);
+                        }
+                        else
+                        {
+                            float padding_val = 0;
+                            kernel(dy, x, workSpace, as_float(padding_val));
 
                             float time0 = handle.GetKernelTime();
                             // second kernel has
