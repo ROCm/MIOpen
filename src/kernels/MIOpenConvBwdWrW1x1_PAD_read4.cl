@@ -108,7 +108,7 @@
 #define MLO_N_LCL_IN_MAPS_ONCE 8
 #define MLO_N_LCL_OUT_MAPS_ONCE 8
 
-#define MLO_READ_UNIT 2   
+#define MLO_READ_UNIT 2
 
 //READ_UNIT == 1 for STRIDE and PAD mode
 
@@ -207,57 +207,50 @@
 
 #endif
 
-#define _FLOAT float
-#define _FLOAT2 float2
-#define _FLOAT4 float4
-#define _FLOAT8 float8
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
 
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
+#endif
+#endif
+#if MIOPEN_USE_FP32 == 1
+#define _FLOAT float
 #ifndef FLT_MAX
-#define FLT_MAX 3.402823466e+38F /* max value */
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
 #endif
 
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
+
 #define UNUSED __attribute__((__unused__))
+#define INLINE __attribute__((always_inline))
 #define DBG_OUT_OF_RNGE 0
 
-__attribute__((always_inline)) uint iDiv(uint v, uint d)
+INLINE
+uint iDiv(uint v, uint d)
 {
-    uint r = (uint)((float)v * (1.f / (float)d) + 0.000001f);
+    uint r = (uint)((float)v * (1.0f / (float)d) + 0.000001f);
     return (r);
 }
 
-__attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
+INLINE
+uint iMod(uint v, uint u, uint d)
 {
     uint r = v - mul24(u, d);
     return (r);
-}
-
-//#define MLO_WRITE_UNIT 4
-#define MLO_OUT_CHANNEL_STRIDE_ALIGNED (MLO_OUT_CHANNEL_STRIDE / MLO_WRITE_UNIT)
-#define MLO_OUT_STRIDE_ALIGNED (MLO_OUT_STRIDE / MLO_WRITE_UNIT)
-
-__attribute__((reqd_work_group_size(MLO_GRP0_SZ0, MLO_GRP0_SZ1, MLO_GRP0_SZ2))) __kernel void
-MIOpenSubsample(const __global _FLOAT* __restrict in, __global _FLOAT* __restrict out)
-{
-    uint stack_pos = get_global_id(0);
-    uint batch_id  = get_global_id(1);
-    uint map_id    = iDiv(stack_pos, MLO_OUT_CHANNEL_STRIDE_ALIGNED);
-    uint pix_pos   = iMod(stack_pos, map_id, MLO_OUT_CHANNEL_STRIDE_ALIGNED);
-    uint out_y     = iDiv(pix_pos, MLO_OUT_STRIDE_ALIGNED);
-    uint out_x     = iMod(pix_pos, out_y, MLO_OUT_STRIDE_ALIGNED) * MLO_WRITE_UNIT;
-
-    uint out_off = batch_id * MLO_IN_BATCH_STRIDE + stack_pos * MLO_WRITE_UNIT;
-    uint in_y    = out_y * MLO_FILTER0_STRIDE1;
-    uint in_x    = out_x * MLO_FILTER0_STRIDE0;
-    uint in_off  = batch_id * MLO_IN0_BATCH_STRIDE + map_id * MLO_IN0_CHANNEL_STRIDE +
-                  in_y * MLO_IN0_STRIDE + in_x;
-
-    const __global _FLOAT* in_ptr = &in[in_off];
-    __global _FLOAT* out_ptr      = &out[out_off];
-
-    for(uint i = 0; i < MLO_WRITE_UNIT; ++i, in_ptr += MLO_FILTER0_STRIDE0, out_ptr++)
-    {
-        *out_ptr = *in_ptr;
-    }
 }
 
 // top_df        ==> out        in [Batch][output][out_H][out_W]
@@ -312,12 +305,12 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
 
     for(uint i = 0; i < MLO_ACCUM_SZ; i++)
     {
-        accum[i] = 0;
+        accum[i] = (_FLOAT)(0);
     }
 
     for(uint i = 0; i < MLO_N_LCL_IN_MAPS; i++)
     {
-        sdata[local_Id0 + i * MLO_GRP_SZ0] = 0;
+        sdata[local_Id0 + i * MLO_GRP_SZ0] = (_FLOAT)(0);
     }
 
     for(uint faked_off = local_Id0; faked_off < MLO_MAX_LOADS; faked_off += MLO_GRP_SZ0)
@@ -455,7 +448,7 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
     }
 #endif
 
-    __private _FLOAT accum_to_store = 0;
+    __private _FLOAT accum_to_store = (_FLOAT)(0);
 
     for(uint K = 0; K < MLO_N_LCL_OUT_MAPS; K++)
     {
@@ -561,12 +554,12 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
 
     for(uint i = 0; i < MLO_ACCUM_SZ; i++)
     {
-        accum[i] = 0;
+        accum[i] = (_FLOAT)(0);
     }
 
     for(uint i = 0; i < MLO_N_LCL_OUT_MAPS_ONCE; i++)
     {
-        sdata[local_Id0 + i * MLO_GRP_SZ0] = 0;
+        sdata[local_Id0 + i * MLO_GRP_SZ0] = (_FLOAT)(0);
     }
 
     for(uint faked_off = (local_Id0 % (MLO_GRP_SZ0 / 4)); faked_off < MLO_MAX_LOADS;
@@ -593,17 +586,17 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
         uint in_image_off = in_y_off * MLO_IN_STRIDE + in_x_off;
 #endif
 #if 0 // PER_ROW which will be enabled after SGPR offset is enabled.
-        uint batch_id   = iDiv( faked_off,  (MLO_OUT_PAD_WIDTH )); 
-        uint faked_off2 = iMod( faked_off,  batch_id, (MLO_OUT_PAD_WIDTH )); 
+        uint batch_id   = iDiv( faked_off,  (MLO_OUT_PAD_WIDTH ));
+        uint faked_off2 = iMod( faked_off,  batch_id, (MLO_OUT_PAD_WIDTH ));
 
         uint out_x_off = 0;
         uint out_y_off = faked_off2;
 
         uint out_image_off = (out_y_off + MLO_OUT_PAD_MIN_Y) * MLO_OUT_WIDTH + (out_x_off +MLO_OUT_PAD_MIN_X);
-        
+
         uint in_x_off = out_x_off * MLO_FILTER_STRIDE0 + MLO_IN_PAD_MIN_X;
         uint in_y_off = out_y_off * MLO_FILTER_STRIDE1 + MLO_IN_PAD_MIN_Y;
-        
+
         uint in_image_off  = in_y_off * MLO_IN_WIDTH + in_x_off;
 
         //uint glb_in_off  = glb_in_off0  + batch_id * MLO_IN_BATCH_STRIDE   + in_image_off ;
@@ -733,10 +726,10 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
 #endif
 
     __private _FLOAT accum_to_store[4];
-    accum_to_store[0] = 0;
-    accum_to_store[1] = 0;
-    accum_to_store[2] = 0;
-    accum_to_store[3] = 0;
+    accum_to_store[0] = (_FLOAT)(0);
+    accum_to_store[1] = (_FLOAT)(0);
+    accum_to_store[2] = (_FLOAT)(0);
+    accum_to_store[3] = (_FLOAT)(0);
 
     // 1 loop reduction 8xC per thread, 32 result per workgroup
 
