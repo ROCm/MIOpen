@@ -205,7 +205,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 
     visit_float(xDesc.GetType(), [&](auto as_float) {
 
-        handle.GetKernel("miopenActivationForward",
+        handle.AddKernel("miopenActivationForward",
                          network_config,
                          program_name,
                          kernel_name,
@@ -500,7 +500,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 
     visit_float(xDesc.GetType(), [&](auto as_float) {
 
-        handle.GetKernel("miopenActivationBackward",
+        handle.AddKernel("miopenActivationBackward",
                          network_config,
                          program_name,
                          kernel_name,

@@ -294,8 +294,20 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         return BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc);
     else
     {
+        int wei_h, wei_w;
+        std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+
         if(dilation_w > 1 || dilation_h > 1)
             return ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
+
+        if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)) &&
+           dilation_w == 1 && dilation_h == 1)
+        {
+            size_t x_t_size = xDesc.GetElementSize() * sizeof(xDesc.GetType());
+            size_t y_t_size = yDesc.GetElementSize() * sizeof(yDesc.GetType());
+
+            return x_t_size + y_t_size;
+        }
 
         // Check if Winograd is available
         // If Winograd is present, there is no advantage in letting
