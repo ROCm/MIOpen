@@ -57,10 +57,15 @@ __kernel void transpose_NCHW2CNHW_opt(const global float* in, global float* out)
     global READ_TYPE* cout      = (global READ_TYPE*)(out + out_off);
 
     int b;
+#ifdef _2D_WG
+    b               = get_global_id(1);
+    cout[b * HW_RD] = cin[b * C * HW_RD];
+#else
     for(b = 0; b < N; b++)
     {
         cout[b * HW_RD] = cin[b * C * HW_RD];
     }
+#endif
 }
 #endif
 
@@ -78,10 +83,15 @@ __kernel void transpose_CNHW2NCHW_opt(const global float* in, global float* out)
     global READ_TYPE* cout      = (global READ_TYPE*)(out + out_off);
 
     int b;
+#ifdef _2D_WG
+    b                   = get_global_id(1);
+    cout[b * C * HW_RD] = cin[b * HW_RD];
+#else
     for(b = 0; b < N; b++)
     {
         cout[b * C * HW_RD] = cin[b * HW_RD];
     }
+#endif
 }
 #endif
 
@@ -101,8 +111,13 @@ __kernel void transpose_NCHW2CNHW(const global float* in, global float* out)
     global float* cout      = (global float*)(out + out_off);
 
     uint n_i;
+#ifdef _2D_WG
+    n_i                = get_global_id(1);
+    cout[HW_OUT * n_i] = cin[C * HW_IN * n_i];
+#else
     for(n_i                = 0; n_i < N; n_i++)
         cout[HW_OUT * n_i] = cin[C * HW_IN * n_i];
+#endif
 }
 #endif
 
@@ -122,8 +137,13 @@ __kernel void transpose_CNHW2NCHW(const global float* in, global float* out)
     global float* cout      = (global float*)(out + out_off);
 
     uint n_i;
+#ifdef _2D_WG
+    n_i                   = get_global_id(1);
+    cout[C * HW_IN * n_i] = cin[HW_OUT * n_i];
+#else
     for(n_i                   = 0; n_i < N; n_i++)
         cout[C * HW_IN * n_i] = cin[HW_OUT * n_i];
+#endif
 }
 #endif
 
