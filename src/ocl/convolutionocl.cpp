@@ -2096,7 +2096,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     }
                     else
                     {
-                        assert(workSpaceSize >= BackwardWeightsGetWorkSpaceSizeDirect(
+                        // this pointer needed here as a workaround in gcc 5                        
+                        assert(workSpaceSize >= this->BackwardWeightsGetWorkSpaceSizeDirect(
                                                     handle, dyDesc, xDesc, dwDesc));
                         if(workSpace == nullptr)
                         {
