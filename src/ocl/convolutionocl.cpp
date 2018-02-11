@@ -357,7 +357,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             {
                 transpose_NCHW2CNHW_opt(handle, in_n, in_c, in_h, in_w, x, workSpace, 0, 0);
             }
-            time_gemm += handle.GetKernelTime();
+            time_gemm = handle.GetKernelTime();
 
             gg.FindSolution(0.03, handle, workSpace, w, tmp_y.get(), false);
             gg.RunGemm(handle, workSpace, w, workSpace, 0, 0, xDesc.GetElementSize());
@@ -508,7 +508,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         MIOPEN_THROW("Fwd Convolution cannot be executed due to incorrect params");
 
     // sort the perf_db
-    // std::sort(begin(perf_db), end(perf_db));
+    std::sort(begin(perf_db), end(perf_db));
 
     // update perfResults
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
