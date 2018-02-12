@@ -543,8 +543,6 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         }
         else
         {
-
-
             // second dim is heoght
             size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3)
                                                                    ? x_lens[1]

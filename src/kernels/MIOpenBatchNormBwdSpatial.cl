@@ -258,7 +258,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
                     const __global _FLOAT* savedMean,
                     const __global _FLOAT* savedInvVariance,
 #endif
-                    float INHW)
+                    _FLOAT INHW)
 {
 
     // SPATIAL
@@ -495,7 +495,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
                     const __global _FLOAT* savedMean,
                     const __global _FLOAT* savedInvVariance,
 #endif
-                    float INHW)
+                    _FLOAT INHW)
 {
 
     // SPATIAL
@@ -736,7 +736,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
                     const __global _FLOAT* savedMean,
                     const __global _FLOAT* savedInvVariance,
 #endif
-                    float INHW)
+                    _FLOAT INHW)
 {
 
     // SPATIAL
@@ -1009,7 +1009,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
                     const __global _FLOAT* savedMean,
                     const __global _FLOAT* savedInvVariance,
 #endif
-                    float INHW)
+                    _FLOAT INHW)
 {
 
     // SPATIAL
@@ -1333,7 +1333,7 @@ BatchNormBwdSpatialMean(const __global _FLOAT* __restrict in, __global _FLOAT* _
 } // end spatial mean kernel
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormBwdSpatialFinalMean(__global _FLOAT* __restrict meanvarbuff, float INHW)
+BatchNormBwdSpatialFinalMean(__global _FLOAT* __restrict meanvarbuff, _FLOAT INHW)
 {
 
     _FLOAT mean           = (_FLOAT)0.;
@@ -1485,7 +1485,7 @@ BatchNormBwdSpatialVariance(const __global _FLOAT* __restrict in, /* x input */
 } // end spatial variance
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormBwdSpatialFinalVariance(__global _FLOAT* __restrict varbuff, float INHW, double epsilon)
+BatchNormBwdSpatialFinalVariance(__global _FLOAT* __restrict varbuff, _FLOAT INHW, double epsilon)
 {
 
     // SPATIAL
@@ -1986,15 +1986,15 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
                     const __global _FLOAT* savedMean,
                     const __global _FLOAT* savedInvVariance,
 #endif
-                    float INHW)
+                    _FLOAT INHW)
 {
 
     // SPATIAL
-    _FLOAT mean   = 0.;
-    _FLOAT invVar = 0.;
-    _FLOAT pscale = 0.;
-    _FLOAT db     = 0.;
-    _FLOAT ds     = 0.;
+    _FLOAT mean   = (_FLOAT)0.;
+    _FLOAT invVar = (_FLOAT)0.;
+    _FLOAT pscale = (_FLOAT)0.;
+    _FLOAT db     = (_FLOAT)0.;
+    _FLOAT ds     = (_FLOAT)0.;
 
 #if(MIO_BN_USESAVED == 1)
     __local _FLOAT lmean, lvar;
@@ -2024,10 +2024,10 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #if(MIO_BN_USESAVED == 0)
 
-    _FLOAT in       = 0.;
-    _FLOAT variance = 0.;
+    _FLOAT in       = (_FLOAT)0.;
+    _FLOAT variance = (_FLOAT)0.;
     //==== CALC MEAN =======================
-    mean = 0.;
+    mean = (_FLOAT)0.;
 
 #pragma unroll
     for(unsigned int k = lid; k < MIO_BN_LESS; k += MIO_BN_GRP0)
@@ -2102,10 +2102,10 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #endif
     barrier(CLK_LOCAL_MEM_FENCE);
-    ds             = 0.;
-    db             = 0.;
-    _FLOAT dyvalue = 0.;
-    _FLOAT xhat    = 0.;
+    ds             = (_FLOAT)0.;
+    db             = (_FLOAT)0.;
+    _FLOAT dyvalue = (_FLOAT)0.;
+    _FLOAT xhat    = (_FLOAT)0.;
 
 #pragma unroll
     for(unsigned int k = lid; k < MIO_BN_LESS; k += MIO_BN_GRP0)
@@ -2241,15 +2241,15 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
                     const __global _FLOAT* savedMean,
                     const __global _FLOAT* savedInvVariance,
 #endif
-                    float INHW)
+                    _FLOAT INHW)
 {
 
     // SPATIAL
-    _FLOAT mean   = 0.;
-    _FLOAT invVar = 0.;
-    _FLOAT pscale = 0.;
-    _FLOAT db     = 0.;
-    _FLOAT ds     = 0.;
+    _FLOAT mean   = (_FLOAT)0.;
+    _FLOAT invVar = (_FLOAT)0.;
+    _FLOAT pscale = (_FLOAT)0.;
+    _FLOAT db     = (_FLOAT)0.;
+    _FLOAT ds     = (_FLOAT)0.;
 
 #if(MIO_BN_USESAVED == 1)
     __local _FLOAT lmean, lvar;
@@ -2277,10 +2277,10 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #if(MIO_BN_USESAVED == 0)
 
-    _FLOAT in       = 0.;
-    _FLOAT variance = 0.;
+    _FLOAT in       = (_FLOAT)0.;
+    _FLOAT variance = (_FLOAT)0.;
     //==== CALC MEAN =======================
-    mean = 0.;
+    mean = (_FLOAT)0.;
 
 #pragma unroll
     for(unsigned int n = 0; n < MIO_BN_N; n++)
@@ -2350,10 +2350,10 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #endif
     barrier(CLK_LOCAL_MEM_FENCE);
-    ds             = 0.;
-    db             = 0.;
-    _FLOAT dyvalue = 0.;
-    _FLOAT xhat    = 0.;
+    ds             = (_FLOAT)0.;
+    db             = (_FLOAT)0.;
+    _FLOAT dyvalue = (_FLOAT)0.;
+    _FLOAT xhat    = (_FLOAT)0.;
 
 #pragma unroll
     for(unsigned int n = 0; n < MIO_BN_N; n++)
