@@ -781,7 +781,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 
             construct_params.setBotDescFromMLDesc(xDesc);
 
-            int activ_mode = GetMode();
+            int activ_mode = this->GetMode();
 
             construct_params.setNeuronDescr(activ_mode, activ_power, activ_beta, activ_alpha);
 
@@ -795,9 +795,9 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
             const std::vector<size_t>& vld = construct_params.getLocalWkSize();
             const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
 
-            auto f_activ_alpha = as_float(GetAlpha());
-            auto f_activ_beta  = as_float(GetBeta());
-            auto f_activ_power = as_float(GetPower());
+            auto f_activ_alpha = as_float(this->GetAlpha());
+            auto f_activ_beta  = as_float(this->GetBeta());
+            auto f_activ_power = as_float(this->GetPower());
             auto f_diff_scale  = f_activ_beta * f_activ_power;
 
             compiler_options +=
