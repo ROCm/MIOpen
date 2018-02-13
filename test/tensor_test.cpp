@@ -27,38 +27,46 @@
 #include <array>
 #include <iostream>
 #include <algorithm>
+#include <numeric>
 #include <miopen/miopen.h>
-#include <miopen/tensor_extra.hpp>
+#include <miopen/tensor.hpp>
 
-struct tensor_fixture_4
+struct tensor_base
 {
     miopenTensorDescriptor_t tensor{};
+
+    miopen::TensorDescriptor& get_tensor()
+    {
+        CHECK(this->tensor != nullptr);
+        return miopen::get_object(*tensor);
+    }
+
+    ~tensor_base() { miopenDestroyTensorDescriptor(tensor); }
+};
+
+struct tensor_fixture_4 : tensor_base
+{
 
     tensor_fixture_4()
     {
         miopenCreateTensorDescriptor(&tensor);
         miopenSet4dTensorDescriptor(tensor, miopenFloat, 100, 32, 8, 8);
     }
-
-    ~tensor_fixture_4() { miopenDestroyTensorDescriptor(tensor); }
 };
 
 // 1-DIMENSIONAL -------------------
-struct tensor_fixture_n1d
+struct tensor_fixture_n1d : tensor_base
 {
-    miopenTensorDescriptor_t tensor{};
     tensor_fixture_n1d()
     {
         miopenCreateTensorDescriptor(&tensor);
         std::array<int, 1> lens = {{100}};
         miopenSetTensorDescriptor(tensor, miopenFloat, 1, lens.data(), nullptr);
     }
-    ~tensor_fixture_n1d() { miopenDestroyTensorDescriptor(tensor); }
 };
 
-struct tensor_fixture_n1d_strides
+struct tensor_fixture_n1d_strides : tensor_base
 {
-    miopenTensorDescriptor_t tensor{};
     tensor_fixture_n1d_strides()
     {
         miopenCreateTensorDescriptor(&tensor);
@@ -66,7 +74,6 @@ struct tensor_fixture_n1d_strides
         std::array<int, 1> strides = {{1}};
         miopenSetTensorDescriptor(tensor, miopenFloat, 1, lens.data(), strides.data());
     }
-    ~tensor_fixture_n1d_strides() { miopenDestroyTensorDescriptor(tensor); }
 };
 
 template <class Fixture>
@@ -86,6 +93,7 @@ struct tensor_test_suit_1d
             EXPECT(dt == miopenFloat);
             EXPECT(lens[0] == 100);
             EXPECT(strides[0] == 1);
+            EXPECT(this->get_tensor().IsPacked());
         }
     };
 
@@ -101,6 +109,7 @@ struct tensor_test_suit_1d
             miopenGetTensorDescriptor(this->tensor, &dt, lens.data(), nullptr);
             EXPECT(dt == miopenFloat);
             EXPECT(lens[0] == 100);
+            EXPECT(this->get_tensor().IsPacked());
         }
     };
 
@@ -118,6 +127,7 @@ struct tensor_test_suit_1d
             EXPECT(dt == miopenFloat);
             EXPECT(lens[0] == 100);
             EXPECT(strides[0] == 1);
+            EXPECT(this->get_tensor().IsPacked());
         }
     };
 
@@ -131,21 +141,18 @@ struct tensor_test_suit_1d
 //- END 1-D ---------------------------
 
 // 2-DIMENSIONAL ----------------------
-struct tensor_fixture_n2d
+struct tensor_fixture_n2d : tensor_base
 {
-    miopenTensorDescriptor_t tensor{};
     tensor_fixture_n2d()
     {
         miopenCreateTensorDescriptor(&tensor);
         std::array<int, 2> lens = {{100, 32}};
         miopenSetTensorDescriptor(tensor, miopenFloat, 2, lens.data(), nullptr);
     }
-    ~tensor_fixture_n2d() { miopenDestroyTensorDescriptor(tensor); }
 };
 
-struct tensor_fixture_n2d_strides
+struct tensor_fixture_n2d_strides : tensor_base
 {
-    miopenTensorDescriptor_t tensor{};
     tensor_fixture_n2d_strides()
     {
         miopenCreateTensorDescriptor(&tensor);
@@ -153,7 +160,6 @@ struct tensor_fixture_n2d_strides
         std::array<int, 2> strides = {{32, 1}};
         miopenSetTensorDescriptor(tensor, miopenFloat, 2, lens.data(), strides.data());
     }
-    ~tensor_fixture_n2d_strides() { miopenDestroyTensorDescriptor(tensor); }
 };
 
 template <class Fixture>
@@ -175,6 +181,7 @@ struct tensor_test_suit_2d
             EXPECT(lens[1] == 32);
             EXPECT(strides[0] == lens[1] * strides[1]);
             EXPECT(strides[1] == 1);
+            EXPECT(this->get_tensor().IsPacked());
         }
     };
 
@@ -191,6 +198,7 @@ struct tensor_test_suit_2d
             EXPECT(dt == miopenFloat);
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 32);
+            EXPECT(this->get_tensor().IsPacked());
         }
     };
 
@@ -210,6 +218,7 @@ struct tensor_test_suit_2d
             EXPECT(lens[1] == 32);
             EXPECT(strides[0] == lens[1] * strides[1]);
             EXPECT(strides[1] == 1);
+            EXPECT(this->get_tensor().IsPacked());
         }
     };
 
@@ -221,9 +230,8 @@ struct tensor_test_suit_2d
     }
 };
 
-struct tensor_fixture_n2d_numBytes
+struct tensor_fixture_n2d_numBytes : tensor_base
 {
-    miopenTensorDescriptor_t tensor{};
     tensor_fixture_n2d_numBytes()
     {
         miopenCreateTensorDescriptor(&tensor);
@@ -240,7 +248,6 @@ struct tensor_fixture_n2d_numBytes
             adjLens.rbegin(), adjLens.rend() - 1, strides.rbegin() + 1, std::multiplies<int>());
         miopenSetTensorDescriptor(tensor, miopenFloat, 2, lens.data(), strides.data());
     }
-    ~tensor_fixture_n2d_numBytes() { miopenDestroyTensorDescriptor(tensor); }
 };
 
 template <class Fixture>
@@ -265,6 +272,7 @@ struct tensor_test_suit_2d_bytes
             EXPECT(lens[1] == 8);
             EXPECT(strides[0] == 14);
             EXPECT(strides[1] == 1);
+            EXPECT(!this->get_tensor().IsPacked());
         }
     };
 
@@ -273,9 +281,8 @@ struct tensor_test_suit_2d_bytes
 //----------------------------
 
 // 3-DIMENSIONAL -------------
-struct tensor_fixture_n3d
+struct tensor_fixture_n3d : tensor_base
 {
-    miopenTensorDescriptor_t tensor{};
 
     tensor_fixture_n3d()
     {
@@ -283,13 +290,10 @@ struct tensor_fixture_n3d
         std::array<int, 3> lens = {{100, 32, 8}};
         miopenSetTensorDescriptor(tensor, miopenFloat, 3, lens.data(), nullptr);
     }
-
-    ~tensor_fixture_n3d() { miopenDestroyTensorDescriptor(tensor); }
 };
 
-struct tensor_fixture_n3d_strides
+struct tensor_fixture_n3d_strides : tensor_base
 {
-    miopenTensorDescriptor_t tensor{};
 
     tensor_fixture_n3d_strides()
     {
@@ -298,8 +302,6 @@ struct tensor_fixture_n3d_strides
         std::array<int, 3> strides = {{256, 8, 1}};
         miopenSetTensorDescriptor(tensor, miopenFloat, 3, lens.data(), strides.data());
     }
-
-    ~tensor_fixture_n3d_strides() { miopenDestroyTensorDescriptor(tensor); }
 };
 
 template <class Fixture>
@@ -323,6 +325,7 @@ struct tensor_test_suit_3d
             EXPECT(strides[0] == lens[1] * strides[1]);
             EXPECT(strides[1] == lens[2] * strides[2]);
             EXPECT(strides[2] == 1);
+            EXPECT(this->get_tensor().IsPacked());
         }
     };
 
@@ -340,6 +343,7 @@ struct tensor_test_suit_3d
             EXPECT(lens[0] == 100);
             EXPECT(lens[1] == 32);
             EXPECT(lens[2] == 8);
+            EXPECT(this->get_tensor().IsPacked());
         }
     };
 
@@ -361,6 +365,7 @@ struct tensor_test_suit_3d
             EXPECT(strides[0] == lens[1] * strides[1]);
             EXPECT(strides[1] == lens[2] * strides[2]);
             EXPECT(strides[2] == 1);
+            EXPECT(this->get_tensor().IsPacked());
         }
     };
 
@@ -372,9 +377,8 @@ struct tensor_test_suit_3d
     }
 };
 
-struct tensor_fixture_n3d_numBytes
+struct tensor_fixture_n3d_numBytes : tensor_base
 {
-    miopenTensorDescriptor_t tensor{};
     tensor_fixture_n3d_numBytes()
     {
         miopenCreateTensorDescriptor(&tensor);
@@ -391,7 +395,6 @@ struct tensor_fixture_n3d_numBytes
             adjLens.rbegin(), adjLens.rend() - 1, strides.rbegin() + 1, std::multiplies<int>());
         miopenSetTensorDescriptor(tensor, miopenFloat, 3, lens.data(), strides.data());
     }
-    ~tensor_fixture_n3d_numBytes() { miopenDestroyTensorDescriptor(tensor); }
 };
 
 template <class Fixture>
@@ -418,6 +421,7 @@ struct tensor_test_suit_3d_bytes
             EXPECT(strides[0] == 112);
             EXPECT(strides[1] == 14);
             EXPECT(strides[2] == 1);
+            EXPECT(!this->get_tensor().IsPacked());
         }
     };
 
@@ -426,22 +430,18 @@ struct tensor_test_suit_3d_bytes
 //-----------------------------
 
 // 4-DIMENSIONAL --------------
-struct tensor_fixture_n4d
+struct tensor_fixture_n4d : tensor_base
 {
-    miopenTensorDescriptor_t tensor{};
     tensor_fixture_n4d()
     {
         miopenCreateTensorDescriptor(&tensor);
         std::array<int, 4> lens = {{100, 32, 8, 8}};
         miopenSetTensorDescriptor(tensor, miopenFloat, 4, lens.data(), nullptr);
     }
-
-    ~tensor_fixture_n4d() { miopenDestroyTensorDescriptor(tensor); }
 };
 
-struct tensor_fixture_n4d_strides
+struct tensor_fixture_n4d_strides : tensor_base
 {
-    miopenTensorDescriptor_t tensor{};
     tensor_fixture_n4d_strides()
     {
         miopenCreateTensorDescriptor(&tensor);
@@ -449,8 +449,6 @@ struct tensor_fixture_n4d_strides
         std::array<int, 4> strides = {{2048, 64, 8, 1}};
         miopenSetTensorDescriptor(tensor, miopenFloat, 4, lens.data(), strides.data());
     }
-
-    ~tensor_fixture_n4d_strides() { miopenDestroyTensorDescriptor(tensor); }
 };
 
 template <class Fixture>
@@ -482,8 +480,8 @@ struct tensor_test_suit_4d
         void run()
         {
             int nStride, cStride, hStride, wStride;
-            miopenGet4dTensorDescriptorStrides(
-                this->tensor, &nStride, &cStride, &hStride, &wStride);
+            std::tie(nStride, cStride, hStride, wStride) =
+                miopen::tien<4>(this->get_tensor().GetStrides());
             EXPECT(nStride == 32 * cStride);
             EXPECT(cStride == 8 * hStride);
             EXPECT(hStride == 8 * wStride);
@@ -496,7 +494,7 @@ struct tensor_test_suit_4d
         void run()
         {
             int n, c, h, w;
-            miopenGet4dTensorDescriptorLengths(this->tensor, &n, &c, &h, &w);
+            std::tie(n, c, h, w) = miopen::tien<4>(this->get_tensor().GetLengths());
             EXPECT(n == 100);
             EXPECT(c == 32);
             EXPECT(h == 8);
@@ -524,6 +522,7 @@ struct tensor_test_suit_4d
             EXPECT(strides[1] == lens[2] * strides[2]);
             EXPECT(strides[2] == lens[3] * strides[3]);
             EXPECT(strides[3] == 1);
+            EXPECT(this->get_tensor().IsPacked());
         }
     };
 
@@ -542,6 +541,7 @@ struct tensor_test_suit_4d
             EXPECT(lens[1] == 32);
             EXPECT(lens[2] == 8);
             EXPECT(lens[3] == 8);
+            EXPECT(this->get_tensor().IsPacked());
         }
     };
 
@@ -565,6 +565,7 @@ struct tensor_test_suit_4d
             EXPECT(strides[1] == lens[2] * strides[2]);
             EXPECT(strides[2] == lens[3] * strides[3]);
             EXPECT(strides[3] == 1);
+            EXPECT(this->get_tensor().IsPacked());
         }
     };
 
@@ -572,11 +573,11 @@ struct tensor_test_suit_4d
     {
         void run()
         {
-            EXPECT(miopenGetTensorIndex(this->tensor, {0, 0, 0, 0}) == 0);
-            EXPECT(miopenGetTensorIndex(this->tensor, {0, 0, 0, 1}) == 1);
-            EXPECT(miopenGetTensorIndex(this->tensor, {0, 0, 0, 2}) == 2);
-            EXPECT(miopenGetTensorIndex(this->tensor, {0, 0, 1, 0}) == 8);
-            EXPECT(miopenGetTensorIndex(this->tensor, {0, 0, 1, 1}) == 9);
+            EXPECT(this->get_tensor().GetIndex({0, 0, 0, 0}) == 0);
+            EXPECT(this->get_tensor().GetIndex({0, 0, 0, 1}) == 1);
+            EXPECT(this->get_tensor().GetIndex({0, 0, 0, 2}) == 2);
+            EXPECT(this->get_tensor().GetIndex({0, 0, 1, 0}) == 8);
+            EXPECT(this->get_tensor().GetIndex({0, 0, 1, 1}) == 9);
         }
     };
 
@@ -593,9 +594,8 @@ struct tensor_test_suit_4d
     }
 };
 
-struct tensor_fixture_n4d_numBytes
+struct tensor_fixture_n4d_numBytes : tensor_base
 {
-    miopenTensorDescriptor_t tensor{};
     tensor_fixture_n4d_numBytes()
     {
         miopenCreateTensorDescriptor(&tensor);
@@ -612,7 +612,6 @@ struct tensor_fixture_n4d_numBytes
             adjLens.rbegin(), adjLens.rend() - 1, strides.rbegin() + 1, std::multiplies<int>());
         miopenSetTensorDescriptor(tensor, miopenFloat, 4, lens.data(), strides.data());
     }
-    ~tensor_fixture_n4d_numBytes() { miopenDestroyTensorDescriptor(tensor); }
 };
 
 template <class Fixture>
@@ -641,6 +640,7 @@ struct tensor_test_suit_4d_bytes
             EXPECT(strides[1] == 112);
             EXPECT(strides[2] == 14);
             EXPECT(strides[3] == 1);
+            EXPECT(!this->get_tensor().IsPacked());
         }
     };
 
@@ -649,21 +649,18 @@ struct tensor_test_suit_4d_bytes
 //-END 4-D-----------------------------
 
 // 5-DIMENSIONAL --------------
-struct tensor_fixture_n5d
+struct tensor_fixture_n5d : tensor_base
 {
-    miopenTensorDescriptor_t tensor{};
     tensor_fixture_n5d()
     {
         miopenCreateTensorDescriptor(&tensor);
         std::array<int, 5> lens = {{128, 100, 32, 8, 8}};
         miopenSetTensorDescriptor(tensor, miopenFloat, 5, lens.data(), nullptr);
     }
-    ~tensor_fixture_n5d() { miopenDestroyTensorDescriptor(tensor); }
 };
 
-struct tensor_fixture_n5d_strides
+struct tensor_fixture_n5d_strides : tensor_base
 {
-    miopenTensorDescriptor_t tensor{};
     tensor_fixture_n5d_strides()
     {
         miopenCreateTensorDescriptor(&tensor);
@@ -671,7 +668,6 @@ struct tensor_fixture_n5d_strides
         std::array<int, 5> strides = {{204800, 2048, 64, 8, 1}};
         miopenSetTensorDescriptor(tensor, miopenFloat, 5, lens.data(), strides.data());
     }
-    ~tensor_fixture_n5d_strides() { miopenDestroyTensorDescriptor(tensor); }
 };
 
 template <class Fixture>
@@ -699,6 +695,7 @@ struct tensor_test_suit_5d
             EXPECT(strides[2] == lens[3] * strides[3]);
             EXPECT(strides[3] == lens[4] * strides[4]);
             EXPECT(strides[4] == 1);
+            EXPECT(this->get_tensor().IsPacked());
         }
     };
 
@@ -718,6 +715,7 @@ struct tensor_test_suit_5d
             EXPECT(lens[2] == 32);
             EXPECT(lens[3] == 8);
             EXPECT(lens[4] == 8);
+            EXPECT(this->get_tensor().IsPacked());
         }
     };
 
@@ -743,6 +741,7 @@ struct tensor_test_suit_5d
             EXPECT(strides[2] == lens[3] * strides[3]);
             EXPECT(strides[3] == lens[4] * strides[4]);
             EXPECT(strides[4] == 1);
+            EXPECT(this->get_tensor().IsPacked());
         }
     };
 
@@ -754,9 +753,8 @@ struct tensor_test_suit_5d
     }
 };
 
-struct tensor_fixture_n5d_numBytes
+struct tensor_fixture_n5d_numBytes : tensor_base
 {
-    miopenTensorDescriptor_t tensor{};
     tensor_fixture_n5d_numBytes()
     {
         miopenCreateTensorDescriptor(&tensor);
@@ -773,7 +771,6 @@ struct tensor_fixture_n5d_numBytes
             adjLens.rbegin(), adjLens.rend() - 1, strides.rbegin() + 1, std::multiplies<int>());
         miopenSetTensorDescriptor(tensor, miopenFloat, 5, lens.data(), strides.data());
     }
-    ~tensor_fixture_n5d_numBytes() { miopenDestroyTensorDescriptor(tensor); }
 };
 
 template <class Fixture>
@@ -804,6 +801,7 @@ struct tensor_test_suit_5d_bytes
             EXPECT(strides[2] == 112);
             EXPECT(strides[3] == 14);
             EXPECT(strides[4] == 1);
+            EXPECT(!this->get_tensor().IsPacked());
         }
     };
 
@@ -811,9 +809,8 @@ struct tensor_test_suit_5d_bytes
 };
 //-END 5-d -----------------------------
 
-struct check_tensor_support
+struct check_tensor_support : tensor_base
 {
-    miopenTensorDescriptor_t tensor{};
 
     check_tensor_support() { miopenCreateTensorDescriptor(&tensor); }
 
@@ -822,8 +819,6 @@ struct check_tensor_support
         EXPECT(miopenSet4dTensorDescriptor(tensor, miopenHalf, 100, 32, 8, 8) ==
                miopenStatusSuccess);
     }
-
-    ~check_tensor_support() { miopenDestroyTensorDescriptor(tensor); }
 };
 
 void check_null_tensor()
