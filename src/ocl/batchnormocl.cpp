@@ -139,12 +139,9 @@ void BatchNormForwardTraining(Handle& handle,
         parms += "-DMIO_RUNNING_RESULT=0 ";
     }
 
-    parms += "-DMIO_BN_N=" + std::to_string(n);
-    parms += " -DMIO_BN_C=" + std::to_string(c);
-    parms += " -DMIO_BN_HW=" + std::to_string(in_cstride);
-    parms += " -DMIO_BN_NHW=" + std::to_string(in_nhw);
-    parms += " -DMIO_BN_CHW=" + std::to_string(in_nstride);
-    parms += " -DMIO_BN_NCHW=" + std::to_string(in_nchw);
+    parms += "-DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) + 
+             " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
+             " -DMIO_BN_CHW=" + std::to_string(in_nstride) + " -DMIO_BN_NCHW=" + std::to_string(in_nchw);
 
     auto inhw = float(1.0 / in_nhw);
 
@@ -163,11 +160,17 @@ void BatchNormForwardTraining(Handle& handle,
             ylocalsize = 1;
             zlocalsize = 1;
 
-            parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize);
-            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
-            parms += " -DMIO_BN_GRP0=" + std::to_string(xlocalsize);
-            parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
-            parms += " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+            parms += "-DMIO_BN_N=" + std::to_string(n) + 
+                     " -DMIO_BN_C=" + std::to_string(c) + 
+                     " -DMIO_BN_HW=" + std::to_string(in_cstride) +
+                     " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
+                     " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+                     " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
+                     " -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize / 64) +
+                     " -DMIO_BN_VARIANT=" + std::to_string(variant) +
+                     " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
+                     " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                     " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
             vld.push_back(zlocalsize);
@@ -219,14 +222,21 @@ void BatchNormForwardTraining(Handle& handle,
             unsigned int segment = in_cstride * (xlocalsize / in_cstride);
             unsigned int nloops  = (in_nhw + segment - 1) / segment;
 
-            parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize);
-            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
-            parms += " -DMIO_BN_GRP0=" + std::to_string(xlocalsize);
-            parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
-            parms += " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
-            parms += " -DMIO_BN_NLOOP=" + std::to_string(nloops);
-            parms += " -DMIO_BN_SEGMENT=" + std::to_string((segment > in_nhw) ? in_nhw : segment);
-            parms += " -DMIO_BN_SEGIHW=" + std::to_string(segment / in_cstride);
+            parms += "-DMIO_BN_N=" + std::to_string(n) + 
+                     " -DMIO_BN_C=" + std::to_string(c) + 
+                     " -DMIO_BN_HW=" + std::to_string(in_cstride) +
+                     " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
+                     " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+                     " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
+                     " -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize / 64) +
+                     " -DMIO_BN_VARIANT=" + std::to_string(variant) +
+                     " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
+                     " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                     " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
+                     " -DMIO_BN_NLOOP=" + std::to_string(nloops) +
+                     " -DMIO_BN_SEGMENT=" + std::to_string((segment > in_nhw) ? in_nhw : segment) +
+                     " -DMIO_BN_SEGIHW=" + std::to_string(segment / in_cstride);
+
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
             vld.push_back(zlocalsize);
@@ -238,14 +248,14 @@ void BatchNormForwardTraining(Handle& handle,
             vgd.push_back(ygridsize);
             vgd.push_back(zgridsize);
 
-#if(MIOPEN_BN_CPP_DEBUG == 1)
+//#if(MIOPEN_BN_CPP_DEBUG == 1)
             std::cout << kernel_name << ":: ";
             std::cout << parms << std::endl;
 //            std::cout << "in_nhw: "
 //                      << ":: " << in_nhw << std::endl;
 //            std::cout << "inhw: "
 //                      << ":: " << inhw << std::endl;
-#endif
+//#endif
             bnFwdTrainSelectSingle(handle,
                                    program_name,
                                    algo_name,
