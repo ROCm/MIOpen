@@ -140,9 +140,9 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                                " -DMLO_READ_TYPE=" + READ_TYPE + " -DMLO_NRN_OP_ID=" +
                                std::to_string(mode) + type_opt;
 
-            auto f_activ_alpha = static_cast<float>(activ_alpha);
-            auto f_activ_beta  = static_cast<float>(activ_beta);
-            auto f_activ_power = static_cast<float>(activ_power);
+            auto f_activ_alpha = as_float(activ_alpha);
+            auto f_activ_beta  = as_float(activ_beta);
+            auto f_activ_power = as_float(activ_power);
 
             std::vector<size_t> vld;
             std::vector<size_t> vgd;
@@ -325,9 +325,9 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
             int imode = mode;
             construct_params.getNeuronDescr(imode, activ_power, activ_beta, activ_alpha);
 
-            auto f_activ_alpha = static_cast<float>(activ_alpha);
-            auto f_activ_beta  = static_cast<float>(activ_beta);
-            auto f_activ_power = static_cast<float>(activ_power);
+            auto f_activ_alpha = as_float(activ_alpha);
+            auto f_activ_beta  = as_float(activ_beta);
+            auto f_activ_power = as_float(activ_power);
 
             compiler_options +=
                 " -DMLO_N_IN=" + std::to_string(nIn) + " -DMLO_C_IN=" + std::to_string(cIn) +
@@ -508,9 +508,9 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                                " -DMLO_READ_TYPE=" + READ_TYPE + " -DMLO_NRN_OP_ID=" +
                                std::to_string(mode) + type_opt;
 
-            auto f_activ_alpha = static_cast<float>(activ_alpha);
-            auto f_activ_beta  = static_cast<float>(activ_beta);
-            auto f_activ_power = static_cast<float>(activ_power);
+            auto f_activ_alpha = as_float(activ_alpha);
+            auto f_activ_beta  = as_float(activ_beta);
+            auto f_activ_power = as_float(activ_power);
             auto f_diff_scale  = f_activ_beta * f_activ_power;
 
             std::vector<size_t> vld;
@@ -795,9 +795,9 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
             const std::vector<size_t>& vld = construct_params.getLocalWkSize();
             const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
 
-            auto f_activ_alpha = static_cast<float>(GetAlpha());
-            auto f_activ_beta  = static_cast<float>(GetBeta());
-            auto f_activ_power = static_cast<float>(GetPower());
+            auto f_activ_alpha = as_float(GetAlpha());
+            auto f_activ_beta  = as_float(GetBeta());
+            auto f_activ_power = as_float(GetPower());
             auto f_diff_scale  = f_activ_beta * f_activ_power;
 
             compiler_options +=
