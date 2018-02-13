@@ -27,7 +27,9 @@
 #include <miopen/kernel_cache.hpp>
 #include <miopen/util.hpp>
 
-#define WG_SIZE 128
+#define WG_SIZE 256
+#define MAX_ACTIVE_THREADS (64 * 4 * 64)
+//#define MIOPEN_TRANS_DEBUG
 
 namespace miopen {
 
@@ -213,14 +215,25 @@ float transpose_NCHW2CNHW(Handle& handle,
     size_t ld0 = WG_SIZE;
     size_t gd0 = c * h_out * w_out;
     const std::vector<size_t> vld{ld0, 1, 1};
-    const std::vector<size_t> vgd{gd0, static_cast<size_t>(n), 1};
+    std::vector<size_t> vgd{gd0, 1, 1};
+
+    if(gd0 < MAX_ACTIVE_THREADS)
+    {
+        vgd = {gd0, static_cast<size_t>(n), 1};
+        params += " -D_2D_WG";
+    }
 
     handle.AddKernel("miopen_transpose_NCHW2CNHW", "", program_name, kernel_name, vld, vgd, params)(
         in, out);
 
-    // int nMB = n * c * h_out * w_out * 4/1024/1024;
-    // printf("NCHW->CNHW MB: %d time: %f GB/s: %f\n", nMB, handle.GetKernelTime(), 2 *
-    // nMB/handle.GetKernelTime());
+#ifdef MIOPEN_TRANS_DEBUG
+    float nMB = (float)n * c * h_out * w_out * sizeof(float) * 1e-6;
+    fprintf(stderr,
+            "NCHW->CNHW MB: %f time: %f GB/s: %f\n",
+            nMB,
+            handle.GetKernelTime(),
+            2 * nMB / handle.GetKernelTime());
+#endif
 
     return handle.GetKernelTime();
 }
@@ -258,14 +271,25 @@ float transpose_CNHW2NCHW(Handle& handle,
     size_t ld0 = WG_SIZE;
     size_t gd0 = c * h_out * w_out;
     const std::vector<size_t> vld{ld0, 1, 1};
-    const std::vector<size_t> vgd{gd0, static_cast<size_t>(n), 1};
+    std::vector<size_t> vgd{gd0, 1, 1};
+
+    if(gd0 < MAX_ACTIVE_THREADS)
+    {
+        vgd = {gd0, static_cast<size_t>(n), 1};
+        params += " -D_2D_WG";
+    }
 
     handle.AddKernel("miopen_transpose_CNHW2NCHW", "", program_name, kernel_name, vld, vgd, params)(
         in, out);
 
-    // int nMB = n * c * h_out * w_out * 4/1024/1024;
-    // printf("CNHW->NCHW MB: %d time: %f GB/s: %f\n", nMB, handle.GetKernelTime(), 2 *
-    // nMB/handle.GetKernelTime());
+#ifdef MIOPEN_TRANS_DEBUG
+    float nMB = (float)n * c * h_out * w_out * sizeof(float) * 1e-6;
+    fprintf(stderr,
+            "CNHW->NCHW MB: %f time: %f GB/s: %f\n",
+            nMB,
+            handle.GetKernelTime(),
+            2 * nMB / handle.GetKernelTime());
+#endif
 
     return handle.GetKernelTime();
 }
@@ -306,14 +330,25 @@ float transpose_NCHW2CNHW_opt(Handle& handle,
     params += " -DREAD_TYPE=" + READ_TYPE;
 
     const std::vector<size_t> vld{lcl_size0, 1, 1};
-    const std::vector<size_t> vgd{MAP_RD, static_cast<size_t>(N), 1};
+    std::vector<size_t> vgd{MAP_RD, 1, 1};
+
+    if(MAP_RD < MAX_ACTIVE_THREADS)
+    {
+        vgd = {MAP_RD, static_cast<size_t>(N), 1};
+        params += " -D_2D_WG";
+    }
 
     handle.AddKernel("miopen_transpose_NCHW2CNHW", "", program_name, kernel_name, vld, vgd, params)(
         in, out);
 
-    // int nMB = N * C * H * W * 4/1024/1024;
-    // printf("NCHW->CNHW_opt MB: %d time: %f GB/s: %f\n", nMB, handle.GetKernelTime(), 2 *
-    // nMB/handle.GetKernelTime());
+#ifdef MIOPEN_TRANS_DEBUG
+    float nMB = (float)n * c * h * w * sizeof(float) * 1e-6;
+    fprintf(stderr,
+            "NCHW->CNHW_opt MB: %f time: %f GB/s: %f\n",
+            nMB,
+            handle.GetKernelTime(),
+            2 * nMB / handle.GetKernelTime());
+#endif
 
     return handle.GetKernelTime();
 }
@@ -354,14 +389,25 @@ float transpose_CNHW2NCHW_opt(Handle& handle,
     params += " -DREAD_TYPE=" + READ_TYPE;
 
     const std::vector<size_t> vld{lcl_size0, 1, 1};
-    const std::vector<size_t> vgd{MAP_RD, static_cast<size_t>(N), 1};
+    std::vector<size_t> vgd{MAP_RD, 1, 1};
+
+    if(MAP_RD < MAX_ACTIVE_THREADS)
+    {
+        vgd = {MAP_RD, static_cast<size_t>(N), 1};
+        params += " -D_2D_WG";
+    }
 
     handle.AddKernel("miopen_transpose_CNHW2NCHW", "", program_name, kernel_name, vld, vgd, params)(
         in, out);
 
-    // int nMB = N * C * H * W * 4/1024/1024;
-    // printf("CNHW->NCHW_opt MB: %d time: %f GB/s: %f\n", nMB, handle.GetKernelTime(), 2 *
-    // nMB/handle.GetKernelTime());
+#ifdef MIOPEN_TRANS_DEBUG
+    float nMB = (float)n * c * h * w * sizeof(float) * 1e-6;
+    fprintf(stderr,
+            "CNHW->NCHW_opt MB: %f time: %f GB/s: %f\n",
+            nMB,
+            handle.GetKernelTime(),
+            2 * nMB / handle.GetKernelTime());
+#endif
 
     return handle.GetKernelTime();
 }
