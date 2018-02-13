@@ -514,7 +514,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
     try
     {
         mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
-        construct_params.doSearch(false);
+        construct_params.setDoSearch(false);
         construct_params.setStream(&handle);
         construct_params.setOutputDescFromMLDesc(dyDesc);
         construct_params.setInputDescFromMLDesc(xDesc);

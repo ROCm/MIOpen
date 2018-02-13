@@ -164,8 +164,23 @@ struct ProblemDescription
     int kernel_dilation0 = 0;
     int kernel_dilation1 = 0;
     int bias             = 0;
-    // TODO: Serialize this field
-    int float_size = 32;
+    std::string in_layout;
+    std::string in_data_type;
+    std::string weights_layout;
+    std::string out_data_type;
+    std::string out_layout;
+    int float_size         = 32;
+    size_t bot_sz          = 0;
+    size_t top_sz          = 0;
+    size_t weights_sz      = 0;
+    size_t bias_sz         = 0;
+    int deconvolution      = 0;
+    int in_stride          = 0;
+    int out_stride         = 0;
+    int in_channel_stride  = 0;
+    int in_batch_stride    = 0;
+    int out_channel_stride = 0;
+    int out_batch_stride   = 0;
     struct Direction
     {
         enum class Value
@@ -193,8 +208,6 @@ struct ProblemDescription
         void Set(T) = delete;
         void SetBackwardWrW() { v = Value::BackwardWrW; }
     } direction;
-    std::string in_layout;
-    std::string in_data_type;
     int GetBackwardPad0() const { return kernel_size0 - pad0 - 1; }
     int GetBackwardPad1() const { return kernel_size1 - pad1 - 1; }
 
@@ -261,29 +274,15 @@ struct ProblemDescription
 /// TODO: These three entities should be made separate.
 struct ConvolutionContext : ProblemDescription
 {
+    // Solution-specific
     bool n_passes = false;
-
+    std::string general_compile_options;
+    // Operation modes & environment
     bool do_search           = false;
     bool save_srch_req       = false;
     bool assembler_available = false;
     bool use_binaries        = true;
-    std::string weights_layout;
-    std::string out_data_type;
-    std::string out_layout;
-    size_t bot_sz          = 0;
-    size_t top_sz          = 0;
-    size_t weights_sz      = 0;
-    size_t bias_sz         = 0;
-    int deconvolution      = 0;
-    int in_stride          = 0;
-    int out_stride         = 0;
-    int in_channel_stride  = 0;
-    int in_batch_stride    = 0;
-    int out_channel_stride = 0;
-    int out_batch_stride   = 0;
-    int n_timer_iter       = 0;
-    rocm_meta_version rmv  = rocm_meta_version::Default;
-    std::string general_compile_options;
+    rocm_meta_version rmv    = rocm_meta_version::Default;
 
     inline Handle& GetStream() const { return *_stream; }
     inline void SetStream(Handle* stream) { _stream = stream; }
@@ -510,12 +509,6 @@ struct mlo_construct_direct2D
     */
 
     inline bool doBias() const { return (_search_params.bias == 1); }
-
-    /*
-    * set a number of iteration for thwe wall clock performance meaturement
-    */
-
-    inline void setTimerIter(int n_timer_iter) { _search_params.n_timer_iter = n_timer_iter; }
 
     /*
     * set library stream
@@ -809,11 +802,7 @@ struct mlo_construct_direct2D
     /*
     *  allow the search for the best possible solution
     */
-    inline void doSearch(bool do_search) { _search_params.do_search = do_search; }
-    /*
-    * is search set?
-    */
-    inline bool doSearch() const { return (_search_params.do_search); }
+    inline void setDoSearch(const bool do_search) { _search_params.do_search = do_search; }
 
     /*
     * allow to save the missing configuraion in the search request file for an offline search
