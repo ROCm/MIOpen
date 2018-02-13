@@ -698,8 +698,7 @@ void RNNDescriptor::SetLayerBias(Handle& handle,
     miopen::CopyTensor(handle, biasSrc, bias, biasDesc, w, 0, boffset);
 }
 
-void RNNDescriptor::GetLayerParamOffset(Handle& /* handle */,
-                                        const int layer,
+void RNNDescriptor::GetLayerParamOffset(const int layer,
                                         const TensorDescriptor& xDesc,
                                         const int paramID,
                                         TensorDescriptor& paramDesc,
@@ -726,8 +725,7 @@ void RNNDescriptor::GetLayerParamOffset(Handle& /* handle */,
 #endif
 }
 
-void RNNDescriptor::GetLayerBiasOffset(Handle& /* handle */,
-                                       const int layer,
+void RNNDescriptor::GetLayerBiasOffset(const int layer,
                                        const TensorDescriptor& xDesc,
                                        const int biasID,
                                        TensorDescriptor& biasDesc,
