@@ -103,6 +103,8 @@ struct TensorDescriptor : miopenTensorDescriptor
         return this->GetIndex({static_cast<int>(is)...});
     }
 
+    bool IsPacked() const;
+
     bool operator==(const TensorDescriptor& rhs) const;
     bool operator!=(const TensorDescriptor& rhs) const;
     bool operator<(const TensorDescriptor& rhs) const;
@@ -115,6 +117,8 @@ struct TensorDescriptor : miopenTensorDescriptor
     private:
     std::vector<std::size_t> lens;
     std::vector<std::size_t> strides;
+
+    bool packed;
 
     miopenDataType_t type = miopenFloat;
 };
