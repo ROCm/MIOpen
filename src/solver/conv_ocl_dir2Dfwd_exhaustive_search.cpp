@@ -169,7 +169,6 @@ static int MeasureLoop(Handle* profile_h,
                        const ConvolutionContext& params,
                        const LegacyPerformanceConfig& result)
 {
-    int ret = 0;
     ConvSolution kernel_search_result{miopenStatusNotInitialized};
 
     MIOPEN_STATIC_FOR_EACH(traits,
@@ -220,7 +219,6 @@ static int MeasureLoop(Handle* profile_h,
         else
         {
             double s = 0, e = 0;
-            int iter = (params.n_timer_iter <= 0) ? 1 : params.n_timer_iter;
 
             auto k = params.GetStream().AddKernel("",
                                                   "",
@@ -243,22 +241,19 @@ static int MeasureLoop(Handle* profile_h,
 
             s = miopen_mach_absolute_time();
 
-            for(int i = 0; i < iter && ret == 0; i++)
+            if(params.bias)
             {
-                if(params.bias)
-                {
-                    k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
-                }
-                else
-                {
-                    k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
-                }
+                k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
+            }
+            else
+            {
+                k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
             }
 
             params.GetStream().Finish();
             e = miopen_mach_absolute_time();
 
-            processing_time = subtractTimes(e, s) / iter;
+            processing_time = subtractTimes(e, s);
         }
     }
     catch(miopen::Exception&)
@@ -266,7 +261,7 @@ static int MeasureLoop(Handle* profile_h,
         return -1;
     }
 
-    return (ret);
+    return 0;
 }
 
 LegacyPerformanceConfig
