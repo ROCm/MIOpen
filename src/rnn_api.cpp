@@ -262,6 +262,44 @@ extern "C" miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
     });
 }
 
+extern "C" miopenStatus_t miopenGetRNNLayerParamOffset(miopenHandle_t handle,
+                                                       miopenRNNDescriptor_t rnnDesc,
+                                                       const int layer,
+                                                       miopenTensorDescriptor_t xDesc,
+                                                       const int paramID,
+                                                       miopenTensorDescriptor_t paramDesc,
+                                                       size_t* layerParamOffset)
+{
+    MIOPEN_LOG_FUNCTION(rnnDesc, layer, xDesc, paramID, paramDesc, layerParamOffset);
+    return miopen::try_([&] {
+        miopen::deref(rnnDesc).GetLayerParamOffset(miopen::deref(handle),
+                                                   layer,
+                                                   miopen::deref(xDesc),
+                                                   paramID,
+                                                   miopen::deref(paramDesc),
+                                                   layerParamOffset);
+    });
+}
+
+extern "C" miopenStatus_t miopenGetRNNLayerBiasOffset(miopenHandle_t handle,
+                                                      miopenRNNDescriptor_t rnnDesc,
+                                                      const int layer,
+                                                      miopenTensorDescriptor_t xDesc,
+                                                      const int biasID,
+                                                      miopenTensorDescriptor_t biasDesc,
+                                                      size_t* layerBiasOffset)
+{
+    MIOPEN_LOG_FUNCTION(rnnDesc, layer, xDesc, biasID, biasDesc, layerBiasOffset);
+    return miopen::try_([&] {
+        miopen::deref(rnnDesc).GetLayerBiasOffset(miopen::deref(handle),
+                                                  layer,
+                                                  miopen::deref(xDesc),
+                                                  biasID,
+                                                  miopen::deref(biasDesc),
+                                                  layerBiasOffset);
+    });
+}
+
 extern "C" miopenStatus_t miopenSetRNNLayerParam(miopenHandle_t handle,
                                                  miopenRNNDescriptor_t rnnDesc,
                                                  const int layer,

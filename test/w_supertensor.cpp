@@ -97,7 +97,7 @@ struct verify_w_tensor_get
         size_t wei_sz = 0;
         miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopenFloat);
 
-        wei_sz = wei_sz / sizeof(miopenFloat);
+        wei_sz = wei_sz / sizeof(float);
         std::vector<float> wei_h(wei_sz, 0);
 
         int offset = 0;
@@ -118,6 +118,14 @@ struct verify_w_tensor_get
                 miopenGetRNNLayerParamSize(
                     &handle, rnnDesc, layer, inputTensor, layerID, &paramSize);
 
+                size_t poffset = 0;
+                auto err       = miopenGetRNNLayerParamOffset(
+                    &handle, rnnDesc, layer, inputTensor, layerID, paramTensor, &poffset);
+                if(err != miopenStatusSuccess)
+                {
+                    std::cout << "Error in call to miopenGetRNNLayerParamOffset" << std::endl;
+                }
+
                 auto param_dev_out = handle.Create(paramSize);
 
                 miopenGetRNNLayerParam(&handle,
@@ -130,7 +138,7 @@ struct verify_w_tensor_get
                                        paramTensor,
                                        param_dev_out.get());
 
-                paramSize /= sizeof(miopenFloat);
+                paramSize /= sizeof(float);
 
                 auto param_h_out = handle.Read<float>(param_dev_out, paramSize);
 
@@ -141,8 +149,15 @@ struct verify_w_tensor_get
                 {
 
                     size_t biasSize = 0;
+                    size_t boffset  = 0;
 
                     miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
+                    err = miopenGetRNNLayerBiasOffset(
+                        &handle, rnnDesc, layer, inputTensor, layerID, biasTensor, &boffset);
+                    if(err != miopenStatusSuccess)
+                    {
+                        std::cout << "Error in call to miopenGetRNNLayerBiasOffset" << std::endl;
+                    }
 
                     auto bias_dev_out = handle.Create(biasSize);
 
@@ -179,7 +194,7 @@ struct verify_w_tensor_get
         auto&& handle = get_handle();
         size_t wei_sz = 0;
         miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopenFloat);
-        wei_sz = wei_sz / sizeof(miopenFloat);
+        wei_sz = wei_sz / sizeof(float);
         std::vector<float> wei_h(wei_sz, 0);
 
         int offset = 0;
@@ -204,7 +219,7 @@ struct verify_w_tensor_get
                     miopenGetRNNLayerParamSize(
                         &handle, rnnDesc, layer, inputTensor, layerId, &paramSize);
 
-                    paramSize /= sizeof(miopenFloat);
+                    paramSize /= sizeof(float);
 
                     for(int i = 0; i < paramSize; i++)
                     {
@@ -255,7 +270,7 @@ struct verify_w_tensor_get
                     size_t paramSize = 0;
                     miopenGetRNNLayerParamSize(&handle, rnnDesc, k, inputTensor, j, &paramSize);
 
-                    paramSize /= sizeof(miopenFloat);
+                    paramSize /= sizeof(float);
 
                     for(int i = 0; i < paramSize; i++)
                     {
@@ -300,7 +315,7 @@ struct verify_w_tensor_get
 
         size_t wei_sz = 0;
         miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopenFloat);
-        wei_sz = wei_sz / sizeof(miopenFloat);
+        wei_sz = wei_sz / sizeof(float);
         std::vector<float> wei_h(wei_sz, 0);
 
         int offset = 0;
@@ -321,7 +336,7 @@ struct verify_w_tensor_get
                 miopenGetRNNLayerParamSize(
                     &handle, rnnDesc, layer, inputTensor, layerID, &paramSize);
 
-                paramSize /= sizeof(miopenFloat);
+                paramSize /= sizeof(float);
 
                 for(int i = 0; i < paramSize; i++)
                 {
@@ -409,7 +424,7 @@ struct verify_w_tensor_set
         auto&& handle = get_handle();
         size_t wei_sz = 0;
         miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopenFloat);
-        wei_sz = wei_sz / sizeof(miopenFloat);
+        wei_sz = wei_sz / sizeof(float);
         std::vector<float> wei_h(wei_sz, 0);
 
         int offset = 0;
@@ -434,7 +449,7 @@ struct verify_w_tensor_set
                     miopenGetRNNLayerParamSize(
                         &handle, rnnDesc, layer, inputTensor, layerId, &paramSize);
 
-                    paramSize /= sizeof(miopenFloat);
+                    paramSize /= sizeof(float);
 
                     for(int i = 0; i < paramSize; i++)
                     {
@@ -485,7 +500,7 @@ struct verify_w_tensor_set
                     size_t paramSize = 0;
                     miopenGetRNNLayerParamSize(&handle, rnnDesc, k, inputTensor, j, &paramSize);
 
-                    paramSize /= sizeof(miopenFloat);
+                    paramSize /= sizeof(float);
 
                     for(int i = 0; i < paramSize; i++)
                     {
@@ -559,7 +574,7 @@ struct verify_w_tensor_set
                                        paramTensor,
                                        nullptr);
 
-                paramSize /= sizeof(miopenFloat);
+                paramSize /= sizeof(float);
                 std::vector<float> param_h_in(paramSize, layer * 10 + layerID);
                 auto param_dev_in = handle.Write(param_h_in);
 
@@ -608,7 +623,7 @@ struct verify_w_tensor_set
             }
         }
 
-        wei_sz = wei_sz / sizeof(miopenFloat);
+        wei_sz = wei_sz / sizeof(float);
         return handle.Read<float>(wei_dev, wei_sz);
     }
 
