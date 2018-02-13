@@ -2161,7 +2161,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
  * The argument layerParamOffset should either be nullptr, or an address to place the
  * offset. If layerParamOffset is nullptr then only the paramDesc is populated and returned.
  *
- * @param handle            MIOpen handle (input)
+ *
  * @param rnnDesc           RNN layer descriptor type (input)
  * @param layer             The layer number in the RNN stack (input)
  * @param xDesc             A tensor descriptor to input (input)
@@ -2170,8 +2170,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
  * @param layerParamOffset  Location for the parameter offset (output)
  * @return                  miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParamOffset(miopenHandle_t handle,
-                                                          miopenRNNDescriptor_t rnnDesc,
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParamOffset(miopenRNNDescriptor_t rnnDesc,
                                                           const int layer,
                                                           miopenTensorDescriptor_t xDesc,
                                                           const int paramID,
@@ -2213,7 +2212,6 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParamOffset(miopenHandle_t handle,
  * If layerBias is nullptr then only the biasDesc is populated and returned.
  *
  *
- * @param handle          MIOpen handle (input)
  * @param rnnDesc         RNN layer descriptor type (input)
  * @param layer           The layer number in the RNN stack (input)
  * @param xDesc           A tensor descriptor to input (input)
@@ -2222,8 +2220,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParamOffset(miopenHandle_t handle,
  * @param layerBiasOffset Pointer to the memory location of the bias tensor (output)
  * @return                miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBiasOffset(miopenHandle_t handle,
-                                                         miopenRNNDescriptor_t rnnDesc,
+MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBiasOffset(miopenRNNDescriptor_t rnnDesc,
                                                          const int layer,
                                                          miopenTensorDescriptor_t xDesc,
                                                          const int biasID,
