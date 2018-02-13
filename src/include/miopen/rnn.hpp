@@ -157,15 +157,13 @@ struct RNNDescriptor : miopenRNNDescriptor
                       const TensorDescriptor& biasDesc,
                       ConstData_t bias);
 
-    void GetLayerParamOffset(Handle& handle,
-                             int layer,
+    void GetLayerParamOffset(int layer,
                              const TensorDescriptor& xDesc,
                              int paramID,
                              TensorDescriptor& paramDesc,
                              size_t* paramOffset);
 
-    void GetLayerBiasOffset(Handle& handle,
-                            int layer,
+    void GetLayerBiasOffset(int layer,
                             const TensorDescriptor& xDesc,
                             int biasID,
                             TensorDescriptor& biasDesc,

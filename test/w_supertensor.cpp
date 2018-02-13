@@ -120,7 +120,7 @@ struct verify_w_tensor_get
 
                 size_t poffset = 0;
                 auto err       = miopenGetRNNLayerParamOffset(
-                    &handle, rnnDesc, layer, inputTensor, layerID, paramTensor, &poffset);
+                    rnnDesc, layer, inputTensor, layerID, paramTensor, &poffset);
                 if(err != miopenStatusSuccess)
                 {
                     std::cout << "Error in call to miopenGetRNNLayerParamOffset" << std::endl;
@@ -153,7 +153,7 @@ struct verify_w_tensor_get
 
                     miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
                     err = miopenGetRNNLayerBiasOffset(
-                        &handle, rnnDesc, layer, inputTensor, layerID, biasTensor, &boffset);
+                        rnnDesc, layer, inputTensor, layerID, biasTensor, &boffset);
                     if(err != miopenStatusSuccess)
                     {
                         std::cout << "Error in call to miopenGetRNNLayerBiasOffset" << std::endl;
