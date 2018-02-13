@@ -131,7 +131,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
         return -1;
 
     mlo_construct_direct2D construct_params(direction);
-    construct_params.doSearch(exhaustiveSearch);
+    construct_params.setDoSearch(exhaustiveSearch);
     construct_params.saveSearchRequest(true);
 
     construct_params.setGeneralCompOptions("");
@@ -1702,7 +1702,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                IsBwdWeightsDirectSupported(dwDesc))
             {
                 mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
-                construct_params.doSearch(exhaustiveSearch);
+                construct_params.setDoSearch(exhaustiveSearch);
                 construct_params.setStream(&handle);
                 construct_params.setOutputDescFromMLDesc(dyDesc);
                 construct_params.setInputDescFromMLDesc(xDesc);
