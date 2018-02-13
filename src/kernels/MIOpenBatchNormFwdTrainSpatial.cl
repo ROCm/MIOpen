@@ -328,7 +328,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         mean = 0.;
         variance = 0.;
     }
-    
+    /*
     dppSimpleRegReduce64(&mean);
     dppSimpleRegReduce64(&variance);
 
@@ -339,14 +339,16 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     _FLOAT mean_final = 0.;
+    _FLOAT variance_final = 0.;
     for(uint i = 0; i < MIO_BN_LDS_SIZE; i++){
         mean_final += lcl_mean[i];
-        variance_final += lcl_varaince[i];
+        variance_final += lcl_variance[i];
     }
     mean = mean_final * INHW;
     variance = variance_final * INHW;
-    variance    = mad(-mean, mean, variance);
+    variance    = mad(-mean, mean, variance); */
     invVariance = rsqrt(variance + epsilon);
+
 
     if(lid < MIO_BN_SEGMENT)
     {
@@ -1611,9 +1613,10 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     _FLOAT mean_final = 0.;
+    _FLOAT variance_final = 0.;
     for(uint i = 0; i < MIO_BN_LDS_SIZE; i++){
         mean_final += lcl_mean[i];
-        variance_final += lcl_varaince[i];
+        variance_final += lcl_variance[i];
     }
     mean = mean_final * INHW;
     variance = variance_final * INHW;
@@ -1739,9 +1742,10 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     barrier(CLK_LOCAL_MEM_FENCE);
 
     _FLOAT mean_final = 0.;
+    _FLOAT variance_final = 0.;
     for(uint i = 0; i < MIO_BN_LDS_SIZE; i++){
         mean_final += lcl_mean[i];
-        variance_final += lcl_varaince[i];
+        variance_final += lcl_variance[i];
     }
     mean = mean_final * INHW;
     variance = variance_final * INHW;
