@@ -80,7 +80,13 @@ struct Handle : miopenHandle
     }
     KernelInvoke GetKernel(const std::string& algorithm, const std::string& network_config)
     {
-        return this->Run(this->GetKernelsImpl(algorithm, network_config).at(0));
+        auto ks = this->GetKernelsImpl(algorithm, network_config);
+        if (ks.empty())
+        {
+            MIOPEN_THROW("looking for default kernel (does not exist): " + algorithm + ", " +
+                     network_config);
+        }
+        return this->Run(ks.front());
     }
 
     KernelInvoke Run(Kernel k);
