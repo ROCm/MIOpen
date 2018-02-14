@@ -435,8 +435,10 @@ extern "C" miopenStatus_t miopenRNNBackwardData(miopenHandle_t handle,
     return miopen::try_([&] {
 
         miopen::c_array_view<const miopenTensorDescriptor_t> yDescArray{yDesc, size_t(sequenceLen)};
-        miopen::c_array_view<const miopenTensorDescriptor_t> dyDescArray{dyDesc, size_t(sequenceLen)};
-        miopen::c_array_view<const miopenTensorDescriptor_t> dxDescArray{dxDesc, size_t(sequenceLen)};
+        miopen::c_array_view<const miopenTensorDescriptor_t> dyDescArray{dyDesc,
+                                                                         size_t(sequenceLen)};
+        miopen::c_array_view<const miopenTensorDescriptor_t> dxDescArray{dxDesc,
+                                                                         size_t(sequenceLen)};
         miopen::deref(rnnDesc).RNNBackwardData(miopen::deref(handle),
                                                sequenceLen,
                                                yDescArray,
