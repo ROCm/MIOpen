@@ -257,6 +257,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    false,
                                    network_config,
                                    MIO_RNN_FINDSOL_TIMEOUT);
+
                 // Update time
                 profileRNNkernels(handle, 0, ctime);
             }
@@ -468,6 +469,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                            false,
                                            network_config,
                                            MIO_RNN_FINDSOL_TIMEOUT);
+
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
                     }
@@ -1083,6 +1085,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             }
             else
             {
+
                 RunGemmGeometryRNN(handle,
                                    x,
                                    w,
@@ -1134,6 +1137,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                false,
                                network_config,
                                MIO_RNN_FINDSOL_TIMEOUT);
+
             // Update time
             profileRNNkernels(handle, 1, ctime);
         }
@@ -1266,6 +1270,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 {
                     if(ti == 0)
                     {
+
                         RunGemmGeometryRNN(handle,
                                            hx,
                                            w,
@@ -1287,6 +1292,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                            false,
                                            network_config,
                                            MIO_RNN_FINDSOL_TIMEOUT);
+
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
                     }
@@ -1294,7 +1300,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     {
 
                         RunGemmGeometryRNN(handle,
-                                           hx,
+                                           hy,
                                            w,
                                            reserveSpace,
                                            in_n.at(cur_time),
@@ -1964,6 +1970,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                false,
                                network_config,
                                MIO_RNN_FINDSOL_TIMEOUT);
+
             // Update time
             profileRNNkernels(handle, 1, ctime);
         }
@@ -2214,6 +2221,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            false,
                                            network_config,
                                            MIO_RNN_FINDSOL_TIMEOUT);
+
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
                     }
@@ -2648,6 +2656,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                                false,
                                                network_config,
                                                MIO_RNN_FINDSOL_TIMEOUT);
+
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
                         }
@@ -3032,6 +3041,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                            false,
                                            network_config,
                                            MIO_RNN_FINDSOL_TIMEOUT);
+
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
                     }
@@ -3098,6 +3108,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                            false,
                            network_config,
                            MIO_RNN_FINDSOL_TIMEOUT);
+
         // Update time
         profileRNNkernels(handle, 2, ctime);
     }
@@ -3286,6 +3297,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                    false,
                                    network_config,
                                    MIO_RNN_FINDSOL_TIMEOUT);
+
                 // Update time
                 profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
             }
@@ -3315,6 +3327,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                false,
                                network_config,
                                MIO_RNN_FINDSOL_TIMEOUT);
+
             // Update time
             profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
         }
@@ -3493,6 +3506,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                                false,
                                                network_config,
                                                MIO_RNN_FINDSOL_TIMEOUT);
+
                             // Update time
                             if(li == nLayers - 1 && ti == seqLen - 1 && ri == bi - 1 &&
                                !(rnnMode == miopenGRU && biasMode))
