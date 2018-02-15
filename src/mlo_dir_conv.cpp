@@ -394,8 +394,7 @@ mlo_construct_direct2D::setWeightDescFromMLDesc(const miopen::TensorDescriptor& 
     setWeightsDescr(
         "NCHW", data_type, nWei, cWei, hWei, wWei, nWeiStride, cWeiStride, hWeiStride, wWeiStride);
 
-    size_t weights_sz = nWei * cWei * hWei * wWei * sizeof(float);
-    return weights_sz;
+    return weight_tensor.GetElementSpace();
 }
 
 size_t
