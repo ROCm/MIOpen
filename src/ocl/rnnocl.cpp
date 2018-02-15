@@ -45,7 +45,7 @@ namespace miopen {
 // Assuming sequence length is set to > 0 otherwise throw exception.
 void RNNDescriptor::RNNForwardInference(Handle& handle,
                                         const int seqLen,
-                                        c_array_view<miopenTensorDescriptor_t> xDesc,
+                                        c_array_view<const miopenTensorDescriptor_t> xDesc,
                                         ConstData_t x,
                                         const TensorDescriptor& hxDesc,
                                         ConstData_t hx,
@@ -53,7 +53,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                         ConstData_t cx,
                                         const TensorDescriptor& wDesc,
                                         ConstData_t w,
-                                        c_array_view<miopenTensorDescriptor_t> yDesc,
+                                        c_array_view<const miopenTensorDescriptor_t> yDesc,
                                         Data_t y,
                                         const TensorDescriptor& hyDesc,
                                         Data_t hy,
@@ -236,26 +236,27 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
             else
             {
 
-                auto gg = ScanGemmGeometryRNN(handle,
-                                              x,
-                                              w,
-                                              workSpace,
-                                              batch_n,
-                                              wei_len * bi,
-                                              in_h,
-                                              1,
-                                              1,
-                                              false,
-                                              true,
-                                              false,
-                                              in_stride,
-                                              in_stride,
-                                              hy_stride,
-                                              false,
-                                              network_config,
-                                              MIO_RNN_FINDSOL_TIMEOUT);
-
-                gg.RunGemm(handle, x, w, workSpace, 0, 0, hid_shift);
+                RunGemmGeometryRNN(handle,
+                                   x,
+                                   w,
+                                   workSpace,
+                                   batch_n,
+                                   wei_len * bi,
+                                   in_h,
+                                   1,
+                                   1,
+                                   false,
+                                   true,
+                                   false,
+                                   in_stride,
+                                   in_stride,
+                                   hy_stride,
+                                   0,
+                                   0,
+                                   hid_shift,
+                                   false,
+                                   network_config,
+                                   MIO_RNN_FINDSOL_TIMEOUT);
 
                 // Update time
                 profileRNNkernels(handle, 0, ctime);
@@ -266,27 +267,27 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
             wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
             prelayer_shift = (li - 1) * batch_n * hy_stride + hid_off;
 
-            auto gg = ScanGemmGeometryRNN(handle,
-                                          workSpace,
-                                          w,
-                                          workSpace,
-                                          batch_n,
-                                          wei_len * bi,
-                                          hy_h * bi,
-                                          1,
-                                          1,
-                                          false,
-                                          true,
-                                          false,
-                                          hy_stride,
-                                          bi_stride,
-                                          hy_stride,
-                                          false,
-                                          network_config,
-                                          MIO_RNN_FINDSOL_TIMEOUT);
-
-            gg.RunGemm(handle, workSpace, w, workSpace, prelayer_shift, wei_shift, hid_shift);
-
+            RunGemmGeometryRNN(handle,
+                               workSpace,
+                               w,
+                               workSpace,
+                               batch_n,
+                               wei_len * bi,
+                               hy_h * bi,
+                               1,
+                               1,
+                               false,
+                               true,
+                               false,
+                               hy_stride,
+                               bi_stride,
+                               hy_stride,
+                               prelayer_shift,
+                               wei_shift,
+                               hid_shift,
+                               false,
+                               network_config,
+                               MIO_RNN_FINDSOL_TIMEOUT);
             // Update time
             profileRNNkernels(handle, 1, ctime);
         }
@@ -421,66 +422,55 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                     {
                         if(hx != nullptr)
                         {
-                            auto gg = ScanGemmGeometryRNN(handle,
-                                                          hx,
-                                                          w,
-                                                          workSpace,
-                                                          in_n.at(cur_time),
-                                                          wei_len,
-                                                          hy_h,
-                                                          1,
-                                                          1,
-                                                          false,
-                                                          true,
-                                                          false,
-                                                          uni_stride,
-                                                          uni_stride,
-                                                          hy_stride,
-                                                          false,
-                                                          network_config,
-                                                          MIO_RNN_FINDSOL_TIMEOUT);
-
-                            gg.RunGemm(handle,
-                                       hx,
-                                       w,
-                                       workSpace,
-                                       hx_shift + ri * hy_n * hy_h,
-                                       wei_shift + ri * wei_len * uni_stride,
-                                       offset + ri * wei_len);
-
-                            // Update time
-                            profileRNNkernels(handle, 1, ctime);
+                            RunGemmGeometryRNN(handle,
+                                           hx,
+                                           w,
+                                           workSpace,
+                                           in_n.at(cur_time),
+                                           wei_len,
+                                           hy_h,
+                                           1,
+                                           1,
+                                           false,
+                                           true,
+                                           false,
+                                           uni_stride,
+                                           uni_stride,
+                                           hy_stride,
+                                           hx_shift + ri * hy_n * hy_h,
+                                           wei_shift + ri * wei_len * uni_stride,
+                                           offset + ri * wei_len,
+                                           false,
+                                           network_config,
+                                           MIO_RNN_FINDSOL_TIMEOUT);
+                        // Update time
+                        profileRNNkernels(handle, 1, ctime);
                         }
                     }
                     else
                     {
 
-                        auto gg = ScanGemmGeometryRNN(handle,
-                                                      hy,
-                                                      w,
-                                                      workSpace,
-                                                      in_n.at(cur_time),
-                                                      wei_len,
-                                                      hy_h,
-                                                      1,
-                                                      1,
-                                                      false,
-                                                      true,
-                                                      false,
-                                                      uni_stride,
-                                                      uni_stride,
-                                                      hy_stride,
-                                                      false,
-                                                      network_config,
-                                                      MIO_RNN_FINDSOL_TIMEOUT);
-
-                        gg.RunGemm(handle,
-                                   hy,
-                                   w,
-                                   workSpace,
-                                   hx_shift + ri * hy_n * hy_h,
-                                   wei_shift + ri * wei_len * uni_stride,
-                                   offset + ri * wei_len);
+                        RunGemmGeometryRNN(handle,
+                                           hy,
+                                           w,
+                                           workSpace,
+                                           in_n.at(cur_time),
+                                           wei_len,
+                                           hy_h,
+                                           1,
+                                           1,
+                                           false,
+                                           true,
+                                           false,
+                                           uni_stride,
+                                           uni_stride,
+                                           hy_stride,
+                                           hx_shift + ri * hy_n * hy_h,
+                                           wei_shift + ri * wei_len * uni_stride,
+                                           offset + ri * wei_len,
+                                           false,
+                                           network_config,
+                                           MIO_RNN_FINDSOL_TIMEOUT);
 
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
@@ -912,7 +902,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
 
 void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        const int seqLen,
-                                       c_array_view<miopenTensorDescriptor_t> xDesc,
+                                       c_array_view<const miopenTensorDescriptor_t> xDesc,
                                        ConstData_t x,
                                        const TensorDescriptor& hxDesc,
                                        ConstData_t hx,
@@ -920,7 +910,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        ConstData_t cx,
                                        const TensorDescriptor& wDesc,
                                        ConstData_t w,
-                                       c_array_view<miopenTensorDescriptor_t> yDesc,
+                                       c_array_view<const miopenTensorDescriptor_t> yDesc,
                                        Data_t y,
                                        const TensorDescriptor& hyDesc,
                                        Data_t hy,
@@ -1108,27 +1098,28 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             }
             else
             {
-                auto gg = ScanGemmGeometryRNN(handle,
-                                              x,
-                                              w,
-                                              reserveSpace,
-                                              batch_n,
-                                              wei_len * bi,
-                                              in_h,
-                                              1,
-                                              1,
-                                              false,
-                                              true,
-                                              false,
-                                              in_stride,
-                                              in_stride,
-                                              hy_stride,
-                                              false,
-                                              network_config,
-                                              MIO_RNN_FINDSOL_TIMEOUT);
 
-                gg.RunGemm(handle, x, w, reserveSpace, 0, 0, hid_shift);
-
+                RunGemmGeometryRNN(handle,
+                                   x,
+                                   w,
+                                   reserveSpace,
+                                   batch_n,
+                                   wei_len * bi,
+                                   in_h,
+                                   1,
+                                   1,
+                                   false,
+                                   true,
+                                   false,
+                                   in_stride,
+                                   in_stride,
+                                   hy_stride,
+                                   0,
+                                   0,
+                                   hid_shift,
+                                   false,
+                                   network_config,
+                                   MIO_RNN_FINDSOL_TIMEOUT);
                 // Update time
                 profileRNNkernels(handle, 0, ctime);
             }
@@ -1138,26 +1129,27 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             wei_shift = (in_h + hy_h) * wei_stride + (li - 1) * (bi * hy_h + hy_h) * wei_stride;
             prelayer_shift = (li - 1) * batch_n * hy_stride + hid_off;
 
-            auto gg = ScanGemmGeometryRNN(handle,
-                                          reserveSpace,
-                                          w,
-                                          reserveSpace,
-                                          batch_n,
-                                          wei_len * bi,
-                                          hy_h * bi,
-                                          1,
-                                          1,
-                                          false,
-                                          true,
-                                          false,
-                                          hy_stride,
-                                          bi_stride,
-                                          hy_stride,
-                                          false,
-                                          network_config,
-                                          MIO_RNN_FINDSOL_TIMEOUT);
-
-            gg.RunGemm(handle, reserveSpace, w, reserveSpace, prelayer_shift, wei_shift, hid_shift);
+            RunGemmGeometryRNN(handle,
+                               reserveSpace,
+                               w,
+                               reserveSpace,
+                               batch_n,
+                               wei_len * bi,
+                               hy_h * bi,
+                               1,
+                               1,
+                               false,
+                               true,
+                               false,
+                               hy_stride,
+                               bi_stride,
+                               hy_stride,
+                               prelayer_shift,
+                               wei_shift,
+                               hid_shift,
+                               false,
+                               network_config,
+                               MIO_RNN_FINDSOL_TIMEOUT);
 
             // Update time
             profileRNNkernels(handle, 1, ctime);
@@ -1293,67 +1285,54 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                     {
                         if(hx != nullptr)
                         {
-                            auto gg = ScanGemmGeometryRNN(handle,
-                                                          hx,
-                                                          w,
-                                                          reserveSpace,
-                                                          in_n.at(cur_time),
-                                                          wei_len,
-                                                          hy_h,
-                                                          1,
-                                                          1,
-                                                          false,
-                                                          true,
-                                                          false,
-                                                          uni_stride,
-                                                          uni_stride,
-                                                          hy_stride,
-                                                          false,
-                                                          network_config,
-                                                          MIO_RNN_FINDSOL_TIMEOUT);
-
-                            gg.RunGemm(handle,
-                                       hx,
-                                       w,
-                                       reserveSpace,
-                                       hx_shift + ri * hy_n * hy_h,
-                                       wei_shift + ri * wei_len * uni_stride,
-                                       offset + ri * wei_len);
-
+                        RunGemmGeometryRNN(handle,
+                                           hx,
+                                           w,
+                                           reserveSpace,
+                                           in_n.at(cur_time),
+                                           wei_len,
+                                           hy_h,
+                                           1,
+                                           1,
+                                           false,
+                                           true,
+                                           false,
+                                           uni_stride,
+                                           uni_stride,
+                                           hy_stride,
+                                           hx_shift + ri * hy_n * hy_h,
+                                           wei_shift + ri * wei_len * uni_stride,
+                                           offset + ri * wei_len,
+                                           false,
+                                           network_config,
+                                           MIO_RNN_FINDSOL_TIMEOUT);
                             // Update time
                             profileRNNkernels(handle, 1, ctime);
                         }
                     }
                     else
                     {
-
-                        auto gg = ScanGemmGeometryRNN(handle,
-                                                      hy,
-                                                      w,
-                                                      reserveSpace,
-                                                      in_n.at(cur_time),
-                                                      wei_len,
-                                                      hy_h,
-                                                      1,
-                                                      1,
-                                                      false,
-                                                      true,
-                                                      false,
-                                                      uni_stride,
-                                                      uni_stride,
-                                                      hy_stride,
-                                                      false,
-                                                      network_config,
-                                                      MIO_RNN_FINDSOL_TIMEOUT);
-
-                        gg.RunGemm(handle,
-                                   hy,
-                                   w,
-                                   reserveSpace,
-                                   hx_shift + ri * hy_n * hy_h,
-                                   wei_shift + ri * wei_len * uni_stride,
-                                   offset + ri * wei_len);
-
+                        RunGemmGeometryRNN(handle,
+                                           hy,
+                                           w,
+                                           reserveSpace,
+                                           in_n.at(cur_time),
+                                           wei_len,
+                                           hy_h,
+                                           1,
+                                           1,
+                                           false,
+                                           true,
+                                           false,
+                                           uni_stride,
+                                           uni_stride,
+                                           hy_stride,
+                                           hx_shift + ri * hy_n * hy_h,
+                                           wei_shift + ri * wei_len * uni_stride,
+                                           offset + ri * wei_len,
+                                           false,
+                                           network_config,
+                                           MIO_RNN_FINDSOL_TIMEOUT);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
                     }
@@ -1789,9 +1768,9 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
 
 void RNNDescriptor::RNNBackwardData(Handle& handle,
                                     const int seqLen,
-                                    c_array_view<miopenTensorDescriptor_t> yDesc,
+                                    c_array_view<const miopenTensorDescriptor_t> yDesc,
                                     ConstData_t y,
-                                    c_array_view<miopenTensorDescriptor_t> dyDesc,
+                                    c_array_view<const miopenTensorDescriptor_t> dyDesc,
                                     ConstData_t dy,
                                     const TensorDescriptor& dhyDesc,
                                     ConstData_t dhy,
@@ -1803,7 +1782,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                     ConstData_t hx,
                                     const TensorDescriptor& cxDesc,
                                     ConstData_t cx,
-                                    c_array_view<miopenTensorDescriptor_t> dxDesc,
+                                    c_array_view<const miopenTensorDescriptor_t> dxDesc,
                                     Data_t dx,
                                     const TensorDescriptor& dhxDesc,
                                     Data_t dhx,
@@ -1994,26 +1973,27 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         {
             prelayer_shift = (li + 1) * batch_n * hy_stride;
 
-            auto gg = ScanGemmGeometryRNN(handle,
-                                          workSpace,
-                                          w,
-                                          workSpace,
-                                          batch_n,
-                                          hy_h * bi,
-                                          wei_len * bi,
-                                          1,
-                                          1,
-                                          false,
-                                          false,
-                                          false,
-                                          hy_stride,
-                                          bi_stride,
-                                          hy_stride,
-                                          false,
-                                          network_config,
-                                          MIO_RNN_FINDSOL_TIMEOUT);
-            gg.RunGemm(
-                handle, workSpace, w, workSpace, prelayer_shift, wei_shift, hid_shift + dhd_off);
+            RunGemmGeometryRNN(handle,
+                               workSpace,
+                               w,
+                               workSpace,
+                               batch_n,
+                               hy_h * bi,
+                               wei_len * bi,
+                               1,
+                               1,
+                               false,
+                               false,
+                               false,
+                               hy_stride,
+                               bi_stride,
+                               hy_stride,
+                               prelayer_shift,
+                               wei_shift,
+                               hid_shift + dhd_off,
+                               false,
+                               network_config,
+                               MIO_RNN_FINDSOL_TIMEOUT);
 
             // Update time
             profileRNNkernels(handle, 1, ctime);
@@ -2118,33 +2098,27 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                             if(in_n[use_time] > 0)
                             {
 
-                                auto gg = ScanGemmGeometryRNN(handle,
-                                                              workSpace,
-                                                              w,
-                                                              workSpace,
-                                                              in_n.at(use_time),
-                                                              hy_h,
-                                                              wei_len_t,
-                                                              1,
-                                                              1,
-                                                              false,
-                                                              false,
-                                                              false,
-                                                              hy_stride,
-                                                              uni_stride,
-                                                              hy_stride,
-                                                              false,
-                                                              network_config,
-                                                              MIO_RNN_FINDSOL_TIMEOUT);
-
-                                gg.RunGemm(handle,
-                                           workSpace,
-                                           w,
-                                           workSpace,
-                                           pretime_shift,
-                                           weitime_shift + ri * wei_len * uni_stride,
-                                           offset + dhd_off + ri * hy_h);
-
+                                RunGemmGeometryRNN(handle,
+                                                   workSpace,
+                                                   w,
+                                                   workSpace,
+                                                   in_n.at(use_time),
+                                                   hy_h,
+                                                   wei_len_t,
+                                                   1,
+                                                   1,
+                                                   false,
+                                                   false,
+                                                   false,
+                                                   hy_stride,
+                                                   uni_stride,
+                                                   hy_stride,
+                                                   pretime_shift,
+                                                   weitime_shift + ri * wei_len * uni_stride,
+                                                   offset + dhd_off + ri * hy_h,
+                                                   false,
+                                                   network_config,
+                                                   MIO_RNN_FINDSOL_TIMEOUT);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
 
@@ -2197,34 +2171,28 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                     // Update time
                                     profileRNNkernels(handle, 1, ctime);
 
-                                    auto gg2 = ScanGemmGeometryRNN(handle,
-                                                                   workSpace,
-                                                                   w,
-                                                                   workSpace,
-                                                                   in_n.at(use_time),
-                                                                   hy_h,
-                                                                   hy_h,
-                                                                   1,
-                                                                   1,
-                                                                   false,
-                                                                   false,
-                                                                   false,
-                                                                   hy_stride,
-                                                                   uni_stride,
-                                                                   hy_stride,
-                                                                   false,
-                                                                   network_config,
-                                                                   MIO_RNN_FINDSOL_TIMEOUT);
-
-                                    gg2.RunGemm(handle,
-                                                workSpace,
-                                                w,
-                                                workSpace,
-                                                offset + 2 * hy_h + ri * 3 * hy_h,
-                                                weitime_shift + 2 * hy_h * uni_stride +
-                                                    ri * 3 * hy_h * uni_stride,
-                                                offset + bi * 3 * hy_h + ri * hy_h);
-
+                                    RunGemmGeometryRNN(handle,
+                                                       workSpace,
+                                                       w,
+                                                       workSpace,
+                                                       in_n.at(use_time),
+                                                       hy_h,
+                                                       hy_h,
+                                                       1,
+                                                       1,
+                                                       false,
+                                                       false,
+                                                       false,
+                                                       hy_stride,
+                                                       uni_stride,
+                                                       hy_stride,
+                                                       offset + 2 * hy_h + ri * 3 * hy_h,
+                                                       weitime_shift + 2 * hy_h * uni_stride +
+                                                           ri * 3 * hy_h * uni_stride,
+                                                       offset + bi * 3 * hy_h + ri * hy_h,
+                                                       false,
+                                                       network_config,
+                                                       MIO_RNN_FINDSOL_TIMEOUT);
                                     // Update time
                                     profileRNNkernels(handle, 1, ctime);
                                 }
@@ -2259,32 +2227,27 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
-                        auto gg = ScanGemmGeometryRNN(handle,
-                                                      workSpace,
-                                                      w,
-                                                      dhx,
-                                                      in_n.at(cur_time),
-                                                      hy_h,
-                                                      hy_h,
-                                                      1,
-                                                      0,
-                                                      false,
-                                                      false,
-                                                      false,
-                                                      hy_stride,
-                                                      uni_stride,
-                                                      uni_stride,
-                                                      false,
-                                                      network_config,
-                                                      MIO_RNN_FINDSOL_TIMEOUT);
-
-                        gg.RunGemm(handle,
-                                   workSpace,
-                                   w,
-                                   dhx,
-                                   offset + ri * hy_h,
-                                   weitime_shift + ri * wei_len * uni_stride,
-                                   hx_shift + ri * hy_n * hy_h);
+                        RunGemmGeometryRNN(handle,
+                                           workSpace,
+                                           w,
+                                           dhx,
+                                           in_n.at(cur_time),
+                                           hy_h,
+                                           hy_h,
+                                           1,
+                                           0,
+                                           false,
+                                           false,
+                                           false,
+                                           hy_stride,
+                                           uni_stride,
+                                           uni_stride,
+                                           offset + ri * hy_h,
+                                           weitime_shift + ri * wei_len * uni_stride,
+                                           hx_shift + ri * hy_n * hy_h,
+                                           false,
+                                           network_config,
+                                           MIO_RNN_FINDSOL_TIMEOUT);
 
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
@@ -2725,34 +2688,28 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         {
                             if(hx != nullptr)
                             {
-                                auto gg = ScanGemmGeometryRNN(handle,
-                                                              hx,
-                                                              w,
-                                                              workSpace,
-                                                              in_n.at(cur_time),
-                                                              hy_h,
-                                                              hy_h,
-                                                              1,
-                                                              1,
-                                                              false,
-                                                              true,
-                                                              false,
-                                                              uni_stride,
-                                                              uni_stride,
-                                                              hy_stride,
-                                                              false,
-                                                              network_config,
-                                                              MIO_RNN_FINDSOL_TIMEOUT);
-
-                                gg.RunGemm(handle,
-                                           hx,
-                                           w,
-                                           workSpace,
-                                           hx_shift + ri * hy_n * hy_h,
-                                           weitime_shift + 2 * hy_h * uni_stride +
-                                               ri * 3 * hy_h * uni_stride,
-                                           offset + hy_h + ri * 3 * hy_h);
-
+                                RunGemmGeometryRNN(handle,
+                                               hx,
+                                               w,
+                                               workSpace,
+                                               in_n.at(cur_time),
+                                               hy_h,
+                                               hy_h,
+                                               1,
+                                               1,
+                                               false,
+                                               true,
+                                               false,
+                                               uni_stride,
+                                               uni_stride,
+                                               hy_stride,
+                                               hx_shift + ri * hy_n * hy_h,
+                                               weitime_shift + 2 * hy_h * uni_stride +
+                                                   ri * 3 * hy_h * uni_stride,
+                                               offset + hy_h + ri * 3 * hy_h,
+                                               false,
+                                               network_config,
+                                               MIO_RNN_FINDSOL_TIMEOUT);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
@@ -2762,35 +2719,29 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                             if(in_n[use_time2] > 0)
                             {
 
-                                auto gg = ScanGemmGeometryRNN(handle,
-                                                              reserveSpace,
-                                                              w,
-                                                              workSpace,
-                                                              in_n.at(use_time2),
-                                                              hy_h,
-                                                              hy_h,
-                                                              1,
-                                                              1,
-                                                              false,
-                                                              true,
-                                                              false,
-                                                              hy_stride,
-                                                              uni_stride,
-                                                              hy_stride,
-                                                              false,
-                                                              network_config,
-                                                              MIO_RNN_FINDSOL_TIMEOUT);
-
-                                gg.RunGemm(handle,
-                                           reserveSpace,
-                                           w,
-                                           workSpace,
-                                           hid_shift + pre_batch2 * hy_stride + bi * 3 * hy_h +
-                                               ri * hy_h,
-                                           weitime_shift + 2 * hy_h * uni_stride +
-                                               ri * 3 * hy_h * uni_stride,
-                                           offset + hy_h + ri * 3 * hy_h);
-
+                                RunGemmGeometryRNN(handle,
+                                                   reserveSpace,
+                                                   w,
+                                                   workSpace,
+                                                   in_n.at(use_time2),
+                                                   hy_h,
+                                                   hy_h,
+                                                   1,
+                                                   1,
+                                                   false,
+                                                   true,
+                                                   false,
+                                                   hy_stride,
+                                                   uni_stride,
+                                                   hy_stride,
+                                                   hid_shift + pre_batch2 * hy_stride +
+                                                       bi * 3 * hy_h + ri * hy_h,
+                                                   weitime_shift + 2 * hy_h * uni_stride +
+                                                       ri * 3 * hy_h * uni_stride,
+                                                   offset + hy_h + ri * 3 * hy_h,
+                                                   false,
+                                                   network_config,
+                                                   MIO_RNN_FINDSOL_TIMEOUT);
                                 // Update time
                                 profileRNNkernels(handle, 1, ctime);
                             }
@@ -3028,33 +2979,27 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                     if(rnnMode == miopenLSTM)
                     {
 
-                        auto gg = ScanGemmGeometryRNN(handle,
-                                                      workSpace,
-                                                      w,
-                                                      dhx,
-                                                      in_n.at(cur_time),
-                                                      hy_h,
-                                                      hy_h * 4,
-                                                      1,
-                                                      1,
-                                                      false,
-                                                      false,
-                                                      false,
-                                                      hy_stride,
-                                                      uni_stride,
-                                                      uni_stride,
-                                                      false,
-                                                      network_config,
-                                                      MIO_RNN_FINDSOL_TIMEOUT);
-
-                        gg.RunGemm(handle,
-                                   workSpace,
-                                   w,
-                                   dhx,
-                                   pretime_shift + ri * 4 * hy_h,
-                                   weitime_shift + ri * 4 * hy_h * uni_stride,
-                                   hx_shift + ri * hy_n * hy_h);
-
+                        RunGemmGeometryRNN(handle,
+                                           workSpace,
+                                           w,
+                                           dhx,
+                                           in_n.at(cur_time),
+                                           hy_h,
+                                           hy_h * 4,
+                                           1,
+                                           1,
+                                           false,
+                                           false,
+                                           false,
+                                           hy_stride,
+                                           uni_stride,
+                                           uni_stride,
+                                           pretime_shift + ri * 4 * hy_h,
+                                           weitime_shift + ri * 4 * hy_h * uni_stride,
+                                           hx_shift + ri * hy_n * hy_h,
+                                           false,
+                                           network_config,
+                                           MIO_RNN_FINDSOL_TIMEOUT);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -3105,35 +3050,29 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
-                        auto gg = ScanGemmGeometryRNN(handle,
-                                                      reserveSpace,
-                                                      w,
-                                                      dhx,
-                                                      in_n.at(cur_time),
-                                                      hy_h,
-                                                      hy_h,
-                                                      1,
-                                                      0,
-                                                      false,
-                                                      false,
-                                                      false,
-                                                      hy_stride,
-                                                      uni_stride,
-                                                      uni_stride,
-                                                      false,
-                                                      network_config,
-                                                      MIO_RNN_FINDSOL_TIMEOUT);
-
-                        gg.RunGemm(handle,
-                                   reserveSpace,
-                                   w,
-                                   dhx,
-                                   pretime_shift + bi * 3 * hy_h + ri * hy_h +
-                                       nLayers * batch_n * hy_stride,
-                                   weitime_shift + 2 * hy_h * uni_stride +
-                                       ri * 3 * hy_h * uni_stride,
-                                   hx_shift + ri * hy_n * hy_h);
-
+                        RunGemmGeometryRNN(handle,
+                                           reserveSpace,
+                                           w,
+                                           dhx,
+                                           in_n.at(cur_time),
+                                           hy_h,
+                                           hy_h,
+                                           1,
+                                           0,
+                                           false,
+                                           false,
+                                           false,
+                                           hy_stride,
+                                           uni_stride,
+                                           uni_stride,
+                                           pretime_shift + bi * 3 * hy_h + ri * hy_h +
+                                               nLayers * batch_n * hy_stride,
+                                           weitime_shift + 2 * hy_h * uni_stride +
+                                               ri * 3 * hy_h * uni_stride,
+                                           hx_shift + ri * hy_n * hy_h,
+                                           false,
+                                           network_config,
+                                           MIO_RNN_FINDSOL_TIMEOUT);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
@@ -3158,32 +3097,27 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
 
-                        auto gg2 = ScanGemmGeometryRNN(handle,
-                                                       workSpace,
-                                                       w,
-                                                       dhx,
-                                                       in_n.at(cur_time),
-                                                       hy_h,
-                                                       hy_h * 2,
-                                                       1,
-                                                       1,
-                                                       false,
-                                                       false,
-                                                       false,
-                                                       hy_stride,
-                                                       uni_stride,
-                                                       uni_stride,
-                                                       false,
-                                                       network_config,
-                                                       MIO_RNN_FINDSOL_TIMEOUT);
-
-                        gg2.RunGemm(handle,
-                                    workSpace,
-                                    w,
-                                    dhx,
-                                    pretime_shift + ri * 3 * hy_h,
-                                    weitime_shift + ri * 3 * hy_h * uni_stride,
-                                    hx_shift + ri * hy_n * hy_h);
+                        RunGemmGeometryRNN(handle,
+                                           workSpace,
+                                           w,
+                                           dhx,
+                                           in_n.at(cur_time),
+                                           hy_h,
+                                           hy_h * 2,
+                                           1,
+                                           1,
+                                           false,
+                                           false,
+                                           false,
+                                           hy_stride,
+                                           uni_stride,
+                                           uni_stride,
+                                           pretime_shift + ri * 3 * hy_h,
+                                           weitime_shift + ri * 3 * hy_h * uni_stride,
+                                           hx_shift + ri * hy_n * hy_h,
+                                           false,
+                                           network_config,
+                                           MIO_RNN_FINDSOL_TIMEOUT);
 
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
@@ -3230,26 +3164,27 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     else
     {
 
-        auto gg = ScanGemmGeometryRNN(handle,
-                                      workSpace,
-                                      w,
-                                      dx,
-                                      batch_n,
-                                      in_h,
-                                      wei_len * bi,
-                                      1,
-                                      1,
-                                      false,
-                                      false,
-                                      false,
-                                      hy_stride,
-                                      in_stride,
-                                      in_stride,
-                                      false,
-                                      network_config,
-                                      MIO_RNN_FINDSOL_TIMEOUT);
-
-        gg.RunGemm(handle, workSpace, w, dx, 0, 0, 0);
+        RunGemmGeometryRNN(handle,
+                           workSpace,
+                           w,
+                           dx,
+                           batch_n,
+                           in_h,
+                           wei_len * bi,
+                           1,
+                           1,
+                           false,
+                           false,
+                           false,
+                           hy_stride,
+                           in_stride,
+                           in_stride,
+                           0,
+                           0,
+                           0,
+                           false,
+                           network_config,
+                           MIO_RNN_FINDSOL_TIMEOUT);
 
         // Update time
         profileRNNkernels(handle, 2, ctime);
@@ -3273,11 +3208,11 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
 void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                        const int seqLen,
-                                       c_array_view<miopenTensorDescriptor_t> xDesc,
+                                       c_array_view<const miopenTensorDescriptor_t> xDesc,
                                        ConstData_t x,
                                        const TensorDescriptor& hxDesc,
                                        ConstData_t hx,
-                                       c_array_view<miopenTensorDescriptor_t> dyDesc,
+                                       c_array_view<const miopenTensorDescriptor_t> dyDesc,
                                        ConstData_t dy,
                                        const TensorDescriptor& dwDesc,
                                        Data_t dw,
@@ -3418,26 +3353,27 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             if(inputMode == miopenRNNlinear)
             {
 
-                auto gg = ScanGemmGeometryRNN(handle,
-                                              workSpace,
-                                              x,
-                                              dw,
-                                              wei_len * bi,
-                                              in_h,
-                                              batch_n,
-                                              1,
-                                              1,
-                                              true,
-                                              false,
-                                              false,
-                                              hy_stride,
-                                              in_stride,
-                                              in_stride,
-                                              false,
-                                              network_config,
-                                              MIO_RNN_FINDSOL_TIMEOUT);
-
-                gg.RunGemm(handle, workSpace, x, dw, 0, 0, 0);
+                RunGemmGeometryRNN(handle,
+                                   workSpace,
+                                   x,
+                                   dw,
+                                   wei_len * bi,
+                                   in_h,
+                                   batch_n,
+                                   1,
+                                   1,
+                                   true,
+                                   false,
+                                   false,
+                                   hy_stride,
+                                   in_stride,
+                                   in_stride,
+                                   0,
+                                   0,
+                                   0,
+                                   false,
+                                   network_config,
+                                   MIO_RNN_FINDSOL_TIMEOUT);
 
                 // Update time
                 profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
@@ -3447,26 +3383,27 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         {
             int prelayer_shift = (li - 1) * batch_n * hy_stride + hid_off;
 
-            auto gg = ScanGemmGeometryRNN(handle,
-                                          workSpace,
-                                          reserveSpace,
-                                          dw,
-                                          wei_len * bi,
-                                          hy_h * bi,
-                                          batch_n,
-                                          1,
-                                          1,
-                                          true,
-                                          false,
-                                          false,
-                                          hy_stride,
-                                          hy_stride,
-                                          bi_stride,
-                                          false,
-                                          network_config,
-                                          MIO_RNN_FINDSOL_TIMEOUT);
-
-            gg.RunGemm(handle, workSpace, reserveSpace, dw, hid_shift, prelayer_shift, wei_shift);
+            RunGemmGeometryRNN(handle,
+                               workSpace,
+                               reserveSpace,
+                               dw,
+                               wei_len * bi,
+                               hy_h * bi,
+                               batch_n,
+                               1,
+                               1,
+                               true,
+                               false,
+                               false,
+                               hy_stride,
+                               hy_stride,
+                               bi_stride,
+                               hid_shift,
+                               prelayer_shift,
+                               wei_shift,
+                               false,
+                               network_config,
+                               MIO_RNN_FINDSOL_TIMEOUT);
 
             // Update time
             profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
@@ -3590,33 +3527,27 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     {
                         if(hx != nullptr)
                         {
-                            auto gg = ScanGemmGeometryRNN(handle,
-                                                          workSpace,
-                                                          hx,
-                                                          dw,
-                                                          wei_len,
-                                                          hy_h,
-                                                          in_n.at(cur_time),
-                                                          1,
-                                                          1,
-                                                          true,
-                                                          false,
-                                                          false,
-                                                          hy_stride,
-                                                          uni_stride,
-                                                          uni_stride,
-                                                          false,
-                                                          network_config,
-                                                          MIO_RNN_FINDSOL_TIMEOUT);
-
-                            gg.RunGemm(handle,
-                                       workSpace,
-                                       hx,
-                                       dw,
-                                       hid_shift + ri * wei_len,
-                                       hx_shift + ri * hy_n * hy_h,
-                                       wei_shift + ri * wei_len * uni_stride);
-
+                            RunGemmGeometryRNN(handle,
+                                           workSpace,
+                                           hx,
+                                           dw,
+                                           wei_len,
+                                           hy_h,
+                                           in_n.at(cur_time),
+                                           1,
+                                           1,
+                                           true,
+                                           false,
+                                           false,
+                                           hy_stride,
+                                           uni_stride,
+                                           uni_stride,
+                                           hid_shift + ri * wei_len,
+                                           hx_shift + ri * hy_n * hy_h,
+                                           wei_shift + ri * wei_len * uni_stride,
+                                           false,
+                                           network_config,
+                                           MIO_RNN_FINDSOL_TIMEOUT);
                             // Update time
                             if(li == nLayers - 1 && ti == seqLen - 1 && ri == bi - 1 &&
                                !(rnnMode == miopenGRU && biasMode))
@@ -3633,32 +3564,27 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                         if(in_n[use_time] > 0)
                         {
 
-                            auto gg = ScanGemmGeometryRNN(handle,
-                                                          workSpace,
-                                                          reserveSpace,
-                                                          dw,
-                                                          wei_len,
-                                                          hy_h,
-                                                          in_n.at(use_time),
-                                                          1,
-                                                          1,
-                                                          true,
-                                                          false,
-                                                          false,
-                                                          hy_stride,
-                                                          hy_stride,
-                                                          uni_stride,
-                                                          false,
-                                                          network_config,
-                                                          MIO_RNN_FINDSOL_TIMEOUT);
-
-                            gg.RunGemm(handle,
-                                       workSpace,
-                                       reserveSpace,
-                                       dw,
-                                       hid_shift + ri * wei_len,
-                                       pretime_shift + ri * hy_h,
-                                       wei_shift + ri * wei_len * uni_stride);
+                            RunGemmGeometryRNN(handle,
+                                               workSpace,
+                                               reserveSpace,
+                                               dw,
+                                               wei_len,
+                                               hy_h,
+                                               in_n.at(use_time),
+                                               1,
+                                               1,
+                                               true,
+                                               false,
+                                               false,
+                                               hy_stride,
+                                               hy_stride,
+                                               uni_stride,
+                                               hid_shift + ri * wei_len,
+                                               pretime_shift + ri * hy_h,
+                                               wei_shift + ri * wei_len * uni_stride,
+                                               false,
+                                               network_config,
+                                               MIO_RNN_FINDSOL_TIMEOUT);
 
                             // Update time
                             if(li == nLayers - 1 && ti == seqLen - 1 && ri == bi - 1 &&
