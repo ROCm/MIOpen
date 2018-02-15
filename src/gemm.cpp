@@ -360,4 +360,51 @@ GemmGeometry ScanGemmGeometryRNN(Handle& handle,
     return gg;
 }
 
+GemmGeometry RunGemmGeometryRNN(Handle& handle,
+                                ConstData_t A,
+                                ConstData_t B,
+                                Data_t C,
+                                int M,
+                                int N,
+                                int K,
+                                float alpha,
+                                float beta,
+                                bool tA,
+                                bool tB,
+                                bool tC,
+                                int lda,
+                                int ldb,
+                                int ldc,
+                                int a_offset,
+                                int b_offset,
+                                int c_offset,
+                                bool isDataColMajor,
+                                std::string& network_config,
+                                float timeout)
+{
+
+    auto gg = ScanGemmGeometryRNN(handle,
+                                  A,
+                                  B,
+                                  C,
+                                  M,
+                                  N,
+                                  K,
+                                  alpha,
+                                  beta,
+                                  tA,
+                                  tB,
+                                  tC,
+                                  lda,
+                                  ldb,
+                                  ldc,
+                                  isDataColMajor,
+                                  network_config,
+                                  timeout);
+
+    gg.RunGemm(handle, A, B, C, a_offset, b_offset, c_offset);
+
+    return gg;
+}
+
 } // namespace miopen
