@@ -360,7 +360,7 @@ GemmGeometry ScanGemmGeometryRNN(Handle& handle,
     return gg;
 }
 
-GemmGeometry RunGemmGeometryRNN(Handle& handle,
+void RunGemmGeometryRNN(Handle& handle,
                                 ConstData_t A,
                                 ConstData_t B,
                                 Data_t C,
@@ -403,8 +403,6 @@ GemmGeometry RunGemmGeometryRNN(Handle& handle,
                                   timeout);
 
     gg.RunGemm(handle, A, B, C, a_offset, b_offset, c_offset);
-
-    return gg;
 }
 
 } // namespace miopen
