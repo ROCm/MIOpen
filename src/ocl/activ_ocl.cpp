@@ -252,16 +252,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                     "activation does not support tensor size larger than 4 or smaller than 1");
             }
 
-            construct_params.setTopDescr("NCHW",
-                                         "FP32",
-                                         nOut,
-                                         cOut,
-                                         hOut,
-                                         wOut,
-                                         nOutStride,
-                                         cOutStride,
-                                         hOutStride,
-                                         wOutStride);
+            construct_params.setTopDescFromMLDesc(yDesc);
             int nIn       = 1;
             int cIn       = 1;
             int hIn       = 1;
