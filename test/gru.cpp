@@ -603,7 +603,7 @@ void GRUBwdDataCPUVerify(std::vector<T>& din,
 
     // initial hidden states
     auto ihs = hy_d * hy_n * hy_h;
-    std::vector<T> dcx(ihs, 0.);
+    std::vector<T> dcx(ihs);
 
     if(inputMode == 1)
     {
@@ -1505,9 +1505,9 @@ struct verify_forward_infer_gru
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
         miopenGetRNNTrainingReserveSize(
             &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
-        std::vector<T> reserveSpace(reserveSpaceSize / sizeof(T), 0.);
-        std::vector<T> output(out_sz / sizeof(T), 0.);
-        std::vector<T> hiddenState(initHidden.size(), 0.);
+        std::vector<T> reserveSpace(reserveSpaceSize / sizeof(T));
+        std::vector<T> output(out_sz / sizeof(T));
+        std::vector<T> hiddenState(initHidden.size());
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_start1 = std::chrono::high_resolution_clock::now();
@@ -1583,13 +1583,13 @@ struct verify_forward_infer_gru
 
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
 
-        std::vector<T> workSpace(workSpaceSize / sizeof(T), 0.);
-        std::vector<T> hiddenState(initHidden.size(), 0.);
+        std::vector<T> workSpace(workSpaceSize / sizeof(T));
+        std::vector<T> hiddenState(initHidden.size());
 
         auto input_dev = handle.Write(input);
 
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
-        std::vector<T> output(out_sz / sizeof(T), 0.);
+        std::vector<T> output(out_sz / sizeof(T));
         auto output_dev = handle.Write(output);
 
         auto weights_dev = handle.Write(weights);
@@ -1792,9 +1792,9 @@ struct verify_forward_train_gru
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
         miopenGetRNNTrainingReserveSize(
             &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
-        std::vector<T> reserveSpace(reserveSpaceSize / sizeof(T), 0.);
-        std::vector<T> output(out_sz / sizeof(T), 0.);
-        std::vector<T> hiddenState(initHidden.size(), 0.);
+        std::vector<T> reserveSpace(reserveSpaceSize / sizeof(T));
+        std::vector<T> output(out_sz / sizeof(T));
+        std::vector<T> hiddenState(initHidden.size());
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_start1 = std::chrono::high_resolution_clock::now();
@@ -1872,14 +1872,14 @@ struct verify_forward_train_gru
         miopenGetRNNTrainingReserveSize(
             &handle, rnnDesc, seqLength, inputDescs.data(), &reserveSpaceSize);
 
-        std::vector<T> workSpace(workSpaceSize / sizeof(T), 0.);
-        std::vector<T> reserveSpace(reserveSpaceSize / sizeof(T), 0.);
-        std::vector<T> hiddenState(initHidden.size(), 0.);
+        std::vector<T> workSpace(workSpaceSize / sizeof(T));
+        std::vector<T> reserveSpace(reserveSpaceSize / sizeof(T));
+        std::vector<T> hiddenState(initHidden.size());
 
         auto input_dev = handle.Write(input);
 
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
-        std::vector<T> output(out_sz / sizeof(T), 0.);
+        std::vector<T> output(out_sz / sizeof(T));
         auto output_dev = handle.Write(output);
 
         auto weights_dev = handle.Write(weights);
@@ -2103,9 +2103,9 @@ struct verify_backward_data_gru
         size_t in_sz = 0;
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, inputDescs.data(), &in_sz);
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
-        std::vector<T> workSpace(workSpaceSize / sizeof(T), 0.);
-        std::vector<T> dx(in_sz / sizeof(T), 0.);
-        std::vector<T> dhx(initHidden.size(), 0.);
+        std::vector<T> workSpace(workSpaceSize / sizeof(T));
+        std::vector<T> dx(in_sz / sizeof(T));
+        std::vector<T> dhx(initHidden.size());
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_start1 = std::chrono::high_resolution_clock::now();
@@ -2177,7 +2177,7 @@ struct verify_backward_data_gru
             outputCPPDescs, outputDescs, batch_seq, hiddenSize * ((dirMode) ? 2 : 1));
 
         miopenGetRNNWorkspaceSize(&handle, rnnDesc, seqLength, inputDescs.data(), &workSpaceSize);
-        std::vector<T> workSpace(workSpaceSize / sizeof(T), 0.);
+        std::vector<T> workSpace(workSpaceSize / sizeof(T));
         auto workSpace_dev = handle.Write(workSpace);
 
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
@@ -2200,10 +2200,10 @@ struct verify_backward_data_gru
 
         size_t in_sz = 0;
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, inputDescs.data(), &in_sz);
-        std::vector<T> dx(in_sz / sizeof(T), 0.);
+        std::vector<T> dx(in_sz / sizeof(T));
         auto dx_dev = handle.Write(dx);
 
-        std::vector<T> dhx(initHidden.size(), 0.);
+        std::vector<T> dhx(initHidden.size());
         auto dhx_dev = handle.Write(dhx);
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -2398,7 +2398,7 @@ struct verify_backward_weights_gru
         auto t_start = std::chrono::high_resolution_clock::now();
 #endif
         int bi = dirMode ? 2 : 1;
-        std::vector<T> dweights(weightSize, 0.);
+        std::vector<T> dweights(weightSize);
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_start1 = std::chrono::high_resolution_clock::now();
@@ -2461,7 +2461,7 @@ struct verify_backward_weights_gru
 
         auto workSpace_dev    = handle.Write(workSpace);
         auto reserveSpace_dev = handle.Write(reserveSpace);
-        std::vector<T> dweights(weightSize, 0.);
+        std::vector<T> dweights(weightSize);
         auto dweights_dev = handle.Write(dweights);
         miopen::TensorDescriptor weightDesc(miopenFloat, &weightSize, 1);
 
@@ -2634,7 +2634,7 @@ struct gru_driver : test_driver
         // Create input tensor
         auto inVecReal    = (inputMode) ? hiddenSize : inVecLen;
         std::size_t in_sz = inVecReal * batch_n;
-        std::vector<T> input(in_sz, 0.);
+        std::vector<T> input(in_sz);
         srand(0);
         for(int i = 0; i < in_sz; i++)
         {
@@ -2652,7 +2652,7 @@ struct gru_driver : test_driver
         auto firstInputDesc = miopen::TensorDescriptor(miopenFloat, inlens.data(), 2);
         miopenGetRNNParamsSize(&handle, rnnDesc, &firstInputDesc, &wei_bytes, miopenFloat);
         auto wei_sz = int(wei_bytes / sizeof(T));
-        std::vector<T> weights(wei_sz, 0.);
+        std::vector<T> weights(wei_sz);
         for(int i = 0; i < wei_sz; i++)
         {
             weights[i] = (((rand() % 2) == 1) ? -1 : 1) * 0.001 * float(rand() % 100);
@@ -2690,7 +2690,7 @@ struct gru_driver : test_driver
         auto curHiddenState       = std::get<1>(fwdTrainOutputPair.second);
         auto reserveSpaceFwdTrain = std::get<2>(fwdTrainOutputPair.second);
 
-        std::vector<T> dyin(yin.size(), 0.);
+        std::vector<T> dyin(yin.size());
         for(int i = 0; i < yin.size(); i++)
         {
             dyin[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);

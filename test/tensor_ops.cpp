@@ -140,8 +140,8 @@ struct verify_tensor_ops
                     // palpha1) +
                     // min_elem(aten[aindex + AtenOffset] * palpha0, bten[bindex + BtenOffset] *
                     // palpha1) +
-                    mul_elem(aten[aindex + AtenOffset] * palpha0,
-                             bten[bindex + BtenOffset] * palpha1) +
+                    mul_elem(T(aten[aindex + AtenOffset] * palpha0),
+                             T(bten[bindex + BtenOffset] * palpha1)) +
                     pbeta * cten[cindex + CtenOffset];
             }
             if(dim < (a_dims.size() - 1))
@@ -308,9 +308,7 @@ struct tensor_ops_driver : test_driver
     {
         std::vector<size_t> superStrides = super_tensor.desc.GetStrides();
         std::vector<int> strides(superStrides.begin() + (5 - lens.size()), superStrides.end());
-        auto tDesc = miopen::TensorDescriptor{
-            miopenFloat, lens.data(), strides.data(), static_cast<int>(lens.size())};
-        tensor<T> t = tensor<T>{tDesc};
+        tensor<T> t = tensor<T>{lens, strides};
         t.data      = super_tensor.data;
         return t;
     }
