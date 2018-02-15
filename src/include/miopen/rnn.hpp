@@ -157,6 +157,18 @@ struct RNNDescriptor : miopenRNNDescriptor
                       const TensorDescriptor& biasDesc,
                       ConstData_t bias);
 
+    void GetLayerParamOffset(int layer,
+                             const TensorDescriptor& xDesc,
+                             int paramID,
+                             TensorDescriptor& paramDesc,
+                             size_t* paramOffset);
+
+    void GetLayerBiasOffset(int layer,
+                            const TensorDescriptor& xDesc,
+                            int biasID,
+                            TensorDescriptor& biasDesc,
+                            size_t* biasOffset);
+
     size_t GetRNNInputSuperTensorSize(Handle& handle,
                                       int seqLength,
                                       c_array_view<miopenTensorDescriptor_t> xDesc);
