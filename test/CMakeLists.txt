@@ -1,26 +1,26 @@
 ################################################################################
-# 
-# MIT License
-# 
-# Copyright (c) 2017 Advanced Micro Devices, Inc.
-# 
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-# 
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-# 
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+#
+#MIT License
+#
+#Copyright(c) 2017 Advanced Micro Devices, Inc.
+#
+#Permission is hereby granted, free of charge, to any person obtaining a copy
+#of this software and associated documentation files(the "Software"), to deal
+#in the Software without restriction, including without limitation the rights
+#to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+#copies of the Software, and to permit persons to whom the Software is
+#furnished to do so, subject to the following conditions:
+#
+#The above copyright notice and this permission notice shall be included in all
+#copies or substantial portions of the Software.
+#
+#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#SOFTWARE.
 # 
 ################################################################################
 
@@ -36,15 +36,18 @@ set(MIOPEN_TEST_FLAGS "" CACHE STRING "")
 set(MIOPEN_TEST_GDB On CACHE BOOL "")
 
 find_package(Threads REQUIRED)
-add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
+add_custom_target(check COMMAND ${
+    CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
 
-set(SKIP_TESTS test_gru)
+set(SKIP_TESTS )
 
 function(add_test_command NAME EXE)
     if(NAME IN_LIST SKIP_TESTS)
-        add_test(NAME ${NAME} COMMAND echo skipped)
-        set_tests_properties(${NAME} PROPERTIES DISABLED On)
+        add_test(NAME ${
+    NAME} COMMAND echo skipped)
+        set_tests_properties(${
+    NAME} PROPERTIES DISABLED On)
     elseif(WIN32)
         set(WINPATH)
         foreach(PATH ${CMAKE_FIND_ROOT_PATH})
@@ -52,13 +55,17 @@ function(add_test_command NAME EXE)
         endforeach()
         file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmd"
             CONTENT "set PATH=${WINPATH};%PATH%
-                    %1 ${ARGN}")
-        add_test(NAME ${NAME} COMMAND ${WINE_CMD} cmd /c "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmd" $<TARGET_FILE:${EXE}>)
+                    %1 ${
+    ARGN}")
+        add_test(NAME ${
+    NAME} COMMAND ${
+    WINE_CMD} cmd /c "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmd" $<TARGET_FILE:${EXE}>)
     else()
         if(MIOPEN_TEST_GDB)
             file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmake"
                 CONTENT "
-                execute_process(COMMAND $<TARGET_FILE:${EXE}> ${ARGN} RESULT_VARIABLE RESULT)
+                execute_process(COMMAND $<TARGET_FILE:${EXE}> ${
+    ARGN} RESULT_VARIABLE RESULT)
                 if(NOT RESULT EQUAL 0)
                     if(EXISTS core)
                         execute_process(COMMAND gdb $<TARGET_FILE:${EXE}> core -batch -ex bt)
@@ -66,44 +73,61 @@ function(add_test_command NAME EXE)
                     message(FATAL_ERROR \"Test failed\")
                 endif()
             ")
-            add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmake")
+            add_test(NAME ${
+    NAME} COMMAND ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/test_${NAME}.cmake")
         else()
-            add_test(NAME ${NAME} COMMAND ${EXE} ${ARGN})
+            add_test(NAME ${
+    NAME} COMMAND ${
+    EXE} ${ARGN})
         endif()
     endif()
 endfunction()
 
 function(add_test_executable TEST_NAME)
-    add_executable (${TEST_NAME} EXCLUDE_FROM_ALL ${ARGN})
+    add_executable (${
+    TEST_NAME} EXCLUDE_FROM_ALL ${ARGN})
     clang_tidy_check(${TEST_NAME})
-    target_link_libraries(${TEST_NAME} ${CMAKE_THREAD_LIBS_INIT})
-    # Cmake does not add flags correctly for gcc
+    target_link_libraries(${
+    TEST_NAME} ${CMAKE_THREAD_LIBS_INIT})
+#Cmake does not add flags correctly for gcc
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU") 
-        set_target_properties(${TEST_NAME} PROPERTIES COMPILE_FLAGS -pthread LINK_FLAGS -pthread)
+        set_target_properties(${
+    TEST_NAME} PROPERTIES COMPILE_FLAGS -pthread LINK_FLAGS -pthread)
     endif()
     separate_arguments(MIOPEN_TEST_FLAGS_ARGS UNIX_COMMAND ${MIOPEN_TEST_FLAGS})
     if(MIOPEN_TEST_ALL)
-        set(TEST_COMMAND ${TEST_NAME} --all ${MIOPEN_TEST_FLAGS_ARGS})
+        set(TEST_COMMAND ${
+    TEST_NAME} --all ${MIOPEN_TEST_FLAGS_ARGS})
     else()
-        set(TEST_COMMAND ${TEST_NAME} ${MIOPEN_TEST_FLAGS_ARGS})
+        set(TEST_COMMAND ${
+    TEST_NAME} ${MIOPEN_TEST_FLAGS_ARGS})
     endif()
-    add_test_command(${TEST_NAME} ${TEST_COMMAND})
+    add_test_command(${
+    TEST_NAME} ${TEST_COMMAND})
     add_dependencies(tests ${TEST_NAME})
     add_dependencies(check ${TEST_NAME})
-    set_tests_properties(${TEST_NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
+    set_tests_properties(${
+    TEST_NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
 endfunction(add_test_executable)
 
 file(GLOB TESTS *.cpp)
 
 foreach(TEST ${TESTS})
-    get_filename_component(BASE_NAME ${TEST} NAME_WE)
-    add_test_executable(test_${BASE_NAME} ${TEST})
-    target_link_libraries(test_${BASE_NAME} MIOpen)
+    get_filename_component(BASE_NAME ${
+    TEST} NAME_WE)
+    add_test_executable(test_${
+    BASE_NAME} ${TEST})
+    target_link_libraries(test_${
+    BASE_NAME} MIOpen)
 endforeach()
 
 function(add_custom_test NAME)
-    add_custom_target(${NAME} ${ARGN})
-    add_test(NAME ${NAME} COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
+    add_custom_target(${
+    NAME} ${ARGN})
+    add_test(NAME ${
+    NAME} COMMAND ${
+    CMAKE_COMMAND} --build ${
+    CMAKE_CURRENT_BINARY_DIR} --target ${NAME})
 endfunction()
 
 if(MIOPEN_TEST_ALL)
