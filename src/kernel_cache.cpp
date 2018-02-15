@@ -119,7 +119,6 @@ Kernel KernelCache::AddKernel(Handle& h,
                               std::string params,
                               std::size_t cache_index)
 {
-
     if(params.length() > 0)
     {
         // Ensure only one space after the -cl-std.
