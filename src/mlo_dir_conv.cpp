@@ -419,9 +419,7 @@ mlo_construct_direct2D::setOutputDescFromMLDesc(const miopen::TensorDescriptor& 
 
     setOutputDescr(
         "NCHW", data_type, nOut, cOut, hOut, wOut, nOutStride, cOutStride, hOutStride, wOutStride);
-
-    size_t output_sz = nOut * cOut * hOut * wOut * (miopenFloat ? 4 : 2);
-    return output_sz;
+    return output_tensor.GetElementSpace();
 }
 
 size_t mlo_construct_direct2D::setInputDescFromMLDesc(const miopen::TensorDescriptor& input_tensor)
@@ -445,9 +443,7 @@ size_t mlo_construct_direct2D::setInputDescFromMLDesc(const miopen::TensorDescri
     setInputDescr(
         "NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
 
-    size_t input_sz = nIn * cIn * hIn * wIn * (miopenFloat ? 4 : 2);
-
-    return input_sz;
+    return input_tensor.GetElementSpace();
 }
 
 size_t mlo_construct_direct2D::setTopDescFromMLDesc(const miopen::TensorDescriptor& tensor)
@@ -468,9 +464,7 @@ size_t mlo_construct_direct2D::setTopDescFromMLDesc(const miopen::TensorDescript
 
     setTopDescr("NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
 
-    size_t input_sz = nIn * cIn * hIn * wIn * (miopenFloat ? 4 : 2);
-
-    return input_sz;
+    return tensor.GetElementSpace();
 }
 size_t mlo_construct_direct2D::setBotDescFromMLDesc(const miopen::TensorDescriptor& tensor)
 {
@@ -490,9 +484,7 @@ size_t mlo_construct_direct2D::setBotDescFromMLDesc(const miopen::TensorDescript
 
     setBotDescr("NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
 
-    size_t input_sz = nIn * cIn * hIn * wIn * (miopenFloat ? 4 : 2);
-
-    return input_sz;
+    return tensor.GetElementSpace();
 }
 
 size_t mlo_construct_direct2D::setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
@@ -514,9 +506,7 @@ size_t mlo_construct_direct2D::setTopDfDescFromMLDesc(const miopen::TensorDescri
     setTopDfDescr(
         "NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
 
-    size_t input_sz = nIn * cIn * hIn * wIn * (miopenFloat ? 4 : 2);
-
-    return input_sz;
+    return tensor.GetElementSpace();
 }
 size_t mlo_construct_direct2D::setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
 {
@@ -537,7 +527,5 @@ size_t mlo_construct_direct2D::setBotDfDescFromMLDesc(const miopen::TensorDescri
     setBotDfDescr(
         "NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
 
-    size_t input_sz = nIn * cIn * hIn * wIn * (miopenFloat ? 4 : 2);
-
-    return input_sz;
+    return tensor.GetElementSpace();
 }
