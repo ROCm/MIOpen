@@ -96,7 +96,7 @@ GemmGeometry ScanGemmGeometryRNN(Handle& handle,
                                  std::string& network_config,
                                  float timeout);
 
-GemmGeometry RunGemmGeometryRNN(Handle& handle,
+void RunGemmGeometryRNN(Handle& handle,
                                 ConstData_t A,
                                 ConstData_t B,
                                 Data_t C,
