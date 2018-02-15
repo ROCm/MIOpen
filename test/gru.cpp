@@ -2670,12 +2670,6 @@ struct gru_driver : test_driver
 
         /* NULL hx/cx/dhy/dcy input test */
 
-        for(int i = 0; i < hx_sz; i++)
-        {
-            hx[i]    = 0.0;
-            dhyin[i] = 0.0;
-        }
-
         auto fwdTrainOutputPair = verify(verify_forward_train_gru<T>{rnnDesc,
                                                                      input,
                                                                      hx,
