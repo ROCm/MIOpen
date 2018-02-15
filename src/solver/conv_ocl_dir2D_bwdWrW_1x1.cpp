@@ -627,5 +627,45 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
     }
     return result;
 }
+
+int ConvOclBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
+                                            Data_t bot_ocl_buf,
+                                            Data_t top_ocl_buf,
+                                            Data_t wei_ocl_buf,
+                                            Data_t bias_ocl_buf,
+                                            const ConvolutionContext&,
+                                            const ConvSolution& solution,
+                                            float& elapsed_time) const
+{
+    assert(bias_ocl_buf == nullptr);
+    (void)bias_ocl_buf;
+    const KernelInfo k_info = solution.construction_params.back();
+#ifdef NDEBUG
+    try
+#endif
+    {
+        /// \todo FIXME handle subsampling
+        elapsed_time = std::numeric_limits<float>::max();
+        auto kernel  = profile_h.AddKernel("",
+                                          "",
+                                          k_info.kernel_file,
+                                          k_info.kernel_name,
+                                          k_info.l_wk,
+                                          k_info.g_wk,
+                                          k_info.comp_options);
+        float padding_val = 0;
+        MIOPEN_LOG_I2("kernel");
+        kernel(bot_ocl_buf, top_ocl_buf, wei_ocl_buf, padding_val);
+        elapsed_time = profile_h.GetKernelTime();
+    }
+#ifdef NDEBUG
+    catch(miopen::Exception&)
+    {
+        return -1;
+    }
+#endif
+    return 0;
+}
+
 } // namespace solver
 } // namespace miopen
