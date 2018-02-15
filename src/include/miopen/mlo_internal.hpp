@@ -175,12 +175,12 @@ struct ProblemDescription
     size_t weights_sz      = 0;
     size_t bias_sz         = 0;
     int deconvolution      = 0;
-    int in_stride          = 0;
-    int out_stride         = 0;
-    int in_channel_stride  = 0;
-    int in_batch_stride    = 0;
-    int out_channel_stride = 0;
-    int out_batch_stride   = 0;
+    int in_stride          = 0; // Used in norm & pooling only.
+    int out_stride         = 0; // Used in norm & pooling only.
+    int in_channel_stride  = 0; // Used in norm & pooling only.
+    int in_batch_stride    = 0; // Used in norm & pooling only.
+    int out_channel_stride = 0; // Used in norm & pooling only.
+    int out_batch_stride   = 0; // Used in norm & pooling only.
     struct Direction
     {
         enum class Value
