@@ -2110,8 +2110,8 @@ struct rnn_vanilla_driver : test_driver
         }
 
         std::size_t hx_sz = ((dirMode) ? 2 : 1) * hiddenSize * batchSize * numLayers;
-        std::vector<T> hx(hx_sz, 0.);
-        std::vector<T> dhyin(hx_sz, 0.);
+        std::vector<T> hx(hx_sz);
+        std::vector<T> dhyin(hx_sz);
 
         size_t wei_bytes = 0;
         std::vector<int> inlens(2, 0);
@@ -2141,6 +2141,12 @@ struct rnn_vanilla_driver : test_driver
 #endif
 
         /* NULL hx/cx/dhy/dcy input test */
+
+        for(int i = 0; i < hx_sz; i++)
+        {
+            hx[i]    = 0.0;
+            dhyin[i] = 0.0;
+        }
 
         auto fwdTrainOutputPair = verify(verify_forward_train_rnn<T>{rnnDesc,
                                                                      input,
