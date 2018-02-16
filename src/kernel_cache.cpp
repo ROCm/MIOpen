@@ -106,16 +106,7 @@ const std::vector<Kernel>& KernelCache::GetKernels(const std::string& algorithm,
     std::cout << "key: " << key.first << " " << key.second << std::endl;
 #endif
 
-    auto kernel_iterator = kernel_map.find(key);
-    if(kernel_iterator != kernel_map.end())
-    {
-        return kernel_iterator->second;
-    }
-    else
-    {
-        MIOPEN_THROW("looking for default kernel (does not exist): " + algorithm + ", " +
-                     network_config);
-    }
+    return kernel_map[key];
 }
 
 Kernel KernelCache::AddKernel(Handle& h,
@@ -128,7 +119,6 @@ Kernel KernelCache::AddKernel(Handle& h,
                               std::string params,
                               std::size_t cache_index)
 {
-
     if(params.length() > 0)
     {
         // Ensure only one space after the -cl-std.
