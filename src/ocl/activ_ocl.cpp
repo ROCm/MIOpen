@@ -31,21 +31,6 @@
 
 namespace miopen {
 
-static bool IsPackedTensor(const std::vector<std::size_t>& strides,
-                           const std::vector<std::size_t>& lens)
-{
-    int acc_lens = 1;
-
-    for(auto i = lens.size() - 1; i > 0; i--)
-    {
-        if(acc_lens != strides[i])
-            return false;
-
-        acc_lens *= lens[i];
-    }
-
-    return true;
-}
 
 miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                                              const void* alpha,
@@ -116,7 +101,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                   y_lens[1] == 1) ||
                  (x_lens.size() == 5 && x_lens[0] == 1 && x_lens[1] == 1 && x_lens[2] == 1 &&
                   y_lens[0] == 1 && y_lens[1] == 1 && y_lens[2] == 1)));
-    bool packed = IsPackedTensor(x_strides, x_lens) && IsPackedTensor(y_strides, y_lens);
+    bool packed = xDesc.IsPacked() && yDesc.IsPacked();
 
     visit_float(xDesc.GetType(), [&](auto as_float) {
 
@@ -484,8 +469,8 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                   y_lens[0] == 1 && y_lens[1] == 1 && y_lens[2] == 1 && dy_lens[0] == 1 &&
                   dy_lens[1] == 1 && dy_lens[2] == 1 && dx_lens[0] == 1 && dx_lens[1] == 1 &&
                   dx_lens[2] == 1)));
-    bool packed = IsPackedTensor(x_strides, x_lens) && IsPackedTensor(y_strides, y_lens) &&
-                  IsPackedTensor(dx_strides, dx_lens) && IsPackedTensor(dy_strides, dy_lens);
+    bool packed = xDesc.IsPacked() && yDesc.IsPacked() &&
+		dxDesc.IsPacked() && dyDesc.IsPacked();
     visit_float(xDesc.GetType(), [&](auto as_float) {
 
         if(x_elem_sz == y_elem_sz && dx_elem_sz == dy_elem_sz && x_elem_sz == dx_elem_sz &&
