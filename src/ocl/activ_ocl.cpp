@@ -516,6 +516,18 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         {
             std::string compiler_options;
 
+			auto f_activ_alpha = static_cast<float>(activ_alpha);
+			auto f_activ_beta = static_cast<float>(activ_beta);
+			auto f_activ_power = static_cast<float>(activ_power);
+			auto f_diff_scale = f_activ_beta * f_activ_power;
+
+			// second dim is height
+			size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3)
+				? x_lens[1]
+				: (x_lens.size() == 4)
+				? x_lens[2]
+				: x_lens[3];
+
             size_t read_len = (packed) ? x_elem_sz : dx_width2D;
 
             size_t read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
@@ -524,98 +536,138 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
             const std::string READ_TYPE =
                 (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
 
-            std::string type_opt;
-            if(xDesc.GetType() == miopenFloat)
-            {
-                type_opt = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
-            }
-            else if(xDesc.GetType() == miopenHalf)
-            {
-                type_opt = " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
-            }
+			network_config = ((packed) ? "11" : "10") // + lite bit
+				+ ((xDesc.GetType() == miopenFloat) ? std::string("1") : std::string("0"))
+				+ std::to_string(mode)
+				+ std::to_string(read_unit)
+				+ std::to_string(MAP_RD)
+				+ std::to_string(height)
+				;
 
-            compiler_options = " -DLITE -DMLO_READ_UNIT=" + std::to_string(read_unit) +
-                               " -DMLO_READ_TYPE=" + READ_TYPE + " -DMLO_NRN_OP_ID=" +
-                               std::to_string(mode) + type_opt;
+			auto&& kernels =
+				handle.GetKernels("miopenActivationBackward", network_config);
+			auto p_kernel = std::begin(kernels);
+			if (p_kernel != std::end(kernels))
+			{
+				auto kernel = *p_kernel;
+				if (packed)
+				{
+					kernel(
+						dx, dy, x, y, f_diff_scale, f_activ_power, f_activ_beta, f_activ_alpha,
+						static_cast<long long>(dxOffset),
+						static_cast<long long>(dyOffset),
+						static_cast<long long>(xOffset),
+						static_cast<long long>(yOffset)
+					);
+				}
+				else
+				{
+					kernel(dx,
+						dy,
+						x,
+						y,
+						f_diff_scale,
+						f_activ_power,
+						f_activ_beta,
+						f_activ_alpha,
+						static_cast<long long>(dxOffset),
+						static_cast<long long>(dyOffset),
+						static_cast<long long>(xOffset),
+						static_cast<long long>(yOffset),
+						dx_stride2D,
+						dy_stride2D,
+						x_stride2D,
+						y_stride2D);
+				}
 
-            auto f_activ_alpha = as_float(activ_alpha);
-            auto f_activ_beta  = as_float(activ_beta);
-            auto f_activ_power = as_float(activ_power);
-            auto f_diff_scale  = f_activ_beta * f_activ_power;
+			}
+			else
+			{
 
-            std::vector<size_t> vld;
-            std::vector<size_t> vgd;
 
-            vld.push_back(256);
-            vld.push_back(1);
-            vld.push_back(1);
-            // first dimension looks similar but for the packed it is a full image for the
-            // non-packaed
-            // 2D it's width
-            vgd.push_back(MAP_RD);
+				std::string type_opt;
+				if (xDesc.GetType() == miopenFloat)
+				{
+					type_opt = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+				}
+				else if (xDesc.GetType() == miopenHalf)
+				{
+					type_opt = " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
+				}
 
-            std::string program_name = "MIOpenNeuron.cl";
-            std::string kernel_name  = (packed) ? "MIOpenActiveBwdLite" : "MIOpenActiveBwd2DLite";
-            if(packed)
-            {
-                vgd.push_back(1);
-                vgd.push_back(1);
+				compiler_options = " -DLITE -DMLO_READ_UNIT=" + std::to_string(read_unit) +
+					" -DMLO_READ_TYPE=" + READ_TYPE + " -DMLO_NRN_OP_ID=" +
+					std::to_string(mode) + type_opt;
 
-                handle.AddKernel("miopenActivationBackward",
-                                 network_config,
-                                 program_name,
-                                 kernel_name,
-                                 vld,
-                                 vgd,
-                                 compiler_options)(dx,
-                                                   dy,
-                                                   x,
-                                                   y,
-                                                   as_float(f_diff_scale),
-                                                   as_float(f_activ_power),
-                                                   as_float(f_activ_beta),
-                                                   as_float(f_activ_alpha),
-                                                   static_cast<long long>(dxOffset),
-                                                   static_cast<long long>(dyOffset),
-                                                   static_cast<long long>(xOffset),
-                                                   static_cast<long long>(yOffset));
-            }
-            else
-            {
+				std::vector<size_t> vld;
+				std::vector<size_t> vgd;
 
-                // second dim is heoght
-                size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3)
-                                                                       ? x_lens[1]
-                                                                       : (x_lens.size() == 4)
-                                                                             ? x_lens[2]
-                                                                             : x_lens[3];
+				vld.push_back(256);
+				vld.push_back(1);
+				vld.push_back(1);
+				// first dimension looks similar but for the packed it is a full image for the
+				// non-packaed
+				// 2D it's width
+				vgd.push_back(MAP_RD);
 
-                vgd.push_back(height);
-                vgd.push_back(1);
+				std::string program_name = "MIOpenNeuron.cl";
+				std::string kernel_name = (packed) ? "MIOpenActiveBwdLite" : "MIOpenActiveBwd2DLite";
+				if (packed)
+				{
+					vgd.push_back(1);
+					vgd.push_back(1);
 
-                handle.AddKernel("miopenActivationBackward",
-                                 network_config,
-                                 program_name,
-                                 kernel_name,
-                                 vld,
-                                 vgd,
-                                 compiler_options)(dx,
-                                                   dy,
-                                                   x,
-                                                   y,
-                                                   as_float(f_diff_scale),
-                                                   as_float(f_activ_power),
-                                                   as_float(f_activ_beta),
-                                                   as_float(f_activ_alpha),
-                                                   static_cast<long long>(dxOffset),
-                                                   static_cast<long long>(dyOffset),
-                                                   static_cast<long long>(xOffset),
-                                                   static_cast<long long>(yOffset),
-                                                   dx_stride2D,
-                                                   dy_stride2D,
-                                                   x_stride2D,
-                                                   y_stride2D);
-            }
+					handle.AddKernel("miopenActivationBackward",
+						network_config,
+						program_name,
+						kernel_name,
+						vld,
+						vgd,
+						compiler_options)(dx,
+							dy,
+							x,
+							y,
+							as_float(f_diff_scale),
+							as_float(f_activ_power),
+							as_float(f_activ_beta),
+							as_float(f_activ_alpha),
+							static_cast<long long>(dxOffset),
+							static_cast<long long>(dyOffset),
+							static_cast<long long>(xOffset),
+							static_cast<long long>(yOffset));
+				}
+				else
+				{
+
+					// second dim is height
+
+					vgd.push_back(height);
+					vgd.push_back(1);
+
+					handle.AddKernel("miopenActivationBackward",
+						network_config,
+						program_name,
+						kernel_name,
+						vld,
+						vgd,
+						compiler_options)(dx,
+							dy,
+							x,
+							y,
+							as_float(f_diff_scale),
+							as_float(f_activ_power),
+							as_float(f_activ_beta),
+							as_float(f_activ_alpha),
+							static_cast<long long>(dxOffset),
+							static_cast<long long>(dyOffset),
+							static_cast<long long>(xOffset),
+							static_cast<long long>(yOffset),
+							dx_stride2D,
+							dy_stride2D,
+							x_stride2D,
+							y_stride2D);
+				}
+			}
         }
         else
         {
