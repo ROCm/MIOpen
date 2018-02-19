@@ -112,6 +112,19 @@ miopen::solver::ConvSolution mlo_construct_BwdWrW2D::FindSolution()
     // clang-format on
 }
 
+void mlo_construct_BwdWrW2D::FindAllSolutions(std::vector<miopen::solver::ConvSolution>& ss)
+{
+    // clang-format off
+    miopen::solver::SearchForAllSolutions<
+        miopen::solver::ConvAsmBwdWrW1x1,
+        miopen::solver::ConvAsmBwdWrW3x3,
+        miopen::solver::ConvOclBwdWrW2,
+        miopen::solver::ConvOclBwdWrW53,
+        miopen::solver::ConvOclBwdWrW1x1
+    >(_search_params, this->GetDbRecord(), ss);
+    // clang-format on
+}
+
 #if MIOPEN_BACKEND_OPENCL
 static bool IsTokenWithin(const std::string& s, const char* delimiters, const std::string& find_tok)
 {
@@ -263,14 +276,6 @@ bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3U() const
 {
     return (_search_params.n_outputs >= 16 && _search_params.n_outputs % 2 == 0);
-}
-
-int mlo_construct_BwdWrW2D::mloMultiStep()
-{
-    _search_params.n_passes = true;
-    auto s                  = this->FindSolution();
-    _search_params.n_passes = false;
-    return s.passes;
 }
 
 /***********************************************************************************************************

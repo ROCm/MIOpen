@@ -522,9 +522,18 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
         construct_params.setInputDescFromMLDesc(xDesc);
         construct_params.setWeightDescFromMLDesc(dwDesc);
         construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
-        miopen::solver::ConvSolution solution;
-        mloConstruct(construct_params, solution);
-        return solution.workspce_sz; // FIXME max of all solutions
+        std::vector<miopen::solver::ConvSolution> ss;
+        mloConstruct(construct_params, ss);
+        size_t sz = 0;
+        for(const auto& solution : ss)
+        {
+            if(sz < solution.workspce_sz)
+            {
+                MIOPEN_LOG_I2(sz << " < " << solution.workspce_sz);
+                sz = solution.workspce_sz;
+            }
+        }
+        return sz;
     }
     catch(const miopen::Exception&)
     {
