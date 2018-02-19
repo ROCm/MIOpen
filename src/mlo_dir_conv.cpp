@@ -42,7 +42,6 @@
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 bool mlo_construct_direct2D::mloIsCompilerWorkarounds() const
