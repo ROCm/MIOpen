@@ -24,6 +24,9 @@
  *
  *******************************************************************************/
 
+#ifndef GUARD_MIOPEN_HANDLE_LOCK_HPP
+#define GUARD_MIOPEN_HANDLE_LOCK_HPP
+
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem.hpp>
@@ -102,3 +105,5 @@ inline std::unique_lock<handle_mutex> get_handle_lock(T, int timeout = 60)
 }
 
 } // namespace miopen
+
+#endif // GUARD_MIOPEN_HANDLE_LOCK_HPP
