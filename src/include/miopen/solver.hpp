@@ -357,6 +357,53 @@ auto SearchForSolution(const Context& search_params, miopen::DbRecord dbRecord) 
     return solution;
 }
 
+// Search for all applicable solutions among many solvers
+template <class... Solvers, class Context, class Solution>
+void SearchForAllSolutions(const Context& search_params,
+                           miopen::DbRecord dbRecord,
+                           std::vector<Solution>& ss)
+{
+    assert(ss.empty());
+    assert(search_params.direction.IsBackwardWrW() && search_params.kernel_stride0 <= 1);
+
+// Using const here causes gcc to ICE
+#if(!defined(__GNUC__) || defined(__clang__))
+    const
+#endif
+        auto no_perf_filtering = miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
+
+    MIOPEN_STATIC_FOR_EACH(
+        solver,
+        Solvers{},
+        {
+            if(solver.IsApplicable(search_params) &&
+               (no_perf_filtering || solver.IsFast(search_params)))
+            {
+                const Solution s = FindSolution(solver, search_params, dbRecord);
+                if(s.Succeeded())
+                {
+                    if(!search_params.n_passes && s.construction_params.empty())
+                    {
+                        MIOPEN_LLOG_E(SolverDbId(solver) << ": Internal error.");
+                        MIOPEN_THROW_DEBUG(std::string("Internal error in solver: ") +
+                                           SolverDbId(solver));
+                    }
+                    else
+                    {
+                        ss.push_back(s);
+                        MIOPEN_LLOG_I2(SolverDbId(solver) << ": Success."
+                                                          << " n_passes="
+                                                          << search_params.n_passes);
+                    }
+                }
+            }
+            else
+            {
+                MIOPEN_LLOG_I2(SolverDbId(solver) << ": N/A");
+            }
+        });
+}
+
 /// Base class for problem solvers.
 ///
 /// Solvers are to be instantiated as const objects and shall not have any variable

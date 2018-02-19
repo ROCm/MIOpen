@@ -257,12 +257,6 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         int kernel0_stride0    = params.kernel_stride0;
         int kernel0_stride1    = params.kernel_stride1;
 
-        if(params.n_passes)
-        {
-
-            return result;
-        }
-
         const auto comp_options =
             std::string(" -DMLO_GRP_SZ0=") + std::to_string(n_grp_size0) +
             std::string(" -DMLO_GRP_SZ1=1 ") + std::string(" -DMLO_GRP_SZ2=1 ") +

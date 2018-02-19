@@ -587,7 +587,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else
             {
-                /// \todo Something unusual is happening here, why? Shall we rework this?
+                /// FIXME Utilize kernel cache's capability to store vector of kernels & get rid of
+                /// this.
                 ConvolutionContext context;
                 construct_params.mloCopyTo(context);
                 context.n_passes = true;

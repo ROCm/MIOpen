@@ -66,11 +66,6 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
                                   : 4;
     int n_batch_blks =
         (params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) / (N_BATCH_LOOPS * result.n_stacks);
-    if(params.n_passes)
-    {
-        result.passes = (n_batch_blks > 1) ? 2 : 1;
-        return result;
-    }
 
     result.out_pix_tile0 = params.kernel_size0;
     result.out_pix_tile1 = params.kernel_size1;

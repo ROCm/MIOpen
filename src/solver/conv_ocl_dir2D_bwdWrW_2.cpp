@@ -133,12 +133,6 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
                        (N_BATCH_LOOPS * result.n_stacks);
     }
 
-    if(params.n_passes)
-    {
-        result.passes = (n_batch_blks > 1) ? 2 : 1;
-        return result;
-    }
-
     // number of filter taps in the processing wk_item
     int WEI_WKITEM =
         (params.kernel_size0 <= 7 || (((params.kernel_size0 / 2) * 2) != params.kernel_size0))
