@@ -31,6 +31,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/common.hpp>
+#include <miopen/perf_field.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <functional>
@@ -38,15 +39,6 @@
 #include <map>
 
 namespace miopen {
-
-struct PerfField
-{
-    std::string name;
-    float time;
-    std::size_t workspace;
-
-    bool operator<(const PerfField& p) const { return (time < p.time); }
-};
 
 template <class T>
 struct c_array_view

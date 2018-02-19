@@ -31,21 +31,13 @@
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
+#include <miopen/perf_field.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {
 
 using WinogradKernelParams =
     std::tuple<int, int, int, int, int, int, int, int, int, int, int, int, bool>;
-
-struct PerfField
-{
-    std::string name;
-    float time;
-    std::size_t workspace;
-
-    bool operator<(const PerfField& p) const { return (time < p.time); }
-};
 
 struct ConvolutionDescriptor : miopenConvolutionDescriptor
 {
