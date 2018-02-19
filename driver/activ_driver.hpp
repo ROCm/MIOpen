@@ -245,17 +245,17 @@ int ActivationDriver<T>::RunForwardGPU()
 {
 
     float alpha = 1, beta = 0;
-	for (int i = 0; i < inflags.GetValueInt("iter"); i++)
-	{
-		miopenActivationForward(GetHandle(),
-			activDesc,
-			&alpha,
-			inputTensor,
-			in_dev->GetMem(),
-			&beta,
-			outputTensor,
-			out_dev->GetMem());
-	}
+    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    {
+        miopenActivationForward(GetHandle(),
+                                activDesc,
+                                &alpha,
+                                inputTensor,
+                                in_dev->GetMem(),
+                                &beta,
+                                outputTensor,
+                                out_dev->GetMem());
+    }
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -279,22 +279,22 @@ template <typename T>
 int ActivationDriver<T>::RunBackwardGPU()
 {
     float alpha = 1., beta = 0.;
-	for (int i = 0; i < inflags.GetValueInt("iter"); i++)
-	{
+    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    {
 
-		miopenActivationBackward(GetHandle(),
-			activDesc,
-			&alpha,
-			outputTensor,
-			out_dev->GetMem(),
-			dOutputTensor,
-			dout_dev->GetMem(),
-			inputTensor,
-			in_dev->GetMem(),
-			&beta,
-			dInputTensor,
-			din_dev->GetMem());
-	}
+        miopenActivationBackward(GetHandle(),
+                                 activDesc,
+                                 &alpha,
+                                 outputTensor,
+                                 out_dev->GetMem(),
+                                 dOutputTensor,
+                                 dout_dev->GetMem(),
+                                 inputTensor,
+                                 in_dev->GetMem(),
+                                 &beta,
+                                 dInputTensor,
+                                 din_dev->GetMem());
+    }
     if(inflags.GetValueInt("time") == 1)
     {
         float time = 0.0;
