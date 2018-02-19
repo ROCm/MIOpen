@@ -290,6 +290,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
                                                       const TensorDescriptor& xDesc,
                                                       const TensorDescriptor& yDesc) const
 {
+    MIOPEN_LOG_I2("");
     if(mode == miopenTranspose)
         return BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc);
     else
@@ -333,6 +334,7 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
                                                            const TensorDescriptor& dyDesc,
                                                            const TensorDescriptor& dxDesc) const
 {
+    MIOPEN_LOG_I2("");
     if(mode == miopenTranspose)
         return ForwardGetWorkSpaceSizeGEMM(handle, wDesc, dxDesc);
     else
@@ -520,8 +522,9 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
         construct_params.setInputDescFromMLDesc(xDesc);
         construct_params.setWeightDescFromMLDesc(dwDesc);
         construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
-        mloConstruct(construct_params);
-        return construct_params.getWorkSpaceSzBytes();
+        miopen::solver::ConvSolution solution;
+        mloConstruct(construct_params, solution);
+        return solution.workspce_sz; // FIXME max of all solutions
     }
     catch(const miopen::Exception&)
     {
@@ -535,6 +538,7 @@ size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
     const TensorDescriptor& xDesc,
     const TensorDescriptor& dwDesc) const
 {
+    MIOPEN_LOG_I2("");
     if(mode == miopenTranspose)
         return BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc);
 
