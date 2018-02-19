@@ -480,9 +480,6 @@ void RNNDescriptor::GetParamsDescriptor(Handle& /* handle */,
     // Create weight super tensor descriptor
     int bi = (dirMode == miopenRNNbidirection) ? 2 : 1;
     std::vector<int> weight_lens(2, 0);
-    //    weight_lens[0] = 1;
-    //    weight_lens[1] = GetParamsSize(handle, xDesc, dtype) / sizeof(dtype);
-
     weight_lens[0] = inputVectorLen + ((nLayers - 1) * (bi + 1) + 1) * hsize;
     weight_lens[1] = bi * hsize * nHiddenTensorsPerLayer;
     if(biasMode == miopenRNNwithBias)
