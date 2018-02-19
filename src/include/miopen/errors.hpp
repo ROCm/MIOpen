@@ -63,6 +63,15 @@ std::string HIPErrorMessage(int error, const std::string& msg = "");
 #define MIOPEN_THROW_HIP_STATUS(...) \
     MIOPEN_THROW(miopenStatusUnknownError, miopen::HIPErrorMessage(__VA_ARGS__))
 
+// Embedding a directive within macro arguments has undefined behavior,
+// so #ifdef NDEBUG can't be used within arguments of MIOPEN_STATIC_FOR_EACH
+// in order to avoid MIOPEN_THROW in release builds. Use this instead:
+#ifndef NDEBUG
+#define MIOPEN_THROW_DEBUG(...) MIOPEN_THROW(__VA_ARGS__)
+#else
+#define MIOPEN_THROW_DEBUG(...)
+#endif
+
 // TODO(paul): Debug builds should leave the exception uncaught
 template <class F>
 miopenStatus_t try_(F f)

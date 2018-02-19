@@ -312,56 +312,74 @@ struct ConvSolution;
 } // namespace miopen
 
 template <class T>
-void mloConstructImpl(miopen::rank<0>, T& x)
-{
-    x.setupRocm();
-    x.setupFloats();
-    x.mloUseSolution(x.FindSolution());
-}
-
-template <class T>
 auto mloConstructImpl(miopen::rank<1>, T& x) -> decltype(x.mloConstruct(), void())
 {
     x.setupFloats();
     x.mloConstruct();
 }
 
+// FIXME REWORK THIS
 template <class T>
 void mloConstruct(T& x)
 {
     mloConstructImpl(miopen::rank<1>{}, x);
 }
 
+template <class T>
+void mloConstruct(T& x, miopen::solver::ConvSolution& s)
+{
+    x.setupRocm();
+    x.setupFloats();
+    s = x.FindSolution();
+}
+
+/// \todo Move this into respective Solution objects. --atamazov
+struct mlo_construct_activ_lrn_pooling_common
+{
+    std::string _comp_options;
+    std::string _kernel_file;
+    std::string _kernel_name;
+    std::vector<size_t> _l_wk;
+    std::vector<size_t> _g_wk;
+
+    /*
+    * returns kernel file name without location
+    */
+    inline std::string getKernelFile() const { return (_kernel_file); }
+    /*
+    * retuns kerner/shader name
+    */
+    inline std::string getKernelName() const { return (_kernel_name); }
+    /*
+    * return set of compile options
+    */
+    inline const std::string& getCompilerOptions() const { return (_comp_options); }
+    /*
+    *  return a local working configuration
+    */
+    inline const std::vector<size_t>& getLocalWkSize() const { return (_l_wk); }
+    /*
+    * return a global working configuration
+    */
+    inline const std::vector<size_t>& getGlobalWkSize() const { return (_g_wk); }
+
+    int _grp_tile0      = 8; // total number ALUs per group
+    int _grp_tile1      = 8; // total number ALUs per group
+    int _out_pix_tile0  = 2; // # of generated pixels per output per wk-item  (ALU)
+    int _out_pix_tile1  = 4; // # of generated pixels per output per wk-item  (ALU)
+    size_t _workspce_sz = 0;
+
+    /*
+    * get workspace size
+    */
+    inline size_t getWorkSpaceSzBytes() const { return (_workspce_sz); }
+};
+
 struct mlo_construct_direct2D
 {
-    void mloUseSolution(const miopen::solver::ConvSolution& s);
-
     mlo_construct_direct2D(int dir, bool do_bias = false)
     {
         _search_params.direction.Set(dir);
-
-        //#if !(defined(__APPLE__) || defined(__MACOSX))
-        //	_gen_comp_options = std::string(" -cl-std=CL2.0 ");
-        //#endif
-        _in_tile0 = (_search_params.in_width < 12) ? 8 : 16; //(_in_width < 12) ? 8 : (_in_width <
-                                                             // 24 || (_in_width > 32 && _in_width <
-        // 48)) ? 16 : 32; // size of input data
-        // per ALU plane
-        _in_tile1 = (_search_params.in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height
-                                                              // < 24 || (_in_height > 32 &&
-                                                              // _in_height < 48)) ? 16 : 32; //
-                                                              // size of input data per ALU plane
-
-        _grp_tile0 = _in_tile0;
-        _grp_tile1 = _in_tile1;
-
-        _out_pix_tile0 = 2; // size of ouptput tile per wk-item (ALU))
-        _out_pix_tile1 = 4; //
-
-        _n_out_pix_tiles = 2; // # output pixel tiles per wk-item (ALU)
-        _n_in_data_tiles = 4; // # of blocks of different inputs in LDS
-
-        _n_stacks                       = 1; // # of diff stacks (part of batch).
         _search_params.bias             = (do_bias) ? 1 : 0;
         _search_params.pad0             = 1;
         _search_params.pad1             = 1;
@@ -376,14 +394,6 @@ struct mlo_construct_direct2D
         _search_params.top_sz           = 0; // bytes
         _search_params.weights_sz       = 0; // bytes
         _search_params.bias_sz          = 0; // bytes
-
-        _workspce_sz = 0;
-
-        _small         = true;
-        _copy_input    = false;
-        _new_in_width  = 0;
-        _new_in_height = 0;
-        _new_in_sz     = 0;
     }
 
     void setupRocm();
@@ -447,47 +457,11 @@ struct mlo_construct_direct2D
     }
 
     /*
-    * returns kernel file name without location
-    */
-    inline std::string getKernelFile() const { return (_kernel_file); }
-    /*
-    * retuns kerner/shader name
-    */
-    inline std::string getKernelName() const { return (_kernel_name); }
-    /*
-    * return set of compile options
-    */
-
-    inline const std::string& getCompilerOptions() const { return (_comp_options); }
-    /*
-    *  return a local working configuration
-    */
-    inline const std::vector<size_t>& getLocalWkSize() const { return (_l_wk); }
-    /*
-    * return a global working configuration
-    */
-    inline const std::vector<size_t>& getGlobalWkSize() const { return (_g_wk); }
-
-    /*
     * get common compiler options
     */
     inline const std::string& getGeneralCompOptions() const
     {
         return (_search_params.general_compile_options);
-    }
-
-    /*
-    * get info for all kernels of the layer
-    * std::string _kernel_name;
-    * std::string _kernel_file;
-    * std::string _comp_options;
-    * std::vector<size_t> _g_wk;
-    * std::vector<size_t> _l_wk;
-    */
-
-    inline const std::vector<mlo_kernel_info>& getKernelsInfo() const
-    {
-        return (_mlo_kernels_info);
     }
 
     /*
@@ -501,24 +475,14 @@ struct mlo_construct_direct2D
     }
 
     /*
-    * get workspace size
-    */
-    inline size_t getWorkSpaceSzBytes() const { return (_workspce_sz); }
-    /*
     *  is bias incuded
     */
-
     inline bool doBias() const { return (_search_params.bias == 1); }
 
     /*
     * set library stream
     */
     inline void setStream(miopen::Handle* stream) { _search_params.SetStream(stream); }
-
-    /*
-    * set ocl Kernels path
-    */
-    inline void setKernelPath(const std::string& kernel_path) { _kernel_path = kernel_path; }
 
     /*
     * set convolutional parameters
@@ -819,8 +783,6 @@ struct mlo_construct_direct2D
     // MD: Hack to get the key outside of mlo_internal
     int mloBuildConf_Key(std::string& conf_key) const;
 
-    inline bool doCopyInput() const { return (_copy_input); }
-
     // MD: Where is this being used?
     void getNewInputDescr(std::string& layout,
                           std::string& data_type,
@@ -859,6 +821,7 @@ struct mlo_construct_direct2D
     protected:
     miopen::ConvolutionContext _search_params;
 
+    /// \todo <begin> Move these into respective Contexts (norm, pooling, neuron...) --atamazov
     int _in_df_width          = 0;
     int _in_df_height         = 0;
     int _in_df_batch_stride   = 0;
@@ -875,59 +838,18 @@ struct mlo_construct_direct2D
     std::string _out_df_layout;
     std::string _out_df_data_type;
 
-    // SP
-
-    bool _small;
-    bool _copy_input;
-    int _new_in_height;
-    int _new_in_width;
-    int _new_in_batch_stride   = 0;
-    int _new_in_channel_stride = 0;
-    int _new_in_stride         = 0;
-    size_t _new_in_sz;
     bool _do_backward = false;
 
-    // FIX IT
-    //	int _weights_height;
-    //	int _weights_stride;
-    std::string _weight_data_type;
-    //
-    //	std::string _tens_layout;
-    //	std::string _tens_data_format;
-
-    int _in_tile0        = 0; // size of in-tile in local memory
-    int _in_tile1        = 0; // size of in-tile in local memory
-    int _grp_tile0       = 0; // total number ALUs per group
-    int _grp_tile1       = 0; // total number ALUs per group
-    int _out_pix_tile0   = 0; // # of generated pixels per output per wk-item  (ALU)
-    int _out_pix_tile1   = 0; // # of generated pixels per output per wk-item  (ALU)
-    int _n_out_pix_tiles = 0; // # output pixel tiles per wk-item (ALU)
-    int _n_in_data_tiles = 0; // # of blocks of different inputs in LDS
-    int _n_stacks        = 0; // # of diff stacks (part of batch).
-    std::string _comp_options;
-    std::string _kernel_file;
-    std::string _kernel_name;
-    std::vector<size_t> _l_wk;
-    std::vector<size_t> _g_wk;
-
-    // more than 1 kerenls per stage
-    std::vector<mlo_kernel_info> _mlo_kernels_info;
-
-    bool _gen  = false; // genral case
-    int _quiet = 0;
-    std::string _kernel_path;
     // local memory size per group
-    size_t _dev_local_mem_sz = 0;
+    size_t _dev_local_mem_sz = 0; // FIXME unused
     // wave size
     int _hw_wave_sz = 0;
     // cl_queue
-    size_t _bot_df_sz = 0; // bytes
-    size_t _top_df_sz = 0; // bytes
+    size_t _bot_df_sz = 0; // bytes // FIXME unused
+    size_t _top_df_sz = 0; // bytes // FIXME unused
+    /// \todo <end>
 
-    size_t _workspce_sz;
-
-    unsigned int _n_groups{};
-    // For testing
+    /// \todo This is for testing. Factor this out.
     const char* _db_path = nullptr;
 };
 
@@ -963,7 +885,7 @@ struct mlo_construct_winograd : mlo_construct_direct2D
 #define MLO_POOLING_OP_MAX 1
 #define MLO_POOLING_OP_STC 2
 
-struct mlo_construct_pooling2D : mlo_construct_direct2D
+struct mlo_construct_pooling2D : mlo_construct_direct2D, mlo_construct_activ_lrn_pooling_common
 {
     mlo_construct_pooling2D(int dir) : mlo_construct_direct2D(dir)
     {
@@ -1021,7 +943,7 @@ struct mlo_construct_pooling2D : mlo_construct_direct2D
 #define MLO_LRN_WITHIN_CHANNEL 0
 #define MLO_LRN_ACROSS_CHANNELS 1
 
-struct mlo_construct_norm : mlo_construct_direct2D
+struct mlo_construct_norm : mlo_construct_direct2D, mlo_construct_activ_lrn_pooling_common
 {
     mlo_construct_norm(int dir) : mlo_construct_direct2D(dir) {}
 
@@ -1078,7 +1000,7 @@ struct mlo_construct_norm : mlo_construct_direct2D
 #define MLO_NEURON_POWER MLO_NEURON_LINEAR + 1 // (a + b * x ) ^power
 #define MLO_NEURON_TOTAL MLO_NEURON_POWER + 1
 
-struct mlo_construct_neuron : mlo_construct_direct2D
+struct mlo_construct_neuron : mlo_construct_direct2D, mlo_construct_activ_lrn_pooling_common
 {
     mlo_construct_neuron(int dir) : mlo_construct_direct2D(dir)
     {
