@@ -31,7 +31,6 @@
 
 namespace miopen {
 
-
 miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                                              const void* alpha,
                                              const TensorDescriptor& xDesc,
@@ -55,7 +54,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     double activ_beta  = GetBeta();
     double activ_power = GetPower();
 
-	std::string network_config{};
+    std::string network_config{};
 
     // short cut for packed tensors and 2D tensors with stride != width
     auto x_lens = xDesc.GetLengths();
@@ -67,36 +66,30 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     auto x_elem_sz = xDesc.GetElementSize();
     auto y_elem_sz = yDesc.GetElementSize();
 
-	auto x_stride2D =
-		static_cast<unsigned int>((x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3)
-			? x_strides[1]
-			: (x_lens.size() == 4)
-			? x_strides[2]
-			: x_strides[3]);
-	auto y_stride2D =
-		static_cast<unsigned int>((y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3)
-			? y_strides[1]
-			: (y_lens.size() == 4)
-			? y_strides[2]
-			: y_strides[3]);
+    auto x_stride2D = static_cast<unsigned int>(
+        (x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3)
+                                                  ? x_strides[1]
+                                                  : (x_lens.size() == 4) ? x_strides[2]
+                                                                         : x_strides[3]);
+    auto y_stride2D = static_cast<unsigned int>(
+        (y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3)
+                                                  ? y_strides[1]
+                                                  : (y_lens.size() == 4) ? y_strides[2]
+                                                                         : y_strides[3]);
 
-	auto x_width2D = ((x_lens.size() == 2) ? x_lens[1] : (x_lens.size() == 3)
-		? x_lens[2]
-		: (x_lens.size() == 4)
-		? x_lens[3]
-		: x_lens[4]);
+    auto x_width2D =
+        ((x_lens.size() == 2) ? x_lens[1] : (x_lens.size() == 3) ? x_lens[2] : (x_lens.size() == 4)
+                                                                                   ? x_lens[3]
+                                                                                   : x_lens[4]);
 
+    auto y_width2D =
+        ((y_lens.size() == 2) ? y_lens[1] : (y_lens.size() == 3) ? y_lens[2] : (y_lens.size() == 4)
+                                                                                   ? y_lens[3]
+                                                                                   : y_lens[4]);
 
-	auto y_width2D =
-		((y_lens.size() == 2) ? y_lens[1] : (y_lens.size() == 3)
-			? y_lens[2]
-			: (y_lens.size() == 4)
-			? y_lens[3]
-			: y_lens[4]);
-
-
-    bool t2D = (x_lens.size() == y_lens.size() && ((x_width2D != x_stride2D) || (y_width2D != y_stride2D))
-                && (x_lens.size() == 2 || (x_lens.size() == 3 && x_lens[0] == 1 && y_lens[0] == 1) ||
+    bool t2D = (x_lens.size() == y_lens.size() &&
+                ((x_width2D != x_stride2D) || (y_width2D != y_stride2D)) &&
+                (x_lens.size() == 2 || (x_lens.size() == 3 && x_lens[0] == 1 && y_lens[0] == 1) ||
                  (x_lens.size() == 4 && x_lens[0] == 1 && x_lens[1] == 1 && y_lens[0] == 1 &&
                   y_lens[1] == 1) ||
                  (x_lens.size() == 5 && x_lens[0] == 1 && x_lens[1] == 1 && x_lens[2] == 1 &&
@@ -105,19 +98,18 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 
     visit_float(xDesc.GetType(), [&](auto as_float) {
 
-
         if(x_elem_sz == y_elem_sz && (packed || t2D))
         {
             std::string compiler_options;
-			auto f_activ_alpha = static_cast<float>(activ_alpha);
-			auto f_activ_beta = static_cast<float>(activ_beta);
-			auto f_activ_power = static_cast<float>(activ_power);
+            auto f_activ_alpha = static_cast<float>(activ_alpha);
+            auto f_activ_beta  = static_cast<float>(activ_beta);
+            auto f_activ_power = static_cast<float>(activ_power);
 
-			size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3)
-				? x_lens[1]
-				: (x_lens.size() == 4)
-				? x_lens[2]
-				: x_lens[3];
+            size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3)
+                                                                   ? x_lens[1]
+                                                                   : (x_lens.size() == 4)
+                                                                         ? x_lens[2]
+                                                                         : x_lens[3];
 
             size_t read_len = (packed) ? x_elem_sz : x_width2D;
 
@@ -127,110 +119,110 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
             const std::string READ_TYPE =
                 (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
 
-			network_config = ((packed) ? "11" : "10") // + lite bit
-				+ ((xDesc.GetType() == miopenFloat) ? std::string("1") : std::string("0"))
-				+ std::to_string(mode)
-				+ std::to_string(read_unit)
-				+ std::to_string(MAP_RD)
-				+ std::to_string(height)
-				;
+            network_config =
+                ((packed) ? "11" : "10") // + lite bit
+                + ((xDesc.GetType() == miopenFloat) ? std::string("1") : std::string("0")) +
+                std::to_string(mode) + std::to_string(read_unit) + std::to_string(MAP_RD) +
+                std::to_string(height);
 
-			auto&& kernels =
-				handle.GetKernels("miopenActivationForward", network_config);
-			auto p_kernel = std::begin(kernels);
-			if (p_kernel != std::end(kernels))
-			{
-				auto kernel = *p_kernel;
-				if (packed)
-				{
-					kernel(x, y, f_activ_power, f_activ_beta, f_activ_alpha,
-						static_cast<long long>(xOffset),
-						static_cast<long long>(yOffset)
-					);
-				}
-				else
-				{
-					kernel(x,
-						y,
-						f_activ_power,
-						f_activ_beta,
-						f_activ_alpha,
-						static_cast<long long>(xOffset),
-						static_cast<long long>(yOffset),
-						x_stride2D,
-						y_stride2D);
-				}
+            auto&& kernels = handle.GetKernels("miopenActivationForward", network_config);
+            auto p_kernel  = std::begin(kernels);
+            if(p_kernel != std::end(kernels))
+            {
+                auto kernel = *p_kernel;
+                if(packed)
+                {
+                    kernel(x,
+                           y,
+                           f_activ_power,
+                           f_activ_beta,
+                           f_activ_alpha,
+                           static_cast<long long>(xOffset),
+                           static_cast<long long>(yOffset));
+                }
+                else
+                {
+                    kernel(x,
+                           y,
+                           f_activ_power,
+                           f_activ_beta,
+                           f_activ_alpha,
+                           static_cast<long long>(xOffset),
+                           static_cast<long long>(yOffset),
+                           x_stride2D,
+                           y_stride2D);
+                }
+            }
+            else
+            {
+                std::string type_opt;
+                if(xDesc.GetType() == miopenFloat)
+                {
+                    type_opt = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+                }
+                else if(xDesc.GetType() == miopenHalf)
+                {
+                    type_opt = " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
+                }
 
-			}
-			else
-			{
-				std::string type_opt;
-				if (xDesc.GetType() == miopenFloat)
-				{
-					type_opt = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
-				}
-				else if (xDesc.GetType() == miopenHalf)
-				{
-					type_opt = " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
-				}
+                compiler_options = " -DLITE -DMLO_READ_UNIT=" + std::to_string(read_unit) +
+                                   " -DMLO_READ_TYPE=" + READ_TYPE + " -DMLO_NRN_OP_ID=" +
+                                   std::to_string(mode) + type_opt;
 
-				compiler_options = " -DLITE -DMLO_READ_UNIT=" + std::to_string(read_unit) +
-					" -DMLO_READ_TYPE=" + READ_TYPE + " -DMLO_NRN_OP_ID=" +
-					std::to_string(mode) + type_opt;
+                std::vector<size_t> vld;
+                std::vector<size_t> vgd;
 
-				std::vector<size_t> vld;
-				std::vector<size_t> vgd;
+                vld.push_back(256);
+                vld.push_back(1);
+                vld.push_back(1);
 
-				vld.push_back(256);
-				vld.push_back(1);
-				vld.push_back(1);
+                vgd.push_back(MAP_RD);
 
-				vgd.push_back(MAP_RD);
+                std::string program_name = "MIOpenNeuron.cl";
+                std::string kernel_name =
+                    (packed) ? "MIOpenActiveFwdLite" : "MIOpenActiveFwd2DLite";
+                if(packed)
+                {
+                    vgd.push_back(1);
+                    vgd.push_back(1);
 
-				std::string program_name = "MIOpenNeuron.cl";
-				std::string kernel_name = (packed) ? "MIOpenActiveFwdLite" : "MIOpenActiveFwd2DLite";
-				if (packed)
-				{
-					vgd.push_back(1);
-					vgd.push_back(1);
+                    handle.AddKernel("miopenActivationForward",
+                                     network_config,
+                                     program_name,
+                                     kernel_name,
+                                     vld,
+                                     vgd,
+                                     compiler_options)(x,
+                                                       y,
+                                                       as_float(f_activ_power),
+                                                       as_float(f_activ_beta),
+                                                       as_float(f_activ_alpha),
+                                                       static_cast<long long>(xOffset),
+                                                       static_cast<long long>(yOffset));
+                }
+                else
+                {
 
-					handle.AddKernel("miopenActivationForward",
-						network_config,
-						program_name,
-						kernel_name,
-						vld,
-						vgd,
-						compiler_options)(x,
-							y,
-							as_float(f_activ_power),
-							as_float(f_activ_beta),
-							as_float(f_activ_alpha),
-							static_cast<long long>(xOffset),
-							static_cast<long long>(yOffset));
-				}
-				else
-				{
+                    vgd.push_back(height);
+                    vgd.push_back(1);
 
-					vgd.push_back(height);
-					vgd.push_back(1);
-
-					handle.AddKernel("miopenActivationForward",
-						network_config,
-						program_name,
-						kernel_name,
-						vld,
-						vgd,
-						compiler_options)(x,
-							y,
-							as_float(f_activ_power),
-							as_float(f_activ_beta),
-							as_float(f_activ_alpha),
-							static_cast<long long>(xOffset),
-							static_cast<long long>(yOffset),
-							x_stride2D,
-							y_stride2D);
-				}
-			}
+                    handle.AddKernel("miopenActivationForward",
+                                     network_config,
+                                     program_name,
+                                     kernel_name,
+                                     vld,
+                                     vgd,
+                                     compiler_options)(x,
+                                                       y,
+                                                       as_float(f_activ_power),
+                                                       as_float(f_activ_beta),
+                                                       as_float(f_activ_alpha),
+                                                       static_cast<long long>(xOffset),
+                                                       static_cast<long long>(yOffset),
+                                                       x_stride2D,
+                                                       y_stride2D);
+                }
+            }
         }
         else
         {
@@ -422,7 +414,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
     double activ_beta  = GetBeta();
     double activ_power = GetPower();
 
-	std::string network_config = {};
+    std::string network_config = {};
 
     // short cut for packed tensors and 2D tensors with stride != width
     auto x_lens  = xDesc.GetLengths();
@@ -440,65 +432,55 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
     auto dx_elem_sz = dxDesc.GetElementSize();
     auto dy_elem_sz = dyDesc.GetElementSize();
 
-	auto x_stride2D =
-		static_cast<unsigned int>((x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3)
-			? x_strides[1]
-			: (x_lens.size() == 4)
-			? x_strides[2]
-			: x_strides[3]);
-	auto y_stride2D =
-		static_cast<unsigned int>((y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3)
-			? y_strides[1]
-			: (y_lens.size() == 4)
-			? y_strides[2]
-			: y_strides[3]);
+    auto x_stride2D = static_cast<unsigned int>(
+        (x_lens.size() == 2) ? x_strides[0] : (x_lens.size() == 3)
+                                                  ? x_strides[1]
+                                                  : (x_lens.size() == 4) ? x_strides[2]
+                                                                         : x_strides[3]);
+    auto y_stride2D = static_cast<unsigned int>(
+        (y_lens.size() == 2) ? y_strides[0] : (y_lens.size() == 3)
+                                                  ? y_strides[1]
+                                                  : (y_lens.size() == 4) ? y_strides[2]
+                                                                         : y_strides[3]);
 
-	auto dx_stride2D =
-		static_cast<unsigned int>((dx_lens.size() == 2) ? dx_strides[0] : (dx_lens.size() == 3)
-			? dx_strides[1]
-			: (dx_lens.size() == 4)
-			? dx_strides[2]
-			: dx_strides[3]);
-	auto dy_stride2D =
-		static_cast<unsigned int>((dy_lens.size() == 2) ? dy_strides[0] : (dy_lens.size() == 3)
-			? dy_strides[1]
-			: (dy_lens.size() == 4)
-			? dy_strides[2]
-			: dy_strides[3]);
+    auto dx_stride2D = static_cast<unsigned int>(
+        (dx_lens.size() == 2) ? dx_strides[0] : (dx_lens.size() == 3)
+                                                    ? dx_strides[1]
+                                                    : (dx_lens.size() == 4) ? dx_strides[2]
+                                                                            : dx_strides[3]);
+    auto dy_stride2D = static_cast<unsigned int>(
+        (dy_lens.size() == 2) ? dy_strides[0] : (dy_lens.size() == 3)
+                                                    ? dy_strides[1]
+                                                    : (dy_lens.size() == 4) ? dy_strides[2]
+                                                                            : dy_strides[3]);
 
+    auto x_width2D =
+        ((x_lens.size() == 2) ? x_lens[1] : (x_lens.size() == 3) ? x_lens[2] : (x_lens.size() == 4)
+                                                                                   ? x_lens[3]
+                                                                                   : x_lens[4]);
 
-	auto x_width2D = ((x_lens.size() == 2) ? x_lens[1] : (x_lens.size() == 3)
-		? x_lens[2]
-		: (x_lens.size() == 4)
-		? x_lens[3]
-		: x_lens[4]);
+    auto y_width2D =
+        ((y_lens.size() == 2) ? y_lens[1] : (y_lens.size() == 3) ? y_lens[2] : (y_lens.size() == 4)
+                                                                                   ? y_lens[3]
+                                                                                   : y_lens[4]);
 
+    auto dx_width2D =
+        ((dx_lens.size() == 2) ? dx_lens[1] : (dx_lens.size() == 3)
+                                                  ? dx_lens[2]
+                                                  : (dx_lens.size() == 4) ? dx_lens[3]
+                                                                          : dx_lens[4]);
 
-	auto y_width2D =
-		((y_lens.size() == 2) ? y_lens[1] : (y_lens.size() == 3)
-			? y_lens[2]
-			: (y_lens.size() == 4)
-			? y_lens[3]
-			: y_lens[4]);
-
-	auto dx_width2D = ((dx_lens.size() == 2) ? dx_lens[1] : (dx_lens.size() == 3)
-		? dx_lens[2]
-		: (dx_lens.size() == 4)
-		? dx_lens[3]
-		: dx_lens[4]);
-
-
-	auto dy_width2D =
-		((dy_lens.size() == 2) ? dy_lens[1] : (dy_lens.size() == 3)
-			? dy_lens[2]
-			: (dy_lens.size() == 4)
-			? dy_lens[3]
-			: dy_lens[4]);
+    auto dy_width2D =
+        ((dy_lens.size() == 2) ? dy_lens[1] : (dy_lens.size() == 3)
+                                                  ? dy_lens[2]
+                                                  : (dy_lens.size() == 4) ? dy_lens[3]
+                                                                          : dy_lens[4]);
 
     bool t2D = (x_lens.size() == y_lens.size() && dx_lens.size() == dy_lens.size() &&
-                x_lens.size() == dx_lens.size() 
-		       && ((x_width2D != x_stride2D) || (y_width2D != y_stride2D) || (dx_width2D != dx_stride2D) || (dy_width2D != dy_stride2D))
-               && (x_lens.size() == 2 || (x_lens.size() == 3 && x_lens[0] == 1 && y_lens[0] == 1 &&
+                x_lens.size() == dx_lens.size() &&
+                ((x_width2D != x_stride2D) || (y_width2D != y_stride2D) ||
+                 (dx_width2D != dx_stride2D) || (dy_width2D != dy_stride2D)) &&
+                (x_lens.size() == 2 || (x_lens.size() == 3 && x_lens[0] == 1 && y_lens[0] == 1 &&
                                         dx_lens[0] == 1 && dy_lens[0] == 1) ||
                  (x_lens.size() == 4 && x_lens[0] == 1 && x_lens[1] == 1 && y_lens[0] == 1 &&
                   y_lens[1] == 1 && dy_lens[0] == 1 && dy_lens[1] == 1 && dx_lens[0] == 1 &&
@@ -507,8 +489,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                   y_lens[0] == 1 && y_lens[1] == 1 && y_lens[2] == 1 && dy_lens[0] == 1 &&
                   dy_lens[1] == 1 && dy_lens[2] == 1 && dx_lens[0] == 1 && dx_lens[1] == 1 &&
                   dx_lens[2] == 1)));
-    bool packed = xDesc.IsPacked() && yDesc.IsPacked() &&
-		dxDesc.IsPacked() && dyDesc.IsPacked();
+    bool packed = xDesc.IsPacked() && yDesc.IsPacked() && dxDesc.IsPacked() && dyDesc.IsPacked();
     visit_float(xDesc.GetType(), [&](auto as_float) {
 
         if(x_elem_sz == y_elem_sz && dx_elem_sz == dy_elem_sz && x_elem_sz == dx_elem_sz &&
@@ -516,17 +497,17 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         {
             std::string compiler_options;
 
-			auto f_activ_alpha = static_cast<float>(activ_alpha);
-			auto f_activ_beta = static_cast<float>(activ_beta);
-			auto f_activ_power = static_cast<float>(activ_power);
-			auto f_diff_scale = f_activ_beta * f_activ_power;
+            auto f_activ_alpha = static_cast<float>(activ_alpha);
+            auto f_activ_beta  = static_cast<float>(activ_beta);
+            auto f_activ_power = static_cast<float>(activ_power);
+            auto f_diff_scale  = f_activ_beta * f_activ_power;
 
-			// second dim is height
-			size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3)
-				? x_lens[1]
-				: (x_lens.size() == 4)
-				? x_lens[2]
-				: x_lens[3];
+            // second dim is height
+            size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3)
+                                                                   ? x_lens[1]
+                                                                   : (x_lens.size() == 4)
+                                                                         ? x_lens[2]
+                                                                         : x_lens[3];
 
             size_t read_len = (packed) ? x_elem_sz : dx_width2D;
 
@@ -536,138 +517,139 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
             const std::string READ_TYPE =
                 (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
 
-			network_config = ((packed) ? "11" : "10") // + lite bit
-				+ ((xDesc.GetType() == miopenFloat) ? std::string("1") : std::string("0"))
-				+ std::to_string(mode)
-				+ std::to_string(read_unit)
-				+ std::to_string(MAP_RD)
-				+ std::to_string(height)
-				;
+            network_config =
+                ((packed) ? "11" : "10") // + lite bit
+                + ((xDesc.GetType() == miopenFloat) ? std::string("1") : std::string("0")) +
+                std::to_string(mode) + std::to_string(read_unit) + std::to_string(MAP_RD) +
+                std::to_string(height);
 
-			auto&& kernels =
-				handle.GetKernels("miopenActivationBackward", network_config);
-			auto p_kernel = std::begin(kernels);
-			if (p_kernel != std::end(kernels))
-			{
-				auto kernel = *p_kernel;
-				if (packed)
-				{
-					kernel(
-						dx, dy, x, y, f_diff_scale, f_activ_power, f_activ_beta, f_activ_alpha,
-						static_cast<long long>(dxOffset),
-						static_cast<long long>(dyOffset),
-						static_cast<long long>(xOffset),
-						static_cast<long long>(yOffset)
-					);
-				}
-				else
-				{
-					kernel(dx,
-						dy,
-						x,
-						y,
-						f_diff_scale,
-						f_activ_power,
-						f_activ_beta,
-						f_activ_alpha,
-						static_cast<long long>(dxOffset),
-						static_cast<long long>(dyOffset),
-						static_cast<long long>(xOffset),
-						static_cast<long long>(yOffset),
-						dx_stride2D,
-						dy_stride2D,
-						x_stride2D,
-						y_stride2D);
-				}
+            auto&& kernels = handle.GetKernels("miopenActivationBackward", network_config);
+            auto p_kernel  = std::begin(kernels);
+            if(p_kernel != std::end(kernels))
+            {
+                auto kernel = *p_kernel;
+                if(packed)
+                {
+                    kernel(dx,
+                           dy,
+                           x,
+                           y,
+                           f_diff_scale,
+                           f_activ_power,
+                           f_activ_beta,
+                           f_activ_alpha,
+                           static_cast<long long>(dxOffset),
+                           static_cast<long long>(dyOffset),
+                           static_cast<long long>(xOffset),
+                           static_cast<long long>(yOffset));
+                }
+                else
+                {
+                    kernel(dx,
+                           dy,
+                           x,
+                           y,
+                           f_diff_scale,
+                           f_activ_power,
+                           f_activ_beta,
+                           f_activ_alpha,
+                           static_cast<long long>(dxOffset),
+                           static_cast<long long>(dyOffset),
+                           static_cast<long long>(xOffset),
+                           static_cast<long long>(yOffset),
+                           dx_stride2D,
+                           dy_stride2D,
+                           x_stride2D,
+                           y_stride2D);
+                }
+            }
+            else
+            {
 
-			}
-			else
-			{
+                std::string type_opt;
+                if(xDesc.GetType() == miopenFloat)
+                {
+                    type_opt = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+                }
+                else if(xDesc.GetType() == miopenHalf)
+                {
+                    type_opt = " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
+                }
 
+                compiler_options = " -DLITE -DMLO_READ_UNIT=" + std::to_string(read_unit) +
+                                   " -DMLO_READ_TYPE=" + READ_TYPE + " -DMLO_NRN_OP_ID=" +
+                                   std::to_string(mode) + type_opt;
 
-				std::string type_opt;
-				if (xDesc.GetType() == miopenFloat)
-				{
-					type_opt = " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
-				}
-				else if (xDesc.GetType() == miopenHalf)
-				{
-					type_opt = " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
-				}
+                std::vector<size_t> vld;
+                std::vector<size_t> vgd;
 
-				compiler_options = " -DLITE -DMLO_READ_UNIT=" + std::to_string(read_unit) +
-					" -DMLO_READ_TYPE=" + READ_TYPE + " -DMLO_NRN_OP_ID=" +
-					std::to_string(mode) + type_opt;
+                vld.push_back(256);
+                vld.push_back(1);
+                vld.push_back(1);
+                // first dimension looks similar but for the packed it is a full image for the
+                // non-packaed
+                // 2D it's width
+                vgd.push_back(MAP_RD);
 
-				std::vector<size_t> vld;
-				std::vector<size_t> vgd;
+                std::string program_name = "MIOpenNeuron.cl";
+                std::string kernel_name =
+                    (packed) ? "MIOpenActiveBwdLite" : "MIOpenActiveBwd2DLite";
+                if(packed)
+                {
+                    vgd.push_back(1);
+                    vgd.push_back(1);
 
-				vld.push_back(256);
-				vld.push_back(1);
-				vld.push_back(1);
-				// first dimension looks similar but for the packed it is a full image for the
-				// non-packaed
-				// 2D it's width
-				vgd.push_back(MAP_RD);
+                    handle.AddKernel("miopenActivationBackward",
+                                     network_config,
+                                     program_name,
+                                     kernel_name,
+                                     vld,
+                                     vgd,
+                                     compiler_options)(dx,
+                                                       dy,
+                                                       x,
+                                                       y,
+                                                       as_float(f_diff_scale),
+                                                       as_float(f_activ_power),
+                                                       as_float(f_activ_beta),
+                                                       as_float(f_activ_alpha),
+                                                       static_cast<long long>(dxOffset),
+                                                       static_cast<long long>(dyOffset),
+                                                       static_cast<long long>(xOffset),
+                                                       static_cast<long long>(yOffset));
+                }
+                else
+                {
 
-				std::string program_name = "MIOpenNeuron.cl";
-				std::string kernel_name = (packed) ? "MIOpenActiveBwdLite" : "MIOpenActiveBwd2DLite";
-				if (packed)
-				{
-					vgd.push_back(1);
-					vgd.push_back(1);
+                    // second dim is height
 
-					handle.AddKernel("miopenActivationBackward",
-						network_config,
-						program_name,
-						kernel_name,
-						vld,
-						vgd,
-						compiler_options)(dx,
-							dy,
-							x,
-							y,
-							as_float(f_diff_scale),
-							as_float(f_activ_power),
-							as_float(f_activ_beta),
-							as_float(f_activ_alpha),
-							static_cast<long long>(dxOffset),
-							static_cast<long long>(dyOffset),
-							static_cast<long long>(xOffset),
-							static_cast<long long>(yOffset));
-				}
-				else
-				{
+                    vgd.push_back(height);
+                    vgd.push_back(1);
 
-					// second dim is height
-
-					vgd.push_back(height);
-					vgd.push_back(1);
-
-					handle.AddKernel("miopenActivationBackward",
-						network_config,
-						program_name,
-						kernel_name,
-						vld,
-						vgd,
-						compiler_options)(dx,
-							dy,
-							x,
-							y,
-							as_float(f_diff_scale),
-							as_float(f_activ_power),
-							as_float(f_activ_beta),
-							as_float(f_activ_alpha),
-							static_cast<long long>(dxOffset),
-							static_cast<long long>(dyOffset),
-							static_cast<long long>(xOffset),
-							static_cast<long long>(yOffset),
-							dx_stride2D,
-							dy_stride2D,
-							x_stride2D,
-							y_stride2D);
-				}
-			}
+                    handle.AddKernel("miopenActivationBackward",
+                                     network_config,
+                                     program_name,
+                                     kernel_name,
+                                     vld,
+                                     vgd,
+                                     compiler_options)(dx,
+                                                       dy,
+                                                       x,
+                                                       y,
+                                                       as_float(f_diff_scale),
+                                                       as_float(f_activ_power),
+                                                       as_float(f_activ_beta),
+                                                       as_float(f_activ_alpha),
+                                                       static_cast<long long>(dxOffset),
+                                                       static_cast<long long>(dyOffset),
+                                                       static_cast<long long>(xOffset),
+                                                       static_cast<long long>(yOffset),
+                                                       dx_stride2D,
+                                                       dy_stride2D,
+                                                       x_stride2D,
+                                                       y_stride2D);
+                }
+            }
         }
         else
         {
