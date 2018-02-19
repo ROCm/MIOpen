@@ -75,15 +75,15 @@ struct ConvSolution
     int passes;
 
     size_t workspce_sz;
-    int grp_tile1;
-    int grp_tile0;
-    int in_tile1;
-    int in_tile0;
-    int out_pix_tile1;
-    int out_pix_tile0;
-    int n_out_pix_tiles;
-    int n_in_data_tiles;
-    int n_stacks;
+    int grp_tile1;       // total number ALUs per group
+    int grp_tile0;       // total number ALUs per group
+    int in_tile1;        // size of in-tile in local memory
+    int in_tile0;        // size of in-tile in local memory
+    int out_pix_tile1;   // # of generated pixels per output per wk-item  (ALU)
+    int out_pix_tile0;   // # of generated pixels per output per wk-item  (ALU)
+    int n_out_pix_tiles; // # output pixel tiles per wk-item (ALU)
+    int n_in_data_tiles; // # of blocks of different inputs in LDS
+    int n_stacks;        // # of diff stacks (part of batch).
 
     ConvSolution(miopenStatus_t status_ = miopenStatusSuccess, int passes_ = 1)
         : status(status_),
@@ -254,10 +254,8 @@ auto SearchForSolution(const Context& search_params, miopen::DbRecord dbRecord) 
                        candidate.construction_params.empty())
                     {
                         candidate = {miopenStatusInternalError};
-#ifndef NDEBUG
-                        MIOPEN_THROW(std::string("Internal error in solver: ") +
-                                     SolverDbId(solver));
-#endif
+                        MIOPEN_THROW_DEBUG(std::string("Internal error in solver: ") +
+                                           SolverDbId(solver));
                     }
                     float elapsed_time;
                     if(candidate.Succeeded())

@@ -203,9 +203,10 @@ class SolverTest
         construct.setStream(&get_handle());
 
         context_filler(construct);
-        mloConstruct(construct);
+        solver::ConvSolution sol;
+        mloConstruct(construct, sol);
 
-        EXPECT_EQUAL(construct.getKernelFile(), expected_kernel);
+        EXPECT_EQUAL(sol.construction_params[0].kernel_file, expected_kernel);
     }
 };
 } // namespace tests

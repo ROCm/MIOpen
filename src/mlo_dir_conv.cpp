@@ -112,37 +112,6 @@ miopen::solver::ConvSolution mlo_construct_BwdWrW2D::FindSolution()
     // clang-format on
 }
 
-void mlo_construct_direct2D::mloUseSolution(const miopen::solver::ConvSolution& s)
-{
-    if(!s.Succeeded())
-    {
-        MIOPEN_THROW("No solution found");
-    }
-    assert(!s.construction_params.empty());
-    _comp_options = s.construction_params[0].comp_options;
-    _kernel_file  = s.construction_params[0].kernel_file;
-    _kernel_name  = s.construction_params[0].kernel_name;
-    _g_wk         = s.construction_params[0].g_wk;
-    _l_wk         = s.construction_params[0].l_wk;
-
-    _workspce_sz     = s.workspce_sz;
-    _grp_tile0       = s.grp_tile0;
-    _grp_tile1       = s.grp_tile1;
-    _in_tile0        = s.in_tile0;
-    _in_tile1        = s.in_tile1;
-    _out_pix_tile0   = s.out_pix_tile0;
-    _out_pix_tile1   = s.out_pix_tile1;
-    _n_out_pix_tiles = s.n_out_pix_tiles;
-    _n_in_data_tiles = s.n_in_data_tiles;
-    _n_stacks        = s.n_stacks;
-
-    for(const auto& params : s.construction_params)
-    {
-        _mlo_kernels_info.emplace_back(std::make_tuple(
-            params.kernel_name, params.kernel_file, params.comp_options, params.g_wk, params.l_wk));
-    }
-}
-
 #if MIOPEN_BACKEND_OPENCL
 static bool IsTokenWithin(const std::string& s, const char* delimiters, const std::string& find_tok)
 {
