@@ -312,17 +312,10 @@ struct ConvSolution;
 } // namespace miopen
 
 template <class T>
-auto mloConstructImpl(miopen::rank<1>, T& x) -> decltype(x.mloConstruct(), void())
+auto mloConstruct(T& x) -> decltype(x.mloConstruct(), void())
 {
     x.setupFloats();
     x.mloConstruct();
-}
-
-// FIXME REWORK THIS
-template <class T>
-void mloConstruct(T& x)
-{
-    mloConstructImpl(miopen::rank<1>{}, x);
 }
 
 template <class T>
@@ -331,6 +324,14 @@ void mloConstruct(T& x, miopen::solver::ConvSolution& s)
     x.setupRocm();
     x.setupFloats();
     s = x.FindSolution();
+}
+
+template <class T>
+void mloConstruct(T& x, std::vector<miopen::solver::ConvSolution>& ss)
+{
+    x.setupRocm();
+    x.setupFloats();
+    x.FindAllSolutions(ss);
 }
 
 /// \todo Move this into respective Solution objects. --atamazov
@@ -865,9 +866,9 @@ struct mlo_construct_BwdWrW2D : mlo_construct_direct2D
     }
 
     miopen::solver::ConvSolution FindSolution();
+    void FindAllSolutions(std::vector<miopen::solver::ConvSolution>& ss);
 
     bool mloIsCompilerWorkarounds() const;
-    int mloMultiStep();
 };
 
 /*

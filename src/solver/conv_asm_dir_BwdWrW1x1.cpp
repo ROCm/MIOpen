@@ -235,11 +235,6 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 
-    if(params.n_passes)
-    {
-        return false;
-    }
-
     if(!(params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
     {
         return false;
@@ -309,7 +304,6 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     assert(params.pad1 == 0 && params.pad0 == 0);
     if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
     {
-
         result.passes = 2;
     }
     else
@@ -319,10 +313,9 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
     result.workspce_sz = 0;
 
-    if(result.passes > 1 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
-    {
-
-        // subsampled input, in_height equals to image size after downsampling
+    if(result.passes > 1)
+    { // subsampled input, in_height equals to image size after downsampling
+        assert(params.kernel_stride0 > 1 || params.kernel_stride1 > 1);
         int in_batch_stride = params.in_stride * params.in_height * params.n_outputs;
         int write_unit      = (params.in_width % 4 == 0) ? 4 : (params.in_width % 3 == 0)
                                                               ? 3
