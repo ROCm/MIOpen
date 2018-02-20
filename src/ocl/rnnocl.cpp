@@ -3424,8 +3424,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             }
         }
 
-        int pretime_shift, hx_shift;
-        if(in_n[0] == in_n[seqLen - 1])
+        int pretime_shift, hx_shift, cur_time;
+        if(in_n[0] == in_n[seqLen - 2])
         {
             hx_shift  = li * hy_n * bi_stride;
             wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
@@ -3435,30 +3435,34 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 hid_shift = ri == 0
                                 ? li * batch_n * hy_stride
                                 : (li * batch_n * hy_stride + in_n[0] * (seqLen - 1) * hy_stride);
+                cur_time = ri == 0 ? 0 : seqLen - 1;
 
-                RunGemmGeometryRNN(handle,
-                                   workSpace,
-                                   hx,
-                                   dw,
-                                   wei_len,
-                                   hy_h,
-                                   in_n.at(0),
-                                   1,
-                                   1,
-                                   true,
-                                   false,
-                                   false,
-                                   hy_stride,
-                                   uni_stride,
-                                   uni_stride,
-                                   hid_shift + ri * wei_len,
-                                   hx_shift + ri * hy_n * hy_h,
-                                   wei_shift + ri * wei_len * uni_stride,
-                                   false,
-                                   network_config,
-                                   MIO_RNN_FINDSOL_TIMEOUT);
-                // Update time
-                profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
+                if(in_n[cur_time] > 0)
+                {
+                    RunGemmGeometryRNN(handle,
+                                       workSpace,
+                                       hx,
+                                       dw,
+                                       wei_len,
+                                       hy_h,
+                                       in_n.at(cur_time),
+                                       1,
+                                       1,
+                                       true,
+                                       false,
+                                       false,
+                                       hy_stride,
+                                       uni_stride,
+                                       uni_stride,
+                                       hid_shift + ri * wei_len,
+                                       hx_shift + ri * hy_n * hy_h,
+                                       wei_shift + ri * wei_len * uni_stride,
+                                       false,
+                                       network_config,
+                                       MIO_RNN_FINDSOL_TIMEOUT);
+                    // Update time
+                    profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
+                }
 
                 hid_shift = ri == 0 ? (li * batch_n * hy_stride + in_n[0] * hy_stride)
                                     : (li * batch_n * hy_stride);
@@ -3471,7 +3475,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                                    dw,
                                    wei_len,
                                    hy_h,
-                                   in_n.at(0) * (seqLen - 1),
+                                   in_n.at(0) * (seqLen - 2) + in_n.at(seqLen - 1),
                                    1,
                                    1,
                                    true,
@@ -3509,7 +3513,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                 {
                     hid_shift = ri == 0 ? (li * batch_n * hy_stride + bacc * hy_stride)
                                         : (li * batch_n * hy_stride + baccbi * hy_stride);
-                    int cur_time = ri == 0 ? ti : seqLen - 1 - ti;
+                    cur_time = ri == 0 ? ti : seqLen - 1 - ti;
                     if(ti > 0)
                     {
                         pre_batch = ri == 0 ? bacc - in_n[ti - 1] : baccbi + in_n[seqLen - 1 - ti];
