@@ -83,7 +83,6 @@ miopen::solver::ConvSolution mlo_construct_direct2D::FindSolution()
         miopen::solver::ConvOclDirectFwdGen,
         miopen::solver::ConvOclDirectFwd3x3,
         miopen::solver::ConvOclDirectFwd1x1,
-        miopen::solver::ConvOclDirectFwdC,
         miopen::solver::ConvOclDirectFwd
     >(_search_params, this->GetDbRecord());
     // clang-format on
