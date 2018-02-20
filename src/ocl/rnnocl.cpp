@@ -3424,101 +3424,174 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             }
         }
 
-        int bacc   = 0;
-        int baccbi = batch_n;
-        for(int ti = 0; ti < seqLen; ti++)
+        int pretime_shift, hx_shift;
+        if(in_n[0] == in_n[seqLen - 1])
         {
-            baccbi -= in_n[seqLen - 1 - ti];
-
-            int hx_shift = li * hy_n * bi_stride;
-            wei_shift    = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+            hx_shift  = li * hy_n * bi_stride;
+            wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
 
             for(int ri = 0; ri < bi; ri++)
             {
-                hid_shift = ri == 0 ? (li * batch_n * hy_stride + bacc * hy_stride)
-                                    : (li * batch_n * hy_stride + baccbi * hy_stride);
-                int cur_time = ri == 0 ? ti : seqLen - 1 - ti;
-                if(ti > 0)
-                {
-                    pre_batch = ri == 0 ? bacc - in_n[ti - 1] : baccbi + in_n[seqLen - 1 - ti];
-                    use_time  = ri == 0 ? ti : seqLen - ti;
-                }
+                hid_shift = ri == 0
+                                ? li * batch_n * hy_stride
+                                : (li * batch_n * hy_stride + in_n[0] * (seqLen - 1) * hy_stride);
 
-                if(in_n[cur_time] > 0)
+                RunGemmGeometryRNN(handle,
+                                   workSpace,
+                                   hx,
+                                   dw,
+                                   wei_len,
+                                   hy_h,
+                                   in_n.at(0),
+                                   1,
+                                   1,
+                                   true,
+                                   false,
+                                   false,
+                                   hy_stride,
+                                   uni_stride,
+                                   uni_stride,
+                                   hid_shift + ri * wei_len,
+                                   hx_shift + ri * hy_n * hy_h,
+                                   wei_shift + ri * wei_len * uni_stride,
+                                   false,
+                                   network_config,
+                                   MIO_RNN_FINDSOL_TIMEOUT);
+                // Update time
+                profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
+
+                hid_shift = ri == 0 ? (li * batch_n * hy_stride + in_n[0] * hy_stride)
+                                    : (li * batch_n * hy_stride);
+                pretime_shift = ri == 0 ? li * batch_n * hy_stride + hid_off
+                                        : li * batch_n * hy_stride + in_n[0] * hy_stride + hid_off;
+
+                RunGemmGeometryRNN(handle,
+                                   workSpace,
+                                   reserveSpace,
+                                   dw,
+                                   wei_len,
+                                   hy_h,
+                                   in_n.at(0) * (seqLen - 1),
+                                   1,
+                                   1,
+                                   true,
+                                   false,
+                                   false,
+                                   hy_stride,
+                                   hy_stride,
+                                   uni_stride,
+                                   hid_shift + ri * wei_len,
+                                   pretime_shift + ri * hy_h,
+                                   wei_shift + ri * wei_len * uni_stride,
+                                   false,
+                                   network_config,
+                                   MIO_RNN_FINDSOL_TIMEOUT);
+
+                // Update time
+                if(li == nLayers - 1 && ri == bi - 1 && !(rnnMode == miopenGRU && biasMode))
+                    profileRNNkernels(handle, 2, ctime);
+                else
+                    profileRNNkernels(handle, 1, ctime);
+            }
+        }
+        else
+        {
+            int bacc   = 0;
+            int baccbi = batch_n;
+            for(int ti = 0; ti < seqLen; ti++)
+            {
+                baccbi -= in_n[seqLen - 1 - ti];
+
+                hx_shift  = li * hy_n * bi_stride;
+                wei_shift = in_h * wei_stride + li * (bi * hy_h + hy_h) * wei_stride;
+
+                for(int ri = 0; ri < bi; ri++)
                 {
-                    if(ti == 0)
+                    hid_shift = ri == 0 ? (li * batch_n * hy_stride + bacc * hy_stride)
+                                        : (li * batch_n * hy_stride + baccbi * hy_stride);
+                    int cur_time = ri == 0 ? ti : seqLen - 1 - ti;
+                    if(ti > 0)
                     {
-
-                        RunGemmGeometryRNN(handle,
-                                           workSpace,
-                                           hx,
-                                           dw,
-                                           wei_len,
-                                           hy_h,
-                                           in_n.at(cur_time),
-                                           1,
-                                           1,
-                                           true,
-                                           false,
-                                           false,
-                                           hy_stride,
-                                           uni_stride,
-                                           uni_stride,
-                                           hid_shift + ri * wei_len,
-                                           hx_shift + ri * hy_n * hy_h,
-                                           wei_shift + ri * wei_len * uni_stride,
-                                           false,
-                                           network_config,
-                                           MIO_RNN_FINDSOL_TIMEOUT);
-                        // Update time
-                        if(li == nLayers - 1 && ti == seqLen - 1 && ri == bi - 1 &&
-                           !(rnnMode == miopenGRU && biasMode))
-                            profileRNNkernels(handle, 2, ctime);
-                        else
-                            profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
+                        pre_batch = ri == 0 ? bacc - in_n[ti - 1] : baccbi + in_n[seqLen - 1 - ti];
+                        use_time  = ri == 0 ? ti : seqLen - ti;
                     }
-                    else
-                    {
-                        int pretime_shift =
-                            li * batch_n * hy_stride + pre_batch * hy_stride + hid_off;
 
-                        if(in_n[use_time] > 0)
+                    if(in_n[cur_time] > 0)
+                    {
+                        if(ti == 0)
                         {
 
                             RunGemmGeometryRNN(handle,
                                                workSpace,
-                                               reserveSpace,
+                                               hx,
                                                dw,
                                                wei_len,
                                                hy_h,
-                                               in_n.at(use_time),
+                                               in_n.at(cur_time),
                                                1,
                                                1,
                                                true,
                                                false,
                                                false,
                                                hy_stride,
-                                               hy_stride,
+                                               uni_stride,
                                                uni_stride,
                                                hid_shift + ri * wei_len,
-                                               pretime_shift + ri * hy_h,
+                                               hx_shift + ri * hy_n * hy_h,
                                                wei_shift + ri * wei_len * uni_stride,
                                                false,
                                                network_config,
                                                MIO_RNN_FINDSOL_TIMEOUT);
-
                             // Update time
                             if(li == nLayers - 1 && ti == seqLen - 1 && ri == bi - 1 &&
                                !(rnnMode == miopenGRU && biasMode))
                                 profileRNNkernels(handle, 2, ctime);
                             else
-                                profileRNNkernels(handle, 1, ctime);
+                                profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
+                        }
+                        else
+                        {
+                            pretime_shift =
+                                li * batch_n * hy_stride + pre_batch * hy_stride + hid_off;
+
+                            if(in_n[use_time] > 0)
+                            {
+
+                                RunGemmGeometryRNN(handle,
+                                                   workSpace,
+                                                   reserveSpace,
+                                                   dw,
+                                                   wei_len,
+                                                   hy_h,
+                                                   in_n.at(use_time),
+                                                   1,
+                                                   1,
+                                                   true,
+                                                   false,
+                                                   false,
+                                                   hy_stride,
+                                                   hy_stride,
+                                                   uni_stride,
+                                                   hid_shift + ri * wei_len,
+                                                   pretime_shift + ri * hy_h,
+                                                   wei_shift + ri * wei_len * uni_stride,
+                                                   false,
+                                                   network_config,
+                                                   MIO_RNN_FINDSOL_TIMEOUT);
+
+                                // Update time
+                                if(li == nLayers - 1 && ti == seqLen - 1 && ri == bi - 1 &&
+                                   !(rnnMode == miopenGRU && biasMode))
+                                    profileRNNkernels(handle, 2, ctime);
+                                else
+                                    profileRNNkernels(handle, 1, ctime);
+                            }
                         }
                     }
                 }
-            }
 
-            bacc += in_n[ti];
+                bacc += in_n[ti];
+            }
         }
 
         if(rnnMode == miopenGRU && biasMode)
