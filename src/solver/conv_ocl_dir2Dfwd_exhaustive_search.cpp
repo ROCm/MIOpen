@@ -663,7 +663,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
                                     }
 
                                     const auto ret =
-                                        MeasureLoop<ConvOclDirectFwdC, ConvOclDirectFwd>(
+                                        MeasureLoop<ConvOclDirectFwd>(
                                             &profile_h,
                                             bot_ocl_buf.get(),
                                             top_ocl_buf.get(),
