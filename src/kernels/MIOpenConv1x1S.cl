@@ -100,27 +100,16 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 #endif
         ;
 
-#if MIOPEN_USE_FP32 == 1
     _FLOAT accum[MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT] = {{(_FLOAT)(0)}};
     _FLOAT dat[MLO_N_LCL_IN_MAPS][MLO_READ_UNIT];
-#endif
-#if MIOPEN_USE_FP16 == 1
-    _FLOAT accum[MLO_N_LCL_OUT_MAPS * MLO_READ_UNIT];
-    _FLOAT dat[MLO_N_LCL_IN_MAPS * MLO_READ_UNIT];
-#endif
 
-    // for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
-    //{
-    //    for(uint i = 0; i < MLO_READ_UNIT; ++i)
-    //    {
-    //#if MIOPEN_USE_FP32 == 1
-    //        accum[o][i] = (_FLOAT)(0);
-    //#endif
-    //#if MIOPEN_USE_FP16 == 1
-    //        accum[o * MLO_READ_UNIT + i] = (_FLOAT)(0);
-    //#endif
-    //    }
-    //}
+    for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
+    {
+        for(uint i = 0; i < MLO_READ_UNIT; ++i)
+        {
+            accum[o][i] = (_FLOAT)(0);
+        }
+    }
 
     for(uint ci = 0; ci < MLO_CLOOP0; ++ci,
              // move input offset
@@ -173,17 +162,15 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
         // Shader compiler will use      GLOAL_LOAD_DWORD's OFFSET for *(ptr+index) access
         // Shader compiler will not use  GLOAL_LOAD_DWORD's OFFSET for ptr[index] access
 
-        __global const float* p = in_ptr + gbl_in_off;
+        __global const _FLOAT* p = in_ptr + gbl_in_off;
 
         for(uint j = 0; j < MLO_N_LCL_IN_MAPS; j++)
         {
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
             {
-
                 dat[j][i] = *(p + i);
-
 #if DBG_OUT_OF_RNGE
-                if(gbl_in_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+                if(gbl_in_off1 + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
                 {
                     printf("K:oor: inputs\n");
                 }
@@ -195,18 +182,18 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
         // convolve
         for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
         {
+            _FLOAT acc[MLO_READ_UNIT] = {(_FLOAT)(0)};
             for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
             {
+                _FLOAT we = weights[o][c];
+                _FLOAT* d = &dat[c][0];
                 for(uint i = 0; i < MLO_READ_UNIT; ++i)
                 {
-#if MIOPEN_USE_FP32 == 1
-                    accum[o][i] += dat[c][i] * weights[o][c];
-#endif
-#if MIOPEN_USE_FP16 == 1
-                    accum[o * MLO_READ_UNIT + i] += dat[c * MLO_READ_UNIT + i] * weights[o][c];
-#endif
+                    acc[i] += d[i] * we;
                 }
             }
+            for(uint i = 0; i < MLO_READ_UNIT; ++i)
+                accum[o][i] += acc[i];
         }
     }
 
@@ -277,7 +264,7 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
     {
         for(uint i = 0; i < MLO_READ_UNIT; ++i)
         {
-            accum[o][i] = 0;
+            accum[o][i] = (_FLOAT)(0);
         }
     }
 
@@ -316,7 +303,7 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
                 //				off = (vis) ? off : 0;
                 _FLOAT val = *(i_ptr + off);
                 dat[j][i]  = val;
-                //              dat[j][i] = (vis)? dat[j][i] : 0;
+                //              dat[j][i] = (vis)? dat[j][i] : (_FLOAT)(0);
             }
 
             i_ptr += MLO_IN_CHANNEL_STRIDE;
@@ -366,15 +353,15 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
                 {
                     accum[o][i] += dat[c][i] * weights[o][c];
 #if 0
-				if (pos_out_y == 2 && pos_out_x == 0)
-				{
-					printf((__constant char *)"K:c: %f %f %f %f\n",
-					accum[o][i],
-					dat[c][i] * weights[o][c],
-					dat[c][i],
-					weights[o][c]
-					);
-				}
+                    if (pos_out_y == 2 && pos_out_x == 0)
+                    {
+                        printf((__constant char *)"K:c: %f %f %f %f\n",
+                        accum[o][i],
+                        dat[c][i] * weights[o][c],
+                        dat[c][i],
+                        weights[o][c]
+                        );
+                    }
 #endif
                 }
             }
@@ -418,7 +405,7 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
                 if(out_x + s < MLO_OUT_WIDTH)
 #endif
                 {
-                    *(q1 + s) = 0;
+                    *(q1 + s) = (_FLOAT)(0);
                 }
             }
 #endif
@@ -440,7 +427,7 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
                     if(out_x + s < MLO_OUT_WIDTH)
 #endif
                     {
-                        *(q2 + s) = 0;
+                        *(q2 + s) = (_FLOAT)(0);
                     }
                 }
             }

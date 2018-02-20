@@ -234,10 +234,10 @@ __kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
             invVar   = rsqrt(fabs(variance + epsilon));
 
             pvt_scale  = *(scale + adjIndex);
-            pvt_dscale = 0.;
-            pvt_dbias  = 0.;
-            dxhat      = 0.;
-            dxhathat   = 0.;
+            pvt_dscale = (_FLOAT)0.;
+            pvt_dbias  = (_FLOAT)0.;
+            dxhat      = (_FLOAT)0.;
+            dxhathat   = (_FLOAT)0.;
 
             for(int n = 0; n < N; n++)
             {

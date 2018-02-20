@@ -113,9 +113,9 @@ mloPoolingG(const __global _FLOAT* bot,
         for(int l = 0; l < MLO_POOLING_N_HORIZ_OUT_PIX; l++)
         {
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-            res[k][l] = -MAX_VAL;
+            res[k][l] = (_FLOAT)(-MAX_VAL);
 #elif MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
-            res[k][l] = 0;
+            res[k][l] = (_FLOAT)(0);
 #endif
         }
     }
@@ -134,9 +134,9 @@ mloPoolingG(const __global _FLOAT* bot,
                            : false;
             bot_data[j][i] = (vis) ? bot[bot_gbl_off] :
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-                                   -MAX_VAL
+                                   (_FLOAT)(-MAX_VAL)
 #elif MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
-                                   0
+                                   (_FLOAT)(0)
 #endif
                 ;
         }

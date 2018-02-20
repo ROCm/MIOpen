@@ -90,51 +90,41 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
     uint out_grp_block = get_group_id(1); // block of outputs for the entire group
     uint out_id        = out_grp_block * MLO_N_LCL_OUT_MAPS;
 
-    uint2 gbl_in_off = (uint2)(batch_id * MLO_IN_BATCH_STRIDE + pos * MLO_READ_UNIT,
-                               batch_id * MLO_IN_BATCH_STRIDE + pos * MLO_READ_UNIT +
-                                   MLO_N_LCL_IN_MAPS * MLO_IN_CHANNEL_STRIDE);
+    uint2 gbl_in_off = (uint2)(batch_id * MLO_IN_BATCH_STRIDE + pos * MLO_READ_UNIT) +
+                       (uint2)(0, MLO_N_LCL_IN_MAPS * MLO_IN_CHANNEL_STRIDE);
 
+    uint2 wei_off = (uint2)(out_id) *
 #if MLO_DIR_FORWARD == 1
-    uint2 wei_off = (uint2)(out_id * MLO_WEI_BSTRIDE,
-                            out_id * MLO_WEI_BSTRIDE + MLO_N_LCL_IN_MAPS * MLO_WEI_CHANNEL_STRIDE);
+                        (uint2)(MLO_WEI_BSTRIDE) +
+                    (uint2)(0, MLO_N_LCL_IN_MAPS * MLO_WEI_CHANNEL_STRIDE)
 #else
-    uint2 wei_off = (uint2)(out_id * MLO_WEI_CHANNEL_STRIDE,
-                            out_id * MLO_WEI_CHANNEL_STRIDE + MLO_N_LCL_IN_MAPS * MLO_WEI_BSTRIDE);
+                        (uint2)(MLO_WEI_CHANNEL_STRIDE) +
+                    (uint2)(0, MLO_N_LCL_IN_MAPS * MLO_WEI_BSTRIDE)
 #endif
+        ;
 
-#if MIOPEN_USE_FP32 == 1
     _FLOAT2 accum[MLO_N_LCL_OUT_MAPS][MLO_READ_UNIT] = {(_FLOAT2)(0, 0)};
     _FLOAT2 dat[MLO_N_LCL_IN_MAPS][MLO_READ_UNIT];
-#endif
-#if MIOPEN_USE_FP16 == 1
-    _FLOAT2 accum[MLO_N_LCL_OUT_MAPS * MLO_READ_UNIT] = {(_FLOAT2)(0, 0)};
-    _FLOAT2 dat[MLO_N_LCL_IN_MAPS * MLO_READ_UNIT];
-#endif
 
-    // for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
-    //{
-    //    for(uint i = 0; i < MLO_READ_UNIT; ++i)
-    //    {
-    //#if MIOPEN_USE_FP32 == 1
-    //        accum[o][i] = (_FLOAT2) (0, 0);
-    //#endif
-    //#if MIOPEN_USE_FP16 == 1
-    //        accum[o * MLO_READ_UNIT + i] = (_FLOAT2) (0, 0);
-    //#endif
-    //    }
-    //}
+    for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
+    {
+        for(uint i = 0; i < MLO_READ_UNIT; ++i)
+        {
+            accum[o][i] = (_FLOAT2)(0, 0);
+        }
+    }
 
     for(uint ci = 0; ci < MLO_CLOOP0;
         ci += 2,
              // move input offset
-        gbl_in_off += (uint2)(MLO_N_LCL_IN_MAPS * MLO_IN_CHANNEL_STRIDE),
+        gbl_in_off += (uint2)(2 * MLO_N_LCL_IN_MAPS * MLO_IN_CHANNEL_STRIDE),
 
              // move weights offset
-        wei_off +=
+        wei_off += (uint2)(2 * MLO_N_LCL_IN_MAPS) *
 #if MLO_DIR_FORWARD == 1
-        (uint2)(MLO_N_LCL_IN_MAPS * MLO_WEI_CHANNEL_STRIDE)
+                   (uint2)(MLO_WEI_CHANNEL_STRIDE)
 #else
-        (uint2)(MLO_N_LCL_IN_MAPS * MLO_WEI_BSTRIDE)
+                   (uint2)(MLO_WEI_BSTRIDE)
 #endif
             )
     {
@@ -142,25 +132,23 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
 
         uint o;
         uint2 wei_off1;
-        for(o = 0, wei_off1 = wei_off; o < MLO_N_LCL_OUT_MAPS;
-            ++o,
+        for(o = 0, wei_off1 = wei_off; o < MLO_N_LCL_OUT_MAPS; ++o,
         wei_off1 +=
 #if MLO_DIR_FORWARD == 1
-            (uint2)(MLO_WEI_BSTRIDE, MLO_WEI_BSTRIDE)
+                                                               (uint2)(MLO_WEI_BSTRIDE)
 #else
-            (uint2)(MLO_WEI_CHANNEL_STRIDE, MLO_WEI_CHANNEL_STRIDE)
+                                                               (uint2)(MLO_WEI_CHANNEL_STRIDE)
 #endif
                 )
         {
             uint c;
             uint2 wei_off2;
-            for(c = 0, wei_off2 = wei_off1; c < MLO_N_LCL_IN_MAPS;
-                ++c,
+            for(c = 0, wei_off2 = wei_off1; c < MLO_N_LCL_IN_MAPS; ++c,
             wei_off2 +=
 #if MLO_DIR_FORWARD == 1
-                (uint2)(MLO_WEI_CHANNEL_STRIDE, MLO_WEI_CHANNEL_STRIDE)
+                                                                   (uint2)(MLO_WEI_CHANNEL_STRIDE)
 #else
-                (uint2)(MLO_WEI_BSTRIDE, MLO_WEI_BSTRIDE)
+                                                                   (uint2)(MLO_WEI_BSTRIDE)
 #endif
                     )
             {
@@ -185,28 +173,15 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
         uint j;
         uint2 gbl_in_off1;
         for(j = 0, gbl_in_off1 = gbl_in_off; j < MLO_N_LCL_IN_MAPS;
-            ++j, gbl_in_off1 += (uint2)(MLO_IN_CHANNEL_STRIDE, MLO_IN_CHANNEL_STRIDE))
+            ++j, gbl_in_off1 += (uint2)(MLO_IN_CHANNEL_STRIDE))
         {
             for(uint i = 0; i < MLO_READ_UNIT; ++i)
             {
 #if MLO_CLOOP0 % 2 == 0
-#if MIOPEN_USE_FP32 == 1
                 dat[j][i] = (_FLOAT2)(in_ptr[gbl_in_off1.x + i], in_ptr[gbl_in_off1.y + i]);
-#endif
-#if MIOPEN_USE_FP16 == 1
-                dat[j * MLO_READ_UNIT + i] =
-                    (_FLOAT2)(in_ptr[gbl_in_off1.x + i], in_ptr[gbl_in_off1.y + i]);
-#endif
 #else
-#if MIOPEN_USE_FP32 == 1
                 dat[j][i].x     = in_ptr[gbl_in_off1.x + i];
-                dat[j][i].y = (ci + 1 >= MLO_CLOOP0) ? (_FLOAT)(0) : in_ptr[gbl_in_off1.y + i];
-#endif
-#if MIOPEN_USE_FP16 == 1
-                dat[j * MLO_READ_UNIT + i].x = in_ptr[gbl_in_off1.x + i];
-                dat[j * MLO_READ_UNIT + i].y =
-                    (ci + 1 >= MLO_CLOOP0) ? (_FLOAT)(0) : in_ptr[gbl_in_off1.y + i];
-#endif
+                dat[j][i].y     = (ci + 1 >= MLO_CLOOP0) ? (_FLOAT)(0) : in_ptr[gbl_in_off1.y + i];
 #endif
 #if DBG_OUT_OF_RNGE
                 if((gbl_in_off1.x + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ) ||
@@ -221,33 +196,18 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
         // convolve
         for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
         {
+            _FLOAT2 acc[MLO_READ_UNIT] = {(_FLOAT2)(0, 0)};
             for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
             {
+                _FLOAT2 we = weights[o][c];
+                _FLOAT2* d = &dat[c][0];
                 for(uint i = 0; i < MLO_READ_UNIT; ++i)
                 {
-#if MLO_CLOOP0 % 2 == 0
-#if MIOPEN_USE_FP32 == 1
-                    accum[o][i] += dat[c][i] * weights[o][c];
-#endif
-#if MIOPEN_USE_FP16 == 1
-                    accum[o * MLO_READ_UNIT + i] += dat[c * MLO_READ_UNIT + i] * weights[o][c];
-#endif
-#else
-#if MIOPEN_USE_FP32 == 1
-                    accum[o][i].x += dat[c][i].x * weights[o][c].x;
-                    accum[o][i].y +=
-                        (ci + 1 >= MLO_CLOOP0) ? (_FLOAT)(0) : dat[c][i].y * weights[o][c].y;
-#endif
-#if MIOPEN_USE_FP16 == 1
-                    accum[o * MLO_READ_UNIT + i].x +=
-                        dat[c * MLO_READ_UNIT + i].x * weights[o][c].x;
-                    accum[o * MLO_READ_UNIT + i].y +=
-                        (ci + 1 >= MLO_CLOOP0) ? (_FLOAT)(0)
-                                               : dat[c * MLO_READ_UNIT + i].y * weights[o][c].y;
-#endif
-#endif
+                    acc[i] += d[i] * we;
                 }
             }
+            for(uint i = 0; i < MLO_READ_UNIT; ++i)
+                accum[o][i] += acc[i];
         }
     }
 
@@ -258,13 +218,7 @@ MIOpenConv1x1(const __global _FLOAT* __restrict in_ptr,
     {
         for(uint i = 0; i < MLO_READ_UNIT; ++i)
         {
-#if MIOPEN_USE_FP32 == 1
             out_ptr[gbl_out_off1 + i] = accum[o][i].x + accum[o][i].y;
-#endif
-#if MIOPEN_USE_FP16 == 1
-            out_ptr[gbl_out_off1 + i] =
-                accum[o * MLO_READ_UNIT + i].x + accum[o * MLO_READ_UNIT + i].y;
-#endif
         }
     }
 }
@@ -296,8 +250,8 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
     uint pos_in_y = pos_out_y * MLO_FILTER_STRIDE1;
     uint pos_in_x = pos_out_x * MLO_FILTER_STRIDE0;
 #else
-    uint pos_in_y = pos_out_y; /// MLO_FILTER_STRIDE1;   - divided already
-    uint pos_in_x = pos_out_x; // MLO_FILTER_STRIDE0;  - divided already
+    uint pos_in_y               = pos_out_y; /// MLO_FILTER_STRIDE1;   - divided already
+    uint pos_in_x               = pos_out_x; // MLO_FILTER_STRIDE0;  - divided already
 #endif
 
     uint out_grp_block = get_group_id(1); // block of outputs for the entire group
@@ -323,12 +277,12 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
     {
         for(uint i = 0; i < MLO_READ_UNIT; ++i)
         {
-            accum[o][i] = 0;
+            accum[o][i] = (_FLOAT)(0);
         }
     }
 
-    const __global _FLOAT* i_ptr = &in_ptr[gbl_in_off];
-    __constant _FLOAT* w_ptr     = &wei_ptr[wei_off];
+    const __global _FLOAT* i_ptr = in_ptr + gbl_in_off;
+    __constant _FLOAT* w_ptr     = wei_ptr + wei_off;
     for(uint ci = 0; ci < MLO_CLOOP0; ++ci)
     {
 
@@ -346,23 +300,23 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
                            * MLO_FILTER_STRIDE0
 #endif
                     ;
-                dat[j][i] = i_ptr[off];
+                dat[j][i] = *(i_ptr + off);
             }
 #endif
 
             for(; i < MLO_READ_UNIT; ++i)
             {
-                //                                vis &= (pos_in_x + i*MLO_FILTER_STRIDE0 <
+                //				vis &= (pos_in_x + i*MLO_FILTER_STRIDE0 <
                 // MLO_IN_WIDTH);
                 uint off = i
 #if MLO_DIR_FORWARD == 1
                            * MLO_FILTER_STRIDE0
 #endif
                     ;
-                //                                off = (vis) ? off : 0;
-                _FLOAT val = i_ptr[off];
+                //				off = (vis) ? off : 0;
+                _FLOAT val = *(i_ptr + off);
                 dat[j][i]  = val;
-                //              dat[j][i] = (vis)? dat[j][i] : 0;
+                //              dat[j][i] = (vis)? dat[j][i] : (_FLOAT)(0);
             }
 
             i_ptr += MLO_IN_CHANNEL_STRIDE;
@@ -414,12 +368,12 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
 #if 0
                     if (pos_out_y == 2 && pos_out_x == 0)
                     {
-                            printf((__constant char *)"K:c: %f %f %f %f\n",
-                            accum[o][i],
-                            dat[c][i] * weights[o][c],
-                            dat[c][i],
-                            weights[o][c]
-                            );
+                        printf((__constant char *)"K:c: %f %f %f %f\n",
+                        accum[o][i],
+                        dat[c][i] * weights[o][c],
+                        dat[c][i],
+                        weights[o][c]
+                        );
                     }
 #endif
                 }
@@ -441,19 +395,21 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
     uint gbl_out_off = batch_id * MLO_OUT_BATCH_STRIDE + out_id * MLO_OUT_CHANNEL_STRIDE +
                        out_y * MLO_OUT_STRIDE + out_x * MLO_READ_UNIT;
 
-    for(uint o = 0, gbl_out_off1 = gbl_out_off; o < MLO_N_LCL_OUT_MAPS;
-        ++o, gbl_out_off1 += MLO_OUT_CHANNEL_STRIDE)
+    __global _FLOAT* q = out_ptr + gbl_out_off;
+
+    for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o, q += MLO_OUT_CHANNEL_STRIDE)
     {
 
         for(uint i = 0; i < MLO_READ_UNIT; ++i)
         {
-            uint out_off = gbl_out_off1 +
-                           i
+            __global _FLOAT* q1 = q;
+            q1 += i
 #if MLO_DIR_FORWARD == 0
-                               * MLO_FILTER_STRIDE0
+
+                  * MLO_FILTER_STRIDE0;
 #endif
-                ;
-            out_ptr[out_off] = accum[o][i];
+            ;
+            *q1 = accum[o][i];
 
 #if MLO_DIR_FORWARD == 0
             for(uint s = 1; s < MLO_FILTER_STRIDE0; ++s)
@@ -462,27 +418,29 @@ MIOpenConv1x1pquv(const __global _FLOAT* __restrict in_ptr,
                 if(out_x + s < MLO_OUT_WIDTH)
 #endif
                 {
-                    out_ptr[out_off + s] = 0;
+                    *(q1 + s) = (_FLOAT)(0);
                 }
             }
 #endif
         }
 
 #if MLO_DIR_FORWARD == 0
+        __global _FLOAT* q2 = q;
         for(uint j = 1; j < MLO_FILTER_STRIDE1; ++j)
         {
+            q2 += MLO_OUT_STRIDE;
 #if MLO_VERT_ALIGNED == 0
             if(out_y + j < MLO_OUT_HEIGHT)
 #endif
             {
-                uint out_off = gbl_out_off1 + j * MLO_OUT_STRIDE;
+
                 for(uint s = 0; s < MLO_READ_UNIT * MLO_FILTER_STRIDE0; ++s)
                 {
 #if MLO_HORIZ_ALIGNED == 0
                     if(out_x + s < MLO_OUT_WIDTH)
 #endif
                     {
-                        out_ptr[out_off + s] = 0;
+                        *(q2 + s) = (_FLOAT)(0);
                     }
                 }
             }

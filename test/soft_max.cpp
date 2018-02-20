@@ -57,7 +57,7 @@ struct verify_forward_sofmax
             T max_c = std::numeric_limits<T>::lowest();
             ford(in_c)([&](int w) { max_c = std::max(max_c, input(o, w, i, j)); });
 
-            T sum = 0;
+            double sum = 0;
             ford(in_c)([&](int w) { sum += std::exp(input(o, w, i, j) - max_c); });
 
             ford(in_c)([&](int w) { out(o, w, i, j) = std::exp(input(o, w, i, j) - max_c) / sum; });
@@ -101,7 +101,7 @@ struct verify_backward_sofmax
         std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
         par_ford(in_n, in_h, in_w)([&](int o, int i, int j) {
-            T sum = 0;
+            double sum = 0;
             ford(in_c)([&](int c) { sum += out(o, c, i, j) * dout(o, c, i, j); });
 
             ford(in_c)(
