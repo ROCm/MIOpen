@@ -199,12 +199,12 @@ struct activation_driver : test_driver
                  [=](T dy, T, T y) { return dy * (1 - y * y); });
         add_mode(miopenActivationRELU,
                  [=](T x) { return (x > 0) ? x : x * beta; },
-                 [=](T dy, T, T) { return std::max<T>(0, dy); });
+                 [=](T dy, T, T) { return std::max(T(0), dy); });
         add_mode(miopenActivationSOFTRELU,
                  [=](T x) { return std::log(1 + std::exp(x)); },
                  [=](T dy, T x, T) {
                      static const float threshold = 50.;
-                     T expval = std::exp(std::min(x, static_cast<T>(threshold)));
+                     T expval = T(std::exp(std::min(x, static_cast<T>(threshold))));
                      return dy * expval / (expval + 1.0);
                  });
         add_mode(miopenActivationABS,
