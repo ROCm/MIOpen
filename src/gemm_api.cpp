@@ -26,6 +26,23 @@
 #include <miopen/errors.hpp>
 #include <miopen/gemm.hpp>
 
+#if MIOPEN_USE_ROCBLAS
+#include <miopen/handle.hpp>
+#include <miopen/manage_ptr.hpp>
+#include <rocblas.h>
+
+using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_handle);
+
+rocblas_handle_ptr create_rocblas_handle_ptr(miopen::Handle& h)
+{
+  rocblas_handle x = nullptr;
+  rocblas_create_handle(&x);
+  auto result = rocblas_handle_ptr{x};
+  rocblas_set_stream(result.get(), h.GetStream());
+  return result;
+}
+#endif
+
 miopenStatus_t miopenGemm(miopenHandle_t handle,
                           bool isDataColMajor,
                           bool transA,
@@ -43,6 +60,15 @@ miopenStatus_t miopenGemm(miopenHandle_t handle,
                           int ldc,
                           int find)
 {
+#if MIOPEN_USE_ROCBLAS
+  (void)isDataColMajor;
+  (void)find;
+  static rocblas_handle_ptr rhandle = create_rocblas_handle_ptr(miopen::deref(handle));
+  float alpha_local = *static_cast<const float*>(alpha);
+  float beta_local = *static_cast<const float*>(beta);
+  rocblas_sgemm(rhandle.get(), transA ? rocblas_operation_transpose : rocblas_operation_none, transB ? rocblas_operation_transpose : rocblas_operation_none, M, N, K, &alpha_local, static_cast<const float*>(A), lda, static_cast<const float*>(B), ldb, &beta_local, static_cast<float*>(C), ldc);
+  return miopenStatusSuccess;
+#else
 
     // JN make column major
     if(!isDataColMajor)
@@ -78,4 +104,5 @@ miopenStatus_t miopenGemm(miopenHandle_t handle,
         else
             gg.RunGemm(miopen::deref(handle), DataCast(A), DataCast(B), DataCast(C), 0, 0, 0);
     });
+#endif
 }
