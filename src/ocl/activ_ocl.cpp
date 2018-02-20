@@ -119,11 +119,10 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
             const std::string READ_TYPE =
                 (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
 
-            network_config =
-                ((packed) ? "11" : "10") // + lite bit
-                +  std::to_string(xDesc.GetType()) +
-                std::to_string(mode) + std::to_string(read_unit) + std::to_string(MAP_RD) +
-                std::to_string(height);
+            network_config = ((packed) ? "11" : "10") // + lite bit
+                             + std::to_string(xDesc.GetType()) + std::to_string(mode) +
+                             std::to_string(read_unit) + std::to_string(MAP_RD) +
+                             std::to_string(height);
 
             auto&& kernels = handle.GetKernels("miopenActivationForward", network_config);
             auto p_kernel  = std::begin(kernels);
@@ -517,11 +516,10 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
             const std::string READ_TYPE =
                 (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
 
-            network_config =
-                ((packed) ? "11" : "10") // + lite bit
-                + std::to_string(xDesc.GetType()) +
-                std::to_string(mode) + std::to_string(read_unit) + std::to_string(MAP_RD) +
-                std::to_string(height);
+            network_config = ((packed) ? "11" : "10") // + lite bit
+                             + std::to_string(xDesc.GetType()) + std::to_string(mode) +
+                             std::to_string(read_unit) + std::to_string(MAP_RD) +
+                             std::to_string(height);
 
             auto&& kernels = handle.GetKernels("miopenActivationBackward", network_config);
             auto p_kernel  = std::begin(kernels);
