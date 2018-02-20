@@ -109,7 +109,7 @@ bool DbRecord::ParseLegacyContents(const std::string& contents)
 static bool isLegacySolver(const std::string& id)
 {
     /// \todo Hard-coded for now, quick and dirty.
-    return (id == "ConvOclDirectFwd" || id == "ConvOclDirectFwd1x1" || id == "ConvOclDirectFwdC");
+    return (id == "ConvOclDirectFwd" || id == "ConvOclDirectFwd1x1");
 }
 #endif
 
