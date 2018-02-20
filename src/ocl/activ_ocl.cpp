@@ -121,7 +121,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 
             network_config =
                 ((packed) ? "11" : "10") // + lite bit
-                + ((xDesc.GetType() == miopenFloat) ? std::string("1") : std::string("0")) +
+                +  std::to_string(xDesc.GetType()) +
                 std::to_string(mode) + std::to_string(read_unit) + std::to_string(MAP_RD) +
                 std::to_string(height);
 
@@ -519,7 +519,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 
             network_config =
                 ((packed) ? "11" : "10") // + lite bit
-                + ((xDesc.GetType() == miopenFloat) ? std::string("1") : std::string("0")) +
+                + std::to_string(xDesc.GetType()) +
                 std::to_string(mode) + std::to_string(read_unit) + std::to_string(MAP_RD) +
                 std::to_string(height);
 
