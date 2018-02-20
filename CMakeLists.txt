@@ -148,6 +148,8 @@ set(BOOST_COMPONENTS filesystem thread system)
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
+find_path(HALF_INCLUDE_DIR half.hpp)
+
 option( BUILD_SHARED_LIBS "Build as a shared library" ON )
 
 option( BUILD_DEV "Build for development only" OFF)

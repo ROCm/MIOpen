@@ -103,11 +103,11 @@ struct RNNDescriptor : miopenRNNDescriptor
 
     size_t GetWorkspaceSize(Handle& handle,
                             int seqLength,
-                            c_array_view<miopenTensorDescriptor_t> xDesc) const;
+                            c_array_view<const miopenTensorDescriptor_t> xDesc) const;
 
     size_t GetReserveSize(Handle& handle,
                           int seqLength,
-                          c_array_view<miopenTensorDescriptor_t> xDesc) const;
+                          c_array_view<const miopenTensorDescriptor_t> xDesc) const;
 
     size_t GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miopenDataType_t dtype);
 
@@ -157,6 +157,18 @@ struct RNNDescriptor : miopenRNNDescriptor
                       const TensorDescriptor& biasDesc,
                       ConstData_t bias);
 
+    void GetLayerParamOffset(int layer,
+                             const TensorDescriptor& xDesc,
+                             int paramID,
+                             TensorDescriptor& paramDesc,
+                             size_t* paramOffset);
+
+    void GetLayerBiasOffset(int layer,
+                            const TensorDescriptor& xDesc,
+                            int biasID,
+                            TensorDescriptor& biasDesc,
+                            size_t* biasOffset);
+
     size_t GetRNNInputSuperTensorSize(Handle& handle,
                                       int seqLength,
                                       c_array_view<miopenTensorDescriptor_t> xDesc);
@@ -166,7 +178,7 @@ struct RNNDescriptor : miopenRNNDescriptor
 
     void RNNForwardTraining(Handle& handle,
                             int seqLen,
-                            c_array_view<miopenTensorDescriptor_t> xDesc,
+                            c_array_view<const miopenTensorDescriptor_t> xDesc,
                             ConstData_t x,
                             const TensorDescriptor& hxDesc,
                             ConstData_t hx,
@@ -174,7 +186,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                             ConstData_t cx,
                             const TensorDescriptor& wDesc,
                             ConstData_t w,
-                            c_array_view<miopenTensorDescriptor_t> yDesc,
+                            c_array_view<const miopenTensorDescriptor_t> yDesc,
                             Data_t y,
                             const TensorDescriptor& hyDesc,
                             Data_t hy,
@@ -187,7 +199,7 @@ struct RNNDescriptor : miopenRNNDescriptor
 
     void RNNForwardInference(Handle& handle,
                              int seqLen,
-                             c_array_view<miopenTensorDescriptor_t> xDesc,
+                             c_array_view<const miopenTensorDescriptor_t> xDesc,
                              ConstData_t x,
                              const TensorDescriptor& hxDesc,
                              ConstData_t hx,
@@ -195,7 +207,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                              ConstData_t cx,
                              const TensorDescriptor& wDesc,
                              ConstData_t w,
-                             c_array_view<miopenTensorDescriptor_t> yDesc,
+                             c_array_view<const miopenTensorDescriptor_t> yDesc,
                              Data_t y,
                              const TensorDescriptor& hyDesc,
                              Data_t hy,
@@ -206,9 +218,9 @@ struct RNNDescriptor : miopenRNNDescriptor
 
     void RNNBackwardData(Handle& handle,
                          int seqLen,
-                         c_array_view<miopenTensorDescriptor_t> yDesc,
+                         c_array_view<const miopenTensorDescriptor_t> yDesc,
                          ConstData_t y,
-                         c_array_view<miopenTensorDescriptor_t> dyDesc,
+                         c_array_view<const miopenTensorDescriptor_t> dyDesc,
                          ConstData_t dy,
                          const TensorDescriptor& dhyDesc,
                          ConstData_t dhy,
@@ -220,7 +232,7 @@ struct RNNDescriptor : miopenRNNDescriptor
                          ConstData_t hx,
                          const TensorDescriptor& cxDesc,
                          ConstData_t cx,
-                         c_array_view<miopenTensorDescriptor_t> dxDesc,
+                         c_array_view<const miopenTensorDescriptor_t> dxDesc,
                          Data_t dx,
                          const TensorDescriptor& dhxDesc,
                          Data_t dhx,
@@ -233,11 +245,11 @@ struct RNNDescriptor : miopenRNNDescriptor
 
     void RNNBackwardWeights(Handle& handle,
                             int seqLen,
-                            c_array_view<miopenTensorDescriptor_t> xDesc,
+                            c_array_view<const miopenTensorDescriptor_t> xDesc,
                             ConstData_t x,
                             const TensorDescriptor& hxDesc,
                             ConstData_t hx,
-                            c_array_view<miopenTensorDescriptor_t> dyDesc,
+                            c_array_view<const miopenTensorDescriptor_t> dyDesc,
                             ConstData_t dy,
                             const TensorDescriptor& dwDesc,
                             Data_t dw,

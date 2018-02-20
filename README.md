@@ -13,6 +13,7 @@ AMD's library for high peformance machine learning primitives. MIOpen supports t
     * [clang-ocl](https://github.com/RadeonOpenCompute/clang-ocl) -- **required**
 * [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) to enable various functionalities including transposed and dilated convolutions
 * ROCm cmake modules can be installed from [here](https://github.com/RadeonOpenCompute/rocm-cmake)
+* [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
 * [OpenSSL](https://www.openssl.org/) or [libressl](https://www.libressl.org/)
 * [Boost](http://www.boost.org/) at least version 1.58
   * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/doc/src/cache.md)
