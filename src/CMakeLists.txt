@@ -75,6 +75,8 @@ set( MIOpen_Source
     batch_norm_api.cpp
     rnn.cpp
     rnn_api.cpp
+    temp_file.cpp
+    include/miopen/temp_file.hpp
     include/miopen/db.hpp
     include/miopen/db_record.hpp
     include/miopen/lock_file.hpp
