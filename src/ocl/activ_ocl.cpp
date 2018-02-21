@@ -521,10 +521,10 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                              std::to_string(height);
 
             auto&& kernels = handle.GetKernels("miopenActivationBackward", network_config);
-			if (!kernels.empty())
-	        {
-		        auto kernel = kernels.front();
-		        if(packed)
+            if(!kernels.empty())
+            {
+                auto kernel = kernels.front();
+                if(packed)
                 {
                     kernel(dx,
                            dy,
