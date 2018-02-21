@@ -156,8 +156,14 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
         x_stride(3, 1), y_size(3, 1), y_stride(3, 1), hx_size(3, 1), hx_stride(3, 1);
     miopen::TensorDescriptor sp_desc, w_desc, x_desc, y_desc, hx_desc;
 
+    sp_size[2]   = workSpaceSize / sizeof(wDesc.GetType());
+    sp_stride[0] = sp_size[2];
+    sp_stride[1] = sp_size[2];
+    sp_desc      = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+    SetTensor(handle, sp_desc, workSpace, &beta);
     sp_stride[0] = batch_n * hy_stride;
     sp_stride[1] = hy_stride;
+    sp_size[2]   = 1;
     w_stride[0]  = wei_stride;
     w_stride[1]  = wei_stride;
     x_stride[0]  = batch_n * in_stride;
@@ -1006,8 +1012,14 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         x_stride(3, 1), y_size(3, 1), y_stride(3, 1), hx_size(3, 1), hx_stride(3, 1);
     miopen::TensorDescriptor sp_desc, w_desc, x_desc, y_desc, hx_desc;
 
+    sp_size[2]   = reserveSpaceSize / sizeof(wDesc.GetType());
+    sp_stride[0] = sp_size[2];
+    sp_stride[1] = sp_size[2];
+    sp_desc      = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+    SetTensor(handle, sp_desc, reserveSpace, &beta);
     sp_stride[0] = batch_n * hy_stride;
     sp_stride[1] = hy_stride;
+    sp_size[2]   = 1;
     w_stride[0]  = wei_stride;
     w_stride[1]  = wei_stride;
     x_stride[0]  = batch_n * in_stride;
@@ -1865,8 +1877,14 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         y_stride(3, 1), hx_size(3, 1), hx_stride(3, 1);
     miopen::TensorDescriptor sp_desc, x_desc, y_desc, hx_desc;
 
+    sp_size[2]   = workSpaceSize / sizeof(wDesc.GetType());
+    sp_stride[0] = sp_size[2];
+    sp_stride[1] = sp_size[2];
+    sp_desc      = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+    SetTensor(handle, sp_desc, workSpace, &beta);
     sp_stride[0] = batch_n * hy_stride;
     sp_stride[1] = hy_stride;
+    sp_size[2]   = 1;
     x_stride[0]  = batch_n * in_stride;
     x_stride[1]  = in_stride;
     y_stride[0]  = batch_n * out_stride;
@@ -3095,7 +3113,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                            in_h,
                            wei_len * bi,
                            1,
-                           1,
+                           0,
                            false,
                            false,
                            false,
@@ -3227,15 +3245,21 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
 
     size_t wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (nLayers - 1)) * wei_stride;
 
-    float alpha0, alpha1, beta_t;
+    float alpha0, alpha1, beta_t = 0;
 
     std::vector<int> sp_size(3, 1), sp_stride(3, 1), w_size(3, 1), w_stride(3, 1);
     miopen::TensorDescriptor sp_desc, w_desc;
 
     sp_stride[0] = batch_n * hy_stride;
     sp_stride[1] = hy_stride;
-    w_stride[0]  = wei_stride;
-    w_stride[1]  = wei_stride;
+    w_size[2]    = dwDesc.GetElementSize();
+    w_stride[0]  = w_size[2];
+    w_stride[1]  = w_size[2];
+    w_desc       = miopen::TensorDescriptor(miopenFloat, w_size.data(), w_stride.data(), 3);
+    SetTensor(handle, w_desc, dw, &beta_t);
+    w_stride[0] = wei_stride;
+    w_stride[1] = wei_stride;
+    w_size[2]   = 1;
 
 #if MIOPEN_USE_MIOPENGEMM
 
