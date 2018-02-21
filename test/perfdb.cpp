@@ -148,19 +148,14 @@ class DbTest
     protected:
     static const std::vector<std::pair<const char*, TestData>>& common_data()
     {
-        static const std::vector<std::pair<const char*, TestData>> data
-        {
-            { id1(), value1() },
-            { id0(), value0() },
+        static const std::vector<std::pair<const char*, TestData>> data{
+            {id1(), value1()}, {id0(), value0()},
         };
 
         return data;
     }
 
-    inline void ResetDb() const
-    {
-        (void)std::ofstream(temp_file());
-    }
+    inline void ResetDb() const { (void)std::ofstream(temp_file()); }
 
     static const TestData& key()
     {
@@ -192,17 +187,19 @@ class DbTest
     static const char* missing_id() { return "2"; }
     const TempFile& temp_file() const { return _temp_file; }
 
-    template<class TKey, class TValue>
-    static inline void RawWrite(const std::string& db_path, const TKey& key, const std::vector<std::pair<const char*, TValue>> values)
+    template <class TKey, class TValue>
+    static inline void RawWrite(const std::string& db_path,
+                                const TKey& key,
+                                const std::vector<std::pair<const char*, TValue>> values)
     {
         std::ostringstream ss_vals;
         ss_vals << key.x << ',' << key.y << '=';
 
         auto first = true;
 
-        for (const auto& id_value : values)
+        for(const auto& id_value : values)
         {
-            if (!first)
+            if(!first)
                 ss_vals << ";";
 
             first = false;
@@ -212,14 +209,16 @@ class DbTest
         std::ofstream(db_path, std::ios::out | std::ios::ate) << ss_vals.str() << std::endl;
     }
 
-    template<class TDb, class TKey, class TValue>
-    inline void ValidateSingleEntry(TKey key, const std::vector<std::pair<const char*, TValue>> values, TDb db) const
+    template <class TDb, class TKey, class TValue>
+    inline void ValidateSingleEntry(TKey key,
+                                    const std::vector<std::pair<const char*, TValue>> values,
+                                    TDb db) const
     {
         boost::optional<DbRecord> record = db.FindRecord(key);
 
         EXPECT(record);
 
-        for (const auto& id_value : values)
+        for(const auto& id_value : values)
         {
             TValue read;
             EXPECT(record->GetValues(id_value.first, read));
@@ -468,8 +467,7 @@ class DbParallelTest : public DbTest
             EXPECT(db1.UpdateRecord(*r1));
         }
 
-        const std::vector<std::pair<const char*, TestData>> data
-        {
+        const std::vector<std::pair<const char*, TestData>> data{
             std::make_pair(id0(), value0()),
             std::make_pair(id1(), value1()),
             std::make_pair(id2(), value2()),
@@ -674,7 +672,7 @@ class DbMultiProcessTest : public DbTest
 
 class DbMultiFileTest : public DbTest
 {
-protected:
+    protected:
     const std::string& user_db_path() const { return _user_db_path; }
 
     inline void ResetDb() const
@@ -683,7 +681,7 @@ protected:
         (void)std::ofstream(user_db_path());
     }
 
-private:
+    private:
     const std::string _user_db_path = temp_file().Path() + ".user";
 };
 
@@ -705,12 +703,11 @@ class DbMultiFileReadTest : public DbMultiFileTest
         ReadConflict();
     }
 
-private:
+    private:
     static const std::vector<std::pair<const char*, TestData>>& single_item_data()
     {
-        static const std::vector<std::pair<const char*, TestData>> data
-        {
-            { id0(), value0() },
+        static const std::vector<std::pair<const char*, TestData>> data{
+            {id0(), value0()},
         };
 
         return data;
@@ -745,7 +742,6 @@ private:
         RawWrite(temp_file(), key(), single_item_data());
         ReadUser();
     }
-
 };
 
 class DbMultiFileWriteTest : public DbMultiFileTest
