@@ -125,10 +125,9 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                              std::to_string(height);
 
             auto&& kernels = handle.GetKernels("miopenActivationForward", network_config);
-            auto p_kernel  = std::begin(kernels);
-            if(p_kernel != std::end(kernels))
+            if(!kernels.empty())
             {
-                auto kernel = *p_kernel;
+                auto kernel = kernels.front();
                 if(packed)
                 {
                     kernel(x,
@@ -522,11 +521,10 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                              std::to_string(height);
 
             auto&& kernels = handle.GetKernels("miopenActivationBackward", network_config);
-            auto p_kernel  = std::begin(kernels);
-            if(p_kernel != std::end(kernels))
-            {
-                auto kernel = *p_kernel;
-                if(packed)
+			if (!kernels.empty())
+	        {
+		        auto kernel = kernels.front();
+		        if(packed)
                 {
                     kernel(dx,
                            dy,
