@@ -43,8 +43,8 @@
 #include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/lock_file.hpp>
+#include <miopen/temp_file.hpp>
 
-#include "temp_file_path.hpp"
 #include "test.hpp"
 
 namespace miopen {
@@ -142,7 +142,7 @@ std::ostream& operator<<(std::ostream& s, const TestData& td)
 class DbTest
 {
     public:
-    DbTest() : _temp_file_path("/tmp/miopen.tests.perfdb.XXXXXX") {}
+    DbTest() : _temp_file("miopen.tests.perfdb") {}
     virtual ~DbTest() {}
 
     protected:
@@ -180,7 +180,7 @@ class DbTest
     static const char* id1() { return "1"; }
     static const char* id2() { return "2"; }
     static const char* missing_id() { return "2"; }
-    const char* temp_file_path() const { return _temp_file_path; }
+    const TempFile& temp_file_path() const { return _temp_file; }
 
     static inline void RawWrite(const std::string& db_path, const TestData& key, const char* id, const TestData& value)
     {
@@ -206,7 +206,7 @@ class DbTest
     }
 
     private:
-    TempFilePath _temp_file_path;
+    TempFile _temp_file;
 };
 
 class DbFindTest : public DbTest
@@ -611,7 +611,7 @@ class DbMultiProcessTest : public DbTest
             for(auto& child : children)
             {
                 const auto command = exe_path().string() + " " + arg + " " + std::to_string(id++) +
-                                     " " + temp_file_path();
+                                     " " + temp_file_path().Path();
                 child = popen(command.c_str(), "w");
             }
         }

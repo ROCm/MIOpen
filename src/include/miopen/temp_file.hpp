@@ -28,26 +28,23 @@
 #define GUARD_TEMP_FILE_HPP
 
 #include <string>
-#include <unistd.h>
-
-#include "test.hpp"
 
 namespace miopen {
-class TempFilePath
-{
-    public:
-    TempFilePath(const std::string& path) : _path(path)
+    class TempFile
     {
-        auto temp_fd = mkstemp(&_path[0]);
-        EXPECT(temp_fd != -1);
-        close(temp_fd);
-    }
-    ~TempFilePath() { std::remove(_path.c_str()); }
-    operator const char*() const { return _path.c_str(); }
+    public:
+        TempFile(const std::string& path_template);
+        ~TempFile();
+
+        inline const std::string& Path() const { return _path; }
+        inline operator const std::string&() const { return _path; }
 
     private:
-    std::string _path;
-};
+        std::string _path;
+        int _fd;
+
+        static std::string GetTempDirectoryPath();
+    };
 } // namespace miopen
 
 #endif
