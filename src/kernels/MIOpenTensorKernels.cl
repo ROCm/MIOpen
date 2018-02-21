@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #if MIOPEN_USE_FP16 == 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
@@ -83,9 +84,9 @@ __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
                               const int c_nstride,
                               const int c_cstride,
                               const int work_per_wg,
-                              const float alpha0,
-                              const float alpha1,
-                              const float beta,
+                              const MIOPEN_TYPE alpha0,
+                              const MIOPEN_TYPE alpha1,
+                              const MIOPEN_TYPE beta,
                               const long Aoffset,
                               const long Boffset,
                               const long Coffset,
@@ -153,9 +154,9 @@ __kernel void OpTensorFwdBiasGeneric(global MIOPEN_TYPE* a,
                                      const int c_nstride,
                                      const int c_cstride,
                                      const int c_hstride,
-                                     const float alpha0,
-                                     const float alpha1,
-                                     const float beta,
+                                     const MIOPEN_TYPE alpha0,
+                                     const MIOPEN_TYPE alpha1,
+                                     const MIOPEN_TYPE beta,
                                      const int work_per_wg,
                                      const long Aoffset,
                                      const long Boffset,
@@ -242,9 +243,9 @@ __kernel void OpTensorLeadingOnes(global MIOPEN_TYPE* a,
                                   UNUSED
 #endif
                                   const int work_per_wg,
-                                  const float alpha0,
-                                  const float alpha1,
-                                  const float beta,
+                                  const MIOPEN_TYPE alpha0,
+                                  const MIOPEN_TYPE alpha1,
+                                  const MIOPEN_TYPE beta,
                                   const long Aoffset,
                                   const long Boffset,
                                   const long Coffset,
@@ -370,9 +371,9 @@ __kernel void OpTensorLeadingOnesGeneric(global MIOPEN_TYPE* a,
                                          const int c_nstride,
                                          const int c_cstride,
                                          const int c_hstride,
-                                         const float alpha0,
-                                         const float alpha1,
-                                         const float beta,
+                                         const MIOPEN_TYPE alpha0,
+                                         const MIOPEN_TYPE alpha1,
+                                         const MIOPEN_TYPE beta,
 #if FIRST_NOT_ONE == 3
                                          UNUSED
 #endif
@@ -507,9 +508,9 @@ __kernel void Op4dTensorGeneric(global MIOPEN_TYPE* a,
                                 const int c_nstride,
                                 const int c_cstride,
                                 const int c_hstride,
-                                const float alpha0,
-                                const float alpha1,
-                                const float beta,
+                                const MIOPEN_TYPE alpha0,
+                                const MIOPEN_TYPE alpha1,
+                                const MIOPEN_TYPE beta,
                                 const unsigned int bitmap,
                                 const int work_per_wg,
                                 const long Aoffset,
@@ -585,9 +586,9 @@ __kernel void Op5dTensorGeneric(global MIOPEN_TYPE* a,
                                 const int c_cstride,
                                 const int c_dstride,
                                 const int c_hstride,
-                                const float alpha0,
-                                const float alpha1,
-                                const float beta,
+                                const MIOPEN_TYPE alpha0,
+                                const MIOPEN_TYPE alpha1,
+                                const MIOPEN_TYPE beta,
                                 const unsigned int bitmap,
                                 const int work_per_wg,
                                 const long Aoffset,
@@ -659,9 +660,9 @@ __kernel void Op3dTensorGeneric(global MIOPEN_TYPE* a,
                                 const int c_h,
                                 const int c_nstride,
                                 const int c_cstride,
-                                const float alpha0,
-                                const float alpha1,
-                                const float beta,
+                                const MIOPEN_TYPE alpha0,
+                                const MIOPEN_TYPE alpha1,
+                                const MIOPEN_TYPE beta,
                                 const unsigned int bitmap,
                                 const int work_per_wg,
                                 const long Aoffset,
@@ -709,6 +710,52 @@ __kernel void Op3dTensorGeneric(global MIOPEN_TYPE* a,
     }
 }
 
+__kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
+                             const int a_nstride,
+                             const global MIOPEN_TYPE* b,
+                             const int b_nstride,
+                             global MIOPEN_TYPE* c,
+                             const int c_nstride,
+                             const float alpha0,
+                             const float alpha1,
+                             const float beta,
+                             const long Aoffset,
+                             const long Boffset,
+                             const long Coffset)
+{
+    int gid0 = get_global_id(0);
+    int gid1 = get_global_id(1);
+
+    int a_index = gid1 * a_nstride + gid0 * RD_BLCK;
+    int b_index = gid1 * b_nstride + gid0 * RD_BLCK;
+    int c_index = gid1 * c_nstride + gid0 * RD_BLCK;
+
+    float a_dat[RD_BLCK];
+    float b_dat[RD_BLCK];
+    float c_dat[RD_BLCK];
+
+    *((READ_TYPE*)a_dat) = *((const global READ_TYPE*)(a + Aoffset + a_index));
+    *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + Boffset + b_index));
+#ifdef BETA
+    *((READ_TYPE*)c_dat) = *((const global READ_TYPE*)(c + Coffset + c_index));
+#endif
+
+    for(int i = 0; i < RD_BLCK; ++i)
+    {
+        c_dat[i] = MIOPEN_TENSOR_OP(a_dat[i] * alpha0, b_dat[i] * alpha1)
+#ifdef BETA
+                   + beta * c_dat[i]
+#endif
+            ;
+    }
+
+    *((global READ_TYPE*)(c + Coffset + c_index)) = *((READ_TYPE*)c_dat);
+
+#ifndef BETA
+    (void)beta;
+#endif
+}
+
 // NC
 __kernel void Op2dTensorGeneric(global MIOPEN_TYPE* a,
                                 const int a_nstride,
@@ -718,9 +765,9 @@ __kernel void Op2dTensorGeneric(global MIOPEN_TYPE* a,
                                 global MIOPEN_TYPE* c,
                                 const int c_c,
                                 const int c_nstride,
-                                const float alpha0,
-                                const float alpha1,
-                                const float beta,
+                                const MIOPEN_TYPE alpha0,
+                                const MIOPEN_TYPE alpha1,
+                                const MIOPEN_TYPE beta,
                                 const unsigned int bitmap,
                                 const int work_per_wg,
                                 const long Aoffset,
@@ -767,9 +814,9 @@ __kernel void Op1dTensorGeneric(global MIOPEN_TYPE* a,
                                 const int b_n,
                                 global MIOPEN_TYPE* c,
                                 const int c_n,
-                                const float alpha0,
-                                const float alpha1,
-                                const float beta,
+                                const MIOPEN_TYPE alpha0,
+                                const MIOPEN_TYPE alpha1,
+                                const MIOPEN_TYPE beta,
                                 const unsigned int bitmap,
                                 const int work_per_wg,
                                 const long Aoffset,
