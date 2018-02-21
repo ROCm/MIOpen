@@ -210,9 +210,8 @@ class DbTest
     }
 
     template <class TDb, class TKey, class TValue>
-    inline void ValidateSingleEntry(TKey key,
-                                    const std::vector<std::pair<const char*, TValue>> values,
-                                    TDb db) const
+    static inline void
+    ValidateSingleEntry(TKey key, const std::vector<std::pair<const char*, TValue>> values, TDb db)
     {
         boost::optional<DbRecord> record = db.FindRecord(key);
 
