@@ -393,7 +393,7 @@ struct test_driver
             std::cout << "Warning: Both CPU and GPU data is all zero" << std::endl;
             fail(-1);
         }
-        //std::cout << "----- END VERIFY CHECK -----\n" << std::endl;
+        // std::cout << "----- END VERIFY CHECK -----\n" << std::endl;
         return std::make_pair(std::move(out_cpu), std::move(out_gpu));
     }
 
