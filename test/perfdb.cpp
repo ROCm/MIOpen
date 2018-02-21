@@ -685,6 +685,90 @@ class DbMultiProcessTest : public DbTest
     static std::string LockFilePath(const std::string& db_path) { return db_path + ".test.lock"; }
 };
 
+class DbMultiFileReadTest : public DbTest
+{
+    public:
+    inline void Run() const
+    {
+        const auto user_db_path = temp_file_path() + std::string(".user");
+
+        {
+            std::ostringstream ss_vals;
+            ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ','
+                    << value1().y;
+
+            std::ofstream(temp_file_path()) << ss_vals.str() << std::endl;
+        }
+
+        {
+            std::ostringstream ss_vals;
+            ss_vals << key().x << ',' << key().y << '=' << id0() << ':' << value0().x << ','
+                    << value0().y;
+
+            std::ofstream(user_db_path) << ss_vals.str() << std::endl;
+        }
+
+        boost::optional<DbRecord> record0, record1;
+        TestData read0, read1;
+        TestData invalid_key(100, 200);
+
+        {
+            MultiFileDb db(temp_file_path(), user_db_path);
+
+            record0 = db.FindRecord(key());
+            record1 = db.FindRecord(invalid_key);
+        }
+
+        EXPECT(record0);
+        EXPECT(record0->GetValues(id0(), read0));
+        EXPECT(record0->GetValues(id1(), read1));
+        EXPECT_EQUAL(value0(), read0);
+        EXPECT_EQUAL(value1(), read1);
+        EXPECT(!record1);
+    }
+};
+
+class DbMultiFileWriteTest : public DbTest
+{
+    public:
+    inline void Run() const
+    {
+        const auto user_db_path = temp_file_path() + std::string(".user");
+
+        (void)std::ofstream(temp_file_path());
+        (void)std::ofstream(user_db_path);
+
+        DbRecord record(key());
+        EXPECT(record.SetValues(id0(), value0()));
+        EXPECT(record.SetValues(id1(), value1()));
+
+        {
+            MultiFileDb db(temp_file_path(), user_db_path);
+
+            EXPECT(db.StoreRecord(record));
+        }
+
+        std::string read;
+        EXPECT(!std::getline(std::ifstream(temp_file_path()), read).good());
+        EXPECT(std::getline(std::ifstream(user_db_path), read).good());
+
+        boost::optional<DbRecord> record_read;
+        TestData read0, read1;
+
+        {
+            MultiFileDb db(temp_file_path(), user_db_path);
+
+            record_read = db.FindRecord(key());
+        }
+
+        EXPECT(record_read);
+        EXPECT(record_read->GetValues(id0(), read0));
+        EXPECT(record_read->GetValues(id1(), read1));
+        EXPECT_EQUAL(value0(), read0);
+        EXPECT_EQUAL(value1(), read1);
+    }
+};
+
 } // namespace tests
 } // namespace miopen
 
@@ -709,6 +793,8 @@ int main(int argsn, char** argsc)
     miopen::tests::DbParallelTest().Run();
     miopen::tests::DbMultiThreadedTest().Run();
     miopen::tests::DbMultiProcessTest().Run();
+    miopen::tests::DbMultiFileReadTest().Run();
+    miopen::tests::DbMultiFileWriteTest().Run();
 
     return 0;
 }
