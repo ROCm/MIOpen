@@ -146,10 +146,10 @@ class DbTest
     virtual ~DbTest() {}
 
     protected:
-    static const std::vector<std::pair<const char*, TestData>>& common_data()
+    static const std::array<std::pair<const char*, TestData>, 2>& common_data()
     {
-        static const std::vector<std::pair<const char*, TestData>> data{
-            {id1(), value1()}, {id0(), value0()},
+        static const std::array<std::pair<const char*, TestData>, 2> data{
+            std::make_pair(id1(), value1()), std::make_pair(id0(), value0()),
         };
 
         return data;
@@ -187,10 +187,10 @@ class DbTest
     static const char* missing_id() { return "2"; }
     const TempFile& temp_file() const { return _temp_file; }
 
-    template <class TKey, class TValue>
+    template <class TKey, class TValue, size_t count>
     static inline void RawWrite(const std::string& db_path,
                                 const TKey& key,
-                                const std::vector<std::pair<const char*, TValue>> values)
+                                const std::array<std::pair<const char*, TValue>, count> values)
     {
         std::ostringstream ss_vals;
         ss_vals << key.x << ',' << key.y << '=';
@@ -209,9 +209,9 @@ class DbTest
         std::ofstream(db_path, std::ios::out | std::ios::ate) << ss_vals.str() << std::endl;
     }
 
-    template <class TDb, class TKey, class TValue>
-    static inline void
-    ValidateSingleEntry(TKey key, const std::vector<std::pair<const char*, TValue>> values, TDb db)
+    template <class TDb, class TKey, class TValue, size_t count>
+    static inline void ValidateSingleEntry(
+        TKey key, const std::array<std::pair<const char*, TValue>, count> values, TDb db)
     {
         boost::optional<DbRecord> record = db.FindRecord(key);
 
@@ -466,7 +466,7 @@ class DbParallelTest : public DbTest
             EXPECT(db1.UpdateRecord(*r1));
         }
 
-        const std::vector<std::pair<const char*, TestData>> data{
+        const std::array<std::pair<const char*, TestData>, 3> data{
             std::make_pair(id0(), value0()),
             std::make_pair(id1(), value1()),
             std::make_pair(id2(), value2()),
@@ -703,10 +703,10 @@ class DbMultiFileReadTest : public DbMultiFileTest
     }
 
     private:
-    static const std::vector<std::pair<const char*, TestData>>& single_item_data()
+    static const std::array<std::pair<const char*, TestData>, 1>& single_item_data()
     {
-        static const std::vector<std::pair<const char*, TestData>> data{
-            {id0(), value0()},
+        static const std::array<std::pair<const char*, TestData>, 1> data{
+            std::make_pair(id0(), value0()),
         };
 
         return data;
