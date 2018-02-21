@@ -26,6 +26,7 @@
 #include <miopen/lrn.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/float_equal.hpp>
+#include <miopen/visit_float.hpp>
 
 namespace miopen {
 
@@ -115,14 +116,27 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
 
     if(float_equal(f_norm_K, 0.0))
         MIOPEN_THROW("Expect non-zero bias/K");
-    if(do_backward)
-    {
-        obj(x, y, workSpace, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
-    }
-    else
-    {
-        obj(x, y, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
-    }
+    visit_float(xDesc.GetType(), [&](auto as_float) {
+        if(do_backward)
+        {
+            obj(x,
+                y,
+                workSpace,
+                as_float(f_norm_alphaoverarea),
+                as_float(f_norm_alpha),
+                as_float(f_norm_beta),
+                as_float(f_norm_K));
+        }
+        else
+        {
+            obj(x,
+                y,
+                as_float(f_norm_alphaoverarea),
+                as_float(f_norm_alpha),
+                as_float(f_norm_beta),
+                as_float(f_norm_K));
+        }
+    });
 
     return (status);
 }
@@ -241,9 +255,22 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
     if(float_equal(norm_K, 0.0))
         MIOPEN_THROW("Expect non-zero bias/K");
 
-    handle.AddKernel(
-        "miopenLRNBackward", network_config, program_name, kernel_name, vld, vgd, compiler_parms)(
-        y, x, dy, workSpace, dx, f_norm_ratio, f_norm_alpha, f_norm_beta);
+    visit_float(xDesc.GetType(), [&](auto as_float) {
+        handle.AddKernel("miopenLRNBackward",
+                         network_config,
+                         program_name,
+                         kernel_name,
+                         vld,
+                         vgd,
+                         compiler_parms)(y,
+                                         x,
+                                         dy,
+                                         workSpace,
+                                         dx,
+                                         as_float(f_norm_ratio),
+                                         as_float(f_norm_alpha),
+                                         as_float(f_norm_beta));
+    });
 
     return (status);
 }
