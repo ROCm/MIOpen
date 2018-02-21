@@ -30,21 +30,21 @@
 #include <string>
 
 namespace miopen {
-    class TempFile
-    {
+class TempFile
+{
     public:
-        TempFile(const std::string& path_template);
-        ~TempFile();
+    TempFile(const std::string& path_template);
+    ~TempFile();
 
-        inline const std::string& Path() const { return _path; }
-        inline operator const std::string&() const { return _path; }
+    inline const std::string& Path() const { return _path; }
+    inline operator const std::string&() const { return _path; }
 
     private:
-        std::string _path;
-        int _fd;
+    std::string _path;
+    int _fd;
 
-        static std::string GetTempDirectoryPath();
-    };
+    static std::string GetTempDirectoryPath();
+};
 } // namespace miopen
 
 #endif
