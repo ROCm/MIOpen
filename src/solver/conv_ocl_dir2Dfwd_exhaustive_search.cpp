@@ -663,15 +663,14 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
                                     }
 
                                     const auto ret =
-                                        MeasureLoop<ConvOclDirectFwd>(
-                                            &profile_h,
-                                            bot_ocl_buf.get(),
-                                            top_ocl_buf.get(),
-                                            wei_ocl_buf.get(),
-                                            bias_ocl_buf.get(),
-                                            processing_time,
-                                            params,
-                                            result);
+                                        MeasureLoop<ConvOclDirectFwd>(&profile_h,
+                                                                      bot_ocl_buf.get(),
+                                                                      top_ocl_buf.get(),
+                                                                      wei_ocl_buf.get(),
+                                                                      bias_ocl_buf.get(),
+                                                                      processing_time,
+                                                                      params,
+                                                                      result);
 
                                     runs_left--;
                                     runs_left = (runs_left < 0) ? 0 : runs_left;
