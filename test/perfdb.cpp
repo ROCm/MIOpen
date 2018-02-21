@@ -184,7 +184,7 @@ class DbTest
     static const char* id0() { return "0"; }
     static const char* id1() { return "1"; }
     static const char* id2() { return "2"; }
-    static const char* missing_id() { return "2"; }
+    static const char* missing_id() { return "3"; }
     const TempFile& temp_file() const { return _temp_file; }
 
     template <class TKey, class TValue, size_t count>
