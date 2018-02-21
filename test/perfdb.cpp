@@ -146,6 +146,12 @@ class DbTest
     virtual ~DbTest() {}
 
     protected:
+
+    inline void ResetDb() const
+    {
+        (void)std::ofstream(temp_file_path());
+    }
+
     static const TestData& key()
     {
         static const TestData data(1, 2);
@@ -176,6 +182,29 @@ class DbTest
     static const char* missing_id() { return "2"; }
     const char* temp_file_path() const { return _temp_file_path; }
 
+    static inline void RawWrite(const std::string& db_path, const TestData& key, const char* id, const TestData& value)
+    {
+        std::ostringstream ss_vals;
+        ss_vals << key.x << ',' << key.y << '=' << id << ':' << value.x << ',' << value.y;
+
+        std::ofstream(db_path, std::ios::out | std::ios::ate) << ss_vals.str() << std::endl;
+    }
+
+    template<class TDbConstructor, class TKey, class TId, class TValue>
+    inline void ValidateSingleEntry(TKey key, std::initializer_list<std::pair<TId, TValue>> values, TDbConstructor db_constrtuctor) const
+    {
+        boost::optional<DbRecord> record = db_constrtuctor().FindRecord(key);
+
+        EXPECT(record);
+
+        for (const auto& id_value : values)
+        {
+            TValue read;
+            EXPECT(record->GetValues(id_value.first, read));
+            EXPECT_EQUAL(id_value.second, read);
+        }
+    }
+
     private:
     TempFilePath _temp_file_path;
 };
@@ -185,28 +214,13 @@ class DbFindTest : public DbTest
     public:
     inline void Run() const
     {
-        std::ostringstream ss_vals;
-        ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ','
-                << value1().y << ';' << id0() << ':' << value0().x << ',' << value0().y;
+        RawWrite(temp_file_path(), key(), id1(), value1());
+        RawWrite(temp_file_path(), key(), id0(), value0());
 
-        std::ofstream(temp_file_path()) << ss_vals.str() << std::endl;
+        ValidateSingleEntry(key(), { std::make_pair(id0(), value0()), std::make_pair(id1(), value1()) }, [this]() { return Db(temp_file_path()); });
 
-        boost::optional<DbRecord> record0, record1;
-        TestData read0, read1;
         TestData invalid_key(100, 200);
-
-        {
-            Db db(temp_file_path());
-
-            record0 = db.FindRecord(key());
-            record1 = db.FindRecord(invalid_key);
-        }
-
-        EXPECT(record0);
-        EXPECT(record0->GetValues(id0(), read0));
-        EXPECT(record0->GetValues(id1(), read1));
-        EXPECT_EQUAL(value0(), read0);
-        EXPECT_EQUAL(value1(), read1);
+        auto record1 = Db(temp_file_path()).FindRecord(invalid_key);
         EXPECT(!record1);
     }
 };
@@ -231,20 +245,7 @@ class DbStoreTest : public DbTest
         std::string read;
         EXPECT(std::getline(std::ifstream(temp_file_path()), read).good());
 
-        boost::optional<DbRecord> record_read;
-        TestData read0, read1;
-
-        {
-            Db db(temp_file_path());
-
-            record_read = db.FindRecord(key());
-        }
-
-        EXPECT(record_read);
-        EXPECT(record_read->GetValues(id0(), read0));
-        EXPECT(record_read->GetValues(id1(), read1));
-        EXPECT_EQUAL(value0(), read0);
-        EXPECT_EQUAL(value1(), read1);
+        ValidateSingleEntry(key(), { std::make_pair(id0(), value0()), std::make_pair(id1(), value1()) }, [this]() { return Db(temp_file_path()); });
     }
 };
 
@@ -283,18 +284,7 @@ class DbUpdateTest : public DbTest
         EXPECT_EQUAL(value1(), read1);
 
         // Check record that is stored in db (key=id0:value0;id1:value1)
-        boost::optional<DbRecord> record_read;
-        {
-            Db db(temp_file_path());
-
-            record_read = db.FindRecord(key());
-        }
-
-        EXPECT(record_read);
-        EXPECT(record_read->GetValues(id0(), read0));
-        EXPECT(record_read->GetValues(id1(), read1));
-        EXPECT_EQUAL(value0(), read0);
-        EXPECT_EQUAL(value1(), read1);
+        ValidateSingleEntry(key(), { std::make_pair(id0(), value0()), std::make_pair(id1(), value1()) }, [this]() { return Db(temp_file_path()); });
     }
 };
 
@@ -330,23 +320,9 @@ class DbReadTest : public DbTest
     public:
     inline void Run() const
     {
-        std::ostringstream ss_vals;
-        ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ','
-                << value1().y << ';' << id0() << ':' << value0().x << ',' << value0().y;
-
-        std::ofstream(temp_file_path()) << ss_vals.str() << std::endl;
-
-        TestData read0, read1;
-
-        {
-            Db db(temp_file_path());
-
-            EXPECT(db.Load(key(), id0(), read0));
-            EXPECT(db.Load(key(), id1(), read1));
-        }
-
-        EXPECT_EQUAL(value0(), read0);
-        EXPECT_EQUAL(value1(), read1);
+        RawWrite(temp_file_path(), key(), id1(), value1());
+        RawWrite(temp_file_path(), key(), id0(), value0());
+        ValidateSingleEntry(key(), { std::make_pair(id0(), value0()), std::make_pair(id1(), value1()) }, [this]() { return Db(temp_file_path()); });
     }
 };
 
@@ -355,7 +331,7 @@ class DbWriteTest : public DbTest
     public:
     inline void Run() const
     {
-        (void)std::ofstream(temp_file_path());
+        ResetDb();
 
         {
             Db db(temp_file_path());
@@ -367,17 +343,7 @@ class DbWriteTest : public DbTest
         std::string read;
         EXPECT(std::getline(std::ifstream(temp_file_path()), read).good());
 
-        TestData read0, read1;
-
-        {
-            Db db(temp_file_path());
-
-            EXPECT(db.Load(key(), id0(), read0));
-            EXPECT(db.Load(key(), id1(), read1));
-        }
-
-        EXPECT_EQUAL(value0(), read0);
-        EXPECT_EQUAL(value1(), read1);
+        ValidateSingleEntry(key(), { std::make_pair(id0(), value0()), std::make_pair(id1(), value1()) }, [this]() { return Db(temp_file_path()); });
     }
 };
 
@@ -469,7 +435,7 @@ class DbParallelTest : public DbTest
             Db db1(temp_file_path());
 
             auto r0 = db0.FindRecord(key());
-            auto r1 = db0.FindRecord(key());
+            auto r1 = db1.FindRecord(key());
 
             EXPECT(r0);
             EXPECT(r1);
@@ -481,16 +447,7 @@ class DbParallelTest : public DbTest
             EXPECT(db1.UpdateRecord(*r1));
         }
 
-        {
-            Db db(temp_file_path());
-            TestData read1, read2;
-
-            EXPECT(db.Load(key(), id1(), read1));
-            EXPECT(db.Load(key(), id2(), read2));
-
-            EXPECT_EQUAL(read1, value1());
-            EXPECT_EQUAL(read2, value2());
-        }
+        ValidateSingleEntry(key(), { std::make_pair(id0(), value0()), std::make_pair(id1(), value1()), std::make_pair(id2(), value2()) }, [this]() { return Db(temp_file_path()); });
     }
 };
 
@@ -692,7 +649,7 @@ protected:
 
     inline void ResetDb() const
     {
-        (void)std::ofstream(temp_file_path());
+        DbTest::ResetDb();
         (void)std::ofstream(user_db_path());
     }
 
@@ -719,33 +676,10 @@ class DbMultiFileReadTest : public DbMultiFileTest
     }
 
 private:
-    template<class TDbConstructor, class TKey, class TId, class TValue>
-    inline void ValidateSingleEntry(TKey key, std::initializer_list<std::pair<TId, TValue>> values, TDbConstructor db_constrtuctor) const
-    {
-        boost::optional<DbRecord> record = db_constrtuctor().FindRecord(key);
-
-        EXPECT(record);
-
-        for (const auto& id_value : values)
-        {
-            TValue read;
-            EXPECT(record->GetValues(id_value.first, read));
-            EXPECT_EQUAL(id_value.second, read);
-        }
-    }
-
-    static inline void WriteItem(const std::string& db_path, const TestData& key, const char* id, const TestData& value)
-    {
-        std::ostringstream ss_vals;
-        ss_vals << key.x << ',' << key.y << '=' << id << ':' << value.x << ',' << value.y;
-
-        std::ofstream(db_path, std::ios::out | std::ios::ate) << ss_vals.str() << std::endl;
-    }
-
     inline void MergedAndMissing() const
     {
-        WriteItem(temp_file_path(), key(), id1(), value1());
-        WriteItem(user_db_path(), key(), id0(), value0());
+        RawWrite(temp_file_path(), key(), id1(), value1());
+        RawWrite(user_db_path(), key(), id0(), value0());
 
         ValidateSingleEntry(key(), { std::make_pair(id0(), value0()), std::make_pair(id1(), value1()) }, [this]() { return MultiFileDb(temp_file_path(), user_db_path()); });
 
@@ -756,19 +690,19 @@ private:
 
     inline void ReadUser() const
     {
-        WriteItem(user_db_path(), key(), id0(), value0());
+        RawWrite(user_db_path(), key(), id0(), value0());
         ValidateSingleEntry(key(), { std::make_pair(id0(), value0()) }, [this]() { return MultiFileDb(temp_file_path(), user_db_path()); });
     }
 
     inline void ReadInstalled() const
     {
-        WriteItem(temp_file_path(), key(), id0(), value0());
+        RawWrite(temp_file_path(), key(), id0(), value0());
         ValidateSingleEntry(key(), { std::make_pair(id0(), value0()) }, [this]() { return MultiFileDb(temp_file_path(), user_db_path()); });
     }
 
     inline void ReadConflict() const
     {
-        WriteItem(temp_file_path(), key(), id0(), value1());
+        RawWrite(temp_file_path(), key(), id0(), value1());
         ReadUser();
     }
 
@@ -795,20 +729,7 @@ class DbMultiFileWriteTest : public DbMultiFileTest
         EXPECT(!std::getline(std::ifstream(temp_file_path()), read).good());
         EXPECT(std::getline(std::ifstream(user_db_path()), read).good());
 
-        boost::optional<DbRecord> record_read;
-        TestData read0, read1;
-
-        {
-            MultiFileDb db(temp_file_path(), user_db_path());
-
-            record_read = db.FindRecord(key());
-        }
-
-        EXPECT(record_read);
-        EXPECT(record_read->GetValues(id0(), read0));
-        EXPECT(record_read->GetValues(id1(), read1));
-        EXPECT_EQUAL(value0(), read0);
-        EXPECT_EQUAL(value1(), read1);
+        ValidateSingleEntry(key(), { std::make_pair(id0(), value0()), std::make_pair(id1(), value1()) }, [this]() { return MultiFileDb(temp_file_path(), user_db_path()); });
     }
 };
 
