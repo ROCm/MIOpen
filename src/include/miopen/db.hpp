@@ -187,22 +187,36 @@ public:
     boost::optional<DbRecord> FindRecord(const std::string& key)
     {
         auto users = _user.FindRecord(key);
+        auto installed = _installed.FindRecord(key);
+
+        if (users && installed)
+        {
+            users->Merge(installed);
+            return users;
+        }
 
         if (users)
             return users;
 
-        return _installed.FindRecord(key);
+        return installed;
     }
 
     template <class T>
     boost::optional<DbRecord> FindRecord(const T& problem_config)
     {
         auto users = _user.FindRecord(problem_config);
+        auto installed = _installed.FindRecord(problem_config);
+
+        if (users && installed)
+        {
+            users->Merge(installed);
+            return users;
+        }
 
         if (users)
             return users;
 
-        return _installed.FindRecord(problem_config);
+        return installed;
     }
 
     bool StoreRecord(const DbRecord& record) { return _user.StoreRecord(record); }
