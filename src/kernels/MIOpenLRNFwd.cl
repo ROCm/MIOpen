@@ -131,9 +131,6 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
                 bot_off_x = (invisibleX || invisibleY) ? 0 : bot_off_x;
 
                 _FLOAT bot_val = bot[bot_off_x];
-                // since we need a sum of squares for the normalization
-                // we do the square at the input
-                bot_val *= bot_val;
 
                 bot_val = (invisibleX || invisibleY) ? 0 : bot_val;
 
@@ -191,7 +188,9 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
         {
 
             _FLOAT bot_val   = bot_data[lcl_off + jj * MLO_LRN_LCL_DATA_WIDTH + ii];
-            _FLOAT accum_tmp = bot_val;
+
+            _FLOAT accum_tmp = bot_val*bot_val;
+
 #if MLO_LRN_N_HORIZ_OUT_PIX > 1
             // save horizontal partial sums
             partial_sum_x[ii] = accum_tmp;
@@ -204,7 +203,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
         {
 
             _FLOAT bot_val   = bot_data[lcl_off + jj * MLO_LRN_LCL_DATA_WIDTH + ii];
-            _FLOAT accum_tmp = bot_val;
+            _FLOAT accum_tmp = bot_val * bot_val;
             // accumulate in vert horizontal(0)
             partial_sum_xy[jj][0] += accum_tmp;
         }
@@ -215,7 +214,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
         {
 
             _FLOAT bot_val   = bot_data[lcl_off + jj * MLO_LRN_LCL_DATA_WIDTH + ii];
-            _FLOAT accum_tmp = bot_val;
+            _FLOAT accum_tmp = bot_val*bot_val;
             // calculate all vertical-horizontal partial sums
             partial_sum_xy[jj][ii - MLO_LRN_KERNEL_SZ0 + 1] =
                 partial_sum_xy[jj][ii - MLO_LRN_KERNEL_SZ0] +
@@ -245,7 +244,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
         {
 
             _FLOAT bot_val   = bot_data[lcl_off + jj * MLO_LRN_LCL_DATA_WIDTH + ii];
-            _FLOAT accum_tmp = bot_val;
+            _FLOAT accum_tmp = bot_val* bot_val;
 #if MLO_LRN_N_HORIZ_OUT_PIX > 1
             partial_sum_x[ii] = accum_tmp;
 #endif
@@ -256,7 +255,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
         {
 
             _FLOAT bot_val   = bot_data[lcl_off + jj * MLO_LRN_LCL_DATA_WIDTH + ii];
-            _FLOAT accum_tmp = bot_val;
+            _FLOAT accum_tmp = bot_val * bot_val;
             mov_accum += accum_tmp;
         }
 
@@ -267,7 +266,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
         {
 
             _FLOAT bot_val   = bot_data[lcl_off + jj * MLO_LRN_LCL_DATA_WIDTH + ii];
-            _FLOAT accum_tmp = bot_val;
+            _FLOAT accum_tmp = bot_val * bot_val;
             // running horizontal window
             mov_accum += (accum_tmp
 #if MLO_LRN_N_HORIZ_OUT_PIX > 1
@@ -288,7 +287,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
         {
 
             _FLOAT bot_val   = bot_data[lcl_off + jj * MLO_LRN_LCL_DATA_WIDTH + ii];
-            _FLOAT accum_tmp = bot_val;
+            _FLOAT accum_tmp = bot_val * bot_val;
 #if MLO_LRN_N_HORIZ_OUT_PIX > 1
             partial_sum_x[ii] = accum_tmp;
 #endif
@@ -298,7 +297,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
         {
 
             _FLOAT bot_val   = bot_data[lcl_off + jj * MLO_LRN_LCL_DATA_WIDTH + ii];
-            _FLOAT accum_tmp = bot_val;
+            _FLOAT accum_tmp = bot_val * bot_val;
             accum[jj - MLO_LRN_KERNEL_SZ1 + 1][0] += accum_tmp;
         }
         // running horizontal window
@@ -308,7 +307,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
         {
 
             _FLOAT bot_val   = bot_data[lcl_off + jj * MLO_LRN_LCL_DATA_WIDTH + ii];
-            _FLOAT accum_tmp = bot_val;
+            _FLOAT accum_tmp = bot_val * bot_val;
             //
             accum[jj - MLO_LRN_KERNEL_SZ1 + 1][ii - MLO_LRN_KERNEL_SZ0 + 1] =
                 accum[jj - MLO_LRN_KERNEL_SZ1 + 1][ii - MLO_LRN_KERNEL_SZ0] + accum_tmp;
@@ -390,15 +389,11 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
             l++)
         {
             _FLOAT s;
-            _FLOAT bot_val;
             s = exp((_FLOAT)-beta * log(prv_scale[k][l]));
             //					s = pow(prv_scale[k][l], -beta);
-            _FLOAT tmp = bot_data[lcl_off + mad24((k + MLO_LRN_PAD1),
+            _FLOAT bot_val = bot_data[lcl_off + mad24((k + MLO_LRN_PAD1),
                                                   (int)MLO_LRN_LCL_DATA_WIDTH,
                                                   (l + MLO_LRN_PAD0))];
-
-            // do a square root to get back to the raw input
-            bot_val = sqrt(tmp);
 #if MLO_LRN_DO_SCALE
             scale[scale_off + k * MLO_LRN_SCALE_STRIDE + l] = prv_scale[k][l];
 #endif
