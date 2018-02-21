@@ -685,78 +685,121 @@ class DbMultiProcessTest : public DbTest
     static std::string LockFilePath(const std::string& db_path) { return db_path + ".test.lock"; }
 };
 
-class DbMultiFileReadTest : public DbTest
+class DbMultiFileTest : public DbTest
 {
-    public:
-    inline void Run() const
+protected:
+    const std::string& user_db_path() const { return _user_db_path; }
+
+    inline void ResetDb() const
     {
-        const auto user_db_path = temp_file_path() + std::string(".user");
-
-        {
-            std::ostringstream ss_vals;
-            ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ','
-                    << value1().y;
-
-            std::ofstream(temp_file_path()) << ss_vals.str() << std::endl;
-        }
-
-        {
-            std::ostringstream ss_vals;
-            ss_vals << key().x << ',' << key().y << '=' << id0() << ':' << value0().x << ','
-                    << value0().y;
-
-            std::ofstream(user_db_path) << ss_vals.str() << std::endl;
-        }
-
-        boost::optional<DbRecord> record0, record1;
-        TestData read0, read1;
-        TestData invalid_key(100, 200);
-
-        {
-            MultiFileDb db(temp_file_path(), user_db_path);
-
-            record0 = db.FindRecord(key());
-            record1 = db.FindRecord(invalid_key);
-        }
-
-        EXPECT(record0);
-        EXPECT(record0->GetValues(id0(), read0));
-        EXPECT(record0->GetValues(id1(), read1));
-        EXPECT_EQUAL(value0(), read0);
-        EXPECT_EQUAL(value1(), read1);
-        EXPECT(!record1);
+        (void)std::ofstream(temp_file_path());
+        (void)std::ofstream(user_db_path());
     }
+
+private:
+    const std::string _user_db_path = temp_file_path() + std::string(".user");
 };
 
-class DbMultiFileWriteTest : public DbTest
+class DbMultiFileReadTest : public DbMultiFileTest
 {
     public:
     inline void Run() const
     {
-        const auto user_db_path = temp_file_path() + std::string(".user");
+        ResetDb();
+        MergedAndMissing();
 
-        (void)std::ofstream(temp_file_path());
-        (void)std::ofstream(user_db_path);
+        ResetDb();
+        ReadUser();
+
+        ResetDb();
+        ReadInstalled();
+
+        ResetDb();
+        ReadConflict();
+    }
+
+private:
+    template<class TDbConstructor, class TKey, class TId, class TValue>
+    inline void ValidateSingleEntry(TKey key, std::initializer_list<std::pair<TId, TValue>> values, TDbConstructor db_constrtuctor) const
+    {
+        boost::optional<DbRecord> record = db_constrtuctor().FindRecord(key);
+
+        EXPECT(record);
+
+        for (const auto& id_value : values)
+        {
+            TValue read;
+            EXPECT(record->GetValues(id_value.first, read));
+            EXPECT_EQUAL(id_value.second, read);
+        }
+    }
+
+    static inline void WriteItem(const std::string& db_path, const TestData& key, const char* id, const TestData& value)
+    {
+        std::ostringstream ss_vals;
+        ss_vals << key.x << ',' << key.y << '=' << id << ':' << value.x << ',' << value.y;
+
+        std::ofstream(db_path, std::ios::out | std::ios::ate) << ss_vals.str() << std::endl;
+    }
+
+    inline void MergedAndMissing() const
+    {
+        WriteItem(temp_file_path(), key(), id1(), value1());
+        WriteItem(user_db_path(), key(), id0(), value0());
+
+        ValidateSingleEntry(key(), { std::make_pair(id0(), value0()), std::make_pair(id1(), value1()) }, [this]() { return MultiFileDb(temp_file_path(), user_db_path()); });
+
+        TestData invalid_key(100, 200);
+        auto record1 = MultiFileDb(temp_file_path(), user_db_path()).FindRecord(invalid_key);
+        EXPECT(!record1);
+    }
+
+    inline void ReadUser() const
+    {
+        WriteItem(user_db_path(), key(), id0(), value0());
+        ValidateSingleEntry(key(), { std::make_pair(id0(), value0()) }, [this]() { return MultiFileDb(temp_file_path(), user_db_path()); });
+    }
+
+    inline void ReadInstalled() const
+    {
+        WriteItem(temp_file_path(), key(), id0(), value0());
+        ValidateSingleEntry(key(), { std::make_pair(id0(), value0()) }, [this]() { return MultiFileDb(temp_file_path(), user_db_path()); });
+    }
+
+    inline void ReadConflict() const
+    {
+        WriteItem(temp_file_path(), key(), id0(), value1());
+        ReadUser();
+    }
+
+};
+
+class DbMultiFileWriteTest : public DbMultiFileTest
+{
+    public:
+    inline void Run() const
+    {
+        ResetDb();
 
         DbRecord record(key());
         EXPECT(record.SetValues(id0(), value0()));
         EXPECT(record.SetValues(id1(), value1()));
 
         {
-            MultiFileDb db(temp_file_path(), user_db_path);
+            MultiFileDb db(temp_file_path(), user_db_path());
 
             EXPECT(db.StoreRecord(record));
         }
 
         std::string read;
         EXPECT(!std::getline(std::ifstream(temp_file_path()), read).good());
-        EXPECT(std::getline(std::ifstream(user_db_path), read).good());
+        EXPECT(std::getline(std::ifstream(user_db_path()), read).good());
 
         boost::optional<DbRecord> record_read;
         TestData read0, read1;
 
         {
-            MultiFileDb db(temp_file_path(), user_db_path);
+            MultiFileDb db(temp_file_path(), user_db_path());
 
             record_read = db.FindRecord(key());
         }
