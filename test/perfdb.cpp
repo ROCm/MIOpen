@@ -212,10 +212,10 @@ class DbTest
         std::ofstream(db_path, std::ios::out | std::ios::ate) << ss_vals.str() << std::endl;
     }
 
-    template<class TDbConstructor, class TKey, class TValue>
-    inline void ValidateSingleEntry(TKey key, const std::vector<std::pair<const char*, TValue>> values, TDbConstructor db_constrtuctor) const
+    template<class TDb, class TKey, class TValue>
+    inline void ValidateSingleEntry(TKey key, const std::vector<std::pair<const char*, TValue>> values, TDb db) const
     {
-        boost::optional<DbRecord> record = db_constrtuctor().FindRecord(key);
+        boost::optional<DbRecord> record = db.FindRecord(key);
 
         EXPECT(record);
 
@@ -238,10 +238,12 @@ class DbFindTest : public DbTest
     {
         ResetDb();
         RawWrite(temp_file(), key(), common_data());
-        ValidateSingleEntry(key(), common_data(), [this]() { return Db(temp_file()); });
+
+        Db db(temp_file());
+        ValidateSingleEntry(key(), common_data(), db);
 
         TestData invalid_key(100, 200);
-        auto record1 = Db(temp_file()).FindRecord(invalid_key);
+        auto record1 = db.FindRecord(invalid_key);
         EXPECT(!record1);
     }
 };
@@ -265,7 +267,7 @@ class DbStoreTest : public DbTest
         std::string read;
         EXPECT(std::getline(std::ifstream(temp_file()), read).good());
 
-        ValidateSingleEntry(key(), common_data(), [this]() { return Db(temp_file()); });
+        ValidateSingleEntry(key(), common_data(), Db(temp_file()));
     }
 };
 
@@ -303,7 +305,7 @@ class DbUpdateTest : public DbTest
         EXPECT_EQUAL(value1(), read1);
 
         // Check record that is stored in db (key=id0:value0;id1:value1)
-        ValidateSingleEntry(key(), common_data(), [this]() { return Db(temp_file()); });
+        ValidateSingleEntry(key(), common_data(), Db(temp_file()));
     }
 };
 
@@ -340,7 +342,7 @@ class DbReadTest : public DbTest
     {
         ResetDb();
         RawWrite(temp_file(), key(), common_data());
-        ValidateSingleEntry(key(), common_data(), [this]() { return Db(temp_file()); });
+        ValidateSingleEntry(key(), common_data(), Db(temp_file()));
     }
 };
 
@@ -361,7 +363,7 @@ class DbWriteTest : public DbTest
         std::string read;
         EXPECT(std::getline(std::ifstream(temp_file()), read).good());
 
-        ValidateSingleEntry(key(), common_data(), [this]() { return Db(temp_file()); });
+        ValidateSingleEntry(key(), common_data(), Db(temp_file()));
     }
 };
 
@@ -473,7 +475,7 @@ class DbParallelTest : public DbTest
             std::make_pair(id2(), value2()),
         };
 
-        ValidateSingleEntry(key(), data, [this]() { return Db(temp_file()); });
+        ValidateSingleEntry(key(), data, Db(temp_file()));
     }
 };
 
@@ -717,23 +719,25 @@ private:
     inline void MergedAndMissing() const
     {
         RawWrite(temp_file(), key(), common_data());
-        ValidateSingleEntry(key(), common_data(), [this]() { return MultiFileDb(temp_file(), user_db_path()); });
+
+        MultiFileDb db(temp_file(), user_db_path());
+        ValidateSingleEntry(key(), common_data(), db);
 
         TestData invalid_key(100, 200);
-        auto record1 = MultiFileDb(temp_file(), user_db_path()).FindRecord(invalid_key);
+        auto record1 = db.FindRecord(invalid_key);
         EXPECT(!record1);
     }
 
     inline void ReadUser() const
     {
         RawWrite(user_db_path(), key(), single_item_data());
-        ValidateSingleEntry(key(), single_item_data(), [this]() { return MultiFileDb(temp_file(), user_db_path()); });
+        ValidateSingleEntry(key(), single_item_data(), MultiFileDb(temp_file(), user_db_path()));
     }
 
     inline void ReadInstalled() const
     {
         RawWrite(temp_file(), key(), single_item_data());
-        ValidateSingleEntry(key(), single_item_data(), [this]() { return MultiFileDb(temp_file(), user_db_path()); });
+        ValidateSingleEntry(key(), single_item_data(), MultiFileDb(temp_file(), user_db_path()));
     }
 
     inline void ReadConflict() const
@@ -765,7 +769,7 @@ class DbMultiFileWriteTest : public DbMultiFileTest
         EXPECT(!std::getline(std::ifstream(temp_file()), read).good());
         EXPECT(std::getline(std::ifstream(user_db_path()), read).good());
 
-        ValidateSingleEntry(key(), common_data(), [this]() { return MultiFileDb(temp_file(), user_db_path()); });
+        ValidateSingleEntry(key(), common_data(), MultiFileDb(temp_file(), user_db_path()));
     }
 };
 
