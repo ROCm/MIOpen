@@ -35,8 +35,8 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
     bool result = (params.kernel_size0 == 1) && (params.kernel_size1 == 1);
 
-    // Does not support C, K != 16X yet  Still in to-do-list
-    if(/*(params.kernel_stride0 > 1 || params.kernel_stride1 > 1) &&*/
+    // Does not support strides > 1 if not multiple of 16
+    if((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) &&
        ((params.n_inputs & 0xF) > 0 || (params.n_outputs & 0xF) > 0))
         result = false;
 
@@ -619,7 +619,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         kernel.g_wk.push_back(gbl_wk2);
 
         kernel.kernel_file  = "MIOpenConvBwdWrW1x1.cl";
-        kernel.kernel_name  = (large_map) ? "MLOpenCvBwdWrWLmap" : "MIOpenCvBwdWrWSmap";
+        kernel.kernel_name  = (large_map) ? "MIOpenCvBwdWrWLmap" : "MIOpenCvBwdWrWSmap";
         kernel.comp_options = comp_options;
 
         result.construction_params.push_back(kernel);
