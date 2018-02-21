@@ -971,7 +971,6 @@ struct verify_forward_infer_rnn
     size_t realHiddenSize;
     bool nohx;
 
- 
     verify_forward_infer_rnn(miopenRNNDescriptor_t pRD,
                              const std::vector<T>& px,
                              const std::vector<T>& phx,
@@ -989,23 +988,25 @@ struct verify_forward_infer_rnn
                              const size_t pHXZ,
                              const bool pnohx = false)
     {
-        rnnDesc    = pRD;
-        input      = px;
+        rnnDesc = pRD;
+        input   = px;
         weights = pW, batch_seq = pBS;
-        seqLength   = pS;
-        nLayers     = pNL;
-        biasMode    = pBM;
-        dirMode     = pDM;
-        inputMode   = pIM;
-        rnnMode     = pRM;
-        batch_n     = pBN;
-        hiddenSize  = pHS;
-        inputVecLen = pVL;
+        seqLength      = pS;
+        nLayers        = pNL;
+        biasMode       = pBM;
+        dirMode        = pDM;
+        inputMode      = pIM;
+        rnnMode        = pRM;
+        batch_n        = pBN;
+        hiddenSize     = pHS;
+        inputVecLen    = pVL;
         realHiddenSize = pHXZ;
 
         nohx = pnohx;
-        if(!nohx) initHidden = phx;// this may be intentionally a nullptr
-        else initHidden.resize(realHiddenSize);
+        if(!nohx)
+            initHidden = phx; // this may be intentionally a nullptr
+        else
+            initHidden.resize(realHiddenSize);
     }
 
     std::vector<T> cpu()
@@ -1118,8 +1119,8 @@ struct verify_forward_infer_rnn
         auto output_dev = handle.Write(output);
 
         auto weights_dev = handle.Write(weights);
-        //auto hx_dev      = handle.Write(initHidden);
-        auto hy          = initHidden;
+        // auto hx_dev      = handle.Write(initHidden);
+        auto hy = initHidden;
         std::fill(hy.begin(), hy.end(), 0.);
         auto hy_dev = handle.Write(hy);
 
@@ -1154,7 +1155,6 @@ struct verify_forward_infer_rnn
                                   nullptr,
                                   workSpace_dev.get(),
                                   workSpaceSize);
-        
 
 #if(MIO_RNN_TEST_DEBUG == 2)
         auto outdata = handle.Read<T>(output_dev, output.size());
@@ -1222,7 +1222,7 @@ struct verify_forward_train_rnn
     miopenRNNDescriptor_t rnnDesc;
     size_t realHiddenSize;
     bool nohx;
-    
+
     verify_forward_train_rnn(miopenRNNDescriptor_t pRD,
                              const std::vector<T>& px,
                              const std::vector<T>& phx,
@@ -1240,25 +1240,27 @@ struct verify_forward_train_rnn
                              const size_t pHXZ,
                              const bool pnohx = false)
     {
-        rnnDesc     = pRD;
-        input       = px;
-        hiddenSize  = pHS;
+        rnnDesc    = pRD;
+        input      = px;
+        hiddenSize = pHS;
 
-        weights     = pW;
-        batch_seq   = pBS;
-        seqLength   = pS;
-        nLayers     = pNL;
-        biasMode    = pBM;
-        dirMode     = pDM;
-        inputMode   = pIM;
-        rnnMode     = pRM;
-        batch_n     = pBN;
-        inputVecLen = pVL;
+        weights        = pW;
+        batch_seq      = pBS;
+        seqLength      = pS;
+        nLayers        = pNL;
+        biasMode       = pBM;
+        dirMode        = pDM;
+        inputMode      = pIM;
+        rnnMode        = pRM;
+        batch_n        = pBN;
+        inputVecLen    = pVL;
         realHiddenSize = pHXZ;
 
         nohx = pnohx;
-        if(!nohx) initHidden = phx;// this may be intentionally a nullptr
-        else initHidden.resize(realHiddenSize);   
+        if(!nohx)
+            initHidden = phx; // this may be intentionally a nullptr
+        else
+            initHidden.resize(realHiddenSize);
     }
 
     std::tuple<std::vector<T>, std::vector<T>, std::vector<T>> cpu()
@@ -1375,8 +1377,8 @@ struct verify_forward_train_rnn
         auto output_dev = handle.Write(output);
 
         auto weights_dev = handle.Write(weights);
-        //auto hx_dev      = handle.Write(initHidden);
-        auto hy          = initHidden;
+        // auto hx_dev      = handle.Write(initHidden);
+        auto hy = initHidden;
         std::fill(hy.begin(), hy.end(), 0.);
         auto hy_dev = handle.Write(hy);
 
@@ -1515,35 +1517,38 @@ struct verify_backward_data_rnn
                              const int pRM,
                              const int pVL,
                              const size_t pHXZ,
-                             const bool pnohx = false,
+                             const bool pnohx  = false,
                              const bool pnodhy = false)
     {
-        rnnDesc      = pRD;
-        yin          = py;
-        dy           = pdy;
-        weights      = pW;
-        reserveSpace = pRS;
-        batch_seq    = pBS;
-        seqLength    = pS;
-        nLayers      = pNL;
-        biasMode     = pBM;
-        dirMode      = pDM;
-        inputMode    = pIM;
-        rnnMode      = pRM;
-        batch_n      = pBN;
-        hiddenSize   = pHS;
-        inputVecLen  = pVL;
+        rnnDesc        = pRD;
+        yin            = py;
+        dy             = pdy;
+        weights        = pW;
+        reserveSpace   = pRS;
+        batch_seq      = pBS;
+        seqLength      = pS;
+        nLayers        = pNL;
+        biasMode       = pBM;
+        dirMode        = pDM;
+        inputMode      = pIM;
+        rnnMode        = pRM;
+        batch_n        = pBN;
+        hiddenSize     = pHS;
+        inputVecLen    = pVL;
         realHiddenSize = pHXZ;
 
         nohx = pnohx;
-        if(!nohx) initHidden = phx;// this may be intentionally a nullptr
-        else initHidden.resize(realHiddenSize);
+        if(!nohx)
+            initHidden = phx; // this may be intentionally a nullptr
+        else
+            initHidden.resize(realHiddenSize);
 
         nodhy = pnodhy;
-        if(!nodhy) dhy = pdhy;// this may be intentionally a nullptr
-        else dhy.resize(realHiddenSize);
+        if(!nodhy)
+            dhy = pdhy; // this may be intentionally a nullptr
+        else
+            dhy.resize(realHiddenSize);
     }
-
 
     std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> cpu()
     {
@@ -1639,12 +1644,12 @@ struct verify_backward_data_rnn
         auto workSpace_dev = handle.Write(workSpace);
 
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
-        auto yin_dev          = handle.Write(yin);
-        auto dyin_dev         = handle.Write(dy);
-        //auto dhyin_dev        = handle.Write(dhy);
+        auto yin_dev  = handle.Write(yin);
+        auto dyin_dev = handle.Write(dy);
+        // auto dhyin_dev        = handle.Write(dhy);
         auto reserveSpace_dev = handle.Write(reserveSpace);
         auto weights_dev      = handle.Write(weights);
-        //auto hx_dev           = handle.Write(initHidden);
+        // auto hx_dev           = handle.Write(initHidden);
 
         std::vector<int> hlens(3, 0);
         hlens[0] = nLayers * (dirMode) ? 2 : 1;
@@ -1668,9 +1673,9 @@ struct verify_backward_data_rnn
                               rnnDesc,
                               seqLength,
                               outputDescs.data(),
-                              yin_dev.get(), 
+                              yin_dev.get(),
                               outputDescs.data(),
-                              dyin_dev.get(), 
+                              dyin_dev.get(),
                               &hiddenDesc,
                               ((nodhy) ? nullptr : handle.Write(dhy).get()),
                               &hiddenDesc,
@@ -1682,16 +1687,15 @@ struct verify_backward_data_rnn
                               &hiddenDesc,
                               nullptr,
                               inputDescs.data(),
-                              dx_dev.get(), 
+                              dx_dev.get(),
                               &hiddenDesc,
                               dhx_dev.get(),
                               &hiddenDesc,
                               nullptr,
-                              workSpace_dev.get(), 
+                              workSpace_dev.get(),
                               workSpaceSize,
-                              reserveSpace_dev.get(), 
+                              reserveSpace_dev.get(),
                               reserveSpace.size() * sizeof(T));
-
 
         auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
                                       handle.Read<T>(dhx_dev, dhx.size()),
@@ -1786,27 +1790,29 @@ struct verify_backward_weights_rnn
                                 const size_t pHXZ,
                                 const bool pnohx = false)
     {
-        rnnDesc      = pRD;
-        input        = px;
-        dy           = pdy;
-        reserveSpace = pRS;
-        workSpace    = pWS;
-        batch_seq    = pBS;
-        seqLength    = pS;
-        nLayers      = pNL;
-        biasMode     = pBM;
-        dirMode      = pDM;
-        inputMode    = pIM;
-        rnnMode      = pRM;
-        batch_n      = pBN;
-        hiddenSize   = pHS;
-        weightSize   = pW;
-        inputVecLen  = pVL;
+        rnnDesc        = pRD;
+        input          = px;
+        dy             = pdy;
+        reserveSpace   = pRS;
+        workSpace      = pWS;
+        batch_seq      = pBS;
+        seqLength      = pS;
+        nLayers        = pNL;
+        biasMode       = pBM;
+        dirMode        = pDM;
+        inputMode      = pIM;
+        rnnMode        = pRM;
+        batch_n        = pBN;
+        hiddenSize     = pHS;
+        weightSize     = pW;
+        inputVecLen    = pVL;
         realHiddenSize = pHXZ;
 
-        nohx= pnohx;
-        if(!nohx) initHidden = phx;// this may be intentionally a nullptr
-        else initHidden.resize(realHiddenSize);
+        nohx = pnohx;
+        if(!nohx)
+            initHidden = phx; // this may be intentionally a nullptr
+        else
+            initHidden.resize(realHiddenSize);
     }
 
     std::vector<T> cpu()
@@ -1889,26 +1895,25 @@ struct verify_backward_weights_rnn
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopenFloat, hlens.data(), 3);
-        //auto hx_dev    = handle.Write(initHidden);
+        // auto hx_dev    = handle.Write(initHidden);
         auto dy_dev    = handle.Write(dy);
         auto input_dev = handle.Write(input);
 
         miopenRNNBackwardWeights(&handle,
-                                     rnnDesc,
-                                     seqLength,
-                                     inputDescs.data(),
-                                     input_dev.get(),
-                                     &hiddenDesc,
-                                     ((nohx) ? nullptr: handle.Write(initHidden).get()),
-                                     outputDescs.data(),
-                                     dy_dev.get(),
-                                     &weightDesc,
-                                     dweights_dev.get(),
-                                     workSpace_dev.get(),
-                                     workSpace.size() * sizeof(T),
-                                     reserveSpace_dev.get(),
-                                     reserveSpace.size() * sizeof(T));
-
+                                 rnnDesc,
+                                 seqLength,
+                                 inputDescs.data(),
+                                 input_dev.get(),
+                                 &hiddenDesc,
+                                 ((nohx) ? nullptr : handle.Write(initHidden).get()),
+                                 outputDescs.data(),
+                                 dy_dev.get(),
+                                 &weightDesc,
+                                 dweights_dev.get(),
+                                 workSpace_dev.get(),
+                                 workSpace.size() * sizeof(T),
+                                 reserveSpace_dev.get(),
+                                 reserveSpace.size() * sizeof(T));
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -1964,7 +1969,7 @@ struct rnn_vanilla_driver : test_driver
     // Null pointer input
     bool nohx  = false;
     bool nodhy = false;
-    
+
     rnn_vanilla_driver()
     {
         // this->tolerance = 1024;
@@ -1979,8 +1984,8 @@ struct rnn_vanilla_driver : test_driver
         add(inVecLen, "vector-len", generate_data(get_rnn_vector_len()));
         add(hiddenSize, "hidden-size", generate_data(get_rnn_hidden_size()));
         add(numLayers, "num-layers", generate_data(get_rnn_num_layers()));
-        add(nohx, "no-hx",flag());
-        add(nodhy, "no-dhy",flag());
+        add(nohx, "no-hx", flag());
+        add(nodhy, "no-dhy", flag());
 
 #if(MIO_RNN_TEST_DEBUG == 3)
         biasMode  = 0;
@@ -2002,6 +2007,7 @@ struct rnn_vanilla_driver : test_driver
     {
 
 #if(MIO_RNN_TEST_DEBUG == 2)
+        printf("seqLen: %d, batch_seq array len: %d\n", seqLength, batchSeq.size());
         for(int i = 0; i < seqLength; i++)
         {
             std::cout << "batch seq[" << i << "]: " << batchSeq.at(i) << std::endl;
@@ -2040,10 +2046,12 @@ struct rnn_vanilla_driver : test_driver
 
         std::size_t hx_sz = ((dirMode) ? 2 : 1) * hiddenSize * batchSize * numLayers;
         std::vector<T> hx;
-        if(!nohx) hx.resize(hx_sz);
+        if(!nohx)
+            hx.resize(hx_sz);
 
         std::vector<T> dhyin;
-        if(!nodhy) dhyin.resize(hx_sz);
+        if(!nodhy)
+            dhyin.resize(hx_sz);
 
         size_t wei_bytes = 0;
         std::vector<int> inlens(2, 0);
@@ -2072,40 +2080,40 @@ struct rnn_vanilla_driver : test_driver
                numLayers);
 #endif
 
-      
-
         /* normal hx/cx/dhy/dcy input test */
 
-        if(!nohx){
-          for(int i = 0; i < hx_sz; i++)
-          {
-              hx[i]    =  0.001 * float(rand() % 100);
-          }
+        if(!nohx)
+        {
+            for(int i = 0; i < hx_sz; i++)
+            {
+                hx[i] = 0.001 * float(rand() % 100);
+            }
         }
 
-        if(!nodhy){
-          for(int i = 0; i < hx_sz; i++)
-          {
-              dhyin[i] = 0.001 * float(rand() % 100);
-          }
+        if(!nodhy)
+        {
+            for(int i = 0; i < hx_sz; i++)
+            {
+                dhyin[i] = 0.001 * float(rand() % 100);
+            }
         }
-        
+
         auto fwdTrainOutputPair = verify(verify_forward_train_rnn<T>{rnnDesc,
-                                                                input,
-                                                                hx,
-                                                                weights,
-                                                                batchSeq,
-                                                                hiddenSize,
-                                                                batch_n,
-                                                                seqLength,
-                                                                numLayers,
-                                                                biasMode,
-                                                                dirMode,
-                                                                inputMode,
-                                                                rnnMode,
-                                                                inVecReal,
-                                                                hx_sz,
-                                                                nohx});
+                                                                     input,
+                                                                     hx,
+                                                                     weights,
+                                                                     batchSeq,
+                                                                     hiddenSize,
+                                                                     batch_n,
+                                                                     seqLength,
+                                                                     numLayers,
+                                                                     biasMode,
+                                                                     dirMode,
+                                                                     inputMode,
+                                                                     rnnMode,
+                                                                     inVecReal,
+                                                                     hx_sz,
+                                                                     nohx});
 
         /// RETURNS std::make_tuple(output, hiddenState, reserveSpace);
         auto reserveSpaceFwdTrain = std::get<2>(fwdTrainOutputPair.second);
@@ -2120,26 +2128,10 @@ struct rnn_vanilla_driver : test_driver
 #if(MIO_RNN_TEST_DEBUG > 0)
         printf("Running backward data RNN.\n");
 #endif
-        auto bwdDataOutputPair = verify(verify_backward_data_rnn<T>{rnnDesc,
-                                                               yin,
-                                                               dyin,
-                                                               dhyin,
-                                                               hx,
-                                                               weights,
-                                                               reserveSpaceFwdTrain,
-                                                               batchSeq,
-                                                               hiddenSize,
-                                                               batch_n,
-                                                               seqLength,
-                                                               numLayers,
-                                                               biasMode,
-                                                               dirMode,
-                                                               inputMode,
-                                                               rnnMode,
-                                                               inVecReal,
-                                                               hx_sz,
-                                                               nohx,
-                                                               nodhy});
+        auto bwdDataOutputPair = verify(verify_backward_data_rnn<T>{
+            rnnDesc,   yin,        dyin,      dhyin,     hx,        weights,  reserveSpaceFwdTrain,
+            batchSeq,  hiddenSize, batch_n,   seqLength, numLayers, biasMode, dirMode,
+            inputMode, rnnMode,    inVecReal, hx_sz,     nohx,      nodhy});
 
         // RETURNS:  std::make_tuple(dx, dhx, reserveSpace, workSpace);
         auto reserveSpaceBwdData = std::get<2>(bwdDataOutputPair.second);
@@ -2154,24 +2146,24 @@ struct rnn_vanilla_driver : test_driver
         fflush(nullptr);
 #endif
         auto dweights_pair = verify(verify_backward_weights_rnn<T>{rnnDesc,
-                                                              input,
-                                                              dyin,
-                                                              hx,
-                                                              reserveSpaceBwdData,
-                                                              workSpaceBwdData,
-                                                              batchSeq,
-                                                              hiddenSize,
-                                                              wei_sz,
-                                                              batch_n,
-                                                              seqLength,
-                                                              numLayers,
-                                                              biasMode,
-                                                              dirMode,
-                                                              inputMode,
-                                                              rnnMode,
-                                                              inVecReal,
-                                                              hx_sz,
-                                                              nohx});
+                                                                   input,
+                                                                   dyin,
+                                                                   hx,
+                                                                   reserveSpaceBwdData,
+                                                                   workSpaceBwdData,
+                                                                   batchSeq,
+                                                                   hiddenSize,
+                                                                   wei_sz,
+                                                                   batch_n,
+                                                                   seqLength,
+                                                                   numLayers,
+                                                                   biasMode,
+                                                                   dirMode,
+                                                                   inputMode,
+                                                                   rnnMode,
+                                                                   inVecReal,
+                                                                   hx_sz,
+                                                                   nohx});
 
         verify(verify_forward_infer_rnn<T>{rnnDesc,
                                            input,
