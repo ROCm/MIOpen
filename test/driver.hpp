@@ -33,20 +33,23 @@
 
 #include <functional>
 #include <deque>
+#include <half.hpp>
 #include <type_traits>
 #include <miopen/functional.hpp>
 #include <miopen/type_name.hpp>
 
 struct rand_gen
 {
+    unsigned long max_value = 17;
     template <class... Ts>
     double operator()(Ts... Xs) const
     {
         static_assert(sizeof...(Ts) < 6, "Dimensions in rand_gen must be less than 6.");
+        assert(max_value > 0);
         std::array<unsigned long, sizeof...(Ts)> left = {{Xs...}};
         std::array<unsigned long, 5> right            = {{613, 547, 701, 877, 1049}};
         unsigned long dot = std::inner_product(left.begin(), left.end(), right.begin(), 173ul);
-        return double(dot % 17);
+        return double(dot % max_value);
     };
 };
 
@@ -118,6 +121,7 @@ struct test_driver
     bool time        = false;
     int batch_factor = 0;
     bool no_validate = false;
+    int repeat       = 1;
 
     argument& get_argument(const std::string& s)
     {
@@ -138,6 +142,7 @@ struct test_driver
         v(no_validate,
           {"--disable-validation"},
           "Disable cpu validation, so only gpu version is ran");
+        v(repeat, {"--repeat"}, "Repeat the tests");
     }
 
     struct per_arg
@@ -172,7 +177,9 @@ struct test_driver
         void operator()(T& x, argument& arg) const
         {
             arg.add_source(get_data, x);
-            arg.post_write_actions.push_back([&x] { tensor_generate{}(x, rand_gen{}); });
+            unsigned long max_value = x.desc.GetType() == miopenHalf ? 5 : 17;
+            arg.post_write_actions.push_back(
+                [&x, max_value] { tensor_generate{}(x, rand_gen{max_value}); });
         }
     };
 
@@ -369,8 +376,6 @@ struct test_driver
             {
                 std::cout << "Mismatch at " << idx << ": " << out_cpu[idx] << " != " << out_gpu[idx]
                           << std::endl;
-                std::cout << "---------------------------------------------------------\n"
-                          << std::endl;
             }
 
             auto cpu_nan_idx = find_idx(out_cpu, miopen::not_finite);
@@ -388,6 +393,7 @@ struct test_driver
             std::cout << "Warning: Both CPU and GPU data is all zero" << std::endl;
             fail(-1);
         }
+        std::cout << "---------------------------------------------------------\n" << std::endl;
         return std::make_pair(std::move(out_cpu), std::move(out_gpu));
     }
 
@@ -641,7 +647,7 @@ void test_drive_impl(std::vector<std::string> as)
 {
     Driver d{};
 
-    std::set<std::string> keywords{"--help", "-h"};
+    std::set<std::string> keywords{"--help", "-h", "--half", "--float", "--double"};
     d.parse(keyword_set{keywords});
     auto arg_map = args::parse(as, [&](std::string x) {
         return (keywords.count(x) > 0) or
@@ -708,8 +714,8 @@ void test_drive_impl(std::vector<std::string> as)
             data_args.push_back(&arg);
         }
     }
-
-    run_data(data_args.begin(), data_args.end(), [&] { d.run(); });
+    for(int i = 0; i < d.repeat; i++)
+        run_data(data_args.begin(), data_args.end(), [&] { d.run(); });
 }
 
 template <class Driver>
@@ -723,6 +729,23 @@ template <template <class...> class Driver>
 void test_drive(int argc, const char* argv[])
 {
     std::vector<std::string> as(argv + 1, argv + argc);
-    // Always use float for now
-    test_drive_impl<Driver<float>>(std::move(as));
+    as.emplace_back("--float");
+    for(auto&& arg : as)
+    {
+        if(arg == "--half")
+        {
+            test_drive_impl<Driver<half_float::half>>(std::move(as));
+            break;
+        }
+        if(arg == "--float")
+        {
+            test_drive_impl<Driver<float>>(std::move(as));
+            break;
+        }
+        if(arg == "--double")
+        {
+            // test_drive_impl<Driver<double>>(std::move(as));
+            break;
+        }
+    }
 }
