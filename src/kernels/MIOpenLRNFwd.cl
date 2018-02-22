@@ -187,9 +187,9 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
         for(ii = 0; ii < (int)(MLO_LRN_N_HORIZ_OUT_PIX - 1); ++ii)
         {
 
-            _FLOAT bot_val   = bot_data[lcl_off + jj * MLO_LRN_LCL_DATA_WIDTH + ii];
+            _FLOAT bot_val = bot_data[lcl_off + jj * MLO_LRN_LCL_DATA_WIDTH + ii];
 
-            _FLOAT accum_tmp = bot_val*bot_val;
+            _FLOAT accum_tmp = bot_val * bot_val;
 
 #if MLO_LRN_N_HORIZ_OUT_PIX > 1
             // save horizontal partial sums
@@ -214,7 +214,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
         {
 
             _FLOAT bot_val   = bot_data[lcl_off + jj * MLO_LRN_LCL_DATA_WIDTH + ii];
-            _FLOAT accum_tmp = bot_val*bot_val;
+            _FLOAT accum_tmp = bot_val * bot_val;
             // calculate all vertical-horizontal partial sums
             partial_sum_xy[jj][ii - MLO_LRN_KERNEL_SZ0 + 1] =
                 partial_sum_xy[jj][ii - MLO_LRN_KERNEL_SZ0] +
@@ -244,7 +244,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
         {
 
             _FLOAT bot_val   = bot_data[lcl_off + jj * MLO_LRN_LCL_DATA_WIDTH + ii];
-            _FLOAT accum_tmp = bot_val* bot_val;
+            _FLOAT accum_tmp = bot_val * bot_val;
 #if MLO_LRN_N_HORIZ_OUT_PIX > 1
             partial_sum_x[ii] = accum_tmp;
 #endif
@@ -392,8 +392,8 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
             s = exp((_FLOAT)-beta * log(prv_scale[k][l]));
             //					s = pow(prv_scale[k][l], -beta);
             _FLOAT bot_val = bot_data[lcl_off + mad24((k + MLO_LRN_PAD1),
-                                                  (int)MLO_LRN_LCL_DATA_WIDTH,
-                                                  (l + MLO_LRN_PAD0))];
+                                                      (int)MLO_LRN_LCL_DATA_WIDTH,
+                                                      (l + MLO_LRN_PAD0))];
 #if MLO_LRN_DO_SCALE
             scale[scale_off + k * MLO_LRN_SCALE_STRIDE + l] = prv_scale[k][l];
 #endif
