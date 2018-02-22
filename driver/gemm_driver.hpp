@@ -197,6 +197,9 @@ template <typename T>
 int GemmDriver<T>::RunForwardGPU()
 {
 
+    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    {
+
 #if MIOPEN_USE_MIOPENGEMM
     miopenGemm(GetHandle(),
                false, // isDataColMajor
@@ -214,12 +217,13 @@ int GemmDriver<T>::RunForwardGPU()
                c_dev->GetMem(),
                N,
                1); // find needs to be on to compile the kernel
+    }
 
     if(inflags.GetValueInt("time") == 1)
     {
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
-        printf("GPU Kernel Time Gemm Elapsed: %f ms\n", time);
+        printf("GPU Kernel Time Gemm Elapsed: %f ms\n", time/inflags.GetValueInt("iter"));
     }
 
     c_dev->FromGPU(GetStream(), c.data());

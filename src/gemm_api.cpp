@@ -61,11 +61,22 @@ miopenStatus_t miopenGemm(miopenHandle_t handle,
                           int find)
 {
 #if MIOPEN_USE_ROCBLAS
-    (void)isDataColMajor;
+    if(!isDataColMajor)
+    {
+        std::swap(transA, transB);
+        std::swap(M, N);
+        std::swap(lda, ldb);
+        std::swap(A, B);
+    }
+
+    hipEvent_t start, stop;
+    hipEventCreate(&start);
+    hipEventCreate(&stop);
     (void)find;
     static rocblas_handle_ptr rhandle = create_rocblas_handle_ptr(miopen::deref(handle));
     float alpha_local                 = *static_cast<const float*>(alpha);
     float beta_local                  = *static_cast<const float*>(beta);
+    hipEventRecord(start, nullptr);
     rocblas_sgemm(rhandle.get(),
                   transA ? rocblas_operation_transpose : rocblas_operation_none,
                   transB ? rocblas_operation_transpose : rocblas_operation_none,
@@ -80,6 +91,11 @@ miopenStatus_t miopenGemm(miopenHandle_t handle,
                   &beta_local,
                   static_cast<float*>(C),
                   ldc);
+    hipEventRecord(stop, nullptr);
+    hipDeviceSynchronize();
+    float mS = 0;
+    hipEventElapsedTime(&mS, start, stop);
+    miopen::deref(handle).AccumKernelTime(mS);
     return miopenStatusSuccess;
 #else
 
@@ -110,7 +126,8 @@ miopenStatus_t miopenGemm(miopenHandle_t handle,
         if(find)
         {
             gg.FindSolution(
-                .003, miopen::deref(handle), DataCast(A), DataCast(B), DataCast(C), false);
+                    //.003, miopen::deref(handle), DataCast(A), DataCast(B), DataCast(C), false);
+                60, miopen::deref(handle), DataCast(A), DataCast(B), DataCast(C), false);
 
             gg.RunGemm(miopen::deref(handle), DataCast(A), DataCast(B), DataCast(C), 0, 0, 0);
         }
