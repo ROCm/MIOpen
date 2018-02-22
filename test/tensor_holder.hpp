@@ -30,6 +30,9 @@
 #include "network_data.hpp"
 #include <miopen/tensor.hpp>
 #include <miopen/functional.hpp>
+#include <miopen/type_name.hpp>
+
+#include <half.hpp>
 
 template <class F>
 void visit_tensor_size(std::size_t n, F f)
@@ -71,28 +74,48 @@ void visit_tensor_size(std::size_t n, F f)
 }
 
 template <class T>
+struct miopen_type;
+
+template <>
+struct miopen_type<float> : std::integral_constant<miopenDataType_t, miopenFloat>
+{
+};
+
+template <>
+struct miopen_type<half_float::half> : std::integral_constant<miopenDataType_t, miopenHalf>
+{
+};
+
+template <class T>
 struct tensor
 {
     miopen::TensorDescriptor desc;
     std::vector<T> data;
 
-    tensor() {}
+    tensor() : desc(miopen_type<T>{}, {}) {}
 
     template <class X>
-    tensor(const std::vector<X>& dims)
-        : desc(miopenFloat, dims.data(), static_cast<int>(dims.size())), data(desc.GetElementSize())
+    tensor(const std::vector<X>& dims) : desc(miopen_type<T>{}, dims), data(desc.GetElementSize())
     {
+    }
+
+    template <class X>
+    tensor(const std::vector<X>& dims, const std::vector<X>& strides)
+        : desc(miopen_type<T>{}, dims, strides), data(desc.GetElementSize())
+    {
+        assert(dims.size() == strides.size());
     }
 
     tensor(std::size_t n, std::size_t c, std::size_t h, std::size_t w)
-        : desc(miopenFloat, {n, c, h, w}), data(n * c * h * w)
+        : desc(miopen_type<T>{}, {n, c, h, w}), data(n * c * h * w)
     {
     }
 
-    tensor(std::size_t n) : desc(miopenFloat, {n}), data(n) {}
+    tensor(std::size_t n) : desc(miopen_type<T>{}, {n}), data(n) {}
 
     tensor(miopen::TensorDescriptor rhs) : desc(std::move(rhs))
     {
+        assert(rhs.GetType() == miopen_type<T>{});
         data.resize(desc.GetElementSpace());
     }
 
@@ -119,7 +142,8 @@ struct tensor
             *iterator = x;
             ++iterator;
         };
-        this->for_each(miopen::compose(assign, std::move(g)));
+        this->for_each(
+            miopen::compose(miopen::compose(assign, miopen::cast_to<T>()), std::move(g)));
     }
 
     template <class Loop, class F>
@@ -152,7 +176,9 @@ struct tensor
                         any = {},
                         any = {}) const
         {
-            throw std::runtime_error("Arguments to for_each do not match tensor size");
+            throw std::runtime_error(
+                "Arguments to for_each do not match tensor size or the function " +
+                miopen::get_type_name<F>() + " can not be called.");
         }
     };
 
@@ -213,7 +239,7 @@ template <class T, class G>
 tensor<T> make_tensor(std::initializer_list<std::size_t> dims, G g)
 {
     // TODO: Compute float
-    return tensor<T>{miopen::TensorDescriptor{miopenFloat, dims}}.generate(g);
+    return tensor<T>{miopen::TensorDescriptor{miopen_type<T>{}, dims}}.generate(g);
 }
 
 template <class T, class X>
@@ -221,7 +247,7 @@ tensor<T> make_tensor(const std::vector<X>& dims)
 {
     // TODO: Compute float
     return tensor<T>{
-        miopen::TensorDescriptor{miopenFloat, dims.data(), static_cast<int>(dims.size())}};
+        miopen::TensorDescriptor{miopen_type<T>{}, dims.data(), static_cast<int>(dims.size())}};
 }
 
 template <class T, class X, class G>
