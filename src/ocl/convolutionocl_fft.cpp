@@ -133,7 +133,8 @@ static int FindFFTKernel(Handle& handle,
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
         return -1;
 
-    if(xDesc.GetType() != miopenFloat || wDesc.GetType() != miopenFloat || yDesc.GetType() != miopenFloat) 
+    if(xDesc.GetType() != miopenFloat || wDesc.GetType() != miopenFloat ||
+       yDesc.GetType() != miopenFloat)
         return -1;
 
     int in_n, in_c, in_h, in_w;
