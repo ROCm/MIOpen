@@ -1145,21 +1145,38 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 #if MIOPEN_USE_MIOPENGEMM
         size_t workspace_req = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
         float time_gemm      = 0;
-        GemmGeometry gg =
-            CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, true, network_config);
 
         // 1x1 does not require col2im or workspace
         if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
         {
+            GemmGeometry gg =
+                CreateGemmGeometryConvBwdDataCNHW(dyDesc, wDesc, dxDesc, true, network_config);
+
+            transpose_NCHW2CNHW_opt(handle, in_n, wei_n, out_h, out_w, dy, workSpace, 0, 0);
+            time_gemm = handle.GetKernelTime();
+
+            gg.FindSolution(.003, handle, w, dy, tmp_dx.get(), false);
+            gg.RunGemm(handle, w, workSpace, workSpace, 0, 0, dyDesc.GetElementSize());
+            time_gemm += handle.GetKernelTime();
+
+            transpose_CNHW2NCHW_opt(handle, in_n, in_c, out_h, out_w, workSpace, tmp_dx.get(), dyDesc.GetElementSize(), 0);
+            time_gemm += handle.GetKernelTime();
+            perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoGEMM", time_gemm, 0});
+#if 0
             gg.FindSolution(.003, handle, w, dy, tmp_dx.get(), false);
             gg.RunGemm(handle, w, dy, tmp_dx.get(), 0, 0, 0);
 
             time_gemm = in_n * handle.GetKernelTime();
             perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoGEMM", time_gemm, 0});
+#endif
+
         }
         // if not 1x1
         else if(workSpace != nullptr && workSpaceSize >= workspace_req)
         {
+            GemmGeometry gg =
+                CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, true, network_config);
+
             float time_col2im = 0;
             size_t in_offset  = 0;
 
@@ -1370,63 +1387,76 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
             std::string network_config;
 #if MIOPEN_USE_MIOPENGEMM
-            CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, true, network_config);
-            GemmGeometry gg = GetGemmGeometry("miopenConvolutionBwdDataAlgoGEMM", network_config);
-
-            handle.ResetKernelTime();
-
-            float time_0 = 0;
-            float t1     = 0;
-            for(int i = 0; i < in_n; i++)
+            if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
             {
-                int out_offset = i * wei_n * out_h * out_w;
+                float t1 = 0;
+                CreateGemmGeometryConvBwdDataCNHW(dyDesc, wDesc, dxDesc, true, network_config);
+                GemmGeometry gg = GetGemmGeometry("miopenConvolutionBwdDataAlgoGEMM", network_config);
 
-                if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
+                transpose_NCHW2CNHW_opt(handle, in_n, wei_n, out_h, out_w, dy, workSpace, 0, 0);
+                t1 = handle.GetKernelTime();
+
+                gg.RunGemm(handle, w, workSpace, workSpace, 0, 0, dyDesc.GetElementSize());
+                t1 += handle.GetKernelTime();
+
+                transpose_CNHW2NCHW_opt(handle, in_n, in_c, in_h, in_w, workSpace, dx, dyDesc.GetElementSize(), 0);
+                t1 += handle.GetKernelTime();
+
+                if(handle.IsProfilingEnabled())
                 {
-                    size_t in_offset = i * in_c * in_h * in_w;
-
-                    gg.RunGemm(handle, w, dy, workSpace, 0, out_offset, 0);
-
-                    if(handle.IsProfilingEnabled())
-                        t1 = handle.GetKernelTime();
-
-                    Col2ImGPU(handle,
-                              workSpace,
-                              out_h,
-                              out_w,
-                              wei_h,
-                              wei_w,
-                              pad_h,
-                              pad_w,
-                              u,
-                              v,
-                              dilation_h,
-                              dilation_w,
-                              in_c,
-                              in_h,
-                              in_w,
-                              dx,
-                              in_offset);
-
-                    // Update times for both the kernels
-                    if(handle.IsProfilingEnabled())
-                    {
-                        if(i == in_n - 1)
-                            handle.AccumKernelTime(t1 + time_0);
-                        else
-                            handle.AccumKernelTime(t1);
-                        time_0 += handle.GetKernelTime();
-                    }
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(t1);
                 }
-                else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
+            }
+            else
+            {
+                CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, true, network_config);
+                GemmGeometry gg = GetGemmGeometry("miopenConvolutionBwdDataAlgoGEMM", network_config);
+
+                handle.ResetKernelTime();
+
+                float time_0 = 0;
+                float t1     = 0;
+                for(int i = 0; i < in_n; i++)
                 {
-                    int in_offset = i * in_c * in_h * in_w;
-                    gg.RunGemm(handle, w, dy, dx, 0, out_offset, in_offset);
-                    if(handle.IsProfilingEnabled())
+                    int out_offset = i * wei_n * out_h * out_w;
+
+                    if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
                     {
-                        if(i == in_n - 1)
-                            handle.AccumKernelTime(time_0);
-                        time_0 += handle.GetKernelTime();
+                        size_t in_offset = i * in_c * in_h * in_w;
+
+                        gg.RunGemm(handle, w, dy, workSpace, 0, out_offset, 0);
+
+                        if(handle.IsProfilingEnabled())
+                            t1 = handle.GetKernelTime();
+
+                        Col2ImGPU(handle,
+                                workSpace,
+                                out_h,
+                                out_w,
+                                wei_h,
+                                wei_w,
+                                pad_h,
+                                pad_w,
+                                u,
+                                v,
+                                dilation_h,
+                                dilation_w,
+                                in_c,
+                                in_h,
+                                in_w,
+                                dx,
+                                in_offset);
+
+                        // Update times for both the kernels
+                        if(handle.IsProfilingEnabled())
+                        {
+                            if(i == in_n - 1)
+                                handle.AccumKernelTime(t1 + time_0);
+                            else
+                                handle.AccumKernelTime(t1);
+                            time_0 += handle.GetKernelTime();
+                        }
                     }
                 }
             }
