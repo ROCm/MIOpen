@@ -658,6 +658,8 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
     status |= out_dev->ToGPU(q, out.data());
     status |= cx_dev->ToGPU(q, cx.data());
     status |= hx_dev->ToGPU(q, hx.data());
+    status |= workspace_dev->ToGPU(q, workspace.data());
+    status |= reservespace_dev->ToGPU(q, reservespace.data());
 
     if(status != CL_SUCCESS)
         printf("Error copying data to GPU\n");
@@ -666,8 +668,6 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
     {
         status = hy_dev->ToGPU(q, hy.data());
         status |= cy_dev->ToGPU(q, cy.data());
-        status |= workspace_dev->ToGPU(q, workspace.data());
-        status |= reservespace_dev->ToGPU(q, reservespace.data());
 
         if(status != CL_SUCCESS)
             printf("Error copying data to GPU\n");

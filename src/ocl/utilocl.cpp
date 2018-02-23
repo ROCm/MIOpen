@@ -308,13 +308,12 @@ float transpose_NCHW2CNHW_opt(Handle& handle,
     std::string kernel_name  = "transpose_NCHW2CNHW_opt";
 
     int N = n, C = c, H = h, W = w;
-    int RD_BLCK      = ((H * W) % 4 == 0) ? 4 : ((H * W) % 3 == 0) ? 3 : ((H * W) % 2 == 0) ? 2 : 1;
+    int RD_BLCK      = ((H * W) % 4 == 0) ? 4 : ((H * W) % 2 == 0) ? 2 : 1;
     int HW_RD        = (H * W) / RD_BLCK;
     size_t MAP_RD    = HW_RD * C;
     size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
 
-    static const std::string READ_TYPE =
-        (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
+    std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
 
     std::string params;
     params += " -DNC_TRANS_NCHW_OPT";
@@ -367,13 +366,12 @@ float transpose_CNHW2NCHW_opt(Handle& handle,
     std::string kernel_name  = "transpose_CNHW2NCHW_opt";
 
     int N = n, C = c, H = h, W = w;
-    int RD_BLCK      = ((H * W) % 4 == 0) ? 4 : ((H * W) % 3 == 0) ? 3 : ((H * W) % 2 == 0) ? 2 : 1;
+    int RD_BLCK      = ((H * W) % 4 == 0) ? 4 : ((H * W) % 2 == 0) ? 2 : 1;
     int HW_RD        = (H * W) / RD_BLCK;
     size_t MAP_RD    = HW_RD * C;
     size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
 
-    static const std::string READ_TYPE =
-        (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
+    std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
 
     std::string params;
     params += " -DNC_TRANS_CNHW_OPT";
