@@ -56,10 +56,6 @@
 #define MIOPEN_TENSOR_OP miopenMul
 #endif
 
-#ifndef MIOPEN_TENSOR_DIMS
-#define MIOPEN_TENSOR_DIMS 4
-#endif
-
 #define UNUSED __attribute__((__unused__))
 
 MIOPEN_TYPE miopenAdd(MIOPEN_TYPE a, MIOPEN_TYPE b) { return a + b; }
@@ -69,6 +65,8 @@ MIOPEN_TYPE miopenMul(MIOPEN_TYPE a, MIOPEN_TYPE b) { return a * b; }
 MIOPEN_TYPE miopenMax(MIOPEN_TYPE a, MIOPEN_TYPE b) { return ((a > b) ? a : b); }
 
 MIOPEN_TYPE miopenMin(MIOPEN_TYPE a, MIOPEN_TYPE b) { return ((a < b) ? a : b); }
+
+#ifdef USE_FWD_BIAS
 
 __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
                               global MIOPEN_TYPE* b,
@@ -134,6 +132,10 @@ __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
 #endif // INCR_WG
     }
 }
+
+#endif
+
+#ifdef USE_FWD_BIAS_GENERIC
 
 __kernel void OpTensorFwdBiasGeneric(global MIOPEN_TYPE* a,
                                      const int a_nstride,
@@ -216,8 +218,10 @@ __kernel void OpTensorFwdBiasGeneric(global MIOPEN_TYPE* a,
     }
 }
 
+#endif
+
 // DLOWELL : cutting out this section
-#if(FIRST_NOT_ONE < 4 && MIOPEN_TENSOR_DIMS == 4)
+#ifdef USE_LEADING_ONES
 
 __kernel void OpTensorLeadingOnes(global MIOPEN_TYPE* a,
                                   global MIOPEN_TYPE* b,
@@ -342,7 +346,7 @@ __kernel void OpTensorLeadingOnes(global MIOPEN_TYPE* a,
 #endif
 
 // DLOWELL : cutting out this section
-#if(FIRST_NOT_ONE < 4 && MIOPEN_TENSOR_DIMS == 4)
+#ifdef USE_LEADING_ONES_GENERIC
 
 __kernel void OpTensorLeadingOnesGeneric(global MIOPEN_TYPE* a,
                                          const int a_nstride,
@@ -490,6 +494,8 @@ __kernel void OpTensorLeadingOnesGeneric(global MIOPEN_TYPE* a,
 
 #endif
 
+#ifdef USE_4D_TENSOR_GENERIC
+
 __kernel void Op4dTensorGeneric(global MIOPEN_TYPE* a,
                                 const int a_nstride,
                                 const int a_cstride,
@@ -561,6 +567,9 @@ __kernel void Op4dTensorGeneric(global MIOPEN_TYPE* a,
     }
 }
 
+#endif
+
+#ifdef USE_5D_TENSOR_GENERIC
 // NCDHW
 // (samples, color_depth, frames, width, height )
 __kernel void Op5dTensorGeneric(global MIOPEN_TYPE* a,
@@ -646,6 +655,9 @@ __kernel void Op5dTensorGeneric(global MIOPEN_TYPE* a,
     }
 }
 
+#endif
+
+#ifdef USE_3D_TENSOR_GENERIC
 // NCH
 __kernel void Op3dTensorGeneric(global MIOPEN_TYPE* a,
                                 const int a_nstride,
@@ -710,6 +722,9 @@ __kernel void Op3dTensorGeneric(global MIOPEN_TYPE* a,
     }
 }
 
+#endif
+
+#ifdef USE_2D_TENSOR_LITE
 __kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
                              const int a_nstride,
                              const global MIOPEN_TYPE* b,
@@ -755,7 +770,9 @@ __kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
     (void)beta;
 #endif
 }
+#endif
 
+#ifdef USE_2D_TENSOR_GENERIC
 // NC
 __kernel void Op2dTensorGeneric(global MIOPEN_TYPE* a,
                                 const int a_nstride,
@@ -808,6 +825,9 @@ __kernel void Op2dTensorGeneric(global MIOPEN_TYPE* a,
     }
 }
 
+#endif
+
+#ifdef USE_1D_TENSOR_GENERIC
 // N
 __kernel void Op1dTensorGeneric(global MIOPEN_TYPE* a,
                                 global MIOPEN_TYPE* b,
@@ -846,3 +866,4 @@ __kernel void Op1dTensorGeneric(global MIOPEN_TYPE* a,
         }
     }
 }
+#endif
