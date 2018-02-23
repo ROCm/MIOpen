@@ -54,7 +54,7 @@ struct pooling_operators
     miopen::PoolingDescriptor filter;
     pooling_operators(miopen::PoolingDescriptor f) : filter(f) {}
 
-    T start() const
+    double start() const
     {
         if(filter.GetMode() == miopenPoolingMax)
             return std::numeric_limits<T>::lowest();
@@ -62,7 +62,7 @@ struct pooling_operators
             return 0.0;
     }
 
-    T operator()(T x, T y) const
+    double operator()(double x, double y) const
     {
         if(filter.GetMode() == miopenPoolingMax)
             return std::max(x, y);
@@ -70,7 +70,7 @@ struct pooling_operators
             return x + y;
     }
 
-    T final(T x, T y)
+    double final(double x, double y)
     {
         if(filter.GetMode() == miopenPoolingMax)
             return x;
@@ -107,7 +107,7 @@ struct verify_forward_pooling
 
             const int pool_size = (hend - start_x) * (wend - start_y);
 
-            T acc = op.start();
+            double acc = op.start();
             ford(window_h, window_w)([&](int x, int y) {
                 const int in_x = start_x + x;
                 const int in_y = start_y + y;
@@ -116,7 +116,7 @@ struct verify_forward_pooling
                     acc = op(acc, input(o, w, in_x, in_y));
                 }
             });
-            out(o, w, i, j) = op.final(acc, pool_size);
+            out(o, w, i, j) = T(op.final(acc, pool_size));
         });
         return out;
     }
