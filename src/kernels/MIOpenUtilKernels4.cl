@@ -146,22 +146,3 @@ __kernel void transpose_CNHW2NCHW(const global float* in, global float* out)
 #endif
 }
 #endif
-
-#ifdef COPYMEM
-__kernel void memoryCopy(const global float* in, global float* out)
-{
-    // to reduce granularity loss
-    uint gid   = get_global_id(0);
-    uint index = gid;
-
-    const global READ_TYPE* cin = (const global READ_TYPE*)(in);
-    global READ_TYPE* cout      = (global READ_TYPE*)(out);
-
-    int i;
-    for(i = 0; i < N; i++)
-    {
-        cout[index] = cin[index];
-        index += C * HW_RD;
-    }
-}
-#endif
