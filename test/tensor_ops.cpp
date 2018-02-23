@@ -304,10 +304,20 @@ struct tensor_ops_driver : test_driver
         add(packed, "packed", generate_data({false, true}));
     }
 
-    tensor<T> get_subtensors(tensor<T>& super_tensor, std::vector<int>& lens)
+    tensor<T> get_subtensors(tensor<T>& super_tensor, std::vector<int>& lens, bool isPacked)
     {
-        std::vector<size_t> superStrides = super_tensor.desc.GetStrides();
-        std::vector<int> strides(superStrides.begin() + (5 - lens.size()), superStrides.end());
+        std::vector<int> strides(lens.size(), 1);
+        if(!isPacked)
+        {
+            std::vector<size_t> superStrides = super_tensor.desc.GetStrides();
+            strides.assign(superStrides.begin() + (5 - lens.size()), superStrides.end());
+        }
+        else
+        {
+            std::partial_sum(
+                lens.rbegin(), lens.rend() - 1, strides.rbegin() + 1, std::multiplies<int>());
+        }
+
         tensor<T> t = tensor<T>{lens, strides};
         t.data      = super_tensor.data;
         return t;
@@ -317,9 +327,9 @@ struct tensor_ops_driver : test_driver
     {
         if(tensorlens_ac.size() == tensorlens_b.size())
         {
-            tensor<T> aTensor = packed ? tensorlens_ac : get_subtensors(super_a, tensorlens_ac);
-            tensor<T> bTensor = packed ? tensorlens_b : get_subtensors(super_b, tensorlens_b);
-            tensor<T> cTensor = packed ? tensorlens_ac : get_subtensors(super_c, tensorlens_ac);
+            tensor<T> aTensor = get_subtensors(super_a, tensorlens_ac, packed);
+            tensor<T> bTensor = get_subtensors(super_b, tensorlens_b, packed);
+            tensor<T> cTensor = get_subtensors(super_c, tensorlens_ac, packed);
 
             if(packed)
                 offsets = {0, 0, 0, 0, 0};
