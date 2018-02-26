@@ -1739,8 +1739,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
                     visit_float(dyDesc.GetType(), [&](auto as_float) {
 
-                        float time_direct = 0;
-                        if(bwd_wrw_info.size() == 1)
+                        if(kernels_info.size() == 1)
                         {
                             const auto& k_info = kernels_info[0];
                             auto kernel =
