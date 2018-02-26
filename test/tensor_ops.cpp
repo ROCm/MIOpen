@@ -306,21 +306,20 @@ struct tensor_ops_driver : test_driver
 
     tensor<T> get_subtensors(tensor<T>& super_tensor, std::vector<int>& lens, bool isPacked)
     {
-        std::vector<int> strides(lens.size(), 1);
         if(!isPacked)
         {
             std::vector<size_t> superStrides = super_tensor.desc.GetStrides();
-            strides.assign(superStrides.begin() + (5 - lens.size()), superStrides.end());
+            std::vector<int> strides(superStrides.begin() + (5 - lens.size()), superStrides.end());
+            tensor<T> t = tensor<T>{lens, strides};
+            t.data      = super_tensor.data;
+            return t;
         }
         else
         {
-            std::partial_sum(
-                lens.rbegin(), lens.rend() - 1, strides.rbegin() + 1, std::multiplies<int>());
+            tensor<T> t = tensor<T>{lens};
+            t.data      = super_tensor.data;
+            return t;
         }
-
-        tensor<T> t = tensor<T>{lens, strides};
-        t.data      = super_tensor.data;
-        return t;
     }
 
     void run()
