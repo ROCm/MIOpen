@@ -128,7 +128,8 @@ struct value_parser
         std::stringstream ss;
         ss.str(x);
         ss >> result;
-        if (ss.fail()) throw std::runtime_error("Failed to parse: " + x);
+        if(ss.fail())
+            throw std::runtime_error("Failed to parse: " + x);
         return result;
     }
 };
