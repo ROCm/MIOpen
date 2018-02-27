@@ -419,8 +419,12 @@ struct mlo_construct_direct2D
     * returns parameter values that are compiled in legacy kernels for kernels using them as
     * arguments.
     */
-    inline void getCompiledInParameters(
-        int* const N, int* const C, int* const H, int* const W, int* const K, int* const n_groups)
+    inline void getCompiledInParameters(int* const N,
+                                        int* const C,
+                                        int* const H,
+                                        int* const W,
+                                        int* const K,
+                                        int* const n_groups) const
     {
         assert(N && C && H && W && K && n_groups);
         *N        = _search_params.batch_sz;
@@ -442,7 +446,7 @@ struct mlo_construct_direct2D
                                         int* const R,
                                         int* const S,
                                         int* const pad_H,
-                                        int* const pad_W)
+                                        int* const pad_W) const
     {
         getCompiledInParameters(N, C, H, W, K, n_groups);
         assert(out_H && out_W && R && S && pad_H && pad_W);
