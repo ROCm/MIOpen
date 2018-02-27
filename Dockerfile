@@ -60,7 +60,7 @@ RUN cget -p $PREFIX/x86_64-w64-mingw32 init -t $PREFIX/x86_64-w64-mingw32/cmake/
 # Build hcc
 RUN git clone https://github.com/RadeonOpenCompute/hcc.git -b roc-1.7.x /hcc && \
     cd hcc && \
-    git reset --hard 7b0ade7082f0916934aa30214ea25360678bfcb5 && \
+    git reset --hard 7e18c649964637507d21f1420baf4907148ff7b5 && \
     git submodule init && \
     git submodule update --recursive && \
     cget -p $PREFIX install hcc,. && cd .. && rm -rf /hcc
