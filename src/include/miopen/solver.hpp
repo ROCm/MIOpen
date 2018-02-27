@@ -194,22 +194,6 @@ ConvSolution FindSolution(Solver s, const Context& context, DbRecord& dbRecord)
     return FindSolutionImpl(rank<1>{}, s, context, dbRecord);
 }
 
-/// \todo Copypasted from GenericSearch; generalize.
-inline void InitRandomly_(std::vector<float>& vec, const double offset, const double factor)
-{
-    float* p = vec.data();
-    for(int i = 0; i < vec.size(); ++i)
-        *p++ = static_cast<float>((rand() * (1.0 / RAND_MAX) + offset) * factor);
-}
-
-/// \todo Copypasted from GenericSearch; generalize.
-inline void InitRandomly_(std::vector<float>& vec)
-{
-    float* p = vec.data();
-    for(int i = 0; i < vec.size(); ++i)
-        *p++ = static_cast<float>(rand() * (1.0 / RAND_MAX));
-}
-
 // Search for a solution among many solvers
 template <class... Solvers, class Context>
 auto SearchForSolution(const Context& search_params, miopen::DbRecord dbRecord) ->
@@ -225,129 +209,19 @@ auto SearchForSolution(const Context& search_params, miopen::DbRecord dbRecord) 
 #endif
         auto no_perf_filtering = miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
 
-#if 1
-    if(search_params.direction.IsBackwardWrW() &&
-       search_params.kernel_stride0 <= 1) /// \todo Remove this w/a for subsampling cases
-    {
-        float best_time                = std::numeric_limits<float>::max();
-        bool none_probing_failures_yet = true;
-        MIOPEN_STATIC_FOR_EACH(
-            solver,
-            Solvers{},
+    // clang-format off
+    MIOPEN_STATIC_FOR_EACH(solver, Solvers{}, {
+        if(!solution.Succeeded() && solver.IsApplicable(search_params) &&
+           (no_perf_filtering || solver.IsFast(search_params)))
+        {
+            solution = FindSolution(solver, search_params, dbRecord);
+            if(solution.Succeeded() && solution.construction_params.empty())
             {
-                Solution candidate{miopenStatusUnknownError};
-                if(solver.IsApplicable(search_params) &&
-                   (no_perf_filtering || solver.IsFast(search_params)))
-                {
-                    candidate = FindSolution(solver, search_params, dbRecord);
-                    if(candidate.Succeeded())
-                    {
-                        MIOPEN_LLOG_I2(SolverDbId(solver) << ": Success."
-                                                          << " construction_params.empty()="
-                                                          << solution.construction_params.empty());
-                    }
-                    if(candidate.Succeeded() && candidate.construction_params.empty())
-                    {
-                        candidate = {miopenStatusInternalError};
-                        MIOPEN_THROW_DEBUG(std::string("Internal error in solver: ") +
-                                           SolverDbId(solver));
-                    }
-                    float elapsed_time;
-                    if(candidate.Succeeded())
-                    { // Return the fastest solution.
-                        /// \todo Avoid multiple preparations of buffers
-                        /// \todo Copypasted from GenericSearch; generalize.
-                        auto& context = search_params; /// \todo Remove synonym
-                        miopen::Handle profile_h;
-                        std::vector<float> bot(context.bot_sz / sizeof(float));
-                        std::vector<float> top(context.top_sz / sizeof(float));
-                        std::vector<float> wei(context.weights_sz / sizeof(float));
-                        std::vector<float> bias(context.bias_sz / sizeof(float));
-                        if(!context.direction.IsForward())
-                            InitRandomly_(bot);
-                        if(!context.direction.IsBackwardData())
-                            InitRandomly_(top);
-                        if(!context.direction.IsBackwardWrW())
-                            InitRandomly_(wei, -0.5, 0.001);
-                        if(context.bias)
-                            InitRandomly_(bias);
-                        auto bot_ocl_buf  = profile_h.Write(bot);
-                        auto top_ocl_buf  = profile_h.Write(top);
-                        auto wei_ocl_buf  = profile_h.Write(wei);
-                        auto bias_ocl_buf = context.bias ? profile_h.Write(bias) : nullptr;
-
-                        profile_h.EnableProfiling(true);
-                        auto rc = solver.RunAndMeasureSolution(profile_h,
-                                                               bot_ocl_buf.get(),
-                                                               top_ocl_buf.get(),
-                                                               wei_ocl_buf.get(),
-                                                               context.bias ? bias_ocl_buf.get()
-                                                                            : nullptr,
-                                                               context,
-                                                               candidate,
-                                                               elapsed_time);
-                        profile_h.EnableProfiling(false);
-                        /// (1) Select the fastest solution.
-                        /// (2) There could be Solvers which do not have time measurement
-                        ///     implemented, so those can't be timed.
-                        /// Some related assumptions:
-                        /// * (3) Any solution which does support time measurement is faster than
-                        ///       any solution that can't be timed.
-                        /// * (4) Among all solutions which can't be timed,
-                        ///       the one which is constructed first is the fastest.
-                        ///       This corresponds to the legacy (euristic) behavior.
-                        ///
-                        /// \todo Implement probing for all Solvers.
-                        switch(rc)
-                        {
-                        case 0:
-                            MIOPEN_LLOG_I2(SolverDbId(solver) << ": Timing OK " << elapsed_time);
-                            if(elapsed_time < best_time) // (1)
-                            {
-                                MIOPEN_LLOG_I(SolverDbId(solver) << ": " << elapsed_time << " < "
-                                                                 << best_time);
-                                best_time = elapsed_time;
-                                solution  = candidate;
-                            }
-                            break;
-                        case -2: // (2)
-                            MIOPEN_LLOG_W(SolverDbId(solver) << ": Timing not implemented");
-                            if(none_probing_failures_yet)
-                            { // (4)
-                                none_probing_failures_yet = false;
-                                if(best_time >= std::numeric_limits<float>::max())
-                                { // (3)
-                                    solution = candidate;
-                                }
-                            }
-                            break;
-                        default: MIOPEN_LLOG_E(SolverDbId(solver) << ": Timing failed"); break;
-                        }
-                    }
-                }
-                else
-                {
-                    MIOPEN_LLOG_I2(SolverDbId(solver) << ": N/A");
-                }
-            });
-    }
-    else
-#endif
-    {
-        // clang-format off
-        MIOPEN_STATIC_FOR_EACH(solver, Solvers{}, {
-            if(!solution.Succeeded() && solver.IsApplicable(search_params) &&
-               (no_perf_filtering || solver.IsFast(search_params)))
-            {
-                solution = FindSolution(solver, search_params, dbRecord);
-                if(solution.Succeeded() && solution.construction_params.empty())
-                {
-                    MIOPEN_THROW(std::string("Internal error in solver: ") + SolverDbId(solver));
-                }
+                MIOPEN_THROW(std::string("Internal error in solver: ") + SolverDbId(solver));
             }
-        });
-        // clang-format on
-    }
+        }
+    });
+    // clang-format on
 
     return solution;
 }
@@ -359,7 +233,7 @@ void SearchForAllSolutions(const Context& search_params,
                            std::vector<Solution>& ss)
 {
     assert(ss.empty());
-    assert(search_params.direction.IsBackwardWrW() && search_params.kernel_stride0 <= 1);
+    assert(search_params.direction.IsBackwardWrW());
 
 // Using const here causes gcc to ICE
 #if(!defined(__GNUC__) || defined(__clang__))
@@ -367,34 +241,31 @@ void SearchForAllSolutions(const Context& search_params,
 #endif
         auto no_perf_filtering = miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
 
-    MIOPEN_STATIC_FOR_EACH(solver,
-                           Solvers{},
-                           {
-                               if(solver.IsApplicable(search_params) &&
-                                  (no_perf_filtering || solver.IsFast(search_params)))
-                               {
-                                   const Solution s = FindSolution(solver, search_params, dbRecord);
-                                   if(s.Succeeded())
-                                   {
-                                       if(s.construction_params.empty())
-                                       {
-                                           MIOPEN_LLOG_E(SolverDbId(solver) << ": Internal error.");
-                                           MIOPEN_THROW_DEBUG(
-                                               std::string("Internal error in solver: ") +
-                                               SolverDbId(solver));
-                                       }
-                                       else
-                                       {
-                                           ss.push_back(s);
-                                           MIOPEN_LLOG_I2(SolverDbId(solver) << ": Success.");
-                                       }
-                                   }
-                               }
-                               else
-                               {
-                                   MIOPEN_LLOG_I2(SolverDbId(solver) << ": N/A");
-                               }
-                           });
+    // clang-format off
+    MIOPEN_STATIC_FOR_EACH(solver, Solvers{}, {
+        if(solver.IsApplicable(search_params) &&
+            (no_perf_filtering || solver.IsFast(search_params)))
+        {
+            const Solution s = FindSolution(solver, search_params, dbRecord);
+            if(s.Succeeded())
+            {
+                ss.push_back(s);
+                MIOPEN_LLOG_I2(SolverDbId(solver) << ": Success.");
+            }
+            else
+            {
+                /// \todo If Solver is applicable it must provide an appropriate Solution.
+                /// This is not the case for some 20x5 convolutions, so level is INFO for now.
+                /// Normally we should not get here and message level should be ERROR.
+                MIOPEN_LLOG_I(SolverDbId(solver) << ": Internal error.");
+            }
+        }
+        else
+        {
+            MIOPEN_LLOG_I2(SolverDbId(solver) << ": Not applicable");
+        }
+    });
+    // clang-format on
 }
 
 /// Base class for problem solvers.
@@ -449,19 +320,15 @@ struct SolverBase
     /// ConvSolution GetSolution(const ConvolutionContext& params,
     ///                          const PerformanceConfig& config) const;
 
-    /// Solver-specific method.
-    /// \todo Default implementation. To be removed when implemented in all Solvers.
-    int RunAndMeasureSolution(miopen::Handle&, // profile_h,
-                              Data_t,          // bot_ocl_buf,
-                              Data_t,          // top_ocl_buf,
-                              Data_t,          // wei_ocl_buf,
-                              Data_t,          // bias_ocl_buf,
-                              const Context&,
-                              const ConvSolution&,
-                              float&) const
-    {
-        return -2; // Not implemented
-    }
+    /// Temporary solver-specific method until we have generic means for running solutions.
+    /// int RunAndMeasureSolution(miopen::Handle& profile_h,
+    ///                          Data_t bot_ocl_buf,
+    ///                          Data_t top_ocl_buf,
+    ///                          Data_t wei_ocl_buf,
+    ///                          Data_t bias_ocl_buf,
+    ///                          const ConvolutionContext& params,
+    ///                          const ConvSolution& solution,
+    ///                          float& elapsed_time) const;
 };
 
 struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
@@ -757,14 +624,6 @@ struct ConvOclBwdWrW1x1 : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params) const;
-    int RunAndMeasureSolution(miopen::Handle& profile_h,
-                              Data_t bot_ocl_buf,
-                              Data_t top_ocl_buf,
-                              Data_t wei_ocl_buf,
-                              Data_t bias_ocl_buf,
-                              const ConvolutionContext&,
-                              const ConvSolution& solution,
-                              float& elapsed_time) const;
 };
 
 } // namespace solver
