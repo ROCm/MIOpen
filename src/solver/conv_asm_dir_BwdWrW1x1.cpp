@@ -302,18 +302,11 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     std::ostringstream options;
 
     assert(params.pad1 == 0 && params.pad0 == 0);
-    if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
-    {
-        result.passes = 2;
-    }
-    else
-    {
-        result.passes = 1;
-    }
+    const int n_passes = (params.kernel_stride0 > 1 || params.kernel_stride1 > 1) ? 2 : 1;
 
     result.workspce_sz = 0;
 
-    if(result.passes > 1)
+    if(n_passes > 1)
     { // subsampled input, in_height equals to image size after downsampling
         assert(params.kernel_stride0 > 1 || params.kernel_stride1 > 1);
         int in_batch_stride = params.in_stride * params.in_height * params.n_outputs;
