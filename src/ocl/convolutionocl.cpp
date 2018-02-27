@@ -1530,18 +1530,17 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 }
 
 template <typename T>
-float
-FindConvBwdWeightsRunDirect(Handle& handle,
-                              const std::string& algorithm_name,
-                              const std::string& network_config,
-                              const mlo_construct_BwdWrW2D& construct_params,
-                              miopen::solver::ConvSolution solution,
-                              ConstData_t dy,
-                              ConstData_t x,
-                              Data_t dw,
-                              Data_t workSpace,
-                              const size_t workSpaceSize,
-                              T padding_val)
+float FindConvBwdWeightsAlgorithmRunDirect(Handle& handle,
+                                           const std::string& algorithm_name,
+                                           const std::string& network_config,
+                                           const mlo_construct_BwdWrW2D& construct_params,
+                                           miopen::solver::ConvSolution solution,
+                                           ConstData_t dy,
+                                           ConstData_t x,
+                                           Data_t dw,
+                                           Data_t workSpace,
+                                           const size_t workSpaceSize,
+                                           T padding_val)
 {
     float elapsed            = 0;
     const auto& kernels_info = solution.construction_params; /// FIXME rename
@@ -1551,6 +1550,7 @@ FindConvBwdWeightsRunDirect(Handle& handle,
     int k_index = 0;
     for(auto& k_info : kernels_info)
     {
+        MIOPEN_LOG_I2(k_info.kernel_name);
         kernels.push_back(handle.AddKernel(algorithm_name,
                                            network_config,
                                            k_info.kernel_file,
@@ -1780,27 +1780,70 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 construct_params.setWeightDescFromMLDesc(dwDesc);
                 construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-                miopen::solver::ConvSolution solution;
-                if(!construct_params.mloIsCompilerWorkarounds() &&
-                   try_([&] { mloConstruct(construct_params, solution); }) == miopenStatusSuccess)
-                {
-                    construct_params.mloBuildConf_Key(network_config);
-                    const std::string perf_name      = "miopenConvolutionBwdWeightsAlgoDirect";
-                    const std::string algorithm_name = perf_name + "_Main";
+                construct_params.mloBuildConf_Key(network_config);
+                const std::string perf_name      = "miopenConvolutionBwdWeightsAlgoDirect";
+                const std::string algorithm_name = perf_name + "_Main";
 
+                if(!construct_params.mloIsCompilerWorkarounds())
+                {
                     visit_float(dyDesc.GetType(), [&](auto as_float) {
-                        float time = FindConvBwdWeightsRunDirect(handle,
-                                                             algorithm_name,
-                                                             network_config,
-                                                             construct_params,
-                                                             solution,
-                                                             dy,
-                                                             x,
-                                                             tmp_dw.get(),
-                                                             workSpace,
-                                                             workSpaceSize,
-                                                             as_float(0.0f));
-                        perf_db.push_back(PerfField{perf_name, time, solution.workspce_sz});
+                        miopen::solver::ConvSolution solution{miopenStatusUnknownError};
+                        float best_time = std::numeric_limits<float>::max();
+                        std::vector<miopen::solver::ConvSolution> all;
+                        mloConstruct(construct_params, all);
+                        for(const auto& candidate : all)
+                        {
+                            float elapsed_time =
+                                FindConvBwdWeightsAlgorithmRunDirect(handle,
+                                                                     "",
+                                                                     "",
+                                                                     construct_params,
+                                                                     candidate,
+                                                                     dy,
+                                                                     x,
+                                                                     tmp_dw.get(),
+                                                                     workSpace,
+                                                                     workSpaceSize,
+                                                                     as_float(0.0f));
+                            if(elapsed_time < best_time)
+                            {
+                                MIOPEN_LLOG_I(candidate.construction_params[0].kernel_name
+                                              << ": "
+                                              << elapsed_time
+                                              << " < "
+                                              << best_time);
+                                best_time = elapsed_time;
+                                solution  = candidate;
+                            }
+                            else
+                            {
+                                MIOPEN_LLOG_I2(candidate.construction_params[0].kernel_name
+                                               << ": "
+                                               << elapsed_time);
+                            }
+                        }
+                        if(solution.Succeeded())
+                        {
+                            float elapsed_time =
+                                FindConvBwdWeightsAlgorithmRunDirect(handle,
+                                                                     algorithm_name,
+                                                                     network_config,
+                                                                     construct_params,
+                                                                     solution,
+                                                                     dy,
+                                                                     x,
+                                                                     tmp_dw.get(),
+                                                                     workSpace,
+                                                                     workSpaceSize,
+                                                                     as_float(0.0f));
+                            MIOPEN_LLOG_I("Best:" << solution.construction_params[0].kernel_name
+                                                  << ", "
+                                                  << elapsed_time
+                                                  << ", "
+                                                  << solution.workspce_sz);
+                            perf_db.push_back(
+                                PerfField{perf_name, elapsed_time, solution.workspce_sz});
+                        }
                     });
                 }
             }
