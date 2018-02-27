@@ -263,6 +263,7 @@ void mlo_construct_direct2D::setupRocm()
     }
 }
 
+/// \todo Get rid of this. Each solver shall decide individually.
 bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
 {
     bool ret =
