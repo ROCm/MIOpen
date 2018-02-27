@@ -275,7 +275,6 @@ struct ProblemDescription
 struct ConvolutionContext : ProblemDescription
 {
     // Solution-specific
-    bool n_passes = false;
     std::string general_compile_options;
     // Operation modes & environment
     bool do_search           = false;
@@ -812,11 +811,6 @@ struct mlo_construct_direct2D
 
     bool mloIsCompilerWorkarounds() const;
     bool mloIsFastBinaryWinograd3x3U() const;
-
-    inline void mloCopyTo(miopen::ConvolutionContext& params) const /// TODO: get rid of this
-    {
-        params = _search_params;
-    }
 
     std::string db_path() const { return _db_path ? _db_path : _search_params.GetPerfDbPath(); }
 

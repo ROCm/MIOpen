@@ -46,18 +46,14 @@ bool ConvOclBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) const
 {
     ConvSolution result;
+    const int n_passes =
 #if TWO_PASSES
-    if((params.batch_sz >= 16 || 2 * params.n_outputs > params.n_inputs) && params.pad1 == 0 &&
-       params.pad0 == 0 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
-    {
-
-        result.passes = 2;
-    }
-    else
+        ((params.batch_sz >= 16 || 2 * params.n_outputs > params.n_inputs) && params.pad1 == 0 &&
+         params.pad0 == 0 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
+            ? 2
+            :
 #endif
-    {
-        result.passes = 1;
-    }
+            1;
 
     // FIX ME! FIX ME! FIX ME! Does not support C, K != 16X yet
     // NON-Stride/PAD mode NON-16X will be supported by MIOpenConvBwdWrW1x1.CL
@@ -163,13 +159,12 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 
         int read_unit = 4;
         // subsampled input
-        int in_width  = (result.passes > 1) ? params.in_width : params.out_width;
-        int in_height = (result.passes > 1) ? params.in_height : params.out_height;
-        int in_stride = (result.passes > 1) ? params.in_stride : params.out_stride;
-        int in_channel_stride =
-            (result.passes > 1) ? in_stride * in_height : params.out_channel_stride;
+        int in_width          = (n_passes > 1) ? params.in_width : params.out_width;
+        int in_height         = (n_passes > 1) ? params.in_height : params.out_height;
+        int in_stride         = (n_passes > 1) ? params.in_stride : params.out_stride;
+        int in_channel_stride = (n_passes > 1) ? in_stride * in_height : params.out_channel_stride;
         int in_batch_stride =
-            (result.passes > 1) ? in_channel_stride * params.n_outputs : params.out_batch_stride;
+            (n_passes > 1) ? in_channel_stride * params.n_outputs : params.out_batch_stride;
         int out_batch_stride   = params.in_batch_stride;
         int out_channel_stride = params.in_channel_stride;
         int out_stride         = params.in_stride;
@@ -217,7 +212,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         }
 
         if(params.pad0 > 0 || params.pad1 > 0 ||
-           (result.passes == 1 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1)))
+           (n_passes == 1 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1)))
         {
             read_unit = (out_pad_width % 4 == 0) ? 4 : (out_pad_width % 3 == 0)
                                                            ? 3
@@ -231,7 +226,7 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
         int kernel_stride0 = params.kernel_stride0;
         int kernel_stride1 = params.kernel_stride1;
 
-        if(result.passes > 1 && params.pad1 == 0 && params.pad0 == 0 &&
+        if(n_passes > 1 && params.pad1 == 0 && params.pad0 == 0 &&
            (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
         {
             kernel_stride0 = 1;
@@ -308,11 +303,11 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
             std::to_string(out_pad_min_y) + std::string(" -DMLO_OUT_PAD_WIDTH=") +
             std::to_string(out_pad_width) + std::string(" -DMLO_OUT_PAD_HEIGHT=") +
             std::to_string(out_pad_height) + std::string(" -DMLO_TWO_PASSES=") +
-            std::to_string((result.passes == 1) ? 0 : 1) + params.general_compile_options;
+            std::to_string((n_passes == 1) ? 0 : 1) + params.general_compile_options;
 
         result.workspce_sz = 0;
 
-        if(result.passes > 1 && params.pad1 == 0 && params.pad0 == 0 &&
+        if(n_passes > 1 && params.pad1 == 0 && params.pad0 == 0 &&
            (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
         {
             KernelInfo kernel;

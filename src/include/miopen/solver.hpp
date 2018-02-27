@@ -72,7 +72,6 @@ struct ConvSolution
 {
     std::vector<KernelInfo> construction_params; // impl may consist of multiple kernels.
     miopenStatus_t status;
-    int passes;
 
     size_t workspce_sz;
     int grp_tile1;       // total number ALUs per group
@@ -85,9 +84,8 @@ struct ConvSolution
     int n_in_data_tiles; // # of blocks of different inputs in LDS
     int n_stacks;        // # of diff stacks (part of batch).
 
-    ConvSolution(miopenStatus_t status_ = miopenStatusSuccess, int passes_ = 1)
+    ConvSolution(miopenStatus_t status_ = miopenStatusSuccess)
         : status(status_),
-          passes(passes_),
           workspce_sz(0),
           grp_tile1(-1),
           grp_tile0(-1),
@@ -245,13 +243,10 @@ auto SearchForSolution(const Context& search_params, miopen::DbRecord dbRecord) 
                     if(candidate.Succeeded())
                     {
                         MIOPEN_LLOG_I2(SolverDbId(solver) << ": Success."
-                                                          << " n_passes="
-                                                          << search_params.n_passes
-                                                          << ", construction_params.empty()="
+                                                          << " construction_params.empty()="
                                                           << solution.construction_params.empty());
                     }
-                    if(candidate.Succeeded() && !search_params.n_passes &&
-                       candidate.construction_params.empty())
+                    if(candidate.Succeeded() && candidate.construction_params.empty())
                     {
                         candidate = {miopenStatusInternalError};
                         MIOPEN_THROW_DEBUG(std::string("Internal error in solver: ") +
@@ -345,7 +340,7 @@ auto SearchForSolution(const Context& search_params, miopen::DbRecord dbRecord) 
                (no_perf_filtering || solver.IsFast(search_params)))
             {
                 solution = FindSolution(solver, search_params, dbRecord);
-                if(solution.Succeeded() && !search_params.n_passes && solution.construction_params.empty())
+                if(solution.Succeeded() && solution.construction_params.empty())
                 {
                     MIOPEN_THROW(std::string("Internal error in solver: ") + SolverDbId(solver));
                 }
@@ -372,36 +367,34 @@ void SearchForAllSolutions(const Context& search_params,
 #endif
         auto no_perf_filtering = miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
 
-    MIOPEN_STATIC_FOR_EACH(
-        solver,
-        Solvers{},
-        {
-            if(solver.IsApplicable(search_params) &&
-               (no_perf_filtering || solver.IsFast(search_params)))
-            {
-                const Solution s = FindSolution(solver, search_params, dbRecord);
-                if(s.Succeeded())
-                {
-                    if(!search_params.n_passes && s.construction_params.empty())
-                    {
-                        MIOPEN_LLOG_E(SolverDbId(solver) << ": Internal error.");
-                        MIOPEN_THROW_DEBUG(std::string("Internal error in solver: ") +
-                                           SolverDbId(solver));
-                    }
-                    else
-                    {
-                        ss.push_back(s);
-                        MIOPEN_LLOG_I2(SolverDbId(solver) << ": Success."
-                                                          << " n_passes="
-                                                          << search_params.n_passes);
-                    }
-                }
-            }
-            else
-            {
-                MIOPEN_LLOG_I2(SolverDbId(solver) << ": N/A");
-            }
-        });
+    MIOPEN_STATIC_FOR_EACH(solver,
+                           Solvers{},
+                           {
+                               if(solver.IsApplicable(search_params) &&
+                                  (no_perf_filtering || solver.IsFast(search_params)))
+                               {
+                                   const Solution s = FindSolution(solver, search_params, dbRecord);
+                                   if(s.Succeeded())
+                                   {
+                                       if(s.construction_params.empty())
+                                       {
+                                           MIOPEN_LLOG_E(SolverDbId(solver) << ": Internal error.");
+                                           MIOPEN_THROW_DEBUG(
+                                               std::string("Internal error in solver: ") +
+                                               SolverDbId(solver));
+                                       }
+                                       else
+                                       {
+                                           ss.push_back(s);
+                                           MIOPEN_LLOG_I2(SolverDbId(solver) << ": Success.");
+                                       }
+                                   }
+                               }
+                               else
+                               {
+                                   MIOPEN_LLOG_I2(SolverDbId(solver) << ": N/A");
+                               }
+                           });
 }
 
 /// Base class for problem solvers.

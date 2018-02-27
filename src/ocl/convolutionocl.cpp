@@ -168,8 +168,10 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
     const std::string algorithm =
         (direction == 1) ? "miopenConvolutionFwdAlgoDirect" : "miopenConvolutionBwdDataAlgoDirect";
 
+    /// \todo Rework this into loop.
     // if not 11x11
-    if(k_info.kernel_file != "MIOpenConvFwd_LxL_11.cl")
+    if(k_info.kernel_file !=
+       "MIOpenConvFwd_LxL_11.cl") // is_forward ? "MIOpenCvFwd11x11" : "MIOpenCvBwd11x11"
     {
 
         auto k = handle.AddKernel(algorithm,
@@ -207,15 +209,15 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
                                        k_info.comp_options);
             kernels.push_back(k1);
 
-            network_config += "x1";                // second kernel hash
             const auto& k2_info = kernels_info[1]; // second pass kernel
-            auto k2             = handle.AddKernel(algorithm + "_pass2",
+            auto k2             = handle.AddKernel(algorithm,
                                        network_config,
                                        k2_info.kernel_file,
                                        k2_info.kernel_name,
                                        k2_info.l_wk,
                                        k2_info.g_wk,
-                                       k2_info.comp_options);
+                                       k2_info.comp_options,
+                                       1);
             kernels.push_back(k2);
         }
     }
@@ -578,49 +580,38 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             std::string network_config;
             construct_params.mloBuildConf_Key(network_config);
 
-            std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
-            float padding_val          = 0;
-            auto kernel                = handle.GetKernel(algorithm_name, network_config);
+            const std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
+            float padding_val                = 0;
+            auto&& kernels                   = handle.GetKernels(algorithm_name, network_config);
+#if(!defined(__GNUC__) || defined(__clang__)) // w/a for segfault in gcc 5.4.0
+            const
+#endif
+                auto num_kernels = kernels.size();
+            const auto p_kernel  = std::begin(kernels);
+            auto kernel          = *p_kernel;
+            assert(1 <= num_kernels && num_kernels <= 2);
 
             visit_float(xDesc.GetType(), [&](auto as_float) {
                 // if not 11x11
-                if((kernel.GetName() != "MIOpenCvFwd11x11"))
+                if((kernel.GetName() != "MIOpenCvFwd11x11")) // FIXME Rework this.
                 {
 
                     kernel(x, w, y, as_float(padding_val));
                 }
                 else
                 {
-                    /// FIXME Utilize kernel cache's capability to store vector of kernels & get rid
-                    /// of this.
-                    ConvolutionContext context;
-                    construct_params.mloCopyTo(context);
-                    context.n_passes = true;
-
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-                    DbRecord dbRecord(context.GetPerfDbPath(), context, true);
-#else
-                DbRecord dbRecord(context.GetPerfDbPath(), context);
-#endif
-                    solver::ConvSolution solution =
-                        FindSolution(solver::ConvOclDirectFwd11x11{}, context, dbRecord);
-
-                    if(solution.passes == 1)
+                    if(1 == num_kernels)
                     {
                         kernel(x, w, y, as_float(padding_val));
                     }
                     else
                     {
-                        // second kernel has
-                        network_config += "x1";
-                        auto kernel2 = handle.GetKernel(algorithm_name + "_pass2", network_config);
-
                         handle.ResetKernelTime();
                         kernel(x, w, y, as_float(padding_val));
-
                         float time0 = handle.GetKernelTime();
-                        kernel2(x, w, y, as_float(padding_val));
 
+                        auto kernel2 = *(p_kernel + 1);
+                        kernel2(x, w, y, as_float(padding_val));
                         handle.AccumKernelTime(time0);
                     }
                 }
@@ -1538,11 +1529,11 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
     }
 }
 
-static float SubSampleGPU(Handle& handle,
-                          const miopen::solver::KernelInfo& k_info,
-                          std::string& network_config,
-                          ConstData_t in,
-                          Data_t out)
+static float SubSampleGPU_BwdWeightsAlgoDirect_Main(Handle& handle,
+                                                    const miopen::solver::KernelInfo& k_info,
+                                                    std::string& network_config,
+                                                    ConstData_t in,
+                                                    Data_t out)
 {
     static const std::string program_name = "MIOpenUtilKernels3.cl";
     static const std::string kernel_name  = "SubSample";
@@ -1795,8 +1786,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                 if(k_info.kernel_name == "SubSample") // bwd stride 2
                                 {
                                     float time_sub = 0;
-                                    time_sub =
-                                        SubSampleGPU(handle, k_info, network_config, x, workSpace);
+                                    time_sub       = SubSampleGPU_BwdWeightsAlgoDirect_Main(
+                                        handle, k_info, network_config, x, workSpace);
                                     time_direct += time_sub;
 
                                     // second kernel: 1x1 wrw
