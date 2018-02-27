@@ -338,7 +338,7 @@ struct pooling_driver : test_driver
 
     void run()
     {
-        int in_h, in_w, window_h, window_w, out_h, out_w;
+        int in_h, in_w, window_h, window_w, out_h, out_w, pad_h, pad_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
         miopen::PoolingDescriptor filter{mode_lookup.at(miopen::ToUpper(mode)),
@@ -382,15 +382,20 @@ struct pooling_driver : test_driver
                 return;
         }
 
-        std::vector<uint8_t> indices{};
-        auto out  = verify(verify_forward_pooling{}, input, filter, indices);
-        auto dout = out.first;
-        dout.generate([&](int n, int c, int h, int w) {
-            T x      = out.first(n, c, h, w);
-            double y = (877 * n + 547 * c + 701 * h + 1049 * w + static_cast<int>(769 * x)) % 2503;
-            return ((x * y) / 1301.0);
-        });
-        verify(verify_backward_pooling{}, input, dout, out.first, filter, indices);
+        std::tie(pad_h, pad_w)       = miopen::tien<2>(filter.GetPads());
+
+        if((window_h < (in_h + 2 * pad_h)) && (window_w < (in_w + 2 * pad_w)))
+        {
+            std::vector<uint8_t> indices{};
+            auto out  = verify(verify_forward_pooling{}, input, filter, indices);
+            auto dout = out.first;
+            dout.generate([&](int n, int c, int h, int w) {
+                auto x      = static_cast<std::size_t>(std::max<double>(out.first(n, c, h, w), std::numeric_limits<int>::max())) % 2503;
+                double y = (877 * n) % 2503 + (547 * c) % 2503 + (701 * h) % 2503 + (1049 * w) % 2503 + (769 * x) % 2503;
+                return ((x * y) / 1301.0);
+            });
+            verify(verify_backward_pooling{}, input, dout, out.first, filter, indices);
+        }
     }
 };
 
