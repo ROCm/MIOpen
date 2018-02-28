@@ -256,7 +256,7 @@ enable_cppcheck(
     SUPPRESS 
         ConfigurationNotChecked
         unmatchedSuppression
-        constStatement
+        # constStatement
         noExplicitConstructor
         passedByValue
         # preprocessorErrorDirective
