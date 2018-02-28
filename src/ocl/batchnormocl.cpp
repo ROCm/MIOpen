@@ -76,7 +76,6 @@ void BatchNormForwardTraining(Handle& handle,
     if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsInput(handle, xDesc, x);
-        // miopen::checkNumericsInput(handle, yDesc, y); // if beta!=0?
         miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnScale);
         miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnBias);
     }
@@ -107,41 +106,26 @@ void BatchNormForwardTraining(Handle& handle,
 
     // compile parameters
     std::string parms;
-    if(xDesc.GetType() == miopenFloat)
+
+    bool bfp16parm = false;
+    bool bfp32parm = true;
+    if(xDesc.GetType() == miopenHalf)
     {
-        parms += "-DMIOPEN_USE_FP16=0 ";
-        parms += "-DMIOPEN_USE_FP32=1 ";
+        bfp16parm = true;
+        bfp32parm = false;
     }
-    else if(xDesc.GetType() == miopenHalf)
-    {
-        parms += "-DMIOPEN_USE_FP16=1 ";
-        parms += "-DMIOPEN_USE_FP32=0 ";
-    }
+
     bool resultsave = false;
     if(resultSaveMean != nullptr && resultSaveInvVariance != nullptr)
     {
-        parms += "-DMIO_SAVE_MEAN_VARIANCE=1 ";
         resultsave = true;
     }
-    else
-    {
-        parms += "-DMIO_SAVE_MEAN_VARIANCE=0 ";
-    }
-
+    
     bool resultrunning = false;
     if(resultRunningMean != nullptr && resultRunningVariance != nullptr)
     {
         resultrunning = true;
-        parms += "-DMIO_RUNNING_RESULT=1 ";
     }
-    else
-    {
-        parms += "-DMIO_RUNNING_RESULT=0 ";
-    }
-
-    parms += "-DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) + 
-             " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
-             " -DMIO_BN_CHW=" + std::to_string(in_nstride) + " -DMIO_BN_NCHW=" + std::to_string(in_nchw);
 
     auto inhw = float(1.0 / in_nhw);
 
@@ -153,24 +137,28 @@ void BatchNormForwardTraining(Handle& handle,
 
         if(in_cstride >= 1024 && in_nhw < 33554432)
         {
-            // unsigned int variant = (in_cstride < 2097152)? 5: 6;
             unsigned int variant = (h == w) ? 5 : 6;
-
             xlocalsize = 1024;
             ylocalsize = 1;
             zlocalsize = 1;
 
-            parms += "-DMIO_BN_N=" + std::to_string(n) + 
+            parms = " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) +
+                     " -DMIOPEN_USE_FP32=" + std::to_string(bfp32parm) +
+                     " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(resultsave) +
+                     " -DMIO_RUNNING_RESULT=" + std::to_string(resultrunning) +
+                     " -DMIO_BN_N=" + std::to_string(n) + 
                      " -DMIO_BN_C=" + std::to_string(c) + 
                      " -DMIO_BN_HW=" + std::to_string(in_cstride) +
                      " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
                      " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
                      " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
-                     " -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize / 64) +
+                     ((handle.GetDeviceName() != "gfx803" && (handle.GetDeviceName() != "gfx900"))? (" -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize / 64)) : "") +
+                     " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(xlocalsize / 64) +
                      " -DMIO_BN_VARIANT=" + std::to_string(variant) +
                      " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
                      " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
                      " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+                     
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
             vld.push_back(zlocalsize);
@@ -185,10 +173,6 @@ void BatchNormForwardTraining(Handle& handle,
 #if(MIOPEN_BN_CPP_DEBUG == 1)
             std::cout << kernel_name << ":: ";
             std::cout << parms << std::endl;
-//            std::cout << "in_nhw: "
-//                      << ":: " << in_nhw << std::endl;
-//            std::cout << "inhw: "
-//                      << ":: " << inhw << std::endl;
 #endif
             bnFwdTrainSelectSingle(handle,
                                    program_name,
@@ -219,43 +203,39 @@ void BatchNormForwardTraining(Handle& handle,
             zlocalsize = 1;
 
             unsigned int variant = 255;
-            unsigned int segment = in_cstride * (xlocalsize / in_cstride);
-            unsigned int nloops  = (in_nhw + segment - 1) / segment;
 
-            parms += "-DMIO_BN_N=" + std::to_string(n) + 
+            parms =  " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) +
+                     " -DMIOPEN_USE_FP32=" + std::to_string(bfp32parm) +
+                     " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(resultsave) +
+                     " -DMIO_RUNNING_RESULT=" + std::to_string(resultrunning) +
+                     " -DMIO_BN_N=" + std::to_string(n) + 
                      " -DMIO_BN_C=" + std::to_string(c) + 
                      " -DMIO_BN_HW=" + std::to_string(in_cstride) +
                      " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
                      " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
                      " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
-                     " -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize / 64) +
+                     ((handle.GetDeviceName() != "gfx803" && (handle.GetDeviceName() != "gfx900"))? (" -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize / 64)) : "") +
+                     " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(xlocalsize / 64) +
                      " -DMIO_BN_VARIANT=" + std::to_string(variant) +
                      " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
                      " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                     " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
-                     " -DMIO_BN_NLOOP=" + std::to_string(nloops) +
-                     " -DMIO_BN_SEGMENT=" + std::to_string((segment > in_nhw) ? in_nhw : segment) +
-                     " -DMIO_BN_SEGIHW=" + std::to_string(segment / in_cstride);
+                     " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
             vld.push_back(zlocalsize);
-
-            xgridsize = 1024 * c;
+            xgridsize = xlocalsize * c;
             ygridsize = 1;
             zgridsize = 1;
             vgd.push_back(xgridsize);
             vgd.push_back(ygridsize);
             vgd.push_back(zgridsize);
 
-//#if(MIOPEN_BN_CPP_DEBUG == 1)
+#if(MIOPEN_BN_CPP_DEBUG == 1)
             std::cout << kernel_name << ":: ";
             std::cout << parms << std::endl;
-//            std::cout << "in_nhw: "
-//                      << ":: " << in_nhw << std::endl;
-//            std::cout << "inhw: "
-//                      << ":: " << inhw << std::endl;
-//#endif
+#endif
+
             bnFwdTrainSelectSingle(handle,
                                    program_name,
                                    algo_name,
@@ -297,14 +277,24 @@ void BatchNormForwardTraining(Handle& handle,
             vgd.push_back(ygridsize);
             vgd.push_back(zgridsize);
 
-            unsigned int numwgs = std::ceil(float(ygridsize) / ylocalsize);
-            parms += " -DMIO_BN_NGRPS=" + std::to_string(numwgs);
-            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
-            parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize);
-            parms += " -DMIO_BN_GRP0=" + std::to_string(1);
-            parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
-            parms += " -DMIO_BN_GRP2=" + std::to_string(1);
-            parms += " -DMIO_BN_SEGMENT=" + std::to_string(segment);
+            parms  = " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) +
+                     " -DMIOPEN_USE_FP32=" + std::to_string(bfp32parm) +
+                     " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(resultsave) +
+                     " -DMIO_RUNNING_RESULT=" + std::to_string(resultrunning) +
+                     " -DMIO_BN_N=" + std::to_string(n) + 
+                     " -DMIO_BN_C=" + std::to_string(c) + 
+                     " -DMIO_BN_HW=" + std::to_string(in_cstride) +
+                     " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
+                     " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+                     " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
+                     " -DMIO_BN_NGRPS=" + std::to_string(int(std::ceil(float(ygridsize) / ylocalsize))) +
+                     " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ylocalsize / 64) +
+                     " -DMIO_BN_VARIANT=" + std::to_string(variant) +
+                     ((handle.GetDeviceName() != "gfx803" && (handle.GetDeviceName() != "gfx900"))? (" -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize / 64)) : "") +
+                     " -DMIO_BN_GRP0=" + std::to_string(1) +
+                     " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                     " -DMIO_BN_GRP2=" + std::to_string(1) +
+                     " -DMIO_BN_SEGMENT=" + std::to_string(segment);
 
 #if(MIOPEN_BN_CPP_DEBUG == 1)
             std::cout << kernel_name << ":: ";
@@ -354,12 +344,25 @@ void BatchNormForwardTraining(Handle& handle,
             {
                 variant    = 2;
                 ylocalsize = 64 * ((in_cstride + 63) / 64); //(in_cstride <= 256) ? 256 : 1024;
+                ylocalsize = (ylocalsize>1024)? 1024:ylocalsize;
+                //ylocalsize = 1024;//(in_cstride <= 256) ? 256 : 1024;
             }
-            parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize);
-            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
-            parms += " -DMIO_BN_GRP0=" + std::to_string(xlocalsize);
-            parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
-            parms += " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+            parms =  " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) +
+                     " -DMIOPEN_USE_FP32=" + std::to_string(bfp32parm) +
+                     " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(resultsave) +
+                     " -DMIO_RUNNING_RESULT=" + std::to_string(resultrunning) +
+                     ((handle.GetDeviceName() != "gfx803" && (handle.GetDeviceName() != "gfx900"))? (" -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize / 64)) : "") +
+                     " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ylocalsize / 64) +
+                     " -DMIO_BN_N=" + std::to_string(n) + 
+                     " -DMIO_BN_C=" + std::to_string(c) + 
+                     " -DMIO_BN_HW=" + std::to_string(in_cstride) +
+                     " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
+                     " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+                     " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
+                     " -DMIO_BN_VARIANT=" + std::to_string(variant) +
+                     " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
+                     " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                     " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);

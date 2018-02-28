@@ -38,6 +38,7 @@
 #include <float.h>
 #include <memory>
 #include <miopen/miopen.h>
+#include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>
@@ -790,13 +791,17 @@ int BatchNormDriver<T>::RunForwardGPU()
             return miopenStatusSuccess;
         }
 
+        miopen::deref(GetHandle()).Finish();
         STOP_TIME;
         if(WALL_CLOCK)
         {
+
+
             if(iters > 1 && i > 0)
                 fulltime += t.gettime_ms();
             else if(iters == 1)
                 fulltime = t.gettime_ms();
+            //else do nothing, drop the first iteration
         }
 
         if(inflags.GetValueStr("time") == "1")
@@ -811,16 +816,16 @@ int BatchNormDriver<T>::RunForwardGPU()
 
     if(WALL_CLOCK)
     {
-        printf("Wall-clock Time Forward GPU Batch Norm Elapsed: %f ms\n",
-               (iters > 1) ? t.gettime_ms() : (fulltime / float(iters)));
+        printf("Wall-clock Time Forward GPU Batch Norm Elapsed: %f ms, for %d iterations.\n",
+               (iters == 1) ? t.gettime_ms() : (fulltime / float(iters-1)), (iters>1)? iters-1 : 1);
     }
 
     if(inflags.GetValueStr("time") == "1")
     {
         printf("GPU Kernel Min Time Forward Batch Normalization Elapsed: %f ms\n", lowtime);
         if(iters > 1)
-            printf("GPU Kernel Avg Time Forward Batch Normalization Elapsed: %f ms\n",
-                   avgtime / (iters - 1));
+            printf("GPU Kernel Avg Time Forward Batch Normalization Elapsed: %f ms, for %d iterations.\n",
+                   avgtime / (iters - 1), iters-1);
     }
     return miopenStatusSuccess;
 }
@@ -1024,6 +1029,8 @@ int BatchNormDriver<T>::RunBackwardGPU()
                                              nullptr,
                                              nullptr);
         }
+
+        miopen::deref(GetHandle()).Finish();
         STOP_TIME;
         if(WALL_CLOCK)
         {
@@ -1046,7 +1053,7 @@ int BatchNormDriver<T>::RunBackwardGPU()
     if(WALL_CLOCK)
     {
         printf("Wall-clock Time Backward GPU Batch Norm Elapsed: %f ms\n",
-               (iters > 1) ? t.gettime_ms() : (fulltime / float(iters)));
+               (iters == 1) ? t.gettime_ms() : (fulltime / float(iters-1)));
     }
     if(inflags.GetValueStr("time") == "1")
     {
