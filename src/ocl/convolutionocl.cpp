@@ -1529,38 +1529,53 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
     }
 }
 
+static inline void
+FindConvBwdWeightsAlgorithmDirectAddKernels(Handle& handle,
+                                            const std::string& algorithm_name,
+                                            const std::string& network_config,
+                                            const miopen::solver::ConvSolution& s,
+                                            std::vector<KernelInvoke>* const kernels)
+{
+    int i = 0;
+    for(auto& k : s.construction_params)
+    {
+        MIOPEN_LOG_I2(k.kernel_name);
+        auto kernel = handle.AddKernel(algorithm_name,
+                                       network_config,
+                                       k.kernel_file,
+                                       k.kernel_name,
+                                       k.l_wk,
+                                       k.g_wk,
+                                       k.comp_options,
+                                       i);
+        if(kernels != nullptr)
+        {
+            kernels->push_back(kernel);
+        }
+        ++i;
+    }
+}
+
 template <typename T>
-float FindConvBwdWeightsAlgorithmRunDirect(Handle& handle,
-                                           const std::string& algorithm_name,
-                                           const std::string& network_config,
-                                           const mlo_construct_BwdWrW2D& construct_params,
-                                           miopen::solver::ConvSolution solution,
-                                           ConstData_t dy,
-                                           ConstData_t x,
-                                           Data_t dw,
-                                           Data_t workSpace,
-                                           const size_t workSpaceSize,
-                                           T padding_val)
+inline float FindConvBwdWeightsAlgorithmDirectRun(Handle& handle,
+                                                  const std::string& algorithm_name,
+                                                  const std::string& network_config,
+                                                  const mlo_construct_BwdWrW2D& construct_params,
+                                                  const miopen::solver::ConvSolution& s,
+                                                  ConstData_t dy,
+                                                  ConstData_t x,
+                                                  Data_t dw,
+                                                  Data_t workSpace,
+                                                  const size_t workSpaceSize,
+                                                  T padding_val)
 {
     float elapsed            = 0;
-    const auto& kernels_info = solution.construction_params; /// FIXME rename
-    assert((solution.workspce_sz != 0 && kernels_info.size() == 2) ||
-           (solution.workspce_sz == 0 && kernels_info.size() == 1));
+    const auto& kernels_info = s.construction_params;
+    assert((s.workspce_sz != 0 && kernels_info.size() == 2) ||
+           (s.workspce_sz == 0 && kernels_info.size() == 1));
     std::vector<KernelInvoke> kernels;
-    int k_index = 0;
-    for(auto& k_info : kernels_info)
-    {
-        MIOPEN_LOG_I2(k_info.kernel_name);
-        kernels.push_back(handle.AddKernel(algorithm_name,
-                                           network_config,
-                                           k_info.kernel_file,
-                                           k_info.kernel_name,
-                                           k_info.l_wk,
-                                           k_info.g_wk,
-                                           k_info.comp_options,
-                                           k_index));
-        ++k_index;
-    }
+    FindConvBwdWeightsAlgorithmDirectAddKernels(
+        handle, algorithm_name, network_config, s, &kernels);
     const auto& k_info = kernels_info[0];
     if(kernels_info.size() == 1)
     {
@@ -1580,7 +1595,7 @@ float FindConvBwdWeightsAlgorithmRunDirect(Handle& handle,
     }
     else
     {
-        if(workSpace != nullptr && workSpaceSize >= solution.workspce_sz)
+        if(workSpace != nullptr && workSpaceSize >= s.workspce_sz)
         {
             if(k_info.kernel_name == "SubSample") // bwd stride 2
             {
@@ -1787,62 +1802,53 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 if(!construct_params.mloIsCompilerWorkarounds())
                 {
                     visit_float(dyDesc.GetType(), [&](auto as_float) {
-                        miopen::solver::ConvSolution solution{miopenStatusUnknownError};
-                        float best_time = std::numeric_limits<float>::max();
+                        miopen::solver::ConvSolution found{miopenStatusUnknownError};
+                        float best = std::numeric_limits<float>::max();
                         std::vector<miopen::solver::ConvSolution> all;
                         mloConstruct(construct_params, all);
-                        for(const auto& candidate : all)
+                        for(const auto& s : all)
                         {
-                            float elapsed_time =
-                                FindConvBwdWeightsAlgorithmRunDirect(handle,
-                                                                     "",
-                                                                     "",
-                                                                     construct_params,
-                                                                     candidate,
-                                                                     dy,
-                                                                     x,
-                                                                     tmp_dw.get(),
-                                                                     workSpace,
-                                                                     workSpaceSize,
-                                                                     as_float(0.0f));
-                            if(elapsed_time < best_time)
+                            float elapsed = FindConvBwdWeightsAlgorithmDirectRun(handle,
+                                                                                 "",
+                                                                                 "",
+                                                                                 construct_params,
+                                                                                 s,
+                                                                                 dy,
+                                                                                 x,
+                                                                                 tmp_dw.get(),
+                                                                                 workSpace,
+                                                                                 workSpaceSize,
+                                                                                 as_float(0.0f));
+                            MIOPEN_LLOG_I(
+                                s.construction_params[0].kernel_name
+                                << (s.construction_params.size() > 1
+                                        ? (std::string(", ") + s.construction_params[1].kernel_name)
+                                        : std::string())
+                                << ": "
+                                << elapsed
+                                << (elapsed < best ? " < " : " >= ")
+                                << best);
+                            if(elapsed < best)
                             {
-                                MIOPEN_LLOG_I(candidate.construction_params[0].kernel_name
-                                              << ": "
-                                              << elapsed_time
-                                              << " < "
-                                              << best_time);
-                                best_time = elapsed_time;
-                                solution  = candidate;
-                            }
-                            else
-                            {
-                                MIOPEN_LLOG_I2(candidate.construction_params[0].kernel_name
-                                               << ": "
-                                               << elapsed_time);
+                                best  = elapsed;
+                                found = s;
                             }
                         }
-                        if(solution.Succeeded())
+                        if(found.Succeeded())
                         {
-                            float elapsed_time =
-                                FindConvBwdWeightsAlgorithmRunDirect(handle,
-                                                                     algorithm_name,
-                                                                     network_config,
-                                                                     construct_params,
-                                                                     solution,
-                                                                     dy,
-                                                                     x,
-                                                                     tmp_dw.get(),
-                                                                     workSpace,
-                                                                     workSpaceSize,
-                                                                     as_float(0.0f));
-                            MIOPEN_LLOG_I("Best:" << solution.construction_params[0].kernel_name
-                                                  << ", "
-                                                  << elapsed_time
-                                                  << ", "
-                                                  << solution.workspce_sz);
-                            perf_db.push_back(
-                                PerfField{perf_name, elapsed_time, solution.workspce_sz});
+                            FindConvBwdWeightsAlgorithmDirectAddKernels(
+                                handle, algorithm_name, network_config, found, nullptr);
+                            MIOPEN_LLOG_I("Found "
+                                          << found.construction_params[0].kernel_name
+                                          << (found.construction_params.size() > 1
+                                                  ? (std::string(", ") +
+                                                     found.construction_params[1].kernel_name)
+                                                  : std::string())
+                                          << ": "
+                                          << best
+                                          << ", "
+                                          << found.workspce_sz);
+                            perf_db.push_back(PerfField{perf_name, best, found.workspce_sz});
                         }
                     });
                 }

@@ -70,6 +70,7 @@ struct KernelInfo
 /// Shall be refactored (possibly, to a class hierarchy).
 struct ConvSolution
 {
+    /// \todo Use better name than construction_params.
     std::vector<KernelInfo> construction_params; // impl may consist of multiple kernels.
     miopenStatus_t status;
 
@@ -255,9 +256,11 @@ void SearchForAllSolutions(const Context& search_params,
             else
             {
                 /// \todo If Solver is applicable it must provide an appropriate Solution.
-                /// This is not the case for some 20x5 convolutions, so level is INFO for now.
-                /// Normally we should not get here and message level should be ERROR.
-                MIOPEN_LLOG_I(SolverDbId(solver) << ": Internal error.");
+                /// This is not the case for some 20x5 convolutions (and possibly others).
+                /// Normally we should not get here and message level should be Error.
+                /// For now, let's use Info (not Warning) level is not used to avoid
+                /// flooding the console.
+                MIOPEN_LLOG_I(SolverDbId(solver) << ": [Warning] Applicable Solver not succeeded.");
             }
         }
         else
