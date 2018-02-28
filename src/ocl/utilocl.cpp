@@ -199,6 +199,8 @@ float transpose_NCHW2CNHW(Handle& handle,
     std::string program_name = "MIOpenUtilKernels4.cl";
     std::string kernel_name  = "transpose_NCHW2CNHW";
 
+    assert(h_in >= h_out && w_in >= w_out);
+
     std::string params;
     params += " -DNC_TRANS_NCHW";
     params += " -DN=" + std::to_string(n);
@@ -241,10 +243,10 @@ float transpose_NCHW2CNHW(Handle& handle,
 float transpose_CNHW2NCHW(Handle& handle,
                           int n,
                           int c,
-                          int h_in,
-                          int w_in,
                           int h_out,
                           int w_out,
+                          int h_in,
+                          int w_in,
                           ConstData_t in,
                           Data_t out,
                           int in_offset,
@@ -254,6 +256,8 @@ float transpose_CNHW2NCHW(Handle& handle,
 {
     std::string program_name = "MIOpenUtilKernels4.cl";
     std::string kernel_name  = "transpose_CNHW2NCHW";
+
+    assert(h_in >= h_out && w_in >= w_out);
 
     std::string params;
     params += " -DNC_TRANS_CNHW";

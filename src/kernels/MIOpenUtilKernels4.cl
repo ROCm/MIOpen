@@ -141,8 +141,10 @@ __kernel void transpose_CNHW2NCHW(const global float* in, global float* out)
     n_i                   = get_global_id(1);
     cout[C * HW_IN * n_i] = cin[HW_OUT * n_i];
 #else
-    for(n_i                   = 0; n_i < N; n_i++)
+    for(n_i = 0; n_i < N; n_i++)
+    {
         cout[C * HW_IN * n_i] = cin[HW_OUT * n_i];
+    }
 #endif
 }
 #endif
