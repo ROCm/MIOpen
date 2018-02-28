@@ -38,6 +38,13 @@
 #include <miopen/functional.hpp>
 #include <miopen/type_name.hpp>
 
+
+template<class U, class T>
+constexpr std::is_same<T, U> is_same(const T&)
+{
+    return {};
+}
+
 struct rand_gen
 {
     unsigned long max_value = 17;
@@ -75,6 +82,7 @@ struct test_driver
     struct argument
     {
         std::function<void(std::vector<std::string>)> write_value;
+        std::function<std::string()> read_value;
         std::vector<std::function<void()>> post_write_actions;
         std::vector<std::function<void(std::function<void()>)>> data_sources;
         std::string type;
@@ -113,6 +121,7 @@ struct test_driver
         }
     };
 
+    std::string program_name;
     std::deque<argument> arguments;
     std::unordered_map<std::string, std::size_t> argument_index;
     bool full_set    = false;
@@ -164,9 +173,53 @@ struct test_driver
         arg.name        = name;
         arg.type        = miopen::get_type_name<T>();
         arg.write_value = [&](std::vector<std::string> params) { args::write_value{}(x, params); };
+        arg.read_value  = [&] { return args::read_value{}(x); };
         miopen::each_args(std::bind(per_arg{}, std::ref(x), std::ref(arg), std::placeholders::_1),
                           fs...);
         assert(get_argument(name).name == name);
+    }
+
+    void show_help()
+    {
+        std::cout << "Driver arguments: " << std::endl;
+        this->parse([&](const auto& var, std::initializer_list<std::string> x, std::string help)
+        {
+            std::cout << std::endl;
+            std::string prefix = "    ";
+            for(const std::string& a : x)
+            {
+                std::cout << prefix;
+                std::cout << a;
+                prefix = ", ";
+            }
+            if(not is_same<bool>(var))
+                std::cout << " [" << miopen::get_type_name(var) << "]";
+            std::cout << std::endl;
+            std::cout << "        " << help << std::endl;
+        });
+        std::cout << std::endl;
+        std::cout << "Test inputs: " << std::endl;
+        for(auto&& arg : this->arguments)
+        {
+            std::cout << "    --" << arg.name;
+            if(not arg.type.empty())
+                std::cout << " [" << arg.type << "]";
+            std::cout << std::endl;
+        }
+        std::cout << std::endl;
+    }
+
+    void show_command()
+    {
+        std::cout << this->program_name << " ";
+        this->parse([&](const auto& var, std::initializer_list<std::string> x, std::string)
+        {
+            std::cout << *x.begin() << " " << var << " ";
+        });
+        for(auto&& arg : this->arguments)
+        {
+            std::cout << "--" << arg.name << " ";
+        }
     }
 
     template <class X>
@@ -622,30 +675,11 @@ struct parser
     }
 };
 
-struct show_help
-{
-    template <class T>
-    void operator()(const T&, std::initializer_list<std::string> x, std::string help) const
-    {
-        std::cout << std::endl;
-        std::string prefix = "    ";
-        for(const std::string& a : x)
-        {
-            std::cout << prefix;
-            std::cout << a;
-            prefix = ", ";
-        }
-        if(not std::is_same<T, bool>{})
-            std::cout << " [" << miopen::get_type_name<T>() << "]";
-        std::cout << std::endl;
-        std::cout << "        " << help << std::endl;
-    }
-};
-
 template <class Driver>
-void test_drive_impl(std::vector<std::string> as)
+void test_drive_impl(std::string program_name, std::vector<std::string> as)
 {
     Driver d{};
+    d.program_name = program_name;
 
     std::set<std::string> keywords{"--help", "-h", "--half", "--float", "--double"};
     d.parse(keyword_set{keywords});
@@ -657,18 +691,7 @@ void test_drive_impl(std::vector<std::string> as)
     // Show help
     if(arg_map.count("-h") or arg_map.count("--help"))
     {
-        std::cout << "Driver arguments: " << std::endl;
-        d.parse(show_help{});
-        std::cout << std::endl;
-        std::cout << "Test inputs: " << std::endl;
-        for(auto&& arg : d.arguments)
-        {
-            std::cout << "    --" << arg.name;
-            if(not arg.type.empty())
-                std::cout << " [" << arg.type << "]";
-            std::cout << std::endl;
-        }
-        std::cout << std::endl;
+        d.show_help();
         return;
     }
 
@@ -722,7 +745,7 @@ template <class Driver>
 void test_drive(int argc, const char* argv[])
 {
     std::vector<std::string> as(argv + 1, argv + argc);
-    test_drive_impl<Driver>(std::move(as));
+    test_drive_impl<Driver>(argv[0], std::move(as));
 }
 
 template <template <class...> class Driver>
@@ -734,17 +757,17 @@ void test_drive(int argc, const char* argv[])
     {
         if(arg == "--half")
         {
-            test_drive_impl<Driver<half_float::half>>(std::move(as));
+            test_drive_impl<Driver<half_float::half>>(argv[0], std::move(as));
             break;
         }
         if(arg == "--float")
         {
-            test_drive_impl<Driver<float>>(std::move(as));
+            test_drive_impl<Driver<float>>(argv[0], std::move(as));
             break;
         }
         if(arg == "--double")
         {
-            // test_drive_impl<Driver<double>>(std::move(as));
+            // test_drive_impl<Driver<double>>(argv[0], std::move(as));
             break;
         }
     }
