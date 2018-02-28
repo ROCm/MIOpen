@@ -38,8 +38,7 @@
 #include <miopen/functional.hpp>
 #include <miopen/type_name.hpp>
 
-
-template<class U, class T>
+template <class U, class T>
 constexpr std::is_same<T, U> is_same(const T&)
 {
     return {};
@@ -182,8 +181,7 @@ struct test_driver
     void show_help()
     {
         std::cout << "Driver arguments: " << std::endl;
-        this->parse([&](const auto& var, std::initializer_list<std::string> x, std::string help)
-        {
+        this->parse([&](const auto& var, std::initializer_list<std::string> x, std::string help) {
             std::cout << std::endl;
             std::string prefix = "    ";
             for(const std::string& a : x)
@@ -212,8 +210,7 @@ struct test_driver
     void show_command()
     {
         std::cout << this->program_name << " ";
-        this->parse([&](const auto& var, std::initializer_list<std::string> x, std::string)
-        {
+        this->parse([&](const auto& var, std::initializer_list<std::string> x, std::string) {
             std::cout << *x.begin() << " " << var << " ";
         });
         for(auto&& arg : this->arguments)

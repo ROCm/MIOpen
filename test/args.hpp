@@ -104,18 +104,18 @@ struct is_container : decltype(detail::is_container(miopen::rank<1>{}, std::decl
 };
 
 template <class T>
-struct is_input_streamable
-    : decltype(detail::is_input_streamable(miopen::rank<1>{},
-                                     std::declval<std::istream>(),
-                                     std::declval<typename std::add_lvalue_reference<T>::type>()))
+struct is_input_streamable : decltype(detail::is_input_streamable(
+                                 miopen::rank<1>{},
+                                 std::declval<std::istream>(),
+                                 std::declval<typename std::add_lvalue_reference<T>::type>()))
 {
 };
 
 template <class T>
-struct is_output_streamable
-    : decltype(detail::is_output_streamable(miopen::rank<1>{},
-                                     std::declval<std::ostream>(),
-                                     std::declval<typename std::add_lvalue_reference<T>::type>()))
+struct is_output_streamable : decltype(detail::is_output_streamable(
+                                  miopen::rank<1>{},
+                                  std::declval<std::ostream>(),
+                                  std::declval<typename std::add_lvalue_reference<T>::type>()))
 {
 };
 
@@ -255,11 +255,12 @@ struct write_value
 
 struct read_value
 {
-    template <class Container, ARGS_REQUIRES(is_container<Container>{} and not is_output_streamable<Container>{})>
+    template <class Container,
+              ARGS_REQUIRES(is_container<Container>{} and not is_output_streamable<Container>{})>
     std::string operator()(Container& xs) const
     {
         std::string result;
-        for(auto&& x: xs)
+        for(auto&& x : xs)
         {
             result += (*this)(x) + " ";
         }
