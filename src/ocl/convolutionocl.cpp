@@ -523,9 +523,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         perfResults[i].time   = perf_db[i].time;
         perfResults[i].memory = perf_db[i].workspace;
 #ifndef NDEBUG
-        std::cout << "algo = " << perfResults[i].fwd_algo <<"\n";
-        std::cout << "time = " << perfResults[i].time <<"\n";
-        std::cout << "workspace = " << perfResults[i].memory <<"\n";
+        std::cout << "algo = " << perfResults[i].fwd_algo << "\n";
+        std::cout << "time = " << perfResults[i].time << "\n";
+        std::cout << "workspace = " << perfResults[i].memory << "\n";
 #endif // !NDEBUG
     }
 }
