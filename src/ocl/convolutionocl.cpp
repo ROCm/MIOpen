@@ -376,7 +376,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
             time_gemm += handle.GetKernelTime();
 
-            perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, 0});
+            perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, workspace_req});
         }
         // if not 1x1
         else if(workSpace != nullptr && workSpaceSize >= workspace_req)
