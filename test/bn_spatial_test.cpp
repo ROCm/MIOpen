@@ -248,7 +248,7 @@ struct verify_forward_train_bn_spatial
         double epsilon      = MIO_BN_TEST_EPSILON;
         double expAvgFactor = MIO_BN_TEST_EXPAVGFACTOR;
 
-        T alpha = 1, beta = 0;
+        T alpha{1}, beta{0};
         miopen::BatchNormForwardTraining(handle,
                                          miopenBNSpatial,
                                          &alpha,
@@ -421,7 +421,7 @@ struct verify_forward_infer_bn_spatial_recalc
         auto shift_dev = handle.Write(shift.data);
         auto out_dev   = handle.Write(out.data);
 
-        T alpha = 1, beta = 0;
+        T alpha{1}, beta{0};
 
         double epsilon = MIO_BN_TEST_EPSILON;
 
@@ -535,7 +535,7 @@ struct verify_forward_infer_bn_spatial_use_est
         auto shift_dev   = handle.Write(shift.data);
         auto out_dev     = handle.Write(out.data);
 
-        T alpha = 1, beta = 0;
+        T alpha{1}, beta{0};
 
         double epsilon = MIO_BN_TEST_EPSILON;
 
@@ -782,7 +782,7 @@ struct verify_backward_bn_spatial_recalc
         auto dshift = tensor<T>{ss_n_batch, ss_channels, ss_height, ss_width};
         std::fill(dshift.begin(), dshift.end(), 0);
 
-        T alpha = 1, beta = 0;
+        T alpha{1}, beta{0};
 
         auto xin_dev    = handle.Write(x_input.data);
         auto dyin_dev   = handle.Write(dy_input.data);
@@ -993,7 +993,7 @@ struct verify_backward_bn_spatial_use_saved
         auto dshift = tensor<T>{ss_n_batch, ss_channels, ss_height, ss_width};
         std::fill(dshift.begin(), dshift.end(), 0);
 
-        T alpha = 1, beta = 0;
+        T alpha{1}, beta{0};
 
         auto xin_dev         = handle.Write(x_input.data);
         auto dyin_dev        = handle.Write(dy_input.data);

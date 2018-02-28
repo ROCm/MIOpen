@@ -93,7 +93,8 @@ int main(int argc, char* argv[])
     if(drv->GetInputFlags().GetValueInt("forw") != 2)
         drv->RunForwardGPU();
 
-    if(drv->GetInputFlags().GetValueInt("verify") == 1)
+    if(drv->GetInputFlags().GetValueInt("verify") == 1 &&
+       drv->GetInputFlags().GetValueInt("forw") != 2)
     {
         if(base_arg == "gemm")
         {
