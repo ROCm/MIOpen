@@ -124,13 +124,13 @@ struct test_driver
     std::deque<argument> arguments;
     std::unordered_map<std::string, std::size_t> argument_index;
     miopenDataType_t type = miopenFloat;
-    bool full_set    = false;
-    bool verbose     = false;
-    double tolerance = 80;
-    bool time        = false;
-    int batch_factor = 0;
-    bool no_validate = false;
-    int repeat       = 1;
+    bool full_set         = false;
+    bool verbose          = false;
+    double tolerance      = 80;
+    bool time             = false;
+    int batch_factor      = 0;
+    bool no_validate      = false;
+    int repeat            = 1;
 
     argument& get_argument(const std::string& s)
     {
@@ -214,10 +214,10 @@ struct test_driver
         for(auto&& arg : this->arguments)
         {
             std::string value = arg.read_value();
-            if (not value.empty())
+            if(not value.empty())
             {
                 std::cout << "--" << arg.name << " ";
-                if (value != arg.name)
+                if(value != arg.name)
                     std::cout << value << " ";
             }
         }
@@ -390,10 +390,11 @@ struct test_driver
             auto y          = value;
             arg.type        = "";
             arg.write_value = [&x, y](std::vector<std::string>) { x = y; };
-            arg.read_value  = [&x, &arg, y]() -> std::string 
-            { 
-                if (x == y) return arg.name;
-                else return "";
+            arg.read_value = [&x, &arg, y]() -> std::string {
+                if(x == y)
+                    return arg.name;
+                else
+                    return "";
             };
         }
     };
@@ -417,7 +418,7 @@ struct test_driver
         if(not(error <= threshold) or verbose)
         {
             std::cout << (verbose ? "error: " : "FAILED: ") << error << std::endl;
-            if(not verbose) 
+            if(not verbose)
             {
                 show_command();
                 fail(-1);
@@ -495,7 +496,7 @@ struct test_driver
     template <class V, class... Ts>
     auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
-        if(verbose or time) 
+        if(verbose or time)
         {
             show_command();
             v.fail(std::integral_constant<int, -1>{}, xs...);
@@ -550,7 +551,7 @@ struct test_driver
     template <class V, class... Ts>
     auto verify_equals(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
-        if(verbose or time) 
+        if(verbose or time)
         {
             show_command();
             v.fail(std::integral_constant<int, -1>{}, xs...);
@@ -708,11 +709,11 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
                ((x.compare(0, 2, "--") == 0) and d.has_argument(x.substr(2)) > 0);
     });
 
-    if (arg_map.count("--half") > 0)
+    if(arg_map.count("--half") > 0)
     {
         d.type = miopenHalf;
     }
-    else if (arg_map.count("--double") > 0)
+    else if(arg_map.count("--double") > 0)
     {
         throw std::runtime_error("Double is not supported");
     }
@@ -720,7 +721,6 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
     {
         d.type = miopenFloat;
     }
-
 
     // Show help
     if(arg_map.count("-h") or arg_map.count("--help"))
