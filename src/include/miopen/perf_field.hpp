@@ -30,14 +30,14 @@
 
 namespace miopen {
 
-	struct PerfField
-	{
-		std::string name;
-		float time;
-		std::size_t workspace;
+struct PerfField
+{
+    std::string name;
+    float time;
+    std::size_t workspace;
 
-		bool operator<(const PerfField& p) const { return (time < p.time); }
-	};
+    bool operator<(const PerfField& p) const { return (time < p.time); }
+};
 
 } // namespace miopen
 
