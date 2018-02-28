@@ -144,15 +144,15 @@ void OpTensor3d(Handle& handle,
                 const size_t Boffset,
                 const size_t Coffset)
 {
-    auto alens    = aTensorDesc.GetLengths();
-    auto blens    = bTensorDesc.GetLengths();
-    auto clens    = cTensorDesc.GetLengths();
+    auto alens = aTensorDesc.GetLengths();
+    auto blens = bTensorDesc.GetLengths();
+    auto clens = cTensorDesc.GetLengths();
 
     auto astrides = aTensorDesc.GetStrides();
     auto bstrides = bTensorDesc.GetStrides();
     auto cstrides = cTensorDesc.GetStrides();
 
-    auto bsize    = blens.size();
+    auto bsize = blens.size();
 
     // first_not_one is incorrect if btensor size equal to 1
     auto first_not_one = std::find_if(blens.rbegin(), blens.rend(), [](int i) { return i != 1; });
@@ -221,7 +221,8 @@ void OpTensor3d(Handle& handle,
 
     std::string network_config{};
 
-    network_config = bTensorDesc.GetType() + aTensorDesc.GetType() + tensorOp;
+    network_config = std::to_string(bTensorDesc.GetType()) + std::to_string(aTensorDesc.GetType()) +
+                     std::to_string(tensorOp);
 
     if(clens[0] == 1 && blens[0] == 1 && alens[0] == 1 && blens[1] == clens[1] &&
        blens[2] == clens[2])
@@ -234,7 +235,17 @@ void OpTensor3d(Handle& handle,
 
         size_t MAP_RD = clens[2] / RD_BLCK;
 
-        network_config += std::to_string(RD_BLCK) + std::to_string(MAP_RD) + std::to_string(clens[1]) + READ_TYPE; 
+        parms += " -DUSE_2D_TENSOR_LITE";
+        if(!float_equal(miopen_beta, 0.0))
+        {
+            parms += " -DBETA";
+        }
+
+        parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" + std::to_string(MAP_RD) +
+                 " -DREAD_TYPE=" + READ_TYPE;
+
+        network_config +=
+            std::to_string(RD_BLCK) + std::to_string(MAP_RD) + std::to_string(clens[1]) + READ_TYPE;
 
         auto&& kernels = handle.GetKernels("Op2dTensorLite", network_config);
 
@@ -242,51 +253,47 @@ void OpTensor3d(Handle& handle,
         {
             auto kernel = kernels.front();
             kernel(ATensor,
-                    int(astrides[1]), // a_cstride,
-                    BTensor,
-                    int(bstrides[1]), // b_cstride,
-                    CTensor,
-                    int(cstrides[1]), // c_cstride,
-                    miopen_alpha0,
-                    miopen_alpha1,
-                    miopen_beta,
-                    long(Aoffset),
-                    long(Boffset),
-                    long(Coffset));
+                   int(astrides[1]), // a_cstride,
+                   BTensor,
+                   int(bstrides[1]), // b_cstride,
+                   CTensor,
+                   int(cstrides[1]), // c_cstride,
+                   miopen_alpha0,
+                   miopen_alpha1,
+                   miopen_beta,
+                   long(Aoffset),
+                   long(Boffset),
+                   long(Coffset));
         }
         else
         {
-            parms += " -DUSE_2D_TENSOR_LITE";
-
-            if(!float_equal(miopen_beta, 0.0))
-            {
-                parms += " -DBETA";
-            }
-
-            parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" + std::to_string(MAP_RD) +
-                " -DREAD_TYPE=" + READ_TYPE;
 
             const std::vector<size_t> vgd1{MAP_RD, clens[1], 1};
 
-            handle.AddKernel("Op2dTensorLite", "", program_name, "Op2dTensorLite", vld, vgd1, parms)(
-                    ATensor,
-                    int(astrides[1]), // a_cstride,
-                    BTensor,
-                    int(bstrides[1]), // b_cstride,
-                    CTensor,
-                    int(cstrides[1]), // c_cstride,
-                    miopen_alpha0,
-                    miopen_alpha1,
-                    miopen_beta,
-                    long(Aoffset),
-                    long(Boffset),
-                    long(Coffset));
+            handle.AddKernel(
+                "Op2dTensorLite", "", program_name, "Op2dTensorLite", vld, vgd1, parms)(
+                ATensor,
+                int(astrides[1]), // a_cstride,
+                BTensor,
+                int(bstrides[1]), // b_cstride,
+                CTensor,
+                int(cstrides[1]), // c_cstride,
+                miopen_alpha0,
+                miopen_alpha1,
+                miopen_beta,
+                long(Aoffset),
+                long(Boffset),
+                long(Coffset));
         }
     }
     else
     {
 
-        network_config += std::to_string(max_num_wg) + std::to_string(num_wg); 
+        parms += " -DUSE_3D_TENSOR_GENERIC";
+        parms += " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
+
+        network_config +=
+            std::to_string(max_num_wg) + std::to_string(local_threads) + std::to_string(num_wg);
 
         auto&& kernels = handle.GetKernels("Op3dTensorGeneric", network_config);
 
@@ -295,28 +302,27 @@ void OpTensor3d(Handle& handle,
             auto kernel = kernels.front();
 
             kernel(ATensor,
-                    int(astrides[0]), // a_nstride,
-                    int(astrides[1]), // a_cstride,
-                    BTensor,
-                    int(blens[1]),    // b_c,
-                    int(blens[2]),    // b_h,
-                    int(bstrides[0]), // b_nstride,
-                    int(bstrides[1]), // b_cstride,
-                    CTensor,
-                    int(clens[1]),    // c_c,
-                    int(clens[2]),    // c_h,
-                    int(cstrides[0]), // c_nstride,
-                    int(cstrides[1]), // c_cstride,
-                    miopen_alpha0,
-                    miopen_alpha1,
-                    miopen_beta,
-                    bitmap,
-                    work_per_wg,
-                    long(Aoffset),
-                    long(Boffset),
-                    long(Coffset),
-                    int(num_wg));
-
+                   int(astrides[0]), // a_nstride,
+                   int(astrides[1]), // a_cstride,
+                   BTensor,
+                   int(blens[1]),    // b_c,
+                   int(blens[2]),    // b_h,
+                   int(bstrides[0]), // b_nstride,
+                   int(bstrides[1]), // b_cstride,
+                   CTensor,
+                   int(clens[1]),    // c_c,
+                   int(clens[2]),    // c_h,
+                   int(cstrides[0]), // c_nstride,
+                   int(cstrides[1]), // c_cstride,
+                   miopen_alpha0,
+                   miopen_alpha1,
+                   miopen_beta,
+                   bitmap,
+                   work_per_wg,
+                   long(Aoffset),
+                   long(Boffset),
+                   long(Coffset),
+                   int(num_wg));
         }
         else
         {
@@ -325,32 +331,30 @@ void OpTensor3d(Handle& handle,
             global_threads = num_wg * local_threads;
             const std::vector<size_t> vgd{global_threads, 1, 1};
 
-            parms += " -DUSE_3D_TENSOR_GENERIC";
-            parms += " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
             handle.AddKernel(
-                    "Op3dTensorGeneric", "", program_name, "Op3dTensorGeneric", vld, vgd, parms)(
-                        ATensor,
-                        int(astrides[0]), // a_nstride,
-                        int(astrides[1]), // a_cstride,
-                        BTensor,
-                        int(blens[1]),    // b_c,
-                        int(blens[2]),    // b_h,
-                        int(bstrides[0]), // b_nstride,
-                        int(bstrides[1]), // b_cstride,
-                        CTensor,
-                        int(clens[1]),    // c_c,
-                        int(clens[2]),    // c_h,
-                        int(cstrides[0]), // c_nstride,
-                        int(cstrides[1]), // c_cstride,
-                        miopen_alpha0,
-                        miopen_alpha1,
-                        miopen_beta,
-                        bitmap,
-                        work_per_wg,
-                        long(Aoffset),
-                        long(Boffset),
-                        long(Coffset),
-                        int(num_wg));
+                "Op3dTensorGeneric", "", program_name, "Op3dTensorGeneric", vld, vgd, parms)(
+                ATensor,
+                int(astrides[0]), // a_nstride,
+                int(astrides[1]), // a_cstride,
+                BTensor,
+                int(blens[1]),    // b_c,
+                int(blens[2]),    // b_h,
+                int(bstrides[0]), // b_nstride,
+                int(bstrides[1]), // b_cstride,
+                CTensor,
+                int(clens[1]),    // c_c,
+                int(clens[2]),    // c_h,
+                int(cstrides[0]), // c_nstride,
+                int(cstrides[1]), // c_cstride,
+                miopen_alpha0,
+                miopen_alpha1,
+                miopen_beta,
+                bitmap,
+                work_per_wg,
+                long(Aoffset),
+                long(Boffset),
+                long(Coffset),
+                int(num_wg));
         }
     }
 }
@@ -429,9 +433,12 @@ void OpTensor4d(Handle& handle,
         local_threads = 64;
     }
 
-    std::string parms = " -DINCR_WG=" + std::to_string(incr_wg) + " -DMIOPEN_TYPE=" +
-                        GetDataType(bTensorDesc.GetType()) + " -DMAX_NUM_WG=" +
+    std::string parms = " -DMIOPEN_TYPE=" + GetDataType(bTensorDesc.GetType()) + " -DMAX_NUM_WG=" +
                         std::to_string(max_num_wg);
+
+    std::string network_config{};
+
+    network_config += GetDataType(bTensorDesc.GetType()) + std::to_string(max_num_wg);
 
     if(aTensorDesc.GetType() == miopenFloat)
     {
@@ -487,172 +494,336 @@ void OpTensor4d(Handle& handle,
     printf("packed_tensor: %d\n", packed_tensor);
 #endif
 
+    network_config += std::to_string(bTensorDesc.GetType()) +
+                      std::to_string(aTensorDesc.GetType()) + std::to_string(tensorOp) +
+                      std::to_string(global_threads) + std::to_string(local_threads);
+
     if(fwd_conv_bias)
     {
 
-        parms += " -DUSE_FWD_BIAS";
+        parms += " -DINCR_WG=" + std::to_string(incr_wg);
+
+        network_config += std::to_string(incr_wg);
+
         if(packed_tensor)
         {
-            handle.AddKernel(
-                "OpTensorFwdBias", "", program_name, "OpTensorFwdBias", vld, vgd, parms)(
-                ATensor,
-                BTensor,
-                int(blens[1]),
-                CTensor,
-                int(clens[0]),
-                int(cstrides[0]),
-                int(cstrides[1]),
-                work_per_wg,
-                miopen_alpha0,
-                miopen_alpha1,
-                miopen_beta,
-                long(Aoffset),
-                long(Boffset),
-                long(Coffset),
-                int(num_wg_1));
+            parms += " -DUSE_FWD_BIAS";
+            auto&& kernels = handle.GetKernels("OpTensorFwdBias", network_config);
+
+            if(!kernels.empty())
+            {
+                auto kernel = kernels.front();
+                kernel(ATensor,
+                       BTensor,
+                       int(blens[1]),
+                       CTensor,
+                       int(clens[0]),
+                       int(cstrides[0]),
+                       int(cstrides[1]),
+                       work_per_wg,
+                       miopen_alpha0,
+                       miopen_alpha1,
+                       miopen_beta,
+                       long(Aoffset),
+                       long(Boffset),
+                       long(Coffset),
+                       int(num_wg_1));
+            }
+            else
+            {
+
+                handle.AddKernel(
+                    "OpTensorFwdBias", "", program_name, "OpTensorFwdBias", vld, vgd, parms)(
+                    ATensor,
+                    BTensor,
+                    int(blens[1]),
+                    CTensor,
+                    int(clens[0]),
+                    int(cstrides[0]),
+                    int(cstrides[1]),
+                    work_per_wg,
+                    miopen_alpha0,
+                    miopen_alpha1,
+                    miopen_beta,
+                    long(Aoffset),
+                    long(Boffset),
+                    long(Coffset),
+                    int(num_wg_1));
+            }
         }
         else
         {
 
             parms += " -DUSE_FWD_BIAS_GENERIC";
-            handle.AddKernel("OpTensorFwdBiasGeneric",
-                             "",
-                             program_name,
-                             "OpTensorFwdBiasGeneric",
-                             vld,
-                             vgd,
-                             parms)(ATensor,
-                                    int(astrides[0]),
-                                    int(astrides[1]),
-                                    int(astrides[2]),
-                                    BTensor,
-                                    int(blens[1]),
-                                    int(bstrides[1]),
-                                    CTensor,
-                                    int(clens[0]),
-                                    int(clens[3]),
-                                    int(cstrides[0]),
-                                    int(cstrides[1]),
-                                    int(cstrides[2]),
-                                    miopen_alpha0,
-                                    miopen_alpha1,
-                                    miopen_beta,
-                                    work_per_wg,
-                                    long(Aoffset),
-                                    long(Boffset),
-                                    long(Coffset),
-                                    int(num_wg_1));
+            auto&& kernels = handle.GetKernels("OpTensorFwdBiasGeneric", network_config);
+
+            if(!kernels.empty())
+            {
+                auto kernel = kernels.front();
+                kernel(ATensor,
+                       int(astrides[0]),
+                       int(astrides[1]),
+                       int(astrides[2]),
+                       BTensor,
+                       int(blens[1]),
+                       int(bstrides[1]),
+                       CTensor,
+                       int(clens[0]),
+                       int(clens[3]),
+                       int(cstrides[0]),
+                       int(cstrides[1]),
+                       int(cstrides[2]),
+                       miopen_alpha0,
+                       miopen_alpha1,
+                       miopen_beta,
+                       work_per_wg,
+                       long(Aoffset),
+                       long(Boffset),
+                       long(Coffset),
+                       int(num_wg_1));
+            }
+            else
+            {
+                handle.AddKernel("OpTensorFwdBiasGeneric",
+                                 "",
+                                 program_name,
+                                 "OpTensorFwdBiasGeneric",
+                                 vld,
+                                 vgd,
+                                 parms)(ATensor,
+                                        int(astrides[0]),
+                                        int(astrides[1]),
+                                        int(astrides[2]),
+                                        BTensor,
+                                        int(blens[1]),
+                                        int(bstrides[1]),
+                                        CTensor,
+                                        int(clens[0]),
+                                        int(clens[3]),
+                                        int(cstrides[0]),
+                                        int(cstrides[1]),
+                                        int(cstrides[2]),
+                                        miopen_alpha0,
+                                        miopen_alpha1,
+                                        miopen_beta,
+                                        work_per_wg,
+                                        long(Aoffset),
+                                        long(Boffset),
+                                        long(Coffset),
+                                        int(num_wg_1));
+            }
         }
     }
     else if(leading_ones)
     {
         parms += " -DFIRST_NOT_ONE=" + std::to_string(d - 1);
+        network_config += std::to_string(d - 1);
         if(packed_tensor)
         {
-            parms += " -DUSE_LEADING_ONES";
-            handle.AddKernel(
-                "OpTensorLeadingOnes", "", program_name, "OpTensorLeadingOnes", vld, vgd, parms)(
-                ATensor,
-                BTensor,
-                CTensor,
-                int(clens[1]),
-                int(clens[2]),
-                int(clens[3]),
-                int(cstrides[0]),
-                int(cstrides[1]),
-                work_per_wg,
-                miopen_alpha0,
-                miopen_alpha1,
-                miopen_beta,
-                long(Aoffset),
-                long(Boffset),
-                long(Coffset),
-                int(num_wg_1));
+
+            auto&& kernels = handle.GetKernels("OpTensorLeadingOnes", network_config);
+
+            if(!kernels.empty())
+            {
+                auto kernel = kernels.front();
+                kernel(ATensor,
+                       BTensor,
+                       CTensor,
+                       int(clens[1]),
+                       int(clens[2]),
+                       int(clens[3]),
+                       int(cstrides[0]),
+                       int(cstrides[1]),
+                       work_per_wg,
+                       miopen_alpha0,
+                       miopen_alpha1,
+                       miopen_beta,
+                       long(Aoffset),
+                       long(Boffset),
+                       long(Coffset),
+                       int(num_wg_1));
+            }
+            else
+            {
+                parms += " -DUSE_LEADING_ONES";
+                handle.AddKernel("OpTensorLeadingOnes",
+                                 "",
+                                 program_name,
+                                 "OpTensorLeadingOnes",
+                                 vld,
+                                 vgd,
+                                 parms)(ATensor,
+                                        BTensor,
+                                        CTensor,
+                                        int(clens[1]),
+                                        int(clens[2]),
+                                        int(clens[3]),
+                                        int(cstrides[0]),
+                                        int(cstrides[1]),
+                                        work_per_wg,
+                                        miopen_alpha0,
+                                        miopen_alpha1,
+                                        miopen_beta,
+                                        long(Aoffset),
+                                        long(Boffset),
+                                        long(Coffset),
+                                        int(num_wg_1));
+            }
         }
         else
         {
 
             parms += " -DUSE_LEADING_ONES_GENERIC";
-            handle.AddKernel("OpTensorLeadingOnesGeneric",
-                             "",
-                             program_name,
-                             "OpTensorLeadingOnesGeneric",
-                             vld,
-                             vgd,
-                             parms)(ATensor,
-                                    int(astrides[0]),
-                                    int(astrides[1]),
-                                    int(astrides[2]),
-                                    BTensor,
-                                    int(bstrides[0]),
-                                    int(bstrides[1]),
-                                    int(bstrides[2]),
-                                    CTensor,
-                                    int(clens[1]),
-                                    int(clens[2]),
-                                    int(clens[3]),
-                                    int(cstrides[0]),
-                                    int(cstrides[1]),
-                                    int(cstrides[2]),
-                                    miopen_alpha0,
-                                    miopen_alpha1,
-                                    miopen_beta,
-                                    work_per_wg,
-                                    long(Aoffset),
-                                    long(Boffset),
-                                    long(Coffset),
-                                    int(num_wg_1));
+
+            auto&& kernels = handle.GetKernels("OpTensorLeadingOnesGeneric", network_config);
+
+            if(!kernels.empty())
+            {
+                auto kernel = kernels.front();
+                kernel(ATensor,
+                       int(astrides[0]),
+                       int(astrides[1]),
+                       int(astrides[2]),
+                       BTensor,
+                       int(bstrides[0]),
+                       int(bstrides[1]),
+                       int(bstrides[2]),
+                       CTensor,
+                       int(clens[1]),
+                       int(clens[2]),
+                       int(clens[3]),
+                       int(cstrides[0]),
+                       int(cstrides[1]),
+                       int(cstrides[2]),
+                       miopen_alpha0,
+                       miopen_alpha1,
+                       miopen_beta,
+                       work_per_wg,
+                       long(Aoffset),
+                       long(Boffset),
+                       long(Coffset),
+                       int(num_wg_1));
+            }
+            else
+            {
+                handle.AddKernel("OpTensorLeadingOnesGeneric",
+                                 "",
+                                 program_name,
+                                 "OpTensorLeadingOnesGeneric",
+                                 vld,
+                                 vgd,
+                                 parms)(ATensor,
+                                        int(astrides[0]),
+                                        int(astrides[1]),
+                                        int(astrides[2]),
+                                        BTensor,
+                                        int(bstrides[0]),
+                                        int(bstrides[1]),
+                                        int(bstrides[2]),
+                                        CTensor,
+                                        int(clens[1]),
+                                        int(clens[2]),
+                                        int(clens[3]),
+                                        int(cstrides[0]),
+                                        int(cstrides[1]),
+                                        int(cstrides[2]),
+                                        miopen_alpha0,
+                                        miopen_alpha1,
+                                        miopen_beta,
+                                        work_per_wg,
+                                        long(Aoffset),
+                                        long(Boffset),
+                                        long(Coffset),
+                                        int(num_wg_1));
+            }
         }
     }
     else
     {
         parms += " -DUSE_4D_TENSOR_GENERIC";
-        handle.AddKernel(
-            "Op4dTensorGeneric", "", program_name, "Op4dTensorGeneric", vld, vgd, parms)(
-            ATensor,
-            int(astrides[0]), // a_nstride,
-            int(astrides[1]), // a_cstride,
-            int(astrides[2]), // a_hstride,
-            BTensor,
-            int(blens[1]),    // b_c,
-            int(blens[2]),    // b_h,
-            int(blens[3]),    // b_w,
-            int(bstrides[0]), // b_nstride,
-            int(bstrides[1]), // b_cstride,
-            int(bstrides[2]), // b_hstride,
-            CTensor,
-            int(clens[1]),    // c_c,
-            int(clens[2]),    // c_h,
-            int(clens[3]),    // c_w,
-            int(cstrides[0]), // c_nstride,
-            int(cstrides[1]), // c_cstride,
-            int(cstrides[2]), // c_hstride,
-            miopen_alpha0,
-            miopen_alpha1,
-            miopen_beta,
-            bitmap,
-            work_per_wg,
-            long(Aoffset),
-            long(Boffset),
-            long(Coffset),
-            int(num_wg_1));
+
+        auto&& kernels = handle.GetKernels("Op4dTensorGeneric", network_config);
+        if(!kernels.empty())
+        {
+            auto kernel = kernels.front();
+            kernel(ATensor,
+                   int(astrides[0]), // a_nstride,
+                   int(astrides[1]), // a_cstride,
+                   int(astrides[2]), // a_hstride,
+                   BTensor,
+                   int(blens[1]),    // b_c,
+                   int(blens[2]),    // b_h,
+                   int(blens[3]),    // b_w,
+                   int(bstrides[0]), // b_nstride,
+                   int(bstrides[1]), // b_cstride,
+                   int(bstrides[2]), // b_hstride,
+                   CTensor,
+                   int(clens[1]),    // c_c,
+                   int(clens[2]),    // c_h,
+                   int(clens[3]),    // c_w,
+                   int(cstrides[0]), // c_nstride,
+                   int(cstrides[1]), // c_cstride,
+                   int(cstrides[2]), // c_hstride,
+                   miopen_alpha0,
+                   miopen_alpha1,
+                   miopen_beta,
+                   bitmap,
+                   work_per_wg,
+                   long(Aoffset),
+                   long(Boffset),
+                   long(Coffset),
+                   int(num_wg_1));
+        }
+        else
+        {
+
+            handle.AddKernel(
+                "Op4dTensorGeneric", "", program_name, "Op4dTensorGeneric", vld, vgd, parms)(
+                ATensor,
+                int(astrides[0]), // a_nstride,
+                int(astrides[1]), // a_cstride,
+                int(astrides[2]), // a_hstride,
+                BTensor,
+                int(blens[1]),    // b_c,
+                int(blens[2]),    // b_h,
+                int(blens[3]),    // b_w,
+                int(bstrides[0]), // b_nstride,
+                int(bstrides[1]), // b_cstride,
+                int(bstrides[2]), // b_hstride,
+                CTensor,
+                int(clens[1]),    // c_c,
+                int(clens[2]),    // c_h,
+                int(clens[3]),    // c_w,
+                int(cstrides[0]), // c_nstride,
+                int(cstrides[1]), // c_cstride,
+                int(cstrides[2]), // c_hstride,
+                miopen_alpha0,
+                miopen_alpha1,
+                miopen_beta,
+                bitmap,
+                work_per_wg,
+                long(Aoffset),
+                long(Boffset),
+                long(Coffset),
+                int(num_wg_1));
+        }
     }
 }
 
-void OpTensorFallBack(Handle& handle,
-                      miopenTensorOp_t tensorOp,
-                      const void* alpha0,
-                      const TensorDescriptor& aTensorDesc,
-                      ConstData_t ATensor,
-                      const void* alpha1,
-                      const TensorDescriptor& bTensorDesc,
-                      ConstData_t BTensor,
-                      const void* beta,
-                      const TensorDescriptor& cTensorDesc,
-                      Data_t CTensor,
-                      const size_t Aoffset,
-                      const size_t Boffset,
-                      const size_t Coffset)
+void OpTensorOther(Handle& handle,
+                   miopenTensorOp_t tensorOp,
+                   const void* alpha0,
+                   const TensorDescriptor& aTensorDesc,
+                   ConstData_t ATensor,
+                   const void* alpha1,
+                   const TensorDescriptor& bTensorDesc,
+                   ConstData_t BTensor,
+                   const void* beta,
+                   const TensorDescriptor& cTensorDesc,
+                   Data_t CTensor,
+                   const size_t Aoffset,
+                   const size_t Boffset,
+                   const size_t Coffset)
 {
     if(ATensor == nullptr || BTensor == nullptr || CTensor == nullptr)
     {
@@ -770,86 +941,187 @@ void OpTensorFallBack(Handle& handle,
     break;
     }
 
+    std::string network_config{};
+    network_config += std::to_string(bTensorDesc.GetType()) +
+                      std::to_string(aTensorDesc.GetType()) + std::to_string(tensorOp) +
+                      std::to_string(global_threads) + std::to_string(local_threads);
+
     if(bsize == 5)
     {
         parms += " -DUSE_5D_TENSOR_GENERIC";
-        handle.AddKernel(
-            "Op5dTensorGeneric", "", program_name, "Op5dTensorGeneric", vld, vgd, parms)(
-            ATensor,
-            int(astrides[0]),
-            int(astrides[1]),
-            int(astrides[2]),
-            int(astrides[3]),
-            BTensor,
-            int(blens[1]),    // b_c,
-            int(blens[2]),    // b_d,
-            int(blens[3]),    // b_h,
-            int(blens[4]),    // b_w,
-            int(bstrides[0]), // b_nstride,
-            int(bstrides[1]), // b_cstride,
-            int(bstrides[2]), // b_dstride,
-            int(bstrides[3]), // b_hstride,
-            CTensor,
-            int(clens[1]),    // c_c,
-            int(clens[2]),    // c_d,
-            int(clens[3]),    // c_h,
-            int(clens[4]),    // c_w,
-            int(cstrides[0]), // c_nstride,
-            int(cstrides[1]), // c_cstride,
-            int(cstrides[2]), // c_dstride,
-            int(cstrides[3]), // c_hstride,
-            miopen_alpha0,
-            miopen_alpha1,
-            miopen_beta,
-            bitmap,
-            work_per_wg,
-            long(Aoffset),
-            long(Boffset),
-            long(Coffset),
-            int(num_wg_1));
+
+        auto&& kernels = handle.GetKernels("Op5dTensorGeneric", network_config);
+
+        if(!kernels.empty())
+        {
+            auto kernel = kernels.front();
+            kernel(ATensor,
+                   int(astrides[0]),
+                   int(astrides[1]),
+                   int(astrides[2]),
+                   int(astrides[3]),
+                   BTensor,
+                   int(blens[1]),    // b_c,
+                   int(blens[2]),    // b_d,
+                   int(blens[3]),    // b_h,
+                   int(blens[4]),    // b_w,
+                   int(bstrides[0]), // b_nstride,
+                   int(bstrides[1]), // b_cstride,
+                   int(bstrides[2]), // b_dstride,
+                   int(bstrides[3]), // b_hstride,
+                   CTensor,
+                   int(clens[1]),    // c_c,
+                   int(clens[2]),    // c_d,
+                   int(clens[3]),    // c_h,
+                   int(clens[4]),    // c_w,
+                   int(cstrides[0]), // c_nstride,
+                   int(cstrides[1]), // c_cstride,
+                   int(cstrides[2]), // c_dstride,
+                   int(cstrides[3]), // c_hstride,
+                   miopen_alpha0,
+                   miopen_alpha1,
+                   miopen_beta,
+                   bitmap,
+                   work_per_wg,
+                   long(Aoffset),
+                   long(Boffset),
+                   long(Coffset),
+                   int(num_wg_1));
+        }
+        else
+        {
+
+            handle.AddKernel(
+                "Op5dTensorGeneric", "", program_name, "Op5dTensorGeneric", vld, vgd, parms)(
+                ATensor,
+                int(astrides[0]),
+                int(astrides[1]),
+                int(astrides[2]),
+                int(astrides[3]),
+                BTensor,
+                int(blens[1]),    // b_c,
+                int(blens[2]),    // b_d,
+                int(blens[3]),    // b_h,
+                int(blens[4]),    // b_w,
+                int(bstrides[0]), // b_nstride,
+                int(bstrides[1]), // b_cstride,
+                int(bstrides[2]), // b_dstride,
+                int(bstrides[3]), // b_hstride,
+                CTensor,
+                int(clens[1]),    // c_c,
+                int(clens[2]),    // c_d,
+                int(clens[3]),    // c_h,
+                int(clens[4]),    // c_w,
+                int(cstrides[0]), // c_nstride,
+                int(cstrides[1]), // c_cstride,
+                int(cstrides[2]), // c_dstride,
+                int(cstrides[3]), // c_hstride,
+                miopen_alpha0,
+                miopen_alpha1,
+                miopen_beta,
+                bitmap,
+                work_per_wg,
+                long(Aoffset),
+                long(Boffset),
+                long(Coffset),
+                int(num_wg_1));
+        }
     }
     else if(bsize == 2)
     {
         parms += " -DUSE_2D_TENSOR_GENERIC";
-        handle.AddKernel(
-            "Op2dTensorGeneric", "", program_name, "Op2dTensorGeneric", vld, vgd, parms)(
-            ATensor,
-            int(astrides[0]),
-            BTensor,
-            int(blens[1]),
-            int(bstrides[0]),
-            CTensor,
-            int(clens[1]),
-            int(cstrides[0]),
-            miopen_alpha0,
-            miopen_alpha1,
-            miopen_beta,
-            bitmap,
-            work_per_wg,
-            long(Aoffset),
-            long(Boffset),
-            long(Coffset),
-            int(num_wg_1));
+
+        auto&& kernels = handle.GetKernels("Op2dTensorGeneric", network_config);
+
+        if(!kernels.empty())
+        {
+            auto kernel = kernels.front();
+            kernel(ATensor,
+                   int(astrides[0]),
+                   BTensor,
+                   int(blens[1]),
+                   int(bstrides[0]),
+                   CTensor,
+                   int(clens[1]),
+                   int(cstrides[0]),
+                   miopen_alpha0,
+                   miopen_alpha1,
+                   miopen_beta,
+                   bitmap,
+                   work_per_wg,
+                   long(Aoffset),
+                   long(Boffset),
+                   long(Coffset),
+                   int(num_wg_1));
+        }
+        else
+        {
+            handle.AddKernel(
+                "Op2dTensorGeneric", "", program_name, "Op2dTensorGeneric", vld, vgd, parms)(
+                ATensor,
+                int(astrides[0]),
+                BTensor,
+                int(blens[1]),
+                int(bstrides[0]),
+                CTensor,
+                int(clens[1]),
+                int(cstrides[0]),
+                miopen_alpha0,
+                miopen_alpha1,
+                miopen_beta,
+                bitmap,
+                work_per_wg,
+                long(Aoffset),
+                long(Boffset),
+                long(Coffset),
+                int(num_wg_1));
+        }
     }
     else if(bsize == 1)
     {
         parms += " -DUSE_1D_TENSOR_GENERIC";
-        handle.AddKernel(
-            "Op1dTensorGeneric", "", program_name, "Op1dTensorGeneric", vld, vgd, parms)(
-            ATensor,
-            BTensor,
-            int(blens[0]),
-            CTensor,
-            int(clens[0]),
-            miopen_alpha0,
-            miopen_alpha1,
-            miopen_beta,
-            bitmap,
-            work_per_wg,
-            long(Aoffset),
-            long(Boffset),
-            long(Coffset),
-            int(num_wg_1));
+
+        auto&& kernels = handle.GetKernels("Op1dTensorGeneric", network_config);
+
+        if(!kernels.empty())
+        {
+
+            auto kernel = kernels.front();
+            kernel(ATensor,
+                   BTensor,
+                   int(blens[0]),
+                   CTensor,
+                   int(clens[0]),
+                   miopen_alpha0,
+                   miopen_alpha1,
+                   miopen_beta,
+                   bitmap,
+                   work_per_wg,
+                   long(Aoffset),
+                   long(Boffset),
+                   long(Coffset),
+                   int(num_wg_1));
+        }
+        else
+        {
+
+            handle.AddKernel(
+                "Op1dTensorGeneric", "", program_name, "Op1dTensorGeneric", vld, vgd, parms)(
+                ATensor,
+                BTensor,
+                int(blens[0]),
+                CTensor,
+                int(clens[0]),
+                miopen_alpha0,
+                miopen_alpha1,
+                miopen_beta,
+                bitmap,
+                work_per_wg,
+                long(Aoffset),
+                long(Boffset),
+                long(Coffset),
+                int(num_wg_1));
+        }
     }
 }
 
@@ -885,7 +1157,7 @@ void OpTensor(Handle& handle,
     }
 
     auto blens = bTensorDesc.GetLengths();
-#if (MIO_TENSOROCL_DEBUG == 1)
+#if(MIO_TENSOROCL_DEBUG == 1)
     printf("blen:[");
     for(auto len : blens)
     {
@@ -951,20 +1223,20 @@ void OpTensor(Handle& handle,
     }
     else
     {
-        OpTensorFallBack(handle,
-                         tensorOp,
-                         alpha0,
-                         aTensorDesc,
-                         ATensor,
-                         alpha1,
-                         bTensorDesc,
-                         BTensor,
-                         beta,
-                         cTensorDesc,
-                         CTensor,
-                         Aoffset,
-                         Boffset,
-                         Coffset);
+        OpTensorOther(handle,
+                      tensorOp,
+                      alpha0,
+                      aTensorDesc,
+                      ATensor,
+                      alpha1,
+                      bTensorDesc,
+                      BTensor,
+                      beta,
+                      cTensorDesc,
+                      CTensor,
+                      Aoffset,
+                      Boffset,
+                      Coffset);
     }
 }
 
