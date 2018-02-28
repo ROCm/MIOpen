@@ -117,13 +117,13 @@ GemmGeometry CreateGemmGeometryConvBwdData(const TensorDescriptor& dyDesc,
 }
 
 GemmGeometry CreateGemmGeometryConvBwdDataCNHW(const TensorDescriptor& dyDesc,
-                                           const TensorDescriptor& wDesc,
-                                           const TensorDescriptor& dxDesc,
-                                           bool isDataColMajor,
-                                           std::string& network_config)
+                                               const TensorDescriptor& wDesc,
+                                               const TensorDescriptor& dxDesc,
+                                               bool isDataColMajor,
+                                               std::string& network_config)
 {
-    int in_n, in_c, in_h, in_w;
-    std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
+    int in_n, in_c;
+    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
 
     int wei_n, wei_h, wei_w;
     std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
