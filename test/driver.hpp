@@ -123,6 +123,7 @@ struct test_driver
     std::string program_name;
     std::deque<argument> arguments;
     std::unordered_map<std::string, std::size_t> argument_index;
+    miopenDataType_t type = miopenFloat;
     bool full_set    = false;
     bool verbose     = false;
     double tolerance = 80;
@@ -210,13 +211,17 @@ struct test_driver
     void show_command()
     {
         std::cout << this->program_name << " ";
-        this->parse([&](const auto& var, std::initializer_list<std::string> x, std::string) {
-            std::cout << *x.begin() << " " << var << " ";
-        });
         for(auto&& arg : this->arguments)
         {
-            std::cout << "--" << arg.name << " ";
+            std::string value = arg.read_value();
+            if (not value.empty())
+            {
+                std::cout << "--" << arg.name << " ";
+                if (value != arg.name)
+                    std::cout << value << " ";
+            }
         }
+        std::cout << std::endl;
     }
 
     template <class X>
@@ -385,6 +390,11 @@ struct test_driver
             auto y          = value;
             arg.type        = "";
             arg.write_value = [&x, y](std::vector<std::string>) { x = y; };
+            arg.read_value  = [&x, &arg, y]() -> std::string 
+            { 
+                if (x == y) return arg.name;
+                else return "";
+            };
         }
     };
 
@@ -407,8 +417,11 @@ struct test_driver
         if(not(error <= threshold) or verbose)
         {
             std::cout << (verbose ? "error: " : "FAILED: ") << error << std::endl;
-            if(not verbose)
+            if(not verbose) 
+            {
+                show_command();
                 fail(-1);
+            }
 
             auto mxdiff = miopen::max_diff(out_cpu, out_gpu);
             std::cout << "Max diff: " << mxdiff << std::endl;
@@ -482,8 +495,11 @@ struct test_driver
     template <class V, class... Ts>
     auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
-        if(verbose or time)
+        if(verbose or time) 
+        {
+            show_command();
             v.fail(std::integral_constant<int, -1>{}, xs...);
+        }
         try
         {
             auto&& h = get_handle();
@@ -518,12 +534,14 @@ struct test_driver
         catch(const std::exception& ex)
         {
             std::cout << "FAILED: " << ex.what() << std::endl;
+            show_command();
             v.fail(-1, xs...);
             throw;
         }
         catch(...)
         {
             std::cout << "FAILED with unknown exception" << std::endl;
+            show_command();
             v.fail(-1, xs...);
             throw;
         }
@@ -532,8 +550,11 @@ struct test_driver
     template <class V, class... Ts>
     auto verify_equals(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
-        if(verbose or time)
+        if(verbose or time) 
+        {
+            show_command();
             v.fail(std::integral_constant<int, -1>{}, xs...);
+        }
         try
         {
             auto&& h = get_handle();
@@ -590,12 +611,14 @@ struct test_driver
         catch(const std::exception& ex)
         {
             std::cout << "FAILED: " << ex.what() << std::endl;
+            show_command();
             v.fail(-1, xs...);
             throw;
         }
         catch(...)
         {
             std::cout << "FAILED with unknown exception" << std::endl;
+            show_command();
             v.fail(-1, xs...);
             throw;
         }
@@ -684,6 +707,20 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
         return (keywords.count(x) > 0) or
                ((x.compare(0, 2, "--") == 0) and d.has_argument(x.substr(2)) > 0);
     });
+
+    if (arg_map.count("--half") > 0)
+    {
+        d.type = miopenHalf;
+    }
+    else if (arg_map.count("--double") > 0)
+    {
+        throw std::runtime_error("Double is not supported");
+    }
+    else
+    {
+        d.type = miopenFloat;
+    }
+
 
     // Show help
     if(arg_map.count("-h") or arg_map.count("--help"))
