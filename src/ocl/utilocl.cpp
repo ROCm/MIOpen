@@ -313,8 +313,7 @@ float transpose_NCHW2CNHW_opt(Handle& handle,
     size_t MAP_RD    = HW_RD * C;
     size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
 
-    static const std::string READ_TYPE =
-        (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
+    std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
 
     std::string params;
     params += " -DNC_TRANS_NCHW_OPT";
@@ -372,8 +371,7 @@ float transpose_CNHW2NCHW_opt(Handle& handle,
     size_t MAP_RD    = HW_RD * C;
     size_t lcl_size0 = WG_SIZE; //((MAP_RD + 63)/64 < 4) ? ((MAP_RD + 63)/64)*64 : 256;
 
-    static const std::string READ_TYPE =
-        (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
+    std::string READ_TYPE = (RD_BLCK == 1) ? "float" : "float" + std::to_string(RD_BLCK);
 
     std::string params;
     params += " -DNC_TRANS_CNHW_OPT";
