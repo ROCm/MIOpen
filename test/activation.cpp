@@ -201,7 +201,7 @@ struct activation_driver : test_driver
                  [=](T x) { return (x > 0) ? x : x * beta; },
                  [=](T dy, T, T) { return std::max(T(0), dy); });
         add_mode(miopenActivationSOFTRELU,
-                 [=](T x) { return std::log(1 + std::exp(x)); },
+                 [=](T x) { return std::log1p(std::exp(x)); },
                  [=](T dy, T x, T) {
                      static const float threshold = 50.;
                      T expval = T(std::exp(std::min(x, static_cast<T>(threshold))));

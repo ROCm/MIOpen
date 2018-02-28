@@ -166,7 +166,7 @@ struct test_driver
         arg.write_value = [&](std::vector<std::string> params) { args::write_value{}(x, params); };
         miopen::each_args(std::bind(per_arg{}, std::ref(x), std::ref(arg), std::placeholders::_1),
                           fs...);
-        assert(get_argument(name).name == name);
+        // assert(get_argument(name).name == name);
     }
 
     template <class X>
@@ -655,7 +655,7 @@ void test_drive_impl(std::vector<std::string> as)
     });
 
     // Show help
-    if(arg_map.count("-h") or arg_map.count("--help"))
+    if((arg_map.count("-h") > 0) or (arg_map.count("--help") > 0))
     {
         std::cout << "Driver arguments: " << std::endl;
         d.parse(show_help{});
