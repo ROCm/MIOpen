@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2018 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,45 +24,41 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_TYPE_NAME_HPP
-#define GUARD_TYPE_NAME_HPP
+#ifndef GUARD_MLOPEN_VISIT_FLOAT_HPP
+#define GUARD_MLOPEN_VISIT_FLOAT_HPP
 
-#include <string>
+#include <miopen/miopen.h>
+#include <half.hpp>
 
 namespace miopen {
 
-template <class MIOpen_Private_TypeName_>
-const std::string& get_type_name()
-{
-    static std::string name;
-
-    if(name.empty())
-    {
-#ifdef _MSC_VER
-        name = typeid(MIOpen_Private_TypeName_).name();
-        name = name.substr(7);
-#else
-        const char parameter_name[] = "MIOpen_Private_TypeName_ =";
-
-        name = __PRETTY_FUNCTION__;
-
-        auto begin  = name.find(parameter_name) + sizeof(parameter_name);
-#if(defined(__GNUC__) && !defined(__clang__) && __GNUC__ == 4 && __GNUC_MINOR__ < 7)
-        auto length = name.find_last_of(",") - begin;
-#else
-        auto length = name.find_first_of("];", begin) - begin;
-#endif
-        name        = name.substr(begin, length);
-#endif
-    }
-
-    return name;
-}
-
 template <class T>
-const std::string& get_type_name(const T&)
+struct as_float
 {
-    return miopen::get_type_name<T>();
+    using type = T;
+    template <class X>
+    type operator()(X x) const
+    {
+        return static_cast<T>(x);
+    }
+};
+
+template <class F>
+void visit_float(miopenDataType_t t, F f)
+{
+    switch(t)
+    {
+    case miopenFloat:
+    {
+        f(as_float<float>{});
+        break;
+    }
+    case miopenHalf:
+    {
+        f(as_float<half_float::half>{});
+        break;
+    }
+    }
 }
 
 } // namespace miopen

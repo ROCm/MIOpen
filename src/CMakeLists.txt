@@ -275,6 +275,8 @@ target_include_directories(MIOpen PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
 )
 
+target_include_directories(MIOpen SYSTEM PRIVATE ${HALF_INCLUDE_DIR})
+
 generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
 )
