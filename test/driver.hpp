@@ -389,10 +389,10 @@ struct test_driver
         {
             auto y          = value;
             arg.type        = "";
-            arg.write_value = [&x, y](std::vector<std::string> as) 
-            {
-                if (not as.empty()) throw std::runtime_error("Argument should not have any additional parameters");
-                x = y; 
+            arg.write_value = [&x, y](std::vector<std::string> as) {
+                if(not as.empty())
+                    throw std::runtime_error("Argument should not have any additional parameters");
+                x = y;
             };
             arg.read_value = [&x, &arg, y]() -> std::string {
                 if(x == y)
