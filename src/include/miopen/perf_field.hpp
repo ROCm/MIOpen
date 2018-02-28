@@ -39,6 +39,6 @@ namespace miopen {
 		bool operator<(const PerfField& p) const { return (time < p.time); }
 	};
 
-} // miopen
+} // namespace miopen
 
 #endif // GUARD_MIOPEN_PERF_FIELD_HPP_
