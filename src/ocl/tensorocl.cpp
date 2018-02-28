@@ -485,7 +485,7 @@ void OpTensor4d(Handle& handle,
 
     bool packed_tensor = true;
 
-    auto alens = aTensorDesc.GetLengths();
+    //auto alens = aTensorDesc.GetLengths();
     packed_tensor &= aTensorDesc.IsPacked();
     packed_tensor &= bTensorDesc.IsPacked();
     packed_tensor &= cTensorDesc.IsPacked();
