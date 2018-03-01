@@ -42,7 +42,6 @@
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 bool mlo_construct_direct2D::mloIsCompilerWorkarounds() const
@@ -254,10 +253,12 @@ void mlo_construct_direct2D::setupRocm()
     _search_params.rmv                 = rocm_meta_version::Default;
     if(mloIsAmdRocmOpencl(_search_params))
     {
-        _search_params.assembler_available =
-            !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
+        _search_params.assembler_available = _search_params.float_size == 32 &&
+                                             !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) &&
+                                             ValidateGcnAssembler();
 #ifndef HIP_OC_FINALIZER
         _search_params.use_binaries =
+            _search_params.float_size == 32 &&
             !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
 #endif
     }
