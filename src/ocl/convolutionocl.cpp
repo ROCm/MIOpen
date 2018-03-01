@@ -341,45 +341,51 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
 #if MIOPEN_USE_MIOPENGEMM
-        size_t workspace_req = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
-        float time_gemm      = 0;
+        float time_gemm = 0;
 
-        if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)))
+        if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)) &&
+           dilation_w == 1 && dilation_h == 1)
         {
-            GemmGeometry gg =
-                CreateGemmGeometryConvFwdCNHW(xDesc, wDesc, yDesc, false, network_config);
-
-            if(u == 2 && v == 2)
+            size_t workspace_req = ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
+            if(workSpace != nullptr && workSpaceSize >= workspace_req)
             {
-                transpose_NCHW2CNHW(
-                    handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
+                GemmGeometry gg =
+                    CreateGemmGeometryConvFwdCNHW(xDesc, wDesc, yDesc, false, network_config);
+
+                if(u == 2 && v == 2)
+                {
+                    transpose_NCHW2CNHW(
+                        handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
+                }
+                else
+                {
+                    transpose_NCHW2CNHW_opt(handle, in_n, in_c, in_h, in_w, x, workSpace, 0, 0);
+                }
+                time_gemm = handle.GetKernelTime();
+
+                gg.FindSolution(0.03, handle, workSpace, w, tmp_y.get(), false);
+                gg.RunGemm(handle, workSpace, w, workSpace, 0, 0, xDesc.GetElementSize());
+                time_gemm += handle.GetKernelTime();
+
+                transpose_CNHW2NCHW_opt(handle,
+                                        in_n,
+                                        wei_n,
+                                        out_h,
+                                        out_w,
+                                        workSpace,
+                                        tmp_y.get(),
+                                        xDesc.GetElementSize(),
+                                        0);
+
+                time_gemm += handle.GetKernelTime();
+
+                perf_db.push_back(
+                    PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, workspace_req});
             }
-            else
-            {
-                transpose_NCHW2CNHW_opt(handle, in_n, in_c, in_h, in_w, x, workSpace, 0, 0);
-            }
-            time_gemm = handle.GetKernelTime();
-
-            gg.FindSolution(0.03, handle, workSpace, w, tmp_y.get(), false);
-            gg.RunGemm(handle, workSpace, w, workSpace, 0, 0, xDesc.GetElementSize());
-            time_gemm += handle.GetKernelTime();
-
-            transpose_CNHW2NCHW_opt(handle,
-                                    in_n,
-                                    wei_n,
-                                    out_h,
-                                    out_w,
-                                    workSpace,
-                                    tmp_y.get(),
-                                    xDesc.GetElementSize(),
-                                    0);
-
-            time_gemm += handle.GetKernelTime();
-
-            perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, workspace_req});
         }
         // if not 1x1
-        else if(workSpace != nullptr && workSpaceSize >= workspace_req)
+        else if(workSpace != nullptr &&
+                workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc))
         {
             GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
             float time_im2col = 0;
@@ -406,7 +412,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             gg.FindSolution(.003, handle, workSpace, w, tmp_y.get(), false);
             gg.RunGemm(handle, workSpace, w, tmp_y.get(), 0, 0, 0);
             time_gemm = in_n * (time_im2col + handle.GetKernelTime());
-            perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, workspace_req});
+            perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM",
+                                        time_gemm,
+                                        ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc)});
         }
 #else
         (void)workSpace;     // Suppress warning
@@ -713,17 +721,17 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             int out_h, out_w;
             std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
 
-            if((wei_h != 1 || wei_w != 1 || u != 1 || v != 1) &&
-               (workSpace == nullptr ||
-                workSpaceSize < ForwardGetWorkSpaceSize(handle, wDesc, xDesc, yDesc)))
-            {
-                MIOPEN_THROW("Workspace is required");
-            }
-
             std::string network_config;
 #if MIOPEN_USE_MIOPENGEMM
-            if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)))
+            if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)) &&
+               dilation_w == 1 && dilation_h == 1)
             {
+                if(workSpace == nullptr &&
+                   workSpaceSize < ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc))
+                {
+                    MIOPEN_THROW("Workspace is required");
+                }
+
                 CreateGemmGeometryConvFwdCNHW(xDesc, wDesc, yDesc, false, network_config);
                 GemmGeometry gg = GetGemmGeometry("miopenConvolutionFwdAlgoGEMM", network_config);
 
@@ -754,6 +762,12 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else
             {
+                if(workSpace == nullptr &&
+                   workSpaceSize < ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc))
+                {
+                    MIOPEN_THROW("Workspace is required");
+                }
+
                 CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
                 GemmGeometry gg = GetGemmGeometry("miopenConvolutionFwdAlgoGEMM", network_config);
 
