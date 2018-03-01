@@ -341,45 +341,51 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
 #if MIOPEN_USE_MIOPENGEMM
-        size_t workspace_req = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
-        float time_gemm      = 0;
+        float time_gemm = 0;
 
-        if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)))
+        if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)) &&
+           dilation_w == 1 && dilation_h == 1)
         {
-            GemmGeometry gg =
-                CreateGemmGeometryConvFwdCNHW(xDesc, wDesc, yDesc, false, network_config);
-
-            if(u == 2 && v == 2)
+            size_t workspace_req = ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
+            if(workSpace != nullptr && workSpaceSize >= workspace_req)
             {
-                transpose_NCHW2CNHW(
-                    handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
+                GemmGeometry gg =
+                    CreateGemmGeometryConvFwdCNHW(xDesc, wDesc, yDesc, false, network_config);
+
+                if(u == 2 && v == 2)
+                {
+                    transpose_NCHW2CNHW(
+                        handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
+                }
+                else
+                {
+                    transpose_NCHW2CNHW_opt(handle, in_n, in_c, in_h, in_w, x, workSpace, 0, 0);
+                }
+                time_gemm = handle.GetKernelTime();
+
+                gg.FindSolution(0.03, handle, workSpace, w, tmp_y.get(), false);
+                gg.RunGemm(handle, workSpace, w, workSpace, 0, 0, xDesc.GetElementSize());
+                time_gemm += handle.GetKernelTime();
+
+                transpose_CNHW2NCHW_opt(handle,
+                                        in_n,
+                                        wei_n,
+                                        out_h,
+                                        out_w,
+                                        workSpace,
+                                        tmp_y.get(),
+                                        xDesc.GetElementSize(),
+                                        0);
+
+                time_gemm += handle.GetKernelTime();
+
+                perf_db.push_back(
+                    PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, workspace_req});
             }
-            else
-            {
-                transpose_NCHW2CNHW_opt(handle, in_n, in_c, in_h, in_w, x, workSpace, 0, 0);
-            }
-            time_gemm = handle.GetKernelTime();
-
-            gg.FindSolution(0.03, handle, workSpace, w, tmp_y.get(), false);
-            gg.RunGemm(handle, workSpace, w, workSpace, 0, 0, xDesc.GetElementSize());
-            time_gemm += handle.GetKernelTime();
-
-            transpose_CNHW2NCHW_opt(handle,
-                                    in_n,
-                                    wei_n,
-                                    out_h,
-                                    out_w,
-                                    workSpace,
-                                    tmp_y.get(),
-                                    xDesc.GetElementSize(),
-                                    0);
-
-            time_gemm += handle.GetKernelTime();
-
-            perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, 0});
         }
         // if not 1x1
-        else if(workSpace != nullptr && workSpaceSize >= workspace_req)
+        else if(workSpace != nullptr &&
+                workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc))
         {
             GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
             float time_im2col = 0;
@@ -406,7 +412,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             gg.FindSolution(.003, handle, workSpace, w, tmp_y.get(), false);
             gg.RunGemm(handle, workSpace, w, tmp_y.get(), 0, 0, 0);
             time_gemm = in_n * (time_im2col + handle.GetKernelTime());
-            perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, workspace_req});
+            perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM",
+                                        time_gemm,
+                                        ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc)});
         }
 #else
         (void)workSpace;     // Suppress warning
@@ -522,6 +530,11 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             static_cast<miopenConvFwdAlgorithm_t>(FwdAlgoResolver(perf_db[i].name));
         perfResults[i].time   = perf_db[i].time;
         perfResults[i].memory = perf_db[i].workspace;
+#ifndef NDEBUG
+        std::cout << "algo = " << perfResults[i].fwd_algo << "\n";
+        std::cout << "time = " << perfResults[i].time << "\n";
+        std::cout << "workspace = " << perfResults[i].memory << "\n";
+#endif // !NDEBUG
     }
 }
 
@@ -570,6 +583,9 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         miopen::checkNumericsInput(handle, wDesc, w);
     }
 
+#ifndef NDEBUG
+    std::cout << "workspace passed " << workSpaceSize << "\n";
+#endif // !NDEBUG
     if(mode == miopenConvolution)
     {
         if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1])
@@ -705,17 +721,17 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             int out_h, out_w;
             std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
 
-            if((wei_h != 1 || wei_w != 1 || u != 1 || v != 1) &&
-               (workSpace == nullptr ||
-                workSpaceSize < ForwardGetWorkSpaceSize(handle, wDesc, xDesc, yDesc)))
-            {
-                MIOPEN_THROW("Workspace is required");
-            }
-
             std::string network_config;
 #if MIOPEN_USE_MIOPENGEMM
-            if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)))
+            if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)) &&
+               dilation_w == 1 && dilation_h == 1)
             {
+                if(workSpace == nullptr &&
+                   workSpaceSize < ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc))
+                {
+                    MIOPEN_THROW("Workspace is required");
+                }
+
                 CreateGemmGeometryConvFwdCNHW(xDesc, wDesc, yDesc, false, network_config);
                 GemmGeometry gg = GetGemmGeometry("miopenConvolutionFwdAlgoGEMM", network_config);
 
@@ -746,6 +762,12 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else
             {
+                if(workSpace == nullptr &&
+                   workSpaceSize < ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc))
+                {
+                    MIOPEN_THROW("Workspace is required");
+                }
+
                 CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
                 GemmGeometry gg = GetGemmGeometry("miopenConvolutionFwdAlgoGEMM", network_config);
 
@@ -1047,16 +1069,16 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 ///    stack, else  (C * H * W) <= 2^23 and it can do 32 stacks, so
                 ///    (C * H * W) <= 2^28.
                 ///  - Reading 2x C at once not a problem if it can read one.
-                static const int F_FLIP_DATA_N_C = 1 << 3;
+                // static const int F_FLIP_DATA_N_C = 1 << 3;
                 /// Causes the dx ("output_addr") to be interpreted as
                 /// float OUT[K][N][out_h][out_w] (no specific restrictions)
                 /// instead of float OUT [N][K][out_h][out_w] with the
                 /// following restrictions:
                 ///  - (K * out_h * out_w) <= 2^28
-                static const int F_FLIP_OUT_N_K = 1 << 4;
+                // static const int F_FLIP_OUT_N_K = 1 << 4;
                 /// <End of Flags>
-                (void)F_FLIP_DATA_N_C;
-                (void)F_FLIP_OUT_N_K;
+                // (void)F_FLIP_DATA_N_C;
+                // (void)F_FLIP_OUT_N_K;
                 int flags        = F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
                 int reserved     = 0;
                 int* return_addr = nullptr;
@@ -1240,12 +1262,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     if(perf_db.empty())
         MIOPEN_THROW(miopenStatusUnknownError, "Backward Data Algo cannot be executed");
 
-    for(auto algo : perf_db)
-    {
-        printf("algo name: %s time: %f\n", algo.name.c_str(), algo.time);
-    }
     // sort the perf_db
-    // std::sort(begin(perf_db), end(perf_db));
+    std::sort(begin(perf_db), end(perf_db));
 
     // update perfResults
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));

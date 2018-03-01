@@ -105,8 +105,9 @@ class ConvDriver : public Driver
 
         miopenCreateConvolutionDescriptor(&convDesc);
 
-        workspace_bwd_dev = nullptr;
-        workspace_fwd_dev = nullptr;
+        workspace_bwd_data_dev    = nullptr;
+        workspace_bwd_weights_dev = nullptr;
+        workspace_fwd_dev         = nullptr;
     }
 
     int AddCmdLineArgs();
@@ -167,7 +168,8 @@ class ConvDriver : public Driver
     std::unique_ptr<GPUMem> dwei_dev;
     std::unique_ptr<GPUMem> out_dev;
     std::unique_ptr<GPUMem> dout_dev;
-    std::unique_ptr<GPUMem> workspace_bwd_dev;
+    std::unique_ptr<GPUMem> workspace_bwd_data_dev;
+    std::unique_ptr<GPUMem> workspace_bwd_weights_dev;
     std::unique_ptr<GPUMem> workspace_fwd_dev;
     std::unique_ptr<GPUMem> b_dev;
     std::unique_ptr<GPUMem> db_dev;
@@ -178,10 +180,12 @@ class ConvDriver : public Driver
     std::vector<T> dwei;
     std::vector<T> out;
     std::vector<T> dout;
-    std::vector<T> workspace_bwd;
+    std::vector<T> workspace_bwd_data;
+    std::vector<T> workspace_bwd_weights;
     std::vector<T> workspace_fwd;
     std::vector<T> outhost;
-    std::vector<T> workspace_bwd_host;
+    std::vector<T> workspace_bwd_data_host;
+    std::vector<T> workspace_bwd_weights_host;
     std::vector<T> workspace_fwd_host;
     std::vector<T> din_host;
     std::vector<T> dwei_host;
@@ -407,8 +411,6 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
         GetHandle(), outputTensor, inputTensor, convDesc, weightTensor, &workSpaceSize_bwd_wt);
     miopenConvolutionBackwardDataGetWorkSpaceSize(
         GetHandle(), outputTensor, weightTensor, convDesc, inputTensor, &workSpaceSize_bwd_dt);
-    size_t workSpaceSize_bwd =
-        workSpaceSize_bwd_dt > workSpaceSize_bwd_wt ? workSpaceSize_bwd_dt : workSpaceSize_bwd_wt;
 
     size_t workSpaceSize_fwd = 0;
     miopenConvolutionForwardGetWorkSpaceSize(
@@ -435,12 +437,19 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
     dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(float)));
     dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
     out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
-    if(workSpaceSize_bwd != 0)
+    if(workSpaceSize_bwd_dt != 0)
     {
-        workspace_bwd_dev =
-            std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_bwd / sizeof(T), sizeof(T)));
-        workspace_bwd      = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
-        workspace_bwd_host = std::vector<T>(workSpaceSize_bwd / sizeof(T), 0);
+        workspace_bwd_data_dev =
+            std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_bwd_dt / sizeof(T), sizeof(T)));
+        workspace_bwd_data      = std::vector<T>(workSpaceSize_bwd_dt / sizeof(T), 0);
+        workspace_bwd_data_host = std::vector<T>(workSpaceSize_bwd_dt / sizeof(T), 0);
+    }
+    if(workSpaceSize_bwd_wt != 0)
+    {
+        workspace_bwd_weights_dev =
+            std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize_bwd_wt / sizeof(T), sizeof(T)));
+        workspace_bwd_weights      = std::vector<T>(workSpaceSize_bwd_wt / sizeof(T), 0);
+        workspace_bwd_weights_host = std::vector<T>(workSpaceSize_bwd_wt / sizeof(T), 0);
     }
     if(workSpaceSize_fwd != 0)
     {
@@ -552,8 +561,10 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
     status |= dwei_dev->ToGPU(q, dwei.data());
     status |= dout_dev->ToGPU(q, dout.data());
     status |= out_dev->ToGPU(q, out.data());
-    if(workSpaceSize_bwd != 0)
-        status |= workspace_bwd_dev->ToGPU(q, workspace_bwd.data());
+    if(workSpaceSize_bwd_dt != 0)
+        status |= workspace_bwd_data_dev->ToGPU(q, workspace_bwd_data.data());
+    if(workSpaceSize_bwd_wt != 0)
+        status |= workspace_bwd_weights_dev->ToGPU(q, workspace_bwd_weights.data());
     if(workSpaceSize_fwd != 0)
         status |= workspace_fwd_dev->ToGPU(q, workspace_fwd.data());
 
@@ -616,7 +627,7 @@ int ConvDriver<T>::RunForwardGPU()
                                  out_dev->GetMem(),
                                  (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem()
                                                                 : nullptr,
-                                 (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetSize() : 0);
+                                 perf_results[0].memory);
     }
 
     if(inflags.GetValueInt("time") == 1)
@@ -861,21 +872,21 @@ int ConvDriver<T>::FindBackwardData(int& ret_algo_count,
                                     std::vector<miopenConvAlgoPerf_t>& perf_results)
 {
 
-    return miopenFindConvolutionBackwardDataAlgorithm(GetHandle(),
-                                                      outputTensor,
-                                                      dout_dev->GetMem(),
-                                                      weightTensor,
-                                                      wei_dev->GetMem(),
-                                                      convDesc,
-                                                      inputTensor,
-                                                      din_dev->GetMem(),
-                                                      request_algo_count,
-                                                      &ret_algo_count,
-                                                      perf_results.data(),
-                                                      workspace_bwd_dev->GetMem(),
-                                                      workspace_bwd_dev->GetSize(),
-                                                      (inflags.GetValueInt("search") == 1) ? true
-                                                                                           : false);
+    return miopenFindConvolutionBackwardDataAlgorithm(
+        GetHandle(),
+        outputTensor,
+        dout_dev->GetMem(),
+        weightTensor,
+        wei_dev->GetMem(),
+        convDesc,
+        inputTensor,
+        din_dev->GetMem(),
+        request_algo_count,
+        &ret_algo_count,
+        perf_results.data(),
+        (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetMem() : nullptr,
+        (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetSize() : 0,
+        (inflags.GetValueInt("search") == 1) ? true : false);
 }
 
 template <typename T>
@@ -884,21 +895,21 @@ int ConvDriver<T>::FindBackwardWeights(int& ret_algo_count,
                                        std::vector<miopenConvAlgoPerf_t>& perf_results)
 {
 
-    miopenFindConvolutionBackwardWeightsAlgorithm(GetHandle(),
-                                                  outputTensor,
-                                                  dout_dev->GetMem(),
-                                                  inputTensor,
-                                                  in_dev->GetMem(),
-                                                  convDesc,
-                                                  weightTensor,
-                                                  wei_dev->GetMem(),
-                                                  request_algo_count,
-                                                  &ret_algo_count,
-                                                  perf_results.data(),
-                                                  workspace_bwd_dev->GetMem(),
-                                                  workspace_bwd_dev->GetSize(),
-                                                  (inflags.GetValueInt("search") == 1) ? true
-                                                                                       : false);
+    miopenFindConvolutionBackwardWeightsAlgorithm(
+        GetHandle(),
+        outputTensor,
+        dout_dev->GetMem(),
+        inputTensor,
+        in_dev->GetMem(),
+        convDesc,
+        weightTensor,
+        wei_dev->GetMem(),
+        request_algo_count,
+        &ret_algo_count,
+        perf_results.data(),
+        (workspace_bwd_weights_dev != nullptr) ? workspace_bwd_weights_dev->GetMem() : nullptr,
+        (workspace_bwd_weights_dev != nullptr) ? workspace_bwd_weights_dev->GetSize() : 0,
+        (inflags.GetValueInt("search") == 1) ? true : false);
 
     return 0;
 }
@@ -922,20 +933,20 @@ int ConvDriver<T>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        ret = miopenConvolutionBackwardData(GetHandle(),
-                                            &alpha,
-                                            outputTensor,
-                                            dout_dev->GetMem(),
-                                            weightTensor,
-                                            wei_dev->GetMem(),
-                                            convDesc,
-                                            // perf_results_data[0].bwd_data_algo,
-                                            perf_results_data[2].bwd_data_algo,
-                                            &beta,
-                                            inputTensor,
-                                            din_dev->GetMem(),
-                                            workspace_bwd_dev->GetMem(),
-                                            workspace_bwd_dev->GetSize());
+        ret = miopenConvolutionBackwardData(
+            GetHandle(),
+            &alpha,
+            outputTensor,
+            dout_dev->GetMem(),
+            weightTensor,
+            wei_dev->GetMem(),
+            convDesc,
+            perf_results_data[0].bwd_data_algo,
+            &beta,
+            inputTensor,
+            din_dev->GetMem(),
+            (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetMem() : nullptr,
+            perf_results_data[0].memory);
     }
 
     if(inflags.GetValueInt("time") == 1)
@@ -958,19 +969,20 @@ int ConvDriver<T>::RunBackwardGPU()
 
     FindBackwardWeights(ret_algo_count, request_algo_count, perf_results_weights);
 
-    ret = miopenConvolutionBackwardWeights(GetHandle(),
-                                           &alpha,
-                                           outputTensor,
-                                           dout_dev->GetMem(),
-                                           inputTensor,
-                                           in_dev->GetMem(),
-                                           convDesc,
-                                           perf_results_weights[0].bwd_weights_algo,
-                                           &beta,
-                                           weightTensor,
-                                           dwei_dev->GetMem(),
-                                           workspace_bwd_dev->GetMem(),
-                                           workspace_bwd_dev->GetSize());
+    ret = miopenConvolutionBackwardWeights(
+        GetHandle(),
+        &alpha,
+        outputTensor,
+        dout_dev->GetMem(),
+        inputTensor,
+        in_dev->GetMem(),
+        convDesc,
+        perf_results_weights[0].bwd_weights_algo,
+        &beta,
+        weightTensor,
+        dwei_dev->GetMem(),
+        (workspace_bwd_weights_dev != nullptr) ? workspace_bwd_weights_dev->GetMem() : nullptr,
+        perf_results_weights[0].memory);
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -984,7 +996,7 @@ int ConvDriver<T>::RunBackwardGPU()
 
     if(perf_results_weights[0].bwd_weights_algo == 0)
     { // miopenConvolutionBwdWeightsAlgoGEMM
-        workspace_bwd_dev->FromGPU(GetStream(), workspace_bwd.data());
+        workspace_bwd_weights_dev->FromGPU(GetStream(), workspace_bwd_weights.data());
     }
 
     if(inflags.GetValueInt("dump_output"))
@@ -1117,9 +1129,10 @@ int ConvDriver<T>::RunBackwardWeightsCPU()
 #ifndef NDEBUG
         if(in_n == 1 && wei_h != 1 && wei_w != 1)
         {
-            // workspace_bwd will be nonzero only if gemm was chosen as the algo
-            bool zeros = std::all_of(
-                workspace_bwd.begin(), workspace_bwd.end(), [](int i) { return i == 0; });
+            // workspace_bwd_weights will be nonzero only if gemm was chosen as the algo
+            bool zeros = std::all_of(workspace_bwd_weights.begin(),
+                                     workspace_bwd_weights.end(),
+                                     [](int i) { return i == 0; });
 
             if(!zeros)
             {
@@ -1136,16 +1149,16 @@ int ConvDriver<T>::RunBackwardWeightsCPU()
                           pad_w,
                           u,
                           v,
-                          workspace_bwd_host);
+                          workspace_bwd_weights_host);
 
-                for(int i = 0; i < workspace_bwd.size(); i++)
+                for(int i = 0; i < workspace_bwd_weights.size(); i++)
                 {
-                    if(std::abs(workspace_bwd[i] - workspace_bwd_host[i]) > 0.0)
+                    if(std::abs(workspace_bwd_weights[i] - workspace_bwd_weights_host[i]) > 0.0)
                     {
                         printf("Im2col error: %d %f %f\n ",
                                i,
-                               workspace_bwd[i],
-                               workspace_bwd_host[i]);
+                               workspace_bwd_weights[i],
+                               workspace_bwd_weights_host[i]);
                     }
                 }
             }
@@ -1204,9 +1217,10 @@ int ConvDriver<T>::RunBackwardWeightsCPU()
 #ifndef NDEBUG
         if(in_n == 1 && wei_h != 1 && wei_w != 1)
         {
-            // workspace_bwd will be nonzero only if gemm was chosen as the algo
-            bool zeros = std::all_of(
-                workspace_bwd.begin(), workspace_bwd.end(), [](int i) { return i == 0; });
+            // workspace_bwd_weights will be nonzero only if gemm was chosen as the algo
+            bool zeros = std::all_of(workspace_bwd_weights.begin(),
+                                     workspace_bwd_weights.end(),
+                                     [](int i) { return i == 0; });
 
             if(!zeros)
             {
@@ -1223,16 +1237,16 @@ int ConvDriver<T>::RunBackwardWeightsCPU()
                           pad_w,
                           v,
                           u,
-                          workspace_bwd_host);
+                          workspace_bwd_weights_host);
 
-                for(int i = 0; i < workspace_bwd.size(); i++)
+                for(int i = 0; i < workspace_bwd_weights.size(); i++)
                 {
-                    if(std::abs(workspace_bwd[i] - workspace_bwd_host[i]) > 0.0)
+                    if(std::abs(workspace_bwd_weights[i] - workspace_bwd_weights_host[i]) > 0.0)
                     {
                         printf("Im2col error: %d %f %f\n ",
                                i,
-                               workspace_bwd[i],
-                               workspace_bwd_host[i]);
+                               workspace_bwd_weights[i],
+                               workspace_bwd_weights_host[i]);
                     }
                 }
             }
