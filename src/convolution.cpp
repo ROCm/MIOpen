@@ -346,10 +346,7 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)) &&
            dilation_w == 1 && dilation_h == 1)
         {
-            size_t dx_t_size = dxDesc.GetElementSize() * sizeof(dxDesc.GetType());
-            size_t dy_t_size = dyDesc.GetElementSize() * sizeof(dyDesc.GetType());
-
-            return dx_t_size + dy_t_size;
+            return BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc);
         }
         // Check if Winograd is available
         // If Winograd is present, there is no advantage in letting
@@ -495,30 +492,16 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMM(Handle& handle,
     if(handle.GetDeviceName() == "gfx803" && gemm_size > (1 << 30))
         gemm_size = 0;
 
-    return (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) ? 0 : gemm_size;
+    return gemm_size;
 }
 
-size_t
-ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeTransGEMM(Handle& handle,
-                                                             const TensorDescriptor& wDesc,
-                                                             const TensorDescriptor& dxDesc,
-                                                             const TensorDescriptor& dyDesc) const
+size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMMTranspose(
+    const TensorDescriptor& dyDesc, const TensorDescriptor& dxDesc) const
 {
-    int wei_h, wei_w;
-    std::tie(std::ignore, std::ignore, wei_h, wei_w) = miopen::tien<4>(wDesc.GetLengths());
-
     size_t dx_t_size = dxDesc.GetElementSize() * sizeof(dxDesc.GetType());
     size_t dy_t_size = dyDesc.GetElementSize() * sizeof(dyDesc.GetType());
 
-    size_t trans_size = dx_t_size + dy_t_size;
-
-    // gfx803 devices have limited memory
-    // TODO: be graceful, need to ensure we can execute a config on the GPU
-    // what if both the algos require > (1 << 30) memory
-    if(handle.GetDeviceName() == "gfx803" && trans_size > (1 << 30))
-        trans_size = 0;
-
-    return (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) ? trans_size : 0;
+    return dx_t_size + dy_t_size;
 }
 
 size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
