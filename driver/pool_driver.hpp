@@ -58,7 +58,6 @@ class PoolDriver : public Driver
         data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
-    const Tgpu GetPrecision(const Tgpu x, const Tgpu y);
     int AddCmdLineArgs();
     int ParseCmdLineArgs(int argc, char* argv[]);
     InputFlags& GetInputFlags() { return inflags; }
@@ -118,14 +117,6 @@ class PoolDriver : public Driver
     std::vector<Tgpu> dout;
     std::vector<Tref> dinhost;
 };
-
-template <typename Tgpu, typename Tref>
-const Tgpu PoolDriver<Tgpu, Tref>::GetPrecision(const Tgpu x, const Tgpu y)
-{
-    //	const Tref prec = (1 << 2);
-    const Tgpu prec = (x > y) ? x - nextafter(x, y) : nextafter(x, y) - x;
-    return prec;
-}
 
 template <typename Tgpu, typename Tref>
 int PoolDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
@@ -485,13 +476,7 @@ int PoolDriver<Tgpu, Tref>::VerifyForward()
 
     int pooling_method = (mode == miopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 
-#if 1
     const Tref tolerance = 1.5e-4; // 1e-6;
-#else
-    Tgpu prec            = GetPrecision(static_cast<Tgpu>(1), static_cast<Tgpu>(0));
-    const Tref tolerance = static_cast<const Tref>(prec);
-    printf("Checking with precision %f\n", tolerance);
-#endif
     bool match = mloPoolingForwardRunHostAndVerify<Tgpu, Tref>(pooling_method,
                                                                pad_h,
                                                                u,
@@ -606,17 +591,9 @@ int PoolDriver<Tgpu, Tref>::VerifyBackward()
                                           hOut);
 
     bool match = true;
-#if 1
     const Tref allowedEps = (1 << 2);
     Tref max_sqr          = 1. / 1000000; // 100000000;
     Tref max_abs_diff     = 1. / 1000000; // 100000000;
-#else
-    Tgpu prec             = GetPrecision(static_cast<Tgpu>(1), static_cast<Tgpu>(0));
-    const Tref allowedEps = static_cast<const Tref>(prec);
-    printf("Checking with precision %f\n", allowedEps);
-    Tref max_sqr      = allowedEps;
-    Tref max_abs_diff = allowedEps;
-#endif
     bool get_error_pos = true;
 
     match = mloVerify<Tgpu, Tref>(nOut,

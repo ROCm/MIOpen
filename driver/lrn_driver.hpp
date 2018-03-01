@@ -58,7 +58,6 @@ class LRNDriver : public Driver
         data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
-    const Tgpu GetPrecision(const Tgpu x, const Tgpu y);
     int AddCmdLineArgs();
     int ParseCmdLineArgs(int argc, char* argv[]);
     InputFlags& GetInputFlags() { return inflags; }
@@ -116,14 +115,6 @@ class LRNDriver : public Driver
     std::vector<Tgpu> dout;
     std::vector<Tref> dinhost;
 };
-
-template <typename Tgpu, typename Tref>
-const Tgpu LRNDriver<Tgpu, Tref>::GetPrecision(const Tgpu x, const Tgpu y)
-{
-    //	const Tref prec = 1e-6;
-    const Tgpu prec = (x > y) ? x - nextafter(x, y) : nextafter(x, y) - x;
-    return prec;
-}
 
 template <typename Tgpu, typename Tref>
 int LRNDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
@@ -473,13 +464,7 @@ int LRNDriver<Tgpu, Tref>::VerifyForward()
                                      outhost.data());
 
     auto error = miopen::rms_range(outhost, out);
-#if 1
     const Tref tolerance = 1.5e-4; // 1e-6;
-#else
-    Tgpu prec            = GetPrecision(static_cast<Tgpu>(1), static_cast<Tgpu>(0));
-    const Tref tolerance = static_cast<const Tref>(prec);
-    printf("Checking with precision %f\n", tolerance);
-#endif
     if(error > tolerance)
     {
         std::cout << "Forward LRN Failed: " << error << "\n";
@@ -574,13 +559,7 @@ int LRNDriver<Tgpu, Tref>::VerifyBackward()
                                       dinhost.data());
 
     auto error = miopen::rms_range(dinhost, din);
-#if 1
     const Tref tolerance = 6.0e-5;
-#else
-    Tgpu prec            = GetPrecision(static_cast<Tgpu>(1), static_cast<Tgpu>(0));
-    const Tref tolerance = static_cast<const Tref>(prec);
-    printf("Checking with precision %f\n", tolerance);
-#endif
     if(error > tolerance)
     {
         std::cout << "Backward LRN Failed: " << error << "\n";
