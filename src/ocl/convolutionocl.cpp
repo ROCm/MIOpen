@@ -1143,13 +1143,12 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
 #if MIOPEN_USE_MIOPENGEMM
-        size_t workspace_req = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc) +
-                               BackwardDataGetWorkSpaceSizeTransGEMM(handle, wDesc, dxDesc, dyDesc);
         float time_gemm = 0;
 
         // 1x1 does not require col2im or workspace
         if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)) &&
-           workSpace != nullptr && workSpaceSize >= workspace_req)
+           workSpace != nullptr &&
+           workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc))
         {
             GemmGeometry gg =
                 CreateGemmGeometryConvBwdDataCNHW(dyDesc, wDesc, dxDesc, true, network_config);
@@ -1190,18 +1189,13 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                         0);
             }
             time_gemm += handle.GetKernelTime();
-            perf_db.push_back(
-                PerfField{"miopenConvolutionBwdDataAlgoGEMM", time_gemm, workspace_req});
-#if 0
-            gg.FindSolution(.003, handle, w, dy, tmp_dx.get(), false);
-            gg.RunGemm(handle, w, dy, tmp_dx.get(), 0, 0, 0);
-
-            time_gemm = in_n * handle.GetKernelTime();
-            perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoGEMM", time_gemm, 0});
-#endif
+            perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoGEMM",
+                                        time_gemm,
+                                        BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc)});
         }
         // if not 1x1
-        else if(workSpace != nullptr && workSpaceSize >= workspace_req)
+        else if(workSpace != nullptr &&
+                workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc))
         {
             GemmGeometry gg =
                 CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, true, network_config);
@@ -1233,8 +1227,9 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
             time_gemm += in_n * time_col2im;
 
-            perf_db.push_back(
-                PerfField{"miopenConvolutionBwdDataAlgoGEMM", time_gemm, workspace_req});
+            perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoGEMM",
+                                        time_gemm,
+                                        BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc)});
         }
 #else
         (void)workSpace;     // Suppress warning
