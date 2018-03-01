@@ -365,7 +365,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
             time_gemm += handle.GetKernelTime();
 
-            perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, 0});
+            perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, workspace_req});
         }
         // if not 1x1
         else if(workSpace != nullptr && workSpaceSize >= workspace_req)
@@ -511,6 +511,11 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             static_cast<miopenConvFwdAlgorithm_t>(FwdAlgoResolver(perf_db[i].name));
         perfResults[i].time   = perf_db[i].time;
         perfResults[i].memory = perf_db[i].workspace;
+#ifndef NDEBUG
+        std::cout << "algo = " << perfResults[i].fwd_algo << "\n";
+        std::cout << "time = " << perfResults[i].time << "\n";
+        std::cout << "workspace = " << perfResults[i].memory << "\n";
+#endif // !NDEBUG
     }
 }
 
@@ -559,6 +564,9 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         miopen::checkNumericsInput(handle, wDesc, w);
     }
 
+#ifndef NDEBUG
+    std::cout << "workspace passed " << workSpaceSize << "\n";
+#endif // !NDEBUG
     if(mode == miopenConvolution)
     {
         if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1])
@@ -1026,16 +1034,16 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 ///    stack, else  (C * H * W) <= 2^23 and it can do 32 stacks, so
                 ///    (C * H * W) <= 2^28.
                 ///  - Reading 2x C at once not a problem if it can read one.
-                static const int F_FLIP_DATA_N_C = 1 << 3;
+                // static const int F_FLIP_DATA_N_C = 1 << 3;
                 /// Causes the dx ("output_addr") to be interpreted as
                 /// float OUT[K][N][out_h][out_w] (no specific restrictions)
                 /// instead of float OUT [N][K][out_h][out_w] with the
                 /// following restrictions:
                 ///  - (K * out_h * out_w) <= 2^28
-                static const int F_FLIP_OUT_N_K = 1 << 4;
+                // static const int F_FLIP_OUT_N_K = 1 << 4;
                 /// <End of Flags>
-                (void)F_FLIP_DATA_N_C;
-                (void)F_FLIP_OUT_N_K;
+                // (void)F_FLIP_DATA_N_C;
+                // (void)F_FLIP_OUT_N_K;
                 int flags        = F_REVERSE_R + F_REVERSE_S + F_FLIP_K_C;
                 int reserved     = 0;
                 int* return_addr = nullptr;

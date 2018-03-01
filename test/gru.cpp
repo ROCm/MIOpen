@@ -1445,6 +1445,8 @@ struct verify_forward_infer_gru
     int batch_n;
     int inputVecLen;
     miopenRNNDescriptor_t rnnDesc;
+    size_t realHiddenSize;
+    bool nohx;
 
     verify_forward_infer_gru(miopenRNNDescriptor_t pRD,
                              const std::vector<T>& px,
@@ -1458,20 +1460,29 @@ struct verify_forward_infer_gru
                              const int pBM,
                              const int pDM,
                              const int pIM,
-                             const int pVL)
+                             const int pVL,
+                             const size_t pHXZ,
+                             const bool pnohx = false)
     {
         rnnDesc    = pRD;
         input      = px;
         initHidden = phx;
         weights = pW, batch_seq = pBS;
-        seqLength   = pS;
-        nLayers     = pNL;
-        biasMode    = pBM;
-        dirMode     = pDM;
-        inputMode   = pIM;
-        batch_n     = pBN;
-        hiddenSize  = pHS;
-        inputVecLen = pVL;
+        seqLength      = pS;
+        nLayers        = pNL;
+        biasMode       = pBM;
+        dirMode        = pDM;
+        inputMode      = pIM;
+        batch_n        = pBN;
+        hiddenSize     = pHS;
+        inputVecLen    = pVL;
+        realHiddenSize = pHXZ;
+
+        nohx = pnohx;
+        if(!nohx)
+            initHidden = phx; // this may be intentionally a nullptr
+        else
+            initHidden.resize(realHiddenSize);
     }
 
     std::vector<T> cpu()
@@ -1590,7 +1601,6 @@ struct verify_forward_infer_gru
         auto output_dev = handle.Write(output);
 
         auto weights_dev = handle.Write(weights);
-        auto hx_dev      = handle.Write(initHidden);
         auto hy          = initHidden;
         std::fill(hy.begin(), hy.end(), 0.);
         auto hy_dev = handle.Write(hy);
@@ -1617,7 +1627,7 @@ struct verify_forward_infer_gru
                                   inputDescs.data(),
                                   input_dev.get(),
                                   &hiddenDesc,
-                                  hx_dev.get(),
+                                  ((nohx) ? nullptr : handle.Write(initHidden).get()),
                                   &hiddenDesc,
                                   nullptr,
                                   &weightDesc,
@@ -1703,6 +1713,8 @@ struct verify_forward_train_gru
     int batch_n;
     int inputVecLen;
     miopenRNNDescriptor_t rnnDesc;
+    size_t realHiddenSize;
+    bool nohx;
 
     verify_forward_train_gru(miopenRNNDescriptor_t pRD,
                              const std::vector<T>& px,
@@ -1716,7 +1728,9 @@ struct verify_forward_train_gru
                              const int pBM,
                              const int pDM,
                              const int pIM,
-                             const int pVL)
+                             const int pVL,
+                             const size_t pHXZ,
+                             const bool pnohx = false)
     {
         rnnDesc     = pRD;
         input       = px;
@@ -1731,6 +1745,14 @@ struct verify_forward_train_gru
         batch_n     = pBN;
         hiddenSize  = pHS;
         inputVecLen = pVL;
+
+        realHiddenSize = pHXZ;
+
+        nohx = pnohx;
+        if(!nohx)
+            initHidden = phx; // this may be intentionally a nullptr
+        else
+            initHidden.resize(realHiddenSize);
     }
 
     std::tuple<std::vector<T>, std::vector<T>, std::vector<T>> cpu()
@@ -1851,8 +1873,8 @@ struct verify_forward_train_gru
         auto output_dev = handle.Write(output);
 
         auto weights_dev = handle.Write(weights);
-        auto hx_dev      = handle.Write(initHidden);
-        auto hy          = initHidden;
+
+        auto hy = initHidden;
         std::fill(hy.begin(), hy.end(), 0.);
         auto hy_dev = handle.Write(hy);
 
@@ -1872,13 +1894,14 @@ struct verify_forward_train_gru
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_start1 = std::chrono::high_resolution_clock::now();
 #endif
+
         miopenRNNForwardTraining(&handle,
                                  rnnDesc,
                                  seqLength,
                                  inputDescs.data(),
                                  input_dev.get(),
                                  &hiddenDesc,
-                                 hx_dev.get(),
+                                 ((nohx) ? nullptr : handle.Write(initHidden).get()),
                                  &hiddenDesc,
                                  nullptr,
                                  &weightDesc,
@@ -1982,6 +2005,9 @@ struct verify_backward_data_gru
     int batch_n;
     int inputVecLen;
     miopenRNNDescriptor_t rnnDesc;
+    size_t realHiddenSize;
+    bool nohx;
+    bool nodhy;
 
     verify_backward_data_gru(miopenRNNDescriptor_t pRD,
                              const std::vector<T>& py,
@@ -1998,7 +2024,10 @@ struct verify_backward_data_gru
                              const int pBM,
                              const int pDM,
                              const int pIM,
-                             const int pVL)
+                             const int pVL,
+                             const size_t pHXZ,
+                             const bool pnohx  = false,
+                             const bool pnodhy = false)
     {
         rnnDesc    = pRD;
         yin        = py;
@@ -2006,15 +2035,28 @@ struct verify_backward_data_gru
         dhy        = pdhy;
         initHidden = phx;
         weights = pW, reserveSpace = pRS;
-        batch_seq   = pBS;
-        seqLength   = pS;
-        nLayers     = pNL;
-        biasMode    = pBM;
-        dirMode     = pDM;
-        inputMode   = pIM;
-        batch_n     = pBN;
-        hiddenSize  = pHS;
-        inputVecLen = pVL;
+        batch_seq      = pBS;
+        seqLength      = pS;
+        nLayers        = pNL;
+        biasMode       = pBM;
+        dirMode        = pDM;
+        inputMode      = pIM;
+        batch_n        = pBN;
+        hiddenSize     = pHS;
+        inputVecLen    = pVL;
+        realHiddenSize = pHXZ;
+
+        nohx = pnohx;
+        if(!nohx)
+            initHidden = phx; // this may be intentionally a nullptr
+        else
+            initHidden.resize(realHiddenSize);
+
+        nodhy = pnodhy;
+        if(!nodhy)
+            dhy = pdhy; // this may be intentionally a nullptr
+        else
+            dhy.resize(realHiddenSize);
     }
 
     std::tuple<std::vector<T>, std::vector<T>, /*std::vector<T>,*/ std::vector<T>> cpu()
@@ -2119,10 +2161,8 @@ struct verify_backward_data_gru
         miopenGetRNNInputTensorSize(&handle, rnnDesc, seqLength, outputDescs.data(), &out_sz);
         auto yin_dev          = handle.Write(yin);
         auto dyin_dev         = handle.Write(dy);
-        auto dhyin_dev        = handle.Write(dhy);
         auto reserveSpace_dev = handle.Write(reserveSpace);
         auto weights_dev      = handle.Write(weights);
-        auto hx_dev           = handle.Write(initHidden);
 
         std::vector<int> hlens(3, 0);
         hlens[0] = nLayers * (dirMode) ? 2 : 1;
@@ -2145,6 +2185,7 @@ struct verify_backward_data_gru
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_start1 = std::chrono::high_resolution_clock::now();
 #endif
+
         miopenRNNBackwardData(&handle,
                               rnnDesc,
                               seqLength,
@@ -2153,13 +2194,13 @@ struct verify_backward_data_gru
                               outputDescs.data(),
                               dyin_dev.get(),
                               &hiddenDesc,
-                              dhyin_dev.get(),
+                              ((nodhy) ? nullptr : handle.Write(dhy).get()),
                               &hiddenDesc,
                               nullptr,
                               &weightDesc,
                               weights_dev.get(),
                               &hiddenDesc,
-                              hx_dev.get(),
+                              ((nohx) ? nullptr : handle.Write(initHidden).get()),
                               &hiddenDesc,
                               nullptr,
                               inputDescs.data(),
@@ -2253,6 +2294,8 @@ struct verify_backward_weights_gru
     int batch_n;
     int inputVecLen;
     miopenRNNDescriptor_t rnnDesc;
+    size_t realHiddenSize;
+    bool nohx;
 
     verify_backward_weights_gru(miopenRNNDescriptor_t pRD,
                                 const std::vector<T>& px,
@@ -2269,24 +2312,33 @@ struct verify_backward_weights_gru
                                 const int pBM,
                                 const int pDM,
                                 const int pIM,
-                                const int pVL)
+                                const int pVL,
+                                const size_t pHXZ,
+                                const bool pnohx = false)
     {
-        rnnDesc      = pRD;
-        input        = px;
-        dy           = pdy;
-        initHidden   = phx;
-        reserveSpace = pRS;
-        workSpace    = pWS;
-        batch_seq    = pBS;
-        seqLength    = pS;
-        nLayers      = pNL;
-        biasMode     = pBM;
-        dirMode      = pDM;
-        inputMode    = pIM;
-        batch_n      = pBN;
-        hiddenSize   = pHS;
-        weightSize   = pW;
-        inputVecLen  = pVL;
+        rnnDesc        = pRD;
+        input          = px;
+        dy             = pdy;
+        initHidden     = phx;
+        reserveSpace   = pRS;
+        workSpace      = pWS;
+        batch_seq      = pBS;
+        seqLength      = pS;
+        nLayers        = pNL;
+        biasMode       = pBM;
+        dirMode        = pDM;
+        inputMode      = pIM;
+        batch_n        = pBN;
+        hiddenSize     = pHS;
+        weightSize     = pW;
+        inputVecLen    = pVL;
+        realHiddenSize = pHXZ;
+
+        nohx = pnohx;
+        if(!nohx)
+            initHidden = phx; // this may be intentionally a nullptr
+        else
+            initHidden.resize(realHiddenSize);
     }
 
     std::vector<T> cpu()
@@ -2368,7 +2420,6 @@ struct verify_backward_weights_gru
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopenFloat, hlens.data(), 3);
-        auto hx_dev    = handle.Write(initHidden);
         auto dy_dev    = handle.Write(dy);
         auto input_dev = handle.Write(input);
 
@@ -2378,13 +2429,14 @@ struct verify_backward_weights_gru
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_start1 = std::chrono::high_resolution_clock::now();
 #endif
+
         miopenRNNBackwardWeights(&handle,
                                  rnnDesc,
                                  seqLength,
                                  inputDescs.data(),
                                  input_dev.get(),
                                  &hiddenDesc,
-                                 hx_dev.get(),
+                                 ((nohx) ? nullptr : handle.Write(initHidden).get()),
                                  outputDescs.data(),
                                  dy_dev.get(),
                                  &weightDesc,
@@ -2452,6 +2504,10 @@ struct gru_driver : test_driver
     int dirMode{};
     int batchSize{};
 
+    // Null pointer input
+    bool nohx  = false;
+    bool nodhy = false;
+
     gru_driver()
     {
         std::vector<int> modes(2, 0);
@@ -2463,6 +2519,8 @@ struct gru_driver : test_driver
         add(inVecLen, "vector-len", generate_data(get_gru_vector_len()));
         add(hiddenSize, "hidden-size", generate_data(get_gru_hidden_size()));
         add(numLayers, "num-layers", generate_data(get_gru_num_layers()));
+        add(nohx, "no-hx", flag());
+        add(nodhy, "no-dhy", flag());
 
 #if(MIO_GRU_TEST_DEBUG == 3)
         biasMode  = 0;
@@ -2519,11 +2577,6 @@ struct gru_driver : test_driver
         std::size_t hx_sz = ((dirMode) ? 2 : 1) * hiddenSize * batchSize * numLayers;
         std::vector<T> hx(hx_sz);
         std::vector<T> dhyin(hx_sz);
-        for(int i = 0; i < hx_sz; i++)
-        {
-            hx[i]    = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
-            dhyin[i] = /*(((rand()%2)==1)?-1:1)**/ 0.001 * float(rand() % 100);
-        }
 
         size_t wei_bytes = 0;
         std::vector<int> inlens(2, 0);
@@ -2547,6 +2600,22 @@ struct gru_driver : test_driver
                inVecLen,
                numLayers);
 #endif
+
+        if(!nohx)
+        {
+            for(int i = 0; i < hx_sz; i++)
+            {
+                hx[i] = 0.001 * float(rand() % 100);
+            }
+        }
+
+        if(!nodhy)
+        {
+            for(int i = 0; i < hx_sz; i++)
+            {
+                dhyin[i] = 0.001 * float(rand() % 100);
+            }
+        }
         auto fwdTrainOutputPair = verify(verify_forward_train_gru<T>{rnnDesc,
                                                                      input,
                                                                      hx,
@@ -2559,7 +2628,9 @@ struct gru_driver : test_driver
                                                                      biasMode,
                                                                      dirMode,
                                                                      inputMode,
-                                                                     inVecReal});
+                                                                     inVecReal,
+                                                                     hx_sz,
+                                                                     nohx});
 
         /// RETURNS std::make_tuple(output, hiddenState, reserveSpace);
         auto yin                  = std::get<0>(fwdTrainOutputPair.second);
@@ -2579,7 +2650,7 @@ struct gru_driver : test_driver
                                                                     yin,
                                                                     dyin,
                                                                     dhyin,
-                                                                    curHiddenState,
+                                                                    hx,
                                                                     weights,
                                                                     reserveSpaceFwdTrain,
                                                                     batchSeq,
@@ -2590,7 +2661,10 @@ struct gru_driver : test_driver
                                                                     biasMode,
                                                                     dirMode,
                                                                     inputMode,
-                                                                    inVecReal});
+                                                                    inVecReal,
+                                                                    hx_sz,
+                                                                    nohx,
+                                                                    nodhy});
 
         // RETURNS:  std::make_tuple(dx, dhx, reserveSpace, workSpace);
         // BUGGY: auto reserveSpaceBwdData = std::get<2>(bwdDataOutputPair.second);
@@ -2599,7 +2673,7 @@ struct gru_driver : test_driver
             verify(verify_backward_weights_gru<T>{rnnDesc,
                                                   input,
                                                   dyin,
-                                                  curHiddenState,
+                                                  hx,
                                                   reserveSpaceFwdTrain, // reserveSpaceBwdData,
                                                   workSpaceBwdData,
                                                   batchSeq,
@@ -2611,11 +2685,13 @@ struct gru_driver : test_driver
                                                   biasMode,
                                                   dirMode,
                                                   inputMode,
-                                                  inVecReal});
+                                                  inVecReal,
+                                                  hx_sz,
+                                                  nohx});
 
         verify(verify_forward_infer_gru<T>{rnnDesc,
                                            input,
-                                           curHiddenState,
+                                           hx,
                                            weights,
                                            batchSeq,
                                            hiddenSize,
@@ -2625,7 +2701,9 @@ struct gru_driver : test_driver
                                            biasMode,
                                            dirMode,
                                            inputMode,
-                                           inVecReal});
+                                           inVecReal,
+                                           hx_sz,
+                                           nohx});
 
         // DLOWELL: Subtracting delta weights may produce NAN and infinities. Further investigation
         // is needed.

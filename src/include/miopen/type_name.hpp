@@ -59,6 +59,12 @@ const std::string& get_type_name()
     return name;
 }
 
+template <class T>
+const std::string& get_type_name(const T&)
+{
+    return miopen::get_type_name<T>();
+}
+
 } // namespace miopen
 
 #endif
