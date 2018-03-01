@@ -74,7 +74,6 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
     (void)wei_wstride; // -warn
     (void)out_wstride; // -warn
 #endif
-#if 1
     std::vector<_Tcheck> t_wei(wei_n * wei_c * wei_h * wei_w, static_cast<_Tcheck>(0));
     for(int o = 0; o < out_n; o++) // mini-batch size
     {
@@ -114,7 +113,6 @@ void RunBackwardWeightsCPUVerify(std::vector<_Tcheck>& dwei_host,
     {
         dwei_host[i] = t_wei[i];
     }
-#endif
 #ifdef BACKWARD_WRW_VERIFY_DIRECT_2
 
     {

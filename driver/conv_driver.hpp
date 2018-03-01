@@ -112,7 +112,6 @@ class ConvDriver : public Driver
         data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
-    const Tgpu GetPrecision(const Tgpu x, const Tgpu y);
     int AddCmdLineArgs();
     int ParseCmdLineArgs(int argc, char* argv[]);
     InputFlags& GetInputFlags() { return inflags; }
@@ -201,14 +200,6 @@ class ConvDriver : public Driver
                                   Tref* data) const;
     void TrySaveVerificationCache(const std::string& file_name, std::vector<Tref>& data) const;
 };
-
-template <typename Tgpu, typename Tref>
-const Tgpu ConvDriver<Tgpu, Tref>::GetPrecision(const Tgpu x, const Tgpu y)
-{
-    //	const Tref prec = 1e-6;
-    const Tgpu prec = (x > y) ? x - nextafter(x, y) : nextafter(x, y) - x;
-    return prec;
-}
 
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
@@ -1615,13 +1606,7 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
     }
 
     auto error = miopen::rms_range(outhost, out);
-#if 1
     const Tref tolerance = ((sizeof(Tgpu) == 4) ? (Tref)1e-6 : (Tref)7e-2);
-#else
-    Tgpu prec            = GetPrecision(static_cast<Tgpu>(1), static_cast<Tgpu>(0));
-    const Tref tolerance = static_cast<const Tref>(prec);
-    printf("Checking with precision %f\n", tolerance);
-#endif
     if(!(error < tolerance))
     {
         std::cout << std::string("Forward Convolution Failed: ") << error << "\n";
@@ -1637,13 +1622,7 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::VerifyBackward()
 {
-#if 1
     const Tref tolerance = ((sizeof(Tgpu) == 4) ? (Tref)1e-6 : (Tref)7e-2);
-#else
-    Tgpu prec            = GetPrecision(static_cast<Tgpu>(1), static_cast<Tgpu>(0));
-    const Tref tolerance = static_cast<const Tref>(prec);
-    printf("Checking with precision %f\n", tolerance);
-#endif
 
     if(!TryReadVerificationCache("bwd_dat", inputTensor, din_host.data()))
     {

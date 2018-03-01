@@ -75,7 +75,6 @@ class BatchNormDriver : public Driver
         data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
-    const Tgpu GetPrecision(const Tgpu x, const Tgpu y);
     int AddCmdLineArgs();
     int ParseCmdLineArgs(int argc, char* argv[]);
     InputFlags& GetInputFlags() { return inflags; }
@@ -180,14 +179,6 @@ class BatchNormDriver : public Driver
     int createRunningBuffers();
     Tref maxval;
 };
-
-template <typename Tgpu, typename Tref>
-const Tgpu BatchNormDriver<Tgpu, Tref>::GetPrecision(const Tgpu x, const Tgpu y)
-{
-    //	const Tref prec = (1 << 2);
-    const Tgpu prec = (x > y) ? x - nextafter(x, y) : nextafter(x, y) - x;
-    return prec;
-}
 
 template <typename Tgpu, typename Tref>
 int BatchNormDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
