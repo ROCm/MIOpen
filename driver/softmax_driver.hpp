@@ -57,7 +57,6 @@ class SoftmaxDriver : public Driver
         data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
-    const Tgpu GetPrecision(const Tgpu x, const Tgpu y);
     int AddCmdLineArgs();
     int ParseCmdLineArgs(int argc, char* argv[]);
     InputFlags& GetInputFlags() { return inflags; }
@@ -108,14 +107,6 @@ class SoftmaxDriver : public Driver
     std::vector<Tgpu> dout;
     std::vector<Tref> dinhost;
 };
-
-template <typename Tgpu, typename Tref>
-const Tgpu SoftmaxDriver<Tgpu, Tref>::GetPrecision(const Tgpu x, const Tgpu y)
-{
-    //	const Tref prec = 1e-6;
-    const Tgpu prec = (x > y) ? x - nextafter(x, y) : nextafter(x, y) - x;
-    return prec;
-}
 
 template <typename Tgpu, typename Tref>
 int SoftmaxDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
@@ -335,13 +326,7 @@ int SoftmaxDriver<Tgpu, Tref>::VerifyForward()
     mloSoftmaxForwardRunHost<Tref>(n, c, h, w, channel_max.data(), outhost.data());
 
     auto error = miopen::rms_range(outhost, out);
-#if 1
     const Tref tolerance = 1e-3; // 1e-6;
-#else
-    Tgpu prec            = GetPrecision(static_cast<Tgpu>(1), static_cast<Tgpu>(0));
-    const Tref tolerance = static_cast<const Tref>(prec);
-    printf("Checking with precision %f\n", tolerance);
-#endif
     if(error > tolerance)
     {
         std::cout << "Forward Softmax Failed: " << error << "\n";
@@ -374,13 +359,7 @@ int SoftmaxDriver<Tgpu, Tref>::VerifyBackward()
         n, c, h, w, channel_dot.data(), out.data(), dinhost.data());
 
     auto error = miopen::rms_range(dinhost, din);
-#if 1
     const Tref tolerance = 1e-3; // 1e-6;
-#else
-    Tgpu prec            = GetPrecision(static_cast<Tgpu>(1), static_cast<Tgpu>(0));
-    const Tref tolerance = static_cast<const Tref>(prec);
-    printf("Checking with precision %f\n", tolerance);
-#endif
     if(error > tolerance)
     {
         std::cout << "Backward Softmax Failed: " << error << "\n";

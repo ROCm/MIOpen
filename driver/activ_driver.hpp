@@ -62,7 +62,6 @@ class ActivationDriver : public Driver
         data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
-    const Tgpu GetPrecision(const Tgpu x, const Tgpu y);
     int AddCmdLineArgs();
     int ParseCmdLineArgs(int argc, char* argv[]);
     InputFlags& GetInputFlags() { return inflags; }
@@ -117,14 +116,6 @@ class ActivationDriver : public Driver
     std::vector<Tgpu> dout;
     std::vector<Tref> dinhost;
 };
-
-template <typename Tgpu, typename Tref>
-const Tgpu ActivationDriver<Tgpu, Tref>::GetPrecision(const Tgpu x, const Tgpu y)
-{
-    //	const Tref prec = (1 << 2);
-    const Tgpu prec = (x > y) ? x - nextafter(x, y) : nextafter(x, y) - x;
-    return prec;
-}
 
 template <typename Tgpu, typename Tref>
 int ActivationDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
@@ -320,13 +311,7 @@ template <typename Tgpu, typename Tref>
 int ActivationDriver<Tgpu, Tref>::VerifyForward()
 {
 
-#if 1
     const Tref allowedEps = (1 << 2);
-#else
-    Tgpu prec             = GetPrecision(static_cast<Tgpu>(1), static_cast<Tgpu>(0));
-    const Tref allowedEps = static_cast<const Tref>(prec);
-    printf("Checking with precision %f\n", allowedEps);
-#endif
     miopenActivationMode_t v_mode;
     double v_Alpha;
     double v_Beta;
@@ -360,13 +345,7 @@ template <typename Tgpu, typename Tref>
 int ActivationDriver<Tgpu, Tref>::VerifyBackward()
 {
 
-#if 1
     const Tref allowedEps = (1 << 2);
-#else
-    Tgpu prec             = GetPrecision(static_cast<Tgpu>(1), static_cast<Tgpu>(0));
-    const Tref allowedEps = static_cast<const Tref>(prec);
-    printf("Checking with precision %f\n", allowedEps);
-#endif
     miopenActivationMode_t v_mode;
     double v_Alpha;
     double v_Beta;
