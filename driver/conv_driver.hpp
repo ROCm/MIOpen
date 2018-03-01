@@ -883,21 +883,21 @@ int ConvDriver<Tgpu, Tref>::FindBackwardData(int& ret_algo_count,
                                              std::vector<miopenConvAlgoPerf_t>& perf_results)
 {
 
-    return miopenFindConvolutionBackwardDataAlgorithm(GetHandle(),
-                                                      outputTensor,
-                                                      dout_dev->GetMem(),
-                                                      weightTensor,
-                                                      wei_dev->GetMem(),
-                                                      convDesc,
-                                                      inputTensor,
-                                                      din_dev->GetMem(),
-                                                      request_algo_count,
-                                                      &ret_algo_count,
-                                                      perf_results.data(),
-                                                      (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetMem() : nullptr,
-                                                      (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetSize() : 0,
-                                                      (inflags.GetValueInt("search") == 1) ? true
-                                                                                           : false);
+    return miopenFindConvolutionBackwardDataAlgorithm(
+        GetHandle(),
+        outputTensor,
+        dout_dev->GetMem(),
+        weightTensor,
+        wei_dev->GetMem(),
+        convDesc,
+        inputTensor,
+        din_dev->GetMem(),
+        request_algo_count,
+        &ret_algo_count,
+        perf_results.data(),
+        (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetMem() : nullptr,
+        (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetSize() : 0,
+        (inflags.GetValueInt("search") == 1) ? true : false);
 }
 
 template <typename Tgpu, typename Tref>
@@ -906,21 +906,22 @@ int ConvDriver<Tgpu, Tref>::FindBackwardWeights(int& ret_algo_count,
                                                 std::vector<miopenConvAlgoPerf_t>& perf_results)
 {
 
-    miopenFindConvolutionBackwardWeightsAlgorithm(GetHandle(),
-                                                  outputTensor,
-                                                  dout_dev->GetMem(),
-                                                  inputTensor,
-                                                  in_dev->GetMem(),
-                                                  convDesc,
-                                                  weightTensor,
-                                                  wei_dev->GetMem(),
-                                                  request_algo_count,
-                                                  &ret_algo_count,
-                                                  perf_results.data(),
-                                                  (workspace_bwd_weights_dev != nullptr) ? workspace_bwd_weights_dev->GetMem() : nullptr,
-                                                  (workspace_bwd_weights_dev != nullptr) ? workspace_bwd_weights_dev->GetSize() : 0,
-                                                  (inflags.GetValueInt("search") == 1) ? true
-                                                                                       : false);
+
+    miopenFindConvolutionBackwardWeightsAlgorithm(
+        GetHandle(),
+        outputTensor,
+        dout_dev->GetMem(),
+        inputTensor,
+        in_dev->GetMem(),
+        convDesc,
+        weightTensor,
+        wei_dev->GetMem(),
+        request_algo_count,
+        &ret_algo_count,
+        perf_results.data(),
+        (workspace_bwd_weights_dev != nullptr) ? workspace_bwd_weights_dev->GetMem() : nullptr,
+        (workspace_bwd_weights_dev != nullptr) ? workspace_bwd_weights_dev->GetSize() : 0,
+        (inflags.GetValueInt("search") == 1) ? true : false);
 
     return 0;
 }
@@ -943,19 +944,20 @@ int ConvDriver<Tgpu, Tref>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        ret = miopenConvolutionBackwardData(GetHandle(),
-                                            &alpha,
-                                            outputTensor,
-                                            dout_dev->GetMem(),
-                                            weightTensor,
-                                            wei_dev->GetMem(),
-                                            convDesc,
-                                            perf_results_data[0].bwd_data_algo,
-                                            &beta,
-                                            inputTensor,
-                                            din_dev->GetMem(),
-                                            (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetMem() : nullptr,
-                                            perf_results_data[0].memory);
+        ret = miopenConvolutionBackwardData(
+            GetHandle(),
+            &alpha,
+            outputTensor,
+            dout_dev->GetMem(),
+            weightTensor,
+            wei_dev->GetMem(),
+            convDesc,
+            perf_results_data[0].bwd_data_algo,
+            &beta,
+            inputTensor,
+            din_dev->GetMem(),
+            (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetMem() : nullptr,
+            perf_results_data[0].memory);
     }
 
     if(inflags.GetValueInt("time") == 1)
@@ -978,19 +980,20 @@ int ConvDriver<Tgpu, Tref>::RunBackwardGPU()
 
     FindBackwardWeights(ret_algo_count, request_algo_count, perf_results_weights);
 
-    ret = miopenConvolutionBackwardWeights(GetHandle(),
-                                           &alpha,
-                                           outputTensor,
-                                           dout_dev->GetMem(),
-                                           inputTensor,
-                                           in_dev->GetMem(),
-                                           convDesc,
-                                           perf_results_weights[0].bwd_weights_algo,
-                                           &beta,
-                                           weightTensor,
-                                           dwei_dev->GetMem(),
-                                           (workspace_bwd_weights_dev != nullptr) ? workspace_bwd_weights_dev->GetMem() : nullptr,
-                                           perf_results_weights[0].memory);
+    ret = miopenConvolutionBackwardWeights(
+        GetHandle(),
+        &alpha,
+        outputTensor,
+        dout_dev->GetMem(),
+        inputTensor,
+        in_dev->GetMem(),
+        convDesc,
+        perf_results_weights[0].bwd_weights_algo,
+        &beta,
+        weightTensor,
+        dwei_dev->GetMem(),
+        (workspace_bwd_weights_dev != nullptr) ? workspace_bwd_weights_dev->GetMem() : nullptr,
+        perf_results_weights[0].memory);
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -1231,7 +1234,6 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
                                      [](int i) { return i == 0; });
 
             if(!zeros)
-            {
                 Im2ColCPU<Tgpu, Tref>(dout,
                                       0,
                                       out_c,
