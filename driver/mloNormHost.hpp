@@ -39,15 +39,16 @@
 #define MLO_LRN_ACROSS_CHANNELS 1
 #endif
 
-template <typename _T>
+template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
+          typename _Tcheck /* the data type used in CPU checkings (usually double) */>
 int mloLRNForwardRunHost(bool do_scale,
                          int norm_region,
                          int pad,
                          int local_area,
-                         _T alphaoverarea,
-                         _T alpha,
-                         _T beta,
-                         _T K,
+                         _Tcheck alphaoverarea,
+                         _Tcheck alpha,
+                         _Tcheck beta,
+                         _Tcheck K,
                          int n_batchs,
                          int n_outputs,
                          int n_inputs,
@@ -64,9 +65,9 @@ int mloLRNForwardRunHost(bool do_scale,
                          int scale_v_stride,
                          int scale_v_channel_stride,
                          int scale_v_batch_stride,
-                         const _T* bot_ptr,
-                         _T* scale_v_ptr,
-                         _T* top_v_ptr)
+                         const _Tgpu* bot_ptr,
+                         _Tcheck* scale_v_ptr,
+                         _Tcheck* top_v_ptr)
 {
 
     int ret = 0;
@@ -79,15 +80,16 @@ int mloLRNForwardRunHost(bool do_scale,
                 for(int i = 0; i < top_width; i++)
                 {
                     // c-emulator
-                    _T accum_scale = 0;
-                    int head       = 0;
-                    _T bot_val;
+                    _Tcheck accum_scale = _Tcheck{0};
+                    int head            = 0;
+                    _Tcheck bot_val;
                     while(head < pad)
                     {
                         bot_val = (head < n_inputs)
-                                      ? bot_ptr[b * bot_batch_stride + head * bot_channel_stride +
-                                                j * bot_stride + i]
-                                      : 0;
+                                      ? static_cast<_Tcheck>(
+                                            bot_ptr[b * bot_batch_stride +
+                                                    head * bot_channel_stride + j * bot_stride + i])
+                                      : static_cast<_Tcheck>(0);
                         accum_scale += bot_val * bot_val;
                         ++head;
                     }
@@ -95,11 +97,12 @@ int mloLRNForwardRunHost(bool do_scale,
                     while(head < local_area && head - pad >= 0 && head < n_inputs)
                     {
                         bot_val = (head < n_inputs)
-                                      ? bot_ptr[b * bot_batch_stride + head * bot_channel_stride +
-                                                j * bot_stride + i]
-                                      : 0;
+                                      ? static_cast<_Tcheck>(
+                                            bot_ptr[b * bot_batch_stride +
+                                                    head * bot_channel_stride + j * bot_stride + i])
+                                      : static_cast<_Tcheck>(0);
                         accum_scale += bot_val * bot_val;
-                        _T scale = K + accum_scale * alphaoverarea;
+                        _Tcheck scale = K + accum_scale * alphaoverarea;
                         if((head - pad) >= 0 && do_scale)
                         {
                             scale_v_ptr[b * scale_v_batch_stride +
@@ -108,11 +111,12 @@ int mloLRNForwardRunHost(bool do_scale,
                         }
                         bot_val =
                             ((head - pad) >= 0)
-                                ? bot_ptr[b * bot_batch_stride + (head - pad) * bot_channel_stride +
-                                          j * bot_stride + i]
-                                : 0;
-                        _T s     = pow(scale, -beta);
-                        _T c_val = bot_val * s;
+                                ? static_cast<_Tcheck>(bot_ptr[b * bot_batch_stride +
+                                                               (head - pad) * bot_channel_stride +
+                                                               j * bot_stride + i])
+                                : static_cast<_Tcheck>(0);
+                        _Tcheck s     = pow(scale, -beta);
+                        _Tcheck c_val = bot_val * s;
                         if((head - pad) >= 0)
                         {
                             top_v_ptr[b * top_v_batch_stride + (head - pad) * top_v_channel_stride +
@@ -123,29 +127,32 @@ int mloLRNForwardRunHost(bool do_scale,
                     // both add and subtract
                     while(head < n_inputs)
                     {
-                        bot_val = bot_ptr[b * bot_batch_stride + head * bot_channel_stride +
-                                          j * bot_stride + i];
+                        bot_val = static_cast<_Tcheck>(
+                            bot_ptr[b * bot_batch_stride + head * bot_channel_stride +
+                                    j * bot_stride + i]);
                         accum_scale += bot_val * bot_val;
                         bot_val = ((head - local_area) >= 0)
-                                      ? bot_ptr[b * bot_batch_stride +
-                                                (head - local_area) * bot_channel_stride +
-                                                j * bot_stride + i]
-                                      : 0;
+                                      ? static_cast<_Tcheck>(
+                                            bot_ptr[b * bot_batch_stride +
+                                                    (head - local_area) * bot_channel_stride +
+                                                    j * bot_stride + i])
+                                      : static_cast<_Tcheck>(0);
                         accum_scale -= bot_val * bot_val;
-                        _T scale = K + accum_scale * alphaoverarea;
+                        _Tcheck scale = K + accum_scale * alphaoverarea;
                         if((head - pad) >= 0 && do_scale)
                         {
                             scale_v_ptr[b * scale_v_batch_stride +
                                         (head - pad) * scale_v_channel_stride + j * scale_v_stride +
                                         i] = scale;
                         }
-                        _T s = pow(scale, -beta);
+                        _Tcheck s = pow(scale, -beta);
                         bot_val =
                             ((head - pad) >= 0)
-                                ? bot_ptr[b * bot_batch_stride + (head - pad) * bot_channel_stride +
-                                          j * bot_stride + i]
-                                : 0;
-                        _T c_val = bot_val * s;
+                                ? static_cast<_Tcheck>(bot_ptr[b * bot_batch_stride +
+                                                               (head - pad) * bot_channel_stride +
+                                                               j * bot_stride + i])
+                                : static_cast<_Tcheck>(0);
+                        _Tcheck c_val = bot_val * s;
                         if((head - pad) >= 0)
                         {
                             top_v_ptr[b * top_v_batch_stride + (head - pad) * top_v_channel_stride +
@@ -157,12 +164,13 @@ int mloLRNForwardRunHost(bool do_scale,
                     while(head < n_inputs + pad)
                     {
                         bot_val = ((head - local_area) >= 0 && (head - local_area) < n_inputs)
-                                      ? bot_ptr[b * bot_batch_stride +
-                                                (head - local_area) * bot_channel_stride +
-                                                j * bot_stride + i]
-                                      : 0;
+                                      ? static_cast<_Tcheck>(
+                                            bot_ptr[b * bot_batch_stride +
+                                                    (head - local_area) * bot_channel_stride +
+                                                    j * bot_stride + i])
+                                      : static_cast<_Tcheck>(0);
                         accum_scale -= bot_val * bot_val;
-                        _T scale = K + accum_scale * alphaoverarea;
+                        _Tcheck scale = K + accum_scale * alphaoverarea;
                         if((head - pad) >= 0 && (head - pad) < n_outputs && do_scale)
                         {
                             scale_v_ptr[b * scale_v_batch_stride +
@@ -171,11 +179,12 @@ int mloLRNForwardRunHost(bool do_scale,
                         }
                         bot_val =
                             ((head - pad) >= 0 && (head - pad) < n_inputs)
-                                ? bot_ptr[b * bot_batch_stride + (head - pad) * bot_channel_stride +
-                                          j * bot_stride + i]
-                                : 0;
-                        _T s     = pow(scale, -beta);
-                        _T c_val = bot_val * s;
+                                ? static_cast<_Tcheck>(bot_ptr[b * bot_batch_stride +
+                                                               (head - pad) * bot_channel_stride +
+                                                               j * bot_stride + i])
+                                : static_cast<_Tcheck>(0);
+                        _Tcheck s     = pow(scale, -beta);
+                        _Tcheck c_val = bot_val * s;
                         if((head - pad) >= 0 && (head - pad) < n_outputs)
                         {
                             top_v_ptr[b * top_v_batch_stride + (head - pad) * top_v_channel_stride +
@@ -199,7 +208,7 @@ int mloLRNForwardRunHost(bool do_scale,
                     for(int i = 0; i < top_width; i++)
                     {
                         // c-emulator
-                        _T scale          = 0;
+                        _Tcheck scale     = static_cast<_Tcheck>(0);
                         int hstart        = j - pad;
                         int wstart        = i - pad;
                         int hend          = std::min(hstart + local_area, bot_height + pad);
@@ -209,14 +218,15 @@ int mloLRNForwardRunHost(bool do_scale,
                         wstart            = std::max(wstart, 0);
                         hend              = std::min(hend, bot_height);
                         wend              = std::min(wend, bot_width);
-                        _T accum          = 0;
+                        _Tcheck accum     = static_cast<_Tcheck>(0);
                         for(int h = hstart; h < hend; ++h)
                         {
                             for(int w = wstart; w < wend; ++w)
                             {
 
-                                _T bot_val = bot_ptr[b * bot_batch_stride + o * bot_channel_stride +
-                                                     h * bot_stride + w];
+                                _Tcheck bot_val = static_cast<_Tcheck>(
+                                    bot_ptr[b * bot_batch_stride + o * bot_channel_stride +
+                                            h * bot_stride + w]);
                                 accum += bot_val * bot_val;
                             }
                         }
@@ -229,10 +239,11 @@ int mloLRNForwardRunHost(bool do_scale,
                                         j * scale_v_stride + i] = scale;
                         }
 
-                        _T s       = pow(scale, -beta);
-                        _T bot_val = bot_ptr[b * bot_batch_stride + o * bot_channel_stride +
-                                             j * bot_stride + i];
-                        _T c_val = bot_val * s;
+                        _Tcheck s       = pow(scale, -beta);
+                        _Tcheck bot_val = static_cast<_Tcheck>(
+                            bot_ptr[b * bot_batch_stride + o * bot_channel_stride + j * bot_stride +
+                                    i]);
+                        _Tcheck c_val = bot_val * s;
 
                         top_v_ptr[b * top_v_batch_stride + o * top_v_channel_stride +
                                   j * top_v_stride + i] = c_val;
@@ -246,14 +257,15 @@ int mloLRNForwardRunHost(bool do_scale,
     return (ret);
 }
 
-template <typename _T>
+template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
+          typename _Tcheck /* the data type used in CPU checkings (usually double) */>
 int mloLRNBackwardRunHost(int norm_region,
                           int pad,
                           int local_area,
-                          _T /*alphaoverarea*/,
-                          _T alpha,
-                          _T beta,
-                          _T /*K*/,
+                          _Tcheck /*alphaoverarea*/,
+                          _Tcheck alpha,
+                          _Tcheck beta,
+                          _Tcheck /*K*/,
                           int n_batchs,
                           int /*n_outputs*/,
                           int n_inputs,
@@ -276,20 +288,21 @@ int mloLRNBackwardRunHost(int norm_region,
                           int scale_stride,
                           int scale_channel_stride,
                           int scale_batch_stride,
-                          const _T* top_ptr,
-                          const _T* top_df_ptr,
-                          const _T* scale_ptr,
-                          const _T* bot_ptr,
-                          _T* bot_df_v_ptr)
+                          const _Tgpu* top_ptr,
+                          const _Tgpu* top_df_ptr,
+                          const _Tgpu* scale_ptr,
+                          const _Tgpu* bot_ptr,
+                          _Tcheck* bot_df_v_ptr)
 {
 
-    int ret          = 0;
-    _T negative_beta = -beta;
+    int ret               = 0;
+    _Tcheck negative_beta = -beta;
 
     if(norm_region == MLO_LRN_ACROSS_CHANNELS)
     {
 
-        _T ratio_dta_bwd = static_cast<_T>(2.) * alpha * beta / local_area;
+        _Tcheck ratio_dta_bwd =
+            static_cast<_Tcheck>(2.) * alpha * beta / static_cast<_Tcheck>(local_area);
 
         for(int b = 0; b < n_batchs; b++)
         {
@@ -299,21 +312,24 @@ int mloLRNBackwardRunHost(int norm_region,
                 {
 
                     // c-emulator
-                    int head       = 0;
-                    _T accum_ratio = 0;
+                    int head            = 0;
+                    _Tcheck accum_ratio = static_cast<_Tcheck>(0);
 
                     // accumulate values
                     while(head < pad)
                     {
                         if(head < n_inputs)
                         {
-                            _T adder =
-                                (top_df_ptr[b * top_df_batch_stride + head * top_df_channel_stride +
-                                            j * top_df_stride + i] *
-                                 top_ptr[b * top_batch_stride + head * top_channel_stride +
-                                         j * top_stride + i]) /
-                                scale_ptr[b * scale_batch_stride + head * scale_channel_stride +
-                                          j * scale_stride + i];
+                            _Tcheck adder =
+                                (static_cast<_Tcheck>(top_df_ptr[b * top_df_batch_stride +
+                                                                 head * top_df_channel_stride +
+                                                                 j * top_df_stride + i]) *
+                                 static_cast<_Tcheck>(
+                                     top_ptr[b * top_batch_stride + head * top_channel_stride +
+                                             j * top_stride + i])) /
+                                static_cast<_Tcheck>(
+                                    scale_ptr[b * scale_batch_stride + head * scale_channel_stride +
+                                              j * scale_stride + i]);
 
                             accum_ratio += adder;
                         }
@@ -327,13 +343,16 @@ int mloLRNBackwardRunHost(int norm_region,
 
                         if(head < n_inputs)
                         {
-                            _T adder =
-                                (top_df_ptr[b * top_df_batch_stride + head * top_df_channel_stride +
-                                            j * top_df_stride + i] *
-                                 top_ptr[b * top_batch_stride + head * top_channel_stride +
-                                         j * top_stride + i]) /
-                                scale_ptr[b * scale_batch_stride + head * scale_channel_stride +
-                                          j * scale_stride + i];
+                            _Tcheck adder =
+                                (static_cast<_Tcheck>(top_df_ptr[b * top_df_batch_stride +
+                                                                 head * top_df_channel_stride +
+                                                                 j * top_df_stride + i]) *
+                                 static_cast<_Tcheck>(
+                                     top_ptr[b * top_batch_stride + head * top_channel_stride +
+                                             j * top_stride + i])) /
+                                static_cast<_Tcheck>(
+                                    scale_ptr[b * scale_batch_stride + head * scale_channel_stride +
+                                              j * scale_stride + i]);
 
                             accum_ratio += adder;
                         }
@@ -343,16 +362,19 @@ int mloLRNBackwardRunHost(int norm_region,
                             bot_df_v_ptr[b * bot_df_v_batch_stride +
                                          (head - pad) * bot_df_v_channel_stride +
                                          j * bot_df_v_stride + i] =
-                                top_df_ptr[b * top_df_batch_stride +
-                                           (head - pad) * top_df_channel_stride +
-                                           j * top_df_stride + i] *
-                                    pow(scale_ptr[b * scale_batch_stride +
-                                                  (head - pad) * scale_channel_stride +
-                                                  j * scale_stride + i],
+                                static_cast<_Tcheck>(
+                                    top_df_ptr[b * top_df_batch_stride +
+                                               (head - pad) * top_df_channel_stride +
+                                               j * top_df_stride + i]) *
+                                    pow(static_cast<_Tcheck>(
+                                            scale_ptr[b * scale_batch_stride +
+                                                      (head - pad) * scale_channel_stride +
+                                                      j * scale_stride + i]),
                                         negative_beta) -
-                                ratio_dta_bwd * bot_ptr[b * bot_batch_stride +
-                                                        (head - pad) * bot_channel_stride +
-                                                        j * bot_stride + i] *
+                                ratio_dta_bwd *
+                                    static_cast<_Tcheck>(bot_ptr[b * bot_batch_stride +
+                                                                 (head - pad) * bot_channel_stride +
+                                                                 j * bot_stride + i]) *
                                     accum_ratio;
                         }
                         ++head;
@@ -362,27 +384,34 @@ int mloLRNBackwardRunHost(int norm_region,
                     while(head < n_inputs)
                     {
 
-                        _T adder =
-                            top_df_ptr[b * top_df_batch_stride + head * top_df_channel_stride +
-                                       j * top_df_stride + i] *
-                            top_ptr[b * top_batch_stride + head * top_channel_stride +
-                                    j * top_stride + i] /
-                            scale_ptr[b * scale_batch_stride + head * scale_channel_stride +
-                                      j * scale_stride + i];
+                        _Tcheck adder =
+                            static_cast<_Tcheck>(
+                                top_df_ptr[b * top_df_batch_stride + head * top_df_channel_stride +
+                                           j * top_df_stride + i]) *
+                            static_cast<_Tcheck>(
+                                top_ptr[b * top_batch_stride + head * top_channel_stride +
+                                        j * top_stride + i]) /
+                            static_cast<_Tcheck>(
+                                scale_ptr[b * scale_batch_stride + head * scale_channel_stride +
+                                          j * scale_stride + i]);
 
                         accum_ratio += adder;
 
                         if(head - local_area >= 0)
                         {
-                            _T subs = (top_df_ptr[b * top_df_batch_stride +
-                                                  (head - local_area) * top_df_channel_stride +
-                                                  j * top_df_stride + i] *
-                                       top_ptr[b * top_batch_stride +
-                                               (head - local_area) * top_channel_stride +
-                                               j * top_stride + i]) /
-                                      scale_ptr[b * scale_batch_stride +
-                                                (head - local_area) * scale_channel_stride +
-                                                j * scale_stride + i];
+                            _Tcheck subs =
+                                (static_cast<_Tcheck>(
+                                     top_df_ptr[b * top_df_batch_stride +
+                                                (head - local_area) * top_df_channel_stride +
+                                                j * top_df_stride + i]) *
+                                 static_cast<_Tcheck>(
+                                     top_ptr[b * top_batch_stride +
+                                             (head - local_area) * top_channel_stride +
+                                             j * top_stride + i])) /
+                                static_cast<_Tcheck>(
+                                    scale_ptr[b * scale_batch_stride +
+                                              (head - local_area) * scale_channel_stride +
+                                              j * scale_stride + i]);
 
                             accum_ratio -= subs;
                         }
@@ -391,16 +420,19 @@ int mloLRNBackwardRunHost(int norm_region,
                             bot_df_v_ptr[b * bot_df_v_batch_stride +
                                          (head - pad) * bot_df_v_channel_stride +
                                          j * bot_df_v_stride + i] =
-                                top_df_ptr[b * top_df_batch_stride +
-                                           (head - pad) * top_df_channel_stride +
-                                           j * top_df_stride + i] *
-                                    pow(scale_ptr[b * scale_batch_stride +
-                                                  (head - pad) * scale_channel_stride +
-                                                  j * scale_stride + i],
+                                static_cast<_Tcheck>(
+                                    top_df_ptr[b * top_df_batch_stride +
+                                               (head - pad) * top_df_channel_stride +
+                                               j * top_df_stride + i]) *
+                                    pow(static_cast<_Tcheck>(
+                                            scale_ptr[b * scale_batch_stride +
+                                                      (head - pad) * scale_channel_stride +
+                                                      j * scale_stride + i]),
                                         negative_beta) -
-                                ratio_dta_bwd * bot_ptr[b * bot_batch_stride +
-                                                        (head - pad) * bot_channel_stride +
-                                                        j * bot_stride + i] *
+                                ratio_dta_bwd *
+                                    static_cast<_Tcheck>(bot_ptr[b * bot_batch_stride +
+                                                                 (head - pad) * bot_channel_stride +
+                                                                 j * bot_stride + i]) *
                                     accum_ratio;
                         }
 
@@ -411,15 +443,19 @@ int mloLRNBackwardRunHost(int norm_region,
                     {
                         if(head - local_area >= 0 && head - local_area < n_inputs)
                         {
-                            _T subs = (top_df_ptr[b * top_df_batch_stride +
-                                                  (head - local_area) * top_df_channel_stride +
-                                                  j * top_df_stride + i] *
-                                       top_ptr[b * top_batch_stride +
-                                               (head - local_area) * top_channel_stride +
-                                               j * top_stride + i]) /
-                                      scale_ptr[b * scale_batch_stride +
-                                                (head - local_area) * scale_channel_stride +
-                                                j * scale_stride + i];
+                            _Tcheck subs =
+                                (static_cast<_Tcheck>(
+                                     top_df_ptr[b * top_df_batch_stride +
+                                                (head - local_area) * top_df_channel_stride +
+                                                j * top_df_stride + i]) *
+                                 static_cast<_Tcheck>(
+                                     top_ptr[b * top_batch_stride +
+                                             (head - local_area) * top_channel_stride +
+                                             j * top_stride + i])) /
+                                static_cast<_Tcheck>(
+                                    scale_ptr[b * scale_batch_stride +
+                                              (head - local_area) * scale_channel_stride +
+                                              j * scale_stride + i]);
 
                             accum_ratio -= subs;
                         }
@@ -428,16 +464,19 @@ int mloLRNBackwardRunHost(int norm_region,
                             bot_df_v_ptr[b * bot_df_v_batch_stride +
                                          (head - pad) * bot_df_v_channel_stride +
                                          j * bot_df_v_stride + i] =
-                                top_df_ptr[b * top_df_batch_stride +
-                                           (head - pad) * top_df_channel_stride +
-                                           j * top_df_stride + i] *
-                                    pow(scale_ptr[b * scale_batch_stride +
-                                                  (head - pad) * scale_channel_stride +
-                                                  j * scale_stride + i],
+                                static_cast<_Tcheck>(
+                                    top_df_ptr[b * top_df_batch_stride +
+                                               (head - pad) * top_df_channel_stride +
+                                               j * top_df_stride + i]) *
+                                    pow(static_cast<_Tcheck>(
+                                            scale_ptr[b * scale_batch_stride +
+                                                      (head - pad) * scale_channel_stride +
+                                                      j * scale_stride + i]),
                                         negative_beta) -
-                                ratio_dta_bwd * bot_ptr[b * bot_batch_stride +
-                                                        (head - pad) * bot_channel_stride +
-                                                        j * bot_stride + i] *
+                                ratio_dta_bwd *
+                                    static_cast<_Tcheck>(bot_ptr[b * bot_batch_stride +
+                                                                 (head - pad) * bot_channel_stride +
+                                                                 j * bot_stride + i]) *
                                     accum_ratio;
                         }
 
@@ -459,7 +498,7 @@ int mloLRNBackwardRunHost(int norm_region,
 
                     for(int i = 0; i < bot_width; i++)
                     {
-                        _T accum_ratio = 0;
+                        _Tcheck accum_ratio = static_cast<_Tcheck>(0);
 
                         int hstart        = j - pad;
                         int wstart        = i - pad;
@@ -474,29 +513,37 @@ int mloLRNBackwardRunHost(int norm_region,
                         {
                             for(int w = wstart; w < wend; ++w)
                             {
-                                _T adder =
-                                    top_df_ptr[b * top_df_batch_stride + o * top_df_channel_stride +
-                                               h * top_df_stride + w] *
-                                    top_ptr[b * top_batch_stride + o * top_channel_stride +
-                                            h * top_stride + w] /
-                                    scale_ptr[b * scale_batch_stride + o * scale_channel_stride +
-                                              h * scale_stride + w];
+                                _Tcheck adder =
+                                    static_cast<_Tcheck>(top_df_ptr[b * top_df_batch_stride +
+                                                                    o * top_df_channel_stride +
+                                                                    h * top_df_stride + w]) *
+                                    static_cast<_Tcheck>(
+                                        top_ptr[b * top_batch_stride + o * top_channel_stride +
+                                                h * top_stride + w]) /
+                                    static_cast<_Tcheck>(
+                                        scale_ptr[b * scale_batch_stride +
+                                                  o * scale_channel_stride + h * scale_stride + w]);
 
                                 accum_ratio += adder;
                             }
                         }
 
-                        _T ratio_dta_bwd = static_cast<_T>(2.) * alpha * beta / adj_area_size;
+                        _Tcheck ratio_dta_bwd = static_cast<_Tcheck>(2.) * alpha * beta /
+                                                static_cast<_Tcheck>(adj_area_size);
 
                         bot_df_v_ptr[b * bot_df_v_batch_stride + o * bot_df_v_channel_stride +
                                      j * bot_df_v_stride + i] =
-                            top_df_ptr[b * top_df_batch_stride + o * top_df_channel_stride +
-                                       j * top_df_stride + i] *
-                                pow(scale_ptr[b * scale_batch_stride + o * scale_channel_stride +
-                                              j * scale_stride + i],
+                            static_cast<_Tcheck>(
+                                top_df_ptr[b * top_df_batch_stride + o * top_df_channel_stride +
+                                           j * top_df_stride + i]) *
+                                pow(static_cast<_Tcheck>(
+                                        scale_ptr[b * scale_batch_stride +
+                                                  o * scale_channel_stride + j * scale_stride + i]),
                                     negative_beta) -
-                            ratio_dta_bwd * bot_ptr[b * bot_batch_stride + o * bot_channel_stride +
-                                                    j * bot_stride + i] *
+                            ratio_dta_bwd *
+                                static_cast<_Tcheck>(
+                                    bot_ptr[b * bot_batch_stride + o * bot_channel_stride +
+                                            j * bot_stride + i]) *
                                 accum_ratio;
                     }
                 }
