@@ -187,7 +187,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(Handle& handle,
         workspace_size = 0;
     }
 
-    return (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) ? 0 : workspace_size;
+    return workspace_size;
 }
 
 size_t
