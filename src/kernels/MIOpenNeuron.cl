@@ -238,8 +238,8 @@ __attribute__((always_inline)) void ActivationFunction_TanH_Diff(uint n,
     {
         // (exp(2x) -1) / (exp(2x) + 1)
         _FLOAT tanh_x = top_data[i];
-        _FLOAT dy = top_diff[i];
-        bot_diff[i] = (dy - dy * tanh_x * tanh_x);
+        _FLOAT dy     = top_diff[i];
+        bot_diff[i]   = (dy - dy * tanh_x * tanh_x);
     }
 }
 
