@@ -612,7 +612,7 @@ struct copyTensorDesc
     int strides[5];
 };
 
-void CopyTensor(Handle& handle,
+void CopyTensor_bak(Handle& handle,
                 const TensorDescriptor& srcDesc,
                 ConstData_t src,
                 const TensorDescriptor& destDesc,
@@ -746,5 +746,213 @@ void CopyTensor(Handle& handle,
         handle.Copy(src, dest, srcSize * sizeof(srcDesc.GetType()));
     }
 }
+
+
+void CopyTensor(Handle& handle,
+                const TensorDescriptor& srcDesc,
+                ConstData_t src,
+                const TensorDescriptor& dstDesc,
+                Data_t dst,
+                int srcOffset,
+                int dstOffset)
+{
+    if(src == nullptr || dst == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
+    }
+    if(srcDesc.GetElementSize() != dstDesc.GetElementSize())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor data sizes do not match.");
+    }
+
+    if(srcDesc.GetType() != dstDesc.GetType())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
+    }
+
+    if(srcDesc.GetLengths().size() != dstDesc.GetLengths().size())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
+    }
+
+    if(srcDesc.GetLengths().size() > 5 || dstDesc.GetLengths().size() > 5)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension sizes unsupported.");
+    }
+
+    if(srcOffset > 0 || dstOffset > 0 || srcDesc != dstDesc ||
+       (srcDesc.GetElementSpace() != srcDesc.GetElementSize() ||
+        dstDesc.GetElementSpace() != dstDesc.GetElementSize()))
+    {
+        switch(srcDesc.GetLengths().size())
+        {
+            case 1:
+            {
+                std::vector<size_t> vld = {256,1,1};
+                std::vector<size_t> data_per_thread = {16, 1, 1};
+                std::vector<size_t> vgd = {1,1,1};
+
+                vgd[0] = ( (srcDesc.GetLengths()[0] - 1) / ( vld[0] * data_per_thread[0] ) + 1 )* vld[0];
+
+                std::string parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) + 
+                                    " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                                    " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+
+                std::string program_name = "MIOpenTensorCopyKernel.cl";
+                handle.AddKernel("CopyTensor1d", "", program_name, "CopyTensor1d", vld, vgd, parms)(
+                    src,
+                    srcOffset,
+                    int(srcDesc.GetStrides()[0]),
+                    int(srcDesc.GetLengths()[0]),
+                    dst,
+                    dstOffset,
+                    int(dstDesc.GetStrides()[0]));
+
+                break;
+            }
+            case 2:
+            {
+                std::vector<size_t> vld = {16,16,1};
+                std::vector<size_t> data_per_thread = {4, 4, 1};
+                std::vector<size_t> vgd = {1,1,1};
+
+                vgd[0] = ( (srcDesc.GetLengths()[0] - 1) / ( vld[0] * data_per_thread[0] ) + 1 )* vld[0];
+                vgd[1] = ( (srcDesc.GetLengths()[1] - 1) / ( vld[1] * data_per_thread[1] ) + 1 )* vld[1];
+
+                std::string parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) + 
+                                    " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                                    " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+
+                std::string program_name = "MIOpenTensorCopyKernel.cl";
+                handle.AddKernel("CopyTensor2d", "", program_name, "CopyTensor2d", vld, vgd, parms)(
+                    src,
+                    srcOffset,
+                    int(srcDesc.GetStrides()[0]),
+                    int(srcDesc.GetStrides()[1]),
+                    int(srcDesc.GetLengths()[0]),
+                    int(srcDesc.GetLengths()[1]),
+                    dst,
+                    dstOffset,
+                    int(dstDesc.GetStrides()[0]),
+                    int(dstDesc.GetStrides()[1]));
+
+                break;
+            }
+            case 3:
+            {
+                std::vector<size_t> vld = {4,8,8};
+                std::vector<size_t> data_per_thread = {4, 2, 2};
+                std::vector<size_t> vgd = {1,1,1};
+
+                vgd[0] = ( (srcDesc.GetLengths()[0] - 1) / ( vld[0] * data_per_thread[0] ) + 1 )* vld[0];
+                vgd[1] = ( (srcDesc.GetLengths()[1] - 1) / ( vld[1] * data_per_thread[1] ) + 1 )* vld[1];
+                vgd[2] = ( (srcDesc.GetLengths()[2] - 1) / ( vld[2] * data_per_thread[2] ) + 1 )* vld[2];
+
+                std::string parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) + 
+                                    " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                                    " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+
+                std::string program_name = "MIOpenTensorCopyKernel.cl";
+                handle.AddKernel("CopyTensor3d", "", program_name, "CopyTensor3d", vld, vgd, parms)(
+                    src,
+                    srcOffset,
+                    int(srcDesc.GetStrides()[0]),
+                    int(srcDesc.GetStrides()[1]),
+                    int(srcDesc.GetStrides()[2]),
+                    int(srcDesc.GetLengths()[0]),
+                    int(srcDesc.GetLengths()[1]),
+                    int(srcDesc.GetLengths()[2]),
+                    dst,
+                    dstOffset,
+                    int(dstDesc.GetStrides()[0]),
+                    int(dstDesc.GetStrides()[1]),
+                    int(dstDesc.GetStrides()[2]));
+
+                break;
+            }
+            case 4:
+            {
+                std::vector<size_t> vld = {4,8,8};
+                std::vector<size_t> data_per_thread = {4, 2, 2};
+                std::vector<size_t> vgd = {1,1,1};
+
+                vgd[0] = ( (srcDesc.GetLengths()[0] - 1) / ( vld[0] * data_per_thread[0] ) + 1 )* vld[0];
+                vgd[1] = ( (srcDesc.GetLengths()[1] - 1) / ( vld[1] * data_per_thread[1] ) + 1 )* vld[1];
+                vgd[2] = ( (srcDesc.GetLengths()[2] - 1) / ( vld[2] * data_per_thread[2] ) + 1 )* vld[2];
+
+
+                std::string parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) + 
+                                    " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                                    " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+
+                std::string program_name = "MIOpenTensorCopyKernel.cl";
+                handle.AddKernel("CopyTensor4d", "", program_name, "CopyTensor4d", vld, vgd, parms)(
+                    src,
+                    srcOffset,
+                    int(srcDesc.GetStrides()[0]),
+                    int(srcDesc.GetStrides()[1]),
+                    int(srcDesc.GetStrides()[2]),
+                    int(srcDesc.GetStrides()[3]),
+                    int(srcDesc.GetLengths()[0]),
+                    int(srcDesc.GetLengths()[1]),
+                    int(srcDesc.GetLengths()[2]),
+                    int(srcDesc.GetLengths()[3]),
+                    dst,
+                    dstOffset,
+                    int(dstDesc.GetStrides()[0]),
+                    int(dstDesc.GetStrides()[1]),
+                    int(dstDesc.GetStrides()[2]),
+                    int(dstDesc.GetStrides()[3]));
+
+                break;
+            }
+            case 5:
+            {
+                std::vector<size_t> vld = {4,8,8};
+                std::vector<size_t> data_per_thread = {4, 2, 2};
+                std::vector<size_t> vgd = {1,1,1};
+
+                vgd[0] = ( (srcDesc.GetLengths()[0] - 1) / ( vld[0] * data_per_thread[0] ) + 1 )* vld[0];
+                vgd[1] = ( (srcDesc.GetLengths()[1] - 1) / ( vld[1] * data_per_thread[1] ) + 1 )* vld[1];
+                vgd[2] = ( (srcDesc.GetLengths()[2] - 1) / ( vld[2] * data_per_thread[2] ) + 1 )* vld[2];
+
+                std::string parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) + 
+                                    " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                                    " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+
+                std::string program_name = "MIOpenTensorCopyKernel.cl";
+                handle.AddKernel("CopyTensor5d", "", program_name, "CopyTensor5d", vld, vgd, parms)(
+                    src,
+                    srcOffset,
+                    int(srcDesc.GetStrides()[0]),
+                    int(srcDesc.GetStrides()[1]),
+                    int(srcDesc.GetStrides()[2]),
+                    int(srcDesc.GetStrides()[3]),
+                    int(srcDesc.GetStrides()[4]),
+                    int(srcDesc.GetLengths()[0]),
+                    int(srcDesc.GetLengths()[1]),
+                    int(srcDesc.GetLengths()[2]),
+                    int(srcDesc.GetLengths()[3]),
+                    int(srcDesc.GetLengths()[4]),
+                    dst,
+                    dstOffset,
+                    int(dstDesc.GetStrides()[0]),
+                    int(dstDesc.GetStrides()[1]),
+                    int(dstDesc.GetStrides()[2]),
+                    int(dstDesc.GetStrides()[3]),
+                    int(dstDesc.GetStrides()[4]));
+
+                break;
+            }
+            default:
+                break;
+        }
+    }
+    else
+    {
+        handle.Copy(src, dst, srcDesc.GetElementSize() * sizeof(srcDesc.GetType()));
+    }
+}
+
 
 } // namespace miopen
