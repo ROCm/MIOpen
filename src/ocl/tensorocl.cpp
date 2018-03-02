@@ -144,15 +144,14 @@ void OpTensor3d(Handle& handle,
                 const size_t Boffset,
                 const size_t Coffset)
 {
-    auto alens = aTensorDesc.GetLengths();
     auto blens = bTensorDesc.GetLengths();
     auto clens = cTensorDesc.GetLengths();
+    // auto dims  = clens.size();
 
     auto astrides = aTensorDesc.GetStrides();
     auto bstrides = bTensorDesc.GetStrides();
+    auto bsize    = blens.size();
     auto cstrides = cTensorDesc.GetStrides();
-
-    auto bsize = blens.size();
 
     // first_not_one is incorrect if btensor size equal to 1
     auto first_not_one = std::find_if(blens.rbegin(), blens.rend(), [](int i) { return i != 1; });
@@ -176,6 +175,13 @@ void OpTensor3d(Handle& handle,
     printf("work_per_wg: %d, num_wg: %d\n", work_per_wg, num_wg);
 #endif
 
+    // Forward Convolution Bias specialization
+    // for fwd-bias, bitmap looks like <0, 1, 0, 0>
+    // Is the no. of work-groups and the work for each wg balanced?
+    // auto fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
+    // auto incr_wg       = 0;
+
+    int num_wg_1   = num_wg;
     int max_num_wg = 4096;
     num_wg         = num_wg > max_num_wg ? max_num_wg : num_wg;
 
@@ -206,6 +212,12 @@ void OpTensor3d(Handle& handle,
 
     const std::vector<size_t> vld{local_threads, 1, 1};
 
+    // Special case for adding tensors in place
+    // size_t global_threads;
+    // global_threads = num_wg * local_threads;
+
+    // const std::vector<size_t> vgd{global_threads, 1, 1};
+
     float miopen_alpha0, miopen_alpha1, miopen_beta;
     switch(bTensorDesc.GetType())
     {
@@ -219,6 +231,18 @@ void OpTensor3d(Handle& handle,
     break;
     }
 
+    bool packed_tensor = true;
+
+    auto alens = aTensorDesc.GetLengths();
+
+    packed_tensor &= aTensorDesc.IsPacked();
+    packed_tensor &= bTensorDesc.IsPacked();
+    packed_tensor &= cTensorDesc.IsPacked();
+
+#if(MIO_TENSOROCL_DEBUG == 1)
+    printf("packed_tensor: %d\n", packed_tensor);
+#endif
+
     std::string network_config{};
 
     network_config = std::to_string(bTensorDesc.GetType()) + std::to_string(aTensorDesc.GetType()) +
@@ -227,31 +251,16 @@ void OpTensor3d(Handle& handle,
     if(clens[0] == 1 && blens[0] == 1 && alens[0] == 1 && blens[1] == clens[1] &&
        blens[2] == clens[2])
     {
-        // for naive tensor ops
-        size_t RD_BLCK              = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
-        const std::string data_type = GetDataType(bTensorDesc.GetType());
-        const std::string READ_TYPE =
-            (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
-
-        size_t MAP_RD = clens[2] / RD_BLCK;
-
-        parms += " -DUSE_2D_TENSOR_LITE";
-        if(!float_equal(miopen_beta, 0.0))
-        {
-            parms += " -DBETA";
-        }
-
-        parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" + std::to_string(MAP_RD) +
-                 " -DREAD_TYPE=" + READ_TYPE;
 
         network_config +=
-            std::to_string(RD_BLCK) + std::to_string(MAP_RD) + std::to_string(clens[1]) + READ_TYPE;
+            std::to_string(clens[2]) + std::to_string(clens[1]) + std::to_string(miopen_beta);
 
         auto&& kernels = handle.GetKernels("Op2dTensorLite", network_config);
 
         if(!kernels.empty())
         {
             auto kernel = kernels.front();
+
             kernel(ATensor,
                    int(astrides[1]), // a_cstride,
                    BTensor,
@@ -267,6 +276,22 @@ void OpTensor3d(Handle& handle,
         }
         else
         {
+            parms += " -DUSE_2D_TENSOR_LITE";
+
+            // for naive tensor ops
+            size_t RD_BLCK              = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
+            const std::string data_type = GetDataType(bTensorDesc.GetType());
+            const std::string READ_TYPE =
+                (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
+
+            size_t MAP_RD = clens[2] / RD_BLCK;
+            parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" +
+                     std::to_string(MAP_RD) + " -DREAD_TYPE=" + READ_TYPE;
+
+            if(!float_equal(miopen_beta, 0.0))
+            {
+                parms += " -DBETA";
+            }
 
             const std::vector<size_t> vgd1{MAP_RD, clens[1], 1};
 
@@ -288,7 +313,6 @@ void OpTensor3d(Handle& handle,
     }
     else
     {
-
         parms += " -DUSE_3D_TENSOR_GENERIC";
         parms += " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
 
@@ -322,7 +346,7 @@ void OpTensor3d(Handle& handle,
                    long(Aoffset),
                    long(Boffset),
                    long(Coffset),
-                   int(num_wg));
+                   int(num_wg_1));
         }
         else
         {
@@ -358,7 +382,7 @@ void OpTensor3d(Handle& handle,
                                     long(Aoffset),
                                     long(Boffset),
                                     long(Coffset),
-                                    int(num_wg));
+                                    int(num_wg_1));
         }
     }
 }
