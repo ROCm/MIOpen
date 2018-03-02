@@ -196,11 +196,14 @@ float transpose_NCHW2CNHW(Handle& handle,
                           int h_stride,
                           int w_stride)
 {
-    std::string kernel_name  = "transpose_NCHW2CNHW";
+    std::string kernel_name = "transpose_NCHW2CNHW";
 
     assert(h_in >= h_out && w_in >= w_out);
 
-    std::string network_config = std::to_string(n) + std::to_string(c) + std::to_string(h_in) + std::to_string(h_out) + std::to_string(w_in) + std::to_string(w_out) + std::to_string(h_stride) + std::to_string(w_stride) + std::to_string(in_offset) + std::to_string(out_offset);
+    std::string network_config =
+        std::to_string(n) + std::to_string(c) + std::to_string(h_in) + std::to_string(h_out) +
+        std::to_string(w_in) + std::to_string(w_out) + std::to_string(h_stride) +
+        std::to_string(w_stride) + std::to_string(in_offset) + std::to_string(out_offset);
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
@@ -238,7 +241,7 @@ float transpose_NCHW2CNHW(Handle& handle,
         std::string program_name = "MIOpenUtilKernels4.cl";
 
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
-                in, out);
+            in, out);
     }
 
 #ifdef MIOPEN_TRANS_DEBUG
@@ -267,11 +270,14 @@ float transpose_CNHW2NCHW(Handle& handle,
                           int h_stride,
                           int w_stride)
 {
-    std::string kernel_name  = "transpose_CNHW2NCHW";
+    std::string kernel_name = "transpose_CNHW2NCHW";
 
     assert(h_in >= h_out && w_in >= w_out);
 
-    std::string network_config = std::to_string(n) + std::to_string(c) + std::to_string(h_in) + std::to_string(h_out) + std::to_string(w_in) + std::to_string(w_out) + std::to_string(h_stride) + std::to_string(w_stride) + std::to_string(in_offset) + std::to_string(out_offset);
+    std::string network_config =
+        std::to_string(n) + std::to_string(c) + std::to_string(h_in) + std::to_string(h_out) +
+        std::to_string(w_in) + std::to_string(w_out) + std::to_string(h_stride) +
+        std::to_string(w_stride) + std::to_string(in_offset) + std::to_string(out_offset);
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
@@ -309,7 +315,7 @@ float transpose_CNHW2NCHW(Handle& handle,
         std::string program_name = "MIOpenUtilKernels4.cl";
 
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
-                in, out);
+            in, out);
     }
 
 #ifdef MIOPEN_TRANS_DEBUG
@@ -334,9 +340,11 @@ float transpose_NCHW2CNHW_opt(Handle& handle,
                               int in_offset,
                               int out_offset)
 {
-    std::string kernel_name  = "transpose_NCHW2CNHW_opt";
+    std::string kernel_name = "transpose_NCHW2CNHW_opt";
 
-    std::string network_config = std::to_string(n) + std::to_string(c) + std::to_string(h) + std::to_string(h) + std::to_string(in_offset) + std::to_string(out_offset);
+    std::string network_config = std::to_string(n) + std::to_string(c) + std::to_string(h) +
+                                 std::to_string(h) + std::to_string(in_offset) +
+                                 std::to_string(out_offset);
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
@@ -380,7 +388,7 @@ float transpose_NCHW2CNHW_opt(Handle& handle,
         std::string program_name = "MIOpenUtilKernels4.cl";
 
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
-                in, out);
+            in, out);
     }
 
 #ifdef MIOPEN_TRANS_DEBUG
@@ -405,9 +413,11 @@ float transpose_CNHW2NCHW_opt(Handle& handle,
                               int in_offset,
                               int out_offset)
 {
-    std::string kernel_name  = "transpose_CNHW2NCHW_opt";
+    std::string kernel_name = "transpose_CNHW2NCHW_opt";
 
-    std::string network_config = std::to_string(n) + std::to_string(c) + std::to_string(h) + std::to_string(h) + std::to_string(in_offset) + std::to_string(out_offset);
+    std::string network_config = std::to_string(n) + std::to_string(c) + std::to_string(h) +
+                                 std::to_string(h) + std::to_string(in_offset) +
+                                 std::to_string(out_offset);
 
     auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
@@ -451,7 +461,7 @@ float transpose_CNHW2NCHW_opt(Handle& handle,
         std::string program_name = "MIOpenUtilKernels4.cl";
 
         handle.AddKernel(kernel_name, network_config, program_name, kernel_name, vld, vgd, params)(
-                in, out);
+            in, out);
     }
 
 #ifdef MIOPEN_TRANS_DEBUG
