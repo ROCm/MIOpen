@@ -156,7 +156,6 @@ option( BUILD_DEV "Build for development only" OFF)
 
 set( MIOPEN_INSTALL_DIR miopen)
 set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen )
-set( MIOPEN_PERFDB_LOCK_NAME "miopen_perfdb_lock")
 
 set(MIOPEN_GPU_SYNC Off CACHE BOOL "")
 if(BUILD_DEV)
