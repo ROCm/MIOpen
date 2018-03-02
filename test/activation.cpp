@@ -204,7 +204,7 @@ struct activation_driver : test_driver
                  [=](double x) { return std::log(1 + std::exp(x)); },
                  [=](double dy, double x, double) {
                      static const double threshold = 50.;
-                     double expval = std::exp(std::min(x, threshold));
+                     double expval                 = std::exp(std::min(x, threshold));
                      return dy * expval / (expval + 1.0);
                  });
         add_mode(miopenActivationABS,
