@@ -289,7 +289,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         {
             size_t workspace_req = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc);
             float time_gemm      = 0;
-            GemmGeometry gg = CreateGemmGeometryConvBwdData(xDesc, wDesc, yDesc, true, network_config);
+            GemmGeometry gg =
+                CreateGemmGeometryConvBwdData(xDesc, wDesc, yDesc, true, network_config);
 
             // 1x1 does not require im2col or workspace
             if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
@@ -331,7 +332,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
                 time_gemm += in_n * time_col2im;
 
-                perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, workspace_req});
+                perf_db.push_back(
+                    PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, workspace_req});
             }
         }
 #else
@@ -386,7 +388,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             // if not 1x1
             else if(workSpace != nullptr && workSpaceSize >= workspace_req)
             {
-                GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
+                GemmGeometry gg =
+                    CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
                 float time_im2col = 0;
                 size_t in_offset  = 0;
                 time_im2col       = Im2ColGPU(handle,
@@ -411,7 +414,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 gg.FindSolution(.003, handle, workSpace, w, tmp_y.get(), false);
                 gg.RunGemm(handle, workSpace, w, tmp_y.get(), 0, 0, 0);
                 time_gemm = in_n * (time_im2col + handle.GetKernelTime());
-                perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, workspace_req});
+                perf_db.push_back(
+                    PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, workspace_req});
             }
         }
 #else
