@@ -63,6 +63,11 @@ void BatchNormForwardTraining(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
+    if(!xDesc.IsPacked())
+    {
+        std::cerr << "Only fully packed tensors supported." << std::endl;
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
     if(xDesc.GetSize() < 3)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -80,11 +85,6 @@ void BatchNormForwardTraining(Handle& handle,
         miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnBias);
     }
 
-    std::string program_name = "MIOpenBatchNormFwdTrain";
-    std::string algo_name    = "miopenBatchNormalizationForwardTraining";
-    std::string kernel_name  = "BatchNormFwdTrain";
-    std::string network_config{};
-
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
 
@@ -93,19 +93,21 @@ void BatchNormForwardTraining(Handle& handle,
     unsigned int in_nhw     = n * in_cstride;
     unsigned int in_nchw    = n * in_nstride;
 
-    size_t xlocalsize = 0;
-    size_t ylocalsize = 0;
-    size_t zlocalsize = 0;
+    unsigned int variant = 1;
 
-    size_t xgridsize = 0;
-    size_t ygridsize = 0;
-    size_t zgridsize = 0;
+    size_t xlocalsize = 1;
+    size_t ylocalsize = 1;
+    size_t zlocalsize = 1;
+
+    size_t xgridsize = 1;
+    size_t ygridsize = 1;
+    size_t zgridsize = 1;
+
+    unsigned int ldsgcn   = 0;
+    unsigned int ldsnogcn = 0;
 
     std::vector<size_t> vld;
     std::vector<size_t> vgd;
-
-    // compile parameters
-    std::string parms;
 
     bool bfp16parm = false;
     bool bfp32parm = true;
@@ -120,363 +122,424 @@ void BatchNormForwardTraining(Handle& handle,
     {
         resultsave = true;
     }
-    
+
     bool resultrunning = false;
     if(resultRunningMean != nullptr && resultRunningVariance != nullptr)
     {
         resultrunning = true;
     }
-
     auto inhw = float(1.0 / in_nhw);
+
+    bool single = true;
 
     if(bn_mode == miopenBNSpatial)
     {
 
-        program_name += "Spatial.cl";
-        kernel_name += "Spatial";
-
-        if(in_cstride >= 1024 && in_nhw < 33554432)
+        if(in_nhw < 33554432 && in_cstride > 512)
         {
-            unsigned int variant = (h == w) ? 5 : 6;
-            xlocalsize = 1024;
-            ylocalsize = 1;
-            zlocalsize = 1;
-
-            parms = " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) +
-                     " -DMIOPEN_USE_FP32=" + std::to_string(bfp32parm) +
-                     " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(resultsave) +
-                     " -DMIO_RUNNING_RESULT=" + std::to_string(resultrunning) +
-                     " -DMIO_BN_N=" + std::to_string(n) + 
-                     " -DMIO_BN_C=" + std::to_string(c) + 
-                     " -DMIO_BN_HW=" + std::to_string(in_cstride) +
-                     " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
-                     " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
-                     " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
-                     ((handle.GetDeviceName() != "gfx803" && (handle.GetDeviceName() != "gfx900"))? (" -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize / 64)) : "") +
-                     " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(xlocalsize / 64) +
-                     " -DMIO_BN_VARIANT=" + std::to_string(variant) +
-                     " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
-                     " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                     " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
-                     
-            vld.push_back(xlocalsize);
-            vld.push_back(ylocalsize);
-            vld.push_back(zlocalsize);
-
-            xgridsize = xlocalsize * c;
-            ygridsize = 1;
-            zgridsize = 1;
-            vgd.push_back(xgridsize);
-            vgd.push_back(ygridsize);
-            vgd.push_back(zgridsize);
-
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-            std::cout << kernel_name << ":: ";
-            std::cout << parms << std::endl;
-#endif
-            bnFwdTrainSelectSingle(handle,
-                                   program_name,
-                                   algo_name,
-                                   kernel_name,
-                                   network_config,
-                                   parms,
-                                   vld,
-                                   vgd,
-                                   x,
-                                   y,
-                                   bnScale,
-                                   bnBias,
-                                   resultsave,
-                                   resultrunning,
-                                   expAvgFactor,
-                                   resultRunningMean,
-                                   resultRunningVariance,
-                                   epsilon,
-                                   resultSaveMean,
-                                   resultSaveInvVariance,
-                                   inhw);
+            variant    = 1;
+            ylocalsize = std::min(64 * ((in_cstride + 63) / 64), uint(1024));
+            xgridsize  = c;
+            ygridsize  = ylocalsize;
+            ldsgcn     = ylocalsize / 64;
+            ldsnogcn   = ylocalsize;
         }
-        else if(in_cstride <= 512 && n > 3 && in_cstride > 4)
+        else if(in_cstride <= 512)
         {
             xlocalsize = 1024;
-            ylocalsize = 1;
-            zlocalsize = 1;
-
-            unsigned int variant = 255;
-
-            parms =  " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) +
-                     " -DMIOPEN_USE_FP32=" + std::to_string(bfp32parm) +
-                     " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(resultsave) +
-                     " -DMIO_RUNNING_RESULT=" + std::to_string(resultrunning) +
-                     " -DMIO_BN_N=" + std::to_string(n) + 
-                     " -DMIO_BN_C=" + std::to_string(c) + 
-                     " -DMIO_BN_HW=" + std::to_string(in_cstride) +
-                     " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
-                     " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
-                     " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
-                     ((handle.GetDeviceName() != "gfx803" && (handle.GetDeviceName() != "gfx900"))? (" -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize / 64)) : "") +
-                     " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(xlocalsize / 64) +
-                     " -DMIO_BN_VARIANT=" + std::to_string(variant) +
-                     " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
-                     " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                     " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
-
-            vld.push_back(xlocalsize);
-            vld.push_back(ylocalsize);
-            vld.push_back(zlocalsize);
-            xgridsize = xlocalsize * c;
-            ygridsize = 1;
-            zgridsize = 1;
-            vgd.push_back(xgridsize);
-            vgd.push_back(ygridsize);
-            vgd.push_back(zgridsize);
-
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-            std::cout << kernel_name << ":: ";
-            std::cout << parms << std::endl;
-#endif
-
-            bnFwdTrainSelectSingle(handle,
-                                   program_name,
-                                   algo_name,
-                                   kernel_name,
-                                   network_config,
-                                   parms,
-                                   vld,
-                                   vgd,
-                                   x,
-                                   y,
-                                   bnScale,
-                                   bnBias,
-                                   resultsave,
-                                   resultrunning,
-                                   expAvgFactor,
-                                   resultRunningMean,
-                                   resultRunningVariance,
-                                   epsilon,
-                                   resultSaveMean,
-                                   resultSaveInvVariance,
-                                   inhw);
+            variant    = 0;
+            xgridsize  = xlocalsize * c;
+            ldsgcn     = xlocalsize / 64;
+            ldsnogcn   = xlocalsize;
         }
-        else if(in_cstride > 1024)
+        else
         {
-            unsigned int variant = 3;
-            xlocalsize           = 1;
-            ylocalsize           = 1024;
-            zlocalsize           = 1;
-            vld.push_back(xlocalsize);
-            vld.push_back(ylocalsize);
-            vld.push_back(zlocalsize);
-
+            variant      = 2;
+            ylocalsize   = 1024;
             auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
             xgridsize    = c;
             ygridsize    = segment * ylocalsize;
-            zgridsize    = 1;
+            single       = false;
+            ldsgcn       = ylocalsize / 64;
+            ldsnogcn     = ylocalsize;
+        }
+
+        std::string algo_name = "miopenBatchNormForwardTraining";
+        std::string network_config =
+            std::to_string(variant) + std::to_string(xDesc.GetType()) + std::to_string(xgridsize) +
+            std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
+            std::to_string(resultsave) + std::to_string(resultrunning) + std::to_string(bfp16parm) +
+            std::to_string(bfp32parm) + std::to_string(in_nhw) + std::to_string(single);
+
+        auto&& kernels = handle.GetKernels(algo_name, network_config);
+
+        if(single)
+        {
+            if(!kernels.empty())
+            {
+                auto kernel = kernels.front();
+                if(resultsave && resultrunning)
+                {
+
+                    kernel(x,
+                           y,
+                           bnScale,
+                           bnBias,
+                           inhw,
+                           expAvgFactor,
+                           resultRunningMean,
+                           resultRunningVariance,
+                           epsilon,
+                           resultSaveMean,
+                           resultSaveInvVariance);
+                }
+                else if(resultsave)
+                {
+                    kernel(x,
+                           y,
+                           bnScale,
+                           bnBias,
+                           inhw,
+                           epsilon,
+                           resultSaveMean,
+                           resultSaveInvVariance);
+                }
+                else if(resultrunning)
+                {
+                    kernel(x,
+                           y,
+                           bnScale,
+                           bnBias,
+                           inhw,
+                           expAvgFactor,
+                           resultRunningMean,
+                           resultRunningVariance,
+                           epsilon);
+                }
+                else
+                {
+                    kernel(x, y, bnScale, bnBias, inhw, epsilon);
+                }
+            }
+            else
+            {
+
+                std::string kernel_name  = "BatchNormFwdTrainSpatial";
+                std::string program_name = "MIOpenBatchNormFwdTrainSpatial.cl";
+
+                vld.push_back(xlocalsize);
+                vld.push_back(ylocalsize);
+                vld.push_back(zlocalsize);
+
+                vgd.push_back(xgridsize);
+                vgd.push_back(ygridsize);
+                vgd.push_back(zgridsize);
+
+                std::string parms =
+                    " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) + " -DMIOPEN_USE_FP32=" +
+                    std::to_string(bfp32parm) + " -DMIO_SAVE_MEAN_VARIANCE=" +
+                    std::to_string(resultsave) + " -DMIO_RUNNING_RESULT=" +
+                    std::to_string(resultrunning) + " -DMIO_BN_N=" + std::to_string(n) +
+                    " -DMIO_BN_C=" + std::to_string(c) + " -DMIO_BN_HW=" +
+                    std::to_string(in_cstride) + " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
+                    " -DMIO_BN_CHW=" + std::to_string(in_nstride) + " -DMIO_BN_NCHW=" +
+                    std::to_string(in_nchw) + " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
+                    " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" +
+                    std::to_string(variant) + " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
+                    " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" +
+                    std::to_string(zlocalsize);
+
+#if(MIOPEN_BN_CPP_DEBUG == 1)
+                std::cout << kernel_name << ":: ";
+                std::cout << parms << std::endl;
+#endif
+
+                bnFwdTrainSelectSingle(handle,
+                                       program_name,
+                                       algo_name,
+                                       kernel_name,
+                                       network_config,
+                                       parms,
+                                       vld,
+                                       vgd,
+                                       x,
+                                       y,
+                                       bnScale,
+                                       bnBias,
+                                       resultsave,
+                                       resultrunning,
+                                       expAvgFactor,
+                                       resultRunningMean,
+                                       resultRunningVariance,
+                                       epsilon,
+                                       resultSaveMean,
+                                       resultSaveInvVariance,
+                                       inhw);
+            }
+        }
+        else
+        {
+            if(!kernels.empty())
+            {
+                float ctime = 0.;
+                if(resultsave && resultrunning)
+                {
+                    kernels[0](x, y);
+                    profileSequence(handle, 0, &ctime);
+
+                    kernels[1](y,
+                               inhw,
+                               expAvgFactor,
+                               resultRunningMean,
+                               resultRunningVariance,
+                               epsilon,
+                               resultSaveMean,
+                               resultSaveInvVariance);
+                    profileSequence(handle, 1, &ctime);
+
+                    kernels[2](x, y, bnScale, bnBias);
+                    profileSequence(handle, 2, &ctime);
+                }
+                else if(resultsave)
+                {
+                    kernels[0](x, y);
+                    profileSequence(handle, 0, &ctime);
+
+                    kernels[1](y, inhw, epsilon, resultSaveMean, resultSaveInvVariance);
+                    profileSequence(handle, 1, &ctime);
+
+                    kernels[2](x, y, bnScale, bnBias);
+                    profileSequence(handle, 2, &ctime);
+                }
+                else if(resultrunning)
+                {
+
+                    kernels[0](x, y);
+                    profileSequence(handle, 0, &ctime);
+
+                    kernels[1](
+                        y, inhw, expAvgFactor, resultRunningMean, resultRunningVariance, epsilon);
+                    profileSequence(handle, 1, &ctime);
+
+                    kernels[2](x, y, bnScale, bnBias);
+                    profileSequence(handle, 2, &ctime);
+                }
+                else
+                {
+                    kernels[0](x, y);
+                    profileSequence(handle, 0, &ctime);
+
+                    kernels[1](y, inhw, epsilon);
+                    profileSequence(handle, 1, &ctime);
+
+                    kernels[2](x, y, bnScale, bnBias);
+                    profileSequence(handle, 2, &ctime);
+                }
+            }
+            else
+            {
+
+                vld.push_back(xlocalsize);
+                vld.push_back(ylocalsize);
+                vld.push_back(zlocalsize);
+
+                vgd.push_back(xgridsize);
+                vgd.push_back(ygridsize);
+                vgd.push_back(zgridsize);
+
+                std::string kernel_name  = "BatchNormFwdTrainSpatial";
+                std::string program_name = "MIOpenBatchNormFwdTrainSpatial.cl";
+                std::string parms =
+                    " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) + " -DMIOPEN_USE_FP32=" +
+                    std::to_string(bfp32parm) + " -DMIO_SAVE_MEAN_VARIANCE=" +
+                    std::to_string(resultsave) + " -DMIO_RUNNING_RESULT=" +
+                    std::to_string(resultrunning) + " -DMIO_BN_N=" + std::to_string(n) +
+                    " -DMIO_BN_C=" + std::to_string(c) + " -DMIO_BN_HW=" +
+                    std::to_string(in_cstride) + " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
+                    " -DMIO_BN_CHW=" + std::to_string(in_nstride) + " -DMIO_BN_NCHW=" +
+                    std::to_string(in_nchw) + " -DMIO_BN_NGRPS=" +
+                    std::to_string(int(std::ceil(float(ygridsize) / ylocalsize))) +
+                    " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" +
+                    std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" + std::to_string(variant) +
+                    " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
+                    std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+
+#if(MIOPEN_BN_CPP_DEBUG == 1)
+                std::cout << kernel_name << ":: ";
+                std::cout << parms << std::endl;
+#endif
+
+                bnFwdTrainSelectMulti(handle,
+                                      program_name,
+                                      algo_name,
+                                      kernel_name,
+                                      network_config,
+                                      parms,
+                                      vld,
+                                      vgd,
+                                      x,
+                                      y,
+                                      bnScale,
+                                      bnBias,
+                                      resultsave,
+                                      resultrunning,
+                                      expAvgFactor,
+                                      resultRunningMean,
+                                      resultRunningVariance,
+                                      epsilon,
+                                      resultSaveMean,
+                                      resultSaveInvVariance,
+                                      inhw);
+            }
+        }
+    }
+    else // else run per activation
+    {
+        std::string algo_name = "miopenBatchNormForwardTraining";
+        std::string network_config =
+            std::to_string(variant) + std::to_string(xDesc.GetType()) + std::to_string(xgridsize) +
+            std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
+            std::to_string(resultsave) + std::to_string(resultrunning) + std::to_string(bfp16parm) +
+            std::to_string(bfp32parm) + std::to_string(in_nhw) + std::to_string(single);
+
+        auto&& kernels = handle.GetKernels(algo_name, network_config);
+
+        if(!kernels.empty())
+        {
+            auto kernel = kernels.front();
+            if(resultsave && resultrunning)
+            {
+                kernel(x,
+                       in_nstride,
+                       in_cstride,
+                       y,
+                       bnScale,
+                       bnBias,
+                       expAvgFactor,
+                       resultRunningMean,
+                       resultRunningVariance,
+                       epsilon,
+                       resultSaveMean,
+                       resultSaveInvVariance);
+            }
+            else if(resultsave)
+            {
+                kernel(x,
+                       in_nstride,
+                       in_cstride,
+                       y,
+                       bnScale,
+                       bnBias,
+                       expAvgFactor,
+                       epsilon,
+                       resultSaveMean,
+                       resultSaveInvVariance);
+            }
+            else if(resultrunning)
+            {
+                kernel(x,
+                       in_nstride,
+                       in_cstride,
+                       y,
+                       bnScale,
+                       bnBias,
+                       expAvgFactor,
+                       resultRunningMean,
+                       resultRunningVariance,
+                       epsilon);
+            }
+            else
+            {
+                kernel(x, in_nstride, in_cstride, y, bnScale, bnBias, expAvgFactor, epsilon);
+            }
+        }
+        else // kernels empty
+        {
+
+            ylocalsize   = 256;
+            auto segment = std::ceil(double(in_cstride) / double(ylocalsize));
+            xgridsize    = c;
+            ygridsize    = segment * ylocalsize;
 
             vgd.push_back(xgridsize);
             vgd.push_back(ygridsize);
             vgd.push_back(zgridsize);
-
-            parms  = " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) +
-                     " -DMIOPEN_USE_FP32=" + std::to_string(bfp32parm) +
-                     " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(resultsave) +
-                     " -DMIO_RUNNING_RESULT=" + std::to_string(resultrunning) +
-                     " -DMIO_BN_N=" + std::to_string(n) + 
-                     " -DMIO_BN_C=" + std::to_string(c) + 
-                     " -DMIO_BN_HW=" + std::to_string(in_cstride) +
-                     " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
-                     " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
-                     " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
-                     " -DMIO_BN_NGRPS=" + std::to_string(int(std::ceil(float(ygridsize) / ylocalsize))) +
-                     " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ylocalsize / 64) +
-                     " -DMIO_BN_VARIANT=" + std::to_string(variant) +
-                     ((handle.GetDeviceName() != "gfx803" && (handle.GetDeviceName() != "gfx900"))? (" -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize / 64)) : "") +
-                     " -DMIO_BN_GRP0=" + std::to_string(1) +
-                     " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                     " -DMIO_BN_GRP2=" + std::to_string(1) +
-                     " -DMIO_BN_SEGMENT=" + std::to_string(segment);
-
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-            std::cout << kernel_name << ":: ";
-            std::cout << parms << std::endl;
-#endif
-            bnFwdTrainSelectMulti(handle,
-                                  program_name,
-                                  algo_name,
-                                  kernel_name,
-                                  network_config,
-                                  parms,
-                                  vld,
-                                  vgd,
-                                  x,
-                                  y,
-                                  bnScale,
-                                  bnBias,
-                                  resultsave,
-                                  resultrunning,
-                                  expAvgFactor,
-                                  resultRunningMean,
-                                  resultRunningVariance,
-                                  epsilon,
-                                  resultSaveMean,
-                                  resultSaveInvVariance,
-                                  inhw);
-        }
-        else
-        {
-
-            xlocalsize = 1;
-            zlocalsize = 1;
-
-            unsigned int variant;
-
-            if(in_cstride < 257 && in_cstride > n && n <= 64 && in_cstride > 1)
-            {
-                variant    = 0;
-                ylocalsize = (in_cstride <= 16) ? 16 : ((in_cstride <= 64) ? 64 : 256);
-            }
-            else if(in_cstride <= 64)
-            {
-                variant    = 1;
-                ylocalsize = (n <= 16) ? 16 : ((n <= 64) ? 64 : 256);
-            }
-            else
-            {
-                variant    = 2;
-                ylocalsize = 64 * ((in_cstride + 63) / 64); //(in_cstride <= 256) ? 256 : 1024;
-                ylocalsize = (ylocalsize>1024)? 1024:ylocalsize;
-                //ylocalsize = 1024;//(in_cstride <= 256) ? 256 : 1024;
-            }
-            parms =  " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) +
-                     " -DMIOPEN_USE_FP32=" + std::to_string(bfp32parm) +
-                     " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(resultsave) +
-                     " -DMIO_RUNNING_RESULT=" + std::to_string(resultrunning) +
-                     ((handle.GetDeviceName() != "gfx803" && (handle.GetDeviceName() != "gfx900"))? (" -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize / 64)) : "") +
-                     " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ylocalsize / 64) +
-                     " -DMIO_BN_N=" + std::to_string(n) + 
-                     " -DMIO_BN_C=" + std::to_string(c) + 
-                     " -DMIO_BN_HW=" + std::to_string(in_cstride) +
-                     " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
-                     " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
-                     " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
-                     " -DMIO_BN_VARIANT=" + std::to_string(variant) +
-                     " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
-                     " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
-                     " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
             vld.push_back(zlocalsize);
 
-            xgridsize = c;
-            ygridsize = ylocalsize;
-            zgridsize = 1;
-            vgd.push_back(xgridsize);
-            vgd.push_back(ygridsize);
-            vgd.push_back(zgridsize);
+            std::string parms =
+                " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) + " -DMIOPEN_USE_FP32=" +
+                std::to_string(bfp32parm) + " -DMIO_SAVE_MEAN_VARIANCE=" +
+                std::to_string(resultsave) + " -DMIO_RUNNING_RESULT=" +
+                std::to_string(resultrunning) + " -DMIO_BN_N=" + std::to_string(n) +
+                " -DMIO_BN_C=" + std::to_string(c) + " -DMIO_BN_HW=" + std::to_string(in_cstride) +
+                " -DMIO_BN_NHW=" + std::to_string(in_nhw) + " -DMIO_BN_CHW=" +
+                std::to_string(in_nstride) + " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize) +
+                " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
+                std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+
+            std::string program_name = "MIOpenBatchNormFwdTrainPerAct.cl";
+            std::string kernel_name  = "BatchNormFwdTrainPerActivation";
 
 #if(MIOPEN_BN_CPP_DEBUG == 1)
+            std::cout << kernel_name << ":: ";
             std::cout << parms << std::endl;
 #endif
-            bnFwdTrainSelectSingle(handle,
-                                   program_name,
-                                   algo_name,
-                                   kernel_name,
-                                   network_config,
-                                   parms,
-                                   vld,
-                                   vgd,
-                                   x,
-                                   y,
-                                   bnScale,
-                                   bnBias,
-                                   resultsave,
-                                   resultrunning,
-                                   expAvgFactor,
-                                   resultRunningMean,
-                                   resultRunningVariance,
-                                   epsilon,
-                                   resultSaveMean,
-                                   resultSaveInvVariance,
-                                   inhw);
-        } // end multi / single select
-    }
-    else
-    {
-
-        xlocalsize = 1;
-        ylocalsize = 256;
-        zlocalsize = 1;
-        vld.push_back(xlocalsize);
-        vld.push_back(ylocalsize);
-        vld.push_back(zlocalsize);
-
-        parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize);
-
-        auto segment = std::ceil(double(in_cstride) / double(ylocalsize));
-
-        xgridsize = c;
-        ygridsize = segment * ylocalsize;
-        zgridsize = 1;
-        vgd.push_back(xgridsize);
-        vgd.push_back(ygridsize);
-        vgd.push_back(zgridsize);
-
-        program_name += "PerAct.cl";
-        kernel_name += "PerActivation";
-
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-        std::cout << kernel_name << ":: ";
-        std::cout << parms << std::endl;
-#endif
-        if(resultsave && resultrunning)
-        {
-            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                x,
-                in_nstride,
-                in_cstride,
-                y,
-                bnScale,
-                bnBias,
-                expAvgFactor,
-                resultRunningMean,
-                resultRunningVariance,
-                epsilon,
-                resultSaveMean,
-                resultSaveInvVariance);
-        }
-        else if(resultsave)
-        {
-            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                x,
-                in_nstride,
-                in_cstride,
-                y,
-                bnScale,
-                bnBias,
-                expAvgFactor,
-                epsilon,
-                resultSaveMean,
-                resultSaveInvVariance);
-        }
-        else if(resultrunning)
-        {
-            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                x,
-                in_nstride,
-                in_cstride,
-                y,
-                bnScale,
-                bnBias,
-                expAvgFactor,
-                resultRunningMean,
-                resultRunningVariance,
-                epsilon);
-        }
-        else
-        {
-            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                x, in_nstride, in_cstride, y, bnScale, bnBias, expAvgFactor, epsilon);
+            if(resultsave && resultrunning)
+            {
+                handle.AddKernel(
+                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                    x,
+                    in_nstride,
+                    in_cstride,
+                    y,
+                    bnScale,
+                    bnBias,
+                    expAvgFactor,
+                    resultRunningMean,
+                    resultRunningVariance,
+                    epsilon,
+                    resultSaveMean,
+                    resultSaveInvVariance);
+            }
+            else if(resultsave)
+            {
+                handle.AddKernel(
+                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                    x,
+                    in_nstride,
+                    in_cstride,
+                    y,
+                    bnScale,
+                    bnBias,
+                    expAvgFactor,
+                    epsilon,
+                    resultSaveMean,
+                    resultSaveInvVariance);
+            }
+            else if(resultrunning)
+            {
+                handle.AddKernel(
+                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                    x,
+                    in_nstride,
+                    in_cstride,
+                    y,
+                    bnScale,
+                    bnBias,
+                    expAvgFactor,
+                    resultRunningMean,
+                    resultRunningVariance,
+                    epsilon);
+            }
+            else
+            {
+                handle.AddKernel(
+                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                    x, in_nstride, in_cstride, y, bnScale, bnBias, expAvgFactor, epsilon);
+            }
         }
     } // end per-activation
 
@@ -544,21 +607,15 @@ void BatchNormForwardInference(Handle& handle,
             MIOPEN_THROW(miopenStatusBadParm);
         }
 
-        std::string algo_name    = "miopenBatchNormalizationForwardInference";
-        std::string program_name = "MIOpenBatchNormFwdInfer"; // build this up
-        std::string kernel_name  = "BatchNormFwdInfer";
+        std::string algo_name = "miopenBatchNormalizationForwardInference";
         std::string network_config{};
-        std::string parms{}; // compiler parameters
 
-        if(xDesc.GetType() == miopenFloat)
+        bool bfp16parm = false;
+        bool bfp32parm = true;
+        if(xDesc.GetType() == miopenHalf)
         {
-            parms += "-DMIOPEN_USE_FP16=0 ";
-            parms += "-DMIOPEN_USE_FP32=1 ";
-        }
-        else if(xDesc.GetType() == miopenHalf)
-        {
-            parms += "-DMIOPEN_USE_FP16=1 ";
-            parms += "-DMIOPEN_USE_FP32=0 ";
+            bfp16parm = true;
+            bfp32parm = false;
         }
 
         int n, c, h, w;
@@ -567,61 +624,73 @@ void BatchNormForwardInference(Handle& handle,
         unsigned int in_nstride = c * h * w;
         unsigned int in_cstride = h * w;
 
-        parms += "-DMIO_BN_N=" + std::to_string(n);
-        parms += " -DMIO_BN_HW=" + std::to_string(in_cstride);
-        parms += " -DMIO_BN_CHW=" + std::to_string(in_nstride);
+        size_t xlocalsize = 1;
+        size_t ylocalsize = 1;
+        size_t zlocalsize = 1;
 
-        size_t xlocalsize = 0;
-        size_t ylocalsize = 0;
-        size_t zlocalsize = 0;
-
-        size_t xgridsize = 0;
-        size_t ygridsize = 0;
-        size_t zgridsize = 0;
+        size_t xgridsize = 1;
+        size_t ygridsize = 1;
+        size_t zgridsize = 1;
 
         std::vector<size_t> vld;
         std::vector<size_t> vgd;
 
-        if(bn_mode == miopenBNSpatial)
-        { // SPATIAL kernels
-            program_name += "Spatial.cl";
-            kernel_name += "Spatial";
+        ylocalsize   = (in_cstride > 1024) ? 1024 : ((64 >= in_cstride) ? 64 : 256);
+        auto segment = std::ceil(double(in_cstride) / double(ylocalsize));
+        xgridsize    = c;
+        ygridsize    = segment * ylocalsize;
+
+        network_config = std::to_string(xDesc.GetType()) + std::to_string(segment) +
+                         std::to_string(xgridsize) + std::to_string(ygridsize) +
+                         std::to_string(xlocalsize) + std::to_string(ylocalsize) +
+                         std::to_string(bfp16parm) + std::to_string(bfp32parm);
+
+        auto&& kernels = handle.GetKernels(algo_name, network_config);
+        if(!kernels.empty())
+        {
+            auto kernel = kernels.front();
+            kernel(x, y, estimatedMean, estimatedVariance, bnScale, bnBias, epsilon);
         }
         else
         {
-            // PER ACTIVATION
-            program_name += "PerAct.cl";
-            kernel_name += "PerActivation";
-        }
-        xlocalsize = 1;
-        ylocalsize = (in_cstride > 1024) ? 1024 : ((64 >= in_cstride) ? 64 : 256);
-        zlocalsize = 1;
-        vld.push_back(xlocalsize);
-        vld.push_back(ylocalsize);
-        vld.push_back(zlocalsize);
 
-        auto segment = std::ceil(double(in_cstride) / double(ylocalsize));
+            std::string program_name = "MIOpenBatchNormFwdInfer"; // build this up
+            std::string kernel_name  = "BatchNormFwdInfer";
+            if(bn_mode == miopenBNSpatial)
+            { // SPATIAL kernels
+                program_name += "Spatial.cl";
+                kernel_name += "SpatialEst";
+            }
+            else
+            {
+                // PER ACTIVATION
+                program_name += "PerAct.cl";
+                kernel_name += "PerActivationEst";
+            }
 
-        xgridsize = c;
-        ygridsize = segment * ylocalsize;
-        zgridsize = 1;
-        vgd.push_back(xgridsize);
-        vgd.push_back(ygridsize);
-        vgd.push_back(zgridsize);
-        kernel_name += "Est";
+            std::string parms =
+                " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) + " -DMIOPEN_USE_FP32=" +
+                std::to_string(bfp32parm) + " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_HW=" +
+                std::to_string(in_cstride) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+                " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
+                std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
-        parms += " -DMIO_BN_GRP0=" + std::to_string(1);
-        parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
-        parms += " -DMIO_BN_GRP2=" + std::to_string(1);
+            vld.push_back(xlocalsize);
+            vld.push_back(ylocalsize);
+            vld.push_back(zlocalsize);
+            vgd.push_back(xgridsize);
+            vgd.push_back(ygridsize);
+            vgd.push_back(zgridsize);
 
 #if(MIOPEN_BN_CPP_DEBUG == 1)
-        std::cout << kernel_name << ":: ";
-        std::cout << parms << std::endl;
+            std::cout << kernel_name << ":: ";
+            std::cout << parms << std::endl;
 #endif
-        handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-            x, y, estimatedMean, estimatedVariance, bnScale, bnBias, epsilon);
+            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                x, y, estimatedMean, estimatedVariance, bnScale, bnBias, epsilon);
+        }
     }
-    else
+    else // Need to recalculated everything, let's just call training kernel in that case
     {
 
 #if(MIOPEN_BN_CPP_DEBUG == 1)
@@ -674,9 +743,9 @@ void BatchNormBackward(Handle& handle,
                        ConstData_t savedInvVariance)
 {
 
-    //#if(MIO_BN_TIME_EVERYTHING == 1)
+#if(MIO_BN_TIME_EVERYTHING == 1)
     auto t_start = std::chrono::high_resolution_clock::now();
-    //#endif
+#endif
     if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsInput(handle, xDesc, x);
@@ -717,21 +786,18 @@ void BatchNormBackward(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    std::string algo_name    = "miopenBatchNormalizationBackwardProp";
-    std::string program_name = "MIOpenBatchNormBwd"; // build this up
-    std::string kernel_name  = "BatchNormBwd";
-    std::string network_config{};
-    std::string parms{};
+    unsigned int ldsgcn   = 0;
+    unsigned int ldsnogcn = 0;
 
-    if(xDesc.GetType() == miopenFloat)
+    std::vector<size_t> vld;
+    std::vector<size_t> vgd;
+
+    bool bfp16parm = false;
+    bool bfp32parm = true;
+    if(xDesc.GetType() == miopenHalf)
     {
-        parms += "-DMIOPEN_USE_FP16=0 ";
-        parms += "-DMIOPEN_USE_FP32=1 ";
-    }
-    else if(xDesc.GetType() == miopenHalf)
-    {
-        parms += "-DMIOPEN_USE_FP16=1 ";
-        parms += "-DMIOPEN_USE_FP32=0 ";
+        bfp16parm = true;
+        bfp32parm = false;
     }
 
     int n, c, h, w;
@@ -744,350 +810,344 @@ void BatchNormBackward(Handle& handle,
 
     auto inhw = float(1.0 / in_nhw);
 
-    parms += "-DMIO_BN_N=" + std::to_string(n);
-    parms += " -DMIO_BN_C=" + std::to_string(c);
-    parms += " -DMIO_BN_HW=" + std::to_string(in_cstride);
-    parms += " -DMIO_BN_NCHW=" + std::to_string(in_nchw);
-    parms += " -DMIO_BN_NHW=" + std::to_string(in_nhw);
-    parms += " -DMIO_BN_CHW=" + std::to_string(in_nstride);
+    unsigned int variant = 1;
 
-    size_t xlocalsize;
-    size_t ylocalsize;
-    size_t zlocalsize;
+    size_t xlocalsize = 1;
+    size_t ylocalsize = 1;
+    size_t zlocalsize = 1;
 
-    size_t xgridsize;
-    size_t ygridsize;
-    size_t zgridsize;
-
-    std::vector<size_t> vld;
-    std::vector<size_t> vgd;
+    size_t xgridsize = 1;
+    size_t ygridsize = 1;
+    size_t zgridsize = 1;
 
     bool useSaved = false;
+    if(savedMean != nullptr && savedInvVariance != nullptr)
+    {
+        useSaved = true;
+    }
+    bool single = true;
 
     if(bn_mode == miopenBNSpatial)
     { // SPATIAL kernels
 
-        if(savedMean != nullptr && savedInvVariance != nullptr)
+        if(in_nhw < 33554432 && in_cstride > 512)
         {
-            useSaved = true;
-            parms += " -DMIO_BN_USESAVED=1";
+            variant    = 1;
+            ylocalsize = std::min(64 * ((in_cstride + 63) / 64), uint(1024));
+            xgridsize  = c;
+            ygridsize  = ylocalsize;
+            ldsgcn     = ylocalsize / 64;
+            ldsnogcn   = ylocalsize;
+        }
+        else if(in_cstride <= 512)
+        {
+            variant    = 0;
+            xlocalsize = 1024;
+            xgridsize  = 1024 * c;
+            ldsgcn     = xlocalsize / 64;
+            ldsnogcn   = xlocalsize;
         }
         else
         {
-            useSaved = false;
-            parms += " -DMIO_BN_USESAVED=0";
-        }
-
-        program_name += "Spatial.cl";
-        kernel_name += "Spatial";
-
-        if(in_cstride > 1024 && in_nhw < 33554432)
-        {
-            // unsigned int variant = (in_cstride < 2097152)? 5: 6;
-            unsigned int variant = (h == w) ? 5 : 6;
-
-            xlocalsize = 1024;
-            ylocalsize = 1;
-            zlocalsize = 1;
-
-            parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize);
-            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
-            parms += " -DMIO_BN_GRP0=" + std::to_string(xlocalsize);
-            parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
-            parms += " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
-
-            vld.push_back(xlocalsize);
-            vld.push_back(ylocalsize);
-            vld.push_back(zlocalsize);
-
-            xgridsize = xlocalsize * c;
-            ygridsize = 1;
-            zgridsize = 1;
-            vgd.push_back(xgridsize);
-            vgd.push_back(ygridsize);
-            vgd.push_back(zgridsize);
-
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-            std::cout << kernel_name << ":: ";
-            std::cout << parms << std::endl;
-#endif
-            bnBwdTrainSelectSingle(handle,
-                                   program_name,
-                                   algo_name,
-                                   kernel_name,
-                                   network_config,
-                                   parms,
-                                   vld,
-                                   vgd,
-                                   x,
-                                   dy,
-                                   dx,
-                                   bnScale,
-                                   resultBnScaleDiff,
-                                   resultBnBiasDiff,
-                                   useSaved,
-                                   epsilon,
-                                   savedMean,
-                                   savedInvVariance,
-                                   inhw);
-        }
-        else if(in_cstride <= 512 && n > 3 && in_cstride > 4)
-        {
-            unsigned int variant = 0;
-            xlocalsize           = 1024;
-            ylocalsize           = 1;
-            zlocalsize           = 1;
-
-            unsigned int segment = in_cstride * (xlocalsize / in_cstride);
-            unsigned int nloops  = (in_nhw + segment - 1) / segment;
-
-            parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(xlocalsize);
-            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
-            parms += " -DMIO_BN_GRP0=" + std::to_string(xlocalsize);
-            parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
-            parms += " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
-            parms += " -DMIO_BN_NLOOP=" + std::to_string(nloops);
-            parms += " -DMIO_BN_SEGMENT=" + std::to_string((segment > in_nhw) ? in_nhw : segment);
-
-            vld.push_back(xlocalsize);
-            vld.push_back(ylocalsize);
-            vld.push_back(zlocalsize);
-
-            xgridsize = 1024 * c;
-            ygridsize = 1;
-            zgridsize = 1;
-            vgd.push_back(xgridsize);
-            vgd.push_back(ygridsize);
-            vgd.push_back(zgridsize);
-
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-            std::cout << kernel_name << ":: ";
-            std::cout << parms << std::endl;
-#endif
-            bnBwdTrainSelectSingle(handle,
-                                   program_name,
-                                   algo_name,
-                                   kernel_name,
-                                   network_config,
-                                   parms,
-                                   vld,
-                                   vgd,
-                                   x,
-                                   dy,
-                                   dx,
-                                   bnScale,
-                                   resultBnScaleDiff,
-                                   resultBnBiasDiff,
-                                   useSaved,
-                                   epsilon,
-                                   savedMean,
-                                   savedInvVariance,
-                                   inhw);
-        }
-        else if(in_cstride > 1024)
-        {
-            unsigned int variant = 4;
-            xlocalsize           = 1;
-            ylocalsize           = 1024;
-            zlocalsize           = 1;
-            vld.push_back(xlocalsize);
-            vld.push_back(ylocalsize);
-            vld.push_back(zlocalsize);
-
+            variant      = 2;
+            ylocalsize   = 1024;
             auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
             xgridsize    = c;
             ygridsize    = segment * ylocalsize;
-            zgridsize    = 1;
-
-            vgd.push_back(xgridsize);
-            vgd.push_back(ygridsize);
-            vgd.push_back(zgridsize);
-
-            unsigned int numwgs = std::ceil(float(ygridsize) / ylocalsize);
-            parms += " -DMIO_BN_NGRPS=" + std::to_string(numwgs);
-            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
-            parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize);
-            parms += " -DMIO_BN_GRP0=" + std::to_string(1);
-            parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
-            parms += " -DMIO_BN_GRP2=" + std::to_string(1);
-            parms += " -DMIO_BN_SEGMENT=" + std::to_string(segment);
-
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-            std::cout << kernel_name << ":: ";
-            std::cout << parms << std::endl;
-#endif
-            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
-            // MULTI
-
-            //#if(MIO_BN_TIME_EVERYTHING == 1)
-            auto t_end = std::chrono::high_resolution_clock::now();
-
-            std::cout << "Wall clock: PREAMBLE: "
-                      << std::chrono::duration<double>(t_end - t_start).count() * 1000.0 << " ms."
-                      << std::endl;
-            //#endif
-            bnBwdTrainSelectMulti(handle,
-                                  program_name,
-                                  algo_name,
-                                  kernel_name,
-                                  network_config,
-                                  parms,
-                                  vld,
-                                  vgd,
-                                  x,
-                                  dy,
-                                  dx,
-                                  bnScale,
-                                  resultBnScaleDiff,
-                                  resultBnBiasDiff,
-                                  useSaved,
-                                  epsilon,
-                                  savedMean,
-                                  savedInvVariance,
-                                  inhw);
+            single       = false;
+            ldsgcn       = ylocalsize / 64;
+            ldsnogcn     = ylocalsize;
         }
-        else
+
+        std::string algo_name = "miopenBatchNormalizationBackwardProp";
+        std::string network_config =
+            std::to_string(variant) + std::to_string(xDesc.GetType()) + std::to_string(xgridsize) +
+            std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
+            std::to_string(useSaved) + std::to_string(bfp16parm) + std::to_string(bfp32parm) +
+            std::to_string(in_nhw) + std::to_string(single);
+
+        auto&& kernels = handle.GetKernels(algo_name, network_config);
+
+        if(single)
         {
-            xlocalsize = 1;
-            zlocalsize = 1;
-
-            unsigned int variant;
-
-            if(in_cstride < 257 && in_cstride > n && n <= 64 && in_cstride > 1)
+            if(!kernels.empty())
             {
-                variant    = 1;
-                ylocalsize = (in_cstride <= 16) ? 16 : ((in_cstride <= 64) ? 64 : 256);
-            }
-            else if(in_cstride <= 64)
-            {
-                variant    = 2;
-                ylocalsize = (n <= 16) ? 16 : ((n <= 64) ? 64 : 256);
+                auto kernel = kernels.front();
+                if(useSaved)
+                {
+                    kernel(x,
+                           dy,
+                           dx,
+                           bnScale,
+                           resultBnScaleDiff,
+                           resultBnBiasDiff,
+                           savedMean,
+                           savedInvVariance,
+                           inhw);
+                }
+                else
+                {
+                    kernel(x, dy, dx, bnScale, resultBnScaleDiff, resultBnBiasDiff, epsilon, inhw);
+                }
             }
             else
             {
-                variant    = 3;
-                ylocalsize = 64 * ((in_cstride + 63) / 64); //(in_cstride <= 256) ? 256 : 1024;
+
+                std::string program_name = "MIOpenBatchNormBwdSpatial.cl";
+                std::string kernel_name  = "BatchNormBwdSpatial";
+
+                vld.push_back(xlocalsize);
+                vld.push_back(ylocalsize);
+                vld.push_back(zlocalsize);
+
+                vgd.push_back(xgridsize);
+                vgd.push_back(ygridsize);
+                vgd.push_back(zgridsize);
+
+                std::string parms =
+                    " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) + " -DMIOPEN_USE_FP32=" +
+                    std::to_string(bfp32parm) + " -DMIO_BN_USESAVED=" + std::to_string(useSaved) +
+                    " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
+                    " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
+                    std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+                    " -DMIO_BN_NCHW=" + std::to_string(in_nchw) + " -DMIO_BN_LDS_SIZE=" +
+                    std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
+                    " -DMIO_BN_VARIANT=" + std::to_string(variant) + " -DMIO_BN_GRP0=" +
+                    std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                    " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+
+#if(MIOPEN_BN_CPP_DEBUG == 1)
+                std::cout << kernel_name << ":: ";
+                std::cout << parms << std::endl;
+#endif
+
+                bnBwdTrainSelectSingle(handle,
+                                       program_name,
+                                       algo_name,
+                                       kernel_name,
+                                       network_config,
+                                       parms,
+                                       vld,
+                                       vgd,
+                                       x,
+                                       dy,
+                                       dx,
+                                       bnScale,
+                                       resultBnScaleDiff,
+                                       resultBnBiasDiff,
+                                       useSaved,
+                                       epsilon,
+                                       savedMean,
+                                       savedInvVariance,
+                                       inhw);
             }
-            parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize);
-            parms += " -DMIO_BN_VARIANT=" + std::to_string(variant);
-            parms += " -DMIO_BN_GRP0=" + std::to_string(xlocalsize);
-            parms += " -DMIO_BN_GRP1=" + std::to_string(ylocalsize);
-            parms += " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+        }
+        else // Use multi-kernel
+        {
+            if(!kernels.empty())
+            {
+                float ctime = 0.;
+                if(useSaved)
+                {
+                    kernels[0](x, dy, dx, savedMean, savedInvVariance);
+                    profileSequence(handle, 0, &ctime);
+
+                    kernels[1](dx, resultBnScaleDiff, resultBnBiasDiff);
+                    profileSequence(handle, 1, &ctime);
+
+                    kernels[2](x,
+                               dy,
+                               dx,
+                               bnScale,
+                               resultBnScaleDiff,
+                               resultBnBiasDiff,
+                               savedMean,
+                               savedInvVariance,
+                               inhw);
+                    profileSequence(handle, 2, &ctime);
+                }
+                else
+                {
+                    kernels[0](x, dx); // mean variance
+                    profileSequence(handle, 0, &ctime);
+
+                    kernels[1](dx, inhw, epsilon); // final mean variance
+                    profileSequence(handle, 1, &ctime);
+
+                    kernels[2](x, dy, dx); // dscale dbias
+                    profileSequence(handle, 1, &ctime);
+
+                    kernels[3](dx, resultBnScaleDiff, resultBnBiasDiff); // final dscale dbias
+                    profileSequence(handle, 1, &ctime);
+
+                    kernels[4](x, dy, dx, bnScale, resultBnScaleDiff, resultBnBiasDiff, inhw); // dx
+                    profileSequence(handle, 2, &ctime);
+                }
+            }
+            else
+            {
+
+                vld.push_back(xlocalsize);
+                vld.push_back(ylocalsize);
+                vld.push_back(zlocalsize);
+
+                vgd.push_back(xgridsize);
+                vgd.push_back(ygridsize);
+                vgd.push_back(zgridsize);
+
+                std::string program_name = "MIOpenBatchNormBwdSpatial.cl";
+                std::string kernel_name  = "BatchNormBwdSpatial";
+                std::string parms =
+                    " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) + " -DMIOPEN_USE_FP32=" +
+                    std::to_string(bfp32parm) + " -DMIO_BN_USESAVED=" + std::to_string(useSaved) +
+                    " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
+                    " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
+                    std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+                    " -DMIO_BN_NCHW=" + std::to_string(in_nchw) + " -DMIO_BN_NGRPS=" +
+                    std::to_string(int(std::ceil(float(ygridsize) / ylocalsize))) +
+                    " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" +
+                    std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" + std::to_string(variant) +
+                    " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
+                    std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+
+#if(MIOPEN_BN_CPP_DEBUG == 1)
+                std::cout << kernel_name << ":: ";
+                std::cout << parms << std::endl;
+#endif
+
+                bnBwdTrainSelectMulti(handle,
+                                      program_name,
+                                      algo_name,
+                                      kernel_name,
+                                      network_config,
+                                      parms,
+                                      vld,
+                                      vgd,
+                                      x,
+                                      dy,
+                                      dx,
+                                      bnScale,
+                                      resultBnScaleDiff,
+                                      resultBnBiasDiff,
+                                      useSaved,
+                                      epsilon,
+                                      savedMean,
+                                      savedInvVariance,
+                                      inhw);
+            }
+        }
+    } // END spatial
+    else
+    { // PER ACT
+
+        ylocalsize           = (64 >= in_cstride) ? 64 : 256;
+        unsigned int segment = std::ceil(double(in_cstride) / double(ylocalsize));
+        xgridsize            = c;
+        ygridsize            = segment * ylocalsize;
+
+        if(savedMean == nullptr || savedInvVariance == nullptr)
+        {
+            useSaved = false;
+        }
+
+        std::string algo_name = "miopenBatchNormalizationBackwardProp";
+        std::string network_config =
+            std::to_string(variant) + std::to_string(xDesc.GetType()) + std::to_string(xgridsize) +
+            std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
+            std::to_string(useSaved) + std::to_string(bfp16parm) + std::to_string(bfp32parm) +
+            std::to_string(in_nhw) + std::to_string(single);
+
+        auto&& kernels = handle.GetKernels(algo_name, network_config);
+
+        if(!kernels.empty())
+        {
+            auto kernel = kernels.front();
+
+            if(useSaved)
+            {
+                kernel(x,
+                       dy,
+                       n,
+                       in_nstride,
+                       in_cstride,
+                       dx,
+                       bnScale,
+                       resultBnScaleDiff,
+                       resultBnBiasDiff,
+                       savedMean,
+                       savedInvVariance);
+            }
+            else
+            {
+                kernel(x,
+                       dy,
+                       n,
+                       in_nstride,
+                       in_cstride,
+                       dx,
+                       bnScale,
+                       resultBnScaleDiff,
+                       resultBnBiasDiff,
+                       epsilon);
+            }
+        }
+        else
+        {
 
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
             vld.push_back(zlocalsize);
 
-            xgridsize = c;
-            ygridsize = ylocalsize;
-            zgridsize = 1;
             vgd.push_back(xgridsize);
             vgd.push_back(ygridsize);
             vgd.push_back(zgridsize);
 
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-            std::cout << kernel_name << ":: ";
-            std::cout << parms << std::endl;
-#endif
-            bnBwdTrainSelectSingle(handle,
-                                   program_name,
-                                   algo_name,
-                                   kernel_name,
-                                   network_config,
-                                   parms,
-                                   vld,
-                                   vgd,
-                                   x,
-                                   dy,
-                                   dx,
-                                   bnScale,
-                                   resultBnScaleDiff,
-                                   resultBnBiasDiff,
-                                   useSaved,
-                                   epsilon,
-                                   savedMean,
-                                   savedInvVariance,
-                                   inhw);
-        }
+            std::string program_name = "MIOpenBatchNormBwdPerAct.cl";
+            std::string kernel_name  = "BatchNormBwdPerActivation";
 
-    } // END spatial
-    else
-    { // PER ACT
-        program_name += "PerAct.cl";
-        kernel_name += "PerActivation";
+            std::string parms =
+                " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) + " -DMIOPEN_USE_FP32=" +
+                std::to_string(bfp32parm) + " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" +
+                std::to_string(c) + " -DMIO_BN_HW=" + std::to_string(in_cstride) +
+                " -DMIO_BN_NHW=" + std::to_string(in_nhw) + " -DMIO_BN_CHW=" +
+                std::to_string(in_nstride) + " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
+                " -DMIO_BN_NGRPS=" + std::to_string(int(std::ceil(float(ygridsize) / ylocalsize))) +
+                " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) + " -DMIO_BN_GRP0=" +
+                std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
-        parms += "-DMIO_BN_N=" + std::to_string(n);
-        parms += " -DMIO_BN_HW=" + std::to_string(in_cstride);
-        parms += " -DMIO_BN_NHW=" + std::to_string(n * h * w);
-
-        xlocalsize = 1;
-        ylocalsize = (64 >= in_cstride) ? 64 : 256;
-        zlocalsize = 1;
-        vld.push_back(xlocalsize);
-        vld.push_back(ylocalsize);
-        vld.push_back(zlocalsize);
-
-        parms += " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize);
-
-        unsigned int segment = std::ceil(double(in_cstride) / double(ylocalsize));
-
-        xgridsize = c;
-        ygridsize = segment * ylocalsize;
-        zgridsize = 1;
-        vgd.push_back(xgridsize);
-        vgd.push_back(ygridsize);
-        vgd.push_back(zgridsize);
-
-        if(savedMean != nullptr && savedInvVariance != nullptr)
-        {
-            useSaved = true;
-            parms += " -DMIO_BN_USESAVED=1";
-        }
-        else
-        {
-            useSaved = false;
-            parms += " -DMIO_BN_USESAVED=0";
-        }
-
-        if(useSaved)
-        {
-            kernel_name += "Saved";
-            handle.AddKernel("miopenBatchNormalizationBwd",
-                             network_config,
-                             program_name,
-                             kernel_name,
-                             vld,
-                             vgd,
-                             parms)(x,
-                                    dy,
-                                    n,
-                                    in_nstride,
-                                    in_cstride,
-                                    dx,
-                                    bnScale,
-                                    resultBnScaleDiff,
-                                    resultBnBiasDiff,
-                                    savedMean,
-                                    savedInvVariance);
-        }
-        else
-        {
-            handle.AddKernel("miopenBatchNormalizationBwd",
-                             network_config,
-                             program_name,
-                             kernel_name,
-                             vld,
-                             vgd,
-                             parms)(x,
-                                    dy,
-                                    n,
-                                    in_nstride,
-                                    in_cstride,
-                                    dx,
-                                    bnScale,
-                                    resultBnScaleDiff,
-                                    resultBnBiasDiff,
-                                    epsilon);
+            if(useSaved)
+            {
+                kernel_name += "Saved";
+                handle.AddKernel(
+                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                    x,
+                    dy,
+                    n,
+                    in_nstride,
+                    in_cstride,
+                    dx,
+                    bnScale,
+                    resultBnScaleDiff,
+                    resultBnBiasDiff,
+                    savedMean,
+                    savedInvVariance);
+            }
+            else
+            {
+                handle.AddKernel(
+                    algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+                    x,
+                    dy,
+                    n,
+                    in_nstride,
+                    in_cstride,
+                    dx,
+                    bnScale,
+                    resultBnScaleDiff,
+                    resultBnBiasDiff,
+                    epsilon);
+            }
         }
     }
     if(miopen::CheckNumericsEnabled())

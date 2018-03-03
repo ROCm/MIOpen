@@ -129,7 +129,7 @@ void bnFwdTrainSelectMulti(Handle& handle,
                            Data_t resultSaveInvVariance,
                            float inhw);
 
-void profileSequence(Handle& handle, unsigned char select);
+void profileSequence(Handle& handle, unsigned char select, float* ctime);
 
 void BatchNormForwardInference(Handle& handle,
                                miopenBatchNormMode_t bn_mode,

@@ -90,8 +90,11 @@ int main(int argc, char* argv[])
 
     drv->AllocateBuffersAndCopy();
 
-    if(drv->GetInputFlags().GetValueInt("forw") != 2)
+    if((drv->GetInputFlags().GetValueInt("forw") != 2) ||
+       (drv->GetInputFlags().GetValueInt("forw") == 2 && (base_arg == "bnorm")))
+    {
         drv->RunForwardGPU();
+    }
 
     if(drv->GetInputFlags().GetValueInt("verify") == 1 &&
        drv->GetInputFlags().GetValueInt("forw") != 2)
@@ -104,6 +107,12 @@ int main(int argc, char* argv[])
         {
             drv->VerifyForward();
         }
+    }
+
+    if(drv->GetInputFlags().GetValueInt("verify") == 1 &&
+       drv->GetInputFlags().GetValueInt("forw") == 2 && (base_arg == "bnorm"))
+    {
+        drv->VerifyForward();
     }
 
     if(drv->GetInputFlags().GetValueInt("forw") != 1)
