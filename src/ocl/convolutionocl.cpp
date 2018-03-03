@@ -394,7 +394,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             else if(workSpace != nullptr &&
                     workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc))
             {
-                GemmGeometry gg = CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
+                GemmGeometry gg =
+                    CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
                 float time_im2col = 0;
                 size_t in_offset  = 0;
                 time_im2col       = Im2ColGPU(handle,
