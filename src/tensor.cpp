@@ -150,6 +150,7 @@ bool TensorDescriptor::operator>(const TensorDescriptor& rhs) const
 std::string TensorDescriptor::ToString() const
 {
     std::string result;
+    if (this->lens.empty()) return result;
     for(auto i : this->lens)
     {
         result += std::to_string(i) + ", ";
