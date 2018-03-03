@@ -1350,15 +1350,7 @@ struct verify_forward_train_rnn
                   << std::endl;
 #endif
 
-        std::tuple<std::vector<T>, std::vector<T>, std::vector<T>> retSet;
-        if(nohy)
-        {
-            retSet = std::make_tuple(output, initHidden, reserveSpace);
-        }
-        else
-        {
-            retSet = std::make_tuple(output, hiddenState, reserveSpace);
-        }
+        auto retSet = std::make_tuple(output, (nohy ? initHidden : hiddenState), reserveSpace);
 
 #if(MIO_RNN_TEST_DEBUG > 0)
         std::cout << "Done with RNN forward train CPU" << std::endl;
@@ -1452,21 +1444,10 @@ struct verify_forward_train_rnn
         }
 #endif
 
-        std::tuple<std::vector<T>, std::vector<T>, std::vector<T>> retSet;
-        if(nohy)
-        {
-            retSet =
-                std::make_tuple(handle.Read<T>(output_dev, output.size()),
-                                initHidden,
-                                handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
-        }
-        else
-        {
-            retSet =
-                std::make_tuple(handle.Read<T>(output_dev, output.size()),
-                                handle.Read<T>(hy_dev, hy.size()),
-                                handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
-        }
+        auto retSet =
+            std::make_tuple(handle.Read<T>(output_dev, output.size()),
+                            (nohy ? initHidden : handle.Read<T>(hy_dev, hy.size())),
+                            handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -1652,15 +1633,7 @@ struct verify_backward_data_rnn
                   << std::endl;
 #endif
 
-        std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> retSet;
-        if(nodhx)
-        {
-            retSet = std::make_tuple(dx, initHidden, reserveSpace, workSpace);
-        }
-        else
-        {
-            retSet = std::make_tuple(dx, dhx, reserveSpace, workSpace);
-        }
+        auto retSet = std::make_tuple(dx, (nodhx ? initHidden : dhx), reserveSpace, workSpace);
 
 #if(MIO_RNN_TEST_DEBUG > 0)
         std::cout << "Done with RNN backward data CPU" << std::endl;
@@ -1748,21 +1721,10 @@ struct verify_backward_data_rnn
                               reserveSpace_dev.get(),
                               reserveSpace.size() * sizeof(T));
 
-        std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> retSet;
-        if(nodhx)
-        {
-            retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
-                                     initHidden,
-                                     handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
-                                     handle.Read<T>(workSpace_dev, workSpace.size()));
-        }
-        else
-        {
-            retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
-                                     handle.Read<T>(dhx_dev, dhx.size()),
-                                     handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
-                                     handle.Read<T>(workSpace_dev, workSpace.size()));
-        }
+        auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
+                                      (nodhx ? initHidden : handle.Read<T>(dhx_dev, dhx.size())),
+                                      handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
+                                      handle.Read<T>(workSpace_dev, workSpace.size()));
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
