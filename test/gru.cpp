@@ -1447,6 +1447,7 @@ struct verify_forward_infer_gru
     miopenRNNDescriptor_t rnnDesc;
     size_t realHiddenSize;
     bool nohx;
+    bool nohy;
 
     verify_forward_infer_gru(miopenRNNDescriptor_t pRD,
                              const std::vector<T>& px,
@@ -1462,7 +1463,8 @@ struct verify_forward_infer_gru
                              const int pIM,
                              const int pVL,
                              const size_t pHXZ,
-                             const bool pnohx = false)
+                             const bool pnohx = false,
+                             const bool pnohy = false)
     {
         rnnDesc    = pRD;
         input      = px;
@@ -1478,6 +1480,7 @@ struct verify_forward_infer_gru
         inputVecLen    = pVL;
         realHiddenSize = pHXZ;
 
+        nohy = pnohy;
         nohx = pnohx;
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
@@ -1635,7 +1638,7 @@ struct verify_forward_infer_gru
                                   outputDescs.data(),
                                   output_dev.get(),
                                   &hiddenDesc,
-                                  hy_dev.get(),
+                                  ((nohy) ? nullptr : hy_dev.get()),
                                   &hiddenDesc,
                                   nullptr,
                                   workSpace_dev.get(),
@@ -1715,6 +1718,7 @@ struct verify_forward_train_gru
     miopenRNNDescriptor_t rnnDesc;
     size_t realHiddenSize;
     bool nohx;
+    bool nohy;
 
     verify_forward_train_gru(miopenRNNDescriptor_t pRD,
                              const std::vector<T>& px,
@@ -1730,7 +1734,8 @@ struct verify_forward_train_gru
                              const int pIM,
                              const int pVL,
                              const size_t pHXZ,
-                             const bool pnohx = false)
+                             const bool pnohx = false,
+                             const bool pnohy = false)
     {
         rnnDesc     = pRD;
         input       = px;
@@ -1748,6 +1753,7 @@ struct verify_forward_train_gru
 
         realHiddenSize = pHXZ;
 
+        nohy = pnohy;
         nohx = pnohx;
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
@@ -1828,7 +1834,17 @@ struct verify_forward_train_gru
                   << std::chrono::duration<double>(t_end - t_start1).count() << " seconds."
                   << std::endl;
 #endif
-        auto retSet = std::make_tuple(output, hiddenState, reserveSpace);
+
+        std::tuple<std::vector<T>, std::vector<T>, std::vector<T>> retSet;
+        if(nohy)
+        {
+            retSet = std::make_tuple(output, initHidden, reserveSpace);
+        }
+        else
+        {
+            retSet = std::make_tuple(output, hiddenState, reserveSpace);
+        }
+
 #if(MIO_GRU_TEST_DEBUG > 0)
         std::cout << "Done with GRU forward train CPU" << std::endl;
         std::cout << "---------------------------------\n" << std::endl;
@@ -1909,7 +1925,7 @@ struct verify_forward_train_gru
                                  outputDescs.data(),
                                  output_dev.get(),
                                  &hiddenDesc,
-                                 hy_dev.get(),
+                                 ((nohy) ? nullptr : hy_dev.get()),
                                  &hiddenDesc,
                                  nullptr,
                                  workSpace_dev.get(),
@@ -1925,10 +1941,21 @@ struct verify_forward_train_gru
         }
 #endif
 
-        auto retSet =
-            std::make_tuple(handle.Read<T>(output_dev, output.size()),
-                            handle.Read<T>(hy_dev, hy.size()),
-                            handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
+        std::tuple<std::vector<T>, std::vector<T>, std::vector<T>> retSet;
+        if(nohy)
+        {
+            retSet =
+                std::make_tuple(handle.Read<T>(output_dev, output.size()),
+                                initHidden,
+                                handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
+        }
+        else
+        {
+            retSet =
+                std::make_tuple(handle.Read<T>(output_dev, output.size()),
+                                handle.Read<T>(hy_dev, hy.size()),
+                                handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
+        }
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -2008,6 +2035,7 @@ struct verify_backward_data_gru
     size_t realHiddenSize;
     bool nohx;
     bool nodhy;
+    bool nodhx;
 
     verify_backward_data_gru(miopenRNNDescriptor_t pRD,
                              const std::vector<T>& py,
@@ -2027,7 +2055,8 @@ struct verify_backward_data_gru
                              const int pVL,
                              const size_t pHXZ,
                              const bool pnohx  = false,
-                             const bool pnodhy = false)
+                             const bool pnodhy = false,
+                             const bool pnodhx = false)
     {
         rnnDesc    = pRD;
         yin        = py;
@@ -2046,7 +2075,8 @@ struct verify_backward_data_gru
         inputVecLen    = pVL;
         realHiddenSize = pHXZ;
 
-        nohx = pnohx;
+        nodhx = pnodhx;
+        nohx  = pnohx;
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
         else
@@ -2125,7 +2155,17 @@ struct verify_backward_data_gru
                   << std::chrono::duration<double>(t_end - t_start1).count() << " seconds."
                   << std::endl;
 #endif
-        auto retSet = std::make_tuple(dx, dhx, /*reserveSpace, */ workSpace);
+
+        std::tuple<std::vector<T>, std::vector<T>, /*std::vector<T>, */ std::vector<T>> retSet;
+        if(nodhx)
+        {
+            retSet = std::make_tuple(dx, initHidden, /*reserveSpace, */ workSpace);
+        }
+        else
+        {
+            retSet = std::make_tuple(dx, dhx, /*reserveSpace, */ workSpace);
+        }
+
 #if(MIO_GRU_TEST_DEBUG > 0)
         std::cout << "Done with GRU backward data CPU" << std::endl;
         std::cout << "---------------------------------\n" << std::endl;
@@ -2206,7 +2246,7 @@ struct verify_backward_data_gru
                               inputDescs.data(),
                               dx_dev.get(),
                               &hiddenDesc,
-                              dhx_dev.get(),
+                              ((nodhx) ? nullptr : dhx_dev.get()),
                               &hiddenDesc,
                               nullptr,
                               workSpace_dev.get(),
@@ -2214,11 +2254,21 @@ struct verify_backward_data_gru
                               reserveSpace_dev.get(),
                               reserveSpace.size() * sizeof(T));
 
-        auto retRSV = handle.Read<T>(reserveSpace_dev, reserveSpace.size());
-        auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
-                                      handle.Read<T>(dhx_dev, dhx.size()),
-                                      // handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
-                                      /*retRSV, */ handle.Read<T>(workSpace_dev, workSpace.size()));
+        std::tuple<std::vector<T>, std::vector<T>, /*std::vector<T>,*/ std::vector<T>> retSet;
+        if(nodhx)
+        {
+            retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
+                                     initHidden,
+                                     /* handle.Read<T>(reserveSpace_dev, reserveSpace.size()), */
+                                     handle.Read<T>(workSpace_dev, workSpace.size()));
+        }
+        else
+        {
+            retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
+                                     handle.Read<T>(dhx_dev, dhx.size()),
+                                     /* handle.Read<T>(reserveSpace_dev, reserveSpace.size()), */
+                                     handle.Read<T>(workSpace_dev, workSpace.size()));
+        }
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -2507,6 +2557,8 @@ struct gru_driver : test_driver
     // Null pointer input
     bool nohx  = false;
     bool nodhy = false;
+    bool nohy  = false;
+    bool nodhx = false;
 
     gru_driver()
     {
@@ -2521,6 +2573,8 @@ struct gru_driver : test_driver
         add(numLayers, "num-layers", generate_data(get_gru_num_layers()));
         add(nohx, "no-hx", flag());
         add(nodhy, "no-dhy", flag());
+        add(nohy, "no-hy", flag());
+        add(nodhx, "no-dhx", flag());
 
 #if(MIO_GRU_TEST_DEBUG == 3)
         biasMode  = 0;
@@ -2630,7 +2684,8 @@ struct gru_driver : test_driver
                                                                      inputMode,
                                                                      inVecReal,
                                                                      hx_sz,
-                                                                     nohx});
+                                                                     nohx,
+                                                                     nohy});
 
         /// RETURNS std::make_tuple(output, hiddenState, reserveSpace);
         auto yin                  = std::get<0>(fwdTrainOutputPair.second);
@@ -2646,25 +2701,10 @@ struct gru_driver : test_driver
 #if(MIO_GRU_TEST_DEBUG > 0)
         printf("Running backward data GRU.\n");
 #endif
-        auto bwdDataOutputPair = verify(verify_backward_data_gru<T>{rnnDesc,
-                                                                    yin,
-                                                                    dyin,
-                                                                    dhyin,
-                                                                    hx,
-                                                                    weights,
-                                                                    reserveSpaceFwdTrain,
-                                                                    batchSeq,
-                                                                    hiddenSize,
-                                                                    batch_n,
-                                                                    seqLength,
-                                                                    numLayers,
-                                                                    biasMode,
-                                                                    dirMode,
-                                                                    inputMode,
-                                                                    inVecReal,
-                                                                    hx_sz,
-                                                                    nohx,
-                                                                    nodhy});
+        auto bwdDataOutputPair = verify(verify_backward_data_gru<T>{
+            rnnDesc,   yin,        dyin,    dhyin,     hx,        weights,  reserveSpaceFwdTrain,
+            batchSeq,  hiddenSize, batch_n, seqLength, numLayers, biasMode, dirMode,
+            inputMode, inVecReal,  hx_sz,   nohx,      nodhy,     nodhx});
 
         // RETURNS:  std::make_tuple(dx, dhx, reserveSpace, workSpace);
         // BUGGY: auto reserveSpaceBwdData = std::get<2>(bwdDataOutputPair.second);
@@ -2703,7 +2743,8 @@ struct gru_driver : test_driver
                                            inputMode,
                                            inVecReal,
                                            hx_sz,
-                                           nohx});
+                                           nohx,
+                                           nohy});
 
         // DLOWELL: Subtracting delta weights may produce NAN and infinities. Further investigation
         // is needed.
