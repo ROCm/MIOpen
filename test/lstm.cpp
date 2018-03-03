@@ -1625,23 +1625,8 @@ struct verify_forward_train_lstm
                   << std::endl;
 #endif
 
-        std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> retSet;
-        if(nohy && nocy)
-        {
-            retSet = std::make_tuple(output, initHidden, initCell, reserveSpace);
-        }
-        else if(nocy)
-        {
-            retSet = std::make_tuple(output, hiddenState, initCell, reserveSpace);
-        }
-        else if(nohy)
-        {
-            retSet = std::make_tuple(output, initHidden, cellState, reserveSpace);
-        }
-        else
-        {
-            retSet = std::make_tuple(output, hiddenState, cellState, reserveSpace);
-        }
+        auto retSet = std::make_tuple(
+            output, (nohy ? initHidden : hiddenState), (nocy ? initCell : cellState), reserveSpace);
 
 #if(MIO_LSTM_TEST_DEBUG > 0)
         std::cout << "Done with LSTM forward train CPU" << std::endl;
@@ -1737,39 +1722,11 @@ struct verify_forward_train_lstm
         }
 #endif
 
-        std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> retSet;
-        if(nohy && nocy)
-        {
-            retSet =
-                std::make_tuple(handle.Read<T>(output_dev, output.size()),
-                                initHidden,
-                                initCell,
-                                handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
-        }
-        else if(nocy)
-        {
-            retSet =
-                std::make_tuple(handle.Read<T>(output_dev, output.size()),
-                                handle.Read<T>(hy_dev, hy.size()),
-                                initCell,
-                                handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
-        }
-        else if(nohy)
-        {
-            retSet =
-                std::make_tuple(handle.Read<T>(output_dev, output.size()),
-                                initHidden,
-                                handle.Read<T>(cy_dev, cy.size()),
-                                handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
-        }
-        else
-        {
-            retSet =
-                std::make_tuple(handle.Read<T>(output_dev, output.size()),
-                                handle.Read<T>(hy_dev, hy.size()),
-                                handle.Read<T>(cy_dev, cy.size()),
-                                handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
-        }
+        auto retSet =
+            std::make_tuple(handle.Read<T>(output_dev, output.size()),
+                            (nohy ? initHidden : handle.Read<T>(hy_dev, hy.size())),
+                            (nocy ? initCell : handle.Read<T>(cy_dev, cy.size())),
+                            handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -1986,24 +1943,8 @@ struct verify_backward_data_lstm
                   << std::endl;
 #endif
 
-        std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>>
-            retSet;
-        if(nodhx && nodcx)
-        {
-            retSet = std::make_tuple(dx, initHidden, initCell, reserveSpace, workSpace);
-        }
-        else if(nodcx)
-        {
-            retSet = std::make_tuple(dx, dhx, initCell, reserveSpace, workSpace);
-        }
-        else if(nodhx)
-        {
-            retSet = std::make_tuple(dx, initHidden, dcx, reserveSpace, workSpace);
-        }
-        else
-        {
-            retSet = std::make_tuple(dx, dhx, dcx, reserveSpace, workSpace);
-        }
+        auto retSet = std::make_tuple(
+            dx, (nodhx ? initHidden : dhx), (nodcx ? initCell : dcx), reserveSpace, workSpace);
 
 #if(MIO_LSTM_TEST_DEBUG > 0)
         std::cout << "Done with LSTM backward data CPU" << std::endl;
@@ -2090,40 +2031,11 @@ struct verify_backward_data_lstm
                               reserveSpace_dev.get(),
                               reserveSpace.size() * sizeof(T));
 
-        std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>>
-            retSet;
-        if(nodhx && nodcx)
-        {
-            retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
-                                     initHidden,
-                                     initCell,
-                                     handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
-                                     handle.Read<T>(workSpace_dev, workSpace.size()));
-        }
-        else if(nodcx)
-        {
-            retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
-                                     handle.Read<T>(dhx_dev, dhx.size()),
-                                     initCell,
-                                     handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
-                                     handle.Read<T>(workSpace_dev, workSpace.size()));
-        }
-        else if(nodhx)
-        {
-            retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
-                                     initHidden,
-                                     handle.Read<T>(dcx_dev, dcx.size()),
-                                     handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
-                                     handle.Read<T>(workSpace_dev, workSpace.size()));
-        }
-        else
-        {
-            retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
-                                     handle.Read<T>(dhx_dev, dhx.size()),
-                                     handle.Read<T>(dcx_dev, dcx.size()),
-                                     handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
-                                     handle.Read<T>(workSpace_dev, workSpace.size()));
-        }
+        auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
+                                      (nodhx ? initHidden : handle.Read<T>(dhx_dev, dhx.size())),
+                                      (nodcx ? initCell : handle.Read<T>(dcx_dev, dcx.size())),
+                                      handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
+                                      handle.Read<T>(workSpace_dev, workSpace.size()));
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
