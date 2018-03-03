@@ -33,162 +33,159 @@
 #define MIOPEN_TYPE float
 #endif
 
-__kernel void
-ScaleTensor(global MIOPEN_TYPE* __restrict dst, MIOPEN_ALPHA_TYPE alpha, long num_elems)
+__kernel void ScaleTensor1d(
+    global MIOPEN_TYPE* __restrict dst,
+    const MIOPEN_ALPHA_TYPE alpha,
+    const int offset,
+    const int stride0,
+    const int len0)
 {
-    uint gid = get_global_id(0);
-    if(gid < num_elems)
+    const uint tidx = get_global_id(0);
+    const uint tszx = get_global_size(0);
+
+    for( uint did0 = tidx; did0 < len0; did0 += tszx )
     {
-        dst[gid] *= alpha;
+        const uint i = stride0 * did0;
+
+        dst[i+offset] *= alpha;
     }
 }
 
-__kernel void SetTensor(global MIOPEN_TYPE* __restrict dst, MIOPEN_ALPHA_TYPE alpha, long num_elems)
+__kernel void ScaleTensor2d(
+    global MIOPEN_TYPE* __restrict dst,
+    const MIOPEN_ALPHA_TYPE alpha,
+    const int offset,
+    const int stride0,
+    const int stride1,
+    const int len0,
+    const int len1)
 {
-    uint gid = get_global_id(0);
-    if(gid < num_elems)
+    const uint tidx = get_global_id(0);
+    const uint tidy = get_global_id(1);
+
+    const uint tszx = get_global_size(0);
+    const uint tszy = get_global_size(1);
+
+    for( uint did0 = tidy; did0 < len0; did0 += tszy )
     {
-        dst[gid] = alpha;
+        for( uint did1 = tidx; did1 < len1; did1 += tszx )
+        {
+            const uint i = stride0 * did0 + stride1 * did1;
+            dst[i+offset] *= alpha;
+        }
     }
 }
 
-__kernel void CopyTensor(global MIOPEN_TYPE* __restrict src,
-                         global MIOPEN_TYPE* __restrict dst,
-                         const int srcOffset,
-                         const int srcStride0,
-                         const int srcStride1,
-                         const int srcStride2,
-                         const int srcStride3,
-                         const int srcLen0,
-                         const int srcLen1,
-                         const long srcRealsize,
-                         const int dstOffset,
-                         const int dstStride0,
-                         const int dstStride1,
-                         const int dstStride2,
-                         const int dstStride3,
-                         const int dstLen0,
-                         const int dstLen1,
-                         const int dstLen2,
-                         const int dstLen3,
-                         const int dstLen4,
-                         const long dstRealsize,
-                         const int dims)
+__kernel void ScaleTensor3d(
+    global MIOPEN_TYPE* __restrict dst, 
+    const MIOPEN_ALPHA_TYPE alpha, 
+    const int offset, 
+    const int stride0, 
+    const int stride1, 
+    const int stride2, 
+    const int len0, 
+    const int len1, 
+    const int len2)
 {
+    const uint tidx = get_global_id(0);
+    const uint tidy = get_global_id(1);
+    const uint tidz = get_global_id(2);
 
-    uint sindex = 0;
-    uint dindex = 0;
-    uint gidx   = get_global_id(0);
-    uint gidy   = get_global_id(1);
-    uint gidz   = get_global_id(2);
-    uint stmp, stmp2;
-    uint dtmp, dtmp2;
+    const uint tszx = get_global_size(0);
+    const uint tszy = get_global_size(1);
+    const uint tszz = get_global_size(2);
 
-    switch(dims)
+    for( uint did0 = tidz; did0 < len0; did0 += tszz )
     {
-    case 1:
-        for(int idx = gidx; idx < dstLen0; idx += 65536)
+        for( uint did1 = tidy; did1 < len1; did1 += tszy )
         {
-            if(idx < dstRealsize && idx < srcRealsize)
+            for( uint did2 = tidx; did2 < len2; did2 += tszx )
             {
-                dst[idx + dstOffset] = src[idx + srcOffset];
+                const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2;
+
+                dst[i+offset] *= alpha;
             }
         }
-        break;
+    }
+}
 
-    case 2:
-        for(int xidx = gidx; xidx < dstLen0; xidx += 256)
+__kernel void ScaleTensor4d(
+    global MIOPEN_TYPE* __restrict dst, 
+    const MIOPEN_ALPHA_TYPE alpha, 
+    const int offset, 
+    const int stride0, 
+    const int stride1,
+    const int stride2,
+    const int stride3,
+    const int len0, 
+    const int len1, 
+    const int len2,
+    const int len3)
+{
+    const uint tidx = get_global_id(0);
+    const uint tidy = get_global_id(1);
+    const uint tidz = get_global_id(2);
+
+    const uint tszx = get_global_size(0);
+    const uint tszy = get_global_size(1);
+    const uint tszz = get_global_size(2);
+
+    for( uint did0 = 0; did0 < len0; did0++ )
+    {
+        for( uint did1 = tidz; did1< len1; did1 += tszz )
         {
-            for(int yidx = gidy; yidx < dstLen1; yidx += 256)
+            for( uint did2 = tidy; did2 < len2; did2 += tszy )
             {
-                dindex = dstStride0 * xidx + yidx;
-                sindex = srcStride0 * xidx + yidx;
-                if(dindex < dstRealsize && sindex < srcRealsize)
+                for( uint did3 = tidx; did3 < len3; did3 += tszx )
                 {
-                    dst[dindex + dstOffset] = src[sindex + srcOffset];
+                    const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2 + stride3 * did3;
+
+                    dst[i+offset] *= alpha;
                 }
             }
         }
-        break;
+    }
+}
 
-    case 3:
+__kernel void ScaleTensor5d(
+    global MIOPEN_TYPE* __restrict dst, 
+    const MIOPEN_ALPHA_TYPE alpha, 
+    const int offset,
+    const int stride0,
+    const int stride1,
+    const int stride2,
+    const int stride3,
+    const int stride4,
+    const int len0,
+    const int len1,
+    const int len2,
+    const int len3,
+    const int len4)
+{
+    const uint tidx = get_global_id(0);
+    const uint tidy = get_global_id(1);
+    const uint tidz = get_global_id(2);
 
-        for(int xidx = gidx; xidx < dstLen0; xidx += 16)
+    const uint tszx = get_global_size(0);
+    const uint tszy = get_global_size(1);
+    const uint tszz = get_global_size(2);
+
+    for( uint did0 = 0; did0 < len0; did0++ )
+    {
+        for( uint did1 = 0; did1 < len1; did1++ )
         {
-            for(int yidx = gidy; yidx < dstLen1; yidx += 64)
+            for( uint did2 = tidz; did2< len2; did2 += tszz )
             {
-                for(int zidx = gidz; zidx < dstLen2; zidx += 64)
+                for( uint did3 = tidy; did3 < len3; did3 += tszy )
                 {
-
-                    dindex = dstStride0 * xidx + dstStride1 * yidx + zidx;
-                    sindex = srcStride0 * xidx + srcStride1 * yidx + zidx;
-
-                    if(dindex < dstRealsize && sindex < srcRealsize)
+                    for( uint did4 = tidx; did4 < len4; did4 += tszx )
                     {
-                        dst[dindex + dstOffset] = src[sindex + srcOffset];
+                        const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2 + stride3 * did3 + stride4 * did4;
+
+                        dst[i+offset] *= alpha;
                     }
                 }
             }
         }
-        break;
-
-    case 4:
-
-        for(int xidx = gidx; xidx < dstLen1; xidx += 16)
-        {
-            for(int yidx = gidy; yidx < dstLen2; yidx += 64)
-            {
-                for(int zidx = gidz; zidx < dstLen3; zidx += 64)
-                {
-                    stmp = srcStride1 * xidx + srcStride2 * yidx + srcStride3 * zidx;
-                    dtmp = dstStride1 * xidx + dstStride2 * yidx + dstStride3 * zidx;
-#pragma unroll
-                    for(int idx = 0; idx < srcLen0; idx++)
-                    {
-                        sindex = stmp + srcStride0 * idx;
-                        dindex = dtmp + dstStride0 * idx;
-
-                        if(dindex < dstRealsize && sindex < srcRealsize)
-                        {
-                            dst[dindex + dstOffset] = src[sindex + srcOffset];
-                        }
-                    }
-                }
-            }
-        }
-        break;
-
-    case 5:
-        for(int xidx = gidx; xidx < dstLen2; xidx += 16)
-        {
-            for(int yidx = gidy; yidx < dstLen3; yidx += 64)
-            {
-                for(int zidx = gidz; zidx < dstLen4; zidx += 64)
-                {
-                    stmp = srcStride2 * xidx + srcStride3 * yidx + zidx;
-                    dtmp = dstStride2 * xidx + dstStride3 * yidx + zidx;
-
-#pragma unroll
-                    for(int idx = 0; idx < srcLen0; idx++)
-                    {
-                        stmp2 = stmp + srcStride0 * idx;
-                        dtmp2 = dtmp + dstStride0 * idx;
-#pragma unroll
-                        for(int jdx = 0; jdx < srcLen1; jdx++)
-                        {
-                            sindex = stmp2 + srcStride1 * jdx;
-                            dindex = dtmp2 + dstStride1 * jdx;
-                            if(dindex < dstRealsize && sindex < srcRealsize)
-                            {
-                                dst[dindex + dstOffset] = src[sindex + srcOffset];
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        break;
-
-    default: break;
     }
 }
