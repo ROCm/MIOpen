@@ -626,6 +626,18 @@ void RNNBwdDataCPUVerify(std::vector<T>& din_host,
 
             baccbi += in_n.at(seqLength - 1 - ti);
         }
+
+        // dhx clean
+        if(bidirection)
+        {
+            for(int bs = in_n.at(seqLength - 1); bs < in_n.at(0); bs++)
+            {
+                for(int h = 0; h < hy_h; h++)
+                {
+                    dhx_host.at(hx_shift + hy_n * hy_h + bs * uni_stride + h) = 0;
+                }
+            }
+        }
     }
 
     // dinput
@@ -970,6 +982,7 @@ struct verify_forward_infer_rnn
     miopenRNNDescriptor_t rnnDesc;
     size_t realHiddenSize;
     bool nohx;
+    bool nohy;
 
     verify_forward_infer_rnn(miopenRNNDescriptor_t pRD,
                              const std::vector<T>& px,
@@ -986,7 +999,8 @@ struct verify_forward_infer_rnn
                              const int pRM,
                              const int pVL,
                              const size_t pHXZ,
-                             const bool pnohx = false)
+                             const bool pnohx = false,
+                             const bool pnohy = false)
     {
         rnnDesc = pRD;
         input   = px;
@@ -1002,6 +1016,7 @@ struct verify_forward_infer_rnn
         inputVecLen    = pVL;
         realHiddenSize = pHXZ;
 
+        nohy = pnohy;
         nohx = pnohx;
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
@@ -1119,8 +1134,7 @@ struct verify_forward_infer_rnn
         auto output_dev = handle.Write(output);
 
         auto weights_dev = handle.Write(weights);
-        // auto hx_dev      = handle.Write(initHidden);
-        auto hy = initHidden;
+        auto hy          = initHidden;
         std::fill(hy.begin(), hy.end(), 0.);
         auto hy_dev = handle.Write(hy);
 
@@ -1150,7 +1164,7 @@ struct verify_forward_infer_rnn
                                   outputDescs.data(),
                                   output_dev.get(),
                                   &hiddenDesc,
-                                  hy_dev.get(),
+                                  ((nohy) ? nullptr : hy_dev.get()),
                                   &hiddenDesc,
                                   nullptr,
                                   workSpace_dev.get(),
@@ -1222,6 +1236,7 @@ struct verify_forward_train_rnn
     miopenRNNDescriptor_t rnnDesc;
     size_t realHiddenSize;
     bool nohx;
+    bool nohy;
 
     verify_forward_train_rnn(miopenRNNDescriptor_t pRD,
                              const std::vector<T>& px,
@@ -1238,7 +1253,8 @@ struct verify_forward_train_rnn
                              const int pRM,
                              const int pVL,
                              const size_t pHXZ,
-                             const bool pnohx = false)
+                             const bool pnohx = false,
+                             const bool pnohy = false)
     {
         rnnDesc    = pRD;
         input      = px;
@@ -1256,6 +1272,7 @@ struct verify_forward_train_rnn
         inputVecLen    = pVL;
         realHiddenSize = pHXZ;
 
+        nohy = pnohy;
         nohx = pnohx;
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
@@ -1332,7 +1349,17 @@ struct verify_forward_train_rnn
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
-        auto retSet = std::make_tuple(output, hiddenState, reserveSpace);
+
+        std::tuple<std::vector<T>, std::vector<T>, std::vector<T>> retSet;
+        if(nohy)
+        {
+            retSet = std::make_tuple(output, initHidden, reserveSpace);
+        }
+        else
+        {
+            retSet = std::make_tuple(output, hiddenState, reserveSpace);
+        }
+
 #if(MIO_RNN_TEST_DEBUG > 0)
         std::cout << "Done with RNN forward train CPU" << std::endl;
         std::cout << "---------------------------------\n" << std::endl;
@@ -1409,7 +1436,7 @@ struct verify_forward_train_rnn
                                  outputDescs.data(),
                                  output_dev.get(),
                                  &hiddenDesc,
-                                 hy_dev.get(),
+                                 ((nohy) ? nullptr : hy_dev.get()),
                                  &hiddenDesc,
                                  nullptr,
                                  workSpace_dev.get(),
@@ -1425,10 +1452,21 @@ struct verify_forward_train_rnn
         }
 #endif
 
-        auto retSet =
-            std::make_tuple(handle.Read<T>(output_dev, output.size()),
-                            handle.Read<T>(hy_dev, hy.size()),
-                            handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
+        std::tuple<std::vector<T>, std::vector<T>, std::vector<T>> retSet;
+        if(nohy)
+        {
+            retSet =
+                std::make_tuple(handle.Read<T>(output_dev, output.size()),
+                                initHidden,
+                                handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
+        }
+        else
+        {
+            retSet =
+                std::make_tuple(handle.Read<T>(output_dev, output.size()),
+                                handle.Read<T>(hy_dev, hy.size()),
+                                handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
+        }
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -1497,6 +1535,7 @@ struct verify_backward_data_rnn
     miopenRNNDescriptor_t rnnDesc;
     bool nohx;
     bool nodhy;
+    bool nodhx;
     size_t realHiddenSize;
 
     verify_backward_data_rnn(miopenRNNDescriptor_t pRD,
@@ -1518,7 +1557,8 @@ struct verify_backward_data_rnn
                              const int pVL,
                              const size_t pHXZ,
                              const bool pnohx  = false,
-                             const bool pnodhy = false)
+                             const bool pnodhy = false,
+                             const bool pnodhx = false)
     {
         rnnDesc        = pRD;
         yin            = py;
@@ -1537,7 +1577,8 @@ struct verify_backward_data_rnn
         inputVecLen    = pVL;
         realHiddenSize = pHXZ;
 
-        nohx = pnohx;
+        nodhx = pnodhx;
+        nohx  = pnohx;
         if(!nohx)
             initHidden = phx; // this may be intentionally a nullptr
         else
@@ -1610,7 +1651,17 @@ struct verify_backward_data_rnn
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
-        auto retSet = std::make_tuple(dx, dhx, reserveSpace, workSpace);
+
+        std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> retSet;
+        if(nodhx)
+        {
+            retSet = std::make_tuple(dx, initHidden, reserveSpace, workSpace);
+        }
+        else
+        {
+            retSet = std::make_tuple(dx, dhx, reserveSpace, workSpace);
+        }
+
 #if(MIO_RNN_TEST_DEBUG > 0)
         std::cout << "Done with RNN backward data CPU" << std::endl;
         std::cout << "---------------------------------\n" << std::endl;
@@ -1689,7 +1740,7 @@ struct verify_backward_data_rnn
                               inputDescs.data(),
                               dx_dev.get(),
                               &hiddenDesc,
-                              dhx_dev.get(),
+                              ((nodhx) ? nullptr : dhx_dev.get()),
                               &hiddenDesc,
                               nullptr,
                               workSpace_dev.get(),
@@ -1697,10 +1748,21 @@ struct verify_backward_data_rnn
                               reserveSpace_dev.get(),
                               reserveSpace.size() * sizeof(T));
 
-        auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
-                                      handle.Read<T>(dhx_dev, dhx.size()),
-                                      handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
-                                      handle.Read<T>(workSpace_dev, workSpace.size()));
+        std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> retSet;
+        if(nodhx)
+        {
+            retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
+                                     initHidden,
+                                     handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
+                                     handle.Read<T>(workSpace_dev, workSpace.size()));
+        }
+        else
+        {
+            retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
+                                     handle.Read<T>(dhx_dev, dhx.size()),
+                                     handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
+                                     handle.Read<T>(workSpace_dev, workSpace.size()));
+        }
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -1969,6 +2031,8 @@ struct rnn_vanilla_driver : test_driver
     // Null pointer input
     bool nohx  = false;
     bool nodhy = false;
+    bool nohy  = false;
+    bool nodhx = false;
 
     rnn_vanilla_driver()
     {
@@ -1986,6 +2050,8 @@ struct rnn_vanilla_driver : test_driver
         add(numLayers, "num-layers", generate_data(get_rnn_num_layers()));
         add(nohx, "no-hx", flag());
         add(nodhy, "no-dhy", flag());
+        add(nohy, "no-hy", flag());
+        add(nodhx, "no-dhx", flag());
 
 #if(MIO_RNN_TEST_DEBUG == 3)
         biasMode  = 0;
@@ -2113,7 +2179,8 @@ struct rnn_vanilla_driver : test_driver
                                                                      rnnMode,
                                                                      inVecReal,
                                                                      hx_sz,
-                                                                     nohx});
+                                                                     nohx,
+                                                                     nohy});
 
         /// RETURNS std::make_tuple(output, hiddenState, reserveSpace);
         auto reserveSpaceFwdTrain = std::get<2>(fwdTrainOutputPair.second);
@@ -2131,7 +2198,7 @@ struct rnn_vanilla_driver : test_driver
         auto bwdDataOutputPair = verify(verify_backward_data_rnn<T>{
             rnnDesc,   yin,        dyin,      dhyin,     hx,        weights,  reserveSpaceFwdTrain,
             batchSeq,  hiddenSize, batch_n,   seqLength, numLayers, biasMode, dirMode,
-            inputMode, rnnMode,    inVecReal, hx_sz,     nohx,      nodhy});
+            inputMode, rnnMode,    inVecReal, hx_sz,     nohx,      nodhy,    nodhx});
 
         // RETURNS:  std::make_tuple(dx, dhx, reserveSpace, workSpace);
         auto reserveSpaceBwdData = std::get<2>(bwdDataOutputPair.second);
@@ -2180,7 +2247,8 @@ struct rnn_vanilla_driver : test_driver
                                            rnnMode,
                                            inVecReal,
                                            hx_sz,
-                                           nohx});
+                                           nohx,
+                                           nohy});
 
         /* normal hx/cx/dhy/dcy input test end */
 

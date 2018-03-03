@@ -1228,6 +1228,8 @@ struct verify_forward_infer_lstm
     size_t realHiddenSize;
     bool nohx;
     bool nocx;
+    bool nohy;
+    bool nocy;
 
     verify_forward_infer_lstm(miopenRNNDescriptor_t pRD,
                               const std::vector<T>& px,
@@ -1245,7 +1247,9 @@ struct verify_forward_infer_lstm
                               const int pVL,
                               const size_t pHXZ,
                               const bool pnohx = false,
-                              const bool pnocx = false)
+                              const bool pnocx = false,
+                              const bool pnohy = false,
+                              const bool pnocy = false)
     {
         rnnDesc = pRD;
         input   = px;
@@ -1259,6 +1263,9 @@ struct verify_forward_infer_lstm
         hiddenSize     = pHS;
         inputVecLen    = pVL;
         realHiddenSize = pHXZ;
+
+        nohy = pnohy;
+        nocy = pnocy;
 
         nohx = pnohx;
         if(!nohx)
@@ -1386,10 +1393,8 @@ struct verify_forward_infer_lstm
         auto weights_dev = handle.Write(weights);
         auto hy          = initHidden;
         std::fill(hy.begin(), hy.end(), 0.);
-        auto hy_dev = handle.Write(hy);
-        auto cy     = initCell;
+        auto cy = initCell;
         std::fill(cy.begin(), cy.end(), 0.);
-        auto cy_dev = handle.Write(cy);
 
         auto workSpace_dev = handle.Write(workSpace);
 
@@ -1417,9 +1422,9 @@ struct verify_forward_infer_lstm
                                   outputDescs.data(),
                                   output_dev.get(),
                                   &hiddenDesc,
-                                  hy_dev.get(),
+                                  ((nohy) ? nullptr : handle.Write(hy).get()),
                                   &hiddenDesc,
-                                  cy_dev.get(),
+                                  ((nocy) ? nullptr : handle.Write(cy).get()),
                                   workSpace_dev.get(),
                                   workSpaceSize);
 
@@ -1495,6 +1500,8 @@ struct verify_forward_train_lstm
     size_t realHiddenSize;
     bool nohx;
     bool nocx;
+    bool nohy;
+    bool nocy;
 
     verify_forward_train_lstm(miopenRNNDescriptor_t pRD,
                               const std::vector<T>& px,
@@ -1512,7 +1519,9 @@ struct verify_forward_train_lstm
                               const int pVL,
                               const size_t pHXZ,
                               const bool pnohx = false,
-                              const bool pnocx = false)
+                              const bool pnocx = false,
+                              const bool pnohy = false,
+                              const bool pnocy = false)
     {
         rnnDesc     = pRD;
         input       = px;
@@ -1528,6 +1537,9 @@ struct verify_forward_train_lstm
         inputVecLen = pVL;
 
         realHiddenSize = pHXZ;
+
+        nohy = pnohy;
+        nocy = pnocy;
 
         nohx = pnohx;
         if(!nohx)
@@ -1612,7 +1624,25 @@ struct verify_forward_train_lstm
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
-        auto retSet = std::make_tuple(output, hiddenState, cellState, reserveSpace);
+
+        std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> retSet;
+        if(nohy && nocy)
+        {
+            retSet = std::make_tuple(output, initHidden, initCell, reserveSpace);
+        }
+        else if(nocy)
+        {
+            retSet = std::make_tuple(output, hiddenState, initCell, reserveSpace);
+        }
+        else if(nohy)
+        {
+            retSet = std::make_tuple(output, initHidden, cellState, reserveSpace);
+        }
+        else
+        {
+            retSet = std::make_tuple(output, hiddenState, cellState, reserveSpace);
+        }
+
 #if(MIO_LSTM_TEST_DEBUG > 0)
         std::cout << "Done with LSTM forward train CPU" << std::endl;
         std::cout << "---------------------------------\n" << std::endl;
@@ -1691,9 +1721,9 @@ struct verify_forward_train_lstm
                                  outputDescs.data(),
                                  output_dev.get(),
                                  &hiddenDesc,
-                                 hy_dev.get(),
+                                 ((nohy) ? nullptr : hy_dev.get()),
                                  &hiddenDesc,
-                                 cy_dev.get(),
+                                 ((nocy) ? nullptr : cy_dev.get()),
                                  workSpace_dev.get(),
                                  workSpaceSize,
                                  reserveSpace_dev.get(),
@@ -1707,11 +1737,39 @@ struct verify_forward_train_lstm
         }
 #endif
 
-        auto retSet =
-            std::make_tuple(handle.Read<T>(output_dev, output.size()),
-                            handle.Read<T>(hy_dev, hy.size()),
-                            handle.Read<T>(cy_dev, cy.size()),
-                            handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
+        std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> retSet;
+        if(nohy && nocy)
+        {
+            retSet =
+                std::make_tuple(handle.Read<T>(output_dev, output.size()),
+                                initHidden,
+                                initCell,
+                                handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
+        }
+        else if(nocy)
+        {
+            retSet =
+                std::make_tuple(handle.Read<T>(output_dev, output.size()),
+                                handle.Read<T>(hy_dev, hy.size()),
+                                initCell,
+                                handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
+        }
+        else if(nohy)
+        {
+            retSet =
+                std::make_tuple(handle.Read<T>(output_dev, output.size()),
+                                initHidden,
+                                handle.Read<T>(cy_dev, cy.size()),
+                                handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
+        }
+        else
+        {
+            retSet =
+                std::make_tuple(handle.Read<T>(output_dev, output.size()),
+                                handle.Read<T>(hy_dev, hy.size()),
+                                handle.Read<T>(cy_dev, cy.size()),
+                                handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
+        }
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -1793,6 +1851,8 @@ struct verify_backward_data_lstm
     bool nocx;
     bool nodhy;
     bool nodcy;
+    bool nodhx;
+    bool nodcx;
 
     verify_backward_data_lstm(miopenRNNDescriptor_t pRD,
                               const std::vector<T>& py,
@@ -1816,7 +1876,9 @@ struct verify_backward_data_lstm
                               const bool pnohx  = false,
                               const bool pnocx  = false,
                               const bool pnodhy = false,
-                              const bool pnodcy = false)
+                              const bool pnodcy = false,
+                              const bool pnodhx = false,
+                              const bool pnodcx = false)
     {
         rnnDesc = pRD;
         yin     = py;
@@ -1832,6 +1894,9 @@ struct verify_backward_data_lstm
         hiddenSize     = pHS;
         inputVecLen    = pVL;
         realHiddenSize = pHXZ;
+
+        nodhx = pnodhx;
+        nodcx = pnodcx;
 
         nohx = pnohx;
         if(!nohx)
@@ -1920,7 +1985,26 @@ struct verify_backward_data_lstm
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
-        auto retSet = std::make_tuple(dx, dhx, dcx, reserveSpace, workSpace);
+
+        std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>>
+            retSet;
+        if(nodhx && nodcx)
+        {
+            retSet = std::make_tuple(dx, initHidden, initCell, reserveSpace, workSpace);
+        }
+        else if(nodcx)
+        {
+            retSet = std::make_tuple(dx, dhx, initCell, reserveSpace, workSpace);
+        }
+        else if(nodhx)
+        {
+            retSet = std::make_tuple(dx, initHidden, dcx, reserveSpace, workSpace);
+        }
+        else
+        {
+            retSet = std::make_tuple(dx, dhx, dcx, reserveSpace, workSpace);
+        }
+
 #if(MIO_LSTM_TEST_DEBUG > 0)
         std::cout << "Done with LSTM backward data CPU" << std::endl;
         std::cout << "---------------------------------\n" << std::endl;
@@ -1998,19 +2082,48 @@ struct verify_backward_data_lstm
                               inputDescs.data(),
                               dx_dev.get(),
                               &hiddenDesc,
-                              dhx_dev.get(),
+                              ((nodhx) ? nullptr : dhx_dev.get()),
                               &hiddenDesc,
-                              dcx_dev.get(),
+                              ((nodcx) ? nullptr : dcx_dev.get()),
                               workSpace_dev.get(),
                               workSpaceSize,
                               reserveSpace_dev.get(),
                               reserveSpace.size() * sizeof(T));
 
-        auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
-                                      handle.Read<T>(dhx_dev, dhx.size()),
-                                      handle.Read<T>(dcx_dev, dcx.size()),
-                                      handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
-                                      handle.Read<T>(workSpace_dev, workSpace.size()));
+        std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>>
+            retSet;
+        if(nodhx && nodcx)
+        {
+            retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
+                                     initHidden,
+                                     initCell,
+                                     handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
+                                     handle.Read<T>(workSpace_dev, workSpace.size()));
+        }
+        else if(nodcx)
+        {
+            retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
+                                     handle.Read<T>(dhx_dev, dhx.size()),
+                                     initCell,
+                                     handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
+                                     handle.Read<T>(workSpace_dev, workSpace.size()));
+        }
+        else if(nodhx)
+        {
+            retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
+                                     initHidden,
+                                     handle.Read<T>(dcx_dev, dcx.size()),
+                                     handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
+                                     handle.Read<T>(workSpace_dev, workSpace.size()));
+        }
+        else
+        {
+            retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
+                                     handle.Read<T>(dhx_dev, dhx.size()),
+                                     handle.Read<T>(dcx_dev, dcx.size()),
+                                     handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
+                                     handle.Read<T>(workSpace_dev, workSpace.size()));
+        }
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -2293,6 +2406,10 @@ struct lstm_driver : test_driver
     bool nodhy = false;
     bool nocx  = false;
     bool nodcy = false;
+    bool nohy  = false;
+    bool nodhx = false;
+    bool nocy  = false;
+    bool nodcx = false;
 
     lstm_driver()
     {
@@ -2312,6 +2429,10 @@ struct lstm_driver : test_driver
         add(nodhy, "no-dhy", flag());
         add(nocx, "no-cx", flag());
         add(nodcy, "no-dcy", flag());
+        add(nohy, "no-hy", flag());
+        add(nodhx, "no-dhx", flag());
+        add(nocy, "no-cy", flag());
+        add(nodcx, "no-dcx", flag());
 
 #if(MIO_LSTM_TEST_DEBUG == 3)
         biasMode  = 0;
@@ -2396,6 +2517,10 @@ struct lstm_driver : test_driver
         std::cout << ", nocx: " << nocx;
         std::cout << ", nodhy: " << nodhy;
         std::cout << ", nodcy: " << nodcy << std::endl;
+        std::cout << "nohy: " << nohy;
+        std::cout << ", nocy: " << nocy;
+        std::cout << ", nodhx: " << nodhx;
+        std::cout << ", nodcx: " << nodcx << std::endl;
 #endif
 
         if(!nohx)
@@ -2445,7 +2570,9 @@ struct lstm_driver : test_driver
                                                                       inVecReal,
                                                                       hx_sz,
                                                                       nohx,
-                                                                      nocx});
+                                                                      nocx,
+                                                                      nohy,
+                                                                      nocy});
 
         /// RETURNS std::make_tuple(output, hiddenState, cellState, reserveSpace);
         auto yin                  = std::get<0>(fwdTrainOutputPair.second);
@@ -2470,11 +2597,13 @@ struct lstm_driver : test_driver
                                                 seqLength, numLayers,  biasMode,
                                                 dirMode,   inputMode,  inVecReal,
                                                 hx_sz,     nohx,       nocx,
-                                                nodhy,     nodcy});
+                                                nodhy,     nodcy,      nodhx,
+                                                nodcx});
 
         // RETURNS:  std::make_tuple(dx, dhx, dcx, reserveSpace, workSpace);
         auto reserveSpaceBwdData = std::get<3>(bwdDataOutputPair.second);
         auto workSpaceBwdData    = std::get<4>(bwdDataOutputPair.second);
+
 #if(MIO_LSTM_TEST_DEBUG > 0)
         printf("Running backward weights LSTM.\n");
         printf("reserve sz: %d, workSpace sz: %d, weight sz: %d\n",
@@ -2518,7 +2647,9 @@ struct lstm_driver : test_driver
                                             inVecReal,
                                             hx_sz,
                                             nohx,
-                                            nocx});
+                                            nocx,
+                                            nohy,
+                                            nocy});
 
         /* normal hx/cx/dhy/dcy input test end */
 
