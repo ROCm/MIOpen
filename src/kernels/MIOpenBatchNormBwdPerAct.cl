@@ -100,27 +100,7 @@ __kernel void BatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
                                              const __global _FLOAT* savedMean,
                                              const __global _FLOAT* savedInvVariance)
 {
-    /*
-    for(int n = 0; n < N; n++) {
-     for(int c = 0; c < C; c++) {
-      for(int h = 0; h < H; h++) {
-       for(int w = 0; w < W; w++) {
-        float pixel_val = input_image[n*C*H*W + c*H*W + h*W +w];
-    }}}}
-            C*H*W is also stored as in_nstride,
-            H*W is in_cstride,
-            W is in_hstride.
-    ------------------------------------------
-    http://kratzert.github.io
-    http://cthorey.github.io./backpropagation/
-    ------------------------------------------
-    mu = 1./N*np.sum(h, axis = 0)
-    var = 1./N*np.sum((h-mu)**2, axis = 0)
-    dbeta = np.sum(dy, axis=0)
-    dgamma = np.sum((h - mu) * (var + eps)**(-1. / 2.) * dy, axis=0)
-    dh = (1. / N) * gamma * (var + eps)**(-1. / 2.) * (N * dy - np.sum(dy, axis=0)
-        - (h - mu) * (var + eps)**(-1.0) * np.sum(dy * (h - mu), axis=0))
-    */
+
     int xgid    = get_global_id(0);
     int ygid    = get_global_id(1);
     int yglb_sz = get_global_size(1);
