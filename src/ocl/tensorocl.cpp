@@ -29,6 +29,7 @@
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/float_equal.hpp>
+#include <miopen/visit_float.hpp>
 #include <numeric>
 
 #define MIO_TENSOROCL_DEBUG 0
@@ -293,18 +294,11 @@ void OpTensor(Handle& handle,
 
     const std::vector<size_t> vgd{global_threads, 1, 1};
 
-    float miopen_alpha0, miopen_alpha1, miopen_beta;
-    switch(bTensorDesc.GetType())
-    {
-    case miopenFloat:
-    case miopenHalf:
-    {
-        miopen_alpha0 = *(static_cast<const float*>(alpha0));
-        miopen_alpha1 = *(static_cast<const float*>(alpha1));
-        miopen_beta   = *(static_cast<const float*>(beta));
-    }
-    break;
-    }
+    visit_float(bTensorDesc.GetType(), [&](auto as_float) {
+
+    auto miopen_alpha0 = as_float(*(static_cast<const float*>(alpha0)));
+    auto miopen_alpha1 = as_float(*(static_cast<const float*>(alpha1)));
+    auto miopen_beta   = as_float(*(static_cast<const float*>(beta)));
 
     bool packed_tensor = true;
 
@@ -603,6 +597,7 @@ void OpTensor(Handle& handle,
             long(Coffset),
             int(num_wg_1));
     }
+    });
 }
 
 struct copyTensorDesc
