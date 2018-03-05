@@ -710,7 +710,7 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
     d.parse(keyword_set{keywords});
     auto arg_map = args::parse(as, [&](std::string x) {
         return (keywords.count(x) > 0) or
-               ((x.compare(0, 2, "--") == 0) and d.has_argument(x.substr(2)) > 0);
+               ((x.compare(0, 2, "--") == 0) and d.has_argument(x.substr(2)));
     });
 
     if(arg_map.count("--half") > 0)
