@@ -96,7 +96,6 @@ void RNNFwdTrainCPUVerify(std::vector<T>& in,
     int batch_n = sumvc(in_n);
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bacc, baccbi; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
@@ -242,8 +241,8 @@ void RNNFwdTrainCPUVerify(std::vector<T>& in,
         }
 
         // from hidden state
-        bacc   = 0;
-        baccbi = batch_n;
+        int bacc   = 0;
+        int baccbi = batch_n;
         for(int ti = 0; ti < seqLength; ti++)
         {
             baccbi -= in_n.at(seqLength - 1 - ti);
@@ -447,7 +446,6 @@ void RNNBwdDataCPUVerify(std::vector<T>& din_host,
     int batch_n = sumvc(in_n);
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bacc, baccbi; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
@@ -519,8 +517,8 @@ void RNNBwdDataCPUVerify(std::vector<T>& din_host,
                           1);
         }
 
-        bacc   = batch_n;
-        baccbi = 0;
+        int bacc   = batch_n;
+        int baccbi = 0;
         for(int ti = seqLength - 1; ti >= 0; ti--)
         {
             bacc -= in_n.at(ti);
@@ -710,7 +708,6 @@ void RNNBwdWeightCPUVerify(std::vector<T>& in,
 #endif
     int batch_n  = sumvc(in_n);
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bacc; // accumulation of batch
     int bi = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
@@ -837,7 +834,7 @@ void RNNBwdWeightCPUVerify(std::vector<T>& in,
             }
         }
 
-        bacc = 0;
+        int bacc = 0;
         for(int ti = 0; ti < seqLength; ti++)
         {
             int hid_shift = li * bi * batch_n * hy_h + bacc * hy_stride;
