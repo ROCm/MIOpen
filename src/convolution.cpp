@@ -179,7 +179,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(Handle& handle,
     int wei_c, wei_h, wei_w;
     std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(wDesc.GetLengths());
 
-    size_t workspace_size = wei_c * wei_h * wei_w * out_h * out_w * sizeof(yDesc.GetType());
+    size_t workspace_size = wei_c * wei_h * wei_w * out_h * out_w * GetTypeSize(yDesc.GetType());
 
     // gfx803 devices have 4gb-6gb memory
     if(workspace_size > (1 << 30) && handle.GetDeviceName() == "gfx803")
@@ -194,8 +194,8 @@ size_t
 ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMMTranspose(const TensorDescriptor& xDesc,
                                                             const TensorDescriptor& yDesc) const
 {
-    size_t x_t_size = xDesc.GetElementSize() * sizeof(xDesc.GetType());
-    size_t y_t_size = yDesc.GetElementSize() * sizeof(yDesc.GetType());
+    size_t x_t_size = xDesc.GetElementSize() * GetTypeSize(xDesc.GetType());
+    size_t y_t_size = yDesc.GetElementSize() * GetTypeSize(yDesc.GetType());
 
     return x_t_size + y_t_size;
 }
@@ -481,7 +481,7 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMM(Handle& handle,
     std::tie(std::ignore, std::ignore, out_h, out_w) = miopen::tien<4>(dyDesc.GetLengths());
     int wei_c, wei_h, wei_w;
     std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(wDesc.GetLengths());
-    size_t gemm_size = wei_c * wei_h * wei_w * out_h * out_w * sizeof(dyDesc.GetType());
+    size_t gemm_size = wei_c * wei_h * wei_w * out_h * out_w * GetTypeSize(dyDesc.GetType());
 
     // gfx803 devices have limited memory
     // TODO: be graceful, need to ensure we can execute a config on the GPU
@@ -499,7 +499,7 @@ size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
     std::tie(std::ignore, std::ignore, out_h, out_w) = miopen::tien<4>(dyDesc.GetLengths());
     int wei_c, wei_h, wei_w;
     std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(dwDesc.GetLengths());
-    size_t gemm_size = wei_c * wei_h * wei_w * out_h * out_w * sizeof(dyDesc.GetType());
+    size_t gemm_size = wei_c * wei_h * wei_w * out_h * out_w * GetTypeSize(dyDesc.GetType());
 
     // gfx803 devices have limited memory
     // TODO: be graceful, need to ensure we can execute a config on the GPU
