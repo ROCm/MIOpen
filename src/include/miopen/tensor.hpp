@@ -33,6 +33,7 @@
 #include <miopen/object.hpp>
 #include <miopen/each_args.hpp>
 #include <miopen/returns.hpp>
+#include <miopen/errors.hpp>
 #include <vector>
 // TODO(paul): remove this include later
 #include <cstdio>
@@ -58,6 +59,17 @@ auto tien(T&& x) MIOPEN_RETURNS(tie_impl(std::forward<T>(x), typename detail::ge
 template <std::size_t N, class T, class U>
 auto tien(T&& x, U y)
     MIOPEN_RETURNS(tie_impl(std::forward<T>(x), y, typename detail::gens<N>::type{}));
+
+
+std::size_t GetTypeSize(miopenDataType_t d)
+{
+    switch(d) 
+    {
+        case miopenFloat: return 4;
+        case miopenHalf: return 2;
+    }
+    MIOPEN_THROW("Unknown data type");
+}
 
 struct TensorDescriptor : miopenTensorDescriptor
 {
