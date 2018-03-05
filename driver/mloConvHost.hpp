@@ -1064,7 +1064,7 @@ bool mloVerify(int n_batchs,
                         g_ptr[b * g_batch_stride + c * g_channel_stride + j * g_stride + i]);
 
                     sqr_accum += (c_val - g_val) * (c_val - g_val);
-                    _Tcheck err = std::abs(c_val - (_Tcheck)g_val);
+                    _Tcheck err = std::abs(c_val - static_cast<_Tcheck>(g_val));
                     if(err > max_err)
                     {
                         max_err   = err;

@@ -523,7 +523,7 @@ int LRNDriver<Tgpu, Tref>::VerifyBackward()
     int pre_pad = (v_lrnN - 1) / 2;
     int pad     = v_lrnN - pre_pad - 1;
 
-    mloLRNBackwardRunHost<Tgpu, Tref>((int)v_mode,
+    mloLRNBackwardRunHost<Tgpu, Tref>(static_cast<int>(v_mode),
                                       pad,
                                       v_lrnN,
                                       alphaoverarea,
