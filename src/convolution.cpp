@@ -342,9 +342,17 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         return ForwardGetWorkSpaceSizeGEMM(handle, wDesc, dxDesc);
     else
     {
+        int wei_h, wei_w;
+        std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+
         if(dilation_w > 1 || dilation_h > 1)
             return BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
 
+        if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)) &&
+           dilation_w == 1 && dilation_h == 1)
+        {
+            return BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc);
+        }
         // Check if Winograd is available
         // If Winograd is present, there is no advantage in letting
         // the user run another algorithm as those both slower and
@@ -489,7 +497,16 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMM(Handle& handle,
     if(handle.GetDeviceName() == "gfx803" && gemm_size > (1 << 30))
         gemm_size = 0;
 
-    return (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) ? 0 : gemm_size;
+    return gemm_size;
+}
+
+size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMMTranspose(
+    const TensorDescriptor& dyDesc, const TensorDescriptor& dxDesc) const
+{
+    size_t dx_t_size = dxDesc.GetElementSize() * sizeof(dxDesc.GetType());
+    size_t dy_t_size = dyDesc.GetElementSize() * sizeof(dyDesc.GetType());
+
+    return dx_t_size + dy_t_size;
 }
 
 size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
