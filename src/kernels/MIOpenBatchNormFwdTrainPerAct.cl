@@ -109,8 +109,8 @@ __kernel void BatchNormFwdTrainPerActivation(
     __global _FLOAT* __restrict out,         /* y output */
     const __global _FLOAT* __restrict scale, /* gamma 1xCxHxW */
     const __global _FLOAT* __restrict bias,  /* beta 1xCxHxW */
-    double expAvgFactor,                     /* input momentum */
 #if(MIO_RUNNING_RESULT == 1)
+    double expAvgFactor,                               /* input momentum */
     __global _FLOAT* __restrict resultRunningMean,     /*input and output, same descriptor as bias*/
     __global _FLOAT* __restrict resultRunningVariance, /*input and output*/
 #endif
