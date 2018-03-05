@@ -58,7 +58,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 
     // short cut for packed tensors and 2D tensors with stride != width
     auto x_lens = xDesc.GetLengths();
-    auto y_lens = xDesc.GetLengths();
+    auto y_lens = yDesc.GetLengths();
 
     auto x_strides = xDesc.GetStrides();
     auto y_strides = yDesc.GetStrides();
