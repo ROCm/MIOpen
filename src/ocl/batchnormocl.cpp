@@ -93,8 +93,6 @@ void BatchNormForwardTraining(Handle& handle,
     unsigned int in_nhw     = n * in_cstride;
     unsigned int in_nchw    = n * in_nstride;
 
-    unsigned int variant = 1;
-
     size_t xlocalsize = 1;
     size_t ylocalsize = 1;
     size_t zlocalsize = 1;
@@ -102,9 +100,6 @@ void BatchNormForwardTraining(Handle& handle,
     size_t xgridsize = 1;
     size_t ygridsize = 1;
     size_t zgridsize = 1;
-
-    unsigned int ldsgcn   = 0;
-    unsigned int ldsnogcn = 0;
 
     std::vector<size_t> vld;
     std::vector<size_t> vgd;
@@ -130,11 +125,12 @@ void BatchNormForwardTraining(Handle& handle,
     }
     auto inhw = float(1.0 / in_nhw);
 
-    bool single = true;
-
     if(bn_mode == miopenBNSpatial)
     {
-
+        bool single           = true;
+        unsigned int variant  = 1;
+        unsigned int ldsgcn   = 0;
+        unsigned int ldsnogcn = 0;
         if(in_nhw < 33554432 && in_cstride > 512)
         {
             variant    = 1;
@@ -625,17 +621,14 @@ void BatchNormForwardInference(Handle& handle,
         unsigned int in_cstride = h * w;
 
         size_t xlocalsize = 1;
-        size_t ylocalsize = 1;
-        size_t zlocalsize = 1;
+        auto ylocalsize   = size_t((in_cstride > 1024) ? 1024 : ((64 >= in_cstride) ? 64 : 256));
 
         size_t xgridsize = 1;
         size_t ygridsize = 1;
-        size_t zgridsize = 1;
 
         std::vector<size_t> vld;
         std::vector<size_t> vgd;
 
-        ylocalsize   = (in_cstride > 1024) ? 1024 : ((64 >= in_cstride) ? 64 : 256);
         auto segment = std::ceil(double(in_cstride) / double(ylocalsize));
         xgridsize    = c;
         ygridsize    = segment * ylocalsize;
@@ -655,6 +648,8 @@ void BatchNormForwardInference(Handle& handle,
         else
         {
 
+            size_t zlocalsize        = 1;
+            size_t zgridsize         = 1;
             std::string program_name = "MIOpenBatchNormFwdInfer"; // build this up
             std::string kernel_name  = "BatchNormFwdInfer";
             if(bn_mode == miopenBNSpatial)
@@ -786,9 +781,6 @@ void BatchNormBackward(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    unsigned int ldsgcn   = 0;
-    unsigned int ldsnogcn = 0;
-
     std::vector<size_t> vld;
     std::vector<size_t> vgd;
 
@@ -810,8 +802,6 @@ void BatchNormBackward(Handle& handle,
 
     auto inhw = float(1.0 / in_nhw);
 
-    unsigned int variant = 1;
-
     size_t xlocalsize = 1;
     size_t ylocalsize = 1;
     size_t zlocalsize = 1;
@@ -825,10 +815,14 @@ void BatchNormBackward(Handle& handle,
     {
         useSaved = true;
     }
-    bool single = true;
 
     if(bn_mode == miopenBNSpatial)
     { // SPATIAL kernels
+
+        unsigned int ldsgcn   = 0;
+        unsigned int ldsnogcn = 0;
+        bool single           = true;
+        unsigned int variant  = 1;
 
         if(in_nhw < 33554432 && in_cstride > 512)
         {
