@@ -35,9 +35,9 @@
 
 namespace miopen {
 
-void ScaleTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha, const int offset = 0);
+void ScaleTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha, int offset = 0);
 
-void SetTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha, const int offset = 0);
+void SetTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha, int offset = 0);
 
 void OpTensor(Handle& handle,
               miopenTensorOp_t tensorOp,
@@ -57,10 +57,10 @@ void OpTensor(Handle& handle,
 void CopyTensor(Handle& handle,
                 const TensorDescriptor& srcDesc,
                 ConstData_t src,
-                const TensorDescriptor& destDesc,
-                Data_t dest,
+                const TensorDescriptor& dstDesc,
+                Data_t dst,
                 int srcOffset  = 0,
-                int destOffset = 0);
+                int dstOffset = 0);
 
 } // namespace miopen
 #endif // GUARD_MIOPEN_TENSOR_OPPS_HPP_
