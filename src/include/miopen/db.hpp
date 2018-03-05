@@ -42,7 +42,7 @@ class Db
 {
     public:
     inline Db(const std::string& filename_)
-        : filename(filename_), lock_file(LockFileDispatcher::Get((filename_ + ".lock").c_str()))
+        : filename(filename_), lock_file(LockFile::Get((filename_ + ".lock").c_str()))
     {
     }
 
@@ -160,7 +160,7 @@ class Db
     using shared_lock    = boost::interprocess::sharable_lock<LockFile>;
 
     std::string filename;
-    LockFile lock_file;
+    LockFile& lock_file;
 
     boost::optional<DbRecord> FindRecordUnsafe(const std::string& key, RecordPositions* pos);
     bool FlushUnsafe(const DbRecord& record, const RecordPositions* pos);

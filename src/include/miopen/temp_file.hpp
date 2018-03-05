@@ -27,7 +27,11 @@
 #ifndef GUARD_TEMP_FILE_HPP
 #define GUARD_TEMP_FILE_HPP
 
+#include <miopen/tmp_dir.hpp>
+
 #include <string>
+
+class TmpDir;
 
 namespace miopen {
 class TempFile
@@ -43,7 +47,7 @@ class TempFile
     std::string _path;
     int _fd;
 
-    static std::string GetTempDirectoryPath();
+    static const TmpDir& GetTempDirectoryPath();
 };
 } // namespace miopen
 
