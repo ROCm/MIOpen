@@ -31,6 +31,7 @@
 #define EIGHT 8
 
 #if MIOPEN_USE_FP16 == 1
+#define MIO_BN_NODPP 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
 #ifndef HALF_MAX
@@ -111,11 +112,17 @@
 
 #define MIO_BN_MAXN 512
 
-/*
+#ifndef MIO_BN_NODPP
+#define MIO_BN_NODPP 0
+#elif(MIO_BN_NODPP == 1)
+#undef __AMDGCN__
+#endif
+
+
 #ifdef __AMDGCN__
 #undef __AMDGCN__
 #endif
-*/
+
 
 #define UNUSED __attribute__((__unused__))
 

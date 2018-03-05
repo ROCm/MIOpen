@@ -31,6 +31,7 @@
 #define EIGHT 8
 
 #if MIOPEN_USE_FP16 == 1
+#define MIO_BN_NODPP 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
 #ifndef HALF_MAX
@@ -109,10 +110,6 @@
 #define MIO_BN_VARIANT 0
 #endif
 
-#ifndef MIO_BN_NLOOP
-#define MIO_BN_NLOOP 1
-#endif
-
 #ifndef MIO_BN_USESAVED
 #define MIO_BN_USESAVED 1
 #endif
@@ -125,11 +122,11 @@
 #undef __AMDGCN__
 #endif
 
-/*
+
 #ifdef __AMDGCN__
 #undef __AMDGCN__
 #endif
-*/
+
 
 // Disable specific warnings
 #ifdef __clang__
@@ -247,7 +244,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     _FLOAT dyvalues[MIO_BN_NLOOP];
 
     __local _FLOAT lbns;
-    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
+
 #if(MIO_BN_USESAVED == 1)
     __local _FLOAT lmean, lvar;
 #endif
@@ -283,13 +280,13 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         {
             nid            = n * MIO_BN_SEGIHW + lidihw;
             index          = nid * MIO_BN_CHW + chwid;
-            batchvalues[n] = *(in + index);
+            batchvalues[n] = *(x_in + index);
             mean += batchvalues[n];
             variance = mad(batchvalues[n], batchvalues[n], variance);
         }
         nid                        = MIO_BN_SNHW + lidihw;
         index                      = nid * MIO_BN_CHW + chwid;
-        batchvalues[MIO_BN_NLOOPM] = (index < MIO_BN_NCHW) ? *(in + index) : (_FLOAT)0.;
+        batchvalues[MIO_BN_NLOOPM] = (index < MIO_BN_NCHW) ? *(x_in + index) : (_FLOAT)0.;
         mean += batchvalues[MIO_BN_NLOOPM];
         variance = mad(batchvalues[MIO_BN_NLOOPM], batchvalues[MIO_BN_NLOOPM], variance);
     }
@@ -322,7 +319,6 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
 #else
 
-    unsigned int ldsidx = lid >> 6;
     __local _FLOAT lcl_mean[MIO_BN_LDSGCN_SIZE];
     __local _FLOAT lcl_variance[MIO_BN_LDSGCN_SIZE];
 
@@ -331,6 +327,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
     if((lid % 64) == 63)
     {
+        unsigned int ldsidx  = lid >> 6;
         lcl_mean[ldsidx]     = mean;
         lcl_variance[ldsidx] = variance;
     }
@@ -385,84 +382,88 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
         // batchvalues is now xhat
         ds = mad(batchvalues[MIO_BN_NLOOPM], dyvalues[MIO_BN_NLOOPM], ds);
+    }
 
 #ifndef __AMDGCN__
-        __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
-        lcl_data[lid] = ds;
+#if(MIO_BN_USESAVED == 1)
+    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
+#endif
+    lcl_data[lid] = ds;
+    barrier(CLK_LOCAL_MEM_FENCE);
+    for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 256; red >>= 1)
+    {
+        if(lid < red)
+            lcl_data[lid] += lcl_data[lid + red];
         barrier(CLK_LOCAL_MEM_FENCE);
-        for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 256; red >>= 1)
-        {
-            if(lid < red)
-                lcl_data[lid] += lcl_data[lid + red];
-            barrier(CLK_LOCAL_MEM_FENCE);
-        }
-        regLDSreduce(&ds, lcl_data, lid, (_FLOAT)1.0);
-        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    regLDSreduce(&ds, lcl_data, lid, (_FLOAT)1.0);
+    barrier(CLK_LOCAL_MEM_FENCE);
 
-        lcl_data[lid] = db;
+    lcl_data[lid] = db;
+    barrier(CLK_LOCAL_MEM_FENCE);
+    for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 256; red >>= 1)
+    {
+        if(lid < red)
+            lcl_data[lid] += lcl_data[lid + red];
         barrier(CLK_LOCAL_MEM_FENCE);
-        for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 256; red >>= 1)
-        {
-            if(lid < red)
-                lcl_data[lid] += lcl_data[lid + red];
-            barrier(CLK_LOCAL_MEM_FENCE);
-        }
-        regLDSreduce(&db, lcl_data, lid, (_FLOAT)1.0);
-        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    regLDSreduce(&db, lcl_data, lid, (_FLOAT)1.0);
+    barrier(CLK_LOCAL_MEM_FENCE);
 #else
+
+    __local _FLOAT lcl_ds[MIO_BN_LDSGCN_SIZE];
+    __local _FLOAT lcl_db[MIO_BN_LDSGCN_SIZE];
+
+    dppSimpleRedNoBcast64(&ds);
+    dppSimpleRedNoBcast64(&db);
+
+    if((lid % 64) == 63)
+    {
         unsigned int ldsidx = lid >> 6;
-        __local _FLOAT lcl_ds[MIO_BN_LDSGCN_SIZE];
-        __local _FLOAT lcl_db[MIO_BN_LDSGCN_SIZE];
-
-        dppSimpleRedNoBcast64(&ds);
-        dppSimpleRedNoBcast64(&db);
-
-        if((lid % 64) == 63)
-        {
-            lcl_ds[ldsidx] = ds;
-            lcl_db[ldsidx] = db;
-        }
-        barrier(CLK_LOCAL_MEM_FENCE);
-        ds = db = 0.;
+        lcl_ds[ldsidx]      = ds;
+        lcl_db[ldsidx]      = db;
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+    ds = db = 0.;
 #pragma unroll
-        for(uint i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
-        {
-            ds += lcl_ds[i];
-            db += lcl_db[i];
-        }
+    for(uint i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
+    {
+        ds += lcl_ds[i];
+        db += lcl_db[i];
+    }
 #endif
 
-        if(lid < MIO_BN_SEGMENT)
-        {
-            //==== CALC NORM =======================
-            _FLOAT inhat = 0.;
-            pscale       = lbns;
+    if(lid < MIO_BN_SEGMENT)
+    {
+        //==== CALC NORM =======================
+        _FLOAT inhat = 0.;
+        pscale       = lbns;
 #pragma unroll
-            for(unsigned int n = 0; n < MIO_BN_NLOOPM; n++)
-            { // apply normalization
-                nid           = n * MIO_BN_SEGIHW + lidihw;
-                index         = nid * MIO_BN_CHW + chwid;
-                tmp1          = mad(NHW, dyvalues[n], -db);
-                tmp2          = -batchvalues[n] * ds;
-                tmp3          = (pscale * invVariance) * INHW;
-                dx_out[index] = tmp3 * (tmp2 + tmp1);
-            } // end for
-            nid   = MIO_BN_SNHW + lidihw;
-            index = nid * MIO_BN_CHW + chwid;
-            if(index < MIO_BN_NCHW)
-            {
-                tmp1          = mad(NHW, dyvalues[MIO_BN_NLOOPM], -db);
-                tmp2          = -batchvalues[MIO_BN_NLOOPM] * ds;
-                tmp3          = (pscale * invVariance) * INHW;
-                dx_out[index] = tmp3 * (tmp2 + tmp1);
-            }
-        }
-        if(lid == 0)
+        for(unsigned int n = 0; n < MIO_BN_NLOOPM; n++)
+        { // apply normalization
+            nid           = n * MIO_BN_SEGIHW + lidihw;
+            index         = nid * MIO_BN_CHW + chwid;
+            tmp1          = mad(NHW, dyvalues[n], -db);
+            tmp2          = -batchvalues[n] * ds;
+            tmp3          = (pscale * invVariance) * INHW;
+            dx_out[index] = tmp3 * (tmp2 + tmp1);
+        } // end for
+        nid   = MIO_BN_SNHW + lidihw;
+        index = nid * MIO_BN_CHW + chwid;
+        if(index < MIO_BN_NCHW)
         {
-            dbias[grpid]  = db;
-            dscale[grpid] = ds;
+            tmp1          = mad(NHW, dyvalues[MIO_BN_NLOOPM], -db);
+            tmp2          = -batchvalues[MIO_BN_NLOOPM] * ds;
+            tmp3          = (pscale * invVariance) * INHW;
+            dx_out[index] = tmp3 * (tmp2 + tmp1);
         }
-    } // end spatial
+    }
+    if(lid == 0)
+    {
+        dbias[grpid]  = db;
+        dscale[grpid] = ds;
+    }
+} // end spatial
 
 #elif(MIO_BN_VARIANT == 1)
 
@@ -518,7 +519,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     {
         lcl_scale = *(bnScale + xgid);
 #if(MIO_BN_USESAVED == 1)
-        lmean     = *(savedMean + gxgid);
+        lmean     = *(savedMean + xgid);
         lvar      = *(savedInvVariance + xgid);
 #endif
     }
@@ -540,7 +541,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #else
         _FLOAT in = *(x_in + index);
         mean += in;
-        variance        = mad(in, in, variance);
+        variance = mad(in, in, variance);
 #endif
     }
 #if(MIO_BN_REM)
@@ -587,7 +588,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
 
 #else
-    unsigned int ldsidx = lid >> 6;
+
     __local _FLOAT lcl_mean[MIO_BN_LDSGCN_SIZE];
     __local _FLOAT lcl_variance[MIO_BN_LDSGCN_SIZE];
 
@@ -595,6 +596,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     dppSimpleRedNoBcast64(&variance);
     if((lid % 64) == 63)
     {
+        unsigned int ldsidx  = lid >> 6;
         lcl_mean[ldsidx]     = mean;
         lcl_variance[ldsidx] = variance;
     }
@@ -639,7 +641,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         _FLOAT dyvalue = *(dy_in + index);
         xhat           = (*(x_in + index) - mean) * invVariance;
         db += dyvalue;
-        ds              = mad(xhat, dyvalue, ds);
+        ds = mad(xhat, dyvalue, ds);
 #endif
     }
 
@@ -668,7 +670,11 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
 
 #ifndef __AMDGCN__
+
+#if(MIO_BN_USESAVED == 1)
     __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
+#endif
+
     lcl_data[lid] = ds;
     barrier(CLK_LOCAL_MEM_FENCE);
     for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 256; red >>= 1)
@@ -691,7 +697,6 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     regLDSreduce(&db, lcl_data, lid, (_FLOAT)1.0);
     barrier(CLK_LOCAL_MEM_FENCE);
 #else
-    unsigned int ldsidx = lid >> 6;
     __local _FLOAT lcl_ds[MIO_BN_LDSGCN_SIZE];
     __local _FLOAT lcl_db[MIO_BN_LDSGCN_SIZE];
 
@@ -700,8 +705,9 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
     if((lid % 64) == 63)
     {
-        lcl_ds[ldsidx] = ds;
-        lcl_db[ldsidx] = db;
+        unsigned int ldsidx = lid >> 6;
+        lcl_ds[ldsidx]      = ds;
+        lcl_db[ldsidx]      = db;
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     ds = db = 0.;
@@ -802,7 +808,6 @@ BatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbuff,
         }
     }
 
-
     __local _FLOAT lcl_data[MIO_BN_NGRPS];
     lcl_data[lid] = mean;
     barrier(CLK_LOCAL_MEM_FENCE);
@@ -857,8 +862,6 @@ BatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbuff,
         meanvarbuff[varstashindex]  = invVariance; // stash mean
     }
 }
-
-
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 BatchNormBwdSpatialMeanVariance(const __global _FLOAT* __restrict in,
@@ -949,20 +952,17 @@ BatchNormBwdSpatialMeanVariance(const __global _FLOAT* __restrict in,
 
 #endif // end USESAVED == 0
 
-
-
-
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 BatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
-                          const __global _FLOAT* dy_in,
-                          __global _FLOAT* buff
+                               const __global _FLOAT* dy_in,
+                               __global _FLOAT* buff
 #if(MIO_BN_USESAVED == 1)
 
-                          ,
-                          const __global _FLOAT* savedMean,
-                          const __global _FLOAT* savedInvVariance
+                               ,
+                               const __global _FLOAT* savedMean,
+                               const __global _FLOAT* savedInvVariance
 #endif
-                          )
+                               )
 {
 
     __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
@@ -974,13 +974,13 @@ BatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
     unsigned int ygrp_sz = get_local_size(1);
     unsigned int index;
     unsigned int cidx = xgid * MIO_BN_HW;
-    
+
     _FLOAT mean    = (_FLOAT)0.;
     _FLOAT invVar  = (_FLOAT)0.;
     _FLOAT elemStd = (_FLOAT)0.;
     _FLOAT xhat    = (_FLOAT)0.;
     _FLOAT dscale  = (_FLOAT)0.;
-    _FLOAT dbias      = (_FLOAT)0.;
+    _FLOAT dbias   = (_FLOAT)0.;
 
     __local _FLOAT lmean, livar;
 
@@ -992,12 +992,11 @@ BatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
         lmean                       = *(buff + meanstashindex); // load stashed mean
         livar                       = *(buff + varstashindex);
 #else  // NO SAVED
-        lmean = *(savedMean+xgid);
-        livar = *(savedInvVariance+xgid);
+        lmean      = *(savedMean + xgid);
+        livar      = *(savedInvVariance + xgid);
 #endif // SAVED
     }
     barrier(CLK_LOCAL_MEM_FENCE);
-
 
     if(ygid < MIO_BN_HW)
     {
@@ -1008,13 +1007,13 @@ BatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
         {
             index = n * MIO_BN_CHW + cidx + ygid;
             dbias += *(dy_in + index);
-            elemStd = *(x_in + index) - mean; 
+            elemStd = *(x_in + index) - mean;
             xhat    = elemStd * invVar;
             dscale  = mad(xhat, dy_in[index], dscale);
         }
     }
 
-    //REDUCE over DS and DB
+// REDUCE over DS and DB
 
 #ifdef __AMDGCN__
     unsigned int ldsidx = ylid >> 6;
@@ -1035,7 +1034,7 @@ BatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
 #pragma unroll
     for(uint i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
-        dbias  += lcl_db[i];
+        dbias += lcl_db[i];
         dscale += lcl_ds[i];
     }
 
@@ -1067,24 +1066,20 @@ BatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
 
     // end reduction-----------
 
-
     if(ylid == 0)
     {
-        unsigned int betaindex = cidx + ygrp_sz * ygrp_id + 6;
+        unsigned int betaindex  = cidx + ygrp_sz * ygrp_id + 6;
         unsigned int gammaindex = cidx + ygrp_sz * ygrp_id + 4;
-        buff[gammaindex] = dscale;
-        buff[betaindex]  = dbias;
+        buff[gammaindex]        = dscale;
+        buff[betaindex]         = dbias;
     }
 }
 
-
-
-
-
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormBwdSpatialFinalDScaleDBias(__global _FLOAT* buff, __global _FLOAT* delta_scale, __global _FLOAT* delta_bias)
+BatchNormBwdSpatialFinalDScaleDBias(__global _FLOAT* buff,
+                                    __global _FLOAT* delta_scale,
+                                    __global _FLOAT* delta_bias)
 {
-
 
     __local _FLOAT lcl_data[MIO_BN_NGRPS];
     _FLOAT ds = (_FLOAT)0.;
@@ -1104,7 +1099,7 @@ BatchNormBwdSpatialFinalDScaleDBias(__global _FLOAT* buff, __global _FLOAT* delt
         if(offset < yngrps)
         { // modify to span larger number of groups
             unsigned int gammaindex = cidx + ygrp_sz * offset + 4;
-            unsigned int betaindex = cidx + ygrp_sz * offset + 6;
+            unsigned int betaindex  = cidx + ygrp_sz * offset + 6;
             ds += *(buff + gammaindex);
             db += *(buff + betaindex);
         }
@@ -1155,15 +1150,12 @@ BatchNormBwdSpatialFinalDScaleDBias(__global _FLOAT* buff, __global _FLOAT* delt
     }
 #endif
 
-    if(ygid == 0){
+    if(ygid == 0)
+    {
         delta_scale[xgid] = ds;
         delta_bias[xgid]  = db;
     }
 }
-
-
-
-
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 BatchNormBwdSpatialDX(const __global _FLOAT* x_in,
