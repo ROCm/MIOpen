@@ -623,15 +623,12 @@ void BatchNormForwardInference(Handle& handle,
         size_t xlocalsize = 1;
         auto ylocalsize   = size_t((in_cstride > 1024) ? 1024 : ((64 >= in_cstride) ? 64 : 256));
 
-        size_t xgridsize = 1;
-        size_t ygridsize = 1;
-
         std::vector<size_t> vld;
         std::vector<size_t> vgd;
 
-        auto segment = std::ceil(double(in_cstride) / double(ylocalsize));
-        xgridsize    = c;
-        ygridsize    = segment * ylocalsize;
+        auto segment   = std::ceil(double(in_cstride) / double(ylocalsize));
+        auto xgridsize = size_t(c);
+        auto ygridsize = size_t(segment * ylocalsize);
 
         std::string algo_name = "miopenBatchNormalizationForwardInference";
         std::string network_config =
