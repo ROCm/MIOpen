@@ -39,82 +39,59 @@ namespace miopen {
 // Dispatcher should be used to create instances of this class.
 class LockFile
 {
-    friend class LockFileDispatcher;
-
     private:
-    class Impl
+    class PassKey {};
+
+    public:
+    LockFile(const char* path, PassKey) : _file(path), _file_lock(path){}
+    LockFile(const LockFile&) = delete;
+    LockFile operator=(const LockFile&) = delete;
+
+    void lock()
     {
-        public:
-        Impl(const Impl&) = delete;
-        Impl operator=(const Impl&) = delete;
+        _mutex.lock();
+        _file_lock.lock();
+    }
 
-        Impl(const char* path) : _file(path), _file_lock(path) {}
+    void lock_sharable()
+    {
+        _mutex.lock_shared();
+        _file_lock.lock_sharable();
+    }
 
-        void lock()
-        {
-            _mutex.lock();
-            _file_lock.lock();
-        }
+    void unlock()
+    {
+        _file_lock.unlock();
+        _mutex.unlock();
+    }
 
-        void lock_sharable()
-        {
-            _mutex.lock_shared();
-            _file_lock.lock_sharable();
-        }
+    void unlock_sharable()
+    {
+        _file_lock.unlock_sharable();
+        _mutex.unlock_shared();
+    }
 
-        void unlock()
-        {
-            _file_lock.unlock();
-            _mutex.unlock();
-        }
-
-        void unlock_sharable()
-        {
-            _file_lock.unlock_sharable();
-            _mutex.unlock_shared();
-        }
-
-        private:
-        boost::shared_mutex _mutex;
-        std::ofstream _file;
-        boost::interprocess::file_lock _file_lock;
-    };
-
-    public:
-    LockFile(Impl& impl) : _impl(impl) {}
-
-    void lock() { _impl.lock(); }
-    void lock_sharable() { _impl.lock_sharable(); }
-    void unlock() { _impl.unlock(); }
-    void unlock_sharable() { _impl.unlock_sharable(); }
-
-    private:
-    Impl& _impl;
-};
-
-class LockFileDispatcher
-{
-    public:
-    LockFileDispatcher() = delete;
-
-    static LockFile Get(const char* path)
+    static LockFile& Get(const char* path)
     {
         { // To guarantee that construction won't be called if not required.
             auto found = LockFiles().find(path);
 
-            if(found != LockFiles().end())
-                return {found->second};
+            if (found != LockFiles().end())
+                return found->second;
         }
 
-        auto emplaced = LockFiles().emplace(
-            std::piecewise_construct, std::forward_as_tuple(path), std::forward_as_tuple(path));
-        return {emplaced.first->second};
+        auto emplaced = LockFiles().emplace(std::piecewise_construct, std::forward_as_tuple(path), std::forward_as_tuple(path, PassKey{}));
+        return emplaced.first->second;
     }
 
     private:
-    static std::map<std::string, LockFile::Impl>& LockFiles()
+    boost::shared_mutex _mutex;
+    std::ofstream _file;
+    boost::interprocess::file_lock _file_lock;
+
+    static std::map<std::string, LockFile>& LockFiles()
     {
-        static std::map<std::string, LockFile::Impl> lock_files;
+        static std::map<std::string, LockFile> lock_files;
         return lock_files;
     }
 };
