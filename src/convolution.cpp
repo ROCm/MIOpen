@@ -187,7 +187,17 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(Handle& handle,
         workspace_size = 0;
     }
 
-    return (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) ? 0 : workspace_size;
+    return workspace_size;
+}
+
+size_t
+ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMMTranspose(const TensorDescriptor& xDesc,
+                                                            const TensorDescriptor& yDesc) const
+{
+    size_t x_t_size = xDesc.GetElementSize() * sizeof(xDesc.GetType());
+    size_t y_t_size = yDesc.GetElementSize() * sizeof(yDesc.GetType());
+
+    return x_t_size + y_t_size;
 }
 
 // FIXME: This seems to duplicate
@@ -301,10 +311,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)) &&
            dilation_w == 1 && dilation_h == 1)
         {
-            size_t x_t_size = xDesc.GetElementSize() * sizeof(xDesc.GetType());
-            size_t y_t_size = yDesc.GetElementSize() * sizeof(yDesc.GetType());
-
-            return x_t_size + y_t_size;
+            return ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
         }
 
         // Check if Winograd is available

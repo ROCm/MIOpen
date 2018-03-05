@@ -463,7 +463,7 @@ int LRNDriver<Tgpu, Tref>::VerifyForward()
                                      scalehost.data(),
                                      outhost.data());
 
-    auto error = miopen::rms_range(outhost, out);
+    auto error           = miopen::rms_range(outhost, out);
     const Tref tolerance = 1.5e-4; // 1e-6;
     if(error > tolerance)
     {
@@ -558,7 +558,7 @@ int LRNDriver<Tgpu, Tref>::VerifyBackward()
                                       in.data(),
                                       dinhost.data());
 
-    auto error = miopen::rms_range(dinhost, din);
+    auto error           = miopen::rms_range(dinhost, din);
     const Tref tolerance = 6.0e-5;
     if(error > tolerance)
     {

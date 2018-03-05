@@ -560,13 +560,13 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
     uint y_in_lcl = alu_tl1 * MLO_OUT_TILE1 * MLO_FILTER_STRIDE1;
 #else
     uint x_grp            = x_tile_blk * (MLO_IN_TILE0 / MLO_FILTER_STRIDE0);
-    uint y_grp            = y_tile_blk * (MLO_IN_TILE1 / MLO_FILTER_STRIDE1);
+    uint y_grp     = y_tile_blk * (MLO_IN_TILE1 / MLO_FILTER_STRIDE1);
 #if MLO_LARGE_MAP == 1
-    uint x_in_grp         = x_grp - (MLO_FILTER_PAD0 / MLO_FILTER_STRIDE0);
-    uint y_in_grp         = y_grp - (MLO_FILTER_PAD1 / MLO_FILTER_STRIDE1);
+    uint x_in_grp  = x_grp - (MLO_FILTER_PAD0 / MLO_FILTER_STRIDE0);
+    uint y_in_grp  = y_grp - (MLO_FILTER_PAD1 / MLO_FILTER_STRIDE1);
 #endif
-    uint x_in_lcl         = alu_tl0 * (MLO_OUT_TILE0 / MLO_FILTER_STRIDE0);
-    uint y_in_lcl         = alu_tl1 * (MLO_OUT_TILE1 / MLO_FILTER_STRIDE1);
+    uint x_in_lcl  = alu_tl0 * (MLO_OUT_TILE0 / MLO_FILTER_STRIDE0);
+    uint y_in_lcl  = alu_tl1 * (MLO_OUT_TILE1 / MLO_FILTER_STRIDE1);
 #endif
 
     // base offset to read data from local input data
@@ -577,7 +577,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #if MLO_DIR_FORWARD == 1
     uint wei_off = mul24(o_map_plane, (uint)(MLO_N_INPUTS * MLO_FILTER_SZ));
 #else
-    uint wei_off          = mul24(o_map_plane, (uint)MLO_FILTER_SZ);
+    uint wei_off   = mul24(o_map_plane, (uint)MLO_FILTER_SZ);
 #endif
 
 #if MLO_LARGE_MAP == 0
@@ -795,8 +795,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
     uint y_out_grp = y_tile_blk * MLO_IN_TILE1;
 #endif
 #else
-    uint x_out_grp        = x_grp * MLO_FILTER_STRIDE0;
-    uint y_out_grp        = y_grp * MLO_FILTER_STRIDE1;
+    uint x_out_grp = x_grp * MLO_FILTER_STRIDE0;
+    uint y_out_grp = y_grp * MLO_FILTER_STRIDE1;
 #endif
     uint x_out_lcl = alu_tl0 * MLO_OUT_TILE0;
     uint y_out_lcl = alu_tl1 * MLO_OUT_TILE1;
