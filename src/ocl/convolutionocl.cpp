@@ -1169,7 +1169,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
         // 1x1 does not require col2im or workspace
         if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)) &&
-           workSpace != nullptr &&
+           dilation_w == 1 && dilation_h == 1 && workSpace != nullptr &&
            workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc))
         {
             GemmGeometry gg =
