@@ -60,7 +60,7 @@ template <std::size_t N, class T, class U>
 auto tien(T&& x, U y)
     MIOPEN_RETURNS(tie_impl(std::forward<T>(x), y, typename detail::gens<N>::type{}));
 
-std::size_t GetTypeSize(miopenDataType_t d)
+inline std::size_t GetTypeSize(miopenDataType_t d)
 {
     switch(d)
     {
