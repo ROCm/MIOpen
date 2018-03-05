@@ -325,7 +325,7 @@ int SoftmaxDriver<Tgpu, Tref>::VerifyForward()
 
     mloSoftmaxForwardRunHost<Tref>(n, c, h, w, channel_max.data(), outhost.data());
 
-    auto error = miopen::rms_range(outhost, out);
+    auto error           = miopen::rms_range(outhost, out);
     const Tref tolerance = 1e-3; // 1e-6;
     if(error > tolerance)
     {
@@ -358,7 +358,7 @@ int SoftmaxDriver<Tgpu, Tref>::VerifyBackward()
     mloSoftmaxBackwardRunHost<Tgpu, Tref>(
         n, c, h, w, channel_dot.data(), out.data(), dinhost.data());
 
-    auto error = miopen::rms_range(dinhost, din);
+    auto error           = miopen::rms_range(dinhost, din);
     const Tref tolerance = 1e-3; // 1e-6;
     if(error > tolerance)
     {

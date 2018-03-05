@@ -79,6 +79,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                        const TensorDescriptor& wDesc,
                                        const TensorDescriptor& yDesc) const;
 
+    size_t ForwardGetWorkSpaceSizeGEMMTranspose(const TensorDescriptor& xDesc,
+                                                const TensorDescriptor& yDesc) const;
+
     size_t ForwardGetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
                                       const TensorDescriptor& xDesc,
                                       const TensorDescriptor& yDesc) const;
