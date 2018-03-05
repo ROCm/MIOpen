@@ -1621,7 +1621,7 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
     }
 
     auto error           = miopen::rms_range(outhost, out);
-    const Tref tolerance = ((sizeof(Tgpu) == 4) ? (Tref)1e-6 : (Tref)7e-2);
+    const Tref tolerance = ((sizeof(Tgpu) == 4) ? static_cast<Tref>(1e-6) : static_cast<Tref>(7e-2));
     if(!(error < tolerance))
     {
         std::cout << std::string("Forward Convolution Failed: ") << error << "\n";
@@ -1637,7 +1637,7 @@ int ConvDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::VerifyBackward()
 {
-    const Tref tolerance = ((sizeof(Tgpu) == 4) ? (Tref)1e-6 : (Tref)7e-2);
+    const Tref tolerance = ((sizeof(Tgpu) == 4) ? static_cast<Tref>(1e-6) : static_cqst<Tref>(7e-2));
 
     if(!TryReadVerificationCache("bwd_dat", inputTensor, din_host.data()))
     {
