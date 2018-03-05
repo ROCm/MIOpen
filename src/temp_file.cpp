@@ -5,7 +5,7 @@
 
 namespace miopen {
 TempFile::TempFile(const std::string& path_template)
-    : _path(GetTempDirectoryPath().path.string() + "/" + path_template + "-XXXXXX")
+    : _path((GetTempDirectoryPath().path / (path_template + "-XXXXXX")).string())
 {
     _fd = mkstemp(&_path[0]);
     if(_fd == -1)

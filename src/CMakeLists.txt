@@ -67,6 +67,7 @@ set( MIOpen_Source
     pooling_api.cpp
     kernel_warnings.cpp
     logger.cpp
+    lock_file.cpp
     lrn_api.cpp
     activ_api.cpp
     handle_api.cpp
@@ -100,7 +101,7 @@ set( MIOpen_Source
     include/miopen/lrn.hpp
     include/miopen/activ.hpp
     include/miopen/softmax.hpp
-	include/miopen/rnn.hpp
+    include/miopen/rnn.hpp
     tensor.cpp
     tensor_api.cpp
     solver.cpp

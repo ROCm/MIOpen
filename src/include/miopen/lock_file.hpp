@@ -28,15 +28,23 @@
 
 #include <fstream>
 
+#include <boost/filesystem.hpp>
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/thread/shared_mutex.hpp>
 
+namespace boost
+{
+	namespace posix_time
+	{
+		class ptime;
+	} // namespace posix_time
+} // namespace boost
+
 namespace miopen {
-// LockFile::Impl class is a wrapper around boost::interprocess::file_lock providing MT-safety.
+// LockFile class is a wrapper around boost::interprocess::file_lock providing MT-safety.
 // One process should never have more than one instance of this class with same path at the same
 // time. It may lead to undefined behaviour on Windows.
 // Also on windows mutex can be removed because file locks are MT-safe there.
-// Dispatcher should be used to create instances of this class.
 class LockFile
 {
     private:
@@ -47,42 +55,14 @@ class LockFile
     LockFile(const LockFile&) = delete;
     LockFile operator=(const LockFile&) = delete;
 
-    void lock()
-    {
-        _mutex.lock();
-        _file_lock.lock();
-    }
+	void lock();
+	void lock_sharable();
+	bool timed_lock(const boost::posix_time::ptime& abs_time);
+	bool timed_lock_sharable(const boost::posix_time::ptime& abs_time);
+	void unlock();
+	void unlock_sharable();
 
-    void lock_sharable()
-    {
-        _mutex.lock_shared();
-        _file_lock.lock_sharable();
-    }
-
-    void unlock()
-    {
-        _file_lock.unlock();
-        _mutex.unlock();
-    }
-
-    void unlock_sharable()
-    {
-        _file_lock.unlock_sharable();
-        _mutex.unlock_shared();
-    }
-
-    static LockFile& Get(const char* path)
-    {
-        { // To guarantee that construction won't be called if not required.
-            auto found = LockFiles().find(path);
-
-            if (found != LockFiles().end())
-                return found->second;
-        }
-
-        auto emplaced = LockFiles().emplace(std::piecewise_construct, std::forward_as_tuple(path), std::forward_as_tuple(path, PassKey{}));
-        return emplaced.first->second;
-    }
+    static LockFile& Get(const char* path);
 
     private:
     boost::shared_mutex _mutex;
