@@ -795,8 +795,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
     uint y_out_grp = y_tile_blk * MLO_IN_TILE1;
 #endif
 #else
-    uint x_out_grp         = x_grp * MLO_FILTER_STRIDE0;
-    uint y_out_grp         = y_grp * MLO_FILTER_STRIDE1;
+    uint x_out_grp        = x_grp * MLO_FILTER_STRIDE0;
+    uint y_out_grp        = y_grp * MLO_FILTER_STRIDE1;
 #endif
     uint x_out_lcl = alu_tl0 * MLO_OUT_TILE0;
     uint y_out_lcl = alu_tl1 * MLO_OUT_TILE1;
