@@ -264,7 +264,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     // create a dummy buffer for use as output for the kernel calls
     // because kernels are called purely for timing purposes
-    auto tmp_y = handle.Create(yDesc.GetElementSize() * sizeof(yDesc.GetType()));
+    auto tmp_y = handle.Create(yDesc.GetElementSize() * GetTypeSize(yDesc.GetType()));
 
     // < algorith_name, <time, workspace_size> >
     std::vector<PerfField> perf_db;
@@ -964,7 +964,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
     // create a dummy buffer for use as output for the kernel calls
     // because kernels are called purely for timing purposes
-    auto tmp_dx = handle.Create(dxDesc.GetElementSize() * sizeof(dxDesc.GetType()));
+    auto tmp_dx = handle.Create(dxDesc.GetElementSize() * GetTypeSize(dxDesc.GetType()));
 
     AutoEnableProfiling enableProfiling{handle};
 
@@ -1601,7 +1601,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
     // create a dummy buffer for use as output for the kernel calls
     // because kernels are called purely for timing purposes
-    auto tmp_dw = handle.Create(dwDesc.GetElementSize() * sizeof(dwDesc.GetType()));
+    auto tmp_dw = handle.Create(dwDesc.GetElementSize() * GetTypeSize(dwDesc.GetType()));
 
     AutoEnableProfiling enableProfiling{handle};
 
