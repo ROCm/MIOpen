@@ -460,7 +460,7 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
     }
 
     in   = std::vector<T>(in_sz);
-    din  = std::vector<T>(in_sz);
+    din  = std::vector<T>(in_sz, 0);
     wei  = std::vector<T>(wei_sz);
     dwei = std::vector<T>(wei_sz, 0);
     dout = std::vector<T>(out_sz, 0);
@@ -556,7 +556,7 @@ int ConvDriver<T>::AllocateBuffersAndCopy()
     int status;
 #endif
     status = in_dev->ToGPU(q, in.data());
-    status |= din_dev->ToGPU(q, in.data());
+    status |= din_dev->ToGPU(q, din.data());
     status |= wei_dev->ToGPU(q, wei.data());
     status |= dwei_dev->ToGPU(q, dwei.data());
     status |= dout_dev->ToGPU(q, dout.data());
