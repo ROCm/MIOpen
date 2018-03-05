@@ -862,43 +862,8 @@ void OpTensorOther(Handle& handle,
                    const size_t Boffset,
                    const size_t Coffset)
 {
-    if(ATensor == nullptr || BTensor == nullptr || CTensor == nullptr)
-    {
-        MIOPEN_THROW(miopenStatusBadParm);
-    }
-
-    // if(aTensorDesc != cTensorDesc)
-    if(aTensorDesc.GetElementSize() != cTensorDesc.GetElementSize())
-    {
-        MIOPEN_THROW("A and C Tensors do not match");
-    }
-
-    if(bTensorDesc.GetType() != cTensorDesc.GetType())
-    {
-        MIOPEN_THROW("Datatypes for B and C tensors do not match !");
-    }
-
     auto blens = bTensorDesc.GetLengths();
     auto clens = cTensorDesc.GetLengths();
-
-    if(clens.size() > 5)
-    {
-        MIOPEN_THROW("Tensor dimension larger than 5: " + std::to_string(clens.size()));
-    }
-
-    if(blens.size() != clens.size())
-    {
-        MIOPEN_THROW("Number of dims in B and C Tensors do not match: " +
-                     std::to_string(blens.size()) + ", " + std::to_string(clens.size()));
-    }
-
-    for(auto i = 0; i < clens.size(); i++)
-    {
-        if(blens[i] != 1 && blens[i] != clens[i])
-        {
-            MIOPEN_THROW("BTensor dim != 1 && BTensor dim != CTensor dim: " + std::to_string(i));
-        }
-    }
 
     auto astrides = aTensorDesc.GetStrides();
     auto bstrides = bTensorDesc.GetStrides();
