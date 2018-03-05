@@ -477,7 +477,7 @@ int PoolDriver<Tgpu, Tref>::VerifyForward()
     int pooling_method = (mode == miopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 
     const Tref tolerance = 1.5e-4; // 1e-6;
-    bool match = mloPoolingForwardRunHostAndVerify<Tgpu, Tref>(pooling_method,
+    bool match           = mloPoolingForwardRunHostAndVerify<Tgpu, Tref>(pooling_method,
                                                                pad_h,
                                                                u,
                                                                windowHeight,
@@ -590,11 +590,11 @@ int PoolDriver<Tgpu, Tref>::VerifyBackward()
                                           wOut,
                                           hOut);
 
-    bool match = true;
+    bool match            = true;
     const Tref allowedEps = (1 << 2);
     Tref max_sqr          = 1. / 1000000; // 100000000;
     Tref max_abs_diff     = 1. / 1000000; // 100000000;
-    bool get_error_pos = true;
+    bool get_error_pos    = true;
 
     match = mloVerify<Tgpu, Tref>(nOut,
                                   cOut,
