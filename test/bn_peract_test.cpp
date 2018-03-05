@@ -883,7 +883,7 @@ struct batch_norm_per_activation_driver : test_driver
 
     batch_norm_per_activation_driver()
     {
-        this->batch_factor = 1;
+        this->batch_factor = 4;
         add(input, "input", get_bn_peract_input_tensor());
     }
 
@@ -893,7 +893,8 @@ struct batch_norm_per_activation_driver : test_driver
         std::tie(n, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
 
         if(n == 1)
-        { // Invalid batch size for batch norm tests.
+        {
+            std::cout << "Invalid batch size for batch norm tests.\nExiting...\n" << std::endl;
             return;
         }
         scale = tensor<T>{1, c, h, w}.generate(rand_gen{});
@@ -903,25 +904,25 @@ struct batch_norm_per_activation_driver : test_driver
         auto outpair = verify(verify_forward_train_bn_per_activation<T>{input, scale, shift});
         // returns:  std::make_tuple(out,runMean,runVar,saveMean,saveInvVar);
 
-        /*      // inference recalc
-              verify(verify_forward_infer_bn_per_activation_recalc<T>{input, scale, shift});
+        // inference recalc
+        verify(verify_forward_infer_bn_per_activation_recalc<T>{input, scale, shift});
 
-              // inference use estimated running values
-              auto estMean = std::get<1>(outpair.second);
-              auto estVar  = std::get<2>(outpair.second);
-              verify(verify_forward_infer_bn_per_activation_use_est<T>{
-                  input, scale, shift, estMean, estVar});
+        // inference use estimated running values
+        auto estMean = std::get<1>(outpair.second);
+        auto estVar  = std::get<2>(outpair.second);
+        verify(verify_forward_infer_bn_per_activation_use_est<T>{
+            input, scale, shift, estMean, estVar});
 
-              // backprop recalc
-              auto dy_input =
-                  tensor<T>{n, c, h, w}.generate(rand_gen{}); //= std::get<0>(outpair.first);//
-              verify(verify_backward_bn_per_activation_recalc<T>{input, dy_input, scale});
+        // backprop recalc
+        auto dy_input =
+            tensor<T>{n, c, h, w}.generate(rand_gen{}); //= std::get<0>(outpair.first);//
+        verify(verify_backward_bn_per_activation_recalc<T>{input, dy_input, scale});
 
-              // backprop use saved values
-              auto savedMean   = std::get<3>(outpair.second);
-              auto savedInvVar = std::get<4>(outpair.second);
-              verify(verify_backward_bn_per_activation_use_saved<T>{
-                  input, dy_input, scale, savedMean, savedInvVar});*/
+        // backprop use saved values
+        auto savedMean   = std::get<3>(outpair.second);
+        auto savedInvVar = std::get<4>(outpair.second);
+        verify(verify_backward_bn_per_activation_use_saved<T>{
+            input, dy_input, scale, savedMean, savedInvVar});
     }
 };
 

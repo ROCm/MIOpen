@@ -164,7 +164,7 @@ void BatchNormForwardTraining(Handle& handle,
             ldsnogcn     = ylocalsize;
         }
 
-        std::string algo_name = "miopenBatchNormForwardTraining";
+        std::string algo_name = "miopenBatchNormForwardTrainingSpatial";
         std::string network_config =
             std::to_string(variant) + std::to_string(xDesc.GetType()) + std::to_string(xgridsize) +
             std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
@@ -395,12 +395,16 @@ void BatchNormForwardTraining(Handle& handle,
     }
     else // else run per activation
     {
-        std::string algo_name = "miopenBatchNormForwardTraining";
-        std::string network_config =
-            std::to_string(variant) + std::to_string(xDesc.GetType()) + std::to_string(xgridsize) +
-            std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
-            std::to_string(resultsave) + std::to_string(resultrunning) + std::to_string(bfp16parm) +
-            std::to_string(bfp32parm) + std::to_string(in_nhw) + std::to_string(single);
+
+        ylocalsize                 = 256;
+        auto segment               = std::ceil(double(in_cstride) / double(ylocalsize));
+        xgridsize                  = c;
+        ygridsize                  = segment * ylocalsize;
+        std::string algo_name      = "miopenBatchNormForwardTrainingPerActivation";
+        std::string network_config = std::to_string(xDesc.GetType()) + std::to_string(xgridsize) +
+                                     std::to_string(ygridsize) + std::to_string(xlocalsize) +
+                                     std::to_string(ylocalsize) + std::to_string(resultsave) +
+                                     std::to_string(resultrunning) + std::to_string(in_nchw);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
@@ -456,11 +460,6 @@ void BatchNormForwardTraining(Handle& handle,
         else // kernels empty
         {
 
-            ylocalsize   = 256;
-            auto segment = std::ceil(double(in_cstride) / double(ylocalsize));
-            xgridsize    = c;
-            ygridsize    = segment * ylocalsize;
-
             vgd.push_back(xgridsize);
             vgd.push_back(ygridsize);
             vgd.push_back(zgridsize);
@@ -478,7 +477,8 @@ void BatchNormForwardTraining(Handle& handle,
                 " -DMIO_BN_NHW=" + std::to_string(in_nhw) + " -DMIO_BN_CHW=" +
                 std::to_string(in_nstride) + " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize) +
                 " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
-                std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+                std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
+                " -DMIO_BN_NCHW=" + std::to_string(in_nchw);
 
             std::string program_name = "MIOpenBatchNormFwdTrainPerAct.cl";
             std::string kernel_name  = "BatchNormFwdTrainPerActivation";
@@ -486,6 +486,9 @@ void BatchNormForwardTraining(Handle& handle,
 #if(MIOPEN_BN_CPP_DEBUG == 1)
             std::cout << kernel_name << ":: ";
             std::cout << parms << std::endl;
+            printf("No kernel found, adding kernel.\nxgridsize: %ld, ygridsize: %ld\n",
+                   xgridsize,
+                   ygridsize);
 #endif
             if(resultsave && resultrunning)
             {
@@ -607,9 +610,6 @@ void BatchNormForwardInference(Handle& handle,
             MIOPEN_THROW(miopenStatusBadParm);
         }
 
-        std::string algo_name = "miopenBatchNormalizationForwardInference";
-        std::string network_config{};
-
         bool bfp16parm = false;
         bool bfp32parm = true;
         if(xDesc.GetType() == miopenHalf)
@@ -640,10 +640,11 @@ void BatchNormForwardInference(Handle& handle,
         xgridsize    = c;
         ygridsize    = segment * ylocalsize;
 
-        network_config = std::to_string(xDesc.GetType()) + std::to_string(segment) +
-                         std::to_string(xgridsize) + std::to_string(ygridsize) +
-                         std::to_string(xlocalsize) + std::to_string(ylocalsize) +
-                         std::to_string(bfp16parm) + std::to_string(bfp32parm);
+        std::string algo_name = "miopenBatchNormalizationForwardInference";
+        std::string network_config =
+            std::to_string(xDesc.GetType()) + std::to_string(segment) + std::to_string(xgridsize) +
+            std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
+            std::to_string(bfp16parm) + std::to_string(bfp32parm) + std::to_string(bn_mode);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
         if(!kernels.empty())
@@ -662,8 +663,7 @@ void BatchNormForwardInference(Handle& handle,
                 kernel_name += "SpatialEst";
             }
             else
-            {
-                // PER ACTIVATION
+            { // PER ACTIVATION
                 program_name += "PerAct.cl";
                 kernel_name += "PerActivationEst";
             }
@@ -859,7 +859,7 @@ void BatchNormBackward(Handle& handle,
             ldsnogcn     = ylocalsize;
         }
 
-        std::string algo_name = "miopenBatchNormalizationBackwardProp";
+        std::string algo_name = "miopenBatchNormBackwardPropSpatial";
         std::string network_config =
             std::to_string(variant) + std::to_string(xDesc.GetType()) + std::to_string(xgridsize) +
             std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
@@ -1050,12 +1050,12 @@ void BatchNormBackward(Handle& handle,
             useSaved = false;
         }
 
-        std::string algo_name = "miopenBatchNormalizationBackwardProp";
-        std::string network_config =
-            std::to_string(variant) + std::to_string(xDesc.GetType()) + std::to_string(xgridsize) +
-            std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
-            std::to_string(useSaved) + std::to_string(bfp16parm) + std::to_string(bfp32parm) +
-            std::to_string(in_nhw) + std::to_string(single);
+        std::string algo_name      = "miopenBatchNormBackwardPropPerActivation";
+        std::string network_config = std::to_string(xDesc.GetType()) + std::to_string(xgridsize) +
+                                     std::to_string(ygridsize) + std::to_string(xlocalsize) +
+                                     std::to_string(ylocalsize) + std::to_string(useSaved) +
+                                     std::to_string(bfp16parm) + std::to_string(bfp32parm) +
+                                     std::to_string(in_nhw);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
