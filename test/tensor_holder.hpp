@@ -233,6 +233,11 @@ struct tensor
     typename std::vector<T>::const_iterator begin() const { return data.begin(); }
 
     typename std::vector<T>::const_iterator end() const { return data.end(); }
+
+    friend std::ostream& operator<<(std::ostream& stream, const tensor& t)
+    {
+        return stream << t.desc;
+    }
 };
 
 template <class T, class G>
