@@ -118,11 +118,9 @@
 #undef __AMDGCN__
 #endif
 
-
 #ifdef __AMDGCN__
 #undef __AMDGCN__
 #endif
-
 
 #define UNUSED __attribute__((__unused__))
 
