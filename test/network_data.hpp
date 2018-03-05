@@ -326,7 +326,7 @@ get_bn_spatial_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
         { pick_batch_size(32, n),  128,  14,  14  },
         { pick_batch_size(32, n),  128,  28,  28  },
         { pick_batch_size(32, n),  128,  4,   4   },
-        //{ pick_batch_size(32, n),  128,  7,   7   },
+        { pick_batch_size(32, n),  128,  7,   7   },
         { pick_batch_size(32, n),  160,  14,  14  },
         { pick_batch_size(32, n),  160,  7,   7   },
         { pick_batch_size(32, n),  192,  14,  14  },
