@@ -63,7 +63,7 @@ inline static std::string LockFilePath(const boost::filesystem::path& filename_)
 	std::hash<std::string> hash_func;
 
 	const auto hash = hash_func(filename_.parent_path().string());
-	const auto file = directory / (filename_.filename().string() + std::to_string(hash) + ".lock");
+	const auto file = directory / (std::to_string(hash) + "_" + filename_.filename().string() + ".lock");
 
 	return file.string();
 }
