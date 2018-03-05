@@ -1106,8 +1106,7 @@ void BatchNormBackward(Handle& handle,
                 " -DMIO_BN_NHW=" + std::to_string(in_nhw) + " -DMIO_BN_CHW=" +
                 std::to_string(in_nstride) + " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
                 " -DMIO_BN_NGRPS=" + std::to_string(int(std::ceil(float(ygridsize) / ylocalsize))) +
-                " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) + " -DMIO_BN_GRP0=" +
-                std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
                 " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
             if(useSaved)
