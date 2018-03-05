@@ -919,8 +919,7 @@ int ConvDriver<T>::RunBackwardGPU()
 {
 
     int ret_algo_count;
-    // int request_algo_count = 2;
-    int request_algo_count = 3;
+    int request_algo_count = 2;
     std::vector<miopenConvAlgoPerf_t> perf_results_data(request_algo_count);
 
     FindBackwardData(ret_algo_count, request_algo_count, perf_results_data);
