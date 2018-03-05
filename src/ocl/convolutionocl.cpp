@@ -352,31 +352,27 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 GemmGeometry gg =
                     CreateGemmGeometryConvFwdCNHW(xDesc, wDesc, yDesc, false, network_config);
 
-                if(u == 2 && v == 2)
-                {
-                    transpose_NCHW2CNHW(
-                        handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
-                }
-                else
-                {
-                    transpose_NCHW2CNHW_opt(handle, in_n, in_c, in_h, in_w, x, workSpace, 0, 0);
-                }
+                transpose_NCHW2CNHW(
+                    handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
                 time_gemm = handle.GetKernelTime();
 
                 gg.FindSolution(0.03, handle, workSpace, w, tmp_y.get(), false);
                 gg.RunGemm(handle, workSpace, w, workSpace, 0, 0, xDesc.GetElementSize());
                 time_gemm += handle.GetKernelTime();
 
-                transpose_CNHW2NCHW_opt(handle,
-                                        in_n,
-                                        wei_n,
-                                        out_h,
-                                        out_w,
-                                        workSpace,
-                                        tmp_y.get(),
-                                        xDesc.GetElementSize(),
-                                        0);
-
+                transpose_CNHW2NCHW(handle,
+                                    in_n,
+                                    wei_n,
+                                    out_h,
+                                    out_w,
+                                    out_h,
+                                    out_w,
+                                    workSpace,
+                                    tmp_y.get(),
+                                    xDesc.GetElementSize(),
+                                    0,
+                                    1,
+                                    1);
                 time_gemm += handle.GetKernelTime();
 
                 perf_db.push_back(
@@ -736,22 +732,26 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 GemmGeometry gg = GetGemmGeometry("miopenConvolutionFwdAlgoGEMM", network_config);
 
                 float t1 = 0;
-                if(u == 2 && v == 2)
-                {
-                    transpose_NCHW2CNHW(
-                        handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
-                }
-                else
-                {
-                    transpose_NCHW2CNHW_opt(handle, in_n, in_c, in_h, in_w, x, workSpace, 0, 0);
-                }
+                transpose_NCHW2CNHW(
+                    handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
                 t1 = handle.GetKernelTime();
 
                 gg.RunGemm(handle, workSpace, w, workSpace, 0, 0, xDesc.GetElementSize());
                 t1 += handle.GetKernelTime();
 
-                transpose_CNHW2NCHW_opt(
-                    handle, in_n, wei_n, out_h, out_w, workSpace, y, xDesc.GetElementSize(), 0);
+                transpose_CNHW2NCHW(handle,
+                                    in_n,
+                                    wei_n,
+                                    out_h,
+                                    out_w,
+                                    out_h,
+                                    out_w,
+                                    workSpace,
+                                    y,
+                                    xDesc.GetElementSize(),
+                                    0,
+                                    1,
+                                    1);
                 t1 += handle.GetKernelTime();
 
                 if(handle.IsProfilingEnabled())
@@ -1175,41 +1175,27 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             GemmGeometry gg =
                 CreateGemmGeometryConvBwdDataCNHW(dyDesc, wDesc, dxDesc, true, network_config);
 
-            transpose_NCHW2CNHW_opt(handle, in_n, wei_n, out_h, out_w, dy, workSpace, 0, 0);
+            transpose_NCHW2CNHW(
+                handle, in_n, wei_n, out_h, out_w, out_h, out_w, dy, workSpace, 0, 0, 1, 1);
             time_gemm = handle.GetKernelTime();
 
             gg.FindSolution(.003, handle, w, dy, tmp_dx.get(), false);
             gg.RunGemm(handle, w, workSpace, workSpace, 0, 0, dyDesc.GetElementSize());
             time_gemm += handle.GetKernelTime();
 
-            if(u == 2 && v == 2)
-            {
-                transpose_CNHW2NCHW(handle,
-                                    in_n,
-                                    in_c,
-                                    out_h,
-                                    out_w,
-                                    in_h,
-                                    in_w,
-                                    workSpace,
-                                    tmp_dx.get(),
-                                    dyDesc.GetElementSize(),
-                                    0,
-                                    u,
-                                    v);
-            }
-            else
-            {
-                transpose_CNHW2NCHW_opt(handle,
-                                        in_n,
-                                        in_c,
-                                        out_h,
-                                        out_w,
-                                        workSpace,
-                                        tmp_dx.get(),
-                                        dyDesc.GetElementSize(),
-                                        0);
-            }
+            transpose_CNHW2NCHW(handle,
+                                in_n,
+                                in_c,
+                                out_h,
+                                out_w,
+                                in_h,
+                                in_w,
+                                workSpace,
+                                tmp_dx.get(),
+                                dyDesc.GetElementSize(),
+                                0,
+                                u,
+                                v);
             time_gemm += handle.GetKernelTime();
             perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoGEMM",
                                         time_gemm,
@@ -1441,33 +1427,26 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 GemmGeometry gg =
                     GetGemmGeometry("miopenConvolutionBwdDataAlgoGEMM", network_config);
 
-                transpose_NCHW2CNHW_opt(handle, in_n, wei_n, out_h, out_w, dy, workSpace, 0, 0);
+                transpose_NCHW2CNHW(
+                    handle, in_n, wei_n, out_h, out_w, out_h, out_w, dy, workSpace, 0, 0, 1, 1);
                 t1 = handle.GetKernelTime();
 
                 gg.RunGemm(handle, w, workSpace, workSpace, 0, 0, dyDesc.GetElementSize());
                 t1 += handle.GetKernelTime();
 
-                if(u == 2 && v == 2)
-                {
-                    transpose_CNHW2NCHW(handle,
-                                        in_n,
-                                        in_c,
-                                        out_h,
-                                        out_w,
-                                        in_h,
-                                        in_w,
-                                        workSpace,
-                                        dx,
-                                        dyDesc.GetElementSize(),
-                                        0,
-                                        u,
-                                        v);
-                }
-                else
-                {
-                    transpose_CNHW2NCHW_opt(
-                        handle, in_n, in_c, in_h, in_w, workSpace, dx, dyDesc.GetElementSize(), 0);
-                }
+                transpose_CNHW2NCHW(handle,
+                                    in_n,
+                                    in_c,
+                                    out_h,
+                                    out_w,
+                                    in_h,
+                                    in_w,
+                                    workSpace,
+                                    dx,
+                                    dyDesc.GetElementSize(),
+                                    0,
+                                    u,
+                                    v);
                 t1 += handle.GetKernelTime();
 
                 if(handle.IsProfilingEnabled())
