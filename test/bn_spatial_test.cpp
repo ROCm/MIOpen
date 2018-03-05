@@ -623,7 +623,7 @@ struct verify_backward_bn_spatial_recalc
             std::vector<double> dscale_accum_arr(height, 0.0);
 #endif
 
-            // process the batch per channel
+// process the batch per channel
 #if(MIO_HEIRARCH_SEL == 0)
             for(int row = 0; row < height; row++)
             { // via rows
