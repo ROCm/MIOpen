@@ -96,7 +96,7 @@ void RNNFwdTrainCPUVerify(std::vector<T>& in,
     int batch_n = sumvc(in_n);
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bi = bidirection ? 2 : 1;
+    int bi       = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi;
@@ -446,7 +446,7 @@ void RNNBwdDataCPUVerify(std::vector<T>& din_host,
     int batch_n = sumvc(in_n);
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bi = bidirection ? 2 : 1;
+    int bi       = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi;
@@ -708,7 +708,7 @@ void RNNBwdWeightCPUVerify(std::vector<T>& in,
 #endif
     int batch_n  = sumvc(in_n);
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bi = bidirection ? 2 : 1;
+    int bi       = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi;

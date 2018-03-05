@@ -80,7 +80,7 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
     int batch_n = sumvc(in_n);
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bi = bidirection ? 2 : 1;
+    int bi       = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
     int out_stride = out_h;
@@ -523,7 +523,7 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
     (void)hx;
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bi = bidirection ? 2 : 1;
+    int bi       = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
     int out_stride = out_h;
@@ -970,7 +970,7 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
 {
     int batch_n  = sumvc(in_n);
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bi = bidirection ? 2 : 1;
+    int bi       = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
     int wei_stride = bi * 4 * hy_h;
