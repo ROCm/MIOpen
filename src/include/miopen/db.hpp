@@ -26,74 +26,69 @@
 #ifndef GUARD_MIOPEN_DB_HPP_
 #define GUARD_MIOPEN_DB_HPP_
 
-#include <string>
-#include <ios>
+#include <miopen/db_record.hpp>
 
-#include <boost/interprocess/sync/scoped_lock.hpp>
-#include <boost/interprocess/sync/sharable_lock.hpp>
 #include <boost/optional.hpp>
 
-#include <miopen/db_record.hpp>
-#include <miopen/lock_file.hpp>
+#include <string>
 
 namespace miopen {
+
+struct RecordPositions;
+class LockFile;
+
 /// No instance of this class should be used from several threads at the same time.
 class Db
 {
     public:
-    inline Db(const std::string& filename_)
-        : filename(filename_), lock_file(LockFile::Get((filename_ + ".lock").c_str()))
-    {
-    }
+    Db(const std::string& filename_);
 
     /// Searches db for provided key and returns found record or none if key not found in database
-    inline boost::optional<DbRecord> FindRecord(const std::string& key)
-    {
-        shared_lock lock(lock_file);
-        return FindRecordUnsafe(key, nullptr);
-    }
+    boost::optional<DbRecord> FindRecord(const std::string& key);
 
     template <class T>
     inline boost::optional<DbRecord> FindRecord(const T& problem_config)
     {
-        shared_lock lock(lock_file);
-        return FindRecordUnsafe(problem_config);
+        const auto key = DbRecord::Serialize(problem_config);
+        return FindRecord(key);
     }
 
     /// Stores provided record in database. If record with same key is already in database it is
     /// replaced by provided record.
     ///
     /// Returns true if store was successful, false otherwise.
-    inline bool StoreRecord(const DbRecord& record)
-    {
-        exclusive_lock lock(lock_file);
-        return StoreRecordUnsafe(record);
-    }
+    bool StoreRecord(const DbRecord& record);
 
     /// Stores provided record in database. If record with same key is already in database it is
     /// updated with values from provided record. Provided records data is also updated via
     /// DbRecord::Merge().
     ///
     /// Returns true if update was successful, false otherwise.
-    inline bool UpdateRecord(DbRecord& record)
-    {
-        exclusive_lock lock(lock_file);
-        return UpdateRecordUnsafe(record);
-    }
+    bool UpdateRecord(DbRecord& record);
 
     /// Removes record with provided key from db
     ///
     /// Returns true if remove was successful, false otherwise.
-    inline bool RemoveRecord(const std::string& key)
+    bool RemoveRecord(const std::string& key);
+
+    /// Removes ID with associated VALUES from record with key PROBLEM_CONFIG from db.
+    /// If payload of a record becomes empty after that, also removes the entire record
+    ///
+    /// Returns true if remove was successful. Returns false if this PROBLEM_CONFIG or ID was not
+    /// found.
+    template <class T>
+    inline bool Remove(const T& problem_config, const std::string& id)
     {
-        exclusive_lock lock(lock_file);
-        return RemoveRecordUnsafe(key);
+        const auto key = DbRecord::Serialize(problem_config);
+        return Remove(key, id);
     }
+
+    bool Remove(const std::string& key, const std::string& id);
 
     template <class T>
     inline bool RemoveRecord(const T& problem_config)
     {
-        auto key = DbRecord::Serialize(problem_config);
+		const auto key = DbRecord::Serialize(problem_config);
         return RemoveRecord(key);
     }
 
@@ -108,7 +103,7 @@ class Db
     {
         DbRecord record(problem_config);
         record.SetValues(id, values);
-        bool ok = UpdateRecord(record);
+		const auto ok = UpdateRecord(record);
         if(ok)
             return record;
         else
@@ -124,41 +119,14 @@ class Db
     template <class T, class V>
     inline bool Load(const T& problem_config, const std::string& id, V& values)
     {
-        auto record = FindRecord(problem_config);
+		const auto record = FindRecord(problem_config);
 
         if(!record)
             return false;
         return record->GetValues(id, values);
     }
 
-    /// Removes ID with associated VALUES from record with key PROBLEM_CONFIG from db.
-    /// If payload of a record becomes empty after that, also removes the entire record
-    ///
-    /// Returns true if remove was successful. Returns false if this PROBLEM_CONFIG or ID was not
-    /// found.
-    template <class T>
-    inline bool Remove(const T& problem_config, const std::string& id)
-    {
-        exclusive_lock lock(lock_file);
-        auto record = FindRecordUnsafe(problem_config);
-        if(!record)
-            return false;
-        bool erased = record->EraseValues(id);
-        if(!erased)
-            return false;
-        return StoreRecordUnsafe(*record);
-    }
-
     private:
-    struct RecordPositions
-    {
-        std::streamoff begin = -1;
-        std::streamoff end   = -1;
-    };
-
-    using exclusive_lock = boost::interprocess::scoped_lock<LockFile>;
-    using shared_lock    = boost::interprocess::sharable_lock<LockFile>;
-
     std::string filename;
     LockFile& lock_file;
 
@@ -171,7 +139,7 @@ class Db
     template <class T>
     inline boost::optional<DbRecord> FindRecordUnsafe(const T& problem_config)
     {
-        std::string key = DbRecord::Serialize(problem_config);
+        const auto key = DbRecord::Serialize(problem_config);
         return FindRecordUnsafe(key, nullptr);
     }
 };
