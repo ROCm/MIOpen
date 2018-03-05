@@ -646,7 +646,7 @@ class DbMultiProcessTest : public DbTest
         const auto lock_file_path = LockFilePath(temp_file_path());
 
         {
-            auto file_lock = LockFile::Get(lock_file_path.c_str());
+            auto& file_lock = LockFile::Get(lock_file_path.c_str());
             boost::interprocess::scoped_lock<LockFile> lock(file_lock);
 
             auto id = 0;
@@ -674,7 +674,7 @@ class DbMultiProcessTest : public DbTest
     static inline void WorkItem(unsigned int id, const std::string& db_path)
     {
         {
-            auto file_lock = LockFile::Get(LockFilePath(db_path).c_str());
+            auto& file_lock = LockFile::Get(LockFilePath(db_path).c_str());
             boost::interprocess::sharable_lock<LockFile> lock(file_lock);
         }
 
