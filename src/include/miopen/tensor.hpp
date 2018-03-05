@@ -60,13 +60,12 @@ template <std::size_t N, class T, class U>
 auto tien(T&& x, U y)
     MIOPEN_RETURNS(tie_impl(std::forward<T>(x), y, typename detail::gens<N>::type{}));
 
-
 std::size_t GetTypeSize(miopenDataType_t d)
 {
-    switch(d) 
+    switch(d)
     {
-        case miopenFloat: return 4;
-        case miopenHalf: return 2;
+    case miopenFloat: return 4;
+    case miopenHalf: return 2;
     }
     MIOPEN_THROW("Unknown data type");
 }
