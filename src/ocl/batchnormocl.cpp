@@ -162,10 +162,11 @@ void BatchNormForwardTraining(Handle& handle,
 
         std::string algo_name = "miopenBatchNormForwardTrainingSpatial";
         std::string network_config =
-            std::to_string(variant) + std::to_string(xDesc.GetType()) + std::to_string(xgridsize) +
+            std::to_string(variant) + std::to_string(xgridsize) + std::to_string(ldsgcn) +
             std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
             std::to_string(resultsave) + std::to_string(resultrunning) + std::to_string(bfp16parm) +
-            std::to_string(bfp32parm) + std::to_string(in_nhw) + std::to_string(single);
+            std::to_string(bfp32parm) + std::to_string(in_nchw) + std::to_string(single) +
+            std::to_string(in_cstride);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
@@ -392,15 +393,16 @@ void BatchNormForwardTraining(Handle& handle,
     else // else run per activation
     {
 
-        ylocalsize                 = 256;
-        auto segment               = std::ceil(double(in_cstride) / double(ylocalsize));
-        xgridsize                  = c;
-        ygridsize                  = segment * ylocalsize;
-        std::string algo_name      = "miopenBatchNormForwardTrainingPerActivation";
-        std::string network_config = std::to_string(xDesc.GetType()) + std::to_string(xgridsize) +
-                                     std::to_string(ygridsize) + std::to_string(xlocalsize) +
-                                     std::to_string(ylocalsize) + std::to_string(resultsave) +
-                                     std::to_string(resultrunning) + std::to_string(in_nchw);
+        ylocalsize            = 256;
+        auto segment          = std::ceil(double(in_cstride) / double(ylocalsize));
+        xgridsize             = c;
+        ygridsize             = segment * ylocalsize;
+        std::string algo_name = "miopenBatchNormForwardTrainingPerActivation";
+        std::string network_config =
+            std::to_string(bfp16parm) + std::to_string(bfp32parm) + std::to_string(xgridsize) +
+            std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
+            std::to_string(resultsave) + std::to_string(resultrunning) + std::to_string(in_nchw) +
+            std::to_string(segment) + std::to_string(n) + std::to_string(in_cstride);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
@@ -430,7 +432,6 @@ void BatchNormForwardTraining(Handle& handle,
                        y,
                        bnScale,
                        bnBias,
-                       expAvgFactor,
                        epsilon,
                        resultSaveMean,
                        resultSaveInvVariance);
@@ -450,7 +451,7 @@ void BatchNormForwardTraining(Handle& handle,
             }
             else
             {
-                kernel(x, in_nstride, in_cstride, y, bnScale, bnBias, expAvgFactor, epsilon);
+                kernel(x, in_nstride, in_cstride, y, bnScale, bnBias, epsilon);
             }
         }
         else // kernels empty
@@ -513,7 +514,6 @@ void BatchNormForwardTraining(Handle& handle,
                     y,
                     bnScale,
                     bnBias,
-                    expAvgFactor,
                     epsilon,
                     resultSaveMean,
                     resultSaveInvVariance);
@@ -537,7 +537,7 @@ void BatchNormForwardTraining(Handle& handle,
             {
                 handle.AddKernel(
                     algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                    x, in_nstride, in_cstride, y, bnScale, bnBias, expAvgFactor, epsilon);
+                    x, in_nstride, in_cstride, y, bnScale, bnBias, epsilon);
             }
         }
     } // end per-activation
@@ -630,11 +630,12 @@ void BatchNormForwardInference(Handle& handle,
         auto xgridsize = size_t(c);
         auto ygridsize = size_t(segment * ylocalsize);
 
-        std::string algo_name = "miopenBatchNormalizationForwardInference";
-        std::string network_config =
-            std::to_string(xDesc.GetType()) + std::to_string(segment) + std::to_string(xgridsize) +
-            std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
-            std::to_string(bfp16parm) + std::to_string(bfp32parm) + std::to_string(bn_mode);
+        std::string algo_name      = "miopenBatchNormalizationForwardInference";
+        std::string network_config = std::to_string(n) + std::to_string(in_cstride) +
+                                     std::to_string(segment) + std::to_string(xgridsize) +
+                                     std::to_string(ygridsize) + std::to_string(xlocalsize) +
+                                     std::to_string(ylocalsize) + std::to_string(bfp16parm) +
+                                     std::to_string(bfp32parm) + std::to_string(bn_mode);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
         if(!kernels.empty())
@@ -852,10 +853,11 @@ void BatchNormBackward(Handle& handle,
 
         std::string algo_name = "miopenBatchNormBackwardPropSpatial";
         std::string network_config =
-            std::to_string(variant) + std::to_string(xDesc.GetType()) + std::to_string(xgridsize) +
+            std::to_string(variant) + std::to_string(xgridsize) + std::to_string(in_cstride) +
             std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
             std::to_string(useSaved) + std::to_string(bfp16parm) + std::to_string(bfp32parm) +
-            std::to_string(in_nhw) + std::to_string(single);
+            std::to_string(in_nchw) + std::to_string(single) + std::to_string(c) +
+            std::to_string(ldsgcn);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
