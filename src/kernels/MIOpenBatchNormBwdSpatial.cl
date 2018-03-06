@@ -434,8 +434,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     if(lid < MIO_BN_SEGMENT)
     {
         //==== CALC NORM =======================
-        _FLOAT inhat = 0.;
-        pscale       = lbns;
+        pscale = lbns;
 #pragma unroll
         for(unsigned int n = 0; n < MIO_BN_NLOOPM; n++)
         { // apply normalization
