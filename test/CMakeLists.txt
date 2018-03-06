@@ -28,7 +28,7 @@ cmake_policy(SET CMP0057 NEW)
 
 include(CTest)
 
-option( MIOPEN_TEST_ALL "Run the full test suite" ON )
+option( MIOPEN_TEST_ALL "Run the full test suite" OFF )
 option(MIOPEN_TEST_CONV Off)
 option(MIOPEN_TEST_DEEPBENCH Off)
 
