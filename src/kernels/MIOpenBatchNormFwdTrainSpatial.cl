@@ -405,9 +405,9 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 {
 
     // SPATIAL
-    _FLOAT mean     = (_FLOAT)0.;
-    _FLOAT variance = (_FLOAT)0.;
-    _FLOAT invVariance, inhat;
+    _FLOAT mean        = (_FLOAT)0.;
+    _FLOAT variance    = (_FLOAT)0.;
+    _FLOAT invVariance = (_FLOAT)0.;
     _FLOAT pvscale, pvbias;
 
     __local _FLOAT lcl_bias;
