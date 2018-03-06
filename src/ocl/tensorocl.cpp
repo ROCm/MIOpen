@@ -558,7 +558,6 @@ void SetTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const vo
     switch(yDesc.GetType())
     {
         case miopenFloat:
-        case miopenHalf:
         {
             float miopen_alpha = *(static_cast<const float*>(alpha));
             std::string parms =
@@ -613,6 +612,11 @@ void SetTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const vo
 
             break;
         }
+        case miopenHalf:
+            break;
+
+        default:
+            break;
     }
 }
 
@@ -628,7 +632,6 @@ void ScaleTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const 
     switch(yDesc.GetType())
     {
         case miopenFloat:
-        case miopenHalf:
         {
             float miopen_alpha = *(static_cast<const float*>(alpha));
             std::string parms =
@@ -683,6 +686,11 @@ void ScaleTensor(Handle& handle, const TensorDescriptor& yDesc, Data_t y, const 
 
             break;
         }
+        case miopenHalf:
+            break;
+
+        default:
+            break;
     }
 }
 
