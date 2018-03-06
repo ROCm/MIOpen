@@ -501,7 +501,7 @@ struct conv_driver : test_driver
                     x = (long(x + 19) * 2) % max_value; // Clamp big numbers
                 if(do_backward_data)
                     verify(verify_backward_conv<T>{input, weights, out_p.first, filter, 0, search});
-                if(enable_backward_weights or MIOPEN_USE_MIOPENGEMM)
+                if(enable_backward_weights or (MIOPEN_USE_MIOPENGEMM and sizeof(T) > 2))
                 {
                     verify(verify_backward_weights_conv<T>{
                         input, weights, out_p.first, filter, 0, search});

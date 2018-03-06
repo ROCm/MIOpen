@@ -737,7 +737,14 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
 
     for(auto&& p : arg_map)
     {
-        if(keywords.count(p.first) == 0)
+        if(p.first.empty())
+        {
+            std::cerr << "Unused arguments: " << std::endl;
+            for(auto&& s : p.second)
+                std::cerr << "    " << s << std::endl;
+            std::abort();
+        }
+        else if(keywords.count(p.first) == 0)
         {
             assert(p.first.length() > 2);
             auto name = p.first.substr(2);
