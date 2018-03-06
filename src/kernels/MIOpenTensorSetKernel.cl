@@ -33,33 +33,30 @@
 #define MIOPEN_TYPE float
 #endif
 
-
-__kernel void SetTensor1d(
-    global MIOPEN_TYPE* __restrict dst,
-    const MIOPEN_ALPHA_TYPE alpha,
-    const int offset,
-    const int stride0,
-    const int len0)
+__kernel void SetTensor1d(global MIOPEN_TYPE* __restrict dst,
+                          const MIOPEN_ALPHA_TYPE alpha,
+                          const int offset,
+                          const int stride0,
+                          const int len0)
 {
     const uint tidx = get_global_id(0);
     const uint tszx = get_global_size(0);
 
-    for( uint did0 = tidx; did0 < len0; did0 += tszx )
+    for(uint did0 = tidx; did0 < len0; did0 += tszx)
     {
         const uint i = stride0 * did0;
 
-        dst[i+offset] = alpha;
+        dst[i + offset] = alpha;
     }
 }
 
-__kernel void SetTensor2d(
-    global MIOPEN_TYPE* __restrict dst,
-    const MIOPEN_ALPHA_TYPE alpha,
-    const int offset,
-    const int stride0,
-    const int stride1,
-    const int len0,
-    const int len1)
+__kernel void SetTensor2d(global MIOPEN_TYPE* __restrict dst,
+                          const MIOPEN_ALPHA_TYPE alpha,
+                          const int offset,
+                          const int stride0,
+                          const int stride1,
+                          const int len0,
+                          const int len1)
 {
     const uint tidx = get_global_id(0);
     const uint tidy = get_global_id(1);
@@ -67,27 +64,26 @@ __kernel void SetTensor2d(
     const uint tszx = get_global_size(0);
     const uint tszy = get_global_size(1);
 
-    for( uint did0 = tidy; did0 < len0; did0 += tszy )
+    for(uint did0 = tidy; did0 < len0; did0 += tszy)
     {
-        for( uint did1 = tidx; did1 < len1; did1 += tszx )
+        for(uint did1 = tidx; did1 < len1; did1 += tszx)
         {
             const uint i = stride0 * did0 + stride1 * did1;
 
-            dst[i+offset] = alpha;
+            dst[i + offset] = alpha;
         }
     }
 }
 
-__kernel void SetTensor3d(
-    global MIOPEN_TYPE* __restrict dst, 
-    const MIOPEN_ALPHA_TYPE alpha, 
-    const int offset, 
-    const int stride0, 
-    const int stride1, 
-    const int stride2, 
-    const int len0, 
-    const int len1, 
-    const int len2)
+__kernel void SetTensor3d(global MIOPEN_TYPE* __restrict dst,
+                          const MIOPEN_ALPHA_TYPE alpha,
+                          const int offset,
+                          const int stride0,
+                          const int stride1,
+                          const int stride2,
+                          const int len0,
+                          const int len1,
+                          const int len2)
 {
     const uint tidx = get_global_id(0);
     const uint tidy = get_global_id(1);
@@ -97,32 +93,31 @@ __kernel void SetTensor3d(
     const uint tszy = get_global_size(1);
     const uint tszz = get_global_size(2);
 
-    for( uint did0 = tidz; did0 < len0; did0 += tszz )
+    for(uint did0 = tidz; did0 < len0; did0 += tszz)
     {
-        for( uint did1 = tidy; did1 < len1; did1 += tszy )
+        for(uint did1 = tidy; did1 < len1; did1 += tszy)
         {
-            for( uint did2 = tidx; did2 < len2; did2 += tszx )
+            for(uint did2 = tidx; did2 < len2; did2 += tszx)
             {
                 const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2;
 
-                dst[i+offset] = alpha;
+                dst[i + offset] = alpha;
             }
         }
     }
 }
 
-__kernel void SetTensor4d(
-    global MIOPEN_TYPE* __restrict dst, 
-    const MIOPEN_ALPHA_TYPE alpha, 
-    const int offset, 
-    const int stride0, 
-    const int stride1,
-    const int stride2,
-    const int stride3,
-    const int len0, 
-    const int len1, 
-    const int len2,
-    const int len3)
+__kernel void SetTensor4d(global MIOPEN_TYPE* __restrict dst,
+                          const MIOPEN_ALPHA_TYPE alpha,
+                          const int offset,
+                          const int stride0,
+                          const int stride1,
+                          const int stride2,
+                          const int stride3,
+                          const int len0,
+                          const int len1,
+                          const int len2,
+                          const int len3)
 {
     const uint tidx = get_global_id(0);
     const uint tidy = get_global_id(1);
@@ -132,37 +127,37 @@ __kernel void SetTensor4d(
     const uint tszy = get_global_size(1);
     const uint tszz = get_global_size(2);
 
-    for( uint did0 = 0; did0 < len0; did0++ )
+    for(uint did0 = 0; did0 < len0; did0++)
     {
-        for( uint did1 = tidz; did1< len1; did1 += tszz )
+        for(uint did1 = tidz; did1 < len1; did1 += tszz)
         {
-            for( uint did2 = tidy; did2 < len2; did2 += tszy )
+            for(uint did2 = tidy; did2 < len2; did2 += tszy)
             {
-                for( uint did3 = tidx; did3 < len3; did3 += tszx )
+                for(uint did3 = tidx; did3 < len3; did3 += tszx)
                 {
-                    const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2 + stride3 * did3;
+                    const uint i =
+                        stride0 * did0 + stride1 * did1 + stride2 * did2 + stride3 * did3;
 
-                    dst[i+offset] = alpha;
+                    dst[i + offset] = alpha;
                 }
             }
         }
     }
 }
 
-__kernel void SetTensor5d(
-    global MIOPEN_TYPE* __restrict dst, 
-    const MIOPEN_ALPHA_TYPE alpha, 
-    const int offset,
-    const int stride0,
-    const int stride1,
-    const int stride2,
-    const int stride3,
-    const int stride4,
-    const int len0,
-    const int len1,
-    const int len2,
-    const int len3,
-    const int len4)
+__kernel void SetTensor5d(global MIOPEN_TYPE* __restrict dst,
+                          const MIOPEN_ALPHA_TYPE alpha,
+                          const int offset,
+                          const int stride0,
+                          const int stride1,
+                          const int stride2,
+                          const int stride3,
+                          const int stride4,
+                          const int len0,
+                          const int len1,
+                          const int len2,
+                          const int len3,
+                          const int len4)
 {
     const uint tidx = get_global_id(0);
     const uint tidy = get_global_id(1);
@@ -172,19 +167,20 @@ __kernel void SetTensor5d(
     const uint tszy = get_global_size(1);
     const uint tszz = get_global_size(2);
 
-    for( uint did0 = 0; did0 < len0; did0++ )
+    for(uint did0 = 0; did0 < len0; did0++)
     {
-        for( uint did1 = 0; did1 < len1; did1++ )
+        for(uint did1 = 0; did1 < len1; did1++)
         {
-            for( uint did2 = tidz; did2< len2; did2 += tszz )
+            for(uint did2 = tidz; did2 < len2; did2 += tszz)
             {
-                for( uint did3 = tidy; did3 < len3; did3 += tszy )
+                for(uint did3 = tidy; did3 < len3; did3 += tszy)
                 {
-                    for( uint did4 = tidx; did4 < len4; did4 += tszx )
+                    for(uint did4 = tidx; did4 < len4; did4 += tszx)
                     {
-                        const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2 + stride3 * did3 + stride4 * did4;
+                        const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2 +
+                                       stride3 * did3 + stride4 * did4;
 
-                        dst[i+offset] = alpha;
+                        dst[i + offset] = alpha;
                     }
                 }
             }
