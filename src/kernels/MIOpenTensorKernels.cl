@@ -694,7 +694,6 @@ __kernel void Op3dTensorGeneric(global MIOPEN_TYPE* a,
     {
 
         int lid = get_local_id(0);
-        // MIOPEN_TYPE operand = b[gid + Boffset];
         int o_c_div = bitmap & (1 << 0) ? 1 : c_h;
         int o_n_div = o_c_div * (bitmap & (1 << 1) ? 1 : c_c);
 
@@ -865,50 +864,5 @@ __kernel void Op1dTensorGeneric(global MIOPEN_TYPE* a,
             lid += get_local_size(0);
         }
     }
-}
-#endif
-
-#ifdef USE_4D_TENSOR_LITE
-// N - batch size
-// C - # of maps
-// H - map height
-// W - map width
-// TENS_LEN = (N*C*H*W);
-// RD_BLCK = (TENS_LEN%4==0) ? 4 : (TENS_LEN%3==0)? 3 : (TENS_LEN%2==0)? 2 : 1;
-// READ_TYPE = (RD_BLCK==4) ? "float4" : (RD_BLCK == 3) ? "float3" : (RD_BLC==2) ? "float2" :
-// "float";
-// local size = (256, 1, 1)
-// global size = ((TENS_LEN/RD_BLCK), 1, 1)
-__kernel void Op4dTensorLite(const global MIOPEN_TYPE* a,
-                             const global MIOPEN_TYPE* b,
-                             global MIOPEN_TYPE* c,
-                             const float alpha0,
-                             const float alpha1,
-                             const float beta)
-{
-    int gid0 = get_global_id(0);
-
-    int index = gid0 * RD_BLCK;
-
-    float a_dat[RD_BLCK];
-    float b_dat[RD_BLCK];
-    float c_dat[RD_BLCK];
-
-    *((READ_TYPE*)a_dat) = *((const global READ_TYPE*)(a + index));
-    *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + index));
-#ifdef BETA
-    *((READ_TYPE*)c_dat) = *((const global READ_TYPE*)(c + index));
-#endif
-
-    for(int i = 0; i < RD_BLCK; ++i)
-    {
-        c_dat[i] = MIOPEN_TENSOR_OP(a_dat[i] * alpha0, b_dat[i] * alpha1)
-#ifdef BETA
-                   + beta * c_dat[i]
-#endif
-            ;
-    }
-
-    *((global READ_TYPE*)(c + index)) = *((READ_TYPE*)c_dat);
 }
 #endif

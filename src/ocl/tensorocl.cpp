@@ -293,12 +293,6 @@ void OpTensor3d(Handle& handle,
 
     const std::vector<size_t> vld{local_threads, 1, 1};
 
-    // Special case for adding tensors in place
-    // size_t global_threads;
-    // global_threads = num_wg * local_threads;
-
-    // const std::vector<size_t> vgd{global_threads, 1, 1};
-
     if(clens[0] == 1 && blens[0] == 1 && alens[0] == 1 && blens[1] == clens[1] &&
        blens[2] == clens[2])
     {
@@ -973,7 +967,6 @@ void OpTensorOther(Handle& handle,
     }
     else if(bsize == 2)
     {
-
         auto&& kernels = handle.GetKernels("Op2dTensorGeneric", network_config);
 
         if(!kernels.empty())
