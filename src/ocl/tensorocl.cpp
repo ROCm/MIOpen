@@ -147,7 +147,6 @@ void OpTensor3d(Handle& handle,
     auto alens = aTensorDesc.GetLengths();
     auto blens = bTensorDesc.GetLengths();
     auto clens = cTensorDesc.GetLengths();
-    // auto dims  = clens.size();
 
     auto astrides = aTensorDesc.GetStrides();
     auto bstrides = bTensorDesc.GetStrides();
@@ -177,15 +176,9 @@ void OpTensor3d(Handle& handle,
     printf("work_per_wg: %d, num_wg: %d\n", work_per_wg, num_wg);
 #endif
 
-    // Forward Convolution Bias specialization
-    // for fwd-bias, bitmap looks like <0, 1, 0, 0>
-    // Is the no. of work-groups and the work for each wg balanced?
-    // auto fwd_conv_bias = bitmap == (1 << 2) ? 1 : 0;
-    // auto incr_wg       = 0;
-
-    int num_wg_1   = num_wg;
-    int max_num_wg = 4096;
-    num_wg         = num_wg > max_num_wg ? max_num_wg : num_wg;
+    int num_wg_orig = num_wg;
+    int max_num_wg  = 4096;
+    num_wg          = num_wg > max_num_wg ? max_num_wg : num_wg;
 
     size_t local_threads = 256;
 
@@ -269,7 +262,7 @@ void OpTensor3d(Handle& handle,
                    long(Aoffset),
                    long(Boffset),
                    long(Coffset),
-                   int(num_wg_1));
+                   int(num_wg_orig));
 
             return;
         }
@@ -380,7 +373,7 @@ void OpTensor3d(Handle& handle,
                                 long(Aoffset),
                                 long(Boffset),
                                 long(Coffset),
-                                int(num_wg_1));
+                                int(num_wg_orig));
     }
 }
 
@@ -444,9 +437,9 @@ void OpTensor4d(Handle& handle,
         incr_wg = 1;
     }
 
-    int num_wg_1   = num_wg;
-    int max_num_wg = 4096;
-    num_wg         = num_wg > max_num_wg ? max_num_wg : num_wg;
+    int num_wg_orig = num_wg;
+    int max_num_wg  = 4096;
+    num_wg          = num_wg > max_num_wg ? max_num_wg : num_wg;
 
     size_t local_threads = 256;
 
@@ -526,7 +519,7 @@ void OpTensor4d(Handle& handle,
                        long(Aoffset),
                        long(Boffset),
                        long(Coffset),
-                       int(num_wg_1));
+                       int(num_wg_orig));
 
                 return;
             }
@@ -559,7 +552,7 @@ void OpTensor4d(Handle& handle,
                        long(Aoffset),
                        long(Boffset),
                        long(Coffset),
-                       int(num_wg_1));
+                       int(num_wg_orig));
                 return;
             }
         }
@@ -590,7 +583,7 @@ void OpTensor4d(Handle& handle,
                        long(Aoffset),
                        long(Boffset),
                        long(Coffset),
-                       int(num_wg_1));
+                       int(num_wg_orig));
 
                 return;
             }
@@ -624,7 +617,7 @@ void OpTensor4d(Handle& handle,
                        long(Aoffset),
                        long(Boffset),
                        long(Coffset),
-                       int(num_wg_1));
+                       int(num_wg_orig));
                 return;
             }
         }
@@ -662,7 +655,7 @@ void OpTensor4d(Handle& handle,
                    long(Aoffset),
                    long(Boffset),
                    long(Coffset),
-                   int(num_wg_1));
+                   int(num_wg_orig));
             return;
         }
     }
@@ -718,7 +711,7 @@ void OpTensor4d(Handle& handle,
                                     long(Aoffset),
                                     long(Boffset),
                                     long(Coffset),
-                                    int(num_wg_1));
+                                    int(num_wg_orig));
         }
         else
         {
@@ -749,7 +742,7 @@ void OpTensor4d(Handle& handle,
                                     long(Aoffset),
                                     long(Boffset),
                                     long(Coffset),
-                                    int(num_wg_1));
+                                    int(num_wg_orig));
         }
     }
     else if(leading_ones)
@@ -779,7 +772,7 @@ void OpTensor4d(Handle& handle,
                                     long(Aoffset),
                                     long(Boffset),
                                     long(Coffset),
-                                    int(num_wg_1));
+                                    int(num_wg_orig));
         }
         else
         {
@@ -814,7 +807,7 @@ void OpTensor4d(Handle& handle,
                                     long(Aoffset),
                                     long(Boffset),
                                     long(Coffset),
-                                    int(num_wg_1));
+                                    int(num_wg_orig));
         }
     }
     else
@@ -853,7 +846,7 @@ void OpTensor4d(Handle& handle,
                                 long(Aoffset),
                                 long(Boffset),
                                 long(Coffset),
-                                int(num_wg_1));
+                                int(num_wg_orig));
     }
 }
 
@@ -902,9 +895,9 @@ void OpTensorOther(Handle& handle,
     printf("work_per_wg: %d, num_wg: %d\n", work_per_wg, num_wg);
 #endif
 
-    int num_wg_1   = num_wg;
-    int max_num_wg = 4096;
-    num_wg         = num_wg > max_num_wg ? max_num_wg : num_wg;
+    int num_wg_orig = num_wg;
+    int max_num_wg  = 4096;
+    num_wg          = num_wg > max_num_wg ? max_num_wg : num_wg;
 
     size_t local_threads = 256;
 
@@ -974,7 +967,7 @@ void OpTensorOther(Handle& handle,
                    long(Aoffset),
                    long(Boffset),
                    long(Coffset),
-                   int(num_wg_1));
+                   int(num_wg_orig));
             return;
         }
     }
@@ -1002,7 +995,7 @@ void OpTensorOther(Handle& handle,
                    long(Aoffset),
                    long(Boffset),
                    long(Coffset),
-                   int(num_wg_1));
+                   int(num_wg_orig));
             return;
         }
     }
@@ -1027,7 +1020,7 @@ void OpTensorOther(Handle& handle,
                    long(Aoffset),
                    long(Boffset),
                    long(Coffset),
-                   int(num_wg_1));
+                   int(num_wg_orig));
             return;
         }
     }
@@ -1096,7 +1089,7 @@ void OpTensorOther(Handle& handle,
                                 long(Aoffset),
                                 long(Boffset),
                                 long(Coffset),
-                                int(num_wg_1));
+                                int(num_wg_orig));
     }
     else if(bsize == 2)
     {
@@ -1124,7 +1117,7 @@ void OpTensorOther(Handle& handle,
                                 long(Aoffset),
                                 long(Boffset),
                                 long(Coffset),
-                                int(num_wg_1));
+                                int(num_wg_orig));
     }
     else if(bsize == 1)
     {
@@ -1149,7 +1142,7 @@ void OpTensorOther(Handle& handle,
                                 long(Aoffset),
                                 long(Boffset),
                                 long(Coffset),
-                                int(num_wg_1));
+                                int(num_wg_orig));
     }
 }
 
