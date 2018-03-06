@@ -693,7 +693,7 @@ __kernel void Op3dTensorGeneric(global MIOPEN_TYPE* a,
     for(; gid < num_wg; gid += MAX_NUM_WG)
     {
 
-        int lid = get_local_id(0);
+        int lid     = get_local_id(0);
         int o_c_div = bitmap & (1 << 0) ? 1 : c_h;
         int o_n_div = o_c_div * (bitmap & (1 << 1) ? 1 : c_c);
 
