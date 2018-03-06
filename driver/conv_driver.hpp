@@ -1233,6 +1233,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
                                      [](int i) { return i == 0; });
 
             if(!zeros)
+            {
                 Im2ColCPU<Tgpu, Tref>(dout,
                                       0,
                                       out_c,
@@ -1248,63 +1249,63 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
                                       u,
                                       workspace_bwd_weights_host);
 
-            for(int i = 0; i < workspace_bwd_weights.size(); i++)
-            {
-                if(std::abs(workspace_bwd_weights[i] - workspace_bwd_weights_host[i]) > 0.0)
+                for(int i = 0; i < workspace_bwd_weights.size(); i++)
                 {
-                    printf("Im2col error: %d %f %f\n ",
-                           i,
-                           (float)workspace_bwd_weights[i],
-                           (float)workspace_bwd_weights_host[i]);
+                    if(std::abs(workspace_bwd_weights[i] - workspace_bwd_weights_host[i]) > 0.0)
+                    {
+                        printf("Im2col error: %d %f %f\n ",
+                               i,
+                               (float)workspace_bwd_weights[i],
+                               (float)workspace_bwd_weights_host[i]);
+                    }
                 }
             }
         }
+#endif
+#endif
+
+        RunBackwardWeightsCPUVerify(dwei_host,
+                                    dout,
+                                    in,
+                                    out_n,
+                                    out_c,
+                                    out_h,
+                                    out_w,
+                                    out_nstride,
+                                    out_cstride,
+                                    out_hstride,
+                                    out_wstride,
+                                    wei_c,
+                                    wei_n,
+                                    wei_h,
+                                    wei_w,
+                                    wei_cstride,
+                                    wei_nstride,
+                                    wei_hstride,
+                                    wei_wstride,
+                                    in_n,
+                                    in_c,
+                                    in_h,
+                                    in_w,
+                                    in_nstride,
+                                    in_cstride,
+                                    in_hstride,
+                                    in_wstride,
+                                    u,
+                                    v,
+                                    pad_h,
+                                    pad_w,
+                                    dilation_h,
+                                    dilation_w);
     }
-#endif
-#endif
 
-    RunBackwardWeightsCPUVerify(dwei_host,
-                                dout,
-                                in,
-                                out_n,
-                                out_c,
-                                out_h,
-                                out_w,
-                                out_nstride,
-                                out_cstride,
-                                out_hstride,
-                                out_wstride,
-                                wei_c,
-                                wei_n,
-                                wei_h,
-                                wei_w,
-                                wei_cstride,
-                                wei_nstride,
-                                wei_hstride,
-                                wei_wstride,
-                                in_n,
-                                in_c,
-                                in_h,
-                                in_w,
-                                in_nstride,
-                                in_cstride,
-                                in_hstride,
-                                in_wstride,
-                                u,
-                                v,
-                                pad_h,
-                                pad_w,
-                                dilation_h,
-                                dilation_w);
-}
+    if(inflags.GetValueInt("dump_output"))
+    {
+        dumpBufferToFile<Tref>("dump_bwd_dwei_cpu.bin", dwei_host.data(), dwei_host.size());
+    }
 
-if(inflags.GetValueInt("dump_output"))
-{
-    dumpBufferToFile<Tref>("dump_bwd_dwei_cpu.bin", dwei_host.data(), dwei_host.size());
-}
-
-TrySaveVerificationCache("bwd_wei", dwei_host);
-return 0;
+    TrySaveVerificationCache("bwd_wei", dwei_host);
+    return 0;
 }
 
 template <typename Tgpu, typename Tref>
@@ -1639,7 +1640,7 @@ template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::VerifyBackward()
 {
     const Tref tolerance =
-        ((sizeof(Tgpu) == 4) ? static_cast<Tref>(1e-6) : static_cqst<Tref>(7e-2));
+        ((sizeof(Tgpu) == 4) ? static_cast<Tref>(1e-6) : static_cast<Tref>(7e-2));
 
     if(!TryReadVerificationCache("bwd_dat", inputTensor, din_host.data()))
     {
