@@ -481,9 +481,9 @@ struct verify_forward_infer_bn_spatial_use_est
 
         par_for(channels, 1, [&](int cidx) {
             double elemStd  = 0.;
-            double variance = 0.;
+            double variance = estVar(0, cidx, 0, 0);
             double mean     = estMean(0, cidx, 0, 0);
-            double inhat    = estVar(0, cidx, 0, 0);
+            double inhat    = 0.;
             double invVar   = 1.0 / sqrt(variance + epsilon);
 
             // process the batch per channel
