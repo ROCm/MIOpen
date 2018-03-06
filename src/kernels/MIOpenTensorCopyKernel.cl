@@ -30,13 +30,13 @@
 #define MIOPEN_TYPE float
 #endif
 
-__kernel void CopyTensor1d( const global MIOPEN_TYPE* __restrict src,
-                            const int srcOffset,
-                            const int srcStride0,
-                            const int srcLen0,
-                            global MIOPEN_TYPE* __restrict dst,
-                            const int dstOffset,
-                            const int dstStride0)
+__kernel void CopyTensor1d(const global MIOPEN_TYPE* __restrict src,
+                           const int srcOffset,
+                           const int srcStride0,
+                           const int srcLen0,
+                           global MIOPEN_TYPE* __restrict dst,
+                           const int dstOffset,
+                           const int dstStride0)
 {
     const uint tidx = get_global_id(0);
 
@@ -49,23 +49,23 @@ __kernel void CopyTensor1d( const global MIOPEN_TYPE* __restrict src,
     }
 }
 
-__kernel void CopyTensor2d( const global MIOPEN_TYPE* __restrict src,
-                            const int srcOffset,
-                            const int srcStride0,
-                            const int srcStride1,
-                            const int srcLen0,
-                            const int srcLen1,
-                            global MIOPEN_TYPE* __restrict dst,
-                            const int dstOffset,
-                            const int dstStride0,
-                            const int dstStride1)
+__kernel void CopyTensor2d(const global MIOPEN_TYPE* __restrict src,
+                           const int srcOffset,
+                           const int srcStride0,
+                           const int srcStride1,
+                           const int srcLen0,
+                           const int srcLen1,
+                           global MIOPEN_TYPE* __restrict dst,
+                           const int dstOffset,
+                           const int dstStride0,
+                           const int dstStride1)
 {
     const uint tidx = get_global_id(0);
     const uint tidy = get_global_id(1);
 
-    for(uint did0 = tidy; did0 < srcLen0; did0 += GLOBAL_WORK_SIZE_Y )
+    for(uint did0 = tidy; did0 < srcLen0; did0 += GLOBAL_WORK_SIZE_Y)
     {
-        for(uint did1 = tidx; did1 < srcLen1; did1 += GLOBAL_WORK_SIZE_X )
+        for(uint did1 = tidx; did1 < srcLen1; did1 += GLOBAL_WORK_SIZE_X)
         {
             const uint sindex = srcStride0 * did0 + srcStride1 * did1;
             const uint dindex = dstStride0 * did0 + dstStride1 * did1;
@@ -75,19 +75,19 @@ __kernel void CopyTensor2d( const global MIOPEN_TYPE* __restrict src,
     }
 }
 
-__kernel void CopyTensor3d( const global MIOPEN_TYPE* __restrict src,
-                            const int srcOffset,
-                            const int srcStride0,
-                            const int srcStride1,
-                            const int srcStride2,
-                            const int srcLen0,
-                            const int srcLen1,
-                            const int srcLen2,
-                            global MIOPEN_TYPE* __restrict dst,
-                            const int dstOffset,
-                            const int dstStride0,
-                            const int dstStride1,
-                            const int dstStride2)
+__kernel void CopyTensor3d(const global MIOPEN_TYPE* __restrict src,
+                           const int srcOffset,
+                           const int srcStride0,
+                           const int srcStride1,
+                           const int srcStride2,
+                           const int srcLen0,
+                           const int srcLen1,
+                           const int srcLen2,
+                           global MIOPEN_TYPE* __restrict dst,
+                           const int dstOffset,
+                           const int dstStride0,
+                           const int dstStride1,
+                           const int dstStride2)
 {
     const uint tidx = get_global_id(0);
     const uint tidy = get_global_id(1);
@@ -108,22 +108,22 @@ __kernel void CopyTensor3d( const global MIOPEN_TYPE* __restrict src,
     }
 }
 
-__kernel void CopyTensor4d( const global MIOPEN_TYPE* __restrict src,
-                            const int srcOffset,
-                            const int srcStride0,
-                            const int srcStride1,
-                            const int srcStride2,
-                            const int srcStride3,
-                            const int srcLen0,
-                            const int srcLen1,
-                            const int srcLen2,
-                            const int srcLen3,
-                            global MIOPEN_TYPE* __restrict dst,
-                            const int dstOffset,
-                            const int dstStride0,
-                            const int dstStride1,
-                            const int dstStride2,
-                            const int dstStride3)
+__kernel void CopyTensor4d(const global MIOPEN_TYPE* __restrict src,
+                           const int srcOffset,
+                           const int srcStride0,
+                           const int srcStride1,
+                           const int srcStride2,
+                           const int srcStride3,
+                           const int srcLen0,
+                           const int srcLen1,
+                           const int srcLen2,
+                           const int srcLen3,
+                           global MIOPEN_TYPE* __restrict dst,
+                           const int dstOffset,
+                           const int dstStride0,
+                           const int dstStride1,
+                           const int dstStride2,
+                           const int dstStride3)
 {
     const uint tidx = get_global_id(0);
     const uint tidy = get_global_id(1);
@@ -137,8 +137,10 @@ __kernel void CopyTensor4d( const global MIOPEN_TYPE* __restrict src,
             {
                 for(uint did3 = tidx; did3 < srcLen3; did3 += GLOBAL_WORK_SIZE_X)
                 {
-                    const uint sindex = srcStride0 * did0 + srcStride1 * did1 + srcStride2 * did2 + srcStride3 * did3;
-                    const uint dindex = dstStride0 * did0 + dstStride1 * did1 + dstStride2 * did2 + dstStride3 * did3;
+                    const uint sindex = srcStride0 * did0 + srcStride1 * did1 + srcStride2 * did2 +
+                                        srcStride3 * did3;
+                    const uint dindex = dstStride0 * did0 + dstStride1 * did1 + dstStride2 * did2 +
+                                        dstStride3 * did3;
 
                     dst[dindex + dstOffset] = src[sindex + srcOffset];
                 }
@@ -147,25 +149,25 @@ __kernel void CopyTensor4d( const global MIOPEN_TYPE* __restrict src,
     }
 }
 
-__kernel void CopyTensor5d( const global MIOPEN_TYPE* __restrict src,
-                            const int srcOffset,
-                            const int srcStride0,
-                            const int srcStride1,
-                            const int srcStride2,
-                            const int srcStride3,
-                            const int srcStride4,
-                            const int srcLen0,
-                            const int srcLen1,
-                            const int srcLen2,
-                            const int srcLen3,
-                            const int srcLen4,
-                            global MIOPEN_TYPE* __restrict dst,
-                            const int dstOffset,
-                            const int dstStride0,
-                            const int dstStride1,
-                            const int dstStride2,
-                            const int dstStride3,
-                            const int dstStride4)
+__kernel void CopyTensor5d(const global MIOPEN_TYPE* __restrict src,
+                           const int srcOffset,
+                           const int srcStride0,
+                           const int srcStride1,
+                           const int srcStride2,
+                           const int srcStride3,
+                           const int srcStride4,
+                           const int srcLen0,
+                           const int srcLen1,
+                           const int srcLen2,
+                           const int srcLen3,
+                           const int srcLen4,
+                           global MIOPEN_TYPE* __restrict dst,
+                           const int dstOffset,
+                           const int dstStride0,
+                           const int dstStride1,
+                           const int dstStride2,
+                           const int dstStride3,
+                           const int dstStride4)
 {
     const uint tidx = get_global_id(0);
     const uint tidy = get_global_id(1);
@@ -181,8 +183,12 @@ __kernel void CopyTensor5d( const global MIOPEN_TYPE* __restrict src,
                 {
                     for(uint did4 = tidx; did4 < srcLen4; did4 += GLOBAL_WORK_SIZE_X)
                     {
-                        const uint sindex = srcStride0 * did0 + srcStride1 * did1 + srcStride2 * did2 + srcStride3 * did3 + srcStride4 * did4;
-                        const uint dindex = dstStride0 * did0 + dstStride1 * did1 + dstStride2 * did2 + dstStride3 * did3 + srcStride4 * did4;
+                        const uint sindex = srcStride0 * did0 + srcStride1 * did1 +
+                                            srcStride2 * did2 + srcStride3 * did3 +
+                                            srcStride4 * did4;
+                        const uint dindex = dstStride0 * did0 + dstStride1 * did1 +
+                                            dstStride2 * did2 + dstStride3 * did3 +
+                                            srcStride4 * did4;
 
                         dst[dindex + dstOffset] = src[sindex + srcOffset];
                     }
