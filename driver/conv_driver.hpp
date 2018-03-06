@@ -562,7 +562,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     int status;
 #endif
     status = in_dev->ToGPU(q, in.data());
-    status |= din_dev->ToGPU(q, in.data());
+    status |= din_dev->ToGPU(q, din.data());
     status |= wei_dev->ToGPU(q, wei.data());
     status |= dwei_dev->ToGPU(q, dwei.data());
     status |= dout_dev->ToGPU(q, dout.data());
