@@ -32,6 +32,7 @@
 #include <miopen/float_equal.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/check_numerics.hpp>
+#include <miopen/stringutils.hpp>
 
 #if MIOPEN_USE_MIOPENGEMM
 #include <miopen/gemm.hpp>
@@ -1564,6 +1565,16 @@ FindConvBwdWeightsAlgorithmDirectAddKernels(Handle& handle,
     }
 }
 
+static inline bool IsPureOpenCLSolution(const miopen::solver::ConvSolution& s)
+{
+    for(auto& k : s.construction_params)
+    {
+        if(!miopen::EndsWith(k.kernel_file, ".cl"))
+            return false;
+    }
+    return true;
+}
+
 template <typename T>
 inline float FindConvBwdWeightsAlgorithmDirectRun(Handle& handle,
                                                   const std::string& algorithm_name,
@@ -1814,8 +1825,27 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         float best = std::numeric_limits<float>::max();
                         std::vector<miopen::solver::ConvSolution> all;
                         mloConstruct(construct_params, all);
+                        int n_pure_opencl_solutions = 0;
                         for(const auto& s : all)
                         {
+                            /// \todo Fix & remove the workaround below.
+                            ///
+                            /// Workaround: Try only the first "pure" OpenCL solution.
+                            /// It seems that OpenCL solvers imply that only the 1st one
+                            /// applicable solution shall be used while the rest of OpenCL
+                            /// solutions shall be ignored. There is issue
+                            /// https://github.com/AMDComputeLibraries/MLOpen/issues/791
+                            /// which possibly reveals the problem.
+                            if(IsPureOpenCLSolution(s))
+                            {
+                                ++n_pure_opencl_solutions;
+                                if(n_pure_opencl_solutions > 1)
+                                    continue;
+                            }
+
+                            /// \todo If there is only one solution available,
+                            /// we can avoid wasting time for building kernels with empty
+                            /// algorithm_name and network_config.
                             float elapsed = FindConvBwdWeightsAlgorithmDirectRun(handle,
                                                                                  "",
                                                                                  "",
@@ -1827,6 +1857,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                                                  workSpace,
                                                                                  workSpaceSize,
                                                                                  as_float(0.0f));
+                            /// \todo Rework printing kernel names.
                             MIOPEN_LLOG_I(
                                 s.construction_params[0].kernel_name
                                 << (s.construction_params.size() > 1
