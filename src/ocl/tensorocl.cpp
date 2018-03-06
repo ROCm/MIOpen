@@ -743,7 +743,7 @@ void CopyTensor(Handle& handle,
         //            printf("srcStrides[%d]: %d\n",i,srcDesc.GetStrides()[i]);
         //            printf("destStrides[%d]: %d\n",i,destDesc.GetStrides()[i]);
         //        }
-        handle.Copy(src, dest, srcSize * sizeof(srcDesc.GetType()));
+        handle.Copy(src, dest, srcSize * GetTypeSize(srcDesc.GetType()));
     }
 }
 
