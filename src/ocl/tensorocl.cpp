@@ -741,17 +741,11 @@ void CopyTensor(Handle& handle,
 
             auto&& kernels = handle.GetKernels("CopyTensor1d", network_config);
 
+            KernelInvoke kernel;
+
             if(!kernels.empty())
             {
-                auto kernel = kernels.front();
-
-                kernel(src,
-                       srcOffset,
-                       int(srcDesc.GetStrides()[0]),
-                       int(srcDesc.GetLengths()[0]),
-                       dst,
-                       dstOffset,
-                       int(dstDesc.GetStrides()[0]));
+                kernel = kernels.front();
             }
             else
             {
@@ -760,16 +754,17 @@ void CopyTensor(Handle& handle,
                                     " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
 
                 std::string program_name = "MIOpenTensorCopyKernel.cl";
-                handle.AddKernel(
-                    "CopyTensor1d", network_config, program_name, "CopyTensor1d", vld, vgd, parms)(
-                    src,
-                    srcOffset,
-                    int(srcDesc.GetStrides()[0]),
-                    int(srcDesc.GetLengths()[0]),
-                    dst,
-                    dstOffset,
-                    int(dstDesc.GetStrides()[0]));
+                kernel                   = handle.AddKernel(
+                    "CopyTensor1d", network_config, program_name, "CopyTensor1d", vld, vgd, parms);
             }
+
+            kernel(src,
+                   srcOffset,
+                   int(srcDesc.GetStrides()[0]),
+                   int(srcDesc.GetLengths()[0]),
+                   dst,
+                   dstOffset,
+                   int(dstDesc.GetStrides()[0]));
 
             break;
         }
@@ -786,20 +781,11 @@ void CopyTensor(Handle& handle,
 
             auto&& kernels = handle.GetKernels("CopyTensor2d", network_config);
 
+            KernelInvoke kernel;
+
             if(!kernels.empty())
             {
-                auto kernel = kernels.front();
-
-                kernel(src,
-                       srcOffset,
-                       int(srcDesc.GetStrides()[0]),
-                       int(srcDesc.GetStrides()[1]),
-                       int(srcDesc.GetLengths()[0]),
-                       int(srcDesc.GetLengths()[1]),
-                       dst,
-                       dstOffset,
-                       int(dstDesc.GetStrides()[0]),
-                       int(dstDesc.GetStrides()[1]));
+                kernel = kernels.front();
             }
             else
             {
@@ -808,19 +794,20 @@ void CopyTensor(Handle& handle,
                                     " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
 
                 std::string program_name = "MIOpenTensorCopyKernel.cl";
-                handle.AddKernel(
-                    "CopyTensor2d", network_config, program_name, "CopyTensor2d", vld, vgd, parms)(
-                    src,
-                    srcOffset,
-                    int(srcDesc.GetStrides()[0]),
-                    int(srcDesc.GetStrides()[1]),
-                    int(srcDesc.GetLengths()[0]),
-                    int(srcDesc.GetLengths()[1]),
-                    dst,
-                    dstOffset,
-                    int(dstDesc.GetStrides()[0]),
-                    int(dstDesc.GetStrides()[1]));
+                kernel                   = handle.AddKernel(
+                    "CopyTensor2d", network_config, program_name, "CopyTensor2d", vld, vgd, parms);
             }
+
+            kernel(src,
+                   srcOffset,
+                   int(srcDesc.GetStrides()[0]),
+                   int(srcDesc.GetStrides()[1]),
+                   int(srcDesc.GetLengths()[0]),
+                   int(srcDesc.GetLengths()[1]),
+                   dst,
+                   dstOffset,
+                   int(dstDesc.GetStrides()[0]),
+                   int(dstDesc.GetStrides()[1]));
 
             break;
         }
@@ -839,23 +826,11 @@ void CopyTensor(Handle& handle,
 
             auto&& kernels = handle.GetKernels("CopyTensor3d", network_config);
 
+            KernelInvoke kernel;
+
             if(!kernels.empty())
             {
-                auto kernel = kernels.front();
-
-                kernel(src,
-                       srcOffset,
-                       int(srcDesc.GetStrides()[0]),
-                       int(srcDesc.GetStrides()[1]),
-                       int(srcDesc.GetStrides()[2]),
-                       int(srcDesc.GetLengths()[0]),
-                       int(srcDesc.GetLengths()[1]),
-                       int(srcDesc.GetLengths()[2]),
-                       dst,
-                       dstOffset,
-                       int(dstDesc.GetStrides()[0]),
-                       int(dstDesc.GetStrides()[1]),
-                       int(dstDesc.GetStrides()[2]));
+                kernel = kernels.front();
             }
             else
             {
@@ -864,22 +839,23 @@ void CopyTensor(Handle& handle,
                                     " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
 
                 std::string program_name = "MIOpenTensorCopyKernel.cl";
-                handle.AddKernel(
-                    "CopyTensor3d", network_config, program_name, "CopyTensor3d", vld, vgd, parms)(
-                    src,
-                    srcOffset,
-                    int(srcDesc.GetStrides()[0]),
-                    int(srcDesc.GetStrides()[1]),
-                    int(srcDesc.GetStrides()[2]),
-                    int(srcDesc.GetLengths()[0]),
-                    int(srcDesc.GetLengths()[1]),
-                    int(srcDesc.GetLengths()[2]),
-                    dst,
-                    dstOffset,
-                    int(dstDesc.GetStrides()[0]),
-                    int(dstDesc.GetStrides()[1]),
-                    int(dstDesc.GetStrides()[2]));
+                kernel                   = handle.AddKernel(
+                    "CopyTensor3d", network_config, program_name, "CopyTensor3d", vld, vgd, parms);
             }
+
+            kernel(src,
+                   srcOffset,
+                   int(srcDesc.GetStrides()[0]),
+                   int(srcDesc.GetStrides()[1]),
+                   int(srcDesc.GetStrides()[2]),
+                   int(srcDesc.GetLengths()[0]),
+                   int(srcDesc.GetLengths()[1]),
+                   int(srcDesc.GetLengths()[2]),
+                   dst,
+                   dstOffset,
+                   int(dstDesc.GetStrides()[0]),
+                   int(dstDesc.GetStrides()[1]),
+                   int(dstDesc.GetStrides()[2]));
 
             break;
         }
@@ -898,26 +874,11 @@ void CopyTensor(Handle& handle,
 
             auto&& kernels = handle.GetKernels("CopyTensor4d", network_config);
 
+            KernelInvoke kernel;
+
             if(!kernels.empty())
             {
-                auto kernel = kernels.front();
-
-                kernel(src,
-                       srcOffset,
-                       int(srcDesc.GetStrides()[0]),
-                       int(srcDesc.GetStrides()[1]),
-                       int(srcDesc.GetStrides()[2]),
-                       int(srcDesc.GetStrides()[3]),
-                       int(srcDesc.GetLengths()[0]),
-                       int(srcDesc.GetLengths()[1]),
-                       int(srcDesc.GetLengths()[2]),
-                       int(srcDesc.GetLengths()[3]),
-                       dst,
-                       dstOffset,
-                       int(dstDesc.GetStrides()[0]),
-                       int(dstDesc.GetStrides()[1]),
-                       int(dstDesc.GetStrides()[2]),
-                       int(dstDesc.GetStrides()[3]));
+                kernel = kernels.front();
             }
             else
             {
@@ -926,25 +887,26 @@ void CopyTensor(Handle& handle,
                                     " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
 
                 std::string program_name = "MIOpenTensorCopyKernel.cl";
-                handle.AddKernel(
-                    "CopyTensor4d", network_config, program_name, "CopyTensor4d", vld, vgd, parms)(
-                    src,
-                    srcOffset,
-                    int(srcDesc.GetStrides()[0]),
-                    int(srcDesc.GetStrides()[1]),
-                    int(srcDesc.GetStrides()[2]),
-                    int(srcDesc.GetStrides()[3]),
-                    int(srcDesc.GetLengths()[0]),
-                    int(srcDesc.GetLengths()[1]),
-                    int(srcDesc.GetLengths()[2]),
-                    int(srcDesc.GetLengths()[3]),
-                    dst,
-                    dstOffset,
-                    int(dstDesc.GetStrides()[0]),
-                    int(dstDesc.GetStrides()[1]),
-                    int(dstDesc.GetStrides()[2]),
-                    int(dstDesc.GetStrides()[3]));
+                kernel                   = handle.AddKernel(
+                    "CopyTensor4d", network_config, program_name, "CopyTensor4d", vld, vgd, parms);
             }
+
+            kernel(src,
+                   srcOffset,
+                   int(srcDesc.GetStrides()[0]),
+                   int(srcDesc.GetStrides()[1]),
+                   int(srcDesc.GetStrides()[2]),
+                   int(srcDesc.GetStrides()[3]),
+                   int(srcDesc.GetLengths()[0]),
+                   int(srcDesc.GetLengths()[1]),
+                   int(srcDesc.GetLengths()[2]),
+                   int(srcDesc.GetLengths()[3]),
+                   dst,
+                   dstOffset,
+                   int(dstDesc.GetStrides()[0]),
+                   int(dstDesc.GetStrides()[1]),
+                   int(dstDesc.GetStrides()[2]),
+                   int(dstDesc.GetStrides()[3]));
 
             break;
         }
@@ -963,29 +925,11 @@ void CopyTensor(Handle& handle,
 
             auto&& kernels = handle.GetKernels("CopyTensor5d", network_config);
 
+            KernelInvoke kernel;
+
             if(!kernels.empty())
             {
-                auto kernel = kernels.front();
-
-                kernel(src,
-                       srcOffset,
-                       int(srcDesc.GetStrides()[0]),
-                       int(srcDesc.GetStrides()[1]),
-                       int(srcDesc.GetStrides()[2]),
-                       int(srcDesc.GetStrides()[3]),
-                       int(srcDesc.GetStrides()[4]),
-                       int(srcDesc.GetLengths()[0]),
-                       int(srcDesc.GetLengths()[1]),
-                       int(srcDesc.GetLengths()[2]),
-                       int(srcDesc.GetLengths()[3]),
-                       int(srcDesc.GetLengths()[4]),
-                       dst,
-                       dstOffset,
-                       int(dstDesc.GetStrides()[0]),
-                       int(dstDesc.GetStrides()[1]),
-                       int(dstDesc.GetStrides()[2]),
-                       int(dstDesc.GetStrides()[3]),
-                       int(dstDesc.GetStrides()[4]));
+                kernel = kernels.front();
             }
             else
             {
@@ -994,28 +938,29 @@ void CopyTensor(Handle& handle,
                                     " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
 
                 std::string program_name = "MIOpenTensorCopyKernel.cl";
-                handle.AddKernel(
-                    "CopyTensor5d", network_config, program_name, "CopyTensor5d", vld, vgd, parms)(
-                    src,
-                    srcOffset,
-                    int(srcDesc.GetStrides()[0]),
-                    int(srcDesc.GetStrides()[1]),
-                    int(srcDesc.GetStrides()[2]),
-                    int(srcDesc.GetStrides()[3]),
-                    int(srcDesc.GetStrides()[4]),
-                    int(srcDesc.GetLengths()[0]),
-                    int(srcDesc.GetLengths()[1]),
-                    int(srcDesc.GetLengths()[2]),
-                    int(srcDesc.GetLengths()[3]),
-                    int(srcDesc.GetLengths()[4]),
-                    dst,
-                    dstOffset,
-                    int(dstDesc.GetStrides()[0]),
-                    int(dstDesc.GetStrides()[1]),
-                    int(dstDesc.GetStrides()[2]),
-                    int(dstDesc.GetStrides()[3]),
-                    int(dstDesc.GetStrides()[4]));
+                kernel                   = handle.AddKernel(
+                    "CopyTensor5d", network_config, program_name, "CopyTensor5d", vld, vgd, parms);
             }
+
+            kernel(src,
+                   srcOffset,
+                   int(srcDesc.GetStrides()[0]),
+                   int(srcDesc.GetStrides()[1]),
+                   int(srcDesc.GetStrides()[2]),
+                   int(srcDesc.GetStrides()[3]),
+                   int(srcDesc.GetStrides()[4]),
+                   int(srcDesc.GetLengths()[0]),
+                   int(srcDesc.GetLengths()[1]),
+                   int(srcDesc.GetLengths()[2]),
+                   int(srcDesc.GetLengths()[3]),
+                   int(srcDesc.GetLengths()[4]),
+                   dst,
+                   dstOffset,
+                   int(dstDesc.GetStrides()[0]),
+                   int(dstDesc.GetStrides()[1]),
+                   int(dstDesc.GetStrides()[2]),
+                   int(dstDesc.GetStrides()[3]),
+                   int(dstDesc.GetStrides()[4]));
 
             break;
         }
