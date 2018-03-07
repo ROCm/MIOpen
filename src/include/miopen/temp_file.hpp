@@ -31,9 +31,10 @@
 
 #include <string>
 
+namespace miopen {
+
 class TmpDir;
 
-namespace miopen {
 class TempFile
 {
     public:
@@ -44,7 +45,7 @@ class TempFile
     inline operator const std::string&() const { return _path; }
 
     private:
-	std::string _path;
+    std::string _path;
     int _fd;
 
     static const TmpDir& GetTempDirectoryPath();

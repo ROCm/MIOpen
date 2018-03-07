@@ -32,12 +32,10 @@
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/thread/shared_mutex.hpp>
 
-namespace boost
-{
-	namespace posix_time
-	{
-		class ptime;
-	} // namespace posix_time
+namespace boost {
+namespace posix_time {
+class ptime;
+} // namespace posix_time
 } // namespace boost
 
 namespace miopen {
@@ -48,19 +46,21 @@ namespace miopen {
 class LockFile
 {
     private:
-    class PassKey {};
+    class PassKey
+    {
+    };
 
     public:
-    LockFile(const char* path, PassKey) : _file(path), _file_lock(path){}
+    LockFile(const char* path, PassKey) : _file(path), _file_lock(path) {}
     LockFile(const LockFile&) = delete;
     LockFile operator=(const LockFile&) = delete;
 
-	void lock();
-	void lock_sharable();
-	bool timed_lock(const boost::posix_time::ptime& abs_time);
-	bool timed_lock_sharable(const boost::posix_time::ptime& abs_time);
-	void unlock();
-	void unlock_sharable();
+    void lock();
+    void lock_sharable();
+    bool timed_lock(const boost::posix_time::ptime& abs_time);
+    bool timed_lock_sharable(const boost::posix_time::ptime& abs_time);
+    void unlock();
+    void unlock_sharable();
 
     static LockFile& Get(const char* path);
 
