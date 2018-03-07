@@ -262,11 +262,13 @@ enable_cppcheck(
         unusedStructMember
         # TODO: Try to reenable this without needing inline suppressions
         leakReturnValNotUsed
+        # Ignore initializer lists in the tests
+        useInitializationList:*test/*.cpp
         *:*.cl
     SOURCES
         include/
         src/
-        # test/
+        test/
     INCLUDE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR}/include

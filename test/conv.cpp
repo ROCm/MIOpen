@@ -448,7 +448,7 @@ struct conv_driver : test_driver
 
     void run()
     {
-        int input_c, input_h, input_w, wei_c, wei_k, wei_h, wei_w, out_h, out_w;
+        int input_c, input_h, input_w, wei_c, wei_k, wei_h, wei_w;
         std::tie(wei_k, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
         std::tie(std::ignore, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());
 
@@ -472,8 +472,8 @@ struct conv_driver : test_driver
                 filter.pad_h = _pad_h / 2;
                 filter.pad_w = _pad_w / 2;
 
-                out_h = std::ceil(static_cast<double>(input_h) / filter.u);
-                out_w = std::ceil(static_cast<double>(input_w) / filter.v);
+                int out_h = std::ceil(static_cast<double>(input_h) / filter.u);
+                int out_w = std::ceil(static_cast<double>(input_w) / filter.v);
 
                 if(out_h <= 0 || out_w <= 0)
                     return;
@@ -485,8 +485,8 @@ struct conv_driver : test_driver
                 filter.pad_h = 0;
                 filter.pad_w = 0;
 
-                out_h = std::ceil(static_cast<double>(input_h - wei_h + 1) / filter.u);
-                out_w = std::ceil(static_cast<double>(input_w - wei_w + 1) / filter.v);
+                int out_h = std::ceil(static_cast<double>(input_h - wei_h + 1) / filter.u);
+                int out_w = std::ceil(static_cast<double>(input_w - wei_w + 1) / filter.v);
 
                 if(out_h <= 0 || out_w <= 0)
                     return;
