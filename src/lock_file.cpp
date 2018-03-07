@@ -27,55 +27,56 @@
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 
-namespace miopen
-{
+namespace miopen {
 
 void LockFile::lock()
 {
-	_mutex.lock();
-	_file_lock.lock();
+    _mutex.lock();
+    _file_lock.lock();
 }
 
 void LockFile::lock_sharable()
 {
-	_mutex.lock_shared();
-	_file_lock.lock_sharable();
+    _mutex.lock_shared();
+    _file_lock.lock_sharable();
 }
 
 bool LockFile::timed_lock(const boost::posix_time::ptime& abs_time)
 {
-	_mutex.lock();
-	return _file_lock.timed_lock(abs_time);
+    _mutex.lock();
+    return _file_lock.timed_lock(abs_time);
 }
 
 bool LockFile::timed_lock_sharable(const boost::posix_time::ptime& abs_time)
 {
-	_mutex.lock_shared();
-	return _file_lock.timed_lock_sharable(abs_time);
+    _mutex.lock_shared();
+    return _file_lock.timed_lock_sharable(abs_time);
 }
 
 void LockFile::unlock()
 {
-	_file_lock.unlock();
-	_mutex.unlock();
+    _file_lock.unlock();
+    _mutex.unlock();
 }
 
 void LockFile::unlock_sharable()
 {
-	_file_lock.unlock_sharable();
-	_mutex.unlock_shared();
+    _file_lock.unlock_sharable();
+    _mutex.unlock_shared();
 }
 
 LockFile& LockFile::Get(const char* path)
 {
-	{ // To guarantee that construction won't be called if not required.
-		auto found = LockFiles().find(path);
+    { // To guarantee that construction won't be called if not required.
+        auto found = LockFiles().find(path);
 
-		if (found != LockFiles().end())
-			return found->second;
-	}
+        if(found != LockFiles().end())
+            return found->second;
+    }
 
-	auto emplaced = LockFiles().emplace(std::piecewise_construct, std::forward_as_tuple(path), std::forward_as_tuple(path, PassKey{}));
-	return emplaced.first->second;
+    auto emplaced = LockFiles().emplace(std::piecewise_construct,
+                                        std::forward_as_tuple(path),
+                                        std::forward_as_tuple(path, PassKey{}));
+    return emplaced.first->second;
 }
 } // namespace miopen
