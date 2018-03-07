@@ -84,17 +84,6 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     construct_params.setNormDescr(norm_reg, local_area, lrn_alpha, lrn_beta, lrn_K);
 
     mloConstruct(construct_params);
-
-    std::string program_name          = construct_params.getKernelFile();      // CL kernel filename
-    std::string kernel_name           = construct_params.getKernelName();      // kernel name
-    const std::string& compiler_parms = construct_params.getCompilerOptions(); // kernel parameters
-
-    std::string network_config;
-    construct_params.mloBuildConf_Key(network_config);
-
-    const std::vector<size_t>& vld = construct_params.getLocalWkSize();
-    const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
-
     int norm_region;
     int local_ar;
     // whithin channel alphaoverarea is going to be culculate based on actual areal size (cut by
@@ -111,33 +100,54 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     auto f_norm_K             = static_cast<float>(norm_K);
     auto f_norm_alphaoverarea = static_cast<float>(norm_alphaoverarea);
 
-    KernelInvoke obj = handle.AddKernel(
-        "miopenLRNForward", network_config, program_name, kernel_name, vld, vgd, compiler_parms);
-
     if(float_equal(f_norm_K, 0.0))
         MIOPEN_THROW("Expect non-zero bias/K");
-    visit_float(xDesc.GetType(), [&](auto as_float) {
+
+    std::string algo_name = "miopenLRNForward";
+    std::string network_config =
+        std::to_string(f_norm_alpha) + std::to_string(f_norm_beta) + std::to_string(f_norm_K) +
+        std::to_string(f_norm_alphaoverarea) + std::to_string(local_ar) +
+        std::to_string(norm_region) + std::to_string(do_backward) +
+        std::to_string(xDesc.GetType()) + std::to_string(nInStride) + std::to_string(nOutStride) +
+        std::to_string(nIn) + std::to_string(nOut) + std::to_string(nInStride) +
+        std::to_string(nOutStride) + std::to_string(cIn) + std::to_string(cOut) +
+        std::to_string(cInStride) + std::to_string(cOutStride) + std::to_string(hIn) +
+        std::to_string(hOut);
+
+    auto&& kernels = handle.GetKernels(algo_name, network_config);
+    if(!kernels.empty())
+    {
         if(do_backward)
         {
-            obj(x,
-                y,
-                workSpace,
-                as_float(f_norm_alphaoverarea),
-                as_float(f_norm_alpha),
-                as_float(f_norm_beta),
-                as_float(f_norm_K));
+            kernels.front()(
+                x, y, workSpace, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
         }
         else
         {
-            obj(x,
-                y,
-                as_float(f_norm_alphaoverarea),
-                as_float(f_norm_alpha),
-                as_float(f_norm_beta),
-                as_float(f_norm_K));
+            kernels.front()(x, y, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
         }
-    });
+    }
+    else
+    {
+        std::string program_name = construct_params.getKernelFile(); // CL kernel filename
+        std::string kernel_name  = construct_params.getKernelName(); // kernel name
+        const std::string& compiler_parms =
+            construct_params.getCompilerOptions(); // kernel parameters
+        const std::vector<size_t>& vld = construct_params.getLocalWkSize();
+        const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
 
+        KernelInvoke obj = handle.AddKernel(
+            algo_name, network_config, program_name, kernel_name, vld, vgd, compiler_parms);
+
+        if(do_backward)
+        {
+            obj(x, y, workSpace, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
+        }
+        else
+        {
+            obj(x, y, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
+        }
+    }
     return (status);
 }
 
@@ -226,16 +236,6 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
 
     mloConstruct(construct_params);
 
-    std::string program_name   = construct_params.getKernelFile();      // CL kernel filename
-    std::string kernel_name    = construct_params.getKernelName();      // kernel name
-    std::string compiler_parms = construct_params.getCompilerOptions(); // kernel parameters
-
-    std::string network_config;
-    construct_params.mloBuildConf_Key(network_config);
-
-    const std::vector<size_t>& vld = construct_params.getLocalWkSize();
-    const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
-
     int norm_region;
     int local_ar;
     // whithin channel alphaoverarea is going to be culculate based on actual areal size (cut by
@@ -255,23 +255,35 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
     if(float_equal(norm_K, 0.0))
         MIOPEN_THROW("Expect non-zero bias/K");
 
-    visit_float(xDesc.GetType(), [&](auto as_float) {
-        handle.AddKernel("miopenLRNBackward",
-                         network_config,
-                         program_name,
-                         kernel_name,
-                         vld,
-                         vgd,
-                         compiler_parms)(y,
-                                         x,
-                                         dy,
-                                         workSpace,
-                                         dx,
-                                         as_float(f_norm_ratio),
-                                         as_float(f_norm_alpha),
-                                         as_float(f_norm_beta));
-    });
+    std::string algo_name = "miopenLRNBackward";
+    std::string network_config =
+        std::to_string(f_norm_alpha) + std::to_string(f_norm_beta) + std::to_string(norm_K) +
+        std::to_string(norm_alphaoverarea) + std::to_string(local_ar) +
+        std::to_string(norm_region) + std::to_string(f_norm_ratio) +
+        std::to_string(xDesc.GetType()) + std::to_string(nInStride) + std::to_string(nOutStride) +
+        std::to_string(nIn) + std::to_string(nOut) + std::to_string(nInStride) +
+        std::to_string(nOutStride) + std::to_string(cIn) + std::to_string(cOut) +
+        std::to_string(cInStride) + std::to_string(cOutStride) + std::to_string(hIn) +
+        std::to_string(hOut);
 
+    auto&& kernels = handle.GetKernels(algo_name, network_config);
+    if(!kernels.empty())
+    {
+        kernels.front()(y, x, dy, workSpace, dx, f_norm_ratio, f_norm_alpha, f_norm_beta);
+    }
+    else
+    {
+        std::string program_name   = construct_params.getKernelFile();      // CL kernel filename
+        std::string kernel_name    = construct_params.getKernelName();      // kernel name
+        std::string compiler_parms = construct_params.getCompilerOptions(); // kernel parameters
+
+        const std::vector<size_t>& vld = construct_params.getLocalWkSize();
+        const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
+
+        handle.AddKernel(
+            algo_name, network_config, program_name, kernel_name, vld, vgd, compiler_parms)(
+            y, x, dy, workSpace, dx, f_norm_ratio, f_norm_alpha, f_norm_beta);
+    }
     return (status);
 }
 } // namespace miopen
