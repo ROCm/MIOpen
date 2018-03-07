@@ -38,6 +38,8 @@
 #include <miopen/gemm.hpp>
 #endif
 
+#define WORKAROUND_ISSUE_791 1 /// \todo Fix & remove the workaround.
+
 namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
@@ -1825,12 +1827,13 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         float best = std::numeric_limits<float>::max();
                         std::vector<miopen::solver::ConvSolution> all;
                         mloConstruct(construct_params, all);
+#if WORKAROUND_ISSUE_791
                         int n_pure_opencl_solutions = 0;
+#endif
                         for(const auto& s : all)
                         {
-                            /// \todo Fix & remove the workaround below.
-                            ///
-                            /// Workaround: Try only the first "pure" OpenCL solution.
+#if WORKAROUND_ISSUE_791
+                            /// Try only the first "pure" OpenCL solution.
                             /// It seems that OpenCL solvers imply that only the 1st one
                             /// applicable solution shall be used while the rest of OpenCL
                             /// solutions shall be ignored. There is issue
@@ -1842,7 +1845,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                 if(n_pure_opencl_solutions > 1)
                                     continue;
                             }
-
+#endif
                             /// \todo If there is only one solution available,
                             /// we can avoid wasting time for building kernels with empty
                             /// algorithm_name and network_config.
