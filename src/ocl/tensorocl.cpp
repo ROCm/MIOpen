@@ -577,15 +577,11 @@ void SetTensor(
 
             auto&& kernels = handle.GetKernels("SetTensor1d", network_config);
 
+            KernelInvoke kernel;
+
             if(!kernels.empty())
             {
-                auto kernel = kernels.front();
-
-                kernel(y,
-                       miopen_alpha,
-                       offset,
-                       int(yDesc.GetStrides()[0]),
-                       int(yDesc.GetLengths()[0]));
+                kernel = kernels.front();
             }
             else
             {
@@ -593,14 +589,185 @@ void SetTensor(
                          " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
                          " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
 
-                handle.AddKernel(
-                    "SetTensor1d", network_config, program_name, "SetTensor1d", vld, vgd, parms)(
-                    y,
-                    miopen_alpha,
-                    offset,
-                    int(yDesc.GetStrides()[0]),
-                    int(yDesc.GetLengths()[0]));
+                kernel = handle.AddKernel(
+                    "SetTensor1d", network_config, program_name, "SetTensor1d", vld, vgd, parms);
             }
+
+            kernel(y, miopen_alpha, offset, int(yDesc.GetStrides()[0]), int(yDesc.GetLengths()[0]));
+
+            break;
+        }
+        case 2:
+        {
+            std::vector<size_t> vld             = {16, 16, 1};
+            std::vector<size_t> data_per_thread = {4, 4, 1};
+            std::vector<size_t> vgd             = {1, 1, 1};
+
+            vgd[0] = ((yDesc.GetLengths()[0] - 1) / (vld[0] * data_per_thread[0]) + 1) * vld[0];
+            vgd[1] = ((yDesc.GetLengths()[1] - 1) / (vld[1] * data_per_thread[1]) + 1) * vld[1];
+
+            std::string network_config = std::to_string(vgd[0]) + " " + std::to_string(vgd[1]);
+
+            auto&& kernels = handle.GetKernels("SetTensor2d", network_config);
+
+            KernelInvoke kernel;
+
+            if(!kernels.empty())
+            {
+                kernel = kernels.front();
+            }
+            else
+            {
+                parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
+                        " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                        " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+
+                kernel = handle.AddKernel(
+                    "SetTensor2d", network_config, program_name, "SetTensor2d", vld, vgd, parms);
+            }
+
+            kernel(y,
+                   miopen_alpha,
+                   offset,
+                   int(yDesc.GetStrides()[0]),
+                   int(yDesc.GetStrides()[1]),
+                   int(yDesc.GetLengths()[0]),
+                   int(yDesc.GetLengths()[1]));
+
+            break;
+        }
+        case 3:
+        {
+            std::vector<size_t> vld             = {4, 8, 8};
+            std::vector<size_t> data_per_thread = {4, 2, 2};
+            std::vector<size_t> vgd             = {1, 1, 1};
+
+            vgd[0] = ((yDesc.GetLengths()[0] - 1) / (vld[0] * data_per_thread[0]) + 1) * vld[0];
+            vgd[1] = ((yDesc.GetLengths()[1] - 1) / (vld[1] * data_per_thread[1]) + 1) * vld[1];
+            vgd[2] = ((yDesc.GetLengths()[2] - 1) / (vld[2] * data_per_thread[2]) + 1) * vld[2];
+
+            std::string network_config = std::to_string(vgd[0]) + " " + std::to_string(vgd[1]) +
+                                         " " + std::to_string(vgd[2]);
+
+            auto&& kernels = handle.GetKernels("SetTensor3d", network_config);
+
+            KernelInvoke kernel;
+
+            if(!kernels.empty())
+            {
+                kernel = kernels.front();
+            }
+            else
+            {
+                parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
+                        " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                        " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+
+                kernel = handle.AddKernel(
+                    "SetTensor3d", network_config, program_name, "SetTensor3d", vld, vgd, parms);
+            }
+
+            kernel(y,
+                   miopen_alpha,
+                   offset,
+                   int(yDesc.GetStrides()[0]),
+                   int(yDesc.GetStrides()[1]),
+                   int(yDesc.GetStrides()[2]),
+                   int(yDesc.GetLengths()[0]),
+                   int(yDesc.GetLengths()[1]),
+                   int(yDesc.GetLengths()[2]));
+
+            break;
+        }
+        case 4:
+        {
+            std::vector<size_t> vld             = {4, 8, 8};
+            std::vector<size_t> data_per_thread = {4, 2, 2};
+            std::vector<size_t> vgd             = {1, 1, 1};
+
+            vgd[0] = ((yDesc.GetLengths()[0] - 1) / (vld[0] * data_per_thread[0]) + 1) * vld[0];
+            vgd[1] = ((yDesc.GetLengths()[1] - 1) / (vld[1] * data_per_thread[1]) + 1) * vld[1];
+            vgd[2] = ((yDesc.GetLengths()[2] - 1) / (vld[2] * data_per_thread[2]) + 1) * vld[2];
+
+            std::string network_config = std::to_string(vgd[0]) + " " + std::to_string(vgd[1]) +
+                                         " " + std::to_string(vgd[2]);
+
+            auto&& kernels = handle.GetKernels("SetTensor4d", network_config);
+
+            KernelInvoke kernel;
+
+            if(!kernels.empty())
+            {
+                kernel = kernels.front();
+            }
+            else
+            {
+                parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
+                        " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                        " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+
+                kernel = handle.AddKernel(
+                    "SetTensor4d", network_config, program_name, "SetTensor4d", vld, vgd, parms);
+            }
+
+            kernel(y,
+                   miopen_alpha,
+                   offset,
+                   int(yDesc.GetStrides()[0]),
+                   int(yDesc.GetStrides()[1]),
+                   int(yDesc.GetStrides()[2]),
+                   int(yDesc.GetStrides()[3]),
+                   int(yDesc.GetLengths()[0]),
+                   int(yDesc.GetLengths()[1]),
+                   int(yDesc.GetLengths()[2]),
+                   int(yDesc.GetLengths()[3]));
+
+            break;
+        }
+        case 5:
+        {
+            std::vector<size_t> vld             = {4, 8, 8};
+            std::vector<size_t> data_per_thread = {4, 2, 2};
+            std::vector<size_t> vgd             = {1, 1, 1};
+
+            vgd[0] = ((yDesc.GetLengths()[0] - 1) / (vld[0] * data_per_thread[0]) + 1) * vld[0];
+            vgd[1] = ((yDesc.GetLengths()[1] - 1) / (vld[1] * data_per_thread[1]) + 1) * vld[1];
+            vgd[2] = ((yDesc.GetLengths()[2] - 1) / (vld[2] * data_per_thread[2]) + 1) * vld[2];
+
+            std::string network_config = std::to_string(vgd[0]) + " " + std::to_string(vgd[1]) +
+                                         " " + std::to_string(vgd[2]);
+
+            auto&& kernels = handle.GetKernels("SetTensor5d", network_config);
+
+            KernelInvoke kernel;
+
+            if(!kernels.empty())
+            {
+                kernel = kernels.front();
+            }
+            else
+            {
+                parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
+                        " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                        " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+
+                kernel = handle.AddKernel(
+                    "SetTensor5d", network_config, program_name, "SetTensor5d", vld, vgd, parms);
+            }
+
+            kernel(y,
+                   miopen_alpha,
+                   offset,
+                   int(yDesc.GetStrides()[0]),
+                   int(yDesc.GetStrides()[1]),
+                   int(yDesc.GetStrides()[2]),
+                   int(yDesc.GetStrides()[3]),
+                   int(yDesc.GetStrides()[4]),
+                   int(yDesc.GetLengths()[0]),
+                   int(yDesc.GetLengths()[1]),
+                   int(yDesc.GetLengths()[2]),
+                   int(yDesc.GetLengths()[3]),
+                   int(yDesc.GetLengths()[4]));
 
             break;
         }
@@ -648,15 +815,11 @@ void ScaleTensor(
 
             auto&& kernels = handle.GetKernels("ScaleTensor1d", network_config);
 
+            KernelInvoke kernel;
+
             if(!kernels.empty())
             {
-                auto kernel = kernels.front();
-
-                kernel(y,
-                       miopen_alpha,
-                       offset,
-                       int(yDesc.GetStrides()[0]),
-                       int(yDesc.GetLengths()[0]));
+                kernel = kernels.front();
             }
             else
             {
@@ -664,18 +827,208 @@ void ScaleTensor(
                          " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
                          " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
 
-                handle.AddKernel("ScaleTensor1d",
-                                 network_config,
-                                 program_name,
-                                 "ScaleTensor1d",
-                                 vld,
-                                 vgd,
-                                 parms)(y,
-                                        miopen_alpha,
-                                        offset,
-                                        int(yDesc.GetStrides()[0]),
-                                        int(yDesc.GetLengths()[0]));
+                kernel = handle.AddKernel("ScaleTensor1d",
+                                          network_config,
+                                          program_name,
+                                          "ScaleTensor1d",
+                                          vld,
+                                          vgd,
+                                          parms);
             }
+
+            kernel(y, miopen_alpha, offset, int(yDesc.GetStrides()[0]), int(yDesc.GetLengths()[0]));
+        }
+        case 2:
+        {
+            std::vector<size_t> vld             = {16, 16, 1};
+            std::vector<size_t> data_per_thread = {4, 4, 1};
+            std::vector<size_t> vgd             = {1, 1, 1};
+
+            vgd[0] = ((yDesc.GetLengths()[0] - 1) / (vld[0] * data_per_thread[0]) + 1) * vld[0];
+            vgd[1] = ((yDesc.GetLengths()[1] - 1) / (vld[1] * data_per_thread[1]) + 1) * vld[1];
+
+            std::string network_config = std::to_string(vgd[0]) + " " + std::to_string(vgd[1]);
+
+            auto&& kernels = handle.GetKernels("ScaleTensor2d", network_config);
+
+            KernelInvoke kernel;
+
+            if(!kernels.empty())
+            {
+                kernel = kernels.front();
+            }
+            else
+            {
+                parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
+                        " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                        " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+
+                kernel = handle.AddKernel("ScaleTensor2d",
+                                          network_config,
+                                          program_name,
+                                          "ScaleTensor2d",
+                                          vld,
+                                          vgd,
+                                          parms);
+            }
+
+            kernel(y,
+                   miopen_alpha,
+                   offset,
+                   int(yDesc.GetStrides()[0]),
+                   int(yDesc.GetStrides()[1]),
+                   int(yDesc.GetLengths()[0]),
+                   int(yDesc.GetLengths()[1]));
+
+            break;
+        }
+        case 3:
+        {
+            std::vector<size_t> vld             = {4, 8, 8};
+            std::vector<size_t> data_per_thread = {4, 2, 2};
+            std::vector<size_t> vgd             = {1, 1, 1};
+
+            vgd[0] = ((yDesc.GetLengths()[0] - 1) / (vld[0] * data_per_thread[0]) + 1) * vld[0];
+            vgd[1] = ((yDesc.GetLengths()[1] - 1) / (vld[1] * data_per_thread[1]) + 1) * vld[1];
+            vgd[2] = ((yDesc.GetLengths()[2] - 1) / (vld[2] * data_per_thread[2]) + 1) * vld[2];
+
+            std::string network_config = std::to_string(vgd[0]) + " " + std::to_string(vgd[1]) +
+                                         " " + std::to_string(vgd[2]);
+
+            auto&& kernels = handle.GetKernels("ScaleTensor3d", network_config);
+
+            KernelInvoke kernel;
+
+            if(!kernels.empty())
+            {
+                kernel = kernels.front();
+            }
+            else
+            {
+                parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
+                        " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                        " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+
+                kernel = handle.AddKernel("ScaleTensor3d",
+                                          network_config,
+                                          program_name,
+                                          "ScaleTensor3d",
+                                          vld,
+                                          vgd,
+                                          parms);
+            }
+
+            kernel(y,
+                   miopen_alpha,
+                   offset,
+                   int(yDesc.GetStrides()[0]),
+                   int(yDesc.GetStrides()[1]),
+                   int(yDesc.GetStrides()[2]),
+                   int(yDesc.GetLengths()[0]),
+                   int(yDesc.GetLengths()[1]),
+                   int(yDesc.GetLengths()[2]));
+
+            break;
+        }
+        case 4:
+        {
+            std::vector<size_t> vld             = {4, 8, 8};
+            std::vector<size_t> data_per_thread = {4, 2, 2};
+            std::vector<size_t> vgd             = {1, 1, 1};
+
+            vgd[0] = ((yDesc.GetLengths()[0] - 1) / (vld[0] * data_per_thread[0]) + 1) * vld[0];
+            vgd[1] = ((yDesc.GetLengths()[1] - 1) / (vld[1] * data_per_thread[1]) + 1) * vld[1];
+            vgd[2] = ((yDesc.GetLengths()[2] - 1) / (vld[2] * data_per_thread[2]) + 1) * vld[2];
+
+            std::string network_config = std::to_string(vgd[0]) + " " + std::to_string(vgd[1]) +
+                                         " " + std::to_string(vgd[2]);
+
+            auto&& kernels = handle.GetKernels("ScaleTensor4d", network_config);
+
+            KernelInvoke kernel;
+
+            if(!kernels.empty())
+            {
+                kernel = kernels.front();
+            }
+            else
+            {
+                parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
+                        " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                        " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+
+                kernel = handle.AddKernel("ScaleTensor4d",
+                                          network_config,
+                                          program_name,
+                                          "ScaleTensor4d",
+                                          vld,
+                                          vgd,
+                                          parms);
+            }
+
+            kernel(y,
+                   miopen_alpha,
+                   offset,
+                   int(yDesc.GetStrides()[0]),
+                   int(yDesc.GetStrides()[1]),
+                   int(yDesc.GetStrides()[2]),
+                   int(yDesc.GetStrides()[3]),
+                   int(yDesc.GetLengths()[0]),
+                   int(yDesc.GetLengths()[1]),
+                   int(yDesc.GetLengths()[2]),
+                   int(yDesc.GetLengths()[3]));
+
+            break;
+        }
+        case 5:
+        {
+            std::vector<size_t> vld             = {4, 8, 8};
+            std::vector<size_t> data_per_thread = {4, 2, 2};
+            std::vector<size_t> vgd             = {1, 1, 1};
+
+            vgd[0] = ((yDesc.GetLengths()[0] - 1) / (vld[0] * data_per_thread[0]) + 1) * vld[0];
+            vgd[1] = ((yDesc.GetLengths()[1] - 1) / (vld[1] * data_per_thread[1]) + 1) * vld[1];
+            vgd[2] = ((yDesc.GetLengths()[2] - 1) / (vld[2] * data_per_thread[2]) + 1) * vld[2];
+
+            std::string network_config = std::to_string(vgd[0]) + " " + std::to_string(vgd[1]) +
+                                         " " + std::to_string(vgd[2]);
+
+            auto&& kernels = handle.GetKernels("ScaleTensor5d", network_config);
+
+            KernelInvoke kernel;
+
+            if(!kernels.empty())
+            {
+                kernel = kernels.front();
+            }
+            else
+            {
+                parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
+                        " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                        " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+
+                kernel = handle.AddKernel("ScaleTensor5d",
+                                          network_config,
+                                          program_name,
+                                          "ScaleTensor5d",
+                                          vld,
+                                          vgd,
+                                          parms);
+            }
+
+            kernel(y,
+                   miopen_alpha,
+                   offset,
+                   int(yDesc.GetStrides()[0]),
+                   int(yDesc.GetStrides()[1]),
+                   int(yDesc.GetStrides()[2]),
+                   int(yDesc.GetStrides()[3]),
+                   int(yDesc.GetStrides()[4]),
+                   int(yDesc.GetLengths()[0]),
+                   int(yDesc.GetLengths()[1]),
+                   int(yDesc.GetLengths()[2]),
+                   int(yDesc.GetLengths()[3]),
+                   int(yDesc.GetLengths()[4]));
 
             break;
         }
