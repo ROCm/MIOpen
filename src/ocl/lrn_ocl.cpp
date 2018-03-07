@@ -117,20 +117,32 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
     {
-        if(do_backward)
-        {
-            kernels.front()(
-                x, y, workSpace, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
-        }
-        else
-        {
-            kernels.front()(x, y, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
-        }
+        visit_float(xDesc.GetType(), [&](auto as_float) {
+            if(do_backward)
+            {
+                kernels.front()(x,
+                                y,
+                                workSpace,
+                                as_float(f_norm_alphaoverarea),
+                                as_float(f_norm_alpha),
+                                as_float(f_norm_beta),
+                                as_float(f_norm_K));
+            }
+            else
+            {
+                kernels.front()(x,
+                                y,
+                                as_float(f_norm_alphaoverarea),
+                                as_float(f_norm_alpha),
+                                as_float(f_norm_beta),
+                                as_float(f_norm_K));
+            }
+        });
     }
     else
     {
-        std::string program_name = construct_params.getKernelFile(); // CL kernel filename
-        std::string kernel_name  = construct_params.getKernelName(); // kernel name
+        const std::string program_name = construct_params.getKernelFile(); // CL kernel filename
+        const std::string kernel_name  = construct_params.getKernelName(); // kernel name
         const std::string& compiler_parms =
             construct_params.getCompilerOptions(); // kernel parameters
         const std::vector<size_t>& vld = construct_params.getLocalWkSize();
@@ -138,15 +150,27 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
 
         KernelInvoke obj = handle.AddKernel(
             algo_name, network_config, program_name, kernel_name, vld, vgd, compiler_parms);
-
-        if(do_backward)
-        {
-            obj(x, y, workSpace, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
-        }
-        else
-        {
-            obj(x, y, f_norm_alphaoverarea, f_norm_alpha, f_norm_beta, f_norm_K);
-        }
+        visit_float(xDesc.GetType(), [&](auto as_float) {
+            if(do_backward)
+            {
+                obj(x,
+                    y,
+                    workSpace,
+                    as_float(f_norm_alphaoverarea),
+                    as_float(f_norm_alpha),
+                    as_float(f_norm_beta),
+                    as_float(f_norm_K));
+            }
+            else
+            {
+                obj(x,
+                    y,
+                    as_float(f_norm_alphaoverarea),
+                    as_float(f_norm_alpha),
+                    as_float(f_norm_beta),
+                    as_float(f_norm_K));
+            }
+        });
     }
     return (status);
 }
@@ -269,20 +293,39 @@ miopenStatus_t LRNDescriptor::Backward(Handle& handle,
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
     {
-        kernels.front()(y, x, dy, workSpace, dx, f_norm_ratio, f_norm_alpha, f_norm_beta);
+        visit_float(xDesc.GetType(), [&](auto as_float) {
+            kernels.front()(y,
+                            x,
+                            dy,
+                            workSpace,
+                            dx,
+                            as_float(f_norm_ratio),
+                            as_float(f_norm_alpha),
+                            as_float(f_norm_beta));
+        });
     }
     else
     {
-        std::string program_name   = construct_params.getKernelFile();      // CL kernel filename
-        std::string kernel_name    = construct_params.getKernelName();      // kernel name
-        std::string compiler_parms = construct_params.getCompilerOptions(); // kernel parameters
+        const std::string program_name = construct_params.getKernelFile(); // CL kernel filename
+        const std::string kernel_name  = construct_params.getKernelName(); // kernel name
+        const std::string& compiler_parms =
+            construct_params.getCompilerOptions(); // kernel parameters
 
         const std::vector<size_t>& vld = construct_params.getLocalWkSize();
         const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
 
-        handle.AddKernel(
-            algo_name, network_config, program_name, kernel_name, vld, vgd, compiler_parms)(
-            y, x, dy, workSpace, dx, f_norm_ratio, f_norm_alpha, f_norm_beta);
+        visit_float(xDesc.GetType(), [&](auto as_float) {
+            handle.AddKernel(
+                algo_name, network_config, program_name, kernel_name, vld, vgd, compiler_parms)(
+                y,
+                x,
+                dy,
+                workSpace,
+                dx,
+                as_float(f_norm_ratio),
+                as_float(f_norm_alpha),
+                as_float(f_norm_beta));
+        });
     }
     return (status);
 }
