@@ -562,7 +562,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     int status;
 #endif
     status = in_dev->ToGPU(q, in.data());
-    status |= din_dev->ToGPU(q, in.data());
+    status |= din_dev->ToGPU(q, din.data());
     status |= wei_dev->ToGPU(q, wei.data());
     status |= dwei_dev->ToGPU(q, dwei.data());
     status |= dout_dev->ToGPU(q, dout.data());
@@ -1167,8 +1167,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
                     {
                         printf("Im2col error: %d %f %f\n ",
                                i,
-                               (float)workspace_bwd_weights[i],
-                               (float)workspace_bwd_weights_host[i]);
+                               static_cast<float>(workspace_bwd_weights[i]),
+                               static_cast<float>(workspace_bwd_weights_host[i]));
                     }
                 }
             }
@@ -1255,8 +1255,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsCPU()
                     {
                         printf("Im2col error: %d %f %f\n ",
                                i,
-                               (float)workspace_bwd_weights[i],
-                               (float)workspace_bwd_weights_host[i]);
+                               static_cast<float>(workspace_bwd_weights[i]),
+                               static_cast<float>(workspace_bwd_weights_host[i]));
                     }
                 }
             }
