@@ -32,16 +32,15 @@
 #pragma clang diagnostic ignored "-Wfloat-equal"
 #endif
 
-#include "mloConvHost.hpp"
 #include <cmath>
 #include <iostream>
+#include <iomanip>
+
+#include "calcerr.hpp"
 
 ////////////////////////////////////////////////////////////
 //
 ///////////////////////////////////////////////////////////
-#ifndef FLT_MAX
-#define FLT_MAX 3.402823466e+38F /* max value */
-#endif
 
 #ifndef MLO_NEURON_PASTHRU
 #define MLO_NEURON_PASTHRU 0                       // x
@@ -95,7 +94,7 @@ void ActivationFunction_Sigmoid(int n, _T* res, const _T* data)
     for(int i = 0; i < n; i++)
     {
         // 1/(1 + exp(-x))
-        res[i] = 1 / (1.f + exp(-data[i]));
+        res[i] = static_cast<_T>(1.f) / (static_cast<_T>(1.f) + exp(-data[i]));
     }
 }
 
@@ -154,8 +153,8 @@ void ActivationFunction_Power(int n, _T* res, const _T* data, _T power, _T alpha
     {
         // (shift + scale * x ) ^power
         _T arg     = alpha + data[i] * beta;
-        _T run_arg = (arg == 0) ? 1 : arg;
-        res[i]     = (arg == 0) ? 0 : pow(run_arg, power);
+        _T run_arg = (arg == 0) ? static_cast<_T>(1) : arg;
+        res[i]     = (arg == 0) ? static_cast<_T>(0) : pow(run_arg, power);
     }
 }
 
@@ -166,62 +165,66 @@ void ActivationFunction_BNLL(int n, _T* res, const _T* data)
     for(int i = 0; i < n; i++)
     {
         //	log(1 + exp(x))
-        res[i] = (data[i] > 0) ? data[i] + log(static_cast<_T>(1) + exp(-data[i]))
-                               : log(static_cast<_T>(1) + exp(data[i]));
+        res[i] = (data[i] > static_cast<_T>(0)) ? data[i] + log(static_cast<_T>(1) + exp(-data[i]))
+                                                : log(static_cast<_T>(1) + exp(data[i]));
     }
 }
 
-template <typename _T>
+template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
+          typename _Tcheck /* the data type used in CPU checkings (usually double) */>
 int mloNeuronForwardRunHostAndVerify(int neuron_type,
-                                     _T power,
-                                     _T shift,
-                                     _T scale,
+                                     _Tcheck power,
+                                     _Tcheck shift,
+                                     _Tcheck scale,
                                      size_t size,
-                                     const _T* bot_ptr,
-                                     const _T* top_ptr,
-                                     double allowedEps)
+                                     const _Tgpu* bot_ptr,
+                                     const _Tgpu* top_ptr,
+                                     _Tcheck allowedEps)
 {
 
     int match = 1;
     int isize = size;
     // c-emulator
-    _T* c_res      = new _T[size];
-    const _T* data = bot_ptr;
+    _Tcheck* c_res = new _Tcheck[size];
+    _Tcheck* data  = new _Tcheck[size];
+    for(size_t k = 0; k < size; k++)
+        data[k]  = static_cast<_Tcheck>(bot_ptr[k]);
+
     switch(neuron_type)
     {
     case MLO_NEURON_PASTHRU: //	x
-        ActivationFunction_PassThru<_T>(isize, c_res, data);
+        ActivationFunction_PassThru<_Tcheck>(isize, c_res, data);
         break;
     case MLO_NEURON_LOGISTIC: //	1 / (1 + e^-x)	//Sigmoid
-        ActivationFunction_Sigmoid<_T>(isize, c_res, data);
+        ActivationFunction_Sigmoid<_Tcheck>(isize, c_res, data);
         break;
     case MLO_NEURON_TANH: //	a * tanh( b * x)
-        ActivationFunction_TanH<_T>(isize, c_res, data, shift, scale);
+        ActivationFunction_TanH<_Tcheck>(isize, c_res, data, shift, scale);
         break;
     case MLO_NEURON_RELU: //	max(0, x)
-        ActivationFunction_ReLU<_T>(isize, c_res, data, scale);
+        ActivationFunction_ReLU<_Tcheck>(isize, c_res, data, scale);
         break;
     case MLO_NEURON_SOFTRELU: //	log(1 + e^x)   // bonomial normal log likelihood
-        ActivationFunction_BNLL<_T>(isize, c_res, data);
+        ActivationFunction_BNLL<_Tcheck>(isize, c_res, data);
         break;
     case MLO_NEURON_ABS: //	abs(x)
-        ActivationFunction_Abs<_T>(isize, c_res, data);
+        ActivationFunction_Abs<_Tcheck>(isize, c_res, data);
         break;
     case MLO_NEURON_POWER: // (a + b * x ) ^power
-        ActivationFunction_Power<_T>(isize, c_res, data, power, shift, scale);
+        ActivationFunction_Power<_Tcheck>(isize, c_res, data, power, shift, scale);
         break;
 #if 0
 	case MLO_NEURON_BRELU:		//	min(a, max(0, x))
-		ActivationFunction_BReLU<_T>(isize, c_res, data, shift);
+		ActivationFunction_BReLU<_Tcheck>(isize, c_res, data, shift);
 		break;
 	case MLO_NEURON_SQUARE:		//	x^2
-		ActivationFunction_Square<_T>(isize, c_res, data);
+		ActivationFunction_Square<_Tcheck>(isize, c_res, data);
 		break;
 	case MLO_NEURON_SQR:			//	sqr(x)
-		ActivationFunction_Sqrt<_T>(isize, c_res, data);
+		ActivationFunction_Sqrt<_Tcheck>(isize, c_res, data);
 		break;
 	case MLO_NEURON_LINEAR:		//	a + b *x
-		ActivationFunction_Linear<_T>(isize, c_res, data, shift, scale);
+		ActivationFunction_Linear<_Tcheck>(isize, c_res, data, shift, scale);
 		break;
 #endif
     default: printf("ERROR: unknown neuron tyoe: %d\n", neuron_type); break;
@@ -229,9 +232,9 @@ int mloNeuronForwardRunHostAndVerify(int neuron_type,
 
     for(size_t i = 0; i < size && match; i++)
     {
-        _T c_val   = c_res[i];
-        _T g_val   = top_ptr[i];
-        double err = CalcErr(c_val, g_val);
+        _Tcheck c_val = c_res[i];
+        _Tcheck g_val = static_cast<_Tcheck>(top_ptr[i]);
+        double err    = CalcErr(c_val, g_val);
 
         if(err > allowedEps || std::isnan(c_val) || std::isnan(g_val) || !std::isfinite(c_val) ||
            !std::isfinite(g_val))
@@ -245,6 +248,10 @@ int mloNeuronForwardRunHostAndVerify(int neuron_type,
     if(c_res)
     {
         delete[] c_res;
+    }
+    if(data)
+    {
+        delete[] data;
     }
 
     return (match);
@@ -271,7 +278,7 @@ void ActivationFunction_TanH_Diff(int n, _T* bot_diff, const _T* top_diff, const
     {
         // (exp(2x) -1) / (exp(2x) + 1)
         _T tanh_x   = top_data[i];
-        bot_diff[i] = top_diff[i] * (1 - tanh_x * tanh_x);
+        bot_diff[i] = top_diff[i] * (static_cast<_T>(1) - tanh_x * tanh_x);
     }
 }
 
@@ -282,7 +289,7 @@ void ActivationFunction_Sigmoid_Diff(int n, _T* bot_diff, const _T* top_diff, co
     {
         // 1/(1 + exp(-x))
         _T sigmoid_x = top_data[i];
-        bot_diff[i]  = top_diff[i] * sigmoid_x * (1.f - sigmoid_x);
+        bot_diff[i]  = top_diff[i] * sigmoid_x * (static_cast<_T>(1.f) - sigmoid_x);
     }
 }
 
@@ -312,7 +319,7 @@ void ActivationFunction_Power_Diff(int n,
     for(int i = 0; i < n; i++)
     {
         _T arg      = shift + bot_data[i] * scale;
-        bot_diff[i] = (arg == 0) ? 0 : diff_scale * top_data[i] / arg;
+        bot_diff[i] = (arg == 0) ? static_cast<_T>(0) : diff_scale * top_data[i] / arg;
     }
 }
 
@@ -327,29 +334,31 @@ void ActivationFunction_BNLL_Diff(int n, _T* bot_diff, const _T* top_diff, const
     }
 }
 
-template <typename _T>
+template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
+          typename _Tcheck /* the data type used in CPU checkings (usually double) */>
 int mloNeuronBackwardRunHostAndVerify(int neuron_type,
-                                      _T power,
-                                      _T shift,
-                                      _T scale,
+                                      _Tcheck power,
+                                      _Tcheck shift,
+                                      _Tcheck scale,
                                       size_t size,
-                                      const _T* bot_ptr,
-                                      const _T* top_ptr,
-                                      const _T* bot_df_ptr,
-                                      const _T* top_df_ptr,
-                                      double allowedEps)
+                                      const _Tgpu* bot_ptr,
+                                      const _Tgpu* top_ptr,
+                                      const _Tgpu* bot_df_ptr,
+                                      const _Tgpu* top_df_ptr,
+                                      _Tcheck allowedEps)
 {
 
-    int match  = 1;
-    int isize  = size;
-    _T* bot_df = new _T[size];
+    int match     = 1;
+    int isize     = size;
+    _Tgpu* bot_df = new _Tgpu[size];
 
     switch(neuron_type)
     {
     case MLO_NEURON_RELU:
     {
 
-        ActivationFunction_ReLU_Diff<_T>(isize, bot_df, top_df_ptr, bot_ptr, scale);
+        ActivationFunction_ReLU_Diff<_Tgpu>(
+            isize, bot_df, top_df_ptr, bot_ptr, static_cast<_Tgpu>(scale));
     }
     break;
     case MLO_NEURON_LOGISTIC:
@@ -370,15 +379,15 @@ int mloNeuronBackwardRunHostAndVerify(int neuron_type,
     case MLO_NEURON_POWER:
     {
         // (shift + scale * x ) ^power
-        ActivationFunction_Power_Diff<_T>(isize,
-                                          bot_df,
-                                          top_df_ptr,
-                                          top_ptr,
-                                          bot_ptr,
-                                          scale * power,
-                                          static_cast<_T>(1),
-                                          scale,
-                                          shift);
+        ActivationFunction_Power_Diff<_Tgpu>(isize,
+                                             bot_df,
+                                             top_df_ptr,
+                                             top_ptr,
+                                             bot_ptr,
+                                             static_cast<_Tgpu>(scale * power),
+                                             static_cast<_Tgpu>(1),
+                                             static_cast<_Tgpu>(scale),
+                                             static_cast<_Tgpu>(shift));
     }
     break;
     case MLO_NEURON_SOFTRELU:
@@ -394,9 +403,9 @@ int mloNeuronBackwardRunHostAndVerify(int neuron_type,
 
     for(size_t i = 0; i < size && match; ++i)
     {
-        _T c_val   = bot_df[i];
-        _T g_val   = bot_df_ptr[i];
-        double err = CalcErr(c_val, g_val);
+        _Tcheck c_val = static_cast<_Tgpu>(bot_df[i]);
+        _Tcheck g_val = static_cast<_Tgpu>(bot_df_ptr[i]);
+        double err    = CalcErr(c_val, g_val);
 
         if(err > allowedEps || std::isnan(c_val) || std::isnan(g_val))
         {
