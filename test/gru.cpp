@@ -77,8 +77,7 @@ void GRUFwdCPUVerify(std::vector<T>& in,
     int batch_n = sumvc(in_n);
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bacc, baccbi; // accumulation of batch
-    int bi = bidirection ? 2 : 1;
+    int bi       = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
     int out_stride = out_h;
@@ -101,12 +100,6 @@ void GRUFwdCPUVerify(std::vector<T>& in,
     }
 
     int wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride;
-    int wei_len        = wei_shift_bias;
-    if(biased)
-    {
-        int in_bias = inputMode == 1 ? 1 : 2;
-        wei_len += (in_bias + (numlayer - 1) * 2) * wei_stride;
-    }
 
     // forward emulator
     for(int li = 0; li < numlayer; li++)
@@ -185,8 +178,8 @@ void GRUFwdCPUVerify(std::vector<T>& in,
         }
 
         // from hidden state
-        bacc   = 0;
-        baccbi = batch_n;
+        int bacc   = 0;
+        int baccbi = batch_n;
         for(int ti = 0; ti < seqLength; ti++)
         {
             baccbi -= in_n[seqLength - 1 - ti];
@@ -575,7 +568,7 @@ void GRUBwdDataCPUVerify(std::vector<T>& din,
                          int in_h,                     // input data length
                          int seqLength,                // Number of iterations to unroll over
                          bool bidirection,             // whether using bidirectional net
-                         bool biased,                  // whether using bias
+                         bool,                         // whether using bias
                          int hy_d,  // 1 by numlayer (number of stacks of hidden layers)
                                     // for unidirection, 2 by numlayer for bidirection
                          int hy_n,  // equal to input batch size in_n[0]
@@ -590,8 +583,7 @@ void GRUBwdDataCPUVerify(std::vector<T>& din,
     (void)out;
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bacc, baccbi; // accumulation of batch
-    int bi = bidirection ? 2 : 1;
+    int bi       = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
     int out_stride = out_h;
@@ -615,13 +607,6 @@ void GRUBwdDataCPUVerify(std::vector<T>& din,
             return;
         }
         in_h = 0;
-    }
-
-    int wei_len = (in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride;
-    if(biased)
-    {
-        int in_bias = inputMode == 1 ? 1 : 2;
-        wei_len += (in_bias + (numlayer - 1) * 2) * wei_stride;
     }
 
     // bwd data emulator
@@ -667,8 +652,8 @@ void GRUBwdDataCPUVerify(std::vector<T>& din,
         }
 
         // from hidden state
-        bacc   = batch_n;
-        baccbi = 0;
+        int bacc   = batch_n;
+        int baccbi = 0;
         for(int ti = seqLength - 1; ti >= 0; ti--)
         {
             bacc -= in_n[ti];
@@ -1174,8 +1159,7 @@ void GRUBwdWeightCPUVerify(std::vector<T>& in,
 {
     int batch_n  = sumvc(in_n);
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bacc; // accumulation of batch
-    int bi = bidirection ? 2 : 1;
+    int bi       = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
     int wei_stride = bi * 3 * hy_h;
@@ -1197,12 +1181,6 @@ void GRUBwdWeightCPUVerify(std::vector<T>& in,
     }
 
     int wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride;
-    int wei_len        = wei_shift_bias;
-    if(biased)
-    {
-        int in_bias = inputMode == 1 ? 1 : 2;
-        wei_len += (in_bias + (numlayer - 1) * 2) * wei_stride;
-    }
 
     // bwd weights emulator
     for(int li = 0; li < numlayer; li++)
@@ -1283,7 +1261,7 @@ void GRUBwdWeightCPUVerify(std::vector<T>& in,
         }
 
         // between time
-        bacc = 0;
+        int bacc = 0;
         for(int ti = 0; ti < seqLength; ti++)
         {
             int hid_shift = li * batch_n * hy_stride + bacc * hy_stride;
@@ -1608,7 +1586,7 @@ struct verify_forward_infer_gru
         auto workSpace_dev = handle.Write(workSpace);
 
         std::vector<int> hlens(3, 0);
-        hlens[0] = nLayers * (dirMode) ? 2 : 1;
+        hlens[0] = nLayers * (dirMode ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopenFloat, hlens.data(), 3);
@@ -1882,7 +1860,7 @@ struct verify_forward_train_gru
         auto reserveSpace_dev = handle.Write(reserveSpace);
 
         std::vector<int> hlens(3, 0);
-        hlens[0] = nLayers * (dirMode) ? 2 : 1;
+        hlens[0] = nLayers * (dirMode ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopenFloat, hlens.data(), 3);
@@ -2165,7 +2143,7 @@ struct verify_backward_data_gru
         auto weights_dev      = handle.Write(weights);
 
         std::vector<int> hlens(3, 0);
-        hlens[0] = nLayers * (dirMode) ? 2 : 1;
+        hlens[0] = nLayers * (dirMode ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopenFloat, hlens.data(), 3);
@@ -2416,15 +2394,12 @@ struct verify_backward_weights_gru
         miopen::TensorDescriptor weightDesc(miopenFloat, &weightSize, 1);
 
         std::vector<int> hlens(3, 0);
-        hlens[0] = nLayers * (dirMode) ? 2 : 1;
+        hlens[0] = nLayers * (dirMode ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopenFloat, hlens.data(), 3);
         auto dy_dev    = handle.Write(dy);
         auto input_dev = handle.Write(input);
-
-        std::vector<int> wlen(1, 0);
-        wlen[0] = weightSize;
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_start1 = std::chrono::high_resolution_clock::now();
