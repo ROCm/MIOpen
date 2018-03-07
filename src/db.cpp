@@ -50,22 +50,23 @@ namespace miopen {
 struct RecordPositions
 {
     std::streamoff begin = -1;
-    std::streamoff end = -1;
+    std::streamoff end   = -1;
 };
 
 inline static std::string LockFilePath(const boost::filesystem::path& filename_)
 {
-	const auto directory = boost::filesystem::temp_directory_path() / "miopen-lockfiles";
+    const auto directory = boost::filesystem::temp_directory_path() / "miopen-lockfiles";
 
-	if (!exists(directory))
-		boost::filesystem::create_directories(directory);
+    if(!exists(directory))
+        boost::filesystem::create_directories(directory);
 
-	std::hash<std::string> hash_func;
+    std::hash<std::string> hash_func;
 
-	const auto hash = hash_func(filename_.parent_path().string());
-	const auto file = directory / (std::to_string(hash) + "_" + filename_.filename().string() + ".lock");
+    const auto hash = hash_func(filename_.parent_path().string());
+    const auto file =
+        directory / (std::to_string(hash) + "_" + filename_.filename().string() + ".lock");
 
-	return file.string();
+    return file.string();
 }
 
 Db::Db(const std::string& filename_)
@@ -76,7 +77,7 @@ Db::Db(const std::string& filename_)
 template <class TLock>
 inline static void ValidateLock(const TLock& lock)
 {
-    if (!lock)
+    if(!lock)
         MIOPEN_THROW("Db lock has failed to lock.");
 }
 
@@ -86,7 +87,7 @@ static boost::posix_time::ptime GetLockTimeout()
 }
 
 using exclusive_lock = boost::interprocess::scoped_lock<LockFile>;
-using shared_lock = boost::interprocess::sharable_lock<LockFile>;
+using shared_lock    = boost::interprocess::sharable_lock<LockFile>;
 
 inline static exclusive_lock MakeExclusiveLock(LockFile& lock_file)
 {
@@ -104,36 +105,36 @@ inline static shared_lock MakeSharedLock(LockFile& lock_file)
 
 boost::optional<DbRecord> Db::FindRecord(const std::string& key)
 {
-	const auto lock = MakeSharedLock(lock_file);
+    const auto lock = MakeSharedLock(lock_file);
     return FindRecordUnsafe(key, nullptr);
 }
 
 bool Db::StoreRecord(const DbRecord& record)
 {
-	const auto lock = MakeExclusiveLock(lock_file);
+    const auto lock = MakeExclusiveLock(lock_file);
     return StoreRecordUnsafe(record);
 }
 
 bool Db::UpdateRecord(DbRecord& record)
 {
-	const auto lock = MakeExclusiveLock(lock_file);
+    const auto lock = MakeExclusiveLock(lock_file);
     return UpdateRecordUnsafe(record);
 }
 
 bool Db::RemoveRecord(const std::string& key)
 {
-	const auto lock = MakeExclusiveLock(lock_file);
+    const auto lock = MakeExclusiveLock(lock_file);
     return RemoveRecordUnsafe(key);
 }
 
 bool Db::Remove(const std::string& key, const std::string& id)
 {
-	const auto lock = MakeExclusiveLock(lock_file);
-    auto record = FindRecordUnsafe(key, nullptr);
-    if (!record)
+    const auto lock = MakeExclusiveLock(lock_file);
+    auto record     = FindRecordUnsafe(key, nullptr);
+    if(!record)
         return false;
     bool erased = record->EraseValues(id);
-    if (!erased)
+    if(!erased)
         return false;
     return StoreRecordUnsafe(*record);
 }
@@ -160,11 +161,11 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
     while(true)
     {
         std::string line;
-		const auto line_begin = file.tellg();
+        const auto line_begin = file.tellg();
         if(!std::getline(file, line))
             break;
         ++n_line;
-		const auto next_line_begin = file.tellg();
+        const auto next_line_begin = file.tellg();
 
         const auto key_size = line.find('=');
         const bool is_key   = (key_size != std::string::npos && key_size != 0);
@@ -288,14 +289,14 @@ bool Db::StoreRecordUnsafe(const DbRecord& record)
 {
     MIOPEN_LOG_I("Storing record: " << record.key);
     RecordPositions pos;
-	const auto old_record = FindRecordUnsafe(record.key, &pos);
+    const auto old_record = FindRecordUnsafe(record.key, &pos);
     return FlushUnsafe(record, &pos);
 }
 
 bool Db::UpdateRecordUnsafe(DbRecord& record)
 {
     RecordPositions pos;
-	const auto old_record = FindRecordUnsafe(record.key, &pos);
+    const auto old_record = FindRecordUnsafe(record.key, &pos);
     DbRecord new_record(record);
     if(old_record)
     {
@@ -319,7 +320,7 @@ bool Db::RemoveRecordUnsafe(const std::string& key)
     MIOPEN_LOG_I("Removing record: " << key);
     RecordPositions pos;
     FindRecordUnsafe(key, &pos);
-	const DbRecord empty_record(key);
+    const DbRecord empty_record(key);
     return FlushUnsafe(empty_record, &pos);
 }
 

@@ -88,7 +88,7 @@ class Db
     template <class T>
     inline bool RemoveRecord(const T& problem_config)
     {
-		const auto key = DbRecord::Serialize(problem_config);
+        const auto key = DbRecord::Serialize(problem_config);
         return RemoveRecord(key);
     }
 
@@ -103,7 +103,7 @@ class Db
     {
         DbRecord record(problem_config);
         record.SetValues(id, values);
-		const auto ok = UpdateRecord(record);
+        const auto ok = UpdateRecord(record);
         if(ok)
             return record;
         else
@@ -119,7 +119,7 @@ class Db
     template <class T, class V>
     inline bool Load(const T& problem_config, const std::string& id, V& values)
     {
-		const auto record = FindRecord(problem_config);
+        const auto record = FindRecord(problem_config);
 
         if(!record)
             return false;
