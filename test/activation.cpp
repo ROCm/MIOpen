@@ -192,27 +192,27 @@ struct activation_driver : test_driver
     {
         add_mode(miopenActivationPATHTRU, [=](T x) { return x; }, [=](T, T x, T) { return x; });
         add_mode(miopenActivationLOGISTIC,
-                 [=](T x) { return 1 / (1 + std::exp(-x)); },
-                 [=](T dy, T, T y) { return dy * y * (1 - y); });
+                 [=](double x) { return 1 / (1 + std::exp(-x)); },
+                 [=](double dy, double, double y) { return dy * y * (1 - y); });
         add_mode(miopenActivationTANH,
-                 [=](T x) { return alpha * std::tanh(beta * x); },
-                 [=](T dy, T, T y) { return dy * (1 - y * y); });
+                 [=](double x) { return alpha * std::tanh(beta * x); },
+                 [=](double dy, double, double y) { return dy * (1 - y * y); });
         add_mode(miopenActivationRELU,
-                 [=](T x) { return (x > 0) ? x : x * beta; },
-                 [=](T dy, T, T) { return std::max(T(0), dy); });
+                 [=](double x) { return (x > 0) ? x : x * beta; },
+                 [=](double dy, double, double) { return std::max(double(0), dy); });
         add_mode(miopenActivationSOFTRELU,
-                 [=](T x) { return std::log(1 + std::exp(x)); },
-                 [=](T dy, T x, T) {
-                     static const float threshold = 50.;
-                     T expval = T(std::exp(std::min(x, static_cast<T>(threshold))));
+                 [=](double x) { return std::log(1 + std::exp(x)); },
+                 [=](double dy, double x, double) {
+                     static const double threshold = 50.;
+                     double expval                 = std::exp(std::min(x, threshold));
                      return dy * expval / (expval + 1.0);
                  });
         add_mode(miopenActivationABS,
-                 [=](T x) { return std::abs(x); },
-                 [=](T dy, T x, T) { return dy * ((x >= 0) ? 1 : -1); });
+                 [=](double x) { return std::abs(x); },
+                 [=](double dy, double x, double) { return dy * ((x >= 0) ? 1 : -1); });
         add_mode(miopenActivationPOWER,
-                 [=](T x) { return std::pow(alpha + beta * x, power); },
-                 [=](T, T x, T y) {
+                 [=](double x) { return std::pow(alpha + beta * x, power); },
+                 [=](double, double x, double y) {
                      auto divisor = alpha + beta * x;
                      return (miopen::float_equal(divisor, 0)) ? 0 : alpha * beta * y / divisor;
                  });
