@@ -253,8 +253,8 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     // clang-format off
     bool ok = (params.pad0 == 0          // -q  pad_w
         && params.pad1 == 0             // -p  pad_h
-        && params.kernel_stride0 <= 2   // -u  stride_w
-        && params.kernel_stride1 <= 2   // -v  stride_h
+        && params.kernel_stride0 == 1 // <= 2   // -u  stride_w
+        //&& params.kernel_stride1 <= 2   // -v  stride_h
         && params.kernel_stride0 == params.kernel_stride1
         && params.kernel_size0 == 1     // -x  S wei_w
         && params.kernel_size1 == 1     // -y  R wei_h
@@ -372,7 +372,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
 
         // Note that params.in_height/params.in_width are swapped for output size when initialized
-        // in mlo_internal.hpp for backward convolutions
+        // in mlo_internal.hpp for WrW convolutions
         GenerateClangDefsym(options, "img_h", params.in_height); // H
         GenerateClangDefsym(options, "img_w", params.in_width);  // W
         GenerateClangDefsym(options, "stride_h", 1);
@@ -381,7 +381,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     else
     {
         // Note that params.out_height/params.out_width are swapped for input size when initialized
-        // in mlo_internal.hpp for backward convolutions
+        // in mlo_internal.hpp for WrW convolutions
         GenerateClangDefsym(options, "img_h", params.out_height); // H
         GenerateClangDefsym(options, "img_w", params.out_width);  // W
         GenerateClangDefsym(options, "stride_h", params.kernel_stride1);
@@ -389,7 +389,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     }
 
     GenerateClangDefsym(options, "batch_size", params.batch_sz); // N
-    // Note that params.n_outputs and params.n_inputs are swapped for backward convolutions.
+    // Note that params.n_outputs and params.n_inputs are swapped for WrW convolutions.
     GenerateClangDefsym(options, "input_channels", params.n_outputs); // C
     GenerateClangDefsym(options, "output_channels", params.n_inputs); // K
     GenerateClangDefsym(options, "wei_h", params.kernel_size1);       // R
