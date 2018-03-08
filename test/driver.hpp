@@ -176,7 +176,7 @@ struct test_driver
         arg.read_value  = [&] { return args::read_value{}(x); };
         miopen::each_args(std::bind(per_arg{}, std::ref(x), std::ref(arg), std::placeholders::_1),
                           fs...);
-        assert(get_argument(name).name == name);
+        // assert(get_argument(name).name == name);
     }
 
     void show_help()
@@ -710,7 +710,7 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
     d.parse(keyword_set{keywords});
     auto arg_map = args::parse(as, [&](std::string x) {
         return (keywords.count(x) > 0) or
-               ((x.compare(0, 2, "--") == 0) and d.has_argument(x.substr(2)) > 0);
+               ((x.compare(0, 2, "--") == 0) and d.has_argument(x.substr(2)));
     });
 
     if(arg_map.count("--half") > 0)
@@ -727,7 +727,7 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
     }
 
     // Show help
-    if(arg_map.count("-h") or arg_map.count("--help"))
+    if((arg_map.count("-h") > 0) or (arg_map.count("--help") > 0))
     {
         d.show_help();
         return;
@@ -737,7 +737,14 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
 
     for(auto&& p : arg_map)
     {
-        if(keywords.count(p.first) == 0)
+        if(p.first.empty())
+        {
+            std::cerr << "Unused arguments: " << std::endl;
+            for(auto&& s : p.second)
+                std::cerr << "    " << s << std::endl;
+            std::abort();
+        }
+        else if(keywords.count(p.first) == 0)
         {
             assert(p.first.length() > 2);
             auto name = p.first.substr(2);
