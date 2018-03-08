@@ -34,34 +34,40 @@
 #include <cstdlib>
 #include "tensor_holder.hpp"
 
-
 // loop over sub-tensor, and operate on each data
-template<typename T, template<typename> typename data_operator_t>
-void operate_over_subtensor( const data_operator_t<T> & r_data_operator, tensor<T> & rSuperTensor, const miopen::TensorDescriptor & rSubDesc, const int offset)
+template <typename T, template <typename> typename data_operator_t>
+void operate_over_subtensor(const data_operator_t<T>& r_data_operator,
+                            tensor<T>& rSuperTensor,
+                            const miopen::TensorDescriptor& rSubDesc,
+                            const int offset)
 {
-    operate_over_subtensor_impl( r_data_operator, rSuperTensor, rSubDesc, 0, offset );
+    operate_over_subtensor_impl(r_data_operator, rSuperTensor, rSubDesc, 0, offset);
 }
 
-
-// loop over part of sub-tensor (from dimension "current_dim" to the max-dimension), and operate on each data
-template<typename T, template<typename> typename data_operator_t>
-void operate_over_subtensor_impl( const data_operator_t<T> & r_data_operator, tensor<T> & rSuperTensor, const miopen::TensorDescriptor & rSubDesc, const uint current_dim, const int offset)
+// loop over part of sub-tensor (from dimension "current_dim" to the max-dimension), and operate on
+// each data
+template <typename T, template <typename> typename data_operator_t>
+void operate_over_subtensor_impl(const data_operator_t<T>& r_data_operator,
+                                 tensor<T>& rSuperTensor,
+                                 const miopen::TensorDescriptor& rSubDesc,
+                                 const uint current_dim,
+                                 const int offset)
 {
-    const int max_dim = rSubDesc.GetLengths().size() - 1;
+    const int max_dim        = rSubDesc.GetLengths().size() - 1;
     const int current_stride = rSubDesc.GetStrides()[current_dim];
 
     int index = offset;
 
-    for( int i = 0; i < rSubDesc.GetLengths()[current_dim]; ++i )
+    for(int i = 0; i < rSubDesc.GetLengths()[current_dim]; ++i)
     {
-        if( current_dim == max_dim )
-            r_data_operator( rSuperTensor[index] );
+        if(current_dim == max_dim)
+            r_data_operator(rSuperTensor[index]);
         else
-            operate_over_subtensor_impl<T, data_operator_t> ( r_data_operator, rSuperTensor, rSubDesc, current_dim+1, index );
+            operate_over_subtensor_impl<T, data_operator_t>(
+                r_data_operator, rSuperTensor, rSubDesc, current_dim + 1, index);
 
         index += current_stride;
     }
 }
-
 
 #endif

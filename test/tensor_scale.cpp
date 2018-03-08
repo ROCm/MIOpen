@@ -43,17 +43,13 @@
 
 #define MIO_TENSORSCALE_DEBUG 0
 
-template<typename T>
+template <typename T>
 struct scale_data_t
 {
     const T alpha;
 
-    void operator() (T & r_data) const
-    {
-        r_data *= alpha;
-    }
+    void operator()(T& r_data) const { r_data *= alpha; }
 };
-
 
 template <class T>
 struct verify_tensor_scale
@@ -64,14 +60,14 @@ struct verify_tensor_scale
     T alpha;
 
     verify_tensor_scale(const tensor<T>& rSuper,
-                      const miopen::TensorDescriptor& rSubDesc,
-                      const int offsetIn,
-                      const T alphaIn)
+                        const miopen::TensorDescriptor& rSubDesc,
+                        const int offsetIn,
+                        const T alphaIn)
     {
         subDesc = rSubDesc;
         super   = rSuper;
         offset  = offsetIn;
-        alpha = alphaIn;
+        alpha   = alphaIn;
     }
 
     tensor<T> cpu() const
@@ -85,7 +81,7 @@ struct verify_tensor_scale
 
         const scale_data_t<T> data_operator = {alpha};
 
-        operate_over_subtensor( data_operator, superCpu, subDesc, offset );
+        operate_over_subtensor(data_operator, superCpu, subDesc, offset);
 
 #if(MIO_TENSORSCALE_DEBUG == 1)
         printf("done\n");
@@ -104,10 +100,9 @@ struct verify_tensor_scale
 
         tensor<T> superGpu = super;
 
-        auto&& handle   = get_handle();
+        auto&& handle  = get_handle();
         auto super_dev = handle.Write(superGpu.data);
-        miopen::ScaleTensor(
-            handle, subDesc, super_dev.get(), &alpha, offset);
+        miopen::ScaleTensor(handle, subDesc, super_dev.get(), &alpha, offset);
         superGpu.data = handle.Read<T>(super_dev, superGpu.data.size());
 
 #if(MIO_TENSORSCALE_DEBUG == 1)
@@ -163,7 +158,7 @@ struct tensor_scale_driver : test_driver
     {
         std::vector<size_t> superStrides = super.desc.GetStrides();
         std::vector<int> subStrides(superStrides.begin() + (5 - subLens.size()),
-                                 superStrides.end());
+                                    superStrides.end());
 
         subDesc = miopen::TensorDescriptor(
             miopenFloat, subLens.data(), subStrides.data(), subLens.size());
