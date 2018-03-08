@@ -35,7 +35,7 @@
 #include "tensor_holder.hpp"
 
 // loop over sub-tensor, and operate on each data
-template <typename T, template <typename> typename data_operator_t>
+template <typename T, template <typename> class data_operator_t>
 void operate_over_subtensor(const data_operator_t<T>& r_data_operator,
                             tensor<T>& rSuperTensor,
                             const miopen::TensorDescriptor& rSubDesc,
@@ -44,9 +44,9 @@ void operate_over_subtensor(const data_operator_t<T>& r_data_operator,
     operate_over_subtensor_impl(r_data_operator, rSuperTensor, rSubDesc, 0, offset);
 }
 
-// loop over part of sub-tensor (from dimension "current_dim" to the max-dimension), and operate on
+// loop over part of sub-tensor (dimensions lower than "current_dim"), and operate on
 // each data
-template <typename T, template <typename> typename data_operator_t>
+template <typename T, template <typename> class data_operator_t>
 void operate_over_subtensor_impl(const data_operator_t<T>& r_data_operator,
                                  tensor<T>& rSuperTensor,
                                  const miopen::TensorDescriptor& rSubDesc,
