@@ -40,9 +40,8 @@ __kernel void ScaleTensor1d(global MIOPEN_TYPE* __restrict dst,
                             const int len0)
 {
     const uint tidx = get_global_id(0);
-    const uint tszx = get_global_size(0);
 
-    for(uint did0 = tidx; did0 < len0; did0 += tszx)
+    for(uint did0 = tidx; did0 < len0; did0 += GLOBAL_WORK_SIZE_X)
     {
         const uint i = stride0 * did0;
 
@@ -61,12 +60,9 @@ __kernel void ScaleTensor2d(global MIOPEN_TYPE* __restrict dst,
     const uint tidx = get_global_id(0);
     const uint tidy = get_global_id(1);
 
-    const uint tszx = get_global_size(0);
-    const uint tszy = get_global_size(1);
-
-    for(uint did0 = tidy; did0 < len0; did0 += tszy)
+    for(uint did0 = tidy; did0 < len0; did0 += GLOBAL_WORK_SIZE_Y)
     {
-        for(uint did1 = tidx; did1 < len1; did1 += tszx)
+        for(uint did1 = tidx; did1 < len1; did1 += GLOBAL_WORK_SIZE_X)
         {
             const uint i = stride0 * did0 + stride1 * did1;
             dst[i + offset] *= alpha;
@@ -88,15 +84,11 @@ __kernel void ScaleTensor3d(global MIOPEN_TYPE* __restrict dst,
     const uint tidy = get_global_id(1);
     const uint tidz = get_global_id(2);
 
-    const uint tszx = get_global_size(0);
-    const uint tszy = get_global_size(1);
-    const uint tszz = get_global_size(2);
-
-    for(uint did0 = tidz; did0 < len0; did0 += tszz)
+    for(uint did0 = tidz; did0 < len0; did0 += GLOBAL_WORK_SIZE_Z)
     {
-        for(uint did1 = tidy; did1 < len1; did1 += tszy)
+        for(uint did1 = tidy; did1 < len1; did1 += GLOBAL_WORK_SIZE_Y)
         {
-            for(uint did2 = tidx; did2 < len2; did2 += tszx)
+            for(uint did2 = tidx; did2 < len2; did2 += GLOBAL_WORK_SIZE_X)
             {
                 const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2;
 
@@ -122,17 +114,13 @@ __kernel void ScaleTensor4d(global MIOPEN_TYPE* __restrict dst,
     const uint tidy = get_global_id(1);
     const uint tidz = get_global_id(2);
 
-    const uint tszx = get_global_size(0);
-    const uint tszy = get_global_size(1);
-    const uint tszz = get_global_size(2);
-
     for(uint did0 = 0; did0 < len0; did0++)
     {
-        for(uint did1 = tidz; did1 < len1; did1 += tszz)
+        for(uint did1 = tidz; did1 < len1; did1 += GLOBAL_WORK_SIZE_Z)
         {
-            for(uint did2 = tidy; did2 < len2; did2 += tszy)
+            for(uint did2 = tidy; did2 < len2; did2 += GLOBAL_WORK_SIZE_Y)
             {
-                for(uint did3 = tidx; did3 < len3; did3 += tszx)
+                for(uint did3 = tidx; did3 < len3; did3 += GLOBAL_WORK_SIZE_X)
                 {
                     const uint i =
                         stride0 * did0 + stride1 * did1 + stride2 * did2 + stride3 * did3;
@@ -162,19 +150,15 @@ __kernel void ScaleTensor5d(global MIOPEN_TYPE* __restrict dst,
     const uint tidy = get_global_id(1);
     const uint tidz = get_global_id(2);
 
-    const uint tszx = get_global_size(0);
-    const uint tszy = get_global_size(1);
-    const uint tszz = get_global_size(2);
-
     for(uint did0 = 0; did0 < len0; did0++)
     {
         for(uint did1 = 0; did1 < len1; did1++)
         {
-            for(uint did2 = tidz; did2 < len2; did2 += tszz)
+            for(uint did2 = tidz; did2 < len2; did2 += GLOBAL_WORK_SIZE_Z)
             {
-                for(uint did3 = tidy; did3 < len3; did3 += tszy)
+                for(uint did3 = tidy; did3 < len3; did3 += GLOBAL_WORK_SIZE_Y)
                 {
-                    for(uint did4 = tidx; did4 < len4; did4 += tszx)
+                    for(uint did4 = tidx; did4 < len4; did4 += GLOBAL_WORK_SIZE_X)
                     {
                         const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2 +
                                        stride3 * did3 + stride4 * did4;
