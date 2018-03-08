@@ -733,11 +733,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             {
 
 #ifndef NDEBUG
-                if(workSpace == nullptr ||
-                   workSpaceSize < ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc))
-                {
-                    MIOPEN_THROW("Workspace is required");
-                }
+                assert(workSpace == nullptr &&
+                       workSpaceSize >= ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc));
 #endif
 
                 CreateGemmGeometryConvFwdCNHW(xDesc, wDesc, yDesc, false, network_config);
@@ -776,11 +773,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             {
 
 #ifndef NDEBUG
-                if(workSpace == nullptr ||
-                   workSpaceSize < ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc))
-                {
-                    MIOPEN_THROW("Workspace is required");
-                }
+                assert(workSpace == nullptr &&
+                       workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc));
 #endif
 
                 CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
@@ -874,11 +868,10 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
 
 #ifndef NDEBUG
-        if((wei_h != 1 || wei_w != 1 || u != 1 || v != 1) &&
-           (workSpace == nullptr ||
-            workSpaceSize < BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc)))
+        if(wei_h != 1 || wei_w != 1 || u != 1 || v != 1)
         {
-            MIOPEN_THROW("Workspace is required");
+            assert(workSpace != nullptr &&
+                   workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc));
         }
 #endif
 
@@ -1443,11 +1436,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             {
 
 #ifndef NDEBUG
-                if(workSpace == nullptr ||
-                   workSpaceSize < BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc))
-                {
-                    MIOPEN_THROW("Workspace is required");
-                }
+                assert(workSpace != nullptr &&
+                       workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc));
 #endif
 
                 float t1 = 0;
@@ -1487,11 +1477,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             {
 
 #ifndef NDEBUG
-                if(workSpace == nullptr ||
-                   workSpaceSize < BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc))
-                {
-                    MIOPEN_THROW("Workspace is required");
-                }
+                assert(workSpace != nullptr &&
+                       workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc));
 #endif
 
                 CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, true, network_config);
@@ -1591,11 +1578,10 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
 #ifndef NDEBUG
-        if((wei_h != 1 || wei_w != 1 || u != 1 || v != 1) &&
-           (workSpace == nullptr ||
-            workSpaceSize < ForwardGetWorkSpaceSizeGEMM(handle, wDesc, dxDesc)))
+        if(wei_h != 1 || wei_w != 1 || u != 1 || v != 1)
         {
-            MIOPEN_THROW("Workspace is required");
+            assert(workSpace != nullptr &&
+                   workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, dxDesc));
         }
 #endif
 
@@ -2106,11 +2092,11 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             std::string network_config;
 
 #ifndef NDEBUG
-            if((wei_h != 1 || wei_w != 1 || v != 1 || u != 1) &&
-               (workSpace == nullptr ||
-                workSpaceSize < BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc)))
+            if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
             {
-                MIOPEN_THROW("Workspace is required");
+                assert(workSpace != nullptr &&
+                       workSpaceSize >=
+                           BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc));
             }
 #else
             (void)workSpaceSize; // Suppress warning
@@ -2227,12 +2213,9 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
 #ifndef NDEBUG
                         // this pointer needed here as a workaround in gcc 5
-                        assert(workSpaceSize >= this->BackwardWeightsGetWorkSpaceSizeDirect(
+                        assert(workSpace != nullptr &&
+                               workSpaceSize >= this->BackwardWeightsGetWorkSpaceSizeDirect(
                                                     handle, dyDesc, xDesc, dwDesc));
-                        if(workSpace == nullptr)
-                        {
-                            MIOPEN_THROW("Workspace is required");
-                        }
 #endif
 
                         if(kernel.GetName() == "SubSample")
@@ -2300,11 +2283,10 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         std::string network_config;
 
 #ifndef NDEBUG
-        if((wei_h != 1 || wei_w != 1 || v != 1 || u != 1) &&
-           (workSpace == nullptr ||
-            workSpaceSize < BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc)))
+        if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
         {
-            MIOPEN_THROW("Workspace is required");
+            assert(workSpace == nullptr &&
+                   workSpaceSize >= BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc));
         }
 #endif
 
