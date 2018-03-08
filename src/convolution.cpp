@@ -308,8 +308,8 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         if(dilation_w > 1 || dilation_h > 1)
             return ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
 
-        if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)) &&
-           dilation_w == 1 && dilation_h == 1)
+        if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 &&
+           ((u == 1 && v == 1) || (u == 2 && v == 2)) && dilation_w == 1 && dilation_h == 1)
         {
             return ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
         }
@@ -348,8 +348,8 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         if(dilation_w > 1 || dilation_h > 1)
             return BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
 
-        if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)) &&
-           dilation_w == 1 && dilation_h == 1)
+        if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 &&
+           ((u == 1 && v == 1) || (u == 2 && v == 2)) && dilation_w == 1 && dilation_h == 1)
         {
             return BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc);
         }
