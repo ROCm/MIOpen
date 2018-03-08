@@ -188,7 +188,7 @@ __kernel void CopyTensor5d(const global MIOPEN_TYPE* __restrict src,
                                             srcStride4 * did4;
                         const uint dindex = dstStride0 * did0 + dstStride1 * did1 +
                                             dstStride2 * did2 + dstStride3 * did3 +
-                                            srcStride4 * did4;
+                                            dstStride4 * did4;
 
                         dst[dindex + dstOffset] = src[sindex + srcOffset];
                     }
