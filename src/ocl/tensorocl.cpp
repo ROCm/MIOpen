@@ -618,9 +618,9 @@ void SetTensor(
             }
             else
             {
-                parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
-                        " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
-                        " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+                parms += " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
+                         " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                         " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
 
                 kernel = handle.AddKernel(
                     "SetTensor2d", network_config, program_name, "SetTensor2d", vld, vgd, parms);
@@ -659,9 +659,9 @@ void SetTensor(
             }
             else
             {
-                parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
-                        " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
-                        " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+                parms += " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
+                         " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                         " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
 
                 kernel = handle.AddKernel(
                     "SetTensor3d", network_config, program_name, "SetTensor3d", vld, vgd, parms);
@@ -702,9 +702,9 @@ void SetTensor(
             }
             else
             {
-                parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
-                        " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
-                        " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+                parms += " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
+                         " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                         " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
 
                 kernel = handle.AddKernel(
                     "SetTensor4d", network_config, program_name, "SetTensor4d", vld, vgd, parms);
@@ -747,9 +747,9 @@ void SetTensor(
             }
             else
             {
-                parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
-                        " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
-                        " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+                parms += " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
+                         " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                         " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
 
                 kernel = handle.AddKernel(
                     "SetTensor5d", network_config, program_name, "SetTensor5d", vld, vgd, parms);
@@ -793,6 +793,7 @@ void ScaleTensor(
     }
 
     std::string program_name = "MIOpenTensorScaleKernel.cl";
+
     switch(yDesc.GetType())
     {
     case miopenFloat:
@@ -837,6 +838,8 @@ void ScaleTensor(
             }
 
             kernel(y, miopen_alpha, offset, int(yDesc.GetStrides()[0]), int(yDesc.GetLengths()[0]));
+
+            break;
         }
         case 2:
         {
@@ -859,9 +862,9 @@ void ScaleTensor(
             }
             else
             {
-                parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
-                        " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
-                        " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+                parms += " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
+                         " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                         " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
 
                 kernel = handle.AddKernel("ScaleTensor2d",
                                           network_config,
@@ -905,9 +908,9 @@ void ScaleTensor(
             }
             else
             {
-                parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
-                        " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
-                        " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+                parms += " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
+                         " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                         " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
 
                 kernel = handle.AddKernel("ScaleTensor3d",
                                           network_config,
@@ -953,9 +956,9 @@ void ScaleTensor(
             }
             else
             {
-                parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
-                        " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
-                        " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+                parms += " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
+                         " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                         " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
 
                 kernel = handle.AddKernel("ScaleTensor4d",
                                           network_config,
@@ -1003,9 +1006,9 @@ void ScaleTensor(
             }
             else
             {
-                parms = " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
-                        " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
-                        " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
+                parms += " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
+                         " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
+                         " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
 
                 kernel = handle.AddKernel("ScaleTensor5d",
                                           network_config,

@@ -66,7 +66,7 @@ struct verify_tensor_copy
         dstOffset = offsets[1];
     }
 
-    void tensor_copy_for_loop(int aoffsetIndex, int coffsetIndex, int dim)
+    void tensor_copy_for_loop(tensor<T> & csuperCpu, int aoffsetIndex, int coffsetIndex, int dim) const
     {
         auto astride = srcDesc.GetStrides()[dim];
         auto cstride = dstDesc.GetStrides()[dim];
@@ -78,33 +78,34 @@ struct verify_tensor_copy
 
             if(dim < (srcDesc.GetLengths().size() - 1))
             {
-                tensor_copy_for_loop(aindex, cindex, dim + 1);
+                tensor_copy_for_loop(csuperCpu, aindex, cindex, dim + 1);
             }
-            if(cindex < csuper.desc.GetElementSpace() && aindex < asuper.desc.GetElementSpace())
+            if(cindex < csuperCpu.desc.GetElementSpace() && aindex < asuper.desc.GetElementSpace())
             {
-                csuper[cindex] = asuper[aindex];
+                csuperCpu[cindex] = asuper[aindex];
             }
         }
     }
 
-    tensor<T> cpu()
+    tensor<T> cpu() const
     {
 
 #if(MIO_TENSORCOPY_DEBUG == 1)
         printf("CPU test start...");
         fflush(nullptr);
 #endif
+        tensor<T> csuperCpu = csuper;
 
-        tensor_copy_for_loop(0, 0, 0);
+        tensor_copy_for_loop(csuperCpu, 0, 0, 0);
 
 #if(MIO_TENSORCOPY_DEBUG == 1)
         printf("done\n");
         fflush(nullptr);
 #endif
-        return csuper;
+        return csuperCpu;
     }
 
-    tensor<T> gpu()
+    tensor<T> gpu() const
     {
 
 #if(MIO_TENSORCOPY_DEBUG == 1)
@@ -112,18 +113,20 @@ struct verify_tensor_copy
         fflush(nullptr);
 #endif
 
+        tensor<T> csuperGpu = csuper;
+
         auto&& handle   = get_handle();
-        auto csuper_dev = handle.Write(csuper.data);
+        auto csuper_dev = handle.Write(csuperGpu.data);
         auto asuper_dev = handle.Write(asuper.data);
         miopen::CopyTensor(
             handle, srcDesc, asuper_dev.get(), dstDesc, csuper_dev.get(), srcOffset, dstOffset);
-        csuper.data = handle.Read<T>(csuper_dev, csuper.data.size());
+        csuperGpu.data = handle.Read<T>(csuper_dev, csuperGpu.data.size());
 
 #if(MIO_TENSORCOPY_DEBUG == 1)
         printf("done.\n");
         fflush(nullptr);
 #endif
-        return csuper;
+        return csuperGpu;
     }
 
     void fail(float = 0)
