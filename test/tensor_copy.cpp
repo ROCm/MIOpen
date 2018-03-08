@@ -66,7 +66,8 @@ struct verify_tensor_copy
         dstOffset = offsets[1];
     }
 
-    void tensor_copy_for_loop(tensor<T> & csuperCpu, int aoffsetIndex, int coffsetIndex, int dim) const
+    void
+    tensor_copy_for_loop(tensor<T>& csuperCpu, int aoffsetIndex, int coffsetIndex, int dim) const
     {
         auto astride = srcDesc.GetStrides()[dim];
         auto cstride = dstDesc.GetStrides()[dim];
