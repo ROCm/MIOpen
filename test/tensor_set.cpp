@@ -126,7 +126,7 @@ struct tensor_set_driver : test_driver
     tensor<T> super;
     miopen::TensorDescriptor subDesc;
     std::vector<int> subLens;
-    int offset;
+    int offset = 0;
 
     tensor_set_driver()
     {

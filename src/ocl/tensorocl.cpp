@@ -555,6 +555,9 @@ void SetTensor(
     }
 
     std::string program_name = "MIOpenTensorSetKernel.cl";
+
+    assert(yDesc.GetType() == miopenFloat || yDesc.GetType() == miopenHalf);
+
     switch(yDesc.GetType())
     {
     case miopenFloat:
@@ -562,6 +565,8 @@ void SetTensor(
         float miopen_alpha = *(static_cast<const float*>(alpha));
         std::string parms =
             " -DMIOPEN_TYPE=" + GetDataType(yDesc.GetType()) + " -DMIOPEN_ALPHA_TYPE=float";
+
+        assert(yDesc.GetLengths().size() > 0 && yDesc.GetLengths().size() <= 5);
 
         switch(yDesc.GetLengths().size())
         {
@@ -771,15 +776,11 @@ void SetTensor(
 
             break;
         }
-
-        default: break;
         }
 
         break;
     }
     case miopenHalf: break;
-
-    default: break;
     }
 }
 
@@ -794,6 +795,8 @@ void ScaleTensor(
 
     std::string program_name = "MIOpenTensorScaleKernel.cl";
 
+    assert(yDesc.GetType() == miopenFloat || yDesc.GetType() == miopenHalf);
+
     switch(yDesc.GetType())
     {
     case miopenFloat:
@@ -801,6 +804,8 @@ void ScaleTensor(
         float miopen_alpha = *(static_cast<const float*>(alpha));
         std::string parms =
             " -DMIOPEN_TYPE=" + GetDataType(yDesc.GetType()) + " -DMIOPEN_ALPHA_TYPE=float";
+
+        assert(yDesc.GetLengths().size() > 0 && yDesc.GetLengths().size() <= 5);
 
         switch(yDesc.GetLengths().size())
         {
@@ -1035,15 +1040,11 @@ void ScaleTensor(
 
             break;
         }
-
-        default: break;
         }
 
         break;
     }
     case miopenHalf: break;
-
-    default: break;
     }
 }
 
@@ -1083,6 +1084,8 @@ void CopyTensor(Handle& handle,
        (srcDesc.GetElementSpace() != srcDesc.GetElementSize() ||
         dstDesc.GetElementSpace() != dstDesc.GetElementSize()))
     {
+        assert(srcDesc.GetLengths().size() > 0 && srcDesc.GetLengths().size() <= 5);
+
         switch(srcDesc.GetLengths().size())
         {
         case 1:
@@ -1320,7 +1323,6 @@ void CopyTensor(Handle& handle,
 
             break;
         }
-        default: break;
         }
     }
     else
