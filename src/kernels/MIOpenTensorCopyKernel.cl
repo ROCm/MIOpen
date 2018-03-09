@@ -24,17 +24,52 @@
  *
  *******************************************************************************/
 
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
 
-#ifndef MIOPEN_TYPE
-#define MIOPEN_TYPE float
+#if MIOPEN_USE_FP16 == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
+#endif
+#endif
+#if MIOPEN_USE_FP32 == 1
+#define _FLOAT float
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
 #endif
 
-__kernel void CopyTensor1d(const global MIOPEN_TYPE* __restrict src,
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
+#define _AS_FLOAT PPCAT(as_, _FLOAT)
+
+#ifndef GLOBAL_WORK_SIZE_X
+#define GLOBAL_WORK_SIZE_X 1
+#endif
+
+#ifndef GLOBAL_WORK_SIZE_Y
+#define GLOBAL_WORK_SIZE_Y 1
+#endif
+
+#ifndef GLOBAL_WORK_SIZE_Z
+#define GLOBAL_WORK_SIZE_Z 1
+#endif
+
+__kernel void CopyTensor1d(const global _FLOAT* __restrict src,
                            const int srcOffset,
                            const int srcStride0,
                            const int srcLen0,
-                           global MIOPEN_TYPE* __restrict dst,
+                           global _FLOAT* __restrict dst,
                            const int dstOffset,
                            const int dstStride0)
 {
@@ -49,13 +84,13 @@ __kernel void CopyTensor1d(const global MIOPEN_TYPE* __restrict src,
     }
 }
 
-__kernel void CopyTensor2d(const global MIOPEN_TYPE* __restrict src,
+__kernel void CopyTensor2d(const global _FLOAT* __restrict src,
                            const int srcOffset,
                            const int srcStride0,
                            const int srcStride1,
                            const int srcLen0,
                            const int srcLen1,
-                           global MIOPEN_TYPE* __restrict dst,
+                           global _FLOAT* __restrict dst,
                            const int dstOffset,
                            const int dstStride0,
                            const int dstStride1)
@@ -75,7 +110,7 @@ __kernel void CopyTensor2d(const global MIOPEN_TYPE* __restrict src,
     }
 }
 
-__kernel void CopyTensor3d(const global MIOPEN_TYPE* __restrict src,
+__kernel void CopyTensor3d(const global _FLOAT* __restrict src,
                            const int srcOffset,
                            const int srcStride0,
                            const int srcStride1,
@@ -83,7 +118,7 @@ __kernel void CopyTensor3d(const global MIOPEN_TYPE* __restrict src,
                            const int srcLen0,
                            const int srcLen1,
                            const int srcLen2,
-                           global MIOPEN_TYPE* __restrict dst,
+                           global _FLOAT* __restrict dst,
                            const int dstOffset,
                            const int dstStride0,
                            const int dstStride1,
@@ -108,7 +143,7 @@ __kernel void CopyTensor3d(const global MIOPEN_TYPE* __restrict src,
     }
 }
 
-__kernel void CopyTensor4d(const global MIOPEN_TYPE* __restrict src,
+__kernel void CopyTensor4d(const global _FLOAT* __restrict src,
                            const int srcOffset,
                            const int srcStride0,
                            const int srcStride1,
@@ -118,7 +153,7 @@ __kernel void CopyTensor4d(const global MIOPEN_TYPE* __restrict src,
                            const int srcLen1,
                            const int srcLen2,
                            const int srcLen3,
-                           global MIOPEN_TYPE* __restrict dst,
+                           global _FLOAT* __restrict dst,
                            const int dstOffset,
                            const int dstStride0,
                            const int dstStride1,
@@ -149,7 +184,7 @@ __kernel void CopyTensor4d(const global MIOPEN_TYPE* __restrict src,
     }
 }
 
-__kernel void CopyTensor5d(const global MIOPEN_TYPE* __restrict src,
+__kernel void CopyTensor5d(const global _FLOAT* __restrict src,
                            const int srcOffset,
                            const int srcStride0,
                            const int srcStride1,
@@ -161,7 +196,7 @@ __kernel void CopyTensor5d(const global MIOPEN_TYPE* __restrict src,
                            const int srcLen2,
                            const int srcLen3,
                            const int srcLen4,
-                           global MIOPEN_TYPE* __restrict dst,
+                           global _FLOAT* __restrict dst,
                            const int dstOffset,
                            const int dstStride0,
                            const int dstStride1,

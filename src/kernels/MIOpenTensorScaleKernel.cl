@@ -24,17 +24,49 @@
  *
  *******************************************************************************/
 
+#define PPCAT_NX(A, B) A##B
+#define PPCAT(A, B) PPCAT_NX(A, B)
+#define TWO 2
+#define FOUR 4
+#define EIGHT 8
+
+#if MIOPEN_USE_FP16 == 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#ifndef MIOPEN_ALPHA_TYPE
-#define MIOPEN_ALPHA_TYPE float
+#define _FLOAT half
+#ifndef HALF_MAX
+#define MAX_VAL 65504 /* max value */
+#else
+#define MAX_VAL HALF_MAX
+#endif
+#endif
+#if MIOPEN_USE_FP32 == 1
+#define _FLOAT float
+#ifndef FLT_MAX
+#define MAX_VAL 3.402823466e+38F /* max value */
+#else
+#define MAX_VAL FLT_MAX
+#endif
 #endif
 
-#ifndef MIOPEN_TYPE
-#define MIOPEN_TYPE float
+#define _FLOAT2 PPCAT(_FLOAT, TWO)
+#define _FLOAT4 PPCAT(_FLOAT, FOUR)
+#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
+#define _AS_FLOAT PPCAT(as_, _FLOAT)
+
+#ifndef GLOBAL_WORK_SIZE_X
+#define GLOBAL_WORK_SIZE_X 1
 #endif
 
-__kernel void ScaleTensor1d(global MIOPEN_TYPE* __restrict dst,
-                            const MIOPEN_ALPHA_TYPE alpha,
+#ifndef GLOBAL_WORK_SIZE_Y
+#define GLOBAL_WORK_SIZE_Y 1
+#endif
+
+#ifndef GLOBAL_WORK_SIZE_Z
+#define GLOBAL_WORK_SIZE_Z 1
+#endif
+
+__kernel void ScaleTensor1d(global _FLOAT* __restrict dst,
+                            const _FLOAT alpha,
                             const int offset,
                             const int stride0,
                             const int len0)
@@ -49,8 +81,8 @@ __kernel void ScaleTensor1d(global MIOPEN_TYPE* __restrict dst,
     }
 }
 
-__kernel void ScaleTensor2d(global MIOPEN_TYPE* __restrict dst,
-                            const MIOPEN_ALPHA_TYPE alpha,
+__kernel void ScaleTensor2d(global _FLOAT* __restrict dst,
+                            const _FLOAT alpha,
                             const int offset,
                             const int stride0,
                             const int stride1,
@@ -70,8 +102,8 @@ __kernel void ScaleTensor2d(global MIOPEN_TYPE* __restrict dst,
     }
 }
 
-__kernel void ScaleTensor3d(global MIOPEN_TYPE* __restrict dst,
-                            const MIOPEN_ALPHA_TYPE alpha,
+__kernel void ScaleTensor3d(global _FLOAT* __restrict dst,
+                            const _FLOAT alpha,
                             const int offset,
                             const int stride0,
                             const int stride1,
@@ -98,8 +130,8 @@ __kernel void ScaleTensor3d(global MIOPEN_TYPE* __restrict dst,
     }
 }
 
-__kernel void ScaleTensor4d(global MIOPEN_TYPE* __restrict dst,
-                            const MIOPEN_ALPHA_TYPE alpha,
+__kernel void ScaleTensor4d(global _FLOAT* __restrict dst,
+                            const _FLOAT alpha,
                             const int offset,
                             const int stride0,
                             const int stride1,
@@ -132,8 +164,8 @@ __kernel void ScaleTensor4d(global MIOPEN_TYPE* __restrict dst,
     }
 }
 
-__kernel void ScaleTensor5d(global MIOPEN_TYPE* __restrict dst,
-                            const MIOPEN_ALPHA_TYPE alpha,
+__kernel void ScaleTensor5d(global _FLOAT* __restrict dst,
+                            const _FLOAT alpha,
                             const int offset,
                             const int stride0,
                             const int stride1,
