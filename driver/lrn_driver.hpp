@@ -40,8 +40,9 @@
 #include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>
+#include "random.hpp"
 
-template <typename T>
+template <typename Tgpu, typename Tref>
 class LRNDriver : public Driver
 {
     public:
@@ -50,10 +51,11 @@ class LRNDriver : public Driver
         miopenCreateTensorDescriptor(&inputTensor);
         miopenCreateTensorDescriptor(&outputTensor);
 
-        miopenCreateLRNDescriptor(&lrnDesc);
-
         miopenCreateTensorDescriptor(&dInputTensor);
         miopenCreateTensorDescriptor(&dOutputTensor);
+
+        miopenCreateLRNDescriptor(&lrnDesc);
+        data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
     int AddCmdLineArgs();
@@ -94,28 +96,32 @@ class LRNDriver : public Driver
     std::unique_ptr<GPUMem> out_dev;
     std::unique_ptr<GPUMem> scale_dev;
 
-    std::vector<T> in;
-    std::vector<T> out;
-    std::vector<T> outhost;
-    std::vector<T> scale;
-    std::vector<T> scalehost;
+    std::vector<Tgpu> in;
+    std::vector<Tgpu> out;
+    std::vector<Tref> outhost;
+    std::vector<Tgpu> scale;
+    std::vector<Tref> scalehost;
 
     miopenLRNDescriptor_t lrnDesc;
+    bool do_backward;
 
     miopenTensorDescriptor_t dInputTensor;
     miopenTensorDescriptor_t dOutputTensor;
+
     std::unique_ptr<GPUMem> din_dev;
     std::unique_ptr<GPUMem> dout_dev;
 
-    std::vector<T> din;
-    std::vector<T> dout;
-    std::vector<T> dinhost;
+    std::vector<Tgpu> din;
+    std::vector<Tgpu> dout;
+    std::vector<Tref> dinhost;
 };
 
-template <typename T>
-int LRNDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
+template <typename Tgpu, typename Tref>
+int LRNDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
+
+    do_backward = !(inflags.GetValueInt("forw"));
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -130,24 +136,22 @@ int LRNDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
     return 0;
 }
 
-template <typename T>
-int LRNDriver<T>::GetandSetData()
+template <typename Tgpu, typename Tref>
+int LRNDriver<Tgpu, Tref>::GetandSetData()
 {
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
 
-    SetTensor4d(inputTensor, in_len);
-
+    SetTensor4d(inputTensor, in_len, data_type);
+    SetTensor4d(dInputTensor, in_len, data_type);
     SetLRNDescriptorFromCmdLineArgs();
 
-    SetTensor4d(outputTensor, in_len);
-
-    SetTensor4d(dInputTensor, in_len);
-    SetTensor4d(dOutputTensor, in_len);
+    SetTensor4d(outputTensor, in_len, data_type);
+    SetTensor4d(dOutputTensor, in_len, data_type);
     return (0);
 }
 
-template <typename T>
-int LRNDriver<T>::AddCmdLineArgs()
+template <typename Tgpu, typename Tref>
+int LRNDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "0", "Run only Forward LRN Normalization (Default=0)", "int");
     inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
@@ -174,8 +178,8 @@ int LRNDriver<T>::AddCmdLineArgs()
     return 0;
 }
 
-template <typename T>
-std::vector<int> LRNDriver<T>::GetInputTensorLengthsFromCmdLine()
+template <typename Tgpu, typename Tref>
+std::vector<int> LRNDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     int in_n = inflags.GetValueInt("batchsize");
     int in_c = inflags.GetValueInt("in_channels");
@@ -185,8 +189,8 @@ std::vector<int> LRNDriver<T>::GetInputTensorLengthsFromCmdLine()
     return std::vector<int>({in_n, in_c, in_h, in_w});
 }
 
-template <typename T>
-int LRNDriver<T>::SetLRNDescriptorFromCmdLineArgs()
+template <typename Tgpu, typename Tref>
+int LRNDriver<Tgpu, Tref>::SetLRNDescriptorFromCmdLineArgs()
 {
 
     miopenLRNMode_t mode;
@@ -208,19 +212,18 @@ int LRNDriver<T>::SetLRNDescriptorFromCmdLineArgs()
         exit(0);
     }
 
-    miopenSetLRNDescriptor(lrnDesc, mode, lrnN, lrnAlpha, lrnBeta, lrnK);
-    return (0);
+    return (miopenSetLRNDescriptor(lrnDesc, mode, lrnN, lrnAlpha, lrnBeta, lrnK));
 }
 
-template <typename T>
-int LRNDriver<T>::AllocateBuffersAndCopy()
+template <typename Tgpu, typename Tref>
+int LRNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
 
-    size_t workspaceSize = 0;
-    miopenLRNGetWorkSpaceSize(outputTensor, &workspaceSize);
-
-    size_t in_sz  = GetTensorSize(inputTensor);
-    size_t out_sz = GetTensorSize(outputTensor);
+    size_t in_sz         = GetTensorSize(inputTensor);
+    size_t out_sz        = GetTensorSize(outputTensor);
+    size_t workSpaceSize = 0;
+    miopenLRNGetWorkSpaceSize(outputTensor, &workSpaceSize);
+    size_t workSpaceNbVal = workSpaceSize / sizeof(Tgpu);
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
@@ -228,46 +231,47 @@ int LRNDriver<T>::AllocateBuffersAndCopy()
 #elif MIOPEN_BACKEND_HIP
     uint32_t ctx = 0;
 #endif
-    in_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
-    out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
+    in_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
-    din_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
-    dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
+    din_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
-    if(inflags.GetValueInt("forw") == 0)
+    if(do_backward)
     {
-        scale_dev =
-            std::unique_ptr<GPUMem>(new GPUMem(ctx, workspaceSize / sizeof(float), sizeof(float)));
+        scale_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceNbVal, sizeof(Tgpu)));
     }
 
-    in      = std::vector<float>(in_sz);
-    out     = std::vector<float>(out_sz, 0);
-    outhost = std::vector<float>(out_sz, 0);
-    if(inflags.GetValueInt("forw") == 0)
+    in      = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    out     = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
+    if(do_backward)
     {
-        scale     = std::vector<float>(workspaceSize / sizeof(float), 0);
-        scalehost = std::vector<float>(workspaceSize / sizeof(float), 0);
+        scale     = std::vector<Tgpu>(workSpaceNbVal, static_cast<Tgpu>(0));
+        scalehost = std::vector<Tref>(workSpaceNbVal, static_cast<Tref>(0));
     }
-    din     = std::vector<float>(in_sz);
-    dout    = std::vector<float>(out_sz, 0);
-    dinhost = std::vector<float>(in_sz, 0);
+    din     = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    dout    = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    dinhost = std::vector<Tref>(in_sz, static_cast<Tref>(0));
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = static_cast<T>((static_cast<double>(rand()) * (1.0 / RAND_MAX)));
+        in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     }
 
+    Tgpu Data_scale = static_cast<Tgpu>(0.001);
     for(int i = 0; i < out_sz; i++)
     {
-        dout[i] = static_cast<T>((static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5) * 0.001));
+        dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
     }
+
 #if MIOPEN_BACKEND_OPENCL
     cl_int status;
 #elif MIOPEN_BACKEND_HIP
     int status;
 #endif
     status = in_dev->ToGPU(q, in.data());
-    if(inflags.GetValueInt("forw") == 0)
+    if(do_backward)
     {
         status |= scale_dev->ToGPU(q, scale.data());
     }
@@ -282,11 +286,11 @@ int LRNDriver<T>::AllocateBuffersAndCopy()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int LRNDriver<T>::RunForwardGPU()
+template <typename Tgpu, typename Tref>
+int LRNDriver<Tgpu, Tref>::RunForwardGPU()
 {
 
-    float alpha = 1, beta = 0;
+    Tgpu alpha = static_cast<Tgpu>(1), beta = static_cast<Tgpu>(0);
 
     miopenLRNForward(GetHandle(),
                      lrnDesc,
@@ -296,8 +300,8 @@ int LRNDriver<T>::RunForwardGPU()
                      &beta,
                      outputTensor,
                      out_dev->GetMem(),
-                     (inflags.GetValueInt("forw") == 0) ? true : false,
-                     (inflags.GetValueInt("forw") == 0) ? scale_dev->GetMem() : nullptr);
+                     do_backward,
+                     do_backward ? scale_dev->GetMem() : nullptr);
 
     Timer t;
     START_TIME;
@@ -312,8 +316,8 @@ int LRNDriver<T>::RunForwardGPU()
                          &beta,
                          outputTensor,
                          out_dev->GetMem(),
-                         (inflags.GetValueInt("forw") == 0) ? true : false,
-                         (inflags.GetValueInt("forw") == 0) ? scale_dev->GetMem() : nullptr);
+                         do_backward,
+                         do_backward ? scale_dev->GetMem() : nullptr);
     }
 
     if(inflags.GetValueInt("time") == 1)
@@ -330,7 +334,7 @@ int LRNDriver<T>::RunForwardGPU()
 
     out_dev->FromGPU(GetStream(), out.data());
 
-    if(inflags.GetValueInt("forw") == 0)
+    if(do_backward)
     {
         scale_dev->FromGPU(GetStream(), scale.data());
     }
@@ -338,85 +342,16 @@ int LRNDriver<T>::RunForwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int LRNDriver<T>::RunForwardCPU()
+template <typename Tgpu, typename Tref>
+int LRNDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    int nInStride, cInStride, hInStride, wInStride;
-    miopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
-    int nIn, cIn, hIn, wIn;
-    miopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
-    int nOutStride, cOutStride, hOutStride, wOutStride;
-    miopenGet4dTensorDescriptorStrides(
-        outputTensor, &nOutStride, &cOutStride, &hOutStride, &wOutStride);
-    int nOut, cOut, hOut, wOut;
-    miopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
-    miopenLRNMode_t v_mode;
-    unsigned int v_lrnN;
-    double v_lrnAlpha;
-    double v_lrnBeta;
-    double v_lrnK;
-
-    miopenGetLRNDescriptor(lrnDesc, &v_mode, &v_lrnN, &v_lrnAlpha, &v_lrnBeta, &v_lrnK);
-
-    float alphaoverarea = static_cast<float>(
-        (v_mode == miopenLRNCrossChannel) ? v_lrnAlpha / v_lrnN : v_lrnAlpha / (v_lrnN * v_lrnN));
-
-    int pre_pad = (v_lrnN - 1) / 2;
-    int pad     = v_lrnN - pre_pad - 1;
-
-    int batch_sz           = nIn;
-    int n_inputs           = cIn;
-    int bot_height         = hIn;
-    int bot_width          = wIn;
-    int bot_stride         = hInStride;
-    int bot_channel_stride = cInStride;
-    int bot_batch_stride   = nInStride;
-
-    int n_outputs  = cOut;
-    int top_height = hOut;
-    int top_width  = wOut;
-
-    int top_v_stride           = hOutStride;
-    int top_v_channel_stride   = cOutStride;
-    int top_v_batch_stride     = nOutStride;
-    int scale_v_stride         = top_v_stride;
-    int scale_v_channel_stride = top_v_channel_stride;
-    int scale_v_batch_stride   = top_v_batch_stride;
-
-    mloLRNForwardRunHost<T>((inflags.GetValueInt("forw") == 0) ? true : false,
-                            v_mode,
-                            pad,
-                            v_lrnN,
-                            alphaoverarea,
-                            static_cast<T>(v_lrnAlpha),
-                            static_cast<T>(v_lrnBeta),
-                            static_cast<T>(v_lrnK),
-                            batch_sz,
-                            n_outputs,
-                            n_inputs,
-                            bot_height,
-                            bot_width,
-                            bot_stride,
-                            bot_channel_stride,
-                            bot_batch_stride,
-                            top_height,
-                            top_width,
-                            top_v_stride,
-                            top_v_channel_stride,
-                            top_v_batch_stride,
-                            scale_v_stride,
-                            scale_v_channel_stride,
-                            scale_v_batch_stride,
-                            in.data(),
-                            scalehost.data(),
-                            outhost.data());
     return (0);
 }
 
-template <typename T>
-int LRNDriver<T>::RunBackwardGPU()
+template <typename Tgpu, typename Tref>
+int LRNDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    float alpha = 1., beta = 0.;
+    Tgpu alpha = static_cast<Tgpu>(1), beta = static_cast<Tgpu>(0);
 
     miopenLRNBackward(GetHandle(),
                       lrnDesc,
@@ -465,31 +400,92 @@ int LRNDriver<T>::RunBackwardGPU()
     }
 
     din_dev->FromGPU(GetStream(), din.data());
-    return (0);
+
+    return miopenStatusSuccess;
 }
 
-template <typename T>
-int LRNDriver<T>::VerifyForward()
+template <typename Tgpu, typename Tref>
+int LRNDriver<Tgpu, Tref>::VerifyForward()
 {
 
-    RunForwardCPU();
+    int nInStride, cInStride, hInStride, wInStride;
+    miopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
 
-    auto error             = miopen::rms_range(outhost, out);
-    const double tolerance = 1e-6;
+    int nIn, cIn, hIn, wIn;
+    miopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
+
+    int nOutStride, cOutStride, hOutStride, wOutStride;
+    miopenGet4dTensorDescriptorStrides(
+        outputTensor, &nOutStride, &cOutStride, &hOutStride, &wOutStride);
+
+    int nOut, cOut, hOut, wOut;
+    miopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
+
+    miopenLRNMode_t v_mode;
+    unsigned int v_lrnN;
+    double v_lrnAlpha;
+    double v_lrnBeta;
+    double v_lrnK;
+
+    miopenGetLRNDescriptor(lrnDesc, &v_mode, &v_lrnN, &v_lrnAlpha, &v_lrnBeta, &v_lrnK);
+
+    Tref alphaoverarea =
+        (v_mode == miopenLRNCrossChannel) ? v_lrnAlpha / v_lrnN : v_lrnAlpha / (v_lrnN * v_lrnN);
+
+    int pre_pad = (v_lrnN - 1) / 2;
+    int pad     = v_lrnN - pre_pad - 1;
+
+    mloLRNForwardRunHost<Tgpu, Tref>(do_backward,
+                                     v_mode,
+                                     pad,
+                                     v_lrnN,
+                                     alphaoverarea,
+                                     v_lrnAlpha,
+                                     v_lrnBeta,
+                                     v_lrnK,
+                                     nIn,        // batch_sz,
+                                     cOut,       // n_outputs,
+                                     cIn,        // n_inputs,
+                                     hIn,        // bot_height,
+                                     wIn,        // bot_width,
+                                     hInStride,  // bot_stride,
+                                     cInStride,  // bot_channel_stride,
+                                     nInStride,  // bot_batch_stride,
+                                     hOut,       // top_height,
+                                     wOut,       // top_width,
+                                     hOutStride, // top_v_stride,
+                                     cOutStride, // top_v_channel_stride,
+                                     nOutStride, // top_v_batch_stride,
+                                     hOutStride, // scale_v_stride,
+                                     cOutStride, // scale_v_channel_stride,
+                                     nOutStride, // scale_v_batch_stride,
+                                     in.data(),
+                                     scalehost.data(),
+                                     outhost.data());
+
+    auto error           = miopen::rms_range(outhost, out);
+    const Tref tolerance = 1.5e-4; // 1e-6;
     if(error > tolerance)
     {
         std::cout << "Forward LRN Failed: " << error << "\n";
     }
     else
     {
-        printf("Forward LRN Verifies on CPU and GPU\n");
+        printf("Forward LRN Verifies on CPU and GPU (err=%f)\n", error);
     }
 
     return 0;
 }
 
-template <typename T>
-int LRNDriver<T>::RunBackwardCPU()
+template <typename Tgpu, typename Tref>
+int LRNDriver<Tgpu, Tref>::RunBackwardCPU()
+{
+
+    return 0;
+}
+
+template <typename Tgpu, typename Tref>
+int LRNDriver<Tgpu, Tref>::VerifyBackward()
 {
 
     int nInStride, cInStride, hInStride, wInStride;
@@ -521,92 +517,56 @@ int LRNDriver<T>::RunBackwardCPU()
 
     miopenGetLRNDescriptor(lrnDesc, &v_mode, &v_lrnN, &v_lrnAlpha, &v_lrnBeta, &v_lrnK);
 
-    float alphaoverarea = static_cast<float>(
-        (v_mode == miopenLRNCrossChannel) ? v_lrnAlpha / v_lrnN : v_lrnAlpha / (v_lrnN * v_lrnN));
+    Tref alphaoverarea =
+        (v_mode == miopenLRNCrossChannel) ? v_lrnAlpha / v_lrnN : v_lrnAlpha / (v_lrnN * v_lrnN);
 
     int pre_pad = (v_lrnN - 1) / 2;
     int pad     = v_lrnN - pre_pad - 1;
 
-    int batch_sz           = nIn;
-    int n_inputs           = cIn;
-    int bot_height         = hIn;
-    int bot_width          = wIn;
-    int bot_stride         = hInStride;
-    int bot_channel_stride = cInStride;
-    int bot_batch_stride   = nInStride;
+    mloLRNBackwardRunHost<Tgpu, Tref>(static_cast<int>(v_mode),
+                                      pad,
+                                      v_lrnN,
+                                      alphaoverarea,
+                                      v_lrnAlpha,
+                                      v_lrnBeta,
+                                      v_lrnK,
+                                      nIn,         // batch_sz,
+                                      cOut,        // n_outputs,
+                                      cIn,         // n_inputs,
+                                      hIn,         // bot_height,
+                                      wIn,         // bot_width,
+                                      hInStride,   // bot_stride,
+                                      cInStride,   // bot_channel_stride,
+                                      nInStride,   // bot_batch_stride,
+                                      hdInStride,  // bot_df_v_stride,
+                                      cdInStride,  // bot_df_v_channel_stride,
+                                      ndInStride,  // bot_df_v_batch_stride,
+                                      hOut,        // top_height,
+                                      wOut,        // top_width,
+                                      hOutStride,  // top_stride,
+                                      cOutStride,  // top_channel_stride,
+                                      nOutStride,  // top_batch_stride,
+                                      hdOutStride, // top_df_stride,
+                                      cdOutStride, // top_df_channel_stride,
+                                      ndOutStride, // top_df_batch_stride,
+                                      hdOutStride, // scale_stride,
+                                      cdOutStride, // scale_channel_stride,
+                                      ndOutStride, // scale_batch_stride,
+                                      out.data(),
+                                      dout.data(),
+                                      scale.data(),
+                                      in.data(),
+                                      dinhost.data());
 
-    int bot_df_v_stride         = hdInStride;
-    int bot_df_v_channel_stride = cdInStride;
-    int bot_df_v_batch_stride   = ndInStride;
-
-    int n_outputs          = cOut;
-    int top_height         = hOut;
-    int top_width          = wOut;
-    int top_stride         = hOutStride;
-    int top_channel_stride = cOutStride;
-    int top_batch_stride   = nOutStride;
-
-    int top_df_stride         = hdOutStride;
-    int top_df_channel_stride = cdOutStride;
-    int top_df_batch_stride   = ndOutStride;
-
-    int scale_stride         = top_df_stride;
-    int scale_channel_stride = top_df_channel_stride;
-    int scale_batch_stride   = top_df_batch_stride;
-
-    mloLRNBackwardRunHost<float>(static_cast<int>(v_mode),
-                                 pad,
-                                 v_lrnN,
-                                 alphaoverarea,
-                                 static_cast<float>(v_lrnAlpha),
-                                 static_cast<float>(v_lrnBeta),
-                                 static_cast<float>(v_lrnK),
-                                 batch_sz,
-                                 n_outputs,
-                                 n_inputs,
-                                 bot_height,
-                                 bot_width,
-                                 bot_stride,
-                                 bot_channel_stride,
-                                 bot_batch_stride,
-                                 bot_df_v_stride,
-                                 bot_df_v_channel_stride,
-                                 bot_df_v_batch_stride,
-                                 top_height,
-                                 top_width,
-                                 top_stride,
-                                 top_channel_stride,
-                                 top_batch_stride,
-                                 top_df_stride,
-                                 top_df_channel_stride,
-                                 top_df_batch_stride,
-                                 scale_stride,
-                                 scale_channel_stride,
-                                 scale_batch_stride,
-                                 out.data(),
-                                 dout.data(),
-                                 scale.data(),
-                                 in.data(),
-                                 dinhost.data());
-
-    return 0;
-}
-
-template <typename T>
-int LRNDriver<T>::VerifyBackward()
-{
-
-    RunBackwardCPU();
-
-    auto error             = miopen::rms_range(dinhost, din);
-    const double tolerance = 1e-6;
+    auto error           = miopen::rms_range(dinhost, din);
+    const Tref tolerance = 6.0e-5;
     if(error > tolerance)
     {
         std::cout << "Backward LRN Failed: " << error << "\n";
     }
     else
     {
-        printf("Backward LRN Verifies on CPU and GPU\n");
+        printf("Backward LRN Verifies on CPU and GPU (err=%f)\n", error);
     }
 
     return 0;
