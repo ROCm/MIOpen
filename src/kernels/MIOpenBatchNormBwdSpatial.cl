@@ -1249,21 +1249,17 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 {
 
     // SPATIAL
-    _FLOAT mean     = (_FLOAT)0.;
+    _FLOAT mean        = (_FLOAT)0.;
 #if(MIO_BN_USESAVED == 0)
-    _FLOAT variance = (_FLOAT)0.;
+    _FLOAT variance    = (_FLOAT)0.;
 #endif
-    _FLOAT invVar   = (_FLOAT)0.;
-    _FLOAT pscale   = (_FLOAT)0.;
-    _FLOAT ds       = (_FLOAT)0.;
-    _FLOAT db       = (_FLOAT)0.;
+    _FLOAT invVariance = (_FLOAT)0.;
+    _FLOAT pscale      = (_FLOAT)0.;
+    _FLOAT ds          = (_FLOAT)0.;
+    _FLOAT db          = (_FLOAT)0.;
 #if(MIO_BN_N < MIO_BN_MAXN)
     _FLOAT batchvalues[MIO_BN_N];
     _FLOAT dyvalues[MIO_BN_N];
-#endif
-
-#ifdef __AMDGCN__
-    unsigned int segment = MIO_BN_GRP1 >> 6;
 #endif
 
     unsigned int lid  = get_local_id(1);
@@ -1290,8 +1286,8 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         lvar  = *(savedInvVariance + xgid);
     }
     barrier(CLK_LOCAL_MEM_FENCE);
-    mean   = lmean;
-    invVar = lvar;
+    mean        = lmean;
+    invVariance = lvar;
 
 #else // recalc mean and variance
 
@@ -1389,15 +1385,15 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             db += dyvalues[n] = *(dy_in + index);
 
 #if(MIO_BN_USESAVED == 1)
-            batchvalues[n]    = (*(x_in + index) - mean) * invVar;
+            batchvalues[n]    = (*(x_in + index) - mean) * invVariance;
 #else
-            batchvalues[n] = (batchvalues[n] - mean) * invVar;
+            batchvalues[n] = (batchvalues[n] - mean) * invVariance;
 #endif // batchvalues is now xhat
 
             ds = mad(batchvalues[n], dyvalues[n], ds);
 #else  // maxn
             db += *(dy_in + index);
-            _FLOAT xhat = ((*(x_in + index) - mean) * invVar);
+            _FLOAT xhat = ((*(x_in + index) - mean) * invVariance);
             ds = mad(xhat, *(dy_in + index), ds);
 #endif
         }
@@ -1473,9 +1469,9 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             tmp2          = -(batchvalues[n]) * ds;
 #else
             tmp1 = mad(NHW, *(dy_in + index), -db);
-            tmp2 = -(*(x_in + index) - mean) * invVar * ds;
+            tmp2 = -(*(x_in + index) - mean) * invVariance * ds;
 #endif
-            tmp3          = (pscale * invVar) * INHW;
+            tmp3          = (pscale * invVariance) * INHW;
             dx_out[index] = tmp3 * (tmp2 + tmp1);
         }
     }
