@@ -732,7 +732,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                dilation_w == 1 && dilation_h == 1)
             {
 
-                assert(workSpace == nullptr &&
+                assert(workSpace != nullptr &&
                        workSpaceSize >= ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc));
 
                 CreateGemmGeometryConvFwdCNHW(xDesc, wDesc, yDesc, false, network_config);
@@ -770,7 +770,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             else
             {
 
-                assert(workSpace == nullptr &&
+                assert(workSpace != nullptr &&
                        workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc));
 
                 CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
@@ -2267,7 +2267,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
         if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
         {
-            assert(workSpace == nullptr &&
+            assert(workSpace != nullptr &&
                    workSpaceSize >= BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc));
         }
 
