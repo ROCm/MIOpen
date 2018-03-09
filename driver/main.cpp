@@ -87,40 +87,38 @@ int main(int argc, char* argv[])
     drv->AddCmdLineArgs();
     drv->ParseCmdLineArgs(argc, argv);
     drv->GetandSetData();
-
     drv->AllocateBuffersAndCopy();
 
-    if((drv->GetInputFlags().GetValueInt("forw") != 2) ||
-       (drv->GetInputFlags().GetValueInt("forw") == 2 && (base_arg == "bnorm")))
+    int fargval     = drv->GetInputFlags().GetValueInt("forw");
+    bool bnFwdInVer = (fargval == 2 && (base_arg == "bnorm"));
+    bool verifyarg  = drv->GetInputFlags().GetValueInt("verify") == 1;
+
+    if((fargval != 2) || bnFwdInVer)
     {
         drv->RunForwardGPU();
     }
 
-    if(drv->GetInputFlags().GetValueInt("verify") == 1 &&
-       drv->GetInputFlags().GetValueInt("forw") != 2)
+    if(verifyarg)
     {
-        if(base_arg == "gemm")
+        if(base_arg != "gemm")
         {
-            printf("GEMM verification done in the GEMM library\n");
+            if(fargval != 2 || bnFwdInVer)
+            {
+                drv->VerifyForward();
+            }
         }
         else
         {
-            drv->VerifyForward();
+            printf("GEMM verification done in the GEMM library\n");
         }
     }
 
-    if(drv->GetInputFlags().GetValueInt("verify") == 1 &&
-       drv->GetInputFlags().GetValueInt("forw") == 2 && (base_arg == "bnorm"))
+    if(fargval != 1)
     {
-        drv->VerifyForward();
-    }
-
-    if(drv->GetInputFlags().GetValueInt("forw") != 1)
-    {
-        if(!(base_arg == "gemm"))
+        if(base_arg != "gemm")
         {
             drv->RunBackwardGPU();
-            if(drv->GetInputFlags().GetValueInt("verify") == 1)
+            if(verifyarg)
             {
                 drv->VerifyBackward();
             }
