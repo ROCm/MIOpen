@@ -254,14 +254,13 @@ void bnFwdTrainSelectSingle(Handle& handle,
                             float inhw)
 {
 
-
 #if(MIOPEN_BN_CPP_DEBUG == 1)
-        printf("Inside %s.\n", __FUNCTION__);
+    printf("Inside %s.\n", __FUNCTION__);
 #endif
     visit_float(dtype, [&](auto as_float) {
 
 #if(MIOPEN_BN_CPP_DEBUG == 1)
-        printf("sizeof cast inhw: %d, ",sizeof(as_float(inhw)));
+        printf("sizeof cast inhw: %d, ", sizeof(as_float(inhw)));
         printf("inhw: %e\n", inhw);
 #endif
         if(resultsave && resultrunning)
@@ -282,7 +281,14 @@ void bnFwdTrainSelectSingle(Handle& handle,
         else if(resultsave)
         {
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                x, y, bnScale, bnBias, as_float(inhw), epsilon, resultSaveMean, resultSaveInvVariance);
+                x,
+                y,
+                bnScale,
+                bnBias,
+                as_float(inhw),
+                epsilon,
+                resultSaveMean,
+                resultSaveInvVariance);
         }
         else if(resultrunning)
         {
@@ -336,7 +342,7 @@ void bnBwdTrainSelectSingle(Handle& handle,
         else
         {
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
-                x, dy, dx, bnScale, dScale, dBias, epsilon,  as_float(inhw));
+                x, dy, dx, bnScale, dScale, dBias, epsilon, as_float(inhw));
         }
     });
 }
@@ -401,7 +407,8 @@ void bnBwdTrainSelectMulti(Handle& handle,
 
             kernel_subname = kernel_name + "DScaleDBias";
             handle.AddKernel(
-                algo_name, network_config, program_name, kernel_subname, vld, vgd, parms, 2)(x, dy, dx);
+                algo_name, network_config, program_name, kernel_subname, vld, vgd, parms, 2)(
+                x, dy, dx);
             profileSequence(handle, 1, &ctime);
 
             kernel_subname = kernel_name + "FinalDScaleDBias";
