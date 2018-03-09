@@ -794,6 +794,10 @@ int BatchNormDriver<Tgpu, Tref>::RunForwardGPU()
             // printf("Running for inference.\n");
             runGPUFwdInference(epsilon, alpha, beta);
         }
+        else if(forw == 0)
+        {
+            return miopenStatusSuccess;
+        }
         else
         {
             printf("Batch normalization mode forward GPU selection out of range, skipping.\n");
