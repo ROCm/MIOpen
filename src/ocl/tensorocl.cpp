@@ -826,7 +826,7 @@ void OpTensor4d(Handle& handle,
                 parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" +
                          std::to_string(MAP_RD) + " -DREAD_TYPE=" + READ_TYPE;
 
-                if(miopen_beta != 0)
+                if(!float_equal(miopen_beta, 0.0))
                 {
                     parms += " -DBETA";
                 }
