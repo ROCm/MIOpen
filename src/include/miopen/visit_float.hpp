@@ -41,6 +41,18 @@ struct as_float
     {
         return static_cast<T>(x);
     }
+
+    template <class X>
+    type* operator()(X* x) const
+    {
+        return static_cast<T*>(x);
+    }
+
+    template <class X>
+    const type* operator()(const X* x) const
+    {
+        return static_cast<const T*>(x);
+    }
 };
 
 template <class F>

@@ -189,10 +189,10 @@ struct tensor_copy_driver : test_driver
         std::vector<int> cstrides(cSuperStrides.begin() + (5 - copylens.size()),
                                   cSuperStrides.end());
 
-        srcDesc = miopen::TensorDescriptor(
-            miopenFloat, copylens.data(), astrides.data(), copylens.size());
-        dstDesc = miopen::TensorDescriptor(
-            miopenFloat, copylens.data(), cstrides.data(), copylens.size());
+        srcDesc =
+            miopen::TensorDescriptor(this->type, copylens.data(), astrides.data(), copylens.size());
+        dstDesc =
+            miopen::TensorDescriptor(this->type, copylens.data(), cstrides.data(), copylens.size());
 
         if(srcDesc.GetLengths().size() == dstDesc.GetLengths().size())
         {

@@ -160,13 +160,13 @@ struct tensor_scale_driver : test_driver
         std::vector<int> subStrides(superStrides.begin() + (5 - subLens.size()),
                                     superStrides.end());
 
-        subDesc = miopen::TensorDescriptor(
-            miopenFloat, subLens.data(), subStrides.data(), subLens.size());
+        subDesc =
+            miopen::TensorDescriptor(this->type, subLens.data(), subStrides.data(), subLens.size());
 
 #if(MIO_TENSORSCALE_DEBUG == 1)
         printf("offset: %d\n", offset);
 #endif
-        verify_equals(verify_tensor_scale<T>{super, subDesc, offset, T(1.111)});
+        verify_equals(verify_tensor_scale<T>{super, subDesc, offset, T(2.048)});
     }
 };
 
