@@ -28,6 +28,7 @@
 #define SOURCE_INLINER_HPP
 #include "source_file_desc.hpp"
 #include <ostream>
+#include <memory>
 #include <stack>
 
 class InlineException : public std::exception
@@ -58,7 +59,7 @@ class IncludeInliner
 
     private:
     int _include_depth                   = 0;
-    SourceFileDesc* _included_stack_head = nullptr;
+    std::shared_ptr<SourceFileDesc> _included_stack_head = nullptr;
 
     void ProcessCore(std::istream& input,
                      std::ostream& output,
