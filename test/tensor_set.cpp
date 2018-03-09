@@ -160,8 +160,8 @@ struct tensor_set_driver : test_driver
         std::vector<int> subStrides(superStrides.begin() + (5 - subLens.size()),
                                     superStrides.end());
 
-        subDesc = miopen::TensorDescriptor(
-            miopenFloat, subLens.data(), subStrides.data(), subLens.size());
+        subDesc =
+            miopen::TensorDescriptor(this->type, subLens.data(), subStrides.data(), subLens.size());
 
 #if(MIO_TENSORSET_DEBUG == 1)
         printf("offset: %d\n", offset);
