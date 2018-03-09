@@ -64,7 +64,7 @@ static std::string GetAbsolutePath(const std::string& path)
 #endif
     return result;
 }
-}  // namespace PathHelpers
+} // namespace PathHelpers
 
 InlineStackOverflowException::InlineStackOverflowException(const std::string& trace)
 {
@@ -94,8 +94,9 @@ void IncludeInliner::ProcessCore(std::istream& input,
         throw InlineStackOverflowException(GetIncludeStackTrace(0));
 
     _include_depth++;
-    _included_stack_head = std::make_shared<SourceFileDesc>(file_name, _included_stack_head, line_number);
-    auto current_line    = 0;
+    _included_stack_head =
+        std::make_shared<SourceFileDesc>(file_name, _included_stack_head, line_number);
+    auto current_line = 0;
 
     while(!input.eof())
     {
@@ -136,7 +137,7 @@ void IncludeInliner::ProcessCore(std::istream& input,
         }
     }
 
-    auto prev_file = _included_stack_head->included_from;
+    auto prev_file       = _included_stack_head->included_from;
     _included_stack_head = prev_file;
     _include_depth--;
 }
