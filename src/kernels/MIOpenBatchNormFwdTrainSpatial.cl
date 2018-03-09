@@ -911,12 +911,8 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     __local _FLOAT lcl_scale;
 
     unsigned int index;
-    unsigned int lid     = get_local_id(1);
-    unsigned int xgid    = get_global_id(0);
-
-#ifdef __AMDGCN__
-    unsigned int segment = MIO_BN_GRP1 >> 6;
-#endif
+    unsigned int lid  = get_local_id(1);
+    unsigned int xgid = get_global_id(0);
 
 #if(MIO_BN_N < MIO_BN_MAXN)
     _FLOAT minibatch[MIO_BN_N];
