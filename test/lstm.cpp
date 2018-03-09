@@ -80,8 +80,7 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
     int batch_n = sumvc(in_n);
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bacc, baccbi; // accumulation of batch
-    int bi = bidirection ? 2 : 1;
+    int bi       = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
     int out_stride = out_h;
@@ -230,8 +229,8 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
         }
 
         // from hidden state
-        bacc   = 0;
-        baccbi = batch_n;
+        int bacc   = 0;
+        int baccbi = batch_n;
         for(int ti = 0; ti < seqLength; ti++)
         {
             baccbi -= in_n.at(seqLength - 1 - ti);
@@ -524,8 +523,7 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
     (void)hx;
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bacc, baccbi; // accumulation of batch
-    int bi = bidirection ? 2 : 1;
+    int bi       = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
     int out_stride = out_h;
@@ -596,8 +594,8 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
         }
 
         // from hidden state
-        bacc   = batch_n;
-        baccbi = 0;
+        int bacc   = batch_n;
+        int baccbi = 0;
         for(int ti = seqLength - 1; ti >= 0; ti--)
         {
             bacc -= in_n.at(ti);
@@ -972,8 +970,7 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
 {
     int batch_n  = sumvc(in_n);
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bacc; // accumulation of batch
-    int bi = bidirection ? 2 : 1;
+    int bi       = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
     int wei_stride = bi * 4 * hy_h;
@@ -1099,7 +1096,7 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
         }
 
         // between time
-        bacc = 0;
+        int bacc = 0;
         for(int ti = 0; ti < seqLength; ti++)
         {
             int hid_shift = li * batch_n * hy_stride + bacc * hy_stride;
@@ -1228,6 +1225,8 @@ struct verify_forward_infer_lstm
     size_t realHiddenSize;
     bool nohx;
     bool nocx;
+    bool nohy;
+    bool nocy;
 
     verify_forward_infer_lstm(miopenRNNDescriptor_t pRD,
                               const std::vector<T>& px,
@@ -1245,7 +1244,9 @@ struct verify_forward_infer_lstm
                               const int pVL,
                               const size_t pHXZ,
                               const bool pnohx = false,
-                              const bool pnocx = false)
+                              const bool pnocx = false,
+                              const bool pnohy = false,
+                              const bool pnocy = false)
     {
         rnnDesc = pRD;
         input   = px;
@@ -1259,6 +1260,9 @@ struct verify_forward_infer_lstm
         hiddenSize     = pHS;
         inputVecLen    = pVL;
         realHiddenSize = pHXZ;
+
+        nohy = pnohy;
+        nocy = pnocy;
 
         nohx = pnohx;
         if(!nohx)
@@ -1386,15 +1390,13 @@ struct verify_forward_infer_lstm
         auto weights_dev = handle.Write(weights);
         auto hy          = initHidden;
         std::fill(hy.begin(), hy.end(), 0.);
-        auto hy_dev = handle.Write(hy);
-        auto cy     = initCell;
+        auto cy = initCell;
         std::fill(cy.begin(), cy.end(), 0.);
-        auto cy_dev = handle.Write(cy);
 
         auto workSpace_dev = handle.Write(workSpace);
 
         std::vector<int> hlens(3, 0);
-        hlens[0] = nLayers * (dirMode) ? 2 : 1;
+        hlens[0] = nLayers * (dirMode ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopenFloat, hlens.data(), 3);
@@ -1417,9 +1419,9 @@ struct verify_forward_infer_lstm
                                   outputDescs.data(),
                                   output_dev.get(),
                                   &hiddenDesc,
-                                  hy_dev.get(),
+                                  ((nohy) ? nullptr : handle.Write(hy).get()),
                                   &hiddenDesc,
-                                  cy_dev.get(),
+                                  ((nocy) ? nullptr : handle.Write(cy).get()),
                                   workSpace_dev.get(),
                                   workSpaceSize);
 
@@ -1495,6 +1497,8 @@ struct verify_forward_train_lstm
     size_t realHiddenSize;
     bool nohx;
     bool nocx;
+    bool nohy;
+    bool nocy;
 
     verify_forward_train_lstm(miopenRNNDescriptor_t pRD,
                               const std::vector<T>& px,
@@ -1512,7 +1516,9 @@ struct verify_forward_train_lstm
                               const int pVL,
                               const size_t pHXZ,
                               const bool pnohx = false,
-                              const bool pnocx = false)
+                              const bool pnocx = false,
+                              const bool pnohy = false,
+                              const bool pnocy = false)
     {
         rnnDesc     = pRD;
         input       = px;
@@ -1528,6 +1534,9 @@ struct verify_forward_train_lstm
         inputVecLen = pVL;
 
         realHiddenSize = pHXZ;
+
+        nohy = pnohy;
+        nocy = pnocy;
 
         nohx = pnohx;
         if(!nohx)
@@ -1612,7 +1621,10 @@ struct verify_forward_train_lstm
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
-        auto retSet = std::make_tuple(output, hiddenState, cellState, reserveSpace);
+
+        auto retSet = std::make_tuple(
+            output, (nohy ? initHidden : hiddenState), (nocy ? initCell : cellState), reserveSpace);
+
 #if(MIO_LSTM_TEST_DEBUG > 0)
         std::cout << "Done with LSTM forward train CPU" << std::endl;
         std::cout << "---------------------------------\n" << std::endl;
@@ -1668,7 +1680,7 @@ struct verify_forward_train_lstm
         auto reserveSpace_dev = handle.Write(reserveSpace);
 
         std::vector<int> hlens(3, 0);
-        hlens[0] = nLayers * (dirMode) ? 2 : 1;
+        hlens[0] = nLayers * (dirMode ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopenFloat, hlens.data(), 3);
@@ -1691,9 +1703,9 @@ struct verify_forward_train_lstm
                                  outputDescs.data(),
                                  output_dev.get(),
                                  &hiddenDesc,
-                                 hy_dev.get(),
+                                 ((nohy) ? nullptr : hy_dev.get()),
                                  &hiddenDesc,
-                                 cy_dev.get(),
+                                 ((nocy) ? nullptr : cy_dev.get()),
                                  workSpace_dev.get(),
                                  workSpaceSize,
                                  reserveSpace_dev.get(),
@@ -1709,8 +1721,8 @@ struct verify_forward_train_lstm
 
         auto retSet =
             std::make_tuple(handle.Read<T>(output_dev, output.size()),
-                            handle.Read<T>(hy_dev, hy.size()),
-                            handle.Read<T>(cy_dev, cy.size()),
+                            (nohy ? initHidden : handle.Read<T>(hy_dev, hy.size())),
+                            (nocy ? initCell : handle.Read<T>(cy_dev, cy.size())),
                             handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -1793,6 +1805,8 @@ struct verify_backward_data_lstm
     bool nocx;
     bool nodhy;
     bool nodcy;
+    bool nodhx;
+    bool nodcx;
 
     verify_backward_data_lstm(miopenRNNDescriptor_t pRD,
                               const std::vector<T>& py,
@@ -1816,7 +1830,9 @@ struct verify_backward_data_lstm
                               const bool pnohx  = false,
                               const bool pnocx  = false,
                               const bool pnodhy = false,
-                              const bool pnodcy = false)
+                              const bool pnodcy = false,
+                              const bool pnodhx = false,
+                              const bool pnodcx = false)
     {
         rnnDesc = pRD;
         yin     = py;
@@ -1832,6 +1848,9 @@ struct verify_backward_data_lstm
         hiddenSize     = pHS;
         inputVecLen    = pVL;
         realHiddenSize = pHXZ;
+
+        nodhx = pnodhx;
+        nodcx = pnodcx;
 
         nohx = pnohx;
         if(!nohx)
@@ -1920,7 +1939,10 @@ struct verify_backward_data_lstm
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
-        auto retSet = std::make_tuple(dx, dhx, dcx, reserveSpace, workSpace);
+
+        auto retSet = std::make_tuple(
+            dx, (nodhx ? initHidden : dhx), (nodcx ? initCell : dcx), reserveSpace, workSpace);
+
 #if(MIO_LSTM_TEST_DEBUG > 0)
         std::cout << "Done with LSTM backward data CPU" << std::endl;
         std::cout << "---------------------------------\n" << std::endl;
@@ -1958,7 +1980,7 @@ struct verify_backward_data_lstm
         auto weights_dev      = handle.Write(weights);
 
         std::vector<int> hlens(3, 0);
-        hlens[0] = nLayers * (dirMode) ? 2 : 1;
+        hlens[0] = nLayers * (dirMode ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopenFloat, hlens.data(), 3);
@@ -1998,17 +2020,17 @@ struct verify_backward_data_lstm
                               inputDescs.data(),
                               dx_dev.get(),
                               &hiddenDesc,
-                              dhx_dev.get(),
+                              ((nodhx) ? nullptr : dhx_dev.get()),
                               &hiddenDesc,
-                              dcx_dev.get(),
+                              ((nodcx) ? nullptr : dcx_dev.get()),
                               workSpace_dev.get(),
                               workSpaceSize,
                               reserveSpace_dev.get(),
                               reserveSpace.size() * sizeof(T));
 
         auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
-                                      handle.Read<T>(dhx_dev, dhx.size()),
-                                      handle.Read<T>(dcx_dev, dcx.size()),
+                                      (nodhx ? initHidden : handle.Read<T>(dhx_dev, dhx.size())),
+                                      (nodcx ? initCell : handle.Read<T>(dcx_dev, dcx.size())),
                                       handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
                                       handle.Read<T>(workSpace_dev, workSpace.size()));
 
@@ -2206,15 +2228,12 @@ struct verify_backward_weights_lstm
         miopen::TensorDescriptor weightDesc(miopenFloat, &weightSize, 1);
 
         std::vector<int> hlens(3, 0);
-        hlens[0] = nLayers * (dirMode) ? 2 : 1;
+        hlens[0] = nLayers * (dirMode ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopenFloat, hlens.data(), 3);
         auto dy_dev    = handle.Write(dy);
         auto input_dev = handle.Write(input);
-
-        std::vector<int> wlen(1, 0);
-        wlen[0] = weightSize;
 
         miopenRNNBackwardWeights(&handle,
                                  rnnDesc,
@@ -2293,6 +2312,10 @@ struct lstm_driver : test_driver
     bool nodhy = false;
     bool nocx  = false;
     bool nodcy = false;
+    bool nohy  = false;
+    bool nodhx = false;
+    bool nocy  = false;
+    bool nodcx = false;
 
     lstm_driver()
     {
@@ -2312,6 +2335,10 @@ struct lstm_driver : test_driver
         add(nodhy, "no-dhy", flag());
         add(nocx, "no-cx", flag());
         add(nodcy, "no-dcy", flag());
+        add(nohy, "no-hy", flag());
+        add(nodhx, "no-dhx", flag());
+        add(nocy, "no-cy", flag());
+        add(nodcx, "no-dcx", flag());
 
 #if(MIO_LSTM_TEST_DEBUG == 3)
         biasMode  = 0;
@@ -2396,6 +2423,10 @@ struct lstm_driver : test_driver
         std::cout << ", nocx: " << nocx;
         std::cout << ", nodhy: " << nodhy;
         std::cout << ", nodcy: " << nodcy << std::endl;
+        std::cout << "nohy: " << nohy;
+        std::cout << ", nocy: " << nocy;
+        std::cout << ", nodhx: " << nodhx;
+        std::cout << ", nodcx: " << nodcx << std::endl;
 #endif
 
         if(!nohx)
@@ -2445,7 +2476,9 @@ struct lstm_driver : test_driver
                                                                       inVecReal,
                                                                       hx_sz,
                                                                       nohx,
-                                                                      nocx});
+                                                                      nocx,
+                                                                      nohy,
+                                                                      nocy});
 
         /// RETURNS std::make_tuple(output, hiddenState, cellState, reserveSpace);
         auto yin                  = std::get<0>(fwdTrainOutputPair.second);
@@ -2470,11 +2503,13 @@ struct lstm_driver : test_driver
                                                 seqLength, numLayers,  biasMode,
                                                 dirMode,   inputMode,  inVecReal,
                                                 hx_sz,     nohx,       nocx,
-                                                nodhy,     nodcy});
+                                                nodhy,     nodcy,      nodhx,
+                                                nodcx});
 
         // RETURNS:  std::make_tuple(dx, dhx, dcx, reserveSpace, workSpace);
         auto reserveSpaceBwdData = std::get<3>(bwdDataOutputPair.second);
         auto workSpaceBwdData    = std::get<4>(bwdDataOutputPair.second);
+
 #if(MIO_LSTM_TEST_DEBUG > 0)
         printf("Running backward weights LSTM.\n");
         printf("reserve sz: %d, workSpace sz: %d, weight sz: %d\n",
@@ -2518,7 +2553,9 @@ struct lstm_driver : test_driver
                                             inVecReal,
                                             hx_sz,
                                             nohx,
-                                            nocx});
+                                            nocx,
+                                            nohy,
+                                            nocy});
 
         /* normal hx/cx/dhy/dcy input test end */
 

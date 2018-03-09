@@ -120,8 +120,6 @@ struct verify_forward_train_bn_spatial
             std::vector<double> dscale_accum_arr(height, 0.0);
 #endif
 
-            mean_accum = 0.;
-
 #if(MIO_HEIRARCH_SEL == 0)
             // process the batch per channel
             for(int bidx = 0; bidx < n_batch; bidx++)
@@ -376,7 +374,6 @@ struct verify_forward_infer_bn_spatial_recalc
             double inhat          = 0.;
             double invVar         = 0.;
 
-            mean_accum = 0.;
             // process the batch per channel
             for(int row = 0; row < height; row++)
             { // via rows
@@ -522,14 +519,11 @@ struct verify_forward_infer_bn_spatial_use_est
 
         par_for(channels, 1, [&](int cidx) {
             double elemStd  = 0.;
-            double variance = 0.;
-            double mean     = 0.;
+            double variance = estVar(0, cidx, 0, 0);
+            double mean     = estMean(0, cidx, 0, 0);
             double inhat    = 0.;
-            double invVar   = 0.;
+            double invVar   = 1.0 / sqrt(variance + epsilon);
 
-            mean     = estMean(0, cidx, 0, 0);
-            variance = estVar(0, cidx, 0, 0);
-            invVar   = 1.0 / sqrt(variance + epsilon);
             // process the batch per channel
             for(int bidx = 0; bidx < n_batch; bidx++)
             { // via mini_batch
@@ -668,8 +662,7 @@ struct verify_backward_bn_spatial_recalc
             std::vector<double> dscale_accum_arr(height, 0.0);
 #endif
 
-            // process the batch per channel
-            mean = 0.;
+// process the batch per channel
 #if(MIO_HEIRARCH_SEL == 0)
             for(int row = 0; row < height; row++)
             { // via rows
@@ -924,8 +917,8 @@ struct verify_backward_bn_spatial_use_saved
 
             double elemStd = 0.;
             unsigned int xhat_index;
-            double mean   = 0.;
-            double invVar = 0.;
+            double mean   = savedMean(0, cidx, 0, 0);   // HxW elements
+            double invVar = savedInvVar(0, cidx, 0, 0); // HxW elements
             double dyelem = 0.;
 
             std::vector<double> xhat(n_batch * in_cstride, 0.0);
@@ -936,8 +929,6 @@ struct verify_backward_bn_spatial_use_saved
 #endif
 
             // process the batch per channel
-            mean   = savedMean(0, cidx, 0, 0);   // HxW elements
-            invVar = savedInvVar(0, cidx, 0, 0); // HxW elements
             dscale(0, cidx, 0, 0) = 0.;
 
 #if(MIO_HEIRARCH_SEL == 0)

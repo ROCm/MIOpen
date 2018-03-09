@@ -58,7 +58,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 
     // short cut for packed tensors and 2D tensors with stride != width
     auto x_lens = xDesc.GetLengths();
-    auto y_lens = xDesc.GetLengths();
+    auto y_lens = yDesc.GetLengths();
 
     auto x_strides = xDesc.GetStrides();
     auto y_strides = yDesc.GetStrides();
@@ -101,9 +101,9 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
         if(x_elem_sz == y_elem_sz && (packed || t2D))
         {
             std::string compiler_options;
-            auto f_activ_alpha = static_cast<float>(activ_alpha);
-            auto f_activ_beta  = static_cast<float>(activ_beta);
-            auto f_activ_power = static_cast<float>(activ_power);
+            auto f_activ_alpha = as_float(activ_alpha);
+            auto f_activ_beta  = as_float(activ_beta);
+            auto f_activ_power = as_float(activ_power);
 
             size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3)
                                                                    ? x_lens[1]
@@ -495,10 +495,10 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
         {
             std::string compiler_options;
 
-            auto f_activ_alpha = static_cast<float>(activ_alpha);
-            auto f_activ_beta  = static_cast<float>(activ_beta);
-            auto f_activ_power = static_cast<float>(activ_power);
-            auto f_diff_scale  = f_activ_beta * f_activ_power;
+            auto f_activ_alpha = as_float(activ_alpha);
+            auto f_activ_beta  = as_float(activ_beta);
+            auto f_activ_power = as_float(activ_power);
+            auto f_diff_scale  = as_float(activ_beta * activ_power);
 
             // second dim is height
             size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3)
