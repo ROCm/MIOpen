@@ -122,9 +122,9 @@
 #undef __AMDGCN__
 #endif
 
-#ifdef __AMDGCN__
+/*#ifdef __AMDGCN__
 #undef __AMDGCN__
-#endif
+#endif*/
 
 // Disable specific warnings
 #ifdef __clang__

@@ -118,9 +118,9 @@
 #undef __AMDGCN__
 #endif
 
-#ifdef __AMDGCN__
+/*#ifdef __AMDGCN__
 #undef __AMDGCN__
-#endif
+#endif*/
 
 #define UNUSED __attribute__((__unused__))
 
@@ -146,6 +146,7 @@ static inline void ReduceKernel(__local _FLOAT* lcl_mem,
     for(unsigned int i = 0; i < unit_len; i += sum_stride)
     {
         sum += lcl_mem[lcl_offset + i];
+       // printf("Sum: %f, lcl_mem[%d]: %f\n", sum, lcl_offset + i , lcl_mem[lcl_offset + i]);
     }
     lcl_mem[lcl_offset] = sum;
 }
@@ -158,12 +159,15 @@ regLDSreduce(_FLOAT* value, __local _FLOAT* data, unsigned int localID, _FLOAT s
     if(localID < (MIO_BN_LDS_SIZE >> 2))
         ReduceKernel(data, 1, localID, 4);
     barrier(CLK_LOCAL_MEM_FENCE);
+    //printf("In lds reduce after stage 1 [%d]: %f\n", localID, data[localID]);
     if(localID < (MIO_BN_LDS_SIZE >> 4))
         ReduceKernel(data, 4, localID, 16);
     barrier(CLK_LOCAL_MEM_FENCE);
+   // printf("In lds reduce after stage 2 [%d]: %f\n", localID, data[localID]);
     if(localID == 0)
         ReduceKernel(data, 16, localID, MIO_BN_LDS_SIZE);
     barrier(CLK_LOCAL_MEM_FENCE);
+  //  printf("In lds reduce after stage 3 [%d]: %f\n", localID, data[localID]);
     *value = data[0] * scale;
 }
 #endif
@@ -445,6 +449,8 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #else
         _FLOAT xin = *(in + index);
         mean += xin;
+/*        if(get_global_id(1)==0)
+            printf("input at read[%d]: %f.\n", get_global_id(1), xin);*/
         variance        = mad(xin, xin, variance);
 #endif
     }
@@ -466,16 +472,22 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
 // REDUCE MEAN AND VARIANCE -----------------------
 #ifndef __AMDGCN__
+  //  if(get_global_id(1)==0)printf("**************** inside LDS reduce1.\n");
     local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
+    /*
+    if(get_global_id(1)==0)
+       printf("mean before reduction [%d]: %f.\n", get_global_id(1), mean);
+       */
     lcl_data[lid] = mean;
     barrier(CLK_LOCAL_MEM_FENCE);
-
+//printf("lcl_mean before reduction [%d]: %f.\n", get_global_id(1), lcl_data[lid]);
     for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 256; red >>= 1)
     {
         if(lid < red)
             lcl_data[lid] += lcl_data[lid + red];
         barrier(CLK_LOCAL_MEM_FENCE);
     }
+   // printf("lcl_mean 1st stage reduction [%d]: %f.\n", get_global_id(1), lcl_data[lid]);
     regLDSreduce(&mean, lcl_data, lid, (_FLOAT)INHW);
 
     barrier(CLK_LOCAL_MEM_FENCE);
@@ -492,6 +504,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     barrier(CLK_LOCAL_MEM_FENCE);
 
 #else
+    //if(get_global_id(1)==0)printf("**************** inside DPP reduce1.\n");
     unsigned int ldsidx = lid >> 6;
     __local _FLOAT lcl_mean[MIO_BN_LDSGCN_SIZE];
     __local _FLOAT lcl_variance[MIO_BN_LDSGCN_SIZE];
@@ -515,6 +528,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     variance *= (_FLOAT)INHW;
 #endif
     // REDUCTION COMPLETE ---------------------------
+    //if(get_global_id(1)==0)printf("mean: %f.\n", mean);
 
     variance    = mad(-mean, mean, variance);
     invVariance = rsqrt(variance + epsilon);

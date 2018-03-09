@@ -59,6 +59,7 @@ struct rand_gen
     };
 };
 
+
 // Run cpu in parallel if it can be ran as const
 template <class V, class... Ts>
 auto cpu_async(const V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
