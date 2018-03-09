@@ -58,7 +58,7 @@ class IncludeInliner
     std::string GetIncludeStackTrace(int line);
 
     private:
-    int _include_depth                   = 0;
+    int _include_depth                                   = 0;
     std::shared_ptr<SourceFileDesc> _included_stack_head = nullptr;
 
     void ProcessCore(std::istream& input,
