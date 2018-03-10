@@ -51,7 +51,7 @@ struct GemmGeometry
      * is then different.
      * */
     bool beta_kern_returned{};
-    std::array<int, 2> beta_kern_args{};
+    std::array<int, 2> beta_kern_args = {{0, 0}};
 
     GemmGeometry() {}
     GemmGeometry(std::string algo_name, float palpha, float pbeta, MIOpenGEMM::Geometry ptgg)
@@ -59,7 +59,6 @@ struct GemmGeometry
     {
         beta_kern_req      = false;
         beta_kern_returned = false;
-        beta_kern_args     = {{0, 0}};
     }
 
     void EnableBetaKernel(bool enable);

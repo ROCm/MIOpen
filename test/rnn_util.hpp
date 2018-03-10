@@ -91,7 +91,7 @@ inline std::vector<int> get_lstm_num_layers() { return {{1, 5}}; }
 inline std::vector<int> get_lstm_batchSize()
 {
     // return {16};
-    return {53};
+    return {31};
 }
 
 inline std::vector<int> get_lstm_seq_len()
@@ -118,7 +118,7 @@ inline std::vector<int> get_gru_num_layers() { return {{1, 5}}; }
 inline std::vector<int> get_gru_batchSize()
 {
     // return {16};
-    return {53};
+    return {31};
 }
 
 inline std::vector<int> get_gru_seq_len()

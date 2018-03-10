@@ -683,6 +683,18 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 
             baccbi += in_n.at(seqLength - 1 - ti);
         }
+
+        // dhx clean
+        if(bidirection)
+        {
+            for(int bs = in_n.at(seqLength - 1); bs < in_n.at(0); bs++)
+            {
+                for(int h = 0; h < hy_h; h++)
+                {
+                    dhx_state.at(hx_shift + hy_n * hy_h + bs * uni_stride + h) = 0;
+                }
+            }
+        }
     }
 
     // dinput
