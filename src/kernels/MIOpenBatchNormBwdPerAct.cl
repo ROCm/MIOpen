@@ -219,9 +219,12 @@ __kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
         // iterating through the stack of images in the mini_batch
         if(inImgIndex < in_cstride)
         {
-
+            mean     = 0.;
+            variance = 0.;
             adjIndex = Cidx + inImgIndex; // gamma and beta tensor index
-            for(int n = 0; n < N; n++)
+
+#pragma unroll
+            for(int n = 0; n < MIO_BN_N; n++)
             {
                 index     = in_nstride * n + adjIndex;
                 _FLOAT in = *(x_in + index);
@@ -239,7 +242,8 @@ __kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
             dxhat      = (_FLOAT)0.;
             dxhathat   = (_FLOAT)0.;
 
-            for(int n = 0; n < N; n++)
+#pragma unroll
+            for(int n = 0; n < MIO_BN_N; n++)
             {
                 // per (x-dims) channel load a block of data into LDS
                 index  = in_nstride * n + adjIndex;
@@ -252,7 +256,8 @@ __kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
                 dxhathat = mad(tmp1, xhat, dxhathat);
             } // end for(n)
 
-            for(int n = 0; n < N; n++)
+#pragma unroll
+            for(int n = 0; n < MIO_BN_N; n++)
             {
                 index         = in_nstride * n + adjIndex;
                 xhat          = (*(x_in + index) - mean) * invVar;
