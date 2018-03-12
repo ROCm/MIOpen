@@ -543,6 +543,7 @@ void OpTensor4d(Handle& handle,
                 }
             }
         }
+        // precede leading_ones for bitmap = 1,1,1,1
         else if(packed_equal_tensor)
         {
             network_config += std::to_string(bTensorDesc.GetElementSize()) +
@@ -751,6 +752,7 @@ void OpTensor4d(Handle& handle,
                                         int(num_wg_orig));
             }
         }
+        // precede leading_ones for bitmap = 1,1,1,1
         else if(packed_equal_tensor)
         {
             parms += " -DUSE_4D_TENSOR_LITE";
