@@ -141,8 +141,9 @@ void BatchNormForwardTraining(Handle& handle,
         }
         else if(in_nhw < 33554432 && in_cstride > 512)
         {
-            variant    = 3;
-            ylocalsize = std::min(64 * ((in_cstride + 63) / 64), uint(1024));
+            variant = 3;
+            // ylocalsize = std::min(64 * ((in_cstride + 63) / 64), uint(1024));
+            ylocalsize = 64 * ((in_cstride + 63) / 64);
             xgridsize  = c;
             ygridsize  = ylocalsize;
             ldsgcn     = ylocalsize / 64;
@@ -172,9 +173,9 @@ void BatchNormForwardTraining(Handle& handle,
         std::string network_config =
             std::to_string(variant) + std::to_string(xgridsize) + std::to_string(ldsgcn) +
             std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
-            std::to_string(resultsave) + std::to_string(resultrunning) + std::to_string(bfp16parm) +
-            std::to_string(bfp32parm) + std::to_string(in_nchw) + std::to_string(single) +
-            std::to_string(in_cstride);
+            "rs" + std::to_string(resultsave) + std::to_string(resultrunning) + "type" +
+            std::to_string(bfp16parm) + std::to_string(bfp32parm) + std::to_string(in_nchw) +
+            std::to_string(single) + std::to_string(in_cstride);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
@@ -258,7 +259,9 @@ void BatchNormForwardTraining(Handle& handle,
 
 #if(MIOPEN_BN_CPP_DEBUG == 1)
                 std::cout << kernel_name << ":: ";
+                std::cout << algo_name << std::endl;
                 std::cout << parms << std::endl;
+                std::cout << network_config << std::endl;
 #endif
                 bnFwdTrainSelectSingle(handle,
                                        xDesc.GetType(),
@@ -650,10 +653,11 @@ void BatchNormForwardInference(Handle& handle,
 
         std::string algo_name      = "miopenBatchNormalizationForwardInference";
         std::string network_config = std::to_string(n) + std::to_string(in_cstride) +
-                                     std::to_string(segment) + std::to_string(xgridsize) +
-                                     std::to_string(ygridsize) + std::to_string(xlocalsize) +
-                                     std::to_string(ylocalsize) + std::to_string(bfp16parm) +
-                                     std::to_string(bfp32parm) + std::to_string(bn_mode);
+                                     std::to_string(in_nstride) + std::to_string(segment) + "dims" +
+                                     std::to_string(xgridsize) + std::to_string(ygridsize) +
+                                     std::to_string(xlocalsize) + std::to_string(ylocalsize) +
+                                     +"type" + std::to_string(bfp16parm) +
+                                     std::to_string(bfp32parm) + "mode" + std::to_string(bn_mode);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
         if(!kernels.empty())

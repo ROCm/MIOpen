@@ -110,7 +110,9 @@
 #define MIO_BN_VARIANT 255
 #endif
 
-#define MIO_BN_MAXN 512
+#ifndef MIO_BN_MAXN
+#define MIO_BN_MAXN 65
+#endif
 
 #ifndef MIO_BN_NODPP
 #define MIO_BN_NODPP 0
@@ -312,6 +314,11 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         lcl_mean[ldsidx]     = mean;
         lcl_variance[ldsidx] = variance;
     }
+    else
+    {
+        lcl_mean[ldsidx]     = 0.;
+        lcl_variance[ldsidx] = 0.;
+    }
     barrier(CLK_LOCAL_MEM_FENCE);
     mean = variance = 0.;
 #pragma unroll
@@ -497,6 +504,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
     dppSimpleRedNoBcast64(&mean);
     dppSimpleRedNoBcast64(&variance);
+
     if((lid % 64) == 63)
     {
         lcl_mean[ldsidx]     = mean;
@@ -942,6 +950,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #endif
         }
     }
+
 #ifndef __AMDGCN__
     __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
 
@@ -974,13 +983,23 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     __local _FLOAT lcl_mean[MIO_BN_LDSGCN_SIZE];
     __local _FLOAT lcl_variance[MIO_BN_LDSGCN_SIZE];
 
+#if(MIO_BN_HW == 1024)
+    dppSimpleRedBcast64(&mean);
+    dppSimpleRedBcast64(&variance);
+#else
     dppSimpleRedNoBcast64(&mean);
     dppSimpleRedNoBcast64(&variance);
+#endif
 
     if((lid % 64) == 63)
     {
         lcl_mean[ldsidx]     = mean;
         lcl_variance[ldsidx] = variance;
+    }
+    else
+    {
+        lcl_mean[ldsidx]     = 0.;
+        lcl_variance[ldsidx] = 0.;
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     mean = variance = 0.;
@@ -999,6 +1018,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     variance    = mad(-mean, mean, variance);
     invVariance = rsqrt(variance + epsilon);
 
+    barrier(CLK_LOCAL_MEM_FENCE);
     if(lid < MIO_BN_HW)
     {
         pvscale = lcl_scale;
