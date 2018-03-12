@@ -885,7 +885,10 @@ __kernel void Op4dTensorLite(const global MIOPEN_TYPE* a,
                              global MIOPEN_TYPE* c,
                              const float alpha0,
                              const float alpha1,
-                             const float beta)
+                             const float beta,
+                             const long Aoffset,
+                             const long Boffset,
+                             const long Coffset)
 {
     int gid0 = get_global_id(0);
 
@@ -895,10 +898,10 @@ __kernel void Op4dTensorLite(const global MIOPEN_TYPE* a,
     float b_dat[RD_BLCK];
     float c_dat[RD_BLCK];
 
-    *((READ_TYPE*)a_dat) = *((const global READ_TYPE*)(a + index));
-    *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + index));
+    *((READ_TYPE*)a_dat) = *((const global READ_TYPE*)(a + index + Aoffset));
+    *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + index + Boffset));
 #ifdef BETA
-    *((READ_TYPE*)c_dat) = *((const global READ_TYPE*)(c + index));
+    *((READ_TYPE*)c_dat) = *((const global READ_TYPE*)(c + index + Coffset));
 #endif
 
     for(int i = 0; i < RD_BLCK; ++i)
@@ -910,7 +913,7 @@ __kernel void Op4dTensorLite(const global MIOPEN_TYPE* a,
             ;
     }
 
-    *((global READ_TYPE*)(c + index)) = *((READ_TYPE*)c_dat);
+    *((global READ_TYPE*)(c + index + Coffset)) = *((READ_TYPE*)c_dat);
 }
 
 #endif
