@@ -114,7 +114,9 @@
 #define MIO_BN_USESAVED 1
 #endif
 
-#define MIO_BN_MAXN 512
+#ifndef MIO_BN_MAXN
+#define MIO_BN_MAXN 65
+#endif
 
 #ifndef MIO_BN_NODPP
 #define MIO_BN_NODPP 0
@@ -1273,7 +1275,6 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
 
     _FLOAT NHW = (_FLOAT)MIO_BN_NHW;
-    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
     __local _FLOAT lcl_scale;
 
     if(lid == 0)
@@ -1347,13 +1348,24 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     __local _FLOAT lcl_mean[MIO_BN_LDSGCN_SIZE];
     __local _FLOAT lcl_variance[MIO_BN_LDSGCN_SIZE];
 
+#if(MIO_BN_HW >= 1024)
+    dppSimpleRedBcast64(&mean);
+    dppSimpleRedBcast64(&variance);
+#else
     dppSimpleRedNoBcast64(&mean);
     dppSimpleRedNoBcast64(&variance);
+#endif
+
+    unsigned int ldsidx1 = lid >> 6;
     if((lid % 64) == 63)
     {
-        unsigned int ldsidx  = lid >> 6;
-        lcl_mean[ldsidx]     = mean;
-        lcl_variance[ldsidx] = variance;
+        lcl_mean[ldsidx1]     = mean;
+        lcl_variance[ldsidx1] = variance;
+    }
+    else
+    {
+        lcl_mean[ldsidx1]     = 0.;
+        lcl_variance[ldsidx1] = 0.;
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     mean = variance = 0.;
@@ -1367,7 +1379,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     variance *= (_FLOAT)INHW;
 #endif
     // REDUCTION COMPLETE ---------------------------
-
+    barrier(CLK_LOCAL_MEM_FENCE);
     variance    = mad(-mean, mean, variance);
     invVariance = rsqrt(variance + epsilon);
 
@@ -1435,14 +1447,24 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     __local _FLOAT lcl_ds[MIO_BN_LDSGCN_SIZE];
     __local _FLOAT lcl_db[MIO_BN_LDSGCN_SIZE];
 
-    dppSimpleRedNoBcast64(&ds);
+#if(MIO_BN_HW >= 1024)
+    dppSimpleRedBcast64(&db);
+    dppSimpleRedBcast64(&ds);
+#else
     dppSimpleRedNoBcast64(&db);
+    dppSimpleRedNoBcast64(&ds);
+#endif
 
+    unsigned int ldsidx2 = lid >> 6;
     if((lid % 64) == 63)
     {
-        unsigned int ldsidx = lid >> 6;
-        lcl_ds[ldsidx]      = ds;
-        lcl_db[ldsidx]      = db;
+        lcl_ds[ldsidx2] = ds;
+        lcl_db[ldsidx2] = db;
+    }
+    else
+    {
+        lcl_ds[ldsidx2] = 0.;
+        lcl_db[ldsidx2] = 0.;
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     ds = db = 0.;
@@ -1453,7 +1475,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         db += lcl_db[i];
     }
 #endif
-
+    barrier(CLK_LOCAL_MEM_FENCE);
     // Group level reduction
     // Need to reduce over all elements in NxHxW
     // move across the sections of an image in the mini_batch stack
