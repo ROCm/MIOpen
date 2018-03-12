@@ -65,11 +65,11 @@
 #define GLOBAL_WORK_SIZE_Z 1
 #endif
 
-__kernel void ScaleTensor1d(global _FLOAT* __restrict dst,
-                            const _FLOAT alpha,
-                            const int offset,
-                            const int stride0,
-                            const int len0)
+__kernel void SetTensor1d(global _FLOAT* __restrict dst,
+                          const _FLOAT alpha,
+                          const int offset,
+                          const int stride0,
+                          const int len0)
 {
     const uint tidx = get_global_id(0);
 
@@ -77,17 +77,17 @@ __kernel void ScaleTensor1d(global _FLOAT* __restrict dst,
     {
         const uint i = stride0 * did0;
 
-        dst[i + offset] *= alpha;
+        dst[i + offset] = alpha;
     }
 }
 
-__kernel void ScaleTensor2d(global _FLOAT* __restrict dst,
-                            const _FLOAT alpha,
-                            const int offset,
-                            const int stride0,
-                            const int stride1,
-                            const int len0,
-                            const int len1)
+__kernel void SetTensor2d(global _FLOAT* __restrict dst,
+                          const _FLOAT alpha,
+                          const int offset,
+                          const int stride0,
+                          const int stride1,
+                          const int len0,
+                          const int len1)
 {
     const uint tidx = get_global_id(0);
     const uint tidy = get_global_id(1);
@@ -97,20 +97,21 @@ __kernel void ScaleTensor2d(global _FLOAT* __restrict dst,
         for(uint did1 = tidx; did1 < len1; did1 += GLOBAL_WORK_SIZE_X)
         {
             const uint i = stride0 * did0 + stride1 * did1;
-            dst[i + offset] *= alpha;
+
+            dst[i + offset] = alpha;
         }
     }
 }
 
-__kernel void ScaleTensor3d(global _FLOAT* __restrict dst,
-                            const _FLOAT alpha,
-                            const int offset,
-                            const int stride0,
-                            const int stride1,
-                            const int stride2,
-                            const int len0,
-                            const int len1,
-                            const int len2)
+__kernel void SetTensor3d(global _FLOAT* __restrict dst,
+                          const _FLOAT alpha,
+                          const int offset,
+                          const int stride0,
+                          const int stride1,
+                          const int stride2,
+                          const int len0,
+                          const int len1,
+                          const int len2)
 {
     const uint tidx = get_global_id(0);
     const uint tidy = get_global_id(1);
@@ -124,23 +125,23 @@ __kernel void ScaleTensor3d(global _FLOAT* __restrict dst,
             {
                 const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2;
 
-                dst[i + offset] *= alpha;
+                dst[i + offset] = alpha;
             }
         }
     }
 }
 
-__kernel void ScaleTensor4d(global _FLOAT* __restrict dst,
-                            const _FLOAT alpha,
-                            const int offset,
-                            const int stride0,
-                            const int stride1,
-                            const int stride2,
-                            const int stride3,
-                            const int len0,
-                            const int len1,
-                            const int len2,
-                            const int len3)
+__kernel void SetTensor4d(global _FLOAT* __restrict dst,
+                          const _FLOAT alpha,
+                          const int offset,
+                          const int stride0,
+                          const int stride1,
+                          const int stride2,
+                          const int stride3,
+                          const int len0,
+                          const int len1,
+                          const int len2,
+                          const int len3)
 {
     const uint tidx = get_global_id(0);
     const uint tidy = get_global_id(1);
@@ -157,26 +158,26 @@ __kernel void ScaleTensor4d(global _FLOAT* __restrict dst,
                     const uint i =
                         stride0 * did0 + stride1 * did1 + stride2 * did2 + stride3 * did3;
 
-                    dst[i + offset] *= alpha;
+                    dst[i + offset] = alpha;
                 }
             }
         }
     }
 }
 
-__kernel void ScaleTensor5d(global _FLOAT* __restrict dst,
-                            const _FLOAT alpha,
-                            const int offset,
-                            const int stride0,
-                            const int stride1,
-                            const int stride2,
-                            const int stride3,
-                            const int stride4,
-                            const int len0,
-                            const int len1,
-                            const int len2,
-                            const int len3,
-                            const int len4)
+__kernel void SetTensor5d(global _FLOAT* __restrict dst,
+                          const _FLOAT alpha,
+                          const int offset,
+                          const int stride0,
+                          const int stride1,
+                          const int stride2,
+                          const int stride3,
+                          const int stride4,
+                          const int len0,
+                          const int len1,
+                          const int len2,
+                          const int len3,
+                          const int len4)
 {
     const uint tidx = get_global_id(0);
     const uint tidy = get_global_id(1);
@@ -195,7 +196,7 @@ __kernel void ScaleTensor5d(global _FLOAT* __restrict dst,
                         const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2 +
                                        stride3 * did3 + stride4 * did4;
 
-                        dst[i + offset] *= alpha;
+                        dst[i + offset] = alpha;
                     }
                 }
             }
