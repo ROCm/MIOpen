@@ -57,9 +57,11 @@ std::vector<int> GetTensorStrides(miopenTensorDescriptor_t& tensor)
     return std::vector<int>({nstride, cstride, hstride, wstride});
 }
 
-int SetTensor4d(miopenTensorDescriptor_t t, std::vector<int>& len)
+int SetTensor4d(miopenTensorDescriptor_t t,
+                std::vector<int>& len,
+                miopenDataType_t data_type = miopenFloat)
 {
-    return miopenSet4dTensorDescriptor(t, miopenFloat, UNPACK_VEC4(len));
+    return miopenSet4dTensorDescriptor(t, data_type, UNPACK_VEC4(len));
 }
 
 size_t GetTensorSize(miopenTensorDescriptor_t& tensor)
