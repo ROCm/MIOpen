@@ -241,7 +241,7 @@ enable_clang_tidy(
         *
         -readability-inconsistent-declaration-parameter-name
     HEADER_FILTER
-        "hpp$"
+        ".*hpp"
     EXTRA_ARGS
         -DMIOPEN_USE_CLANG_TIDY
     ANALYZE_TEMPORARY_DTORS ON
@@ -251,10 +251,10 @@ include(CppCheck)
 enable_cppcheck(
     CHECKS 
         all
-    FORCE
     SUPPRESS 
         ConfigurationNotChecked
         unmatchedSuppression
+        unusedFunction
         # constStatement
         noExplicitConstructor
         passedByValue
@@ -265,7 +265,10 @@ enable_cppcheck(
         # Ignore initializer lists in the tests
         useInitializationList:*test/*.cpp
         *:*.cl
+    FORCE
     SOURCES
+        addkernels/
+        # driver/
         include/
         src/
         test/
