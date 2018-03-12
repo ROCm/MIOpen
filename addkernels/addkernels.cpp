@@ -175,9 +175,7 @@ int main(int argsn, char** args)
         return 2;
     }
 
-    std::string sourcePath("./");
-    std::string targetPath("");
-    std::string guard("");
+    std::string guard;
     size_t bufferSize = 512;
     size_t lineSize   = 16;
 
@@ -217,9 +215,9 @@ int main(int argsn, char** args)
             target = &targetFile;
         }
         else if(arg == "l" || arg == "line-size")
-            lineSize = atol(args[++i]);
+            lineSize = std::stol(args[++i]);
         else if(arg == "b" || arg == "buffer")
-            bufferSize = atol(args[++i]);
+            bufferSize = std::stol(args[++i]);
         else if(arg == "g" || arg == "guard")
             guard = args[++i];
         else
