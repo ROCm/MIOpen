@@ -885,6 +885,9 @@ __kernel void Op4dTensorLite(const global MIOPEN_TYPE* a,
                              global MIOPEN_TYPE* c,
                              const float alpha0,
                              const float alpha1,
+#ifndef BETA
+                             UNUSED
+#endif
                              const float beta,
                              const long Aoffset,
                              const long Boffset,
