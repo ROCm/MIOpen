@@ -1199,7 +1199,26 @@ static std::string parms_half_or_float(const miopenDataType_t t)
     return s;
 }
 
-static std::size_t two_exp_ceiling( std::size_t n )
+struct two_exp_ceiling_t
+{
+    std::size_t operator() ( std::size_t n ) const
+    {
+        assert( n > 0 );
+    
+        std::size_t i = 1;
+    
+        n--;
+        while( n != 0 )
+        {
+            i *= 2;
+            n /= 2;
+        }
+    
+        return i;
+    }
+};
+
+static std::size_t two_exp_ceiling ( std::size_t n )
 {
     assert( n > 0 );
 
@@ -1321,13 +1340,17 @@ void SetTensor(
     }
     case 3:
     {
-        const std::vector<size_t> & lens = yDesc.GetLengths();
+        std::string kernel_name = "SetTensor" + std::to_string(ydim) + "d";
 
-        std::string network_config = std::to_string(yDesc.GetType()) + " " +
-                                     std::to_string(lens[0]) + " " + std::to_string(lens[1]) + " " +
-                                     std::to_string(lens[2]);
+        const std::vector<std::size_t> & lens = yDesc.GetLengths();
 
-        auto&& kernels = handle.GetKernels("SetTensor3d", network_config);
+        std::string network_config = std::to_string(yDesc.GetType());
+        for(auto & len : lens)
+        {
+            network_config += " " + std::to_string(len);
+        }
+
+        auto&& kernels = handle.GetKernels(kernel_name, network_config);
 
         KernelInvoke kernel;
 
@@ -1339,22 +1362,22 @@ void SetTensor(
         {
             std::string program_name = "MIOpenTensorSetKernel.cl";
 
-            size_t wld = 256;
-            size_t wgd = 65536;
+            std::vector<std::size_t> work_lens(ydim);
 
-            std::vector<size_t> work_lens(3);
+            std::transform(lens.begin(), lens.end(), work_lens.begin(), two_exp_ceiling_t{} );
 
-            work_lens[0] = two_exp_ceiling(lens[0]);
-            work_lens[1] = two_exp_ceiling(lens[1]);
-            work_lens[2] = two_exp_ceiling(lens[2]);
+            std::size_t wgd = std::accumulate(work_lens.begin()+1, work_lens.end(), *(work_lens.begin()), [](auto a, auto b) {return a*b;} );
 
-            std::string parms = parms_half_or_float(yDesc.GetType()) + " -DWORK_LENGTH_0=" +
-                                std::to_string(work_lens[0]) + " -DWORK_LENGTH_1=" +
-                                std::to_string(work_lens[1]) + " -DWORK_LENGTH_2=" +
-                                std::to_string(work_lens[2]);
+            std::size_t wld = 256 < wgd ? 256 : wgd;
+
+            std::string parms = parms_half_or_float(yDesc.GetType());
+            for( int i = 0; i < ydim; ++i )
+            {
+                parms += " -DWORK_LENGTH_" + std::to_string(i) +  std::to_string(work_lens[i]);
+            }
 
             kernel = handle.AddKernel(
-                "SetTensor3d", network_config, program_name, "SetTensor3d", {wld,1,1}, {wgd,1,1}, parms);
+                kernel_name, network_config, program_name, kernel_name, {wld,1,1}, {wgd,1,1}, parms);
         }
 
         visit_float(yDesc.GetType(), [&](auto as_float) {
@@ -1912,19 +1935,19 @@ void CopyTensor(Handle& handle,
             {
                 std::string program_name = "MIOpenTensorCopyKernel.cl";
 
-                size_t wld = 256;
-                size_t wgd = 65536;
-
                 std::vector<size_t> work_lens(3);
 
                 work_lens[0] = two_exp_ceiling(lens[0]);
                 work_lens[1] = two_exp_ceiling(lens[1]);
                 work_lens[2] = two_exp_ceiling(lens[2]);
 
-                std::string parms = parms_half_or_float(srcDesc.GetType()) + " -DWORK_LENGTH_0=" +
-                                    std::to_string(work_lens[0]) + " -DWORK_LENGTH_1=" +
-                                    std::to_string(work_lens[1]) + " -DWORK_LENGTH_2=" +
-                                    std::to_string(work_lens[2]);
+                size_t wgd = work_lens[0] * work_lens[1] * work_lens[2];
+                size_t wld = 256 < wgd ? 256 : wgd;
+
+                std::string parms = parms_half_or_float(srcDesc.GetType()) + 
+                                    " -DWORK_LENGTH_0=" + std::to_string(work_lens[0]) +
+                                    " -DWORK_LENGTH_1=" + std::to_string(work_lens[1]) + 
+                                    " -DWORK_LENGTH_2=" + std::to_string(work_lens[2]);
 
                 kernel = handle.AddKernel(
                     "CopyTensor3d", network_config, program_name, "CopyTensor3d", {wld,1,1}, {wgd,1,1}, parms);
