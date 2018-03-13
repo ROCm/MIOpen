@@ -53,7 +53,6 @@
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 #define _AS_FLOAT PPCAT(as_, _FLOAT)
 
-
 #ifndef WORK_LENGTH_0
 #define WORK_LENGTH_0 1
 #endif
@@ -84,18 +83,18 @@
 #define SUBTENSOR_OP_WITH_SCALAR BREAK_COMPILE_INTENTIONALLY
 #endif
 
-#define SUBTENSOR_OP_WITH_SCALAR_SET(t, a)  ( t  = a )
-#define SUBTENSOR_OP_WITH_SCALAR_MULTIPLY(t, a)  ( t *= a )
+#define SUBTENSOR_OP_WITH_SCALAR_SET(t, a) (t = a)
+#define SUBTENSOR_OP_WITH_SCALAR_MULTIPLY(t, a) (t *= a)
 
 __kernel void SubTensorOpWithScalar1d(global _FLOAT* __restrict dst,
-                          const _FLOAT alpha,
-                          const int offset,
-                          const int stride0,
-                          const int len0)
+                                      const _FLOAT alpha,
+                                      const int offset,
+                                      const int stride0,
+                                      const int len0)
 {
     uint itmp = get_global_id(0);
 
-    const uint did0_begin = itmp/WORK_STRIDE_0;
+    const uint did0_begin = itmp / WORK_STRIDE_0;
 
     for(uint did0 = did0_begin; did0 < len0; did0 += WORK_LENGTH_0)
     {
@@ -106,20 +105,20 @@ __kernel void SubTensorOpWithScalar1d(global _FLOAT* __restrict dst,
 }
 
 __kernel void SubTensorOpWithScalar2d(global _FLOAT* __restrict dst,
-                          const _FLOAT alpha,
-                          const int offset,
-                          const int stride0,
-                          const int stride1,
-                          const int len0,
-                          const int len1)
+                                      const _FLOAT alpha,
+                                      const int offset,
+                                      const int stride0,
+                                      const int stride1,
+                                      const int len0,
+                                      const int len1)
 {
     uint itmp = get_global_id(0);
 
-    const uint did0_begin = itmp/WORK_STRIDE_0;
+    const uint did0_begin = itmp / WORK_STRIDE_0;
 
     itmp -= did0_begin * WORK_STRIDE_0;
 
-    const uint did1_begin = itmp/WORK_STRIDE_1;
+    const uint did1_begin = itmp / WORK_STRIDE_1;
 
     for(uint did0 = did0_begin; did0 < len0; did0 += WORK_LENGTH_0)
     {
@@ -133,26 +132,26 @@ __kernel void SubTensorOpWithScalar2d(global _FLOAT* __restrict dst,
 }
 
 __kernel void SubTensorOpWithScalar3d(global _FLOAT* __restrict dst,
-                          const _FLOAT alpha,
-                          const int offset,
-                          const int stride0,
-                          const int stride1,
-                          const int stride2,
-                          const int len0,
-                          const int len1,
-                          const int len2)
+                                      const _FLOAT alpha,
+                                      const int offset,
+                                      const int stride0,
+                                      const int stride1,
+                                      const int stride2,
+                                      const int len0,
+                                      const int len1,
+                                      const int len2)
 {
     uint itmp = get_global_id(0);
 
-    const uint did0_begin = itmp/WORK_STRIDE_0;
+    const uint did0_begin = itmp / WORK_STRIDE_0;
 
     itmp -= did0_begin * WORK_STRIDE_0;
 
-    const uint did1_begin = itmp/WORK_STRIDE_1;
+    const uint did1_begin = itmp / WORK_STRIDE_1;
 
     itmp -= did1_begin * WORK_STRIDE_1;
 
-    const uint did2_begin = itmp/WORK_STRIDE_2;
+    const uint did2_begin = itmp / WORK_STRIDE_2;
 
     for(uint did0 = did0_begin; did0 < len0; did0 += WORK_LENGTH_0)
     {
@@ -169,32 +168,32 @@ __kernel void SubTensorOpWithScalar3d(global _FLOAT* __restrict dst,
 }
 
 __kernel void SubTensorOpWithScalar4d(global _FLOAT* __restrict dst,
-                          const _FLOAT alpha,
-                          const int offset,
-                          const int stride0,
-                          const int stride1,
-                          const int stride2,
-                          const int stride3,
-                          const int len0,
-                          const int len1,
-                          const int len2,
-                          const int len3)
+                                      const _FLOAT alpha,
+                                      const int offset,
+                                      const int stride0,
+                                      const int stride1,
+                                      const int stride2,
+                                      const int stride3,
+                                      const int len0,
+                                      const int len1,
+                                      const int len2,
+                                      const int len3)
 {
     uint itmp = get_global_id(0);
 
-    const uint did0_begin = itmp/WORK_STRIDE_0;
+    const uint did0_begin = itmp / WORK_STRIDE_0;
 
     itmp -= did0_begin * WORK_STRIDE_0;
 
-    const uint did1_begin = itmp/WORK_STRIDE_1;
+    const uint did1_begin = itmp / WORK_STRIDE_1;
 
     itmp -= did1_begin * WORK_STRIDE_1;
 
-    const uint did2_begin = itmp/WORK_STRIDE_2;
+    const uint did2_begin = itmp / WORK_STRIDE_2;
 
     itmp -= did2_begin * WORK_STRIDE_2;
 
-    const uint did3_begin = itmp/WORK_STRIDE_3;
+    const uint did3_begin = itmp / WORK_STRIDE_3;
 
     for(uint did0 = did0_begin; did0 < len0; did0 += WORK_LENGTH_0)
     {
@@ -204,7 +203,8 @@ __kernel void SubTensorOpWithScalar4d(global _FLOAT* __restrict dst,
             {
                 for(uint did3 = did3_begin; did3 < len3; did3 += WORK_LENGTH_3)
                 {
-                    const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2 + stride3 * did3;
+                    const uint i =
+                        stride0 * did0 + stride1 * did1 + stride2 * did2 + stride3 * did3;
 
                     SUBTENSOR_OP_WITH_SCALAR(dst[i + offset], alpha);
                 }
@@ -214,38 +214,38 @@ __kernel void SubTensorOpWithScalar4d(global _FLOAT* __restrict dst,
 }
 
 __kernel void SubTensorOpWithScalar5d(global _FLOAT* __restrict dst,
-                          const _FLOAT alpha,
-                          const int offset,
-                          const int stride0,
-                          const int stride1,
-                          const int stride2,
-                          const int stride3,
-                          const int stride4,
-                          const int len0,
-                          const int len1,
-                          const int len2,
-                          const int len3,
-                          const int len4)
+                                      const _FLOAT alpha,
+                                      const int offset,
+                                      const int stride0,
+                                      const int stride1,
+                                      const int stride2,
+                                      const int stride3,
+                                      const int stride4,
+                                      const int len0,
+                                      const int len1,
+                                      const int len2,
+                                      const int len3,
+                                      const int len4)
 {
     uint itmp = get_global_id(0);
 
-    const uint did0_begin = itmp/WORK_STRIDE_0;
+    const uint did0_begin = itmp / WORK_STRIDE_0;
 
     itmp -= did0_begin * WORK_STRIDE_0;
 
-    const uint did1_begin = itmp/WORK_STRIDE_1;
+    const uint did1_begin = itmp / WORK_STRIDE_1;
 
     itmp -= did1_begin * WORK_STRIDE_1;
 
-    const uint did2_begin = itmp/WORK_STRIDE_2;
+    const uint did2_begin = itmp / WORK_STRIDE_2;
 
     itmp -= did2_begin * WORK_STRIDE_2;
 
-    const uint did3_begin = itmp/WORK_STRIDE_3;
+    const uint did3_begin = itmp / WORK_STRIDE_3;
 
     itmp -= did3_begin * WORK_STRIDE_3;
 
-    const uint did4_begin = itmp/WORK_STRIDE_4;
+    const uint did4_begin = itmp / WORK_STRIDE_4;
 
     for(uint did0 = did0_begin; did0 < len0; did0 += WORK_LENGTH_0)
     {
