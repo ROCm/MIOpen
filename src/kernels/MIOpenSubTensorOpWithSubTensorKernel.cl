@@ -53,7 +53,6 @@
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 #define _AS_FLOAT PPCAT(as_, _FLOAT)
 
-
 #ifndef WORK_LENGTH_0
 #define WORK_LENGTH_0 1
 #endif
@@ -84,19 +83,19 @@
 #define SUBTENSOR_OP_WITH_SUBTENSOR BREAK_COMPILE_INTENTIONALLY
 #endif
 
-#define SUBTENSOR_OP_WITH_SUBTENSOR_COPY(dst, src)  ( dst = src )
+#define SUBTENSOR_OP_WITH_SUBTENSOR_COPY(dst, src) (dst = src)
 
 __kernel void SubTensorOpWithSubTensor1d(const global _FLOAT* __restrict src,
-                           const int srcOffset,
-                           const int srcStride0,
-                           const int srcLen0,
-                           global _FLOAT* __restrict dst,
-                           const int dstOffset,
-                           const int dstStride0)
+                                         const int srcOffset,
+                                         const int srcStride0,
+                                         const int srcLen0,
+                                         global _FLOAT* __restrict dst,
+                                         const int dstOffset,
+                                         const int dstStride0)
 {
     uint itmp = get_global_id(0);
 
-    const uint did0_begin = itmp/WORK_STRIDE_0;
+    const uint did0_begin = itmp / WORK_STRIDE_0;
 
     for(uint did0 = did0_begin; did0 < srcLen0; did0 += WORK_LENGTH_0)
     {
@@ -108,23 +107,23 @@ __kernel void SubTensorOpWithSubTensor1d(const global _FLOAT* __restrict src,
 }
 
 __kernel void SubTensorOpWithSubTensor2d(const global _FLOAT* __restrict src,
-                           const int srcOffset,
-                           const int srcStride0,
-                           const int srcStride1,
-                           const int srcLen0,
-                           const int srcLen1,
-                           global _FLOAT* __restrict dst,
-                           const int dstOffset,
-                           const int dstStride0,
-                           const int dstStride1)
+                                         const int srcOffset,
+                                         const int srcStride0,
+                                         const int srcStride1,
+                                         const int srcLen0,
+                                         const int srcLen1,
+                                         global _FLOAT* __restrict dst,
+                                         const int dstOffset,
+                                         const int dstStride0,
+                                         const int dstStride1)
 {
     uint itmp = get_global_id(0);
 
-    const uint did0_begin = itmp/WORK_STRIDE_0;
+    const uint did0_begin = itmp / WORK_STRIDE_0;
 
     itmp -= did0_begin * WORK_STRIDE_0;
 
-    const uint did1_begin = itmp/WORK_STRIDE_1;
+    const uint did1_begin = itmp / WORK_STRIDE_1;
 
     for(uint did0 = did0_begin; did0 < srcLen0; did0 += WORK_LENGTH_0)
     {
@@ -139,30 +138,30 @@ __kernel void SubTensorOpWithSubTensor2d(const global _FLOAT* __restrict src,
 }
 
 __kernel void SubTensorOpWithSubTensor3d(const global _FLOAT* __restrict src,
-                           const int srcOffset,
-                           const int srcStride0,
-                           const int srcStride1,
-                           const int srcStride2,
-                           const int srcLen0,
-                           const int srcLen1,
-                           const int srcLen2,
-                           global _FLOAT* __restrict dst,
-                           const int dstOffset,
-                           const int dstStride0,
-                           const int dstStride1,
-                           const int dstStride2)
+                                         const int srcOffset,
+                                         const int srcStride0,
+                                         const int srcStride1,
+                                         const int srcStride2,
+                                         const int srcLen0,
+                                         const int srcLen1,
+                                         const int srcLen2,
+                                         global _FLOAT* __restrict dst,
+                                         const int dstOffset,
+                                         const int dstStride0,
+                                         const int dstStride1,
+                                         const int dstStride2)
 {
     uint itmp = get_global_id(0);
 
-    const uint did0_begin = itmp/WORK_STRIDE_0;
+    const uint did0_begin = itmp / WORK_STRIDE_0;
 
     itmp -= did0_begin * WORK_STRIDE_0;
 
-    const uint did1_begin = itmp/WORK_STRIDE_1;
+    const uint did1_begin = itmp / WORK_STRIDE_1;
 
     itmp -= did1_begin * WORK_STRIDE_1;
 
-    const uint did2_begin = itmp/WORK_STRIDE_2;
+    const uint did2_begin = itmp / WORK_STRIDE_2;
 
     for(uint did0 = did0_begin; did0 < srcLen0; did0 += WORK_LENGTH_0)
     {
@@ -180,37 +179,37 @@ __kernel void SubTensorOpWithSubTensor3d(const global _FLOAT* __restrict src,
 }
 
 __kernel void SubTensorOpWithSubTensor4d(const global _FLOAT* __restrict src,
-                           const int srcOffset,
-                           const int srcStride0,
-                           const int srcStride1,
-                           const int srcStride2,
-                           const int srcStride3,
-                           const int srcLen0,
-                           const int srcLen1,
-                           const int srcLen2,
-                           const int srcLen3,
-                           global _FLOAT* __restrict dst,
-                           const int dstOffset,
-                           const int dstStride0,
-                           const int dstStride1,
-                           const int dstStride2,
-                           const int dstStride3)
+                                         const int srcOffset,
+                                         const int srcStride0,
+                                         const int srcStride1,
+                                         const int srcStride2,
+                                         const int srcStride3,
+                                         const int srcLen0,
+                                         const int srcLen1,
+                                         const int srcLen2,
+                                         const int srcLen3,
+                                         global _FLOAT* __restrict dst,
+                                         const int dstOffset,
+                                         const int dstStride0,
+                                         const int dstStride1,
+                                         const int dstStride2,
+                                         const int dstStride3)
 {
     uint itmp = get_global_id(0);
 
-    const uint did0_begin = itmp/WORK_STRIDE_0;
+    const uint did0_begin = itmp / WORK_STRIDE_0;
 
     itmp -= did0_begin * WORK_STRIDE_0;
 
-    const uint did1_begin = itmp/WORK_STRIDE_1;
+    const uint did1_begin = itmp / WORK_STRIDE_1;
 
     itmp -= did1_begin * WORK_STRIDE_1;
 
-    const uint did2_begin = itmp/WORK_STRIDE_2;
+    const uint did2_begin = itmp / WORK_STRIDE_2;
 
     itmp -= did2_begin * WORK_STRIDE_2;
 
-    const uint did3_begin = itmp/WORK_STRIDE_3;
+    const uint did3_begin = itmp / WORK_STRIDE_3;
 
     for(uint did0 = did0_begin; did0 < srcLen0; did0 += WORK_LENGTH_0)
     {
@@ -233,44 +232,44 @@ __kernel void SubTensorOpWithSubTensor4d(const global _FLOAT* __restrict src,
 }
 
 __kernel void SubTensorOpWithSubTensor5d(const global _FLOAT* __restrict src,
-                           const int srcOffset,
-                           const int srcStride0,
-                           const int srcStride1,
-                           const int srcStride2,
-                           const int srcStride3,
-                           const int srcStride4,
-                           const int srcLen0,
-                           const int srcLen1,
-                           const int srcLen2,
-                           const int srcLen3,
-                           const int srcLen4,
-                           global _FLOAT* __restrict dst,
-                           const int dstOffset,
-                           const int dstStride0,
-                           const int dstStride1,
-                           const int dstStride2,
-                           const int dstStride3,
-                           const int dstStride4)
+                                         const int srcOffset,
+                                         const int srcStride0,
+                                         const int srcStride1,
+                                         const int srcStride2,
+                                         const int srcStride3,
+                                         const int srcStride4,
+                                         const int srcLen0,
+                                         const int srcLen1,
+                                         const int srcLen2,
+                                         const int srcLen3,
+                                         const int srcLen4,
+                                         global _FLOAT* __restrict dst,
+                                         const int dstOffset,
+                                         const int dstStride0,
+                                         const int dstStride1,
+                                         const int dstStride2,
+                                         const int dstStride3,
+                                         const int dstStride4)
 {
     uint itmp = get_global_id(0);
 
-    const uint did0_begin = itmp/WORK_STRIDE_0;
+    const uint did0_begin = itmp / WORK_STRIDE_0;
 
     itmp -= did0_begin * WORK_STRIDE_0;
 
-    const uint did1_begin = itmp/WORK_STRIDE_1;
+    const uint did1_begin = itmp / WORK_STRIDE_1;
 
     itmp -= did1_begin * WORK_STRIDE_1;
 
-    const uint did2_begin = itmp/WORK_STRIDE_2;
+    const uint did2_begin = itmp / WORK_STRIDE_2;
 
     itmp -= did2_begin * WORK_STRIDE_2;
 
-    const uint did3_begin = itmp/WORK_STRIDE_3;
+    const uint did3_begin = itmp / WORK_STRIDE_3;
 
     itmp -= did3_begin * WORK_STRIDE_3;
 
-    const uint did4_begin = itmp/WORK_STRIDE_4;
+    const uint did4_begin = itmp / WORK_STRIDE_4;
 
     for(uint did0 = did0_begin; did0 < srcLen0; did0 += WORK_LENGTH_0)
     {
@@ -289,7 +288,8 @@ __kernel void SubTensorOpWithSubTensor5d(const global _FLOAT* __restrict src,
                                             dstStride2 * did2 + dstStride3 * did3 +
                                             dstStride4 * did4;
 
-                        SUBTENSOR_OP_WITH_SUBTENSOR(dst[dindex + dstOffset], src[sindex + srcOffset]);
+                        SUBTENSOR_OP_WITH_SUBTENSOR(dst[dindex + dstOffset],
+                                                    src[sindex + srcOffset]);
                     }
                 }
             }
