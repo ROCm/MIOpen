@@ -1201,23 +1201,50 @@ static std::string parms_half_or_float(const miopenDataType_t t)
 
 struct two_exp_ceiling_t
 {
-    std::size_t operator() ( std::size_t n ) const
+    std::size_t operator()(std::size_t n) const
     {
-        assert( n > 0 );
-    
+        assert(n > 0);
+
         std::size_t i = 1;
-    
+
         n--;
-        while( n != 0 )
+        while(n != 0)
         {
             i *= 2;
             n /= 2;
         }
-    
+
         return i;
     }
 };
 
+static std::vector<std::size_t> get_worker_sizes(const std::vector<std::size_t>& data_sizes)
+{
+    const std::size_t dim = data_sizes.size();
+
+    std::vector<std::size_t> worker_sizes(dim);
+
+    std::transform(data_sizes.begin(), data_sizes.end(), worker_sizes.begin(), two_exp_ceiling_t{});
+
+    std::size_t wgd = std::accumulate(
+        worker_sizes.begin(), worker_sizes.end(), 1, [](auto a, auto b) { return a * b; });
+
+    if(wgd > 65536)
+    {
+        std::size_t n = wgd / 65536;
+
+        int i = 0;
+        while(n > 1 && i < dim)
+        {
+            int size_old    = worker_sizes[i];
+            worker_sizes[i] = (size_old - 1) / n + 1;
+            n /= size_old / worker_sizes[i];
+            ++i;
+        }
+    }
+
+    return worker_sizes;
+}
 
 void SetTensor(
     Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha, const int offset)
@@ -1233,10 +1260,10 @@ void SetTensor(
 
     std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(ydim) + "d";
 
-    const std::vector<std::size_t> & lens = yDesc.GetLengths();
+    const std::vector<std::size_t>& lens = yDesc.GetLengths();
 
     std::string network_config = "set " + std::to_string(yDesc.GetType());
-    for(auto & len : lens)
+    for(auto& len : lens)
     {
         network_config += " " + std::to_string(len);
     }
@@ -1253,22 +1280,27 @@ void SetTensor(
     {
         std::string program_name = "MIOpenSubTensorOpWithScalarKernel.cl";
 
-        std::vector<std::size_t> work_lens(ydim);
+        std::vector<std::size_t> worker_sizes = get_worker_sizes(lens);
 
-        std::transform(lens.begin(), lens.end(), work_lens.begin(), two_exp_ceiling_t{} );
-
-        std::size_t wgd = std::accumulate(work_lens.begin()+1, work_lens.end(), *(work_lens.begin()), [](auto a, auto b) {return a*b;} );
+        std::size_t wgd = std::accumulate(
+            worker_sizes.begin(), worker_sizes.end(), 1, [](auto a, auto b) { return a * b; });
 
         std::size_t wld = 256 < wgd ? 256 : wgd;
 
-        std::string parms = "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_SET" + parms_half_or_float(yDesc.GetType());
-        for( int i = 0; i < ydim; ++i )
+        std::string parms = "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_SET" +
+                            parms_half_or_float(yDesc.GetType());
+        for(int i = 0; i < ydim; ++i)
         {
-            parms += " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(work_lens[i]);
+            parms += " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
         }
 
-        kernel = handle.AddKernel(
-            kernel_name, network_config, program_name, kernel_name, {wld,1,1}, {wgd,1,1}, parms);
+        kernel = handle.AddKernel(kernel_name,
+                                  network_config,
+                                  program_name,
+                                  kernel_name,
+                                  {wld, 1, 1},
+                                  {wgd, 1, 1},
+                                  parms);
     }
 
     switch(ydim)
@@ -1370,10 +1402,10 @@ void ScaleTensor(
 
     std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(ydim) + "d";
 
-    const std::vector<std::size_t> & lens = yDesc.GetLengths();
+    const std::vector<std::size_t>& lens = yDesc.GetLengths();
 
     std::string network_config = "scale " + std::to_string(yDesc.GetType());
-    for(auto & len : lens)
+    for(auto& len : lens)
     {
         network_config += " " + std::to_string(len);
     }
@@ -1390,22 +1422,27 @@ void ScaleTensor(
     {
         std::string program_name = "MIOpenSubTensorOpWithScalarKernel.cl";
 
-        std::vector<std::size_t> work_lens(ydim);
+        std::vector<std::size_t> worker_sizes = get_worker_sizes(lens);
 
-        std::transform(lens.begin(), lens.end(), work_lens.begin(), two_exp_ceiling_t{} );
-
-        std::size_t wgd = std::accumulate(work_lens.begin()+1, work_lens.end(), *(work_lens.begin()), [](auto a, auto b) {return a*b;} );
+        std::size_t wgd = std::accumulate(
+            worker_sizes.begin(), worker_sizes.end(), 1, [](auto a, auto b) { return a * b; });
 
         std::size_t wld = 256 < wgd ? 256 : wgd;
 
-        std::string parms = "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_MULTIPLY" + parms_half_or_float(yDesc.GetType());
-        for( int i = 0; i < ydim; ++i )
+        std::string parms = "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_MULTIPLY" +
+                            parms_half_or_float(yDesc.GetType());
+        for(int i = 0; i < ydim; ++i)
         {
-            parms += " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(work_lens[i]);
+            parms += " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
         }
 
-        kernel = handle.AddKernel(
-            kernel_name, network_config, program_name, kernel_name, {wld,1,1}, {wgd,1,1}, parms);
+        kernel = handle.AddKernel(kernel_name,
+                                  network_config,
+                                  program_name,
+                                  kernel_name,
+                                  {wld, 1, 1},
+                                  {wgd, 1, 1},
+                                  parms);
     }
 
     switch(ydim)
@@ -1533,13 +1570,12 @@ void CopyTensor(Handle& handle,
 
         assert(srcDim > 0 && srcDim <= 5);
 
-
         std::string kernel_name = "SubTensorOpWithSubTensor" + std::to_string(srcDim) + "d";
 
-        const std::vector<std::size_t> & lens = srcDesc.GetLengths();
+        const std::vector<std::size_t>& lens = srcDesc.GetLengths();
 
         std::string network_config = "copy " + std::to_string(srcDesc.GetType());
-        for(auto & len : lens)
+        for(auto& len : lens)
         {
             network_config += " " + std::to_string(len);
         }
@@ -1556,24 +1592,29 @@ void CopyTensor(Handle& handle,
         {
             std::string program_name = "MIOpenSubTensorOpWithSubTensorKernel.cl";
 
-            std::vector<std::size_t> work_lens(srcDim);
+            std::vector<std::size_t> worker_sizes = get_worker_sizes(lens);
 
-            std::transform(lens.begin(), lens.end(), work_lens.begin(), two_exp_ceiling_t{} );
-
-            std::size_t wgd = std::accumulate(work_lens.begin()+1, work_lens.end(), *(work_lens.begin()), [](auto a, auto b) {return a*b;} );
+            std::size_t wgd = std::accumulate(
+                worker_sizes.begin(), worker_sizes.end(), 1, [](auto a, auto b) { return a * b; });
 
             std::size_t wld = 256 < wgd ? 256 : wgd;
 
-            std::string parms = "-DSUBTENSOR_OP_WITH_SUBTENSOR=SUBTENSOR_OP_WITH_SUBTENSOR_COPY" + parms_half_or_float(srcDesc.GetType());
-            for( int i = 0; i < srcDim; ++i )
+            std::string parms = "-DSUBTENSOR_OP_WITH_SUBTENSOR=SUBTENSOR_OP_WITH_SUBTENSOR_COPY" +
+                                parms_half_or_float(srcDesc.GetType());
+            for(int i = 0; i < srcDim; ++i)
             {
-                parms += " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(work_lens[i]);
+                parms +=
+                    " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
             }
 
-            kernel = handle.AddKernel(
-                kernel_name, network_config, program_name, kernel_name, {wld,1,1}, {wgd,1,1}, parms);
+            kernel = handle.AddKernel(kernel_name,
+                                      network_config,
+                                      program_name,
+                                      kernel_name,
+                                      {wld, 1, 1},
+                                      {wgd, 1, 1},
+                                      parms);
         }
-
 
         switch(srcDim)
         {
