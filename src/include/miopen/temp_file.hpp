@@ -33,7 +33,7 @@
 
 namespace miopen {
 
-class TmpDir;
+struct TmpDir;
 
 class TempFile
 {
