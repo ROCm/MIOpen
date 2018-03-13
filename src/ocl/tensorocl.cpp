@@ -402,8 +402,12 @@ void OpTensor4d(Handle& handle,
     packed_tensor &= bTensorDesc.IsPacked();
     packed_tensor &= cTensorDesc.IsPacked();
 
+    bool packed_equal_tensor =
+        packed_tensor && (bTensorDesc.GetElementSize() == cTensorDesc.GetElementSize());
+
 #if(MIO_TENSOROCL_DEBUG == 1)
     printf("packed_tensor: %d\n", packed_tensor);
+    printf("equal_tensor: %d\n", bTensorDesc.GetElementSize() == cTensorDesc.GetElementSize());
 #endif
 
     network_config += std::to_string(bTensorDesc.GetType()) +
@@ -477,6 +481,27 @@ void OpTensor4d(Handle& handle,
                            int(num_wg_orig));
                     return;
                 }
+            }
+        }
+        // precede leading_ones for bitmap = 1,1,1,1
+        else if(packed_equal_tensor)
+        {
+            network_config += std::to_string(bTensorDesc.GetElementSize()) +
+                              std::to_string(float_equal(miopen_beta, 0.0));
+            auto&& kernels = handle.GetKernels("Op4dTensorLite", network_config);
+            if(!kernels.empty())
+            {
+                auto kernel = kernels.front();
+                kernel(ATensor,
+                       BTensor,
+                       CTensor,
+                       miopen_alpha0,
+                       miopen_alpha1,
+                       miopen_beta,
+                       long(Aoffset),
+                       long(Boffset),
+                       long(Coffset));
+                return;
             }
         }
         else if(leading_ones)
@@ -666,6 +691,45 @@ void OpTensor4d(Handle& handle,
                                         long(Coffset),
                                         int(num_wg_orig));
             }
+        }
+        // precede leading_ones for bitmap = 1,1,1,1
+        else if(packed_equal_tensor)
+        {
+            parms += " -DUSE_4D_TENSOR_LITE";
+            // for naive tensor ops
+            size_t RD_BLCK              = (clens[2] % 4 == 0) ? 4 : (clens[2] % 2 == 0) ? 2 : 1;
+            const std::string data_type = GetDataType(bTensorDesc.GetType());
+
+            size_t MAP_RD   = clens[2] / RD_BLCK;
+            size_t TENS_LEN = cTensorDesc.GetElementSize();
+            RD_BLCK =
+                (TENS_LEN % 4 == 0) ? 4 : (TENS_LEN % 3 == 0) ? 3 : (TENS_LEN % 2 == 0) ? 2 : 1;
+            MAP_RD = TENS_LEN / RD_BLCK;
+
+            const std::string READ_TYPE =
+                (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK);
+
+            parms += " -DRD_BLCK=" + std::to_string(RD_BLCK) + " -DMAP_RD=" +
+                     std::to_string(MAP_RD) + " -DREAD_TYPE=" + READ_TYPE;
+
+            if(!float_equal(miopen_beta, 0.0))
+            {
+                parms += " -DBETA";
+            }
+
+            const std::vector<size_t> vgd1{TENS_LEN / RD_BLCK, 1, 1};
+
+            handle.AddKernel(
+                "Op4dTensorLite", network_config, program_name, "Op4dTensorLite", vld, vgd1, parms)(
+                ATensor,
+                BTensor,
+                CTensor,
+                miopen_alpha0,
+                miopen_alpha1,
+                miopen_beta,
+                long(Aoffset),
+                long(Boffset),
+                long(Coffset));
         }
         else if(leading_ones)
         {

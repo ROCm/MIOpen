@@ -253,7 +253,7 @@ struct tensor_ops_driver : test_driver
 
     std::vector<std::vector<int>> get_sub_tensor_a()
     {
-        return {{32, 16, 8, 4, 4}, {16, 20, 16, 8}, {20, 16, 8}, {16, 8}, {8}};
+        return {{32, 16, 8, 4, 4}, {16, 20, 16, 8}, {20, 16, 8}, {1, 16, 8}, {16, 8}, {8}};
     }
 
     std::vector<std::vector<int>> get_sub_tensor_b()
@@ -324,7 +324,7 @@ struct tensor_ops_driver : test_driver
 
     void run()
     {
-        if(tensorlens_ac.size() == tensorlens_b.size())
+        if(tensorlens_ac.size() == tensorlens_b.size() && tensorlens_ac >= tensorlens_b)
         {
             tensor<T> aTensor = get_subtensors(super_a, tensorlens_ac, packed);
             tensor<T> bTensor = get_subtensors(super_b, tensorlens_b, packed);
