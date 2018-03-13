@@ -1218,21 +1218,6 @@ struct two_exp_ceiling_t
     }
 };
 
-static std::size_t two_exp_ceiling ( std::size_t n )
-{
-    assert( n > 0 );
-
-    std::size_t i = 1;
-
-    n--;
-    while( n != 0 )
-    {
-        i *= 2;
-        n /= 2;
-    }
-
-    return i;
-}
 
 void SetTensor(
     Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha, const int offset)
@@ -1548,37 +1533,52 @@ void CopyTensor(Handle& handle,
 
         assert(srcDim > 0 && srcDim <= 5);
 
+
+        std::string kernel_name = "SubTensorOpWithSubTensor" + std::to_string(srcDim) + "d";
+
+        const std::vector<std::size_t> & lens = srcDesc.GetLengths();
+
+        std::string network_config = "copy " + std::to_string(srcDesc.GetType());
+        for(auto & len : lens)
+        {
+            network_config += " " + std::to_string(len);
+        }
+
+        auto&& kernels = handle.GetKernels(kernel_name, network_config);
+
+        KernelInvoke kernel;
+
+        if(!kernels.empty())
+        {
+            kernel = kernels.front();
+        }
+        else
+        {
+            std::string program_name = "MIOpenSubTensorOpWithSubTensorKernel.cl";
+
+            std::vector<std::size_t> work_lens(srcDim);
+
+            std::transform(lens.begin(), lens.end(), work_lens.begin(), two_exp_ceiling_t{} );
+
+            std::size_t wgd = std::accumulate(work_lens.begin()+1, work_lens.end(), *(work_lens.begin()), [](auto a, auto b) {return a*b;} );
+
+            std::size_t wld = 256 < wgd ? 256 : wgd;
+
+            std::string parms = "-DSUBTENSOR_OP_WITH_SUBTENSOR=SUBTENSOR_OP_WITH_SUBTENSOR_COPY" + parms_half_or_float(srcDesc.GetType());
+            for( int i = 0; i < srcDim; ++i )
+            {
+                parms += " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(work_lens[i]);
+            }
+
+            kernel = handle.AddKernel(
+                kernel_name, network_config, program_name, kernel_name, {wld,1,1}, {wgd,1,1}, parms);
+        }
+
+
         switch(srcDim)
         {
         case 1:
         {
-            std::vector<size_t> vld             = {256, 1, 1};
-            std::vector<size_t> data_per_thread = {16, 1, 1};
-            std::vector<size_t> vgd             = {1, 1, 1};
-
-            vgd[0] = ((srcDesc.GetLengths()[0] - 1) / (vld[0] * data_per_thread[0]) + 1) * vld[0];
-
-            std::string network_config =
-                std::to_string(srcDesc.GetType()) + " " + std::to_string(vgd[0]);
-
-            auto&& kernels = handle.GetKernels("CopyTensor1d", network_config);
-
-            KernelInvoke kernel;
-
-            if(!kernels.empty())
-            {
-                kernel = kernels.front();
-            }
-            else
-            {
-                std::string parms = parms_half_or_float(srcDesc.GetType()) +
-                                    " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]);
-
-                std::string program_name = "MIOpenTensorCopyKernel.cl";
-                kernel                   = handle.AddKernel(
-                    "CopyTensor1d", network_config, program_name, "CopyTensor1d", vld, vgd, parms);
-            }
-
             kernel(src,
                    srcOffset,
                    int(srcDesc.GetStrides()[0]),
@@ -1591,35 +1591,6 @@ void CopyTensor(Handle& handle,
         }
         case 2:
         {
-            std::vector<size_t> vld             = {16, 16, 1};
-            std::vector<size_t> data_per_thread = {4, 4, 1};
-            std::vector<size_t> vgd             = {1, 1, 1};
-
-            vgd[0] = ((srcDesc.GetLengths()[0] - 1) / (vld[0] * data_per_thread[0]) + 1) * vld[0];
-            vgd[1] = ((srcDesc.GetLengths()[1] - 1) / (vld[1] * data_per_thread[1]) + 1) * vld[1];
-
-            std::string network_config = std::to_string(srcDesc.GetType()) + " " +
-                                         std::to_string(vgd[0]) + " " + std::to_string(vgd[1]);
-
-            auto&& kernels = handle.GetKernels("CopyTensor2d", network_config);
-
-            KernelInvoke kernel;
-
-            if(!kernels.empty())
-            {
-                kernel = kernels.front();
-            }
-            else
-            {
-                std::string parms = parms_half_or_float(srcDesc.GetType()) +
-                                    " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
-                                    " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]);
-
-                std::string program_name = "MIOpenTensorCopyKernel.cl";
-                kernel                   = handle.AddKernel(
-                    "CopyTensor2d", network_config, program_name, "CopyTensor2d", vld, vgd, parms);
-            }
-
             kernel(src,
                    srcOffset,
                    int(srcDesc.GetStrides()[0]),
@@ -1635,42 +1606,6 @@ void CopyTensor(Handle& handle,
         }
         case 3:
         {
-            const std::vector<size_t> & lens = srcDesc.GetLengths();
-
-            std::string network_config = std::to_string(srcDesc.GetType()) + " " +
-                                         std::to_string(lens[0]) + " " + std::to_string(lens[1]) + " " +
-                                         std::to_string(lens[2]);
-
-            auto&& kernels = handle.GetKernels("CopyTensor3d", network_config);
-
-            KernelInvoke kernel;
-
-            if(!kernels.empty())
-            {
-                kernel = kernels.front();
-            }
-            else
-            {
-                std::string program_name = "MIOpenTensorCopyKernel.cl";
-
-                std::vector<size_t> work_lens(3);
-
-                work_lens[0] = two_exp_ceiling(lens[0]);
-                work_lens[1] = two_exp_ceiling(lens[1]);
-                work_lens[2] = two_exp_ceiling(lens[2]);
-
-                size_t wgd = work_lens[0] * work_lens[1] * work_lens[2];
-                size_t wld = 256 < wgd ? 256 : wgd;
-
-                std::string parms = parms_half_or_float(srcDesc.GetType()) + 
-                                    " -DWORK_LENGTH_0=" + std::to_string(work_lens[0]) +
-                                    " -DWORK_LENGTH_1=" + std::to_string(work_lens[1]) + 
-                                    " -DWORK_LENGTH_2=" + std::to_string(work_lens[2]);
-
-                kernel = handle.AddKernel(
-                    "CopyTensor3d", network_config, program_name, "CopyTensor3d", {wld,1,1}, {wgd,1,1}, parms);
-            }
-
             kernel(src,
                    srcOffset,
                    int(srcDesc.GetStrides()[0]),
@@ -1689,38 +1624,6 @@ void CopyTensor(Handle& handle,
         }
         case 4:
         {
-            std::vector<size_t> vld             = {4, 8, 8};
-            std::vector<size_t> data_per_thread = {4, 2, 2};
-            std::vector<size_t> vgd             = {1, 1, 1};
-
-            vgd[0] = ((srcDesc.GetLengths()[0] - 1) / (vld[0] * data_per_thread[0]) + 1) * vld[0];
-            vgd[1] = ((srcDesc.GetLengths()[1] - 1) / (vld[1] * data_per_thread[1]) + 1) * vld[1];
-            vgd[2] = ((srcDesc.GetLengths()[2] - 1) / (vld[2] * data_per_thread[2]) + 1) * vld[2];
-
-            std::string network_config = std::to_string(srcDesc.GetType()) + " " +
-                                         std::to_string(vgd[0]) + " " + std::to_string(vgd[1]) +
-                                         " " + std::to_string(vgd[2]);
-
-            auto&& kernels = handle.GetKernels("CopyTensor4d", network_config);
-
-            KernelInvoke kernel;
-
-            if(!kernels.empty())
-            {
-                kernel = kernels.front();
-            }
-            else
-            {
-                std::string parms = parms_half_or_float(srcDesc.GetType()) +
-                                    " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
-                                    " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
-                                    " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
-
-                std::string program_name = "MIOpenTensorCopyKernel.cl";
-                kernel                   = handle.AddKernel(
-                    "CopyTensor4d", network_config, program_name, "CopyTensor4d", vld, vgd, parms);
-            }
-
             kernel(src,
                    srcOffset,
                    int(srcDesc.GetStrides()[0]),
@@ -1742,38 +1645,6 @@ void CopyTensor(Handle& handle,
         }
         case 5:
         {
-            std::vector<size_t> vld             = {4, 8, 8};
-            std::vector<size_t> data_per_thread = {4, 2, 2};
-            std::vector<size_t> vgd             = {1, 1, 1};
-
-            vgd[0] = ((srcDesc.GetLengths()[0] - 1) / (vld[0] * data_per_thread[0]) + 1) * vld[0];
-            vgd[1] = ((srcDesc.GetLengths()[1] - 1) / (vld[1] * data_per_thread[1]) + 1) * vld[1];
-            vgd[2] = ((srcDesc.GetLengths()[2] - 1) / (vld[2] * data_per_thread[2]) + 1) * vld[2];
-
-            std::string network_config = std::to_string(srcDesc.GetType()) + " " +
-                                         std::to_string(vgd[0]) + " " + std::to_string(vgd[1]) +
-                                         " " + std::to_string(vgd[2]);
-
-            auto&& kernels = handle.GetKernels("CopyTensor5d", network_config);
-
-            KernelInvoke kernel;
-
-            if(!kernels.empty())
-            {
-                kernel = kernels.front();
-            }
-            else
-            {
-                std::string parms = parms_half_or_float(srcDesc.GetType()) +
-                                    " -DGLOBAL_WORK_SIZE_X=" + std::to_string(vgd[0]) +
-                                    " -DGLOBAL_WORK_SIZE_Y=" + std::to_string(vgd[1]) +
-                                    " -DGLOBAL_WORK_SIZE_Z=" + std::to_string(vgd[2]);
-
-                std::string program_name = "MIOpenTensorCopyKernel.cl";
-                kernel                   = handle.AddKernel(
-                    "CopyTensor5d", network_config, program_name, "CopyTensor5d", vld, vgd, parms);
-            }
-
             kernel(src,
                    srcOffset,
                    int(srcDesc.GetStrides()[0]),
