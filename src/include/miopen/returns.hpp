@@ -31,6 +31,8 @@
     ->decltype(__VA_ARGS__) { return __VA_ARGS__; }
 
 #define MIOPEN_BODY_RETURNS(...) \
-    { return __VA_ARGS__; }
+    {                            \
+        return __VA_ARGS__;      \
+    }
 
 #endif
