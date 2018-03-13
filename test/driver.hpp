@@ -131,6 +131,7 @@ struct test_driver
     int batch_factor      = 0;
     bool no_validate      = false;
     int repeat            = 1;
+    bool rethrow          = false;
 
     argument& get_argument(const std::string& s)
     {
@@ -152,6 +153,7 @@ struct test_driver
           {"--disable-validation"},
           "Disable cpu validation, so only gpu version is ran");
         v(repeat, {"--repeat"}, "Repeat the tests");
+        v(rethrow, {"--rethrow"}, "Rethrow any exceptions found during verify");
     }
 
     struct per_arg
@@ -497,9 +499,12 @@ struct test_driver
             std::integral_constant<std::size_t, sizeof...(CpuRanges)>{});
     }
 
-    template <class V, class... Ts>
-    auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
+    template <class F, class V, class... Ts>
+    auto verify_impl(F&& f, V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
+        decltype(v.cpu(xs...)) cpu;
+        decltype(v.gpu(xs...)) gpu;
+
         if(verbose or time)
         {
             show_command();
@@ -520,20 +525,17 @@ struct test_driver
                 h.EnableProfiling();
                 h.ResetKernelTime();
             }
-            auto gpu = v.gpu(xs...);
+            gpu = v.gpu(xs...);
             if(time)
             {
                 std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
                 h.EnableProfiling(false);
             }
-            // Return
-            if(no_validate)
+            // Validate
+            if(!no_validate)
             {
-                return std::make_pair(gpu, gpu);
-            }
-            else
-            {
-                return verify_check(cpuf.get(), gpu, [&](int mode) { v.fail(mode, xs...); });
+                cpu = cpuf.get();
+                f(cpu, gpu);
             }
         }
         catch(const std::exception& ex)
@@ -541,92 +543,58 @@ struct test_driver
             std::cout << "FAILED: " << ex.what() << std::endl;
             show_command();
             v.fail(-1, xs...);
-            throw;
+            if (rethrow) throw;
         }
         catch(...)
         {
             std::cout << "FAILED with unknown exception" << std::endl;
             show_command();
             v.fail(-1, xs...);
-            throw;
+            if (rethrow) throw;
         }
+        if(no_validate)
+        {
+            return std::make_pair(gpu, gpu);
+        }
+        else
+        {
+            return std::make_pair(cpu, gpu);
+        }
+    }
+
+    template <class V, class... Ts>
+    auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
+    {
+        return verify_impl([&](auto&& cpu, auto&& gpu) {
+            verify_check(cpu, gpu, [&](int mode) { v.fail(mode, xs...); });
+        }, v, xs...);
     }
 
     template <class V, class... Ts>
     auto verify_equals(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
-        if(verbose or time)
-        {
-            show_command();
-            v.fail(std::integral_constant<int, -1>{}, xs...);
-        }
-        try
-        {
-            auto&& h = get_handle();
-            // Compute cpu
-            std::future<decltype(v.cpu(xs...))> cpuf;
-            if(not no_validate)
+        return verify_impl([&](auto&& cpu, auto&& gpu) {
+            if(miopen::range_zero(cpu))
             {
-                cpuf = cpu_async(v, xs...);
-            }
-            // Compute gpu
-            if(time)
-            {
-                h.EnableProfiling();
-                h.ResetKernelTime();
-            }
-            auto gpu = v.gpu(xs...);
-            if(time)
-            {
-                std::cout << "Kernel time: " << h.GetKernelTime() << " ms" << std::endl;
-                h.EnableProfiling(false);
+                std::cout << "Cpu data is all zeros" << std::endl;
+                v.fail(-1, xs...);
             }
 
-            if(no_validate)
+            if(miopen::range_zero(gpu))
             {
-                return std::make_pair(gpu, gpu);
+                std::cout << "Gpu data is all zeros" << std::endl;
+                v.fail(-1, xs...);
             }
-            else
+
+            auto idx = miopen::mismatch_idx(cpu, gpu, miopen::float_equal);
+            if(idx < miopen::range_distance(cpu))
             {
-                auto cpu = cpuf.get();
-
-                if(miopen::range_zero(cpu))
-                {
-                    std::cout << "Cpu data is all zeros" << std::endl;
-                    v.fail(-1, xs...);
-                }
-
-                if(miopen::range_zero(gpu))
-                {
-                    std::cout << "Gpu data is all zeros" << std::endl;
-                    v.fail(-1, xs...);
-                }
-
-                auto idx = miopen::mismatch_idx(cpu, gpu, miopen::float_equal);
-                if(idx < miopen::range_distance(cpu))
-                {
-                    std::cout << "Mismatch at " << idx << ": " << cpu[idx] << " != " << gpu[idx]
-                              << std::endl;
-                    v.fail(-1, xs...);
-                }
-
-                return std::make_pair(cpu, gpu);
+                std::cout << "FAILED" << std::endl;
+                std::cout << "Mismatch at " << idx << ": " << cpu[idx] << " != " << gpu[idx]
+                          << std::endl;
+                v.fail(-1, xs...);
             }
-        }
-        catch(const std::exception& ex)
-        {
-            std::cout << "FAILED: " << ex.what() << std::endl;
-            show_command();
-            v.fail(-1, xs...);
-            throw;
-        }
-        catch(...)
-        {
-            std::cout << "FAILED with unknown exception" << std::endl;
-            show_command();
-            v.fail(-1, xs...);
-            throw;
-        }
+        }, v, xs...);
     }
 };
 
