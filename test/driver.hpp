@@ -500,7 +500,8 @@ struct test_driver
     }
 
     template <class F, class V, class... Ts>
-    auto verify_impl(F&& f, V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
+    auto verify_impl(F&& f, V&& v, Ts&&... xs)
+        -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
         decltype(v.cpu(xs...)) cpu;
         decltype(v.gpu(xs...)) gpu;
@@ -543,14 +544,16 @@ struct test_driver
             std::cout << "FAILED: " << ex.what() << std::endl;
             show_command();
             v.fail(-1, xs...);
-            if (rethrow) throw;
+            if(rethrow)
+                throw;
         }
         catch(...)
         {
             std::cout << "FAILED with unknown exception" << std::endl;
             show_command();
             v.fail(-1, xs...);
-            if (rethrow) throw;
+            if(rethrow)
+                throw;
         }
         if(no_validate)
         {
@@ -565,36 +568,42 @@ struct test_driver
     template <class V, class... Ts>
     auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
-        return verify_impl([&](auto&& cpu, auto&& gpu) {
-            verify_check(cpu, gpu, [&](int mode) { v.fail(mode, xs...); });
-        }, v, xs...);
+        return verify_impl(
+            [&](auto&& cpu, auto&& gpu) {
+                verify_check(cpu, gpu, [&](int mode) { v.fail(mode, xs...); });
+            },
+            v,
+            xs...);
     }
 
     template <class V, class... Ts>
     auto verify_equals(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
-        return verify_impl([&](auto&& cpu, auto&& gpu) {
-            if(miopen::range_zero(cpu))
-            {
-                std::cout << "Cpu data is all zeros" << std::endl;
-                v.fail(-1, xs...);
-            }
+        return verify_impl(
+            [&](auto&& cpu, auto&& gpu) {
+                if(miopen::range_zero(cpu))
+                {
+                    std::cout << "Cpu data is all zeros" << std::endl;
+                    v.fail(-1, xs...);
+                }
 
-            if(miopen::range_zero(gpu))
-            {
-                std::cout << "Gpu data is all zeros" << std::endl;
-                v.fail(-1, xs...);
-            }
+                if(miopen::range_zero(gpu))
+                {
+                    std::cout << "Gpu data is all zeros" << std::endl;
+                    v.fail(-1, xs...);
+                }
 
-            auto idx = miopen::mismatch_idx(cpu, gpu, miopen::float_equal);
-            if(idx < miopen::range_distance(cpu))
-            {
-                std::cout << "FAILED" << std::endl;
-                std::cout << "Mismatch at " << idx << ": " << cpu[idx] << " != " << gpu[idx]
-                          << std::endl;
-                v.fail(-1, xs...);
-            }
-        }, v, xs...);
+                auto idx = miopen::mismatch_idx(cpu, gpu, miopen::float_equal);
+                if(idx < miopen::range_distance(cpu))
+                {
+                    std::cout << "FAILED" << std::endl;
+                    std::cout << "Mismatch at " << idx << ": " << cpu[idx] << " != " << gpu[idx]
+                              << std::endl;
+                    v.fail(-1, xs...);
+                }
+            },
+            v,
+            xs...);
     }
 };
 
