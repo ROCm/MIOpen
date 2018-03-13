@@ -53,17 +53,6 @@
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 #define _AS_FLOAT PPCAT(as_, _FLOAT)
 
-#ifndef GLOBAL_WORK_SIZE_X
-#define GLOBAL_WORK_SIZE_X 1
-#endif
-
-#ifndef GLOBAL_WORK_SIZE_Y
-#define GLOBAL_WORK_SIZE_Y 1
-#endif
-
-#ifndef GLOBAL_WORK_SIZE_Z
-#define GLOBAL_WORK_SIZE_Z 1
-#endif
 
 #ifndef WORK_LENGTH_0
 #define WORK_LENGTH_0 1
@@ -91,7 +80,13 @@
 #define WORK_STRIDE_1 (WORK_LENGTH_2 * WORK_STRIDE_2)
 #define WORK_STRIDE_0 (WORK_LENGTH_1 * WORK_STRIDE_1)
 
-__kernel void CopyTensor1d(const global _FLOAT* __restrict src,
+#ifndef SUBTENSOR_OP_WITH_SUBTENSOR
+#define SUBTENSOR_OP_WITH_SUBTENSOR BREAK_COMPILE_INTENTIONALLY
+#endif
+
+#define SUBTENSOR_OP_WITH_SUBTENSOR_COPY(dst, src)  ( dst = src )
+
+__kernel void SubTensorOpWithSubTensor1d(const global _FLOAT* __restrict src,
                            const int srcOffset,
                            const int srcStride0,
                            const int srcLen0,
@@ -99,18 +94,20 @@ __kernel void CopyTensor1d(const global _FLOAT* __restrict src,
                            const int dstOffset,
                            const int dstStride0)
 {
-    const uint tidx = get_global_id(0);
+    uint itmp = get_global_id(0);
 
-    for(uint did0 = tidx; did0 < srcLen0; did0 += GLOBAL_WORK_SIZE_X)
+    const uint did0_begin = itmp/WORK_STRIDE_0;
+
+    for(uint did0 = did0_begin; did0 < srcLen0; did0 += WORK_LENGTH_0)
     {
         const uint sindex = srcStride0 * did0;
         const uint dindex = dstStride0 * did0;
 
-        dst[dindex + dstOffset] = src[sindex + srcOffset];
+        SUBTENSOR_OP_WITH_SUBTENSOR(dst[dindex + dstOffset], src[sindex + srcOffset]);
     }
 }
 
-__kernel void CopyTensor2d(const global _FLOAT* __restrict src,
+__kernel void SubTensorOpWithSubTensor2d(const global _FLOAT* __restrict src,
                            const int srcOffset,
                            const int srcStride0,
                            const int srcStride1,
@@ -121,22 +118,27 @@ __kernel void CopyTensor2d(const global _FLOAT* __restrict src,
                            const int dstStride0,
                            const int dstStride1)
 {
-    const uint tidx = get_global_id(0);
-    const uint tidy = get_global_id(1);
+    uint itmp = get_global_id(0);
 
-    for(uint did0 = tidy; did0 < srcLen0; did0 += GLOBAL_WORK_SIZE_Y)
+    const uint did0_begin = itmp/WORK_STRIDE_0;
+
+    itmp -= did0_begin * WORK_STRIDE_0;
+
+    const uint did1_begin = itmp/WORK_STRIDE_1;
+
+    for(uint did0 = did0_begin; did0 < srcLen0; did0 += WORK_LENGTH_0)
     {
-        for(uint did1 = tidx; did1 < srcLen1; did1 += GLOBAL_WORK_SIZE_X)
+        for(uint did1 = did1_begin; did1 < srcLen1; did1 += WORK_LENGTH_1)
         {
             const uint sindex = srcStride0 * did0 + srcStride1 * did1;
             const uint dindex = dstStride0 * did0 + dstStride1 * did1;
 
-            dst[dindex + dstOffset] = src[sindex + srcOffset];
+            SUBTENSOR_OP_WITH_SUBTENSOR(dst[dindex + dstOffset], src[sindex + srcOffset]);
         }
     }
 }
 
-__kernel void CopyTensor3d(const global _FLOAT* __restrict src,
+__kernel void SubTensorOpWithSubTensor3d(const global _FLOAT* __restrict src,
                            const int srcOffset,
                            const int srcStride0,
                            const int srcStride1,
@@ -171,13 +173,13 @@ __kernel void CopyTensor3d(const global _FLOAT* __restrict src,
                 const uint sindex = srcStride0 * did0 + srcStride1 * did1 + srcStride2 * did2;
                 const uint dindex = dstStride0 * did0 + dstStride1 * did1 + dstStride2 * did2;
 
-                dst[dindex + dstOffset] = src[sindex + srcOffset];
+                SUBTENSOR_OP_WITH_SUBTENSOR(dst[dindex + dstOffset], src[sindex + srcOffset]);
             }
         }
     }
 }
 
-__kernel void CopyTensor4d(const global _FLOAT* __restrict src,
+__kernel void SubTensorOpWithSubTensor4d(const global _FLOAT* __restrict src,
                            const int srcOffset,
                            const int srcStride0,
                            const int srcStride1,
@@ -194,31 +196,43 @@ __kernel void CopyTensor4d(const global _FLOAT* __restrict src,
                            const int dstStride2,
                            const int dstStride3)
 {
-    const uint tidx = get_global_id(0);
-    const uint tidy = get_global_id(1);
-    const uint tidz = get_global_id(2);
+    uint itmp = get_global_id(0);
 
-    for(uint did0 = 0; did0 < srcLen0; did0++)
+    const uint did0_begin = itmp/WORK_STRIDE_0;
+
+    itmp -= did0_begin * WORK_STRIDE_0;
+
+    const uint did1_begin = itmp/WORK_STRIDE_1;
+
+    itmp -= did1_begin * WORK_STRIDE_1;
+
+    const uint did2_begin = itmp/WORK_STRIDE_2;
+
+    itmp -= did2_begin * WORK_STRIDE_2;
+
+    const uint did3_begin = itmp/WORK_STRIDE_3;
+
+    for(uint did0 = did0_begin; did0 < srcLen0; did0 += WORK_LENGTH_0)
     {
-        for(uint did1 = tidz; did1 < srcLen1; did1 += GLOBAL_WORK_SIZE_Z)
+        for(uint did1 = did1_begin; did1 < srcLen1; did1 += WORK_LENGTH_1)
         {
-            for(uint did2 = tidy; did2 < srcLen2; did2 += GLOBAL_WORK_SIZE_Y)
+            for(uint did2 = did2_begin; did2 < srcLen2; did2 += WORK_LENGTH_2)
             {
-                for(uint did3 = tidx; did3 < srcLen3; did3 += GLOBAL_WORK_SIZE_X)
+                for(uint did3 = did3_begin; did3 < srcLen3; did3 += WORK_LENGTH_3)
                 {
                     const uint sindex = srcStride0 * did0 + srcStride1 * did1 + srcStride2 * did2 +
                                         srcStride3 * did3;
                     const uint dindex = dstStride0 * did0 + dstStride1 * did1 + dstStride2 * did2 +
                                         dstStride3 * did3;
 
-                    dst[dindex + dstOffset] = src[sindex + srcOffset];
+                    SUBTENSOR_OP_WITH_SUBTENSOR(dst[dindex + dstOffset], src[sindex + srcOffset]);
                 }
             }
         }
     }
 }
 
-__kernel void CopyTensor5d(const global _FLOAT* __restrict src,
+__kernel void SubTensorOpWithSubTensor5d(const global _FLOAT* __restrict src,
                            const int srcOffset,
                            const int srcStride0,
                            const int srcStride1,
@@ -238,19 +252,35 @@ __kernel void CopyTensor5d(const global _FLOAT* __restrict src,
                            const int dstStride3,
                            const int dstStride4)
 {
-    const uint tidx = get_global_id(0);
-    const uint tidy = get_global_id(1);
-    const uint tidz = get_global_id(2);
+    uint itmp = get_global_id(0);
 
-    for(uint did0 = 0; did0 < srcLen0; did0++)
+    const uint did0_begin = itmp/WORK_STRIDE_0;
+
+    itmp -= did0_begin * WORK_STRIDE_0;
+
+    const uint did1_begin = itmp/WORK_STRIDE_1;
+
+    itmp -= did1_begin * WORK_STRIDE_1;
+
+    const uint did2_begin = itmp/WORK_STRIDE_2;
+
+    itmp -= did2_begin * WORK_STRIDE_2;
+
+    const uint did3_begin = itmp/WORK_STRIDE_3;
+
+    itmp -= did3_begin * WORK_STRIDE_3;
+
+    const uint did4_begin = itmp/WORK_STRIDE_4;
+
+    for(uint did0 = did0_begin; did0 < srcLen0; did0 += WORK_LENGTH_0)
     {
-        for(uint did1 = 0; did1 < srcLen1; did1++)
+        for(uint did1 = did1_begin; did1 < srcLen1; did1 += WORK_LENGTH_1)
         {
-            for(uint did2 = tidz; did2 < srcLen2; did2 += GLOBAL_WORK_SIZE_Z)
+            for(uint did2 = did2_begin; did2 < srcLen2; did2 += WORK_LENGTH_2)
             {
-                for(uint did3 = tidy; did3 < srcLen3; did3 += GLOBAL_WORK_SIZE_Y)
+                for(uint did3 = did3_begin; did3 < srcLen3; did3 += WORK_LENGTH_3)
                 {
-                    for(uint did4 = tidx; did4 < srcLen4; did4 += GLOBAL_WORK_SIZE_X)
+                    for(uint did4 = did4_begin; did4 < srcLen4; did4 += WORK_LENGTH_4)
                     {
                         const uint sindex = srcStride0 * did0 + srcStride1 * did1 +
                                             srcStride2 * did2 + srcStride3 * did3 +
@@ -259,7 +289,7 @@ __kernel void CopyTensor5d(const global _FLOAT* __restrict src,
                                             dstStride2 * did2 + dstStride3 * did3 +
                                             dstStride4 * did4;
 
-                        dst[dindex + dstOffset] = src[sindex + srcOffset];
+                        SUBTENSOR_OP_WITH_SUBTENSOR(dst[dindex + dstOffset], src[sindex + srcOffset]);
                     }
                 }
             }
