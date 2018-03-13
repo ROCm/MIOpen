@@ -53,18 +53,6 @@
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 #define _AS_FLOAT PPCAT(as_, _FLOAT)
 
-#ifndef GLOBAL_WORK_SIZE_X
-#define GLOBAL_WORK_SIZE_X 1
-#endif
-
-#ifndef GLOBAL_WORK_SIZE_Y
-#define GLOBAL_WORK_SIZE_Y 1
-#endif
-
-#ifndef GLOBAL_WORK_SIZE_Z
-#define GLOBAL_WORK_SIZE_Z 1
-#endif
-
 #ifndef WORK_LENGTH_0
 #define WORK_LENGTH_0 1
 #endif
@@ -85,11 +73,11 @@
 #define WORK_LENGTH_4 1
 #endif
 
-#define WORK_STRIDE_4 = 1
-#define WORK_STRIDE_3 = WORK_LENGTH_4 * WORK_STRIDE_4
-#define WORK_STRIDE_2 = WORK_LENGTH_3 * WORK_STRIDE_3
-#define WORK_STRIDE_1 = WORK_LENGTH_2 * WORK_STRIDE_2
-#define WORK_STRIDE_0 = WORK_LENGTH_1 * WORK_STRIDE_1
+#define WORK_STRIDE_4 1
+#define WORK_STRIDE_3 (WORK_LENGTH_4 * WORK_STRIDE_4)
+#define WORK_STRIDE_2 (WORK_LENGTH_3 * WORK_STRIDE_3)
+#define WORK_STRIDE_1 (WORK_LENGTH_2 * WORK_STRIDE_2)
+#define WORK_STRIDE_0 (WORK_LENGTH_1 * WORK_STRIDE_1)
 
 __kernel void SetTensor1d(global _FLOAT* __restrict dst,
                           const _FLOAT alpha,
@@ -97,9 +85,11 @@ __kernel void SetTensor1d(global _FLOAT* __restrict dst,
                           const int stride0,
                           const int len0)
 {
-    const uint tidx = get_global_id(0);
+    uint itmp = get_global_id(0);
 
-    for(uint did0 = tidx; did0 < len0; did0 += GLOBAL_WORK_SIZE_X)
+    const uint did0_begin = itmp/WORK_STRIDE_0;
+
+    for(uint did0 = did0_begin; did0 < len0; did0 += WORK_LENGTH_0)
     {
         const uint i = stride0 * did0;
 
@@ -115,12 +105,17 @@ __kernel void SetTensor2d(global _FLOAT* __restrict dst,
                           const int len0,
                           const int len1)
 {
-    const uint tidx = get_global_id(0);
-    const uint tidy = get_global_id(1);
+    uint itmp = get_global_id(0);
 
-    for(uint did0 = tidy; did0 < len0; did0 += GLOBAL_WORK_SIZE_Y)
+    const uint did0_begin = itmp/WORK_STRIDE_0;
+
+    itmp -= did0_begin * WORK_STRIDE_0;
+
+    const uint did1_begin = itmp/WORK_STRIDE_1;
+
+    for(uint did0 = did0_begin; did0 < len0; did0 += WORK_LENGTH_0)
     {
-        for(uint did1 = tidx; did1 < len1; did1 += GLOBAL_WORK_SIZE_X)
+        for(uint did1 = did1_begin; did1 < len1; did1 += WORK_LENGTH_1)
         {
             const uint i = stride0 * did0 + stride1 * did1;
 
@@ -143,19 +138,19 @@ __kernel void SetTensor3d(global _FLOAT* __restrict dst,
 
     const uint did0_begin = itmp/WORK_STRIDE_0;
 
-    itmp -= did0 * WORK_STRIDE_0;
+    itmp -= did0_begin * WORK_STRIDE_0;
 
     const uint did1_begin = itmp/WORK_STRIDE_1;
 
-    itmp -= did1 * WORK_STRIDE_1;
+    itmp -= did1_begin * WORK_STRIDE_1;
 
     const uint did2_begin = itmp/WORK_STRIDE_2;
 
     for(uint did0 = did0_begin; did0 < len0; did0 += WORK_LENGTH_0)
     {
-        for(unit did1 = did1_begin; did1 < len1; did1 += WORK_LENGTH_1)
+        for(uint did1 = did1_begin; did1 < len1; did1 += WORK_LENGTH_1)
         {
-            for(unit did2 = did2_begin; did2 < len2; did2 += WORK_LENGTH_2)
+            for(uint did2 = did2_begin; did2 < len2; did2 += WORK_LENGTH_2)
             {
                 const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2;
 
@@ -177,20 +172,31 @@ __kernel void SetTensor4d(global _FLOAT* __restrict dst,
                           const int len2,
                           const int len3)
 {
-    const uint tidx = get_global_id(0);
-    const uint tidy = get_global_id(1);
-    const uint tidz = get_global_id(2);
+    uint itmp = get_global_id(0);
 
-    for(uint did0 = 0; did0 < len0; did0++)
+    const uint did0_begin = itmp/WORK_STRIDE_0;
+
+    itmp -= did0_begin * WORK_STRIDE_0;
+
+    const uint did1_begin = itmp/WORK_STRIDE_1;
+
+    itmp -= did1_begin * WORK_STRIDE_1;
+
+    const uint did2_begin = itmp/WORK_STRIDE_2;
+
+    itmp -= did2_begin * WORK_STRIDE_2;
+
+    const uint did3_begin = itmp/WORK_STRIDE_3;
+
+    for(uint did0 = did0_begin; did0 < len0; did0 += WORK_LENGTH_0)
     {
-        for(uint did1 = tidz; did1 < len1; did1 += GLOBAL_WORK_SIZE_Z)
+        for(uint did1 = did1_begin; did1 < len1; did1 += WORK_LENGTH_1)
         {
-            for(uint did2 = tidy; did2 < len2; did2 += GLOBAL_WORK_SIZE_Y)
+            for(uint did2 = did2_begin; did2 < len2; did2 += WORK_LENGTH_2)
             {
-                for(uint did3 = tidx; did3 < len3; did3 += GLOBAL_WORK_SIZE_X)
+                for(uint did3 = did3_begin; did3 < len3; did3 += WORK_LENGTH_3)
                 {
-                    const uint i =
-                        stride0 * did0 + stride1 * did1 + stride2 * did2 + stride3 * did3;
+                    const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2 + stride3 * did3;
 
                     dst[i + offset] = alpha;
                 }
@@ -213,19 +219,35 @@ __kernel void SetTensor5d(global _FLOAT* __restrict dst,
                           const int len3,
                           const int len4)
 {
-    const uint tidx = get_global_id(0);
-    const uint tidy = get_global_id(1);
-    const uint tidz = get_global_id(2);
+    uint itmp = get_global_id(0);
 
-    for(uint did0 = 0; did0 < len0; did0++)
+    const uint did0_begin = itmp/WORK_STRIDE_0;
+
+    itmp -= did0_begin * WORK_STRIDE_0;
+
+    const uint did1_begin = itmp/WORK_STRIDE_1;
+
+    itmp -= did1_begin * WORK_STRIDE_1;
+
+    const uint did2_begin = itmp/WORK_STRIDE_2;
+
+    itmp -= did2_begin * WORK_STRIDE_2;
+
+    const uint did3_begin = itmp/WORK_STRIDE_3;
+
+    itmp -= did3_begin * WORK_STRIDE_3;
+
+    const uint did4_begin = itmp/WORK_STRIDE_4;
+
+    for(uint did0 = did0_begin; did0 < len0; did0 += WORK_LENGTH_0)
     {
-        for(uint did1 = 0; did1 < len1; did1++)
+        for(uint did1 = did1_begin; did1 < len1; did1 += WORK_LENGTH_1)
         {
-            for(uint did2 = tidz; did2 < len2; did2 += GLOBAL_WORK_SIZE_Z)
+            for(uint did2 = did2_begin; did2 < len2; did2 += WORK_LENGTH_2)
             {
-                for(uint did3 = tidy; did3 < len3; did3 += GLOBAL_WORK_SIZE_Y)
+                for(uint did3 = did3_begin; did3 < len3; did3 += WORK_LENGTH_3)
                 {
-                    for(uint did4 = tidx; did4 < len4; did4 += GLOBAL_WORK_SIZE_X)
+                    for(uint did4 = did4_begin; did4 < len4; did4 += WORK_LENGTH_4)
                     {
                         const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2 +
                                        stride3 * did3 + stride4 * did4;
