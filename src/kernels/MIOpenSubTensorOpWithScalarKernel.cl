@@ -53,6 +53,7 @@
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 #define _AS_FLOAT PPCAT(as_, _FLOAT)
 
+
 #ifndef WORK_LENGTH_0
 #define WORK_LENGTH_0 1
 #endif
@@ -79,7 +80,14 @@
 #define WORK_STRIDE_1 (WORK_LENGTH_2 * WORK_STRIDE_2)
 #define WORK_STRIDE_0 (WORK_LENGTH_1 * WORK_STRIDE_1)
 
-__kernel void SetTensor1d(global _FLOAT* __restrict dst,
+#ifndef SUBTENSOR_OP_WITH_SCALAR
+#define SUBTENSOR_OP_WITH_SCALAR BREAK_COMPILE_INTENTIONALLY
+#endif
+
+#define SUBTENSOR_OP_WITH_SCALAR_SET(t, a)  ( t  = a )
+#define SUBTENSOR_OP_WITH_SCALAR_MULTIPLY(t, a)  ( t *= a )
+
+__kernel void SubTensorOpWithScalar1d(global _FLOAT* __restrict dst,
                           const _FLOAT alpha,
                           const int offset,
                           const int stride0,
@@ -93,11 +101,11 @@ __kernel void SetTensor1d(global _FLOAT* __restrict dst,
     {
         const uint i = stride0 * did0;
 
-        dst[i + offset] = alpha;
+        SUBTENSOR_OP_WITH_SCALAR(dst[i + offset], alpha);
     }
 }
 
-__kernel void SetTensor2d(global _FLOAT* __restrict dst,
+__kernel void SubTensorOpWithScalar2d(global _FLOAT* __restrict dst,
                           const _FLOAT alpha,
                           const int offset,
                           const int stride0,
@@ -119,12 +127,12 @@ __kernel void SetTensor2d(global _FLOAT* __restrict dst,
         {
             const uint i = stride0 * did0 + stride1 * did1;
 
-            dst[i + offset] = alpha;
+            SUBTENSOR_OP_WITH_SCALAR(dst[i + offset], alpha);
         }
     }
 }
 
-__kernel void SetTensor3d(global _FLOAT* __restrict dst,
+__kernel void SubTensorOpWithScalar3d(global _FLOAT* __restrict dst,
                           const _FLOAT alpha,
                           const int offset,
                           const int stride0,
@@ -154,13 +162,13 @@ __kernel void SetTensor3d(global _FLOAT* __restrict dst,
             {
                 const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2;
 
-                dst[i + offset] = alpha;
+                SUBTENSOR_OP_WITH_SCALAR(dst[i + offset], alpha);
             }
         }
     }
 }
 
-__kernel void SetTensor4d(global _FLOAT* __restrict dst,
+__kernel void SubTensorOpWithScalar4d(global _FLOAT* __restrict dst,
                           const _FLOAT alpha,
                           const int offset,
                           const int stride0,
@@ -198,14 +206,14 @@ __kernel void SetTensor4d(global _FLOAT* __restrict dst,
                 {
                     const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2 + stride3 * did3;
 
-                    dst[i + offset] = alpha;
+                    SUBTENSOR_OP_WITH_SCALAR(dst[i + offset], alpha);
                 }
             }
         }
     }
 }
 
-__kernel void SetTensor5d(global _FLOAT* __restrict dst,
+__kernel void SubTensorOpWithScalar5d(global _FLOAT* __restrict dst,
                           const _FLOAT alpha,
                           const int offset,
                           const int stride0,
@@ -252,7 +260,7 @@ __kernel void SetTensor5d(global _FLOAT* __restrict dst,
                         const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2 +
                                        stride3 * did3 + stride4 * did4;
 
-                        dst[i + offset] = alpha;
+                        SUBTENSOR_OP_WITH_SCALAR(dst[i + offset], alpha);
                     }
                 }
             }
