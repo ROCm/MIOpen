@@ -568,9 +568,13 @@ struct test_driver
     template <class V, class... Ts>
     auto verify(V&& v, Ts&&... xs) -> decltype(std::make_pair(v.cpu(xs...), v.gpu(xs...)))
     {
+        // Use std::function here to workaround ICE on gcc 5
+        // See: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70100
+        std::function<void(int)> fm = [&](int mode) { v.fail(mode, xs...); };
         return verify_impl(
             [&](auto&& cpu, auto&& gpu) {
-                verify_check(cpu, gpu, [&](int mode) { v.fail(mode, xs...); });
+                // Use this explictly to avoid ICE on gcc 5
+                this->verify_check(cpu, gpu, fm);
             },
             v,
             xs...);
