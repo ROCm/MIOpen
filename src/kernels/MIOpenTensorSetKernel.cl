@@ -65,6 +65,32 @@
 #define GLOBAL_WORK_SIZE_Z 1
 #endif
 
+#ifndef WORK_LENGTH_0
+#define WORK_LENGTH_0 1
+#endif
+
+#ifndef WORK_LENGTH_1
+#define WORK_LENGTH_1 1
+#endif
+
+#ifndef WORK_LENGTH_2
+#define WORK_LENGTH_2 1
+#endif
+
+#ifndef WORK_LENGTH_3
+#define WORK_LENGTH_3 1
+#endif
+
+#ifndef WORK_LENGTH_4
+#define WORK_LENGTH_4 1
+#endif
+
+#define WORK_STRIDE_4 = 1
+#define WORK_STRIDE_3 = WORK_LENGTH_4 * WORK_STRIDE_4
+#define WORK_STRIDE_2 = WORK_LENGTH_3 * WORK_STRIDE_3
+#define WORK_STRIDE_1 = WORK_LENGTH_2 * WORK_STRIDE_2
+#define WORK_STRIDE_0 = WORK_LENGTH_1 * WORK_STRIDE_1
+
 __kernel void SetTensor1d(global _FLOAT* __restrict dst,
                           const _FLOAT alpha,
                           const int offset,
@@ -113,15 +139,23 @@ __kernel void SetTensor3d(global _FLOAT* __restrict dst,
                           const int len1,
                           const int len2)
 {
-    const uint tidx = get_global_id(0);
-    const uint tidy = get_global_id(1);
-    const uint tidz = get_global_id(2);
+    uint itmp = get_global_id(0);
 
-    for(uint did0 = tidz; did0 < len0; did0 += GLOBAL_WORK_SIZE_Z)
+    const uint did0_begin = itmp/WORK_STRIDE_0;
+
+    itmp -= did0 * WORK_STRIDE_0;
+
+    const uint did1_begin = itmp/WORK_STRIDE_1;
+
+    itmp -= did1 * WORK_STRIDE_1;
+
+    const uint did2_begin = itmp/WORK_STRIDE_2;
+
+    for(uint did0 = did0_begin; did0 < len0; did0 += WORK_LENGTH_0)
     {
-        for(uint did1 = tidy; did1 < len1; did1 += GLOBAL_WORK_SIZE_Y)
+        for(unit did1 = did1_begin; did1 < len1; did1 += WORK_LENGTH_1)
         {
-            for(uint did2 = tidx; did2 < len2; did2 += GLOBAL_WORK_SIZE_X)
+            for(unit did2 = did2_begin; did2 < len2; did2 += WORK_LENGTH_2)
             {
                 const uint i = stride0 * did0 + stride1 * did1 + stride2 * did2;
 
