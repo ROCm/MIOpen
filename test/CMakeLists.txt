@@ -142,6 +142,22 @@ if(MIOPEN_TEST_ALL)
     COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --rnn-mode 1 --no-hx
     COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --rnn-mode 1 --no-dhy
     COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --rnn-mode 1 --no-hx --no-dhy
+    COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --no-hy
+    COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --no-dhx
+    COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --no-hy --no-dhx
+    COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --rnn-mode 1 --no-hy
+    COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --rnn-mode 1 --no-dhx
+    COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --rnn-mode 1 --no-hy --no-dhx
+    COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --rnn-mode 0 --no-hy
+    COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --rnn-mode 0 --no-dhx
+    COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --rnn-mode 0 --no-hy --no-dhx
+    COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --rnn-mode 1 --no-hy
+    COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --rnn-mode 1 --no-dhx
+    COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --rnn-mode 1 --no-hy --no-dhx
+    COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --rnn-mode 0 --no-hx --no-dhy --no-hy --no-dhx
+    COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --rnn-mode 1 --no-hx --no-dhy --no-hy --no-dhx
+    COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --rnn-mode 0 --no-hx --no-dhy --no-hy --no-dhx
+    COMMAND $<TARGET_FILE:test_rnn_vanilla> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --rnn-mode 1 --no-hx --no-dhy --no-hy --no-dhx
     )
 
     add_custom_test(test_gru_extra
@@ -151,6 +167,14 @@ if(MIOPEN_TEST_ALL)
     COMMAND $<TARGET_FILE:test_gru> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-hx
     COMMAND $<TARGET_FILE:test_gru> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-dhy
     COMMAND $<TARGET_FILE:test_gru> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-hx --no-dhy
+    COMMAND $<TARGET_FILE:test_gru> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-hy
+    COMMAND $<TARGET_FILE:test_gru> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-dhx
+    COMMAND $<TARGET_FILE:test_gru> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-hy --no-dhx
+    COMMAND $<TARGET_FILE:test_gru> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-hy
+    COMMAND $<TARGET_FILE:test_gru> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-dhx
+    COMMAND $<TARGET_FILE:test_gru> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-hy --no-dhx
+    COMMAND $<TARGET_FILE:test_gru> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-hx --no-dhy --no-hy --no-dhx
+    COMMAND $<TARGET_FILE:test_gru> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-hx --no-dhy --no-hy --no-dhx
     )
 
     add_custom_test(test_lstm_extra
@@ -168,6 +192,22 @@ if(MIOPEN_TEST_ALL)
     COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-hx --no-cx
     COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-dcy
     COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-cx --no-dcy
+    COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-hy
+    COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-dhx
+    COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-hy --no-dhx
+    COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-cy
+    COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-hy --no-cy
+    COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-dcx
+    COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-cy --no-dcx
+    COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-hy
+    COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-dhx
+    COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-hy --no-dhx
+    COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-cy
+    COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-hy --no-cy
+    COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-dcx
+    COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-cy --no-dcx
+    COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 0 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx
+    COMMAND $<TARGET_FILE:test_lstm> --verbose --batch-size 32 --seq-len 4 --batch-seq 32 32 32 32 --vector-len 256 --hidden-size 256 --num-layers 1 --in-mode 0 --bias-mode 0 -dir-mode 1 --no-hx --no-dhy --no-cx --no-dcy --no-hy --no-dhx --no-cy --no-dcx
     )
 endif()
 
