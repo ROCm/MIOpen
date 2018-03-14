@@ -979,25 +979,35 @@ int ConvDriver<Tgpu, Tref>::RunBackwardGPU()
 
     FindBackwardWeights(ret_algo_count, request_algo_count, perf_results_weights);
 
-    ret = miopenConvolutionBackwardWeights(
-        GetHandle(),
-        &alpha,
-        outputTensor,
-        dout_dev->GetMem(),
-        inputTensor,
-        in_dev->GetMem(),
-        convDesc,
-        perf_results_weights[0].bwd_weights_algo,
-        &beta,
-        weightTensor,
-        dwei_dev->GetMem(),
-        (workspace_bwd_weights_dev != nullptr) ? workspace_bwd_weights_dev->GetMem() : nullptr,
-        perf_results_weights[0].memory);
+    START_TIME;
+    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    {
+        ret = miopenConvolutionBackwardWeights(
+            GetHandle(),
+            &alpha,
+            outputTensor,
+            dout_dev->GetMem(),
+            inputTensor,
+            in_dev->GetMem(),
+            convDesc,
+            perf_results_weights[0].bwd_weights_algo,
+            &beta,
+            weightTensor,
+            dwei_dev->GetMem(),
+            (workspace_bwd_weights_dev != nullptr) ? workspace_bwd_weights_dev->GetMem() : nullptr,
+            perf_results_weights[0].memory);
+    }
 
     if(inflags.GetValueInt("time") == 1)
     {
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
+
+        STOP_TIME;
+        if(WALL_CLOCK)
+            printf("Wall-clock Time Backward Weights Conv. Elapsed: %f ms\n",
+                   t.gettime_ms() / inflags.GetValueInt("iter"));
+
         printf("MIOpen Backward Weights Conv. Algorithm: %d\n",
                perf_results_weights[0].bwd_weights_algo);
         printf("GPU Kernel Time Backward Weights Conv. Elapsed: %f ms\n", time);
