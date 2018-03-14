@@ -418,7 +418,6 @@ static inline void Conv(uint o_map_base,
 #endif
                         for(uint i = 0; i < MLO_OUT_TILE0; ++i)
                         {
-                            _FLOAT sum = (_FLOAT)0;
                             for(uint l = 0; l < MLO_FILTER_SIZE0; ++l)
                             {
 
@@ -433,21 +432,20 @@ static inline void Conv(uint o_map_base,
 #endif
 
 #if MLO_DIR_FORWARD == 1
-                                sum += pvt_in_stage[j * MLO_PVT_IN_WIDTH * MLO_FILTER_STRIDE1 +
-                                                    i * MLO_FILTER_STRIDE0 + l] *
-                                       pvt_wei_stage[l_act];
+                            pvt_accum[(o_c * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i] += 
+                                pvt_in_stage[j * MLO_PVT_IN_WIDTH * MLO_FILTER_STRIDE1 + i * MLO_FILTER_STRIDE0 + l] 
+                                * pvt_wei_stage[l_act];
 #else
                             if(((i + l + 1 - MLO_PADDING_SHIFT0 +
-                                 (MLO_FILTER_SIZE0 % MLO_FILTER_STRIDE0)) %
-                                MLO_FILTER_STRIDE0) == 0)
+                                            (MLO_FILTER_SIZE0 % MLO_FILTER_STRIDE0)) %
+                                        MLO_FILTER_STRIDE0) == 0)
                             {
-                                sum += pvt_in_stage[(j / MLO_FILTER_STRIDE1) * MLO_PVT_IN_WIDTH +
-                                                    (i + l) / MLO_FILTER_STRIDE0] *
-                                       pvt_wei_stage[l_act];
+                                pvt_accum[(o_c * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i] +=
+                                    pvt_in_stage[(j / MLO_FILTER_STRIDE1) * MLO_PVT_IN_WIDTH + (i + l) / MLO_FILTER_STRIDE0] 
+                                    * pvt_wei_stage[l_act];
                             }
 #endif
                             }
-                            pvt_accum[(o_c * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i] += sum;
                         }
                 }
 
