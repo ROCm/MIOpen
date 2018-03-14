@@ -26,11 +26,12 @@
 #ifndef GUARD_MIOPEN_LOCK_FILE_HPP_
 #define GUARD_MIOPEN_LOCK_FILE_HPP_
 
-#include <fstream>
-
 #include <boost/filesystem.hpp>
 #include <boost/interprocess/sync/file_lock.hpp>
-#include <boost/thread/shared_mutex.hpp>
+
+#include <chrono>
+#include <fstream>
+#include <shared_mutex>
 
 namespace boost {
 namespace posix_time {
@@ -56,16 +57,54 @@ class LockFile
     LockFile operator=(const LockFile&) = delete;
 
     void lock();
-    void lock_sharable();
-    bool timed_lock(const boost::posix_time::ptime& abs_time);
-    bool timed_lock_sharable(const boost::posix_time::ptime& abs_time);
+    void lock_shared();
+    bool try_lock();
+    bool try_lock_shared();
     void unlock();
-    void unlock_sharable();
+    void unlock_shared();
 
     static LockFile& Get(const char* path);
 
+    template <class TDuration>
+    bool try_lock_for(TDuration duration)
+    {
+        if(!_mutex.try_lock_for(duration))
+            return false;
+
+        if(_file_lock.timed_lock(ToPTime(duration)))
+            return true;
+
+        _mutex.unlock();
+        return false;
+    }
+
+    template <class TDuration>
+    bool try_lock_shared_for(TDuration duration)
+    {
+        if(!_mutex.try_lock_shared_for(duration))
+            return false;
+
+        if(_file_lock.timed_lock_sharable(ToPTime(duration)))
+            return true;
+
+        _mutex.unlock_shared();
+        return false;
+    }
+
+    template <class TPoint>
+    bool try_lock_until(TPoint point)
+    {
+        return try_lock_for(point - std::chrono::system_clock::now());
+    }
+
+    template <class TPoint>
+    bool try_lock_shared_until(TPoint point)
+    {
+        return try_lock_shared_for(point - std::chrono::system_clock::now());
+    }
+
     private:
-    boost::shared_mutex _mutex;
+    std::shared_timed_mutex _mutex;
     std::ofstream _file;
     boost::interprocess::file_lock _file_lock;
 
@@ -73,6 +112,14 @@ class LockFile
     {
         static std::map<std::string, LockFile> lock_files;
         return lock_files;
+    }
+
+    template <class TDuration>
+    static boost::posix_time::ptime ToPTime(TDuration duration)
+    {
+        return boost::posix_time::second_clock::universal_time() +
+               boost::posix_time::milliseconds(
+                   std::chrono::duration_cast<std::chrono::milliseconds>(duration).count());
     }
 };
 } // namespace miopen

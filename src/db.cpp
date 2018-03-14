@@ -28,21 +28,22 @@
 #include <miopen/errors.hpp>
 #include <miopen/lock_file.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/md5.hpp>
 
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/interprocess/sync/scoped_lock.hpp>
-#include <boost/interprocess/sync/sharable_lock.hpp>
 #include <boost/none.hpp>
 #include <boost/optional.hpp>
 
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <cstdio>
 #include <fstream>
-#include <functional>
 #include <ios>
+#include <mutex>
+#include <shared_mutex>
 #include <string>
 
 namespace miopen {
@@ -60,11 +61,8 @@ inline static std::string LockFilePath(const boost::filesystem::path& filename_)
     if(!exists(directory))
         boost::filesystem::create_directories(directory);
 
-    std::hash<std::string> hash_func;
-
-    const auto hash = hash_func(filename_.parent_path().string());
-    const auto file =
-        directory / (std::to_string(hash) + "_" + filename_.filename().string() + ".lock");
+    const auto hash = md5(filename_.parent_path().string());
+    const auto file = directory / (hash + "_" + filename_.filename().string() + ".lock");
 
     return file.string();
 }
@@ -81,13 +79,10 @@ inline static void ValidateLock(const TLock& lock)
         MIOPEN_THROW("Db lock has failed to lock.");
 }
 
-static boost::posix_time::ptime GetLockTimeout()
-{
-    return boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(60);
-}
+static std::chrono::seconds GetLockTimeout() { return std::chrono::seconds{60}; }
 
-using exclusive_lock = boost::interprocess::scoped_lock<LockFile>;
-using shared_lock    = boost::interprocess::sharable_lock<LockFile>;
+using exclusive_lock = std::unique_lock<LockFile>;
+using shared_lock    = std::shared_lock<LockFile>;
 
 inline static exclusive_lock MakeExclusiveLock(LockFile& lock_file)
 {
