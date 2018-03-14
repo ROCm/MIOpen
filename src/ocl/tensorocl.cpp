@@ -1301,7 +1301,7 @@ static std::vector<std::size_t> get_worker_sizes(const std::vector<std::size_t>&
         while(n > 1 && i < dim)
         {
             std::size_t size_old = worker_sizes[i];
-            worker_sizes[i] = (size_old - 1) / n + 1;
+            worker_sizes[i]      = (size_old - 1) / n + 1;
             n /= size_old / worker_sizes[i];
             ++i;
         }
@@ -1346,8 +1346,10 @@ void SetTensor(
 
         std::vector<std::size_t> worker_sizes = get_worker_sizes(lens);
 
-        std::size_t wgd = std::accumulate(
-            worker_sizes.begin(), worker_sizes.end(), std::size_t{1}, std::multiplies<std::size_t>());
+        std::size_t wgd = std::accumulate(worker_sizes.begin(),
+                                          worker_sizes.end(),
+                                          std::size_t{1},
+                                          std::multiplies<std::size_t>());
 
         std::size_t wld = 256 < wgd ? 256 : wgd;
 
@@ -1488,8 +1490,10 @@ void ScaleTensor(
 
         std::vector<std::size_t> worker_sizes = get_worker_sizes(lens);
 
-        std::size_t wgd = std::accumulate(
-            worker_sizes.begin(), worker_sizes.end(), std::size_t{1}, std::multiplies<std::size_t>());
+        std::size_t wgd = std::accumulate(worker_sizes.begin(),
+                                          worker_sizes.end(),
+                                          std::size_t{1},
+                                          std::multiplies<std::size_t>());
 
         std::size_t wld = 256 < wgd ? 256 : wgd;
 
@@ -1658,8 +1662,10 @@ void CopyTensor(Handle& handle,
 
             std::vector<std::size_t> worker_sizes = get_worker_sizes(lens);
 
-            std::size_t wgd = std::accumulate(
-                worker_sizes.begin(), worker_sizes.end(), std::size_t{1}, std::multiplies<std::size_t>());
+            std::size_t wgd = std::accumulate(worker_sizes.begin(),
+                                              worker_sizes.end(),
+                                              std::size_t{1},
+                                              std::multiplies<std::size_t>());
 
             std::size_t wld = 256 < wgd ? 256 : wgd;
 
