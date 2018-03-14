@@ -135,7 +135,8 @@ struct is_output_streamable : decltype(detail::is_output_streamable(
 template <class T>
 struct value_parser
 {
-    template <ARGS_REQUIRES(is_input_streamable<T>{} and not std::is_pointer<T>{} and not std::is_enum<T>{})>
+    template <ARGS_REQUIRES(is_input_streamable<T>{} and not std::is_pointer<T>{} and
+                            not std::is_enum<T>{})>
     static T apply(const std::string& x)
     {
         T result;
