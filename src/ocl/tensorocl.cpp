@@ -1291,7 +1291,7 @@ static std::vector<std::size_t> get_worker_sizes(const std::vector<std::size_t>&
     std::transform(data_sizes.begin(), data_sizes.end(), worker_sizes.begin(), two_exp_ceiling_t{});
 
     std::size_t wgd = std::accumulate(
-        worker_sizes.begin(), worker_sizes.end(), 1, [](auto a, auto b) { return a * b; });
+        worker_sizes.begin(), worker_sizes.end(), std::size_t{1}, std::multiplies<std::size_t>());
 
     if(wgd > 65536)
     {
@@ -1300,7 +1300,7 @@ static std::vector<std::size_t> get_worker_sizes(const std::vector<std::size_t>&
         int i = 0;
         while(n > 1 && i < dim)
         {
-            int size_old    = worker_sizes[i];
+            std::size_t size_old = worker_sizes[i];
             worker_sizes[i] = (size_old - 1) / n + 1;
             n /= size_old / worker_sizes[i];
             ++i;
@@ -1347,7 +1347,7 @@ void SetTensor(
         std::vector<std::size_t> worker_sizes = get_worker_sizes(lens);
 
         std::size_t wgd = std::accumulate(
-            worker_sizes.begin(), worker_sizes.end(), 1, [](auto a, auto b) { return a * b; });
+            worker_sizes.begin(), worker_sizes.end(), std::size_t{1}, std::multiplies<std::size_t>());
 
         std::size_t wld = 256 < wgd ? 256 : wgd;
 
@@ -1489,7 +1489,7 @@ void ScaleTensor(
         std::vector<std::size_t> worker_sizes = get_worker_sizes(lens);
 
         std::size_t wgd = std::accumulate(
-            worker_sizes.begin(), worker_sizes.end(), 1, [](auto a, auto b) { return a * b; });
+            worker_sizes.begin(), worker_sizes.end(), std::size_t{1}, std::multiplies<std::size_t>());
 
         std::size_t wld = 256 < wgd ? 256 : wgd;
 
@@ -1659,7 +1659,7 @@ void CopyTensor(Handle& handle,
             std::vector<std::size_t> worker_sizes = get_worker_sizes(lens);
 
             std::size_t wgd = std::accumulate(
-                worker_sizes.begin(), worker_sizes.end(), 1, [](auto a, auto b) { return a * b; });
+                worker_sizes.begin(), worker_sizes.end(), std::size_t{1}, std::multiplies<std::size_t>());
 
             std::size_t wld = 256 < wgd ? 256 : wgd;
 
