@@ -41,6 +41,7 @@
 #include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>
+#include "random.hpp"
 
 #define MIO_BN_DEBUG 0
 #define MIO_BN_MAX_DEBUGLOOP 65536
@@ -48,7 +49,8 @@
 #define EPSILON 1e-4
 
 #define ERRTOL 1e-5
-#define RMSTOL 1e-5
+#define RMSTOL_FP32 1e-5
+#define RMSTOL_FP16 0.5e-3
 
 #ifdef MIOPEN_BACKEND_HIP
 #ifndef CL_SUCCESS
@@ -58,17 +60,19 @@
 
 //#define BN_RUNFOR_PROFILER
 
-template <typename T>
+template <typename Tgpu, typename Tref>
 class BatchNormDriver : public Driver
 {
     public:
     BatchNormDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputTensor);
-        miopenCreateTensorDescriptor(&biasScaleTensor);
         miopenCreateTensorDescriptor(&outputTensor);
+        miopenCreateTensorDescriptor(&biasScaleTensor);
         miopenCreateTensorDescriptor(&dxOutputTensor);
         miopenCreateTensorDescriptor(&dyInputTensor);
+
+        data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
     int AddCmdLineArgs();
@@ -89,13 +93,12 @@ class BatchNormDriver : public Driver
     int RunBackwardGPU();
     int RunBackwardCPU();
 
-    void runGPUFwdInference(double epsilon, T alpha, T beta);
-    void runGPUFwdTrain(double epsilon, double eAF, T alpha, T beta);
-    void runGPUBwd(double epsilon, T alpha, T beta);
+    void runGPUFwdInference(Tref epsilon, Tgpu alpha, Tgpu beta);
+    void runGPUFwdTrain(Tref epsilon, Tref eAF, Tgpu alpha, Tgpu beta);
+    void runGPUBwd(Tref epsilon, Tgpu alpha, Tgpu beta);
 
-    void runCPUFwdInference(double epsilon, int batch_sz, int channels, int height, int width);
-    void
-    runCPUFwdTrain(double epsilon, double eAF, int batch_sz, int channels, int height, int width);
+    void runCPUFwdInference(Tref epsilon, int batch_sz, int channels, int height, int width);
+    void runCPUFwdTrain(Tref epsilon, Tref eAF, int batch_sz, int channels, int height, int width);
 
     int VerifyBackward();
     int VerifyForward();
@@ -144,41 +147,41 @@ class BatchNormDriver : public Driver
     std::unique_ptr<GPUMem> saveMean_dev;
     std::unique_ptr<GPUMem> saveInvVariance_dev;
 
-    std::vector<T> dyin; // output of forward
-    std::vector<T> in;
-    std::vector<T> out;
-    std::vector<double> out_host;
-    std::vector<T> dxout;
-    std::vector<double> dxout_host;
+    std::vector<Tgpu> dyin; // output of forward
+    std::vector<Tgpu> in;
+    std::vector<Tgpu> out;
+    std::vector<Tref> out_host;
+    std::vector<Tgpu> dxout;
+    std::vector<Tref> dxout_host;
 
-    std::vector<T> scale;
-    std::vector<T> scale_host;
-    std::vector<T> bias;
-    std::vector<T> bias_host;
+    std::vector<Tgpu> scale;
+    std::vector<Tgpu> scale_host;
+    std::vector<Tgpu> bias;
+    std::vector<Tgpu> bias_host;
 
-    std::vector<T> dscale;
-    std::vector<double> dscale_host;
-    std::vector<T> dbias;
-    std::vector<double> dbias_host;
+    std::vector<Tgpu> dscale;
+    std::vector<Tref> dscale_host;
+    std::vector<Tgpu> dbias;
+    std::vector<Tref> dbias_host;
 
-    std::vector<T> runningMean;
-    std::vector<T> runningVariance;
-    std::vector<double> runningMean_host;
-    std::vector<double> runningVariance_host;
+    std::vector<Tgpu> runningMean;
+    std::vector<Tgpu> runningVariance;
+    std::vector<Tref> runningMean_host;
+    std::vector<Tref> runningVariance_host;
 
-    std::vector<T> saveMean;
-    std::vector<T> saveInvVariance;
+    std::vector<Tgpu> saveMean;
+    std::vector<Tgpu> saveInvVariance;
 
-    std::vector<double> saveMean_host;
-    std::vector<double> saveInvVariance_host;
+    std::vector<Tref> saveMean_host;
+    std::vector<Tref> saveInvVariance_host;
 
     int createSaveBuffers();
     int createRunningBuffers();
-    double maxval;
+    Tref maxval;
 };
 
-template <typename T>
-int BatchNormDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
+template <typename Tgpu, typename Tref>
+int BatchNormDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
@@ -190,8 +193,8 @@ int BatchNormDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int BatchNormDriver<T>::GetandSetData()
+template <typename Tgpu, typename Tref>
+int BatchNormDriver<Tgpu, Tref>::GetandSetData()
 {
 
     SetBNParametersFromCmdLineArgs();
@@ -213,19 +216,19 @@ int BatchNormDriver<T>::GetandSetData()
         sb_len.push_back(1);
     }
 
-    SetTensor4d(inputTensor, in_len);
-    SetTensor4d(biasScaleTensor, sb_len);
-    SetTensor4d(outputTensor, in_len);
+    SetTensor4d(inputTensor, in_len, data_type);
+    SetTensor4d(biasScaleTensor, sb_len, data_type);
+    SetTensor4d(outputTensor, in_len, data_type);
 
     // backwards
-    SetTensor4d(dyInputTensor, in_len);
-    SetTensor4d(dxOutputTensor, in_len);
+    SetTensor4d(dyInputTensor, in_len, data_type);
+    SetTensor4d(dxOutputTensor, in_len, data_type);
 
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int BatchNormDriver<T>::AddCmdLineArgs()
+template <typename Tgpu, typename Tref>
+int BatchNormDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag(
         "forw",
@@ -271,8 +274,8 @@ int BatchNormDriver<T>::AddCmdLineArgs()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-std::vector<int> BatchNormDriver<T>::GetInputTensorLengthsFromCmdLine()
+template <typename Tgpu, typename Tref>
+std::vector<int> BatchNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     int in_n = inflags.GetValueInt("batchsize");
     int in_c = inflags.GetValueInt("in_channels");
@@ -281,8 +284,8 @@ std::vector<int> BatchNormDriver<T>::GetInputTensorLengthsFromCmdLine()
     return std::vector<int>({in_n, in_c, in_h, in_w});
 }
 
-template <typename T>
-int BatchNormDriver<T>::SetBNParametersFromCmdLineArgs()
+template <typename Tgpu, typename Tref>
+int BatchNormDriver<Tgpu, Tref>::SetBNParametersFromCmdLineArgs()
 {
 
     //    	double bnAlpha = inflags.GetValueDouble("alpha");
@@ -362,8 +365,8 @@ int BatchNormDriver<T>::SetBNParametersFromCmdLineArgs()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int BatchNormDriver<T>::createSaveBuffers()
+template <typename Tgpu, typename Tref>
+int BatchNormDriver<Tgpu, Tref>::createSaveBuffers()
 {
 
 #if MIOPEN_BACKEND_OPENCL
@@ -380,35 +383,37 @@ int BatchNormDriver<T>::createSaveBuffers()
     if(saveMeanVar)
     {
         // GPU allocation
-        saveMean_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(float)));
-        saveInvVariance_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(float)));
+        saveMean_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
+        saveInvVariance_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
 
         if(back == 1)
         {
             // GPU host allocation
-            saveMean        = std::vector<float>(sb_sz);
-            saveInvVariance = std::vector<float>(sb_sz);
+            saveMean        = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+            saveInvVariance = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
 
             // CPU allocation
-            saveMean_host        = std::vector<double>(sb_sz);
-            saveInvVariance_host = std::vector<double>(sb_sz);
+            saveMean_host        = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
+            saveInvVariance_host = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
 
             // Populate
             for(int i = 0; i < sb_sz; i++)
             {
-                saveMean_host[i] = saveMean[i] = double(rand() * (1.0 / RAND_MAX));
-                saveInvVariance_host[i] = saveInvVariance[i] = double(rand() * (1.0 / RAND_MAX));
+                saveMean_host[i] = saveMean[i] =
+                    RAN_GEN<Tref>(static_cast<Tref>(0.0), static_cast<Tref>(1.0));
+                saveInvVariance_host[i] = saveInvVariance[i] =
+                    RAN_GEN<Tref>(static_cast<Tref>(0.0), static_cast<Tref>(1.0));
             }
         }
         else
         {
             // GPU host allocation
-            saveMean        = std::vector<float>(sb_sz, 0);
-            saveInvVariance = std::vector<float>(sb_sz, 0);
+            saveMean        = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+            saveInvVariance = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
 
             // CPU allocation
-            saveMean_host        = std::vector<double>(sb_sz, 0);
-            saveInvVariance_host = std::vector<double>(sb_sz, 0);
+            saveMean_host        = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
+            saveInvVariance_host = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
         }
         // GPU data transfer
         status |= saveMean_dev->ToGPU(q, saveMean.data());
@@ -426,8 +431,8 @@ int BatchNormDriver<T>::createSaveBuffers()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int BatchNormDriver<T>::createRunningBuffers()
+template <typename Tgpu, typename Tref>
+int BatchNormDriver<Tgpu, Tref>::createRunningBuffers()
 {
 
 #if MIOPEN_BACKEND_OPENCL
@@ -443,35 +448,37 @@ int BatchNormDriver<T>::createRunningBuffers()
     if(keepRunningMeanVar)
     {
         // GPU allocation
-        runningMean_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(float)));
-        runningVariance_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(float)));
+        runningMean_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
+        runningVariance_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
 
         if(forw == 2)
         {
             // GPU host allocation
-            runningMean     = std::vector<float>(sb_sz);
-            runningVariance = std::vector<float>(sb_sz);
+            runningMean     = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+            runningVariance = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
 
             // CPU allocation
-            runningMean_host     = std::vector<double>(sb_sz);
-            runningVariance_host = std::vector<double>(sb_sz);
+            runningMean_host     = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
+            runningVariance_host = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
 
             // Populate
             for(int i = 0; i < sb_sz; i++)
             {
-                runningMean_host[i] = runningMean[i] = double(rand() * (1.0 / RAND_MAX));
-                runningVariance_host[i] = runningVariance[i] = double(rand() * (1.0 / RAND_MAX));
+                runningMean_host[i] = runningMean[i] =
+                    RAN_GEN<Tref>(static_cast<Tref>(0.0), static_cast<Tref>(1.0));
+                runningVariance_host[i] = runningVariance[i] =
+                    RAN_GEN<Tref>(static_cast<Tref>(0.0), static_cast<Tref>(1.0));
             }
         }
         else
         {
             // GPU host allocation
-            runningMean     = std::vector<float>(sb_sz, 0);
-            runningVariance = std::vector<float>(sb_sz, 0);
+            runningMean     = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+            runningVariance = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
 
             // CPU allocation
-            runningMean_host     = std::vector<double>(sb_sz, 0);
-            runningVariance_host = std::vector<double>(sb_sz, 0);
+            runningMean_host     = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
+            runningVariance_host = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
         }
 
         // GPU data transfer
@@ -489,8 +496,8 @@ int BatchNormDriver<T>::createRunningBuffers()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int BatchNormDriver<T>::AllocateBuffersAndCopy()
+template <typename Tgpu, typename Tref>
+int BatchNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
 
 #if MIOPEN_BACKEND_OPENCL
@@ -511,34 +518,35 @@ int BatchNormDriver<T>::AllocateBuffersAndCopy()
         size_t out_sz = GetTensorSize(outputTensor);
 
         // GPU allocation
-        in_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
-        scale_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(float)));
-        bias_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(float)));
-        out_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
+        in_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+        scale_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
+        bias_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
+        out_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
         // GPU host allocation
-        in    = std::vector<float>(in_sz);
-        out   = std::vector<float>(out_sz, 0);
-        scale = std::vector<float>(sb_sz);
-        bias  = std::vector<float>(sb_sz);
+        in    = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+        out   = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+        scale = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+        bias  = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
 
         // CPU allocation
-        out_host   = std::vector<double>(out_sz, 0);
-        scale_host = std::vector<float>(sb_sz);
-        bias_host  = std::vector<float>(sb_sz);
+        out_host   = std::vector<Tref>(out_sz, static_cast<Tref>(0));
+        scale_host = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+        bias_host  = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
 
         // Data initialization
         for(int i = 0; i < in_sz; i++)
         {
-            in[i] = std::fabs(double(rand() * (1.0 / RAND_MAX)));
+            in[i] = std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0)));
         }
         status |= in_dev->ToGPU(q, in.data());
 
         // Using random beta and gamma
         for(int i = 0; i < sb_sz; i++)
         {
-            scale[i] = scale_host[i] = double(rand() * (1.0 / RAND_MAX));
-            bias[i] = bias_host[i] = double(rand() * (1.0 / RAND_MAX));
+            scale[i] = scale_host[i] =
+                RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            bias[i] = bias_host[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
         }
         status |= scale_dev->ToGPU(q, scale.data());
         status |= bias_dev->ToGPU(q, bias.data());
@@ -561,30 +569,30 @@ int BatchNormDriver<T>::AllocateBuffersAndCopy()
         size_t out_sz = GetTensorSize(dxOutputTensor);
 
         // GPU allocation
-        in_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
-        dyin_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
-        dxout_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
-        dscale_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(float)));
-        dbias_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(float)));
-        scale_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(float)));
+        in_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+        dyin_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+        dxout_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+        dscale_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
+        dbias_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
+        scale_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
 
         // GPU host allocation
-        in     = std::vector<float>(in_sz);
-        dyin   = std::vector<float>(in_sz);
-        dxout  = std::vector<float>(out_sz, 0);
-        dscale = std::vector<float>(sb_sz, 0);
-        dbias  = std::vector<float>(sb_sz, 0);
-        scale  = std::vector<float>(sb_sz);
+        in     = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+        dyin   = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+        dxout  = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+        dscale = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+        dbias  = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+        scale  = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
 
         // CPU allocation
-        dxout_host  = std::vector<double>(out_sz, 0);
-        dscale_host = std::vector<double>(sb_sz, 0);
-        dbias_host  = std::vector<double>(sb_sz, 0);
+        dxout_host  = std::vector<Tref>(out_sz, static_cast<Tref>(0));
+        dscale_host = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
+        dbias_host  = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
 
         // Populate
         for(int i = 0; i < sb_sz; i++)
         {
-            scale[i] = double(rand() * (1.0 / RAND_MAX));
+            scale[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
         }
         status |= scale_dev->ToGPU(q, scale.data());
         status |= dscale_dev->ToGPU(q, dscale.data());
@@ -592,8 +600,8 @@ int BatchNormDriver<T>::AllocateBuffersAndCopy()
 
         for(int i = 0; i < in_sz; i++)
         {
-            dyin[i] = double(rand() * (1.0 / RAND_MAX));
-            in[i]   = double(rand() * (1.0 / RAND_MAX));
+            dyin[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            in[i]   = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
         }
         status |= dyin_dev->ToGPU(q, dyin.data());
         status |= in_dev->ToGPU(q, in.data());
@@ -608,8 +616,8 @@ int BatchNormDriver<T>::AllocateBuffersAndCopy()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-void BatchNormDriver<T>::runGPUFwdInference(double epsilon, T alpha, T beta)
+template <typename Tgpu, typename Tref>
+void BatchNormDriver<Tgpu, Tref>::runGPUFwdInference(Tref epsilon, Tgpu alpha, Tgpu beta)
 {
 
     if(keepRunningMeanVar)
@@ -650,8 +658,8 @@ void BatchNormDriver<T>::runGPUFwdInference(double epsilon, T alpha, T beta)
     return;
 }
 
-template <typename T>
-void BatchNormDriver<T>::runGPUFwdTrain(double epsilon, double eAF, T alpha, T beta)
+template <typename Tgpu, typename Tref>
+void BatchNormDriver<Tgpu, Tref>::runGPUFwdTrain(Tref epsilon, Tref eAF, Tgpu alpha, Tgpu beta)
 {
     if(saveMeanVar && keepRunningMeanVar)
     {
@@ -755,13 +763,13 @@ void BatchNormDriver<T>::runGPUFwdTrain(double epsilon, double eAF, T alpha, T b
 #endif
 }
 
-template <typename T>
-int BatchNormDriver<T>::RunForwardGPU()
+template <typename Tgpu, typename Tref>
+int BatchNormDriver<Tgpu, Tref>::RunForwardGPU()
 {
 
-    T alpha = 1, beta = 0;
-    double epsilon = EPSILON;
-    double eAF     = 1.0;
+    Tgpu alpha = static_cast<Tgpu>(1), beta = static_cast<Tgpu>(0);
+    Tref epsilon = static_cast<Tref>(EPSILON);
+    Tref eAF     = static_cast<Tref>(1.0);
 
     Timer t;
     double fulltime = 0.;
@@ -777,7 +785,7 @@ int BatchNormDriver<T>::RunForwardGPU()
         // if run fwd train
         if(forw == 1)
         { // training only
-            eAF = 1.0 / (double(i) + 1.0);
+            eAF = static_cast<Tref>(1.0) / (static_cast<Tref>(i) + static_cast<Tref>(1.0));
             runGPUFwdTrain(epsilon, eAF, alpha, beta);
         }
         else if(forw == 2)
@@ -825,9 +833,9 @@ int BatchNormDriver<T>::RunForwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-void BatchNormDriver<T>::runCPUFwdInference(
-    double epsilon, int batch_sz, int channels, int height, int width)
+template <typename Tgpu, typename Tref>
+void BatchNormDriver<Tgpu, Tref>::runCPUFwdInference(
+    Tref epsilon, int batch_sz, int channels, int height, int width)
 {
 
     if(bn_mode == miopenBNPerActivation)
@@ -869,9 +877,9 @@ void BatchNormDriver<T>::runCPUFwdInference(
     return;
 }
 
-template <typename T>
-void BatchNormDriver<T>::runCPUFwdTrain(
-    double epsilon, double eAF, int batch_sz, int channels, int height, int width)
+template <typename Tgpu, typename Tref>
+void BatchNormDriver<Tgpu, Tref>::runCPUFwdTrain(
+    Tref epsilon, Tref eAF, int batch_sz, int channels, int height, int width)
 {
 
     if(bn_mode == miopenBNPerActivation)
@@ -920,8 +928,8 @@ void BatchNormDriver<T>::runCPUFwdTrain(
     }
 }
 
-template <typename T>
-int BatchNormDriver<T>::RunForwardCPU()
+template <typename Tgpu, typename Tref>
+int BatchNormDriver<Tgpu, Tref>::RunForwardCPU()
 {
 
     int nInStride, cInStride, hInStride, wInStride;
@@ -940,14 +948,14 @@ int BatchNormDriver<T>::RunForwardCPU()
     int width    = wIn;
 
     //	T alpha = 0., beta  = 0.;
-    double epsilon = EPSILON;
-    double eAF     = 1.0;
+    Tref epsilon = static_cast<Tref>(EPSILON);
+    Tref eAF     = static_cast<Tref>(1.0);
 
     if(forw == 1)
     { // training only
         for(int i = 0; i < inflags.GetValueInt("iter"); i++)
         {
-            eAF = 1.0 / (double(i) + 1.0);
+            eAF = static_cast<Tref>(1.0) / (static_cast<Tref>(i) + static_cast<Tref>(1.0));
             runCPUFwdTrain(epsilon, eAF, /* alpha, beta,*/ batch_sz, channels, height, width);
         }
     }
@@ -959,16 +967,16 @@ int BatchNormDriver<T>::RunForwardCPU()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int BatchNormDriver<T>::RunBackwardGPU()
+template <typename Tgpu, typename Tref>
+int BatchNormDriver<Tgpu, Tref>::RunBackwardGPU()
 {
 
     if(!back)
         return miopenStatusSuccess;
 
-    T alphaDataDiff = 1, betaDataDiff = 0;
-    T alphaParamDiff = 1, betaParamDiff = 0;
-    double epsilon = EPSILON;
+    Tgpu alphaDataDiff = static_cast<Tgpu>(1), betaDataDiff = static_cast<Tgpu>(0);
+    Tgpu alphaParamDiff = static_cast<Tgpu>(1), betaParamDiff = static_cast<Tgpu>(0);
+    Tref epsilon = static_cast<Tref>(EPSILON);
 
     Timer t;
     double fulltime = 0.;
@@ -1059,18 +1067,18 @@ int BatchNormDriver<T>::RunBackwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int BatchNormDriver<T>::VerifyForward()
+template <typename Tgpu, typename Tref>
+int BatchNormDriver<Tgpu, Tref>::VerifyForward()
 {
 
     // jump out since we are forcing forward off when doing backwards.
     if(!forw)
         return miopenStatusSuccess;
 
-    const double tolerance = ERRTOL;
-    const double maxrms    = RMSTOL;
-    double diff            = 0.;
-    bool anError           = false;
+    const Tref tolerance = static_cast<Tref>(ERRTOL);
+    const Tref maxrms    = static_cast<Tref>((sizeof(Tgpu) == 4) ? RMSTOL_FP32 : RMSTOL_FP16);
+    Tref diff            = static_cast<Tref>(0.);
+    bool anError         = false;
 
     RunForwardCPU();
 
@@ -1093,13 +1101,13 @@ int BatchNormDriver<T>::VerifyForward()
                                i < MIO_BN_MAX_DEBUGLOOP;
                     i++)
                 {
-                    diff = fabs(float(fabs(runningMean[i]) - fabs(runningMean_host[i])));
+                    diff = fabs(Tgpu(fabs(runningMean[i]) - fabs(runningMean_host[i])));
                     if(diff > tolerance)
                     {
                         std::cout << "rm[" << i << "]: " << runningMean[i];
                         std::cout << ", rm_host[" << i << "]: " << runningMean_host[i];
-                        std::cout << ", diff[" << i << "]: "
-                                  << float(fabs(runningMean[i]) - fabs(runningMean_host[i]))
+                        std::cout << ", diff[" << i
+                                  << "]: " << Tgpu(fabs(runningMean[i]) - fabs(runningMean_host[i]))
                                   << std::endl;
                     }
                 }
@@ -1121,13 +1129,13 @@ int BatchNormDriver<T>::VerifyForward()
                                i < MIO_BN_MAX_DEBUGLOOP;
                     i++)
                 {
-                    diff = fabs(float(fabs(runningVariance[i]) - fabs(runningVariance_host[i])));
+                    diff = fabs(Tgpu(fabs(runningVariance[i]) - fabs(runningVariance_host[i])));
                     if(diff > tolerance)
                     {
                         std::cout << "rv[" << i << "]: " << runningVariance[i];
                         std::cout << ", rv_host[" << i << "]: " << runningVariance_host[i];
                         std::cout << ", diff[" << i << "]: "
-                                  << float(fabs(runningVariance[i]) - fabs(runningVariance_host[i]))
+                                  << Tgpu(fabs(runningVariance[i]) - fabs(runningVariance_host[i]))
                                   << std::endl;
                     }
                 }
@@ -1143,7 +1151,7 @@ int BatchNormDriver<T>::VerifyForward()
         { // copy back for verification
             saveMean_dev->FromGPU(GetStream(), saveMean.data());
             saveInvVariance_dev->FromGPU(GetStream(), saveInvVariance.data());
-            maxval             = 0.;
+            maxval             = static_cast<Tref>(0.0);
             auto errorSaveMean = miopen::rms_range(saveMean_host, saveMean);
             if(errorSaveMean > maxrms || std::isnan(errorSaveMean))
             {
@@ -1155,14 +1163,14 @@ int BatchNormDriver<T>::VerifyForward()
                     i < saveMean.size() && i < saveMean_host.size() && i < MIO_BN_MAX_DEBUGLOOP;
                     i++)
                 {
-                    diff   = fabs(float(fabs(saveMean[i]) - fabs(saveMean_host[i])));
+                    diff   = fabs(Tgpu(fabs(saveMean[i]) - fabs(saveMean_host[i])));
                     maxval = maxval < diff ? diff : maxval;
                     if(diff > tolerance)
                     {
                         std::cout << "sm[" << i << "]: " << saveMean[i];
                         std::cout << ", sm_host[" << i << "]: " << saveMean_host[i];
                         std::cout << ", diff[" << i
-                                  << "]: " << float(fabs(saveMean[i]) - fabs(saveMean_host[i]))
+                                  << "]: " << Tgpu(fabs(saveMean[i]) - fabs(saveMean_host[i]))
                                   << std::endl;
                     }
                 }
@@ -1186,13 +1194,13 @@ int BatchNormDriver<T>::VerifyForward()
                                i < MIO_BN_MAX_DEBUGLOOP;
                     i++)
                 {
-                    diff = fabs(float(fabs(saveInvVariance[i]) - fabs(saveInvVariance_host[i])));
+                    diff = fabs(Tgpu(fabs(saveInvVariance[i]) - fabs(saveInvVariance_host[i])));
                     if(diff > tolerance)
                     {
                         std::cout << "sv[" << i << "]: " << saveInvVariance[i];
                         std::cout << ", sv_host[" << i << "]: " << saveInvVariance_host[i];
                         std::cout << ", diff[" << i << "]: "
-                                  << float(fabs(saveInvVariance[i]) - fabs(saveInvVariance_host[i]))
+                                  << Tgpu(fabs(saveInvVariance[i]) - fabs(saveInvVariance_host[i]))
                                   << std::endl;
                     }
                 }
@@ -1208,7 +1216,7 @@ int BatchNormDriver<T>::VerifyForward()
 
     // Check output tensor error
     out_dev->FromGPU(GetStream(), out.data());
-    maxval        = 0.;
+    maxval        = static_cast<Tref>(0.0);
     auto errorOut = miopen::rms_range(out_host, out);
     if(errorOut > maxrms || std::isnan(errorOut))
     {
@@ -1226,13 +1234,13 @@ int BatchNormDriver<T>::VerifyForward()
             {
                 std::cout << "out_host[" << i << "] produced a nan: " << out_host[i] << std::endl;
             }
-            diff   = double(fabs(out[i]) - fabs(out_host[i]));
+            diff   = Tref(fabs(out[i]) - fabs(out_host[i]));
             maxval = maxval < diff ? diff : maxval;
             if(diff > tolerance)
             {
                 std::cout << "out[" << i << "]: " << out[i];
                 std::cout << ", out_host[" << i << "]: " << out_host[i];
-                std::cout << ", diff[" << i << "]: " << double(out[i] - out_host[i]) << std::endl;
+                std::cout << ", diff[" << i << "]: " << Tref(out[i] - out_host[i]) << std::endl;
                 count++;
             }
         }
@@ -1250,14 +1258,14 @@ int BatchNormDriver<T>::VerifyForward()
     // Done! Results?
     if(!anError)
     {
-        std::cout << "Forward batch norm verified on CPU and GPU." << std::endl;
+        std::cout << "Forward Batch Norm Verifies on CPU and GPU." << std::endl;
     }
 
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int BatchNormDriver<T>::RunBackwardCPU()
+template <typename Tgpu, typename Tref>
+int BatchNormDriver<Tgpu, Tref>::RunBackwardCPU()
 {
 
     if(!back)
@@ -1280,7 +1288,7 @@ int BatchNormDriver<T>::RunBackwardCPU()
 
     //	T alphaDiff = 1, betaDiff = 0;
     //	T alphaParam = 1, betaParam = 0;
-    double epsilon = EPSILON;
+    Tref epsilon = static_cast<Tref>(EPSILON);
 
     if(bn_mode == miopenBNPerActivation)
     {                                   // 1xCxHxW
@@ -1328,15 +1336,15 @@ int BatchNormDriver<T>::RunBackwardCPU()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int BatchNormDriver<T>::VerifyBackward()
+template <typename Tgpu, typename Tref>
+int BatchNormDriver<Tgpu, Tref>::VerifyBackward()
 {
 
     if(!back)
         return miopenStatusSuccess;
 
-    const double maxrms = RMSTOL * 1000;
-    bool anError        = false;
+    const Tref maxrms = static_cast<Tref>(((sizeof(Tgpu) == 4) ? RMSTOL_FP32 : RMSTOL_FP16) * 1000);
+    bool anError      = false;
 
     RunBackwardCPU();
 
@@ -1344,10 +1352,10 @@ int BatchNormDriver<T>::VerifyBackward()
     dscale_dev->FromGPU(GetStream(), dscale.data());
     dbias_dev->FromGPU(GetStream(), dbias.data());
 #if(MIO_BN_DEBUG == 1)
-    const double tolerance = ERRTOL * 1000;
-    double diff;
+    const Tref tolerance = static_cast<Tref>(ERRTOL * 1000);
+    Tref diff            = static_cast<Tref>(0.0);
 #endif
-    maxval          = 0.;
+    maxval          = static_cast<Tref>(0.0);
     auto errordxout = miopen::rms_range(dxout_host, dxout);
     if(errordxout > maxrms || std::isnan(errordxout))
     {
@@ -1356,13 +1364,13 @@ int BatchNormDriver<T>::VerifyBackward()
 #if(MIO_BN_DEBUG == 1)
         for(int i = 0; i < dxout.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
         {
-            diff   = fabs(float(fabs(dxout[i]) - fabs(dxout_host[i])));
+            diff   = fabs(Tgpu(fabs(dxout[i]) - fabs(dxout_host[i])));
             maxval = maxval < diff ? diff : maxval;
             if(diff > tolerance)
             {
                 std::cout << "dxout[" << i << "]: " << dxout[i];
                 std::cout << "\tdxout_host[" << i << "]: " << dxout_host[i];
-                std::cout << "\tdiff[" << i << "]: " << float(fabs(dxout[i]) - fabs(dxout_host[i]));
+                std::cout << "\tdiff[" << i << "]: " << Tgpu(fabs(dxout[i]) - fabs(dxout_host[i]));
                 std::cout << "\tratioH: "
                           << fabs(fabs(dxout[i]) - fabs(dxout_host[i])) / fabs(dxout_host[i])
                           << std::endl;
@@ -1376,7 +1384,7 @@ int BatchNormDriver<T>::VerifyBackward()
         std::cout << "Backwards prop batch norm verification passed on dx.\n";
     }
 
-    maxval           = 0.;
+    maxval           = static_cast<Tref>(0.0);
     auto errordscale = miopen::rms_range(dscale_host, dscale);
     if(errordscale > maxrms || std::isnan(errordscale))
     {
@@ -1386,14 +1394,14 @@ int BatchNormDriver<T>::VerifyBackward()
 #if(MIO_BN_DEBUG == 1)
         for(int i = 0; i < dscale.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
         {
-            diff   = fabs(float(fabs(dscale[i]) - fabs(dscale_host[i])));
+            diff   = fabs(Tgpu(fabs(dscale[i]) - fabs(dscale_host[i])));
             maxval = maxval < diff ? diff : maxval;
             if(diff > tolerance)
             {
                 std::cout << "dscale[" << i << "]: " << dscale[i];
                 std::cout << "\tdscale_host[" << i << "]: " << dscale_host[i];
                 std::cout << "\tdiff[" << i
-                          << "]: " << float(fabs(dscale[i]) - fabs(dscale_host[i]));
+                          << "]: " << Tgpu(fabs(dscale[i]) - fabs(dscale_host[i]));
                 std::cout << "\tratioH: "
                           << fabs(fabs(dscale[i]) - fabs(dscale_host[i])) / fabs(dscale_host[i])
                           << std::endl;
@@ -1416,12 +1424,12 @@ int BatchNormDriver<T>::VerifyBackward()
 #if(MIO_BN_DEBUG == 1)
         for(int i = 0; i < dbias.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
         {
-            diff = fabs(float(fabs(dbias[i]) - fabs(dbias_host[i])));
+            diff = fabs(Tgpu(fabs(dbias[i]) - fabs(dbias_host[i])));
             if(diff > tolerance)
             {
                 std::cout << "dbias[" << i << "]: " << dbias[i];
                 std::cout << "\tdbias_host[" << i << "]: " << dbias_host[i];
-                std::cout << "\tdiff[" << i << "]: " << float(fabs(dbias[i]) - fabs(dbias_host[i]));
+                std::cout << "\tdiff[" << i << "]: " << Tgpu(fabs(dbias[i]) - fabs(dbias_host[i]));
                 std::cout << "\tratioH: "
                           << fabs(fabs(dbias[i]) - fabs(dbias_host[i])) / fabs(dbias_host[i])
                           << std::endl;
@@ -1435,7 +1443,7 @@ int BatchNormDriver<T>::VerifyBackward()
     }
 
     if(!anError)
-        std::cout << "Backwards prop batch norm verified on CPU and GPU." << std::endl;
+        std::cout << "Backwards Prop Batch Norm Verifies on CPU and GPU." << std::endl;
 
     return miopenStatusSuccess;
 }
