@@ -603,6 +603,7 @@ struct test_driver
                     std::cout << "FAILED" << std::endl;
                     std::cout << "Mismatch at " << idx << ": " << cpu[idx] << " != " << gpu[idx]
                               << std::endl;
+                    show_command();
                     v.fail(-1, xs...);
                 }
             },
