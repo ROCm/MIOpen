@@ -423,7 +423,7 @@ struct test_driver
         auto error       = miopen::rms_range(out_cpu, out_gpu);
         if(not(error <= threshold) or verbose)
         {
-            std::cout << (verbose ? "error: " : "FAILED: ") << error << std::endl;
+            std::cout << (error <= threshold ? "error: " : "FAILED: ") << error << std::endl;
             if(not verbose)
             {
                 show_command();
@@ -461,6 +461,7 @@ struct test_driver
         else if(miopen::range_zero(out_cpu) and miopen::range_zero(out_gpu))
         {
             std::cout << "Warning: Both CPU and GPU data is all zero" << std::endl;
+            show_command();
             fail(-1);
         }
         // std::cout << "----- END VERIFY CHECK -----\n" << std::endl;
