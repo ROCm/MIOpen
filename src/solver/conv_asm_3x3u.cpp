@@ -149,7 +149,7 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && params.float_size == 32
         && params.in_layout == "NCHW";
         // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
-        // clang-format on
+    // clang-format on
 }
 
 bool ConvAsm3x3U::IsFast(const ConvolutionContext& params) const { return params.in_width >= 50; }

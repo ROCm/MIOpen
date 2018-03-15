@@ -97,7 +97,7 @@ bool ConvBinWinograd3x3U::IsApplicable(const ConvolutionContext& params) const
         /// Actually, K<->C flpping is controlled by separate flag, so we can support either
         /// layout in both directions.
 
-        // clang-format on
+    // clang-format on
 }
 
 ConvSolution ConvBinWinograd3x3U::GetSolution(const ConvolutionContext& params) const

@@ -80,7 +80,7 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ConvolutionContext& params) const
         && params.float_size == 32
         && params.out_layout == "NCHW";         // hardcoded
         // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
-        // clang-format on
+    // clang-format on
 }
 
 ConvSolution ConvAsm5x10u2v2b1::GetSolution(const ConvolutionContext& params) const
