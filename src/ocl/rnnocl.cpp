@@ -151,6 +151,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     size_t offset;
     float alpha0, alpha1, beta_t;
     float alpha = 1, beta = 0;
+    int time_mark = 0;
 
     std::vector<int> sp_size(3, 1), sp_stride(3, 1), w_size(3, 1), w_stride(3, 1), x_size(3, 1),
         x_stride(3, 1), y_size(3, 1), y_stride(3, 1), hx_size(3, 1), hx_stride(3, 1);
@@ -179,10 +180,14 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
         if(hy != nullptr)
         {
             SetTensor(handle, hx_desc, hy, &beta);
+            // Update time
+            profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
         }
         if(rnnMode == miopenLSTM && cy != nullptr)
         {
             SetTensor(handle, hx_desc, cy, &beta);
+            // Update time
+            profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
         }
     }
     hx_stride[0] = in_n[0] * uni_stride;
@@ -251,7 +256,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                 {
                     CopyTensor(handle, x_desc, x, sp_desc, workSpace, 0, gi * hy_h);
                     // Update time
-                    profileRNNkernels(handle, (gi == 0) ? 0 : 1, ctime);
+                    profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
                 }
             }
             else
@@ -280,7 +285,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                                    MIO_RNN_FINDSOL_TIMEOUT);
 
                 // Update time
-                profileRNNkernels(handle, 0, ctime);
+                profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
             }
         }
         else
@@ -1049,6 +1054,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     size_t offset;
     float alpha0, alpha1, beta_t;
     float alpha = 1, beta = 0;
+    int time_mark = 0;
 
     std::vector<int> sp_size(3, 1), sp_stride(3, 1), w_size(3, 1), w_stride(3, 1), x_size(3, 1),
         x_stride(3, 1), y_size(3, 1), y_stride(3, 1), hx_size(3, 1), hx_stride(3, 1);
@@ -1077,10 +1083,14 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         if(hy != nullptr)
         {
             SetTensor(handle, hx_desc, hy, &beta);
+            // Update time
+            profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
         }
         if(rnnMode == miopenLSTM && cy != nullptr)
         {
             SetTensor(handle, hx_desc, cy, &beta);
+            // Update time
+            profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
         }
     }
     hx_stride[0] = in_n[0] * uni_stride;
@@ -1149,7 +1159,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 {
                     CopyTensor(handle, x_desc, x, sp_desc, reserveSpace, 0, gi * hy_h);
                     // Update time
-                    profileRNNkernels(handle, (gi == 0) ? 0 : 1, ctime);
+                    profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
                 }
             }
             else
@@ -1177,7 +1187,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                    network_config,
                                    MIO_RNN_FINDSOL_TIMEOUT);
                 // Update time
-                profileRNNkernels(handle, 0, ctime);
+                profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
             }
         }
         else
@@ -1966,6 +1976,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     size_t offset;
     float alpha0, alpha1, beta_t;
     float alpha = 1, beta = 0;
+    int time_mark = 0;
 
     std::vector<int> sp_size(3, 1), sp_stride(3, 1), x_size(3, 1), x_stride(3, 1), y_size(3, 1),
         y_stride(3, 1), hx_size(3, 1), hx_stride(3, 1);
@@ -1992,10 +2003,14 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         if(dhx != nullptr)
         {
             SetTensor(handle, hx_desc, dhx, &beta);
+            // Update time
+            profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
         }
         if(rnnMode == miopenLSTM && dcx != nullptr)
         {
             SetTensor(handle, hx_desc, dcx, &beta);
+            // Update time
+            profileRNNkernels(handle, std::min(time_mark++, 1), ctime);
         }
     }
     hx_stride[0] = in_n[0] * uni_stride;
@@ -2070,7 +2085,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 
             CopyTensor(handle, y_desc, dy, sp_desc, workSpace, 0, hid_shift + dhd_off);
             // Update time
-            profileRNNkernels(handle, 0, ctime); // start timing
+            profileRNNkernels(handle, std::min(time_mark++, 1), ctime); // start timing
         }
         else
         {
@@ -3294,6 +3309,8 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     w_stride[1]  = w_size[2];
     w_desc       = miopen::TensorDescriptor(miopenFloat, w_size.data(), w_stride.data(), 3);
     SetTensor(handle, w_desc, dw, &beta_t);
+    // Update time
+    profileRNNkernels(handle, 0, ctime);
     w_stride[0] = wei_stride;
     w_stride[1] = wei_stride;
     w_size[2]   = 1;
@@ -3304,7 +3321,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
     int hid_off   = 0;
     int use_time  = 0;
     int pre_batch = 0;
-    int time_mark = 0;
+    int time_mark = 1;
 
     switch(rnnMode)
     {
