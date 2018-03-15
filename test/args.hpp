@@ -165,7 +165,7 @@ struct any_value
 {
     std::string s;
 
-    template <class T, class = decltype(value_parser<T>::apply(std::string{}))>
+    template <class T, class = decltype(value_parser<T>::apply(std::string{})), ARGS_REQUIRES(not std::is_enum<T>{})>
     operator T() const
     {
         return value_parser<T>::apply(s);
