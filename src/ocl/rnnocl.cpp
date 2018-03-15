@@ -1606,6 +1606,17 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                         sp_desc    = miopen::TensorDescriptor(
                             miopenFloat, sp_size.data(), sp_stride.data(), 3);
 
+                        CopyTensor(handle,
+                                   sp_desc,
+                                   reserveSpace,
+                                   sp_desc,
+                                   reserveSpace,
+                                   offset + 2 * hy_h + ri * 3 * hy_h,
+                                   offset + bi * 3 * hy_h + ri * hy_h +
+                                       nLayers * batch_n * hy_stride);
+                        // Update time
+                        profileRNNkernels(handle, 1, ctime);
+
                         alpha0 = 1;
                         alpha1 = 1;
                         beta_t = 0;
@@ -2719,67 +2730,11 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                         profileRNNkernels(handle, 1, ctime);
 
                         // r gate
-                        if(ti == 0)
+                        if(ti > 0 && in_n[use_time2] != in_n[cur_time])
                         {
-                            if(hx != nullptr)
-                            {
-                                RunGemmGeometryRNN(handle,
-                                                   hx,
-                                                   w,
-                                                   workSpace,
-                                                   in_n.at(cur_time),
-                                                   hy_h,
-                                                   hy_h,
-                                                   1,
-                                                   1,
-                                                   false,
-                                                   true,
-                                                   false,
-                                                   uni_stride,
-                                                   uni_stride,
-                                                   hy_stride,
-                                                   hx_shift + ri * hy_n * hy_h,
-                                                   weitime_shift + 2 * hy_h * uni_stride +
-                                                       ri * 3 * hy_h * uni_stride,
-                                                   offset + hy_h + ri * 3 * hy_h,
-                                                   false,
-                                                   network_config,
-                                                   MIO_RNN_FINDSOL_TIMEOUT);
-                                // Update time
-                                profileRNNkernels(handle, 1, ctime);
-                            }
-                        }
-                        else
-                        {
-                            if(in_n[use_time2] > 0)
-                            {
-
-                                RunGemmGeometryRNN(handle,
-                                                   reserveSpace,
-                                                   w,
-                                                   workSpace,
-                                                   in_n.at(use_time2),
-                                                   hy_h,
-                                                   hy_h,
-                                                   1,
-                                                   1,
-                                                   false,
-                                                   true,
-                                                   false,
-                                                   hy_stride,
-                                                   uni_stride,
-                                                   hy_stride,
-                                                   hid_shift + pre_batch2 * hy_stride +
-                                                       bi * 3 * hy_h + ri * hy_h,
-                                                   weitime_shift + 2 * hy_h * uni_stride +
-                                                       ri * 3 * hy_h * uni_stride,
-                                                   offset + hy_h + ri * 3 * hy_h,
-                                                   false,
-                                                   network_config,
-                                                   MIO_RNN_FINDSOL_TIMEOUT);
-                                // Update time
-                                profileRNNkernels(handle, 1, ctime);
-                            }
+                            sp_size[1] = in_n[use_time2];
+                            sp_desc    = miopen::TensorDescriptor(
+                                miopenFloat, sp_size.data(), sp_stride.data(), 3);
                         }
 
                         alpha0 = 1;
@@ -2793,15 +2748,22 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                  workSpace,
                                  &alpha1,
                                  sp_desc,
-                                 workSpace,
+                                 reserveSpace,
                                  &beta_t,
                                  sp_desc,
                                  workSpace,
                                  offset + 2 * hy_h + ri * 3 * hy_h,
-                                 offset + hy_h + ri * 3 * hy_h,
+                                 offset + bi * 3 * hy_h + ri * hy_h + nLayers * batch_n * hy_stride,
                                  offset + hy_h + ri * 3 * hy_h);
                         // Update time
                         profileRNNkernels(handle, 1, ctime);
+
+                        if(ti > 0 && in_n[use_time2] != in_n[cur_time])
+                        {
+                            sp_size[1] = in_n[cur_time];
+                            sp_desc    = miopen::TensorDescriptor(
+                                miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                        }
 
                         sigDesc.Backward(handle,
                                          &alpha,
