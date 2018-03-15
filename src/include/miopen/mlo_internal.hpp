@@ -265,7 +265,7 @@ struct ConvolutionContext : ProblemDescription
 
     bool do_search           = false;
     bool save_srch_req       = false;
-    bool assembler_available = false;
+    bool use_asm_kernels     = false;
     bool use_binaries        = true;
     std::string weights_layout;
     std::string out_data_type;
