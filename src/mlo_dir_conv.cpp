@@ -266,14 +266,16 @@ void mlo_construct_direct2D::setupFloats()
 void mlo_construct_direct2D::setupRocm()
 {
     // Detect assembly kernels
-    _search_params.use_binaries        = false;
+    _search_params.use_binaries    = false;
     _search_params.use_asm_kernels = false;
-    _search_params.rmv                 = rocm_meta_version::Default;
+    _search_params.rmv             = rocm_meta_version::Default;
     if(mloIsAmdRocmOpencl(_search_params))
     {
-        _search_params.use_asm_kernels = !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
+        _search_params.use_asm_kernels =
+            !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
 #ifndef HIP_OC_FINALIZER
-        _search_params.use_binaries = !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
+        _search_params.use_binaries =
+            !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
 #endif
     }
 }
