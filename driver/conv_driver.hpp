@@ -1598,8 +1598,8 @@ bool ConvDriver<Tgpu, Tref>::TryReadVerificationCache(const std::string& file_na
 
     if(!verification_cache_path.empty())
     {
-        const auto file_path = verification_cache_path + "/" + file_name + "_" +
-                               GetVerificationCacheFileName();
+        const auto file_path =
+            verification_cache_path + "/" + file_name + "_" + GetVerificationCacheFileName();
         if(std::ifstream(file_path).good())
         {
             if(readBufferFromFile<Tref>(data, GetTensorSize(tensorDesc), file_path.c_str()))
@@ -1619,8 +1619,8 @@ void ConvDriver<Tgpu, Tref>::TrySaveVerificationCache(const std::string& file_na
     const auto verification_cache_path = inflags.GetValueStr("verification_cache");
     if(!verification_cache_path.empty())
     {
-        const auto file_path = verification_cache_path + "/" + file_name + "_" +
-                               GetVerificationCacheFileName();
+        const auto file_path =
+            verification_cache_path + "/" + file_name + "_" + GetVerificationCacheFileName();
         dumpBufferToFile<Tref>(file_path.c_str(), data.data(), data.size());
     }
 }
