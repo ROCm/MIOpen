@@ -81,7 +81,7 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ConvolutionContext& params) const
         && params.float_size == 32
         && params.in_layout == "NCHW";          // hardcoded
         // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
-        // clang-format on
+    // clang-format on
 }
 
 static inline int AlignUp(int val, unsigned step)
