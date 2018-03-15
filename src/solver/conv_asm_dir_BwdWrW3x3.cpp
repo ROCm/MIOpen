@@ -297,7 +297,7 @@ bool ConvAsmBwdWrW3x3::IsValidPerformanceConfig(const ConvolutionContext& proble
 
 bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!params.assembler_available)
+    if(!params.use_asm_kernels)
     {
         return false;
     }
@@ -327,6 +327,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_dilation0 == 1
         && params.kernel_dilation1 == 1
         && params.bias == 0
+        && params.float_size == 32
         && params.in_layout == "NCHW";
      // && _weights_layout == "KCHW"
     if(!ok)
