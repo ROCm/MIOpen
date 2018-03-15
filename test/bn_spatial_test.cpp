@@ -77,8 +77,25 @@ struct verify_forward_train_bn_spatial
         std::tie(rs_n_batch, rs_channels, rs_height, rs_width) =
             miopen::tien<4>(derivedBnDesc.GetLengths());
 
-        auto runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
-        auto runVar  = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
+        tensor<T> runMean;
+        tensor<T> runVar;
+
+        if(input.desc.GetType() == miopenFloat)
+        {
+            runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
+            runVar  = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
+        }
+        else
+        {
+            srand(0);
+            runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width};
+            runVar  = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width};
+            for(int i = 0; i < runMean.desc.GetElementSize(); i++)
+            {
+                runMean[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * T(rand() % 100);
+                runVar[i]  = 1e-3 * T(rand() % 100);
+            }
+        }
         auto saveMean   = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width};
         auto saveInvVar = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width};
         auto out        = input;
@@ -226,8 +243,26 @@ struct verify_forward_train_bn_spatial
         std::tie(rs_n_batch, rs_channels, rs_height, rs_width) =
             miopen::tien<4>(derivedBnDesc.GetLengths());
 
-        auto runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
-        auto runVar  = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
+        tensor<T> runMean;
+        tensor<T> runVar;
+
+        if(input.desc.GetType() == miopenFloat)
+        {
+            runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
+            runVar  = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
+        }
+        else
+        {
+            srand(0);
+            runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width};
+            runVar  = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width};
+            for(int i = 0; i < runMean.desc.GetElementSize(); i++)
+            {
+                runMean[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * T(rand() % 100);
+                runVar[i]  = 1e-3 * T(rand() % 100);
+            }
+        }
+
         auto saveMean   = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width};
         auto saveInvVar = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width};
 
@@ -246,7 +281,9 @@ struct verify_forward_train_bn_spatial
         double epsilon      = MIO_BN_TEST_EPSILON;
         double expAvgFactor = MIO_BN_TEST_EXPAVGFACTOR;
 
-        float alpha{1}, beta{0};
+        float alpha = 1.0;
+        float beta  = 0.0;
+
         miopen::BatchNormForwardTraining(handle,
                                          miopenBNSpatial,
                                          &alpha,
@@ -418,7 +455,8 @@ struct verify_forward_infer_bn_spatial_recalc
         auto shift_dev = handle.Write(shift.data);
         auto out_dev   = handle.Write(out.data);
 
-        T alpha{1}, beta{0};
+        float alpha = 1.0;
+        float beta  = 0.0;
 
         double epsilon = MIO_BN_TEST_EPSILON;
 
@@ -529,7 +567,8 @@ struct verify_forward_infer_bn_spatial_use_est
         auto shift_dev   = handle.Write(shift.data);
         auto out_dev     = handle.Write(out.data);
 
-        T alpha{1}, beta{0};
+        float alpha = 1.0;
+        float beta  = 0.0;
 
         double epsilon = MIO_BN_TEST_EPSILON;
 
@@ -775,7 +814,8 @@ struct verify_backward_bn_spatial_recalc
         auto dshift = tensor<T>{ss_n_batch, ss_channels, ss_height, ss_width};
         std::fill(dshift.begin(), dshift.end(), 0);
 
-        T alpha{1}, beta{0};
+        float alpha = 1.0;
+        float beta  = 0.0;
 
         auto xin_dev    = handle.Write(x_input.data);
         auto dyin_dev   = handle.Write(dy_input.data);
@@ -984,7 +1024,8 @@ struct verify_backward_bn_spatial_use_saved
         auto dshift = tensor<T>{ss_n_batch, ss_channels, ss_height, ss_width};
         std::fill(dshift.begin(), dshift.end(), 0);
 
-        T alpha{1}, beta{0};
+        float alpha = 1.0;
+        float beta  = 0.0;
 
         auto xin_dev         = handle.Write(x_input.data);
         auto dyin_dev        = handle.Write(dy_input.data);
@@ -1068,10 +1109,9 @@ struct batch_norm_spatial_driver : test_driver
     {
 
         std::size_t n, c, h, w;
-
         std::tie(n, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
 
-        if(n == 1)
+        if(n == 1 || ((h * w > 1e6) && (input.desc.GetType() == miopenHalf)))
         { // Invalid batch size for batch normalization
             return;
         }
@@ -1081,8 +1121,26 @@ struct batch_norm_spatial_driver : test_driver
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
         std::tie(ssn, ssc, ssh, ssw) = miopen::tien<4>(derivedBnDesc.GetLengths());
 
-        scale = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
-        shift = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
+        if(input.desc.GetType() == miopenFloat)
+        {
+            scale = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
+            shift = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
+        }
+        else
+        {
+            srand(0);
+            scale = tensor<T>{ssn, ssc, ssh, ssw};
+            shift = tensor<T>{ssn, ssc, ssh, ssw};
+            for(int i = 0; i < scale.desc.GetElementSize(); i++)
+            {
+                scale[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * T(rand() % 100);
+                shift[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * T(rand() % 100);
+            }
+            for(int i = 0; i < input.desc.GetElementSize(); i++)
+            {
+                input[i] = (((rand() % 2) == 1) ? -1 : 1) * (1e-4 * T(rand() % 100));
+            }
+        }
 
 // train
 #if(MIO_BN_SP_TEST_DEBUG == 1)
