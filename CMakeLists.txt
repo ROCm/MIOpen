@@ -57,7 +57,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 1.2.1)
+rocm_setup_version(VERSION 1.3.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
@@ -144,7 +144,7 @@ else()
 endif()
 
 find_package(OpenSSL REQUIRED)
-set(BOOST_COMPONENTS filesystem thread system)
+set(BOOST_COMPONENTS filesystem system)
 add_definitions(-DBOOST_ALL_NO_LIB=1)
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
@@ -156,7 +156,6 @@ option( BUILD_DEV "Build for development only" OFF)
 
 set( MIOPEN_INSTALL_DIR miopen)
 set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen )
-set( MIOPEN_PERFDB_LOCK_NAME "miopen_perfdb_lock")
 
 set(MIOPEN_GPU_SYNC Off CACHE BOOL "")
 if(BUILD_DEV)
@@ -243,7 +242,7 @@ enable_clang_tidy(
         *
         -readability-inconsistent-declaration-parameter-name
     HEADER_FILTER
-        "hpp$"
+        ".*hpp"
     EXTRA_ARGS
         -DMIOPEN_USE_CLANG_TIDY
     ANALYZE_TEMPORARY_DTORS ON
@@ -253,22 +252,27 @@ include(CppCheck)
 enable_cppcheck(
     CHECKS 
         all
-    FORCE
     SUPPRESS 
         ConfigurationNotChecked
         unmatchedSuppression
-        constStatement
+        unusedFunction
+        # constStatement
         noExplicitConstructor
         passedByValue
         # preprocessorErrorDirective
         unusedStructMember
         # TODO: Try to reenable this without needing inline suppressions
         leakReturnValNotUsed
+        # Ignore initializer lists in the tests
+        useInitializationList:*test/*.cpp
         *:*.cl
+    FORCE
     SOURCES
+        addkernels/
+        # driver/
         include/
         src/
-        # test/
+        test/
     INCLUDE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR}/include

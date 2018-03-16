@@ -26,96 +26,100 @@
 #ifndef GUARD_MIOPEN_LOCK_FILE_HPP_
 #define GUARD_MIOPEN_LOCK_FILE_HPP_
 
-#include <fstream>
-
+#include <boost/filesystem.hpp>
 #include <boost/interprocess/sync/file_lock.hpp>
-#include <boost/thread/shared_mutex.hpp>
+
+#include <chrono>
+#include <fstream>
+#include <shared_mutex>
+
+namespace boost {
+namespace posix_time {
+class ptime;
+} // namespace posix_time
+} // namespace boost
 
 namespace miopen {
-// LockFile::Impl class is a wrapper around boost::interprocess::file_lock providing MT-safety.
+// LockFile class is a wrapper around boost::interprocess::file_lock providing MT-safety.
 // One process should never have more than one instance of this class with same path at the same
 // time. It may lead to undefined behaviour on Windows.
 // Also on windows mutex can be removed because file locks are MT-safe there.
-// Dispatcher should be used to create instances of this class.
 class LockFile
 {
-    friend class LockFileDispatcher;
-
     private:
-    class Impl
+    class PassKey
     {
-        public:
-        Impl(const Impl&) = delete;
-        Impl operator=(const Impl&) = delete;
-
-        Impl(const char* path) : _file(path), _file_lock(path) {}
-
-        void lock()
-        {
-            _mutex.lock();
-            _file_lock.lock();
-        }
-
-        void lock_sharable()
-        {
-            _mutex.lock_shared();
-            _file_lock.lock_sharable();
-        }
-
-        void unlock()
-        {
-            _file_lock.unlock();
-            _mutex.unlock();
-        }
-
-        void unlock_sharable()
-        {
-            _file_lock.unlock_sharable();
-            _mutex.unlock_shared();
-        }
-
-        private:
-        boost::shared_mutex _mutex;
-        std::ofstream _file;
-        boost::interprocess::file_lock _file_lock;
     };
 
     public:
-    LockFile(Impl& impl) : _impl(impl) {}
+    LockFile(const char* path, PassKey) : _file(path), _file_lock(path) {}
+    LockFile(const LockFile&) = delete;
+    LockFile operator=(const LockFile&) = delete;
 
-    void lock() { _impl.lock(); }
-    void lock_sharable() { _impl.lock_sharable(); }
-    void unlock() { _impl.unlock(); }
-    void unlock_sharable() { _impl.unlock_sharable(); }
+    void lock();
+    void lock_shared();
+    bool try_lock();
+    bool try_lock_shared();
+    void unlock();
+    void unlock_shared();
 
-    private:
-    Impl& _impl;
-};
+    static LockFile& Get(const char* path);
 
-class LockFileDispatcher
-{
-    public:
-    LockFileDispatcher() = delete;
-
-    static LockFile Get(const char* path)
+    template <class TDuration>
+    bool try_lock_for(TDuration duration)
     {
-        { // To guarantee that construction won't be called if not required.
-            auto found = LockFiles().find(path);
+        if(!_mutex.try_lock_for(duration))
+            return false;
 
-            if(found != LockFiles().end())
-                return {found->second};
-        }
+        if(_file_lock.timed_lock(ToPTime(duration)))
+            return true;
 
-        auto emplaced = LockFiles().emplace(
-            std::piecewise_construct, std::forward_as_tuple(path), std::forward_as_tuple(path));
-        return {emplaced.first->second};
+        _mutex.unlock();
+        return false;
+    }
+
+    template <class TDuration>
+    bool try_lock_shared_for(TDuration duration)
+    {
+        if(!_mutex.try_lock_shared_for(duration))
+            return false;
+
+        if(_file_lock.timed_lock_sharable(ToPTime(duration)))
+            return true;
+
+        _mutex.unlock_shared();
+        return false;
+    }
+
+    template <class TPoint>
+    bool try_lock_until(TPoint point)
+    {
+        return try_lock_for(point - std::chrono::system_clock::now());
+    }
+
+    template <class TPoint>
+    bool try_lock_shared_until(TPoint point)
+    {
+        return try_lock_shared_for(point - std::chrono::system_clock::now());
     }
 
     private:
-    static std::map<std::string, LockFile::Impl>& LockFiles()
+    std::shared_timed_mutex _mutex;
+    std::ofstream _file;
+    boost::interprocess::file_lock _file_lock;
+
+    static std::map<std::string, LockFile>& LockFiles()
     {
-        static std::map<std::string, LockFile::Impl> lock_files;
+        static std::map<std::string, LockFile> lock_files;
         return lock_files;
+    }
+
+    template <class TDuration>
+    static boost::posix_time::ptime ToPTime(TDuration duration)
+    {
+        return boost::posix_time::second_clock::universal_time() +
+               boost::posix_time::milliseconds(
+                   std::chrono::duration_cast<std::chrono::milliseconds>(duration).count());
     }
 };
 } // namespace miopen

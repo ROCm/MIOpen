@@ -23,33 +23,60 @@
 * SOFTWARE.
 *
 *******************************************************************************/
+#include <miopen/lock_file.hpp>
 
-#ifndef GUARD_TEMP_FILE_HPP
-#define GUARD_TEMP_FILE_HPP
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 
-#include <miopen/tmp_dir.hpp>
-
-#include <string>
+#include <mutex>
 
 namespace miopen {
 
-struct TmpDir;
+void LockFile::lock() { std::lock(_mutex, _file_lock); }
 
-class TempFile
+void LockFile::lock_shared()
 {
-    public:
-    TempFile(const std::string& path_template);
-    ~TempFile();
+    _mutex.lock_shared();
+    _file_lock.lock_sharable();
+}
 
-    inline const std::string& Path() const { return _path; }
-    inline operator const std::string&() const { return _path; }
+bool LockFile::try_lock() { return std::try_lock(_mutex, _file_lock); }
 
-    private:
-    std::string _path;
-    int _fd;
+bool LockFile::try_lock_shared()
+{
+    if(!_mutex.try_lock_shared())
+        return false;
 
-    static const TmpDir& GetTempDirectoryPath();
-};
+    if(_file_lock.try_lock_sharable())
+        return true;
+
+    _mutex.unlock_shared();
+    return false;
+}
+
+void LockFile::unlock()
+{
+    _file_lock.unlock();
+    _mutex.unlock();
+}
+
+void LockFile::unlock_shared()
+{
+    _file_lock.unlock_sharable();
+    _mutex.unlock_shared();
+}
+
+LockFile& LockFile::Get(const char* path)
+{
+    { // To guarantee that construction won't be called if not required.
+        auto found = LockFiles().find(path);
+
+        if(found != LockFiles().end())
+            return found->second;
+    }
+
+    auto emplaced = LockFiles().emplace(std::piecewise_construct,
+                                        std::forward_as_tuple(path),
+                                        std::forward_as_tuple(path, PassKey{}));
+    return emplaced.first->second;
+}
 } // namespace miopen
-
-#endif
