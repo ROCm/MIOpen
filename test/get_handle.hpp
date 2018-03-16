@@ -42,7 +42,7 @@ static inline miopen::Handle& get_handle()
     static std::thread::id id = std::this_thread::get_id();
     if(std::this_thread::get_id() != id)
     {
-        printf("Cannot use handle across multiple threads\n");
+        std::cout << "Cannot use handle across multiple threads\n";
         std::abort();
     }
     return h;
