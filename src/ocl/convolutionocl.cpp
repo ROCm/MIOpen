@@ -535,11 +535,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             static_cast<miopenConvFwdAlgorithm_t>(FwdAlgoResolver(perf_db[i].name));
         perfResults[i].time   = perf_db[i].time;
         perfResults[i].memory = perf_db[i].workspace;
-#ifndef NDEBUG
-        std::cout << "algo = " << perfResults[i].fwd_algo << "\n";
-        std::cout << "time = " << perfResults[i].time << "\n";
-        std::cout << "workspace = " << perfResults[i].memory << "\n";
-#endif // !NDEBUG
+        MIOPEN_LOG_I("algo = " << perfResults[i].fwd_algo << ", time = " << perfResults[i].time << ", workspace = " << perfResults[i].memory);
     }
 }
 
@@ -588,9 +584,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         miopen::checkNumericsInput(handle, wDesc, w);
     }
 
-#ifndef NDEBUG
-    std::cout << "workspace passed " << workSpaceSize << "\n";
-#endif // !NDEBUG
+    MIOPEN_LOG_I("workspace = " << workSpaceSize);
     if(mode == miopenConvolution)
     {
         if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1])
