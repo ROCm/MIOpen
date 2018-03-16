@@ -613,7 +613,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPU()
 
     FindForward(ret_algo_count, request_algo_count, perf_results);
 
-    Tgpu alpha = static_cast<Tgpu>(1), beta = static_cast<Tgpu>(0);
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     Timer t;
     START_TIME;
@@ -935,7 +935,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardGPU()
 
     FindBackwardData(ret_algo_count, request_algo_count, perf_results_data);
 
-    Tgpu alpha = static_cast<Tgpu>(1), beta = static_cast<Tgpu>(0);
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
     int ret = 0;
 
     Timer t;
