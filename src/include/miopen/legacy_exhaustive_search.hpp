@@ -73,10 +73,6 @@ struct LegacyPerformanceConfig : Serializable<LegacyPerformanceConfig>
         f(self.n_in_data_tiles, "temp.n_in_data_tiles");
         f(self.n_stacks, "temp.n_stacks");
     }
-
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    bool LegacyDeserialize(const std::string& from);
-#endif
 };
 } // namespace solver
 } // namespace miopen
