@@ -108,8 +108,8 @@ using mlo_kernel_info = std::tuple<const std::string,
 #endif
 #include <miopen/tensor.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/db_path.hpp>
 #include <miopen/db.hpp>
-#include <miopen/db_record.hpp>
 
 inline int mloLg2(int v)
 {
@@ -219,34 +219,6 @@ struct ProblemDescription
             << sep << (direction.IsForward() ? "F"
                      : direction.IsBackwardData() ? "B" : "W"); // clang-format on
     }
-
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    void LegacySerialize(std::ostream& stream) const
-    {
-        if(!direction.IsKnown())
-            MIOPEN_THROW("!direction.IsKnown()");
-        if(!(direction.IsForward() || direction.IsBackwardData()))
-        {
-            stream << "<NOT_SUPPORTED>";
-            return;
-        }
-        const auto sep = 'x';
-        // clang-format off
-        // 576x4x4x1x1x192x4x4x8xNCHWxFP32x1
-        stream << n_inputs
-            << sep << in_height
-            << sep << in_width
-            << sep << kernel_size1
-            << sep << kernel_size0
-            << sep << n_outputs
-            << sep << out_height
-            << sep << out_width
-            << sep << batch_sz
-            << sep << in_layout
-            << sep << in_data_type
-            << sep << (direction.IsForward() ? "1" : "0"); // clang-format on
-    }
-#endif
 
     friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
     {
@@ -404,7 +376,7 @@ struct mlo_construct_direct2D
 
     miopen::solver::ConvSolution FindSolution();
 
-    miopen::DbRecord GetDbRecord() const;
+    miopen::Db GetDb() const;
 
     /*
     * returns parameter values that are compiled in legacy kernels for kernels using them as

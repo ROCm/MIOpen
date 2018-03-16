@@ -25,7 +25,7 @@
  *******************************************************************************/
 #include <miopen/config.h>
 #include <miopen/convolution.hpp>
-#include <miopen/db_record.hpp>
+#include <miopen/db.hpp>
 #include <miopen/env.hpp>
 #include <miopen/util.hpp>
 #include <miopen/solver.hpp>
@@ -630,13 +630,9 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     construct_params.mloCopyTo(context);
                     context.n_passes = true;
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-                    DbRecord dbRecord(context.GetPerfDbPath(), context, true);
-#else
-                    DbRecord dbRecord(context.GetPerfDbPath(), context);
-#endif
+                    Db db(context.GetPerfDbPath());
                     solver::ConvSolution solution =
-                        FindSolution(solver::ConvOclDirectFwd11x11{}, context, dbRecord);
+                        FindSolution(solver::ConvOclDirectFwd11x11{}, context, db);
 
                     if(solution.passes == 1)
                     {
