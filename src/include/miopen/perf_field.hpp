@@ -23,33 +23,22 @@
 * SOFTWARE.
 *
 *******************************************************************************/
-
-#ifndef GUARD_TEMP_FILE_HPP
-#define GUARD_TEMP_FILE_HPP
-
-#include <miopen/tmp_dir.hpp>
+#ifndef GUARD_MIOPEN_PERF_FIELD_HPP_
+#define GUARD_MIOPEN_PERF_FIELD_HPP_
 
 #include <string>
 
 namespace miopen {
 
-struct TmpDir;
-
-class TempFile
+struct PerfField
 {
-    public:
-    TempFile(const std::string& path_template);
-    ~TempFile();
+    std::string name;
+    float time;
+    std::size_t workspace;
 
-    inline const std::string& Path() const { return _path; }
-    inline operator const std::string&() const { return _path; }
-
-    private:
-    std::string _path;
-    int _fd;
-
-    static const TmpDir& GetTempDirectoryPath();
+    bool operator<(const PerfField& p) const { return (time < p.time); }
 };
+
 } // namespace miopen
 
-#endif
+#endif // GUARD_MIOPEN_PERF_FIELD_HPP_

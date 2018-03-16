@@ -34,8 +34,6 @@
 #include <thread>
 #include <vector>
 
-#include <boost/interprocess/sync/sharable_lock.hpp>
-#include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/optional.hpp>
@@ -630,8 +628,8 @@ class DbMultiProcessTest : public DbTest
         const auto lock_file_path = LockFilePath(temp_file());
 
         {
-            auto file_lock = LockFileDispatcher::Get(lock_file_path.c_str());
-            boost::interprocess::scoped_lock<LockFile> lock(file_lock);
+            auto& file_lock = LockFile::Get(lock_file_path.c_str());
+            std::shared_lock<LockFile> lock(file_lock);
 
             auto id = 0;
 
@@ -658,8 +656,8 @@ class DbMultiProcessTest : public DbTest
     static inline void WorkItem(unsigned int id, const std::string& db_path)
     {
         {
-            auto file_lock = LockFileDispatcher::Get(LockFilePath(db_path).c_str());
-            boost::interprocess::sharable_lock<LockFile> lock(file_lock);
+            auto& file_lock = LockFile::Get(LockFilePath(db_path).c_str());
+            std::lock_guard<LockFile> lock(file_lock);
         }
 
         DBMultiThreadedTestWork::WorkItem(id, db_path);

@@ -67,6 +67,7 @@ set( MIOpen_Source
     pooling_api.cpp
     kernel_warnings.cpp
     logger.cpp
+    lock_file.cpp
     lrn_api.cpp
     activ_api.cpp
     handle_api.cpp
@@ -100,7 +101,7 @@ set( MIOpen_Source
     include/miopen/lrn.hpp
     include/miopen/activ.hpp
     include/miopen/softmax.hpp
-	include/miopen/rnn.hpp
+    include/miopen/rnn.hpp
     tensor.cpp
     tensor_api.cpp
     solver.cpp
@@ -175,6 +176,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv5x10u2v2b1.s
         kernels/conv7x7c3h224w224k64u2v2p3q3f1.s
         kernels/MIOpenTensorKernels.cl
+        kernels/MIOpenTensorSetKernel.cl
+        kernels/MIOpenTensorCopyKernel.cl
         kernels/MIOpenTensorScaleKernel.cl
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx803_m30.so
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx803_m30.so

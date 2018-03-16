@@ -141,27 +141,10 @@ __kernel void transpose_CNHW2NCHW(const global float* in, global float* out)
     n_i                   = get_global_id(1);
     cout[C * HW_IN * n_i] = cin[HW_OUT * n_i];
 #else
-    for(n_i                   = 0; n_i < N; n_i++)
-        cout[C * HW_IN * n_i] = cin[HW_OUT * n_i];
-#endif
-}
-#endif
-
-#ifdef COPYMEM
-__kernel void memoryCopy(const global float* in, global float* out)
-{
-    // to reduce granularity loss
-    uint gid   = get_global_id(0);
-    uint index = gid;
-
-    const global READ_TYPE* cin = (const global READ_TYPE*)(in);
-    global READ_TYPE* cout      = (global READ_TYPE*)(out);
-
-    int i;
-    for(i = 0; i < N; i++)
+    for(n_i = 0; n_i < N; n_i++)
     {
-        cout[index] = cin[index];
-        index += C * HW_RD;
+        cout[C * HW_IN * n_i] = cin[HW_OUT * n_i];
     }
+#endif
 }
 #endif

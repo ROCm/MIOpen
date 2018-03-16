@@ -28,6 +28,8 @@ For OpenCL backend: `apt-get install miopen-opencl`
 
 For HIP backend: `apt-get install miopen-hip`
 
+Currently both the backends cannot be installed on the same system simultaneously. If a different backend other than what currently exists on the system is desired, please remove the existing backend completely and then install the new backend.
+
 ## Building MIOpen from source
 
 ## Configuring with cmake
@@ -185,5 +187,4 @@ sudo apt-get install libssl-dev
 sudo apt-get install libboost-dev
 sudo apt-get install libboost-system-dev
 sudo apt-get install libboost-filesystem-dev
-sudo apt-get install libboost-thread-dev
 ```
