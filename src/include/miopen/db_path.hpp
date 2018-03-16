@@ -23,18 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cstdlib>
-#include <miopen/db.hpp>
+#ifndef GUARD_MIOPEN_DB_PATH_HPP
+#define GUARD_MIOPEN_DB_PATH_HPP
+
+#include <string>
 
 namespace miopen {
 
-std::string GetDbPath()
-{
-    auto p = std::getenv("MIOPEN_DB_PATH"); /// \todo Read env once - use GetStringEnv().
-    if(p == nullptr)
-        return "${MIOPEN_DB_PATH}";
-    else
-        return p;
-}
+std::string GetDbPath();
 
 } // namespace miopen
+
+#endif
