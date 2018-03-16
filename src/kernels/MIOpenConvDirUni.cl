@@ -352,7 +352,7 @@ static inline void Conv(uint o_map_base,
         uint wei_stg_base_off = mad24(o_map_base,
                                       (uint)(MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ),
                                       mul24(i_c, (uint)MLO_FILTER_SZ));
-        uint in_stg_off2      = in_stg_off1;
+        uint in_stg_off2 = in_stg_off1;
         for(uint j = 0; j < MLO_PVT_IN_HEIGHT - 1; ++j,
                  in_stg_off2 += (((j - MLO_PADDING_SHIFT1 + MLO_PADDING_FIX1) % MLO_FILTER_STRIDE1)
                                      ? 0
@@ -418,6 +418,7 @@ static inline void Conv(uint o_map_base,
 #endif
                         for(uint i = 0; i < MLO_OUT_TILE0; ++i)
                         {
+                            _FLOAT sum = (_FLOAT)0;
                             for(uint l = 0; l < MLO_FILTER_SIZE0; ++l)
                             {
 
@@ -432,10 +433,11 @@ static inline void Conv(uint o_map_base,
 #endif
 
 #if MLO_DIR_FORWARD == 1
-                                pvt_accum[(o_c * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i] +=
-                                    pvt_in_stage[j * MLO_PVT_IN_WIDTH * MLO_FILTER_STRIDE1 +
-                                                 i * MLO_FILTER_STRIDE0 + l] *
-                                    pvt_wei_stage[l_act];
+                                // Directly accumulating to `pvt_accum` here sometimes results in
+                                // validation error for half precision.
+                                sum += pvt_in_stage[j * MLO_PVT_IN_WIDTH * MLO_FILTER_STRIDE1 +
+                                                    i * MLO_FILTER_STRIDE0 + l] *
+                                       pvt_wei_stage[l_act];
 #else
                             if(((i + l + 1 - MLO_PADDING_SHIFT0 +
                                  (MLO_FILTER_SIZE0 % MLO_FILTER_STRIDE0)) %
@@ -448,6 +450,10 @@ static inline void Conv(uint o_map_base,
                             }
 #endif
                             }
+#if MLO_DIR_FORWARD == 1
+                            // Only needed for forward to fix validation errors on half precision.
+                            pvt_accum[(o_c * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i] += sum;
+#endif
                         }
                 }
 
@@ -503,10 +509,10 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
     uint stack            = iDiv(lcl_id, MLO_ALUTILES_STACK_SZ);        // stack
     uint alu_stack_id     = iMod(lcl_id, stack, MLO_ALUTILES_STACK_SZ); // alu index in stack
 #else
-    uint stack        = lcl_id / MLO_ALUTILES_STACK_SZ;       // stack
+    uint stack = lcl_id / MLO_ALUTILES_STACK_SZ; // stack
     uint alu_stack_id = lcl_id & (MLO_ALUTILES_STACK_SZ - 1); // alu index in stack
 #if MLO_ALUTILES_STACK_SZ >= 64
-    stack             = uniform(stack);
+    stack = uniform(stack);
 #endif
 #endif
 // ALU plane inside stack
@@ -516,15 +522,15 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
         alu_stack_id, alu_out_plane_id, MLO_ALU_TILE_SZ); // alu index inside an ALU output plane
 #else
     uint alu_out_plane_id = alu_stack_id / MLO_ALU_TILE_SZ;             // alu output plane index
-    uint alu_out_id = alu_stack_id & (MLO_ALU_TILE_SZ - 1); // alu index inside an ALU output plane
+    uint alu_out_id       = alu_stack_id & (MLO_ALU_TILE_SZ - 1);       // alu index inside an ALU output plane
 #endif
 // pos inside ALU tile
 #if MLO_ALU_VTILE0 & (MLO_ALU_VTILE0 - 1)
     uint alu_tl1 = iDiv(alu_out_id, MLO_ALU_VTILE0);
     uint alu_tl0 = iMod(alu_out_id, alu_tl1, MLO_ALU_VTILE0);
 #else
-    uint alu_tl1    = alu_out_id / MLO_ALU_VTILE0;
-    uint alu_tl0    = alu_out_id & (MLO_ALU_VTILE0 - 1);
+    uint alu_tl1          = alu_out_id / MLO_ALU_VTILE0;
+    uint alu_tl0          = alu_out_id & (MLO_ALU_VTILE0 - 1);
 #endif
 
     uint o_map_plane =
@@ -559,14 +565,14 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
     uint x_in_lcl = alu_tl0 * MLO_OUT_TILE0 * MLO_FILTER_STRIDE0;
     uint y_in_lcl = alu_tl1 * MLO_OUT_TILE1 * MLO_FILTER_STRIDE1;
 #else
-    uint x_grp      = x_tile_blk * (MLO_IN_TILE0 / MLO_FILTER_STRIDE0);
-    uint y_grp      = y_tile_blk * (MLO_IN_TILE1 / MLO_FILTER_STRIDE1);
+    uint x_grp            = x_tile_blk * (MLO_IN_TILE0 / MLO_FILTER_STRIDE0);
+    uint y_grp            = y_tile_blk * (MLO_IN_TILE1 / MLO_FILTER_STRIDE1);
 #if MLO_LARGE_MAP == 1
-    uint x_in_grp   = x_grp - (MLO_FILTER_PAD0 / MLO_FILTER_STRIDE0);
-    uint y_in_grp   = y_grp - (MLO_FILTER_PAD1 / MLO_FILTER_STRIDE1);
+    uint x_in_grp         = x_grp - (MLO_FILTER_PAD0 / MLO_FILTER_STRIDE0);
+    uint y_in_grp         = y_grp - (MLO_FILTER_PAD1 / MLO_FILTER_STRIDE1);
 #endif
-    uint x_in_lcl   = alu_tl0 * (MLO_OUT_TILE0 / MLO_FILTER_STRIDE0);
-    uint y_in_lcl   = alu_tl1 * (MLO_OUT_TILE1 / MLO_FILTER_STRIDE1);
+    uint x_in_lcl         = alu_tl0 * (MLO_OUT_TILE0 / MLO_FILTER_STRIDE0);
+    uint y_in_lcl         = alu_tl1 * (MLO_OUT_TILE1 / MLO_FILTER_STRIDE1);
 #endif
 
     // base offset to read data from local input data
@@ -577,7 +583,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #if MLO_DIR_FORWARD == 1
     uint wei_off = mul24(o_map_plane, (uint)(MLO_N_INPUTS * MLO_FILTER_SZ));
 #else
-    uint wei_off    = mul24(o_map_plane, (uint)MLO_FILTER_SZ);
+    uint wei_off          = mul24(o_map_plane, (uint)MLO_FILTER_SZ);
 #endif
 
 #if MLO_LARGE_MAP == 0
@@ -596,15 +602,16 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
              in_off += MLO_IN_CHANNEL_STRIDE * MLO_N_IN_TILES_PERSTACK,
              wei_off += MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ
 #if MLO_DIR_FORWARD == 0
-                                        * MLO_N_OUTPUTS
+                                        *
+                                        MLO_N_OUTPUTS
 #endif
-    )
+        )
     {
         barrier(CLK_LOCAL_MEM_FENCE);
 
-        // small map has been read in full continiously into the lDS buffer within padded rect,
-        // padding has been done on initilization.
-        // large map calculates padding on the fly and fills it with 0.
+// small map has been read in full continiously into the lDS buffer within padded rect,
+// padding has been done on initilization.
+// large map calculates padding on the fly and fills it with 0.
 
 #if 1 // all inputs
 
@@ -714,8 +721,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
         }
 #endif
 
-            // read inputs and weights
-            // put weights into LDS
+// read inputs and weights
+// put weights into LDS
 
 #if 1 // only weights
 
@@ -770,7 +777,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 
 #endif
 
-            // over all batch stacks
+// over all batch stacks
 
 #endif // all input
 
@@ -794,8 +801,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
     uint y_out_grp = y_tile_blk * MLO_IN_TILE1;
 #endif
 #else
-    uint x_out_grp  = x_grp * MLO_FILTER_STRIDE0;
-    uint y_out_grp  = y_grp * MLO_FILTER_STRIDE1;
+    uint x_out_grp        = x_grp * MLO_FILTER_STRIDE0;
+    uint y_out_grp        = y_grp * MLO_FILTER_STRIDE1;
 #endif
     uint x_out_lcl = alu_tl0 * MLO_OUT_TILE0;
     uint y_out_lcl = alu_tl1 * MLO_OUT_TILE1;
