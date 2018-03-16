@@ -37,6 +37,10 @@ find_program(CPPCHECK_EXE
 
 ProcessorCount(CPPCHECK_JOBS)
 
+set(CPPCHECK_BUILD_DIR ${CMAKE_BINARY_DIR}/cppcheck-build)
+file(MAKE_DIRECTORY ${CPPCHECK_BUILD_DIR})
+set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${CPPCHECK_BUILD_DIR})
+
 macro(enable_cppcheck)
     set(options FORCE)
     set(oneValueArgs)
@@ -61,8 +65,8 @@ macro(enable_cppcheck)
         set(CPPCHECK_INCLUDES "${CPPCHECK_INCLUDES} -I${INC}")
     endforeach()
 
-    # set(CPPCHECK_FORCE "--project=${CMAKE_BINARY_DIR}/compile_commands.json")
-    set(CPPCHECK_FORCE)
+    # set(CPPCHECK_FORCE)
+    set(CPPCHECK_FORCE "--project=${CMAKE_BINARY_DIR}/compile_commands.json")
     if(PARSE_FORCE)
         set(CPPCHECK_FORCE --force)
     endif()
@@ -84,14 +88,13 @@ macro(enable_cppcheck)
 
     file(WRITE ${CMAKE_BINARY_DIR}/cppcheck.cmake "
         file(GLOB_RECURSE GSRCS ${GLOBS})
-        message(\"${CPPCHECK_EXE} ${GLOBS}\")
-        message(\"${CPPCHECK_EXE} ${SOURCES} \${GSRCS}\")
-        execute_process(
-            COMMAND ${CPPCHECK_EXE}
+        set(CPPCHECK_COMMAND
+            ${CPPCHECK_EXE}
             -q
             # -v
             # --report-progress
             ${CPPCHECK_FORCE}
+            --cppcheck-build-dir=${CPPCHECK_BUILD_DIR}
             --platform=native
             \"--template={file}:{line}: {severity}[{id}]: {message}\"
             --error-exitcode=1
@@ -102,6 +105,11 @@ macro(enable_cppcheck)
             --enable=${CPPCHECK_CHECKS}
             --suppressions-list=${CMAKE_BINARY_DIR}/cppcheck-supressions
             ${SOURCES} \${GSRCS}
+        )
+        string(REPLACE \";\" \" \" CPPCHECK_SHOW_COMMAND \"\${CPPCHECK_COMMAND}\")
+        message(\"\${CPPCHECK_SHOW_COMMAND}\")
+        execute_process(
+            COMMAND \${CPPCHECK_COMMAND}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
             RESULT_VARIABLE RESULT
         )

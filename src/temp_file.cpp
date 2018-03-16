@@ -1,17 +1,11 @@
 #include <miopen/temp_file.hpp>
-#include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 
 #include <unistd.h>
 
-struct tmp_dir_env
-{
-    static const char* value() { return "TMPDIR"; }
-};
-
 namespace miopen {
 TempFile::TempFile(const std::string& path_template)
-    : _path(GetTempDirectoryPath() + "/" + path_template + "-XXXXXX")
+    : _path((GetTempDirectoryPath().path / (path_template + "-XXXXXX")).string())
 {
     _fd = mkstemp(&_path[0]);
     if(_fd == -1)
@@ -36,19 +30,9 @@ TempFile::~TempFile()
     }
 }
 
-std::string TempFile::GetTempDirectoryPath()
+const TmpDir& TempFile::GetTempDirectoryPath()
 {
-    const auto path = miopen::GetStringEnv(tmp_dir_env{});
-    if(path != nullptr)
-    {
-        return path;
-    }
-#if defined(P_tmpdir)
-    return P_tmpdir; // a string literal, if defined.
-#elif defined(_PATH_TMP)
-    return _PATH_TMP; // a string literal, if defined.
-#else
-    return "/tmp";
-#endif
+    static const TmpDir dir("tmp");
+    return dir;
 }
 } // namespace miopen
