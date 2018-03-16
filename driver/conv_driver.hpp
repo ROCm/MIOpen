@@ -1581,6 +1581,11 @@ std::string ConvDriver<Tgpu, Tref>::GetVerificationCacheFileName() const
        << "_" << weiDesc[1] << "x" << pad_h << "x" << pad_w << "x" << u << "x" << v << "x" << sx
        << "x" << sy << "x" << inflags.GetValueInt("pad_val");
 
+    assert(sizeof(Tref) == 8 || sizeof(Tref) == 4 || sizeof(Tref) == 2);
+    // Legacy files contain floats and have no prefix.
+    if(sizeof(Tref) != 4)
+        ss << "_FPref" << (sizeof(Tref) == 2 ? "16" : "64");
+
     return ss.str();
 }
 
@@ -1593,9 +1598,8 @@ bool ConvDriver<Tgpu, Tref>::TryReadVerificationCache(const std::string& file_na
 
     if(!verification_cache_path.empty())
     {
-        const auto file_path = verification_cache_path + "/" + file_name + "_" +
-                               GetVerificationCacheFileName() + "_FPref" +
-                               ((sizeof(Tref) == 2) ? "16" : ((sizeof(Tref) == 4) ? "32" : "64"));
+        const auto file_path =
+            verification_cache_path + "/" + file_name + "_" + GetVerificationCacheFileName();
         if(std::ifstream(file_path).good())
         {
             if(readBufferFromFile<Tref>(data, GetTensorSize(tensorDesc), file_path.c_str()))
@@ -1615,9 +1619,8 @@ void ConvDriver<Tgpu, Tref>::TrySaveVerificationCache(const std::string& file_na
     const auto verification_cache_path = inflags.GetValueStr("verification_cache");
     if(!verification_cache_path.empty())
     {
-        const auto file_path = verification_cache_path + "/" + file_name + "_" +
-                               GetVerificationCacheFileName() + "_FPref" +
-                               ((sizeof(Tref) == 2) ? "16" : ((sizeof(Tref) == 4) ? "32" : "64"));
+        const auto file_path =
+            verification_cache_path + "/" + file_name + "_" + GetVerificationCacheFileName();
         dumpBufferToFile<Tref>(file_path.c_str(), data.data(), data.size());
     }
 }
