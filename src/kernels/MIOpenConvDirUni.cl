@@ -418,7 +418,9 @@ static inline void Conv(uint o_map_base,
 #endif
                         for(uint i = 0; i < MLO_OUT_TILE0; ++i)
                         {
+#if MLO_DIR_FORWARD == 1
                             _FLOAT sum = (_FLOAT)0;
+#endif
                             for(uint l = 0; l < MLO_FILTER_SIZE0; ++l)
                             {
 
