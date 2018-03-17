@@ -94,9 +94,9 @@ class BatchNormDriver : public Driver
     int RunBackwardGPU();
     int RunBackwardCPU();
 
-    void runGPUFwdInference(Tref epsilon, Tgpu alpha, Tgpu beta);
-    void runGPUFwdTrain(Tref epsilon, Tref eAF, Tgpu alpha, Tgpu beta);
-    void runGPUBwd(Tref epsilon, Tgpu alpha, Tgpu beta);
+    void runGPUFwdInference(Tref epsilon, float alpha, float beta);
+    void runGPUFwdTrain(Tref epsilon, Tref eAF, float alpha, float beta);
+    void runGPUBwd(Tref epsilon, float alpha, float beta);
 
     void runCPUFwdInference(Tref epsilon, int batch_sz, int channels, int height, int width);
     void runCPUFwdTrain(Tref epsilon, Tref eAF, int batch_sz, int channels, int height, int width);
@@ -246,8 +246,8 @@ int BatchNormDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
-    inflags.AddInputFlag("alpha", 'A', "1.0", "Alpha (Default=1.0)", "double");
-    inflags.AddInputFlag("beta", 'B', "0.", "Beta (Default=0.)", "double");
+    inflags.AddInputFlag("alpha", 'A', "1.0", "Alpha (Default=1.0)", "float");
+    inflags.AddInputFlag("beta", 'B', "0.", "Beta (Default=0.)", "float");
     inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -618,7 +618,7 @@ int BatchNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 }
 
 template <typename Tgpu, typename Tref>
-void BatchNormDriver<Tgpu, Tref>::runGPUFwdInference(Tref epsilon, Tgpu alpha, Tgpu beta)
+void BatchNormDriver<Tgpu, Tref>::runGPUFwdInference(Tref epsilon, float alpha, float beta)
 {
 
     if(keepRunningMeanVar)
@@ -660,7 +660,7 @@ void BatchNormDriver<Tgpu, Tref>::runGPUFwdInference(Tref epsilon, Tgpu alpha, T
 }
 
 template <typename Tgpu, typename Tref>
-void BatchNormDriver<Tgpu, Tref>::runGPUFwdTrain(Tref epsilon, Tref eAF, Tgpu alpha, Tgpu beta)
+void BatchNormDriver<Tgpu, Tref>::runGPUFwdTrain(Tref epsilon, Tref eAF, float alpha, float beta)
 {
     if(saveMeanVar && keepRunningMeanVar)
     {
@@ -768,7 +768,7 @@ template <typename Tgpu, typename Tref>
 int BatchNormDriver<Tgpu, Tref>::RunForwardGPU()
 {
 
-    Tgpu alpha = static_cast<Tgpu>(1), beta = static_cast<Tgpu>(0);
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
     Tref epsilon = static_cast<Tref>(EPSILON);
     Tref eAF     = static_cast<Tref>(1.0);
 
@@ -985,8 +985,8 @@ int BatchNormDriver<Tgpu, Tref>::RunBackwardGPU()
     if(!back)
         return miopenStatusSuccess;
 
-    Tgpu alphaDataDiff = static_cast<Tgpu>(1), betaDataDiff = static_cast<Tgpu>(0);
-    Tgpu alphaParamDiff = static_cast<Tgpu>(1), betaParamDiff = static_cast<Tgpu>(0);
+    float alphaDataDiff = static_cast<float>(1), betaDataDiff = static_cast<float>(0);
+    float alphaParamDiff = static_cast<float>(1), betaParamDiff = static_cast<float>(0);
     Tref epsilon = static_cast<Tref>(EPSILON);
 
     Timer t;
