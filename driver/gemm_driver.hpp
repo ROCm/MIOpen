@@ -103,8 +103,8 @@ int GemmDriver<T>::AddCmdLineArgs()
     inflags.AddInputFlag("a_h", 'm', "256", "Height of A matrix (Default=256)", "int");
     inflags.AddInputFlag("a_w", 'k', "256", "Width of A matrix (Default=256)", "int");
     inflags.AddInputFlag("b_w", 'n', "256", "Width of B matrix (Default=256)", "int");
-    inflags.AddInputFlag("alpha", 'A', "1.0", "Gemm alpha (Default=1.0)", "double");
-    inflags.AddInputFlag("beta", 'B', "0.0", "Gemm beta (Default=0.0)", "double");
+    inflags.AddInputFlag("alpha", 'A', "1.0", "Gemm alpha (Default=1.0)", "float");
+    inflags.AddInputFlag("beta", 'B', "0.0", "Gemm beta (Default=0.0)", "float");
     inflags.AddInputFlag("transA", 'u', "0", "Transpose A matrix (Default=0)", "int");
     inflags.AddInputFlag("transB", 'v', "0", "Transpose B matrix (Default=0)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");

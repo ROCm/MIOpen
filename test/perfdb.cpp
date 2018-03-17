@@ -24,47 +24,71 @@
 *
 *******************************************************************************/
 
-#include <cassert>
+#include <array>
+#include <cstdio>
 #include <cstdlib>
 #include <fstream>
-#include <functional>
-#include <iostream>
+#include <mutex>
 #include <random>
-#include <sstream>
+#include <string>
+#include <thread>
 #include <vector>
 
-#include "miopen/db_record.hpp"
-#include "temp_file_path.hpp"
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/optional.hpp>
+
+#include <miopen/db.hpp>
+#include <miopen/db_record.hpp>
+#include <miopen/lock_file.hpp>
+#include <miopen/temp_file.hpp>
+
 #include "test.hpp"
 
 namespace miopen {
 namespace tests {
+
+static boost::filesystem::path& exe_path()
+{
+    static boost::filesystem::path exe_path;
+    return exe_path;
+}
+
+class Random
+{
+    public:
+    Random(unsigned int seed = 0) : rng(seed) {}
+
+    std::mt19937::result_type Next() { return dist(rng); }
+
+    private:
+    std::mt19937 rng;
+    std::uniform_int_distribution<std::mt19937::result_type> dist;
+};
 
 struct TestData
 {
     int x;
     int y;
 
-    TestData()
+    inline TestData() : x(Rnd().Next()), y(Rnd().Next()) {}
+
+    inline TestData(int x_, int y_) : x(x_), y(y_) {}
+
+    template <unsigned int seed>
+    static inline TestData Seeded()
     {
-        const int seed = 42;
-
-        static std::mt19937 rng(seed);
-        static std::uniform_int_distribution<std::mt19937::result_type> dist{};
-
-        x = dist(rng);
-        y = dist(rng);
+        static Random rnd(seed);
+        return {static_cast<int>(rnd.Next()), static_cast<int>(rnd.Next())};
     }
 
-    TestData(int x_, int y_) : x(x_), y(y_) {}
-
-    void Serialize(std::ostream& s) const
+    inline void Serialize(std::ostream& s) const
     {
         static const auto sep = ',';
         s << x << sep << y;
     }
 
-    bool Deserialize(const std::string& s)
+    inline bool Deserialize(const std::string& s)
     {
         static const auto sep = ',';
         TestData t;
@@ -79,19 +103,10 @@ struct TestData
         return true;
     }
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    void LegacySerialize(std::ostream& s) const
-    {
-        Serialize(s);
-        s << ",l";
-    }
-
-    bool LegacyDeserialize(const std::string& s) { return Deserialize(s); }
-#endif
-    bool operator==(const TestData& other) const { return x == other.x && y == other.y; }
+    inline bool operator==(const TestData& other) const { return x == other.x && y == other.y; }
 
     private:
-    inline static bool DeserializeField(std::istream& from, int* ret, char separator)
+    static inline bool DeserializeField(std::istream& from, int* ret, char separator)
     {
         std::string part;
 
@@ -108,6 +123,12 @@ struct TestData
         *ret = value;
         return true;
     }
+
+    static inline Random& Rnd()
+    {
+        static Random rnd;
+        return rnd;
+    }
 };
 
 std::ostream& operator<<(std::ostream& s, const TestData& td)
@@ -116,11 +137,11 @@ std::ostream& operator<<(std::ostream& s, const TestData& td)
     return s;
 }
 
-class DbRecordTest
+class DbTest
 {
     public:
-    DbRecordTest() : _temp_file_path("/tmp/miopen.tests.perfdb.XXXXXX") {}
-    virtual ~DbRecordTest() {}
+    DbTest() : _temp_file("miopen.tests.perfdb") {}
+    virtual ~DbTest() {}
 
     protected:
     static const TestData& key()
@@ -141,23 +162,171 @@ class DbRecordTest
         return data;
     }
 
+    static const TestData& value2()
+    {
+        static const TestData data(7, 8);
+        return data;
+    }
+
     static const char* id0() { return "0"; }
     static const char* id1() { return "1"; }
-    static const char* missing_id() { return "2"; }
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    static const char* legacy_id() { return "ConvOclDirectFwd"; } // const from db_record.cpp
-#endif
-
-    const char* temp_file_path() const { return _temp_file_path; }
+    static const char* id2() { return "2"; }
+    static const char* missing_id() { return "3"; }
+    const TempFile& temp_file_path() const { return _temp_file; }
 
     private:
-    TempFilePath _temp_file_path;
+    TempFile _temp_file;
 };
 
-class DbRecordReadTest : public DbRecordTest
+class DbFindTest : public DbTest
 {
     public:
-    inline void Run()
+    inline void Run() const
+    {
+        std::ostringstream ss_vals;
+        ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ','
+                << value1().y << ';' << id0() << ':' << value0().x << ',' << value0().y;
+
+        std::ofstream(temp_file_path()) << ss_vals.str() << std::endl;
+
+        boost::optional<DbRecord> record0, record1;
+        TestData read0, read1;
+        TestData invalid_key(100, 200);
+
+        {
+            Db db(temp_file_path());
+
+            record0 = db.FindRecord(key());
+            record1 = db.FindRecord(invalid_key);
+        }
+
+        EXPECT(record0);
+        EXPECT(record0->GetValues(id0(), read0));
+        EXPECT(record0->GetValues(id1(), read1));
+        EXPECT_EQUAL(value0(), read0);
+        EXPECT_EQUAL(value1(), read1);
+        EXPECT(!record1);
+    }
+};
+
+class DbStoreTest : public DbTest
+{
+    public:
+    inline void Run() const
+    {
+        (void)std::ofstream(temp_file_path());
+
+        DbRecord record(key());
+        EXPECT(record.SetValues(id0(), value0()));
+        EXPECT(record.SetValues(id1(), value1()));
+
+        {
+            Db db(temp_file_path());
+
+            EXPECT(db.StoreRecord(record));
+        }
+
+        std::string read;
+        EXPECT(std::getline(std::ifstream(temp_file_path()), read).good());
+
+        boost::optional<DbRecord> record_read;
+        TestData read0, read1;
+
+        {
+            Db db(temp_file_path());
+
+            record_read = db.FindRecord(key());
+        }
+
+        EXPECT(record_read);
+        EXPECT(record_read->GetValues(id0(), read0));
+        EXPECT(record_read->GetValues(id1(), read1));
+        EXPECT_EQUAL(value0(), read0);
+        EXPECT_EQUAL(value1(), read1);
+    }
+};
+
+class DbUpdateTest : public DbTest
+{
+    public:
+    inline void Run() const
+    {
+        (void)std::ofstream(temp_file_path());
+
+        // Store record0 (key=id0:value0)
+        DbRecord record0(key());
+        EXPECT(record0.SetValues(id0(), value0()));
+
+        {
+            Db db(temp_file_path());
+
+            EXPECT(db.StoreRecord(record0));
+        }
+
+        // Update with record1 (key=id1:value1)
+        DbRecord record1(key());
+        EXPECT(record1.SetValues(id1(), value1()));
+
+        {
+            Db db(temp_file_path());
+
+            EXPECT(db.UpdateRecord(record1));
+        }
+
+        // Check record1 (key=id0:value0;id1:value1)
+        TestData read0, read1;
+        EXPECT(record1.GetValues(id0(), read0));
+        EXPECT(record1.GetValues(id1(), read1));
+        EXPECT_EQUAL(value0(), read0);
+        EXPECT_EQUAL(value1(), read1);
+
+        // Check record that is stored in db (key=id0:value0;id1:value1)
+        boost::optional<DbRecord> record_read;
+        {
+            Db db(temp_file_path());
+
+            record_read = db.FindRecord(key());
+        }
+
+        EXPECT(record_read);
+        EXPECT(record_read->GetValues(id0(), read0));
+        EXPECT(record_read->GetValues(id1(), read1));
+        EXPECT_EQUAL(value0(), read0);
+        EXPECT_EQUAL(value1(), read1);
+    }
+};
+
+class DbRemoveTest : public DbTest
+{
+    public:
+    inline void Run() const
+    {
+        (void)std::ofstream(temp_file_path());
+
+        DbRecord record(key());
+        EXPECT(record.SetValues(id0(), value0()));
+        EXPECT(record.SetValues(id1(), value1()));
+
+        {
+            Db db(temp_file_path());
+
+            EXPECT(db.StoreRecord(record));
+        }
+
+        {
+            Db db(temp_file_path());
+
+            EXPECT(db.FindRecord(key()));
+            EXPECT(db.RemoveRecord(key()));
+            EXPECT(!db.FindRecord(key()));
+        }
+    }
+};
+
+class DbReadTest : public DbTest
+{
+    public:
+    inline void Run() const
     {
         std::ostringstream ss_vals;
         ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ','
@@ -168,10 +337,10 @@ class DbRecordReadTest : public DbRecordTest
         TestData read0, read1;
 
         {
-            DbRecord record(temp_file_path(), key());
+            Db db(temp_file_path());
 
-            EXPECT(record.Load(id0(), read0));
-            EXPECT(record.Load(id1(), read1));
+            EXPECT(db.Load(key(), id0(), read0));
+            EXPECT(db.Load(key(), id1(), read1));
         }
 
         EXPECT_EQUAL(value0(), read0);
@@ -179,121 +348,103 @@ class DbRecordReadTest : public DbRecordTest
     }
 };
 
-class DbRecordWriteTest : public DbRecordTest
+class DbWriteTest : public DbTest
 {
     public:
-    inline void Run()
+    inline void Run() const
     {
-        std::ostringstream ss_vals;
-        ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ','
-                << value1().y << ';' << id0() << ':' << value0().x << ',' << value0().y;
-
         (void)std::ofstream(temp_file_path());
 
         {
-            DbRecord record(temp_file_path(), key());
+            Db db(temp_file_path());
 
-            EXPECT(record.Store(id0(), value0()));
-            EXPECT(record.Store(id1(), value1()));
+            EXPECT(db.Update(key(), id0(), value0()));
+            EXPECT(db.Update(key(), id1(), value1()));
         }
 
         std::string read;
-
         EXPECT(std::getline(std::ifstream(temp_file_path()), read).good());
-        EXPECT_EQUAL(read, ss_vals.str());
-    }
-};
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-class DbRecordLegacyReadTest : public DbRecordTest
-{
-    public:
-    inline void Run()
-    {
-        std::ostringstream ss_vals;
-        ss_vals << key().x << ',' << key().y << ",l " << value0().x << ',' << value0().y;
-
-        std::ofstream(temp_file_path()) << ss_vals.str() << std::endl;
-
-        TestData read;
+        TestData read0, read1;
 
         {
-            DbRecord record(temp_file_path(), key(), true);
+            Db db(temp_file_path());
 
-            EXPECT(record.Load(legacy_id(), read));
+            EXPECT(db.Load(key(), id0(), read0));
+            EXPECT(db.Load(key(), id1(), read1));
         }
 
-        EXPECT_EQUAL(value0(), read);
+        EXPECT_EQUAL(value0(), read0);
+        EXPECT_EQUAL(value1(), read1);
     }
 };
-#endif
 
-class DbRecordOperationsTest : public DbRecordTest
+class DbOperationsTest : public DbTest
 {
     public:
-    inline void Run()
+    inline void Run() const
     {
         (void)std::ofstream(temp_file_path()); // To suppress warning in logs.
 
         TestData to_be_rewritten(7, 8);
 
         {
-            DbRecord record(temp_file_path(), key());
+            Db db(temp_file_path());
 
-            EXPECT(record.Store(id0(), to_be_rewritten));
-            EXPECT(record.Store(id1(), to_be_rewritten));
+            EXPECT(db.Update(key(), id0(), to_be_rewritten));
+            EXPECT(db.Update(key(), id1(), to_be_rewritten));
 
             // Rewritting existing value with other.
-            EXPECT(record.Store(id1(), value1()));
+            EXPECT(db.Update(key(), id1(), value1()));
 
             // Rewritting existing value with same. In fact no DB manipulation should be performed
             // inside of store in such case.
-            EXPECT(record.Store(id1(), value1()));
+            EXPECT(db.Update(key(), id1(), value1()));
         }
 
         {
-            DbRecord record(temp_file_path(), key());
+            Db db(temp_file_path());
 
             // Rewriting existing value to store it to file.
-            EXPECT(record.Store(id0(), value0()));
+            EXPECT(db.Update(key(), id0(), value0()));
         }
 
         {
             TestData read0, read1, read_missing, read_missing_cmp(read_missing);
-            DbRecord record(temp_file_path(), key());
+            Db db(temp_file_path());
 
             // Loading by id not present in record should execute well but return false as nothing
             // was read.
-            EXPECT(!record.Load(missing_id(), read_missing));
+            EXPECT(!db.Load(key(), missing_id(), read_missing));
 
             // In such case value should not be changed.
             EXPECT_EQUAL(read_missing, read_missing_cmp);
 
-            EXPECT(record.Load(id0(), read0));
-            EXPECT(record.Load(id1(), read1));
+            EXPECT(db.Load(key(), id0(), read0));
+            EXPECT(db.Load(key(), id1(), read1));
 
             EXPECT_EQUAL(read0, value0());
             EXPECT_EQUAL(read1, value1());
 
-            EXPECT(record.Remove(id0()));
+            EXPECT(db.Remove(key(), id0()));
 
             read0 = read_missing_cmp;
 
-            EXPECT(!record.Load(id0(), read0));
-            EXPECT(record.Load(id1(), read1));
+            EXPECT(!db.Load(key(), id0(), read0));
+            EXPECT(db.Load(key(), id1(), read1));
 
             EXPECT_EQUAL(read0, read_missing_cmp);
             EXPECT_EQUAL(read1, value1());
 
-            EXPECT(record.Remove(id0()));
+            EXPECT(!db.Remove(key(), id0()));
         }
 
         {
             TestData read0, read1, read_missing_cmp(read0);
-            DbRecord record(temp_file_path(), key());
+            Db db(temp_file_path());
 
-            EXPECT(!record.Load(id0(), read0));
-            EXPECT(record.Load(id1(), read1));
+            EXPECT(!db.Load(key(), id0(), read0));
+            EXPECT(db.Load(key(), id1(), read1));
 
             EXPECT_EQUAL(read0, read_missing_cmp);
             EXPECT_EQUAL(read1, value1());
@@ -301,17 +452,261 @@ class DbRecordOperationsTest : public DbRecordTest
     }
 };
 
+class DbParallelTest : public DbTest
+{
+    public:
+    inline void Run() const
+    {
+        {
+            Db db(temp_file_path());
+            EXPECT(db.Update(key(), id0(), value0()));
+        }
+
+        {
+            Db db0(temp_file_path());
+            Db db1(temp_file_path());
+
+            auto r0 = db0.FindRecord(key());
+            auto r1 = db0.FindRecord(key());
+
+            EXPECT(r0);
+            EXPECT(r1);
+
+            EXPECT(r0->SetValues(id1(), value1()));
+            EXPECT(r1->SetValues(id2(), value2()));
+
+            EXPECT(db0.UpdateRecord(*r0));
+            EXPECT(db1.UpdateRecord(*r1));
+        }
+
+        {
+            Db db(temp_file_path());
+            TestData read1, read2;
+
+            EXPECT(db.Load(key(), id1(), read1));
+            EXPECT(db.Load(key(), id2(), read2));
+
+            EXPECT_EQUAL(read1, value1());
+            EXPECT_EQUAL(read2, value2());
+        }
+    }
+};
+
+class DBMultiThreadedTestWork
+{
+    public:
+    static constexpr unsigned char threads_count   = 8;
+    static constexpr unsigned int common_part_size = 128;
+    static constexpr unsigned int unique_part_size = 128;
+    static constexpr unsigned int ids_per_key      = 16;
+    static constexpr unsigned int common_part_seed = 435345;
+
+    static inline const std::array<TestData, common_part_size>& common_part()
+    {
+        static const std::array<TestData, common_part_size>& ref = common_part_init();
+        return ref;
+    }
+
+    static inline void WorkItem(unsigned int id, const std::string& db_path)
+    {
+        CommonPart(db_path);
+        UniquePart(id, db_path);
+    }
+
+    static inline void ValidateCommonPart(const std::string& db_path)
+    {
+        Db db(db_path);
+
+        for(auto i = 0u; i < common_part_size; i++)
+        {
+            const auto key  = i / ids_per_key;
+            const auto id   = i % ids_per_key;
+            const auto data = common_part()[i];
+            TestData read;
+
+            EXPECT(db.Load(std::to_string(key), std::to_string(id), read));
+            EXPECT_EQUAL(read, data);
+        }
+    }
+
+    private:
+    static inline void CommonPart(const std::string& db_path)
+    {
+        {
+            Db db(db_path);
+            CommonPartSection(0u, common_part_size / 2, [&db]() { return db; });
+        }
+
+        CommonPartSection(
+            common_part_size / 2, common_part_size, [&db_path]() { return Db(db_path); });
+    }
+
+    template <class TDbGetter>
+    static inline void
+    CommonPartSection(unsigned int start, unsigned int end, const TDbGetter& db_getter)
+    {
+        for(auto i = start; i < end; i++)
+        {
+            const auto key  = i / ids_per_key;
+            const auto id   = i % ids_per_key;
+            const auto data = common_part()[i];
+
+            db_getter().Update(std::to_string(key), std::to_string(id), data);
+        }
+    }
+
+    static inline void UniquePart(unsigned int id, const std::string& db_path)
+    {
+        Random rnd(123123 + id);
+
+        {
+            Db db(db_path);
+            UniquePartSection(rnd, 0, unique_part_size / 2, [&db]() { return db; });
+        }
+
+        UniquePartSection(
+            rnd, unique_part_size / 2, unique_part_size, [&db_path]() { return Db(db_path); });
+    }
+
+    template <class TDbGetter>
+    static inline void
+    UniquePartSection(Random& rnd, unsigned int start, unsigned int end, const TDbGetter& db_getter)
+    {
+        for(auto i = start; i < end; i++)
+        {
+            auto key = LimitedRandom(rnd, common_part_size / ids_per_key + 2);
+            auto id  = LimitedRandom(rnd, ids_per_key + 1);
+            TestData data;
+
+            db_getter().Update(std::to_string(key), std::to_string(id), data);
+        }
+    }
+
+    static inline std::mt19937::result_type LimitedRandom(Random& rnd,
+                                                          std::mt19937::result_type min)
+    {
+        std::mt19937::result_type key;
+
+        do
+            key = rnd.Next();
+        while(key < min);
+
+        return key;
+    }
+
+    static inline const std::array<TestData, common_part_size>& common_part_init()
+    {
+        static std::array<TestData, common_part_size> data;
+
+        for(auto i  = 0u; i < common_part_size; i++)
+            data[i] = TestData::Seeded<common_part_seed>();
+
+        return data;
+    }
+};
+
+class DbMultiThreadedTest : public DbTest
+{
+    public:
+    inline void Run()
+    {
+        std::mutex mutex;
+        std::vector<std::thread> threads;
+
+        threads.reserve(DBMultiThreadedTestWork::threads_count);
+
+        {
+            std::unique_lock<std::mutex> lock(mutex);
+            auto id = 0;
+
+            for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+                threads.emplace_back([this, &mutex, &id]() {
+                    (void)std::unique_lock<std::mutex>(mutex);
+                    DBMultiThreadedTestWork::WorkItem(id++, temp_file_path());
+                });
+        }
+
+        for(auto& thread : threads)
+            thread.join();
+
+        DBMultiThreadedTestWork::ValidateCommonPart(temp_file_path());
+    }
+};
+
+class DbMultiProcessTest : public DbTest
+{
+    public:
+    static constexpr const char* arg = "-mp-test-child";
+
+    inline void Run() const
+    {
+        std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
+        const auto lock_file_path = LockFilePath(temp_file_path());
+
+        {
+            auto& file_lock = LockFile::Get(lock_file_path.c_str());
+            std::shared_lock<LockFile> lock(file_lock);
+
+            auto id = 0;
+
+            for(auto& child : children)
+            {
+                const auto command = exe_path().string() + " " + arg + " " + std::to_string(id++) +
+                                     " " + temp_file_path().Path();
+                child = popen(command.c_str(), "w");
+            }
+        }
+
+        for(auto child : children)
+        {
+            auto status          = pclose(child);
+            const auto exit_code = WEXITSTATUS(status);
+
+            EXPECT_EQUAL(exit_code, 0);
+        }
+
+        std::remove(lock_file_path.c_str());
+        DBMultiThreadedTestWork::ValidateCommonPart(temp_file_path());
+    }
+
+    static inline void WorkItem(unsigned int id, const std::string& db_path)
+    {
+        {
+            auto& file_lock = LockFile::Get(LockFilePath(db_path).c_str());
+            std::lock_guard<LockFile> lock(file_lock);
+        }
+
+        DBMultiThreadedTestWork::WorkItem(id, db_path);
+    }
+
+    private:
+    static std::string LockFilePath(const std::string& db_path) { return db_path + ".test.lock"; }
+};
+
 } // namespace tests
 } // namespace miopen
 
-int main()
+int main(int argsn, char** argsc)
 {
-    miopen::tests::DbRecordReadTest().Run();
-    miopen::tests::DbRecordWriteTest().Run();
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    miopen::tests::DbRecordLegacyReadTest().Run();
-#endif
-    miopen::tests::DbRecordOperationsTest().Run();
+    if(argsn >= 4 && argsc[1] == std::string(miopen::tests::DbMultiProcessTest::arg))
+    {
+        miopen::tests::DbMultiProcessTest::WorkItem(strtol(argsc[2], nullptr, 10), argsc[3]);
+        return 0;
+    }
+
+    miopen::tests::exe_path() =
+        boost::filesystem::system_complete(boost::filesystem::path(argsc[0]));
+
+    miopen::tests::DbFindTest().Run();
+    miopen::tests::DbStoreTest().Run();
+    miopen::tests::DbUpdateTest().Run();
+    miopen::tests::DbRemoveTest().Run();
+    miopen::tests::DbReadTest().Run();
+    miopen::tests::DbWriteTest().Run();
+    miopen::tests::DbOperationsTest().Run();
+    miopen::tests::DbParallelTest().Run();
+    miopen::tests::DbMultiThreadedTest().Run();
+    miopen::tests::DbMultiProcessTest().Run();
 
     return 0;
 }
