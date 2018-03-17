@@ -27,7 +27,7 @@
 #define MIOPEN
 
 #include <miopen/allocator.hpp>
-#include <miopen/db.hpp>
+#include <miopen/db_path.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/mlo_utils.hpp>
@@ -42,45 +42,6 @@
 
 namespace miopen {
 namespace solver {
-
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-static bool LegacyDeserializeField(const char separator, std::istream& from, int& to)
-{
-    std::string part;
-
-    if(!std::getline(from, part, separator))
-        return false;
-
-    const auto start = part.c_str();
-    char* end;
-    to = std::strtol(start, &end, 10);
-    return start != end;
-}
-
-bool LegacyPerformanceConfig::LegacyDeserialize(const std::string& from)
-{
-    std::istringstream ss(from);
-    LegacyPerformanceConfig temp;
-    const char sep = '.';
-
-    const auto succeded = // clang-format off
-        LegacyDeserializeField(sep, ss, temp.grp_tile1) &&
-        LegacyDeserializeField(sep, ss, temp.grp_tile0) &&
-        LegacyDeserializeField(sep, ss, temp.in_tile1) &&
-        LegacyDeserializeField(sep, ss, temp.in_tile0) &&
-        LegacyDeserializeField(sep, ss, temp.out_pix_tile1) &&
-        LegacyDeserializeField(sep, ss, temp.out_pix_tile0) &&
-        LegacyDeserializeField(sep, ss, temp.n_out_pix_tiles) &&
-        LegacyDeserializeField(sep, ss, temp.n_in_data_tiles) &&
-        LegacyDeserializeField(sep, ss, temp.n_stacks); // clang-format on
-
-    if(!succeded)
-        return false;
-
-    *this = temp;
-    return true;
-}
-#endif
 
 /*
 * select defult configuration if a known configuration has not been found.
