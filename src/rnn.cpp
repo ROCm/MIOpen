@@ -679,7 +679,6 @@ void RNNDescriptor::SetLayerBias(Handle& handle,
 
     // 2. Calculate the strides for the matrix
     std::vector<int> bstride(1, 1);
-    bstride[0] = nHiddenTensorsPerLayer;
 
     std::vector<int> intLens(biasDesc.GetLengths().begin(), biasDesc.GetLengths().end());
 
