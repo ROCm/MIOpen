@@ -30,6 +30,10 @@
 #include <miopen/visit_float.hpp>
 #include <chrono>
 
+#ifdef WIN32
+typedef unsigned int uint;
+#endif
+
 namespace miopen {
 
 void BatchNormForwardTraining(Handle& handle,
