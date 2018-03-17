@@ -119,7 +119,7 @@ bool ConvAsm3x3U::IsValidPerformanceConfig(const ConvolutionContext& problem,
 
 bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!params.assembler_available)
+    if(!params.use_asm_kernels)
     {
         return false;
     }
@@ -146,8 +146,9 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && params.n_inputs % 4 == 0
         && params.in_width > 3
         && params.in_width <= 1000
+        && params.float_size == 32
         && params.in_layout == "NCHW";
-     // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
+        // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
     // clang-format on
 }
 
