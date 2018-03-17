@@ -13,42 +13,41 @@
 static int mkstemp(char* tmpl)
 {
 
-	static unsigned long long value;
-	unsigned long long random_time_bits;
-	int fd = -1;
-	int save_errno = errno;
+    static unsigned long long value;
+    unsigned long long random_time_bits;
+    int fd         = -1;
+    int save_errno = errno;
 
-	/* Get some more or less random data.  */
-	{
-		SYSTEMTIME stNow;
-		FILETIME ftNow;
+    /* Get some more or less random data.  */
+    {
+        SYSTEMTIME stNow;
+        FILETIME ftNow;
 
-		// get system time
-		GetSystemTime(&stNow);
-		stNow.wMilliseconds = 500;
-		if (!SystemTimeToFileTime(&stNow, &ftNow))
-		{
-			errno = -1;
-			return -1;
-		}
+        // get system time
+        GetSystemTime(&stNow);
+        stNow.wMilliseconds = 500;
+        if(!SystemTimeToFileTime(&stNow, &ftNow))
+        {
+            errno = -1;
+            return -1;
+        }
 
-		random_time_bits = (((unsigned long long)ftNow.dwHighDateTime << 32) |
-			(unsigned long long)ftNow.dwLowDateTime);
-	}
+        random_time_bits = (((unsigned long long)ftNow.dwHighDateTime << 32) |
+                            (unsigned long long)ftNow.dwLowDateTime);
+    }
 
-	value += random_time_bits ^ (unsigned long long)GetCurrentThreadId();
+    value += random_time_bits ^ (unsigned long long)GetCurrentThreadId();
 
-	std::string nm = std::string(tmpl) + std::string("-") + std::to_string(value);
+    std::string nm = std::string(tmpl) + std::string("-") + std::to_string(value);
 
-
-	fd = open(nm.c_str(), O_RDWR | O_CREAT | O_EXCL, _S_IREAD | _S_IWRITE);
-	if (fd >= 0)
-	{
-		errno = save_errno;
-		return fd;
-	}
-	else if (errno != EEXIST)
-		return -1;
+    fd = open(nm.c_str(), O_RDWR | O_CREAT | O_EXCL, _S_IREAD | _S_IWRITE);
+    if(fd >= 0)
+    {
+        errno = save_errno;
+        return fd;
+    }
+    else if(errno != EEXIST)
+        return -1;
 }
 #endif
 
