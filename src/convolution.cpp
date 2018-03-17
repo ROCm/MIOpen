@@ -41,9 +41,9 @@ ConvolutionDescriptor::ConvolutionDescriptor(
       dilation_h(p_dilation_h),
       dilation_w(p_dilation_w)
 {
-    if(pad_h < 0 || pad_w < 0 || u < 0 || v < 0 || dilation_h < 0 || dilation_w < 0)
+    if(pad_h < 0 || pad_w < 0 || u <= 0 || v <= 0 || dilation_h <= 0 || dilation_w <= 0 || (dilation_h != dilation_w))
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Parameters to filter cannot be negative");
+        MIOPEN_THROW(miopenStatusBadParm, "Invalid parameters, check usage. MIOPEN expects padding >= 0, stride >= 1, dilation >= 1 and the same dilation factor for horizontal and vertical direction");
     }
 }
 
@@ -64,9 +64,9 @@ ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t c_mode,
       dilation_h(p_dilation_h),
       dilation_w(p_dilation_w)
 {
-    if(pad_h < 0 || pad_w < 0 || u < 0 || v < 0 || dilation_h < 0 || dilation_w < 0)
+    if(pad_h < 0 || pad_w < 0 || u <= 0 || v <= 0 || dilation_h <= 0 || dilation_w <= 0 || (dilation_h != dilation_w))
     {
-        MIOPEN_THROW(miopenStatusBadParm, "Parameters to filter cannot be negative");
+        MIOPEN_THROW(miopenStatusBadParm, "Invalid parameters, check usage. MIOPEN expects padding >= 0, stride >= 1, dilation >= 1 and the same dilation factor for horizontal and vertical direction");
     }
     if(!(mode == miopenConvolution || mode == miopenTranspose))
     {
