@@ -184,6 +184,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         && (shader_K * shader_OH * shader_OW) <= std::pow(2, 28)
         && (shader_K * shader_R * shader_S) <= std::pow(2, 28)
         && (shader_C * shader_R * shader_S) <= std::pow(2, 28)
+        && params.float_size == 32
         && params.in_layout == "NCHW";
     // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
     // clang-format on

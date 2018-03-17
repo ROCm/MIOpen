@@ -23,18 +23,18 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CONFIG_H_IN
-#define GUARD_CONFIG_H_IN
+#include <cstdlib>
+#include <miopen/db_path.hpp>
 
-#cmakedefine01 MIOPEN_BACKEND_OPENCL
-#cmakedefine01 MIOPEN_BACKEND_HCC
-#cmakedefine01 MIOPEN_BACKEND_HIP
-#cmakedefine01 MIOPEN_USE_MIOPENGEMM
-#cmakedefine01 MIOPEN_BUILD_DEV
-#cmakedefine01 MIOPEN_GPU_SYNC
+namespace miopen {
 
-#cmakedefine MIOPEN_AMDGCN_ASSEMBLER "@MIOPEN_AMDGCN_ASSEMBLER@"
-#cmakedefine HIP_OC_COMPILER "@HIP_OC_COMPILER@"
-#cmakedefine MIOPEN_CACHE_DIR "@MIOPEN_CACHE_DIR@"
+std::string GetDbPath()
+{
+    auto p = std::getenv("MIOPEN_DB_PATH"); /// \todo Read env once - use GetStringEnv().
+    if(p == nullptr)
+        return "${MIOPEN_DB_PATH}";
+    else
+        return p;
+}
 
-#endif
+} // namespace miopen
