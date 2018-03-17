@@ -537,7 +537,7 @@ miopenCreateConvolutionDescriptor(miopenConvolutionDescriptor_t* convDesc);
  * For dilation height and width, only a value of 1 is supported.
  *
  * @param convDesc   Convolution layer descriptor (output)
- * @param mode       Convolutional mode (input)
+ * @param c_mode     Convolutional mode (input)
  * @param pad_h      Height input data padding (input)
  * @param pad_w      Width input data padding (input)
  * @param u          Stride for the height of input data (input)
@@ -547,7 +547,7 @@ miopenCreateConvolutionDescriptor(miopenConvolutionDescriptor_t* convDesc);
  * @return           miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc,
-                                                             miopenConvolutionMode_t mode,
+                                                             miopenConvolutionMode_t c_mode,
                                                              int pad_h,
                                                              int pad_w,
                                                              int u,
@@ -560,7 +560,7 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
  * For dilation height and width, only a value of 1 is supported.
  *
  * @param convDesc   Convolution layer descriptor (input)
- * @param mode       Convolutional mode (output)
+ * @param c_mode     Convolutional mode (output)
  * @param pad_h      Height input data padding (output)
  * @param pad_w      Width input data padding (output)
  * @param u          Stride for the height of input data (output)
@@ -570,7 +570,7 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
  * @return           miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc,
-                                                            miopenConvolutionMode_t* mode,
+                                                            miopenConvolutionMode_t* c_mode,
                                                             int* pad_h,
                                                             int* pad_w,
                                                             int* u,
