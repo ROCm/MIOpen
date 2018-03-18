@@ -29,10 +29,14 @@
 namespace miopen {
 namespace solver {
 
-bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
-{
-    return ((params.kernel_size0 >= 2 || params.kernel_size1 >= 2) &&
-            (params.kernel_stride1 == 1 && params.kernel_stride0 == 1));
+	bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
+	{
+		return ((params.kernel_stride1 == 1 && params.kernel_stride0 == 1 && params.out_width <= 64 && params.out_width <= 64) &&
+			((params.kernel_size0 == 3 && params.kernel_size1 == 3 && params.pad0 != 0 && params.pad1 != 0)
+				||
+				(params.kernel_size0 == 5 && params.kernel_size1 == 5)
+				)
+            );
 }
 
 ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) const
@@ -82,7 +86,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
 	int n_waves = 4;
     int GRP_SZ = hw_wave_sz * n_waves;
 
-    result.n_out_pix_tiles = 1;
+	result.n_out_pix_tiles = (params.kernel_size0 == 3) ? 4 : 1;
     int n_out_stacks       = std::min(params.n_inputs, std::max(1, GRP_SZ / n_spans));
     // number of input maps per group
 
@@ -92,7 +96,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
 	static const int read_unit = (params.out_width %4 ==0) ? 4 : (params.out_width % 3 == 0) ? 3 : (params.out_width % 2 == 0) ? 2: 1;
 
     int in_lcl_width =
-        ((params.out_width + read_unit - 1) / read_unit) * read_unit + params.kernel_size1 - 1;
+        ((params.out_width + read_unit - 1) / read_unit) * read_unit + 2*params.pad0;
 
 	static const std::string READ_TYPE =
 		(read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
@@ -119,8 +123,6 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         }
     }
     int in_n_vert_read_loops = (params.in_height + in_n_vert_reads - 1) / in_n_vert_reads;
-
-    int ALIGNED_OUT_SCAN_LN = ((params.in_width + read_unit - 1) / read_unit); // image aligned scan
 
     // select output mapping
     int total_out_maps = result.n_out_pix_tiles * n_out_stacks;
@@ -185,8 +187,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         + std::string(" -DMLO_OUT_STACKS=") + std::to_string(n_out_stacks) +
         std::string(" -DMLO_N_WAVES=") + std::to_string(n_waves) +
         std::string(" -DMLO_READ_TYPE=") + READ_TYPE + std::string(" -DMLO_READ_UNIT=") +
-        std::to_string(read_unit) + std::string(" -DMLO_ALIGNED_OUT_SCAN_LN=") +
-        std::to_string(ALIGNED_OUT_SCAN_LN) // image aligned scan
+        std::to_string(read_unit)
         + std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(hw_wave_sz) +
         std::string(" -DMLO_LG2_PHYS_WAVE_SZ=") + std::to_string(mloLg2(hw_wave_sz)) +
         std::string(" -DMLO_IN_EXTENT1=") + std::to_string(in_n_vert_reads) +
