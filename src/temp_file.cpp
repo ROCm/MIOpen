@@ -15,7 +15,7 @@ static int mkstemp(char* tmpl)
 
     static LARGE_INTEGER string_value;
     LARGE_INTEGER random_time;
-    int fd         = -1;
+    int fd;
     int save_errno = errno;
 
     QueryPerformanceCounter(&random_time);
