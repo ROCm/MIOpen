@@ -105,13 +105,13 @@ struct verify_w_tensor_get
         for(int layer = 0; layer < num_layer * bi; layer++)
         {
 
-            int skip = 2;
+            int layerID = 0;
             if(inMode == miopenRNNskip && layer < bi)
             {
-                skip = 1;
+                layerID = num_HiddenLayer;
             }
 
-            for(int layerID = 0; layerID < num_HiddenLayer * skip; layerID++)
+            for(; layerID < num_HiddenLayer * 2; layerID++)
             {
 
                 size_t paramSize = 0;
@@ -181,9 +181,9 @@ struct verify_w_tensor_get
             }
         }
 
-        // for(int i = 0; i < wei_sz; i++)
+        //for(int i = 0; i < wei_sz; i++)
         //{
-        // printf("GPU [%d]: %f\n", i, wei_h[i]);
+            //printf("GPU [%d]: %f\n", i, wei_h[i]);
         //}
 
         return wei_h;
@@ -364,9 +364,9 @@ struct verify_w_tensor_get
             }
         }
 
-        // for(int i = 0; i < wei_sz; i++)
+        //for(int i = 0; i < wei_sz; i++)
         //{
-        // printf("CPU [%d]: %f\n", i, wei_h[i]);
+            //printf("CPU [%d]: %f\n", i, wei_h[i]);
         //}
 
         return wei_h;
@@ -440,9 +440,9 @@ struct verify_w_tensor_set
                     int layer   = k % 2 + (k / 4) * 2;
                     int layerId = (k % 4 > 1) ? j + num_HiddenLayer : j;
 
-                    if((inMode == miopenRNNskip) && (layer < 2) && (layerId >= num_HiddenLayer))
+                    if((inMode == miopenRNNskip) && (layer < 2) && (layerId < num_HiddenLayer))
                     {
-                        break;
+                        continue;
                     }
 
                     size_t paramSize = 0;
@@ -470,9 +470,9 @@ struct verify_w_tensor_set
                         int layer   = k % 2 + (k / 4) * 2;
                         int layerID = (k % 4 > 1) ? j + num_HiddenLayer : j;
 
-                        if((inMode == miopenRNNskip) && (layer < 2) && (layerID >= num_HiddenLayer))
+                        if((inMode == miopenRNNskip) && (layer < 2) && (layerID < num_HiddenLayer))
                         {
-                            break;
+                            continue;
                         }
 
                         size_t biasSize = 0;
@@ -493,18 +493,18 @@ struct verify_w_tensor_set
         {
             for(int k = 0; k < num_layer; k++)
             {
-                int skip = (inMode == miopenRNNskip && k < 1) ? 1 : 2;
+                int layerID = (inMode == miopenRNNskip && k < 1) ? num_HiddenLayer : 0;
 
-                for(int j = 0; j < num_HiddenLayer * skip; j++)
+                for(; layerID < num_HiddenLayer * 2; layerID++)
                 {
                     size_t paramSize = 0;
-                    miopenGetRNNLayerParamSize(&handle, rnnDesc, k, inputTensor, j, &paramSize);
+                    miopenGetRNNLayerParamSize(&handle, rnnDesc, k, inputTensor, layerID, &paramSize);
 
                     paramSize /= sizeof(float);
 
                     for(int i = 0; i < paramSize; i++)
                     {
-                        wei_h[offset + i] = k * 10 + j;
+                        wei_h[offset + i] = k * 10 + layerID;
                     }
 
                     offset += paramSize;
@@ -515,9 +515,9 @@ struct verify_w_tensor_set
             {
                 for(int layer = 0; layer < num_layer; layer++)
                 {
-                    int skip = (inMode == miopenRNNskip && layer < 1) ? 1 : 2;
+                    int layerID = (inMode == miopenRNNskip && layer < 1) ? num_HiddenLayer : 0;
 
-                    for(int layerID = 0; layerID < num_HiddenLayer * skip; layerID++)
+                    for(; layerID < num_HiddenLayer * 2; layerID++)
                     {
 
                         size_t biasSize = 0;
@@ -534,6 +534,12 @@ struct verify_w_tensor_set
                 }
             }
         }
+
+        for(int i = 0; i < wei_sz; i++)
+        {
+            printf("CPU [%d]: %f\n", i, wei_h[i]);
+        }
+
         return wei_h;
     }
 
@@ -549,13 +555,14 @@ struct verify_w_tensor_set
         for(int layer = 0; layer < num_layer * bi; layer++)
         {
 
-            int skip = 2;
+            int layerID = 0;
+
             if(inMode == miopenRNNskip && layer < bi)
             {
-                skip = 1;
+                layerID = num_HiddenLayer;
             }
 
-            for(int layerID = 0; layerID < num_HiddenLayer * skip; layerID++)
+            for(; layerID < num_HiddenLayer * 2; layerID++)
             {
 
                 size_t paramSize = 0;
@@ -624,6 +631,13 @@ struct verify_w_tensor_set
         }
 
         wei_sz = wei_sz / sizeof(float);
+
+        auto wei_h = handle.Read<float>(wei_dev, wei_sz);
+        for(int i = 0; i < wei_sz; i++)
+        {
+            printf("GPU [%d]: %f\n", i, wei_h[i]);
+        }
+
         return handle.Read<float>(wei_dev, wei_sz);
     }
 
@@ -659,7 +673,7 @@ struct superTensorTest : test_driver
 
         dataType = miopenFloat;
 
-#if 1
+#if 0
         std::vector<int> get_seqLen     = {1, 2, 4};
         std::vector<int> get_batch_size = {2, 4, 8};
         std::vector<int> get_num_layer  = {4, 8, 16};
@@ -673,10 +687,12 @@ struct superTensorTest : test_driver
         std::vector<int> get_wei_hh     = {6};
 #endif
 
-        std::vector<miopenRNNMode_t> get_mode         = {miopenRNNRELU, miopenLSTM, miopenGRU};
+        //std::vector<miopenRNNMode_t> get_mode         = {miopenRNNRELU, miopenLSTM, miopenGRU};
+        std::vector<miopenRNNMode_t> get_mode         = {miopenRNNRELU};
         std::vector<miopenRNNBiasMode_t> get_biasMode = {miopenRNNwithBias, miopenRNNNoBias};
-        std::vector<miopenRNNDirectionMode_t> get_directionMode = {miopenRNNunidirection,
-                                                                   miopenRNNbidirection};
+        //std::vector<miopenRNNDirectionMode_t> get_directionMode = {miopenRNNunidirection,
+        //miopenRNNbidirection};
+        std::vector<miopenRNNDirectionMode_t> get_directionMode = {miopenRNNbidirection};
         std::vector<miopenRNNInputMode_t> get_inMode = {miopenRNNskip, miopenRNNlinear};
 
         add(seqLen, "seqLen", generate_data(get_seqLen));
@@ -716,6 +732,7 @@ struct superTensorTest : test_driver
                                           biasTensor,
                                           num_layer));
 
+#if 0
         verify_equals(verify_w_tensor_get(rnnDesc,
                                           mode,
                                           inMode,
@@ -726,6 +743,7 @@ struct superTensorTest : test_driver
                                           paramTensor,
                                           biasTensor,
                                           num_layer));
+#endif
     }
 };
 
