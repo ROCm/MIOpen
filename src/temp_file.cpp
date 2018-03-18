@@ -13,32 +13,19 @@
 static int mkstemp(char* tmpl)
 {
 
-    static unsigned long long value;
-    unsigned long long random_time_bits;
+    static LARGE_INTEGER string_value;
+    LARGE_INTEGER random_time;
     int fd         = -1;
     int save_errno = errno;
 
-    /* Get some more or less random data.  */
-    {
-        SYSTEMTIME stNow;
-        FILETIME ftNow;
+	QueryPerformanceCounter(
+		&random_time
+	);
 
-        // get system time
-        GetSystemTime(&stNow);
-        stNow.wMilliseconds = 500;
-        if(!SystemTimeToFileTime(&stNow, &ftNow))
-        {
-            errno = -1;
-            return -1;
-        }
+	string_value.HighPart += random_time.HighPart;
+    string_value.LowPart += random_time.LowPart ^ GetCurrentThreadId();
 
-        random_time_bits = (((unsigned long long)ftNow.dwHighDateTime << 32) |
-                            (unsigned long long)ftNow.dwLowDateTime);
-    }
-
-    value += random_time_bits ^ (unsigned long long)GetCurrentThreadId();
-
-    std::string nm = std::string(tmpl) + std::string("-") + std::to_string(value);
+    std::string nm = std::string(tmpl) + std::string("-") + std::to_string(string_value.HighPart) + std::string("-") + std::to_string(string_value.LowPart);
 
     fd = open(nm.c_str(), O_RDWR | O_CREAT | O_EXCL, _S_IREAD | _S_IWRITE);
     if(fd >= 0)
@@ -53,7 +40,12 @@ static int mkstemp(char* tmpl)
 
 namespace miopen {
 TempFile::TempFile(const std::string& path_template)
-    : _path((GetTempDirectoryPath().path / (path_template + "-XXXXXX")).string())
+#ifdef WIN32
+	: _path((GetTempDirectoryPath().path / (path_template)).string())
+#else
+	: _path((GetTempDirectoryPath().path / (path_template + "-XXXXXX")).string())
+#endif
+
 {
     _fd = mkstemp(&_path[0]);
     if(_fd == -1)
