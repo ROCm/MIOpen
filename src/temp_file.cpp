@@ -18,14 +18,13 @@ static int mkstemp(char* tmpl)
     int fd         = -1;
     int save_errno = errno;
 
-	QueryPerformanceCounter(
-		&random_time
-	);
+    QueryPerformanceCounter(&random_time);
 
-	string_value.HighPart += random_time.HighPart;
+    string_value.HighPart += random_time.HighPart;
     string_value.LowPart += random_time.LowPart ^ GetCurrentThreadId();
 
-    std::string nm = std::string(tmpl) + std::string("-") + std::to_string(string_value.HighPart) + std::string("-") + std::to_string(string_value.LowPart);
+    std::string nm = std::string(tmpl) + std::string("-") + std::to_string(string_value.HighPart) +
+                     std::string("-") + std::to_string(string_value.LowPart);
 
     fd = open(nm.c_str(), O_RDWR | O_CREAT | O_EXCL, _S_IREAD | _S_IWRITE);
     if(fd >= 0)
@@ -41,9 +40,9 @@ static int mkstemp(char* tmpl)
 namespace miopen {
 TempFile::TempFile(const std::string& path_template)
 #ifdef WIN32
-	: _path((GetTempDirectoryPath().path / (path_template)).string())
+    : _path((GetTempDirectoryPath().path / (path_template)).string())
 #else
-	: _path((GetTempDirectoryPath().path / (path_template + "-XXXXXX")).string())
+    : _path((GetTempDirectoryPath().path / (path_template + "-XXXXXX")).string())
 #endif
 
 {
