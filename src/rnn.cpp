@@ -32,7 +32,7 @@
 // MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 
 // Disable specific warnings
-#define MIO_RNN_DEBUG 1
+#define MIO_RNN_DEBUG 0
 
 #define MIOPEN_RNN_SYNCH 0
 #define MIO_RNN_CPP_PROF 0
@@ -121,13 +121,15 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& /*xDesc*/,
             layerJump += (hsize * 2) * nHiddenTensorsPerLayer * (layer / 2 - 1) * 2;
         }
 
-        if(biasID >= nHiddenTensorsPerLayer)
+        if((isNotRNNskip() || layer > 1) && biasID >= nHiddenTensorsPerLayer)
         {
             layerJump += (hsize)*nHiddenTensorsPerLayer;
         }
 
-        layerJump += (layer % 2 == 1) ? nHiddenTensorsPerLayer * (hsize) : 0;
-        layerJump += hsize * biasID;
+        layerJump += (layer % 2 == 1) ? nHiddenTensorsPerLayer * hsize : 0;
+
+        layerJump += (isNotRNNskip() || layer > 1) ? hsize * biasID
+                                                   : hsize * (biasID - nHiddenTensorsPerLayer);
     }
     else
     {
@@ -138,7 +140,8 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& /*xDesc*/,
             layerJump += (hsize * 2) * nHiddenTensorsPerLayer * (layer - 1);
         }
 
-        layerJump += (isNotRNNskip() || layer > 0) ? hsize * biasID : hsize * (biasID - nHiddenTensorsPerLayer);
+        layerJump += (isNotRNNskip() || layer > 0) ? hsize * biasID
+                                                   : hsize * (biasID - nHiddenTensorsPerLayer);
     }
 
     return layerJump;
@@ -177,21 +180,20 @@ size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc,
         }
         else
         {
-			if(paramID >= nHiddenTensorsPerLayer)
-			{
-				if(isNotRNNskip())
-				{
-					layerJump += (inputVectorLen * hsize) * nHiddenTensorsPerLayer * 2;
-				}
-				layerJump += (layer == 1) ? nHiddenTensorsPerLayer * (hsize * hsize) : 0;
-				layerJump += (hsize * hsize) * (paramID - nHiddenTensorsPerLayer);
-			}
-			else
-			{
-				layerJump +=
-					(layer == 1) ? nHiddenTensorsPerLayer * (inputVectorLen * hsize) : 0;
-				layerJump += (inputVectorLen * hsize) * paramID;
-			}
+            if(paramID >= nHiddenTensorsPerLayer)
+            {
+                if(isNotRNNskip())
+                {
+                    layerJump += (inputVectorLen * hsize) * nHiddenTensorsPerLayer * 2;
+                }
+                layerJump += (layer == 1) ? nHiddenTensorsPerLayer * (hsize * hsize) : 0;
+                layerJump += (hsize * hsize) * (paramID - nHiddenTensorsPerLayer);
+            }
+            else
+            {
+                layerJump += (layer == 1) ? nHiddenTensorsPerLayer * (inputVectorLen * hsize) : 0;
+                layerJump += (inputVectorLen * hsize) * paramID;
+            }
         }
     }
     else
@@ -205,18 +207,18 @@ size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc,
         }
         else
         {
-			if(paramID >= nHiddenTensorsPerLayer)
-			{
-				if(isNotRNNskip())
-				{
-					layerJump += (inputVectorLen * hsize) * nHiddenTensorsPerLayer;
-				}
-				layerJump += (hsize * hsize) * (paramID - nHiddenTensorsPerLayer);
-			}
-			else
-			{
-				layerJump += (inputVectorLen * hsize) * paramID;
-			}
+            if(paramID >= nHiddenTensorsPerLayer)
+            {
+                if(isNotRNNskip())
+                {
+                    layerJump += (inputVectorLen * hsize) * nHiddenTensorsPerLayer;
+                }
+                layerJump += (hsize * hsize) * (paramID - nHiddenTensorsPerLayer);
+            }
+            else
+            {
+                layerJump += (inputVectorLen * hsize) * paramID;
+            }
         }
     }
     return layerJump;
@@ -670,7 +672,7 @@ void RNNDescriptor::SetLayerBias(Handle& handle,
 
     // 2. Calculate the strides for the matrix
     std::vector<int> bstride(1, 1);
-    //bstride[0] = nHiddenTensorsPerLayer;
+    // bstride[0] = nHiddenTensorsPerLayer;
 
     std::vector<int> intLens(biasDesc.GetLengths().begin(), biasDesc.GetLengths().end());
 
