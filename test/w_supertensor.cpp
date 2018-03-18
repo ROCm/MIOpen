@@ -181,9 +181,9 @@ struct verify_w_tensor_get
             }
         }
 
-        //for(int i = 0; i < wei_sz; i++)
+        // for(int i = 0; i < wei_sz; i++)
         //{
-            //printf("GPU [%d]: %f\n", i, wei_h[i]);
+        // printf("GPU [%d]: %f\n", i, wei_h[i]);
         //}
 
         return wei_h;
@@ -364,9 +364,9 @@ struct verify_w_tensor_get
             }
         }
 
-        //for(int i = 0; i < wei_sz; i++)
+        // for(int i = 0; i < wei_sz; i++)
         //{
-            //printf("CPU [%d]: %f\n", i, wei_h[i]);
+        // printf("CPU [%d]: %f\n", i, wei_h[i]);
         //}
 
         return wei_h;
@@ -498,7 +498,8 @@ struct verify_w_tensor_set
                 for(; layerID < num_HiddenLayer * 2; layerID++)
                 {
                     size_t paramSize = 0;
-                    miopenGetRNNLayerParamSize(&handle, rnnDesc, k, inputTensor, layerID, &paramSize);
+                    miopenGetRNNLayerParamSize(
+                        &handle, rnnDesc, k, inputTensor, layerID, &paramSize);
 
                     paramSize /= sizeof(float);
 
@@ -535,10 +536,10 @@ struct verify_w_tensor_set
             }
         }
 
-        for(int i = 0; i < wei_sz; i++)
-        {
-            printf("CPU [%d]: %f\n", i, wei_h[i]);
-        }
+        // for(int i = 0; i < wei_sz; i++)
+        //{
+        // printf("CPU [%d]: %f\n", i, wei_h[i]);
+        //}
 
         return wei_h;
     }
@@ -632,11 +633,11 @@ struct verify_w_tensor_set
 
         wei_sz = wei_sz / sizeof(float);
 
-        auto wei_h = handle.Read<float>(wei_dev, wei_sz);
-        for(int i = 0; i < wei_sz; i++)
-        {
-            printf("GPU [%d]: %f\n", i, wei_h[i]);
-        }
+        // auto wei_h = handle.Read<float>(wei_dev, wei_sz);
+        // for(int i = 0; i < wei_sz; i++)
+        //{
+        // printf("GPU [%d]: %f\n", i, wei_h[i]);
+        //}
 
         return handle.Read<float>(wei_dev, wei_sz);
     }
@@ -673,7 +674,7 @@ struct superTensorTest : test_driver
 
         dataType = miopenFloat;
 
-#if 0
+#if 1
         std::vector<int> get_seqLen     = {1, 2, 4};
         std::vector<int> get_batch_size = {2, 4, 8};
         std::vector<int> get_num_layer  = {4, 8, 16};
@@ -687,12 +688,10 @@ struct superTensorTest : test_driver
         std::vector<int> get_wei_hh     = {6};
 #endif
 
-        //std::vector<miopenRNNMode_t> get_mode         = {miopenRNNRELU, miopenLSTM, miopenGRU};
-        std::vector<miopenRNNMode_t> get_mode         = {miopenRNNRELU};
+        std::vector<miopenRNNMode_t> get_mode         = {miopenRNNRELU, miopenLSTM, miopenGRU};
         std::vector<miopenRNNBiasMode_t> get_biasMode = {miopenRNNwithBias, miopenRNNNoBias};
-        //std::vector<miopenRNNDirectionMode_t> get_directionMode = {miopenRNNunidirection,
-        //miopenRNNbidirection};
-        std::vector<miopenRNNDirectionMode_t> get_directionMode = {miopenRNNbidirection};
+        std::vector<miopenRNNDirectionMode_t> get_directionMode = {miopenRNNunidirection,
+                                                                   miopenRNNbidirection};
         std::vector<miopenRNNInputMode_t> get_inMode = {miopenRNNskip, miopenRNNlinear};
 
         add(seqLen, "seqLen", generate_data(get_seqLen));
