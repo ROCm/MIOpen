@@ -122,20 +122,21 @@ std::vector<float> generate_w_tensor(miopenRNNDescriptor_t rnnDesc,
     }
     else
     {
-        for(int k = 0; k < num_layer; k++)
+        for(int layer = 0; layer < num_layer; layer++)
         {
-            int layerID = (inMode == miopenRNNskip && k < 1) ? num_HiddenLayer : 0;
+            int layerID = (inMode == miopenRNNskip && layer < 1) ? num_HiddenLayer : 0;
 
             for(; layerID < num_HiddenLayer * 2; layerID++)
             {
                 size_t paramSize = 0;
-                miopenGetRNNLayerParamSize(&handle, rnnDesc, k, inputTensor, layerID, &paramSize);
+                miopenGetRNNLayerParamSize(
+                    &handle, rnnDesc, layer, inputTensor, layerID, &paramSize);
 
                 paramSize /= sizeof(float);
 
                 for(int i = 0; i < paramSize; i++)
                 {
-                    wei_h[offset + i] = k * 10 + layerID;
+                    wei_h[offset + i] = layer * 10 + layerID;
                 }
 
                 offset += paramSize;
@@ -232,16 +233,9 @@ struct verify_w_tensor_get
         wei_sz = wei_sz / sizeof(float);
         std::vector<float> wei_h(wei_sz, 0);
 
-        int offset = 0;
-
         for(int layer = 0; layer < num_layer * bi; layer++)
         {
-
-            int layerID = 0;
-            if(inMode == miopenRNNskip && layer < bi)
-            {
-                layerID = num_HiddenLayer;
-            }
+            int layerID = (inMode == miopenRNNskip && layer < bi) ? num_HiddenLayer : 0;
 
             for(; layerID < num_HiddenLayer * 2; layerID++)
             {
@@ -274,17 +268,23 @@ struct verify_w_tensor_get
 
                 auto param_h_out = handle.Read<float>(param_dev_out, paramSize);
 
-                memcpy(&wei_h[offset], &param_h_out[0], sizeof(float) * paramSize);
-                offset += paramSize;
+                memcpy(&wei_h[poffset], &param_h_out[0], sizeof(float) * paramSize);
+            }
+        }
 
-                if(biasMode == miopenRNNwithBias)
+        if(biasMode == miopenRNNwithBias)
+        {
+            for(int layer = 0; layer < num_layer * bi; layer++)
+            {
+                int layerID = (inMode == miopenRNNskip && layer < bi) ? num_HiddenLayer : 0;
+
+                for(; layerID < num_HiddenLayer * 2; layerID++)
                 {
-
-                    size_t biasSize = 0;
                     size_t boffset  = 0;
+                    size_t biasSize = 0;
 
                     miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
-                    err = miopenGetRNNLayerBiasOffset(
+                    auto err = miopenGetRNNLayerBiasOffset(
                         rnnDesc, layer, inputTensor, layerID, biasTensor, &boffset);
                     if(err != miopenStatusSuccess)
                     {
@@ -307,8 +307,7 @@ struct verify_w_tensor_get
 
                     auto bias_h_out = handle.Read<float>(bias_dev_out, biasSize);
 
-                    memcpy(&wei_h[offset], &bias_h_out[0], sizeof(float) * biasSize);
-                    offset += biasSize;
+                    memcpy(&wei_h[boffset], &bias_h_out[0], sizeof(float) * biasSize);
                 }
             }
         }
@@ -555,7 +554,6 @@ struct superTensorTest : test_driver
         miopenSetTensorDescriptor(inputTensor, dataType, 2, in_lens.data(), nullptr);
         miopenSetTensorDescriptor(weightTensor, dataType, 2, in_lens.data(), nullptr);
 
-#if 0
         verify_equals(verify_w_tensor_set(rnnDesc,
                                           mode,
                                           inMode,
@@ -566,9 +564,7 @@ struct superTensorTest : test_driver
                                           paramTensor,
                                           biasTensor,
                                           num_layer));
-#endif
 
-#if 1
         verify_equals(verify_w_tensor_get(rnnDesc,
                                           mode,
                                           inMode,
@@ -579,7 +575,6 @@ struct superTensorTest : test_driver
                                           paramTensor,
                                           biasTensor,
                                           num_layer));
-#endif
     }
 };
 
