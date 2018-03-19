@@ -33,22 +33,17 @@
 
 namespace miopen {
 
-struct TmpDir;
-
 class TempFile
 {
     public:
     TempFile(const std::string& path_template);
-    ~TempFile();
 
-    inline const std::string& Path() const { return _path; }
-    inline operator const std::string&() const { return _path; }
+    inline const std::string& Path() const { return (dir.path / name).string(); }
+    inline operator const std::string&() const { return Path(); }
 
     private:
-    std::string _path;
-    int _fd;
-
-    static const TmpDir& GetTempDirectoryPath();
+    std::string name;
+    TmpDir dir;
 };
 } // namespace miopen
 
