@@ -5,7 +5,7 @@
 #include <unistd.h>
 
 namespace miopen {
-TempFile::TempFile(const std::string& path_template) : dir(path_template)
+TempFile::TempFile(const std::string& path_template) : name(path_template), dir("tmp")
 {
     boost::filesystem::ofstream{dir.path / path_template};
 }
