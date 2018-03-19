@@ -93,10 +93,8 @@ function(add_test_executable TEST_NAME)
     set_tests_properties(${TEST_NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
     target_link_libraries(${TEST_NAME}
         optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE}
-        optimized ${Boost_THREAD_LIBRARY_RELEASE}
         optimized ${Boost_SYSTEM_LIBRARY_RELEASE}
         debug ${Boost_FILESYSTEM_LIBRARY_DEBUG}
-        debug ${Boost_THREAD_LIBRARY_DEBUG}
         debug ${Boost_SYSTEM_LIBRARY_DEBUG}
     )
 endfunction(add_test_executable)
