@@ -133,7 +133,7 @@ void BatchNormForwardTraining(Handle& handle,
         if(in_nhw < 33554432 && in_cstride > 1024)
         {
             variant    = 1;
-            ylocalsize = std::min(64 * ((in_cstride + 63) / 64), uint(1024));
+            ylocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
             xgridsize  = c;
             ygridsize  = ylocalsize;
             ldsgcn     = ylocalsize / 64;
@@ -141,8 +141,7 @@ void BatchNormForwardTraining(Handle& handle,
         }
         else if(in_nhw < 33554432 && in_cstride > 512)
         {
-            variant = 3;
-            // ylocalsize = std::min(64 * ((in_cstride + 63) / 64), uint(1024));
+            variant    = 3;
             ylocalsize = 64 * ((in_cstride + 63) / 64);
             xgridsize  = c;
             ygridsize  = ylocalsize;
@@ -847,7 +846,7 @@ void BatchNormBackward(Handle& handle,
         if(in_nhw < 33554432 && in_cstride > 1024)
         {
             variant    = 1;
-            ylocalsize = std::min(64 * ((in_cstride + 63) / 64), uint(1024));
+            ylocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
             xgridsize  = c;
             ygridsize  = ylocalsize;
             ldsgcn     = ylocalsize / 64;
@@ -856,7 +855,7 @@ void BatchNormBackward(Handle& handle,
         else if(in_nhw < 33554432 && in_cstride > 512)
         {
             variant    = 3;
-            ylocalsize = std::min(64 * ((in_cstride + 63) / 64), uint(1024));
+            ylocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
             xgridsize  = c;
             ygridsize  = ylocalsize;
             ldsgcn     = ylocalsize / 64;
