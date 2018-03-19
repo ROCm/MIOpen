@@ -44,7 +44,6 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
-
 /************************************************************************************************************************
  **
  **			CONSTRUCT CONVOLUTIONAL LAYER
@@ -267,7 +266,6 @@ void mlo_construct_direct2D::setupRocm()
 #endif
     }
 }
-
 
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3U() const
 {
