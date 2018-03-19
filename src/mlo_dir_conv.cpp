@@ -44,11 +44,6 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
-bool mlo_construct_direct2D::mloIsCompilerWorkarounds() const
-{
-    bool ret = false;
-    return ret;
-}
 
 /************************************************************************************************************************
  **
@@ -273,12 +268,6 @@ void mlo_construct_direct2D::setupRocm()
     }
 }
 
-bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
-{
-    bool ret = false;
-
-    return ret;
-}
 
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3U() const
 {
