@@ -28,19 +28,21 @@
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
+#include "mloSoftmaxHost.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include <../test/verify.hpp>
 #include <algorithm>
 #include <cstdlib>
-#include <float.h>
+#include <cfloat>
 #include <memory>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>
+#include "random.hpp"
 
-template <typename T>
+template <typename Tgpu, typename Tref>
 class SoftmaxDriver : public Driver
 {
     public:
@@ -51,6 +53,8 @@ class SoftmaxDriver : public Driver
 
         miopenCreateTensorDescriptor(&dInputTensor);
         miopenCreateTensorDescriptor(&dOutputTensor);
+
+        data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
     int AddCmdLineArgs();
@@ -72,6 +76,7 @@ class SoftmaxDriver : public Driver
     int VerifyForward();
     ~SoftmaxDriver()
     {
+
         miopenDestroyTensorDescriptor(outputTensor);
         miopenDestroyTensorDescriptor(inputTensor);
 
@@ -88,9 +93,9 @@ class SoftmaxDriver : public Driver
     std::unique_ptr<GPUMem> in_dev;
     std::unique_ptr<GPUMem> out_dev;
 
-    std::vector<T> in;
-    std::vector<T> out;
-    std::vector<T> outhost;
+    std::vector<Tgpu> in;
+    std::vector<Tgpu> out;
+    std::vector<Tref> outhost;
 
     miopenTensorDescriptor_t dInputTensor;
     miopenTensorDescriptor_t dOutputTensor;
@@ -98,13 +103,13 @@ class SoftmaxDriver : public Driver
     std::unique_ptr<GPUMem> din_dev;
     std::unique_ptr<GPUMem> dout_dev;
 
-    std::vector<T> din;
-    std::vector<T> dout;
-    std::vector<T> dinhost;
+    std::vector<Tgpu> din;
+    std::vector<Tgpu> dout;
+    std::vector<Tref> dinhost;
 };
 
-template <typename T>
-int SoftmaxDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
+template <typename Tgpu, typename Tref>
+int SoftmaxDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
@@ -112,43 +117,43 @@ int SoftmaxDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
     {
         miopenEnableProfiling(GetHandle(), true);
     }
-    return 0;
+    return miopenStatusSuccess;
 }
 
-template <typename T>
-int SoftmaxDriver<T>::GetandSetData()
+template <typename Tgpu, typename Tref>
+int SoftmaxDriver<Tgpu, Tref>::GetandSetData()
 {
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
 
-    SetTensor4d(inputTensor, in_len);
-    SetTensor4d(dInputTensor, in_len);
-    SetTensor4d(outputTensor, in_len);
-    SetTensor4d(dOutputTensor, in_len);
+    SetTensor4d(inputTensor, in_len, data_type);
+    SetTensor4d(outputTensor, in_len, data_type);
 
+    SetTensor4d(dInputTensor, in_len, data_type);
+    SetTensor4d(dOutputTensor, in_len, data_type);
     return (0);
 }
 
-template <typename T>
-int SoftmaxDriver<T>::AddCmdLineArgs()
+template <typename Tgpu, typename Tref>
+int SoftmaxDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "0", "Run only Forward Softmax (Default=0)", "int");
     inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
     inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
-    inflags.AddInputFlag("alpha", 'A', "1.0", "Softmax shift (Default=0.0)", "double");
-    inflags.AddInputFlag("beta", 'B', "0.0", "Softmax scale (Default=0.0)", "double");
+    inflags.AddInputFlag("alpha", 'A', "1.0", "Softmax shift (Default=1.0)", "float");
+    inflags.AddInputFlag("beta", 'B', "0.0", "Softmax scale (Default=0.0)", "float");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
 
-    return 0;
+    return miopenStatusSuccess;
 }
 
-template <typename T>
-std::vector<int> SoftmaxDriver<T>::GetInputTensorLengthsFromCmdLine()
+template <typename Tgpu, typename Tref>
+std::vector<int> SoftmaxDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     int in_n = inflags.GetValueInt("batchsize");
     int in_c = inflags.GetValueInt("in_channels");
@@ -158,8 +163,8 @@ std::vector<int> SoftmaxDriver<T>::GetInputTensorLengthsFromCmdLine()
     return std::vector<int>({in_n, in_c, in_h, in_w});
 }
 
-template <typename T>
-int SoftmaxDriver<T>::AllocateBuffersAndCopy()
+template <typename Tgpu, typename Tref>
+int SoftmaxDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
 
     size_t in_sz  = GetTensorSize(inputTensor);
@@ -171,29 +176,31 @@ int SoftmaxDriver<T>::AllocateBuffersAndCopy()
 #elif MIOPEN_BACKEND_HIP
     uint32_t ctx = 0;
 #endif
-    in_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
-    out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
+    in_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
-    din_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
-    dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
+    din_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
-    in      = std::vector<float>(in_sz);
-    out     = std::vector<float>(out_sz, 0);
-    outhost = std::vector<float>(out_sz, 0);
+    in      = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    out     = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
-    din     = std::vector<T>(in_sz, 0);
-    dout    = std::vector<T>(out_sz);
-    dinhost = std::vector<T>(in_sz, 0);
+    din     = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    dout    = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    dinhost = std::vector<Tref>(in_sz, static_cast<Tref>(0));
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = static_cast<T>(static_cast<double>(rand()) * (1.0 / RAND_MAX));
+        in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     }
 
+    Tgpu Data_scale = static_cast<Tgpu>(0.001);
     for(int i = 0; i < out_sz; i++)
     {
-        dout[i] = static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5) * 0.001;
+        dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
     }
+
 #if MIOPEN_BACKEND_OPENCL
     cl_int status;
 #elif MIOPEN_BACKEND_HIP
@@ -211,11 +218,11 @@ int SoftmaxDriver<T>::AllocateBuffersAndCopy()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int SoftmaxDriver<T>::RunForwardGPU()
+template <typename Tgpu, typename Tref>
+int SoftmaxDriver<Tgpu, Tref>::RunForwardGPU()
 {
 
-    float alpha = 1, beta = 0;
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     miopenSoftmaxForward(
         GetHandle(), &alpha, inputTensor, in_dev->GetMem(), &beta, outputTensor, out_dev->GetMem());
@@ -251,51 +258,16 @@ int SoftmaxDriver<T>::RunForwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int SoftmaxDriver<T>::RunForwardCPU()
+template <typename Tgpu, typename Tref>
+int SoftmaxDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    int n, c, h, w;
-    miopenGet4dTensorDescriptorLengths(inputTensor, &n, &c, &h, &w);
-
-    std::copy(in.begin(), in.end(), outhost.begin());
-    std::vector<float> channel_max(n * h * w, -FLT_MAX);
-
-    for(int i = 0; i < n; i++)
-    {
-        for(int s = 0; s < h * w; s++)
-        {
-            for(int j = 0; j < c; j++)
-            {
-                channel_max[i * h * w + s] =
-                    std::max(outhost[(i * c + j) * h * w + s], channel_max[i * h * w + s]);
-            }
-
-            for(int j = 0; j < c; j++)
-            {
-                outhost[(i * c + j) * h * w + s] -= channel_max[i * h * w + s];
-                outhost[(i * c + j) * h * w + s] = exp(outhost[(i * c + j) * h * w + s]);
-            }
-
-            channel_max[i * h * w + s] = 0.0;
-            for(int j = 0; j < c; j++)
-            {
-                channel_max[i * h * w + s] += outhost[(i * c + j) * h * w + s];
-            }
-
-            for(int j = 0; j < c; j++)
-            {
-                outhost[(i * c + j) * h * w + s] /= channel_max[i * h * w + s];
-            }
-        }
-    }
-
-    return 0;
+    return (0);
 }
 
-template <typename T>
-int SoftmaxDriver<T>::RunBackwardGPU()
+template <typename Tgpu, typename Tref>
+int SoftmaxDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    float alpha = 1., beta = 0.;
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     miopenSoftmaxBackward(GetHandle(),
                           &alpha,
@@ -336,76 +308,68 @@ int SoftmaxDriver<T>::RunBackwardGPU()
     }
 
     din_dev->FromGPU(GetStream(), din.data());
-    return (0);
+
+    return miopenStatusSuccess;
 }
 
-template <typename T>
-int SoftmaxDriver<T>::VerifyForward()
+template <typename Tgpu, typename Tref>
+int SoftmaxDriver<Tgpu, Tref>::VerifyForward()
 {
-    RunForwardCPU();
 
-    auto error             = miopen::rms_range(outhost, out);
-    const double tolerance = 1e-6;
+    int n, c, h, w;
+    miopenGet4dTensorDescriptorLengths(inputTensor, &n, &c, &h, &w);
+
+    std::copy(in.begin(), in.end(), outhost.begin());
+    Tref max_val = (sizeof(Tgpu) == 4) ? 3.402823466e+38f : 65504.;
+    std::vector<Tref> channel_max(n * h * w, static_cast<Tref>(-max_val));
+
+    mloSoftmaxForwardRunHost<Tref>(n, c, h, w, channel_max.data(), outhost.data());
+
+    auto error           = miopen::rms_range(outhost, out);
+    const Tref tolerance = 1e-3; // 1e-6;
     if(error > tolerance)
     {
-        std::cout << std::string("Forward Softmax Failed: ") << error << std::string("\n");
+        std::cout << "Forward Softmax Failed: " << error << "\n";
     }
     else
     {
-        printf("Forward Softmax Verifies on CPU and GPU\n");
+        printf("Forward Softmax Verifies on CPU and GPU (err=%f)\n", error);
     }
 
-    return 0;
+    return miopenStatusSuccess;
 }
 
-template <typename T>
-int SoftmaxDriver<T>::RunBackwardCPU()
+template <typename Tgpu, typename Tref>
+int SoftmaxDriver<Tgpu, Tref>::RunBackwardCPU()
+{
+
+    return miopenStatusSuccess;
+}
+
+template <typename Tgpu, typename Tref>
+int SoftmaxDriver<Tgpu, Tref>::VerifyBackward()
 {
     int n, c, h, w;
     miopenGet4dTensorDescriptorLengths(dOutputTensor, &n, &c, &h, &w);
 
     std::copy(dout.begin(), dout.end(), dinhost.begin());
-    std::vector<float> channel_dot(n * h * w, 0.0);
+    std::vector<Tref> channel_dot(n * h * w, static_cast<Tref>(0.0));
 
-    for(int i = 0; i < n; i++)
-    {
-        for(int s = 0; s < h * w; s++)
-        {
-            for(int j = 0; j < c; j++)
-            {
-                channel_dot[i * h * w + s] +=
-                    out[(i * c + j) * h * w + s] * dinhost[(i * c + j) * h * w + s];
-            }
+    mloSoftmaxBackwardRunHost<Tgpu, Tref>(
+        n, c, h, w, channel_dot.data(), out.data(), dinhost.data());
 
-            for(int j = 0; j < c; j++)
-            {
-                dinhost[(i * c + j) * h * w + s] -= channel_dot[i * h * w + s];
-                dinhost[(i * c + j) * h * w + s] =
-                    out[(i * c + j) * h * w + s] * dinhost[(i * c + j) * h * w + s];
-            }
-        }
-    }
-
-    return 0;
-}
-
-template <typename T>
-int SoftmaxDriver<T>::VerifyBackward()
-{
-    RunBackwardCPU();
-
-    auto error             = miopen::rms_range(dinhost, din);
-    const double tolerance = 1e-6;
+    auto error           = miopen::rms_range(dinhost, din);
+    const Tref tolerance = 1e-3; // 1e-6;
     if(error > tolerance)
     {
-        std::cout << std::string("Backward Softmax Failed: ") << error << std::string("\n");
+        std::cout << "Backward Softmax Failed: " << error << "\n";
     }
     else
     {
-        printf("Backward Softmax Verifies on CPU and GPU\n");
+        printf("Backward Softmax Verifies on CPU and GPU (err=%f)\n", error);
     }
 
-    return 0;
+    return miopenStatusSuccess;
 }
 
 #endif // GUARD_MIOPEN_SOFTMAX_DRIVER_HPP

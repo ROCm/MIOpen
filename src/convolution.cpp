@@ -28,8 +28,6 @@
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
-
 namespace miopen {
 
 ConvolutionDescriptor::ConvolutionDescriptor(
@@ -181,7 +179,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(Handle& handle,
     int wei_c, wei_h, wei_w;
     std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(wDesc.GetLengths());
 
-    size_t workspace_size = wei_c * wei_h * wei_w * out_h * out_w * sizeof(yDesc.GetType());
+    size_t workspace_size = wei_c * wei_h * wei_w * out_h * out_w * GetTypeSize(yDesc.GetType());
 
     // gfx803 devices have 4gb-6gb memory
     if(workspace_size > (1 << 30) && handle.GetDeviceName() == "gfx803")
@@ -189,7 +187,17 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(Handle& handle,
         workspace_size = 0;
     }
 
-    return (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) ? 0 : workspace_size;
+    return workspace_size;
+}
+
+size_t
+ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMMTranspose(const TensorDescriptor& xDesc,
+                                                            const TensorDescriptor& yDesc) const
+{
+    size_t x_t_size = xDesc.GetElementSize() * GetTypeSize(xDesc.GetType());
+    size_t y_t_size = yDesc.GetElementSize() * GetTypeSize(yDesc.GetType());
+
+    return x_t_size + y_t_size;
 }
 
 // FIXME: This seems to duplicate
@@ -234,7 +242,8 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
            (_n_outputs * _in_height * _in_width) <= std::pow(2, 28) &&
            (_n_inputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28) &&
            (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28) && _n_inputs % 2 == 0 &&
-           _n_inputs >= (device_is_gfx8_no_xnack ? 16 : 18);
+           _n_inputs >= (device_is_gfx8_no_xnack ? 16 : 18) &&
+           (GetTypeSize(wDesc.GetType()) == 4) && (GetTypeSize(xDesc.GetType()) == 4);
 }
 
 bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& wDesc) const
@@ -300,13 +309,10 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         if(dilation_w > 1 || dilation_h > 1)
             return ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
 
-        if(wei_h == 1 && wei_w == 1 && ((u == 1 && v == 1) || (u == 2 && v == 2)) &&
-           dilation_w == 1 && dilation_h == 1)
+        if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 &&
+           ((u == 1 && v == 1) || (u == 2 && v == 2)) && dilation_w == 1 && dilation_h == 1)
         {
-            size_t x_t_size = xDesc.GetElementSize() * sizeof(xDesc.GetType());
-            size_t y_t_size = yDesc.GetElementSize() * sizeof(yDesc.GetType());
-
-            return x_t_size + y_t_size;
+            return ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
         }
 
         // Check if Winograd is available
@@ -337,9 +343,17 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         return ForwardGetWorkSpaceSizeGEMM(handle, wDesc, dxDesc);
     else
     {
+        int wei_h, wei_w;
+        std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+
         if(dilation_w > 1 || dilation_h > 1)
             return BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
 
+        if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 &&
+           ((u == 1 && v == 1) || (u == 2 && v == 2)) && dilation_w == 1 && dilation_h == 1)
+        {
+            return BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc);
+        }
         // Check if Winograd is available
         // If Winograd is present, there is no advantage in letting
         // the user run another algorithm as those both slower and
@@ -476,7 +490,7 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMM(Handle& handle,
     std::tie(std::ignore, std::ignore, out_h, out_w) = miopen::tien<4>(dyDesc.GetLengths());
     int wei_c, wei_h, wei_w;
     std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(wDesc.GetLengths());
-    size_t gemm_size = wei_c * wei_h * wei_w * out_h * out_w * sizeof(dyDesc.GetType());
+    size_t gemm_size = wei_c * wei_h * wei_w * out_h * out_w * GetTypeSize(dyDesc.GetType());
 
     // gfx803 devices have limited memory
     // TODO: be graceful, need to ensure we can execute a config on the GPU
@@ -484,7 +498,16 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMM(Handle& handle,
     if(handle.GetDeviceName() == "gfx803" && gemm_size > (1 << 30))
         gemm_size = 0;
 
-    return (wei_h == 1 && wei_w == 1 && v == 1 && u == 1) ? 0 : gemm_size;
+    return gemm_size;
+}
+
+size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMMTranspose(
+    const TensorDescriptor& dyDesc, const TensorDescriptor& dxDesc) const
+{
+    size_t dx_t_size = dxDesc.GetElementSize() * sizeof(dxDesc.GetType());
+    size_t dy_t_size = dyDesc.GetElementSize() * sizeof(dyDesc.GetType());
+
+    return dx_t_size + dy_t_size;
 }
 
 size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
@@ -494,7 +517,7 @@ size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
     std::tie(std::ignore, std::ignore, out_h, out_w) = miopen::tien<4>(dyDesc.GetLengths());
     int wei_c, wei_h, wei_w;
     std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(dwDesc.GetLengths());
-    size_t gemm_size = wei_c * wei_h * wei_w * out_h * out_w * sizeof(dyDesc.GetType());
+    size_t gemm_size = wei_c * wei_h * wei_w * out_h * out_w * GetTypeSize(dyDesc.GetType());
 
     // gfx803 devices have limited memory
     // TODO: be graceful, need to ensure we can execute a config on the GPU
