@@ -145,8 +145,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
 
     construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-    if(construct_params.mloIsCompilerWorkarounds() ||
-       (IsWinograd3x3Supported(handle, direction, wDesc, (direction ? xDesc : yDesc)) &&
+    if((IsWinograd3x3Supported(handle, direction, wDesc, (direction ? xDesc : yDesc)) &&
         construct_params.mloIsFastBinaryWinograd3x3U()))
     {
         return -1;
@@ -1813,8 +1812,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 construct_params.setWeightDescFromMLDesc(dwDesc);
                 construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-                if(!construct_params.mloIsCompilerWorkarounds() &&
-                   try_([&] { mloConstruct(construct_params); }) == miopenStatusSuccess)
+                if(try_([&] { mloConstruct(construct_params); }) == miopenStatusSuccess)
                 {
                     construct_params.mloBuildConf_Key(network_config);
 
