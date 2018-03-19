@@ -123,7 +123,7 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& /*xDesc*/,
 
         if((isNotRNNskip() || layer > 1) && biasID >= nHiddenTensorsPerLayer)
         {
-            layerJump += (hsize)*nHiddenTensorsPerLayer;
+            layerJump += hsize * nHiddenTensorsPerLayer;
         }
 
         layerJump += (layer % 2 == 1) ? nHiddenTensorsPerLayer * hsize : 0;
@@ -252,7 +252,7 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
         }
         else // IS the input layer
         {
-            if(paramID >= nHiddenTensorsPerLayer * isNotRNNskip())
+            if(paramID >= nHiddenTensorsPerLayer)
             {
                 tdim[0] = tdim[1] = hsize;
             }
@@ -271,7 +271,7 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
         }
         else
         {
-            if(paramID >= nHiddenTensorsPerLayer * isNotRNNskip())
+            if(paramID >= nHiddenTensorsPerLayer)
             {
                 tdim[0] = tdim[1] = hsize;
             }
@@ -494,12 +494,12 @@ std::size_t RNNDescriptor::GetLayerParamSize(Handle& /*handle*/,
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch.");
     }
     auto inputVectorLen = xDesc.GetLengths()[1]; // input vector size
-    inputVectorLen      = (inputMode == miopenRNNskip) ? hsize : inputVectorLen;
+    inputVectorLen      = (inputMode == miopenRNNskip) ? 0 : inputVectorLen;
 
     // Assuming Djikstra counting
     if(((dirMode && layer <= 1) || (!dirMode && layer < 1)))
     {
-        if(paramID >= nHiddenTensorsPerLayer * isNotRNNskip())
+        if(paramID >= nHiddenTensorsPerLayer)
             return size_t(typeSize * hsize * hsize);
         else
             return size_t(typeSize * inputVectorLen * hsize);
@@ -540,9 +540,9 @@ void RNNDescriptor::GetLayerParam(Handle& handle,
     // Calculate the location of the matrix via paramID, bidirection setting, and params
     auto poffset = paramsOffsetCalculation(xDesc, layer, paramID);
 
-#if(MIO_RNN_DEBUG == 1)
+#if(0)
     fprintf(stderr,
-            "GetLayerParam layer: %d layerID: %d offset: %d size: %lu\n",
+            "GetLayerParam layer: %d layerID: %d offset: %lu size: %lu\n",
             layer,
             paramID,
             poffset,
@@ -580,13 +580,14 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
     auto poffset = paramsOffsetCalculation(xDesc, x, 0);
     auto boffset = biasOffsetCalculation(xDesc, layer, biasID) + poffset;
 
-#if(MIO_RNN_DEBUG == 1)
-    fprintf(stderr, "GetLayerbias bDims %d\n", bdim);
+#if(0)
     fprintf(stderr,
-            "GetLayerBias layer: %d layerID: %d offst: %d size: %lu\n",
+            "GetLayerBias layer: %d layerID: %d offset: %lu = %lu + %lu size: %lu\n",
             layer,
             biasID,
             boffset,
+            poffset,
+            boffset - poffset,
             biasDesc.GetElementSize());
 #endif
 
@@ -633,7 +634,7 @@ void RNNDescriptor::SetLayerParam(Handle& handle,
 
 #if(MIO_RNN_DEBUG == 1)
     fprintf(stderr,
-            "SetLayerParam layer: %d layerID: %d offst: %d size: %lu\n",
+            "SetLayerParam layer: %d layerID: %d offset: %lu size: %lu\n",
             layer,
             paramID,
             poffset,
@@ -641,7 +642,6 @@ void RNNDescriptor::SetLayerParam(Handle& handle,
 #endif
 
     // 4. Copy over data to previously allocated param tensor
-    // miopen::CopyTensor(handle, paramDesc, param, pDesc, w, 0, poffset);
     miopen::CopyTensor(handle, paramDesc, param, paramSrc, w, 0, poffset);
 }
 
@@ -686,9 +686,10 @@ void RNNDescriptor::SetLayerBias(Handle& handle,
 
 #if(MIO_RNN_DEBUG == 1)
     fprintf(stderr,
-            "SetLayerBias layer: %d layerID: %d poffset: %d boffset: %d size: %lu\n",
+            "SetLayerBias layer: %d layerID: %d offset: %lu = %lu + %lu size: %lu\n",
             layer,
             biasID,
+            boffset,
             poffset,
             boffset - poffset,
             biasSrc.GetElementSize());
@@ -717,10 +718,10 @@ void RNNDescriptor::GetLayerParamOffset(const int layer,
 
 #if(MIO_RNN_DEBUG == 1)
     fprintf(stderr,
-            "GetLayerParamOffset layer: %d layerID: %d offset: %ld size: %lu\n",
+            "GetLayerParamOffset layer: %d layerID: %d offset: %lu size: %lu\n",
             layer,
             paramID,
-            paramOffset,
+            *paramOffset,
             paramDesc.GetElementSize());
 #endif
 }
@@ -750,12 +751,13 @@ void RNNDescriptor::GetLayerBiasOffset(const int layer,
     *biasOffset  = biasOffsetCalculation(xDesc, layer, biasID) + poffset;
 
 #if(MIO_RNN_DEBUG == 1)
-    fprintf(stderr, "GetLayerBiasOffset bDims %d\n", bdim);
     fprintf(stderr,
-            "GetLayerBiasOffset layer: %d layerID: %d offset: %ld size: %lu\n",
+            "GetLayerBiasOffset layer: %d layerID: %d offset: %lu = %lu + %lu size: %lu\n",
             layer,
             biasID,
             *biasOffset,
+            poffset,
+            *biasOffset - poffset,
             biasDesc.GetElementSize());
 #endif
 }
