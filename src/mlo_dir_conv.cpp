@@ -275,7 +275,7 @@ void mlo_construct_direct2D::setupRocm()
 
 bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
 {
-	bool ret = false;
+    bool ret = false;
 
     return ret;
 }

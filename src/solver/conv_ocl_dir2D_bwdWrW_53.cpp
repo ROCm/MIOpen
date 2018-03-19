@@ -29,14 +29,13 @@
 namespace miopen {
 namespace solver {
 
-	bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
-	{
-		return ((params.kernel_stride1 == 1 && params.kernel_stride0 == 1 && params.out_width <= 64 && params.out_width <= 64) &&
-			((params.kernel_size0 == 3 && params.kernel_size1 == 3 && params.pad0 != 0 && params.pad1 != 0)
-				||
-				(params.kernel_size0 == 5 && params.kernel_size1 == 5)
-				)
-            );
+bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
+{
+    return ((params.kernel_stride1 == 1 && params.kernel_stride0 == 1 && params.out_width <= 64 &&
+             params.out_width <= 64) &&
+            ((params.kernel_size0 == 3 && params.kernel_size1 == 3 && params.pad0 != 0 &&
+              params.pad1 != 0) ||
+             (params.kernel_size0 == 5 && params.kernel_size1 == 5)));
 }
 
 ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) const
@@ -52,8 +51,6 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     // inpout are outputs
     int wei_cstride = params.kernel_size0 * params.kernel_size1;
     int wei_bstride = params.n_outputs * wei_cstride;
-
-
 
     // number  of batch iterations
     result.n_stacks = 1;
@@ -77,35 +74,39 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
 
     // span size
     // param
-	result.in_tile0 = (params.in_width % 4 == 0) ? 4 : (params.in_width % 3 == 0) ? 3 : (params.in_width % 2 == 0) ? 2 : 1;
+    result.in_tile0 = (params.in_width % 4 == 0) ? 4 : (params.in_width % 3 == 0)
+                                                           ? 3
+                                                           : (params.in_width % 2 == 0) ? 2 : 1;
 
     int n_spans = (params.in_width + result.in_tile0 - 1) / result.in_tile0;
 
     // n of wavefronts per group
     // param
-	int n_waves = 4;
-    int GRP_SZ = hw_wave_sz * n_waves;
+    int n_waves = 4;
+    int GRP_SZ  = hw_wave_sz * n_waves;
 
-	result.n_out_pix_tiles = (params.kernel_size0 == 3) ? 4 : 1;
+    result.n_out_pix_tiles = (params.kernel_size0 == 3) ? 4 : 1;
     int n_out_stacks       = std::min(params.n_inputs, std::max(1, GRP_SZ / n_spans));
     // number of input maps per group
 
-
     result.n_in_data_tiles = std::min(result.n_in_data_tiles, params.n_outputs);
 
-	static const int read_unit = (params.out_width %4 ==0) ? 4 : (params.out_width % 3 == 0) ? 3 : (params.out_width % 2 == 0) ? 2: 1;
+    static const int read_unit =
+        (params.out_width % 4 == 0) ? 4 : (params.out_width % 3 == 0)
+                                              ? 3
+                                              : (params.out_width % 2 == 0) ? 2 : 1;
 
     int in_lcl_width =
-        ((params.out_width + read_unit - 1) / read_unit) * read_unit + 2*params.pad0;
+        ((params.out_width + read_unit - 1) / read_unit) * read_unit + 2 * params.pad0;
 
-	static const std::string READ_TYPE =
-		(read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
+    static const std::string READ_TYPE =
+        (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
     // number of input map blocks being process at once
     // param
-	// calculate number of input scans in the input block
-	// max LDS size is 8K
-    int in_n_vert_reads = params.out_height;
-	result.n_in_data_tiles = 1;
+    // calculate number of input scans in the input block
+    // max LDS size is 8K
+    int in_n_vert_reads    = params.out_height;
+    result.n_in_data_tiles = 1;
 
     while(in_lcl_width * in_n_vert_reads * result.n_in_data_tiles >
           (dev_local_mem_sz / (2 * sizeof(float))))
@@ -187,8 +188,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         + std::string(" -DMLO_OUT_STACKS=") + std::to_string(n_out_stacks) +
         std::string(" -DMLO_N_WAVES=") + std::to_string(n_waves) +
         std::string(" -DMLO_READ_TYPE=") + READ_TYPE + std::string(" -DMLO_READ_UNIT=") +
-        std::to_string(read_unit)
-        + std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(hw_wave_sz) +
+        std::to_string(read_unit) + std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(hw_wave_sz) +
         std::string(" -DMLO_LG2_PHYS_WAVE_SZ=") + std::to_string(mloLg2(hw_wave_sz)) +
         std::string(" -DMLO_IN_EXTENT1=") + std::to_string(in_n_vert_reads) +
         std::string(" -DMLO_IN_N_VERT_LOOPS=") + std::to_string(in_n_vert_read_loops)

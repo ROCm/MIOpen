@@ -2069,24 +2069,21 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
         switch(algo)
         {
-        case miopenConvolutionBwdWeightsAlgoGEMM:
-        {
-
+        case miopenConvolutionBwdWeightsAlgoGEMM: {
 
 #if MIOPEN_USE_MIOPENGEMM
-			// Zeroing out the output buffer
-			float zero = 0.0f;
-			SetTensor(handle, dwDesc, dw, &zero);
+            // Zeroing out the output buffer
+            float zero = 0.0f;
+            SetTensor(handle, dwDesc, dw, &zero);
 
-			std::string network_config;
+            std::string network_config;
 
-
-			if (wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
-			{
-				assert(workSpace != nullptr &&
-					workSpaceSize >=
-					BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc));
-			}
+            if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
+            {
+                assert(workSpace != nullptr &&
+                       workSpaceSize >=
+                           BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc));
+            }
 
             CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, false, network_config);
             GemmGeometry gg =
