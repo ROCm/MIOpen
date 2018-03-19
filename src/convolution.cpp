@@ -242,7 +242,8 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
            (_n_outputs * _in_height * _in_width) <= std::pow(2, 28) &&
            (_n_inputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28) &&
            (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28) && _n_inputs % 2 == 0 &&
-           _n_inputs >= (device_is_gfx8_no_xnack ? 16 : 18);
+           _n_inputs >= (device_is_gfx8_no_xnack ? 16 : 18) &&
+           (GetTypeSize(wDesc.GetType()) == 4) && (GetTypeSize(xDesc.GetType()) == 4);
 }
 
 bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& wDesc) const
