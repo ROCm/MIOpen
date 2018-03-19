@@ -82,7 +82,7 @@
 #define MLO_N_IN_HORIZ_READS ((MLO_N_IN_HORIZ_PIX_READS + MLO_READ_UNIT - 1) / MLO_READ_UNIT)
 #define MLO_IN_N_PIXS_OFF \
     (MLO_N_IN_HORIZ_PIX_READS - (MLO_N_IN_HORIZ_PIX_READS / MLO_READ_UNIT) * MLO_READ_UNIT)
-#define MLO_IN_LCL_WIDTH (MLO_N_IN_HORIZ_READS * MLO_READ_UNIT + 2*MLO_FILTER_PAD0)
+#define MLO_IN_LCL_WIDTH (MLO_N_IN_HORIZ_READS * MLO_READ_UNIT + 2 * MLO_FILTER_PAD0)
 #define MLO_IN_LCL_HEIGHT MLO_IN_VERT_READS
 #define MLO_IN_LCL_SZ (MLO_IN_LCL_WIDTH * MLO_IN_LCL_HEIGHT)
 #define MLO_TOTAL_IN_LCL_SZ (MLO_N_LCL_BATCHS * MLO_N_LCL_IN_MAPS * MLO_IN_LCL_SZ)
@@ -96,7 +96,7 @@
 
 __attribute__((always_inline)) uint iDiv(uint v, uint d)
 {
-    uint r = v/ d; //(uint)((float)v * (1.0f / (float)d) + 0.00001f);
+    uint r = v / d; //(uint)((float)v * (1.0f / (float)d) + 0.00001f);
     return (r);
 }
 
@@ -414,9 +414,9 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
     uint gbl_in_off  = c_idx * MLO_IN_CHANNEL_STRIDE + ib * MLO_IN_BATCH_STRIDE;
     uint gbl_out_off = o_idx * MLO_OUT_CHANNEL_STRIDE + ib * MLO_OUT_BATCH_STRIDE;
-// 1 span per wk_item, total scanline with MLO_N_SPANS_PER_SCAN spans
-// TODO: more than 1 input
-    uint o           = lcl_id / MLO_N_SPANS_PER_SCAN;
+    // 1 span per wk_item, total scanline with MLO_N_SPANS_PER_SCAN spans
+    // TODO: more than 1 input
+    uint o = lcl_id / MLO_N_SPANS_PER_SCAN;
 #if MLO_N_SPANS_PER_SCAN & (MLO_N_SPANS_PER_SCAN - 1)
     uint spn = iMod(lcl_id, o, MLO_N_SPANS_PER_SCAN);
 #else
