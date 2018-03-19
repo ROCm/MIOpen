@@ -31,7 +31,7 @@ namespace solver {
 
 bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 {
-    return ((params.kernel_stride1 == 1 && params.kernel_stride0 == 1 && params.out_width <= 64 &&
+    return ((params.kernel_stride1 == 1 && params.kernel_stride0 == 1 && params.out_height <= 64 &&
              params.out_width <= 64) &&
             ((params.kernel_size0 == 3 && params.kernel_size1 == 3 && params.pad0 != 0 &&
               params.pad1 != 0) ||
