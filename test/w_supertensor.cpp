@@ -731,7 +731,6 @@ struct superTensorTest : test_driver
                                           biasTensor,
                                           num_layer));
 
-
         verify_equals(verify_w_tensor_get(rnnDesc,
                                           mode,
                                           inMode,
@@ -742,7 +741,6 @@ struct superTensorTest : test_driver
                                           paramTensor,
                                           biasTensor,
                                           num_layer));
-
     }
 };
 
