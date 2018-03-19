@@ -36,13 +36,12 @@
 #include <unordered_map>
 
 #include <miopen/solver.hpp>
-#include <miopen/db_record.hpp>
+#include <miopen/db.hpp>
 #include <miopen/env.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 bool mlo_construct_direct2D::mloIsCompilerWorkarounds() const
@@ -57,14 +56,7 @@ bool mlo_construct_direct2D::mloIsCompilerWorkarounds() const
  **
  ************************************************************************************************************************/
 
-miopen::DbRecord mlo_construct_direct2D::GetDbRecord() const
-{
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    return {db_path(), _search_params, true};
-#else
-    return {db_path(), _search_params};
-#endif
-}
+miopen::Db mlo_construct_direct2D::GetDb() const { return {db_path()}; }
 
 /*
    construction has been split into 2
@@ -84,7 +76,7 @@ miopen::solver::ConvSolution mlo_construct_direct2D::FindSolution()
         miopen::solver::ConvOclDirectFwd3x3,
         miopen::solver::ConvOclDirectFwd1x1,
         miopen::solver::ConvOclDirectFwd
-    >(_search_params, this->GetDbRecord());
+    >(_search_params, this->GetDb());
     // clang-format on
 }
 
@@ -94,7 +86,7 @@ miopen::solver::ConvSolution mlo_construct_winograd::FindSolution()
     return miopen::solver::SearchForSolution<
         miopen::solver::ConvBinWinograd3x3U,
         miopen::solver::ConvBinWinogradRxS
-    >(_search_params, this->GetDbRecord());
+    >(_search_params, this->GetDb());
     // clang-format on
 }
 
@@ -107,7 +99,7 @@ miopen::solver::ConvSolution mlo_construct_BwdWrW2D::FindSolution()
         miopen::solver::ConvOclBwdWrW2,
         miopen::solver::ConvOclBwdWrW53,
         miopen::solver::ConvOclBwdWrW1x1
-    >(_search_params, this->GetDbRecord());
+    >(_search_params, this->GetDb());
     // clang-format on
 }
 
@@ -266,12 +258,12 @@ void mlo_construct_direct2D::setupFloats()
 void mlo_construct_direct2D::setupRocm()
 {
     // Detect assembly kernels
-    _search_params.use_binaries        = false;
-    _search_params.assembler_available = false;
-    _search_params.rmv                 = rocm_meta_version::Default;
+    _search_params.use_binaries    = false;
+    _search_params.use_asm_kernels = false;
+    _search_params.rmv             = rocm_meta_version::Default;
     if(mloIsAmdRocmOpencl(_search_params))
     {
-        _search_params.assembler_available =
+        _search_params.use_asm_kernels =
             !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
 #ifndef HIP_OC_FINALIZER
         _search_params.use_binaries =

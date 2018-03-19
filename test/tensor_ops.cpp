@@ -253,7 +253,7 @@ struct tensor_ops_driver : test_driver
 
     std::vector<std::vector<int>> get_sub_tensor_a()
     {
-        return {{32, 16, 8, 4, 4}, {16, 20, 16, 8}, {20, 16, 8}, {16, 8}, {8}};
+        return {{32, 16, 8, 4, 4}, {16, 20, 16, 8}, {20, 16, 8}, {1, 16, 8}, {16, 8}, {8}};
     }
 
     std::vector<std::vector<int>> get_sub_tensor_b()
@@ -304,22 +304,31 @@ struct tensor_ops_driver : test_driver
         add(packed, "packed", generate_data({false, true}));
     }
 
-    tensor<T> get_subtensors(tensor<T>& super_tensor, std::vector<int>& lens)
+    tensor<T> get_subtensors(tensor<T>& super_tensor, std::vector<int>& lens, bool isPacked)
     {
-        std::vector<size_t> superStrides = super_tensor.desc.GetStrides();
-        std::vector<int> strides(superStrides.begin() + (5 - lens.size()), superStrides.end());
-        tensor<T> t = tensor<T>{lens, strides};
-        t.data      = super_tensor.data;
-        return t;
+        if(!isPacked)
+        {
+            std::vector<size_t> superStrides = super_tensor.desc.GetStrides();
+            std::vector<int> strides(superStrides.begin() + (5 - lens.size()), superStrides.end());
+            tensor<T> t = tensor<T>{lens, strides};
+            t.data      = super_tensor.data;
+            return t;
+        }
+        else
+        {
+            tensor<T> t = tensor<T>{lens};
+            t.data      = super_tensor.data;
+            return t;
+        }
     }
 
     void run()
     {
-        if(tensorlens_ac.size() == tensorlens_b.size())
+        if(tensorlens_ac.size() == tensorlens_b.size() && tensorlens_ac >= tensorlens_b)
         {
-            tensor<T> aTensor = packed ? tensorlens_ac : get_subtensors(super_a, tensorlens_ac);
-            tensor<T> bTensor = packed ? tensorlens_b : get_subtensors(super_b, tensorlens_b);
-            tensor<T> cTensor = packed ? tensorlens_ac : get_subtensors(super_c, tensorlens_ac);
+            tensor<T> aTensor = get_subtensors(super_a, tensorlens_ac, packed);
+            tensor<T> bTensor = get_subtensors(super_b, tensorlens_b, packed);
+            tensor<T> cTensor = get_subtensors(super_c, tensorlens_ac, packed);
 
             if(packed)
                 offsets = {0, 0, 0, 0, 0};

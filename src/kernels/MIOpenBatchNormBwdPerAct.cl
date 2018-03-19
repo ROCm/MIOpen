@@ -31,6 +31,7 @@
 #define EIGHT 8
 
 #if MIOPEN_USE_FP16 == 1
+#define MIO_BN_NODPP 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
 #ifndef HALF_MAX
@@ -80,6 +81,12 @@
 #define MIO_BN_HW 1
 #endif
 
+#ifndef MIO_BN_NODPP
+#define MIO_BN_NODPP 0
+#elif(MIO_BN_NODPP == 1)
+#undef __AMDGCN__
+#endif
+
 // Disable specific warnings
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -100,27 +107,7 @@ __kernel void BatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
                                              const __global _FLOAT* savedMean,
                                              const __global _FLOAT* savedInvVariance)
 {
-    /*
-    for(int n = 0; n < N; n++) {
-     for(int c = 0; c < C; c++) {
-      for(int h = 0; h < H; h++) {
-       for(int w = 0; w < W; w++) {
-        float pixel_val = input_image[n*C*H*W + c*H*W + h*W +w];
-    }}}}
-            C*H*W is also stored as in_nstride,
-            H*W is in_cstride,
-            W is in_hstride.
-    ------------------------------------------
-    http://kratzert.github.io
-    http://cthorey.github.io./backpropagation/
-    ------------------------------------------
-    mu = 1./N*np.sum(h, axis = 0)
-    var = 1./N*np.sum((h-mu)**2, axis = 0)
-    dbeta = np.sum(dy, axis=0)
-    dgamma = np.sum((h - mu) * (var + eps)**(-1. / 2.) * dy, axis=0)
-    dh = (1. / N) * gamma * (var + eps)**(-1. / 2.) * (N * dy - np.sum(dy, axis=0)
-        - (h - mu) * (var + eps)**(-1.0) * np.sum(dy * (h - mu), axis=0))
-    */
+
     int xgid    = get_global_id(0);
     int ygid    = get_global_id(1);
     int yglb_sz = get_global_size(1);
@@ -219,9 +206,12 @@ __kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
         // iterating through the stack of images in the mini_batch
         if(inImgIndex < in_cstride)
         {
-
+            mean     = 0.;
+            variance = 0.;
             adjIndex = Cidx + inImgIndex; // gamma and beta tensor index
-            for(int n = 0; n < N; n++)
+
+#pragma unroll
+            for(int n = 0; n < MIO_BN_N; n++)
             {
                 index     = in_nstride * n + adjIndex;
                 _FLOAT in = *(x_in + index);
@@ -239,7 +229,8 @@ __kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
             dxhat      = (_FLOAT)0.;
             dxhathat   = (_FLOAT)0.;
 
-            for(int n = 0; n < N; n++)
+#pragma unroll
+            for(int n = 0; n < MIO_BN_N; n++)
             {
                 // per (x-dims) channel load a block of data into LDS
                 index  = in_nstride * n + adjIndex;
@@ -252,7 +243,8 @@ __kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
                 dxhathat = mad(tmp1, xhat, dxhathat);
             } // end for(n)
 
-            for(int n = 0; n < N; n++)
+#pragma unroll
+            for(int n = 0; n < MIO_BN_N; n++)
             {
                 index         = in_nstride * n + adjIndex;
                 xhat          = (*(x_in + index) - mean) * invVar;

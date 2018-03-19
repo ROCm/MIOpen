@@ -482,7 +482,13 @@ void RNNDescriptor::GetParamsDescriptor(Handle& /* handle */,
     std::vector<int> weight_lens(2, 0);
     weight_lens[0] = inputVectorLen + ((nLayers - 1) * (bi + 1) + 1) * hsize;
     weight_lens[1] = bi * hsize * nHiddenTensorsPerLayer;
-    wDesc          = miopen::TensorDescriptor(dtype, weight_lens.data(), 2);
+    if(biasMode == miopenRNNwithBias)
+    {
+        auto in_bias = inputMode == miopenRNNskip ? 1 : 2;
+        weight_lens[0] += (in_bias + (nLayers - 1) * 2);
+    }
+
+    wDesc = miopen::TensorDescriptor(dtype, weight_lens.data(), 2);
 }
 
 std::size_t RNNDescriptor::GetLayerParamSize(Handle& /*handle*/,
@@ -673,7 +679,6 @@ void RNNDescriptor::SetLayerBias(Handle& handle,
 
     // 2. Calculate the strides for the matrix
     std::vector<int> bstride(1, 1);
-    bstride[0] = nHiddenTensorsPerLayer;
 
     std::vector<int> intLens(biasDesc.GetLengths().begin(), biasDesc.GetLengths().end());
 

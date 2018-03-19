@@ -1,19 +1,19 @@
 ################################################################################
-# 
+#
 # MIT License
-# 
+#
 # Copyright (c) 2017 Advanced Micro Devices, Inc.
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,7 +21,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-# 
+#
 ################################################################################
 cmake_minimum_required( VERSION 2.8.12 )
 
@@ -57,7 +57,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 1.2.1)
+rocm_setup_version(VERSION 1.3.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
@@ -116,7 +116,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     else()
         message(FATAL_ERROR "clang-ocl not found")
     endif()
-    
+
     find_package(hip REQUIRED PATHS /opt/rocm)
     link_libraries(stdc++)
     # A hack to make this work without the device enumerator
@@ -185,7 +185,7 @@ if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
 endif()
 include(ClangTidy)
 enable_clang_tidy(
-    CHECKS 
+    CHECKS
         *
         -cert-env33-c
         -android-cloexec-fopen
@@ -241,7 +241,7 @@ enable_clang_tidy(
         *
         -readability-inconsistent-declaration-parameter-name
     HEADER_FILTER
-        "hpp$"
+        ".*hpp"
     EXTRA_ARGS
         -DMIOPEN_USE_CLANG_TIDY
     ANALYZE_TEMPORARY_DTORS ON
@@ -251,22 +251,27 @@ include(CppCheck)
 enable_cppcheck(
     CHECKS 
         all
-    FORCE
     SUPPRESS 
         ConfigurationNotChecked
         unmatchedSuppression
-        constStatement
+        unusedFunction
+        # constStatement
         noExplicitConstructor
         passedByValue
         # preprocessorErrorDirective
         unusedStructMember
         # TODO: Try to reenable this without needing inline suppressions
         leakReturnValNotUsed
+        # Ignore initializer lists in the tests
+        useInitializationList:*test/*.cpp
         *:*.cl
+    FORCE
     SOURCES
+        addkernels/
+        # driver/
         include/
         src/
-        # test/
+        test/
     INCLUDE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_BINARY_DIR}/include

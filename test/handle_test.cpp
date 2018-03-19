@@ -10,9 +10,8 @@ std::string Write2s()
     return "__kernel void write(__global int* data) { data[get_global_id(0)] *= 2; }\n";
 }
 
-void run(std::size_t n)
+void run(miopen::Handle& h, std::size_t n)
 {
-    auto&& h = get_handle();
     std::vector<int> data_in(n, 1);
     auto data_dev = h.Write(data_in);
 
@@ -25,8 +24,9 @@ void run(std::size_t n)
 
 int main()
 {
-    std::thread([&] { run(16); }).join();
-    std::thread([&] { run(32); }).join();
-    std::thread([&] { std::thread([&] { run(64); }).join(); }).join();
-    run(4);
+    auto&& h = get_handle();
+    std::thread([&] { run(h, 16); }).join();
+    std::thread([&] { run(h, 32); }).join();
+    std::thread([&] { std::thread([&] { run(h, 64); }).join(); }).join();
+    run(h, 4);
 }
