@@ -1,7 +1,6 @@
 #include <miopen/temp_file.hpp>
 #include <miopen/errors.hpp>
 
-
 #include <unistd.h>
 namespace miopen {
 TempFile::TempFile(const std::string& path_template)
