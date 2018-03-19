@@ -38,8 +38,8 @@ class TempFile
     public:
     TempFile(const std::string& path_template);
 
-    inline const std::string& Path() const { return (dir.path / name).string(); }
-    inline operator const std::string&() const { return Path(); }
+    inline std::string Path() const { return (dir.path / name).string(); }
+    inline operator std::string() const { return Path(); }
 
     private:
     std::string name;
