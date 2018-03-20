@@ -31,7 +31,8 @@ void RunLSTMForwardGEMMCPUVerify(
     int out_h,              // 1 by hy_h related function for unidirection, 2 by hy_h
                             // related function for bidirection
     int inputMode,
-    std::vector<T>& rsvspace)
+    std::vector<T>& rsvspace,
+    bool hx_is_null = false)
 {
     int batch_n = sumvc(in_n);
 
@@ -128,19 +129,6 @@ void RunLSTMForwardGEMMCPUVerify(
                         }
                     }
                 }
-
-                // from bias
-                if(biased)
-                {
-                    for(int bs = 0; bs < batch_n; bs++)
-                    {
-                        for(int h = 0; h < wei_stride; h++)
-                        {
-                            hid_state.at(hid_shift + bs * hy_stride + h) +=
-                                wei.at(wei_shift_bias + h);
-                        }
-                    }
-                }
             }
             else
             {
@@ -170,8 +158,7 @@ void RunLSTMForwardGEMMCPUVerify(
                         for(int h = 0; h < wei_stride; h++)
                         {
                             hid_state.at(hid_shift + bs * hy_stride + h) +=
-                                (wei.at(wei_shift_bias + h) +
-                                 wei.at(wei_shift_bias + wei_stride + h));
+                                wei.at(wei_shift_bias + h);
                         }
                     }
                 }
@@ -212,8 +199,7 @@ void RunLSTMForwardGEMMCPUVerify(
                     for(int h = 0; h < wei_stride; h++)
                     {
                         hid_state.at(hid_shift + bs * hy_stride + h) +=
-                            (wei.at(wei_shift_bias_temp + h) +
-                             wei.at(wei_shift_bias_temp + wei_stride + h));
+                            wei.at(wei_shift_bias_temp + h);
                     }
                 }
             }
@@ -229,43 +215,81 @@ void RunLSTMForwardGEMMCPUVerify(
 
             if(ti == 0)
             {
-                ADNN_mm_cpu<T>(&hx_state[hx_shift],
-                               hy_h,
-                               in_n.at(ti),
-                               uni_stride,
-                               0,
-                               &wei_state[wei_shift],
-                               hy_h,
-                               hy_h * 4,
-                               uni_stride,
-                               ADNN_MM_TRANSPOSE,
-                               &hid_state[hid_shift + bacc * hy_stride],
-                               hy_h * 4,
-                               in_n.at(ti),
-                               hy_stride,
-                               0,
-                               1,
-                               1);
-
-                if(bidirection)
+                if(!hx_is_null)
                 {
-                    ADNN_mm_cpu<T>(&hx_state[hx_shift + hy_n * hy_h],
+                    ADNN_mm_cpu<T>(&hx_state[hx_shift],
                                    hy_h,
-                                   in_n.at(seqLength - 1 - ti),
+                                   in_n.at(ti),
                                    uni_stride,
                                    0,
-                                   &wei_state[wei_shift + 4 * hy_h * uni_stride],
+                                   &wei_state[wei_shift],
                                    hy_h,
                                    hy_h * 4,
                                    uni_stride,
                                    ADNN_MM_TRANSPOSE,
-                                   &hid_state[hid_shift + baccbi * hy_stride + 4 * hy_h],
+                                   &hid_state[hid_shift + bacc * hy_stride],
                                    hy_h * 4,
-                                   in_n.at(seqLength - 1 - ti),
+                                   in_n.at(ti),
                                    hy_stride,
                                    0,
                                    1,
                                    1);
+
+                    // from bias
+                    if(biased)
+                    {
+                        int wei_shift_bias_temp =
+                            (inputMode == 1) ? (wei_shift_bias + li * 2 * wei_stride)
+                                             : (wei_shift_bias + (li * 2 + 1) * wei_stride);
+
+                        for(int bs = 0; bs < in_n[ti]; bs++)
+                        {
+                            for(int h = 0; h < 4 * hy_h; h++)
+                            {
+                                hid_state.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
+                                    wei.at(wei_shift_bias_temp + h);
+                            }
+                        }
+                    }
+
+                    if(bidirection)
+                    {
+                        ADNN_mm_cpu<T>(&hx_state[hx_shift + hy_n * hy_h],
+                                       hy_h,
+                                       in_n.at(seqLength - 1 - ti),
+                                       uni_stride,
+                                       0,
+                                       &wei_state[wei_shift + 4 * hy_h * uni_stride],
+                                       hy_h,
+                                       hy_h * 4,
+                                       uni_stride,
+                                       ADNN_MM_TRANSPOSE,
+                                       &hid_state[hid_shift + baccbi * hy_stride + 4 * hy_h],
+                                       hy_h * 4,
+                                       in_n.at(seqLength - 1 - ti),
+                                       hy_stride,
+                                       0,
+                                       1,
+                                       1);
+
+                        // from bias
+                        if(biased)
+                        {
+                            int wei_shift_bias_temp =
+                                (inputMode == 1) ? (wei_shift_bias + li * 2 * wei_stride)
+                                                 : (wei_shift_bias + (li * 2 + 1) * wei_stride);
+
+                            for(int bs = 0; bs < in_n.at(seqLength - 1 - ti); bs++)
+                            {
+                                for(int h = 0; h < 4 * hy_h; h++)
+                                {
+                                    hid_state.at(hid_shift + baccbi * hy_stride + 4 * hy_h +
+                                                 bs * hy_stride + h) +=
+                                        wei.at(wei_shift_bias_temp + 4 * hy_h + h);
+                                }
+                            }
+                        }
+                    }
                 }
             }
             else
@@ -288,6 +312,23 @@ void RunLSTMForwardGEMMCPUVerify(
                                1,
                                1);
 
+                // from bias
+                if(biased)
+                {
+                    int wei_shift_bias_temp = (inputMode == 1)
+                                                  ? (wei_shift_bias + li * 2 * wei_stride)
+                                                  : (wei_shift_bias + (li * 2 + 1) * wei_stride);
+
+                    for(int bs = 0; bs < in_n[ti]; bs++)
+                    {
+                        for(int h = 0; h < 4 * hy_h; h++)
+                        {
+                            hid_state.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
+                                wei.at(wei_shift_bias_temp + h);
+                        }
+                    }
+                }
+
                 if(bidirection)
                 {
                     ADNN_mm_cpu<T>(&hy_state[hx_shift + hy_n * hy_h],
@@ -307,6 +348,24 @@ void RunLSTMForwardGEMMCPUVerify(
                                    0,
                                    1,
                                    1);
+
+                    // from bias
+                    if(biased)
+                    {
+                        int wei_shift_bias_temp =
+                            (inputMode == 1) ? (wei_shift_bias + li * 2 * wei_stride)
+                                             : (wei_shift_bias + (li * 2 + 1) * wei_stride);
+
+                        for(int bs = 0; bs < in_n.at(seqLength - ti); bs++)
+                        {
+                            for(int h = 0; h < 4 * hy_h; h++)
+                            {
+                                hid_state.at(hid_shift + baccbi * hy_stride + 4 * hy_h +
+                                             bs * hy_stride + h) +=
+                                    wei.at(wei_shift_bias_temp + 4 * hy_h + h);
+                            }
+                        }
+                    }
                 }
             }
 
