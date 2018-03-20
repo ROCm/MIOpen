@@ -83,6 +83,20 @@ bool throws(F f)
     }
 }
 
+template <class F, class Exception>
+bool throws(F f, std::string msg="")
+{
+    try
+    {
+        f();
+        return false;
+    }
+    catch(const Exception& ex)
+    {
+        return std::string(ex.what()).find(msg) != std::string::npos;
+    }
+}
+
 template <class T>
 void run_test()
 {
