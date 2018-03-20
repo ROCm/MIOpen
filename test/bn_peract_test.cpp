@@ -43,6 +43,7 @@
 
 #include <cmath>
 #include <ctime>
+#include <cfloat>
 #include <iomanip>
 
 // Run CPU emulations in hierarchical reduction mode.
@@ -76,8 +77,33 @@ struct verify_forward_train_bn_per_activation
         auto out = tensor<T>{n_batch, channels, height, width};
         std::fill(out.begin(), out.end(), 0);
 
-        auto runMean    = tensor<T>{1, channels, height, width}.generate(rand_gen{});
-        auto runVar     = tensor<T>{1, channels, height, width}.generate(rand_gen{});
+        std::size_t rs_n_batch, rs_channels, rs_height, rs_width;
+        auto derivedBnDesc = miopen::TensorDescriptor{};
+        miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNPerActivation);
+
+        std::tie(rs_n_batch, rs_channels, rs_height, rs_width) =
+            miopen::tien<4>(derivedBnDesc.GetLengths());
+
+        tensor<T> runMean;
+        tensor<T> runVar;
+
+        if(input.desc.GetType() == miopenFloat)
+        {
+            runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
+            runVar  = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
+        }
+        else
+        {
+            srand(0);
+            runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width};
+            runVar  = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width};
+            for(int i = 0; i < runMean.desc.GetElementSize(); i++)
+            {
+                runMean[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * T(rand() % 100);
+                runVar[i]  = 1e-3 * T(rand() % 100);
+            }
+        }
+
         auto saveMean   = tensor<T>{1, channels, height, width};
         auto saveInvVar = tensor<T>{1, channels, height, width};
         const auto n    = double(n_batch);
@@ -173,8 +199,34 @@ struct verify_forward_train_bn_per_activation
 
         auto out = input;
         std::fill(out.begin(), out.end(), 0);
-        auto runMean    = tensor<T>{1, channels, height, width}.generate(rand_gen{});
-        auto runVar     = tensor<T>{1, channels, height, width}.generate(rand_gen{});
+
+        std::size_t rs_n_batch, rs_channels, rs_height, rs_width;
+        auto derivedBnDesc = miopen::TensorDescriptor{};
+        miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNPerActivation);
+
+        std::tie(rs_n_batch, rs_channels, rs_height, rs_width) =
+            miopen::tien<4>(derivedBnDesc.GetLengths());
+
+        tensor<T> runMean;
+        tensor<T> runVar;
+
+        if(input.desc.GetType() == miopenFloat)
+        {
+            runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
+            runVar  = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
+        }
+        else
+        {
+            srand(0);
+            runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width};
+            runVar  = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width};
+            for(int i = 0; i < runMean.desc.GetElementSize(); i++)
+            {
+                runMean[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * T(rand() % 100);
+                runVar[i]  = 1e-3 * T(rand() % 100);
+            }
+        }
+
         auto saveMean   = tensor<T>{1, channels, height, width};
         auto saveInvVar = tensor<T>{1, channels, height, width};
 
@@ -193,7 +245,8 @@ struct verify_forward_train_bn_per_activation
         double epsilon      = MIO_BN_TEST_EPSILON;
         double expAvgFactor = MIO_BN_TEST_EXPAVGFACTOR;
 
-        T alpha{1}, beta{0};
+        float alpha = 1.;
+        float beta  = 0.;
 
         miopen::BatchNormForwardTraining(handle,
                                          miopenBNPerActivation,
@@ -354,7 +407,8 @@ struct verify_forward_infer_bn_per_activation_recalc
 
         double epsilon = MIO_BN_TEST_EPSILON;
 
-        T alpha{1}, beta{0};
+        float alpha = 1.;
+        float beta  = 0.;
 
         miopen::BatchNormForwardInference(handle,
                                           miopenBNPerActivation,
@@ -470,7 +524,8 @@ struct verify_forward_infer_bn_per_activation_use_est
 
         double epsilon = MIO_BN_TEST_EPSILON;
 
-        T alpha{1}, beta{0};
+        float alpha = 1.;
+        float beta  = 0.;
 
         miopen::BatchNormForwardInference(handle,
                                           miopenBNPerActivation,
@@ -621,8 +676,6 @@ struct verify_backward_bn_per_activation_use_saved
         auto dshift = tensor<T>{1, channels, height, width};
         std::fill(dshift.begin(), dshift.end(), 0);
 
-        T alpha{1}, beta{0};
-
         auto xin_dev         = handle.Write(x_input.data);
         auto dyin_dev        = handle.Write(dy_input.data);
         auto scale_dev       = handle.Write(scale.data);
@@ -631,6 +684,9 @@ struct verify_backward_bn_per_activation_use_saved
         auto dx_out_dev      = handle.Write(dx_out.data);
         auto savedMean_dev   = handle.Write(savedMean.data);
         auto savedInvVar_dev = handle.Write(savedInvVar.data);
+
+        float alpha = 1.;
+        float beta  = 0.;
 
         miopen::BatchNormBackward(handle,
                                   miopenBNPerActivation,
@@ -811,8 +867,6 @@ struct verify_backward_bn_per_activation_recalc
         auto dshift = tensor<T>{1, channels, height, width};
         std::fill(dshift.begin(), dshift.end(), 0);
 
-        T alpha{1}, beta{0};
-
         auto xin_dev    = handle.Write(x_input.data);
         auto dyin_dev   = handle.Write(dy_input.data);
         auto scale_dev  = handle.Write(scale.data);
@@ -821,6 +875,9 @@ struct verify_backward_bn_per_activation_recalc
         auto dx_out_dev = handle.Write(dx_out.data);
 
         double epsilon = MIO_BN_TEST_EPSILON;
+
+        float alpha = 1.;
+        float beta  = 0.;
 
         miopen::BatchNormBackward(handle,
                                   miopenBNPerActivation,
@@ -893,11 +950,36 @@ struct batch_norm_per_activation_driver : test_driver
         std::tie(n, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
 
         if(n == 1)
-        { // Invalid batch size for batch norm tests.
+        {
+            std::cout << "Invalid batch size for batch norm tests.\nExiting...\n" << std::endl;
             return;
         }
-        scale = tensor<T>{1, c, h, w}.generate(rand_gen{});
-        shift = tensor<T>{1, c, h, w}.generate(rand_gen{});
+
+        std::size_t ssn, ssc, ssh, ssw;
+        auto derivedBnDesc = miopen::TensorDescriptor{};
+        miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNPerActivation);
+        std::tie(ssn, ssc, ssh, ssw) = miopen::tien<4>(derivedBnDesc.GetLengths());
+
+        if(input.desc.GetType() == miopenFloat)
+        {
+            scale = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
+            shift = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
+        }
+        else
+        {
+            srand(0);
+            scale = tensor<T>{ssn, ssc, ssh, ssw};
+            shift = tensor<T>{ssn, ssc, ssh, ssw};
+            for(int i = 0; i < scale.desc.GetElementSize(); i++)
+            {
+                scale[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * T(rand() % 100);
+                shift[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * T(rand() % 100);
+            }
+            for(int i = 0; i < input.desc.GetElementSize(); i++)
+            {
+                input[i] = (((rand() % 2) == 1) ? -1 : 1) * (1e-4 * T(rand() % 100));
+            }
+        }
 
         // train
         auto outpair = verify(verify_forward_train_bn_per_activation<T>{input, scale, shift});

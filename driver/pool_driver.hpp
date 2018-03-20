@@ -316,7 +316,7 @@ template <typename Tgpu, typename Tref>
 int PoolDriver<Tgpu, Tref>::RunForwardGPU()
 {
 
-    Tgpu alpha = static_cast<Tgpu>(1), beta = static_cast<Tgpu>(0);
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     miopenPoolingForward(GetHandle(),
                          poolDesc,
@@ -375,7 +375,7 @@ int PoolDriver<Tgpu, Tref>::RunForwardCPU()
 template <typename Tgpu, typename Tref>
 int PoolDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    Tgpu alpha = static_cast<Tgpu>(1), beta = static_cast<Tgpu>(0);
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     miopenPoolingBackward(GetHandle(),
                           poolDesc,

@@ -33,6 +33,7 @@
 #include <miopen/miopen.h>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/visit_float.hpp>
 
 #define MIO_BN_CPP_PROF 0
 #define MIOPEN_BN_CPP_DEBUG 0
@@ -46,6 +47,7 @@ void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
                               miopenBatchNormMode_t bn_mode);
 
 void bnBwdTrainSelectSingle(Handle& handle,
+                            miopenDataType_t dtype,
                             std::string& program_name,
                             std::string& algo_name,
                             std::string& kernel_name,
@@ -66,6 +68,7 @@ void bnBwdTrainSelectSingle(Handle& handle,
                             float inhw);
 
 void bnBwdTrainSelectMulti(Handle& handle,
+                           miopenDataType_t dtype,
                            std::string& program_name,
                            std::string& algo_name,
                            std::string& kernel_name,
@@ -86,6 +89,7 @@ void bnBwdTrainSelectMulti(Handle& handle,
                            float inhw);
 
 void bnFwdTrainSelectSingle(Handle& handle,
+                            miopenDataType_t dtype,
                             std::string& program_name,
                             std::string& algo_name,
                             std::string& kernel_name,
@@ -108,6 +112,7 @@ void bnFwdTrainSelectSingle(Handle& handle,
                             float inhw);
 
 void bnFwdTrainSelectMulti(Handle& handle,
+                           miopenDataType_t dtype,
                            std::string& program_name,
                            std::string& algo_name,
                            std::string& kernel_name,
@@ -129,7 +134,7 @@ void bnFwdTrainSelectMulti(Handle& handle,
                            Data_t resultSaveInvVariance,
                            float inhw);
 
-void profileSequence(Handle& handle, unsigned char select);
+void profileSequence(Handle& handle, unsigned char select, float* ctime);
 
 void BatchNormForwardInference(Handle& handle,
                                miopenBatchNormMode_t bn_mode,
