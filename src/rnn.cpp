@@ -735,6 +735,12 @@ void RNNDescriptor::GetLayerParamOffset(const int layer,
                                         TensorDescriptor& paramDesc,
                                         size_t* paramOffset)
 {
+    if(!isNotRNNskip() && ((dirMode && layer <= 1 && paramID < nHiddenTensorsPerLayer) ||
+                           (!dirMode && layer < 1 && paramID < nHiddenTensorsPerLayer)))
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Parameter of input layer is null in input skip mode");
+    }
+
     // Get the dimensions of the parameter matrix
     auto pDims = pTensorLengthsCalculation(xDesc, layer, paramID);
     paramDesc  = miopen::TensorDescriptor(dataType, pDims.data(), 2);
@@ -762,6 +768,12 @@ void RNNDescriptor::GetLayerBiasOffset(const int layer,
                                        TensorDescriptor& biasDesc,
                                        size_t* biasOffset)
 {
+    if(!isNotRNNskip() && ((dirMode && layer <= 1 && biasID < nHiddenTensorsPerLayer) ||
+                           (!dirMode && layer < 1 && biasID < nHiddenTensorsPerLayer)))
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Bias of input layer is null in input skip mode");
+    }
+
     // Get the dimensions of the parameter matrix
     if(biasMode == miopenRNNNoBias)
     {
