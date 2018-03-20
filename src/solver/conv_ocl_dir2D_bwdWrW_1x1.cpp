@@ -389,7 +389,6 @@ ConvSolution ConvOclBwdWrW1x1::GetSolution(const ConvolutionContext& params) con
 
             result.construction_params.push_back(kernel);
         }
-
     }
     return result;
 }
