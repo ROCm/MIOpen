@@ -318,16 +318,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
             profileRNNkernels(handle, 1, ctime);
         }
 
-        int wn = 0;
         if(biasMode)
         {
-            wn = rnnMode == miopenGRU ? 1 : 2;
-            if(inputMode == miopenRNNskip && li == 0)
-            {
-                wei_shift_bias_temp = wei_shift_bias;
-                wn                  = rnnMode == miopenGRU ? 0 : 1;
-            }
-
             alpha0 = 1;
             alpha1 = 1;
             beta_t = 0;
@@ -339,7 +331,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
             w_desc     = miopen::TensorDescriptor(miopenFloat, w_size.data(), w_stride.data(), 3);
             sp_desc    = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
 
-            for(int bs = 0; bs < wn; bs++)
+            if(!(inputMode == miopenRNNskip && li == 0))
             {
                 OpTensor(handle,
                          miopenTensorOpAdd,
@@ -353,7 +345,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                          sp_desc,
                          workSpace,
                          hid_shift,
-                         wei_shift_bias_temp + bs * wei_stride,
+                         wei_shift_bias_temp,
                          hid_shift);
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
@@ -398,13 +390,19 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
             }
+        }
 
-            if(biasMode)
+        if(biasMode)
+        {
+            wei_shift_bias_temp += wei_stride;
+
+            alpha0 = 1;
+            alpha1 = 1;
+            beta_t = 0;
+
+            if(in_n[0] == in_n[seqLen - 1] && hx != nullptr)
             {
-                alpha0 = 1;
-                alpha1 = 1;
-                beta_t = 0;
-
+                sp_size[1] = batch_n;
                 sp_size[2] = wei_stride;
                 sp_desc =
                     miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
@@ -421,10 +419,94 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                          sp_desc,
                          workSpace,
                          hid_shift,
-                         wei_shift_bias_temp + wn * wei_stride,
+                         wei_shift_bias_temp,
                          hid_shift);
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
+            }
+            else
+            {
+                sp_size[1] = hx == nullptr ? (batch_n - in_n[0]) : batch_n;
+                sp_size[2] = wei_len;
+                sp_desc =
+                    miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
+                w_size[1] = 1;
+                w_size[2] = wei_len;
+                w_desc = miopen::TensorDescriptor(miopenFloat, w_size.data(), w_stride.data(), 3);
+
+                OpTensor(handle,
+                         miopenTensorOpAdd,
+                         &alpha0,
+                         sp_desc,
+                         workSpace,
+                         &alpha1,
+                         w_desc,
+                         w,
+                         &beta_t,
+                         sp_desc,
+                         workSpace,
+                         (hx == nullptr ? (hid_shift + in_n[0] * hy_stride) : hid_shift),
+                         wei_shift_bias_temp,
+                         (hx == nullptr ? (hid_shift + in_n[0] * hy_stride) : hid_shift));
+                // Update time
+                profileRNNkernels(handle, 1, ctime);
+
+                if(dirMode)
+                {
+                    if(in_n[0] == in_n[seqLen - 1])
+                    {
+                        OpTensor(handle,
+                                 miopenTensorOpAdd,
+                                 &alpha0,
+                                 sp_desc,
+                                 workSpace,
+                                 &alpha1,
+                                 w_desc,
+                                 w,
+                                 &beta_t,
+                                 sp_desc,
+                                 workSpace,
+                                 hid_shift + wei_len,
+                                 wei_shift_bias_temp + wei_len,
+                                 hid_shift + wei_len);
+                        // Update time
+                        profileRNNkernels(handle, 1, ctime);
+                    }
+                    else
+                    {
+                        int cur_batch = 0;
+                        for(int ti = 0; ti < seqLen; ti++)
+                        {
+                            if(!(hx == nullptr && ti == (seqLen - 1)))
+                            {
+                                offset = hid_shift + cur_batch * hy_stride;
+
+                                sp_size[1] = (ti == (seqLen - 1)) ? in_n[ti] : in_n[ti + 1];
+                                sp_size[2] = wei_len;
+                                sp_desc    = miopen::TensorDescriptor(
+                                    miopenFloat, sp_size.data(), sp_stride.data(), 3);
+
+                                OpTensor(handle,
+                                         miopenTensorOpAdd,
+                                         &alpha0,
+                                         sp_desc,
+                                         workSpace,
+                                         &alpha1,
+                                         w_desc,
+                                         w,
+                                         &beta_t,
+                                         sp_desc,
+                                         workSpace,
+                                         offset + wei_len,
+                                         wei_shift_bias_temp + wei_len,
+                                         offset + wei_len);
+                                // Update time
+                                profileRNNkernels(handle, 1, ctime);
+                            }
+                            cur_batch += in_n[ti];
+                        }
+                    }
+                }
             }
         }
 
