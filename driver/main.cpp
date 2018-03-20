@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
     Driver* drv;
     if(base_arg == "conv")
     {
-        drv = new ConvDriver<float, double>();
+        drv = new ConvDriver<float, float>();
     }
     else if(base_arg == "convfp16")
     {
@@ -120,30 +120,38 @@ int main(int argc, char* argv[])
     drv->AddCmdLineArgs();
     drv->ParseCmdLineArgs(argc, argv);
     drv->GetandSetData();
-
     drv->AllocateBuffersAndCopy();
 
-    if(drv->GetInputFlags().GetValueInt("forw") != 2)
-        drv->RunForwardGPU();
+    int fargval     = drv->GetInputFlags().GetValueInt("forw");
+    bool bnFwdInVer = (fargval == 2 && (base_arg == "bnorm"));
+    bool verifyarg  = (drv->GetInputFlags().GetValueInt("verify") == 1);
 
-    if(drv->GetInputFlags().GetValueInt("verify") == 1)
+    if((fargval != 2) || bnFwdInVer)
     {
-        if(base_arg == "gemm")
+        drv->RunForwardGPU();
+    }
+
+    if(verifyarg)
+    {
+        if(base_arg != "gemm")
         {
-            printf("GEMM verification done in the GEMM library\n");
+            if(fargval != 2 || bnFwdInVer)
+            {
+                drv->VerifyForward();
+            }
         }
         else
         {
-            drv->VerifyForward();
+            printf("GEMM verification done in the GEMM library\n");
         }
     }
 
-    if(drv->GetInputFlags().GetValueInt("forw") != 1)
+    if(fargval != 1)
     {
-        if(!(base_arg == "gemm"))
+        if(base_arg != "gemm")
         {
             drv->RunBackwardGPU();
-            if(drv->GetInputFlags().GetValueInt("verify") == 1)
+            if(verifyarg)
             {
                 drv->VerifyBackward();
             }

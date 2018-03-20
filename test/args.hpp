@@ -135,7 +135,8 @@ struct is_output_streamable : decltype(detail::is_output_streamable(
 template <class T>
 struct value_parser
 {
-    template <ARGS_REQUIRES(is_input_streamable<T>{} and not std::is_pointer<T>{})>
+    template <ARGS_REQUIRES(is_input_streamable<T>{} and not std::is_pointer<T>{} and
+                            not std::is_enum<T>{})>
     static T apply(const std::string& x)
     {
         T result;
@@ -146,13 +147,27 @@ struct value_parser
             throw std::runtime_error("Failed to parse: " + x);
         return result;
     }
+
+    template <ARGS_REQUIRES(std::is_enum<T>{})>
+    static T apply(const std::string& x)
+    {
+        std::ptrdiff_t i;
+        std::stringstream ss;
+        ss.str(x);
+        ss >> i;
+        if(ss.fail())
+            throw std::runtime_error("Failed to parse: " + x);
+        return static_cast<T>(i);
+    }
 };
 
 struct any_value
 {
     std::string s;
 
-    template <class T, class = decltype(value_parser<T>::apply(std::string{}))>
+    template <class T,
+              class = decltype(value_parser<T>::apply(std::string{})),
+              ARGS_REQUIRES(not std::is_enum<T>{})>
     operator T() const
     {
         return value_parser<T>::apply(s);
