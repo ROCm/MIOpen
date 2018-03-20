@@ -71,14 +71,15 @@ std::vector<float> generate_w_tensor(miopenRNNDescriptor_t rnnDesc,
                 int layer   = k % 2 + (k / 4) * 2;
                 int layerId = (k % 4 > 1) ? j + num_HiddenLayer : j;
 
-                if((inMode == miopenRNNskip) && (layer < 2) && (layerId < num_HiddenLayer))
-                {
-                    continue;
-                }
-
                 size_t paramSize = 0;
                 miopenGetRNNLayerParamSize(
                     &handle, rnnDesc, layer, inputTensor, layerId, &paramSize);
+
+                if((inMode == miopenRNNskip) && (layer < 2) && (layerId < num_HiddenLayer))
+                {
+                    EXPECT(paramSize == 0);
+                    continue;
+                }
 
                 paramSize /= sizeof(float);
 
@@ -101,13 +102,14 @@ std::vector<float> generate_w_tensor(miopenRNNDescriptor_t rnnDesc,
                     int layer   = k % 2 + (k / 4) * 2;
                     int layerID = (k % 4 > 1) ? j + num_HiddenLayer : j;
 
-                    if((inMode == miopenRNNskip) && (layer < 2) && (layerID < num_HiddenLayer))
-                    {
-                        continue;
-                    }
-
                     size_t biasSize = 0;
                     miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
+
+                    if((inMode == miopenRNNskip) && (layer < 2) && (layerID < num_HiddenLayer))
+                    {
+                        EXPECT(biasSize == 0);
+                        continue;
+                    }
 
                     biasSize /= sizeof(float);
 
@@ -124,13 +126,19 @@ std::vector<float> generate_w_tensor(miopenRNNDescriptor_t rnnDesc,
     {
         for(int layer = 0; layer < num_layer; layer++)
         {
-            int layerID = (inMode == miopenRNNskip && layer < 1) ? num_HiddenLayer : 0;
+            // int layerID = (inMode == miopenRNNskip && layer < 1) ? num_HiddenLayer : 0;
 
-            for(; layerID < num_HiddenLayer * 2; layerID++)
+            for(int layerID = 0; layerID < num_HiddenLayer * 2; layerID++)
             {
                 size_t paramSize = 0;
                 miopenGetRNNLayerParamSize(
                     &handle, rnnDesc, layer, inputTensor, layerID, &paramSize);
+
+                if((inMode == miopenRNNskip) && (layer < 1) && (layerID < num_HiddenLayer))
+                {
+                    EXPECT(paramSize == 0);
+                    continue;
+                }
 
                 paramSize /= sizeof(float);
 
@@ -147,13 +155,18 @@ std::vector<float> generate_w_tensor(miopenRNNDescriptor_t rnnDesc,
         {
             for(int layer = 0; layer < num_layer; layer++)
             {
-                int layerID = (inMode == miopenRNNskip && layer < 1) ? num_HiddenLayer : 0;
+                // int layerID = (inMode == miopenRNNskip && layer < 1) ? num_HiddenLayer : 0;
 
-                for(; layerID < num_HiddenLayer * 2; layerID++)
+                for(int layerID = 0; layerID < num_HiddenLayer * 2; layerID++)
                 {
-
                     size_t biasSize = 0;
                     miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
+
+                    if((inMode == miopenRNNskip) && (layer < 1) && (layerID < num_HiddenLayer))
+                    {
+                        EXPECT(biasSize == 0);
+                        continue;
+                    }
 
                     biasSize /= sizeof(float);
 
@@ -247,6 +260,7 @@ struct verify_w_tensor_get
                 size_t poffset = 0;
                 auto err       = miopenGetRNNLayerParamOffset(
                     rnnDesc, layer, inputTensor, layerID, paramTensor, &poffset);
+
                 if(err != miopenStatusSuccess)
                 {
                     std::cout << "Error in call to miopenGetRNNLayerParamOffset" << std::endl;
@@ -286,6 +300,7 @@ struct verify_w_tensor_get
                     miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
                     auto err = miopenGetRNNLayerBiasOffset(
                         rnnDesc, layer, inputTensor, layerID, biasTensor, &boffset);
+
                     if(err != miopenStatusSuccess)
                     {
                         std::cout << "Error in call to miopenGetRNNLayerBiasOffset" << std::endl;
