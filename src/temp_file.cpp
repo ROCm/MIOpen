@@ -2,7 +2,6 @@
 #include <miopen/errors.hpp>
 
 #include <unistd.h>
-
 namespace miopen {
 TempFile::TempFile(const std::string& path_template)
     : _path((GetTempDirectoryPath().path / (path_template + "-XXXXXX")).string())
