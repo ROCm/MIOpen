@@ -54,6 +54,12 @@ static boost::filesystem::path& exe_path()
     return exe_path;
 }
 
+static boost::optional<std::string>& thread_logs_root()
+{
+    static boost::optional<std::string> path = boost::none;
+    return path;
+}
+
 class Random
 {
     public:
@@ -183,6 +189,8 @@ class DbFindTest : public DbTest
     public:
     inline void Run() const
     {
+        std::cout << "Testing db for reading premade file by FindRecord..." << std::endl;
+
         std::ostringstream ss_vals;
         ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ','
                 << value1().y << ';' << id0() << ':' << value0().x << ',' << value0().y;
@@ -214,6 +222,8 @@ class DbStoreTest : public DbTest
     public:
     inline void Run() const
     {
+        std::cout << "Testing db for reading stored data..." << std::endl;
+
         (void)std::ofstream(temp_file_path());
 
         DbRecord record(key());
@@ -251,6 +261,8 @@ class DbUpdateTest : public DbTest
     public:
     inline void Run() const
     {
+        std::cout << "Testing db for updating existing records..." << std::endl;
+
         (void)std::ofstream(temp_file_path());
 
         // Store record0 (key=id0:value0)
@@ -301,6 +313,8 @@ class DbRemoveTest : public DbTest
     public:
     inline void Run() const
     {
+        std::cout << "Testing db for removing records..." << std::endl;
+
         (void)std::ofstream(temp_file_path());
 
         DbRecord record(key());
@@ -328,6 +342,8 @@ class DbReadTest : public DbTest
     public:
     inline void Run() const
     {
+        std::cout << "Testing db for reading premade file by Load..." << std::endl;
+
         std::ostringstream ss_vals;
         ss_vals << key().x << ',' << key().y << '=' << id1() << ':' << value1().x << ','
                 << value1().y << ';' << id0() << ':' << value0().x << ',' << value0().y;
@@ -353,6 +369,8 @@ class DbWriteTest : public DbTest
     public:
     inline void Run() const
     {
+        std::cout << "Testing db for storing unexistent records by update..." << std::endl;
+
         (void)std::ofstream(temp_file_path());
 
         {
@@ -384,6 +402,8 @@ class DbOperationsTest : public DbTest
     public:
     inline void Run() const
     {
+        std::cout << "Testing different db operations db..." << std::endl;
+
         (void)std::ofstream(temp_file_path()); // To suppress warning in logs.
 
         TestData to_be_rewritten(7, 8);
@@ -457,6 +477,8 @@ class DbParallelTest : public DbTest
     public:
     inline void Run() const
     {
+        std::cout << "Testing db for using two objects targeting one file existing in one scope..." << std::endl;
+
         {
             Db db(temp_file_path());
             EXPECT(db.Update(key(), id0(), value0()));
@@ -507,10 +529,36 @@ class DBMultiThreadedTestWork
         return ref;
     }
 
-    static inline void WorkItem(unsigned int id, const std::string& db_path)
+    static inline void WorkItem(unsigned int id, const std::string& db_path, const std::string& log_postfix)
     {
+        std::ofstream log;
+        std::ofstream log_err;
+        std::streambuf *cout_buf, *cerr_buf;
+
+        if (thread_logs_root())
+        {
+            const auto out_path = *thread_logs_root() + "/thread-" + std::to_string(id) + "_" + log_postfix + ".log";
+            const auto err_path = *thread_logs_root() + "/thread-" + std::to_string(id) + "_" + log_postfix + "-err.log";
+
+            std::remove(out_path.c_str());
+            std::remove(err_path.c_str());
+
+            log.open(out_path);
+            log_err.open(err_path);
+            cout_buf = std::cout.rdbuf();
+            cerr_buf = std::cerr.rdbuf();
+            std::cout.rdbuf(log.rdbuf());
+            std::cerr.rdbuf(log_err.rdbuf());
+        }
+
         CommonPart(db_path);
         UniquePart(id, db_path);
+
+        if (thread_logs_root())
+        {
+            std::cout.rdbuf(cout_buf);
+            std::cerr.rdbuf(cerr_buf);
+        }
     }
 
     static inline void ValidateCommonPart(const std::string& db_path)
@@ -532,11 +580,13 @@ class DBMultiThreadedTestWork
     private:
     static inline void CommonPart(const std::string& db_path)
     {
+        std::cout << "Common part. Section with common db instance." << std::endl;
         {
             Db db(db_path);
             CommonPartSection(0u, common_part_size / 2, [&db]() { return db; });
         }
 
+        std::cout << "Common part. Section with separate db instances." << std::endl;
         CommonPartSection(
             common_part_size / 2, common_part_size, [&db_path]() { return Db(db_path); });
     }
@@ -559,11 +609,13 @@ class DBMultiThreadedTestWork
     {
         Random rnd(123123 + id);
 
+        std::cout << "Unique part. Section with common db instance." << std::endl;
         {
             Db db(db_path);
             UniquePartSection(rnd, 0, unique_part_size / 2, [&db]() { return db; });
         }
 
+        std::cout << "Unique part. Section with separate db instances." << std::endl;
         UniquePartSection(
             rnd, unique_part_size / 2, unique_part_size, [&db_path]() { return Db(db_path); });
     }
@@ -610,9 +662,12 @@ class DbMultiThreadedTest : public DbTest
     public:
     inline void Run()
     {
+        std::cout << "Testing db for multithreaded access..." << std::endl;
+
         std::mutex mutex;
         std::vector<std::thread> threads;
 
+        std::cout << "Launching test threads..." << std::endl;
         threads.reserve(DBMultiThreadedTestWork::threads_count);
 
         {
@@ -622,13 +677,15 @@ class DbMultiThreadedTest : public DbTest
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
                 threads.emplace_back([this, &mutex, &id]() {
                     (void)std::unique_lock<std::mutex>(mutex);
-                    DBMultiThreadedTestWork::WorkItem(id++, temp_file_path());
+                    DBMultiThreadedTestWork::WorkItem(id++, temp_file_path(), "mt");
                 });
         }
 
+        std::cout << "Waiting for test threads..." << std::endl;
         for(auto& thread : threads)
             thread.join();
 
+        std::cout << "Validation results..." << std::endl;
         DBMultiThreadedTestWork::ValidateCommonPart(temp_file_path());
     }
 };
@@ -640,9 +697,12 @@ class DbMultiProcessTest : public DbTest
 
     inline void Run() const
     {
+        std::cout << "Testing db for multiprocess access..." << std::endl;
+
         std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
         const auto lock_file_path = LockFilePath(temp_file_path());
 
+        std::cout << "Launching test processes..." << std::endl;
         {
             auto& file_lock = LockFile::Get(lock_file_path.c_str());
             std::shared_lock<LockFile> lock(file_lock);
@@ -651,12 +711,17 @@ class DbMultiProcessTest : public DbTest
 
             for(auto& child : children)
             {
-                const auto command = exe_path().string() + " " + arg + " " + std::to_string(id++) +
+                auto command = exe_path().string() + " " + arg + " " + std::to_string(id++) +
                                      " " + temp_file_path().Path();
+
+                if (thread_logs_root())
+                    command += " " + *thread_logs_root();
+
                 child = popen(command.c_str(), "w");
             }
         }
 
+        std::cout << "Waiting for test processes..." << std::endl;
         for(auto child : children)
         {
             auto status          = pclose(child);
@@ -666,6 +731,7 @@ class DbMultiProcessTest : public DbTest
         }
 
         std::remove(lock_file_path.c_str());
+        std::cout << "Validation results..." << std::endl;
         DBMultiThreadedTestWork::ValidateCommonPart(temp_file_path());
     }
 
@@ -676,7 +742,7 @@ class DbMultiProcessTest : public DbTest
             std::lock_guard<LockFile> lock(file_lock);
         }
 
-        DBMultiThreadedTestWork::WorkItem(id, db_path);
+        DBMultiThreadedTestWork::WorkItem(id, db_path, "mp");
     }
 
     private:
@@ -688,8 +754,14 @@ class DbMultiProcessTest : public DbTest
 
 int main(int argsn, char** argsc)
 {
+    if (argsn >= 3 && argsc[1] == std::string("-thread-logs-root"))
+        miopen::tests::thread_logs_root() = argsc[2];
+
     if(argsn >= 4 && argsc[1] == std::string(miopen::tests::DbMultiProcessTest::arg))
     {
+        if (argsn >= 5)
+            miopen::tests::thread_logs_root() = argsc[4];
+
         miopen::tests::DbMultiProcessTest::WorkItem(strtol(argsc[2], nullptr, 10), argsc[3]);
         return 0;
     }
