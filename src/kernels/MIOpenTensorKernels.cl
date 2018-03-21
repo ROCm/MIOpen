@@ -730,9 +730,9 @@ __kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
                              const int b_nstride,
                              global MIOPEN_TYPE* c,
                              const int c_nstride,
-                             const float alpha0,
-                             const float alpha1,
-                             const float beta,
+                             const MIOPEN_TYPE alpha0,
+                             const MIOPEN_TYPE alpha1,
+                             const MIOPEN_TYPE beta,
                              const long Aoffset,
                              const long Boffset,
                              const long Coffset)
@@ -744,9 +744,9 @@ __kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
     int b_index = gid1 * b_nstride + gid0 * RD_BLCK;
     int c_index = gid1 * c_nstride + gid0 * RD_BLCK;
 
-    float a_dat[RD_BLCK];
-    float b_dat[RD_BLCK];
-    float c_dat[RD_BLCK];
+    MIOPEN_TYPE a_dat[RD_BLCK];
+    MIOPEN_TYPE b_dat[RD_BLCK];
+    MIOPEN_TYPE c_dat[RD_BLCK];
 
     *((READ_TYPE*)a_dat) = *((const global READ_TYPE*)(a + Aoffset + a_index));
     *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + Boffset + b_index));
@@ -883,12 +883,12 @@ __kernel void Op1dTensorGeneric(global MIOPEN_TYPE* a,
 __kernel void Op4dTensorLite(const global MIOPEN_TYPE* a,
                              const global MIOPEN_TYPE* b,
                              global MIOPEN_TYPE* c,
-                             const float alpha0,
-                             const float alpha1,
+                             const MIOPEN_TYPE alpha0,
+                             const MIOPEN_TYPE alpha1,
 #ifndef BETA
                              UNUSED
 #endif
-                             const float beta,
+                             const MIOPEN_TYPE beta,
                              const long Aoffset,
                              const long Boffset,
                              const long Coffset)
@@ -897,9 +897,9 @@ __kernel void Op4dTensorLite(const global MIOPEN_TYPE* a,
 
     int index = gid0 * RD_BLCK;
 
-    float a_dat[RD_BLCK];
-    float b_dat[RD_BLCK];
-    float c_dat[RD_BLCK];
+    MIOPEN_TYPE a_dat[RD_BLCK];
+    MIOPEN_TYPE b_dat[RD_BLCK];
+    MIOPEN_TYPE c_dat[RD_BLCK];
 
     *((READ_TYPE*)a_dat) = *((const global READ_TYPE*)(a + index + Aoffset));
     *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + index + Boffset));
