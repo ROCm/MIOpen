@@ -131,8 +131,8 @@ function(clang_tidy_check TARGET)
     # COMMAND ${CLANG_TIDY_COMMAND} $<JOIN:$<TARGET_PROPERTY:${TARGET},SOURCES>, >
     foreach(SOURCE ${SOURCES})
         if(NOT "${SOURCE}" MATCHES "(h|hpp|hxx)$")
-            set(tidy_target tidy-target-${TARGET}-${tidy_file})
             string(MAKE_C_IDENTIFIER "${SOURCE}" tidy_file)        
+            set(tidy_target tidy-target-${TARGET}-${tidy_file})
             add_custom_target(${tidy_target}
                 COMMAND ${CLANG_TIDY_COMMAND} ${SOURCE} "-export-fixes=${CLANG_TIDY_FIXIT_DIR}/${TARGET}-${tidy_file}.yaml"
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
