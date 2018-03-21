@@ -121,7 +121,6 @@ set( MIOpen_Source
     solver/conv_ocl_dir2D3x3.cpp
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd.cpp
-    solver/conv_ocl_dir2DfwdC.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
     )
 
@@ -149,8 +148,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenLRNFwd.cl
         kernels/MIOpenNeuron.cl
         kernels/MIOpenPooling.cl
-        kernels/MIOpenPoolingBwd.cl
-        kernels/MIOpenConvDirUniC.cl
+        kernels/MIOpenPoolingBwd.cl       
         kernels/MIOpenConv1x1S.cl
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
@@ -164,8 +162,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvBwdWrW_LxG_P53.cl
         kernels/MIOpenConvBwdWrW_LxG_5x5.cl
         kernels/MIOpenConvBwdWrW1x1_PAD_read4.cl
-        kernels/MIOpenConvBwdWrW1x1.cl
-        kernels/MIOpenConvBwdWrW1x1Mmap.cl
         kernels/MIOpenConvFwd_LxL_11.cl
         kernels/MIOpenConvFFT.cl
         kernels/bugzilla_34765_detect.s

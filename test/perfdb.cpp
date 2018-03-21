@@ -33,6 +33,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <atomic>
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -675,13 +676,13 @@ class DbMultiThreadedTest : public DbTest
         threads.reserve(DBMultiThreadedTestWork::threads_count);
 
         {
+            std::string p = temp_file_path();
             std::unique_lock<std::mutex> lock(mutex);
-            auto id = 0;
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
-                threads.emplace_back([this, &mutex, &id]() {
+                threads.emplace_back([p, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
-                    DBMultiThreadedTestWork::WorkItem(id++, temp_file_path(), "mt");
+                    DBMultiThreadedTestWork::WorkItem(i, p, "mt");
                 });
         }
 
