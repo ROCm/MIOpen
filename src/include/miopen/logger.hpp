@@ -242,16 +242,16 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 
 /// \todo __PRETTY_FUNCTION__ is too verbose, __func_ it too short.
 /// Shall we add filename (no path, no ext) prior __func__.
-#define MIOPEN_LOG(level, ...)                                                           \
-    do                                                                                   \
-    {                                                                                    \
-        if(miopen::IsLogging(level))                                                     \
-        {                                                                                \
-            std::stringstream ss;                                                        \
-            ss << miopen::PlatformName() << ": " << LoggingLevelToCString(level) << " [" \
-               << __func__ << "] " << __VA_ARGS__ << std::endl;                          \
-            std::cerr << ss.str();                                                       \
-        }                                                                                \
+#define MIOPEN_LOG(level, ...)                                                              \
+    do                                                                                      \
+    {                                                                                       \
+        if(miopen::IsLogging(level))                                                        \
+        {                                                                                   \
+            std::stringstream MIOPEN_LOG_ss;                                                \
+            MIOPEN_LOG_ss << miopen::PlatformName() << ": " << LoggingLevelToCString(level) \
+                          << " [" << __func__ << "] " << __VA_ARGS__ << std::endl;          \
+            std::cerr << MIOPEN_LOG_ss.str();                                               \
+        }                                                                                   \
     } while(false)
 
 #define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
