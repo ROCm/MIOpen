@@ -133,6 +133,17 @@ rocmtest opencl: rocmnode('vega') { cmake_build ->
     stage('Hip Release') {
         cmake_build('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
     }
+}, half_hip: rocmnode('vega') { cmake_build ->
+    stage('Half Hip Release') {
+        cmake_build('hcc', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
+    }
+}, half_opencl: rocmnode('vega') { cmake_build ->
+    stage('Half GCC Debug') {
+        cmake_build('g++-5', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug')
+    }
+    stage('Half GCC Release') {
+        cmake_build('g++-5', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
+    }
 // }, windows: rocmnode('fiji') { cmake_build ->
 //     stage('Windows Release') {
 //         cmake_build('x86_64-w64-mingw32-g++', '-DBUILD_DEV=On -DCMAKE_TOOLCHAIN_FILE=/usr/local/x86_64-w64-mingw32/cmake/toolchain.cmake -DCMAKE_BUILD_TYPE=release')
@@ -147,5 +158,9 @@ rocmtest opencl_all: rocmnode('vega') { cmake_build ->
 }, hip_all: rocmnode('vega') { cmake_build ->
     stage('Hip Release All') {
         cmake_build('hcc', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
+    }
+}, half_hip_all: rocmnode('vega') { cmake_build ->
+    stage('Half Hip Release All') {
+        cmake_build('hcc', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
 }
