@@ -655,7 +655,7 @@ class DBMultiThreadedTestWork
     {
         static std::array<TestData, common_part_size> data;
 
-        for(auto i = 0u; i < common_part_size; i++)
+        for(auto i  = 0u; i < common_part_size; i++)
             data[i] = TestData::Seeded<common_part_seed>();
 
         return data;
