@@ -504,8 +504,8 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMM(Handle& handle,
 size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMMTranspose(
     const TensorDescriptor& dyDesc, const TensorDescriptor& dxDesc) const
 {
-    size_t dx_t_size = dxDesc.GetElementSize() * sizeof(dxDesc.GetType());
-    size_t dy_t_size = dyDesc.GetElementSize() * sizeof(dyDesc.GetType());
+    size_t dx_t_size = dxDesc.GetElementSize() * GetTypeSize(dxDesc.GetType());
+    size_t dy_t_size = dyDesc.GetElementSize() * GetTypeSize(dyDesc.GetType());
 
     return dx_t_size + dy_t_size;
 }
