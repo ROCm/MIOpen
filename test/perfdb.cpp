@@ -1,28 +1,28 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2017 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 
 #include <array>
 #include <cstdio>
@@ -477,7 +477,8 @@ class DbParallelTest : public DbTest
     public:
     inline void Run() const
     {
-        std::cout << "Testing db for using two objects targeting one file existing in one scope..." << std::endl;
+        std::cout << "Testing db for using two objects targeting one file existing in one scope..."
+                  << std::endl;
 
         {
             Db db(temp_file_path());
@@ -529,16 +530,19 @@ class DBMultiThreadedTestWork
         return ref;
     }
 
-    static inline void WorkItem(unsigned int id, const std::string& db_path, const std::string& log_postfix)
+    static inline void
+    WorkItem(unsigned int id, const std::string& db_path, const std::string& log_postfix)
     {
         std::ofstream log;
         std::ofstream log_err;
         std::streambuf *cout_buf = nullptr, *cerr_buf = nullptr;
 
-        if (thread_logs_root())
+        if(thread_logs_root())
         {
-            const auto out_path = *thread_logs_root() + "/thread-" + std::to_string(id) + "_" + log_postfix + ".log";
-            const auto err_path = *thread_logs_root() + "/thread-" + std::to_string(id) + "_" + log_postfix + "-err.log";
+            const auto out_path =
+                *thread_logs_root() + "/thread-" + std::to_string(id) + "_" + log_postfix + ".log";
+            const auto err_path = *thread_logs_root() + "/thread-" + std::to_string(id) + "_" +
+                                  log_postfix + "-err.log";
 
             std::remove(out_path.c_str());
             std::remove(err_path.c_str());
@@ -554,7 +558,7 @@ class DBMultiThreadedTestWork
         CommonPart(db_path);
         UniquePart(id, db_path);
 
-        if (thread_logs_root())
+        if(thread_logs_root())
         {
             std::cout.rdbuf(cout_buf);
             std::cerr.rdbuf(cerr_buf);
@@ -650,7 +654,7 @@ class DBMultiThreadedTestWork
     {
         static std::array<TestData, common_part_size> data;
 
-        for(auto i  = 0u; i < common_part_size; i++)
+        for(auto i = 0u; i < common_part_size; i++)
             data[i] = TestData::Seeded<common_part_seed>();
 
         return data;
@@ -711,10 +715,10 @@ class DbMultiProcessTest : public DbTest
 
             for(auto& child : children)
             {
-                auto command = exe_path().string() + " " + arg + " " + std::to_string(id++) +
-                                     " " + temp_file_path().Path();
+                auto command = exe_path().string() + " " + arg + " " + std::to_string(id++) + " " +
+                               temp_file_path().Path();
 
-                if (thread_logs_root())
+                if(thread_logs_root())
                     command += " " + *thread_logs_root();
 
                 child = popen(command.c_str(), "w");
@@ -754,12 +758,12 @@ class DbMultiProcessTest : public DbTest
 
 int main(int argsn, char** argsc)
 {
-    if (argsn >= 3 && argsc[1] == std::string("-thread-logs-root"))
+    if(argsn >= 3 && argsc[1] == std::string("-thread-logs-root"))
         miopen::tests::thread_logs_root() = argsc[2];
 
     if(argsn >= 4 && argsc[1] == std::string(miopen::tests::DbMultiProcessTest::arg))
     {
-        if (argsn >= 5)
+        if(argsn >= 5)
             miopen::tests::thread_logs_root() = argsc[4];
 
         miopen::tests::DbMultiProcessTest::WorkItem(strtol(argsc[2], nullptr, 10), argsc[3]);

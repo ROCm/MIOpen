@@ -210,18 +210,18 @@ inline void* LogObjImpl(void* x) { return x; }
 inline const void* LogObjImpl(const void* x) { return x; }
 
 #ifndef _MSC_VER
-template <class T, typename std::enable_if < (std::is_pointer<T>{}), int > ::type = 0 >
+template <class T, typename std::enable_if<(std::is_pointer<T>{}), int>::type = 0>
 std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 {
     os << name << " = ";
-    if (x == nullptr)
+    if(x == nullptr)
         os << "nullptr";
     else
         os << LogObjImpl(x);
     return os;
 }
 
-template <class T, typename std::enable_if < (not std::is_pointer<T>{}), int > ::type = 0 >
+template <class T, typename std::enable_if<(not std::is_pointer<T>{}), int>::type = 0>
 std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 {
     os << name << " = " << get_object(x);
@@ -242,16 +242,16 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 
 /// \todo __PRETTY_FUNCTION__ is too verbose, __func_ it too short.
 /// Shall we add filename (no path, no ext) prior __func__.
-#define MIOPEN_LOG(level, ...)                                                                  \
-    do                                                                                          \
-    {                                                                                           \
-        if(miopen::IsLogging(level))                                                            \
-        {                                                                                       \
-            std::stringstream ss;                                                               \
-            ss << miopen::PlatformName() << ": " << LoggingLevelToCString(level) << " ["        \
-                      << __func__ << "] " << __VA_ARGS__ << std::endl;                          \
-            std::cerr << ss.str();                                                              \
-        }                                                                                       \
+#define MIOPEN_LOG(level, ...)                                                           \
+    do                                                                                   \
+    {                                                                                    \
+        if(miopen::IsLogging(level))                                                     \
+        {                                                                                \
+            std::stringstream ss;                                                        \
+            ss << miopen::PlatformName() << ": " << LoggingLevelToCString(level) << " [" \
+               << __func__ << "] " << __VA_ARGS__ << std::endl;                          \
+            std::cerr << ss.str();                                                       \
+        }                                                                                \
     } while(false)
 
 #define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
