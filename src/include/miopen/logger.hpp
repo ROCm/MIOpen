@@ -29,6 +29,7 @@
 #include <array>
 #include <iostream>
 #include <miopen/each_args.hpp>
+#include <sstream>
 #include <type_traits>
 
 // Helper macros to output a cmdline argument for the driver
@@ -209,18 +210,18 @@ inline void* LogObjImpl(void* x) { return x; }
 inline const void* LogObjImpl(const void* x) { return x; }
 
 #ifndef _MSC_VER
-template <class T, typename std::enable_if<(std::is_pointer<T>{}), int>::type = 0>
+template <class T, typename std::enable_if < (std::is_pointer<T>{}), int > ::type = 0 >
 std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 {
     os << name << " = ";
-    if(x == nullptr)
+    if (x == nullptr)
         os << "nullptr";
     else
         os << LogObjImpl(x);
     return os;
 }
 
-template <class T, typename std::enable_if<(not std::is_pointer<T>{}), int>::type = 0>
+template <class T, typename std::enable_if < (not std::is_pointer<T>{}), int > ::type = 0 >
 std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 {
     os << name << " = " << get_object(x);
@@ -246,8 +247,10 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
     {                                                                                           \
         if(miopen::IsLogging(level))                                                            \
         {                                                                                       \
-            std::cerr << miopen::PlatformName() << ": " << LoggingLevelToCString(level) << " [" \
+            std::stringstream ss;                                                               \
+            ss << miopen::PlatformName() << ": " << LoggingLevelToCString(level) << " ["        \
                       << __func__ << "] " << __VA_ARGS__ << std::endl;                          \
+            std::cerr << ss.str()                                                               \
         }                                                                                       \
     } while(false)
 
