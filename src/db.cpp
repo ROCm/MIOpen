@@ -148,7 +148,7 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
 
     if(!file)
     {
-        MIOPEN_LOG_W("File is unreadable.");
+        MIOPEN_LOG_W("File is unreadable: " << filename);
         return boost::none;
     }
 
@@ -168,8 +168,7 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
         {
             if(!line.empty()) // Do not blame empty lines.
             {
-                MIOPEN_LOG_E("Ill-formed record: key not found.");
-                MIOPEN_LOG_E(filename << "#" << n_line);
+                MIOPEN_LOG_E("Ill-formed record: key not found: " << filename << "#" << n_line);
             }
             continue;
         }
@@ -184,7 +183,7 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
 
         if(contents.empty())
         {
-            MIOPEN_LOG_E("None contents under the key: " << current_key);
+            MIOPEN_LOG_E("None contents under the key: " << current_key << " form file " << filename << "#" << n_line);
             continue;
         }
         MIOPEN_LOG_I("Contents found: " << contents);
@@ -194,9 +193,8 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
 
         if(!is_parse_ok)
         {
-            MIOPEN_LOG_E("Error parsing payload under the key: " << current_key);
-            MIOPEN_LOG_E(filename << "#" << n_line);
-            MIOPEN_LOG_E(contents);
+            MIOPEN_LOG_E("Error parsing payload under the key: " << current_key << " form file " << filename << "#" << n_line);
+            MIOPEN_LOG_E("Contents: " << contents);
         }
         // A record with matching key have been found.
         if(pos)
@@ -236,7 +234,7 @@ bool Db::FlushUnsafe(const DbRecord& record, const RecordPositions* pos)
 
         if(!file)
         {
-            MIOPEN_LOG_E("File is unwritable.");
+            MIOPEN_LOG_E("File is unwritable: " << filename);
             return false;
         }
 
@@ -245,20 +243,20 @@ bool Db::FlushUnsafe(const DbRecord& record, const RecordPositions* pos)
     }
     else
     {
-        const auto temp_name = filename + ".temp";
         std::ifstream from(filename, std::ios::ate);
 
         if(!from)
         {
-            MIOPEN_LOG_E("File is unreadable.");
+            MIOPEN_LOG_E("File is unreadable: " << filename);
             return false;
         }
 
+        const auto temp_name = filename + ".temp";
         std::ofstream to(temp_name);
 
         if(!to)
         {
-            MIOPEN_LOG_E("Temp file is unwritable.");
+            MIOPEN_LOG_E("Temp file is unwritable: " << temp_name);
             return false;
         }
 
