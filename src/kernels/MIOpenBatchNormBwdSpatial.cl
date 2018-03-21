@@ -335,7 +335,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     mean = variance = 0.;
 
 #pragma unroll
-    for(uint i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
+    for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         mean += lcl_mean[i];
         variance += lcl_variance[i];
@@ -426,7 +426,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
     ds = db = 0.;
 #pragma unroll
-    for(uint i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
+    for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         ds += lcl_ds[i];
         db += lcl_db[i];
@@ -602,7 +602,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
     mean = variance = 0.;
 #pragma unroll
-    for(uint i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
+    for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         mean += lcl_mean[i];
         variance += lcl_variance[i];
@@ -711,7 +711,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
     ds = db = 0.;
 #pragma unroll
-    for(uint i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
+    for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         ds += lcl_ds[i];
         db += lcl_db[i];
@@ -1056,7 +1056,7 @@ BatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
     dbias = dscale = 0.;
 
 #pragma unroll
-    for(uint i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
+    for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         dbias += lcl_db[i];
         dscale += lcl_ds[i];
@@ -1414,7 +1414,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
     mean = variance = 0.;
 
-    for(uint i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
+    for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         mean += lcl_mean[i];
         variance += lcl_variance[i];
@@ -1507,7 +1507,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
     ds = db = 0.;
 #pragma unroll
-    for(uint i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
+    for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         ds += lcl_ds[i];
         db += lcl_db[i];
