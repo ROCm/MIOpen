@@ -31,6 +31,12 @@
 namespace miopen {
 namespace solver {
 
+bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
+{
+    return (!(!params.direction.IsForward() &&
+              (params.kernel_stride0 > 2 || params.kernel_stride1 > 2)));
+}
+
 ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
                                            const LegacyPerformanceConfig& searched_params) const
 {
