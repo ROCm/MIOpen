@@ -147,7 +147,6 @@ static inline void ReduceKernel(__local _FLOAT* lcl_mem,
     _FLOAT sum              = (_FLOAT)0;
     unsigned int lcl_offset = unit_id * unit_len;
 
-#pragma unroll
     for(unsigned int i = 0; i < unit_len; i += sum_stride)
     {
         sum += lcl_mem[lcl_offset + i];
@@ -275,7 +274,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     // == RECALC MEAN AND VARIANCE ===========
     if(lid < MIO_BN_SEGMENT)
     {
-#pragma unroll
+
         for(unsigned int n = 0; n < MIO_BN_NLOOPM; ++n)
         {
             nid            = n * MIO_BN_SEGIHW + lidihw;
@@ -334,7 +333,6 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
     mean = variance = 0.;
 
-#pragma unroll
     for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         mean += lcl_mean[i];
@@ -353,7 +351,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     //==== CALC DB and DS =========================================
     if(lid < MIO_BN_SEGMENT)
     {
-#pragma unroll
+
         for(unsigned int n = 0; n < MIO_BN_NLOOPM; ++n)
         {
             nid         = n * MIO_BN_SEGIHW + lidihw;
@@ -425,7 +423,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     ds = db = 0.;
-#pragma unroll
+
     for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         ds += lcl_ds[i];
@@ -437,7 +435,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     {
         //==== CALC NORM =======================
         pscale = lbns;
-#pragma unroll
+
         for(unsigned int n = 0; n < MIO_BN_NLOOPM; n++)
         { // apply normalization
             nid           = n * MIO_BN_SEGIHW + lidihw;
@@ -527,7 +525,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #if(MIO_BN_USESAVED == 0)
     //==== CALC MEAN and VARIANCE ONCE AGAIN =======================
     _FLOAT variance = (_FLOAT)0.;
-#pragma unroll
+
     for(unsigned int k = lid, lesskey = 0; k < MIO_BN_LESS; k += MIO_BN_GRP1, ++lesskey)
     {
         nidx           = k / MIO_BN_HW;
@@ -601,7 +599,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     mean = variance = 0.;
-#pragma unroll
+
     for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         mean += lcl_mean[i];
@@ -625,7 +623,6 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #endif
 
-#pragma unroll
     for(unsigned int k = lid, lesskey = 0; k < MIO_BN_LESS; k += MIO_BN_GRP1, ++lesskey)
     {
         nidx              = k / MIO_BN_HW;
@@ -710,7 +707,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     ds = db = 0.;
-#pragma unroll
+
     for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         ds += lcl_ds[i];
@@ -723,7 +720,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     _FLOAT tmp1 = 0.;
     _FLOAT tmp2 = 0.;
     _FLOAT tmp3 = 0.;
-#pragma unroll
+
     for(unsigned int k = lid, lesskey = 0; k < MIO_BN_LESS; k += MIO_BN_GRP1, ++lesskey)
     {
         nidx              = k / MIO_BN_HW;
@@ -869,7 +866,6 @@ BatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbuff,
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
     mean = variance = 0.;
 
-#pragma unroll
     for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         variance += lcl_variance[i];
@@ -909,7 +905,7 @@ BatchNormBwdSpatialMeanVariance(const __global _FLOAT* __restrict in,
 
     if(ygid < MIO_BN_HW)
     {
-#pragma unroll
+
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         {
             index = n * MIO_BN_CHW + cidx + ygid;
@@ -935,7 +931,6 @@ BatchNormBwdSpatialMeanVariance(const __global _FLOAT* __restrict in,
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
     mean = variance = 0.;
 
-#pragma unroll
     for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         mean += lcl_mean[i];
@@ -1026,7 +1021,7 @@ BatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
     {
         mean   = lmean;
         invVar = livar;
-#pragma unroll
+
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         {
             index = n * MIO_BN_CHW + cidx + ygid;
@@ -1055,7 +1050,6 @@ BatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
     dbias = dscale = 0.;
 
-#pragma unroll
     for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         dbias += lcl_db[i];
@@ -1116,7 +1110,6 @@ BatchNormBwdSpatialFinalDScaleDBias(__global _FLOAT* buff,
     unsigned int yngrps  = get_num_groups(1);
     int cidx             = MIO_BN_HW * xgid;
 
-#pragma unroll
     for(int gn = 0; gn < MIO_BN_NGRPS; gn++)
     {
         unsigned int offset = gn * ygrp_sz + lid;
@@ -1146,7 +1139,7 @@ BatchNormBwdSpatialFinalDScaleDBias(__global _FLOAT* buff,
     commitID = 0;
 #else
     ds = (_FLOAT)0.;
-#pragma unroll
+
     for(int i = 0; i < MIO_BN_NGRPS; i++)
     {
         ds += lcl_data[i];
@@ -1169,7 +1162,7 @@ BatchNormBwdSpatialFinalDScaleDBias(__global _FLOAT* buff,
     regLDSreduce(&db, lcl_data, lid, 1.);
 #else //(MIO_BN_NGRPS <= 16)
     db = (_FLOAT)0.;
-#pragma unroll
+
     for(int i = 0; i < MIO_BN_NGRPS; i++)
     {
         db += lcl_data[i];
@@ -1191,7 +1184,6 @@ BatchNormBwdSpatialFinalDScaleDBias(__global _FLOAT* buff,
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
     ds = db = 0.;
 
-#pragma unroll
     for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         ds += lcl_ds[i];
@@ -1264,7 +1256,6 @@ BatchNormBwdSpatialDX(const __global _FLOAT* x_in,
         dscale = ldscale;
         dbias  = ldbias;
 
-#pragma unroll
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         { // apply normalization
             index         = n * MIO_BN_CHW + cidx + ygid;
@@ -1506,7 +1497,7 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     ds = db = 0.;
-#pragma unroll
+
     for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         ds += lcl_ds[i];
