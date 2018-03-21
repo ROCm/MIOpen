@@ -1202,7 +1202,7 @@ int BatchNormDriver<Tgpu, Tref>::VerifyForward()
                     << "Forward train batch norm verification failed on saved inverse variance: "
                     << errorSaveVar << "\n";
                 anError = true;
-#if(MIO_BN_DEBUG == 1)
+                //#if(MIO_BN_DEBUG == 1)
                 for(int i = 0; i < saveInvVariance.size() && i < saveInvVariance_host.size() &&
                                i < MIO_BN_MAX_DEBUGLOOP;
                     i++)
@@ -1217,7 +1217,7 @@ int BatchNormDriver<Tgpu, Tref>::VerifyForward()
                                   << std::endl;
                     }
                 }
-#endif
+                //#endif
             }
             else
             {
