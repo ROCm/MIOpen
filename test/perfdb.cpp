@@ -533,7 +533,7 @@ class DBMultiThreadedTestWork
     {
         std::ofstream log;
         std::ofstream log_err;
-        std::streambuf *cout_buf, *cerr_buf;
+        std::streambuf *cout_buf = nullptr, *cerr_buf = nullptr;
 
         if (thread_logs_root())
         {

@@ -250,7 +250,7 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
             std::stringstream ss;                                                               \
             ss << miopen::PlatformName() << ": " << LoggingLevelToCString(level) << " ["        \
                       << __func__ << "] " << __VA_ARGS__ << std::endl;                          \
-            std::cerr << ss.str()                                                               \
+            std::cerr << ss.str();                                                              \
         }                                                                                       \
     } while(false)
 
