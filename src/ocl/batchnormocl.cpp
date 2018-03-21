@@ -297,10 +297,7 @@ void BatchNormForwardTraining(Handle& handle,
                         kernels[0](x, y);
                         profileSequence(handle, 0, &ctime);
 
-                        kernels[1](x,
-                                   y,
-                                   bnScale,
-                                   bnBias,
+                        kernels[1](y,
                                    as_float(inhw),
                                    expAvgFactor,
                                    resultRunningMean,
@@ -308,6 +305,9 @@ void BatchNormForwardTraining(Handle& handle,
                                    epsilon,
                                    resultSaveMean,
                                    resultSaveInvVariance);
+                        profileSequence(handle, 1, &ctime);
+
+                        kernels[2](x, y, bnScale, bnBias);
                         profileSequence(handle, 2, &ctime);
                     }
                     else if(resultsave)
@@ -315,14 +315,11 @@ void BatchNormForwardTraining(Handle& handle,
                         kernels[0](x, y);
                         profileSequence(handle, 0, &ctime);
 
-                        kernels[1](x,
-                                   y,
-                                   bnScale,
-                                   bnBias,
-                                   as_float(inhw),
-                                   epsilon,
-                                   resultSaveMean,
-                                   resultSaveInvVariance);
+                        kernels[1](
+                            y, as_float(inhw), epsilon, resultSaveMean, resultSaveInvVariance);
+                        profileSequence(handle, 1, &ctime);
+
+                        kernels[2](x, y, bnScale, bnBias);
                         profileSequence(handle, 2, &ctime);
                     }
                     else if(resultrunning)
@@ -331,15 +328,15 @@ void BatchNormForwardTraining(Handle& handle,
                         kernels[0](x, y);
                         profileSequence(handle, 0, &ctime);
 
-                        kernels[1](x,
-                                   y,
-                                   bnScale,
-                                   bnBias,
+                        kernels[1](y,
                                    as_float(inhw),
                                    expAvgFactor,
                                    resultRunningMean,
                                    resultRunningVariance,
                                    epsilon);
+                        profileSequence(handle, 1, &ctime);
+
+                        kernels[2](x, y, bnScale, bnBias);
                         profileSequence(handle, 2, &ctime);
                     }
                     else
@@ -347,7 +344,10 @@ void BatchNormForwardTraining(Handle& handle,
                         kernels[0](x, y);
                         profileSequence(handle, 0, &ctime);
 
-                        kernels[1](x, y, bnScale, bnBias, as_float(inhw), epsilon);
+                        kernels[1](y, as_float(inhw), epsilon);
+                        profileSequence(handle, 1, &ctime);
+
+                        kernels[2](x, y, bnScale, bnBias);
                         profileSequence(handle, 2, &ctime);
                     }
                 });
