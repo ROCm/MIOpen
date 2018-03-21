@@ -44,12 +44,6 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
-bool mlo_construct_direct2D::mloIsCompilerWorkarounds() const
-{
-    bool ret = false;
-    return ret;
-}
-
 /************************************************************************************************************************
  **
  **			CONSTRUCT CONVOLUTIONAL LAYER
@@ -75,7 +69,6 @@ miopen::solver::ConvSolution mlo_construct_direct2D::FindSolution()
         miopen::solver::ConvOclDirectFwdGen,
         miopen::solver::ConvOclDirectFwd3x3,
         miopen::solver::ConvOclDirectFwd1x1,
-        miopen::solver::ConvOclDirectFwdC,
         miopen::solver::ConvOclDirectFwd
     >(_search_params, this->GetDb());
     // clang-format on
@@ -271,20 +264,6 @@ void mlo_construct_direct2D::setupRocm()
             !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
 #endif
     }
-}
-
-bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
-{
-    bool ret =
-        (_search_params.in_height == 227 && _search_params.in_width == 227 &&
-         (_search_params.n_inputs & 0x3) > 0 && _search_params.kernel_size0 == 3 &&
-         _search_params.kernel_size1 == 3 && _search_params.pad0 == 1 && _search_params.pad1 == 1 &&
-         _search_params.kernel_stride0 == 1 && _search_params.kernel_stride1 == 1) ||
-        (_search_params.in_height == 231 && _search_params.in_width == 231 &&
-         _search_params.n_inputs == 1 && _search_params.kernel_size0 == 3 &&
-         _search_params.kernel_size1 == 3 && _search_params.pad0 == 1 && _search_params.pad1 == 1 &&
-         _search_params.kernel_stride0 == 1 && _search_params.kernel_stride1 == 1);
-    return ret;
 }
 
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3U() const

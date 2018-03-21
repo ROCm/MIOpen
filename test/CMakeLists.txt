@@ -27,8 +27,10 @@
 cmake_policy(SET CMP0057 NEW)
 
 include(CTest)
+include(CheckCXXCompilerFlag)
 
 option( MIOPEN_TEST_ALL "Run the full test suite" OFF )
+option( MIOPEN_TEST_HALF "Test in half mode" OFF )
 option(MIOPEN_TEST_CONV Off)
 option(MIOPEN_TEST_DEEPBENCH Off)
 
@@ -39,7 +41,13 @@ find_package(Threads REQUIRED)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C ${CMAKE_CFG_INTDIR})
 add_custom_target(tests)
 
-# set(SKIP_TESTS test_gru)
+set(SKIP_TESTS)
+set(MIOPEN_TEST_FLOAT_ARG)
+
+if(MIOPEN_TEST_HALF)
+    set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm)
+    set(MIOPEN_TEST_FLOAT_ARG --half)
+endif()
 
 function(add_test_command NAME EXE)
     if(NAME IN_LIST SKIP_TESTS)
@@ -83,9 +91,9 @@ function(add_test_executable TEST_NAME)
     endif()
     separate_arguments(MIOPEN_TEST_FLAGS_ARGS UNIX_COMMAND ${MIOPEN_TEST_FLAGS})
     if(MIOPEN_TEST_ALL)
-        set(TEST_COMMAND ${TEST_NAME} --all ${MIOPEN_TEST_FLAGS_ARGS})
+        set(TEST_COMMAND ${TEST_NAME} ${MIOPEN_TEST_FLOAT_ARG} --all ${MIOPEN_TEST_FLAGS_ARGS})
     else()
-        set(TEST_COMMAND ${TEST_NAME} ${MIOPEN_TEST_FLAGS_ARGS})
+        set(TEST_COMMAND ${TEST_NAME} ${MIOPEN_TEST_FLOAT_ARG} ${MIOPEN_TEST_FLAGS_ARGS})
     endif()
     add_test_command(${TEST_NAME} ${TEST_COMMAND})
     add_dependencies(tests ${TEST_NAME})
@@ -97,16 +105,38 @@ function(add_test_executable TEST_NAME)
         debug ${Boost_FILESYSTEM_LIBRARY_DEBUG}
         debug ${Boost_SYSTEM_LIBRARY_DEBUG}
     )
+    target_link_libraries(${TEST_NAME} MIOpen)
+    target_include_directories(${TEST_NAME} SYSTEM PUBLIC ${HALF_INCLUDE_DIR})
 endfunction(add_test_executable)
+
+set(MIOPEN_TEST_SANITIZERS)
+foreach(SANTIZER address thread)
+    check_cxx_compiler_flag("-fsanitize=${SANTIZER} -fno-sanitize-recover=${SANTIZER}" MIOPEN_HAS_${SANTIZER})
+    if(MIOPEN_HAS_${SANTIZER})
+        list(APPEND MIOPEN_TEST_SANITIZERS ${SANTIZER})
+    endif()
+endforeach()
+
+function(add_sanitize_test TEST_SOURCE)
+    get_filename_component(BASE_NAME ${TEST_SOURCE} NAME_WE)
+    foreach(SANTIZER ${MIOPEN_TEST_SANITIZERS})
+        add_test_executable(test_${BASE_NAME}_${SANTIZER} ${TEST_SOURCE})
+        target_compile_options(test_${BASE_NAME}_${SANTIZER} PUBLIC -fsanitize=${SANTIZER} -fno-sanitize-recover=${SANTIZER})
+        target_link_libraries(test_${BASE_NAME}_${SANTIZER} -fsanitize=${SANTIZER} -fno-sanitize-recover=${SANTIZER})
+    endforeach()
+endfunction()
 
 file(GLOB TESTS *.cpp)
 
 foreach(TEST ${TESTS})
     get_filename_component(BASE_NAME ${TEST} NAME_WE)
     add_test_executable(test_${BASE_NAME} ${TEST})
-    target_link_libraries(test_${BASE_NAME} MIOpen)
-    target_include_directories(test_${BASE_NAME} SYSTEM PUBLIC ${HALF_INCLUDE_DIR})
 endforeach()
+
+# add_sanitize_test(perfdb.cpp)
+add_sanitize_test(cache.cpp)
+add_sanitize_test(tensor_test.cpp)
+add_sanitize_test(type_name.cpp)
 
 function(add_custom_test NAME)
     set(options ALL)
