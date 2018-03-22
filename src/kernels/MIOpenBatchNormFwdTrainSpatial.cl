@@ -144,8 +144,7 @@ static inline void ReduceKernel(__local _FLOAT* lcl_mem,
     _FLOAT sum              = (_FLOAT)0.;
     unsigned int lcl_offset = unit_id * unit_len;
 
-#pragma unroll
-    for(unsigned int i = 0; i < unit_len; i += sum_stride)
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int i = 0; i < unit_len; i += sum_stride)
     {
         sum += lcl_mem[lcl_offset + i];
     }
@@ -258,8 +257,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
     if(lid < MIO_BN_SEGMENT)
     {
-#pragma unroll
-        for(unsigned int n = 0; n < MIO_BN_NLOOPM; ++n)
+        __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_NLOOPM; ++n)
         {
             nid            = n * MIO_BN_SEGIHW + lidihw;
             index          = nid * MIO_BN_CHW + chwid;
@@ -321,8 +319,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     mean = variance = 0.;
-#pragma unroll
-    for(uint i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         mean += lcl_mean[i];
         variance += lcl_variance[i];
@@ -342,8 +339,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         //==== CALC NORM =======================
         _FLOAT inhat = 0.;
 
-#pragma unroll
-        for(unsigned int n = 0; n < MIO_BN_NLOOPM; n++)
+        __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_NLOOPM; n++)
         { // apply normalization
             inhat      = (batchvalues[n] - mean) * invVariance;
             nid        = n * MIO_BN_SEGIHW + lidihw;
@@ -439,8 +435,8 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-#pragma unroll
-    for(unsigned int k = lid, lesskey = 0; k < MIO_BN_LESS; k += MIO_BN_GRP1, ++lesskey)
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid, lesskey = 0; k < MIO_BN_LESS;
+                                               k += MIO_BN_GRP1, ++lesskey)
     {
         nidx           = k / MIO_BN_HW;
         hwidx          = k - (nidx * MIO_BN_HW);
@@ -512,8 +508,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     mean = variance = 0.;
-#pragma unroll
-    for(uint i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         mean += lcl_mean[i];
         variance += lcl_variance[i];
@@ -528,8 +523,8 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     pvscale = lcl_scale;
     pvbias  = lcl_bias;
 
-#pragma unroll
-    for(unsigned int k = lid, lesskey = 0; k < MIO_BN_LESS; k += MIO_BN_GRP1, ++lesskey)
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid, lesskey = 0; k < MIO_BN_LESS;
+                                               k += MIO_BN_GRP1, ++lesskey)
     {
         nidx       = k / MIO_BN_HW;
         hwidx      = k - (nidx * MIO_BN_HW);
@@ -623,8 +618,7 @@ BatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
         invVariance = lcl_ivar;
         pvt_scale   = lcl_scale;
         pvt_bias    = lcl_bias;
-#pragma unroll
-        for(unsigned int n = 0; n < MIO_BN_N; n++)
+        __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_N; n++)
         { // apply normalization
             index        = n * MIO_BN_CHW + cidx + ygid;
             _FLOAT inhat = (*(in + index) - mean) * invVariance;
@@ -697,8 +691,7 @@ BatchNormFwdTrainSpatialFinalMeanVariance(
     commitID = 0;
 #else
     mean = (_FLOAT)0.;
-#pragma unroll
-    for(int i = 0; i < MIO_BN_NGRPS; i++)
+    __attribute__((opencl_unroll_hint(2))) for(int i = 0; i < MIO_BN_NGRPS; i++)
     {
         mean += lcl_data[i];
     }
@@ -722,8 +715,7 @@ BatchNormFwdTrainSpatialFinalMeanVariance(
     regLDSreduce(&variance, lcl_data, lid, (_FLOAT)INHW);
 #else //(MIO_BN_NGRPS <= 16)
     variance = (_FLOAT)0.;
-#pragma unroll
-    for(int i = 0; i < MIO_BN_NGRPS; i++)
+    __attribute__((opencl_unroll_hint(2))) for(int i = 0; i < MIO_BN_NGRPS; i++)
     {
         variance += lcl_data[i];
     }
@@ -736,35 +728,25 @@ BatchNormFwdTrainSpatialFinalMeanVariance(
     __local _FLOAT lcl_variance[MIO_BN_LDSGCN_SIZE];
 
     dppSimpleRedNoBcast64(&mean);
-    if((lid % 64) == 63)
-    {
-        lcl_mean[ldsidx] = mean;
-    }
-    barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
-    mean = 0.;
-
-#pragma unroll
-    for(uint i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
-    {
-        mean += lcl_mean[i];
-    }
-    mean *= (_FLOAT)INHW;
-
     dppSimpleRedNoBcast64(&variance);
     if((lid % 64) == 63)
     {
+        lcl_mean[ldsidx]     = mean;
         lcl_variance[ldsidx] = variance;
     }
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
-    variance = 0.;
-#pragma unroll
-    for(uint i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
+    mean = variance = 0.;
+
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
+        mean += lcl_mean[i];
         variance += lcl_variance[i];
     }
+    mean *= (_FLOAT)INHW;
     variance *= (_FLOAT)INHW;
-
 #endif
+    barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
+    variance    = mad(-mean, mean, variance);
     invVariance = rsqrt(variance + epsilon);
     if(lid == commitID)
     {
@@ -819,8 +801,7 @@ BatchNormFwdTrainSpatialMeanVariance(const __global _FLOAT* __restrict in,
 
     if(ygid < MIO_BN_HW)
     {
-#pragma unroll
-        for(unsigned int n = 0; n < MIO_BN_N; n++)
+        __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_N; n++)
         {
             index = n * MIO_BN_CHW + cidx + ygid;
             value = *(in + index);
@@ -845,8 +826,7 @@ BatchNormFwdTrainSpatialMeanVariance(const __global _FLOAT* __restrict in,
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
     mean = variance = 0.;
 
-#pragma unroll
-    for(uint i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         mean += lcl_mean[i];
         variance += lcl_variance[i];
@@ -935,8 +915,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     // MEAN
     if(lid < MIO_BN_HW)
     {
-#pragma unroll
-        for(unsigned int n = 0; n < MIO_BN_N; n++)
+        __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_N; n++)
         {
             index        = n * MIO_BN_CHW + xgid * MIO_BN_HW + lid;
 #if(MIO_BN_N < MIO_BN_MAXN)
@@ -983,13 +962,8 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     __local _FLOAT lcl_mean[MIO_BN_LDSGCN_SIZE];
     __local _FLOAT lcl_variance[MIO_BN_LDSGCN_SIZE];
 
-#if(MIO_BN_HW == 1024)
-    dppSimpleRedBcast64(&mean);
-    dppSimpleRedBcast64(&variance);
-#else
     dppSimpleRedNoBcast64(&mean);
     dppSimpleRedNoBcast64(&variance);
-#endif
 
     if((lid % 64) == 63)
     {
@@ -1003,8 +977,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     mean = variance = 0.;
-#pragma unroll
-    for(uint i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         mean += lcl_mean[i];
         variance += lcl_variance[i];
@@ -1024,7 +997,6 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         pvscale = lcl_scale;
         pvbias  = lcl_bias;
 
-#pragma unroll
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         { // apply normalization
             index      = n * MIO_BN_CHW + xgid * MIO_BN_HW + lid;
