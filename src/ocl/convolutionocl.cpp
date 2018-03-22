@@ -120,128 +120,125 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
 }
 
 int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
-	const TensorDescriptor& xDesc,
-	const TensorDescriptor& wDesc,
-	const TensorDescriptor& yDesc,
-	std::vector<KernelInvoke>& kernels,
-	bool exhaustiveSearch,
-	int direction) const
+                                            const TensorDescriptor& xDesc,
+                                            const TensorDescriptor& wDesc,
+                                            const TensorDescriptor& yDesc,
+                                            std::vector<KernelInvoke>& kernels,
+                                            bool exhaustiveSearch,
+                                            int direction) const
 {
 
-	if (!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
-		return -1;
+    if(!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+        return -1;
 
-	mlo_construct_direct2D construct_params(direction);
-	construct_params.doSearch(exhaustiveSearch);
-	construct_params.saveSearchRequest(true);
+    mlo_construct_direct2D construct_params(direction);
+    construct_params.doSearch(exhaustiveSearch);
+    construct_params.saveSearchRequest(true);
 
-	construct_params.setGeneralCompOptions("");
+    construct_params.setGeneralCompOptions("");
 
-	construct_params.setStream(&handle);
+    construct_params.setStream(&handle);
 
-	construct_params.setOutputDescFromMLDesc(yDesc);
-	construct_params.setInputDescFromMLDesc(xDesc);
-	construct_params.setWeightDescFromMLDesc(wDesc);
+    construct_params.setOutputDescFromMLDesc(yDesc);
+    construct_params.setInputDescFromMLDesc(xDesc);
+    construct_params.setWeightDescFromMLDesc(wDesc);
 
-	construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+    construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-	if ((IsWinograd3x3Supported(handle, direction, wDesc, (direction ? xDesc : yDesc)) &&
-		construct_params.mloIsFastBinaryWinograd3x3U()))
-	{
-		return -1;
-	}
+    if((IsWinograd3x3Supported(handle, direction, wDesc, (direction ? xDesc : yDesc)) &&
+        construct_params.mloIsFastBinaryWinograd3x3U()))
+    {
+        return -1;
+    }
 
+    try
+    {
 
-	try
-	{
+        std::string program_name = construct_params.getKernelFile();
+        std::string kernel_name  = construct_params.getKernelName();
+        std::string parms        = construct_params.getCompilerOptions();
 
+        std::string network_config;
+        construct_params.mloBuildConf_Key(network_config);
 
-		std::string program_name = construct_params.getKernelFile();
-		std::string kernel_name = construct_params.getKernelName();
-		std::string parms = construct_params.getCompilerOptions();
+        const std::vector<size_t>& vld = construct_params.getLocalWkSize();
+        const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
 
-		std::string network_config;
-		construct_params.mloBuildConf_Key(network_config);
+        std::string algorithm = (direction == 1) ? "miopenConvolutionFwdAlgoDirect"
+                                                 : "miopenConvolutionBwdDataAlgoDirect";
 
-		const std::vector<size_t>& vld = construct_params.getLocalWkSize();
-		const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
+        // if not 11x11
+        if(program_name != "MIOpenConvFwd_LxL_11.cl")
+        {
 
-		std::string algorithm =
-			(direction == 1) ? "miopenConvolutionFwdAlgoDirect" : "miopenConvolutionBwdDataAlgoDirect";
+            auto k = handle.AddKernel(
+                algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
 
-		// if not 11x11
-		if (program_name != "MIOpenConvFwd_LxL_11.cl")
-		{
+            kernels.push_back(k);
+        }
+        else
+        {
+            const std::vector<mlo_kernel_info>& bwd_wrw_info = construct_params.getKernelsInfo();
+            /*
+            * get info for all kernels of the layer
+            * std::string _kernel_name;
+            * std::string _kernel_file;
+            * std::string _comp_options;
+            * std::vector<size_t> _g_wk;
+            * std::vector<size_t> _l_wk;
+            */
 
-			auto k =
-				handle.AddKernel(algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
+            if(bwd_wrw_info.size() == 1)
+            {
+                const mlo_kernel_info& bwd_wrw = bwd_wrw_info[0];
 
-			kernels.push_back(k);
-		}
-		else
-		{
-			const std::vector<mlo_kernel_info>& bwd_wrw_info = construct_params.getKernelsInfo();
-			/*
-			* get info for all kernels of the layer
-			* std::string _kernel_name;
-			* std::string _kernel_file;
-			* std::string _comp_options;
-			* std::vector<size_t> _g_wk;
-			* std::vector<size_t> _l_wk;
-			*/
+                auto k1 = handle.AddKernel(algorithm,
+                                           network_config,
+                                           std::get<1>(bwd_wrw),
+                                           std::get<0>(bwd_wrw),
+                                           std::get<4>(bwd_wrw),
+                                           std::get<3>(bwd_wrw),
+                                           std::get<2>(bwd_wrw));
 
-			if (bwd_wrw_info.size() == 1)
-			{
-				const mlo_kernel_info& bwd_wrw = bwd_wrw_info[0];
+                kernels.push_back(k1);
+            }
+            else
+            {
+                auto bwd_wrw_main = bwd_wrw_info[0];
 
-				auto k1 = handle.AddKernel(algorithm,
-					network_config,
-					std::get<1>(bwd_wrw),
-					std::get<0>(bwd_wrw),
-					std::get<4>(bwd_wrw),
-					std::get<3>(bwd_wrw),
-					std::get<2>(bwd_wrw));
+                auto k1 = handle.AddKernel(algorithm,
+                                           network_config,
+                                           std::get<1>(bwd_wrw_main),
+                                           std::get<0>(bwd_wrw_main),
+                                           std::get<4>(bwd_wrw_main),
+                                           std::get<3>(bwd_wrw_main),
+                                           std::get<2>(bwd_wrw_main));
 
-				kernels.push_back(k1);
-			}
-			else
-			{
-				auto bwd_wrw_main = bwd_wrw_info[0];
+                kernels.push_back(k1);
 
-				auto k1 = handle.AddKernel(algorithm,
-					network_config,
-					std::get<1>(bwd_wrw_main),
-					std::get<0>(bwd_wrw_main),
-					std::get<4>(bwd_wrw_main),
-					std::get<3>(bwd_wrw_main),
-					std::get<2>(bwd_wrw_main));
+                // second kernel hash
+                network_config += "x1";
+                // second pass  kernel
+                auto bwd_wrw_red = bwd_wrw_info[1];
 
-				kernels.push_back(k1);
+                auto k2 = handle.AddKernel(algorithm + "_pass2",
+                                           network_config,
+                                           std::get<1>(bwd_wrw_red),
+                                           std::get<0>(bwd_wrw_red),
+                                           std::get<4>(bwd_wrw_red),
+                                           std::get<3>(bwd_wrw_red),
+                                           std::get<2>(bwd_wrw_red));
 
-				// second kernel hash
-				network_config += "x1";
-				// second pass  kernel
-				auto bwd_wrw_red = bwd_wrw_info[1];
+                kernels.push_back(k2);
+            }
+        }
 
-				auto k2 = handle.AddKernel(algorithm + "_pass2",
-					network_config,
-					std::get<1>(bwd_wrw_red),
-					std::get<0>(bwd_wrw_red),
-					std::get<4>(bwd_wrw_red),
-					std::get<3>(bwd_wrw_red),
-					std::get<2>(bwd_wrw_red));
-
-				kernels.push_back(k2);
-			}
-		}
-
-		return 0;
-	}
-	catch (miopen::Exception&)
-	{
-		return -1;
-	}
-
+        return 0;
+    }
+    catch(miopen::Exception&)
+    {
+        return -1;
+    }
 }
 
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
