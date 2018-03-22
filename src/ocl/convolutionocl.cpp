@@ -153,7 +153,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
 
     try
     {
-		mloConstruct(construct_params);
+        mloConstruct(construct_params);
 
         std::string program_name = construct_params.getKernelFile();
         std::string kernel_name  = construct_params.getKernelName();

@@ -36,9 +36,10 @@ bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
     if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
         return false;
 
-    return ((params.kernel_size0 >= params.kernel_size1) && (params.kernel_stride0 == params.kernel_stride1) && (params.pad0 == params.pad1) &&
-            (params.kernel_stride0 > 1 || params.kernel_stride1 > 1) &&
-             (params.kernel_size0 > 5) && (params.kernel_size1 >= 5));
+    return ((params.kernel_size0 >= params.kernel_size1) &&
+            (params.kernel_stride0 == params.kernel_stride1) && (params.pad0 == params.pad1) &&
+            (params.kernel_stride0 > 1 || params.kernel_stride1 > 1) && (params.kernel_size0 > 5) &&
+            (params.kernel_size1 >= 5));
 }
 
 ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
