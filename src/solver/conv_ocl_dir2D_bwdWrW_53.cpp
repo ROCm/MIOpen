@@ -33,10 +33,6 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 {
     return ((params.kernel_size0 >= 2 || params.kernel_size1 >= 2) &&
             (params.kernel_stride1 == 1 && params.kernel_stride0 == 1)
-// LC workaround
-#if 0 //def __linux__
-            && !(params.out_width==231 && params.kernel_size0 == 3 && params.kernel_size1 == 3)
-#endif
 		);
 }
 
