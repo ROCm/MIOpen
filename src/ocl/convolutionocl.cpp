@@ -156,7 +156,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
 
         std::string program_name = construct_params.getKernelFile();
         std::string kernel_name  = construct_params.getKernelName();
-        std::string parms        = construct_params.getCompilerOptions();
+        const std::string parms  = construct_params.getCompilerOptions();
 
         std::string network_config;
         construct_params.mloBuildConf_Key(network_config);
