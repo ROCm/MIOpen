@@ -531,16 +531,12 @@ class DBMultiThreadedTestWork
         return ref;
     }
 
-    static inline void Initialize()
-    {
-        (void)common_part();
-    }
+    static inline void Initialize() { (void)common_part(); }
 
     static inline void
     WorkItem(unsigned int id, const std::string& db_path, const std::string& log_postfix)
     {
-        RegirrectLogs(id, log_postfix, [id, &db_path]()
-        {
+        RegirrectLogs(id, log_postfix, [id, &db_path]() {
             CommonPart(db_path);
             UniquePart(id, db_path);
         });
@@ -549,10 +545,7 @@ class DBMultiThreadedTestWork
     static inline void
     ReadWorkItem(unsigned int id, const std::string& db_path, const std::string& log_postfix)
     {
-        RegirrectLogs(id, log_postfix, [id, &db_path]()
-        {
-            ReadCommonPart(db_path);
-        });
+        RegirrectLogs(id, log_postfix, [id, &db_path]() { ReadCommonPart(db_path); });
     }
 
     static inline void FillForReading(std::string& db_path)
@@ -579,18 +572,19 @@ class DBMultiThreadedTestWork
 
     private:
     template <class TWorker>
-    static inline void RegirrectLogs(unsigned int id, const std::string& log_postfix, const TWorker& worker)
+    static inline void
+    RegirrectLogs(unsigned int id, const std::string& log_postfix, const TWorker& worker)
     {
         std::ofstream log;
         std::ofstream log_err;
         std::streambuf *cout_buf = nullptr, *cerr_buf = nullptr;
 
-        if (thread_logs_root())
+        if(thread_logs_root())
         {
             const auto out_path =
                 *thread_logs_root() + "/thread-" + std::to_string(id) + "_" + log_postfix + ".log";
             const auto err_path = *thread_logs_root() + "/thread-" + std::to_string(id) + "_" +
-                log_postfix + "-err.log";
+                                  log_postfix + "-err.log";
 
             std::remove(out_path.c_str());
             std::remove(err_path.c_str());
@@ -605,7 +599,7 @@ class DBMultiThreadedTestWork
 
         worker();
 
-        if (thread_logs_root())
+        if(thread_logs_root())
         {
             std::cout.rdbuf(cout_buf);
             std::cerr.rdbuf(cerr_buf);
@@ -627,12 +621,12 @@ class DBMultiThreadedTestWork
 
     template <class TDbGetter>
     static inline void
-        ReadCommonPartSection(unsigned int start, unsigned int end, const TDbGetter& db_getter)
+    ReadCommonPartSection(unsigned int start, unsigned int end, const TDbGetter& db_getter)
     {
-        for (auto i = start; i < end; i++)
+        for(auto i = start; i < end; i++)
         {
-            const auto key = i / ids_per_key;
-            const auto id = i % ids_per_key;
+            const auto key  = i / ids_per_key;
+            const auto id   = i % ids_per_key;
             const auto data = common_part()[i];
             TestData read;
 
@@ -758,7 +752,7 @@ class DbMultiThreadedTest : public DbTest
 
 class DbMultiThreadedReadTest : public DbTest
 {
-public:
+    public:
     inline void Run()
     {
         std::cout << "Testing db for multithreaded read access..." << std::endl;
@@ -776,15 +770,15 @@ public:
         {
             std::unique_lock<std::mutex> lock(mutex);
 
-            for (auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
                 threads.emplace_back([p, &mutex, i]() {
-                (void)std::unique_lock<std::mutex>(mutex);
-                DBMultiThreadedTestWork::ReadWorkItem(i, p, "mt");
-            });
+                    (void)std::unique_lock<std::mutex>(mutex);
+                    DBMultiThreadedTestWork::ReadWorkItem(i, p, "mt");
+                });
         }
 
         std::cout << "Waiting for test threads..." << std::endl;
-        for (auto& thread : threads)
+        for(auto& thread : threads)
             thread.join();
     }
 };
@@ -813,8 +807,8 @@ class DbMultiProcessTest : public DbTest
 
             for(auto& child : children)
             {
-                auto command = exe_path().string() + " -xw " + arg + " " + std::to_string(id++) + " " +
-                               temp_file_path().Path();
+                auto command = exe_path().string() + " -xw " + arg + " " + std::to_string(id++) +
+                               " " + temp_file_path().Path();
 
                 if(thread_logs_root())
                     command += " " + *thread_logs_root();
@@ -844,7 +838,7 @@ class DbMultiProcessTest : public DbTest
             std::lock_guard<LockFile> lock(file_lock);
         }
 
-        if (write)
+        if(write)
             DBMultiThreadedTestWork::WorkItem(id, db_path, "mp");
         else
             DBMultiThreadedTestWork::ReadWorkItem(id, db_path, "mp");
@@ -856,7 +850,7 @@ class DbMultiProcessTest : public DbTest
 
 class DbMultiProcessReadTest : public DbTest
 {
-public:
+    public:
     static constexpr const char* arg = "-mp-test-child";
 
     inline void Run() const
@@ -877,11 +871,12 @@ public:
 
             auto id = 0;
 
-            for (auto& child : children)
+            for(auto& child : children)
             {
-                auto command = exe_path().string() + " " + arg + " " + std::to_string(id++) + " " + p;
+                auto command =
+                    exe_path().string() + " " + arg + " " + std::to_string(id++) + " " + p;
 
-                if (thread_logs_root())
+                if(thread_logs_root())
                     command += " " + *thread_logs_root();
 
                 child = popen(command.c_str(), "w");
@@ -889,9 +884,9 @@ public:
         }
 
         std::cout << "Waiting for test processes..." << std::endl;
-        for (auto child : children)
+        for(auto child : children)
         {
-            auto status = pclose(child);
+            auto status          = pclose(child);
             const auto exit_code = WEXITSTATUS(status);
 
             EXPECT_EQUAL(exit_code, 0);
@@ -910,7 +905,7 @@ public:
         DBMultiThreadedTestWork::WorkItem(id, db_path, "mp");
     }
 
-private:
+    private:
     static std::string LockFilePath(const std::string& db_path) { return db_path + ".test.lock"; }
 };
 
@@ -920,26 +915,29 @@ private:
 int main(int argsn, char** argsc)
 {
     auto test_experimental_write = false;
-    auto args_found = 0;
+    auto args_found              = 0;
 
-    if (argsn >= 2 + args_found && argsc[1 + args_found] == std::string("-xw"))
+    if(argsn >= 2 + args_found && argsc[1 + args_found] == std::string("-xw"))
     {
         test_experimental_write = true;
         args_found++;
     }
 
-    if (argsn >= 3 + args_found && argsc[1 + args_found] == std::string("-thread-logs-root"))
+    if(argsn >= 3 + args_found && argsc[1 + args_found] == std::string("-thread-logs-root"))
     {
         miopen::tests::thread_logs_root() = argsc[2 + args_found];
         args_found += 2;
     }
 
-    if(argsn >= 4 + args_found && argsc[1 + args_found] == std::string(miopen::tests::DbMultiProcessTest::arg))
+    if(argsn >= 4 + args_found &&
+       argsc[1 + args_found] == std::string(miopen::tests::DbMultiProcessTest::arg))
     {
         if(argsn >= 5 + args_found)
             miopen::tests::thread_logs_root() = argsc[4 + args_found];
 
-        miopen::tests::DbMultiProcessTest::WorkItem(strtol(argsc[2 + args_found], nullptr, 10), argsc[3 + args_found], test_experimental_write);
+        miopen::tests::DbMultiProcessTest::WorkItem(strtol(argsc[2 + args_found], nullptr, 10),
+                                                    argsc[3 + args_found],
+                                                    test_experimental_write);
         return 0;
     }
 
@@ -957,7 +955,7 @@ int main(int argsn, char** argsc)
     miopen::tests::DbMultiThreadedReadTest().Run();
     miopen::tests::DbMultiProcessReadTest().Run();
 
-    if (test_experimental_write)
+    if(test_experimental_write)
     {
         miopen::tests::DbMultiThreadedTest().Run();
         miopen::tests::DbMultiProcessTest().Run();
