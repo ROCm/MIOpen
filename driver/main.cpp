@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
     Driver* drv;
     if(base_arg == "conv")
     {
-        drv = new ConvDriver<float, float>();
+        drv = new ConvDriver<float, double>();
     }
     else if(base_arg == "convfp16")
     {
