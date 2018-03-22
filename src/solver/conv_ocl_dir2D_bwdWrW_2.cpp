@@ -37,9 +37,10 @@ bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
         return false;
 
     return ((params.kernel_size0 >= params.kernel_size1) &&
-            (params.kernel_stride0 == params.kernel_stride1) && (params.pad0 == params.pad1) &&
-            (params.kernel_stride0 > 1 || params.kernel_stride1 > 1) && (params.kernel_size0 > 5) &&
-            (params.kernel_size1 >= 5));
+            ((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) ||
+             (params.kernel_size0 > 5) || (params.kernel_size0 == 5 && params.in_width >= 64))) ||
+           ((params.pad0 == 0 || params.pad1 == 0) &&
+            (params.kernel_size0 != 1 || params.kernel_size1 != 1));
 }
 
 ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
@@ -125,7 +126,7 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
         (params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) / (N_BATCH_LOOPS * result.n_stacks);
 
     // guard not to grab too much system memory
-    while(n_batch_blks > 1 && wei_bstride * params.n_inputs * n_batch_blks > 16 * 1024 * 1024)
+    while(n_batch_blks > 1 && wei_bstride * params.n_inputs * n_batch_blks > 4 * 1024 * 1024)
     {
         N_BATCH_LOOPS <<= 1;
         n_batch_blks = (params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) /
@@ -151,16 +152,13 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
     result.n_in_data_tiles = 1;
 
     // select output mapping
-
-    result.n_out_pix_tiles = std::min(result.n_out_pix_tiles, params.n_inputs);
-    result.n_out_pix_tiles =
-        (params.n_inputs % result.n_out_pix_tiles != 0) ? 1 : result.n_out_pix_tiles;
-    result.out_pix_tile1 = std::min(result.out_pix_tile1, params.n_inputs);
-    result.out_pix_tile1 = (params.n_inputs % result.out_pix_tile1 != 0) ? 1 : result.out_pix_tile1;
     int total_out_maps   = result.n_out_pix_tiles * result.out_pix_tile1;
-    result.out_pix_tile1 = (params.n_inputs % total_out_maps != 0) ? 1 : result.out_pix_tile1;
-    int N_OUT_BLK_GRP    = result.out_pix_tile1;
+    result.out_pix_tile1 = (total_out_maps > params.n_inputs) ? 1 : result.out_pix_tile1;
     total_out_maps       = result.n_out_pix_tiles * result.out_pix_tile1;
+    result.n_out_pix_tiles =
+        (total_out_maps > params.n_inputs) ? params.n_inputs : result.n_out_pix_tiles;
+    int N_OUT_BLK_GRP = result.out_pix_tile1;
+    total_out_maps    = result.n_out_pix_tiles * result.out_pix_tile1;
 
     // each wave is a filter row
     int GRP_SZ = _hw_wave_sz * n_waves;
