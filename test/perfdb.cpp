@@ -545,7 +545,7 @@ class DBMultiThreadedTestWork
     static inline void
     ReadWorkItem(unsigned int id, const std::string& db_path, const std::string& log_postfix)
     {
-        RegirrectLogs(id, log_postfix, [id, &db_path]() { ReadCommonPart(db_path); });
+        RegirrectLogs(id, log_postfix, [&db_path]() { ReadCommonPart(db_path); });
     }
 
     static inline void FillForReading(std::string& db_path)
