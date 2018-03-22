@@ -861,7 +861,7 @@ public:
 
     inline void Run() const
     {
-        std::cout << "Testing db for multiprocess write access..." << std::endl;
+        std::cout << "Testing db for multiprocess read access..." << std::endl;
 
         std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
         const auto lock_file_path = LockFilePath(temp_file_path());
