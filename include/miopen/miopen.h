@@ -289,11 +289,11 @@ typedef enum {
 
 /*! @ingroup convolutions
  *  @enum miopenConvolutionMode_t
- * Convolution mode selection for convolution layer preference
+ * Convolution mode selection for convolution layer preference.
 */
 typedef enum {
-    miopenConvolution = 0, /*!< Convolutions */
-    miopenTranspose   = 1, /*!< Transpose convolutions */
+    miopenConvolution = 0, /*!< Cross-Correlation convolution */
+    miopenTranspose   = 1, /*!< Transpose convolutions -- deconvolution */
 } miopenConvolutionMode_t;
 
 /*! @ingroup padding
@@ -613,7 +613,7 @@ MIOPEN_EXPORT miopenStatus_t
 miopenDestroyConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc);
 
 /*! @enum miopenConvFwdAlgorithm_t
- * Convolutional algorithm mode for forward propagation.
+ * Convolutional algorithm mode for forward propagation. MIOpen use cross-correlation for its convolution implementation.
  */
 typedef enum {
     miopenConvolutionFwdAlgoGEMM     = 0, /*!< GEMM variant */
@@ -1767,11 +1767,6 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor(miopenRNNDescriptor_t rnnDes
                                                     int* hiddenSize,
                                                     int* layer);
 
-/* // discuss later
-MIOPEN_EXPORT miopenStatus_t miopenGetRNNDescriptor(
-    miopenRNNDescriptor_t rnnDesc, miopenRNNMode_t* mode, int* seqLength, int* layer, int* bidir
-*/
-
 /*! @brief Destroys the tensor descriptor object
 *
 * @param rnnDesc RNN tensor descriptor type (input)
@@ -1951,6 +1946,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNHiddenTensorSize(miopenHandle_t handle,
  * For bi-directional RNNs the backwards in time direction is numbered as the layer
  * directly after the forward in time direction.
  *
+ * When inputSkip mode is selected there is no input layer matrix operation, therefore
+ * miopenGetRNNLayerParamSize will return zero for matrices associated with the inputs.
  *
  * @param handle          MIOpen handle (input)
  * @param rnnDesc         RNN layer descriptor type (input)
@@ -1993,6 +1990,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParamSize(miopenHandle_t handle,
  * For bi-directional RNNs the backwards in time direction is numbered as the layer
  * directly after the forward in time direction.
  *
+ * When inputSkip mode is selected there is no input layer matrix operation, therefore
+ * miopenGetRNNLayerBiasSize will return zero for biases associated with the inputs.
  *
  * @param handle          MIOpen handle (input)
  * @param rnnDesc         RNN layer descriptor type (input)
@@ -2044,6 +2043,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBiasSize(miopenHandle_t handle,
  * nullptr then only the paramDesc is populated and returned. The size in bytes of the
  * layer parameter matrix can be determined by using miopenGetRNNLayerParamSize().
  *
+ * Note: When inputSkip mode is selected there is no input layer matrix operation, therefore
+ * miopenGetRNNLayerParam will return a error status miopenStatusBadParm.
  *
  * @param handle          MIOpen handle (input)
  * @param rnnDesc         RNN layer descriptor type (input)
@@ -2104,6 +2105,9 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParam(miopenHandle_t handle,
  * nullptr then only the biasDesc is populated and returned. The size in bytes of the
  * layer bias can be determined by using miopenGetRNNLayerBiasSize().
  *
+ * Note: When inputSkip mode is selected there is no input layer matrix operation, 
+ * and therefore no associated memory. In this case miopenGetRNNLayerBias will return 
+ * a error status miopenStatusBadParm.
  *
  * @param handle          MIOpen handle (input)
  * @param rnnDesc         RNN layer descriptor type (input)
