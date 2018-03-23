@@ -56,8 +56,8 @@ class LockFile
     LockFile(const LockFile&) = delete;
     LockFile operator=(const LockFile&) = delete;
 
-    void lock() 
-    { 
+    void lock()
+    {
         std::lock(access_mutex, flock_mutex, flock);
         flock_mutex.unlock();
     }
@@ -67,9 +67,9 @@ class LockFile
         std::lock_guard<std::timed_mutex> guard{flock_mutex};
         flock.lock_sharable();
     }
-    bool try_lock() 
-    { 
-        auto result = std::try_lock(access_mutex, flock_mutex, flock); 
+    bool try_lock()
+    {
+        auto result = std::try_lock(access_mutex, flock_mutex, flock);
         flock_mutex.unlock();
         return result;
     }
@@ -85,7 +85,6 @@ class LockFile
             return false;
         }
         return true;
-
     }
     void unlock()
     {
