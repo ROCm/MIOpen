@@ -3682,7 +3682,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         {
             int in_bias_val = inputMode == miopenRNNskip ? 0 : wei_stride;
 
-            hid_shift = li * batch_n * hy_stride;
+                               hid_shift = li * batch_n * hy_stride;
             wei_shift = (li == 0) ? (wei_shift_bias + in_bias_val)
                                   : (wei_shift_bias + in_bias_val + li * 2 * wei_stride);
 
