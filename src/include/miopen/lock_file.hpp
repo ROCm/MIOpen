@@ -58,27 +58,22 @@ class LockFile
 
     void lock()
     {
-        std::lock(access_mutex, flock_mutex, flock);
-        flock_mutex.unlock();
+        std::lock(access_mutex, flock);
     }
     void lock_shared()
     {
         access_mutex.lock_shared();
-        std::lock_guard<std::timed_mutex> guard{flock_mutex};
         flock.lock_sharable();
     }
     bool try_lock()
     {
-        auto result = std::try_lock(access_mutex, flock_mutex, flock);
-        flock_mutex.unlock();
-        return result;
+        return std::try_lock(access_mutex, flock);
     }
     bool try_lock_shared()
     {
         if(!access_mutex.try_lock_shared())
             return false;
 
-        std::lock_guard<std::timed_mutex> guard{flock_mutex};
         if(!flock.try_lock_sharable())
         {
             access_mutex.unlock_shared();
@@ -88,18 +83,12 @@ class LockFile
     }
     void unlock()
     {
-        {
-            std::lock_guard<std::timed_mutex> guard{flock_mutex};
-            flock.unlock();
-        }
+        flock.unlock();
         access_mutex.unlock();
     }
     void unlock_shared()
     {
-        {
-            std::lock_guard<std::timed_mutex> guard{flock_mutex};
-            flock.unlock_sharable();
-        }
+        flock.unlock_sharable();
         access_mutex.unlock_shared();
     }
 
@@ -111,7 +100,6 @@ class LockFile
         if(!access_mutex.try_lock_for(duration))
             return false;
 
-        std::lock_guard<std::timed_mutex> guard{flock_mutex};
         if(!flock.timed_lock(ToPTime(duration)))
         {
             access_mutex.unlock();
@@ -126,7 +114,6 @@ class LockFile
         if(!access_mutex.try_lock_shared_for(duration))
             return false;
 
-        std::lock_guard<std::timed_mutex> guard{flock_mutex};
         if(!flock.timed_lock_sharable(ToPTime(duration)))
         {
             access_mutex.unlock();
@@ -149,7 +136,6 @@ class LockFile
 
     private:
     std::shared_timed_mutex access_mutex;
-    std::timed_mutex flock_mutex;
     boost::interprocess::file_lock flock;
 
     static std::map<std::string, LockFile>& LockFiles()
