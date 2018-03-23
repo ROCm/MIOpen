@@ -33,12 +33,7 @@
 #include <chrono>
 #include <fstream>
 #include <shared_mutex>
-
-namespace boost {
-namespace posix_time {
-class ptime;
-} // namespace posix_time
-} // namespace boost
+#include <mutex>
 
 namespace miopen {
 // LockFile class is a wrapper around boost::interprocess::file_lock providing MT-safety.
@@ -53,43 +48,92 @@ class LockFile
     };
 
     public:
-    LockFile(const char* path, PassKey) : _file(path), _file_lock(path) {}
+    LockFile(const char* path, PassKey)
+    {
+        std::ofstream{path};
+        flock = path;
+    }
     LockFile(const LockFile&) = delete;
     LockFile operator=(const LockFile&) = delete;
 
-    void lock();
-    void lock_shared();
-    bool try_lock();
-    bool try_lock_shared();
-    void unlock();
-    void unlock_shared();
+    void lock() 
+    { 
+        std::lock(access_mutex, flock_mutex, flock);
+        flock_mutex.unlock();
+    }
+    void lock_shared()
+    {
+        access_mutex.lock_shared();
+        std::lock_guard<std::timed_mutex> guard{flock_mutex};
+        flock.lock_sharable();
+    }
+    bool try_lock() 
+    { 
+        auto result = std::try_lock(access_mutex, flock_mutex, flock); 
+        flock_mutex.unlock();
+        return result;
+    }
+    bool try_lock_shared()
+    {
+        if(!access_mutex.try_lock_shared())
+            return false;
+
+        std::lock_guard<std::timed_mutex> guard{flock_mutex};
+        if(!flock.try_lock_sharable())
+        {
+            access_mutex.unlock_shared();
+            return false;
+        }
+        return true;
+
+    }
+    void unlock()
+    {
+        {
+            std::lock_guard<std::timed_mutex> guard{flock_mutex};
+            flock.unlock();
+        }
+        access_mutex.unlock();
+    }
+    void unlock_shared()
+    {
+        {
+            std::lock_guard<std::timed_mutex> guard{flock_mutex};
+            flock.unlock_sharable();
+        }
+        access_mutex.unlock_shared();
+    }
 
     static LockFile& Get(const char* path);
 
     template <class TDuration>
     bool try_lock_for(TDuration duration)
     {
-        if(!_mutex.try_lock_for(duration))
+        if(!access_mutex.try_lock_for(duration))
             return false;
 
-        if(_file_lock.timed_lock(ToPTime(duration)))
-            return true;
-
-        _mutex.unlock();
-        return false;
+        std::lock_guard<std::timed_mutex> guard{flock_mutex};
+        if(!flock.timed_lock(ToPTime(duration)))
+        {
+            access_mutex.unlock();
+            return false;
+        }
+        return true;
     }
 
     template <class TDuration>
     bool try_lock_shared_for(TDuration duration)
     {
-        if(!_mutex.try_lock_shared_for(duration))
+        if(!access_mutex.try_lock_shared_for(duration))
             return false;
 
-        if(_file_lock.timed_lock_sharable(ToPTime(duration)))
-            return true;
-
-        _mutex.unlock_shared();
-        return false;
+        std::lock_guard<std::timed_mutex> guard{flock_mutex};
+        if(!flock.timed_lock_sharable(ToPTime(duration)))
+        {
+            access_mutex.unlock();
+            return false;
+        }
+        return true;
     }
 
     template <class TPoint>
@@ -105,9 +149,9 @@ class LockFile
     }
 
     private:
-    std::shared_timed_mutex _mutex;
-    std::ofstream _file;
-    boost::interprocess::file_lock _file_lock;
+    std::shared_timed_mutex access_mutex;
+    std::timed_mutex flock_mutex;
+    boost::interprocess::file_lock flock;
 
     static std::map<std::string, LockFile>& LockFiles()
     {
