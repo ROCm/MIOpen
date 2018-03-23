@@ -145,95 +145,101 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
 
     construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-    if(construct_params.mloIsCompilerWorkarounds() ||
-       (IsWinograd3x3Supported(handle, direction, wDesc, (direction ? xDesc : yDesc)) &&
+    if((IsWinograd3x3Supported(handle, direction, wDesc, (direction ? xDesc : yDesc)) &&
         construct_params.mloIsFastBinaryWinograd3x3U()))
     {
         return -1;
     }
 
-    mloConstruct(construct_params);
-
-    std::string program_name = construct_params.getKernelFile();
-    std::string kernel_name  = construct_params.getKernelName();
-    std::string parms        = construct_params.getCompilerOptions();
-
-    std::string network_config;
-    construct_params.mloBuildConf_Key(network_config);
-
-    const std::vector<size_t>& vld = construct_params.getLocalWkSize();
-    const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
-
-    std::string algorithm =
-        (direction == 1) ? "miopenConvolutionFwdAlgoDirect" : "miopenConvolutionBwdDataAlgoDirect";
-
-    // if not 11x11
-    if(program_name != "MIOpenConvFwd_LxL_11.cl")
+    try
     {
+        mloConstruct(construct_params);
 
-        auto k =
-            handle.AddKernel(algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
+        std::string program_name = construct_params.getKernelFile();
+        std::string kernel_name  = construct_params.getKernelName();
+        const std::string& parms = construct_params.getCompilerOptions();
 
-        kernels.push_back(k);
-    }
-    else
-    {
-        const std::vector<mlo_kernel_info>& bwd_wrw_info = construct_params.getKernelsInfo();
-        /*
-        * get info for all kernels of the layer
-        * std::string _kernel_name;
-        * std::string _kernel_file;
-        * std::string _comp_options;
-        * std::vector<size_t> _g_wk;
-        * std::vector<size_t> _l_wk;
-        */
+        std::string network_config;
+        construct_params.mloBuildConf_Key(network_config);
 
-        if(bwd_wrw_info.size() == 1)
+        const std::vector<size_t>& vld = construct_params.getLocalWkSize();
+        const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
+
+        std::string algorithm = (direction == 1) ? "miopenConvolutionFwdAlgoDirect"
+                                                 : "miopenConvolutionBwdDataAlgoDirect";
+
+        // if not 11x11
+        if(program_name != "MIOpenConvFwd_LxL_11.cl")
         {
-            const mlo_kernel_info& bwd_wrw = bwd_wrw_info[0];
 
-            auto k1 = handle.AddKernel(algorithm,
-                                       network_config,
-                                       std::get<1>(bwd_wrw),
-                                       std::get<0>(bwd_wrw),
-                                       std::get<4>(bwd_wrw),
-                                       std::get<3>(bwd_wrw),
-                                       std::get<2>(bwd_wrw));
+            auto k = handle.AddKernel(
+                algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
 
-            kernels.push_back(k1);
+            kernels.push_back(k);
         }
         else
         {
-            auto bwd_wrw_main = bwd_wrw_info[0];
+            const std::vector<mlo_kernel_info>& bwd_wrw_info = construct_params.getKernelsInfo();
+            /*
+            * get info for all kernels of the layer
+            * std::string _kernel_name;
+            * std::string _kernel_file;
+            * std::string _comp_options;
+            * std::vector<size_t> _g_wk;
+            * std::vector<size_t> _l_wk;
+            */
 
-            auto k1 = handle.AddKernel(algorithm,
-                                       network_config,
-                                       std::get<1>(bwd_wrw_main),
-                                       std::get<0>(bwd_wrw_main),
-                                       std::get<4>(bwd_wrw_main),
-                                       std::get<3>(bwd_wrw_main),
-                                       std::get<2>(bwd_wrw_main));
+            if(bwd_wrw_info.size() == 1)
+            {
+                const mlo_kernel_info& bwd_wrw = bwd_wrw_info[0];
 
-            kernels.push_back(k1);
+                auto k1 = handle.AddKernel(algorithm,
+                                           network_config,
+                                           std::get<1>(bwd_wrw),
+                                           std::get<0>(bwd_wrw),
+                                           std::get<4>(bwd_wrw),
+                                           std::get<3>(bwd_wrw),
+                                           std::get<2>(bwd_wrw));
 
-            // second kernel hash
-            network_config += "x1";
-            // second pass  kernel
-            auto bwd_wrw_red = bwd_wrw_info[1];
+                kernels.push_back(k1);
+            }
+            else
+            {
+                auto bwd_wrw_main = bwd_wrw_info[0];
 
-            auto k2 = handle.AddKernel(algorithm + "_pass2",
-                                       network_config,
-                                       std::get<1>(bwd_wrw_red),
-                                       std::get<0>(bwd_wrw_red),
-                                       std::get<4>(bwd_wrw_red),
-                                       std::get<3>(bwd_wrw_red),
-                                       std::get<2>(bwd_wrw_red));
+                auto k1 = handle.AddKernel(algorithm,
+                                           network_config,
+                                           std::get<1>(bwd_wrw_main),
+                                           std::get<0>(bwd_wrw_main),
+                                           std::get<4>(bwd_wrw_main),
+                                           std::get<3>(bwd_wrw_main),
+                                           std::get<2>(bwd_wrw_main));
 
-            kernels.push_back(k2);
+                kernels.push_back(k1);
+
+                // second kernel hash
+                network_config += "x1";
+                // second pass  kernel
+                auto bwd_wrw_red = bwd_wrw_info[1];
+
+                auto k2 = handle.AddKernel(algorithm + "_pass2",
+                                           network_config,
+                                           std::get<1>(bwd_wrw_red),
+                                           std::get<0>(bwd_wrw_red),
+                                           std::get<4>(bwd_wrw_red),
+                                           std::get<3>(bwd_wrw_red),
+                                           std::get<2>(bwd_wrw_red));
+
+                kernels.push_back(k2);
+            }
         }
-    }
 
-    return 0;
+        return 0;
+    }
+    catch(miopen::Exception&)
+    {
+        return -1;
+    }
 }
 
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
@@ -1813,8 +1819,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 construct_params.setWeightDescFromMLDesc(dwDesc);
                 construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-                if(!construct_params.mloIsCompilerWorkarounds() &&
-                   try_([&] { mloConstruct(construct_params); }) == miopenStatusSuccess)
+                if(try_([&] { mloConstruct(construct_params); }) == miopenStatusSuccess)
                 {
                     construct_params.mloBuildConf_Key(network_config);
 
@@ -2069,8 +2074,9 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
         switch(algo)
         {
-        case miopenConvolutionBwdWeightsAlgoGEMM:
-        {
+        case miopenConvolutionBwdWeightsAlgoGEMM: {
+
+#if MIOPEN_USE_MIOPENGEMM
             // Zeroing out the output buffer
             float zero = 0.0f;
             SetTensor(handle, dwDesc, dw, &zero);
@@ -2084,7 +2090,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                            BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc));
             }
 
-#if MIOPEN_USE_MIOPENGEMM
             CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, false, network_config);
             GemmGeometry gg =
                 GetGemmGeometry("miopenConvolutionBwdWeightsAlgoGEMM", network_config);

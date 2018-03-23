@@ -156,7 +156,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
         x_stride(3, 1), y_size(3, 1), y_stride(3, 1), hx_size(3, 1), hx_stride(3, 1);
     miopen::TensorDescriptor sp_desc, w_desc, x_desc, y_desc, hx_desc;
 
-    sp_size[2]   = workSpaceSize / sizeof(wDesc.GetType());
+    sp_size[2]   = workSpaceSize / GetTypeSize(wDesc.GetType());
     sp_stride[0] = sp_size[2];
     sp_stride[1] = sp_size[2];
     sp_desc      = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
@@ -1145,7 +1145,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         x_stride(3, 1), y_size(3, 1), y_stride(3, 1), hx_size(3, 1), hx_stride(3, 1);
     miopen::TensorDescriptor sp_desc, w_desc, x_desc, y_desc, hx_desc;
 
-    sp_size[2]   = reserveSpaceSize / sizeof(wDesc.GetType());
+    sp_size[2]   = reserveSpaceSize / GetTypeSize(wDesc.GetType());
     sp_stride[0] = sp_size[2];
     sp_stride[1] = sp_size[2];
     sp_desc      = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);
@@ -2154,7 +2154,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         y_stride(3, 1), hx_size(3, 1), hx_stride(3, 1);
     miopen::TensorDescriptor sp_desc, x_desc, y_desc, hx_desc;
 
-    sp_size[2]   = workSpaceSize / sizeof(wDesc.GetType());
+    sp_size[2]   = workSpaceSize / GetTypeSize(wDesc.GetType());
     sp_stride[0] = sp_size[2];
     sp_stride[1] = sp_size[2];
     sp_desc      = miopen::TensorDescriptor(miopenFloat, sp_size.data(), sp_stride.data(), 3);

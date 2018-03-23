@@ -1782,7 +1782,7 @@ void CopyTensor(Handle& handle,
     }
     else
     {
-        handle.Copy(src, dst, srcDesc.GetElementSize() * sizeof(srcDesc.GetType()));
+        handle.Copy(src, dst, srcDesc.GetElementSize() * GetTypeSize(srcDesc.GetType()));
     }
 }
 
