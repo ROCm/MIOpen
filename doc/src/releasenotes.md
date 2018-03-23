@@ -5,30 +5,27 @@
 
 Notes: 
 
-This release contain performance enhancements and bug fixes to multiple parts of the MIOpen library. 
-16-bit floating point (fp16) support has been added for most kernels, with the exception of RNN.
+- This release adds fp16 support for Inference using CNNs
+- Performance improvements for RNNs
+- Performance improvements for convolutions using 1x1 filters
+- Performance improvement for Batch Normalization
+- Bug fixes for various components of MIOpen
 
 Changed:
 
-- Added 2 new API for RNNs
+- Added 2 new API for RNNs: miopenGetRNNLayerParamOffset and miopenGetRNNLayerBiasOffset
 - Added in support for uninitialized hidden states and nullptr outputs in RNNs
-- Added new convolutions for 1x1 (Jing Zhang, this went in correct?)?
 - Added support for Set and Scale operations for strided tensors with dimensions 1,2,3,4,5
-- Added the transpose + GEMM algorithm for 1x1 convolution (forward and backward data)
-- Added fp16 support for all layers except RNNs
-- Added the transpose + GEMM algorithm for 1x1 convolution (forward and backward data)
-- Improved over MIOpen layer and operations' performance (I removed the host side claim)
-- Improved Batch Normalization performance
-- Improved RNN performance
+- Added multi-thread and multi-process support for the performance database
+- Improved performance for OpTensor
+- Fixed bug in convolutions for backward bias
 - Fixed logic issues in get and set layer functions and related w_supertensor test
 - Fixed hang in batch norm with batch sizes greater than 256
-- Fixed logic issues in get and set layer functions and related w_supertensor test
-- Fixed various RNN bugs
-
 
 Known Issues:
 
 - RNNs do not support fp16
+- Training with CNNs does not support fp16
 
 
 ### 03/08/2018 [ 1.2.1 ]

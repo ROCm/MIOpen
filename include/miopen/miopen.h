@@ -698,10 +698,10 @@ miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
  * to execute this function, miopenConvolutionForwardGetWorkSpaceSize() must be
  * run to determine the required memory for this search.
  *
- * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If a
+ * * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If a
  * configuration match is not found, a default configuration will be returned.
  *
- * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration. If
+ * * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration. If
  * a match is not found, an exhaustive search is performed by running individual algorithms.
  *
  * @param handle             MIOpen handle (input)
@@ -831,10 +831,10 @@ miopenConvolutionBackwardDataGetWorkSpaceSize(miopenHandle_t handle,
  * execute this function, miopenConvolutionBackwardsDataGetWorkSpaceSize() must be run to determine
  * the required memory for this search.
  *
- * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If a
+ * * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If a
  * configuration match is not found, a default configuration will be returned.
  *
- * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration. If
+ * * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration. If
  * a match is not found, an exhaustive search is performed by running individual algorithms.
  *
  * @param handle             MIOpen handle (input)
@@ -944,10 +944,10 @@ miopenConvolutionBackwardWeightsGetWorkSpaceSize(miopenHandle_t handle,
  * execute this function, miopenConvolutionBackwardsWeightsGetWorkSpaceSize() must be run to
  * determine the required memory for this search.
  *
- * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If a
+ * * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If a
  * configuration match is not found, a default configuration will be returned.
  *
- * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration. If
+ * * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration. If
  * a match is not found, an exhaustive search is performed by running individual algorithms.
  *
  * @param handle             MIOpen handle (input)
@@ -1357,6 +1357,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lr
  *
  * This function takes the input tensor descriptor and outputs a derived tensor for the
  * normalization scale (gamma) and shift (beta) tensors.
+ *
  * For an input tensor NCHW and spatial mode, the output derived tensor is 1C11, while for
  * per-activation the derived tensor is 1CHW.
  *
@@ -1374,8 +1375,10 @@ MIOPEN_EXPORT miopenStatus_t miopenDeriveBNTensorDescriptor(miopenTensorDescript
  * Batch normalization pass for forward training pass.
  * Takes in batch normalization mode bn_mode and input tensor x, output tensor y, bnBias and bnScale
  * with their descriptor.
+ *
  * If either resultSaveMean, or resultSaveInvVariance are null pointers then the values for the mean
  * and inverse variance will not be used.
+ *
  * Likewise, if either resultRunningMean, or resultRunningVariance are null pointers then the values
  * for the running mean and variance will not be saved.
  * Running averages and variances are scaled using an exponential averaging factor: \f[
@@ -1429,6 +1432,7 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
  * Batch normalization pass for forward inference pass.
  * Takes in batch normalization mode bn_mode and input tensor x, output tensor y, bnBias and bnScale
  * with their descriptor.
+ *
  * If either estimatedMean, or estimatedVariance are null pointers then the values for the mean and
  * variance will not be used.
  *
@@ -1469,9 +1473,11 @@ miopenBatchNormalizationForwardInference(miopenHandle_t handle,
  *
  * Batch normalization pass for backwards propagation training pass.
  * The method for backwards propagation batch normalization.
+ *
  * Takes in batch normalization mode bn_mode and input tensor data x, input activation tensor dy,
  * output tensor dx, the learned tensors resultBNBiasDiff and resultBNScaleDiff with their
  * descriptor.
+ *
  * If BOTH savedMean, and savedVariance are not null pointers then the method will use the saved
  * mean and variance calculated by the forward training phase.
  *
@@ -1694,8 +1700,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
 * RNN mode selection for rnn layer preference
 */
 typedef enum {
-    miopenRNNRELU = 0, /*!< RNN ReLU squash */
-    miopenRNNTANH = 1, /*!< RNN tanh squash */
+    miopenRNNRELU = 0, /*!< RNN ReLU activation */
+    miopenRNNTANH = 1, /*!< RNN tanh activation */
     miopenLSTM    = 2, /*!< LSTM */
     miopenGRU     = 3, /*!< GRU */
 } miopenRNNMode_t;
@@ -1786,7 +1792,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rn
  * @param rnnMode      RNN model type (input)
  * @param biasMode     RNN bias included (input)
  * @param algo         RNN algorithm selected (input)
- * @param dataType     fp32 or fp16 datatype mode, only fp 16 currently supported for RNNs (input)
+ * @param dataType     Only fp32 currently supported for RNNs (input)
  * @return             miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenSetRNNDescriptor(miopenRNNDescriptor_t rnnDesc,
@@ -1930,24 +1936,27 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNHiddenTensorSize(miopenHandle_t handle,
  * For miopenLSTM paramID 0 to 3 refer to the weight matrices associated
  * with the input GEMM, 4-7 are associated with matrices associated with the
  * hidden state GEMM.
- * ParamID 0 and 4 are for the input gate operations.
- * ParamID 1 and 5 are for the forget gate operations.
- * ParamID 2 and 6 are for the memory gate operations.
- * ParamID 3 and 7 are for the output gate operations.
  *
+ * * paramID 0 and 4 are for the input gate operations.
+ * 
+ * * paramID 1 and 5 are for the forget gate operations.
+ * 
+ * * paramID 2 and 6 are for the memory gate operations.
+ * 
+ * * paramID 3 and 7 are for the output gate operations.
  *
- * For miopenGRU paramID 0 to 2 refer to the the weight matrices associated
- * with the input GEMM, while 5 through 6 are associated with the hidden state
+ * For miopenGRU paramID 0 to 2 refer to the weight matrix offset associated
+ * with the input GEMM, while 3 through 5 are associated with the hidden state
  * GEMM.
- * ParamID 0 and 4 are for the reset gate operations.
- * ParamID 1 and 5 are for the update gate operations.
- * ParamID 2 and 6 are for the memory gate operations.
+ *
+ * * paramID 0 and 3 are for the reset gate operations.
+ *
+ * * paramID 1 and 4 are for the update gate operations.
+ *
+ * * paramID 2 and 5 are for the memory gate operations.
  *
  * For bi-directional RNNs the backwards in time direction is numbered as the layer
  * directly after the forward in time direction.
- *
- * When inputSkip mode is selected there is no input layer matrix operation, therefore
- * miopenGetRNNLayerParamSize will return zero for matrices associated with the inputs.
  *
  * @param handle          MIOpen handle (input)
  * @param rnnDesc         RNN layer descriptor type (input)
@@ -1970,28 +1979,29 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParamSize(miopenHandle_t handle,
  * weight matrix associated with the in input GEMM, while biasID == 1 retrieves
  * the bias associated with the hidden state GEMM.
  *
- * For miopenLSTM paramID 0 to 3 refer to the biases associated
+ * For miopenLSTM biasID 0 to 3 refer to the biases associated
  * with the input GEMM, 4-7 are associated with biases associated with the
  * hidden state GEMM.
- * biasID 0 and 4 are for the input gate operations.
- * biasID 1 and 5 are for the forget gate operations.
- * biasID 2 and 6 are for the memory gate operations.
- * biasID 3 and 7 are for the output gate operations.
  *
+ * * biasID 0 and 4 are for the input gate operations.
  *
- * For miopenGRU biasID 0 to 2 refer to the biases associated
- * with the input GEMM, while 5 through 6 are associated with the hidden state
- * GEMM.
- * biasID 0 and 4 are for the reset gate operations.
- * biasID 1 and 5 are for the update gate operations.
- * biasID 2 and 6 are for the memory gate operations.
+ * * biasID 1 and 5 are for the forget gate operations.
  *
+ * * biasID 2 and 6 are for the memory gate operations.
+ *
+ * * biasID 3 and 7 are for the output gate operations.
+ *
+ * For miopenGRU biasID 0 to 2 refer to the biases associated with the input GEMM, 
+ * while 3 through 5 are associated with the hidden state GEMM.
+ *
+ * * biasID 0 and 3 are for the reset gate operations.
+ * 
+ * * biasID 1 and 4 are for the update gate operations.
+ *
+ * * biasID 2 and 5 are for the memory gate operations.
  *
  * For bi-directional RNNs the backwards in time direction is numbered as the layer
  * directly after the forward in time direction.
- *
- * When inputSkip mode is selected there is no input layer matrix operation, therefore
- * miopenGetRNNLayerBiasSize will return zero for biases associated with the inputs.
  *
  * @param handle          MIOpen handle (input)
  * @param rnnDesc         RNN layer descriptor type (input)
@@ -2018,18 +2028,24 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBiasSize(miopenHandle_t handle,
  * For miopenLSTM paramID 0 to 3 refer to the weight matrices associated
  * with the input GEMM, 4-7 are associated with matrices associated with the
  * hidden state GEMM.
- * ParamID 0 and 4 are for the input gate operations.
- * ParamID 1 and 5 are for the forget gate operations.
- * ParamID 2 and 6 are for the memory gate operations.
- * ParamID 3 and 7 are for the output gate operations.
  *
+ * * paramID 0 and 4 are for the input gate operations.
+ * 
+ * * paramID 1 and 5 are for the forget gate operations.
+ * 
+ * * paramID 2 and 6 are for the memory gate operations.
+ * 
+ * * paramID 3 and 7 are for the output gate operations.
  *
- * For miopenGRU paramID 0 to 2 refer to the weight matrices associated
- * with the input GEMM, while 5 through 6 are associated with the hidden state
+ * For miopenGRU paramID 0 to 2 refer to the weight matrix offset associated
+ * with the input GEMM, while 3 through 5 are associated with the hidden state
  * GEMM.
- * ParamID 0 and 4 are for the reset gate operations.
- * ParamID 1 and 5 are for the update gate operations.
- * ParamID 2 and 6 are for the memory gate operations.
+ *
+ * * paramID 0 and 3 are for the reset gate operations.
+ *
+ * * paramID 1 and 4 are for the update gate operations.
+ *
+ * * paramID 2 and 5 are for the memory gate operations.
  *
  * For bi-directional RNNs the backwards in time direction is numbered as the layer
  * directly after the forward in time direction.
@@ -2043,8 +2059,9 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBiasSize(miopenHandle_t handle,
  * nullptr then only the paramDesc is populated and returned. The size in bytes of the
  * layer parameter matrix can be determined by using miopenGetRNNLayerParamSize().
  *
- * Note: When inputSkip mode is selected there is no input layer matrix operation, therefore
- * miopenGetRNNLayerParam will return a error status miopenStatusBadParm.
+ * Note: When inputSkip mode is selected there is no input layer matrix operation, 
+ * and therefore no associated memory. In this case miopenGetRNNLayerParam() will return 
+ * a error status miopenStatusBadParm for input paramID associated with the input GEMM.
  *
  * @param handle          MIOpen handle (input)
  * @param rnnDesc         RNN layer descriptor type (input)
@@ -2076,22 +2093,27 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParam(miopenHandle_t handle,
  * bias associated with the in input GEMM, while biasID == 1 retrieves
  * the bias associated with the hidden state GEMM.
  *
- * For miopenLSTM paramID 0 to 3 refer to the biases associated
+ * For miopenLSTM biasID 0 to 3 refer to the biases associated
  * with the input GEMM, 4-7 are associated with biases associated with the
  * hidden state GEMM.
- * biasID 0 and 4 are for the input gate operations.
- * biasID 1 and 5 are for the forget gate operations.
- * biasID 2 and 6 are for the memory gate operations.
- * biasID 3 and 7 are for the output gate operations.
+ *
+ * * biasID 0 and 4 are for the input gate operations.
+ *
+ * * biasID 1 and 5 are for the forget gate operations.
+ *
+ * * biasID 2 and 6 are for the memory gate operations.
+ *
+ * * biasID 3 and 7 are for the output gate operations.
  *
  *
- * For miopenGRU biasID 0 to 2 refer to the biases associated
- * with the input GEMM, while 5 through 6 are associated with the hidden state
- * GEMM.
- * biasID 0 and 4 are for the reset gate operations.
- * biasID 1 and 5 are for the update gate operations.
- * biasID 2 and 6 are for the memory gate operations.
+ * For miopenGRU biasID 0 to 2 refer to the biases associated with the input GEMM, 
+ * while 3 through 5 are associated with the hidden state GEMM.
  *
+ * * biasID 0 and 3 are for the reset gate operations.
+ * 
+ * * biasID 1 and 4 are for the update gate operations.
+ *
+ * * biasID 2 and 5 are for the memory gate operations.
  *
  * For bi-directional RNNs the backwards in time direction is numbered as the layer
  * directly after the forward in time direction.
@@ -2106,8 +2128,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParam(miopenHandle_t handle,
  * layer bias can be determined by using miopenGetRNNLayerBiasSize().
  *
  * Note: When inputSkip mode is selected there is no input layer matrix operation, 
- * and therefore no associated memory. In this case miopenGetRNNLayerBias will return 
- * a error status miopenStatusBadParm.
+ * and therefore no associated memory. In this case miopenGetRNNLayerBias() will return 
+ * a error status miopenStatusBadParm for input biasID associated with the input GEMM.
  *
  * @param handle          MIOpen handle (input)
  * @param rnnDesc         RNN layer descriptor type (input)
@@ -2142,18 +2164,24 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
  * For miopenLSTM paramID 0 to 3 refer to the weight matrix offsets associated
  * with the input GEMM, 4-7 are associated with matrix offset associated with the
  * hidden state GEMM.
- * ParamID 0 and 4 are for the input gate operations.
- * ParamID 1 and 5 are for the forget gate operations.
- * ParamID 2 and 6 are for the memory gate operations.
- * ParamID 3 and 7 are for the output gate operations.
  *
+ * * paramID 0 and 4 are for the input gate operations.
+ * 
+ * * paramID 1 and 5 are for the forget gate operations.
+ * 
+ * * paramID 2 and 6 are for the memory gate operations.
+ * 
+ * * paramID 3 and 7 are for the output gate operations.
  *
  * For miopenGRU paramID 0 to 2 refer to the weight matrix offset associated
- * with the input GEMM, while 5 through 6 are associated with the hidden state
+ * with the input GEMM, while 3 through 5 are associated with the hidden state
  * GEMM.
- * ParamID 0 and 4 are for the reset gate operations.
- * ParamID 1 and 5 are for the update gate operations.
- * ParamID 2 and 6 are for the memory gate operations.
+ *
+ * * paramID 0 and 3 are for the reset gate operations.
+ *
+ * * paramID 1 and 4 are for the update gate operations.
+ *
+ * * paramID 2 and 5 are for the memory gate operations.
  *
  * For bi-directional RNNs the backwards in time direction is numbered as the layer
  * directly after the forward in time direction.
@@ -2164,6 +2192,10 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
  *
  * The argument layerParamOffset should either be nullptr, or an address to place the
  * offset. If layerParamOffset is nullptr then only the paramDesc is populated and returned.
+ *
+ * Note: When inputSkip mode is selected there is no input layer matrix operation, 
+ * and therefore no associated memory. In this case miopenGetRNNLayerParamOffset() will return 
+ * a error status miopenStatusBadParm for input paramID associated with the input GEMM.
  *
  *
  * @param rnnDesc           RNN layer descriptor type (input)
@@ -2189,21 +2221,25 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParamOffset(miopenRNNDescriptor_t 
  * bias associated with the in input GEMM, while biasID == 1 retrieves
  * the weight matrix associated with the hidden state GEMM.
  *
- * For miopenLSTM paramID 0 to 3 refer to the bias offset associated
+ * For miopenLSTM biasID 0 to 3 refer to the bias offset associated
  * with the input GEMM, 4-7 are the bias offsets associated with the hidden state GEMM.
- * biasID 0 and 4 are for the input gate operations.
- * biasID 1 and 5 are for the forget gate operations.
- * biasID 2 and 6 are for the memory gate operations.
- * biasID 3 and 7 are for the output gate operations.
  *
+ * * biasID 0 and 4 are for the input gate operations.
  *
- * For miopenGRU biasID 0 to 2 refer to the bias offsets associated
- * with the input GEMM, while 5 through 6 are associated with the hidden state
- * GEMM.
- * biasID 0 and 4 are for the reset gate operations.
- * biasID 1 and 5 are for the update gate operations.
- * biasID 2 and 6 are for the memory gate operations.
+ * * biasID 1 and 5 are for the forget gate operations.
  *
+ * * biasID 2 and 6 are for the memory gate operations.
+ *
+ * * biasID 3 and 7 are for the output gate operations.
+ *
+ * For miopenGRU biasID 0 to 2 refer to the biases associated with the input GEMM, 
+ * while 3 through 5 are associated with the hidden state GEMM.
+ *
+ * * biasID 0 and 3 are for the reset gate operations.
+ * 
+ * * biasID 1 and 4 are for the update gate operations.
+ *
+ * * biasID 2 and 5 are for the memory gate operations.
  *
  * For bi-directional RNNs the backwards in time direction is numbered as the layer
  * directly after the forward in time direction.
@@ -2215,6 +2251,9 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParamOffset(miopenRNNDescriptor_t 
  * The argument layerBiasOffset should either be nullptr, or point to an output address.
  * If layerBias is nullptr then only the biasDesc is populated and returned.
  *
+ * Note: When inputSkip mode is selected there is no input layer matrix operation, 
+ * and therefore no associated memory. In this case miopenGetRNNLayerBiasOffset() will return 
+ * a error status miopenStatusBadParm for input biasID associated with the input GEMM.
  *
  * @param rnnDesc         RNN layer descriptor type (input)
  * @param layer           The layer number in the RNN stack (input)
@@ -2243,18 +2282,25 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBiasOffset(miopenRNNDescriptor_t r
  * For miopenLSTM paramID 0 to 3 refer to the weight matrices associated
  * with the input GEMM, 4-7 are associated with matrices associated with the
  * hidden state GEMM.
- * ParamID 0 and 4 are for the input gate operations.
- * ParamID 1 and 5 are for the forget gate operations.
- * ParamID 2 and 6 are for the memory gate operations.
- * ParamID 3 and 7 are for the output gate operations.
+ *
+ * * paramID 0 and 4 are for the input gate operations.
+ * 
+ * * paramID 1 and 5 are for the forget gate operations.
+ * 
+ * * paramID 2 and 6 are for the memory gate operations.
+ * 
+ * * paramID 3 and 7 are for the output gate operations.
  *
  *
- * For miopenGRU paramID 0 to 2 refer to the weight matrices associated
- * with the input GEMM, while 5 through 6 are associated with the hidden state
+ * For miopenGRU paramID 0 to 2 refer to the weight matrix offset associated
+ * with the input GEMM, while 3 through 5 are associated with the hidden state
  * GEMM.
- * ParamID 0 and 4 are for the reset gate operations.
- * ParamID 1 and 5 are for the update gate operations.
- * ParamID 2 and 6 are for the memory gate operations.
+ *
+ * * paramID 0 and 3 are for the reset gate operations.
+ *
+ * * paramID 1 and 4 are for the update gate operations.
+ *
+ * * paramID 2 and 5 are for the memory gate operations.
  *
  * For bi-directional RNNs the backwards in time direction is numbered as the layer
  * directly after the forward in time direction.
@@ -2262,6 +2308,9 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBiasOffset(miopenRNNDescriptor_t r
  * The input argument paramDesc is a previously populated tensor descriptor typically
  * by first calling miopenGetRNNLayerParam().
  *
+ * Note: When inputSkip mode is selected there is no input layer matrix operation, 
+ * and therefore no associated memory. In this case miopenSetRNNLayerParam() will return 
+ * a error status miopenStatusBadParm for input paramID associated with the input GEMM.
  *
  * @param handle          MIOpen handle (input)
  * @param rnnDesc         RNN layer descriptor type (input)
@@ -2292,22 +2341,27 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNLayerParam(miopenHandle_t handle,
  * weight matrix associated with the in input GEMM, while biasID == 1 retrieves
  * the bias associated with the hidden state GEMM.
  *
- * For miopenLSTM paramID 0 to 3 refer to the biases associated
+ * For miopenLSTM biasID 0 to 3 refer to the biases associated
  * with the input GEMM, 4-7 are associated with the biases associated with the
  * hidden state GEMM.
- * biasID 0 and 4 are for the input gate operations.
- * biasID 1 and 5 are for the forget gate operations.
- * biasID 2 and 6 are for the memory gate operations.
- * biasID 3 and 7 are for the output gate operations.
+ *
+ * * biasID 0 and 4 are for the input gate operations.
+ *
+ * * biasID 1 and 5 are for the forget gate operations.
+ *
+ * * biasID 2 and 6 are for the memory gate operations.
+ *
+ * * biasID 3 and 7 are for the output gate operations.
  *
  *
- * For miopenGRU biasID 0 to 2 refer to the biases associated
- * with the input GEMM, while 5 through 6 are associated with the hidden state
- * GEMM.
- * biasID 0 and 4 are for the reset gate operations.
- * biasID 1 and 5 are for the update gate operations.
- * biasID 2 and 6 are for the memory gate operations.
+ * For miopenGRU biasID 0 to 2 refer to the biases associated with the input GEMM, 
+ * while 3 through 5 are associated with the hidden state GEMM.
  *
+ * * biasID 0 and 3 are for the reset gate operations.
+ * 
+ * * biasID 1 and 4 are for the update gate operations.
+ *
+ * * biasID 2 and 5 are for the memory gate operations.
  *
  * For bi-directional RNNs the backwards in time direction is numbered as the layer
  * directly after the forward in time direction.
@@ -2315,6 +2369,9 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNLayerParam(miopenHandle_t handle,
  * The input argument biasDesc is a previously populated tensor descriptor typically
  * by first calling miopenGetRNNLayeBias().
  *
+ * Note: When inputSkip mode is selected there is no input layer matrix operation, 
+ * and therefore no associated memory. In this case miopenSetRNNLayerBias will return 
+ * a error status miopenStatusBadParm for input biasID associated with the input GEMM.
  *
  * @param handle          MIOpen handle (input)
  * @param rnnDesc         RNN layer descriptor type (input)
@@ -2355,13 +2412,15 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
  * number of layers if the direction mode is bidirectional. The second dimension of
  * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
  * array. The third dimension equals the hiddenSize. (input)
- * @param hx                    Pointer to the hidden layer input tensor (input)
+ * @param hx                    Pointer to the hidden layer input tensor. If hx is NULL, 
+ * then the initial hidden state will be zero initialized. (input)
  * @param cxDesc                A cell tensor descriptor that has as its first dimension
  * of the number of layers if the direction mode is unidirectional and twice the
  * number of layers if the direction mode is bidirectional. The second dimension of
  * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
  * array. The third dimension equals the hiddenSize. (input)
- * @param cx                    Pointer to the cell layer input tensor (input)
+ * @param cx                    Pointer to the cell layer input tensor. If cx is NULL, 
+ * then the initial cell state will be zero initialized. (input)
  * @param wDesc                 A weights tensor descriptor (input)
  * @param w                     Pointer to input weights tensor (input)
  * @param yDesc                 An array of fully packed tensor descriptors associated
@@ -2377,13 +2436,15 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNLayerBias(miopenHandle_t handle,
  * number of layers if the direction mode is bidirectional. The second dimension of
  * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
  * array. The third dimension equals the hiddenSize. (input)
- * @param hy                    Pointer to the hidden layer output tensor (output)
+ * @param hy                    Pointer to the hidden layer output tensor. If hy is NULL, 
+ * then the final hidden state will not be saved. (output)
  * @param cyDesc                A cell tensor descriptor that has as its first dimension
  * of the number of layers if the direction mode is unidirectional and twice the
  * number of layers if the direction mode is bidirectional. The second dimension of
  * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
  * array. The third dimension equals the hiddenSize. (input)
- * @param cy                    Pointer to the cell layer output tensor (output)
+ * @param cy                    Pointer to the cell layer output tensor. If hy is NULL, 
+ * then the final cell state will not be saved. (output)
  * @param workSpace             Pointer to memory allocated for forward training (input)
  * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace (input)
  * @param reserveSpace          Pointer to memory allocated for random states (input / output)
@@ -2440,7 +2501,8 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
  * number of layers if the direction mode is bidirectional. The second dimension of
  * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
  * array. The third dimension equals the hiddenSize. (input)
- * @param dcy                   Pointer to the cell layer input tensor (input)
+ * @param dcy                   Pointer to the cell layer input tensor. If dcy is NULL, 
+ * then the initial delta cell state will be zero initialized. (input)
  * @param wDesc                 A weights tensor descriptor (input)
  * @param w                     Pointer to input weights tensor (input)
  * @param hxDesc                An input hidden tensor descriptor that has as its first dimension
@@ -2448,13 +2510,15 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
  * number of layers if the direction mode is bidirectional. The second dimension of
  * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
  * array. The third dimension equals the hiddenSize. (input)
- * @param hx                    Pointer to output tensor (input)
+ * @param hx                    Pointer to the hidden layer input tensor. If hx is NULL, 
+ * then the initial hidden state will be zero initialized. (input)
  * @param cxDesc                A input cell tensor descriptor that has as its first dimension
  * of the number of layers if the direction mode is unidirectional and twice the
  * number of layers if the direction mode is bidirectional. The second dimension of
  * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
  * array. The third dimension equals the hiddenSize. (input)
- * @param cx                    Pointer to the hidden layer output tensor (input)
+ * @param cx                    Pointer to the hidden layer input tensor. If cx is NULL, 
+ * then the initial cell state will be zero initialized. (input)
  * @param dxDesc                An array of tensor descriptors. These are the
  * input descriptors to each time step. The first dimension of each descriptor is the
  * batch size and may decrease from element n to element n+1 and not increase in size.
@@ -2466,13 +2530,15 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNForwardTraining(miopenHandle_t handle,
  * number of layers if the direction mode is bidirectional. The second dimension of
  * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
  * array. The third dimension equals the hiddenSize. (input)
- * @param dhx                   Pointer to the cell layer output tensor (output)
+ * @param dhx                   Pointer to the delta hidden layer output tensor. If dhx is NULL
+ * the hidden gradient will not ouput. (output)
  * @param dcxDesc               A tensor descriptor that has as its first dimension
  * of the number of layers if the direction mode is unidirectional and twice the
  * number of layers if the direction mode is bidirectional. The second dimension of
  * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
  * array. The third dimension equals the hiddenSize. (input)
- * @param dcx                   Pointer to the cell layer output tensor (output)
+ * @param dcx                   Pointer to the cell layer output tensor. If dcx is NULL
+ * the cell gradient will not ouput. (output)
  * @param workSpace             Pointer to memory allocated for forward training (input)
  * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace (input)
  * @param reserveSpace          Pointer to memory allocated for random states (input / output)
@@ -2525,7 +2591,8 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardData(miopenHandle_t handle,
  * number of layers if the direction mode is bidirectional. The second dimension of
  * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
  * array. The third dimension equals the hiddenSize. (input)
- * @param hx                    Pointer to the hidden layer input tensor (input)
+ * @param hx                    Pointer to the hidden layer input tensor. If hx is NULL, 
+ * then the initial hidden state will be zero initialized. (input)
  * @param yDesc                 An array of fully packed tensor descriptors associated
  * with the output from each time step. The first dimension of the tensor descriptors
  * must equal the first dimension of the first descriptor (batch size) in the xDesc
@@ -2533,9 +2600,9 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardData(miopenHandle_t handle,
  * depends on the direction mode selected. If the direction mode is unidirectional,
  * the second dimension is the hiddenSize. If direction mode is bidirectional
  * the second dimension is twice the hiddenSize. (input)
- * @param y                     Pointer to the cell layer input tensor (input)
+ * @param y                     Pointer to the output tensor (input)
  * @param dwDesc                A weights tensor descriptor (input)
- * @param dw                    Pointer to input weights tensor (output)
+ * @param dw                    Pointer to input weights tensor (input / output)
  * @param workSpace             Pointer to memory allocated for forward training (input)
  * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace (input)
  * @param reserveSpace          Pointer to memory allocated for random states (input)
@@ -2576,13 +2643,15 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardWeights(miopenHandle_t handle,
  * number of layers if the direction mode is bidirectional. The second dimension of
  * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
  * array. The third dimension equals the hiddenSize. (input)
- * @param hx                    Pointer to the hidden layer input tensor (input)
+ * @param hx                    Pointer to the hidden layer input tensor. If hx is NULL, 
+ * then the initial hidden state will be zero initialized. (input)
  * @param cxDesc                A cell tensor descriptor that has as its first dimension
  * of the number of layers if the direction mode is unidirectional and twice the
  * number of layers if the direction mode is bidirectional. The second dimension of
  * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
  * array. The third dimension equals the hiddenSize. (input)
- * @param cx                    Pointer to the cell layer input tensor (input)
+ * @param cx                    Pointer to the cell layer input tensor. If cx is NULL, 
+ * then the initial cell state will be zero initialized. (input)
  * @param wDesc                 A weights tensor descriptor (input)
  * @param w                     Pointer to input weights tensor (input)
  * @param yDesc                 An array of fully packed tensor descriptors associated
@@ -2598,13 +2667,15 @@ MIOPEN_EXPORT miopenStatus_t miopenRNNBackwardWeights(miopenHandle_t handle,
  * number of layers if the direction mode is bidirectional. The second dimension of
  * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
  * array. The third dimension equals the hiddenSize. (input)
- * @param hy                    Pointer to the hidden layer output tensor (output)
+ * @param hy                    Pointer to the hidden layer output tensor. If hy is NULL, 
+ * then the final hidden state will not be saved. (output)
  * @param cyDesc                A output cell tensor descriptor that has as its first dimension
  * of the number of layers if the direction mode is unidirectional and twice the
  * number of layers if the direction mode is bidirectional. The second dimension of
  * the descriptor must equal the largest first dimension of the xDesc tensor descriptor
  * array. The third dimension equals the hiddenSize. (input)
- * @param cy                    Pointer to the cell layer output tensor (output)
+ * @param cy                    Pointer to the cell layer output tensor. If cy is NULL, 
+ * then the final cell state will not be saved. (output)
  * @param workSpace             Pointer to memory allocated for forward training (input)
  * @param workSpaceNumBytes     Number of allocated bytes in memory for the workspace (input)
  * @return                      miopenStatus_t
