@@ -28,6 +28,10 @@
 
 #include <miopen/manage_ptr.hpp>
 #include <miopen/miopen.h>
+#include "half.hpp"
+#define _FLOAT float
+using half_float::half;
+typedef half float16;
 
 #if MIOPEN_BACKEND_OPENCL
 
