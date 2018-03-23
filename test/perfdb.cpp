@@ -83,7 +83,7 @@ struct TestData
     {
     };
 
-    inline TestData(NoInit) {}
+    inline TestData(NoInit) : x(0), y(0) {}
     inline TestData() : x(Rnd().Next()), y(Rnd().Next()) {}
     inline TestData(int x_, int y_) : x(x_), y(y_) {}
 
