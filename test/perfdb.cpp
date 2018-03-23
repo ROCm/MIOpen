@@ -45,6 +45,7 @@
 #include <miopen/temp_file.hpp>
 
 #include "test.hpp"
+#include "driver.hpp"
 
 namespace miopen {
 namespace tests {
@@ -717,6 +718,8 @@ class DBMultiThreadedTestWork
 class DbMultiThreadedTest : public DbTest
 {
     public:
+    static constexpr const char* logs_path_arg = "thread-logs-root";
+
     inline void Run()
     {
         std::cout << "Testing db for multithreaded write access..." << std::endl;
@@ -786,7 +789,9 @@ class DbMultiThreadedReadTest : public DbTest
 class DbMultiProcessTest : public DbTest
 {
     public:
-    static constexpr const char* arg = "-mp-test-child";
+    static constexpr const char* write_arg = "enable-mt-mp-write";
+    static constexpr const char* id_arg    = "mp-test-child";
+    static constexpr const char* path_arg  = "mp-test-child-path";
 
     inline void Run() const
     {
@@ -807,11 +812,13 @@ class DbMultiProcessTest : public DbTest
 
             for(auto& child : children)
             {
-                auto command = exe_path().string() + " -xw " + arg + " " + std::to_string(id++) +
-                               " " + temp_file_path().Path();
+                auto command = exe_path().string() + " --" + write_arg + " --" + id_arg + " " +
+                               std::to_string(id++) + " --" + path_arg + " " +
+                               temp_file_path().Path();
 
                 if(thread_logs_root())
-                    command += " " + *thread_logs_root();
+                    command += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " +
+                               *thread_logs_root();
 
                 child = popen(command.c_str(), "w");
             }
@@ -851,8 +858,6 @@ class DbMultiProcessTest : public DbTest
 class DbMultiProcessReadTest : public DbTest
 {
     public:
-    static constexpr const char* arg = "-mp-test-child";
-
     inline void Run() const
     {
         std::cout << "Testing db for multiprocess read access..." << std::endl;
@@ -873,12 +878,15 @@ class DbMultiProcessReadTest : public DbTest
 
             for(auto& child : children)
             {
-                auto command =
-                    exe_path().string() + " " + arg + " " + std::to_string(id++) + " " + p;
+                auto command = exe_path().string() + " --" + DbMultiProcessTest::id_arg + " " +
+                               std::to_string(id++) + " --" + DbMultiProcessTest::path_arg + " " +
+                               p;
 
                 if(thread_logs_root())
-                    command += " " + *thread_logs_root();
+                    command += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " +
+                               *thread_logs_root();
 
+                std::cout << command << std::endl;
                 child = popen(command.c_str(), "w");
             }
         }
@@ -912,54 +920,55 @@ class DbMultiProcessReadTest : public DbTest
 } // namespace tests
 } // namespace miopen
 
-int main(int argsn, char** argsc)
+struct PerfDbDriver : test_driver
 {
-    auto test_experimental_write = false;
-    auto args_found              = 0;
-
-    if(argsn >= 2 + args_found && argsc[1 + args_found] == std::string("-xw"))
+    public:
+    PerfDbDriver()
     {
-        test_experimental_write = true;
-        args_found++;
+        add(_logs_root, miopen::tests::DbMultiThreadedTest::logs_path_arg);
+        add(_test_experimental_write, miopen::tests::DbMultiProcessTest::write_arg, flag());
+
+        add(_mt_child_id, miopen::tests::DbMultiProcessTest::id_arg);
+        add(_mt_child_db_path, miopen::tests::DbMultiProcessTest::path_arg);
     }
 
-    if(argsn >= 3 + args_found && argsc[1 + args_found] == std::string("-thread-logs-root"))
+    void run()
     {
-        miopen::tests::thread_logs_root() = argsc[2 + args_found];
-        args_found += 2;
+        if(_mt_child_id >= 0)
+        {
+            miopen::tests::DbMultiProcessTest::WorkItem(
+                _mt_child_id, _mt_child_db_path, _test_experimental_write);
+            return;
+        }
+
+        miopen::tests::DbFindTest().Run();
+        miopen::tests::DbStoreTest().Run();
+        miopen::tests::DbUpdateTest().Run();
+        miopen::tests::DbRemoveTest().Run();
+        miopen::tests::DbReadTest().Run();
+        miopen::tests::DbWriteTest().Run();
+        miopen::tests::DbOperationsTest().Run();
+        miopen::tests::DbParallelTest().Run();
+        miopen::tests::DbMultiThreadedReadTest().Run();
+        miopen::tests::DbMultiProcessReadTest().Run();
+
+        if(_test_experimental_write)
+        {
+            miopen::tests::DbMultiThreadedTest().Run();
+            miopen::tests::DbMultiProcessTest().Run();
+        }
     }
 
-    if(argsn >= 4 + args_found &&
-       argsc[1 + args_found] == std::string(miopen::tests::DbMultiProcessTest::arg))
-    {
-        if(argsn >= 5 + args_found)
-            miopen::tests::thread_logs_root() = argsc[4 + args_found];
+    private:
+    bool _test_experimental_write = false;
+    std::string _logs_root;
 
-        miopen::tests::DbMultiProcessTest::WorkItem(strtol(argsc[2 + args_found], nullptr, 10),
-                                                    argsc[3 + args_found],
-                                                    test_experimental_write);
-        return 0;
-    }
+    int _mt_child_id = -1;
+    std::string _mt_child_db_path;
+};
 
-    miopen::tests::exe_path() =
-        boost::filesystem::system_complete(boost::filesystem::path(argsc[0]));
-
-    miopen::tests::DbFindTest().Run();
-    miopen::tests::DbStoreTest().Run();
-    miopen::tests::DbUpdateTest().Run();
-    miopen::tests::DbRemoveTest().Run();
-    miopen::tests::DbReadTest().Run();
-    miopen::tests::DbWriteTest().Run();
-    miopen::tests::DbOperationsTest().Run();
-    miopen::tests::DbParallelTest().Run();
-    miopen::tests::DbMultiThreadedReadTest().Run();
-    miopen::tests::DbMultiProcessReadTest().Run();
-
-    if(test_experimental_write)
-    {
-        miopen::tests::DbMultiThreadedTest().Run();
-        miopen::tests::DbMultiProcessTest().Run();
-    }
-
-    return 0;
+int main(int argc, const char* argv[])
+{
+    miopen::tests::exe_path() = argv[0];
+    test_drive<PerfDbDriver>(argc, argv);
 }
