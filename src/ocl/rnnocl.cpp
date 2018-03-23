@@ -3769,9 +3769,12 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         }
 
         int pretime_shift, hx_shift, cur_time;
-        bool comb_check = (seqLen == 1 && seqLen == 2)
-                              ? true
-                              : (in_n.at(0) == in_n.at(seqLen - 2) ? true : false);
+        bool comb_check = true;
+        if(seqLen > 2)
+        {
+            comb_check = (in_n.at(0) == in_n.at(seqLen - 2)) ? true : false;
+        }
+
         if(comb_check)
         {
             hx_shift  = li * hy_n * bi_stride;
