@@ -2308,14 +2308,15 @@ struct lstm_driver : test_driver
     int batchSize{};
 
     // Null pointer input
-    bool nohx  = false;
-    bool nodhy = false;
-    bool nocx  = false;
-    bool nodcy = false;
-    bool nohy  = false;
-    bool nodhx = false;
-    bool nocy  = false;
-    bool nodcx = false;
+    bool nohx          = false;
+    bool nodhy         = false;
+    bool nocx          = false;
+    bool nodcy         = false;
+    bool nohy          = false;
+    bool nodhx         = false;
+    bool nocy          = false;
+    bool nodcx         = false;
+    bool flatBatchFill = false;
 
     lstm_driver()
     {
@@ -2323,7 +2324,7 @@ struct lstm_driver : test_driver
         // this->batch_factor = 4;
         std::vector<int> modes(2, 0);
         modes[1] = 1;
-        std::vector<int> defaultBS(2, 17);
+        std::vector<int> defaultBS(1);
 
         // this->verbose=true;
         add(batchSize, "batch-size", generate_data(get_lstm_batchSize(), {17}));
@@ -2339,6 +2340,7 @@ struct lstm_driver : test_driver
         add(nodhx, "no-dhx", flag());
         add(nocy, "no-cy", flag());
         add(nodcx, "no-dcx", flag());
+        add(flatBatchFill, "flat-batch-fill", flag());
 
 #if(MIO_LSTM_TEST_DEBUG == 3)
         biasMode  = 0;
@@ -2357,17 +2359,40 @@ struct lstm_driver : test_driver
     void run()
     {
 
+        if(batchSeq.empty() || !batchSeq[0])
+        {
+            std::cout << "Empty batch sequence. Filling uniformly with batch size: " << batchSize
+                      << std::endl;
+            if(flatBatchFill)
+            {
+                batchSeq.clear();
+                batchSeq.resize(seqLength, batchSize);
+            }
+            else
+            {
+                batchSeq = generate_batchSeq(batchSize, seqLength)[0];
+            }
+        }
+
+        if(batchSeq.size() != seqLength)
+        {
+            std::cerr << "FAILED: Batch sequence vector length, does not match sequence length."
+                      << std::endl;
+            std::abort();
+        }
+
 #if(MIO_LSTM_TEST_DEBUG == 2)
         for(int i = 0; i < seqLength; i++)
         {
             std::cout << "batch seq[" << i << "]: " << batchSeq.at(i) << std::endl;
         }
 #endif
+
+        auto&& handle = get_handle();
+
         int batch_n = 0;
         for(auto& n : batchSeq)
             batch_n += n;
-
-        auto&& handle = get_handle();
 
         miopenRNNDescriptor_t rnnDesc;
         miopenCreateRNNDescriptor(&rnnDesc);
@@ -2383,6 +2408,7 @@ struct lstm_driver : test_driver
                                miopenFloat);
 
         // Create input tensor
+        // If we are in skip mode, take the real input size to be the vector length.
         auto inVecReal    = (inputMode) ? hiddenSize : inVecLen;
         std::size_t in_sz = inVecReal * batch_n;
         std::vector<T> input(in_sz);
