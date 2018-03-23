@@ -56,19 +56,13 @@ class LockFile
     LockFile(const LockFile&) = delete;
     LockFile operator=(const LockFile&) = delete;
 
-    void lock()
-    {
-        std::lock(access_mutex, flock);
-    }
+    void lock() { std::lock(access_mutex, flock); }
     void lock_shared()
     {
         access_mutex.lock_shared();
         flock.lock_sharable();
     }
-    bool try_lock()
-    {
-        return std::try_lock(access_mutex, flock);
-    }
+    bool try_lock() { return std::try_lock(access_mutex, flock); }
     bool try_lock_shared()
     {
         if(!access_mutex.try_lock_shared())
