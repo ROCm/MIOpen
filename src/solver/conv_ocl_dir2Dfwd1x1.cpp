@@ -47,7 +47,8 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
     {
         int version = result.out_pix_tile1;
 
-        if(version && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
+        if((version && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0) &&
+           (params.in_data_type == "FP32"))
         {
 
             int N_LCL_IN_MAPS = result.n_in_data_tiles;
@@ -193,7 +194,7 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
                 size_t gbl_wk0 = imagesizeAlign * N_IN_GROUPS * N_OUT_GROUPS;
 
                 size_t gbl_wk1 = 1;
-                ;
+
                 size_t gbl_wk2 = 1;
 
                 kernel.g_wk.push_back(gbl_wk0);
@@ -214,9 +215,12 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
             //	_out_pix_tile0 = (i_sz & 1) ? 1 : 2;
             result.out_pix_tile0 = std::min(params.out_width, result.out_pix_tile0);
             result.out_pix_tile1 = std::min(params.out_height, result.out_pix_tile1);
-            while(params.out_width % result.out_pix_tile0 != 0 && result.out_pix_tile0 > 1)
+            if(!params.direction.IsForward())
             {
-                result.out_pix_tile0 /= 2;
+                while(params.out_width % result.out_pix_tile0 != 0 && result.out_pix_tile0 > 1)
+                {
+                    result.out_pix_tile0 /= 2;
+                }
             }
 
             int read_unit = result.out_pix_tile0;
