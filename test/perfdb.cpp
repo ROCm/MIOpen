@@ -24,6 +24,18 @@
  *
  *******************************************************************************/
 
+#include "test.hpp"
+#include "driver.hpp"
+
+#include <miopen/db.hpp>
+#include <miopen/db_record.hpp>
+#include <miopen/lock_file.hpp>
+#include <miopen/temp_file.hpp>
+
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/optional.hpp>
+
 #include <array>
 #include <cstdio>
 #include <cstdlib>
@@ -34,18 +46,6 @@
 #include <thread>
 #include <vector>
 #include <atomic>
-
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/optional.hpp>
-
-#include <miopen/db.hpp>
-#include <miopen/db_record.hpp>
-#include <miopen/lock_file.hpp>
-#include <miopen/temp_file.hpp>
-
-#include "test.hpp"
-#include "driver.hpp"
 
 namespace miopen {
 namespace tests {
@@ -79,8 +79,12 @@ struct TestData
     int x;
     int y;
 
-    inline TestData() : x(Rnd().Next()), y(Rnd().Next()) {}
+    struct NoInit
+    {
+    };
 
+    inline TestData(NoInit) {}
+    inline TestData() : x(Rnd().Next()), y(Rnd().Next()) {}
     inline TestData(int x_, int y_) : x(x_), y(y_) {}
 
     template <unsigned int seed>
@@ -99,7 +103,7 @@ struct TestData
     inline bool Deserialize(const std::string& s)
     {
         static const auto sep = ',';
-        TestData t;
+        TestData t(NoInit{});
         std::istringstream ss(s);
 
         auto success = DeserializeField(ss, &t.x, sep) && DeserializeField(ss, &t.y, sep);
@@ -528,6 +532,9 @@ class DBMultiThreadedTestWork
 
     static inline const std::array<TestData, common_part_size>& common_part()
     {
+        static std::mutex mutex;
+        std::lock_guard<std::mutex> lock(mutex);
+
         static const std::array<TestData, common_part_size>& ref = common_part_init();
         return ref;
     }
@@ -559,12 +566,14 @@ class DBMultiThreadedTestWork
     {
         Db db(db_path);
 
+        const auto cp = common_part();
+
         for(auto i = 0u; i < common_part_size; i++)
         {
             const auto key  = i / ids_per_key;
             const auto id   = i % ids_per_key;
-            const auto data = common_part()[i];
-            TestData read;
+            const auto data = cp[i];
+            TestData read(TestData::NoInit{});
 
             EXPECT(db.Load(std::to_string(key), std::to_string(id), read));
             EXPECT_EQUAL(read, data);
@@ -624,12 +633,14 @@ class DBMultiThreadedTestWork
     static inline void
     ReadCommonPartSection(unsigned int start, unsigned int end, const TDbGetter& db_getter)
     {
+        const auto cp = common_part();
+
         for(auto i = start; i < end; i++)
         {
             const auto key  = i / ids_per_key;
             const auto id   = i % ids_per_key;
-            const auto data = common_part()[i];
-            TestData read;
+            const auto data = cp[i];
+            TestData read(TestData::NoInit{});
 
             EXPECT(db_getter().Load(std::to_string(key), std::to_string(id), read));
             EXPECT_EQUAL(read, data);
@@ -653,11 +664,13 @@ class DBMultiThreadedTestWork
     static inline void
     CommonPartSection(unsigned int start, unsigned int end, const TDbGetter& db_getter)
     {
+        const auto cp = common_part();
+
         for(auto i = start; i < end; i++)
         {
             const auto key  = i / ids_per_key;
             const auto id   = i % ids_per_key;
-            const auto data = common_part()[i];
+            const auto data = cp[i];
 
             db_getter().Update(std::to_string(key), std::to_string(id), data);
         }
@@ -686,7 +699,14 @@ class DBMultiThreadedTestWork
         {
             auto key = LimitedRandom(rnd, common_part_size / ids_per_key + 2);
             auto id  = LimitedRandom(rnd, ids_per_key + 1);
-            TestData data;
+            TestData data(TestData::NoInit{});
+
+            {
+                static std::mutex mutex;
+                std::lock_guard<std::mutex> lock(mutex);
+
+                data = TestData{};
+            }
 
             db_getter().Update(std::to_string(key), std::to_string(id), data);
         }
