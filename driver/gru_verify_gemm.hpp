@@ -1097,12 +1097,14 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
                         {
                             dh_state[hid_shift + (bacc + bs) * hy_stride + h] +=
                                 dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h + h] *
-                                (hx_state[hx_shift + bs * uni_stride + h] -
-                                 activfunc(
-                                     rsvspace[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h],
-                                     1)) *
+                                hx_state[hx_shift + bs * uni_stride + h] *
                                 dervactivfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + h], 2);
                         }
+                        dh_state[hid_shift + (bacc + bs) * hy_stride + h] -=
+                            (dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h + h] *
+                             activfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h],
+                                       1) *
+                             dervactivfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + h], 2));
                     }
                     else
                     {
