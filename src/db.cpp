@@ -1,28 +1,28 @@
 /*******************************************************************************
-*
-* MIT License
-*
-* Copyright (c) 2017 Advanced Micro Devices, Inc.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in all
-* copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-* SOFTWARE.
-*
-*******************************************************************************/
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 #include <miopen/db.hpp>
 #include <miopen/db_record.hpp>
 #include <miopen/errors.hpp>
@@ -150,7 +150,7 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
 
     if(!file)
     {
-        MIOPEN_LOG_W("File is unreadable.");
+        MIOPEN_LOG_W("File is unreadable: " << filename);
         return boost::none;
     }
 
@@ -170,8 +170,7 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
         {
             if(!line.empty()) // Do not blame empty lines.
             {
-                MIOPEN_LOG_E("Ill-formed record: key not found.");
-                MIOPEN_LOG_E(filename << "#" << n_line);
+                MIOPEN_LOG_E("Ill-formed record: key not found: " << filename << "#" << n_line);
             }
             continue;
         }
@@ -186,7 +185,9 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
 
         if(contents.empty())
         {
-            MIOPEN_LOG_E("None contents under the key: " << current_key);
+            MIOPEN_LOG_E("None contents under the key: " << current_key << " form file " << filename
+                                                         << "#"
+                                                         << n_line);
             continue;
         }
         MIOPEN_LOG_I("Contents found: " << contents);
@@ -196,9 +197,11 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
 
         if(!is_parse_ok)
         {
-            MIOPEN_LOG_E("Error parsing payload under the key: " << current_key);
-            MIOPEN_LOG_E(filename << "#" << n_line);
-            MIOPEN_LOG_E(contents);
+            MIOPEN_LOG_E("Error parsing payload under the key: " << current_key << " form file "
+                                                                 << filename
+                                                                 << "#"
+                                                                 << n_line);
+            MIOPEN_LOG_E("Contents: " << contents);
         }
         // A record with matching key have been found.
         if(pos)
@@ -238,7 +241,7 @@ bool Db::FlushUnsafe(const DbRecord& record, const RecordPositions* pos)
 
         if(!file)
         {
-            MIOPEN_LOG_E("File is unwritable.");
+            MIOPEN_LOG_E("File is unwritable: " << filename);
             return false;
         }
 
@@ -247,20 +250,20 @@ bool Db::FlushUnsafe(const DbRecord& record, const RecordPositions* pos)
     }
     else
     {
-        const auto temp_name = filename + ".temp";
         std::ifstream from(filename, std::ios::ate);
 
         if(!from)
         {
-            MIOPEN_LOG_E("File is unreadable.");
+            MIOPEN_LOG_E("File is unreadable: " << filename);
             return false;
         }
 
+        const auto temp_name = filename + ".temp";
         std::ofstream to(temp_name);
 
         if(!to)
         {
-            MIOPEN_LOG_E("Temp file is unwritable.");
+            MIOPEN_LOG_E("Temp file is unwritable: " << temp_name);
             return false;
         }
 
