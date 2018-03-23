@@ -1993,13 +1993,16 @@ struct rnn_vanilla_driver : test_driver
     bool nohy  = false;
     bool nodhx = false;
 
+    // use this to uniformly fill the batch per time step
+    bool flatBatchFill = false;
+
     rnn_vanilla_driver()
     {
         // this->tolerance = 1024;
         // this->batch_factor = 4;
         std::vector<int> modes(2, 0);
         modes[1] = 1;
-        std::vector<int> defaultBS(1, 5);
+        std::vector<int> defaultBS(1);
 
         // this->verbose=true;
         add(batchSize, "batch-size", generate_data(get_rnn_batchSize(), {5}));
@@ -2011,6 +2014,7 @@ struct rnn_vanilla_driver : test_driver
         add(nodhy, "no-dhy", flag());
         add(nohy, "no-hy", flag());
         add(nodhx, "no-dhx", flag());
+        add(flatBatchFill, "flat-batch-fill", flag());
 
 #if(MIO_RNN_TEST_DEBUG == 3)
         biasMode  = 0;
@@ -2030,6 +2034,28 @@ struct rnn_vanilla_driver : test_driver
 
     void run()
     {
+
+        if(batchSeq.empty() || !batchSeq[0])
+        {
+            std::cout << "Empty batch sequence. Filling uniformly with batch size: " << batchSize
+                      << std::endl;
+            if(flatBatchFill)
+            {
+                batchSeq.clear();
+                batchSeq.resize(seqLength, batchSize);
+            }
+            else
+            {
+                batchSeq = generate_batchSeq(batchSize, seqLength)[0];
+            }
+        }
+
+        if(batchSeq.size() != seqLength)
+        {
+            std::cerr << "FAILED: Batch sequence vector length, does not match sequence length."
+                      << std::endl;
+            std::abort();
+        }
 
 #if(MIO_RNN_TEST_DEBUG == 2)
         printf("seqLen: %d, batch_seq array len: %d\n", seqLength, batchSeq.size());
@@ -2060,6 +2086,7 @@ struct rnn_vanilla_driver : test_driver
                                miopenFloat);
 
         // Create input tensor
+        // If we are in skip mode, take the real input size to be the vector length.
         auto inVecReal    = (inputMode) ? hiddenSize : inVecLen;
         std::size_t in_sz = inVecReal * batch_n;
         std::vector<T> input(in_sz);
