@@ -152,7 +152,7 @@ std::ostream& operator<<(std::ostream& s, const TestData& td)
 class DbTest
 {
     public:
-    DbTest() : _temp_file("miopen.tests.perfdb") {}
+    DbTest() : temp_file("miopen.tests.perfdb") {}
     virtual ~DbTest() {}
 
     protected:
@@ -184,10 +184,10 @@ class DbTest
     static const char* id1() { return "1"; }
     static const char* id2() { return "2"; }
     static const char* missing_id() { return "3"; }
-    const TempFile& temp_file_path() const { return _temp_file; }
+    const TempFile& temp_file_path() const { return temp_file; }
 
     private:
-    TempFile _temp_file;
+    TempFile temp_file;
 };
 
 class DbFindTest : public DbTest
@@ -945,19 +945,19 @@ struct PerfDbDriver : test_driver
     public:
     PerfDbDriver()
     {
-        add(_logs_root, miopen::tests::DbMultiThreadedTest::logs_path_arg);
-        add(_test_experimental_write, miopen::tests::DbMultiProcessTest::write_arg, flag());
+        add(logs_root, miopen::tests::DbMultiThreadedTest::logs_path_arg);
+        add(test_experimental_write, miopen::tests::DbMultiProcessTest::write_arg, flag());
 
-        add(_mt_child_id, miopen::tests::DbMultiProcessTest::id_arg);
-        add(_mt_child_db_path, miopen::tests::DbMultiProcessTest::path_arg);
+        add(mt_child_id, miopen::tests::DbMultiProcessTest::id_arg);
+        add(mt_child_db_path, miopen::tests::DbMultiProcessTest::path_arg);
     }
 
     void run()
     {
-        if(_mt_child_id >= 0)
+        if(mt_child_id >= 0)
         {
             miopen::tests::DbMultiProcessTest::WorkItem(
-                _mt_child_id, _mt_child_db_path, _test_experimental_write);
+                mt_child_id, mt_child_db_path, test_experimental_write);
             return;
         }
 
@@ -972,7 +972,7 @@ struct PerfDbDriver : test_driver
         miopen::tests::DbMultiThreadedReadTest().Run();
         miopen::tests::DbMultiProcessReadTest().Run();
 
-        if(_test_experimental_write)
+        if(test_experimental_write)
         {
             miopen::tests::DbMultiThreadedTest().Run();
             miopen::tests::DbMultiProcessTest().Run();
@@ -980,11 +980,11 @@ struct PerfDbDriver : test_driver
     }
 
     private:
-    bool _test_experimental_write = false;
-    std::string _logs_root;
+    bool test_experimental_write = false;
+    std::string logs_root;
 
-    int _mt_child_id = -1;
-    std::string _mt_child_db_path;
+    int mt_child_id = -1;
+    std::string mt_child_db_path;
 };
 
 int main(int argc, const char* argv[])
