@@ -44,7 +44,7 @@ namespace miopen {
 namespace solver {
 
 /*
-* select default configuration if a known configuration has not been found.
+* select defult configuration if a known configuration has not been found.
 */
 LegacyPerformanceConfig
 ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionContext& params) const
@@ -77,8 +77,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
     {
 
         // version
-        if(params.in_data_type == "FP32" && params.direction.IsForward() &&
-           params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
+        if(params.direction.IsForward() && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
         {
             result.n_in_data_tiles = 128;
 
@@ -356,8 +355,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
         report_inteval   = 5;
 
         // Add 1x1_stride : no padding support yet
-        if(params.in_data_type == "FP32" && params.direction.IsForward() &&
-           params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
+        if(params.direction.IsForward() && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
         {
 
             // uint N_LCL_IN_MAPS = result.n_in_data_tiles;
