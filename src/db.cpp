@@ -59,8 +59,10 @@ inline static std::string LockFilePath(const boost::filesystem::path& filename_)
     const auto directory = boost::filesystem::temp_directory_path() / "miopen-lockfiles";
 
     if(!exists(directory))
+    {
         boost::filesystem::create_directories(directory);
-
+        boost::filesystem::permissions(directory, boost::filesystem::all_all);
+    }
     const auto hash = md5(filename_.parent_path().string());
     const auto file = directory / (hash + "_" + filename_.filename().string() + ".lock");
 
