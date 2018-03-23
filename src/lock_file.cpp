@@ -25,45 +25,7 @@
 *******************************************************************************/
 #include <miopen/lock_file.hpp>
 
-#include <boost/date_time/posix_time/posix_time_types.hpp>
-
-#include <mutex>
-
 namespace miopen {
-
-void LockFile::lock() { std::lock(_mutex, _file_lock); }
-
-void LockFile::lock_shared()
-{
-    _mutex.lock_shared();
-    _file_lock.lock_sharable();
-}
-
-bool LockFile::try_lock() { return std::try_lock(_mutex, _file_lock); }
-
-bool LockFile::try_lock_shared()
-{
-    if(!_mutex.try_lock_shared())
-        return false;
-
-    if(_file_lock.try_lock_sharable())
-        return true;
-
-    _mutex.unlock_shared();
-    return false;
-}
-
-void LockFile::unlock()
-{
-    _file_lock.unlock();
-    _mutex.unlock();
-}
-
-void LockFile::unlock_shared()
-{
-    _file_lock.unlock_sharable();
-    _mutex.unlock_shared();
-}
 
 LockFile& LockFile::Get(const char* path)
 {

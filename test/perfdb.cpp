@@ -524,7 +524,7 @@ class DbParallelTest : public DbTest
 class DBMultiThreadedTestWork
 {
     public:
-    static constexpr unsigned char threads_count   = 8;
+    static constexpr unsigned int threads_count    = 128;
     static constexpr unsigned int common_part_size = 128;
     static constexpr unsigned int unique_part_size = 128;
     static constexpr unsigned int ids_per_key      = 16;
