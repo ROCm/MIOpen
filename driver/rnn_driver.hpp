@@ -234,24 +234,25 @@ int RNNDriver<T>::AddCmdLineArgs()
     inflags.AddInputFlag("in_h", 'W', "32", "Input Length (Default=32)", "int");
     inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
+    /*
+    // DL: This is disabled below, so I'm turninig it off here
     inflags.AddInputFlag("verification_cache",
                          'C',
                          "",
                          "Use specified directory to cache verification data. Off by default.",
                          "string");
+    */
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
-    inflags.AddInputFlag("search", 's', "0", "Search Kernel Config (Default=0)", "int");
-    inflags.AddInputFlag("printconv", 'P', "1", "Print Convolution Dimensions (Default=1)", "int");
     inflags.AddInputFlag("dump_output", 'o', "0", "Dumps the output buffers (Default=0)", "int");
-    inflags.AddInputFlag("in_data", 'd', "", "Input data filename (Default=)", "string");
-    inflags.AddInputFlag("weights", 'e', "", "Input weights filename (Default=)", "string");
+    /*  // DL: These have not been implemented. Removing them for now.
+        inflags.AddInputFlag("in_data", 'd', "", "Input data filename (Default=)", "string");
+        inflags.AddInputFlag("weights", 'e', "", "Input weights filename (Default=)", "string");*/
     inflags.AddInputFlag("bias", 'b', "", "Use Bias (Default=0)", "int");
     inflags.AddInputFlag(
         "mode", 'm', "tanh", "RNN Mode (relu, tanh, lstm, gru) (Default=tanh)", "str");
-    inflags.AddInputFlag(
-        "inputmode", 'p', "0", "linear or skip, default linear (Default=0)", "int");
+    inflags.AddInputFlag("inputmode", 'p', "0", "linear == 0 or skip == 1, (Default=0)", "int");
     inflags.AddInputFlag(
         "rnnalgo", 'a', "0", "default, persist static or persist dynamic (Default=0)", "int");
     inflags.AddInputFlag("fwdtype",
@@ -568,27 +569,28 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
         dcx_host  = std::vector<T>(hy_sz, 0);
     }
 
-    std::string inFileName  = inflags.GetValueStr("in_data");
-    std::string weiFileName = inflags.GetValueStr("weights");
+    /*  // Not implemented.
+        std::string inFileName  = inflags.GetValueStr("in_data");
+        std::string weiFileName = inflags.GetValueStr("weights");*/
 
-    /*
-       Unless seed is persistent between runs validation using cache stored in file is impossible.
-       */
+    // Unless seed is persistent between runs validation using cache stored in file is impossible.
     srand(0);
     double scale = 0.01;
 
-    bool dataRead = false;
-    if(!inFileName.empty())
-    {
-        dataRead = readBufferFromFile(in.data(), in_sz, inFileName.c_str());
-    }
-
-    if(!dataRead)
-    {
-        for(int i = 0; i < in_sz; i++)
+    /*    bool dataRead = false;
+        bool weiRead = false;
+        if(!inFileName.empty())
         {
-            in[i] = static_cast<T>((static_cast<double>(scale * rand()) * (1.0 / RAND_MAX)));
+            std::cerr << "Loading input data from file is a feature which has not been implemented
+       in MIOpenDriver." << std::endl;
+            // Not implemented.
+            //dataRead = readBufferFromFile(in.data(), in_sz, inFileName.c_str());
         }
+    */
+
+    for(int i = 0; i < in_sz; i++)
+    {
+        in[i] = static_cast<T>((static_cast<double>(scale * rand()) * (1.0 / RAND_MAX)));
     }
 
     for(int i = 0; i < hy_sz; i++)
@@ -625,19 +627,19 @@ int RNNDriver<T>::AllocateBuffersAndCopy()
         }
     }
 
-    bool weiRead = false;
-    if(!weiFileName.empty())
-    {
-        weiRead = readBufferFromFile(wei.data(), wei_sz, weiFileName.c_str());
-    }
-
-    if(!weiRead)
-    {
-        for(int i = 0; i < wei_sz; i++)
+    /*
+        if(!weiFileName.empty())
         {
-            wei[i] =
-                static_cast<T>((scale * static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5)));
+            std::cerr << "Loading weights from file is a feature which has not been implemented in
+       MIOpenDriver." << std::endl;
+            // Not implemented.
+            // weiRead = readBufferFromFile(wei.data(), wei_sz, weiFileName.c_str());
         }
+    */
+
+    for(int i = 0; i < wei_sz; i++)
+    {
+        wei[i] = static_cast<T>((scale * static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5)));
     }
 
     if(inflags.GetValueInt("dump_output"))

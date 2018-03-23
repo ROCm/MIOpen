@@ -2434,16 +2434,17 @@ struct gru_driver : test_driver
     int batchSize{};
 
     // Null pointer input
-    bool nohx  = false;
-    bool nodhy = false;
-    bool nohy  = false;
-    bool nodhx = false;
+    bool nohx          = false;
+    bool nodhy         = false;
+    bool nohy          = false;
+    bool nodhx         = false;
+    bool flatBatchFill = false;
 
     gru_driver()
     {
         std::vector<int> modes(2, 0);
         modes[1] = 1;
-        std::vector<int> defaultBS(2, 17);
+        std::vector<int> defaultBS(1);
 
         add(batchSize, "batch-size", generate_data(get_gru_batchSize(), {17}));
         add(seqLength, "seq-len", generate_data(get_gru_seq_len(), {2}));
@@ -2454,6 +2455,7 @@ struct gru_driver : test_driver
         add(nodhy, "no-dhy", flag());
         add(nohy, "no-hy", flag());
         add(nodhx, "no-dhx", flag());
+        add(flatBatchFill, "flat-batch-fill", flag());
 
 #if(MIO_GRU_TEST_DEBUG == 3)
         biasMode  = 0;
@@ -2472,6 +2474,30 @@ struct gru_driver : test_driver
     void run()
     {
 
+        if(batchSeq.empty() || !batchSeq[0])
+        {
+            std::cout << "Empty batch sequence. Filling uniformly with batch size: " << batchSize
+                      << std::endl;
+            if(flatBatchFill)
+            {
+                batchSeq.clear();
+                batchSeq.resize(seqLength, batchSize);
+            }
+            else
+            {
+                batchSeq = generate_batchSeq(batchSize, seqLength)[0];
+            }
+        }
+
+        if(batchSeq.size() != seqLength)
+        {
+            std::cerr << "FAILED: Batch sequence vector length, does not match sequence length."
+                      << std::endl;
+            std::abort();
+        }
+
+        auto&& handle = get_handle();
+
 #if(MIO_GRU_TEST_DEBUG == 2)
         for(int i = 0; i < seqLength; i++)
         {
@@ -2481,8 +2507,6 @@ struct gru_driver : test_driver
         int batch_n = 0;
         for(auto& n : batchSeq)
             batch_n += n;
-
-        auto&& handle = get_handle();
 
         miopenRNNDescriptor_t rnnDesc;
         miopenCreateRNNDescriptor(&rnnDesc);
@@ -2498,6 +2522,7 @@ struct gru_driver : test_driver
                                miopenFloat);
 
         // Create input tensor
+        // If we are in skip mode, take the real input size to be the vector length.
         auto inVecReal    = (inputMode) ? hiddenSize : inVecLen;
         std::size_t in_sz = inVecReal * batch_n;
         std::vector<T> input(in_sz);
