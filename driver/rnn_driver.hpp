@@ -867,7 +867,6 @@ int RNNDriver<T>::RunForwardCPU()
                                    mode,
                                    inputMode,
                                    reservespace_host);
-        // true); // hx_dev->GetMem() == nullptr
     }
     else if(mode == miopenLSTM)
     {
@@ -891,7 +890,6 @@ int RNNDriver<T>::RunForwardCPU()
                                     out_h,
                                     inputMode,
                                     reservespace_host);
-        // true); // hx_dev->GetMem() == nullptr
     }
     else if(mode == miopenGRU)
     {
@@ -913,7 +911,6 @@ int RNNDriver<T>::RunForwardCPU()
                                    out_h,
                                    inputMode,
                                    reservespace_host);
-        // true); // hx_dev->GetMem() == nullptr
     }
     else
     {
