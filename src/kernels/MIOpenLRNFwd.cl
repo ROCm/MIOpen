@@ -102,7 +102,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
     int bot_x   = x;
     int bot_y   = y;
     int bot_off =
-        mul24(b, (int)MLO_LRN_BOT_BATCH_STRIDE) + mul24(o, (int)MLO_LRN_BOT_CHANNEL_STRIDE);
+        b * MLO_LRN_BOT_BATCH_STRIDE + o * MLO_LRN_BOT_CHANNEL_STRIDE;
 
     // load tile
     for(int b_j = lcl_id1; b_j < MLO_LRN_LCL_DATA_HEIGHT; b_j += MLO_LRN_GROUP_SZ1)
@@ -111,7 +111,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
 
         bool invisibleY = (bot_y_act < 0) || (bot_y_act >= MLO_LRN_BOT_HEIGHT);
 
-        int bot_y_off = mul24(bot_y_act, (int)MLO_LRN_BOT_STRIDE);
+        int bot_y_off = bot_y_act * MLO_LRN_BOT_STRIDE;
 
         int lcl_off_v = mul24(b_j, (int)MLO_LRN_LCL_DATA_WIDTH);
 

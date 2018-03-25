@@ -94,16 +94,23 @@ int mlo_construct_norm::mloConstructFwd()
     _out_pix_tile0 = 1;
     _out_pix_tile1 = 1;
 
+	int N4S = 1;
+	int MAP_SZ4 = _search_params.in_width * _search_params.in_height;
+	int read_unit;
     if(_norm_region == MLO_LRN_ACROSS_CHANNELS)
     {
         _grp_tile0 = (_search_params.out_width <= 8) ? 8 : 16;
         _grp_tile1 = (_search_params.out_height <= 8) ? 8 : 16;
+		 read_unit = (MAP_SZ4 % 4 == 0) ? 4 : (MAP_SZ4 % 3 == 0) ? 3 : (MAP_SZ4 % 2 == 0) ? 2 : 1;
+		 MAP_SZ4 /= read_unit;
     }
     else
     {
 
         _out_pix_tile0 = (_search_params.out_width <= 8) ? 1 : 2;
         _out_pix_tile1 = (_search_params.out_height <= 8) ? 1 : 2;
+		read_unit = 4;
+		MAP_SZ4 = (MAP_SZ4 + 3) / 4;
     }
 
     auto ocl_group_lg2sz0 =
@@ -111,12 +118,9 @@ int mlo_construct_norm::mloConstructFwd()
     auto ocl_group_lg2sz1 =
         static_cast<int>(ceil(log(static_cast<double>(_out_pix_tile1) / log(2.))));
 
-    int read_unit = 4;
-    int N4S       = 1;
-    int MAP_SZ4   = (_search_params.in_width * _search_params.in_height + N4S * read_unit - 1) /
-                  (N4S * read_unit);
 
-#if 1
+
+
     _kernel_file = "MIOpenLRNFwd.cl";
     _kernel_name = (_norm_region == MLO_LRN_ACROSS_CHANNELS) ? "MIOpenLRNAcrossChannels4"
                                                              : "MIOpenLRNWithinChannel_PS";
@@ -127,16 +131,12 @@ int mlo_construct_norm::mloConstructFwd()
         int n_waves = (_search_params.batch_sz * MAP_SZ4 + _hw_wave_sz - 1) / _hw_wave_sz;
         if(n_waves <= maxComputeUnits * 8)
         {
-            read_unit = 2;
-            MAP_SZ4   = (_search_params.in_width * _search_params.in_height + N4S * read_unit - 1) /
-                      (N4S * read_unit);
+            MAP_SZ4   = _search_params.in_width * _search_params.in_height;
+			read_unit = (MAP_SZ4 % 2 == 0) ? 2 : 1;
+			MAP_SZ4 /= read_unit;
         }
     }
-#else
-    _kernel_file = "MIOpenLRN.cl";
-    _kernel_name = (_norm_region == MLO_LRN_ACROSS_CHANNELS) ? "MIOpenLRNAcrossChannels1"
-                                                             : "MIOpenLRNWithinChannel";
-#endif
+
 
     int scale_stride         = _search_params.out_stride;
     int scale_channel_stride = _search_params.out_channel_stride;
@@ -246,14 +246,9 @@ int mlo_construct_norm::mloConstructFwd()
     _g_wk.clear();
     if(_norm_region == MLO_LRN_ACROSS_CHANNELS)
     {
-#if 1
+
         _g_wk.push_back(MAP_SZ4);
         _g_wk.push_back(1);
-
-#else
-        _g_wk.push_back(_out_width);
-        _g_wk.push_back(_out_height);
-#endif
         _g_wk.push_back(_search_params.batch_sz);
     }
     else
@@ -263,7 +258,7 @@ int mlo_construct_norm::mloConstructFwd()
         _g_wk.push_back(g_wk_height * _grp_tile1);
         _g_wk.push_back(_search_params.n_outputs * _search_params.batch_sz);
     }
-    int data_len = (_search_params.out_data_type == "FP32" ? 4 : 8);
+    int data_len = (_search_params.out_data_type == "FP32") ? 4 : (_search_params.out_data_type == "FP16") ? 2 : 8;
 
     // calculate workspace
     size_t scale_sz = _search_params.batch_sz * scale_batch_stride * data_len;
