@@ -3772,7 +3772,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         bool comb_check = true;
         if(seqLen > 2)
         {
-            comb_check = (in_n.at(0) == in_n.at(seqLen - 2)) ? true : false;
+            comb_check = in_n.at(0) == in_n.at(seqLen - 2) ? true : false;
         }
 
         if(comb_check)
