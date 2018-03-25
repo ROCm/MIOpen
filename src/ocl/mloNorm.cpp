@@ -94,32 +94,28 @@ int mlo_construct_norm::mloConstructFwd()
     _out_pix_tile0 = 1;
     _out_pix_tile1 = 1;
 
-	int N4S = 1;
-	int MAP_SZ4 = _search_params.in_width * _search_params.in_height;
-	int read_unit;
+    int MAP_SZ4 = _search_params.in_width * _search_params.in_height;
+    int read_unit;
     if(_norm_region == MLO_LRN_ACROSS_CHANNELS)
     {
         _grp_tile0 = (_search_params.out_width <= 8) ? 8 : 16;
         _grp_tile1 = (_search_params.out_height <= 8) ? 8 : 16;
-		 read_unit = (MAP_SZ4 % 4 == 0) ? 4 : (MAP_SZ4 % 3 == 0) ? 3 : (MAP_SZ4 % 2 == 0) ? 2 : 1;
-		 MAP_SZ4 /= read_unit;
+        read_unit  = (MAP_SZ4 % 4 == 0) ? 4 : (MAP_SZ4 % 3 == 0) ? 3 : (MAP_SZ4 % 2 == 0) ? 2 : 1;
+        MAP_SZ4 /= read_unit;
     }
     else
     {
 
         _out_pix_tile0 = (_search_params.out_width <= 8) ? 1 : 2;
         _out_pix_tile1 = (_search_params.out_height <= 8) ? 1 : 2;
-		read_unit = 4;
-		MAP_SZ4 = (MAP_SZ4 + 3) / 4;
+        read_unit      = 4;
+        MAP_SZ4        = (MAP_SZ4 + 3) / 4;
     }
 
     auto ocl_group_lg2sz0 =
         static_cast<int>(ceil(log(static_cast<double>(_out_pix_tile0) / log(2.))));
     auto ocl_group_lg2sz1 =
         static_cast<int>(ceil(log(static_cast<double>(_out_pix_tile1) / log(2.))));
-
-
-
 
     _kernel_file = "MIOpenLRNFwd.cl";
     _kernel_name = (_norm_region == MLO_LRN_ACROSS_CHANNELS) ? "MIOpenLRNAcrossChannels4"
@@ -132,11 +128,10 @@ int mlo_construct_norm::mloConstructFwd()
         if(n_waves <= maxComputeUnits * 8)
         {
             MAP_SZ4   = _search_params.in_width * _search_params.in_height;
-			read_unit = (MAP_SZ4 % 2 == 0) ? 2 : 1;
-			MAP_SZ4 /= read_unit;
+            read_unit = (MAP_SZ4 % 2 == 0) ? 2 : 1;
+            MAP_SZ4 /= read_unit;
         }
     }
-
 
     int scale_stride         = _search_params.out_stride;
     int scale_channel_stride = _search_params.out_channel_stride;
@@ -258,7 +253,9 @@ int mlo_construct_norm::mloConstructFwd()
         _g_wk.push_back(g_wk_height * _grp_tile1);
         _g_wk.push_back(_search_params.n_outputs * _search_params.batch_sz);
     }
-    int data_len = (_search_params.out_data_type == "FP32") ? 4 : (_search_params.out_data_type == "FP16") ? 2 : 8;
+    int data_len = (_search_params.out_data_type == "FP32")
+                       ? 4
+                       : (_search_params.out_data_type == "FP16") ? 2 : 8;
 
     // calculate workspace
     size_t scale_sz = _search_params.batch_sz * scale_batch_stride * data_len;
