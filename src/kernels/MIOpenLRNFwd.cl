@@ -101,8 +101,7 @@ MIOpenLRNWithinChannel_PS(const __global _FLOAT* bot,
     int b       = iMod(ob, o, MLO_LRN_BATCH_SZ);
     int bot_x   = x;
     int bot_y   = y;
-    int bot_off =
-        b * MLO_LRN_BOT_BATCH_STRIDE + o * MLO_LRN_BOT_CHANNEL_STRIDE;
+    int bot_off = b * MLO_LRN_BOT_BATCH_STRIDE + o * MLO_LRN_BOT_CHANNEL_STRIDE;
 
     // load tile
     for(int b_j = lcl_id1; b_j < MLO_LRN_LCL_DATA_HEIGHT; b_j += MLO_LRN_GROUP_SZ1)
