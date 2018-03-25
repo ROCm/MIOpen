@@ -127,10 +127,11 @@ MIOpenLRNWithinChannelBwd(const __global _FLOAT* top,
 
             top_x_act = (invisibleX) ? 0 : top_x_act;
 #if DBG_RANGE
-			if ( top_df_off + top_df_y_off + top_x_act >= MLO_LRN_BATCH_SZ * MLO_LRN_TOPDF_BATCH_STRIDE)
-			{
-			   printf("K:err:topdf-off_range\n");
-			}
+            if(top_df_off + top_df_y_off + top_x_act >=
+               MLO_LRN_BATCH_SZ * MLO_LRN_TOPDF_BATCH_STRIDE)
+            {
+                printf("K:err:topdf-off_range\n");
+            }
 #endif
             _FLOAT top_df_val = top_df[top_df_off + top_df_y_off + top_x_act];
             _FLOAT scale_val  = scale[scale_off + scale_y_off + top_x_act];
@@ -182,10 +183,10 @@ MIOpenLRNWithinChannelBwd(const __global _FLOAT* top,
             top_x_act = (invisibleX) ? 0 : top_x_act;
 #if DBG_RANGE
 
-			if ( top_off + top_y_off + top_x_act >= MLO_LRN_BATCH_SZ * MLO_LRN_TOP_BATCH_STRIDE)
-			{
-			   printf("K:err:top-off_range\n");
-			}
+            if(top_off + top_y_off + top_x_act >= MLO_LRN_BATCH_SZ * MLO_LRN_TOP_BATCH_STRIDE)
+            {
+                printf("K:err:top-off_range\n");
+            }
 #endif
 
             _FLOAT top_val = top[top_off + top_y_off + top_x_act];
@@ -244,20 +245,22 @@ MIOpenLRNWithinChannelBwd(const __global _FLOAT* top,
 
             _FLOAT top_df_val = top_df_data[lcl_v_off_v + lcl_v_off_h];
 
-			uint bot_off0 = MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE * o +
-                                 MLO_LRN_BOT_STRIDE * (y + v_off_v) + x + v_off_h;
-          
-		    uint bot_off = (bot_off0 < MLO_LRN_BATCH_SZ * MLO_LRN_BOT_BATCH_STRIDE) ? bot_off0 : MLO_LRN_BATCH_SZ * MLO_LRN_BOT_BATCH_STRIDE - 1;
+            uint bot_off0 = MLO_LRN_BOT_BATCH_STRIDE * b + MLO_LRN_BOT_CHANNEL_STRIDE * o +
+                            MLO_LRN_BOT_STRIDE * (y + v_off_v) + x + v_off_h;
+
+            uint bot_off = (bot_off0 < MLO_LRN_BATCH_SZ * MLO_LRN_BOT_BATCH_STRIDE)
+                               ? bot_off0
+                               : MLO_LRN_BATCH_SZ * MLO_LRN_BOT_BATCH_STRIDE - 1;
 #if DBG_RANGE
 
-			if(bot_off >= MLO_LRN_BATCH_SZ * MLO_LRN_BOT_BATCH_STRIDE )
-			{
-			       printf("K:err:bot-off_range\n");			        
-			}
+            if(bot_off >= MLO_LRN_BATCH_SZ * MLO_LRN_BOT_BATCH_STRIDE)
+            {
+                printf("K:err:bot-off_range\n");
+            }
 #endif
-            _FLOAT bot_dta    = bot[bot_off];
+            _FLOAT bot_dta = bot[bot_off];
 
-			bot_dta = (bot_off0 < MLO_LRN_BATCH_SZ * MLO_LRN_BOT_BATCH_STRIDE) ? bot_dta : 0;
+            bot_dta = (bot_off0 < MLO_LRN_BATCH_SZ * MLO_LRN_BOT_BATCH_STRIDE) ? bot_dta : 0;
 
             _FLOAT adj_ratio       = (_FLOAT)2.f * alpha * beta / adj_area_size;
             _FLOAT prv_accum_ratio = adj_ratio * bot_dta * prv_ratio_accum;
@@ -273,11 +276,12 @@ MIOpenLRNWithinChannelBwd(const __global _FLOAT* top,
             {
 #if DBG_RANGE
 
-			    if ( MLO_LRN_BOTDF_BATCH_STRIDE * b + MLO_LRN_BOTDF_CHANNEL_STRIDE * o +
-                       MLO_LRN_BOTDF_STRIDE * (bot_y + j) + bot_x + i >= MLO_LRN_BATCH_SZ * MLO_LRN_BOTDF_BATCH_STRIDE)
-			    {
-			       printf("K:err:botdf-off_range\n");
-			    }
+                if(MLO_LRN_BOTDF_BATCH_STRIDE * b + MLO_LRN_BOTDF_CHANNEL_STRIDE * o +
+                       MLO_LRN_BOTDF_STRIDE * (bot_y + j) + bot_x + i >=
+                   MLO_LRN_BATCH_SZ * MLO_LRN_BOTDF_BATCH_STRIDE)
+                {
+                    printf("K:err:botdf-off_range\n");
+                }
 #endif
                 bot_df[MLO_LRN_BOTDF_BATCH_STRIDE * b + MLO_LRN_BOTDF_CHANNEL_STRIDE * o +
                        MLO_LRN_BOTDF_STRIDE * (bot_y + j) + bot_x + i] = prv_bot_diff[j][i];
