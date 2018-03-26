@@ -1212,9 +1212,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             float time_gemm = 0;
 
             // 1x1 does not require col2im or workspace
-            if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 &&
-               ((u == 1 && v == 1) || (u == 2 && v == 2)) && dilation_w == 1 && dilation_h == 1 &&
-               workSpace != nullptr &&
+            if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
+               dilation_w == 1 && dilation_h == 1 && workSpace != nullptr &&
                workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc))
             {
                 GemmGeometry gg =
@@ -1246,6 +1245,20 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     PerfField{"miopenConvolutionBwdDataAlgoGEMM",
                               time_gemm,
                               BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc)});
+            }
+            // 1x1_stride=1 convolutions use GEMM and zero workspace
+            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
+                    dilation_w == 1 && dilation_h == 1)
+            {
+                GemmGeometry gg =
+                    CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, true, network_config);
+
+                gg.FindSolution(.003, handle, w, dy, tmp_dx.get(), false);
+                gg.RunGemm(handle, w, dy, tmp_dx.get(), 0, 0, 0);
+
+                time_gemm = in_n * handle.GetKernelTime();
+
+                perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoGEMM", time_gemm, 0});
             }
             // if not 1x1
             else if(workSpace != nullptr &&
@@ -1460,8 +1473,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
             std::string network_config;
 #if MIOPEN_USE_MIOPENGEMM
-            if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 &&
-               ((u == 1 && v == 1) || (u == 2 && v == 2)) && dilation_w == 1 && dilation_h == 1)
+            if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
+               dilation_w == 1 && dilation_h == 1)
             {
 
                 assert(workSpace != nullptr &&
@@ -1500,6 +1513,31 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                     handle.AccumKernelTime(t1);
                 }
             }
+            // 1x1_stride=1 convolutions use GEMM and zero workspace
+            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
+                    dilation_w == 1 && dilation_h == 1)
+            {
+                CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, true, network_config);
+                GemmGeometry gg =
+                    GetGemmGeometry("miopenConvolutionBwdDataAlgoGEMM", network_config);
+
+                float time_0 = 0;
+                for(int i = 0; i < in_n; i++)
+                {
+                    int out_offset   = i * wei_n * out_h * out_w;
+                    size_t in_offset = i * in_c * in_h * in_w;
+
+                    gg.RunGemm(handle, w, dy, dx, 0, out_offset, in_offset);
+
+                    if(handle.IsProfilingEnabled())
+                    {
+                        if(i == in_n - 1)
+                            handle.AccumKernelTime(time_0);
+                        time_0 += handle.GetKernelTime();
+                    }
+                }
+            }
+            // if not 1x1
             else
             {
 
