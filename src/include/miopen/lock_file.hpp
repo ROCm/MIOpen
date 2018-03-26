@@ -50,7 +50,11 @@ class LockFile
     public:
     LockFile(const char* path, PassKey)
     {
-        std::ofstream{path};
+        if(!boost::filesystem::exists(path))
+        {
+            std::ofstream{path};
+            boost::filesystem::permissions(path, boost::filesystem::all_all);
+        }
         flock = path;
     }
     LockFile(const LockFile&) = delete;
