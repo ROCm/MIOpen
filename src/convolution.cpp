@@ -189,6 +189,12 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(Handle& handle,
 
     size_t workspace_size = wei_c * wei_h * wei_w * out_h * out_w * GetTypeSize(yDesc.GetType());
 
+    // No workspace is needed for 1x1_stride=1 convolutions
+    if(wei_h == wei_w == 1 && u == 1 && v == 1)
+    {
+        return 0;
+    }
+
     // gfx803 devices have 4gb-6gb memory
     if(workspace_size > (1 << 30) && handle.GetDeviceName() == "gfx803")
     {
@@ -317,8 +323,8 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         if(dilation_w > 1 || dilation_h > 1)
             return ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
 
-        if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 &&
-           ((u == 1 && v == 1) || (u == 2 && v == 2)) && dilation_w == 1 && dilation_h == 1)
+        if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
+           dilation_w == 1 && dilation_h == 1)
         {
             return ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
         }
