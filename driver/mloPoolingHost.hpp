@@ -135,7 +135,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                     wstart               = std::max(wstart, 0);
                     hend                 = std::min(hend, bot_height);
                     wend                 = std::min(wend, bot_width);
-					int pool_size = (hend - hstart) * (wend - wstart);
+                    int pool_size        = (hend - hstart) * (wend - wstart);
                     size_t res_index     = 0;
                     size_t res_index_gpu = 0;
                     bool found           = false;
@@ -203,8 +203,8 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                     _Tcheck g_val =
                         static_cast<_Tcheck>(top_ptr[b * top_batch_stride + o * top_channel_stride +
                                                      j * top_stride + i]);
-                    double err = CalcErr<_Tcheck>(c_val, g_val);
-					double allowed_ulp = CalcErr<_Tcheck>(allowedEps, 0);
+                    double err         = CalcErr<_Tcheck>(c_val, g_val);
+                    double allowed_ulp = CalcErr<_Tcheck>(allowedEps, 0);
                     if(err > allowed_ulp || std::isnan(c_val) || std::isnan(g_val) ||
                        !std::isfinite(c_val) || !std::isfinite(g_val))
                     {
