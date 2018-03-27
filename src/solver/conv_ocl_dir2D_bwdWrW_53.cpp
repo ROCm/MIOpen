@@ -113,7 +113,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
                               ? (params.out_height + 1) / 2
                               : params.out_height;
     while(in_lcl_width * in_n_vert_reads * result.n_in_data_tiles >
-          (dev_local_mem_sz / (2 * sizeof(float))))
+          (dev_local_mem_sz / (2 * ((params.in_data_type == "FP32") ? 4 : 2))))
     {
         in_n_vert_reads = (in_n_vert_reads + 1) / 2;
         if(in_n_vert_reads < 2 && result.n_in_data_tiles >= 2)
