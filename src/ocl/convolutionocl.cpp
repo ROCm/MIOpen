@@ -373,7 +373,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                     time_gemm = handle.GetKernelTime();
 
                     gg.FindSolution(0.03, handle, workSpace, w, tmp_y.get(), false);
-                    gg.RunGemm(handle, workSpace, w, workSpace, 0, 0, xDesc.GetElementSize());
+                    size_t x_t_size = in_n * in_c * out_h * out_w;
+                    gg.RunGemm(handle, workSpace, w, workSpace, 0, 0, x_t_size);
                     time_gemm += handle.GetKernelTime();
 
                     transpose_CNHW2NCHW(handle,
@@ -385,7 +386,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                         out_w,
                                         workSpace,
                                         tmp_y.get(),
-                                        xDesc.GetElementSize(),
+                                        x_t_size,
                                         0,
                                         1,
                                         1);
@@ -763,7 +764,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
                 t1 = handle.GetKernelTime();
 
-                gg.RunGemm(handle, workSpace, w, workSpace, 0, 0, xDesc.GetElementSize());
+                size_t x_t_size = in_n * in_c * out_h * out_w;
+                gg.RunGemm(handle, workSpace, w, workSpace, 0, 0, x_t_size);
                 t1 += handle.GetKernelTime();
 
                 transpose_CNHW2NCHW(handle,
@@ -775,7 +777,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                                     out_w,
                                     workSpace,
                                     y,
-                                    xDesc.GetElementSize(),
+                                    x_t_size,
                                     0,
                                     1,
                                     1);
