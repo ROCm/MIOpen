@@ -1895,7 +1895,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 construct_params.setWeightDescFromMLDesc(dwDesc);
                 construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-                if(try_([&] { mloConstruct(construct_params); }) == miopenStatusSuccess)
+                if(try_([&] { mloConstruct(construct_params); }, false) == miopenStatusSuccess)
                 {
                     construct_params.mloBuildConf_Key(network_config);
 
