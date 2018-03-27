@@ -45,9 +45,10 @@ ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
 
     //   if(params.n_outputs % 4 == 0 && params.n_inputs % 4 == 0)
     {
-        int version = result.out_pix_tile1;
+        //        int version = result.out_pix_tile1;
 
-        if((params.direction.IsForward() && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0) &&
+        if((params.direction.IsForward() && params.n_inputs % 16 == 0 &&
+            params.n_outputs % 16 == 0) &&
            (params.in_data_type == "FP32"))
         {
 
