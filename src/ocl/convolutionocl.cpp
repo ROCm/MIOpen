@@ -356,8 +356,11 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         {
             float time_gemm = 0;
 
-            if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
-               dilation_w == 1 && dilation_h == 1)
+            // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
+            // 1x1_stride=2
+            if((wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && dilation_h == 1 &&
+                dilation_w == 1) &&
+               ((in_h <= 14 && in_w <= 14 && u == 1 && v == 1) || (u == 2 && v == 2)))
             {
                 size_t workspace_req = ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
                 if(workSpace != nullptr && workSpaceSize >= workspace_req)
@@ -743,8 +746,11 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
             std::string network_config;
 #if MIOPEN_USE_MIOPENGEMM
-            if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
-               dilation_w == 1 && dilation_h == 1)
+            // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
+            // 1x1_stride=2
+            if((wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && dilation_h == 1 &&
+                dilation_w == 1) &&
+               ((in_h <= 14 && in_w <= 14 && u == 1 && v == 1) || (u == 2 && v == 2)))
             {
 
                 assert(workSpace != nullptr &&
