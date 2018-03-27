@@ -319,12 +319,17 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     {
         int wei_h, wei_w;
         std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+        int in_h, in_w;
+        std::tie(std::ignore, std::ignore, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
         if(dilation_w > 1 || dilation_h > 1)
             return ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
 
-        if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
-           dilation_w == 1 && dilation_h == 1)
+        // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
+        // 1x1_stride=2
+        if((wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && dilation_h == 1 &&
+            dilation_w == 1) &&
+           ((in_h <= 14 && in_w <= 14 && u == 1 && v == 1) || (u == 2 && v == 2)))
         {
             return ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
         }
