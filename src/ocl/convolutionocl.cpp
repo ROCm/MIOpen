@@ -447,7 +447,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         (void)workSpace;     // Suppress warning
         (void)workSpaceSize; // Suppress warning
 #endif
-
         if(dilation_h == 1 && dilation_w == 1)
         {
             // Winograd algo
@@ -1482,6 +1481,9 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
                dilation_w == 1 && dilation_h == 1)
             {
+                // Initialization required for upsampling in bwd direction
+                float zero = 0.f;
+                SetTensor(handle, dxDesc, dx, &zero);
 
                 assert(workSpace != nullptr &&
                        workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc));
