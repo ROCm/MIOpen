@@ -65,7 +65,7 @@ std::string HIPErrorMessage(int error, const std::string& msg = "");
 
 // TODO(paul): Debug builds should leave the exception uncaught
 template <class F>
-miopenStatus_t try_(F f, bool output=true)
+miopenStatus_t try_(F f, bool output = true)
 {
     try
     {
@@ -73,12 +73,14 @@ miopenStatus_t try_(F f, bool output=true)
     }
     catch(const Exception& ex)
     {
-        if (output) std::cerr << "MIOpen Error: " << ex.what() << std::endl;
+        if(output)
+            std::cerr << "MIOpen Error: " << ex.what() << std::endl;
         return ex.status;
     }
     catch(const std::exception& ex)
     {
-        if (output) std::cerr << "MIOpen Error: " << ex.what() << std::endl;
+        if(output)
+            std::cerr << "MIOpen Error: " << ex.what() << std::endl;
         return miopenStatusUnknownError;
     }
     catch(...)
