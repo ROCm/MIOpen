@@ -62,6 +62,7 @@ miopen::solver::ConvSolution mlo_construct_direct2D::FindSolution()
     // clang-format off
     return miopen::solver::SearchForSolution<
         miopen::solver::ConvAsm3x3U,
+        miopen::solver::ConvAsm1x1U,
         miopen::solver::ConvAsm5x10u2v2f1,
         miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1,
         miopen::solver::ConvAsm5x10u2v2b1,
