@@ -343,7 +343,7 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
     int read_size;         // [1..4]
     int k_mult;            // {1,[4,8,12..32]}
     int chunks_per_wave;   // [1..16]
-    int chunk_size;        // [1..64]
+    int chunk_size;        // 2^n, [1..64]
     int n_blocks_per_wave; // [1..8]
     int waves_in_group;    // [1..8]
 

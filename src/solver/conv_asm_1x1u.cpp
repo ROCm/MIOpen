@@ -40,35 +40,30 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_PERF_VALS)
 namespace miopen {
 namespace solver {
 
-#if 0 /// \todo move to separate header and use in other solvers.
-template <>
-struct TwoPower<0U> { enum { value = 1 }; };
-
-template <unsigned N>
-struct TwoPower { enum { value = 2 * TwoPower<N - 1>::value }; };
-
-template <unsigned L, unsigned H>
-inline static bool Is2Power(const int v)
+/// \todo move to separate header and use in other solvers.
+template <int L, int H>
+inline static bool IsTwoPower(const int v)
 {
-    static_assert(L <= H && H <= 31, "L <= H && H <= 30");
-    if (L == H)
-        return v == TwoPower<H>::value;
-    else
-        return v == TwoPower<H>::value || Is2Power<L, H - 1>(v);
+    static_assert(L <= H, "L <= H");
+    if(((v - 1) & v) != 0)
+        return false;
+    return L <= v && v <= H;
 }
 
-template <unsigned L, unsigned H>
-inline static bool Next2Power(int& v)
+template <int L, int H>
+inline static bool NextTwoPower(int& v)
 {
-    assert(IsTwoPower<L,H>(v));
-    if (v == TwoPower<H>::value) {
-        v = TwoPower<L>::value;
+    static_assert((((L - 1) & L) == 0), "L is not power of 2");
+    static_assert((((H - 1) & H) == 0), "H is not power of 2");
+    assert((IsTwoPower<L, H>(v)));
+    if(v == H)
+    {
+        v = L;
         return true;
     }
     v *= 2;
     return false;
 }
-#endif
 
 template <int L, int H>
 inline static bool IsLinear(const int v)
@@ -116,7 +111,7 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue()
             break;
         if(!NextLinear<1, 16>(chunks_per_wave))
             break;
-        if(!NextLinear<1, 64>(chunk_size)) // FIXME check this
+        if(!NextTwoPower<1, 64>(chunk_size))
             break;
         if(!NextLinear<1, 8>(n_blocks_per_wave))
             break;
@@ -161,7 +156,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidValue() const
     return IsLinear<1,4>(read_size)
         && Is_1_4_8_12__32(k_mult)
         && IsLinear<1,16>(chunks_per_wave)
-        && IsLinear<1,64>(chunk_size) // FIXME check this
+        && IsTwoPower<1,64>(chunk_size)
         && IsLinear<1,8>(n_blocks_per_wave)
         && IsLinear<1,8>(waves_in_group); // clang-format on
 }
@@ -247,6 +242,10 @@ bool ConvAsm1x1U::IsValidPerformanceConfig(const ConvolutionContext& problem,
 bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
 {
     if(!params.use_asm_kernels)
+    {
+        return false;
+    }
+    if(!params.direction.IsForward()) // FIXME remvoe this
     {
         return false;
     }

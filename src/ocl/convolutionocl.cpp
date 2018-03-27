@@ -123,6 +123,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
                                             const TensorDescriptor& xDesc,
                                             const TensorDescriptor& wDesc,
                                             const TensorDescriptor& yDesc,
+                                            ExtraKernelArgs& extraArgs,
                                             std::vector<KernelInvoke>& kernels,
                                             bool exhaustiveSearch,
                                             int direction) const
@@ -168,6 +169,11 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
         std::string algorithm = (direction == 1) ? "miopenConvolutionFwdAlgoDirect"
                                                  : "miopenConvolutionBwdDataAlgoDirect";
 
+        {
+            int N, C, H, W, K, n_groups;
+            construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+            extraArgs = std::make_tuple(N, C, H, W, K, n_groups);
+        }
         // if not 11x11
         if(program_name != "MIOpenConvFwd_LxL_11.cl")
         {
@@ -498,9 +504,16 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             }
 
             // Direct algo
+            ExtraKernelArgs extra_direct_args;
             std::vector<KernelInvoke> kernel_direct;
-            if(FindDirectKernel(handle, xDesc, wDesc, yDesc, kernel_direct, exhaustiveSearch, 1) ==
-               0)
+            if(FindDirectKernel(handle,
+                                xDesc,
+                                wDesc,
+                                yDesc,
+                                extra_direct_args,
+                                kernel_direct,
+                                exhaustiveSearch,
+                                1) == 0)
             { // Forward
 
                 // Execute the direct kernel
@@ -509,7 +522,29 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 visit_float(xDesc.GetType(), [&](auto as_float) {
                     for(auto& k : kernel_direct)
                     {
-                        k(x, w, tmp_y.get(), as_float(padding_val));
+                        if(k.GetName() == "gcnAsmConv1x1U")
+                        {
+                            int unused       = 0;
+                            int* return_addr = nullptr;
+                            int N, C, H, W, K, n_groups;
+                            std::tie(N, C, H, W, K, n_groups) = extra_direct_args;
+                            k(N,
+                              C,
+                              H,
+                              W,
+                              K,
+                              n_groups,
+                              unused,
+                              unused,
+                              x,
+                              w,
+                              tmp_y.get(),
+                              return_addr);
+                        }
+                        else
+                        {
+                            k(x, w, tmp_y.get(), as_float(padding_val));
+                        }
                         time_direct += handle.GetKernelTime();
                     }
                 });
@@ -642,8 +677,18 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 // if not 11x11
                 if((kernel.GetName() != "MIOpenCvFwd11x11"))
                 {
-
-                    kernel(x, w, y, as_float(padding_val));
+                    if(kernel.GetName() == "gcnAsmConv1x1U")
+                    {
+                        int unused       = 0;
+                        int* return_addr = nullptr;
+                        int N, C, H, W, K, n_groups;
+                        construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+                        kernel(N, C, H, W, K, n_groups, unused, unused, x, w, y, return_addr);
+                    }
+                    else
+                    {
+                        kernel(x, w, y, as_float(padding_val));
+                    }
                 }
                 else
                 {
@@ -1166,9 +1211,16 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             }
 
             // Direct algo
+            ExtraKernelArgs extra_direct_args;
             std::vector<KernelInvoke> kernel_direct;
-            if(FindDirectKernel(
-                   handle, dxDesc, wDesc, dyDesc, kernel_direct, exhaustiveSearch, 0) == 0)
+            if(FindDirectKernel(handle,
+                                dxDesc,
+                                wDesc,
+                                dyDesc,
+                                extra_direct_args,
+                                kernel_direct,
+                                exhaustiveSearch,
+                                0) == 0)
             { // Backward
                 float time_direct = 0;
                 float padding_val = 0;
