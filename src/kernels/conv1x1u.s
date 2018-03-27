@@ -158,10 +158,6 @@ filter_buffer_size = filters_size
 output_buffer_size = output_stack_size * batch_size
 
 .GPR_ALLOC_BEGIN
-    .if limit_wave_cnt
-        .SET_MAX_WAVES_LIMIT limit_wave_cnt
-    .endif
-
     .SGPR_ALLOC_FROM 5
     .SGPR_ALLOC soffset_in
     .SGPR_ALLOC soffset_out
