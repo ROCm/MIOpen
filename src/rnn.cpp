@@ -99,7 +99,7 @@ void profileRNNkernels(Handle& handle, unsigned char select, float& ctime)
 #endif
         }
         break;
-        default: assert(false);
+    default: assert(false);
     }
 }
 

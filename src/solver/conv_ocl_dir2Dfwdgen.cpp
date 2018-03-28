@@ -196,10 +196,10 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& params) 
             static_cast<long long>(n_in_pix_vert)) // size of output processing group in 1 dim
         + std::string(" -DMLO_WEI_SZ=") +
         std::to_string(static_cast<long long>(params.n_outputs) * params.n_inputs *
-                                              params.kernel_size0 * params.kernel_size1) +
+                       params.kernel_size0 * params.kernel_size1) +
         std::string(" -DMLO_WEIGHTS_STRIDE=") +
         std::to_string(static_cast<long long>(params.n_inputs) * params.kernel_size0 *
-                                              params.kernel_size1) //	weights stride
+                       params.kernel_size1) //	weights stride
         + std::string(" -DMLO_N_STACKS=") +
         std::to_string(static_cast<long long>(n_stack_blocks)) // n of separate data stacks
         + std::string(" -DMLO_N_PROCS0=") +
