@@ -308,14 +308,16 @@ int mloPoolingBackwardRunHost(
                             for(int pw = pwstart; pw < pwend; ++pw)
                             {
                                 // figure out the pooling size
-                                int hstart    = ph * stride1 - pad1;
-                                int wstart    = pw * stride0 - pad0;
-                                int hend      = std::min(hstart + kernel_size1, bot_height);
-                                int wend      = std::min(wstart + kernel_size0, bot_width);
-								hstart = std::max(hstart, 0);
-								wstart = std::max(wstart, 0);
+                                int hstart = ph * stride1 - pad1;
+                                int wstart = pw * stride0 - pad0;
+                                int hend   = std::min(hstart + kernel_size1, bot_height);
+                                int wend   = std::min(wstart + kernel_size0, bot_width);
+                                hstart     = std::max(hstart, 0);
+                                wstart     = std::max(wstart, 0);
 
-                                int pool_size = ((hend - hstart) * (wend - wstart) == 0) ? 1 : (hend - hstart) * (wend - wstart);
+                                int pool_size = ((hend - hstart) * (wend - wstart) == 0)
+                                                    ? 1
+                                                    : (hend - hstart) * (wend - wstart);
                                 gradient += static_cast<_Tcheck>(
                                                 top_df_ptr[top_df_off + ph * top_df_stride + pw]) /
                                             static_cast<_Tcheck>(pool_size);
