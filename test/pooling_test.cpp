@@ -67,6 +67,8 @@ struct pooling_operators
 		if (filter.GetMode() == miopenPoolingMax)
 		{
 			double m = std::max(x, y);
+			// the case with the odd input, the even kernel size and 2*pad == kernel size
+			// for the verification purpose only, the actual value is the min
 			m = (m == std::numeric_limits<T>::lowest()) ? 0 : m;
 			return(m);
 		}
@@ -78,6 +80,8 @@ struct pooling_operators
     {
 		if (filter.GetMode() == miopenPoolingMax)
 		{
+			// the case with the odd input, the even kernel size and 2*pad == kernel size
+			// for the verification purpose only, the actual value is the min
 			return ((x == std::numeric_limits<T>::lowest()) ? 0 : x);
 		}
         else

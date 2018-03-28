@@ -203,9 +203,6 @@ mloPoolingG(const __global _FLOAT* bot,
         {
             if(top_y + k < MLO_POOLING_TOP_HEIGHT && top_x + l < MLO_POOLING_TOP_WIDTH)
             {
-#if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
-               res[k][l] = (res[k][l] == (_FLOAT)(-MAX_VAL)) ? 0 : res[k][l];
-#endif
                 top[top_off + k * MLO_POOLING_TOP_STRIDE + l] = res[k][l];
 #if defined(MLO_POOLING_DO_BACKWARD) && MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
                 mask[top_off + k * MLO_POOLING_TOP_STRIDE + l] = mask_private[k][l];
