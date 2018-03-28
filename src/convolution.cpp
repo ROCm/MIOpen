@@ -208,7 +208,15 @@ size_t
 ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMMTranspose(const TensorDescriptor& xDesc,
                                                             const TensorDescriptor& yDesc) const
 {
-    size_t x_t_size = xDesc.GetElementSize() * GetTypeSize(xDesc.GetType());
+
+    int in_n, in_c;
+    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
+
+    size_t x_t_size = in_n * in_c * out_h * out_w * GetTypeSize(xDesc.GetType());
+
     size_t y_t_size = yDesc.GetElementSize() * GetTypeSize(yDesc.GetType());
 
     return x_t_size + y_t_size;
@@ -529,7 +537,14 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMM(Handle& handle,
 size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMMTranspose(
     const TensorDescriptor& dyDesc, const TensorDescriptor& dxDesc) const
 {
-    size_t dx_t_size = dxDesc.GetElementSize() * GetTypeSize(dxDesc.GetType());
+    int in_n, in_c;
+    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
+
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
+
+    size_t dx_t_size = in_n * in_c * out_h * out_w * GetTypeSize(dxDesc.GetType());
+
     size_t dy_t_size = dyDesc.GetElementSize() * GetTypeSize(dyDesc.GetType());
 
     return dx_t_size + dy_t_size;
