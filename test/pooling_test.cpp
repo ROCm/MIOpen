@@ -104,19 +104,18 @@ struct verify_forward_pooling
         auto op = pooling_operators<T>{filter};
 
         out.par_for_each([&](int o, int w, int i, int j) {
-            int start_x = i * v - pad_h;
-            int start_y = j * u - pad_w;
+            const int start_x0 = i * v - pad_h;
+            const int start_y0 = j * u - pad_w;
 
             const int hend = std::min(start_x + window_h, in_h);
             const int wend = std::min(start_y + window_w, in_w);
 
-            start_x = std::max(start_x, 0);
-            start_y = std::max(start_y, 0);
+            const start_x = std::max(start_x0, 0);
+            const start_y = std::max(start_y0, 0);
 
             const int w_h = (hend - start_x);
             const int w_w = (wend - start_y);
-            int pool_size = w_h * w_w;
-            pool_size     = (pool_size == 0) ? 1 : pool_size;
+            const int pool_size     = std::max(w_h * w_w, 0);
 
             double acc = op.start();
             ford(w_h, w_w)([&](int x, int y) {
