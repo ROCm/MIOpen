@@ -47,16 +47,16 @@ bool checkNumericsImpl(
 
     handle.ReadTo(&abnormal_h, abnormal_d, sizeof(CheckNumericsResult));
 
-    bool isAbnormal = abnormal_h.hasNan || abnormal_h.hasInf;
+    bool isAbnormal = (abnormal_h.hasNan != 0) || (abnormal_h.hasInf != 0);
 
-    if((mode & CheckNumerics::Info) || ((mode & CheckNumerics::Warn) && isAbnormal))
+    if(((mode & CheckNumerics::Info) != 0) || (((mode & CheckNumerics::Warn) != 0) && isAbnormal))
     {
 
         std::cerr << (isAbnormal ? "warn:" : "info:") << " checkNumerics on"
                   << " " << (isInput ? "INPUT " : "OUTPUT") << " ptr=" << data
                   << " zeros=" << abnormal_h.hasZero << " nans=" << abnormal_h.hasNan
                   << " infs=" << abnormal_h.hasInf;
-        if(computeStats)
+        if(computeStats != 0)
         {
             std::cerr << " mean=" << abnormal_h.sum / numElements
                       << " absmean=" << abnormal_h.absSum / numElements << " min=" << abnormal_h.min
@@ -69,7 +69,7 @@ bool checkNumericsImpl(
     if(isAbnormal)
     {
 
-        if((mode & CheckNumerics::Throw))
+        if((mode & CheckNumerics::Throw) != 0)
         {
             if(isInput)
             {
@@ -82,7 +82,7 @@ bool checkNumericsImpl(
                              "abnormal checkNumerics result detected on OUTPUT");
             }
         }
-        if((mode & CheckNumerics::Abort))
+        if((mode & CheckNumerics::Abort) != 0)
         {
             abort();
         }
