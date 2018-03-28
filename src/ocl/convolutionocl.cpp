@@ -379,7 +379,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                     time_gemm = handle.GetKernelTime();
 
                     gg.FindSolution(0.03, handle, workSpace, w, tmp_y.get(), false);
-                    gg.RunGemm(handle, workSpace, w, workSpace, 0, 0, xDesc.GetElementSize());
+                    size_t x_t_size = in_n * in_c * out_h * out_w;
+                    gg.RunGemm(handle, workSpace, w, workSpace, 0, 0, x_t_size);
                     time_gemm += handle.GetKernelTime();
 
                     transpose_CNHW2NCHW(handle,
@@ -391,7 +392,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                         out_w,
                                         workSpace,
                                         tmp_y.get(),
-                                        xDesc.GetElementSize(),
+                                        x_t_size,
                                         0,
                                         1,
                                         1);
@@ -453,7 +454,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         (void)workSpace;     // Suppress warning
         (void)workSpaceSize; // Suppress warning
 #endif
-
         if(dilation_h == 1 && dilation_w == 1)
         {
             // Winograd algo
@@ -809,7 +809,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
                 t1 = handle.GetKernelTime();
 
-                gg.RunGemm(handle, workSpace, w, workSpace, 0, 0, xDesc.GetElementSize());
+                size_t x_t_size = in_n * in_c * out_h * out_w;
+                gg.RunGemm(handle, workSpace, w, workSpace, 0, 0, x_t_size);
                 t1 += handle.GetKernelTime();
 
                 transpose_CNHW2NCHW(handle,
@@ -821,7 +822,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                                     out_w,
                                     workSpace,
                                     y,
-                                    xDesc.GetElementSize(),
+                                    x_t_size,
                                     0,
                                     1,
                                     1);
@@ -1534,6 +1535,9 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
                dilation_w == 1 && dilation_h == 1)
             {
+                // Initialization required for upsampling in bwd direction
+                float zero = 0.f;
+                SetTensor(handle, dxDesc, dx, &zero);
 
                 assert(workSpace != nullptr &&
                        workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc));
