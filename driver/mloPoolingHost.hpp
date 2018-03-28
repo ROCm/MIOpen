@@ -104,8 +104,8 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
 {
 
     bool match      = true;
-    _Tcheck MAX_VAL = (sizeof(_Tcheck) == 4 || sizeof(_Tcheck) == 8) ? _Tcheck(3.402823466e+38) : 65504;
-
+    _Tcheck MAX_VAL(3.402823466e+38);
+	_Tgpu G_MAX_VAL = (sizeof(_Tgpu) == 4 || sizeof(_Tgpu) == 8) ? static_cast<_Tgpu>(3.402823466e+38) : static_cast<_Tgpu>(65504);
     // c-emulator
     _Tcheck res = static_cast<_Tcheck>(0);
 
@@ -181,7 +181,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                     }
                     if(pooling_method == MLO_POOLING_OP_MAX)
                     {
-						res = (res == -MAX_VAL) ? 0 : res;
+						// the case with the odd input, the even kernel size and 2*pad == kernel size
                         mask_ptr[b * top_batch_stride + o * top_channel_stride + j * top_stride +
                                  i] = res_index;
                         if(do_backward)
@@ -201,10 +201,18 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                         res /= pool_size;
                     }
                     _Tcheck c_val = res;
-                    _Tcheck g_val =
-                        static_cast<_Tcheck>(top_ptr[b * top_batch_stride + o * top_channel_stride +
-                                                     j * top_stride + i]);
-                    double err         = std::abs(c_val -g_val);
+
+					_Tgpu gg_val = (top_ptr[b * top_batch_stride + o * top_channel_stride +
+						j * top_stride + i]);
+
+					gg_val = (gg_val == -G_MAX_VAL) ? 0 : gg_val;
+					
+					c_val = (c_val == -MAX_VAL) ? 0 : c_val;
+
+					_Tcheck g_val(gg_val);
+                
+					double err = std::abs(c_val - g_val);
+
                     if(err > allowedEps || std::isnan(c_val) || std::isnan(g_val) ||
                        !std::isfinite(c_val) || !std::isfinite(g_val))
                     {
