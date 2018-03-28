@@ -65,7 +65,7 @@ void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
     std::ofstream outFile(fileName, std::ios::binary);
     if(outFile)
     {
-        if(boost::is_same<T, Tsdata>::value)
+        if(std::is_same<T, Tsdata>{})
         {
             outFile.write(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
         }
@@ -91,7 +91,7 @@ bool readBufferFromFile(T* data, size_t dataNumItems, const char* fileName)
     std::ifstream infile(fileName, std::ios::binary);
     if(infile)
     {
-        if(boost::is_same<T, Tsdata>::value)
+        if(std::is_same<T, Tsdata>{})
         {
             infile.read(reinterpret_cast<char*>(data), dataNumItems * sizeof(T));
         }
