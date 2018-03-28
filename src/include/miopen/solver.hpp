@@ -340,12 +340,14 @@ struct ConvAsm3x3U : SolverBase<ConvolutionContext>
 
 struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
 {
-    int read_size;         // [1..4]
-    int k_mult;            // {1,[4,8,12..32]}
-    int chunks_per_wave;   // [1..16]
-    int chunk_size;        // 2^n, [1..64]
-    int n_blocks_per_wave; // [1..8]
-    int waves_in_group;    // [1..8]
+    // ------------------- // Full set          Fwd optimized               Bwd optimized
+    // ------------------- // ------------------------------------------------------------
+    int read_size;         // [1..4]            <same>                      <same>
+    int k_mult;            // {1,[4,8,12..32]}  {4,8,16,20,24,32}           2^n, [16..32]
+    int chunks_per_wave;   // [1..16]           {1,2,3,4,5,6,7,8,10,12,16}  [1..8]
+    int chunk_size;        // 2^n, [1..64]      2^n, [8..64]                2^n, [16..64]
+    int n_blocks_per_wave; // [1..8]            {1,2,3,4,8}                 [1..4]
+    int waves_in_group;    // [1..8]            [1..4]                      [1..4]
 
     /// The following conditions must be met.
     /// FIXME
