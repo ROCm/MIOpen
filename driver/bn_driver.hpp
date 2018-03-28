@@ -1088,10 +1088,14 @@ int BatchNormDriver<Tgpu, Tref>::VerifyForward()
     if(!forw)
         return miopenStatusSuccess;
 
+    const Tref maxrms = static_cast<Tref>((sizeof(Tgpu) == 4) ? RMSTOL_FP32 : RMSTOL_FP16);
+
+#if(MIO_BN_DEBUG == 1)
     const Tref tolerance = static_cast<Tref>(ERRTOL);
-    const Tref maxrms    = static_cast<Tref>((sizeof(Tgpu) == 4) ? RMSTOL_FP32 : RMSTOL_FP16);
     Tref diff            = static_cast<Tref>(0.);
-    bool anError         = false;
+#endif
+
+    bool anError = false;
 
     RunForwardCPU();
 
@@ -1171,7 +1175,7 @@ int BatchNormDriver<Tgpu, Tref>::VerifyForward()
                 std::cout << "Forward train batch norm verification failed on saved mean: "
                           << errorSaveMean << "\n";
                 anError = true;
-                //#if(MIO_BN_DEBUG == 1)
+#if(MIO_BN_DEBUG == 1)
                 for(int i = 0;
                     i < saveMean.size() && i < saveMean_host.size() && i < MIO_BN_MAX_DEBUGLOOP;
                     i++)
@@ -1187,7 +1191,7 @@ int BatchNormDriver<Tgpu, Tref>::VerifyForward()
                                   << std::endl;
                     }
                 }
-                //#endif
+#endif
                 std::cout << "max difference in saved mean: " << maxval << std::endl;
             }
             else

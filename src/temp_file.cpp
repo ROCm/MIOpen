@@ -3,7 +3,6 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem.hpp>
 
-#include <unistd.h>
 namespace miopen {
 TempFile::TempFile(const std::string& path_template) : name(path_template), dir("tmp")
 {

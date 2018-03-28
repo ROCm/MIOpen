@@ -151,88 +151,95 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
         return -1;
     }
 
-    mloConstruct(construct_params);
-
-    std::string program_name = construct_params.getKernelFile();
-    std::string kernel_name  = construct_params.getKernelName();
-    std::string parms        = construct_params.getCompilerOptions();
-
-    std::string network_config;
-    construct_params.mloBuildConf_Key(network_config);
-
-    const std::vector<size_t>& vld = construct_params.getLocalWkSize();
-    const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
-
-    std::string algorithm =
-        (direction == 1) ? "miopenConvolutionFwdAlgoDirect" : "miopenConvolutionBwdDataAlgoDirect";
-
-    // if not 11x11
-    if(program_name != "MIOpenConvFwd_LxL_11.cl")
+    try
     {
+        mloConstruct(construct_params);
 
-        auto k =
-            handle.AddKernel(algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
+        std::string program_name = construct_params.getKernelFile();
+        std::string kernel_name  = construct_params.getKernelName();
+        const std::string& parms = construct_params.getCompilerOptions();
 
-        kernels.push_back(k);
-    }
-    else
-    {
-        const std::vector<mlo_kernel_info>& bwd_wrw_info = construct_params.getKernelsInfo();
-        /*
-        * get info for all kernels of the layer
-        * std::string _kernel_name;
-        * std::string _kernel_file;
-        * std::string _comp_options;
-        * std::vector<size_t> _g_wk;
-        * std::vector<size_t> _l_wk;
-        */
+        std::string network_config;
+        construct_params.mloBuildConf_Key(network_config);
 
-        if(bwd_wrw_info.size() == 1)
+        const std::vector<size_t>& vld = construct_params.getLocalWkSize();
+        const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
+
+        std::string algorithm = (direction == 1) ? "miopenConvolutionFwdAlgoDirect"
+                                                 : "miopenConvolutionBwdDataAlgoDirect";
+
+        // if not 11x11
+        if(program_name != "MIOpenConvFwd_LxL_11.cl")
         {
-            const mlo_kernel_info& bwd_wrw = bwd_wrw_info[0];
 
-            auto k1 = handle.AddKernel(algorithm,
-                                       network_config,
-                                       std::get<1>(bwd_wrw),
-                                       std::get<0>(bwd_wrw),
-                                       std::get<4>(bwd_wrw),
-                                       std::get<3>(bwd_wrw),
-                                       std::get<2>(bwd_wrw));
+            auto k = handle.AddKernel(
+                algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
 
-            kernels.push_back(k1);
+            kernels.push_back(k);
         }
         else
         {
-            auto bwd_wrw_main = bwd_wrw_info[0];
+            const std::vector<mlo_kernel_info>& bwd_wrw_info = construct_params.getKernelsInfo();
+            /*
+            * get info for all kernels of the layer
+            * std::string _kernel_name;
+            * std::string _kernel_file;
+            * std::string _comp_options;
+            * std::vector<size_t> _g_wk;
+            * std::vector<size_t> _l_wk;
+            */
 
-            auto k1 = handle.AddKernel(algorithm,
-                                       network_config,
-                                       std::get<1>(bwd_wrw_main),
-                                       std::get<0>(bwd_wrw_main),
-                                       std::get<4>(bwd_wrw_main),
-                                       std::get<3>(bwd_wrw_main),
-                                       std::get<2>(bwd_wrw_main));
+            if(bwd_wrw_info.size() == 1)
+            {
+                const mlo_kernel_info& bwd_wrw = bwd_wrw_info[0];
 
-            kernels.push_back(k1);
+                auto k1 = handle.AddKernel(algorithm,
+                                           network_config,
+                                           std::get<1>(bwd_wrw),
+                                           std::get<0>(bwd_wrw),
+                                           std::get<4>(bwd_wrw),
+                                           std::get<3>(bwd_wrw),
+                                           std::get<2>(bwd_wrw));
 
-            // second kernel hash
-            network_config += "x1";
-            // second pass  kernel
-            auto bwd_wrw_red = bwd_wrw_info[1];
+                kernels.push_back(k1);
+            }
+            else
+            {
+                auto bwd_wrw_main = bwd_wrw_info[0];
 
-            auto k2 = handle.AddKernel(algorithm + "_pass2",
-                                       network_config,
-                                       std::get<1>(bwd_wrw_red),
-                                       std::get<0>(bwd_wrw_red),
-                                       std::get<4>(bwd_wrw_red),
-                                       std::get<3>(bwd_wrw_red),
-                                       std::get<2>(bwd_wrw_red));
+                auto k1 = handle.AddKernel(algorithm,
+                                           network_config,
+                                           std::get<1>(bwd_wrw_main),
+                                           std::get<0>(bwd_wrw_main),
+                                           std::get<4>(bwd_wrw_main),
+                                           std::get<3>(bwd_wrw_main),
+                                           std::get<2>(bwd_wrw_main));
 
-            kernels.push_back(k2);
+                kernels.push_back(k1);
+
+                // second kernel hash
+                network_config += "x1";
+                // second pass  kernel
+                auto bwd_wrw_red = bwd_wrw_info[1];
+
+                auto k2 = handle.AddKernel(algorithm + "_pass2",
+                                           network_config,
+                                           std::get<1>(bwd_wrw_red),
+                                           std::get<0>(bwd_wrw_red),
+                                           std::get<4>(bwd_wrw_red),
+                                           std::get<3>(bwd_wrw_red),
+                                           std::get<2>(bwd_wrw_red));
+
+                kernels.push_back(k2);
+            }
         }
-    }
 
-    return 0;
+        return 0;
+    }
+    catch(miopen::Exception&)
+    {
+        return -1;
+    }
 }
 
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
@@ -349,8 +356,11 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         {
             float time_gemm = 0;
 
-            if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 &&
-               ((u == 1 && v == 1) || (u == 2 && v == 2)) && dilation_w == 1 && dilation_h == 1)
+            // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
+            // 1x1_stride=2
+            if((wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && dilation_h == 1 &&
+                dilation_w == 1) &&
+               ((in_h <= 14 && in_w <= 14 && u == 1 && v == 1) || (u == 2 && v == 2)))
             {
                 size_t workspace_req = ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
                 if(workSpace != nullptr && workSpaceSize >= workspace_req)
@@ -384,6 +394,19 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                     perf_db.push_back(
                         PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, workspace_req});
                 }
+            }
+            // 1x1_stride=1 with GEMM and zero workspace
+            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
+                    dilation_w == 1 && dilation_h == 1)
+            {
+                GemmGeometry gg =
+                    CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
+
+                gg.FindSolution(.003, handle, x, w, tmp_y.get(), false);
+                gg.RunGemm(handle, x, w, tmp_y.get(), 0, 0, 0);
+                time_gemm = in_n * (handle.GetKernelTime());
+
+                perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, 0});
             }
             // if not 1x1
             else if(workSpace != nullptr &&
@@ -723,8 +746,11 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
             std::string network_config;
 #if MIOPEN_USE_MIOPENGEMM
-            if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 &&
-               ((u == 1 && v == 1) || (u == 2 && v == 2)) && dilation_w == 1 && dilation_h == 1)
+            // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
+            // 1x1_stride=2
+            if((wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && dilation_h == 1 &&
+                dilation_w == 1) &&
+               ((in_h <= 14 && in_w <= 14 && u == 1 && v == 1) || (u == 2 && v == 2)))
             {
 
                 assert(workSpace != nullptr &&
@@ -762,9 +788,28 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     handle.AccumKernelTime(t1);
                 }
             }
+            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
+                    dilation_w == 1 && dilation_h == 1)
+            {
+                float time_0 = 0;
+                CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
+                GemmGeometry gg = GetGemmGeometry("miopenConvolutionFwdAlgoGEMM", network_config);
+
+                for(int i = 0; i < in_n; i++)
+                {
+                    int out_offset = i * wei_n * out_h * out_w;
+                    int in_offset  = i * in_c * in_h * in_w;
+                    gg.RunGemm(handle, x, w, y, in_offset, 0, out_offset);
+                    if(handle.IsProfilingEnabled())
+                    {
+                        if(i == in_n - 1)
+                            handle.AccumKernelTime(time_0);
+                        time_0 += handle.GetKernelTime();
+                    }
+                }
+            }
             else
             {
-
                 assert(workSpace != nullptr &&
                        workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc));
 
@@ -1173,9 +1218,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             float time_gemm = 0;
 
             // 1x1 does not require col2im or workspace
-            if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 &&
-               ((u == 1 && v == 1) || (u == 2 && v == 2)) && dilation_w == 1 && dilation_h == 1 &&
-               workSpace != nullptr &&
+            if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
+               dilation_w == 1 && dilation_h == 1 && workSpace != nullptr &&
                workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc))
             {
                 GemmGeometry gg =
@@ -1207,6 +1251,20 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     PerfField{"miopenConvolutionBwdDataAlgoGEMM",
                               time_gemm,
                               BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc)});
+            }
+            // 1x1_stride=1 convolutions use GEMM and zero workspace
+            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
+                    dilation_w == 1 && dilation_h == 1)
+            {
+                GemmGeometry gg =
+                    CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, true, network_config);
+
+                gg.FindSolution(.003, handle, w, dy, tmp_dx.get(), false);
+                gg.RunGemm(handle, w, dy, tmp_dx.get(), 0, 0, 0);
+
+                time_gemm = in_n * handle.GetKernelTime();
+
+                perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoGEMM", time_gemm, 0});
             }
             // if not 1x1
             else if(workSpace != nullptr &&
@@ -1421,8 +1479,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
             std::string network_config;
 #if MIOPEN_USE_MIOPENGEMM
-            if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 &&
-               ((u == 1 && v == 1) || (u == 2 && v == 2)) && dilation_w == 1 && dilation_h == 1)
+            if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
+               dilation_w == 1 && dilation_h == 1)
             {
 
                 assert(workSpace != nullptr &&
@@ -1461,6 +1519,31 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                     handle.AccumKernelTime(t1);
                 }
             }
+            // 1x1_stride=1 convolutions use GEMM and zero workspace
+            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
+                    dilation_w == 1 && dilation_h == 1)
+            {
+                CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, true, network_config);
+                GemmGeometry gg =
+                    GetGemmGeometry("miopenConvolutionBwdDataAlgoGEMM", network_config);
+
+                float time_0 = 0;
+                for(int i = 0; i < in_n; i++)
+                {
+                    int out_offset   = i * wei_n * out_h * out_w;
+                    size_t in_offset = i * in_c * in_h * in_w;
+
+                    gg.RunGemm(handle, w, dy, dx, 0, out_offset, in_offset);
+
+                    if(handle.IsProfilingEnabled())
+                    {
+                        if(i == in_n - 1)
+                            handle.AccumKernelTime(time_0);
+                        time_0 += handle.GetKernelTime();
+                    }
+                }
+            }
+            // if not 1x1
             else
             {
 
