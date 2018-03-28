@@ -31,11 +31,8 @@ namespace solver {
 
 bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 {
-    return ((params.kernel_stride1 == 1 && params.kernel_stride0 == 1 && params.out_height <= 64 &&
-             params.out_width <= 64) &&
-            ((params.kernel_size0 == 3 && params.kernel_size1 == 3 && params.pad0 != 0 &&
-              params.pad1 != 0) ||
-             (params.kernel_size0 == 5 && params.kernel_size1 == 5)));
+    return ((params.kernel_size0 >= 2 || params.kernel_size1 >= 2) &&
+            (params.kernel_stride1 == 1 && params.kernel_stride0 == 1));
 }
 
 ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) const
@@ -58,8 +55,11 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     // defines how to proceed : 1 grouop per batch or with a loop over all batches
     // loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
     // param
-    int N_BATCH_LOOPS = 1;
-
+    int N_BATCH_LOOPS = (params.n_inputs * params.n_outputs <= 8 * 1024)
+                            ? 1
+                            : (params.batch_sz <= 16 || params.in_width <= 32)
+                                  ? (params.batch_sz / result.n_stacks)
+                                  : 4;
     int n_batch_blks =
         (params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) / (N_BATCH_LOOPS * result.n_stacks);
     if(params.n_passes)
@@ -77,17 +77,21 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     result.in_tile0 = (params.in_width % 4 == 0) ? 4 : (params.in_width % 3 == 0)
                                                            ? 3
                                                            : (params.in_width % 2 == 0) ? 2 : 1;
-
     int n_spans = (params.in_width + result.in_tile0 - 1) / result.in_tile0;
 
     // n of wavefronts per group
     // param
-    int n_waves = 4;
-    int GRP_SZ  = hw_wave_sz * n_waves;
+    int n_waves = ((result.out_pix_tile0 * result.out_pix_tile1) <= 16 && (params.in_width > 8))
+                      ? 4
+                      : (params.in_width <= 16) ? 1 : 2;
+    int GRP_SZ = hw_wave_sz * n_waves;
 
-    result.n_out_pix_tiles = (params.kernel_size0 == 3) ? 4 : 1;
+    result.n_out_pix_tiles = 1;
     int n_out_stacks       = std::min(params.n_inputs, std::max(1, GRP_SZ / n_spans));
     // number of input maps per group
+
+    result.n_in_data_tiles =
+        (params.in_width <= 32 && (result.out_pix_tile0 * result.out_pix_tile1) <= 16) ? 4 : 1;
 
     result.n_in_data_tiles = std::min(result.n_in_data_tiles, params.n_outputs);
 
@@ -96,20 +100,20 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
                                               ? 3
                                               : (params.out_width % 2 == 0) ? 2 : 1;
 
-    int in_lcl_width =
-        ((params.out_width + read_unit - 1) / read_unit) * read_unit + 2 * params.pad0;
-
     static const std::string READ_TYPE =
         (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
-    // number of input map blocks being process at once
-    // param
     // calculate number of input scans in the input block
     // max LDS size is 8K
-    int in_n_vert_reads    = params.out_height;
-    result.n_in_data_tiles = 1;
-
+    int in_lcl_width =
+        ((params.in_width + read_unit - 1) / read_unit) * read_unit + 2 * params.pad0;
+    // number of input map blocks being process at once
+    // param
+    int in_n_vert_reads = (params.out_height > 32 && params.out_width <= 64 &&
+                           (result.out_pix_tile0 * result.out_pix_tile1) <= 16)
+                              ? (params.out_height + 1) / 2
+                              : params.out_height;
     while(in_lcl_width * in_n_vert_reads * result.n_in_data_tiles >
-          (dev_local_mem_sz / (2 * sizeof(float))))
+          (dev_local_mem_sz / (2 * ((params.in_data_type == "FP32") ? 4 : 2))))
     {
         in_n_vert_reads = (in_n_vert_reads + 1) / 2;
         if(in_n_vert_reads < 2 && result.n_in_data_tiles >= 2)
@@ -124,6 +128,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         }
     }
     int in_n_vert_read_loops = (params.in_height + in_n_vert_reads - 1) / in_n_vert_reads;
+
+    int ALIGNED_OUT_SCAN_LN = ((params.in_width + read_unit - 1) / read_unit); // image aligned scan
 
     // select output mapping
     int total_out_maps = result.n_out_pix_tiles * n_out_stacks;
@@ -188,7 +194,9 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         + std::string(" -DMLO_OUT_STACKS=") + std::to_string(n_out_stacks) +
         std::string(" -DMLO_N_WAVES=") + std::to_string(n_waves) +
         std::string(" -DMLO_READ_TYPE=") + READ_TYPE + std::string(" -DMLO_READ_UNIT=") +
-        std::to_string(read_unit) + std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(hw_wave_sz) +
+        std::to_string(read_unit) + std::string(" -DMLO_ALIGNED_OUT_SCAN_LN=") +
+        std::to_string(ALIGNED_OUT_SCAN_LN) // image aligned scan
+        + std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(hw_wave_sz) +
         std::string(" -DMLO_LG2_PHYS_WAVE_SZ=") + std::to_string(mloLg2(hw_wave_sz)) +
         std::string(" -DMLO_IN_EXTENT1=") + std::to_string(in_n_vert_reads) +
         std::string(" -DMLO_IN_N_VERT_LOOPS=") + std::to_string(in_n_vert_read_loops)
