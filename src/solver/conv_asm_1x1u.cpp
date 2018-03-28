@@ -36,6 +36,7 @@
 #include <miopen/generic_search.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED)
 
 namespace miopen {
 namespace solver {
@@ -100,6 +101,18 @@ inline static bool Next_1_4_8_12__32(int& v)
     return ret;
 }
 
+inline static bool Is_4_8_16_20_24_32(const int& v)
+{
+    return IsTwoPower<4, 32>(v) || v == 20 || v == 24;
+}
+
+inline static bool Is_1__8_10_12_16(const int& v)
+{
+    return IsLinear<1, 8>(v) || v == 10 || v == 12 || v == 16;
+}
+
+inline static bool Is_1__4_8(const int& v) { return IsLinear<1, 4>(v) || v == 8; }
+
 bool PerformanceConfigConvAsm1x1U::SetNextValue()
 {
     // Increment with wrap-around:
@@ -107,7 +120,7 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue()
     {
         if(!NextLinear<1, 4>(read_size))
             break;
-        if(!Next_1_4_8_12__32(k_mult)) // {1,[4,8,12..32]}
+        if(!Next_1_4_8_12__32(k_mult))
             break;
         if(!NextLinear<1, 16>(chunks_per_wave))
             break;
@@ -165,6 +178,28 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
 {
     if(!IsValidValue())
         return false;
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED{})) // clang-format off
+    {
+        // Narrow search space in optimized mode.
+        if (config.direction.IsForward())
+        {   
+            if (! (Is_4_8_16_20_24_32(k_mult)
+                && Is_1__8_10_12_16(chunks_per_wave)
+                && IsTwoPower<8,64>(chunk_size)
+                && Is_1__4_8(n_blocks_per_wave)
+                && IsLinear<1,4>(waves_in_group)))
+                return false;
+        }
+        else
+        {
+            if (! (IsTwoPower<16,32>(k_mult)
+                && IsLinear<1,8>(chunks_per_wave)
+                && IsTwoPower<16,64>(chunk_size)
+                && IsLinear<1,4>(n_blocks_per_wave)
+                && IsLinear<1,4>(waves_in_group)))
+                return false;
+        }
+    } // clang-format on
     if(!(read_size <= chunks_per_wave))
         return false;
     if(!(waves_in_group <= config.n_inputs))
@@ -339,7 +374,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
             s = std::string(p_asciz);
             if(!s.empty()) // else nothing to parse.
             {
-                if(!fromEnv.Deserialize(s) || !fromEnv.IsValid(params))
+                if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())
                 {
                     MIOPEN_LOG_E("MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_PERF_VALS: "
                                  "Bad format or invalid for the problem config: "
