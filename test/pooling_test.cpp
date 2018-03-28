@@ -76,8 +76,10 @@ struct pooling_operators
 
     double final(double x, double y)
     {
-        if(filter.GetMode() == miopenPoolingMax)
-            return x;
+		if (filter.GetMode() == miopenPoolingMax)
+		{
+			return ((x == std::numeric_limits<T>::lowest()) ? 0 : x);
+		}
         else
             return x / y;
     }
