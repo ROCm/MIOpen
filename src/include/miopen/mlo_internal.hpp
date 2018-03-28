@@ -235,10 +235,10 @@ struct ConvolutionContext : ProblemDescription
 {
     bool n_passes = false;
 
-    bool do_search           = false;
-    bool save_srch_req       = false;
-    bool assembler_available = false;
-    bool use_binaries        = true;
+    bool do_search       = false;
+    bool save_srch_req   = false;
+    bool use_asm_kernels = false;
+    bool use_binaries    = true;
     std::string weights_layout;
     std::string out_data_type;
     std::string out_layout;
@@ -847,7 +847,6 @@ struct mlo_construct_direct2D
     size_t setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor);
     size_t setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor);
 
-    bool mloIsCompilerWorkarounds() const;
     bool mloIsFastBinaryWinograd3x3U() const;
 
     inline void mloCopyTo(miopen::ConvolutionContext& params) const /// TODO: get rid of this
@@ -948,7 +947,6 @@ struct mlo_construct_BwdWrW2D : mlo_construct_direct2D
 
     miopen::solver::ConvSolution FindSolution();
 
-    bool mloIsCompilerWorkarounds() const;
     int mloMultiStep();
 };
 

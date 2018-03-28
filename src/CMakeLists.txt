@@ -121,7 +121,6 @@ set( MIOpen_Source
     solver/conv_ocl_dir2D3x3.cpp
     solver/conv_ocl_dir2Dfwd_exhaustive_search.cpp
     solver/conv_ocl_dir2Dfwd.cpp
-    solver/conv_ocl_dir2DfwdC.cpp
     solver/conv_ocl_dir2Dfwd1x1.cpp
     )
 
@@ -149,8 +148,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenLRNFwd.cl
         kernels/MIOpenNeuron.cl
         kernels/MIOpenPooling.cl
-        kernels/MIOpenPoolingBwd.cl
-        kernels/MIOpenConvDirUniC.cl
+        kernels/MIOpenPoolingBwd.cl       
         kernels/MIOpenConv1x1S.cl
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
@@ -164,8 +162,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvBwdWrW_LxG_P53.cl
         kernels/MIOpenConvBwdWrW_LxG_5x5.cl
         kernels/MIOpenConvBwdWrW1x1_PAD_read4.cl
-        kernels/MIOpenConvBwdWrW1x1.cl
-        kernels/MIOpenConvBwdWrW1x1Mmap.cl
         kernels/MIOpenConvFwd_LxL_11.cl
         kernels/MIOpenConvFFT.cl
         kernels/bugzilla_34765_detect.s
@@ -176,9 +172,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv5x10u2v2b1.s
         kernels/conv7x7c3h224w224k64u2v2p3q3f1.s
         kernels/MIOpenTensorKernels.cl
-        kernels/MIOpenTensorSetKernel.cl
-        kernels/MIOpenTensorCopyKernel.cl
-        kernels/MIOpenTensorScaleKernel.cl
+        kernels/MIOpenSubTensorOpWithScalarKernel.cl
+        kernels/MIOpenSubTensorOpWithSubTensorKernel.cl
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx803_m30.so
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx803_m30.so
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx803_m30.so
@@ -338,10 +333,8 @@ set(MIOPEN_BOOST_LIB_VISIBILITY PRIVATE)
 endif()
 target_link_libraries(MIOpen ${MIOPEN_BOOST_LIB_VISIBILITY}
     optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE}
-    optimized ${Boost_THREAD_LIBRARY_RELEASE}
     optimized ${Boost_SYSTEM_LIBRARY_RELEASE}
     debug ${Boost_FILESYSTEM_LIBRARY_DEBUG}
-    debug ${Boost_THREAD_LIBRARY_DEBUG}
     debug ${Boost_SYSTEM_LIBRARY_DEBUG}
 )
 if(NOT WIN32 AND NOT APPLE)

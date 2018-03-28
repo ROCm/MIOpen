@@ -89,7 +89,7 @@ miopenStatus_t try_(F f)
 }
 
 template <class T>
-auto deref(T& x, miopenStatus_t err = miopenStatusBadParm)
+auto deref(T&& x, miopenStatus_t err = miopenStatusBadParm)
     -> decltype((x == nullptr), get_object(*x))
 {
     if(x == nullptr)
