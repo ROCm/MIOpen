@@ -156,6 +156,8 @@ class DbTest
     virtual ~DbTest() {}
 
     protected:
+    TempFile temp_file;
+
     static const std::array<std::pair<const char*, TestData>, 2>& common_data()
     {
         static const std::array<std::pair<const char*, TestData>, 2> data{
@@ -165,7 +167,7 @@ class DbTest
         return data;
     }
 
-    inline void ResetDb() const { (void)std::ofstream(temp_file()); }
+    inline void ResetDb() const { (void)std::ofstream(temp_file); }
 
     static const TestData& key()
     {
@@ -195,7 +197,6 @@ class DbTest
     static const char* id1() { return "1"; }
     static const char* id2() { return "2"; }
     static const char* missing_id() { return "3"; }
-    const TempFile& temp_file() const { return temp_file; }
 
     template <class TKey, class TValue, size_t count>
     static inline void RawWrite(const std::string& db_path,
@@ -234,9 +235,6 @@ class DbTest
             EXPECT_EQUAL(id_value.second, read);
         }
     }
-
-    private:
-    TempFile temp_file;
 };
 
 class DbFindTest : public DbTest
@@ -247,9 +245,9 @@ class DbFindTest : public DbTest
         std::cout << "Testing db for reading premade file by FindRecord..." << std::endl;
 
         ResetDb();
-        RawWrite(temp_file(), key(), common_data());
+        RawWrite(temp_file, key(), common_data());
 
-        Db db(temp_file());
+        Db db(temp_file);
         ValidateSingleEntry(key(), common_data(), db);
 
         TestData invalid_key(100, 200);
@@ -271,15 +269,15 @@ class DbStoreTest : public DbTest
         EXPECT(record.SetValues(id1(), value1()));
 
         {
-            Db db(temp_file());
+            Db db(temp_file);
 
             EXPECT(db.StoreRecord(record));
         }
 
         std::string read;
-        EXPECT(std::getline(std::ifstream(temp_file()), read).good());
+        EXPECT(std::getline(std::ifstream(temp_file), read).good());
 
-        ValidateSingleEntry(key(), common_data(), Db(temp_file()));
+        ValidateSingleEntry(key(), common_data(), Db(temp_file));
     }
 };
 
@@ -296,7 +294,7 @@ class DbUpdateTest : public DbTest
         EXPECT(record0.SetValues(id0(), value0()));
 
         {
-            Db db(temp_file());
+            Db db(temp_file);
 
             EXPECT(db.StoreRecord(record0));
         }
@@ -306,7 +304,7 @@ class DbUpdateTest : public DbTest
         EXPECT(record1.SetValues(id1(), value1()));
 
         {
-            Db db(temp_file());
+            Db db(temp_file);
 
             EXPECT(db.UpdateRecord(record1));
         }
@@ -319,7 +317,7 @@ class DbUpdateTest : public DbTest
         EXPECT_EQUAL(value1(), read1);
 
         // Check record that is stored in db (key=id0:value0;id1:value1)
-        ValidateSingleEntry(key(), common_data(), Db(temp_file()));
+        ValidateSingleEntry(key(), common_data(), Db(temp_file));
     }
 };
 
@@ -336,13 +334,13 @@ class DbRemoveTest : public DbTest
         EXPECT(record.SetValues(id1(), value1()));
 
         {
-            Db db(temp_file());
+            Db db(temp_file);
 
             EXPECT(db.StoreRecord(record));
         }
 
         {
-            Db db(temp_file());
+            Db db(temp_file);
 
             EXPECT(db.FindRecord(key()));
             EXPECT(db.RemoveRecord(key()));
@@ -359,8 +357,8 @@ class DbReadTest : public DbTest
         std::cout << "Testing db for reading premade file by Load..." << std::endl;
 
         ResetDb();
-        RawWrite(temp_file(), key(), common_data());
-        ValidateSingleEntry(key(), common_data(), Db(temp_file()));
+        RawWrite(temp_file, key(), common_data());
+        ValidateSingleEntry(key(), common_data(), Db(temp_file));
     }
 };
 
@@ -374,16 +372,16 @@ class DbWriteTest : public DbTest
         ResetDb();
 
         {
-            Db db(temp_file());
+            Db db(temp_file);
 
             EXPECT(db.Update(key(), id0(), value0()));
             EXPECT(db.Update(key(), id1(), value1()));
         }
 
         std::string read;
-        EXPECT(std::getline(std::ifstream(temp_file()), read).good());
+        EXPECT(std::getline(std::ifstream(temp_file), read).good());
 
-        ValidateSingleEntry(key(), common_data(), Db(temp_file()));
+        ValidateSingleEntry(key(), common_data(), Db(temp_file));
     }
 };
 
@@ -398,7 +396,7 @@ class DbOperationsTest : public DbTest
         TestData to_be_rewritten(7, 8);
 
         {
-            Db db(temp_file());
+            Db db(temp_file);
 
             EXPECT(db.Update(key(), id0(), to_be_rewritten));
             EXPECT(db.Update(key(), id1(), to_be_rewritten));
@@ -412,7 +410,7 @@ class DbOperationsTest : public DbTest
         }
 
         {
-            Db db(temp_file());
+            Db db(temp_file);
 
             // Rewriting existing value to store it to file.
             EXPECT(db.Update(key(), id0(), value0()));
@@ -420,7 +418,7 @@ class DbOperationsTest : public DbTest
 
         {
             TestData read0, read1, read_missing, read_missing_cmp(read_missing);
-            Db db(temp_file());
+            Db db(temp_file);
 
             // Loading by id not present in record should execute well but return false as nothing
             // was read.
@@ -450,7 +448,7 @@ class DbOperationsTest : public DbTest
 
         {
             TestData read0, read1, read_missing_cmp(read0);
-            Db db(temp_file());
+            Db db(temp_file);
 
             EXPECT(!db.Load(key(), id0(), read0));
             EXPECT(db.Load(key(), id1(), read1));
@@ -472,13 +470,13 @@ class DbParallelTest : public DbTest
         ResetDb();
 
         {
-            Db db(temp_file());
+            Db db(temp_file);
             EXPECT(db.Update(key(), id0(), value0()));
         }
 
         {
-            Db db0(temp_file());
-            Db db1(temp_file());
+            Db db0(temp_file);
+            Db db1(temp_file);
 
             auto r0 = db0.FindRecord(key());
             auto r1 = db1.FindRecord(key());
@@ -499,7 +497,7 @@ class DbParallelTest : public DbTest
             std::make_pair(id2(), value2()),
         };
 
-        ValidateSingleEntry(key(), data, Db(temp_file()));
+        ValidateSingleEntry(key(), data, Db(temp_file));
     }
 };
 
@@ -737,7 +735,7 @@ class DbMultiThreadedTest : public DbTest
         threads.reserve(DBMultiThreadedTestWork::threads_count);
 
         {
-            std::string p = temp_file_path();
+            std::string p = temp_file;
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
@@ -752,7 +750,7 @@ class DbMultiThreadedTest : public DbTest
             thread.join();
 
         std::cout << "Validation results..." << std::endl;
-        DBMultiThreadedTestWork::ValidateCommonPart(temp_file());
+        DBMultiThreadedTestWork::ValidateCommonPart(temp_file);
     }
 };
 
@@ -767,7 +765,7 @@ class DbMultiThreadedReadTest : public DbTest
         std::vector<std::thread> threads;
 
         std::cout << "Initializing test data..." << std::endl;
-        std::string p = temp_file_path();
+        std::string p = temp_file;
         DBMultiThreadedTestWork::FillForReading(p);
 
         std::cout << "Launching test threads..." << std::endl;
@@ -802,7 +800,7 @@ class DbMultiProcessTest : public DbTest
 
         ResetDb();
         std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
-        const auto lock_file_path = LockFilePath(temp_file());
+        const auto lock_file_path = LockFilePath(temp_file);
 
         std::cout << "Initializing test data..." << std::endl;
         DBMultiThreadedTestWork::Initialize();
@@ -818,7 +816,7 @@ class DbMultiProcessTest : public DbTest
             {
                 auto command = exe_path().string() + " --" + write_arg + " --" + id_arg + " " +
                                std::to_string(id++) + " --" + path_arg + " " +
-                               temp_file_path().Path();
+                               temp_file.Path();
 
                 if(thread_logs_root())
                     command += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " +
@@ -839,7 +837,7 @@ class DbMultiProcessTest : public DbTest
 
         std::remove(lock_file_path.c_str());
         std::cout << "Validation results..." << std::endl;
-        DBMultiThreadedTestWork::ValidateCommonPart(temp_file());
+        DBMultiThreadedTestWork::ValidateCommonPart(temp_file);
     }
 
     static inline void WorkItem(unsigned int id, const std::string& db_path, bool write)
@@ -867,10 +865,10 @@ class DbMultiProcessReadTest : public DbTest
         std::cout << "Testing db for multiprocess read access..." << std::endl;
 
         std::vector<FILE*> children(DBMultiThreadedTestWork::threads_count);
-        const auto lock_file_path = LockFilePath(temp_file_path());
+        const auto lock_file_path = LockFilePath(temp_file);
 
         std::cout << "Initializing test data..." << std::endl;
-        std::string p = temp_file_path();
+        std::string p = temp_file;
         DBMultiThreadedTestWork::FillForReading(p);
 
         std::cout << "Launching test processes..." << std::endl;
@@ -933,7 +931,7 @@ class DbMultiFileTest : public DbTest
     }
 
     private:
-    const std::string _user_db_path = temp_file().Path() + ".user";
+    const std::string _user_db_path = temp_file.Path() + ".user";
 };
 
 class DbMultiFileReadTest : public DbMultiFileTest
@@ -941,6 +939,8 @@ class DbMultiFileReadTest : public DbMultiFileTest
     public:
     inline void Run() const
     {
+        std::cout << "Running multifile read test..." << std::endl;
+
         ResetDb();
         MergedAndMissing();
 
@@ -966,9 +966,9 @@ class DbMultiFileReadTest : public DbMultiFileTest
 
     inline void MergedAndMissing() const
     {
-        RawWrite(temp_file(), key(), common_data());
+        RawWrite(temp_file, key(), common_data());
 
-        MultiFileDb db(temp_file(), user_db_path());
+        MultiFileDb db(temp_file, user_db_path());
         ValidateSingleEntry(key(), common_data(), db);
 
         TestData invalid_key(100, 200);
@@ -979,18 +979,18 @@ class DbMultiFileReadTest : public DbMultiFileTest
     inline void ReadUser() const
     {
         RawWrite(user_db_path(), key(), single_item_data());
-        ValidateSingleEntry(key(), single_item_data(), MultiFileDb(temp_file(), user_db_path()));
+        ValidateSingleEntry(key(), single_item_data(), MultiFileDb(temp_file, user_db_path()));
     }
 
     inline void ReadInstalled() const
     {
-        RawWrite(temp_file(), key(), single_item_data());
-        ValidateSingleEntry(key(), single_item_data(), MultiFileDb(temp_file(), user_db_path()));
+        RawWrite(temp_file, key(), single_item_data());
+        ValidateSingleEntry(key(), single_item_data(), MultiFileDb(temp_file, user_db_path()));
     }
 
     inline void ReadConflict() const
     {
-        RawWrite(temp_file(), key(), single_item_data());
+        RawWrite(temp_file, key(), single_item_data());
         ReadUser();
     }
 };
@@ -1000,6 +1000,8 @@ class DbMultiFileWriteTest : public DbMultiFileTest
     public:
     inline void Run() const
     {
+        std::cout << "Running multifile write test..." << std::endl;
+
         ResetDb();
 
         DbRecord record(key());
@@ -1007,16 +1009,16 @@ class DbMultiFileWriteTest : public DbMultiFileTest
         EXPECT(record.SetValues(id1(), value1()));
 
         {
-            MultiFileDb db(temp_file(), user_db_path());
+            MultiFileDb db(temp_file, user_db_path());
 
             EXPECT(db.StoreRecord(record));
         }
 
         std::string read;
-        EXPECT(!std::getline(std::ifstream(temp_file()), read).good());
+        EXPECT(!std::getline(std::ifstream(temp_file), read).good());
         EXPECT(std::getline(std::ifstream(user_db_path()), read).good());
 
-        ValidateSingleEntry(key(), common_data(), MultiFileDb(temp_file(), user_db_path()));
+        ValidateSingleEntry(key(), common_data(), MultiFileDb(temp_file, user_db_path()));
     }
 };
 
