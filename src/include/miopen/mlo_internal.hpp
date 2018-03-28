@@ -1049,7 +1049,7 @@ struct mlo_construct_norm : mlo_construct_direct2D
     double _normK     = 0.0;
 };
 
-#define MLO_NEURON_PASTHRU 0                       // x
+#define MLO_NEURON_PASTHRU 0                         // x
 #define MLO_NEURON_LOGISTIC (MLO_NEURON_PASTHRU + 1) //	1 / (1 + e^-x)	//Sigmoid
 #define MLO_NEURON_TANH (MLO_NEURON_LOGISTIC + 1)    //	a * tanh( b * x)
 #define MLO_NEURON_RELU (MLO_NEURON_TANH + 1)        //	max(0, x)
