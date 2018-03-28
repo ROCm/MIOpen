@@ -114,11 +114,11 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& /*xDesc*/,
 
     size_t layerJump = 0;
 
-    if(dirMode)
+    if(dirMode != 0u)
     {
         if(layer > 1)
         {
-            layerJump += (isNotRNNskip() * hsize + hsize) * nHiddenTensorsPerLayer * 2;
+            layerJump += (static_cast<unsigned long>(isNotRNNskip()) * hsize + hsize) * nHiddenTensorsPerLayer * 2;
             layerJump += (hsize * 2) * nHiddenTensorsPerLayer * (layer / 2 - 1) * 2;
         }
 
@@ -137,7 +137,7 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& /*xDesc*/,
 
         if(layer > 0)
         {
-            layerJump += (hsize * isNotRNNskip() + hsize) * nHiddenTensorsPerLayer;
+            layerJump += (hsize * static_cast<unsigned long>(isNotRNNskip()) + hsize) * nHiddenTensorsPerLayer;
             layerJump += (hsize * 2) * nHiddenTensorsPerLayer * (layer - 1);
         }
 
@@ -159,7 +159,7 @@ size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc,
     }
 
     size_t layerJump = 0;
-    if(dirMode)
+    if(dirMode != 0u)
     {
         if(layer > 1)
         {
@@ -237,7 +237,7 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
 
     std::vector<int> tdim(2, 0);
 
-    if(dirMode)
+    if(dirMode != 0u)
     {
         if(layer > 1) // NOT the input layer
         {
@@ -498,7 +498,7 @@ std::size_t RNNDescriptor::GetLayerParamSize(Handle& /*handle*/,
     inputVectorLen      = (inputMode == miopenRNNskip) ? 0 : inputVectorLen;
 
     // Assuming Djikstra counting
-    if(((dirMode && layer <= 1) || (!dirMode && layer < 1)))
+    if((((dirMode != 0u) && layer <= 1) || ((dirMode == 0u) && layer < 1)))
     {
         if(paramID >= nHiddenTensorsPerLayer)
             return size_t(typeSize * hsize * hsize);
@@ -507,7 +507,7 @@ std::size_t RNNDescriptor::GetLayerParamSize(Handle& /*handle*/,
         else
             return 0;
     }
-    else if(dirMode && paramID < nHiddenTensorsPerLayer)
+    else if((dirMode != 0u) && paramID < nHiddenTensorsPerLayer)
     {
         return size_t(typeSize * hsize * hsize * 2);
     }
@@ -519,8 +519,8 @@ std::size_t RNNDescriptor::GetLayerParamSize(Handle& /*handle*/,
 
 std::size_t RNNDescriptor::GetLayerBiasSize(Handle& /* handle */, int layer, int biasID)
 {
-    if(!isNotRNNskip() && ((dirMode && layer <= 1 && biasID < nHiddenTensorsPerLayer) ||
-                           (!dirMode && layer < 1 && biasID < nHiddenTensorsPerLayer)))
+    if(!isNotRNNskip() && (((dirMode != 0u) && layer <= 1 && biasID < nHiddenTensorsPerLayer) ||
+                           ((dirMode == 0u) && layer < 1 && biasID < nHiddenTensorsPerLayer)))
         return 0;
     else
         return size_t(typeSize * hsize); // is ther more needed here?
@@ -536,8 +536,8 @@ void RNNDescriptor::GetLayerParam(Handle& handle,
                                   Data_t param)
 {
 
-    if(!isNotRNNskip() && ((dirMode && layer <= 1 && paramID < nHiddenTensorsPerLayer) ||
-                           (!dirMode && layer < 1 && paramID < nHiddenTensorsPerLayer)))
+    if(!isNotRNNskip() && (((dirMode != 0u) && layer <= 1 && paramID < nHiddenTensorsPerLayer) ||
+                           ((dirMode == 0u) && layer < 1 && paramID < nHiddenTensorsPerLayer)))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Parameter of input layer is null in input skip mode");
     }
@@ -576,8 +576,8 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
                                  Data_t bias)
 {
 
-    if(!isNotRNNskip() && ((dirMode && layer <= 1 && biasID < nHiddenTensorsPerLayer) ||
-                           (!dirMode && layer < 1 && biasID < nHiddenTensorsPerLayer)))
+    if(!isNotRNNskip() && (((dirMode != 0u) && layer <= 1 && biasID < nHiddenTensorsPerLayer) ||
+                           ((dirMode == 0u) && layer < 1 && biasID < nHiddenTensorsPerLayer)))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Bias of input layer is null in input skip mode");
     }
@@ -624,8 +624,8 @@ void RNNDescriptor::SetLayerParam(Handle& handle,
                                   const TensorDescriptor& paramDesc,
                                   ConstData_t param)
 {
-    if(!isNotRNNskip() && ((dirMode && layer <= 1 && paramID < nHiddenTensorsPerLayer) ||
-                           (!dirMode && layer < 1 && paramID < nHiddenTensorsPerLayer)))
+    if(!isNotRNNskip() && (((dirMode != 0u) && layer <= 1 && paramID < nHiddenTensorsPerLayer) ||
+                           ((dirMode == 0u) && layer < 1 && paramID < nHiddenTensorsPerLayer)))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Parameter of input layer is null in input skip mode");
     }
@@ -680,8 +680,8 @@ void RNNDescriptor::SetLayerBias(Handle& handle,
                                  const TensorDescriptor& biasDesc,
                                  ConstData_t bias)
 {
-    if(!isNotRNNskip() && ((dirMode && layer <= 1 && biasID < nHiddenTensorsPerLayer) ||
-                           (!dirMode && layer < 1 && biasID < nHiddenTensorsPerLayer)))
+    if(!isNotRNNskip() && (((dirMode != 0u) && layer <= 1 && biasID < nHiddenTensorsPerLayer) ||
+                           ((dirMode == 0u) && layer < 1 && biasID < nHiddenTensorsPerLayer)))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Bias of input layer is null in input skip mode");
     }
@@ -736,8 +736,8 @@ void RNNDescriptor::GetLayerParamOffset(const int layer,
                                         TensorDescriptor& paramDesc,
                                         size_t* paramOffset)
 {
-    if(!isNotRNNskip() && ((dirMode && layer <= 1 && paramID < nHiddenTensorsPerLayer) ||
-                           (!dirMode && layer < 1 && paramID < nHiddenTensorsPerLayer)))
+    if(!isNotRNNskip() && (((dirMode != 0u) && layer <= 1 && paramID < nHiddenTensorsPerLayer) ||
+                           ((dirMode == 0u) && layer < 1 && paramID < nHiddenTensorsPerLayer)))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Parameter of input layer is null in input skip mode");
     }
@@ -769,8 +769,8 @@ void RNNDescriptor::GetLayerBiasOffset(const int layer,
                                        TensorDescriptor& biasDesc,
                                        size_t* biasOffset)
 {
-    if(!isNotRNNskip() && ((dirMode && layer <= 1 && biasID < nHiddenTensorsPerLayer) ||
-                           (!dirMode && layer < 1 && biasID < nHiddenTensorsPerLayer)))
+    if(!isNotRNNskip() && (((dirMode != 0u) && layer <= 1 && biasID < nHiddenTensorsPerLayer) ||
+                           ((dirMode == 0u) && layer < 1 && biasID < nHiddenTensorsPerLayer)))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Bias of input layer is null in input skip mode");
     }

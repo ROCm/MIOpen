@@ -66,7 +66,7 @@ class LockFile
         access_mutex.lock_shared();
         flock.lock_sharable();
     }
-    bool try_lock() { return std::try_lock(access_mutex, flock); }
+    bool try_lock() { return std::try_lock(access_mutex, flock) != 0; }
     bool try_lock_shared()
     {
         if(!access_mutex.try_lock_shared())

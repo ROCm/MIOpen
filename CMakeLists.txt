@@ -222,9 +222,7 @@ enable_clang_tidy(
         -hicpp-use-override
         -llvm-header-guard
         -llvm-include-order
-        -misc-macro-parentheses
         -misc-misplaced-const
-        -misc-misplaced-widening-cast
         -modernize-pass-by-value
         -modernize-use-default-member-init
         -modernize-use-equals-default
@@ -232,9 +230,6 @@ enable_clang_tidy(
         -performance-unnecessary-value-param
         -readability-braces-around-statements
         -readability-else-after-return
-        -readability-implicit-bool-cast
-        -readability-implicit-bool-conversion
-        -readability-misleading-indentation
         -readability-named-parameter
         ${CLANG_TIDY_CHECKS}
     ERRORS

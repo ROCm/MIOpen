@@ -93,18 +93,18 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
         else
         {
             int i_sz             = params.out_height * params.out_width;
-            result.out_pix_tile0 = (i_sz & 1) ? 1 : 2;
+            result.out_pix_tile0 = (i_sz & 1) != 0 ? 1 : 2;
 
             if(params.pad0 > 0 || params.kernel_stride0 > 1)
             {
                 if(params.direction.IsForward())
                 {
-                    result.out_pix_tile0 = (params.out_width & 1) ? 1 : 2;
+                    result.out_pix_tile0 = (params.out_width & 1) != 0 ? 1 : 2;
                 }
                 else
                 {
                     result.out_pix_tile0 =
-                        ((params.out_width & 1) || (params.in_width & 1)) ? 1 : 2;
+                        (((params.out_width & 1) != 0) || ((params.in_width & 1) != 0)) ? 1 : 2;
                 }
             }
 
@@ -291,7 +291,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
     std::vector<float> bias_sys_buf;
     miopen::Allocator::ManageDataPtr bias_ocl_buf = nullptr;
 
-    if(params.bias)
+    if(params.bias != 0)
     {
         size_t bias_sz = params.bias_sz / sizeof(float);
         bias_sys_buf   = std::vector<float>(bias_sz);
@@ -387,17 +387,17 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
             int i_sz = params.in_width * params.in_height;
             if(params.kernel_stride0 == 1)
             {
-                out_pix_tl_cnt = (i_sz & 1) ? 1 : (i_sz & 0x3) ? 2 : 3;
+                out_pix_tl_cnt = (i_sz & 1) != 0 ? 1 : (i_sz & 0x3) != 0 ? 2 : 3;
             }
             else
             {
                 if(params.direction.IsForward())
                 {
-                    out_pix_tl_cnt = (params.out_width & 1) ? 1 : 2;
+                    out_pix_tl_cnt = (params.out_width & 1) != 0 ? 1 : 2;
                 }
                 else
                 {
-                    out_pix_tl_cnt = ((params.out_width & 1) || (params.in_width & 1)) ? 1 : 2;
+                    out_pix_tl_cnt = (((params.out_width & 1) != 0) || ((params.in_width & 1) != 0)) ? 1 : 2;
                 }
             }
             out_pix_tile_sz[0] = 1;

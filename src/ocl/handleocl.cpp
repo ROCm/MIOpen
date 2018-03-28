@@ -290,7 +290,7 @@ struct HandleImpl
                 }
 
                 platform = platforms[i];
-                if(!strcmp(pbuf, "Advanced Micro Devices, Inc."))
+                if(strcmp(pbuf, "Advanced Micro Devices, Inc.") == 0)
                 {
                     break;
                 }
