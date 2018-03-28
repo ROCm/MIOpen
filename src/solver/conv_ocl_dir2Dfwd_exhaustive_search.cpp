@@ -397,7 +397,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
                 }
                 else
                 {
-                    out_pix_tl_cnt = (((params.out_width & 1) != 0) || ((params.in_width & 1) != 0)) ? 1 : 2;
+                    out_pix_tl_cnt =
+                        (((params.out_width & 1) != 0) || ((params.in_width & 1) != 0)) ? 1 : 2;
                 }
             }
             out_pix_tile_sz[0] = 1;

@@ -638,7 +638,8 @@ struct mlo_construct_direct2D
             _search_params.out_data_type      = data_type;
         }
 
-        _search_params.bias_sz = (_search_params.bias) != 0 ? _search_params.n_outputs * data_len : 0;
+        _search_params.bias_sz =
+            (_search_params.bias) != 0 ? _search_params.n_outputs * data_len : 0;
     }
 
     /*
@@ -671,7 +672,8 @@ struct mlo_construct_direct2D
         _search_params.top_sz             = size;
         _search_params.out_layout         = layout;
         _search_params.out_data_type      = data_type;
-        _search_params.bias_sz = (_search_params.bias) != 0 ? _search_params.n_outputs * data_len : 0;
+        _search_params.bias_sz =
+            (_search_params.bias) != 0 ? _search_params.n_outputs * data_len : 0;
     }
 
     /*
@@ -837,7 +839,10 @@ struct mlo_construct_direct2D
         params = _search_params;
     }
 
-    std::string db_path() const { return _db_path != nullptr ? _db_path : _search_params.GetPerfDbPath(); }
+    std::string db_path() const
+    {
+        return _db_path != nullptr ? _db_path : _search_params.GetPerfDbPath();
+    }
 
     int mloConstructBwd() { return (0); }
     int mloConstructFwd() { return (0); }

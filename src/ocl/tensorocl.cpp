@@ -390,7 +390,8 @@ void OpTensor4d(Handle& handle,
 
     // Special case for adding tensors in place
     size_t global_threads;
-    global_threads = (static_cast<int>(leading_ones) == 1 && (d - 1) == 3) ? num_wg : num_wg * local_threads;
+    global_threads =
+        (static_cast<int>(leading_ones) == 1 && (d - 1) == 3) ? num_wg : num_wg * local_threads;
     global_threads = (global_threads < local_threads) ? local_threads : global_threads;
 
     const std::vector<size_t> vgd{global_threads, 1, 1};

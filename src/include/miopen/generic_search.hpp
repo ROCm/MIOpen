@@ -196,7 +196,7 @@ class HeartBeat
             elapsed_cumulative += elapsed;
             const float eta_sec =
                 n_recent != 0u ? ((n_total - n_recent) * (elapsed_cumulative / n_recent) / 1000)
-                         : 0.0f; // paraniod
+                               : 0.0f; // paraniod
             MIOPEN_LOG_W(n_recent << '/' << n_failed << '/' << n_total << ' ' << total_best
                                   << ", best within recent "
                                   << n_within_beat

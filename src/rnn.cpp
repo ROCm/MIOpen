@@ -118,7 +118,8 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& /*xDesc*/,
     {
         if(layer > 1)
         {
-            layerJump += (static_cast<unsigned long>(isNotRNNskip()) * hsize + hsize) * nHiddenTensorsPerLayer * 2;
+            layerJump += (static_cast<unsigned long>(isNotRNNskip()) * hsize + hsize) *
+                         nHiddenTensorsPerLayer * 2;
             layerJump += (hsize * 2) * nHiddenTensorsPerLayer * (layer / 2 - 1) * 2;
         }
 
@@ -137,7 +138,8 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& /*xDesc*/,
 
         if(layer > 0)
         {
-            layerJump += (hsize * static_cast<unsigned long>(isNotRNNskip()) + hsize) * nHiddenTensorsPerLayer;
+            layerJump += (hsize * static_cast<unsigned long>(isNotRNNskip()) + hsize) *
+                         nHiddenTensorsPerLayer;
             layerJump += (hsize * 2) * nHiddenTensorsPerLayer * (layer - 1);
         }
 

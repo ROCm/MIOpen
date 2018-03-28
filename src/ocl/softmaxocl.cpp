@@ -87,9 +87,10 @@ miopenStatus_t SoftmaxForward(
 
         std::string algo_name = "SoftmaxForwardOneBatch";
         std::string network_config =
-            std::to_string(num_batch) + std::to_string(static_cast<int>(usefp16)) + std::to_string(static_cast<int>(usefp32)) +
-            std::to_string(vgd[0]) + std::to_string(vld[0]) + std::to_string(spatial_dim) +
-            std::to_string(grid_size) + std::to_string(workgroups) + std::to_string(c);
+            std::to_string(num_batch) + std::to_string(static_cast<int>(usefp16)) +
+            std::to_string(static_cast<int>(usefp32)) + std::to_string(vgd[0]) +
+            std::to_string(vld[0]) + std::to_string(spatial_dim) + std::to_string(grid_size) +
+            std::to_string(workgroups) + std::to_string(c);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
@@ -127,10 +128,11 @@ miopenStatus_t SoftmaxForward(
 
         std::string algo_name = "SoftmaxForwardMultiBatch";
         std::string network_config =
-            std::to_string(num_batch) + std::to_string(static_cast<int>(usefp16)) + std::to_string(static_cast<int>(usefp32)) +
-            std::to_string(vgd[0]) + std::to_string(vld[0]) + std::to_string(spatial_dim) +
-            std::to_string(grid_size) + std::to_string(workgroups) + std::to_string(c) +
-            std::to_string(u_batch_size) + std::to_string(batch_size);
+            std::to_string(num_batch) + std::to_string(static_cast<int>(usefp16)) +
+            std::to_string(static_cast<int>(usefp32)) + std::to_string(vgd[0]) +
+            std::to_string(vld[0]) + std::to_string(spatial_dim) + std::to_string(grid_size) +
+            std::to_string(workgroups) + std::to_string(c) + std::to_string(u_batch_size) +
+            std::to_string(batch_size);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
@@ -210,9 +212,10 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
 
         std::string algo_name = "SoftmaxBackwardOneBatch";
         std::string network_config =
-            std::to_string(num_batch) + std::to_string(static_cast<int>(usefp16)) + std::to_string(static_cast<int>(usefp32)) +
-            std::to_string(vgd[0]) + std::to_string(vld[0]) + std::to_string(spatial_dim) +
-            std::to_string(grid_size) + std::to_string(workgroups) + std::to_string(c);
+            std::to_string(num_batch) + std::to_string(static_cast<int>(usefp16)) +
+            std::to_string(static_cast<int>(usefp32)) + std::to_string(vgd[0]) +
+            std::to_string(vld[0]) + std::to_string(spatial_dim) + std::to_string(grid_size) +
+            std::to_string(workgroups) + std::to_string(c);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
@@ -241,10 +244,11 @@ miopenStatus_t SoftmaxBackward(Handle& handle,
 
         std::string algo_name = "SoftmaxBackwardMultiBatch";
         std::string network_config =
-            std::to_string(num_batch) + std::to_string(static_cast<int>(usefp16)) + std::to_string(static_cast<int>(usefp32)) +
-            std::to_string(vgd[0]) + std::to_string(vld[0]) + std::to_string(spatial_dim) +
-            std::to_string(grid_size) + std::to_string(workgroups) + std::to_string(c) +
-            std::to_string(u_batch_size) + std::to_string(batch_size);
+            std::to_string(num_batch) + std::to_string(static_cast<int>(usefp16)) +
+            std::to_string(static_cast<int>(usefp32)) + std::to_string(vgd[0]) +
+            std::to_string(vld[0]) + std::to_string(spatial_dim) + std::to_string(grid_size) +
+            std::to_string(workgroups) + std::to_string(c) + std::to_string(u_batch_size) +
+            std::to_string(batch_size);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
