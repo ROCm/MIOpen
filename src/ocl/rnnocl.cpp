@@ -122,7 +122,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
         batch_n += batchval;
     }
 
-    int bi = dirMode ? 2 : 1;
+    int bi = dirMode != 0u ? 2 : 1;
     if(out_h != (bi * hy_h))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
@@ -318,7 +318,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
             profileRNNkernels(handle, 1, ctime);
         }
 
-        if(biasMode)
+        if(biasMode != 0u)
         {
             alpha0 = 1;
             alpha1 = 1;
@@ -392,7 +392,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
             }
         }
 
-        if(biasMode)
+        if(biasMode != 0u)
         {
             wei_shift_bias_temp += wei_stride;
 
@@ -451,7 +451,7 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
 
-                if(dirMode)
+                if(dirMode != 0u)
                 {
                     if(in_n.at(0) == in_n.at(seqLen - 1))
                     {
@@ -1111,7 +1111,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
         batch_n += batchval;
     }
 
-    int bi = dirMode ? 2 : 1;
+    int bi = dirMode != 0u ? 2 : 1;
     if(out_h != (bi * hy_h))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
@@ -1308,7 +1308,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             profileRNNkernels(handle, 1, ctime);
         }
 
-        if(biasMode)
+        if(biasMode != 0u)
         {
             alpha0 = 1;
             alpha1 = 1;
@@ -1382,7 +1382,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             }
         }
 
-        if(biasMode)
+        if(biasMode != 0u)
         {
             wei_shift_bias_temp += wei_stride;
 
@@ -1441,7 +1441,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
 
-                if(dirMode)
+                if(dirMode != 0u)
                 {
                     if(in_n.at(0) == in_n.at(seqLen - 1))
                     {
@@ -2121,7 +2121,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         batch_n += dxDesc[i].GetLengths()[0];
     }
 
-    int bi = dirMode ? 2 : 1;
+    int bi = dirMode != 0u ? 2 : 1;
     if(out_h != (bi * hy_h))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
@@ -3389,7 +3389,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         batch_n += xDesc[i].GetLengths()[0];
     }
 
-    int bi = dirMode ? 2 : 1;
+    int bi = dirMode != 0u ? 2 : 1;
     if(out_h != (bi * hy_h))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
@@ -3527,7 +3527,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             profileRNNkernels(handle, 1, ctime);
         }
 
-        if(biasMode)
+        if(biasMode != 0u)
         {
             if(!(li == 0 && inputMode == miopenRNNskip))
             {
@@ -3603,7 +3603,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
             }
         }
 
-        if(biasMode)
+        if(biasMode != 0u)
         {
             wei_shift = (inputMode == miopenRNNskip)
                             ? (wei_shift_bias + li * 2 * wei_stride)
@@ -3704,7 +3704,7 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
                     }
                 }
 
-                if(dirMode)
+                if(dirMode != 0u)
                 {
                     sp_size[1] = 1;
                     sp_size[2] = wei_len;

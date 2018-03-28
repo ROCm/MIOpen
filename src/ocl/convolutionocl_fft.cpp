@@ -224,9 +224,9 @@ static int FindFFTKernel(Handle& handle,
         if((out_n * out_c >= 64) && ((out_n * out_c) % 32 == 0))
             ot_tranpose_choice = 1;
 
-        int in_tranpose_bwidth = in_tranpose_choice ? 32 : 16;
-        int wt_tranpose_bwidth = wt_tranpose_choice ? 32 : 16;
-        int ot_tranpose_bwidth = ot_tranpose_choice ? 32 : 16;
+        int in_tranpose_bwidth = in_tranpose_choice != 0 ? 32 : 16;
+        int wt_tranpose_bwidth = wt_tranpose_choice != 0 ? 32 : 16;
+        int ot_tranpose_bwidth = ot_tranpose_choice != 0 ? 32 : 16;
 
         local_work_size[2][0] = 256;
         global_work_size[2][0] =
