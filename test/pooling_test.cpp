@@ -64,26 +64,21 @@ struct pooling_operators
 
     double operator()(double x, double y) const
     {
-		if (filter.GetMode() == miopenPoolingMax)
-		{
-			double m = std::max(x, y);
-			// the case with the odd input, the even kernel size and 2*pad == kernel size
-			// for the verification purpose only, the actual value is the min
-			m = (m == std::numeric_limits<T>::lowest()) ? 0 : m;
-			return(m);
-		}
+        if(filter.GetMode() == miopenPoolingMax)
+        {
+            double m = std::max(x, y);
+            return (m);
+        }
         else
             return x + y;
     }
 
     double final(double x, double y)
     {
-		if (filter.GetMode() == miopenPoolingMax)
-		{
-			// the case with the odd input, the even kernel size and 2*pad == kernel size
-			// for the verification purpose only, the actual value is the min
-			return ((x == std::numeric_limits<T>::lowest()) ? 0 : x);
-		}
+        if(filter.GetMode() == miopenPoolingMax)
+        {
+            return (x);
+        }
         else
             return x / y;
     }
@@ -115,13 +110,13 @@ struct verify_forward_pooling
             const int hend = std::min(start_x + window_h, in_h);
             const int wend = std::min(start_y + window_w, in_w);
 
-			start_x = std::max(start_x, 0);
-			start_y = std::max(start_y, 0);
+            start_x = std::max(start_x, 0);
+            start_y = std::max(start_y, 0);
 
-			int w_h = (hend - start_x);
-			int w_w = (wend - start_y);
+            int w_h       = (hend - start_x);
+            int w_w       = (wend - start_y);
             int pool_size = w_h * w_w;
-			pool_size = (pool_size == 0) ? 1 : pool_size;
+            pool_size     = (pool_size == 0) ? 1 : pool_size;
 
             double acc = op.start();
             ford(w_h, w_w)([&](int x, int y) {
