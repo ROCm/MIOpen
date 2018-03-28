@@ -1451,6 +1451,7 @@ void SetTensor(
 
         break;
     }
+    default: assert(false);
     }
 }
 
@@ -1595,6 +1596,7 @@ void ScaleTensor(
 
         break;
     }
+    default: assert(false);
     }
 }
 
@@ -1778,6 +1780,7 @@ void CopyTensor(Handle& handle,
 
             break;
         }
+        default: assert(false);
         }
     }
     else

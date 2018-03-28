@@ -264,6 +264,8 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                     std::tie(cOutStride, hOutStride, wOutStride) = tien<3>(yDesc.GetStrides());
                     nOutStride = cOut * cOutStride;
                     break;
+                default:
+                    assert(false);
                 }
             }
             else
@@ -310,6 +312,8 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                     std::tie(cInStride, hInStride, wInStride) = tien<3>(xDesc.GetStrides());
                     nInStride = cIn * cInStride;
                     break;
+                default:
+                    assert(false);
                 }
             }
             else
@@ -688,6 +692,8 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                     std::tie(cdOutStride, hdOutStride, wdOutStride) = tien<3>(dyDesc.GetStrides());
                     ndOutStride = cdOut * cdOutStride;
                     break;
+                default:
+                    assert(false);
                 }
             }
             else
@@ -736,6 +742,8 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                     std::tie(cOutStride, hOutStride, wOutStride) = tien<3>(yDesc.GetStrides());
                     nOutStride = cOut * cOutStride;
                     break;
+                default:
+                    assert(false);
                 }
             }
             else
@@ -784,6 +792,8 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                     std::tie(cdInStride, hdInStride, wdInStride) = tien<3>(dxDesc.GetStrides());
                     ndInStride = cdIn * cdInStride;
                     break;
+                default:
+                    assert(false);
                 }
             }
             else
@@ -831,6 +841,8 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                     std::tie(cInStride, hInStride, wInStride) = tien<3>(xDesc.GetStrides());
                     nInStride = cIn * cInStride;
                     break;
+                default:
+                    assert(false);
                 }
             }
             else
