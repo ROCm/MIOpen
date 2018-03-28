@@ -104,7 +104,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
 {
 
     bool match      = true;
-    _Tcheck MAX_VAL = (sizeof(_Tcheck) == 4) ? 3.402823466e+38F : 65504.;
+    _Tcheck MAX_VAL = (sizeof(_Tcheck) == 4 || sizeof(_Tcheck) == 8) ? _Tcheck(3.402823466e+38) : 65504;
 
     // c-emulator
     _Tcheck res = static_cast<_Tcheck>(0);
@@ -129,13 +129,13 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
 
                     int hstart           = j * stride1 - pad1;
                     int wstart           = i * stride0 - pad0;
-                    int hend             = std::min(hstart + kernel_size1, bot_height + pad1);
-                    int wend             = std::min(wstart + kernel_size0, bot_width + pad0);
+                    int hend             = std::min(hstart + kernel_size1, bot_height);
+                    int wend             = std::min(wstart + kernel_size0, bot_width);
                     hstart               = std::max(hstart, 0);
                     wstart               = std::max(wstart, 0);
-                    hend                 = std::min(hend, bot_height);
-                    wend                 = std::min(wend, bot_width);
-                    int pool_size        = (hend - hstart) * (wend - wstart);
+
+					int pool_size        = (hend - hstart) * (wend - wstart);
+					pool_size = (pool_size == 0) ? 1 : pool_size;
                     size_t res_index     = 0;
                     size_t res_index_gpu = 0;
                     bool found           = false;
@@ -181,6 +181,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                     }
                     if(pooling_method == MLO_POOLING_OP_MAX)
                     {
+						res = (res == -MAX_VAL) ? 0 : res;
                         mask_ptr[b * top_batch_stride + o * top_channel_stride + j * top_stride +
                                  i] = res_index;
                         if(do_backward)
@@ -203,9 +204,8 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                     _Tcheck g_val =
                         static_cast<_Tcheck>(top_ptr[b * top_batch_stride + o * top_channel_stride +
                                                      j * top_stride + i]);
-                    double err         = CalcErr<_Tcheck>(c_val, g_val);
-                    double allowed_ulp = CalcErr<_Tcheck>(allowedEps, 0);
-                    if(err > allowed_ulp || std::isnan(c_val) || std::isnan(g_val) ||
+                    double err         = std::abs(c_val -g_val);
+                    if(err > allowedEps || std::isnan(c_val) || std::isnan(g_val) ||
                        !std::isfinite(c_val) || !std::isfinite(g_val))
                     {
                         std::cout << "Difference " << err << " too large at " << b << ", " << o
