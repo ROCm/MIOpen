@@ -280,10 +280,6 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
-    if(!params.direction.IsForward()) // FIXME remvoe this
-    {
-        return false;
-    }
     if(!(params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
     {
         return false;
