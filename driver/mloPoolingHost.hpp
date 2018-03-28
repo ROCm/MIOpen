@@ -315,7 +315,7 @@ int mloPoolingBackwardRunHost(
 								hstart = std::max(hstart, 0);
 								wstart = std::max(wstart, 0);
 
-                                int pool_size = (hend - hstart) * (wend - wstart);
+                                int pool_size = ((hend - hstart) * (wend - wstart) == 0) ? 1 : (hend - hstart) * (wend - wstart);
                                 gradient += static_cast<_Tcheck>(
                                                 top_df_ptr[top_df_off + ph * top_df_stride + pw]) /
                                             static_cast<_Tcheck>(pool_size);
