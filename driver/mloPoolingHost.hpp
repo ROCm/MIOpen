@@ -131,11 +131,11 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                     int wstart           = i * stride0 - pad0;
                     int hend             = std::min(hstart + kernel_size1, bot_height + pad1);
                     int wend             = std::min(wstart + kernel_size0, bot_width + pad0);
-                    int pool_size        = (hend - hstart) * (wend - wstart);
                     hstart               = std::max(hstart, 0);
                     wstart               = std::max(wstart, 0);
                     hend                 = std::min(hend, bot_height);
                     wend                 = std::min(wend, bot_width);
+                    int pool_size        = (hend - hstart) * (wend - wstart);
                     size_t res_index     = 0;
                     size_t res_index_gpu = 0;
                     bool found           = false;
@@ -158,17 +158,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                             }
                             else if(pooling_method == MLO_POOLING_OP_AVE)
                             {
-#if 0
-								if (j == 0 && i == 6)
-								{
 
-									printf("c: %d %f %f\n",
-										b*bot_batch_stride + o * bot_channel_stride + h * bot_stride + w,
-										res,
-										bot_ptr[b*bot_batch_stride + o * bot_channel_stride + h * bot_stride + w]
-										);
-								}
-#endif
                                 res += static_cast<_Tcheck>(
                                     bot_ptr[b * bot_batch_stride + o * bot_channel_stride +
                                             h * bot_stride + w]);
@@ -213,8 +203,9 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                     _Tcheck g_val =
                         static_cast<_Tcheck>(top_ptr[b * top_batch_stride + o * top_channel_stride +
                                                      j * top_stride + i]);
-                    double err = CalcErr<_Tcheck>(c_val, g_val);
-                    if(err > allowedEps || std::isnan(c_val) || std::isnan(g_val) ||
+                    double err         = CalcErr<_Tcheck>(c_val, g_val);
+                    double allowed_ulp = CalcErr<_Tcheck>(allowedEps, 0);
+                    if(err > allowed_ulp || std::isnan(c_val) || std::isnan(g_val) ||
                        !std::isfinite(c_val) || !std::isfinite(g_val))
                     {
                         std::cout << "Difference " << err << " too large at " << b << ", " << o
