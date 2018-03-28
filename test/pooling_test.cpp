@@ -239,8 +239,8 @@ struct verify_backward_pooling
 					const int w_w = (wend - start_y);
 					const int pool_size = std::max(w_h * w_w, 1);
 
-                    const int in_x = start_x + x;
-                    const int in_y = start_y + y;
+                    const int in_x = start_x0 + x;
+                    const int in_y = start_y0 + y;
                     if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
                     {
                         dinput(o, w, in_x, in_y) += dout(o, w, i, j) / pool_size;
