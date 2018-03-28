@@ -170,6 +170,7 @@ mloPoolingAveBwd(const __global _FLOAT* top_diff, __global _FLOAT* bot_diff)
                     int wend   = min(wstart + MLO_POOLING_KERNEL_SZ0,
                                    MLO_POOLBWD_BOT_WIDTH + MLO_POOLING_PAD0);
                     int pool_size = (hend - hstart) * (wend - wstart);
+					pool_size = (pool_size == 0) ? 1 : pool_size;
                     int lcl_top_h = top_h - top_y;
                     int lcl_top_w = top_w - top_x;
                     _FLOAT add_val =
