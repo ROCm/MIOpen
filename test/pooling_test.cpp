@@ -228,13 +228,16 @@ struct verify_backward_pooling
             else
             {
                 ford(out_h, out_w, window_h, window_w)([&](int i, int j, int x, int y) {
-                    const int start_x = i * v - pad_h;
-                    const int start_y = j * u - pad_w;
+                    const int start_x0 = i * v - pad_h;
+                    const int start_y0 = j * u - pad_w;
 
-                    const int hend = std::min(start_x + window_h, in_h + pad_h);
-                    const int wend = std::min(start_y + window_w, in_w + pad_w);
-
-                    const int pool_size = (hend - start_x) * (wend - start_y);
+                    const int hend = std::min(start_x0 + window_h, in_h);
+                    const int wend = std::min(start_y0 + window_w, in_w);
+					const int start_x = std::max(start_x0, 0);
+					const int start_y = std::max(start_y0, 0);
+					const int w_h = (hend - start_x);
+					const int w_w = (wend - start_y);
+					const int pool_size = std::max(w_h * w_w, 1);
 
                     const int in_x = start_x + x;
                     const int in_y = start_y + y;

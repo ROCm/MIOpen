@@ -161,14 +161,16 @@ mloPoolingAveBwd(const __global _FLOAT* top_diff, __global _FLOAT* bot_diff)
             {
                 int hstart = top_h * MLO_POOLING_STRIDE1 - MLO_POOLING_PAD1;
                 int hend =
-                    min(hstart + MLO_POOLING_KERNEL_SZ1, MLO_POOLBWD_BOT_HEIGHT + MLO_POOLING_PAD1);
+                    min(hstart + MLO_POOLING_KERNEL_SZ1, MLO_POOLBWD_BOT_HEIGHT);
+                hstart = max(hstart, 0);
 
                 for(int top_w = top_wstart; top_w < top_wend; ++top_w)
                 {
                     // figure out the pooling size
                     int wstart = top_w * MLO_POOLING_STRIDE0 - MLO_POOLING_PAD0;
                     int wend   = min(wstart + MLO_POOLING_KERNEL_SZ0,
-                                   MLO_POOLBWD_BOT_WIDTH + MLO_POOLING_PAD0);
+                                   MLO_POOLBWD_BOT_WIDTH);
+                    wstart = max(wstart, 0);
                     int pool_size = (hend - hstart) * (wend - wstart);
                     pool_size     = (pool_size == 0) ? 1 : pool_size;
                     int lcl_top_h = top_h - top_y;
