@@ -113,8 +113,8 @@ struct verify_forward_pooling
             start_x = std::max(start_x, 0);
             start_y = std::max(start_y, 0);
 
-            int w_h       = (hend - start_x);
-            int w_w       = (wend - start_y);
+            const int w_h = (hend - start_x);
+            const int w_w = (wend - start_y);
             int pool_size = w_h * w_w;
             pool_size     = (pool_size == 0) ? 1 : pool_size;
 
