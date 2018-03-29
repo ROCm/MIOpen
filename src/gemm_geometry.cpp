@@ -129,7 +129,8 @@ void GemmGeometry::FindSolution(
             vgd,
             "");
     }
-    handle.geo_map[std::make_pair(algorithm_name, network_config)] = std::make_unique<GemmGeometry>(*this);
+    handle.geo_map[std::make_pair(algorithm_name, network_config)] =
+        std::make_unique<GemmGeometry>(*this);
 }
 
 void GemmGeometry::RunGemm(Handle& handle,
