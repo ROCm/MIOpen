@@ -71,9 +71,8 @@ void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
         }
         else
         {
-            std::vector<Tsdata> Bufer(dataNumItems);
+            std::vector<Tsdata> Bufer(data, data + dataNumItems);
             outFile.write(reinterpret_cast<char*>(Bufer.data()), dataNumItems * sizeof(Tsdata));
-            std::copy(Bufer.begin(), Bufer.end(), data);
         }
 
         outFile.close();
