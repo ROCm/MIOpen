@@ -33,6 +33,7 @@
 #include <miopen/load_file.hpp>
 #include <boost/filesystem.hpp>
 #include <miopen/handle_lock.hpp>
+#include <miopen/gemm_geometry.hpp>
 #include <string>
 
 #ifndef _WIN32
