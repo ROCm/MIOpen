@@ -757,7 +757,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                        workSpaceSize >= ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc));
 
                 CreateGemmGeometryConvFwdCNHW(xDesc, wDesc, yDesc, false, network_config);
-                GemmGeometry gg = GetGemmGeometry("miopenConvolutionFwdAlgoGEMM", network_config);
+                GemmGeometry gg =
+                    GetGemmGeometry(handle, "miopenConvolutionFwdAlgoGEMM", network_config);
 
                 float t1 = 0;
                 transpose_NCHW2CNHW(
@@ -794,7 +795,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             {
                 float time_0 = 0;
                 CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
-                GemmGeometry gg = GetGemmGeometry("miopenConvolutionFwdAlgoGEMM", network_config);
+                GemmGeometry gg =
+                    GetGemmGeometry(handle, "miopenConvolutionFwdAlgoGEMM", network_config);
 
                 for(int i = 0; i < in_n; i++)
                 {
@@ -815,7 +817,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                        workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc));
 
                 CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
-                GemmGeometry gg = GetGemmGeometry("miopenConvolutionFwdAlgoGEMM", network_config);
+                GemmGeometry gg =
+                    GetGemmGeometry(handle, "miopenConvolutionFwdAlgoGEMM", network_config);
 
                 float time_0 = 0;
                 float t1     = 0;
@@ -914,7 +917,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
         CreateGemmGeometryConvBwdData(xDesc, wDesc, yDesc, true, network_config);
-        GemmGeometry gg = GetGemmGeometry("miopenConvolutionBwdDataAlgoGEMM", network_config);
+        GemmGeometry gg =
+            GetGemmGeometry(handle, "miopenConvolutionBwdDataAlgoGEMM", network_config);
 
         float time_0 = 0;
         float t1     = 0;
@@ -1493,7 +1497,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 float t1 = 0;
                 CreateGemmGeometryConvBwdDataCNHW(dyDesc, wDesc, dxDesc, true, network_config);
                 GemmGeometry gg =
-                    GetGemmGeometry("miopenConvolutionBwdDataAlgoGEMM", network_config);
+                    GetGemmGeometry(handle, "miopenConvolutionBwdDataAlgoGEMM", network_config);
 
                 transpose_NCHW2CNHW(
                     handle, in_n, wei_n, out_h, out_w, out_h, out_w, dy, workSpace, 0, 0, 1, 1);
@@ -1529,7 +1533,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             {
                 CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, true, network_config);
                 GemmGeometry gg =
-                    GetGemmGeometry("miopenConvolutionBwdDataAlgoGEMM", network_config);
+                    GetGemmGeometry(handle, "miopenConvolutionBwdDataAlgoGEMM", network_config);
 
                 float time_0 = 0;
                 for(int i = 0; i < in_n; i++)
@@ -1556,7 +1560,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
                 CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, true, network_config);
                 GemmGeometry gg =
-                    GetGemmGeometry("miopenConvolutionBwdDataAlgoGEMM", network_config);
+                    GetGemmGeometry(handle, "miopenConvolutionBwdDataAlgoGEMM", network_config);
 
                 handle.ResetKernelTime();
 
@@ -1659,7 +1663,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         std::string network_config;
 #if MIOPEN_USE_MIOPENGEMM
         CreateGemmGeometryTranBwdData(dyDesc, wDesc, dxDesc, true, network_config);
-        GemmGeometry gg = GetGemmGeometry("miopenTransposeBwdDataAlgoGEMM", network_config);
+        GemmGeometry gg = GetGemmGeometry(handle, "miopenTransposeBwdDataAlgoGEMM", network_config);
 
         float time_0 = 0;
         float t1     = 0;
@@ -2172,7 +2176,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
             CreateGemmGeometryConvBwdWeights(dyDesc, xDesc, dwDesc, false, network_config);
             GemmGeometry gg =
-                GetGemmGeometry("miopenConvolutionBwdWeightsAlgoGEMM", network_config);
+                GetGemmGeometry(handle, "miopenConvolutionBwdWeightsAlgoGEMM", network_config);
 
             handle.ResetKernelTime();
             float time_0 = 0;
@@ -2355,7 +2359,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
 #if MIOPEN_USE_MIOPENGEMM
         CreateGemmGeometryConvBwdWeights(xDesc, dyDesc, dwDesc, false, network_config);
-        GemmGeometry gg = GetGemmGeometry("miopenConvolutionBwdWeightsAlgoGEMM", network_config);
+        GemmGeometry gg =
+            GetGemmGeometry(handle, "miopenConvolutionBwdWeightsAlgoGEMM", network_config);
 
         handle.ResetKernelTime();
         float time_0 = 0;

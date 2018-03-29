@@ -327,13 +327,12 @@ GemmGeometry CreateMIOpenGemmGeometry(int M,
     }
 }
 
-GemmGeometry GetGemmGeometry(std::string algorithm_name, std::string network_config)
+GemmGeometry GetGemmGeometry(Handle& handle, std::string algorithm_name, std::string network_config)
 {
-    auto guard         = get_gemm_geo_map_lock();
-    auto gemm_iterator = gemm_geo_map().find(std::make_pair(algorithm_name, network_config));
-    if(gemm_iterator != gemm_geo_map().end())
+    auto gemm_iterator = handle.geo_map.find(std::make_pair(algorithm_name, network_config));
+    if(gemm_iterator != handle.geo_map.end())
     {
-        return gemm_iterator->second;
+        return *gemm_iterator->second;
     }
     else
     {
@@ -391,10 +390,10 @@ GemmGeometry ScanGemmGeometryRNN(Handle& handle,
     auto gg = CreateGemmGeometryRNN(
         M, N, K, alpha, beta, tA, tB, tC, lda, ldb, ldc, isDataColMajor, network_config);
 
-    auto gemm_iterator = gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
-    if(gemm_iterator != gemm_geo_map().end())
+    auto gemm_iterator = handle.geo_map.find(std::make_pair("miopenRNNAlgoGEMM", network_config));
+    if(gemm_iterator != handle.geo_map.end())
     {
-        gg = gemm_iterator->second;
+        gg = *gemm_iterator->second;
     }
     else
     {
