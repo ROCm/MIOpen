@@ -326,6 +326,7 @@ static int FindFFTKernel(Handle& handle,
         case 4: kernel_name += "MIOpenConvFFT_cgemm"; break;
         case 5: kernel_name += "MIOpenConvFFT_transpose_out"; break;
         case 6: kernel_name += "MIOpenConvFFT_inv_out"; break;
+        default: assert(false);
         }
 
         std::string network_config = config_prefix + std::to_string(ik);
@@ -440,6 +441,7 @@ static float ExecuteFFTKernel(Handle& handle,
         break;
         case 5: k(workSpace); break;
         case 6: k(workSpace, y); break;
+        default: assert(false);
         }
 
         if(timed)

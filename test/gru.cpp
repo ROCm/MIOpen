@@ -2177,6 +2177,7 @@ struct verify_forward_train_gru
         case(1): std::cout << "Hidden state tensor failed verification." << std::endl; break;
         case(2): std::cout << "Weight tensor failed verification." << std::endl; break;
         case(3): std::cout << "Reserved space tensor failed verification." << std::endl; break;
+        default: break;
         }
     }
 };
@@ -2473,6 +2474,7 @@ struct verify_backward_data_gru
             break;
         // case(2): std::cout << "Reserved space tensor failed verification." << std::endl; break;
         case(2): std::cout << "Workspace space tensor failed verification." << std::endl; break;
+        default: break;
         }
     }
 };
