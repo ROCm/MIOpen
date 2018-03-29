@@ -38,9 +38,6 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED)
 
-// Let's use the same (smaller) optimized sets for both Fwd and Bwd for now.
-#define MIOPEN_GCN_ASM_DIRECT_1X1U_SEARCH_SAME 1
-
 namespace miopen {
 namespace solver {
 
@@ -104,23 +101,7 @@ inline static bool Next_1_4_8_12__32(int& v)
     return ret;
 }
 
-inline static bool Is_1_4_16_32(const int& v) { return v == 1 || v == 4 || v == 16 || v == 32; }
-
-#if !MIOPEN_GCN_ASM_DIRECT_1X1U_SEARCH_SAME
-
-inline static bool Is_1_4_8_16_20_24_32(const int& v)
-{
-    return Is_1_4_16_32(v) || v == 8 || v == 20 || v == 24;
-}
-
-inline static bool Is_1__8_10_12_16(const int& v)
-{
-    return IsLinear<1, 8>(v) || v == 10 || v == 12 || v == 16;
-}
-
-inline static bool Is_1__4_8(const int& v) { return IsLinear<1, 4>(v) || v == 8; }
-
-#endif // !MIOPEN_GCN_ASM_DIRECT_1X1U_SEARCH_SAME
+inline static bool Is_1_4(const int& v) { return v == 1 || v == 4; }
 
 bool PerformanceConfigConvAsm1x1U::SetNextValue()
 {
@@ -150,13 +131,15 @@ PerformanceConfigConvAsm1x1U::PerformanceConfigConvAsm1x1U(int read_size_,
                                                            int chunks_per_wave_,
                                                            int chunk_size_,
                                                            int n_blocks_per_wave_,
-                                                           int waves_in_group_)
+                                                           int waves_in_group_,
+                                                           bool use_spare_set_)
     : read_size(read_size_),
       k_mult(k_mult_),
       chunks_per_wave(chunks_per_wave_),
       chunk_size(chunk_size_),
       n_blocks_per_wave(n_blocks_per_wave_),
-      waves_in_group(waves_in_group_)
+      waves_in_group(waves_in_group_),
+      use_spare_set(use_spare_set_)
 {
 }
 
@@ -169,7 +152,8 @@ operator==(const PerformanceConfigConvAsm1x1U& other) const
         && chunks_per_wave == other.chunks_per_wave
         && chunk_size == other.chunk_size
         && n_blocks_per_wave == other.n_blocks_per_wave
-        && waves_in_group == other.waves_in_group; // clang-format on
+        && waves_in_group == other.waves_in_group
+        && use_spare_set == other.use_spare_set; // clang-format on
 }
 
 bool PerformanceConfigConvAsm1x1U::IsValidValue() const
@@ -183,7 +167,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidValue() const
         && IsLinear<1,8>(waves_in_group); // clang-format on
 }
 
-bool PerformanceConfigConvAsm1x1U::IsValidFullSet(const ConvolutionContext& config) const
+bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& config) const
 {
     if(!IsValidValue())
         return false;
@@ -218,38 +202,17 @@ bool PerformanceConfigConvAsm1x1U::IsValidFullSet(const ConvolutionContext& conf
 
 bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) const
 {
-    if(!IsValidFullSet(config))
+    if(!IsValidForProblem(config))
         return false;
     if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED{})) // clang-format off
     {
         // Narrow search space in optimized mode.
-#if MIOPEN_GCN_ASM_DIRECT_1X1U_SEARCH_SAME
-        if (! (Is_1_4_16_32(k_mult)
+        if (! ((use_spare_set ? Is_1_4(k_mult) : IsTwoPower<16,32>(k_mult))
             && IsLinear<1,8>(chunks_per_wave)
-            && (IsTwoPower<16,64>(chunk_size) || chunk_size == 1)
+            && (use_spare_set ? Is_1_4(chunk_size) : IsTwoPower<16,64>(chunk_size))
             && IsLinear<1,4>(n_blocks_per_wave)
             && IsLinear<1,4>(waves_in_group)))
             return false;
-#else
-        if (config.direction.IsForward())
-        {   
-            if (! (Is_1_4_8_16_20_24_32(k_mult)
-                && Is_1__8_10_12_16(chunks_per_wave)
-                && (IsTwoPower<8,64>(chunk_size) || chunk_size == 1)
-                && Is_1__4_8(n_blocks_per_wave)
-                && IsLinear<1,4>(waves_in_group)))
-                return false;   
-        }
-        else
-        {
-            if (! (Is_1_4_16_32(k_mult)
-                && IsLinear<1,8>(chunks_per_wave)
-                && (IsTwoPower<16,64>(chunk_size) || chunk_size == 1)
-                && IsLinear<1,4>(n_blocks_per_wave)
-                && IsLinear<1,4>(waves_in_group)))
-                return false;
-        }
-#endif
     } // clang-format on
     return true;
 }
@@ -263,16 +226,16 @@ void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config
     n_blocks_per_wave = 1;
     waves_in_group    = 1;
 
-    if(!IsValidFullSet(config))
+    if(!IsValidForProblem(config))
     {
-        MIOPEN_LOG_I("!IsValidFullset(): " << ToString() << ". Conservative re-init...");
+        MIOPEN_LOG_I("!IsValidForProblem(): " << ToString() << ". Conservative re-init...");
         read_size         = 1;
         k_mult            = 1;
         chunks_per_wave   = 1;
         chunk_size        = 1;
         n_blocks_per_wave = 1;
         waves_in_group    = 1;
-        assert(IsValidFullSet(config));
+        assert(IsValidForProblem(config));
     }
     MIOPEN_LOG_I(ToString());
 }
@@ -296,7 +259,7 @@ ConvAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) const
 bool ConvAsm1x1U::IsValidPerformanceConfig(const ConvolutionContext& problem,
                                            const PerformanceConfigConvAsm1x1U& c) const
 {
-    return c.IsValidValue() && c.IsValidFullSet(problem);
+    return c.IsValidValue() && c.IsValidForProblem(problem);
 }
 
 bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
