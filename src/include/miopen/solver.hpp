@@ -340,18 +340,21 @@ struct ConvAsm3x3U : SolverBase<ConvolutionContext>
 
 struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
 {
-    // ------------------- // Full set          Fwd optimized               Bwd optimized
-    // ------------------- // ------------------------------------------------------------
-    int read_size;         // [1..4]            <same>                      <same>
-    int k_mult;            // 1,[4,8,12..32]    1*,4,8,16,20,24,32          1*,4*,16,32
-    int chunks_per_wave;   // [1..16]           1,2,3,4,5,6,7,8,10,12,16    [1..8]
-    int chunk_size;        // 2^n[1..64]        1*, 2^n[8..64]              1*, 2^n[16..64]
-    int n_blocks_per_wave; // [1..8]            [1..4],8                    [1..4]
-    int waves_in_group;    // [1..8]            [1..4]                      [1..4]
+    // ------------------- // Full set          Optimized       Spare
+    // ----------------------------------------------------------------------------
+    int read_size;         // [1..4]            <same>          <same>
+    int k_mult;            // 1,[4,8,12..32]    16,32           1,4
+    int chunks_per_wave;   // [1..16]           [1..8]          <same>
+    int chunk_size;        // 2^n[1..64]        2^n[16..64]     1,4
+    int n_blocks_per_wave; // [1..8]            [1..4]          <same>
+    int waves_in_group;    // [1..8]            [1..4]          <same>
+    bool use_spare_set;
 
-    PerformanceConfigConvAsm1x1U(int, int, int, int, int, int);
-    PerformanceConfigConvAsm1x1U() : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1) {}
-    PerformanceConfigConvAsm1x1U(bool) : PerformanceConfigConvAsm1x1U(1, 1, 1, 1, 1, 1) {}
+    PerformanceConfigConvAsm1x1U(int, int, int, int, int, int, bool);
+    PerformanceConfigConvAsm1x1U() : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1, false) {}
+    PerformanceConfigConvAsm1x1U(bool spare) : PerformanceConfigConvAsm1x1U(1, 1, 1, 1, 1, 1, spare)
+    {
+    }
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -380,7 +383,7 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvAsm1x1U& other) const;
     std::string ToString() const;
-    bool IsValidFullSet(const ConvolutionContext& config) const;
+    bool IsValidForProblem(const ConvolutionContext& config) const;
 };
 
 struct ConvAsm1x1U : SolverBase<ConvolutionContext>
