@@ -71,8 +71,8 @@ void dumpBufferToFile(const char* fileName, T* data, size_t dataNumItems)
         }
         else
         {
-            std::vector<Tsdata> Bufer(data, data + dataNumItems);
-            outFile.write(reinterpret_cast<char*>(Bufer.data()), dataNumItems * sizeof(Tsdata));
+            std::vector<Tsdata> buffer(data, data + dataNumItems);
+            outFile.write(reinterpret_cast<char*>(buffer.data()), dataNumItems * sizeof(Tsdata));
         }
 
         outFile.close();
@@ -96,9 +96,9 @@ bool readBufferFromFile(T* data, size_t dataNumItems, const char* fileName)
         }
         else
         {
-            std::vector<Tsdata> Bufer(dataNumItems);
-            infile.read(reinterpret_cast<char*>(Bufer.data()), dataNumItems * sizeof(Tsdata));
-            std::copy(Bufer.begin(), Bufer.end(), data);
+            std::vector<Tsdata> buffer(dataNumItems);
+            infile.read(reinterpret_cast<char*>(buffer.data()), dataNumItems * sizeof(Tsdata));
+            std::copy(buffer.begin(), buffer.end(), data);
         }
         infile.close();
         printf("Read data from input file %s\n", fileName);
