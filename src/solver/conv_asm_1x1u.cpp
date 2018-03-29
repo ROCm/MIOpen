@@ -38,6 +38,9 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED)
 
+// Let's use the same (smaller) optimized sets for both Fwd and Bwd for now.
+#define MIOPEN_GCN_ASM_DIRECT_1X1U_SEARCH_SAME 1
+
 namespace miopen {
 namespace solver {
 
@@ -103,6 +106,8 @@ inline static bool Next_1_4_8_12__32(int& v)
 
 inline static bool Is_1_4_16_32(const int& v) { return v == 1 || v == 4 || v == 16 || v == 32; }
 
+#if !MIOPEN_GCN_ASM_DIRECT_1X1U_SEARCH_SAME
+
 inline static bool Is_1_4_8_16_20_24_32(const int& v)
 {
     return Is_1_4_16_32(v) || v == 8 || v == 20 || v == 24;
@@ -114,6 +119,8 @@ inline static bool Is_1__8_10_12_16(const int& v)
 }
 
 inline static bool Is_1__4_8(const int& v) { return IsLinear<1, 4>(v) || v == 8; }
+
+#endif // !MIOPEN_GCN_ASM_DIRECT_1X1U_SEARCH_SAME
 
 bool PerformanceConfigConvAsm1x1U::SetNextValue()
 {
@@ -216,6 +223,14 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
     if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED{})) // clang-format off
     {
         // Narrow search space in optimized mode.
+#if MIOPEN_GCN_ASM_DIRECT_1X1U_SEARCH_SAME
+        if (! (Is_1_4_16_32(k_mult)
+            && IsLinear<1,8>(chunks_per_wave)
+            && (IsTwoPower<16,64>(chunk_size) || chunk_size == 1)
+            && IsLinear<1,4>(n_blocks_per_wave)
+            && IsLinear<1,4>(waves_in_group)))
+            return false;
+#else
         if (config.direction.IsForward())
         {   
             if (! (Is_1_4_8_16_20_24_32(k_mult)
@@ -223,9 +238,7 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
                 && (IsTwoPower<8,64>(chunk_size) || chunk_size == 1)
                 && Is_1__4_8(n_blocks_per_wave)
                 && IsLinear<1,4>(waves_in_group)))
-            {
                 return false;   
-            }
         }
         else
         {
@@ -234,10 +247,9 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
                 && (IsTwoPower<16,64>(chunk_size) || chunk_size == 1)
                 && IsLinear<1,4>(n_blocks_per_wave)
                 && IsLinear<1,4>(waves_in_group)))
-            {
                 return false;
-            }
         }
+#endif
     } // clang-format on
     return true;
 }
