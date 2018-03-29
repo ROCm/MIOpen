@@ -111,6 +111,7 @@ void profileSequence(Handle& handle, unsigned char select, float* ctime)
             handle.AccumKernelTime(*ctime);
         }
         break;
+    default: assert(false);
     }
 }
 
