@@ -45,21 +45,13 @@
 
 #include <miopen/handle.hpp>
 #include <miopen/kernel.hpp>
+#include <miopen/simple_hash.hpp>
 #include <miopen/miopen.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 namespace miopen {
-
-struct SimpleHash
-{
-    size_t operator()(const std::pair<std::string, std::string>& p) const
-    {
-        using std::hash;
-        return (hash<std::string>()(p.first) ^ hash<std::string>()(p.second));
-    }
-};
 
 /**
  * @brief The KernelCache class Build and cache kernels
