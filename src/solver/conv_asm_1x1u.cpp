@@ -332,17 +332,31 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         return false; // Early exit to speed up the check.
     }
     /// \todo Ilya: The checks below look adequate but needs to be double-checked.
+    {
+        const long input_line_size = 4 * params.in_width;
+        const long input_feature_map_size = input_line_size * params.in_height;
+        const long input_stack_size = input_feature_map_size * params.n_inputs;
+        if (! (input_stack_size < (1U << 24)))
+            return false;
+    }
+    {
+        const long output_line_size = 4 * params.out_width;
+        const long output_feature_map_size = output_line_size * params.out_height;
+        const long output_stack_size = output_feature_map_size * params.n_outputs;
+        if (! (output_stack_size < (1U << 24)))
+            return false;
+    }
     // Check limits:
     auto h_w = static_cast<long>(params.in_height) * params.in_width;
     const auto r_s     = static_cast<long>(params.kernel_size1) * params.kernel_size0;
-    const auto c_h_w   = static_cast<long>(params.n_outputs) * h_w;   // C*H*W
-    const auto k_h_w   = static_cast<long>(params.n_inputs) * h_w;    // K*H*W
+    const auto c_h_w   = static_cast<long>(params.n_inputs) * h_w;    // C*H*W
+    const auto k_h_w   = static_cast<long>(params.n_outputs) * h_w;   // K*H*W
     const auto n_c_h_w = static_cast<long>(params.batch_sz) * c_h_w;  // N*C*H*W
     const auto n_k_h_w = static_cast<long>(params.batch_sz) * k_h_w;  // N*K*H*W
-    const auto c_k_r_s = static_cast<long>(params.n_outputs) * params.n_inputs * r_s; // C*K*R*S
+    const auto c_k_r_s = static_cast<long>(params.n_inputs) * params.n_outputs * r_s; // C*K*R*S
     ok = params.batch_sz < std::pow(2, 16)      // -n   N batch_size
-         && params.n_outputs < std::pow(2, 16)  // -c   C input_channels
-         && params.n_inputs < std::pow(2, 16)   // -k   K output_channels
+         && params.n_inputs < std::pow(2, 16)   // -c   C input_channels
+         && params.n_outputs < std::pow(2, 16)  // -k   K output_channels
          && c_h_w < std::pow(2, 24)
          && k_h_w < std::pow(2, 24)
          && n_c_h_w < std::pow(2, 29)
