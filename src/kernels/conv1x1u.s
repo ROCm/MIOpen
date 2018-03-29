@@ -244,8 +244,8 @@ gcnAsmConv1x1U:
     v_mul_u32_u24 v[voffset_out], 0 + output_stack_size, v[vtmp]
     v_and_b32 v[vtmp], 0 + chunk_size - 1, v[tid] // vtmp = lane in wave part
     v_mul_u32_u24 v[vtmp], 4 * chunks_per_wave, v[vtmp]
-    v_add_u32 v[voffset_in], vcc, v[voffset_in], v[vtmp]
-    v_add_u32 v[voffset_out], vcc, v[voffset_out], v[vtmp]
+   _v_add_co_u32 v[voffset_in], vcc, v[voffset_in], v[vtmp]
+   _v_add_co_u32 v[voffset_out], vcc, v[voffset_out], v[vtmp]
     s_mul_i32 s[soffset_in], s[gid_n], 0 + input_stack_size * active_n_per_wave
     s_mul_i32 s[soffset_out], s[gid_n], 0 + output_stack_size * active_n_per_wave
     s_mul_i32 s[stmp], s[gid_hw], 0 + active_hw_per_wave * 4
@@ -410,10 +410,10 @@ loop_end:
 
         s_mul_i32 s[stmp], s[wave_id], 4 * .WAVE_SIZE * lds_gprs_per_loop
         //v_lshlrev_b32 v[lds_off], 4, v[stmp]
-        //v_add_u32 v[lds_off], vcc, s[stmp], v[lds_off]
+        //_v_add_co_u32 v[lds_off], vcc, s[stmp], v[lds_off]
         //.ds_write_all
         v_lshlrev_b32 v[lds_off], 2, v[tid]
-        v_add_u32 v[lds_off], vcc, s[stmp], v[lds_off]
+       _v_add_co_u32 v[lds_off], vcc, s[stmp], v[lds_off]
         acc_id = 0
         sync_loop = 0
         .rept sync_loops
@@ -463,7 +463,7 @@ last_wave:
     v_and_b32 v[current_hw], 0 + chunk_size - 1, v[tid]
     v_mul_u32_u24 v[current_hw], 0 + chunks_per_wave, v[current_hw]
     s_mul_i32 s[stmp], s[gid_hw], 0 + active_hw_per_wave
-    v_add_u32 v[current_hw], vcc, s[stmp], v[current_hw]
+   _v_add_co_u32 v[current_hw], s[stmp], v[current_hw]
 
     k = 0
     acc = accums
