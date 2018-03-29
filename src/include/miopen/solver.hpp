@@ -343,30 +343,11 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
     // ------------------- // Full set          Fwd optimized               Bwd optimized
     // ------------------- // ------------------------------------------------------------
     int read_size;         // [1..4]            <same>                      <same>
-    int k_mult;            // {1,[4,8,12..32]}  {4,8,16,20,24,32}           2^n, [16..32]
-    int chunks_per_wave;   // [1..16]           {1,2,3,4,5,6,7,8,10,12,16}  [1..8]
-    int chunk_size;        // 2^n, [1..64]      2^n, [8..64]                2^n, [16..64]
-    int n_blocks_per_wave; // [1..8]            {1,2,3,4,8}                 [1..4]
+    int k_mult;            // 1,[4,8,12..32]    1*,4,8,16,20,24,32          1*,4*,16,32
+    int chunks_per_wave;   // [1..16]           1,2,3,4,5,6,7,8,10,12,16    [1..8]
+    int chunk_size;        // 2^n[1..64]        1*, 2^n[8..64]              1*, 2^n[16..64]
+    int n_blocks_per_wave; // [1..8]            [1..4],8                    [1..4]
     int waves_in_group;    // [1..8]            [1..4]                      [1..4]
-
-    /// The following conditions must be met.
-    /// FIXME
-    ///
-    /// Shader design-related constraints:
-    /// - (A) (chunk_size * c_per_gpr) == 16
-    /// - (B) k_per_gpr <= c_per_gpr
-    /// - (C) (c_mult > 1 || k_mult > 1)
-    ///         ? ((fwd_C % (c_per_gpr * c_mult) == 0) && (fwd_K % (k_per_gpr * k_mult) == 0))
-    ///         : (true)
-    ///
-    /// Resource-related constraints:
-    /// - (D) c_mult * k_mult * k_per_gpr + 9 + (c_mult + k_mult) * read_size * pipe_depth <= 256
-    ///
-    /// Where:
-    /// - fwd_C := Num input channels for forward convolution (-c).
-    ///   For backward, this is actually n_outputs.
-    /// - fwd_K := Num output channels for forward convolution (-k).
-    ///   For backward, this is actually n_inputs.
 
     PerformanceConfigConvAsm1x1U(int, int, int, int, int, int);
     PerformanceConfigConvAsm1x1U() : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1) {}
@@ -399,6 +380,7 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvAsm1x1U& other) const;
     std::string ToString() const;
+    bool IsValidFullSet(const ConvolutionContext& config) const;
 };
 
 struct ConvAsm1x1U : SolverBase<ConvolutionContext>
