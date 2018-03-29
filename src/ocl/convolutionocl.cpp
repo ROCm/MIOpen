@@ -1468,7 +1468,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             construct_params.mloBuildConf_Key(network_config);
             auto kernel = handle.GetKernel("miopenConvolutionBwdDataAlgoDirect", network_config);
 
-            float padding_val = 0;
             visit_float(dyDesc.GetType(), [&](auto as_float) {
                 if(kernel.GetName() == "gcnAsmConv1x1U")
                 {
@@ -1480,6 +1479,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 }
                 else
                 {
+                    float padding_val = 0;
                     kernel(dy, w, dx, as_float(padding_val));
                 }
             });
