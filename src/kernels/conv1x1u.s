@@ -463,7 +463,7 @@ last_wave:
     v_and_b32 v[current_hw], 0 + chunk_size - 1, v[tid]
     v_mul_u32_u24 v[current_hw], 0 + chunks_per_wave, v[current_hw]
     s_mul_i32 s[stmp], s[gid_hw], 0 + active_hw_per_wave
-   _v_add_co_u32 v[current_hw], s[stmp], v[current_hw]
+   _v_add_co_u32 v[current_hw], vcc, s[stmp], v[current_hw]
 
     k = 0
     acc = accums
