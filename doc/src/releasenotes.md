@@ -5,17 +5,17 @@
 
 Notes: 
 
-- This release adds fp16 support for Inference using CNNs
 - Performance improvements for RNNs
 - Performance improvements for convolutions using 1x1 filters
 - Performance improvement for Batch Normalization
+- This release adds preliminary fp16 support for Inference using CNNs
 - Bug fixes for various components of MIOpen
 
-Changed:
+Changes:
 
 - Added 2 new API for RNNs: miopenGetRNNLayerParamOffset and miopenGetRNNLayerBiasOffset
-- Added in support for uninitialized hidden states and nullptr outputs in RNNs
-- Added support for Set and Scale operations for strided tensors with dimensions 1,2,3,4,5
+- Added support for uninitialized hidden states and nullptr outputs in RNNs
+- Added support for Set and Scale operations for strided tensors with dimensions 1 to 5
 - Added multi-thread and multi-process support for the performance database
 - Improved performance for OpTensor
 - Fixed bug in convolutions for backward bias
