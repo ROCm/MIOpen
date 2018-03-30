@@ -700,12 +700,10 @@ miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
  * run to determine the required memory for this search.
  *
  * * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If
- * a
- * configuration match is not found, a default configuration will be returned.
+ * a configuration match is not found, a default configuration will be returned.
  *
  * * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration.
- * If
- * a match is not found, an exhaustive search is performed by running individual algorithms.
+ * If a match is not found, an exhaustive search is performed by running individual algorithms.
  *
  * @param handle             MIOpen handle (input)
  * @param xDesc              Tensor descriptor for data input tensor x (input)
@@ -835,12 +833,10 @@ miopenConvolutionBackwardDataGetWorkSpaceSize(miopenHandle_t handle,
  * the required memory for this search.
  *
  * * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If
- * a
- * configuration match is not found, a default configuration will be returned.
+ * a configuration match is not found, a default configuration will be returned.
  *
  * * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration.
- * If
- * a match is not found, an exhaustive search is performed by running individual algorithms.
+ * If a match is not found, an exhaustive search is performed by running individual algorithms.
  *
  * @param handle             MIOpen handle (input)
  * @param dyDesc             Tensor descriptor for data input tensor dy (input)
@@ -950,12 +946,10 @@ miopenConvolutionBackwardWeightsGetWorkSpaceSize(miopenHandle_t handle,
  * determine the required memory for this search.
  *
  * * If exhaustiveSearch == 0, MIOpen will look for the first kernel with a configuration match. If
- * a
- * configuration match is not found, a default configuration will be returned.
+ * a configuration match is not found, a default configuration will be returned.
  *
  * * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration.
- * If
- * a match is not found, an exhaustive search is performed by running individual algorithms.
+ * If a match is not found, an exhaustive search is performed by running individual algorithms.
  *
  * @param handle             MIOpen handle (input)
  * @param dyDesc             Tensor descriptor for data input tensor dy (input)
