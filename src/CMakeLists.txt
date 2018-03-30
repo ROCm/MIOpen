@@ -384,6 +384,7 @@ rocm_export_targets(
 
 # Install db files
 install(FILES
+    kernels/gfx803_36.cd.pdb.txt
     kernels/gfx803_64.cd.pdb.txt
     kernels/gfx900_64.cd.pdb.txt
  DESTINATION ${DATA_INSTALL_DIR}/db)
