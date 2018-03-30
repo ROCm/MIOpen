@@ -1290,12 +1290,17 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                dilation_w == 1 && dilation_h == 1 && workSpace != nullptr &&
                workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc))
             {
+
+                float zero = 0.f;
+                SetTensor(handle, dxDesc, tmp_dx.get(), &zero);
+                time_gemm = handle.GetKernelTime();
+
                 GemmGeometry gg =
                     CreateGemmGeometryConvBwdDataCNHW(dyDesc, wDesc, dxDesc, true, network_config);
 
                 transpose_NCHW2CNHW(
                     handle, in_n, wei_n, out_h, out_w, out_h, out_w, dy, workSpace, 0, 0, 1, 1);
-                time_gemm = handle.GetKernelTime();
+                time_gemm += handle.GetKernelTime();
 
                 gg.FindSolution(0.03, handle, w, dy, tmp_dx.get(), false);
                 gg.RunGemm(handle, w, workSpace, workSpace, 0, 0, dyDesc.GetElementSize());
@@ -1561,21 +1566,22 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
                dilation_w == 1 && dilation_h == 1)
             {
+                float t1 = 0;
                 // Initialization required for upsampling in bwd direction
                 float zero = 0.f;
                 SetTensor(handle, dxDesc, dx, &zero);
+                t1 = handle.GetKernelTime();
 
                 assert(workSpace != nullptr &&
                        workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc));
 
-                float t1 = 0;
                 CreateGemmGeometryConvBwdDataCNHW(dyDesc, wDesc, dxDesc, true, network_config);
                 GemmGeometry gg =
                     GetGemmGeometry(handle, "miopenConvolutionBwdDataAlgoGEMM", network_config);
 
                 transpose_NCHW2CNHW(
                     handle, in_n, wei_n, out_h, out_w, out_h, out_w, dy, workSpace, 0, 0, 1, 1);
-                t1 = handle.GetKernelTime();
+                t1 += handle.GetKernelTime();
 
                 gg.RunGemm(handle, w, workSpace, workSpace, 0, 0, dyDesc.GetElementSize());
                 t1 += handle.GetKernelTime();
