@@ -33,12 +33,6 @@ cmake -P install_deps.cmake --prefix /some/local/dir
 ```
 
 Instructions to manually install all the dependencies on Ubuntu v16 are present in this [section](#installing-the-dependencies-manually).
-```
-sudo apt-get install libssl-dev
-sudo apt-get install libboost-dev
-sudo apt-get install libboost-system-dev
-sudo apt-get install libboost-filesystem-dev
-```
 
 ## Installing MIOpen with pre-built packages
 
