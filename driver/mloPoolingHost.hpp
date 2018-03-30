@@ -103,9 +103,11 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                                        _Tcheck allowedEps)
 {
 
-    bool match      = true;
-    _Tcheck MAX_VAL = (sizeof(_Tcheck) == 4) ? 3.402823466e+38F : 65504.;
-
+    bool match = true;
+    _Tcheck MAX_VAL(3.402823466e+38);
+    _Tgpu G_MAX_VAL = (sizeof(_Tgpu) == 4 || sizeof(_Tgpu) == 8)
+                          ? static_cast<_Tgpu>(3.402823466e+38)
+                          : static_cast<_Tgpu>(65504);
     // c-emulator
     _Tcheck res = static_cast<_Tcheck>(0);
 
@@ -127,15 +129,15 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                         res = static_cast<_Tcheck>(0);
                     }
 
-                    int hstart           = j * stride1 - pad1;
-                    int wstart           = i * stride0 - pad0;
-                    int hend             = std::min(hstart + kernel_size1, bot_height + pad1);
-                    int wend             = std::min(wstart + kernel_size0, bot_width + pad0);
-                    hstart               = std::max(hstart, 0);
-                    wstart               = std::max(wstart, 0);
-                    hend                 = std::min(hend, bot_height);
-                    wend                 = std::min(wend, bot_width);
+                    int hstart = j * stride1 - pad1;
+                    int wstart = i * stride0 - pad0;
+                    int hend   = std::min(hstart + kernel_size1, bot_height);
+                    int wend   = std::min(wstart + kernel_size0, bot_width);
+                    hstart     = std::max(hstart, 0);
+                    wstart     = std::max(wstart, 0);
+
                     int pool_size        = (hend - hstart) * (wend - wstart);
+                    pool_size            = (pool_size == 0) ? 1 : pool_size;
                     size_t res_index     = 0;
                     size_t res_index_gpu = 0;
                     bool found           = false;
@@ -181,6 +183,8 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                     }
                     if(pooling_method == MLO_POOLING_OP_MAX)
                     {
+                        // the case with the odd input, the even kernel size and 2*pad == kernel
+                        // size
                         mask_ptr[b * top_batch_stride + o * top_channel_stride + j * top_stride +
                                  i] = res_index;
                         if(do_backward)
@@ -200,12 +204,19 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                         res /= pool_size;
                     }
                     _Tcheck c_val = res;
-                    _Tcheck g_val =
-                        static_cast<_Tcheck>(top_ptr[b * top_batch_stride + o * top_channel_stride +
-                                                     j * top_stride + i]);
-                    double err         = CalcErr<_Tcheck>(c_val, g_val);
-                    double allowed_ulp = CalcErr<_Tcheck>(allowedEps, 0);
-                    if(err > allowed_ulp || std::isnan(c_val) || std::isnan(g_val) ||
+
+                    _Tgpu gg_val = (top_ptr[b * top_batch_stride + o * top_channel_stride +
+                                            j * top_stride + i]);
+
+                    gg_val = (gg_val == -G_MAX_VAL) ? 0 : gg_val;
+
+                    c_val = (c_val == -MAX_VAL) ? 0 : c_val;
+
+                    _Tcheck g_val(gg_val);
+
+                    double err = std::abs(c_val - g_val);
+
+                    if(err > allowedEps || std::isnan(c_val) || std::isnan(g_val) ||
                        !std::isfinite(c_val) || !std::isfinite(g_val))
                     {
                         std::cout << "Difference " << err << " too large at " << b << ", " << o
@@ -297,11 +308,16 @@ int mloPoolingBackwardRunHost(
                             for(int pw = pwstart; pw < pwend; ++pw)
                             {
                                 // figure out the pooling size
-                                int hstart    = ph * stride1 - pad1;
-                                int wstart    = pw * stride0 - pad0;
-                                int hend      = std::min(hstart + kernel_size1, bot_height + pad1);
-                                int wend      = std::min(wstart + kernel_size0, bot_width + pad0);
-                                int pool_size = (hend - hstart) * (wend - wstart);
+                                int hstart = ph * stride1 - pad1;
+                                int wstart = pw * stride0 - pad0;
+                                int hend   = std::min(hstart + kernel_size1, bot_height);
+                                int wend   = std::min(wstart + kernel_size0, bot_width);
+                                hstart     = std::max(hstart, 0);
+                                wstart     = std::max(wstart, 0);
+
+                                int pool_size = ((hend - hstart) * (wend - wstart) == 0)
+                                                    ? 1
+                                                    : (hend - hstart) * (wend - wstart);
                                 gradient += static_cast<_Tcheck>(
                                                 top_df_ptr[top_df_off + ph * top_df_stride + pw]) /
                                             static_cast<_Tcheck>(pool_size);

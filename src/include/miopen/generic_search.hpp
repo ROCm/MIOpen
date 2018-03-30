@@ -87,7 +87,7 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
     }
 
     // Implements container's begin()
-    ComputedIterator(const Context& problem) : v(true), p(&problem)
+    ComputedIterator(const Context& problem, const bool spare) : v(spare), p(&problem)
     {
         if(!v.IsValid(*p))
             Next();
@@ -118,6 +118,17 @@ template <typename PerformanceConfig, typename Context>
 class ComputedContainer
 {
     Context problem; // Hold a copy make the object independent of the environment.
+    bool spare;      // Use spare set of perf configs. Those are usually slower than main set.
+                     // Splitting the theoretically available set of perf configs to "main"
+                     // and "spare" sets allows for acceleration of the auto-tune process:
+                     // * If the "main" set is not empty, then skipping the "spare" set
+                     //   avoids wasting time, because the latter is slower by definition.
+                     // * Combining "spare" and "main" would lead to exponential growth of
+                     //   the resulting container, and thus to exponential slowdown.
+                     //
+                     // Nevertheless, a Solver is free to either use or not use this capability
+                     // (i.e. it is ok for PerformanceConfig(bool) to ignore its parameter).
+
     /// \note We do not add 'const' to keep the object assignable
     /// for the sake of flexibility. Nevertheless, all element accesses of
     /// the "computed container" shall be const.
@@ -125,8 +136,11 @@ class ComputedContainer
     public:
     using const_iterator = ComputedIterator<PerformanceConfig, Context>;
 
-    ComputedContainer(const Context& problem_) : problem(problem_) {}
-    const const_iterator begin() const { return {problem}; }
+    ComputedContainer(const Context& problem_, const bool spare_ = false)
+        : problem(problem_), spare(spare_)
+    {
+    }
+    const const_iterator begin() const { return {problem, spare}; }
     const const_iterator end() const { return {}; }
 };
 
@@ -260,9 +274,18 @@ auto GenericSearch(const Solver s, const Context& context)
     auto wei_ocl_buf  = profile_h.Write(wei);
     auto bias_ocl_buf = context.bias ? profile_h.Write(bias) : nullptr;
 
-    const ComputedContainer<PerformanceConfig, Context> all_configs(context);
-    const int n_runs_total = std::distance(all_configs.begin(), all_configs.end());
-    MIOPEN_LOG_W(SolverDbId(s) << ": Searching the best solution among " << n_runs_total << "...");
+    const ComputedContainer<PerformanceConfig, Context> main(context);
+    const int main_size = std::distance(main.begin(), main.end());
+    const ComputedContainer<PerformanceConfig, Context> spare(context, true);
+    const int spare_size = std::distance(spare.begin(), spare.end());
+    const bool useSpare  = (main_size == 0);
+
+    const ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : main;
+    const int n_runs_total = useSpare ? spare_size : main_size;
+    MIOPEN_LOG_W(SolverDbId(s) << ": Searching the best solution among " << n_runs_total
+                               << (useSpare ? " (spare)" : "")
+                               << "...");
+
     bool is_passed   = false; // left false only if all iterations failed.
     float best_time  = std::numeric_limits<float>::max();
     size_t n_failed  = 0;

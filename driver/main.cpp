@@ -50,6 +50,8 @@ int main(int argc, char* argv[])
     Driver* drv;
     if(base_arg == "conv")
     {
+        // Maintain compatibility with legacy verification cache files (computed in doubles, stored
+        // as floats).
         drv = new ConvDriver<float, double, float>();
     }
     else if(base_arg == "convfp16")
