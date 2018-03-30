@@ -40,7 +40,7 @@
 #endif
 
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
-#define _FLOAT2 PPCAT(_FLOAT, THREE)
+#define _FLOAT3 PPCAT(_FLOAT, THREE)
 #define _FLOAT4 PPCAT(_FLOAT, FOUR)
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
