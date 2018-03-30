@@ -32,7 +32,7 @@ This will install by default to `/usr/local` but it can be installed in another 
 cmake -P install_deps.cmake --prefix /some/local/dir
 ```
 
-If Ubuntu v16 is used then the `OpenSSL` and `Boost` packages can also be installed by:
+Instructions to manually install all the dependencies on Ubuntu v16 are present in this [section](#installing-the-dependencies-manually).
 ```
 sudo apt-get install libssl-dev
 sudo apt-get install libboost-dev
@@ -186,6 +186,18 @@ Also, githooks can be installed to format the code per-commit:
 ```
 ./.githooks/install
 ```
+
+## Installing the dependencies manually
+
+If Ubuntu v16 is used then the `OpenSSL` and `Boost` packages can also be installed by:
+```
+sudo apt-get install libssl-dev
+sudo apt-get install libboost-dev
+sudo apt-get install libboost-system-dev
+sudo apt-get install libboost-filesystem-dev
+```
+
+`half` header needs to be installed from [here](http://half.sourceforge.net/). 
 
 ## Using docker
 
