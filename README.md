@@ -20,14 +20,10 @@ AMD's library for high peformance machine learning primitives. MIOpen supports t
 
 ## Installing the dependencies
 
-The dependencies can be installed with the `install_deps.cmake`, script:
+The dependencies can be installed with the `install_deps.cmake`, script: `cmake -P install_deps.cmake`
 
-```
-cmake -P install_deps.cmake
-```
 
 This will install by default to `/usr/local` but it can be installed in another location with `--prefix` argument:
-
 ```
 cmake -P install_deps.cmake --prefix /some/local/dir
 ```
