@@ -100,7 +100,7 @@ int mlo_construct_norm::mloConstructFwd()
     {
         _grp_tile0 = (_search_params.out_width <= 8) ? 8 : 16;
         _grp_tile1 = (_search_params.out_height <= 8) ? 8 : 16;
-        read_unit  = (MAP_SZ4 % 4 == 0) ? 4 : (MAP_SZ4 % 3 == 0) ? 3 : (MAP_SZ4 % 2 == 0) ? 2 : 1;
+        read_unit  = (MAP_SZ4 % 4 == 0) ? 4 : (MAP_SZ4 % 2 == 0) ? 2 : 1;
         MAP_SZ4 /= read_unit;
     }
     else
