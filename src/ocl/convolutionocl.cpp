@@ -123,6 +123,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
                                             const TensorDescriptor& xDesc,
                                             const TensorDescriptor& wDesc,
                                             const TensorDescriptor& yDesc,
+                                            ExtraKernelArgs& extraArgs,
                                             std::vector<KernelInvoke>& kernels,
                                             bool exhaustiveSearch,
                                             int direction) const
@@ -168,6 +169,11 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
         std::string algorithm = (direction == 1) ? "miopenConvolutionFwdAlgoDirect"
                                                  : "miopenConvolutionBwdDataAlgoDirect";
 
+        {
+            int N, C, H, W, K, n_groups;
+            construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+            extraArgs = std::make_tuple(N, C, H, W, K, n_groups);
+        }
         // if not 11x11
         if(program_name != "MIOpenConvFwd_LxL_11.cl")
         {
@@ -498,9 +504,10 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             }
 
             // Direct algo
+            ExtraKernelArgs eka;
             std::vector<KernelInvoke> kernel_direct;
-            if(FindDirectKernel(handle, xDesc, wDesc, yDesc, kernel_direct, exhaustiveSearch, 1) ==
-               0)
+            if(FindDirectKernel(
+                   handle, xDesc, wDesc, yDesc, eka, kernel_direct, exhaustiveSearch, 1) == 0)
             { // Forward
 
                 // Execute the direct kernel
@@ -509,7 +516,29 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 visit_float(xDesc.GetType(), [&](auto as_float) {
                     for(auto& k : kernel_direct)
                     {
-                        k(x, w, tmp_y.get(), as_float(padding_val));
+                        if(k.GetName() == "gcnAsmConv1x1U")
+                        {
+                            int unused       = 0;
+                            int* return_addr = nullptr;
+                            int N, C, H, W, K, n_groups;
+                            std::tie(N, C, H, W, K, n_groups) = eka;
+                            k(N,
+                              C,
+                              H,
+                              W,
+                              K,
+                              n_groups,
+                              unused,
+                              unused,
+                              x,
+                              w,
+                              tmp_y.get(),
+                              return_addr);
+                        }
+                        else
+                        {
+                            k(x, w, tmp_y.get(), as_float(padding_val));
+                        }
                         time_direct += handle.GetKernelTime();
                     }
                 });
@@ -642,8 +671,18 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 // if not 11x11
                 if((kernel.GetName() != "MIOpenCvFwd11x11"))
                 {
-
-                    kernel(x, w, y, as_float(padding_val));
+                    if(kernel.GetName() == "gcnAsmConv1x1U")
+                    {
+                        int unused       = 0;
+                        int* return_addr = nullptr;
+                        int N, C, H, W, K, n_groups;
+                        construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+                        kernel(N, C, H, W, K, n_groups, unused, unused, x, w, y, return_addr);
+                    }
+                    else
+                    {
+                        kernel(x, w, y, as_float(padding_val));
+                    }
                 }
                 else
                 {
@@ -1153,7 +1192,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                 reserved,
                                 dy,
                                 w,
-                                dx,
+                                tmp_dx.get(),
                                 return_addr,
                                 R,
                                 S,
@@ -1164,16 +1203,18 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 }
                 else
                 {
-                    kernel_wino(N, C, H, W, K, n_groups, flags, reserved, dy, w, dx, return_addr);
+                    kernel_wino(
+                        N, C, H, W, K, n_groups, flags, reserved, dy, w, tmp_dx.get(), return_addr);
                 }
                 time_wino = handle.GetKernelTime();
                 perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoWinograd", time_wino, 0});
             }
 
             // Direct algo
+            ExtraKernelArgs eka;
             std::vector<KernelInvoke> kernel_direct;
             if(FindDirectKernel(
-                   handle, dxDesc, wDesc, dyDesc, kernel_direct, exhaustiveSearch, 0) == 0)
+                   handle, dxDesc, wDesc, dyDesc, eka, kernel_direct, exhaustiveSearch, 0) == 0)
             { // Backward
                 float time_direct = 0;
                 float padding_val = 0;
@@ -1181,7 +1222,29 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 visit_float(dyDesc.GetType(), [&](auto as_float) {
                     for(auto& k : kernel_direct)
                     {
-                        k(dy, w, tmp_dx.get(), as_float(padding_val));
+                        if(k.GetName() == "gcnAsmConv1x1U")
+                        {
+                            int unused       = 0;
+                            int* return_addr = nullptr;
+                            int N, C, H, W, K, n_groups;
+                            std::tie(N, C, H, W, K, n_groups) = eka;
+                            k(N,
+                              C,
+                              H,
+                              W,
+                              K,
+                              n_groups,
+                              unused,
+                              unused,
+                              dy,
+                              w,
+                              tmp_dx.get(),
+                              return_addr);
+                        }
+                        else
+                        {
+                            k(dy, w, tmp_dx.get(), as_float(padding_val));
+                        }
                         time_direct += handle.GetKernelTime();
                     }
                 });
@@ -1401,17 +1464,28 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 construct_params.setOutputDescFromMLDesc(dyDesc);
                 construct_params.setInputDescFromMLDesc(dxDesc);
                 construct_params.setWeightDescFromMLDesc(wDesc);
+                construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
                 construct_params.setStream(&handle);
             }
 
             std::string network_config;
             construct_params.mloBuildConf_Key(network_config);
+            auto kernel = handle.GetKernel("miopenConvolutionBwdDataAlgoDirect", network_config);
 
-            float padding_val = 0;
             visit_float(dyDesc.GetType(), [&](auto as_float) {
-
-                handle.GetKernel("miopenConvolutionBwdDataAlgoDirect",
-                                 network_config)(dy, w, dx, as_float(padding_val));
+                if(kernel.GetName() == "gcnAsmConv1x1U")
+                {
+                    int unused       = 0;
+                    int* return_addr = nullptr;
+                    int N, C, H, W, K, n_groups;
+                    construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+                    kernel(N, C, H, W, K, n_groups, unused, unused, dy, w, dx, return_addr);
+                }
+                else
+                {
+                    float padding_val = 0;
+                    kernel(dy, w, dx, as_float(padding_val));
+                }
             });
             break;
         }
