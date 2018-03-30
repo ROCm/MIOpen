@@ -1606,7 +1606,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                                     u,
                                     v);
                 if(handle.IsProfilingEnabled())
-                   t1 += handle.GetKernelTime();
+                    t1 += handle.GetKernelTime();
 
                 if(handle.IsProfilingEnabled())
                 {
