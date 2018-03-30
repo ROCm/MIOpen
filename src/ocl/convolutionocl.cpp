@@ -802,11 +802,13 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 float t1 = 0;
                 transpose_NCHW2CNHW(
                     handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
-                t1 = handle.GetKernelTime();
+                if(handle.IsProfilingEnabled())
+                    t1 = handle.GetKernelTime();
 
                 size_t x_t_size = in_n * in_c * out_h * out_w;
                 gg.RunGemm(handle, workSpace, w, workSpace, 0, 0, x_t_size);
-                t1 += handle.GetKernelTime();
+                if(handle.IsProfilingEnabled())
+                    t1 += handle.GetKernelTime();
 
                 transpose_CNHW2NCHW(handle,
                                     in_n,
@@ -821,7 +823,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                                     0,
                                     1,
                                     1);
-                t1 += handle.GetKernelTime();
+                if(handle.IsProfilingEnabled())
+                    t1 += handle.GetKernelTime();
 
                 if(handle.IsProfilingEnabled())
                 {
@@ -1570,7 +1573,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 // Initialization required for upsampling in bwd direction
                 float zero = 0.f;
                 SetTensor(handle, dxDesc, dx, &zero);
-                t1 = handle.GetKernelTime();
+                if(handle.IsProfilingEnabled())
+                    t1 = handle.GetKernelTime();
 
                 assert(workSpace != nullptr &&
                        workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc));
@@ -1581,10 +1585,12 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
                 transpose_NCHW2CNHW(
                     handle, in_n, wei_n, out_h, out_w, out_h, out_w, dy, workSpace, 0, 0, 1, 1);
-                t1 += handle.GetKernelTime();
+                if(handle.IsProfilingEnabled())
+                    t1 += handle.GetKernelTime();
 
                 gg.RunGemm(handle, w, workSpace, workSpace, 0, 0, dyDesc.GetElementSize());
-                t1 += handle.GetKernelTime();
+                if(handle.IsProfilingEnabled())
+                    t1 += handle.GetKernelTime();
 
                 transpose_CNHW2NCHW(handle,
                                     in_n,
@@ -1599,7 +1605,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                                     0,
                                     u,
                                     v);
-                t1 += handle.GetKernelTime();
+                if(handle.IsProfilingEnabled())
+                   t1 += handle.GetKernelTime();
 
                 if(handle.IsProfilingEnabled())
                 {
