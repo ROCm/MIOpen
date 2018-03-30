@@ -6,7 +6,7 @@ MIOpen will cache binary kernels to disk, so they don't need to be compiled the 
 Clear the cache
 ---------------
 
-The cache can be cleared by simply deleting the cache directory(ie `$HOME/.cache/miopen`). This should only be needed for development purposes or to free disk space. The cache does not need to be cleared when upgrading MIOpen.
+The cache can be cleared by simply deleting the cache directory (i.e., `$HOME/.cache/miopen`). This should only be needed for development purposes or to free disk space. The cache does not need to be cleared when upgrading MIOpen.
 
 Disabling the cache
 -------------------
