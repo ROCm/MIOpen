@@ -48,4 +48,4 @@ This variable allows to limit the scope of `MIOPEN_FIND_ENFORCE`, so that only f
 
 **CONV_BWD (3)** `MIOPEN_FIND_ENFORCE` affects only Backward Data convolutions.
 
-**CONV_WRW (3)** `MIOPEN_FIND_ENFORCE` affects only Backward With Regard to Weights (a.k.a WRW) convolutions.
+**CONV_WRW (4)** `MIOPEN_FIND_ENFORCE` affects only Backward With Regard to Weights (a.k.a WRW) convolutions.
