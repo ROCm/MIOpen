@@ -85,7 +85,7 @@ float Im2ColGPU(Handle& handle,
     params += " -DNUM_IM_BLKS_X=" + std::to_string(num_blks_x);
     params += " -DNUM_IM_BLKS=" + std::to_string(num_blks);
     params += " -DLOCAL_MEM_SIZE=" + std::to_string(local_mem_sz);
-    params += " -DSTRIDE_GT_1=" + std::to_string(stride_h * stride_w > 1);
+    params += " -DSTRIDE_GT_1=" + std::to_string(static_cast<int>(stride_h * stride_w > 1));
     params += " -DTILE_SZ_X=" + std::to_string(tile_sz_x);
     params += " -DTILE_SZ_Y=" + std::to_string(tile_sz_y);
     params += " -DUSE_IM_OFF_GUARD=1 -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";

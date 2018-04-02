@@ -68,7 +68,7 @@ miopenStatus_t miopenGemm(miopenHandle_t handle,
                                              *(static_cast<const float*>(alpha)),
                                              *(static_cast<const float*>(beta)));
 
-        if(find)
+        if(find != 0)
         {
             gg.FindSolution(
                 .003, miopen::deref(handle), DataCast(A), DataCast(B), DataCast(C), false);
