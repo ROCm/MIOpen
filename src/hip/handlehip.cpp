@@ -31,6 +31,7 @@
 #include <miopen/binary_cache.hpp>
 #include <boost/filesystem.hpp>
 #include <miopen/handle_lock.hpp>
+#include <miopen/gemm_geometry.hpp>
 
 #ifndef _WIN32
 #include <unistd.h>

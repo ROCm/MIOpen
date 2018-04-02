@@ -51,7 +51,6 @@ miopenGetRNNDescriptor
 .. doxygenfunction::  miopenGetRNNDescriptor
 
 
-
 miopenDestroyRNNDescriptor
 --------------------------
 
@@ -134,6 +133,17 @@ miopenSetRNNLayerBias
 ---------------------
 
 .. doxygenfunction::  miopenSetRNNLayerBias
+
+miopenGetRNNLayerParamOffset
+----------------------------
+
+.. doxygenfunction::  miopenGetRNNLayerParamOffset
+
+
+miopenGetRNNLayerBiasOffset
+---------------------------
+
+.. doxygenfunction::  miopenGetRNNLayerBiasOffset
 
 miopenRNNForwardTraining
 ------------------------

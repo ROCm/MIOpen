@@ -34,12 +34,16 @@
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
 #include <miopen/allocator.hpp>
+#include <miopen/simple_hash.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 #include <vector>
+#include <unordered_map>
 
 namespace miopen {
 
 struct HandleImpl;
+struct GemmGeometry;
+using GemmKey = std::pair<std::string, std::string>;
 
 struct Handle : miopenHandle
 {
@@ -138,6 +142,7 @@ struct Handle : miopenHandle
     }
 
     std::unique_ptr<HandleImpl> impl;
+    std::unordered_map<GemmKey, std::unique_ptr<GemmGeometry>, SimpleHash> geo_map;
 };
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenHandle, miopen::Handle);
