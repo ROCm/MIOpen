@@ -63,12 +63,14 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
     result.n_out_pix_tiles = std::min(params.n_outputs, searched_params.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
-    result.out_pix_tile1 = (params.direction.IsForward() == 0 && params.kernel_stride1 > 1)
-                               ? params.kernel_stride1
-                               : searched_params.out_pix_tile1;
-    result.out_pix_tile0 = (params.direction.IsForward() == 0 && params.kernel_stride0 > 1)
-                               ? params.kernel_stride0
-                               : searched_params.out_pix_tile0;
+    result.out_pix_tile1 =
+        (static_cast<int>(params.direction.IsForward()) == 0 && params.kernel_stride1 > 1)
+            ? params.kernel_stride1
+            : searched_params.out_pix_tile1;
+    result.out_pix_tile0 =
+        (static_cast<int>(params.direction.IsForward()) == 0 && params.kernel_stride0 > 1)
+            ? params.kernel_stride0
+            : searched_params.out_pix_tile0;
 
     result.grp_tile0 = std::max(8, (result.in_tile0 / result.out_pix_tile0));
     result.grp_tile1 = std::max(8, (result.in_tile1 / result.out_pix_tile1));
