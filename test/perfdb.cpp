@@ -45,7 +45,6 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include <atomic>
 
 namespace miopen {
 namespace tests {
@@ -106,7 +105,7 @@ struct TestData
         TestData t(NoInit{});
         std::istringstream ss(s);
 
-        auto success = DeserializeField(ss, &t.x, sep) && DeserializeField(ss, &t.y, sep);
+        const auto success = DeserializeField(ss, &t.x, sep) && DeserializeField(ss, &t.y, sep);
 
         if(!success)
             return false;
@@ -127,7 +126,7 @@ struct TestData
 
         const auto start = part.c_str();
         char* end;
-        auto value = std::strtol(start, &end, 10);
+        const auto value = std::strtol(start, &end, 10);
 
         if(start == end)
             return false;
@@ -153,7 +152,7 @@ class DbTest
 {
     public:
     DbTest() : temp_file("miopen.tests.perfdb") {}
-    virtual ~DbTest() {}
+    virtual ~DbTest() = default;
 
     protected:
     TempFile temp_file;
@@ -250,7 +249,7 @@ class DbFindTest : public DbTest
         Db db(temp_file);
         ValidateSingleEntry(key(), common_data(), db);
 
-        TestData invalid_key(100, 200);
+        const TestData invalid_key(100, 200);
         auto record1 = db.FindRecord(invalid_key);
         EXPECT(!record1);
     }
@@ -393,7 +392,7 @@ class DbOperationsTest : public DbTest
         std::cout << "Testing different db operations db..." << std::endl;
 
         ResetDb();
-        TestData to_be_rewritten(7, 8);
+        const TestData to_be_rewritten(7, 8);
 
         {
             Db db(temp_file);
@@ -417,7 +416,8 @@ class DbOperationsTest : public DbTest
         }
 
         {
-            TestData read0, read1, read_missing, read_missing_cmp(read_missing);
+            TestData read0, read1, read_missing;
+            const auto read_missing_cmp(read_missing);
             Db db(temp_file);
 
             // Loading by id not present in record should execute well but return false as nothing
@@ -447,7 +447,8 @@ class DbOperationsTest : public DbTest
         }
 
         {
-            TestData read0, read1, read_missing_cmp(read0);
+            TestData read0, read1;
+            const auto read_missing_cmp(read0);
             Db db(temp_file);
 
             EXPECT(!db.Load(key(), id0(), read0));
@@ -521,31 +522,34 @@ class DBMultiThreadedTestWork
 
     static inline void Initialize() { (void)common_part(); }
 
+    template <class TDbConstructor>
     static inline void
-    WorkItem(unsigned int id, const std::string& db_path, const std::string& log_postfix)
+    WorkItem(unsigned int id, const TDbConstructor& db_constructor, const std::string& log_postfix)
     {
-        RegirrectLogs(id, log_postfix, [id, &db_path]() {
-            CommonPart(db_path);
-            UniquePart(id, db_path);
+        RegirrectLogs(id, log_postfix, [id, &db_constructor]() {
+            CommonPart(db_constructor);
+            UniquePart(id, db_constructor);
         });
     }
 
+    template <class TDbConstructor>
     static inline void
-    ReadWorkItem(unsigned int id, const std::string& db_path, const std::string& log_postfix)
+    ReadWorkItem(unsigned int id, const TDbConstructor& db_constructor, const std::string& log_postfix)
     {
-        RegirrectLogs(id, log_postfix, [&db_path]() { ReadCommonPart(db_path); });
+        RegirrectLogs(id, log_postfix, [&db_constructor]() { ReadCommonPart(db_constructor); });
     }
 
-    static inline void FillForReading(std::string& db_path)
+    template <class TDbConstructor>
+    static inline void FillForReading(const TDbConstructor& db_constructor)
     {
-        Db db(db_path);
+        auto db = db_constructor();
         CommonPartSection(0u, common_part_size, [&db]() { return db; });
     }
 
-    static inline void ValidateCommonPart(const std::string& db_path)
+    template <class TDbConstructor>
+    static inline void ValidateCommonPart(const TDbConstructor& db_constructor)
     {
-        Db db(db_path);
-
+        auto db = db_constructor();
         const auto cp = common_part();
 
         for(auto i = 0u; i < common_part_size; i++)
@@ -596,17 +600,18 @@ class DBMultiThreadedTestWork
         }
     }
 
-    static inline void ReadCommonPart(const std::string& db_path)
+    template <class TDbConstructor>
+    static inline void ReadCommonPart(const TDbConstructor& db_constructor)
     {
         std::cout << "Common part. Section with common db instance." << std::endl;
         {
-            Db db(db_path);
+            auto db = db_constructor();
             ReadCommonPartSection(0u, common_part_size / 2, [&db]() { return db; });
         }
 
         std::cout << "Common part. Section with separate db instances." << std::endl;
         ReadCommonPartSection(
-            common_part_size / 2, common_part_size, [&db_path]() { return Db(db_path); });
+            common_part_size / 2, common_part_size, [&db_constructor]() { return db_constructor(); });
     }
 
     template <class TDbGetter>
@@ -627,17 +632,18 @@ class DBMultiThreadedTestWork
         }
     }
 
-    static inline void CommonPart(const std::string& db_path)
+    template <class TDbConstructor>
+    static inline void CommonPart(const TDbConstructor& db_constructor)
     {
         std::cout << "Common part. Section with common db instance." << std::endl;
         {
-            Db db(db_path);
+            auto db = db_constructor();
             CommonPartSection(0u, common_part_size / 2, [&db]() { return db; });
         }
 
         std::cout << "Common part. Section with separate db instances." << std::endl;
         CommonPartSection(
-            common_part_size / 2, common_part_size, [&db_path]() { return Db(db_path); });
+            common_part_size / 2, common_part_size, [&db_constructor]() { return db_constructor(); });
     }
 
     template <class TDbGetter>
@@ -656,19 +662,20 @@ class DBMultiThreadedTestWork
         }
     }
 
-    static inline void UniquePart(unsigned int id, const std::string& db_path)
+    template <class TDbConstructor>
+    static inline void UniquePart(unsigned int id, const TDbConstructor& db_constructor)
     {
         Random rnd(123123 + id);
 
         std::cout << "Unique part. Section with common db instance." << std::endl;
         {
-            Db db(db_path);
+            auto db = db_constructor();
             UniquePartSection(rnd, 0, unique_part_size / 2, [&db]() { return db; });
         }
 
         std::cout << "Unique part. Section with separate db instances." << std::endl;
         UniquePartSection(
-            rnd, unique_part_size / 2, unique_part_size, [&db_path]() { return Db(db_path); });
+            rnd, unique_part_size / 2, unique_part_size, [&db_constructor]() { return db_constructor(); });
     }
 
     template <class TDbGetter>
@@ -677,8 +684,8 @@ class DBMultiThreadedTestWork
     {
         for(auto i = start; i < end; i++)
         {
-            auto key = LimitedRandom(rnd, common_part_size / ids_per_key + 2);
-            auto id  = LimitedRandom(rnd, ids_per_key + 1);
+            const auto key = LimitedRandom(rnd, common_part_size / ids_per_key + 2);
+            const auto id  = LimitedRandom(rnd, ids_per_key + 1);
             TestData data(TestData::NoInit{});
 
             {
@@ -720,7 +727,7 @@ class DbMultiThreadedTest : public DbTest
     public:
     static constexpr const char* logs_path_arg = "thread-logs-root";
 
-    inline void Run()
+    inline void Run() const
     {
         std::cout << "Testing db for multithreaded write access..." << std::endl;
 
@@ -733,15 +740,16 @@ class DbMultiThreadedTest : public DbTest
 
         std::cout << "Launching test threads..." << std::endl;
         threads.reserve(DBMultiThreadedTestWork::threads_count);
+        const std::string p = temp_file;
+        const auto c = [&p]() { return Db(p); };
 
         {
-            std::string p = temp_file;
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
-                threads.emplace_back([p, &mutex, i]() {
+                threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
-                    DBMultiThreadedTestWork::WorkItem(i, p, "mt");
+                    DBMultiThreadedTestWork::WorkItem(i, c, "mt");
                 });
         }
 
@@ -750,14 +758,14 @@ class DbMultiThreadedTest : public DbTest
             thread.join();
 
         std::cout << "Validation results..." << std::endl;
-        DBMultiThreadedTestWork::ValidateCommonPart(temp_file);
+        DBMultiThreadedTestWork::ValidateCommonPart(c);
     }
 };
 
 class DbMultiThreadedReadTest : public DbTest
 {
     public:
-    inline void Run()
+    inline void Run() const
     {
         std::cout << "Testing db for multithreaded read access..." << std::endl;
 
@@ -765,8 +773,9 @@ class DbMultiThreadedReadTest : public DbTest
         std::vector<std::thread> threads;
 
         std::cout << "Initializing test data..." << std::endl;
-        std::string p = temp_file;
-        DBMultiThreadedTestWork::FillForReading(p);
+        const std::string p = temp_file;
+        const auto c = [&p]() { return Db(p); };
+        DBMultiThreadedTestWork::FillForReading(c);
 
         std::cout << "Launching test threads..." << std::endl;
         threads.reserve(DBMultiThreadedTestWork::threads_count);
@@ -775,9 +784,9 @@ class DbMultiThreadedReadTest : public DbTest
             std::unique_lock<std::mutex> lock(mutex);
 
             for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
-                threads.emplace_back([p, &mutex, i]() {
+                threads.emplace_back([c, &mutex, i]() {
                     (void)std::unique_lock<std::mutex>(mutex);
-                    DBMultiThreadedTestWork::ReadWorkItem(i, p, "mt");
+                    DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
                 });
         }
 
@@ -837,7 +846,10 @@ class DbMultiProcessTest : public DbTest
 
         std::remove(lock_file_path.c_str());
         std::cout << "Validation results..." << std::endl;
-        DBMultiThreadedTestWork::ValidateCommonPart(temp_file);
+
+        const std::string p = temp_file;
+        const auto c = [&p]() { return Db(p); };
+        DBMultiThreadedTestWork::ValidateCommonPart(c);
     }
 
     static inline void WorkItem(unsigned int id, const std::string& db_path, bool write)
@@ -847,10 +859,12 @@ class DbMultiProcessTest : public DbTest
             std::lock_guard<LockFile> lock(file_lock);
         }
 
+        const auto c = [&db_path]() { return Db(db_path); };
+
         if(write)
-            DBMultiThreadedTestWork::WorkItem(id, db_path, "mp");
+            DBMultiThreadedTestWork::WorkItem(id, c, "mp");
         else
-            DBMultiThreadedTestWork::ReadWorkItem(id, db_path, "mp");
+            DBMultiThreadedTestWork::ReadWorkItem(id, c, "mp");
     }
 
     private:
@@ -869,7 +883,8 @@ class DbMultiProcessReadTest : public DbTest
 
         std::cout << "Initializing test data..." << std::endl;
         std::string p = temp_file;
-        DBMultiThreadedTestWork::FillForReading(p);
+        const auto c = [&p]() { return Db(p); };
+        DBMultiThreadedTestWork::FillForReading(c);
 
         std::cout << "Launching test processes..." << std::endl;
         {
@@ -912,7 +927,9 @@ class DbMultiProcessReadTest : public DbTest
             std::lock_guard<LockFile> lock(file_lock);
         }
 
-        DBMultiThreadedTestWork::WorkItem(id, db_path, "mp");
+        const auto c = [&db_path]() { return Db(db_path); };
+
+        DBMultiThreadedTestWork::WorkItem(id, c, "mp");
     }
 
     private:
@@ -922,16 +939,13 @@ class DbMultiProcessReadTest : public DbTest
 class DbMultiFileTest : public DbTest
 {
     protected:
-    const std::string& user_db_path() const { return _user_db_path; }
+    const std::string user_db_path = temp_file.Path() + ".user";
 
     inline void ResetDb() const
     {
         DbTest::ResetDb();
-        (void)std::ofstream(user_db_path());
+        (void)std::ofstream(user_db_path);
     }
-
-    private:
-    const std::string _user_db_path = temp_file.Path() + ".user";
 };
 
 class DbMultiFileReadTest : public DbMultiFileTest
@@ -968,24 +982,24 @@ class DbMultiFileReadTest : public DbMultiFileTest
     {
         RawWrite(temp_file, key(), common_data());
 
-        MultiFileDb db(temp_file, user_db_path());
+        MultiFileDb db(temp_file, user_db_path);
         ValidateSingleEntry(key(), common_data(), db);
 
-        TestData invalid_key(100, 200);
+        const TestData invalid_key(100, 200);
         auto record1 = db.FindRecord(invalid_key);
         EXPECT(!record1);
     }
 
     inline void ReadUser() const
     {
-        RawWrite(user_db_path(), key(), single_item_data());
-        ValidateSingleEntry(key(), single_item_data(), MultiFileDb(temp_file, user_db_path()));
+        RawWrite(user_db_path, key(), single_item_data());
+        ValidateSingleEntry(key(), single_item_data(), MultiFileDb(temp_file, user_db_path));
     }
 
     inline void ReadInstalled() const
     {
         RawWrite(temp_file, key(), single_item_data());
-        ValidateSingleEntry(key(), single_item_data(), MultiFileDb(temp_file, user_db_path()));
+        ValidateSingleEntry(key(), single_item_data(), MultiFileDb(temp_file, user_db_path));
     }
 
     inline void ReadConflict() const
@@ -1009,64 +1023,97 @@ class DbMultiFileWriteTest : public DbMultiFileTest
         EXPECT(record.SetValues(id1(), value1()));
 
         {
-            MultiFileDb db(temp_file, user_db_path());
+            MultiFileDb db(temp_file, user_db_path);
 
             EXPECT(db.StoreRecord(record));
         }
 
         std::string read;
         EXPECT(!std::getline(std::ifstream(temp_file), read).good());
-        EXPECT(std::getline(std::ifstream(user_db_path()), read).good());
+        EXPECT(std::getline(std::ifstream(user_db_path), read).good());
 
-        ValidateSingleEntry(key(), common_data(), MultiFileDb(temp_file, user_db_path()));
+        ValidateSingleEntry(key(), common_data(), MultiFileDb(temp_file, user_db_path));
     }
 };
 
-} // namespace tests
-} // namespace miopen
+class DbMultiFileMultiThreadedReadTest : public DbMultiFileTest
+{
+public:
+    inline void Run() const
+    {
+        std::cout << "Testing db for multithreaded read access..." << std::endl;
+
+        std::mutex mutex;
+        std::vector<std::thread> threads;
+
+        std::cout << "Initializing test data..." << std::endl;
+        const std::string p = temp_file;
+        const auto& up = user_db_path;
+        const auto c = [&p, up]() { return MultiFileDb(p, up); };
+        DBMultiThreadedTestWork::FillForReading(c);
+
+        std::cout << "Launching test threads..." << std::endl;
+        threads.reserve(DBMultiThreadedTestWork::threads_count);
+
+        {
+            std::unique_lock<std::mutex> lock(mutex);
+
+            for (auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+                threads.emplace_back([c, &mutex, i]() {
+                (void)std::unique_lock<std::mutex>(mutex);
+                DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
+            });
+        }
+
+        std::cout << "Waiting for test threads..." << std::endl;
+        for (auto& thread : threads)
+            thread.join();
+    }
+};
 
 struct PerfDbDriver : test_driver
 {
-    public:
+public:
     PerfDbDriver()
     {
-        add(logs_root, miopen::tests::DbMultiThreadedTest::logs_path_arg);
-        add(test_experimental_write, miopen::tests::DbMultiProcessTest::write_arg, flag());
+        add(logs_root, DbMultiThreadedTest::logs_path_arg);
+        add(test_experimental_write, DbMultiProcessTest::write_arg, flag());
 
-        add(mt_child_id, miopen::tests::DbMultiProcessTest::id_arg);
-        add(mt_child_db_path, miopen::tests::DbMultiProcessTest::path_arg);
+        add(mt_child_id, DbMultiProcessTest::id_arg);
+        add(mt_child_db_path, DbMultiProcessTest::path_arg);
     }
 
-    void run()
+    void run() const
     {
-        if(mt_child_id >= 0)
+        if (mt_child_id >= 0)
         {
-            miopen::tests::DbMultiProcessTest::WorkItem(
+            DbMultiProcessTest::WorkItem(
                 mt_child_id, mt_child_db_path, test_experimental_write);
             return;
         }
 
-        miopen::tests::DbFindTest().Run();
-        miopen::tests::DbStoreTest().Run();
-        miopen::tests::DbUpdateTest().Run();
-        miopen::tests::DbRemoveTest().Run();
-        miopen::tests::DbReadTest().Run();
-        miopen::tests::DbWriteTest().Run();
-        miopen::tests::DbOperationsTest().Run();
-        miopen::tests::DbParallelTest().Run();
-        miopen::tests::DbMultiThreadedReadTest().Run();
-        miopen::tests::DbMultiProcessReadTest().Run();
-        miopen::tests::DbMultiFileReadTest().Run();
-        miopen::tests::DbMultiFileWriteTest().Run();
+        DbFindTest().Run();
+        DbStoreTest().Run();
+        DbUpdateTest().Run();
+        DbRemoveTest().Run();
+        DbReadTest().Run();
+        DbWriteTest().Run();
+        DbOperationsTest().Run();
+        DbParallelTest().Run();
+        DbMultiThreadedReadTest().Run();
+        DbMultiProcessReadTest().Run();
+        DbMultiFileReadTest().Run();
+        DbMultiFileWriteTest().Run();
+        DbMultiFileMultiThreadedReadTest().Run();
 
-        if(test_experimental_write)
+        if (test_experimental_write)
         {
-            miopen::tests::DbMultiThreadedTest().Run();
-            miopen::tests::DbMultiProcessTest().Run();
+            DbMultiThreadedTest().Run();
+            DbMultiProcessTest().Run();
         }
     }
 
-    private:
+private:
     bool test_experimental_write = false;
     std::string logs_root;
 
@@ -1074,8 +1121,11 @@ struct PerfDbDriver : test_driver
     std::string mt_child_db_path;
 };
 
+} // namespace tests
+} // namespace miopen
+
 int main(int argc, const char* argv[])
 {
     miopen::tests::exe_path() = argv[0];
-    test_drive<PerfDbDriver>(argc, argv);
+    test_drive<miopen::tests::PerfDbDriver>(argc, argv);
 }
