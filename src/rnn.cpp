@@ -99,6 +99,7 @@ void profileRNNkernels(Handle& handle, unsigned char select, float& ctime)
 #endif
         }
         break;
+    default: assert(false);
     }
 }
 
@@ -113,32 +114,37 @@ size_t RNNDescriptor::biasOffsetCalculation(const TensorDescriptor& /*xDesc*/,
 
     size_t layerJump = 0;
 
-    if(dirMode)
+    if(dirMode != 0u)
     {
         if(layer > 1)
         {
-            layerJump += (isNotRNNskip() * hsize + hsize) * nHiddenTensorsPerLayer * 2;
+            layerJump += (static_cast<unsigned long>(isNotRNNskip()) * hsize + hsize) *
+                         nHiddenTensorsPerLayer * 2;
             layerJump += (hsize * 2) * nHiddenTensorsPerLayer * (layer / 2 - 1) * 2;
         }
 
-        if(biasID >= nHiddenTensorsPerLayer)
+        if((isNotRNNskip() || layer > 1) && biasID >= nHiddenTensorsPerLayer)
         {
-            layerJump += (hsize)*nHiddenTensorsPerLayer;
+            layerJump += hsize * nHiddenTensorsPerLayer;
         }
 
-        layerJump += (layer % 2 == 1) ? nHiddenTensorsPerLayer * (hsize) : 0;
-        layerJump += (hsize)*biasID;
+        layerJump += (layer % 2 == 1) ? nHiddenTensorsPerLayer * hsize : 0;
+
+        layerJump += (isNotRNNskip() || layer > 1) ? hsize * biasID
+                                                   : hsize * (biasID - nHiddenTensorsPerLayer);
     }
     else
     {
 
         if(layer > 0)
         {
-            layerJump += (hsize * isNotRNNskip() + hsize) * nHiddenTensorsPerLayer;
+            layerJump += (hsize * static_cast<unsigned long>(isNotRNNskip()) + hsize) *
+                         nHiddenTensorsPerLayer;
             layerJump += (hsize * 2) * nHiddenTensorsPerLayer * (layer - 1);
         }
 
-        layerJump += (hsize)*biasID;
+        layerJump += (isNotRNNskip() || layer > 0) ? hsize * biasID
+                                                   : hsize * (biasID - nHiddenTensorsPerLayer);
     }
 
     return layerJump;
@@ -155,7 +161,7 @@ size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc,
     }
 
     size_t layerJump = 0;
-    if(dirMode)
+    if(dirMode != 0u)
     {
         if(layer > 1)
         {
@@ -177,25 +183,19 @@ size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc,
         }
         else
         {
-            if(isNotRNNskip())
+            if(paramID >= nHiddenTensorsPerLayer)
             {
-                if(paramID >= nHiddenTensorsPerLayer)
+                if(isNotRNNskip())
                 {
                     layerJump += (inputVectorLen * hsize) * nHiddenTensorsPerLayer * 2;
-                    layerJump += (layer == 1) ? nHiddenTensorsPerLayer * (hsize * hsize) : 0;
-                    layerJump += (hsize * hsize) * (paramID - nHiddenTensorsPerLayer);
                 }
-                else
-                {
-                    layerJump +=
-                        (layer == 1) ? nHiddenTensorsPerLayer * (inputVectorLen * hsize) : 0;
-                    layerJump += (inputVectorLen * hsize) * paramID;
-                }
+                layerJump += (layer == 1) ? nHiddenTensorsPerLayer * (hsize * hsize) : 0;
+                layerJump += (hsize * hsize) * (paramID - nHiddenTensorsPerLayer);
             }
             else
             {
-                layerJump += (layer == 1) ? nHiddenTensorsPerLayer * (hsize * hsize) : 0;
-                layerJump += (hsize * hsize) * paramID;
+                layerJump += (layer == 1) ? nHiddenTensorsPerLayer * (inputVectorLen * hsize) : 0;
+                layerJump += (inputVectorLen * hsize) * paramID;
             }
         }
     }
@@ -210,21 +210,17 @@ size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc,
         }
         else
         {
-            if(isNotRNNskip())
+            if(paramID >= nHiddenTensorsPerLayer)
             {
-                if(paramID >= nHiddenTensorsPerLayer)
+                if(isNotRNNskip())
                 {
                     layerJump += (inputVectorLen * hsize) * nHiddenTensorsPerLayer;
-                    layerJump += (hsize * hsize) * (paramID - nHiddenTensorsPerLayer);
                 }
-                else
-                {
-                    layerJump += (inputVectorLen * hsize) * paramID;
-                }
+                layerJump += (hsize * hsize) * (paramID - nHiddenTensorsPerLayer);
             }
             else
             {
-                layerJump += (hsize * hsize) * paramID;
+                layerJump += (inputVectorLen * hsize) * paramID;
             }
         }
     }
@@ -243,7 +239,7 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
 
     std::vector<int> tdim(2, 0);
 
-    if(dirMode)
+    if(dirMode != 0u)
     {
         if(layer > 1) // NOT the input layer
         {
@@ -259,7 +255,7 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
         }
         else // IS the input layer
         {
-            if(paramID >= nHiddenTensorsPerLayer * isNotRNNskip())
+            if(paramID >= nHiddenTensorsPerLayer)
             {
                 tdim[0] = tdim[1] = hsize;
             }
@@ -278,7 +274,7 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
         }
         else
         {
-            if(paramID >= nHiddenTensorsPerLayer * isNotRNNskip())
+            if(paramID >= nHiddenTensorsPerLayer)
             {
                 tdim[0] = tdim[1] = hsize;
             }
@@ -424,7 +420,7 @@ size_t RNNDescriptor::GetParamsSize(Handle& /* handle */,
     auto sz = nHiddenTensorsPerLayer * hsize * bi *
               (inputVectorLen + hsize + (nLayers - 1) * (bi + 1) * hsize);
 #if(MIO_RNN_DEBUG == 1)
-    fprintf(stderr, "weight size: %d\n", sz);
+    fprintf(stderr, "weight size: %lu\n", sz);
 #endif
     if(biasMode == miopenRNNwithBias)
     {
@@ -501,17 +497,19 @@ std::size_t RNNDescriptor::GetLayerParamSize(Handle& /*handle*/,
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch.");
     }
     auto inputVectorLen = xDesc.GetLengths()[1]; // input vector size
-    inputVectorLen      = (inputMode == miopenRNNskip) ? hsize : inputVectorLen;
+    inputVectorLen      = (inputMode == miopenRNNskip) ? 0 : inputVectorLen;
 
     // Assuming Djikstra counting
-    if(((dirMode && layer <= 1) || (!dirMode && layer < 1)))
+    if((((dirMode != 0u) && layer <= 1) || ((dirMode == 0u) && layer < 1)))
     {
-        if(paramID >= nHiddenTensorsPerLayer * isNotRNNskip())
+        if(paramID >= nHiddenTensorsPerLayer)
             return size_t(typeSize * hsize * hsize);
-        else
+        else if(isNotRNNskip())
             return size_t(typeSize * inputVectorLen * hsize);
+        else
+            return 0;
     }
-    else if(dirMode && paramID < nHiddenTensorsPerLayer)
+    else if((dirMode != 0u) && paramID < nHiddenTensorsPerLayer)
     {
         return size_t(typeSize * hsize * hsize * 2);
     }
@@ -521,9 +519,13 @@ std::size_t RNNDescriptor::GetLayerParamSize(Handle& /*handle*/,
     }
 }
 
-std::size_t RNNDescriptor::GetLayerBiasSize(Handle& /* handle */, int /* layer */, int /* biasID */)
+std::size_t RNNDescriptor::GetLayerBiasSize(Handle& /* handle */, int layer, int biasID)
 {
-    return size_t(typeSize * hsize); // is ther more needed here?
+    if(!isNotRNNskip() && (((dirMode != 0u) && layer <= 1 && biasID < nHiddenTensorsPerLayer) ||
+                           ((dirMode == 0u) && layer < 1 && biasID < nHiddenTensorsPerLayer)))
+        return 0;
+    else
+        return size_t(typeSize * hsize); // is ther more needed here?
 }
 
 void RNNDescriptor::GetLayerParam(Handle& handle,
@@ -535,12 +537,18 @@ void RNNDescriptor::GetLayerParam(Handle& handle,
                                   TensorDescriptor& paramDesc,
                                   Data_t param)
 {
+
+    if(!isNotRNNskip() && (((dirMode != 0u) && layer <= 1 && paramID < nHiddenTensorsPerLayer) ||
+                           ((dirMode == 0u) && layer < 1 && paramID < nHiddenTensorsPerLayer)))
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Parameter of input layer is null in input skip mode");
+    }
+
     // Get the dimensions of the parameter matrix
     auto pDims = pTensorLengthsCalculation(xDesc, layer, paramID);
     paramDesc  = miopen::TensorDescriptor(dataType, pDims.data(), 2);
     if(param == nullptr)
     {
-
         return;
     }
 
@@ -549,7 +557,7 @@ void RNNDescriptor::GetLayerParam(Handle& handle,
 
 #if(MIO_RNN_DEBUG == 1)
     fprintf(stderr,
-            "GetLayerParam layer: %d layerID: %d offst: %d size: %d\n",
+            "GetLayerParam layer: %d layerID: %d offset: %lu size: %lu\n",
             layer,
             paramID,
             poffset,
@@ -569,6 +577,13 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
                                  TensorDescriptor& biasDesc,
                                  Data_t bias)
 {
+
+    if(!isNotRNNskip() && (((dirMode != 0u) && layer <= 1 && biasID < nHiddenTensorsPerLayer) ||
+                           ((dirMode == 0u) && layer < 1 && biasID < nHiddenTensorsPerLayer)))
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Bias of input layer is null in input skip mode");
+    }
+
     if(biasMode == miopenRNNNoBias)
     {
         return;
@@ -588,12 +603,13 @@ void RNNDescriptor::GetLayerBias(Handle& handle,
     auto boffset = biasOffsetCalculation(xDesc, layer, biasID) + poffset;
 
 #if(MIO_RNN_DEBUG == 1)
-    fprintf(stderr, "GetLayerbias bDims %d\n", bdim);
     fprintf(stderr,
-            "GetLayerBias layer: %d layerID: %d offst: %d size: %d\n",
+            "GetLayerBias layer: %d layerID: %d offset: %lu = %lu + %lu size: %lu\n",
             layer,
             biasID,
             boffset,
+            poffset,
+            boffset - poffset,
             biasDesc.GetElementSize());
 #endif
 
@@ -610,6 +626,12 @@ void RNNDescriptor::SetLayerParam(Handle& handle,
                                   const TensorDescriptor& paramDesc,
                                   ConstData_t param)
 {
+    if(!isNotRNNskip() && (((dirMode != 0u) && layer <= 1 && paramID < nHiddenTensorsPerLayer) ||
+                           ((dirMode == 0u) && layer < 1 && paramID < nHiddenTensorsPerLayer)))
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Parameter of input layer is null in input skip mode");
+    }
+
     // TODO dlowell: Need guard checks here, or have them caught at the copy call?
     if(param == nullptr)
     {
@@ -640,7 +662,7 @@ void RNNDescriptor::SetLayerParam(Handle& handle,
 
 #if(MIO_RNN_DEBUG == 1)
     fprintf(stderr,
-            "SetLayerParam layer: %d layerID: %d offst: %d size: %d\n",
+            "SetLayerParam layer: %d layerID: %d offset: %lu size: %lu\n",
             layer,
             paramID,
             poffset,
@@ -648,7 +670,6 @@ void RNNDescriptor::SetLayerParam(Handle& handle,
 #endif
 
     // 4. Copy over data to previously allocated param tensor
-    // miopen::CopyTensor(handle, paramDesc, param, pDesc, w, 0, poffset);
     miopen::CopyTensor(handle, paramDesc, param, paramSrc, w, 0, poffset);
 }
 
@@ -661,6 +682,12 @@ void RNNDescriptor::SetLayerBias(Handle& handle,
                                  const TensorDescriptor& biasDesc,
                                  ConstData_t bias)
 {
+    if(!isNotRNNskip() && (((dirMode != 0u) && layer <= 1 && biasID < nHiddenTensorsPerLayer) ||
+                           ((dirMode == 0u) && layer < 1 && biasID < nHiddenTensorsPerLayer)))
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Bias of input layer is null in input skip mode");
+    }
+
     if(biasMode == miopenRNNNoBias)
     {
         return;
@@ -679,7 +706,6 @@ void RNNDescriptor::SetLayerBias(Handle& handle,
 
     // 2. Calculate the strides for the matrix
     std::vector<int> bstride(1, 1);
-    bstride[0] = nHiddenTensorsPerLayer;
 
     std::vector<int> intLens(biasDesc.GetLengths().begin(), biasDesc.GetLengths().end());
 
@@ -693,10 +719,12 @@ void RNNDescriptor::SetLayerBias(Handle& handle,
 
 #if(MIO_RNN_DEBUG == 1)
     fprintf(stderr,
-            "SetLayerBias layer: %d layerID: %d offset: %d size: %d\n",
+            "SetLayerBias layer: %d layerID: %d offset: %lu = %lu + %lu size: %lu\n",
             layer,
             biasID,
             boffset,
+            poffset,
+            boffset - poffset,
             biasSrc.GetElementSize());
 #endif
 
@@ -710,6 +738,12 @@ void RNNDescriptor::GetLayerParamOffset(const int layer,
                                         TensorDescriptor& paramDesc,
                                         size_t* paramOffset)
 {
+    if(!isNotRNNskip() && (((dirMode != 0u) && layer <= 1 && paramID < nHiddenTensorsPerLayer) ||
+                           ((dirMode == 0u) && layer < 1 && paramID < nHiddenTensorsPerLayer)))
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Parameter of input layer is null in input skip mode");
+    }
+
     // Get the dimensions of the parameter matrix
     auto pDims = pTensorLengthsCalculation(xDesc, layer, paramID);
     paramDesc  = miopen::TensorDescriptor(dataType, pDims.data(), 2);
@@ -723,10 +757,10 @@ void RNNDescriptor::GetLayerParamOffset(const int layer,
 
 #if(MIO_RNN_DEBUG == 1)
     fprintf(stderr,
-            "GetLayerParamOffset layer: %d layerID: %d offset: %ld size: %d\n",
+            "GetLayerParamOffset layer: %d layerID: %d offset: %lu size: %lu\n",
             layer,
             paramID,
-            paramOffset,
+            *paramOffset,
             paramDesc.GetElementSize());
 #endif
 }
@@ -737,6 +771,11 @@ void RNNDescriptor::GetLayerBiasOffset(const int layer,
                                        TensorDescriptor& biasDesc,
                                        size_t* biasOffset)
 {
+    if(!isNotRNNskip() && (((dirMode != 0u) && layer <= 1 && biasID < nHiddenTensorsPerLayer) ||
+                           ((dirMode == 0u) && layer < 1 && biasID < nHiddenTensorsPerLayer)))
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Bias of input layer is null in input skip mode");
+    }
 
     // Get the dimensions of the parameter matrix
     if(biasMode == miopenRNNNoBias)
@@ -756,12 +795,13 @@ void RNNDescriptor::GetLayerBiasOffset(const int layer,
     *biasOffset  = biasOffsetCalculation(xDesc, layer, biasID) + poffset;
 
 #if(MIO_RNN_DEBUG == 1)
-    fprintf(stderr, "GetLayerBiasOffset bDims %d\n", bdim);
     fprintf(stderr,
-            "GetLayerBiasOffset layer: %d layerID: %d offset: %ld size: %d\n",
+            "GetLayerBiasOffset layer: %d layerID: %d offset: %lu = %lu + %lu size: %lu\n",
             layer,
             biasID,
             *biasOffset,
+            poffset,
+            *biasOffset - poffset,
             biasDesc.GetElementSize());
 #endif
 }

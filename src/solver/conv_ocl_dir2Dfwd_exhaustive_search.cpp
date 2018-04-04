@@ -27,7 +27,7 @@
 #define MIOPEN
 
 #include <miopen/allocator.hpp>
-#include <miopen/db.hpp>
+#include <miopen/db_path.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/legacy_exhaustive_search.hpp>
 #include <miopen/mlo_utils.hpp>
@@ -43,47 +43,8 @@
 namespace miopen {
 namespace solver {
 
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-static bool LegacyDeserializeField(const char separator, std::istream& from, int& to)
-{
-    std::string part;
-
-    if(!std::getline(from, part, separator))
-        return false;
-
-    const auto start = part.c_str();
-    char* end;
-    to = std::strtol(start, &end, 10);
-    return start != end;
-}
-
-bool LegacyPerformanceConfig::LegacyDeserialize(const std::string& from)
-{
-    std::istringstream ss(from);
-    LegacyPerformanceConfig temp;
-    const char sep = '.';
-
-    const auto succeded = // clang-format off
-        LegacyDeserializeField(sep, ss, temp.grp_tile1) &&
-        LegacyDeserializeField(sep, ss, temp.grp_tile0) &&
-        LegacyDeserializeField(sep, ss, temp.in_tile1) &&
-        LegacyDeserializeField(sep, ss, temp.in_tile0) &&
-        LegacyDeserializeField(sep, ss, temp.out_pix_tile1) &&
-        LegacyDeserializeField(sep, ss, temp.out_pix_tile0) &&
-        LegacyDeserializeField(sep, ss, temp.n_out_pix_tiles) &&
-        LegacyDeserializeField(sep, ss, temp.n_in_data_tiles) &&
-        LegacyDeserializeField(sep, ss, temp.n_stacks); // clang-format on
-
-    if(!succeded)
-        return false;
-
-    *this = temp;
-    return true;
-}
-#endif
-
 /*
-* select defult configuration if a known configuration has not been found.
+* select default configuration if a known configuration has not been found.
 */
 LegacyPerformanceConfig
 ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionContext& params) const
@@ -116,7 +77,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
     {
 
         // version
-        if(params.direction.IsForward() && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
+        if(params.in_data_type == "FP32" && params.direction.IsForward() &&
+           params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
         {
             result.n_in_data_tiles = 128;
 
@@ -131,18 +93,18 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
         else
         {
             int i_sz             = params.out_height * params.out_width;
-            result.out_pix_tile0 = (i_sz & 1) ? 1 : 2;
+            result.out_pix_tile0 = (i_sz & 1) != 0 ? 1 : 2;
 
             if(params.pad0 > 0 || params.kernel_stride0 > 1)
             {
                 if(params.direction.IsForward())
                 {
-                    result.out_pix_tile0 = (params.out_width & 1) ? 1 : 2;
+                    result.out_pix_tile0 = (params.out_width & 1) != 0 ? 1 : 2;
                 }
                 else
                 {
                     result.out_pix_tile0 =
-                        ((params.out_width & 1) || (params.in_width & 1)) ? 1 : 2;
+                        (((params.out_width & 1) != 0) || ((params.in_width & 1) != 0)) ? 1 : 2;
                 }
             }
 
@@ -329,7 +291,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
     std::vector<float> bias_sys_buf;
     miopen::Allocator::ManageDataPtr bias_ocl_buf = nullptr;
 
-    if(params.bias)
+    if(params.bias != 0)
     {
         size_t bias_sz = params.bias_sz / sizeof(float);
         bias_sys_buf   = std::vector<float>(bias_sz);
@@ -392,7 +354,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
         report_inteval   = 5;
 
         // Add 1x1_stride : no padding support yet
-        if(params.direction.IsForward() && params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
+        if(params.in_data_type == "FP32" && params.direction.IsForward() &&
+           params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
         {
 
             // uint N_LCL_IN_MAPS = result.n_in_data_tiles;
@@ -422,17 +385,18 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
             int i_sz = params.in_width * params.in_height;
             if(params.kernel_stride0 == 1)
             {
-                out_pix_tl_cnt = (i_sz & 1) ? 1 : (i_sz & 0x3) ? 2 : 3;
+                out_pix_tl_cnt = (i_sz & 1) != 0 ? 1 : (i_sz & 0x3) != 0 ? 2 : 3;
             }
             else
             {
                 if(params.direction.IsForward())
                 {
-                    out_pix_tl_cnt = (params.out_width & 1) ? 1 : 2;
+                    out_pix_tl_cnt = (params.out_width & 1) != 0 ? 1 : 2;
                 }
                 else
                 {
-                    out_pix_tl_cnt = ((params.out_width & 1) || (params.in_width & 1)) ? 1 : 2;
+                    out_pix_tl_cnt =
+                        (((params.out_width & 1) != 0) || ((params.in_width & 1) != 0)) ? 1 : 2;
                 }
             }
             out_pix_tile_sz[0] = 1;
@@ -658,15 +622,14 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
                                     }
 
                                     const auto ret =
-                                        MeasureLoop<ConvOclDirectFwdC, ConvOclDirectFwd>(
-                                            &profile_h,
-                                            bot_ocl_buf.get(),
-                                            top_ocl_buf.get(),
-                                            wei_ocl_buf.get(),
-                                            bias_ocl_buf.get(),
-                                            processing_time,
-                                            params,
-                                            result);
+                                        MeasureLoop<ConvOclDirectFwd>(&profile_h,
+                                                                      bot_ocl_buf.get(),
+                                                                      top_ocl_buf.get(),
+                                                                      wei_ocl_buf.get(),
+                                                                      bias_ocl_buf.get(),
+                                                                      processing_time,
+                                                                      params,
+                                                                      result);
 
                                     runs_left--;
                                     runs_left = (runs_left < 0) ? 0 : runs_left;

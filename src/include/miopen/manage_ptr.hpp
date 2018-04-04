@@ -72,6 +72,6 @@ using shared = std::shared_ptr<remove_ptr<T>>;
 } // namespace miopen
 
 #define MIOPEN_MANAGE_PTR(T, F) \
-    miopen::manage_ptr<typename std::remove_pointer<T>::type, decltype(&F), &F>
+    miopen::manage_ptr<typename std::remove_pointer<T>::type, decltype(&F), &F> // NOLINT
 
 #endif

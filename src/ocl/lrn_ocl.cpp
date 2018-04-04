@@ -107,7 +107,7 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     std::string network_config =
         std::to_string(f_norm_alpha) + std::to_string(f_norm_beta) + std::to_string(f_norm_K) +
         std::to_string(f_norm_alphaoverarea) + std::to_string(local_ar) +
-        std::to_string(norm_region) + std::to_string(do_backward) +
+        std::to_string(norm_region) + std::to_string(static_cast<int>(do_backward)) +
         std::to_string(xDesc.GetType()) + std::to_string(nInStride) + std::to_string(nOutStride) +
         std::to_string(nIn) + std::to_string(nOut) + std::to_string(nInStride) +
         std::to_string(nOutStride) + std::to_string(cIn) + std::to_string(cOut) +

@@ -334,6 +334,7 @@ struct verify_forward_train_bn_spatial
             break;
         case(3): std::cout << "Saved Mean tensor failed verification." << std::endl; break;
         case(4): std::cout << "Saved Variance tensor failed verification." << std::endl; break;
+        default: break;
         }
     }
 };
@@ -872,6 +873,7 @@ struct verify_backward_bn_spatial_recalc
             break;
         case(1): std::cout << "Delta scale output tensor failed verification." << std::endl; break;
         case(2): std::cout << "Delta shift output tensor failed verification." << std::endl; break;
+        default: break;
         }
     }
 };
@@ -1086,6 +1088,7 @@ struct verify_backward_bn_spatial_use_saved
             break;
         case(1): std::cout << "Delta scale output tensor failed verification." << std::endl; break;
         case(2): std::cout << "Delta shift output tensor failed verification." << std::endl; break;
+        default: break;
         }
     }
 };
