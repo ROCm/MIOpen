@@ -26,9 +26,12 @@
 #ifndef GUARD_MIOPEN_GEMM_GEOMETRY_HPP_
 #define GUARD_MIOPEN_GEMM_GEOMETRY_HPP_
 
+#include <miopen/config.h>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/tensor.hpp>
+#if MIOPEN_USE_MIOPENGEMM
 #include <miopengemm/miogemm.hpp>
+#endif
 
 #include <mutex>
 
