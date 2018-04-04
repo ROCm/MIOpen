@@ -142,17 +142,17 @@ bool PerformanceConfigAsmDirect3x3WrW::IsValid(const ConvolutionContext& config)
     assert(chunk_size != 0);
     if((config.n_outputs % (64 / chunk_size) != 0) && (config.n_inputs % (64 / chunk_size) != 0))
         return false;
-    if((reverse_inout ? config.n_inputs : config.n_outputs) % GetCPerWave() != 0)
+    if((reverse_inout != 0 ? config.n_inputs : config.n_outputs) % GetCPerWave() != 0)
         return false;
     if(!(chunk_size * k_per_wave <= 64))
         return false;
-    if((reverse_inout ? config.n_outputs : config.n_inputs) % k_per_wave != 0)
+    if((reverse_inout != 0 ? config.n_outputs : config.n_inputs) % k_per_wave != 0)
         return false;
     if(!(n_per_group <= config.batch_sz))
         return false;
     if(!(1 <= pipe_lines_depth && pipe_lines_depth <= std::min(config.out_height, 16)))
         return false;
-    if(reverse_inout && !IsReverseInOutAllowed(config))
+    if((reverse_inout != 0) && !IsReverseInOutAllowed(config))
         return false;
 
     {
@@ -222,7 +222,7 @@ void PerformanceConfigAsmDirect3x3WrW::EuristicInit(const ConvolutionContext& co
         k_per_wave = 2;
     else // C*K >= 16k
         k_per_wave = ((chunk_size == 8) ? 2 : 4);
-    while((reverse_inout ? config.n_outputs : config.n_inputs) % k_per_wave != 0)
+    while((reverse_inout != 0 ? config.n_outputs : config.n_inputs) % k_per_wave != 0)
         k_per_wave /= 2; // Fixup for correctness
 
     if(c_k <= 512)
@@ -297,7 +297,7 @@ bool ConvAsmBwdWrW3x3::IsValidPerformanceConfig(const ConvolutionContext& proble
 
 bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!params.assembler_available)
+    if(!params.use_asm_kernels)
     {
         return false;
     }
@@ -327,6 +327,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_dilation0 == 1
         && params.kernel_dilation1 == 1
         && params.bias == 0
+        && params.float_size == 32
         && params.in_layout == "NCHW";
      // && _weights_layout == "KCHW"
     if(!ok)
@@ -393,7 +394,7 @@ ConvSolution ConvAsmBwdWrW3x3::GetSolution(const ConvolutionContext& params,
     {
         std::string s;
         const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS{});
-        if(p_asciz)
+        if(p_asciz != nullptr)
         {
             s = std::string(p_asciz);
             if(!s.empty()) // else nothing to parse.

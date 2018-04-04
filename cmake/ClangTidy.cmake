@@ -111,7 +111,7 @@ macro(enable_clang_tidy)
         -p ${CMAKE_BINARY_DIR} 
         -checks='${CLANG_TIDY_CHECKS}'
         ${CLANG_TIDY_ERRORS_ARG}
-        -extra-arg='${CLANG_TIDY_EXTRA_ARGS}'
+        "-extra-arg=${CLANG_TIDY_EXTRA_ARGS}"
         ${CLANG_TIDY_ANALYZE_TEMPORARY_DTORS}
         -header-filter='${CLANG_TIDY_HEADER_FILTER}'
     )
@@ -131,8 +131,8 @@ function(clang_tidy_check TARGET)
     # COMMAND ${CLANG_TIDY_COMMAND} $<JOIN:$<TARGET_PROPERTY:${TARGET},SOURCES>, >
     foreach(SOURCE ${SOURCES})
         if(NOT "${SOURCE}" MATCHES "(h|hpp|hxx)$")
-            set(tidy_target tidy-target-${TARGET}-${tidy_file})
             string(MAKE_C_IDENTIFIER "${SOURCE}" tidy_file)        
+            set(tidy_target tidy-target-${TARGET}-${tidy_file})
             add_custom_target(${tidy_target}
                 COMMAND ${CLANG_TIDY_COMMAND} ${SOURCE} "-export-fixes=${CLANG_TIDY_FIXIT_DIR}/${TARGET}-${tidy_file}.yaml"
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
