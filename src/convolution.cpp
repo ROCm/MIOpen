@@ -244,7 +244,8 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
     int _n_outputs, _kernel_size0, _kernel_size1;
     int _n_outputs_w, _n_inputs_w;
 
-    const auto device_is_gfx9_no_xnack = (device_name == "gfx900");
+    const auto device_is_gfx9_no_xnack =
+        (device_name == "gfx900" || device_name == "gfx904" || device_name == "gfx906");
     const bool device_is_gfx8_no_xnack = (device_name == "gfx800" || device_name == "gfx802" ||
                                           device_name == "gfx803" || device_name == "gfx804");
     if(!device_is_gfx8_no_xnack && !device_is_gfx9_no_xnack)
