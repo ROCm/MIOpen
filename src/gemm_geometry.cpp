@@ -27,6 +27,7 @@
 #include <miopen/gemm_geometry.hpp>
 #include <regex>
 
+#if MIOPEN_USE_MIOPENGEMM
 namespace miopen {
 
 // so that MIOpen works whether or not recent MIOpenGEMM changes pulled:
@@ -169,3 +170,4 @@ void GemmGeometry::RunGemm(Handle& handle,
 }
 
 } // namespace miopen
+#endif //MIOPEN_USE_MIOPENGEMM
