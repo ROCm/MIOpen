@@ -28,6 +28,7 @@
 #include <miopen/float_equal.hpp>
 #include <miopen/check_numerics.hpp>
 #include <miopen/visit_float.hpp>
+#include <miopen/logger.hpp>
 #include <chrono>
 
 namespace miopen {
@@ -65,7 +66,7 @@ void BatchNormForwardTraining(Handle& handle,
     }
     if(!xDesc.IsPacked())
     {
-        std::cerr << "Only fully packed tensors supported." << std::endl;
+        MIOPEN_LOG_E("Only fully packed tensors supported.");
         MIOPEN_THROW(miopenStatusBadParm);
     }
     if(xDesc.GetSize() < 3)
@@ -258,13 +259,10 @@ void BatchNormForwardTraining(Handle& handle,
                     std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
                     " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
-/// \todo Usage of MIOPEN_LOG_I2 instead of this is recommended.
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-                std::cout << kernel_name << ":: ";
-                std::cout << algo_name << std::endl;
-                std::cout << parms << std::endl;
-                std::cout << network_config << std::endl;
-#endif
+                MIOPEN_LOG_I2(kernel_name << ":: " << algo_name);
+                MIOPEN_LOG_I2("..." << parms);
+                MIOPEN_LOG_I2("..." << network_config);
+
                 bnFwdTrainSelectSingle(handle,
                                        xDesc.GetType(),
                                        program_name,
@@ -383,11 +381,7 @@ void BatchNormForwardTraining(Handle& handle,
                     " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
                     std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
-/// \todo Usage of MIOPEN_LOG_I2 instead of this is recommended.
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-                std::cout << kernel_name << ":: ";
-                std::cout << parms << std::endl;
-#endif
+                MIOPEN_LOG_I2(kernel_name << ":: " << parms);
 
                 bnFwdTrainSelectMulti(handle,
                                       xDesc.GetType(),
@@ -507,14 +501,10 @@ void BatchNormForwardTraining(Handle& handle,
             std::string program_name = "MIOpenBatchNormFwdTrainPerAct.cl";
             std::string kernel_name  = "BatchNormFwdTrainPerActivation";
 
-/// \todo Usage of MIOPEN_LOG_I2 instead of this is recommended.
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-            std::cout << kernel_name << ":: ";
-            std::cout << parms << std::endl;
-            printf("No kernel found, adding kernel.\nxgridsize: %ld, ygridsize: %ld\n",
-                   xgridsize,
-                   ygridsize);
-#endif
+            MIOPEN_LOG_I2(kernel_name << ":: " << parms);
+            MIOPEN_LOG_I2("No kernel found, adding kernel.");
+            MIOPEN_LOG_I2("xgridsize: " << xgridsize << " ygridsize: " << ygridsize);
+
             if(resultsave && resultrunning)
             {
                 handle.AddKernel(
@@ -630,7 +620,7 @@ void BatchNormForwardInference(Handle& handle,
         if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
            !float_equal(*(static_cast<const float*>(beta)), 0))
         {
-            std::cerr << "Only alpha=1 and beta=0 is supported" << std::endl;
+            MIOPEN_LOG_E("Only alpha=1 and beta=0 is supported");
             MIOPEN_THROW(miopenStatusBadParm);
         }
 
@@ -705,21 +695,15 @@ void BatchNormForwardInference(Handle& handle,
             vgd.push_back(ygridsize);
             vgd.push_back(zgridsize);
 
-/// \todo Usage of MIOPEN_LOG_I2 instead of this is recommended.
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-            std::cout << kernel_name << ":: ";
-            std::cout << parms << std::endl;
-#endif
+            MIOPEN_LOG_I2(kernel_name << ":: " << parms);
+
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 x, y, estimatedMean, estimatedVariance, bnScale, bnBias, epsilon);
         }
     }
     else // Need to recalculated everything, let's just call training kernel in that case
     {
-
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-        std::cout << "Call to fwd train from forward inference:: ";
-#endif
+        MIOPEN_LOG_I2("Call to fwd train from forward inference:: ");
         BatchNormForwardTraining(handle,
                                  bn_mode,
                                  alpha,
@@ -800,13 +784,13 @@ void BatchNormBackward(Handle& handle,
     if(!float_equal(*(static_cast<const float*>(alphaDataDiff)), 1.0) ||
        !float_equal(*(static_cast<const float*>(betaDataDiff)), 0))
     {
-        std::cerr << "Only alphaDataDiff=1 and betaDataDiff=0 is supported" << std::endl;
+        MIOPEN_LOG_E("Only alphaDataDiff=1 and betaDataDiff=0 is supported");
         MIOPEN_THROW(miopenStatusBadParm);
     }
     if(!float_equal(*(static_cast<const float*>(alphaParamDiff)), 1.0) ||
        !float_equal(*(static_cast<const float*>(betaParamDiff)), 0))
     {
-        std::cerr << "Only alphaParamDiff=1 and betaParamDiff=0 is supported" << std::endl;
+        MIOPEN_LOG_E("Only alphaParamDiff=1 and betaParamDiff=0 is supported");
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
@@ -954,11 +938,7 @@ void BatchNormBackward(Handle& handle,
                     std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
                     " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
-/// \todo Usage of MIOPEN_LOG_I2 instead of this is recommended.
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-                std::cout << kernel_name << ":: ";
-                std::cout << parms << std::endl;
-#endif
+                MIOPEN_LOG_I2(kernel_name << ":: " << parms);
 
                 bnBwdTrainSelectSingle(handle,
                                        xDesc.GetType(),
@@ -1059,11 +1039,7 @@ void BatchNormBackward(Handle& handle,
                     " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
                     std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
-/// \todo Usage of MIOPEN_LOG_I2 instead of this is recommended.
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-                std::cout << kernel_name << ":: ";
-                std::cout << parms << std::endl;
-#endif
+                MIOPEN_LOG_I2(kernel_name << ":: " << parms);
 
                 bnBwdTrainSelectMulti(handle,
                                       xDesc.GetType(),
