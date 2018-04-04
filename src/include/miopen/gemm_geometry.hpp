@@ -29,9 +29,9 @@
 #include <miopen/config.h>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/tensor.hpp>
+
 #if MIOPEN_USE_MIOPENGEMM
 #include <miopengemm/miogemm.hpp>
-#endif
 
 #include <mutex>
 
@@ -83,5 +83,6 @@ struct GemmGeometry
 };
 
 } // namespace miopen
+#endif //MIOPEN_USE_MIOPENGEMM
 
 #endif // GUARD_MIOPEN_GEMM_GEOMETRY_HPP_

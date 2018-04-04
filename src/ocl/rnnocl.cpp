@@ -35,10 +35,10 @@
 
 #if MIOPEN_USE_MIOPENGEMM
 #include <miopen/gemm.hpp>
-#endif
 
 //#define MIO_RNN_OCL_DEBUG 1
 #define MIO_RNN_FINDSOL_TIMEOUT 0.003
+#endif
 
 namespace miopen {
 
@@ -1014,16 +1014,17 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
     profileRNNkernels(handle, 2, ctime);
 
 #else
+    (void)hx;
+    (void)cx;
+    (void)offset;
+    (void)alpha0;
+    (void)alpha1;
+    (void)beta_t;
+    (void)alpha;
+    (void)bi_stride;
+    (void)wei_shift_bias;
     MIOPEN_THROW("GEMM is not supported");
 #endif
-
-    // Suppress warning
-    (void)cxDesc;
-    (void)cyDesc;
-    (void)hxDesc;
-    (void)hyDesc;
-    (void)wDesc;
-    (void)workSpaceSize;
 }
 
 void RNNDescriptor::RNNForwardTraining(Handle& handle,
@@ -1047,6 +1048,7 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                        Data_t reserveSpace,
                                        size_t reserveSpaceSize) const
 {
+    (void)workSpace;
 
     if(x == nullptr || w == nullptr || y == nullptr)
     {
@@ -2017,18 +2019,17 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
     profileRNNkernels(handle, 2, ctime);
 
 #else
+    (void)bi_stride;
+    (void)alpha;
+    (void)offset;
+    (void)alpha0;
+    (void)alpha1;
+    (void)beta_t;
+    (void)hx;
+    (void)cx;
+    (void)wei_shift_bias;
     MIOPEN_THROW("GEMM is not supported");
 #endif
-
-    // Suppress warning
-    (void)cxDesc;
-    (void)cyDesc;
-    (void)hxDesc;
-    (void)hyDesc;
-    (void)wDesc;
-    (void)workSpace;
-    (void)workSpaceSize;
-    (void)reserveSpaceSize;
 };
 
 void RNNDescriptor::RNNBackwardData(Handle& handle,
@@ -2058,6 +2059,18 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
                                     Data_t reserveSpace,
                                     size_t reserveSpaceSize) const
 {
+
+    // Suppress warning
+    (void)y;
+    (void)yDesc;
+    (void)hxDesc;
+    (void)cxDesc;
+    (void)dcxDesc;
+    (void)dcyDesc;
+    (void)dhyDesc;
+    (void)wDesc;
+    (void)workSpaceSize;
+    (void)reserveSpaceSize;
 
     if(dx == nullptr || w == nullptr || dy == nullptr)
     {
@@ -3301,20 +3314,20 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
         profileRNNkernels(handle, 2, ctime);
     }
 #else
+    (void)wei_stride;
+    (void)bi_stride;
+    (void)alpha;
+    (void)offset;
+    (void)alpha0;
+    (void)alpha1;
+    (void)beta_t;
+    (void)hx;
+    (void)cx;
+    (void)dhy;
+    (void)dcy;
+    (void)reserveSpace;
     MIOPEN_THROW("GEMM is not supported");
 #endif
-
-    // Suppress warning
-    (void)y;
-    (void)yDesc;
-    (void)hxDesc;
-    (void)cxDesc;
-    (void)dcxDesc;
-    (void)dcyDesc;
-    (void)dhyDesc;
-    (void)wDesc;
-    (void)workSpaceSize;
-    (void)reserveSpaceSize;
 };
 
 void RNNDescriptor::RNNBackwardWeights(Handle& handle,
@@ -3961,13 +3974,17 @@ void RNNDescriptor::RNNBackwardWeights(Handle& handle,
         }
     }
 #else
+    (void)in_stride;
+    (void)alpha0;
+    (void)wei_shift_bias;
+    (void)alpha1;
+    (void)bi_stride;
+    (void)uni_stride;
+    (void)hx;
+    (void)workSpace;
+    (void)reserveSpace;
     MIOPEN_THROW("GEMM is not supported");
 #endif
-
-    // Suppress warning
-    (void)dwDesc;
-    (void)workSpaceSize;
-    (void)reserveSpaceSize;
 };
 
 } // namespace miopen
