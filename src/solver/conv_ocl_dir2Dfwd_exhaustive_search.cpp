@@ -347,7 +347,9 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
     if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
     {
         int n_grp_tiles0 = 3;
-        MIOPEN_LOG_W("Searching the best solution in the 4 dim space. Please, be patient it may take few minutes...");
+        std::cout << "Searching the best solution in the 4 dim space. Please, be patient it may "
+                     "take few minutes."
+                  << std::endl;
         result.grp_tile1 = 1;
         result.in_tile1  = 1;
         result.in_tile0  = 1;
@@ -514,7 +516,10 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
     }
     else
     {
-        MIOPEN_LOG_W("Searching the best solution in the 9 dim space. Please, be patient it may take few minutes...");
+
+        std::cout << "Searching the best solution in the 9 dim space. Please, be patient it may "
+                     "take few minutes."
+                  << std::endl;
 
         runs_left = /*n_grp_tiles * */ n_tiles_cnt * out_pix_tl_cnt * out_pix_tl_cnt * n_out_tls *
                     n_in_tls * stack_cnt;
@@ -684,7 +689,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
         }                 // for (int j = 0; j < 3; ++j)
     }
 
-    MIOPEN_LOG_I("Score: " << min_proc_time);
+    std::cout << std::endl << "Score: " << min_proc_time << std::endl;
 
     result.grp_tile0       = min_grp_tile0;
     result.grp_tile1       = min_grp_tile1;

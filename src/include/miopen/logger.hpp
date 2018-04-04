@@ -31,8 +31,6 @@
 #include <miopen/each_args.hpp>
 #include <sstream>
 #include <type_traits>
-#include <vector>
-#include <cstddef> // size_t
 
 // Helper macros to output a cmdline argument for the driver
 #define MIOPEN_DRIVER_CMD(op) \
@@ -137,7 +135,7 @@
 namespace miopen {
 
 template <class Range>
-std::ostream& LogRange(std::ostream& os, Range&& r, std::string delim) // FIXME
+std::ostream& LogRange(std::ostream& os, Range&& r, std::string delim)
 {
     bool first = true;
     for(auto&& x : r)
@@ -146,21 +144,6 @@ std::ostream& LogRange(std::ostream& os, Range&& r, std::string delim) // FIXME
             first = false;
         else
             os << delim;
-        os << x;
-    }
-    return os;
-}
-
-template <class T>
-std::ostream& operator<<(std::ostream& os, const std::vector<T>& r)
-{
-    bool first = true;
-    for(auto& x : r)
-    {
-        if(first)
-            first = false;
-        else
-            os << ',';
         os << x;
     }
     return os;

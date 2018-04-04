@@ -586,7 +586,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             static_cast<miopenConvFwdAlgorithm_t>(FwdAlgoResolver(perf_db[i].name));
         perfResults[i].time   = perf_db[i].time;
         perfResults[i].memory = perf_db[i].workspace;
-        MIOPEN_LOG_I("algo = " << perfResults[i].fwd_algo << ", time = " << perfResults[i].time << ", workspace = " << perfResults[i].memory);
+        MIOPEN_LOG_I("algo = " << perfResults[i].fwd_algo << ", time = " << perfResults[i].time
+                               << ", workspace = "
+                               << perfResults[i].memory);
     }
 }
 
