@@ -83,6 +83,6 @@ struct GemmGeometry
 };
 
 } // namespace miopen
-#endif //MIOPEN_USE_MIOPENGEMM
+#endif // MIOPEN_USE_MIOPENGEMM
 
 #endif // GUARD_MIOPEN_GEMM_GEOMETRY_HPP_

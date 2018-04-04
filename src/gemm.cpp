@@ -450,4 +450,4 @@ void RunGemmGeometryRNN(Handle& handle,
 }
 
 } // namespace miopen
-#endif //MIOPEN_USE_MIOPENGEMM
+#endif // MIOPEN_USE_MIOPENGEMM
