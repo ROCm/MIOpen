@@ -132,11 +132,11 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
 
                   << " -m " << bn_mode;
 
-        if(resultRunningMean && resultRunningVariance)
+        if((resultRunningMean != nullptr) && (resultRunningVariance != nullptr))
         {
             std::cerr << " -s " << 1;
         }
-        if(resultSaveMean && resultSaveInvVariance)
+        if((resultSaveMean != nullptr) && (resultSaveInvVariance != nullptr))
         {
             std::cerr << " -r " << 1;
         }

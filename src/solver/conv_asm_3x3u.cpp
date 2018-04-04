@@ -119,7 +119,7 @@ bool ConvAsm3x3U::IsValidPerformanceConfig(const ConvolutionContext& problem,
 
 bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!params.assembler_available)
+    if(!params.use_asm_kernels)
     {
         return false;
     }
@@ -146,8 +146,9 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
         && params.n_inputs % 4 == 0
         && params.in_width > 3
         && params.in_width <= 1000
+        && params.float_size == 32
         && params.in_layout == "NCHW";
-     // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
+        // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
     // clang-format on
 }
 
@@ -181,7 +182,7 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
     {
         std::string s;
         const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS{});
-        if(p_asciz)
+        if(p_asciz != nullptr)
         {
             s = std::string(p_asciz);
             if(!s.empty()) // else nothing to parse.

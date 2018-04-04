@@ -316,7 +316,7 @@ template <typename Tgpu, typename Tref>
 int PoolDriver<Tgpu, Tref>::RunForwardGPU()
 {
 
-    Tgpu alpha = static_cast<Tgpu>(1), beta = static_cast<Tgpu>(0);
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     miopenPoolingForward(GetHandle(),
                          poolDesc,
@@ -375,7 +375,7 @@ int PoolDriver<Tgpu, Tref>::RunForwardCPU()
 template <typename Tgpu, typename Tref>
 int PoolDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    Tgpu alpha = static_cast<Tgpu>(1), beta = static_cast<Tgpu>(0);
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     miopenPoolingBackward(GetHandle(),
                           poolDesc,
@@ -476,7 +476,7 @@ int PoolDriver<Tgpu, Tref>::VerifyForward()
 
     int pooling_method = (mode == miopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 
-    const Tref tolerance = 1.5e-4; // 1e-6;
+    const Tref tolerance = 1e-6;
     bool match           = mloPoolingForwardRunHostAndVerify<Tgpu, Tref>(pooling_method,
                                                                pad_h,
                                                                u,
@@ -596,16 +596,16 @@ int PoolDriver<Tgpu, Tref>::VerifyBackward()
     Tref max_abs_diff     = 1. / 1000000; // 100000000;
     bool get_error_pos    = true;
 
-    match = mloVerify<Tgpu, Tref>(nOut,
-                                  cOut,
-                                  hOut,
-                                  wOut,
-                                  ndOutStride,
-                                  cdOutStride,
-                                  hdOutStride,
-                                  ndOutStride,
-                                  cdOutStride,
-                                  hdOutStride,
+    match = mloVerify<Tgpu, Tref>(nIn,
+                                  cIn,
+                                  hIn,
+                                  wIn,
+                                  ndInStride,
+                                  cdInStride,
+                                  hdInStride,
+                                  ndInStride,
+                                  cdInStride,
+                                  hdInStride,
                                   dinhost.data(),
                                   din.data(),
                                   allowedEps,

@@ -31,7 +31,9 @@ void RunLSTMForwardGEMMCPUVerify(
     int out_h,              // 1 by hy_h related function for unidirection, 2 by hy_h
                             // related function for bidirection
     int inputMode,
-    std::vector<T>& rsvspace)
+    std::vector<T>& rsvspace,
+    bool hx_is_null = false,
+    bool cx_is_null = false)
 {
     int batch_n = sumvc(in_n);
 
@@ -128,19 +130,6 @@ void RunLSTMForwardGEMMCPUVerify(
                         }
                     }
                 }
-
-                // from bias
-                if(biased)
-                {
-                    for(int bs = 0; bs < batch_n; bs++)
-                    {
-                        for(int h = 0; h < wei_stride; h++)
-                        {
-                            hid_state.at(hid_shift + bs * hy_stride + h) +=
-                                wei.at(wei_shift_bias + h);
-                        }
-                    }
-                }
             }
             else
             {
@@ -170,8 +159,7 @@ void RunLSTMForwardGEMMCPUVerify(
                         for(int h = 0; h < wei_stride; h++)
                         {
                             hid_state.at(hid_shift + bs * hy_stride + h) +=
-                                (wei.at(wei_shift_bias + h) +
-                                 wei.at(wei_shift_bias + wei_stride + h));
+                                wei.at(wei_shift_bias + h);
                         }
                     }
                 }
@@ -212,8 +200,7 @@ void RunLSTMForwardGEMMCPUVerify(
                     for(int h = 0; h < wei_stride; h++)
                     {
                         hid_state.at(hid_shift + bs * hy_stride + h) +=
-                            (wei.at(wei_shift_bias_temp + h) +
-                             wei.at(wei_shift_bias_temp + wei_stride + h));
+                            wei.at(wei_shift_bias_temp + h);
                     }
                 }
             }
@@ -229,43 +216,81 @@ void RunLSTMForwardGEMMCPUVerify(
 
             if(ti == 0)
             {
-                ADNN_mm_cpu<T>(&hx_state[hx_shift],
-                               hy_h,
-                               in_n.at(ti),
-                               uni_stride,
-                               0,
-                               &wei_state[wei_shift],
-                               hy_h,
-                               hy_h * 4,
-                               uni_stride,
-                               ADNN_MM_TRANSPOSE,
-                               &hid_state[hid_shift + bacc * hy_stride],
-                               hy_h * 4,
-                               in_n.at(ti),
-                               hy_stride,
-                               0,
-                               1,
-                               1);
-
-                if(bidirection)
+                if(!hx_is_null)
                 {
-                    ADNN_mm_cpu<T>(&hx_state[hx_shift + hy_n * hy_h],
+                    ADNN_mm_cpu<T>(&hx_state[hx_shift],
                                    hy_h,
-                                   in_n.at(seqLength - 1 - ti),
+                                   in_n.at(ti),
                                    uni_stride,
                                    0,
-                                   &wei_state[wei_shift + 4 * hy_h * uni_stride],
+                                   &wei_state[wei_shift],
                                    hy_h,
                                    hy_h * 4,
                                    uni_stride,
                                    ADNN_MM_TRANSPOSE,
-                                   &hid_state[hid_shift + baccbi * hy_stride + 4 * hy_h],
+                                   &hid_state[hid_shift + bacc * hy_stride],
                                    hy_h * 4,
-                                   in_n.at(seqLength - 1 - ti),
+                                   in_n.at(ti),
                                    hy_stride,
                                    0,
                                    1,
                                    1);
+
+                    // from bias
+                    if(biased)
+                    {
+                        int wei_shift_bias_temp =
+                            (inputMode == 1) ? (wei_shift_bias + li * 2 * wei_stride)
+                                             : (wei_shift_bias + (li * 2 + 1) * wei_stride);
+
+                        for(int bs = 0; bs < in_n[ti]; bs++)
+                        {
+                            for(int h = 0; h < 4 * hy_h; h++)
+                            {
+                                hid_state.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
+                                    wei.at(wei_shift_bias_temp + h);
+                            }
+                        }
+                    }
+
+                    if(bidirection)
+                    {
+                        ADNN_mm_cpu<T>(&hx_state[hx_shift + hy_n * hy_h],
+                                       hy_h,
+                                       in_n.at(seqLength - 1 - ti),
+                                       uni_stride,
+                                       0,
+                                       &wei_state[wei_shift + 4 * hy_h * uni_stride],
+                                       hy_h,
+                                       hy_h * 4,
+                                       uni_stride,
+                                       ADNN_MM_TRANSPOSE,
+                                       &hid_state[hid_shift + baccbi * hy_stride + 4 * hy_h],
+                                       hy_h * 4,
+                                       in_n.at(seqLength - 1 - ti),
+                                       hy_stride,
+                                       0,
+                                       1,
+                                       1);
+
+                        // from bias
+                        if(biased)
+                        {
+                            int wei_shift_bias_temp =
+                                (inputMode == 1) ? (wei_shift_bias + li * 2 * wei_stride)
+                                                 : (wei_shift_bias + (li * 2 + 1) * wei_stride);
+
+                            for(int bs = 0; bs < in_n.at(seqLength - 1 - ti); bs++)
+                            {
+                                for(int h = 0; h < 4 * hy_h; h++)
+                                {
+                                    hid_state.at(hid_shift + baccbi * hy_stride + 4 * hy_h +
+                                                 bs * hy_stride + h) +=
+                                        wei.at(wei_shift_bias_temp + 4 * hy_h + h);
+                                }
+                            }
+                        }
+                    }
                 }
             }
             else
@@ -288,11 +313,28 @@ void RunLSTMForwardGEMMCPUVerify(
                                1,
                                1);
 
+                // from bias
+                if(biased)
+                {
+                    int wei_shift_bias_temp = (inputMode == 1)
+                                                  ? (wei_shift_bias + li * 2 * wei_stride)
+                                                  : (wei_shift_bias + (li * 2 + 1) * wei_stride);
+
+                    for(int bs = 0; bs < in_n[ti]; bs++)
+                    {
+                        for(int h = 0; h < 4 * hy_h; h++)
+                        {
+                            hid_state.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
+                                wei.at(wei_shift_bias_temp + h);
+                        }
+                    }
+                }
+
                 if(bidirection)
                 {
                     ADNN_mm_cpu<T>(&hy_state[hx_shift + hy_n * hy_h],
                                    hy_h,
-                                   in_n.at(seqLength - 1 - ti),
+                                   in_n.at(seqLength - ti),
                                    uni_stride,
                                    0,
                                    &wei_state[wei_shift + 4 * hy_h * uni_stride],
@@ -302,11 +344,29 @@ void RunLSTMForwardGEMMCPUVerify(
                                    ADNN_MM_TRANSPOSE,
                                    &hid_state[hid_shift + baccbi * hy_stride + 4 * hy_h],
                                    hy_h * 4,
-                                   in_n.at(seqLength - 1 - ti),
+                                   in_n.at(seqLength - ti),
                                    hy_stride,
                                    0,
                                    1,
                                    1);
+
+                    // from bias
+                    if(biased)
+                    {
+                        int wei_shift_bias_temp =
+                            (inputMode == 1) ? (wei_shift_bias + li * 2 * wei_stride)
+                                             : (wei_shift_bias + (li * 2 + 1) * wei_stride);
+
+                        for(int bs = 0; bs < in_n.at(seqLength - ti); bs++)
+                        {
+                            for(int h = 0; h < 4 * hy_h; h++)
+                            {
+                                hid_state.at(hid_shift + baccbi * hy_stride + 4 * hy_h +
+                                             bs * hy_stride + h) +=
+                                    wei.at(wei_shift_bias_temp + 4 * hy_h + h);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -320,10 +380,14 @@ void RunLSTMForwardGEMMCPUVerify(
                                   1);
                     if(ti == 0)
                     {
-                        hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
-                            activfunc(hid_state.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h),
-                                      2) *
-                            cx_state.at(hx_shift + bs * uni_stride + h);
+                        if(!cx_is_null)
+                        {
+                            hid_state.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
+                                activfunc(
+                                    hid_state.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h),
+                                    2) *
+                                cx_state.at(hx_shift + bs * uni_stride + h);
+                        }
                     }
                     else
                     {
@@ -386,12 +450,15 @@ void RunLSTMForwardGEMMCPUVerify(
                                 1);
                         if(ti == 0)
                         {
-                            hid_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
-                                         hy_h + h) +=
-                                activfunc(hid_state.at(hid_shift + (baccbi + bs) * hy_stride +
-                                                       5 * hy_h + h),
-                                          2) *
-                                cx_state.at(hx_shift + bs * uni_stride + hy_n * hy_h + h);
+                            if(!cx_is_null)
+                            {
+                                hid_state.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
+                                             hy_h + h) +=
+                                    activfunc(hid_state.at(hid_shift + (baccbi + bs) * hy_stride +
+                                                           5 * hy_h + h),
+                                              2) *
+                                    cx_state.at(hx_shift + bs * uni_stride + hy_n * hy_h + h);
+                            }
                         }
                         else
                         {
@@ -519,7 +586,10 @@ void RunLSTMBackwardDataGEMMCPUVerify(
                             // hy_h related function for bidirection
     int inputMode,
     std::vector<T>& rsvspace,
-    std::vector<T>& wkspace)
+    std::vector<T>& wkspace,
+    bool cx_is_null  = false,
+    bool dhy_is_null = false,
+    bool dcy_is_null = false)
 {
     int batch_n = sumvc(in_n);
     (void)out;
@@ -652,10 +722,16 @@ void RunLSTMBackwardDataGEMMCPUVerify(
                 {
                     for(int h = 0; h < hy_h; h++)
                     {
-                        dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 5 * hy_h + h] +=
-                            dhy_state[hx_shift + bs * uni_stride + h];
-                        dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h] +=
-                            dcy_state[hx_shift + bs * uni_stride + h];
+                        if(!dhy_is_null)
+                        {
+                            dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 5 * hy_h + h] +=
+                                dhy_state[hx_shift + bs * uni_stride + h];
+                        }
+                        if(!dcy_is_null)
+                        {
+                            dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h] +=
+                                dcy_state[hx_shift + bs * uni_stride + h];
+                        }
                     }
                 }
 
@@ -665,10 +741,18 @@ void RunLSTMBackwardDataGEMMCPUVerify(
                     {
                         for(int h = 0; h < hy_h; h++)
                         {
-                            dh_state[hid_shift + (baccbi + bs) * hy_stride + bi * 5 * hy_h + hy_h +
-                                     h] += dhy_state[hx_shift + bs * uni_stride + hy_n * hy_h + h];
-                            dh_state[hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h + hy_h +
-                                     h] += dcy_state[hx_shift + bs * uni_stride + hy_n * hy_h + h];
+                            if(!dhy_is_null)
+                            {
+                                dh_state[hid_shift + (baccbi + bs) * hy_stride + bi * 5 * hy_h +
+                                         hy_h + h] +=
+                                    dhy_state[hx_shift + bs * uni_stride + hy_n * hy_h + h];
+                            }
+                            if(!dcy_is_null)
+                            {
+                                dh_state[hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
+                                         hy_h + h] +=
+                                    dcy_state[hx_shift + bs * uni_stride + hy_n * hy_h + h];
+                            }
                         }
                     }
                 }
@@ -747,11 +831,14 @@ void RunLSTMBackwardDataGEMMCPUVerify(
 
                     if(ti == 0)
                     {
-                        dh_state[hid_shift + (bacc + bs) * hy_stride + hy_h + h] +=
-                            dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h] *
-                            cx_state[hx_shift + bs * uni_stride + h] *
-                            dervactivfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + hy_h + h],
-                                          2);
+                        if(!cx_is_null)
+                        {
+                            dh_state[hid_shift + (bacc + bs) * hy_stride + hy_h + h] +=
+                                dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h] *
+                                cx_state[hx_shift + bs * uni_stride + h] *
+                                dervactivfunc(
+                                    rsvspace[hid_shift + (bacc + bs) * hy_stride + hy_h + h], 2);
+                        }
                     }
                     else
                     {
@@ -812,13 +899,16 @@ void RunLSTMBackwardDataGEMMCPUVerify(
 
                         if(ti == 0)
                         {
-                            dh_state[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h] +=
-                                dh_state[hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
-                                         hy_h + h] *
-                                cx_state[hx_shift + bs * uni_stride + hy_n * hy_h + h] *
-                                dervactivfunc(
-                                    rsvspace[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h],
-                                    2);
+                            if(!cx_is_null)
+                            {
+                                dh_state[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h] +=
+                                    dh_state[hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
+                                             hy_h + h] *
+                                    cx_state[hx_shift + bs * uni_stride + hy_n * hy_h + h] *
+                                    dervactivfunc(rsvspace[hid_shift + (baccbi + bs) * hy_stride +
+                                                           5 * hy_h + h],
+                                                  2);
+                            }
                         }
                         else
                         {
@@ -1015,7 +1105,8 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<T>& in,
                                                    // by hy_h related function for bidirection
                                         int inputMode,
                                         std::vector<T>& rsvspace,
-                                        std::vector<T>& wkspace)
+                                        std::vector<T>& wkspace,
+                                        bool hx_is_null = false)
 {
     int batch_n  = sumvc(in_n);
     int numlayer = bidirection ? hy_d / 2 : hy_d;
@@ -1093,20 +1184,7 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<T>& in,
         // between layers
         if(li == 0)
         {
-            if(inputMode == 1)
-            {
-                if(biased)
-                {
-                    for(int h = 0; h < wei_stride; h++)
-                    {
-                        for(int w = 0; w < batch_n; w++)
-                        {
-                            dwei_state[wei_shift_bias + h] += wkspace[w * hy_stride + h];
-                        }
-                    }
-                }
-            }
-            else
+            if(inputMode != 1)
             {
                 ADNN_mm_cpu<T>(wkspace_state.data(),
                                hy_h * bi * 4,
@@ -1134,8 +1212,6 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<T>& in,
                         {
                             dwei_state[wei_shift_bias + h] += wkspace[w * hy_stride + h];
                         }
-                        dwei_state[wei_shift_bias + wei_stride + h] =
-                            dwei_state[wei_shift_bias + h];
                     }
                 }
             }
@@ -1176,7 +1252,6 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<T>& in,
                     {
                         dwei_state[wei_shift + h] += wkspace[hid_shift + w * hy_stride + h];
                     }
-                    dwei_state[wei_shift + wei_stride + h] = dwei_state[wei_shift + h];
                 }
             }
         }
@@ -1193,23 +1268,42 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<T>& in,
             // between time
             if(ti == 0)
             {
-                ADNN_mm_cpu<T>(&wkspace_state[hid_shift],
-                               hy_h * 4,
-                               in_n[ti],
-                               hy_stride,
-                               ADNN_MM_TRANSPOSE,
-                               &hx_state[hx_shift],
-                               hy_h,
-                               in_n[ti],
-                               uni_stride,
-                               0,
-                               &dwei_state[wei_shift],
-                               hy_h,
-                               hy_h * 4,
-                               uni_stride,
-                               0,
-                               1,
-                               1);
+                if(!hx_is_null)
+                {
+                    ADNN_mm_cpu<T>(&wkspace_state[hid_shift],
+                                   hy_h * 4,
+                                   in_n[ti],
+                                   hy_stride,
+                                   ADNN_MM_TRANSPOSE,
+                                   &hx_state[hx_shift],
+                                   hy_h,
+                                   in_n[ti],
+                                   uni_stride,
+                                   0,
+                                   &dwei_state[wei_shift],
+                                   hy_h,
+                                   hy_h * 4,
+                                   uni_stride,
+                                   0,
+                                   1,
+                                   1);
+
+                    if(biased)
+                    {
+                        int bias_shift = (inputMode == 1)
+                                             ? (wei_shift_bias + li * 2 * wei_stride)
+                                             : (wei_shift_bias + li * 2 * wei_stride + wei_stride);
+
+                        for(int h = 0; h < hy_h * 4; h++)
+                        {
+                            for(int w = 0; w < in_n.at(ti); w++)
+                            {
+                                dwei_state[bias_shift + h] +=
+                                    wkspace[hid_shift + w * hy_stride + h];
+                            }
+                        }
+                    }
+                }
             }
             else
             {
@@ -1233,29 +1327,64 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<T>& in,
                                0,
                                1,
                                1);
+
+                if(biased)
+                {
+                    int bias_shift = (inputMode == 1)
+                                         ? (wei_shift_bias + li * 2 * wei_stride)
+                                         : (wei_shift_bias + li * 2 * wei_stride + wei_stride);
+
+                    for(int h = 0; h < hy_h * 4; h++)
+                    {
+                        for(int w = 0; w < in_n.at(ti); w++)
+                        {
+                            dwei_state[bias_shift + h] += wkspace[hid_shift + w * hy_stride + h];
+                        }
+                    }
+                }
             }
 
             if(bidirection)
             {
                 if(ti == seqLength - 1)
                 {
-                    ADNN_mm_cpu<T>(&wkspace_state[hid_shift + 4 * hy_h],
-                                   hy_h * 4,
-                                   in_n[ti],
-                                   hy_stride,
-                                   ADNN_MM_TRANSPOSE,
-                                   &hx_state[hx_shift + hy_n * hy_h],
-                                   hy_h,
-                                   in_n[ti],
-                                   uni_stride,
-                                   0,
-                                   &dwei_state[wei_shift + 4 * hy_h * uni_stride],
-                                   hy_h,
-                                   hy_h * 4,
-                                   uni_stride,
-                                   0,
-                                   1,
-                                   1);
+                    if(!hx_is_null)
+                    {
+                        ADNN_mm_cpu<T>(&wkspace_state[hid_shift + 4 * hy_h],
+                                       hy_h * 4,
+                                       in_n[ti],
+                                       hy_stride,
+                                       ADNN_MM_TRANSPOSE,
+                                       &hx_state[hx_shift + hy_n * hy_h],
+                                       hy_h,
+                                       in_n[ti],
+                                       uni_stride,
+                                       0,
+                                       &dwei_state[wei_shift + 4 * hy_h * uni_stride],
+                                       hy_h,
+                                       hy_h * 4,
+                                       uni_stride,
+                                       0,
+                                       1,
+                                       1);
+
+                        if(biased)
+                        {
+                            int bias_shift =
+                                (inputMode == 1)
+                                    ? (wei_shift_bias + li * 2 * wei_stride)
+                                    : (wei_shift_bias + li * 2 * wei_stride + wei_stride);
+
+                            for(int h = 0; h < hy_h * 4; h++)
+                            {
+                                for(int w = 0; w < in_n.at(ti); w++)
+                                {
+                                    dwei_state[bias_shift + hy_h * 4 + h] +=
+                                        wkspace[hid_shift + hy_h * 4 + w * hy_stride + h];
+                                }
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -1279,6 +1408,22 @@ void RunLSTMBackwardWeightGEMMCPUVerify(std::vector<T>& in,
                                    0,
                                    1,
                                    1);
+
+                    if(biased)
+                    {
+                        int bias_shift = (inputMode == 1)
+                                             ? (wei_shift_bias + li * 2 * wei_stride)
+                                             : (wei_shift_bias + li * 2 * wei_stride + wei_stride);
+
+                        for(int h = 0; h < hy_h * 4; h++)
+                        {
+                            for(int w = 0; w < in_n.at(ti + 1); w++)
+                            {
+                                dwei_state[bias_shift + hy_h * 4 + h] +=
+                                    wkspace[hid_shift + hy_h * 4 + w * hy_stride + h];
+                            }
+                        }
+                    }
                 }
             }
 

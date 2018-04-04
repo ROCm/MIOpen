@@ -290,7 +290,7 @@ get_bn_peract_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
         { pick_batch_size(32, n),  64,   28,  28  },
         { pick_batch_size(32, n),  64,   56,  56  },
         { pick_batch_size(32, n),  96,   28,  28  },
-        { pick_batch_size(32, n),  192,  256, 512 }, //Killing this config. Takes way too long on the CPU
+        { pick_batch_size(32, n),  32,  256,  512 }, //Killing this config. Takes way too long on the CPU
         { pick_batch_size(32, n),  256,  28,  28  },
         { pick_batch_size(32, n),  3,    224, 224 },
         { pick_batch_size(32, n),  480,  128, 256 },
@@ -310,6 +310,7 @@ get_bn_spatial_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
         { pick_batch_size(32, n),  480,  128, 256 },
         { pick_batch_size(256, n), 3,    227, 227 },
         { pick_batch_size(256, n), 64,   112, 112 },
+        { pick_batch_size(512, n), 16,   32,  32  },
         { pick_batch_size(32, n),  64,   112, 112 },
         //{ pick_batch_size(100, n), 3,    32,  32  },// causing issues with Jenkins
         { pick_batch_size(100, n), 32,   8,   8   },
