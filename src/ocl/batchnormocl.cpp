@@ -258,6 +258,7 @@ void BatchNormForwardTraining(Handle& handle,
                     std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
                     " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
+/// \todo Usage of MIOPEN_LOG_I2 instead of this is recommended.
 #if(MIOPEN_BN_CPP_DEBUG == 1)
                 std::cout << kernel_name << ":: ";
                 std::cout << algo_name << std::endl;
@@ -382,6 +383,7 @@ void BatchNormForwardTraining(Handle& handle,
                     " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
                     std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
+/// \todo Usage of MIOPEN_LOG_I2 instead of this is recommended.
 #if(MIOPEN_BN_CPP_DEBUG == 1)
                 std::cout << kernel_name << ":: ";
                 std::cout << parms << std::endl;
@@ -505,6 +507,7 @@ void BatchNormForwardTraining(Handle& handle,
             std::string program_name = "MIOpenBatchNormFwdTrainPerAct.cl";
             std::string kernel_name  = "BatchNormFwdTrainPerActivation";
 
+/// \todo Usage of MIOPEN_LOG_I2 instead of this is recommended.
 #if(MIOPEN_BN_CPP_DEBUG == 1)
             std::cout << kernel_name << ":: ";
             std::cout << parms << std::endl;
@@ -702,6 +705,7 @@ void BatchNormForwardInference(Handle& handle,
             vgd.push_back(ygridsize);
             vgd.push_back(zgridsize);
 
+/// \todo Usage of MIOPEN_LOG_I2 instead of this is recommended.
 #if(MIOPEN_BN_CPP_DEBUG == 1)
             std::cout << kernel_name << ":: ";
             std::cout << parms << std::endl;
@@ -950,6 +954,7 @@ void BatchNormBackward(Handle& handle,
                     std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
                     " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
+/// \todo Usage of MIOPEN_LOG_I2 instead of this is recommended.
 #if(MIOPEN_BN_CPP_DEBUG == 1)
                 std::cout << kernel_name << ":: ";
                 std::cout << parms << std::endl;
@@ -1054,6 +1059,7 @@ void BatchNormBackward(Handle& handle,
                     " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
                     std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
+/// \todo Usage of MIOPEN_LOG_I2 instead of this is recommended.
 #if(MIOPEN_BN_CPP_DEBUG == 1)
                 std::cout << kernel_name << ":: ";
                 std::cout << parms << std::endl;

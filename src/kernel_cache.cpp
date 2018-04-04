@@ -49,6 +49,11 @@
 namespace miopen {
 
 #ifndef NDEBUG
+static std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
+{
+    return LogRange(os, v, ",");
+}
+
 static void dump_kernel_params(const std::string& program_name,
                                const std::string& kernel_name,
                                const std::vector<size_t>& vld,
@@ -89,7 +94,18 @@ static void dump_kernel_params(const std::string& program_name,
     int msize = value[0] * value[1] * value[2] * value[3];
     int isize = value[4] * value[2] * value[5] * value[6];
     int osize = value[4] * value[3] * value[7] * value[8];
-    MIOPEN_LOG_I2("runcl " << params << " src/Kernels/" << program_name << " -k " << kernel_name << " -dumpilisa -r 10" << " if#" << isize * 4 << ": if#" << msize * 4 << ": if#" << osize * 4 << ": iv#0 " << vgd << "/" << vld);
+    MIOPEN_LOG_I2("runcl " << params << " src/Kernels/" << program_name << " -k " << kernel_name
+                           << " -dumpilisa -r 10"
+                           << " if#"
+                           << isize * 4
+                           << ": if#"
+                           << msize * 4
+                           << ": if#"
+                           << osize * 4
+                           << ": iv#0 "
+                           << vgd
+                           << "/"
+                           << vld);
 }
 #endif
 
