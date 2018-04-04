@@ -1942,19 +1942,19 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNHiddenTensorSize(miopenHandle_t handle,
  *
  * * paramID 1 and 5 are for the forget gate operations.
  *
- * * paramID 2 and 6 are for the memory gate operations.
+ * * paramID 2 and 6 are for the output gate operations.
  *
- * * paramID 3 and 7 are for the output gate operations.
+ * * paramID 3 and 7 are for the cell gate operations.
  *
  * For miopenGRU paramID 0 to 2 refer to the weight matrix offset associated
  * with the input GEMM, while 3 through 5 are associated with the hidden state
  * GEMM.
  *
- * * paramID 0 and 3 are for the reset gate operations.
+ * * paramID 0 and 3 are for the update gate operations.
  *
- * * paramID 1 and 4 are for the update gate operations.
+ * * paramID 1 and 4 are for the reset gate operations.
  *
- * * paramID 2 and 5 are for the memory gate operations.
+ * * paramID 2 and 5 are for the cell gate operations.
  *
  * For bi-directional RNNs the backwards in time direction is numbered as the layer
  * directly after the forward in time direction.
@@ -1988,18 +1988,18 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParamSize(miopenHandle_t handle,
  *
  * * biasID 1 and 5 are for the forget gate operations.
  *
- * * biasID 2 and 6 are for the memory gate operations.
+ * * biasID 2 and 6 are for the output gate operations.
  *
- * * biasID 3 and 7 are for the output gate operations.
+ * * biasID 3 and 7 are for the cell gate operations.
  *
  * For miopenGRU biasID 0 to 2 refer to the biases associated with the input GEMM,
  * while 3 through 5 are associated with the hidden state GEMM.
  *
- * * biasID 0 and 3 are for the reset gate operations.
+ * * biasID 0 and 3 are for the update gate operations.
  *
- * * biasID 1 and 4 are for the update gate operations.
+ * * biasID 1 and 4 are for the reset gate operations.
  *
- * * biasID 2 and 5 are for the memory gate operations.
+ * * biasID 2 and 5 are for the cell gate operations.
  *
  * For bi-directional RNNs the backwards in time direction is numbered as the layer
  * directly after the forward in time direction.
@@ -2034,19 +2034,19 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBiasSize(miopenHandle_t handle,
  *
  * * paramID 1 and 5 are for the forget gate operations.
  *
- * * paramID 2 and 6 are for the memory gate operations.
+ * * paramID 2 and 6 are for the output gate operations.
  *
- * * paramID 3 and 7 are for the output gate operations.
+ * * paramID 3 and 7 are for the cell gate operations.
  *
  * For miopenGRU paramID 0 to 2 refer to the weight matrix offset associated
  * with the input GEMM, while 3 through 5 are associated with the hidden state
  * GEMM.
  *
- * * paramID 0 and 3 are for the reset gate operations.
+ * * paramID 0 and 3 are for the update gate operations.
  *
- * * paramID 1 and 4 are for the update gate operations.
+ * * paramID 1 and 4 are for the reset gate operations.
  *
- * * paramID 2 and 5 are for the memory gate operations.
+ * * paramID 2 and 5 are for the cell gate operations.
  *
  * For bi-directional RNNs the backwards in time direction is numbered as the layer
  * directly after the forward in time direction.
@@ -2102,19 +2102,18 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParam(miopenHandle_t handle,
  *
  * * biasID 1 and 5 are for the forget gate operations.
  *
- * * biasID 2 and 6 are for the memory gate operations.
+ * * biasID 2 and 6 are for the output gate operations.
  *
- * * biasID 3 and 7 are for the output gate operations.
- *
+ * * biasID 3 and 7 are for the cell gate operations.
  *
  * For miopenGRU biasID 0 to 2 refer to the biases associated with the input GEMM,
  * while 3 through 5 are associated with the hidden state GEMM.
  *
- * * biasID 0 and 3 are for the reset gate operations.
+ * * biasID 0 and 3 are for the update gate operations.
  *
- * * biasID 1 and 4 are for the update gate operations.
+ * * biasID 1 and 4 are for the reset gate operations.
  *
- * * biasID 2 and 5 are for the memory gate operations.
+ * * biasID 2 and 5 are for the cell gate operations.
  *
  * For bi-directional RNNs the backwards in time direction is numbered as the layer
  * directly after the forward in time direction.
@@ -2170,19 +2169,19 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBias(miopenHandle_t handle,
  *
  * * paramID 1 and 5 are for the forget gate operations.
  *
- * * paramID 2 and 6 are for the memory gate operations.
+ * * paramID 2 and 6 are for the output gate operations.
  *
- * * paramID 3 and 7 are for the output gate operations.
+ * * paramID 3 and 7 are for the cell gate operations.
  *
  * For miopenGRU paramID 0 to 2 refer to the weight matrix offset associated
  * with the input GEMM, while 3 through 5 are associated with the hidden state
  * GEMM.
  *
- * * paramID 0 and 3 are for the reset gate operations.
+ * * paramID 0 and 3 are for the update gate operations.
  *
- * * paramID 1 and 4 are for the update gate operations.
+ * * paramID 1 and 4 are for the reset gate operations.
  *
- * * paramID 2 and 5 are for the memory gate operations.
+ * * paramID 2 and 5 are for the cell gate operations.
  *
  * For bi-directional RNNs the backwards in time direction is numbered as the layer
  * directly after the forward in time direction.
@@ -2229,18 +2228,18 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerParamOffset(miopenRNNDescriptor_t 
  *
  * * biasID 1 and 5 are for the forget gate operations.
  *
- * * biasID 2 and 6 are for the memory gate operations.
+ * * biasID 2 and 6 are for the output gate operations.
  *
- * * biasID 3 and 7 are for the output gate operations.
+ * * biasID 3 and 7 are for the cell gate operations.
  *
  * For miopenGRU biasID 0 to 2 refer to the biases associated with the input GEMM,
  * while 3 through 5 are associated with the hidden state GEMM.
  *
- * * biasID 0 and 3 are for the reset gate operations.
+ * * biasID 0 and 3 are for the update gate operations.
  *
- * * biasID 1 and 4 are for the update gate operations.
+ * * biasID 1 and 4 are for the reset gate operations.
  *
- * * biasID 2 and 5 are for the memory gate operations.
+ * * biasID 2 and 5 are for the cell gate operations.
  *
  * For bi-directional RNNs the backwards in time direction is numbered as the layer
  * directly after the forward in time direction.
@@ -2288,20 +2287,19 @@ MIOPEN_EXPORT miopenStatus_t miopenGetRNNLayerBiasOffset(miopenRNNDescriptor_t r
  *
  * * paramID 1 and 5 are for the forget gate operations.
  *
- * * paramID 2 and 6 are for the memory gate operations.
+ * * paramID 2 and 6 are for the output gate operations.
  *
- * * paramID 3 and 7 are for the output gate operations.
- *
+ * * paramID 3 and 7 are for the cell gate operations.
  *
  * For miopenGRU paramID 0 to 2 refer to the weight matrix offset associated
  * with the input GEMM, while 3 through 5 are associated with the hidden state
  * GEMM.
  *
- * * paramID 0 and 3 are for the reset gate operations.
+ * * paramID 0 and 3 are for the update gate operations.
  *
- * * paramID 1 and 4 are for the update gate operations.
+ * * paramID 1 and 4 are for the reset gate operations.
  *
- * * paramID 2 and 5 are for the memory gate operations.
+ * * paramID 2 and 5 are for the cell gate operations.
  *
  * For bi-directional RNNs the backwards in time direction is numbered as the layer
  * directly after the forward in time direction.
@@ -2350,19 +2348,18 @@ MIOPEN_EXPORT miopenStatus_t miopenSetRNNLayerParam(miopenHandle_t handle,
  *
  * * biasID 1 and 5 are for the forget gate operations.
  *
- * * biasID 2 and 6 are for the memory gate operations.
+ * * biasID 2 and 6 are for the output gate operations.
  *
- * * biasID 3 and 7 are for the output gate operations.
- *
+ * * biasID 3 and 7 are for the cell gate operations.
  *
  * For miopenGRU biasID 0 to 2 refer to the biases associated with the input GEMM,
  * while 3 through 5 are associated with the hidden state GEMM.
  *
- * * biasID 0 and 3 are for the reset gate operations.
+ * * biasID 0 and 3 are for the update gate operations.
  *
- * * biasID 1 and 4 are for the update gate operations.
+ * * biasID 1 and 4 are for the reset gate operations.
  *
- * * biasID 2 and 5 are for the memory gate operations.
+ * * biasID 2 and 5 are for the cell gate operations.
  *
  * For bi-directional RNNs the backwards in time direction is numbered as the layer
  * directly after the forward in time direction.
