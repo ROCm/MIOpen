@@ -67,7 +67,7 @@
 .endm
 
 .macro .CHECK_LDS_ALLOCATION bytes_to_allocate=0
-	.if (.LDS_NEXT_FREE + \bytes_to_allocate) >= .AVAILABLE_LDS
+	.if (.LDS_NEXT_FREE + \bytes_to_allocate) >= .AVAILABLE_LDS + 1
 		.error "Error: out of free lds"
         .end
 	.endif

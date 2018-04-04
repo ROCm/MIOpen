@@ -24,54 +24,61 @@
  * 
  *******************************************************************************/
 
-.macro .adjust_sptr_gpr ptr, off
-	s_add_u32 s[\ptr], s[\ptr], \off
-	s_addc_u32 s[1+\ptr], 0, s[1+\ptr]
-.endm
-
-.macro .adjust_sptr ptr, off
-	.if (\off) > 0
-		s_add_u32 s[\ptr], s[\ptr], \off
-		s_addc_u32 s[1+\ptr], 0, s[1+\ptr]
-	.else
-		s_sub_u32 s[\ptr], s[\ptr], 0 - (\off)
-		s_subb_u32 s[1+\ptr], s[1+\ptr], 0
-	.endif
-.endm
-
-.macro m_buffer_load_dwordx size, dst, off, desc, ioff=0
+.macro m_buffer_load_dwordx size, dst, off, desc, soff, ioff=0
 	.if \size == 1
-		buffer_load_dword v[\dst], v[\off], s[\desc:\desc + 3], 0 offen offset:0+\ioff
+		buffer_load_dword v[\dst], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
 	.elseif \size == 2
-		buffer_load_dwordx2 v[\dst:\dst+\size-1], v[\off], s[\desc:\desc + 3], 0 offen offset:0+\ioff
+		buffer_load_dwordx2 v[\dst:\dst+\size-1], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
 	.elseif \size == 3
-		buffer_load_dwordx3 v[\dst:\dst+\size-1], v[\off], s[\desc:\desc + 3], 0 offen offset:0+\ioff
+		buffer_load_dwordx3 v[\dst:\dst+\size-1], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
 	.elseif \size == 4
-		buffer_load_dwordx4 v[\dst:\dst+\size-1], v[\off], s[\desc:\desc + 3], 0 offen offset:0+\ioff
+		buffer_load_dwordx4 v[\dst:\dst+\size-1], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
 	.endif
 .endm
 
 .macro m_conv_accums dwords
-	cx = 0
-	.rept c_mult
-		kx = 0
-		.rept k_mult
-			acc = accums + k_per_gpr * (cx * k_mult + kx)
-			base_in = lines_in + cx * \dwords
-			base_out = lines_out + kx * \dwords
-			i = 0
-			.rept \dwords
-				v_mac_f32 v[acc], v[base_out+i], v[base_in+i]
-				k = 0
-				.rept k_per_gpr - 1
-					k = k + 1
-					v_mac_f32 v[acc+k], v[base_out+i], v[base_in+i] row_ror: (k * (chunk_size * c_per_gpr / k_per_gpr)) % 16
+	rotates_inflight = 0
+	k_ds = 0
+	.rept k_ds_rotates
+		i = 0
+		.rept \dwords
+			kx = 0
+			.rept k_mult
+				base_out = lines_out + kx * read_size
+				
+				.if k_ds > 0
+					rotates_inflight = rotates_inflight - 1
+					s_wait , rotates_inflight
+				.endif
+				
+				cx = 0
+				.rept c_mult
+					base_in = lines_in + cx * read_size
+					acc = accums + k_per_gpr * (cx * k_mult + kx) + k_ds * k_dpp_rotates
+					v_mac_f32 v[acc], v[base_out+i], v[base_in+i]
+					k_dpp = 0
+					.rept k_dpp_rotates - 1
+						k_dpp = k_dpp + 1
+						v_mac_f32 v[acc+k_dpp], v[base_out+i], v[base_in+i] row_ror:16*k_dpp/k_dpp_rotates
+					.endr
+					cx = cx + 1
 				.endr
-				i = i + 1
+				
+				.if (k_ds + 1) < k_ds_rotates
+					static_assert (c_quads == 2 || c_quads == 4)
+					.if c_quads == 2
+						ds_swizzle_b32 v[base_out+i], v[base_out+i] offset:0xc200
+					.elseif c_quads == 4
+						ds_bpermute_b32 v[base_out+i], v[permute_addr], v[base_out+i]
+					.endif
+					rotates_inflight = rotates_inflight + 1
+				.endif
+				
+				kx = kx + 1
 			.endr
-			kx = kx + 1
+			i = i + 1
 		.endr
-		cx = cx + 1
+		k_ds = k_ds + 1
 	.endr
 .endm
 

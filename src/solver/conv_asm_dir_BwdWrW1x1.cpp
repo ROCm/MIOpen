@@ -36,6 +36,7 @@
 #include <miopen/generic_search.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_SEARCH_OPTIMIZED)
 
 namespace miopen {
 namespace solver {
@@ -50,6 +51,52 @@ inline static bool Inc_1_2_4_8_16(int& v)
     }
     v = v * 2;
     return false;
+}
+
+template <int first, int... others>
+inline static bool Is_From_Pack_c(int& v)
+{
+    return (v == first) || Is_From_Pack_c<others...>(v);
+}
+
+template <>
+inline bool Is_From_Pack_c<0, 0>(int&)
+{
+    return false;
+}
+
+template <int first, int... others>
+inline static bool Is_From_Pack(int& v)
+{
+    return Is_From_Pack_c<first, others..., 0, 0>(v);
+}
+
+template <int next, int... others>
+inline static bool Inc_pack_next(int& v)
+{
+    v = next;
+    return true;
+}
+
+template <int first, int... others>
+inline static bool Inc_pack_continue(int& v)
+{
+    return ((v == first) && Inc_pack_next<others...>(v)) || Inc_pack_continue<others...>(v);
+}
+
+template <>
+inline bool Inc_pack_continue<0, 0>(int&)
+{
+    return false;
+}
+
+template <int first, int... others>
+inline static bool Inc_pack(int& v)
+{
+    assert((Is_From_Pack<first, others...>(v)));
+    Inc_pack_continue<first, others..., first, 0, 0>(v);
+
+    return (v == first);
 }
 
 inline static bool Is_1_2_4_8_16(const int& v)
@@ -74,35 +121,114 @@ inline static bool Is_1_2_4(const int& v) { return v == 1 || v == 2 || v == 4; }
 bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
 {
     // Increment with wrap-around:
-    do
+    // select fast or full method
+    if(miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_SEARCH_OPTIMIZED{}))
     {
-        if(!Inc_1_2_4_8_16(c_per_gpr))
-            break;
-        if(!Inc_1_2_4_8_16(c_mult))
-            break;
-        if(!Inc_1_2_4_8_16(k_per_gpr))
-            break;
-        if(!Inc_1_2_4_8_16(k_mult))
-            break;
-        if(++read_size <= 4)
-            break;
-        read_size = 1;
-        if(!Inc_1_2_4(n_per_gpr))
-            break;
-        // All the fields (components) of performance confic have wrapped around.
-        return false;
-    } while(false);
+        do
+        {
+            if(++read_size <= 4)
+                break;
+            read_size = 1;
+            if(++n_part_cnt <= 8)
+                break;
+            n_part_cnt = 1;
+            if(!Inc_1_2_4_8_16(chunk_size))
+                break;
+            if(!Inc_1_2_4_8_16(c_per_gpr))
+                break;
+            if(!Inc_1_2_4_8_16(c_mult))
+                break;
+            if(!Inc_1_2_4_8_16(k_per_gpr))
+                break;
+            if(!Inc_1_2_4_8_16(k_mult))
+                break;
+            if(!Inc_1_2_4(n_per_gpr))
+                break;
+            // All the fields (components) of performance confic have wrapped around.
+            return false;
+        } while(false);
+    }
+    else
+    {
+        if(!use_spare_set) // first or second perfParam pack
+        {
+            // if SetNextValue executed from default class state
+            if((read_size == 1) && (c_per_gpr == 1) && (c_mult == 1) && (k_mult == 1) &&
+               (k_per_gpr == 1) && (chunk_size == 1) && (n_per_gpr == 1) && (n_part_cnt == 1))
+            {
+                read_size = 2;
+                c_per_gpr = 2;
+                c_mult    = 2;
+                k_per_gpr = 2;
+                k_mult    = 2;
+                return true;
+            }
+            do
+            {
+                if(!Inc_pack<2, 4>(read_size))
+                    break;
+                if(!Inc_pack<1, 2, 4, 8>(chunk_size))
+                    break;
+                if(!Inc_pack<2, 4, 8, 16>(c_per_gpr))
+                    break;
+                if(!Inc_pack<2, 4, 8, 16>(c_mult))
+                    break;
+                if(!Inc_pack<2, 4, 8>(k_per_gpr))
+                    break;
+                if(!Inc_pack<2, 4, 8>(k_mult))
+                    break;
+                if(!Inc_pack<1, 2>(n_per_gpr))
+                    break;
+                if(!Inc_pack<1, 2, 4, 8>(n_part_cnt))
+                    break;
+                return false;
+            } while(false);
+        }
+        else
+        {
+            do
+            {
+                if(!Inc_pack<1, 2, 4>(read_size))
+                    break;
+                if(!Inc_pack<1, 2, 4, 8>(chunk_size))
+                    break;
+                if(!Inc_pack<1, 2, 4, 8, 16>(c_per_gpr))
+                    break;
+                if(!Inc_pack<1, 2, 4, 8, 16>(c_mult))
+                    break;
+                if(!Inc_pack<1, 2, 4, 8>(k_per_gpr))
+                    break;
+                if(!Inc_pack<1, 2, 4, 8>(k_mult))
+                    break;
+                if(!Inc_pack<1, 2>(n_per_gpr))
+                    break;
+                if(!Inc_pack<1, 2, 4, 8>(n_part_cnt))
+                    break;
+                return false;
+            } while(false);
+        }
+    }
     return true;
 }
 
-PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(
-    int c_per_gpr_, int c_mult_, int k_per_gpr_, int k_mult_, int read_size_, int n_per_gpr_)
-    : c_per_gpr(c_per_gpr_),
+PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(int chunk_size_,
+                                                                     int c_per_gpr_,
+                                                                     int c_mult_,
+                                                                     int k_per_gpr_,
+                                                                     int k_mult_,
+                                                                     int n_per_gpr_,
+                                                                     int n_part_cnt_,
+                                                                     int read_size_,
+                                                                     bool use_spare_set_)
+    : chunk_size(chunk_size_),
+      c_per_gpr(c_per_gpr_),
       c_mult(c_mult_),
       k_per_gpr(k_per_gpr_),
       k_mult(k_mult_),
+      n_per_gpr(n_per_gpr_),
+      n_part_cnt(n_part_cnt_),
       read_size(read_size_),
-      n_per_gpr(n_per_gpr_)
+      use_spare_set(use_spare_set_)
 {
 }
 
@@ -110,12 +236,15 @@ inline bool PerformanceConfigConvAsmBwdWrW1x1::
 operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const
 {
     // clang-format off
-    return c_per_gpr == other.c_per_gpr
+    return chunk_size == other.chunk_size
+        && c_per_gpr == other.c_per_gpr
         && c_mult == other.c_mult
         && k_per_gpr == other.k_per_gpr
         && k_mult == other.k_mult
+        && n_per_gpr == other.n_per_gpr
+        && n_part_cnt == other.n_part_cnt
         && read_size == other.read_size
-        && n_per_gpr == other.n_per_gpr; // clang-format on
+        && use_spare_set == other.use_spare_set; // clang-format on
 }
 
 bool PerformanceConfigConvAsmBwdWrW1x1::IsValidValue() const
@@ -126,16 +255,26 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValidValue() const
         && Is_1_2_4_8_16(k_per_gpr)
         && Is_1_2_4_8_16(k_mult)
         && (1 <= read_size && read_size <= 4)
-        && Is_1_2_4(n_per_gpr); // clang-format on
+        && Is_1_2_4(n_per_gpr)
+        && (n_part_cnt >= 1 && n_part_cnt <= 8)
+        && Is_1_2_4(GetHWPerGpr())
+        && Is_1_2_4_8_16(chunk_size); // clang-format on
 }
 
 bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config) const
 {
+
     if(!IsValidValue())
         return false;
-    assert((GetChunkSize() * c_per_gpr) == 16);
+    if(!((chunk_size * c_per_gpr) >= 16 && ((chunk_size == 1 || c_per_gpr * chunk_size <= 16))))
+        return false;
+
     if(!(k_per_gpr <= c_per_gpr))
         return false;
+
+    if(!(c_per_gpr * n_per_gpr * GetHWPerGpr() * chunk_size == wave_size))
+        return false;
+
     if(c_mult > 1 || k_mult > 1)
     {
         assert(c_per_gpr * c_mult != 0);
@@ -145,9 +284,18 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
         if(!(config.n_inputs % (k_per_gpr * k_mult) == 0))
             return false;
     }
-    if(!(c_mult * k_mult * k_per_gpr + 9 + (c_mult + k_mult) * read_size * GetPipeDepth() <= 256))
+    int acc_gprs = c_mult * k_mult * k_per_gpr;
+    if(!(acc_gprs + 11 + (c_mult + k_mult) * read_size <= (n_part_cnt > 4 ? 128 : 256)))
     {
         return false;
+    }
+    if(n_part_cnt > 1)
+    {
+        int wave_size = 64;
+
+        int lds_size = ((n_part_cnt - 1) * wave_size * sizeof(float) * acc_gprs);
+        if(!(lds_size <= (1 << 16)))
+            return false;
     }
     return true;
 }
@@ -160,48 +308,85 @@ void PerformanceConfigConvAsmBwdWrW1x1::EuristicInit(const ConvolutionContext& c
     const auto c_k_256 = config.n_outputs * config.n_inputs / 256; // C*K/256
     if(c_k_256 < 2)
     {
-        c_per_gpr = 1;
-        c_mult    = 1;
-        k_per_gpr = 1;
-        k_mult    = 1;
+        c_per_gpr  = 1;
+        chunk_size = 16 / c_per_gpr;
+        c_mult     = 1;
+        k_per_gpr  = 1;
+        k_mult     = 1;
+        n_per_gpr  = 1;
+        n_part_cnt = 1;
+        read_size  = 1;
     }
     else if(c_k_256 < (2 * 4))
     {
-        c_per_gpr = 1;
-        c_mult    = 2;
-        k_per_gpr = 1;
-        k_mult    = 2;
+        c_per_gpr  = 1;
+        chunk_size = 16 / c_per_gpr;
+        c_mult     = 2;
+        k_per_gpr  = 1;
+        k_mult     = 2;
+        n_per_gpr  = 1;
+        n_part_cnt = 1;
+        read_size  = 1;
     }
     else if(c_k_256 < (2 * 4 * 4))
     {
-        c_per_gpr = 2;
-        c_mult    = 2;
-        k_per_gpr = 2;
-        k_mult    = 2;
+        c_per_gpr  = 2;
+        chunk_size = 16 / c_per_gpr;
+        c_mult     = 2;
+        k_per_gpr  = 2;
+        k_mult     = 2;
+        n_per_gpr  = 2;
+        n_part_cnt = 2;
+        read_size  = 2;
     }
     else if(c_k_256 < (2 * 4 * 4 * 4))
     {
-        c_per_gpr = 2;
-        c_mult    = 4;
-        k_per_gpr = 2;
-        k_mult    = 4;
+        c_per_gpr  = 2;
+        chunk_size = 16 / c_per_gpr;
+        c_mult     = 4;
+        k_per_gpr  = 2;
+        k_mult     = 4;
+        n_per_gpr  = 2;
+        n_part_cnt = 2;
+        read_size  = 4;
     }
     else
     {
-        c_per_gpr = 4;
-        c_mult    = 4;
-        k_per_gpr = 4;
-        k_mult    = 4;
+        c_per_gpr  = 2;
+        chunk_size = 16 / c_per_gpr;
+        c_mult     = 4;
+        k_per_gpr  = 2;
+        k_mult     = 4;
+        n_per_gpr  = 4;
+        n_part_cnt = 4;
+        read_size  = 4;
     }
 
     if(!IsValid(config))
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
-        c_per_gpr = 4;
-        c_mult    = 1;
-        k_per_gpr = 4;
-        k_mult    = 1;
-        assert(IsValid(config));
+
+        c_per_gpr  = 2;
+        chunk_size = 16 / c_per_gpr;
+        c_mult     = 1;
+        k_per_gpr  = 2;
+        k_mult     = 1;
+        n_per_gpr  = 1;
+        n_part_cnt = 1;
+        read_size  = 1;
+        if(!IsValid(config))
+        {
+            MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative 2-nd re-init...");
+            chunk_size = 1;
+            c_per_gpr  = 1;
+            c_mult     = 1;
+            k_per_gpr  = 1;
+            k_mult     = 1;
+            n_per_gpr  = 1;
+            n_part_cnt = 1;
+            read_size  = 1;
+            assert(IsValid(config));
+        }
     }
     MIOPEN_LOG_I(ToString());
 }
@@ -304,6 +489,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
                                            const PerformanceConfigConvAsmBwdWrW1x1& config,
                                            const bool disableConfigOverrideFromEnv) const
 {
+
     ConvSolution result;
     std::ostringstream options;
 
@@ -406,6 +592,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
     const PerformanceConfigConvAsmBwdWrW1x1* pcfg = &config;
     PerformanceConfigConvAsmBwdWrW1x1 fromEnv;
+
     if(!disableConfigOverrideFromEnv)
     {
         std::string s;
@@ -429,27 +616,28 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
             }
         }
     }
-    GenerateClangDefsym(options, "n_per_gpr", pcfg->GetNPerGpr());
-    GenerateClangDefsym(options, "pipe_depth", pcfg->GetPipeDepth());
+
+    GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
     GenerateClangDefsym(options, "c_per_gpr", pcfg->GetCPerGpr());
     GenerateClangDefsym(options, "c_mult", pcfg->GetCMult());
     GenerateClangDefsym(options, "k_per_gpr", pcfg->GetKPerGpr());
     GenerateClangDefsym(options, "k_mult", pcfg->GetKMult());
+    GenerateClangDefsym(options, "n_per_gpr", pcfg->GetNPerGpr());
+    GenerateClangDefsym(options, "n_part_cnt", pcfg->GetNPartCnt());
+    GenerateClangDefsym(options, "hw_per_gpr", pcfg->GetHWPerGpr());
     GenerateClangDefsym(options, "read_size", pcfg->GetReadSize());
-    GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
-    GenerateClangDefsym(options, "hw_per_gpr", pcfg->GetHwPerGpr());
 
     KernelInfo kernel;
 
     kernel.comp_options = options.str();
 
     kernel.l_wk.clear(); // workgroupsize
-    kernel.l_wk.push_back(64);
+    kernel.l_wk.push_back(64 * pcfg->GetNPartCnt());
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
     kernel.g_wk.clear(); // gridsize
-    kernel.g_wk.push_back(64);
+    kernel.g_wk.push_back(64 * pcfg->GetNPartCnt());
     kernel.g_wk.push_back(
         divide_round_plus_inf(params.n_outputs, pcfg->GetCPerGpr() * pcfg->GetCMult()));
     kernel.g_wk.push_back(
