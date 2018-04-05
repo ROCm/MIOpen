@@ -29,6 +29,9 @@ namespace miopen {
 
 LockFile& LockFile::Get(const char* path)
 {
+    static std::mutex mutex;
+    std::lock_guard<std::mutex> lock(mutex);
+
     { // To guarantee that construction won't be called if not required.
         auto found = LockFiles().find(path);
 
