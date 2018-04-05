@@ -208,7 +208,7 @@ bool mloPoolingForwardRunHostAndVerify(int pooling_method,
                     _Tgpu gg_val = (top_ptr[b * top_batch_stride + o * top_channel_stride +
                                             j * top_stride + i]);
 
-                    gg_val = (gg_val == -G_MAX_VAL) ? 0 : gg_val;
+                    gg_val = (_Tgpu(gg_val) == _Tgpu(-G_MAX_VAL)) ? _Tgpu(0) : _Tgpu(gg_val);
 
                     c_val = (c_val == -MAX_VAL) ? 0 : c_val;
 
