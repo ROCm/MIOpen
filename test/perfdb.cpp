@@ -1041,7 +1041,7 @@ class DbMultiFileMultiThreadedReadTest : public DbMultiFileTest
 public:
     inline void Run() const
     {
-        std::cout << "Testing db for multithreaded read access..." << std::endl;
+        std::cout << "Testing db for multifile multithreaded read access..." << std::endl;
 
         std::mutex mutex;
         std::vector<std::thread> threads;
@@ -1068,6 +1068,47 @@ public:
         std::cout << "Waiting for test threads..." << std::endl;
         for (auto& thread : threads)
             thread.join();
+    }
+};
+
+class DbMultiFileMultiThreadedTest : public DbMultiFileTest
+{
+public:
+    static constexpr const char* logs_path_arg = "thread-logs-root";
+
+    inline void Run() const
+    {
+        std::cout << "Testing db for multifile multithreaded write access..." << std::endl;
+
+        ResetDb();
+        std::mutex mutex;
+        std::vector<std::thread> threads;
+
+        std::cout << "Initializing test data..." << std::endl;
+        DBMultiThreadedTestWork::Initialize();
+
+        std::cout << "Launching test threads..." << std::endl;
+        threads.reserve(DBMultiThreadedTestWork::threads_count);
+        const std::string p = temp_file;
+        const auto up = user_db_path;
+        const auto c = [&p, &up]() { return MultiFileDb(p, up); };
+
+        {
+            std::unique_lock<std::mutex> lock(mutex);
+
+            for (auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+                threads.emplace_back([c, &mutex, i]() {
+                (void)std::unique_lock<std::mutex>(mutex);
+                DBMultiThreadedTestWork::WorkItem(i, c, "mt");
+            });
+        }
+
+        std::cout << "Waiting for test threads..." << std::endl;
+        for (auto& thread : threads)
+            thread.join();
+
+        std::cout << "Validation results..." << std::endl;
+        DBMultiThreadedTestWork::ValidateCommonPart(c);
     }
 };
 
@@ -1110,6 +1151,7 @@ public:
         {
             DbMultiThreadedTest().Run();
             DbMultiProcessTest().Run();
+            DbMultiFileMultiThreadedTest().Run();
         }
     }
 
