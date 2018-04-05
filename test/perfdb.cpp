@@ -57,7 +57,9 @@ static boost::filesystem::path& exe_path()
 
 static boost::optional<std::string>& thread_logs_root()
 {
-    static boost::optional<std::string> path = boost::none;
+    static std::mutex mutex;
+    std::lock_guard<std::mutex> lock(mutex);
+    static boost::optional<std::string> path(boost::none);
     return path;
 }
 
@@ -83,7 +85,8 @@ struct TestData
     };
 
     inline TestData(NoInit) : x(0), y(0) {}
-    inline TestData() : x(Rnd().Next()), y(Rnd().Next()) {}
+    inline TestData(Random& rnd) : x(rnd.Next()), y(rnd.Next()) {}
+    inline TestData() : TestData(Rnd()) {}
     inline TestData(int x_, int y_) : x(x_), y(y_) {}
 
     template <unsigned int seed>
@@ -692,7 +695,7 @@ class DBMultiThreadedTestWork
                 static std::mutex mutex;
                 std::lock_guard<std::mutex> lock(mutex);
 
-                data = TestData{};
+                data = TestData(rnd);
             }
 
             db_getter().Update(std::to_string(key), std::to_string(id), data);
@@ -775,6 +778,7 @@ class DbMultiThreadedReadTest : public DbTest
         std::cout << "Initializing test data..." << std::endl;
         const std::string p = temp_file;
         const auto c = [&p]() { return Db(p); };
+        ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
 
         std::cout << "Launching test threads..." << std::endl;
@@ -1050,6 +1054,7 @@ public:
         const std::string p = temp_file;
         const auto& up = user_db_path;
         const auto c = [&p, up]() { return MultiFileDb(p, up); };
+        ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
 
         std::cout << "Launching test threads..." << std::endl;
