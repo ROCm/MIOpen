@@ -2348,7 +2348,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                                                        network_config);
                     if(kernels.empty())
                         MIOPEN_THROW("No kernels found");
-                    auto kernel            = kernels.front();
+                    auto kernel = kernels.front();
 
                     handle.ResetKernelTime();
 
