@@ -526,7 +526,7 @@ class DBMultiThreadedTestWork
     static inline void
     WorkItem(unsigned int id, const TDbConstructor& db_constructor, const std::string& log_postfix)
     {
-        RegirrectLogs(id, log_postfix, [id, &db_constructor]() {
+        RedirectLogs(id, log_postfix, [id, &db_constructor]() {
             CommonPart(db_constructor);
             UniquePart(id, db_constructor);
         });
@@ -536,7 +536,7 @@ class DBMultiThreadedTestWork
     static inline void
     ReadWorkItem(unsigned int id, const TDbConstructor& db_constructor, const std::string& log_postfix)
     {
-        RegirrectLogs(id, log_postfix, [&db_constructor]() { ReadCommonPart(db_constructor); });
+        RedirectLogs(id, log_postfix, [&db_constructor]() { ReadCommonPart(db_constructor); });
     }
 
     template <class TDbConstructor>
@@ -567,7 +567,7 @@ class DBMultiThreadedTestWork
     private:
     template <class TWorker>
     static inline void
-    RegirrectLogs(unsigned int id, const std::string& log_postfix, const TWorker& worker)
+    RedirectLogs(unsigned int id, const std::string& log_postfix, const TWorker& worker)
     {
         std::ofstream log;
         std::ofstream log_err;
