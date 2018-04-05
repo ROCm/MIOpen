@@ -1126,6 +1126,9 @@ public:
 
     void run() const
     {
+        if (!logs_root.empty())
+            thread_logs_root() = logs_root;
+
         if (mt_child_id >= 0)
         {
             DbMultiProcessTest::WorkItem(
