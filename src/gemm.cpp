@@ -26,6 +26,7 @@
 #include <miopen/gemm.hpp>
 #include <miopen/handle.hpp>
 
+#if MIOPEN_USE_MIOPENGEMM
 namespace miopen {
 
 GemmGeometry CreateGemmGeometryTranBwdData(const TensorDescriptor& dyDesc,
@@ -449,3 +450,4 @@ void RunGemmGeometryRNN(Handle& handle,
 }
 
 } // namespace miopen
+#endif // MIOPEN_USE_MIOPENGEMM
