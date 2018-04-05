@@ -2346,22 +2346,23 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
                     auto&& kernels = handle.GetKernels("miopenConvolutionBwdWeightsAlgoDirect_Main",
                                                        network_config);
-                    const auto num_kernels = kernels.size();
-                    auto p_kernel          = std::begin(kernels);
-                    auto kernel            = *p_kernel;
+                    if(kernels.empty())
+                        MIOPEN_THROW("No kernels found");
+                    auto kernel = kernels.front();
 
                     handle.ResetKernelTime();
 
                     if((kernel.GetName() == "gcnAsmConv3x3WrW") ||
                        (kernel.GetName() == "gcnAsmConv1x1WrW"))
                     {
+                        assert(kernels.size() == 1);
                         int unused       = 0;
                         int* return_addr = nullptr;
                         int N, C, H, W, K, n_groups;
                         construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
                         kernel(N, C, H, W, K, n_groups, unused, unused, x, dw, dy, return_addr);
                     }
-                    else if(num_kernels == 1)
+                    else if(kernels.size() == 1)
                     {
                         float padding_val = 0;
                         kernel(dy, x, dw, as_float(padding_val));
@@ -2369,6 +2370,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     else
                     {
 
+                        assert(kernels.size() > 1);
                         // this pointer needed here as a workaround in gcc 5
                         assert(workSpace != nullptr &&
                                workSpaceSize >= this->BackwardWeightsGetWorkSpaceSizeDirect(
@@ -2381,7 +2383,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                             float time0 = handle.GetKernelTime();
 
                             // wrw  kernel
-                            auto kernel2 = *(p_kernel + 1);
+                            auto kernel2 = kernels[1];
                             if(kernel2.GetName() == "gcnAsmConv1x1WrW")
                             {
                                 int unused       = 0;
@@ -2419,7 +2421,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
                             float time0 = handle.GetKernelTime();
                             // second kernel has
-                            auto kernel2 = *(p_kernel + 1);
+                            auto kernel2 = kernels[1];
                             // reduction  kernel
                             kernel2(workSpace, dw);
 
