@@ -476,7 +476,7 @@ int PoolDriver<Tgpu, Tref>::VerifyForward()
 
     int pooling_method = (mode == miopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 
-    const Tref tolerance = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 8) ? 1e-6 : 1e-4;
+    const Tref tolerance = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 8) ? 1e-6 : 1e-3;
     bool match           = mloPoolingForwardRunHostAndVerify<Tgpu, Tref>(pooling_method,
                                                                pad_h,
                                                                u,
