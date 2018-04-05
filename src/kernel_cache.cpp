@@ -49,6 +49,11 @@
 namespace miopen {
 
 #ifndef NDEBUG
+static std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
+{
+    return LogRange(os, v, ",");
+}
+
 static void dump_kernel_params(const std::string& program_name,
                                const std::string& kernel_name,
                                const std::vector<size_t>& vld,
@@ -89,11 +94,18 @@ static void dump_kernel_params(const std::string& program_name,
     int msize = value[0] * value[1] * value[2] * value[3];
     int isize = value[4] * value[2] * value[5] * value[6];
     int osize = value[4] * value[3] * value[7] * value[8];
-    std::cout << "runcl " << params << " src/Kernels/" << program_name << " -k " << kernel_name
-              << " -dumpilisa -r 10"
-              << " if#" << isize * 4 << ": if#" << msize * 4 << ": if#" << osize * 4 << ": iv#0 ";
-    miopen::LogRange(std::cout, vgd, ",") << "/";
-    miopen::LogRange(std::cout, vld, ",") << std::endl;
+    MIOPEN_LOG_I2("runcl " << params << " src/Kernels/" << program_name << " -k " << kernel_name
+                           << " -dumpilisa -r 10"
+                           << " if#"
+                           << isize * 4
+                           << ": if#"
+                           << msize * 4
+                           << ": if#"
+                           << osize * 4
+                           << ": iv#0 "
+                           << vgd
+                           << "/"
+                           << vld);
 }
 #endif
 
@@ -103,7 +115,7 @@ const std::vector<Kernel>& KernelCache::GetKernels(const std::string& algorithm,
 
     std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
 #ifndef NDEBUG
-    std::cout << "key: " << key.first << " " << key.second << std::endl;
+    MIOPEN_LOG_I("Key: " << key.first << " \"" << key.second << '\"');
 #endif
 
     return kernel_map[key];
@@ -134,7 +146,7 @@ Kernel KernelCache::AddKernel(Handle& h,
 
     std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
 #ifndef NDEBUG
-    std::cout << "key: " << key.first << ',' << key.second << std::endl;
+    MIOPEN_LOG_I("Key: " << key.first << " \"" << key.second << '\"');
 #endif
 
     Program program;
@@ -146,10 +158,10 @@ Kernel KernelCache::AddKernel(Handle& h,
     }
     else
     {
-        bool is_kernel_str = algorithm.find("GEMM") != std::string::npos;
+        const bool is_kernel_str = algorithm.find("GEMM") != std::string::npos;
 #ifndef NDEBUG
-        if(is_kernel_str == false)
-            std::cout << "Kernel filename: " << program_name << "\n";
+        if(!is_kernel_str)
+            MIOPEN_LOG_I2("File: " << program_name);
 #endif
         program = h.LoadProgram(program_name, params, is_kernel_str);
         program_map[std::make_pair(program_name, params)] = program;
