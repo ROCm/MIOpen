@@ -165,7 +165,7 @@ if(BUILD_DEV)
 else()
     set(MIOPEN_BUILD_DEV 0)
     set(MIOPEN_DB_PATH "${CMAKE_INSTALL_PREFIX}/${DATA_INSTALL_DIR}/db" CACHE PATH "Default path to search for installed db")
-    set(MIOPEN_USER_DB_PATH "~/.miopen/perfdb/" CACHE PATH "Default path to search for user db")
+    set(MIOPEN_USER_DB_PATH "~/.config/miopen/perfdb" CACHE PATH "Default path to search for user db")
     set(MIOPEN_CACHE_DIR "~/.cache/miopen/" CACHE STRING "")
 endif()
 
