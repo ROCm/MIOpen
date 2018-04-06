@@ -211,7 +211,7 @@ static inline void dppSimpleRedBcast64(_FLOAT* value)
 #define MIO_BN_SNHW (MIO_BN_NLOOPM * MIO_BN_SEGIHW)
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
+MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                          __global _FLOAT* __restrict out,
                          __constant _FLOAT* __restrict scale,
                          __constant _FLOAT* __restrict bias,
@@ -388,7 +388,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #define MIO_BN_LESS (MIO_BN_NHW - MIO_BN_REM)
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
+MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                          __global _FLOAT* __restrict out,
                          __constant _FLOAT* __restrict scale,
                          __constant _FLOAT* __restrict bias,
@@ -579,7 +579,7 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #elif(MIO_BN_VARIANT == 2) // MULTI-KERNEL reduction for > 33M elements
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
+MIOpenBatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
                              __global _FLOAT* __restrict out,
                              const __global _FLOAT* __restrict scale,
                              const __global _FLOAT* __restrict bias)
@@ -629,7 +629,7 @@ BatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
 } // end spatial norm
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormFwdTrainSpatialFinalMeanVariance(
+MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
     __global _FLOAT* __restrict meanvarbuff,
     _FLOAT INHW
 #if(MIO_RUNNING_RESULT == 1)
@@ -780,7 +780,7 @@ BatchNormFwdTrainSpatialFinalMeanVariance(
 }
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormFwdTrainSpatialMeanVariance(const __global _FLOAT* __restrict in,
+MIOpenBatchNormFwdTrainSpatialMeanVariance(const __global _FLOAT* __restrict in,
                                      __global _FLOAT* __restrict mvbuff)
 {
 
@@ -869,7 +869,7 @@ BatchNormFwdTrainSpatialMeanVariance(const __global _FLOAT* __restrict in,
 
 // This kernel implies the image is greater than a wavefront, but smaller than 257
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
+MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                          __global _FLOAT* __restrict out,
                          __constant _FLOAT* __restrict scale,
                          __constant _FLOAT* __restrict bias,
