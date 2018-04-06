@@ -141,8 +141,8 @@ int SoftmaxDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
-    inflags.AddInputFlag("alpha", 'A', "1.0", "Softmax shift (Default=0.0)", "double");
-    inflags.AddInputFlag("beta", 'B', "0.0", "Softmax scale (Default=0.0)", "double");
+    inflags.AddInputFlag("alpha", 'A', "1.0", "Softmax shift (Default=1.0)", "float");
+    inflags.AddInputFlag("beta", 'B', "0.0", "Softmax scale (Default=0.0)", "float");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -222,7 +222,7 @@ template <typename Tgpu, typename Tref>
 int SoftmaxDriver<Tgpu, Tref>::RunForwardGPU()
 {
 
-    Tgpu alpha = static_cast<Tgpu>(1), beta = static_cast<Tgpu>(0);
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     miopenSoftmaxForward(
         GetHandle(), &alpha, inputTensor, in_dev->GetMem(), &beta, outputTensor, out_dev->GetMem());
@@ -267,7 +267,7 @@ int SoftmaxDriver<Tgpu, Tref>::RunForwardCPU()
 template <typename Tgpu, typename Tref>
 int SoftmaxDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    Tgpu alpha = static_cast<Tgpu>(1), beta = static_cast<Tgpu>(0);
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     miopenSoftmaxBackward(GetHandle(),
                           &alpha,

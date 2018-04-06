@@ -29,6 +29,7 @@
 #include <array>
 #include <iostream>
 #include <miopen/each_args.hpp>
+#include <sstream>
 #include <type_traits>
 
 // Helper macros to output a cmdline argument for the driver
@@ -239,14 +240,16 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 #define MIOPEN_LOG_FUNCTION(...)
 #endif
 
-#define MIOPEN_LOG(level, ...)                                                                  \
-    do                                                                                          \
-    {                                                                                           \
-        if(miopen::IsLogging(level))                                                            \
-        {                                                                                       \
-            std::cerr << miopen::PlatformName() << ": " << LoggingLevelToCString(level) << " [" \
-                      << __func__ << "] " << __VA_ARGS__ << std::endl;                          \
-        }                                                                                       \
+#define MIOPEN_LOG(level, ...)                                                                 \
+    do                                                                                         \
+    {                                                                                          \
+        if(miopen::IsLogging(level))                                                           \
+        {                                                                                      \
+            std::stringstream miopen_log_ss; /* long name to avoid "shadowing name" warning */ \
+            miopen_log_ss << miopen::PlatformName() << ": " << LoggingLevelToCString(level)    \
+                          << " [" << __func__ << "] " << __VA_ARGS__ << std::endl;             \
+            std::cerr << miopen_log_ss.str();                                                  \
+        }                                                                                      \
     } while(false)
 
 #define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
@@ -255,18 +258,22 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 #define MIOPEN_LOG_I2(...) MIOPEN_LOG(miopen::LoggingLevel::Info2, __VA_ARGS__)
 
 // For use within lambdas only.
-#define MIOPEN_LAMBDA_LOG(level, ...)                                                            \
-    do                                                                                           \
-    {                                                                                            \
-        if(miopen::IsLogging(level))                                                             \
-        {                                                                                        \
-            const std::string pretty_function{__PRETTY_FUNCTION__};                              \
-            const std::string pretty_function_tail{                                              \
-                pretty_function.substr(0, pretty_function.find_first_of('('))};                  \
-            std::cerr << miopen::PlatformName() << ": " << LoggingLevelToCString(level) << " ["  \
-                      << pretty_function_tail.substr(1 + pretty_function_tail.find_last_of(':')) \
-                      << "] " << __VA_ARGS__ << std::endl;                                       \
-        }                                                                                        \
+#define MIOPEN_LAMBDA_LOG(level, ...)                                                             \
+    do                                                                                            \
+    {                                                                                             \
+        if(miopen::IsLogging(level))                                                              \
+        {                                                                                         \
+            const std::string pretty_function{__PRETTY_FUNCTION__};                               \
+            const std::string pretty_function_tail{                                               \
+                pretty_function.substr(0, pretty_function.find_first_of('('))};                   \
+            std::stringstream miopen_llog_ss;                                                     \
+            miopen_llog_ss << miopen::PlatformName() << ": " << LoggingLevelToCString(level)      \
+                           << " ["                                                                \
+                           << pretty_function_tail.substr(1 +                                     \
+                                                          pretty_function_tail.find_last_of(':')) \
+                           << "] " << __VA_ARGS__ << std::endl;                                   \
+            std::cerr << miopen_llog_ss.str();                                                    \
+        }                                                                                         \
     } while(false)
 
 #define MIOPEN_LLOG_E(...) MIOPEN_LAMBDA_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)

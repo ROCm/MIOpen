@@ -38,6 +38,7 @@
 #include <float.h>
 #include <memory>
 #include <miopen/miopen.h>
+#include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>
@@ -93,9 +94,9 @@ class BatchNormDriver : public Driver
     int RunBackwardGPU();
     int RunBackwardCPU();
 
-    void runGPUFwdInference(Tref epsilon, Tgpu alpha, Tgpu beta);
-    void runGPUFwdTrain(Tref epsilon, Tref eAF, Tgpu alpha, Tgpu beta);
-    void runGPUBwd(Tref epsilon, Tgpu alpha, Tgpu beta);
+    void runGPUFwdInference(Tref epsilon, float alpha, float beta);
+    void runGPUFwdTrain(Tref epsilon, Tref eAF, float alpha, float beta);
+    void runGPUBwd(Tref epsilon, float alpha, float beta);
 
     void runCPUFwdInference(Tref epsilon, int batch_sz, int channels, int height, int width);
     void runCPUFwdTrain(Tref epsilon, Tref eAF, int batch_sz, int channels, int height, int width);
@@ -245,8 +246,8 @@ int BatchNormDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
-    inflags.AddInputFlag("alpha", 'A', "1.0", "Alpha (Default=1.0)", "double");
-    inflags.AddInputFlag("beta", 'B', "0.", "Beta (Default=0.)", "double");
+    inflags.AddInputFlag("alpha", 'A', "1.0", "Alpha (Default=1.0)", "float");
+    inflags.AddInputFlag("beta", 'B', "0.", "Beta (Default=0.)", "float");
     inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -617,7 +618,7 @@ int BatchNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 }
 
 template <typename Tgpu, typename Tref>
-void BatchNormDriver<Tgpu, Tref>::runGPUFwdInference(Tref epsilon, Tgpu alpha, Tgpu beta)
+void BatchNormDriver<Tgpu, Tref>::runGPUFwdInference(Tref epsilon, float alpha, float beta)
 {
 
     if(keepRunningMeanVar)
@@ -659,7 +660,7 @@ void BatchNormDriver<Tgpu, Tref>::runGPUFwdInference(Tref epsilon, Tgpu alpha, T
 }
 
 template <typename Tgpu, typename Tref>
-void BatchNormDriver<Tgpu, Tref>::runGPUFwdTrain(Tref epsilon, Tref eAF, Tgpu alpha, Tgpu beta)
+void BatchNormDriver<Tgpu, Tref>::runGPUFwdTrain(Tref epsilon, Tref eAF, float alpha, float beta)
 {
     if(saveMeanVar && keepRunningMeanVar)
     {
@@ -767,7 +768,7 @@ template <typename Tgpu, typename Tref>
 int BatchNormDriver<Tgpu, Tref>::RunForwardGPU()
 {
 
-    Tgpu alpha = static_cast<Tgpu>(1), beta = static_cast<Tgpu>(0);
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
     Tref epsilon = static_cast<Tref>(EPSILON);
     Tref eAF     = static_cast<Tref>(1.0);
 
@@ -790,14 +791,20 @@ int BatchNormDriver<Tgpu, Tref>::RunForwardGPU()
         }
         else if(forw == 2)
         { // inference only
+            // printf("Running for inference.\n");
             runGPUFwdInference(epsilon, alpha, beta);
+        }
+        else if(forw == 0)
+        {
+            return miopenStatusSuccess;
         }
         else
         {
-            // printf("Batch normalization mode forward GPU selection out of range, skipping.\n");
-            return miopenStatusSuccess;
+            printf("Batch normalization mode forward GPU selection out of range, skipping.\n");
+            return miopenStatusNotImplemented;
         }
 
+        miopen::deref(GetHandle()).Finish();
         STOP_TIME;
         if(WALL_CLOCK)
         {
@@ -805,6 +812,7 @@ int BatchNormDriver<Tgpu, Tref>::RunForwardGPU()
                 fulltime += t.gettime_ms();
             else if(iters == 1)
                 fulltime = t.gettime_ms();
+            // else do nothing, drop the first iteration
         }
 
         if(inflags.GetValueStr("time") == "1")
@@ -819,16 +827,19 @@ int BatchNormDriver<Tgpu, Tref>::RunForwardGPU()
 
     if(WALL_CLOCK)
     {
-        printf("Wall-clock Time Forward GPU Batch Norm Elapsed: %f ms\n",
-               (iters > 1) ? t.gettime_ms() : (fulltime / float(iters)));
+        printf("Wall-clock Time Forward GPU Batch Norm Elapsed: %f ms, for %d iterations.\n",
+               (iters == 1) ? t.gettime_ms() : (fulltime / float(iters - 1)),
+               (iters > 1) ? iters - 1 : 1);
     }
 
     if(inflags.GetValueStr("time") == "1")
     {
         printf("GPU Kernel Min Time Forward Batch Normalization Elapsed: %f ms\n", lowtime);
         if(iters > 1)
-            printf("GPU Kernel Avg Time Forward Batch Normalization Elapsed: %f ms\n",
-                   avgtime / (iters - 1));
+            printf("GPU Kernel Avg Time Forward Batch Normalization Elapsed: %f ms, for %d "
+                   "iterations.\n",
+                   avgtime / (iters - 1),
+                   iters - 1);
     }
     return miopenStatusSuccess;
 }
@@ -974,8 +985,8 @@ int BatchNormDriver<Tgpu, Tref>::RunBackwardGPU()
     if(!back)
         return miopenStatusSuccess;
 
-    Tgpu alphaDataDiff = static_cast<Tgpu>(1), betaDataDiff = static_cast<Tgpu>(0);
-    Tgpu alphaParamDiff = static_cast<Tgpu>(1), betaParamDiff = static_cast<Tgpu>(0);
+    float alphaDataDiff = static_cast<float>(1), betaDataDiff = static_cast<float>(0);
+    float alphaParamDiff = static_cast<float>(1), betaParamDiff = static_cast<float>(0);
     Tref epsilon = static_cast<Tref>(EPSILON);
 
     Timer t;
@@ -1032,6 +1043,8 @@ int BatchNormDriver<Tgpu, Tref>::RunBackwardGPU()
                                              nullptr,
                                              nullptr);
         }
+
+        miopen::deref(GetHandle()).Finish();
         STOP_TIME;
         if(WALL_CLOCK)
         {
@@ -1054,7 +1067,7 @@ int BatchNormDriver<Tgpu, Tref>::RunBackwardGPU()
     if(WALL_CLOCK)
     {
         printf("Wall-clock Time Backward GPU Batch Norm Elapsed: %f ms\n",
-               (iters > 1) ? t.gettime_ms() : (fulltime / float(iters)));
+               (iters == 1) ? t.gettime_ms() : (fulltime / float(iters - 1)));
     }
     if(inflags.GetValueStr("time") == "1")
     {
@@ -1075,10 +1088,14 @@ int BatchNormDriver<Tgpu, Tref>::VerifyForward()
     if(!forw)
         return miopenStatusSuccess;
 
+    const Tref maxrms = static_cast<Tref>((sizeof(Tgpu) == 4) ? RMSTOL_FP32 : RMSTOL_FP16);
+
+#if(MIO_BN_DEBUG == 1)
     const Tref tolerance = static_cast<Tref>(ERRTOL);
-    const Tref maxrms    = static_cast<Tref>((sizeof(Tgpu) == 4) ? RMSTOL_FP32 : RMSTOL_FP16);
     Tref diff            = static_cast<Tref>(0.);
-    bool anError         = false;
+#endif
+
+    bool anError = false;
 
     RunForwardCPU();
 
@@ -1158,7 +1175,7 @@ int BatchNormDriver<Tgpu, Tref>::VerifyForward()
                 std::cout << "Forward train batch norm verification failed on saved mean: "
                           << errorSaveMean << "\n";
                 anError = true;
-                //#if(MIO_BN_DEBUG == 1)
+#if(MIO_BN_DEBUG == 1)
                 for(int i = 0;
                     i < saveMean.size() && i < saveMean_host.size() && i < MIO_BN_MAX_DEBUGLOOP;
                     i++)
@@ -1174,7 +1191,7 @@ int BatchNormDriver<Tgpu, Tref>::VerifyForward()
                                   << std::endl;
                     }
                 }
-                //#endif
+#endif
                 std::cout << "max difference in saved mean: " << maxval << std::endl;
             }
             else
