@@ -44,6 +44,7 @@
 .macro static_assert fufufu
 	.if !\fufufu
 		.error "\fufufu is false"
+		.end
 	.endif
 .endm
 

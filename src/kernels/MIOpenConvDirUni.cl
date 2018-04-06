@@ -418,7 +418,9 @@ static inline void Conv(uint o_map_base,
 #endif
                         for(uint i = 0; i < MLO_OUT_TILE0; ++i)
                         {
+#if MLO_DIR_FORWARD == 1
                             _FLOAT sum = (_FLOAT)0;
+#endif
                             for(uint l = 0; l < MLO_FILTER_SIZE0; ++l)
                             {
 
@@ -433,6 +435,8 @@ static inline void Conv(uint o_map_base,
 #endif
 
 #if MLO_DIR_FORWARD == 1
+                                // Directly accumulating to `pvt_accum` here sometimes results in
+                                // validation error for half precision.
                                 sum += pvt_in_stage[j * MLO_PVT_IN_WIDTH * MLO_FILTER_STRIDE1 +
                                                     i * MLO_FILTER_STRIDE0 + l] *
                                        pvt_wei_stage[l_act];
@@ -441,13 +445,17 @@ static inline void Conv(uint o_map_base,
                                  (MLO_FILTER_SIZE0 % MLO_FILTER_STRIDE0)) %
                                 MLO_FILTER_STRIDE0) == 0)
                             {
-                                sum += pvt_in_stage[(j / MLO_FILTER_STRIDE1) * MLO_PVT_IN_WIDTH +
-                                                    (i + l) / MLO_FILTER_STRIDE0] *
-                                       pvt_wei_stage[l_act];
+                                pvt_accum[(o_c * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i] +=
+                                    pvt_in_stage[(j / MLO_FILTER_STRIDE1) * MLO_PVT_IN_WIDTH +
+                                                 (i + l) / MLO_FILTER_STRIDE0] *
+                                    pvt_wei_stage[l_act];
                             }
 #endif
                             }
+#if MLO_DIR_FORWARD == 1
+                            // Only needed for forward to fix validation errors on half precision.
                             pvt_accum[(o_c * MLO_OUT_TILE1 + j) * MLO_OUT_TILE0 + i] += sum;
+#endif
                         }
                 }
 
