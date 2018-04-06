@@ -212,22 +212,22 @@ static inline void dppSimpleRedBcast64(_FLOAT* value)
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
-                         __global _FLOAT* __restrict out,
-                         __constant _FLOAT* __restrict scale,
-                         __constant _FLOAT* __restrict bias,
-                         _FLOAT INHW,
+                               __global _FLOAT* __restrict out,
+                               __constant _FLOAT* __restrict scale,
+                               __constant _FLOAT* __restrict bias,
+                               _FLOAT INHW,
 #if(MIO_RUNNING_RESULT == 1)
-                         double expAvgFactor,
-                         __global _FLOAT* __restrict resultRunningMean,
-                         __global _FLOAT* __restrict resultRunningVariance,
+                               double expAvgFactor,
+                               __global _FLOAT* __restrict resultRunningMean,
+                               __global _FLOAT* __restrict resultRunningVariance,
 #endif
-                         double epsilon
+                               double epsilon
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-                         ,
-                         __global _FLOAT* __restrict resultSaveMean,
-                         __global _FLOAT* __restrict resultSaveInvVariance
+                               ,
+                               __global _FLOAT* __restrict resultSaveMean,
+                               __global _FLOAT* __restrict resultSaveInvVariance
 #endif
-                         )
+                               )
 {
 
     // SPATIAL
@@ -389,22 +389,22 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
-                         __global _FLOAT* __restrict out,
-                         __constant _FLOAT* __restrict scale,
-                         __constant _FLOAT* __restrict bias,
-                         _FLOAT INHW,
+                               __global _FLOAT* __restrict out,
+                               __constant _FLOAT* __restrict scale,
+                               __constant _FLOAT* __restrict bias,
+                               _FLOAT INHW,
 #if(MIO_RUNNING_RESULT == 1)
-                         double expAvgFactor,
-                         __global _FLOAT* __restrict resultRunningMean,
-                         __global _FLOAT* __restrict resultRunningVariance,
+                               double expAvgFactor,
+                               __global _FLOAT* __restrict resultRunningMean,
+                               __global _FLOAT* __restrict resultRunningVariance,
 #endif
-                         double epsilon
+                               double epsilon
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-                         ,
-                         __global _FLOAT* __restrict resultSaveMean,
-                         __global _FLOAT* __restrict resultSaveInvVariance
+                               ,
+                               __global _FLOAT* __restrict resultSaveMean,
+                               __global _FLOAT* __restrict resultSaveInvVariance
 #endif
-                         )
+                               )
 {
 
     // SPATIAL
@@ -580,9 +580,9 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
-                             __global _FLOAT* __restrict out,
-                             const __global _FLOAT* __restrict scale,
-                             const __global _FLOAT* __restrict bias)
+                                   __global _FLOAT* __restrict out,
+                                   const __global _FLOAT* __restrict scale,
+                                   const __global _FLOAT* __restrict bias)
 {
 
     // SPATIAL
@@ -781,7 +781,7 @@ MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormFwdTrainSpatialMeanVariance(const __global _FLOAT* __restrict in,
-                                     __global _FLOAT* __restrict mvbuff)
+                                           __global _FLOAT* __restrict mvbuff)
 {
 
     __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
@@ -870,22 +870,22 @@ MIOpenBatchNormFwdTrainSpatialMeanVariance(const __global _FLOAT* __restrict in,
 // This kernel implies the image is greater than a wavefront, but smaller than 257
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
-                         __global _FLOAT* __restrict out,
-                         __constant _FLOAT* __restrict scale,
-                         __constant _FLOAT* __restrict bias,
-                         _FLOAT INHW,
+                               __global _FLOAT* __restrict out,
+                               __constant _FLOAT* __restrict scale,
+                               __constant _FLOAT* __restrict bias,
+                               _FLOAT INHW,
 #if(MIO_RUNNING_RESULT == 1)
-                         double expAvgFactor,
-                         __global _FLOAT* __restrict resultRunningMean,
-                         __global _FLOAT* __restrict resultRunningVariance,
+                               double expAvgFactor,
+                               __global _FLOAT* __restrict resultRunningMean,
+                               __global _FLOAT* __restrict resultRunningVariance,
 #endif
-                         double epsilon
+                               double epsilon
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-                         ,
-                         __global _FLOAT* __restrict resultSaveMean,
-                         __global _FLOAT* __restrict resultSaveInvVariance
+                               ,
+                               __global _FLOAT* __restrict resultSaveMean,
+                               __global _FLOAT* __restrict resultSaveInvVariance
 #endif
-                         )
+                               )
 {
 
     // SPATIAL
