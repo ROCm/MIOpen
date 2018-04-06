@@ -31,6 +31,7 @@
 #define EIGHT 8
 
 #if MIOPEN_USE_FP16 == 1
+#define MIO_BN_NODPP 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
 #ifndef HALF_MAX
@@ -53,16 +54,12 @@
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 #define _AS_FLOAT PPCAT(as_, _FLOAT)
 
+#ifndef MIO_BN_LDSGCN_SIZE
+#define MIO_BN_LDSGCN_SIZE 16
+#endif
+
 #ifndef MIO_BN_LDS_SIZE
 #define MIO_BN_LDS_SIZE 256
-#endif
-
-#ifndef MIO_BN_LDS_NSIZE
-#define MIO_BN_LDS_NSIZE 256
-#endif
-
-#ifndef MIO_BN_LDS_HWSIZE
-#define MIO_BN_LDS_HWSIZE 256
 #endif
 
 #ifndef MIO_BN_C
@@ -105,33 +102,27 @@
 #define MIO_BN_NGRPS 1
 #endif
 
-#ifndef MIO_BN_NLOOP
-#define MIO_BN_NLOOP 1
-#endif
-
 #ifndef MIO_BN_NCHW
 #define MIO_BN_NCHW 1
 #endif
 
 #ifndef MIO_BN_VARIANT
-#define MIO_BN_VARIANT 3
+#define MIO_BN_VARIANT 255
 #endif
 
-#ifndef MIO_BN_SEGMENT
-#define MIO_BN_SEGMENT 1
+#ifndef MIO_BN_MAXN
+#define MIO_BN_MAXN 65
 #endif
 
-#ifndef MIO_BN_SEGIHW
-#define MIO_BN_SEGIHW 1
-#endif
-
-#define MIO_BN_MAXN 512
-
-/*
-#ifdef __AMDGCN__
+#ifndef MIO_BN_NODPP
+#define MIO_BN_NODPP 0
+#elif(MIO_BN_NODPP == 1)
 #undef __AMDGCN__
 #endif
-*/
+
+/*#ifdef __AMDGCN__
+#undef __AMDGCN__
+#endif*/
 
 #define UNUSED __attribute__((__unused__))
 
@@ -143,17 +134,7 @@
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
-__attribute__((always_inline)) uint iDiv(uint v, uint d)
-{
-    uint r = (uint)((float)v * (1.f / (float)d) + 0.00001f);
-    return (r);
-}
-
-__attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
-{
-    uint r = v - mul24(u, d);
-    return (r);
-}
+#ifndef __AMDGCN__
 
 static inline void ReduceKernel(__local _FLOAT* lcl_mem,
                                 unsigned int sum_stride,
@@ -163,8 +144,7 @@ static inline void ReduceKernel(__local _FLOAT* lcl_mem,
     _FLOAT sum              = (_FLOAT)0.;
     unsigned int lcl_offset = unit_id * unit_len;
 
-#pragma unroll
-    for(unsigned int i = 0; i < unit_len; i += sum_stride)
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int i = 0; i < unit_len; i += sum_stride)
     {
         sum += lcl_mem[lcl_offset + i];
     }
@@ -187,69 +167,48 @@ regLDSreduce(_FLOAT* value, __local _FLOAT* data, unsigned int localID, _FLOAT s
     barrier(CLK_LOCAL_MEM_FENCE);
     *value = data[0] * scale;
 }
-
-#ifdef __AMDGCN__
-static inline void dppRegReduce64(_FLOAT* value, _FLOAT scale)
-{
-    _FLOAT tmp = (_FLOAT)0.;
-    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x111, 0xF, 0xF, 0));
-    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x112, 0xF, 0xF, 0));
-    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x114, 0xF, 0xF, 0));
-    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x118, 0xF, 0xF, 0));
-    tmp = _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x142, 0xF, 0xF, 0));
-    *value += tmp;
-    tmp = _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x143, 0xF, 0xF, 0));
-    *value += tmp;
-    *value = _AS_FLOAT(__builtin_amdgcn_readlane(as_int(*value), 63));
-    *value *= scale;
-}
-
-static inline void dppRegReduce16(_FLOAT* value, _FLOAT scale)
-{
-
-    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x101, 0xF, 0xF, 0));
-    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x102, 0xF, 0xF, 0));
-    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x104, 0xF, 0xF, 0));
-    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x108, 0xF, 0xF, 0));
-    *value = _AS_FLOAT(__builtin_amdgcn_readlane(as_int(*value), 0));
-    *value *= scale;
-}
-
-static inline void
-dppLDSReduce64(_FLOAT* value, __local _FLOAT* data, unsigned int localID, _FLOAT scale)
-{
-    _FLOAT tmp = (_FLOAT)0.;
-    *value     = data[localID];
-    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x111, 0xF, 0xF, 0));
-    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x112, 0xF, 0xF, 0));
-    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x114, 0xF, 0xF, 0));
-    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x118, 0xF, 0xF, 0));
-    tmp = _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x142, 0xF, 0xF, 0));
-    *value += tmp;
-    tmp = _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x143, 0xF, 0xF, 0));
-    *value += tmp;
-    if(localID == 63)
-        data[0] = *value * scale;
-    barrier(CLK_LOCAL_MEM_FENCE);
-    *value = data[0];
-}
-
-static inline void
-dppLDSReduce16(_FLOAT* value, __local _FLOAT* data, unsigned int localID, _FLOAT scale)
-{
-
-    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x101, 0xF, 0xF, 0));
-    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x102, 0xF, 0xF, 0));
-    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x104, 0xF, 0xF, 0));
-    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x108, 0xF, 0xF, 0));
-    if(localID == 0)
-        data[0] = *value * scale;
-    barrier(CLK_LOCAL_MEM_FENCE);
-    *value = data[0];
-}
 #endif
 
-#if(MIO_BN_VARIANT == 255)
+#ifdef __AMDGCN__
+
+static inline void dppSimpleRedNoBcast64(_FLOAT* value)
+{
+    _FLOAT tmp = (_FLOAT)0.;
+    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x111, 0xF, 0xF, 0));
+    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x112, 0xF, 0xF, 0));
+    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x114, 0xF, 0xF, 0));
+    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x118, 0xF, 0xF, 0));
+    tmp = _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x142, 0xF, 0xF, 0));
+    *value += tmp;
+    tmp = _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x143, 0xF, 0xF, 0));
+    *value += tmp;
+}
+
+static inline void dppSimpleRedBcast64(_FLOAT* value)
+{
+    _FLOAT tmp = (_FLOAT)0.;
+    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x111, 0xF, 0xF, 0));
+    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x112, 0xF, 0xF, 0));
+    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x114, 0xF, 0xF, 0));
+    *value += _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x118, 0xF, 0xF, 0));
+    tmp = _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x142, 0xF, 0xF, 0));
+    *value += tmp;
+    tmp = _AS_FLOAT(__builtin_amdgcn_mov_dpp(as_int(*value), 0x143, 0xF, 0xF, 0));
+    *value += tmp;
+    barrier(CLK_LOCAL_MEM_FENCE);
+    *value = _AS_FLOAT(__builtin_amdgcn_readlane(as_int(*value), 63));
+}
+
+#endif
+
+#if(MIO_BN_VARIANT == 0)
+
+#define MIO_BN_SEGTMP (MIO_BN_HW * (MIO_BN_GRP0 / MIO_BN_HW))
+#define MIO_BN_SEGMENT ((MIO_BN_SEGTMP > MIO_BN_NHW) ? (MIO_BN_NHW) : (MIO_BN_SEGTMP))
+#define MIO_BN_NLOOP ((MIO_BN_NHW + MIO_BN_SEGMENT - 1) / MIO_BN_SEGMENT)
+#define MIO_BN_SEGIHW (MIO_BN_SEGMENT / MIO_BN_HW)
+#define MIO_BN_NLOOPM (MIO_BN_NLOOP - 1)
+#define MIO_BN_SNHW (MIO_BN_NLOOPM * MIO_BN_SEGIHW)
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
@@ -281,14 +240,12 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
     __local _FLOAT lcl_bias;
     __local _FLOAT lcl_scale;
-    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
 
     unsigned int index  = 0;
     unsigned int lid    = get_local_id(0);
     unsigned int grpid  = get_group_id(0);
     unsigned int chwid  = grpid * MIO_BN_HW + (lid % MIO_BN_HW);
     unsigned int lidihw = lid / MIO_BN_HW;
-    unsigned int segihw = MIO_BN_SEGIHW;
     unsigned int nid    = 0;
 
     if(lid == 0)
@@ -300,31 +257,27 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
     if(lid < MIO_BN_SEGMENT)
     {
-//==== CALC MEAN =======================
-#pragma unroll
-        for(unsigned int n = 0; n < MIO_BN_NLOOP; n++)
+        __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_NLOOPM; ++n)
         {
-            nid            = n * segihw + lidihw;
+            nid            = n * MIO_BN_SEGIHW + lidihw;
             index          = nid * MIO_BN_CHW + chwid;
-            batchvalues[n] = (index < MIO_BN_NCHW) ? *(in + index) : (_FLOAT)0.;
+            batchvalues[n] = *(in + index);
             mean += batchvalues[n];
             variance = mad(batchvalues[n], batchvalues[n], variance);
         }
+        nid                        = MIO_BN_SNHW + lidihw;
+        index                      = nid * MIO_BN_CHW + chwid;
+        batchvalues[MIO_BN_NLOOPM] = (index < MIO_BN_NCHW) ? *(in + index) : (_FLOAT)0.;
+        mean += batchvalues[MIO_BN_NLOOPM];
+        variance = mad(batchvalues[MIO_BN_NLOOPM], batchvalues[MIO_BN_NLOOPM], variance);
     }
 
+#ifndef __AMDGCN__
+    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
+
+    // Reduce mean
     lcl_data[lid] = mean;
     barrier(CLK_LOCAL_MEM_FENCE);
-
-#ifdef __AMDGCN__
-#pragma unroll
-    for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 32; red >>= 1)
-    {
-        if(lid < red)
-            lcl_data[lid] += lcl_data[lid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    dppLDSReduce64(&mean, lcl_data, lid, (_FLOAT)INHW);
-#else
     for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 256; red >>= 1)
     {
         if(lid < red)
@@ -332,22 +285,11 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         barrier(CLK_LOCAL_MEM_FENCE);
     }
     regLDSreduce(&mean, lcl_data, lid, (_FLOAT)INHW);
-#endif
-
     barrier(CLK_LOCAL_MEM_FENCE);
+
+    // Reduce variance
     lcl_data[lid] = variance;
     barrier(CLK_LOCAL_MEM_FENCE);
-
-#ifdef __AMDGCN__
-#pragma unroll
-    for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 32; red >>= 1)
-    {
-        if(lid < red)
-            lcl_data[lid] += lcl_data[lid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    dppLDSReduce64(&variance, lcl_data, lid, (_FLOAT)INHW);
-#else
     for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 256; red >>= 1)
     {
         if(lid < red)
@@ -355,30 +297,64 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         barrier(CLK_LOCAL_MEM_FENCE);
     }
     regLDSreduce(&variance, lcl_data, lid, (_FLOAT)INHW);
+    barrier(CLK_LOCAL_MEM_FENCE);
+#else
+
+    unsigned int ldsidx = lid >> 6;
+    __local _FLOAT lcl_mean[MIO_BN_LDSGCN_SIZE];
+    __local _FLOAT lcl_variance[MIO_BN_LDSGCN_SIZE];
+
+    dppSimpleRedNoBcast64(&mean);
+    dppSimpleRedNoBcast64(&variance);
+
+    if((lid % 64) == 63)
+    {
+        lcl_mean[ldsidx]     = mean;
+        lcl_variance[ldsidx] = variance;
+    }
+    else
+    {
+        lcl_mean[ldsidx]     = 0.;
+        lcl_variance[ldsidx] = 0.;
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+    mean = variance = 0.;
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
+    {
+        mean += lcl_mean[i];
+        variance += lcl_variance[i];
+    }
+    mean *= (_FLOAT)INHW;
+    variance *= (_FLOAT)INHW;
+
 #endif
 
-    barrier(CLK_LOCAL_MEM_FENCE);
     variance    = mad(-mean, mean, variance);
     invVariance = rsqrt(variance + epsilon);
+    pvscale     = lcl_scale;
+    pvbias      = lcl_bias;
 
     if(lid < MIO_BN_SEGMENT)
     {
-
         //==== CALC NORM =======================
-        pvscale = lcl_scale;
-        pvbias  = lcl_bias;
+        _FLOAT inhat = 0.;
 
-#pragma unroll
-        for(unsigned int n = 0; n < MIO_BN_NLOOP; n++)
+        __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_NLOOPM; n++)
         { // apply normalization
-            _FLOAT inhat = (batchvalues[n] - mean) * invVariance;
-            nid          = n * segihw + lidihw;
-
-            index = nid * MIO_BN_CHW + chwid;
-            if(index < MIO_BN_NCHW)
-                out[index] = mad(pvscale, inhat, pvbias);
+            inhat      = (batchvalues[n] - mean) * invVariance;
+            nid        = n * MIO_BN_SEGIHW + lidihw;
+            index      = nid * MIO_BN_CHW + chwid;
+            out[index] = mad(pvscale, inhat, pvbias);
         } // end for
+
+        // Tail of loop
+        inhat = (batchvalues[MIO_BN_NLOOPM] - mean) * invVariance;
+        nid   = MIO_BN_SNHW + lidihw;
+        index = nid * MIO_BN_CHW + chwid;
+        if(index < MIO_BN_NCHW)
+            out[index] = mad(pvscale, inhat, pvbias);
     }
+
 #if(MIO_SAVE_MEAN_VARIANCE == 1 || MIO_RUNNING_RESULT == 1)
     if(lid == 0)
     {
@@ -406,181 +382,10 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #endif
 } // end spatial norm
 
-#elif(MIO_BN_VARIANT == 0)
-
-__attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
-                         __global _FLOAT* __restrict out,
-                         __constant _FLOAT* __restrict scale,
-                         __constant _FLOAT* __restrict bias,
-                         _FLOAT INHW,
-#if(MIO_RUNNING_RESULT == 1)
-                         double expAvgFactor,
-                         __global _FLOAT* __restrict resultRunningMean,
-                         __global _FLOAT* __restrict resultRunningVariance,
-#endif
-                         double epsilon
-#if(MIO_SAVE_MEAN_VARIANCE == 1)
-                         ,
-                         __global _FLOAT* __restrict resultSaveMean,
-                         __global _FLOAT* __restrict resultSaveInvVariance
-#endif
-                         )
-{
-
-    // SPATIAL
-    _FLOAT mean        = (_FLOAT)0.;
-    _FLOAT variance    = (_FLOAT)0.;
-    _FLOAT invVariance = (_FLOAT)0.;
-    _FLOAT pvscale, pvbias;
-    _FLOAT minibatch[MIO_BN_HW];
-    __local _FLOAT lcl_bias;
-    __local _FLOAT lcl_scale;
-
-#ifndef __AMDGCN__
-#if(MIO_BN_N > 1)
-    local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
-#endif
-#endif
-
-    unsigned int index;
-    unsigned int ylid = get_local_id(1);
-    unsigned int xgid = get_global_id(0);
-    unsigned int cidx = xgid * MIO_BN_HW;
-
-    if(ylid == 0)
-    {
-        lcl_scale = *(scale + xgid);
-        lcl_bias  = *(bias + xgid);
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-    if(ylid < MIO_BN_N)
-    {
-#pragma unroll
-        for(unsigned int hw = 0; hw < MIO_BN_HW; hw++)
-        {
-            index         = ylid * MIO_BN_CHW + cidx + hw;
-            minibatch[hw] = *(in + index);
-            mean += minibatch[hw];
-            variance = mad(minibatch[hw], minibatch[hw], variance);
-        }
-    }
-    else
-    {
-        mean     = (_FLOAT)0.;
-        variance = (_FLOAT)0.;
-    }
-
-#ifdef __AMDGCN__
-
-#if(MIO_BN_N > 16)
-    dppRegReduce64(&mean, (_FLOAT)INHW);
-#elif(MIO_BN_N > 1) // N
-    dppRegReduce16(&mean, (_FLOAT)INHW);
-#else
-    mean *= (_FLOAT)INHW;
-#endif // N
-
-#else // GCN
-
-#if(MIO_BN_N > 16)
-    regLDSreduce(&mean, lcl_data, ylid, (_FLOAT)INHW);
-#elif(MIO_BN_N > 1)
-    lcl_data[ylid] = mean;
-    barrier(CLK_LOCAL_MEM_FENCE);
-    mean = (_FLOAT)0.;
-#pragma unroll
-    for(int i = 0; i < MIO_BN_N; i++)
-    {
-        mean += lcl_data[i];
-    }
-    mean *= (_FLOAT)INHW;
-#else
-    mean *= (_FLOAT)INHW;
-#endif // N
-
-#endif // GCN
-
-#ifdef __AMDGCN__
-#if(MIO_BN_N > 16)
-    dppRegReduce64(&variance, (_FLOAT)INHW);
-#elif(MIO_BN_N > 1)
-    dppRegReduce16(&variance, (_FLOAT)INHW);
-#else
-    variance *= (_FLOAT)INHW;
-#endif // N
-#else  // GCN
-
-#if(MIO_BN_N > 16)
-    regLDSreduce(&variance, lcl_data, ylid, (_FLOAT)INHW);
-#elif(MIO_BN_N > 1)
-    lcl_data[ylid] = variance;
-    barrier(CLK_LOCAL_MEM_FENCE);
-    variance = (_FLOAT)0.;
-#pragma unroll
-    for(int i = 0; i < MIO_BN_N; i++)
-    {
-        variance += lcl_data[i];
-    }
-    variance *= (_FLOAT)INHW;
-#else
-    variance *= (_FLOAT)INHW;
-#endif // N
-#endif // GCN
-
-    barrier(CLK_LOCAL_MEM_FENCE);
-    variance    = mad(-mean, mean, variance);
-    invVariance = rsqrt(variance + epsilon);
-
-    if(ylid < MIO_BN_N)
-    {
-        pvscale = lcl_scale;
-        pvbias  = lcl_bias;
-
-#pragma unroll
-        for(unsigned int hw = 0; hw < MIO_BN_HW; hw++)
-        {
-            index        = ylid * MIO_BN_CHW + cidx + hw;
-            _FLOAT inhat = (minibatch[hw] - mean) * invVariance;
-            out[index]   = mad(pvscale, inhat, pvbias);
-        } // end for
-    }     // end if
-
-#if(MIO_SAVE_MEAN_VARIANCE == 1 || MIO_RUNNING_RESULT == 1)
-    if(get_global_id(1) == 0)
-    {
-// Save mean and calculate and save running mean
-#if(MIO_SAVE_MEAN_VARIANCE == 1)
-        resultSaveMean[xgid]        = mean;
-        resultSaveInvVariance[xgid] = invVariance;
-#endif
-
-#if(MIO_RUNNING_RESULT == 1)
-        _FLOAT pvt_runMean          = *(resultRunningMean + xgid);
-        _FLOAT pvt_newRunMean =
-            mad((_FLOAT)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
-        resultRunningMean[xgid] =
-            mad(mean, (_FLOAT)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
-        const _FLOAT adjust = (MIO_BN_NHW == 1)
-                                  ? variance
-                                  : variance * ((_FLOAT)MIO_BN_NHW / (_FLOAT)(MIO_BN_NHW - 1.0));
-        resultRunningVariance[xgid] = (1 - (_FLOAT)expAvgFactor) * *(resultRunningVariance + xgid) +
-                                      (_FLOAT)expAvgFactor * adjust;
-#endif
-    }
-#endif
-} // end spatial norm
-
 #elif(MIO_BN_VARIANT == 1)
 
-/*
-#if(MIO_BN_HW == 1) // DPP cannot handle this config
-#ifdef __AMDGCN__
-#undef __AMDGCN__
-#endif
-#endif
-*/
+#define MIO_BN_REM (MIO_BN_NHW - ((MIO_BN_NHW / MIO_BN_GRP1) * MIO_BN_GRP1))
+#define MIO_BN_LESS (MIO_BN_NHW - MIO_BN_REM)
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
@@ -607,131 +412,156 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     _FLOAT variance    = (_FLOAT)0.;
     _FLOAT invVariance = (_FLOAT)0.;
     _FLOAT pvscale, pvbias;
-    _FLOAT minibatch[MIO_BN_N];
 
     __local _FLOAT lcl_bias;
     __local _FLOAT lcl_scale;
 
-#ifndef __AMDGCN__
-#if(MIO_BN_HW > 1)
-    local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
-#endif
+    int index = 0;
+    int lid   = get_local_id(1);
+    int xgid  = get_global_id(0);
+    int grpid = get_group_id(0);
+    int chwid = grpid * MIO_BN_HW;
+    int nidx  = 0;
+    int hwidx = 0;
+
+#if(MIO_BN_NHW < MIO_BN_MAXN)
+    _FLOAT input[MIO_BN_NHW];
 #endif
 
-    unsigned int index;
-    unsigned int ylid = get_local_id(1);
-    unsigned int xgid = get_global_id(0);
-    unsigned int idx  = xgid * MIO_BN_HW + ylid;
-
-    if(ylid == 0)
+    if(lid == 0)
     {
         lcl_scale = *(scale + xgid);
         lcl_bias  = *(bias + xgid);
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    if(ylid < MIO_BN_HW)
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid, lesskey = 0; k < MIO_BN_LESS;
+                                               k += MIO_BN_GRP1, ++lesskey)
     {
-#pragma unroll
-        for(unsigned int n = 0; n < MIO_BN_N; n++)
-        {
-            index        = n * MIO_BN_CHW + idx;
-            minibatch[n] = *(in + index);
-            mean += minibatch[n];
-            variance = mad(minibatch[n], minibatch[n], variance);
-        }
-    }
-    else
-    {
-        mean     = (_FLOAT)0.;
-        variance = (_FLOAT)0.;
-    }
-
-#ifdef __AMDGCN__
-
-#if(MIO_BN_HW > 16)
-    dppRegReduce64(&mean, (_FLOAT)INHW);
-#elif(MIO_BN_HW > 1)
-    dppRegReduce16(&mean, (_FLOAT)INHW);
+        nidx           = k / MIO_BN_HW;
+        hwidx          = k - (nidx * MIO_BN_HW);
+        index          = nidx * MIO_BN_CHW + chwid + hwidx;
+#if(MIO_BN_NHW < MIO_BN_MAXN)
+        input[lesskey] = *(in + index);
+        mean += input[lesskey];
+        variance = mad(input[lesskey], input[lesskey], variance);
 #else
-    mean *= (_FLOAT)INHW;
-#endif // HW
+        _FLOAT xin = *(in + index);
+        mean += xin;
+        variance        = mad(xin, xin, variance);
+#endif
+    }
+#if(MIO_BN_REM)
+    unsigned int remkey = lid + MIO_BN_LESS;
+    nidx                = remkey / MIO_BN_HW;
+    hwidx               = remkey - (nidx * MIO_BN_HW);
+    index               = nidx * MIO_BN_CHW + chwid + hwidx;
+#if(MIO_BN_NHW < MIO_BN_MAXN)
+    input[remkey]       = (index < MIO_BN_NCHW) ? *(in + index) : 0.;
+    mean += input[remkey];
+    variance = mad(input[remkey], input[remkey], variance);
+#else
+    _FLOAT xin = (index < MIO_BN_NCHW) ? *(in + index) : 0.;
+    mean += xin;
+    variance           = mad(xin, xin, variance);
+#endif
+#endif
 
-#else // GCN
-
-#if(MIO_BN_HW > 16)
-    regLDSreduce(&mean, lcl_data, ylid, (_FLOAT)INHW);
-#elif(MIO_BN_HW > 1)
-    lcl_data[ylid] = mean;
+// REDUCE MEAN AND VARIANCE -----------------------
+#ifndef __AMDGCN__
+    local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
+    lcl_data[lid] = mean;
     barrier(CLK_LOCAL_MEM_FENCE);
-    mean = (_FLOAT)0.;
-    for(int i = 0; i < MIO_BN_HW; i++)
+    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 256; red >>= 1)
     {
-        mean += lcl_data[i];
+        if(lid < red)
+            lcl_data[lid] += lcl_data[lid + red];
+        barrier(CLK_LOCAL_MEM_FENCE);
     }
-    mean *= (_FLOAT)INHW;
-#else
-    mean *= (_FLOAT)INHW;
-#endif // HW
-#endif // GCN
-
-#ifdef __AMDGCN__
-#if(MIO_BN_HW > 16)
-    dppRegReduce64(&variance, (_FLOAT)INHW);
-#elif(MIO_BN_HW > 1)
-    dppRegReduce16(&variance, (_FLOAT)INHW);
-#else
-    variance *= (_FLOAT)INHW;
-#endif // HW
-#else  // if not GCN
-
-#if(MIO_BN_HW > 16)
-    regLDSreduce(&variance, lcl_data, ylid, (_FLOAT)INHW);
-#elif(MIO_BN_HW > 1)
-    lcl_data[ylid] = variance;
-    barrier(CLK_LOCAL_MEM_FENCE);
-    variance = (_FLOAT)0.;
-#pragma unroll
-    for(int i = 0; i < MIO_BN_HW; i++)
-    {
-        variance += lcl_data[i];
-    }
-    variance *= (_FLOAT)INHW;
-#else
-    variance *= (_FLOAT)INHW;
-#endif // HW
-#endif // GCN
+    regLDSreduce(&mean, lcl_data, lid, (_FLOAT)INHW);
 
     barrier(CLK_LOCAL_MEM_FENCE);
+    lcl_data[lid] = variance;
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 256; red >>= 1)
+    {
+        if(lid < red)
+            lcl_data[lid] += lcl_data[lid + red];
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    regLDSreduce(&variance, lcl_data, lid, (_FLOAT)INHW);
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+#else
+    unsigned int ldsidx = lid >> 6;
+    __local _FLOAT lcl_mean[MIO_BN_LDSGCN_SIZE];
+    __local _FLOAT lcl_variance[MIO_BN_LDSGCN_SIZE];
+
+    dppSimpleRedNoBcast64(&mean);
+    dppSimpleRedNoBcast64(&variance);
+
+    if((lid % 64) == 63)
+    {
+        lcl_mean[ldsidx]     = mean;
+        lcl_variance[ldsidx] = variance;
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+    mean = variance = 0.;
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
+    {
+        mean += lcl_mean[i];
+        variance += lcl_variance[i];
+    }
+    mean *= (_FLOAT)INHW;
+    variance *= (_FLOAT)INHW;
+#endif
+    // REDUCTION COMPLETE ---------------------------
     variance    = mad(-mean, mean, variance);
     invVariance = rsqrt(variance + epsilon);
 
-    if(ylid < MIO_BN_HW)
+    pvscale = lcl_scale;
+    pvbias  = lcl_bias;
+
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid, lesskey = 0; k < MIO_BN_LESS;
+                                               k += MIO_BN_GRP1, ++lesskey)
     {
+        nidx       = k / MIO_BN_HW;
+        hwidx      = k - (nidx * MIO_BN_HW);
+        index      = nidx * MIO_BN_CHW + chwid + hwidx;
 
-        pvscale = lcl_scale;
-        pvbias  = lcl_bias;
-
-#pragma unroll
-        for(unsigned int n = 0; n < MIO_BN_N; n++)
-        { // apply normalization
-            index        = n * MIO_BN_CHW + idx;
-            _FLOAT inhat = (minibatch[n] - mean) * invVariance;
-            out[index]   = mad(pvscale, inhat, pvbias);
-        } // end for
-    }     // end if
+#if(MIO_BN_NHW < MIO_BN_MAXN)
+        out[index] = mad(pvscale, (input[lesskey] - mean) * invVariance, pvbias);
+#else
+        out[index] = mad(pvscale, (*(in + index) - mean) * invVariance, pvbias);
+#endif
+    } // end for
+#if(MIO_BN_REM)
+    nidx  = remkey / MIO_BN_HW;
+    hwidx = remkey - (nidx * MIO_BN_HW);
+    index = nidx * MIO_BN_CHW + chwid + hwidx;
+    if(index < MIO_BN_NCHW)
+    {
+#if(MIO_BN_NHW < MIO_BN_MAXN)
+        *(out + index) = mad(pvscale, (input[remkey] - mean) * invVariance, pvbias);
+#else
+        *(out + index) = mad(pvscale, (*(in + index) - mean) * invVariance, pvbias);
+#endif
+    }
+#endif
 
 #if(MIO_SAVE_MEAN_VARIANCE == 1 || MIO_RUNNING_RESULT == 1)
     if(get_global_id(1) == 0)
     {
+
 // Save mean and calculate and save running mean
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-        resultSaveMean[xgid]        = mean;
-        resultSaveInvVariance[xgid] = invVariance;
+        *(resultSaveMean + xgid)        = mean;
+        *(resultSaveInvVariance + xgid) = invVariance;
 #endif
 
 #if(MIO_RUNNING_RESULT == 1)
-        _FLOAT pvt_runMean          = *(resultRunningMean + xgid);
+        _FLOAT pvt_runMean              = *(resultRunningMean + xgid);
         _FLOAT pvt_newRunMean =
             mad((_FLOAT)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
         resultRunningMean[xgid] =
@@ -746,7 +576,296 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #endif
 } // end spatial norm
 
-#elif(MIO_BN_VARIANT == 2)
+#elif(MIO_BN_VARIANT == 2) // MULTI-KERNEL reduction for > 33M elements
+
+__attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
+BatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
+                             __global _FLOAT* __restrict out,
+                             const __global _FLOAT* __restrict scale,
+                             const __global _FLOAT* __restrict bias)
+{
+
+    // SPATIAL
+    _FLOAT mean        = (_FLOAT)0.;
+    _FLOAT invVariance = (_FLOAT)0.;
+    _FLOAT inhat       = (_FLOAT)0.;
+    _FLOAT pvt_scale   = (_FLOAT)0.;
+    _FLOAT pvt_bias    = (_FLOAT)0.;
+    __local _FLOAT lcl_mean, lcl_ivar, lcl_scale, lcl_bias;
+
+    unsigned int ygrp_id = get_group_id(1);
+    unsigned int xgid    = get_global_id(0);
+    unsigned int ygid    = get_global_id(1);
+    unsigned int ygrp_sz = get_local_size(1);
+    unsigned int index;
+    unsigned int cidx           = xgid * MIO_BN_HW;
+    unsigned int meanstashindex = cidx + ygrp_sz * ygrp_id + 1;
+    unsigned int varstashindex  = cidx + ygrp_sz * ygrp_id + 3;
+
+    // #4 apply the normalization :: x_hat = (x_i - mean) / sqrt(variance_accum + epsilon)
+    if(get_local_id(1) == 0)
+    {
+        lcl_scale = *(scale + xgid);
+        lcl_bias  = *(bias + xgid);
+        lcl_mean  = *(out + meanstashindex); // load stashed mean
+        lcl_ivar  = *(out + varstashindex);
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    if(ygid < MIO_BN_HW)
+    {
+        mean        = lcl_mean;
+        invVariance = lcl_ivar;
+        pvt_scale   = lcl_scale;
+        pvt_bias    = lcl_bias;
+        __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_N; n++)
+        { // apply normalization
+            index        = n * MIO_BN_CHW + cidx + ygid;
+            _FLOAT inhat = (*(in + index) - mean) * invVariance;
+            // #5 Gamma and Beta adjust :: y_i = gamma*x_hat + beta
+            out[index] = mad(pvt_scale, inhat, pvt_bias);
+        } // end for(n)
+    }     // end if(inImgIndex)
+} // end spatial norm
+
+__attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
+BatchNormFwdTrainSpatialFinalMeanVariance(
+    __global _FLOAT* __restrict meanvarbuff,
+    _FLOAT INHW
+#if(MIO_RUNNING_RESULT == 1)
+    ,
+    double expAvgFactor /* input momentum */
+    ,
+    __global _FLOAT* __restrict resultRunningMean, /*input and output*/
+    __global _FLOAT* __restrict resultRunningVariance
+#endif
+    ,
+    double epsilon
+#if(MIO_SAVE_MEAN_VARIANCE == 1)
+    ,
+    __global _FLOAT* __restrict resultSaveMean /*output only*/
+    ,
+    __global _FLOAT* __restrict resultSaveInvVariance
+#endif
+    )
+{
+    _FLOAT variance             = (_FLOAT)0.;
+    _FLOAT invVariance          = (_FLOAT)0.;
+    _FLOAT mean                 = (_FLOAT)0.;
+    unsigned int lid            = get_local_id(1);
+    unsigned int ygrp_id        = get_group_id(1);
+    unsigned int xgid           = get_global_id(0);
+    unsigned int ygrp_sz        = get_local_size(1);
+    unsigned int yngrps         = get_num_groups(1);
+    unsigned int cidx           = xgid * MIO_BN_HW;
+    unsigned int meanstashindex = cidx + ygrp_sz * ygrp_id + 1;
+    unsigned int varstashindex  = cidx + ygrp_sz * ygrp_id + 3;
+    unsigned int commitID       = 0;
+
+    for(int gn = 0; gn < yngrps; gn++)
+    {
+        unsigned int offset    = gn * ygrp_sz + lid;
+        unsigned int meanindex = cidx + ygrp_sz * offset;
+        unsigned int varindex  = cidx + ygrp_sz * offset + 2;
+        if(offset < yngrps)
+        { // modify to span larger number of groups
+            mean += *(meanvarbuff + meanindex);
+            variance += *(meanvarbuff + varindex); // load per group variance
+        }
+    }
+#ifndef __AMDGCN__
+    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
+    lcl_data[lid] = mean;
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+#if(MIO_BN_NGRPS > 64)
+    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 256; red >>= 1)
+    {
+        if(lid < red)
+            lcl_data[lid] += lcl_data[lid + red];
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    regLDSreduce(&mean, lcl_data, lid, (_FLOAT)INHW);
+#elif(MIO_BN_NGRPS <= 64)
+    regLDSreduce(&mean, lcl_data, lid, (_FLOAT)INHW);
+    commitID = 0;
+#else
+    mean = (_FLOAT)0.;
+    __attribute__((opencl_unroll_hint(2))) for(int i = 0; i < MIO_BN_NGRPS; i++)
+    {
+        mean += lcl_data[i];
+    }
+
+#endif
+
+    lcl_data[lid] = variance;
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+#if(MIO_BN_NGRPS > 256)
+    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 256; red >>= 1)
+    {
+        if(lid < red)
+            lcl_data[lid] += lcl_data[lid + red];
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    regLDSreduce(&variance, lcl_data, lid, (_FLOAT)INHW);
+#elif(MIO_BN_NGRPS > 64)
+    regLDSreduce(&variance, lcl_data, lid, (_FLOAT)INHW);
+#elif(MIO_BN_NGRPS > 16)
+    regLDSreduce(&variance, lcl_data, lid, (_FLOAT)INHW);
+#else //(MIO_BN_NGRPS <= 16)
+    variance = (_FLOAT)0.;
+    __attribute__((opencl_unroll_hint(2))) for(int i = 0; i < MIO_BN_NGRPS; i++)
+    {
+        variance += lcl_data[i];
+    }
+#endif
+
+#else
+    commitID            = 64;
+    unsigned int ldsidx = lid >> 6;
+    __local _FLOAT lcl_mean[MIO_BN_LDSGCN_SIZE];
+    __local _FLOAT lcl_variance[MIO_BN_LDSGCN_SIZE];
+
+    dppSimpleRedNoBcast64(&mean);
+    dppSimpleRedNoBcast64(&variance);
+    if((lid % 64) == 63)
+    {
+        lcl_mean[ldsidx]     = mean;
+        lcl_variance[ldsidx] = variance;
+    }
+    barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
+    mean = variance = 0.;
+
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
+    {
+        mean += lcl_mean[i];
+        variance += lcl_variance[i];
+    }
+    mean *= (_FLOAT)INHW;
+    variance *= (_FLOAT)INHW;
+#endif
+    barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
+    variance    = mad(-mean, mean, variance);
+    invVariance = rsqrt(variance + epsilon);
+    if(lid == commitID)
+    {
+        meanvarbuff[meanstashindex] = mean;        // stash mean
+        meanvarbuff[varstashindex]  = invVariance; // stash mean
+    }
+
+// Save mean and calculate and save running mean
+#if(MIO_SAVE_MEAN_VARIANCE == 1 || MIO_RUNNING_RESULT == 1)
+    unsigned int ygid = get_global_id(1);
+    if(ygid == commitID)
+    {
+#if(MIO_SAVE_MEAN_VARIANCE == 1)
+        resultSaveMean[xgid]        = mean;
+        resultSaveInvVariance[xgid] = invVariance;
+#endif
+#if(MIO_RUNNING_RESULT == 1)
+        _FLOAT pvt_runMean          = resultRunningMean[xgid];
+        _FLOAT pvt_newRunMean =
+            mad((_FLOAT)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
+        resultRunningMean[xgid] =
+            mad(mean, (_FLOAT)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
+
+        _FLOAT NHW                  = (_FLOAT)MIO_BN_NHW;
+        const _FLOAT adjust         = (MIO_BN_NHW == 1) ? variance : variance * (NHW / (NHW - 1));
+        resultRunningVariance[xgid] = (1 - (_FLOAT)expAvgFactor) * *(resultRunningVariance + xgid) +
+                                      (_FLOAT)expAvgFactor * adjust;
+#endif
+    }
+#endif
+}
+
+__attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
+BatchNormFwdTrainSpatialMeanVariance(const __global _FLOAT* __restrict in,
+                                     __global _FLOAT* __restrict mvbuff)
+{
+
+    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
+
+    unsigned int ylid    = get_local_id(1);
+    unsigned int ygrp_id = get_group_id(1);
+    unsigned int xgid    = get_global_id(0);
+    unsigned int ygid    = get_global_id(1);
+    unsigned int ygrp_sz = get_local_size(1);
+    unsigned int index;
+    unsigned int cidx      = xgid * MIO_BN_HW;
+    unsigned int meanindex = cidx + ygrp_sz * ygrp_id;
+    unsigned int varindex  = meanindex + 2;
+    _FLOAT mean            = (_FLOAT)0.;
+    _FLOAT variance        = (_FLOAT)0.;
+    _FLOAT value           = (_FLOAT)0.;
+
+    if(ygid < MIO_BN_HW)
+    {
+        __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_N; n++)
+        {
+            index = n * MIO_BN_CHW + cidx + ygid;
+            value = *(in + index);
+            mean += value;
+            variance = mad(value, value, variance);
+        }
+    }
+
+#ifdef __AMDGCN__
+    unsigned int ldsidx = ylid >> 6;
+    __local _FLOAT lcl_mean[MIO_BN_LDSGCN_SIZE];
+    __local _FLOAT lcl_variance[MIO_BN_LDSGCN_SIZE];
+
+    dppSimpleRedNoBcast64(&mean);
+    dppSimpleRedNoBcast64(&variance);
+
+    if((ylid % 64) == 63)
+    {
+        lcl_mean[ldsidx]     = mean;
+        lcl_variance[ldsidx] = variance;
+    }
+    barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
+    mean = variance = 0.;
+
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
+    {
+        mean += lcl_mean[i];
+        variance += lcl_variance[i];
+    }
+
+#else
+    lcl_data[ylid] = mean;
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 256; red >>= 1)
+    {
+        if(ylid < red)
+            lcl_data[ylid] += lcl_data[ylid + red];
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    regLDSreduce(&mean, lcl_data, ylid, 1);
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    lcl_data[ylid] = variance;
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 256; red >>= 1)
+    {
+        if(ylid < red)
+            lcl_data[ylid] += lcl_data[ylid + red];
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    regLDSreduce(&variance, lcl_data, ylid, 1);
+    barrier(CLK_LOCAL_MEM_FENCE);
+#endif
+
+    if(ylid == 0)
+    {
+        mvbuff[meanindex] = mean;
+        mvbuff[varindex]  = variance;
+    }
+} // end spatial mean kernel
+
+#elif(MIO_BN_VARIANT == 3)
 
 // This kernel implies the image is greater than a wavefront, but smaller than 257
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
@@ -770,39 +889,35 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 {
 
     // SPATIAL
-    _FLOAT mean     = (_FLOAT)0.;
-    _FLOAT variance = (_FLOAT)0.;
-    _FLOAT invVariance, inhat;
+    _FLOAT mean        = (_FLOAT)0.;
+    _FLOAT variance    = (_FLOAT)0.;
+    _FLOAT invVariance = (_FLOAT)0.;
+    _FLOAT inhat       = (_FLOAT)0.;
     _FLOAT pvscale, pvbias;
 
     __local _FLOAT lcl_bias;
     __local _FLOAT lcl_scale;
 
     unsigned int index;
-    unsigned int ylid    = get_local_id(1);
-    unsigned int xgid    = get_global_id(0);
-
-#ifdef __AMDGCN__
-    unsigned int segment = MIO_BN_GRP1 >> 6;
-#endif
+    unsigned int lid  = get_local_id(1);
+    unsigned int xgid = get_global_id(0);
 
 #if(MIO_BN_N < MIO_BN_MAXN)
     _FLOAT minibatch[MIO_BN_N];
 #endif
 
-    if(ylid == 0)
+    if(lid == 0)
     {
         lcl_scale = *(scale + xgid);
         lcl_bias  = *(bias + xgid);
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     // MEAN
-    if(ylid < MIO_BN_HW)
+    if(lid < MIO_BN_HW)
     {
-#pragma unroll
-        for(unsigned int n = 0; n < MIO_BN_N; n++)
+        __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_N; n++)
         {
-            index        = n * MIO_BN_CHW + xgid * MIO_BN_HW + ylid;
+            index        = n * MIO_BN_CHW + xgid * MIO_BN_HW + lid;
 #if(MIO_BN_N < MIO_BN_MAXN)
             minibatch[n] = *(in + index);
             mean += minibatch[n];
@@ -815,81 +930,76 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         }
     }
 
-    local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
-    lcl_data[ylid] = mean;
+#ifndef __AMDGCN__
+    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
+
+    // Reduce mean
+    lcl_data[lid] = mean;
     barrier(CLK_LOCAL_MEM_FENCE);
-#ifdef __AMDGCN__
-    mean = (_FLOAT)0.;
-    if(ylid < 64)
+    for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 256; red >>= 1)
     {
-        for(unsigned int red = 0; red < segment; red++)
-        {
-            mean += lcl_data[ylid * segment + red];
-        }
+        if(lid < red)
+            lcl_data[lid] += lcl_data[lid + red];
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    regLDSreduce(&mean, lcl_data, lid, (_FLOAT)INHW);
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    // Reduce variance
+    lcl_data[lid] = variance;
+    barrier(CLK_LOCAL_MEM_FENCE);
+    for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 256; red >>= 1)
+    {
+        if(lid < red)
+            lcl_data[lid] += lcl_data[lid + red];
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    regLDSreduce(&variance, lcl_data, lid, (_FLOAT)INHW);
+    barrier(CLK_LOCAL_MEM_FENCE);
+#else
+
+    unsigned int ldsidx = lid >> 6;
+    __local _FLOAT lcl_mean[MIO_BN_LDSGCN_SIZE];
+    __local _FLOAT lcl_variance[MIO_BN_LDSGCN_SIZE];
+
+    dppSimpleRedNoBcast64(&mean);
+    dppSimpleRedNoBcast64(&variance);
+
+    if((lid % 64) == 63)
+    {
+        lcl_mean[ldsidx]     = mean;
+        lcl_variance[ldsidx] = variance;
     }
     else
     {
-        mean = (_FLOAT)0.;
+        lcl_mean[ldsidx]     = 0.;
+        lcl_variance[ldsidx] = 0.;
     }
     barrier(CLK_LOCAL_MEM_FENCE);
-    lcl_data[ylid] = mean;
-    barrier(CLK_LOCAL_MEM_FENCE);
-    dppLDSReduce64(&mean, lcl_data, ylid, (_FLOAT)INHW);
+    mean = variance = 0.;
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
+    {
+        mean += lcl_mean[i];
+        variance += lcl_variance[i];
+    }
+    mean *= (_FLOAT)INHW;
+    variance *= (_FLOAT)INHW;
 
-#else
-    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 256; red >>= 1)
-    {
-        if(ylid < red)
-            lcl_data[ylid] += lcl_data[ylid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    regLDSreduce(&mean, lcl_data, ylid, (_FLOAT)INHW);
-#endif
-
-    barrier(CLK_LOCAL_MEM_FENCE);
-    lcl_data[ylid] = variance;
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-#ifdef __AMDGCN__
-    variance = (_FLOAT)0.;
-    if(ylid < 64)
-    {
-        for(unsigned int red = 0; red < segment; red++)
-        {
-            variance += lcl_data[ylid * segment + red];
-        }
-    }
-    else
-    {
-        variance = (_FLOAT)0.;
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
-    lcl_data[ylid] = variance;
-    barrier(CLK_LOCAL_MEM_FENCE);
-    dppLDSReduce64(&variance, lcl_data, ylid, (_FLOAT)INHW);
-#else
-    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 256; red >>= 1)
-    {
-        if(ylid < red)
-            lcl_data[ylid] += lcl_data[ylid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    regLDSreduce(&variance, lcl_data, ylid, (_FLOAT)INHW);
 #endif
 
     barrier(CLK_LOCAL_MEM_FENCE);
     variance    = mad(-mean, mean, variance);
     invVariance = rsqrt(variance + epsilon);
 
-    if(ylid < MIO_BN_HW)
+    barrier(CLK_LOCAL_MEM_FENCE);
+    if(lid < MIO_BN_HW)
     {
         pvscale = lcl_scale;
         pvbias  = lcl_bias;
 
-#pragma unroll
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         { // apply normalization
-            index      = n * MIO_BN_CHW + xgid * MIO_BN_HW + ylid;
+            index      = n * MIO_BN_CHW + xgid * MIO_BN_HW + lid;
 #if(MIO_BN_N < MIO_BN_MAXN)
             inhat      = (minibatch[n] - mean) * invVariance; // (in[index] - mean) * invVariance;
 #else
@@ -924,935 +1034,6 @@ BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }
 #endif
 } // end spatial norm
-
-#elif(MIO_BN_VARIANT == 3)
-
-__attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
-                             __global _FLOAT* __restrict out,
-                             const __global _FLOAT* __restrict scale,
-                             const __global _FLOAT* __restrict bias)
-{
-
-    // SPATIAL
-    _FLOAT mean        = (_FLOAT)0.;
-    _FLOAT invVariance = (_FLOAT)0.;
-    _FLOAT inhat       = (_FLOAT)0.;
-    _FLOAT pvt_scale   = (_FLOAT)0.;
-
-    __local _FLOAT lcl_mean, lcl_ivar, lcl_scale, lcl_bias;
-
-    unsigned int ygrp_id = get_group_id(1);
-    unsigned int xgid    = get_global_id(0);
-    unsigned int ygid    = get_global_id(1);
-    unsigned int ygrp_sz = get_local_size(1);
-    unsigned int index;
-    unsigned int cidx           = xgid * MIO_BN_HW;
-    unsigned int meanstashindex = cidx + ygrp_sz * ygrp_id + 1;
-    unsigned int varstashindex  = cidx + ygrp_sz * ygrp_id + 3;
-
-    // #4 apply the normalization :: x_hat = (x_i - mean) / sqrt(variance_accum + epsilon)
-    if(get_local_id(1) == 0)
-    {
-        lcl_scale = *(scale + xgid);
-        lcl_bias  = *(bias + xgid);
-        lcl_mean  = *(out + meanstashindex); // load stashed mean
-        lcl_ivar  = *(out + varstashindex);
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-    if(ygid < MIO_BN_HW)
-    {
-        mean        = lcl_mean;
-        invVariance = lcl_ivar;
-        pvt_scale   = lcl_scale;
-        pvt_bias    = lcl_bias;
-#pragma unroll
-        for(unsigned int n = 0; n < MIO_BN_N; n++)
-        { // apply normalization
-            index        = n * MIO_BN_CHW + cidx + ygid;
-            _FLOAT inhat = (*(in + index) - mean) * invVariance;
-            // #5 Gamma and Beta adjust :: y_i = gamma*x_hat + beta
-            out[index] = mad(pvt_scale, inhat, pvt_bias);
-        } // end for(n)
-    }     // end if(inImgIndex)
-} // end spatial norm
-
-__attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormFwdTrainSpatialFinalVariance(__global _FLOAT* __restrict varbuff,
-                                      _FLOAT INHW
-#if(MIO_RUNNING_RESULT == 1)
-                                      ,
-                                      double expAvgFactor,
-                                      __global _FLOAT* __restrict resultRunningVariance
-#endif
-                                      ,
-                                      double epsilon
-#if(MIO_SAVE_MEAN_VARIANCE == 1)
-                                      ,
-                                      __global _FLOAT* __restrict resultSaveInvVariance
-#endif
-                                      )
-{
-
-    // SPATIAL
-    __private _FLOAT variance    = (_FLOAT)0.;
-    __private _FLOAT invVariance = (_FLOAT)0.;
-
-    unsigned int ylid          = get_local_id(1);
-    unsigned int ygrp_id       = get_group_id(1);
-    unsigned int xgid          = get_global_id(0);
-    unsigned int ygrp_sz       = get_local_size(1);
-    unsigned int yngrps        = get_num_groups(1);
-    unsigned int cidx          = xgid * MIO_BN_HW;
-    unsigned int varstashindex = cidx + ygrp_sz * ygrp_id + 3;
-    unsigned int commitID      = 0;
-
-    for(int gn = 0; gn < yngrps; gn++)
-    {
-        unsigned int offset   = gn * ygrp_sz + ylid;
-        unsigned int varindex = cidx + ygrp_sz * offset + 2;
-        if(offset < yngrps)
-        {                                      // modified to span larger number of groups
-            variance += *(varbuff + varindex); // load per group variance
-        }
-    }
-
-#if(MIO_BN_NGRPS > 256)
-    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
-    lcl_data[ylid] = variance;
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-#ifdef __AMDGCN__
-#pragma unroll
-    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 32; red >>= 1)
-    {
-        if(ylid < red)
-            lcl_data[ylid] += lcl_data[ylid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    dppLDSReduce64(&variance, lcl_data, ylid, (_FLOAT)INHW);
-#else
-    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 256; red >>= 1)
-    {
-        if(ylid < red)
-            lcl_data[ylid] += lcl_data[ylid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    regLDSreduce(&variance, lcl_data, ylid, (_FLOAT)INHW);
-#endif
-#elif(MIO_BN_NGRPS > 64)
-    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
-    lcl_data[ylid] = variance;
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-#ifdef __AMDGCN__
-    commitID = 63;
-#pragma unroll
-    for(unsigned int red = 128; red > 32; red >>= 1)
-    {
-        if(ylid < red)
-            lcl_data[ylid] += lcl_data[ylid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    dppLDSReduce64(&variance, lcl_data, ylid, (_FLOAT)INHW);
-#else
-    regLDSreduce(&variance, lcl_data, ylid, (_FLOAT)INHW);
-#endif
-
-#elif(MIO_BN_NGRPS > 16)
-
-#ifdef __AMDGCN__
-    commitID = 63;
-    dppRegReduce64(&variance, (_FLOAT)INHW);
-#else
-    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
-    commitID = 0;
-    regLDSreduce(&variance, lcl_data, ylid, (_FLOAT)INHW);
-#endif
-
-#else //(MIO_BN_NGRPS <= 16)
-    commitID = 0;
-
-#ifdef __AMDGCN__
-    dppRegReduce16(&variance, (_FLOAT)INHW);
-#else
-    __local _FLOAT lcl_data[16];
-    lcl_data[ylid] = variance;
-    barrier(CLK_LOCAL_MEM_FENCE);
-    variance = (_FLOAT)0.;
-#pragma unroll
-    for(int i = 0; i < MIO_BN_NGRPS; i++)
-    {
-        variance += lcl_data[i];
-    }
-    variance *= (_FLOAT)INHW;
-#endif
-
-#endif // end if MIO_BN_NGRPS
-
-    invVariance = rsqrt(variance + epsilon);
-    if(ylid == commitID)
-    {
-        varbuff[varstashindex] = invVariance; // stash mean
-    }
-#if(MIO_SAVE_MEAN_VARIANCE == 1 || MIO_RUNNING_RESULT == 1)
-    if(get_global_id(1) == commitID)
-    {
-// Save mean and calculate and save running mean
-#if(MIO_SAVE_MEAN_VARIANCE == 1)
-        resultSaveInvVariance[xgid] = invVariance;
-#endif
-
-#if(MIO_RUNNING_RESULT == 1)
-        _FLOAT NHW                  = (_FLOAT)MIO_BN_NHW;
-        const _FLOAT adjust         = (MIO_BN_NHW == 1) ? variance : variance * (NHW / (NHW - 1));
-        resultRunningVariance[xgid] = (1 - (_FLOAT)expAvgFactor) * *(resultRunningVariance + xgid) +
-                                      (_FLOAT)expAvgFactor * adjust;
-#endif
-    }
-#endif
-}
-
-__attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormFwdTrainSpatialVariance(const __global _FLOAT* __restrict in, /* x input */
-                                 __global _FLOAT* __restrict meanvarbuff)
-{
-
-    // SPATIAL
-    _FLOAT variance = (_FLOAT)0.;
-    _FLOAT mean, elemStd;
-
-    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
-    __local _FLOAT lcl_mean;
-    unsigned int ylid    = get_local_id(1);
-    unsigned int ygrp_id = get_group_id(1);
-    unsigned int xgid    = get_global_id(0);
-    unsigned int ygid    = get_global_id(1);
-    unsigned int ygrp_sz = get_local_size(1);
-    unsigned int cidx    = xgid * MIO_BN_HW;
-    unsigned int index;
-
-    unsigned int meanstashindex = cidx + ygrp_sz * ygrp_id + 1;
-
-    if(ylid == 0)
-    {
-        lcl_mean = *(meanvarbuff + meanstashindex); // load stashed mean
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-    if(ygid < MIO_BN_HW)
-    {
-        mean = lcl_mean;
-#pragma unroll
-        for(unsigned int n = 0; n < MIO_BN_N; n++)
-        {
-            index   = n * MIO_BN_CHW + cidx + ygid;
-            elemStd = (*(in + index) - mean);
-            variance += elemStd * elemStd;
-        }
-    }
-
-    lcl_data[ylid] = variance;
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-#ifdef __AMDGCN__
-#pragma unroll
-    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 32; red >>= 1)
-    {
-        if(ylid < red)
-            lcl_data[ylid] += lcl_data[ylid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    dppLDSReduce64(&variance, lcl_data, ylid, 1);
-
-#else
-    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 256; red >>= 1)
-    {
-        if(ylid < red)
-            lcl_data[ylid] += lcl_data[ylid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    regLDSreduce(&variance, lcl_data, ylid, 1);
-
-#endif
-
-    if(ylid == 0)
-    {
-        unsigned int varindex = cidx + ygrp_sz * ygrp_id + 2;
-        meanvarbuff[varindex] = variance; // pre-stage for group reduction
-    }
-
-} // end spatial variance
-
-__attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormFwdTrainSpatialFinalMean(__global _FLOAT* __restrict meanvarbuff,
-                                  _FLOAT INHW
-#if(MIO_RUNNING_RESULT == 1)
-                                  ,
-                                  double expAvgFactor /* input momentum */
-                                  ,
-                                  __global _FLOAT* __restrict resultRunningMean /*input and output*/
-#endif
-#if(MIO_SAVE_MEAN_VARIANCE == 1)
-                                  ,
-                                  __global _FLOAT* __restrict resultSaveMean /*output only*/
-#endif
-                                  )
-{
-
-    _FLOAT mean           = (_FLOAT)0.;
-    unsigned int ylid     = get_local_id(1);
-    unsigned int ygrp_id  = get_group_id(1);
-    unsigned int xgid     = get_global_id(0);
-    unsigned int ygrp_sz  = get_local_size(1);
-    unsigned int yngrps   = get_num_groups(1);
-    unsigned int cidx     = xgid * MIO_BN_HW;
-    unsigned int commitID = 0;
-
-    for(int gn = 0; gn < yngrps; gn++)
-    {
-        unsigned int offset    = gn * ygrp_sz + ylid;
-        unsigned int meanindex = cidx + ygrp_sz * offset;
-        if(offset < yngrps)
-        { // modify to span larger number of groups
-            mean += *(meanvarbuff + meanindex);
-        }
-    }
-
-#if(MIO_BN_NGRPS > 64)
-    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
-    lcl_data[ylid] = mean;
-    barrier(CLK_LOCAL_MEM_FENCE);
-#ifdef __AMDGCN__
-#pragma unroll
-    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 32; red >>= 1)
-    {
-        if(ylid < red)
-            lcl_data[ylid] += lcl_data[ylid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    dppLDSReduce64(&mean, lcl_data, ylid, (_FLOAT)INHW);
-#else
-    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 256; red >>= 1)
-    {
-        if(ylid < red)
-            lcl_data[ylid] += lcl_data[ylid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    regLDSreduce(&mean, lcl_data, ylid, (_FLOAT)INHW);
-#endif
-
-#elif(MIO_BN_NGRPS <= 64)
-
-#ifdef __AMDGCN__
-    commitID = 63;
-    dppRegReduce64(&mean, (_FLOAT)INHW);
-
-#else
-    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
-    regLDSreduce(&mean, lcl_data, ylid, (_FLOAT)INHW);
-    commitID = 0;
-#endif
-#else
-#ifdef __AMDGCN__
-    dppRegReduce16(&mean, (_FLOAT)INHW);
-#else
-    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
-    lcl_data[ylid] = mean;
-    barrier(CLK_LOCAL_MEM_FENCE);
-    mean = (_FLOAT)0.;
-#pragma unroll
-    for(int i = 0; i < MIO_BN_NGRPS; i++)
-    {
-        mean += lcl_data[i];
-    }
-    mean *= (_FLOAT)INHW;
-#endif
-    commitID = 0;
-#endif
-
-    if(ylid == commitID)
-    {
-        unsigned int meanstashindex = cidx + ygrp_sz * ygrp_id + 1;
-        meanvarbuff[meanstashindex] = mean; // stash mean
-    }
-
-// Save mean and calculate and save running mean
-#if(MIO_SAVE_MEAN_VARIANCE == 1 || MIO_RUNNING_RESULT == 1)
-    unsigned int ygid = get_global_id(1);
-    if(ygid == commitID)
-    {
-#if(MIO_SAVE_MEAN_VARIANCE == 1)
-        resultSaveMean[xgid] = mean;
-#endif
-
-#if(MIO_RUNNING_RESULT == 1)
-        _FLOAT pvt_runMean   = resultRunningMean[xgid];
-        _FLOAT pvt_newRunMean =
-            mad((_FLOAT)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
-        resultRunningMean[xgid] =
-            mad(mean, (_FLOAT)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
-#endif
-    }
-#endif
-}
-
-__attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormFwdTrainSpatialMean(const __global _FLOAT* __restrict in,
-                             __global _FLOAT* __restrict meanbuff)
-{
-
-    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
-
-    unsigned int ylid    = get_local_id(1);
-    unsigned int ygrp_id = get_group_id(1);
-    unsigned int xgid    = get_global_id(0);
-    unsigned int ygid    = get_global_id(1);
-    unsigned int ygrp_sz = get_local_size(1);
-    unsigned int index;
-    unsigned int cidx      = xgid * MIO_BN_HW;
-    unsigned int meanindex = cidx + ygrp_sz * ygrp_id;
-    _FLOAT mean            = (_FLOAT)0.;
-
-    if(ygid < MIO_BN_HW)
-    {
-#pragma unroll
-        for(unsigned int n = 0; n < MIO_BN_N; n++)
-        {
-            index = n * MIO_BN_CHW + cidx + ygid;
-            mean += *(in + index);
-        }
-    }
-
-    lcl_data[ylid] = mean;
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-#ifdef __AMDGCN__
-#pragma unroll
-    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 32; red >>= 1)
-    {
-        if(ylid < red)
-            lcl_data[ylid] += lcl_data[ylid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    dppLDSReduce64(&mean, lcl_data, ylid, 1);
-
-#else
-    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 256; red >>= 1)
-    {
-        if(ylid < red)
-            lcl_data[ylid] += lcl_data[ylid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    regLDSreduce(&mean, lcl_data, ylid, 1);
-
-#endif
-    if(ylid == 0)
-    {
-        meanbuff[meanindex] = mean;
-    }
-} // end spatial mean kernel
-
-#elif(MIO_BN_VARIANT == 4)
-
-__attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
-                         __global _FLOAT* __restrict out,
-                         __constant _FLOAT* __restrict scale,
-                         __constant _FLOAT* __restrict bias,
-                         _FLOAT INHW,
-#if(MIO_RUNNING_RESULT == 1)
-                         double expAvgFactor,
-                         __global _FLOAT* __restrict resultRunningMean,
-                         __global _FLOAT* __restrict resultRunningVariance,
-#endif
-                         double epsilon
-#if(MIO_SAVE_MEAN_VARIANCE == 1)
-                         ,
-                         __global _FLOAT* __restrict resultSaveMean,
-                         __global _FLOAT* __restrict resultSaveInvVariance
-#endif
-                         )
-{
-
-    // SPATIAL
-    _FLOAT mean        = (_FLOAT)0.;
-    _FLOAT variance    = (_FLOAT)0.;
-    _FLOAT invVariance = (_FLOAT)0.;
-    _FLOAT pvscale     = (_FLOAT)0.;
-    _FLOAT pvbias      = (_FLOAT)0.;
-
-    _FLOAT batchvalues[MIO_BN_N][MIO_BN_SEGMENT];
-
-    __local _FLOAT lcl_bias;
-    __local _FLOAT lcl_scale;
-    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
-
-    unsigned int index   = 0;
-    unsigned int ylid    = get_local_id(1);
-    unsigned int xgrpid  = get_group_id(0);
-    unsigned int lidhw   = 0;
-    unsigned int xgid    = get_global_id(0);
-    unsigned int ygid    = get_global_id(1);
-    unsigned int ygrp_sz = get_local_size(1);
-    unsigned int cid     = xgid * MIO_BN_HW;
-    unsigned int nid     = 0;
-
-    if(ylid == 0)
-    {
-        lcl_scale = *(scale + xgrpid);
-        lcl_bias  = *(bias + xgrpid);
-    }
-
-// if(lid < MIO_BN_SEGMENT){
-//==== CALC MEAN =======================
-#pragma unroll
-    for(unsigned int hw = 0; hw < MIO_BN_SEGMENT; hw++)
-    {
-        lidhw = hw * MIO_BN_GRP1 + ylid;
-        if(lidhw < MIO_BN_HW)
-        {
-#pragma unroll
-            for(unsigned int n = 0; n < MIO_BN_N; n++)
-            {
-                nid                = n * MIO_BN_CHW;
-                index              = nid + cid + lidhw;
-                batchvalues[n][hw] = *(in + index); //(lidhw < MIO_BN_HW) ? in[index] : 0.;
-                mean += batchvalues[n][hw];
-            }
-        }
-    }
-    //}
-    lcl_data[ylid] = mean;
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-#ifdef __AMDGCN__
-#pragma unroll
-    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 32; red >>= 1)
-    {
-        if(ylid < red)
-            lcl_data[ylid] += lcl_data[ylid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    dppLDSReduce64(&mean, lcl_data, ylid, (_FLOAT)INHW);
-#else
-    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 256; red >>= 1)
-    {
-        if(ylid < red)
-            lcl_data[ylid] += lcl_data[ylid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    regLDSreduce(&mean, lcl_data, ylid, (_FLOAT)INHW);
-#endif
-
-//==== CALC VARIANCE =======================
-#pragma unroll
-    for(unsigned int hw = 0; hw < MIO_BN_SEGMENT; hw++)
-    {
-        lidhw = hw * MIO_BN_GRP1 + ylid;
-        if(lidhw < MIO_BN_HW)
-        {
-#pragma unroll
-            for(unsigned int n = 0; n < MIO_BN_N; n++)
-            {
-                _FLOAT elemStd = (batchvalues[n][hw] - mean);
-                variance       = mad(elemStd, elemStd, variance);
-            }
-        }
-    }
-    lcl_data[ylid] = variance;
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-#ifdef __AMDGCN__
-#pragma unroll
-    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 32; red >>= 1)
-    {
-        if(ylid < red)
-            lcl_data[ylid] += lcl_data[ylid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    dppLDSReduce64(&variance, lcl_data, ylid, (_FLOAT)INHW);
-#else
-    for(unsigned int red = (MIO_BN_GRP1 >> 1); red > 256; red >>= 1)
-    {
-        if(ylid < red)
-            lcl_data[ylid] += lcl_data[ylid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    regLDSreduce(&variance, lcl_data, ylid, (_FLOAT)INHW);
-#endif
-
-    invVariance = rsqrt(variance + epsilon);
-
-    //==== CALC NORM =======================
-    pvscale = lcl_scale;
-    pvbias  = lcl_bias;
-
-#pragma unroll
-    for(unsigned int hw = 0; hw < MIO_BN_SEGMENT; hw++)
-    {
-        lidhw = hw * MIO_BN_GRP1 + ylid;
-        if(lidhw < MIO_BN_HW)
-        {
-#pragma unroll
-            for(unsigned int n = 0; n < MIO_BN_N; n++)
-            { // apply normalization
-                nid          = n * MIO_BN_CHW;
-                _FLOAT inhat = (batchvalues[n][hw] - mean) * invVariance;
-                index        = nid + cid + lidhw;
-                // if(index < MIO_BN_NCHW)
-                out[index] = mad(pvscale, inhat, pvbias);
-            }
-        }
-    } // end for
-      //}
-#if(MIO_SAVE_MEAN_VARIANCE == 1 || MIO_RUNNING_RESULT == 1)
-    if(ylid == 0)
-    {
-
-// Save mean and calculate and save running mean
-#if(MIO_SAVE_MEAN_VARIANCE == 1)
-        resultSaveMean[xgrpid]        = mean;
-        resultSaveInvVariance[xgrpid] = invVariance;
-#endif
-
-#if(MIO_RUNNING_RESULT == 1)
-        _FLOAT pvt_runMean            = resultRunningMean[xgrpid];
-        _FLOAT pvt_newRunMean =
-            mad((_FLOAT)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
-        resultRunningMean[grpid] =
-            mad(mean, (_FLOAT)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
-        const _FLOAT adjust = (MIO_BN_NHW == 1)
-                                  ? variance
-                                  : variance * ((_FLOAT)MIO_BN_NHW / (_FLOAT)(MIO_BN_NHW - 1.0));
-
-        resultRunningVariance[xgrpid] = (1 - (_FLOAT)expAvgFactor) * resultRunningVariance[xgrpid] +
-                                        (_FLOAT)expAvgFactor * adjust;
-#endif
-    }
-#endif
-} // end spatial norm
-
-#elif(MIO_BN_VARIANT == 5)
-
-#define MIO_BN_REM (MIO_BN_NHW - ((MIO_BN_NHW / MIO_BN_GRP0) * MIO_BN_GRP0))
-#define MIO_BN_LESS (MIO_BN_NHW - MIO_BN_REM)
-
-__attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
-                         __global _FLOAT* __restrict out,
-                         __constant _FLOAT* __restrict scale,
-                         __constant _FLOAT* __restrict bias,
-                         _FLOAT INHW,
-#if(MIO_RUNNING_RESULT == 1)
-                         double expAvgFactor,
-                         __global _FLOAT* __restrict resultRunningMean,
-                         __global _FLOAT* __restrict resultRunningVariance,
-#endif
-                         double epsilon
-#if(MIO_SAVE_MEAN_VARIANCE == 1)
-                         ,
-                         __global _FLOAT* __restrict resultSaveMean,
-                         __global _FLOAT* __restrict resultSaveInvVariance
-#endif
-                         )
-{
-
-    // SPATIAL
-    _FLOAT mean        = (_FLOAT)0.;
-    _FLOAT variance    = (_FLOAT)0.;
-    _FLOAT invVariance = (_FLOAT)0.;
-    _FLOAT pvscale     = (_FLOAT)0.;
-    _FLOAT pvbias      = (_FLOAT)0.;
-
-    __local _FLOAT lcl_bias;
-    __local _FLOAT lcl_scale;
-    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
-
-    unsigned int index = 0;
-    unsigned int lid   = get_local_id(0);
-    unsigned int grpid = get_group_id(0);
-    unsigned int chwid = grpid * MIO_BN_HW;
-    unsigned int nidx  = 0;
-    unsigned int hwidx = 0;
-
-    _FLOAT xin = (_FLOAT)0.;
-
-    if(lid == 0)
-    {
-        lcl_scale = *(scale + grpid);
-        lcl_bias  = *(bias + grpid);
-    }
-
-//==== CALC MEAN =======================
-#pragma unroll
-    for(unsigned int k = lid; k < MIO_BN_LESS; k += MIO_BN_GRP0)
-    {
-        nidx  = iDiv(k, MIO_BN_HW);
-        hwidx = iMod(k, nidx, MIO_BN_HW);
-        index = nidx * MIO_BN_CHW + chwid + hwidx;
-        xin   = *(in + index);
-        mean += xin;
-        variance = mad(xin, xin, variance);
-    }
-
-#if(MIO_BN_REM)
-    nidx  = iDiv(MIO_BN_LESS + lid, MIO_BN_HW);
-    hwidx = iMod(MIO_BN_LESS + lid, nidx, MIO_BN_HW);
-    index = nidx * MIO_BN_CHW + grpid * MIO_BN_HW + hwidx;
-    xin   = (index < MIO_BN_NCHW) ? *(in + index) : 0.;
-    mean += xin;
-    variance      = mad(xin, xin, variance);
-
-#endif
-    lcl_data[lid] = mean;
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-#ifdef __AMDGCN__
-#pragma unroll
-    for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 32; red >>= 1)
-    {
-        if(lid < red)
-            lcl_data[lid] += lcl_data[lid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    dppLDSReduce64(&mean, lcl_data, lid, INHW);
-#else
-    for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 256; red >>= 1)
-    {
-        if(lid < red)
-            lcl_data[lid] += lcl_data[lid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    regLDSreduce(&mean, lcl_data, lid, INHW);
-
-#endif
-    barrier(CLK_LOCAL_MEM_FENCE);
-    lcl_data[lid] = variance;
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-#ifdef __AMDGCN__
-#pragma unroll
-    for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 32; red >>= 1)
-    {
-        if(lid < red)
-            lcl_data[lid] += lcl_data[lid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    dppLDSReduce64(&variance, lcl_data, lid, INHW);
-#else
-    for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 256; red >>= 1)
-    {
-        if(lid < red)
-            lcl_data[lid] += lcl_data[lid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    regLDSreduce(&variance, lcl_data, lid, INHW);
-#endif
-
-    barrier(CLK_LOCAL_MEM_FENCE);
-    variance    = mad(-mean, mean, variance);
-    invVariance = rsqrt(variance + epsilon);
-
-    //==== CALC NORM =======================
-    pvscale = lcl_scale;
-    pvbias  = lcl_bias;
-
-#pragma unroll
-    for(unsigned int k = lid; k < MIO_BN_LESS; k += MIO_BN_GRP0)
-    {
-
-        nidx       = iDiv(k, MIO_BN_HW);
-        hwidx      = iMod(k, nidx, MIO_BN_HW);
-        index      = nidx * MIO_BN_CHW + chwid + hwidx;
-        out[index] = mad(pvscale, (*(in + index) - mean) * invVariance, pvbias);
-    } // end for
-#if(MIO_BN_REM)
-    nidx  = iDiv(MIO_BN_LESS + lid, MIO_BN_HW);
-    hwidx = iMod(MIO_BN_LESS + lid, nidx, MIO_BN_HW);
-    index = nidx * MIO_BN_CHW + chwid + hwidx;
-    if(index < MIO_BN_NCHW)
-    {
-        *(out + index) = mad(pvscale, (*(in + index) - mean) * invVariance, pvbias);
-    }
-#endif
-
-#if(MIO_SAVE_MEAN_VARIANCE == 1 || MIO_RUNNING_RESULT == 1)
-    if(lid == 0)
-    {
-// Save mean and calculate and save running mean
-#if(MIO_SAVE_MEAN_VARIANCE == 1)
-        resultSaveMean[grpid]        = mean;
-        resultSaveInvVariance[grpid] = invVariance;
-#endif
-
-#if(MIO_RUNNING_RESULT == 1)
-        _FLOAT pvt_runMean           = *(resultRunningMean + grpid);
-        _FLOAT pvt_newRunMean =
-            mad((_FLOAT)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
-        resultRunningMean[grpid] =
-            mad(mean, (_FLOAT)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
-        const _FLOAT adjust = (MIO_BN_NHW == 1)
-                                  ? variance
-                                  : variance * ((_FLOAT)MIO_BN_NHW / (_FLOAT)(MIO_BN_NHW - 1.0));
-        resultRunningVariance[grpid] =
-            (1 - (_FLOAT)expAvgFactor) * *(resultRunningVariance + grpid) +
-            (_FLOAT)expAvgFactor * adjust;
-#endif
-    }
-#endif
-}
-
-#elif(MIO_BN_VARIANT == 6)
-
-__attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
-                         __global _FLOAT* __restrict out,
-                         __constant _FLOAT* __restrict scale,
-                         __constant _FLOAT* __restrict bias,
-                         _FLOAT INHW,
-#if(MIO_RUNNING_RESULT == 1)
-                         double expAvgFactor,
-                         __global _FLOAT* __restrict resultRunningMean,
-                         __global _FLOAT* __restrict resultRunningVariance,
-#endif
-                         double epsilon
-#if(MIO_SAVE_MEAN_VARIANCE == 1)
-                         ,
-                         __global _FLOAT* __restrict resultSaveMean,
-                         __global _FLOAT* __restrict resultSaveInvVariance
-#endif
-                         )
-{
-
-    // SPATIAL
-    _FLOAT mean        = (_FLOAT)0.;
-    _FLOAT variance    = (_FLOAT)0.;
-    _FLOAT invVariance = (_FLOAT)0.;
-    _FLOAT pvscale     = (_FLOAT)0.;
-    _FLOAT pvbias      = (_FLOAT)0.;
-
-    __local _FLOAT lcl_bias;
-    __local _FLOAT lcl_scale;
-    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
-
-    unsigned int index = 0;
-    unsigned int lid   = get_local_id(0);
-    unsigned int grpid = get_group_id(0);
-    unsigned int chwid = grpid * MIO_BN_HW;
-
-    _FLOAT xin = (_FLOAT)0.;
-
-    if(lid == 0)
-    {
-        lcl_scale = *(scale + grpid);
-        lcl_bias  = *(bias + grpid);
-    }
-
-//==== CALC MEAN =======================
-#pragma unroll
-    for(unsigned int n = 0; n < MIO_BN_N; n++)
-    {
-        for(unsigned int hw = lid; hw < MIO_BN_HW; hw += MIO_BN_GRP0)
-        {
-
-            index = n * MIO_BN_CHW + chwid + hw;
-            xin   = (index < MIO_BN_NCHW) ? *(in + index) : 0.;
-            mean += xin;
-            variance = mad(xin, xin, variance);
-        }
-    }
-    lcl_data[lid] = mean;
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-#ifdef __AMDGCN__
-#pragma unroll
-    for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 32; red >>= 1)
-    {
-        if(lid < red)
-            lcl_data[lid] += lcl_data[lid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    dppLDSReduce64(&mean, lcl_data, lid, INHW);
-#else
-    for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 256; red >>= 1)
-    {
-        if(lid < red)
-            lcl_data[lid] += lcl_data[lid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    regLDSreduce(&mean, lcl_data, lid, INHW);
-
-#endif
-
-    barrier(CLK_LOCAL_MEM_FENCE);
-    lcl_data[lid] = variance;
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-#ifdef __AMDGCN__
-#pragma unroll
-    for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 32; red >>= 1)
-    {
-        if(lid < red)
-            lcl_data[lid] += lcl_data[lid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    dppLDSReduce64(&variance, lcl_data, lid, INHW);
-#else
-    for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 256; red >>= 1)
-    {
-        if(lid < red)
-            lcl_data[lid] += lcl_data[lid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    regLDSreduce(&variance, lcl_data, lid, INHW);
-#endif
-
-    barrier(CLK_LOCAL_MEM_FENCE);
-    variance    = mad(-mean, mean, variance);
-    invVariance = rsqrt(variance + epsilon);
-
-    //==== CALC NORM =======================
-    pvscale = lcl_scale;
-    pvbias  = lcl_bias;
-
-#pragma unroll
-    for(unsigned int n = 0; n < MIO_BN_N; n++)
-    {
-        for(unsigned int hw = lid; hw < MIO_BN_HW; hw += MIO_BN_GRP0)
-        {
-            index      = n * MIO_BN_CHW + chwid + hw;
-            _FLOAT tmp = (((index < MIO_BN_NCHW) ? *(in + index) : 0.) - mean) * invVariance;
-            out[index] = mad(pvscale, tmp, pvbias);
-        }
-    } // end for
-
-#if(MIO_SAVE_MEAN_VARIANCE == 1 || MIO_RUNNING_RESULT == 1)
-    if(lid == 0)
-    {
-// Save mean and calculate and save running mean
-#if(MIO_SAVE_MEAN_VARIANCE == 1)
-        resultSaveMean[grpid]        = mean;
-        resultSaveInvVariance[grpid] = invVariance;
-#endif
-
-#if(MIO_RUNNING_RESULT == 1)
-        _FLOAT pvt_runMean           = *(resultRunningMean + grpid);
-        _FLOAT pvt_newRunMean =
-            mad((_FLOAT)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
-        resultRunningMean[grpid] =
-            mad(mean, (_FLOAT)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
-        const _FLOAT adjust = (MIO_BN_NHW == 1)
-                                  ? variance
-                                  : variance * ((_FLOAT)MIO_BN_NHW / (_FLOAT)(MIO_BN_NHW - 1.0));
-        resultRunningVariance[grpid] =
-            (1 - (_FLOAT)expAvgFactor) * *(resultRunningVariance + grpid) +
-            (_FLOAT)expAvgFactor * adjust;
-#endif
-    }
-#endif
-}
 
 #endif
 

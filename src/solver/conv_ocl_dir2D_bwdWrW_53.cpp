@@ -49,10 +49,6 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     int wei_cstride = params.kernel_size0 * params.kernel_size1;
     int wei_bstride = params.n_outputs * wei_cstride;
 
-    static const int read_unit = 4;
-    static const std::string READ_TYPE =
-        (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
-
     // number  of batch iterations
     result.n_stacks = 1;
     result.n_stacks = std::min(params.batch_sz, result.n_stacks);
@@ -73,9 +69,9 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
 
     // span size
     // param
-    result.in_tile0 = ((result.out_pix_tile0 * result.out_pix_tile1) <= 16 && (params.in_width > 8))
-                          ? 4
-                          : ((params.in_width / 3) * 3 == params.in_width) ? 3 : 2;
+    result.in_tile0 = (params.in_width % 4 == 0) ? 4 : (params.in_width % 3 == 0)
+                                                           ? 3
+                                                           : (params.in_width % 2 == 0) ? 2 : 1;
     int n_spans = (params.in_width + result.in_tile0 - 1) / result.in_tile0;
 
     // n of wavefronts per group
@@ -93,6 +89,14 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         (params.in_width <= 32 && (result.out_pix_tile0 * result.out_pix_tile1) <= 16) ? 4 : 1;
 
     result.n_in_data_tiles = std::min(result.n_in_data_tiles, params.n_outputs);
+
+    static const int read_unit =
+        (params.out_width % 4 == 0) ? 4 : (params.out_width % 3 == 0)
+                                              ? 3
+                                              : (params.out_width % 2 == 0) ? 2 : 1;
+
+    static const std::string READ_TYPE =
+        (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
     // calculate number of input scans in the input block
     // max LDS size is 8K
     int in_lcl_width =
@@ -104,7 +108,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
                               ? (params.out_height + 1) / 2
                               : params.out_height;
     while(in_lcl_width * in_n_vert_reads * result.n_in_data_tiles >
-          (dev_local_mem_sz / (2 * sizeof(float))))
+          (dev_local_mem_sz / (2 * ((params.in_data_type == "FP32") ? 4 : 2))))
     {
         in_n_vert_reads = (in_n_vert_reads + 1) / 2;
         if(in_n_vert_reads < 2 && result.n_in_data_tiles >= 2)
@@ -114,7 +118,9 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         }
         else if(in_n_vert_reads < 2)
         {
-            std::cout << "CONFIG ERROR: not enough local memory for the configuration\n";
+#ifndef NDEBUG
+            std::cout << "CONFIG ERROR: not enough local memory to run direct algorithm\n";
+#endif
             return ConvSolution(miopenStatusUnknownError);
         }
     }

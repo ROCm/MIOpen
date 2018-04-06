@@ -230,7 +230,7 @@ bool ConvAsmBwdWrW1x1::IsValidPerformanceConfig(const ConvolutionContext& proble
 
 bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!params.assembler_available)
+    if(!params.use_asm_kernels)
     {
         return false;
     }
@@ -256,6 +256,7 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_dilation0 == 1
         && params.kernel_dilation1 == 1
         && params.bias == 0
+        && params.float_size == 32
         && params.in_layout == "NCHW");
     if(!ok)
     {
@@ -395,7 +396,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     {
         std::string s;
         const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS{});
-        if(p_asciz)
+        if(p_asciz != nullptr)
         {
             s = std::string(p_asciz);
             if(!s.empty()) // else nothing to parse.

@@ -730,9 +730,9 @@ __kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
                              const int b_nstride,
                              global MIOPEN_TYPE* c,
                              const int c_nstride,
-                             const float alpha0,
-                             const float alpha1,
-                             const float beta,
+                             const MIOPEN_TYPE alpha0,
+                             const MIOPEN_TYPE alpha1,
+                             const MIOPEN_TYPE beta,
                              const long Aoffset,
                              const long Boffset,
                              const long Coffset)
@@ -744,9 +744,9 @@ __kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
     int b_index = gid1 * b_nstride + gid0 * RD_BLCK;
     int c_index = gid1 * c_nstride + gid0 * RD_BLCK;
 
-    float a_dat[RD_BLCK];
-    float b_dat[RD_BLCK];
-    float c_dat[RD_BLCK];
+    MIOPEN_TYPE a_dat[RD_BLCK];
+    MIOPEN_TYPE b_dat[RD_BLCK];
+    MIOPEN_TYPE c_dat[RD_BLCK];
 
     *((READ_TYPE*)a_dat) = *((const global READ_TYPE*)(a + Aoffset + a_index));
     *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + Boffset + b_index));
@@ -769,6 +769,7 @@ __kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
     (void)beta;
 #endif
 }
+
 #endif
 
 #ifdef USE_2D_TENSOR_GENERIC
@@ -865,4 +866,57 @@ __kernel void Op1dTensorGeneric(global MIOPEN_TYPE* a,
         }
     }
 }
+
+#endif
+
+#ifdef USE_4D_TENSOR_LITE
+// N - batch size
+// C - # of maps
+// H - map height
+// W - map width
+// TENS_LEN = (N*C*H*W);
+// RD_BLCK = (TENS_LEN%4==0) ? 4 : (TENS_LEN%3==0)? 3 : (TENS_LEN%2==0)? 2 : 1;
+// READ_TYPE = (RD_BLCK==4) ? "float4" : (RD_BLCK == 3) ? "float3" : (RD_BLC==2) ? "float2" :
+// "float";
+// local size = (256, 1, 1)
+// global size = ((TENS_LEN/RD_BLCK), 1, 1)
+__kernel void Op4dTensorLite(const global MIOPEN_TYPE* a,
+                             const global MIOPEN_TYPE* b,
+                             global MIOPEN_TYPE* c,
+                             const MIOPEN_TYPE alpha0,
+                             const MIOPEN_TYPE alpha1,
+#ifndef BETA
+                             UNUSED
+#endif
+                             const MIOPEN_TYPE beta,
+                             const long Aoffset,
+                             const long Boffset,
+                             const long Coffset)
+{
+    int gid0 = get_global_id(0);
+
+    int index = gid0 * RD_BLCK;
+
+    MIOPEN_TYPE a_dat[RD_BLCK];
+    MIOPEN_TYPE b_dat[RD_BLCK];
+    MIOPEN_TYPE c_dat[RD_BLCK];
+
+    *((READ_TYPE*)a_dat) = *((const global READ_TYPE*)(a + index + Aoffset));
+    *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + index + Boffset));
+#ifdef BETA
+    *((READ_TYPE*)c_dat) = *((const global READ_TYPE*)(c + index + Coffset));
+#endif
+
+    for(int i = 0; i < RD_BLCK; ++i)
+    {
+        c_dat[i] = MIOPEN_TENSOR_OP(a_dat[i] * alpha0, b_dat[i] * alpha1)
+#ifdef BETA
+                   + beta * c_dat[i]
+#endif
+            ;
+    }
+
+    *((global READ_TYPE*)(c + index + Coffset)) = *((READ_TYPE*)c_dat);
+}
+
 #endif

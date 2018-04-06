@@ -74,7 +74,8 @@ void RNNFwdTrainCPUVerify(std::vector<T>& in,
                                      // related function for bidirection
                           int squash,
                           int inputMode,
-                          std::vector<T>& rsvspace)
+                          std::vector<T>& rsvspace,
+                          bool hx_is_null = false)
 {
 
 #if(MIO_RNN_TEST_DEBUG > 0)
@@ -149,19 +150,6 @@ void RNNFwdTrainCPUVerify(std::vector<T>& in,
                         }
                     }
                 });
-
-                // from bias
-                if(biased)
-                {
-                    // for(int bs = 0; bs < batch_n; bs++)
-                    par_for(batch_n, 4, [&](int bs) {
-                        for(int h = 0; h < hy_stride; h++)
-                        {
-                            rsvspace.at(hid_shift + bs * hy_stride + h) +=
-                                wei.at(wei_shift_bias + h);
-                        }
-                    });
-                }
             }
             else
             {
@@ -191,8 +179,7 @@ void RNNFwdTrainCPUVerify(std::vector<T>& in,
                         for(int h = 0; h < hy_stride; h++)
                         {
                             rsvspace.at(hid_shift + bs * hy_stride + h) +=
-                                (wei.at(wei_shift_bias + h) +
-                                 wei.at(wei_shift_bias + hy_stride + h));
+                                wei.at(wei_shift_bias + h);
                         }
                     });
                 }
@@ -233,8 +220,7 @@ void RNNFwdTrainCPUVerify(std::vector<T>& in,
                     for(int h = 0; h < hy_stride; h++)
                     {
                         rsvspace.at(hid_shift + bs * hy_stride + h) +=
-                            (wei.at(wei_shift_bias_temp + h) +
-                             wei.at(wei_shift_bias_temp + hy_stride + h));
+                            wei.at(wei_shift_bias_temp + h);
                     }
                 });
             }
@@ -254,50 +240,86 @@ void RNNFwdTrainCPUVerify(std::vector<T>& in,
 
             if(ti == 0)
             {
-                RNN_mm_cpu<T>(&hx[hx_shift],
-                              hy_h,
-                              in_n[ti],
-                              uni_stride,
-                              0,
-                              &wei[wei_shift],
-                              hy_h,
-                              hy_h,
-                              uni_stride,
-                              RNN_MM_TRANSPOSE,
-                              &rsvspace[hid_shift + bacc * hy_stride],
-                              hy_h,
-                              in_n[ti],
-                              hy_stride,
-                              0,
-                              1,
-                              1);
-
-                if(bidirection)
+                if(!hx_is_null)
                 {
-                    RNN_mm_cpu<T>(&hx[hx_shift + hy_n * hy_h],
+                    RNN_mm_cpu<T>(&hx[hx_shift],
                                   hy_h,
-                                  in_n[seqLength - 1 - ti],
+                                  in_n.at(ti),
                                   uni_stride,
                                   0,
-                                  &wei[wei_shift + hy_h * uni_stride],
+                                  &wei[wei_shift],
                                   hy_h,
                                   hy_h,
                                   uni_stride,
                                   RNN_MM_TRANSPOSE,
-                                  &rsvspace[hid_shift + baccbi * hy_stride + hy_h],
+                                  &rsvspace[hid_shift + bacc * hy_stride],
                                   hy_h,
-                                  in_n[seqLength - 1 - ti],
+                                  in_n.at(ti),
                                   hy_stride,
                                   0,
                                   1,
                                   1);
+
+                    // from bias
+                    if(biased)
+                    {
+                        int wei_shift_bias_temp = (inputMode == 1)
+                                                      ? (wei_shift_bias + bi * li * 2 * hy_h)
+                                                      : (wei_shift_bias + bi * (li * 2 + 1) * hy_h);
+
+                        par_for(in_n.at(ti), 4, [&](int bs) {
+                            for(int h = 0; h < hy_h; h++)
+                            {
+                                rsvspace.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
+                                    wei.at(wei_shift_bias_temp + h);
+                            }
+                        });
+                    }
+
+                    if(bidirection)
+                    {
+                        RNN_mm_cpu<T>(&hx[hx_shift + hy_n * hy_h],
+                                      hy_h,
+                                      in_n.at(seqLength - 1 - ti),
+                                      uni_stride,
+                                      0,
+                                      &wei[wei_shift + hy_h * uni_stride],
+                                      hy_h,
+                                      hy_h,
+                                      uni_stride,
+                                      RNN_MM_TRANSPOSE,
+                                      &rsvspace[hid_shift + baccbi * hy_stride + hy_h],
+                                      hy_h,
+                                      in_n.at(seqLength - 1 - ti),
+                                      hy_stride,
+                                      0,
+                                      1,
+                                      1);
+
+                        // from bias
+                        if(biased)
+                        {
+                            int wei_shift_bias_temp =
+                                (inputMode == 1) ? (wei_shift_bias + bi * li * 2 * hy_h)
+                                                 : (wei_shift_bias + bi * (li * 2 + 1) * hy_h);
+
+                            par_for(in_n.at(seqLength - 1 - ti), 4, [&](int bs) {
+                                for(int h = 0; h < hy_h; h++)
+                                {
+                                    rsvspace.at(hid_shift + baccbi * hy_stride + hy_h +
+                                                bs * hy_stride + h) +=
+                                        wei.at(wei_shift_bias_temp + hy_h + h);
+                                }
+                            });
+                        }
+                    }
                 }
             }
             else
             {
                 RNN_mm_cpu<T>(&hy_host[hx_shift],
                               hy_h,
-                              in_n[ti],
+                              in_n.at(ti),
                               uni_stride,
                               0,
                               &wei[wei_shift],
@@ -313,11 +335,27 @@ void RNNFwdTrainCPUVerify(std::vector<T>& in,
                               1,
                               1);
 
+                // from bias
+                if(biased)
+                {
+                    int wei_shift_bias_temp = (inputMode == 1)
+                                                  ? (wei_shift_bias + bi * li * 2 * hy_h)
+                                                  : (wei_shift_bias + bi * (li * 2 + 1) * hy_h);
+
+                    par_for(in_n.at(ti), 4, [&](int bs) {
+                        for(int h = 0; h < hy_h; h++)
+                        {
+                            rsvspace.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
+                                wei.at(wei_shift_bias_temp + h);
+                        }
+                    });
+                }
+
                 if(bidirection)
                 {
                     RNN_mm_cpu<T>(&hy_host[hx_shift + hy_n * hy_h],
                                   hy_h,
-                                  in_n.at(seqLength - 1 - ti),
+                                  in_n.at(seqLength - ti),
                                   uni_stride,
                                   0,
                                   &wei[wei_shift + hy_h * uni_stride],
@@ -327,11 +365,27 @@ void RNNFwdTrainCPUVerify(std::vector<T>& in,
                                   RNN_MM_TRANSPOSE,
                                   &rsvspace[hid_shift + baccbi * hy_stride + hy_h],
                                   hy_h,
-                                  in_n.at(seqLength - 1 - ti),
+                                  in_n.at(seqLength - ti),
                                   hy_stride,
                                   0,
                                   1,
                                   1);
+
+                    // from bias
+                    if(biased)
+                    {
+                        int wei_shift_bias_temp = (inputMode == 1)
+                                                      ? (wei_shift_bias + bi * li * 2 * hy_h)
+                                                      : (wei_shift_bias + bi * (li * 2 + 1) * hy_h);
+
+                        par_for(in_n.at(seqLength - ti), 4, [&](int bs) {
+                            for(int h = 0; h < hy_h; h++)
+                            {
+                                rsvspace.at(hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride +
+                                            h) += wei.at(wei_shift_bias_temp + hy_h + h);
+                            }
+                        });
+                    }
                 }
             }
 
@@ -422,7 +476,8 @@ void RNNBwdDataCPUVerify(std::vector<T>& din_host,
                          int squash,
                          int inputMode,
                          std::vector<T>& rsvspace,
-                         std::vector<T>& wkspace)
+                         std::vector<T>& wkspace,
+                         bool dhy_is_null = false)
 {
 
 #if(MIO_RNN_TEST_DEBUG > 0)
@@ -523,30 +578,48 @@ void RNNBwdDataCPUVerify(std::vector<T>& din_host,
         {
             bacc -= in_n.at(ti);
 
-            for(int bs = 0; bs < in_n.at(ti); bs++)
+            // from post state
+            if(ti == seqLength - 1)
             {
-                for(int h = 0; h < hy_h; h++)
+                if(!dhy_is_null)
                 {
-                    // from post state
-                    if(ti == seqLength - 1)
+                    for(int bs = 0; bs < in_n.at(ti); bs++)
                     {
-                        wkspace.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
-                            dhy.at(hx_shift + bs * uni_stride + h);
+                        for(int h = 0; h < hy_h; h++)
+                        {
+                            wkspace.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
+                                dhy.at(hx_shift + bs * uni_stride + h);
+                        }
                     }
-                    else
+                }
+            }
+            else
+            {
+                for(int bs = 0; bs < in_n.at(ti + 1); bs++)
+                {
+                    for(int h = 0; h < hy_h; h++)
                     {
                         wkspace.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
                             dhx_host.at(hx_shift + bs * uni_stride + h);
                     }
-
-                    wkspace.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) *= dervactivfunc(
-                        rsvspace.at(hid_shift + bacc * hy_stride + bs * hy_stride + h), squash);
                 }
             }
 
             for(int bs = 0; bs < in_n.at(ti); bs++)
             {
-                memset(&dhx_host[hx_shift + bs * uni_stride], 0, hy_h * sizeof(T));
+                for(int h = 0; h < hy_h; h++)
+                {
+                    wkspace.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) *= dervactivfunc(
+                        rsvspace.at(hid_shift + bacc * hy_stride + bs * hy_stride + h), squash);
+                }
+            }
+
+            if(ti < seqLength - 1)
+            {
+                for(int bs = 0; bs < in_n.at(ti + 1); bs++)
+                {
+                    memset(&dhx_host[hx_shift + bs * uni_stride], 0, hy_h * sizeof(T));
+                }
             }
 
             wei_shift = li == 0 ? (in_h * hy_stride) : (bi * (in_h + hy_h) * hy_h +
@@ -580,8 +653,12 @@ void RNNBwdDataCPUVerify(std::vector<T>& din_host,
                         // from post state
                         if(ti == seqLength - 1)
                         {
-                            wkspace.at(hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride +
-                                       h) += dhy.at(hx_shift + hy_n * hy_h + bs * uni_stride + h);
+                            if(!dhy_is_null)
+                            {
+                                wkspace.at(hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride +
+                                           h) +=
+                                    dhy.at(hx_shift + hy_n * hy_h + bs * uni_stride + h);
+                            }
                         }
                         else
                         {
@@ -597,10 +674,14 @@ void RNNBwdDataCPUVerify(std::vector<T>& din_host,
                     }
                 }
 
-                for(int bs = 0; bs < in_n.at(seqLength - 1 - ti); bs++)
+                if(ti < seqLength - 1)
                 {
-                    memset(
-                        &dhx_host[hx_shift + bs * uni_stride + hy_n * hy_h], 0, hy_h * sizeof(T));
+                    for(int bs = 0; bs < in_n.at(seqLength - 2 - ti); bs++)
+                    {
+                        memset(&dhx_host[hx_shift + bs * uni_stride + hy_n * hy_h],
+                               0,
+                               hy_h * sizeof(T));
+                    }
                 }
 
                 RNN_mm_cpu<T>(&wkspace[hid_shift + baccbi * hy_stride + hy_h],
@@ -699,7 +780,8 @@ void RNNBwdWeightCPUVerify(std::vector<T>& in,
                            int squash,
                            int inputMode,
                            std::vector<T>& rsvspace,
-                           std::vector<T>& wkspace)
+                           std::vector<T>& wkspace,
+                           bool hx_is_null = false)
 {
 #if(MIO_RNN_TEST_DEBUG > 0)
     printf("BWD WEGIHTS CPU ctest:\n");
@@ -758,20 +840,7 @@ void RNNBwdWeightCPUVerify(std::vector<T>& in,
         // between layers
         if(li == 0)
         {
-            if(inputMode == 1)
-            {
-                if(biased)
-                {
-                    for(int h = 0; h < hy_stride; h++)
-                    {
-                        for(int w = 0; w < batch_n; w++)
-                        {
-                            dwei_host.at(wei_shift_bias + h) += wkspace.at(w * hy_stride + h);
-                        }
-                    }
-                }
-            }
-            else
+            if(inputMode != 1)
             {
                 RNN_mm_cpu<T>(wkspace.data(),
                               hy_h * bi,
@@ -799,8 +868,6 @@ void RNNBwdWeightCPUVerify(std::vector<T>& in,
                         {
                             dwei_host.at(wei_shift_bias + h) += wkspace.at(w * hy_stride + h);
                         }
-                        dwei_host.at(wei_shift_bias + hy_stride + h) =
-                            dwei_host.at(wei_shift_bias + h);
                     }
                 }
             }
@@ -841,7 +908,6 @@ void RNNBwdWeightCPUVerify(std::vector<T>& in,
                     {
                         dwei_host.at(wei_shift + h) += wkspace.at(hid_shift + w * hy_stride + h);
                     }
-                    dwei_host.at(wei_shift + hy_stride + h) = dwei_host.at(wei_shift + h);
                 }
             }
         }
@@ -861,23 +927,42 @@ void RNNBwdWeightCPUVerify(std::vector<T>& in,
             // between time
             if(ti == 0)
             {
-                RNN_mm_cpu<T>(&wkspace[hid_shift],
-                              hy_h,
-                              in_n.at(ti),
-                              hy_stride,
-                              RNN_MM_TRANSPOSE,
-                              &hx[hx_shift],
-                              hy_h,
-                              in_n.at(ti),
-                              uni_stride,
-                              0,
-                              &dwei_host[wei_shift],
-                              hy_h,
-                              hy_h,
-                              uni_stride,
-                              0,
-                              1,
-                              1);
+                if(!hx_is_null)
+                {
+                    RNN_mm_cpu<T>(&wkspace[hid_shift],
+                                  hy_h,
+                                  in_n.at(ti),
+                                  hy_stride,
+                                  RNN_MM_TRANSPOSE,
+                                  &hx[hx_shift],
+                                  hy_h,
+                                  in_n.at(ti),
+                                  uni_stride,
+                                  0,
+                                  &dwei_host[wei_shift],
+                                  hy_h,
+                                  hy_h,
+                                  uni_stride,
+                                  0,
+                                  1,
+                                  1);
+
+                    if(biased)
+                    {
+                        int bias_shift = (inputMode == 1)
+                                             ? (wei_shift_bias + li * bi * 2 * hy_h)
+                                             : (wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h);
+
+                        for(int h = 0; h < hy_h; h++)
+                        {
+                            for(int w = 0; w < in_n.at(ti); w++)
+                            {
+                                dwei_host.at(bias_shift + h) +=
+                                    wkspace.at(hid_shift + w * hy_stride + h);
+                            }
+                        }
+                    }
+                }
             }
             else
             {
@@ -901,29 +986,65 @@ void RNNBwdWeightCPUVerify(std::vector<T>& in,
                               0,
                               1,
                               1);
+
+                if(biased)
+                {
+                    int bias_shift = (inputMode == 1)
+                                         ? (wei_shift_bias + li * bi * 2 * hy_h)
+                                         : (wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h);
+
+                    for(int h = 0; h < hy_h; h++)
+                    {
+                        for(int w = 0; w < in_n.at(ti); w++)
+                        {
+                            dwei_host.at(bias_shift + h) +=
+                                wkspace.at(hid_shift + w * hy_stride + h);
+                        }
+                    }
+                }
             }
 
             if(bidirection)
             {
                 if(ti == seqLength - 1)
                 {
-                    RNN_mm_cpu<T>(&wkspace[hid_shift + hy_h],
-                                  hy_h,
-                                  in_n.at(ti),
-                                  hy_stride,
-                                  RNN_MM_TRANSPOSE,
-                                  &hx[hx_shift + hy_n * hy_h],
-                                  hy_h,
-                                  in_n.at(ti),
-                                  uni_stride,
-                                  0,
-                                  &dwei_host[wei_shift + hy_h * uni_stride],
-                                  hy_h,
-                                  hy_h,
-                                  uni_stride,
-                                  0,
-                                  1,
-                                  1);
+                    if(!hx_is_null)
+                    {
+                        RNN_mm_cpu<T>(&wkspace[hid_shift + hy_h],
+                                      hy_h,
+                                      in_n.at(ti),
+                                      hy_stride,
+                                      RNN_MM_TRANSPOSE,
+                                      &hx[hx_shift + hy_n * hy_h],
+                                      hy_h,
+                                      in_n.at(ti),
+                                      uni_stride,
+                                      0,
+                                      &dwei_host[wei_shift + hy_h * uni_stride],
+                                      hy_h,
+                                      hy_h,
+                                      uni_stride,
+                                      0,
+                                      1,
+                                      1);
+
+                        if(biased)
+                        {
+                            int bias_shift =
+                                (inputMode == 1)
+                                    ? (wei_shift_bias + li * bi * 2 * hy_h)
+                                    : (wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h);
+
+                            for(int h = 0; h < hy_h; h++)
+                            {
+                                for(int w = 0; w < in_n.at(ti); w++)
+                                {
+                                    dwei_host.at(bias_shift + hy_h + h) +=
+                                        wkspace.at(hid_shift + w * hy_stride + hy_h + h);
+                                }
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -947,6 +1068,22 @@ void RNNBwdWeightCPUVerify(std::vector<T>& in,
                                   0,
                                   1,
                                   1);
+
+                    if(biased)
+                    {
+                        int bias_shift = (inputMode == 1)
+                                             ? (wei_shift_bias + li * bi * 2 * hy_h)
+                                             : (wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h);
+
+                        for(int h = 0; h < hy_h; h++)
+                        {
+                            for(int w = 0; w < in_n.at(ti + 1); w++)
+                            {
+                                dwei_host.at(bias_shift + hy_h + h) +=
+                                    wkspace.at(hid_shift + w * hy_stride + hy_h + h);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1074,7 +1211,8 @@ struct verify_forward_infer_rnn
                                         // related function for bidirection
                              rnnMode,
                              inputMode,
-                             reserveSpace);
+                             reserveSpace,
+                             nohx);
 
 #if(MIO_RNN_TEST_DEBUG == 2)
         for(int i = 0; i < output.size(); i++)
@@ -1330,7 +1468,8 @@ struct verify_forward_train_rnn
                                         // related function for bidirection
                              rnnMode,
                              inputMode,
-                             reserveSpace);
+                             reserveSpace,
+                             nohx);
 
 #if(MIO_RNN_TEST_DEBUG == 2)
         for(int i = 0; i < output.size(); i++)
@@ -1483,6 +1622,7 @@ struct verify_forward_train_rnn
         case(1): std::cout << "Hidden state tensor failed verification." << std::endl; break;
         case(2): std::cout << "Weight tensor failed verification." << std::endl; break;
         case(3): std::cout << "Reserved space tensor failed verification." << std::endl; break;
+        default: break;
         }
     }
 };
@@ -1620,7 +1760,8 @@ struct verify_backward_data_rnn
                             rnnMode,
                             inputMode,
                             reserveSpace,
-                            workSpace);
+                            workSpace,
+                            nodhy);
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -1760,6 +1901,7 @@ struct verify_backward_data_rnn
         case(1): std::cout << "Hidden state dhx tensor failed verification." << std::endl; break;
         case(2): std::cout << "Weight tensor failed verification." << std::endl; break;
         case(3): std::cout << "Reserved space tensor failed verification." << std::endl; break;
+        default: break;
         }
     }
 };
@@ -1871,7 +2013,8 @@ struct verify_backward_weights_rnn
                               rnnMode,
                               inputMode,
                               reserveSpace,
-                              workSpace);
+                              workSpace,
+                              nohx);
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -1993,13 +2136,16 @@ struct rnn_vanilla_driver : test_driver
     bool nohy  = false;
     bool nodhx = false;
 
+    // use this to uniformly fill the batch per time step
+    bool flatBatchFill = false;
+
     rnn_vanilla_driver()
     {
         // this->tolerance = 1024;
         // this->batch_factor = 4;
         std::vector<int> modes(2, 0);
         modes[1] = 1;
-        std::vector<int> defaultBS(1, 5);
+        std::vector<int> defaultBS(1);
 
         // this->verbose=true;
         add(batchSize, "batch-size", generate_data(get_rnn_batchSize(), {5}));
@@ -2011,6 +2157,7 @@ struct rnn_vanilla_driver : test_driver
         add(nodhy, "no-dhy", flag());
         add(nohy, "no-hy", flag());
         add(nodhx, "no-dhx", flag());
+        add(flatBatchFill, "flat-batch-fill", flag());
 
 #if(MIO_RNN_TEST_DEBUG == 3)
         biasMode  = 0;
@@ -2030,6 +2177,28 @@ struct rnn_vanilla_driver : test_driver
 
     void run()
     {
+
+        if(batchSeq.empty() || !batchSeq[0])
+        {
+            std::cout << "Empty batch sequence. Filling uniformly with batch size: " << batchSize
+                      << std::endl;
+            if(flatBatchFill)
+            {
+                batchSeq.clear();
+                batchSeq.resize(seqLength, batchSize);
+            }
+            else
+            {
+                batchSeq = generate_batchSeq(batchSize, seqLength)[0];
+            }
+        }
+
+        if(batchSeq.size() != seqLength)
+        {
+            std::cerr << "FAILED: Batch sequence vector length, does not match sequence length."
+                      << std::endl;
+            std::abort();
+        }
 
 #if(MIO_RNN_TEST_DEBUG == 2)
         printf("seqLen: %d, batch_seq array len: %d\n", seqLength, batchSeq.size());
@@ -2060,6 +2229,7 @@ struct rnn_vanilla_driver : test_driver
                                miopenFloat);
 
         // Create input tensor
+        // If we are in skip mode, take the real input size to be the vector length.
         auto inVecReal    = (inputMode) ? hiddenSize : inVecLen;
         std::size_t in_sz = inVecReal * batch_n;
         std::vector<T> input(in_sz);
