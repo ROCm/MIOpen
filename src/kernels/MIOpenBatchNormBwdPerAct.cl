@@ -95,7 +95,7 @@
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
-__kernel void BatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
+__kernel void MIOpenBatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
                                              const __global _FLOAT* dy_in,
                                              unsigned int N,
                                              unsigned int in_nstride,
@@ -168,7 +168,7 @@ __kernel void BatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
     } // end for(img_offset) //image mini_batch is processed
 }
 
-__kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
+__kernel void MIOpenBatchNormBwdPerActivation(const __global _FLOAT* x_in,
                                         const __global _FLOAT* dy_in,
                                         unsigned int N,
                                         unsigned int in_nstride,
