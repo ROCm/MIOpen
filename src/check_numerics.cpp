@@ -1,4 +1,5 @@
 #include <miopen/check_numerics.hpp>
+#include <miopen/logger.hpp>
 #include <miopen/env.hpp>
 
 namespace miopen {
@@ -51,19 +52,27 @@ bool checkNumericsImpl(
 
     if(((mode & CheckNumerics::Info) != 0) || (((mode & CheckNumerics::Warn) != 0) && isAbnormal))
     {
-
-        std::cerr << (isAbnormal ? "warn:" : "info:") << " checkNumerics on"
-                  << " " << (isInput ? "INPUT " : "OUTPUT") << " ptr=" << data
-                  << " zeros=" << abnormal_h.hasZero << " nans=" << abnormal_h.hasNan
-                  << " infs=" << abnormal_h.hasInf;
+        MIOPEN_LOG((isAbnormal ? miopen::LoggingLevel::Warning : miopen::LoggingLevel::Info),
+                   (isInput ? "INPUT " : "OUTPUT") << " ptr=" << data << " zeros="
+                                                   << abnormal_h.hasZero
+                                                   << " nans="
+                                                   << abnormal_h.hasNan
+                                                   << " infs="
+                                                   << abnormal_h.hasInf
+                                                   << "  {"
+                                                   << dDesc
+                                                   << "}");
         if(computeStats != 0)
         {
-            std::cerr << " mean=" << abnormal_h.sum / numElements
-                      << " absmean=" << abnormal_h.absSum / numElements << " min=" << abnormal_h.min
-                      << " max=" << abnormal_h.max;
+            assert(numElements != 0);
+            MIOPEN_LOG((isAbnormal ? miopen::LoggingLevel::Warning : miopen::LoggingLevel::Info),
+                       "Stats: mean=" << (abnormal_h.sum / numElements) << " absmean="
+                                      << (abnormal_h.absSum / numElements)
+                                      << " min="
+                                      << abnormal_h.min
+                                      << " max="
+                                      << abnormal_h.max);
         }
-        std::cerr << "  {" << dDesc << "}"
-                  << "\n";
     }
 
     if(isAbnormal)
