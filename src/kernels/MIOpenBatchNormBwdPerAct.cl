@@ -96,16 +96,16 @@
 #endif
 
 __kernel void MIOpenBatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
-                                             const __global _FLOAT* dy_in,
-                                             unsigned int N,
-                                             unsigned int in_nstride,
-                                             unsigned int in_cstride,
-                                             __global _FLOAT* dx_out,
-                                             const __global _FLOAT* scale,
-                                             __global _FLOAT* delta_scale,
-                                             __global _FLOAT* delta_bias,
-                                             const __global _FLOAT* savedMean,
-                                             const __global _FLOAT* savedInvVariance)
+                                                   const __global _FLOAT* dy_in,
+                                                   unsigned int N,
+                                                   unsigned int in_nstride,
+                                                   unsigned int in_cstride,
+                                                   __global _FLOAT* dx_out,
+                                                   const __global _FLOAT* scale,
+                                                   __global _FLOAT* delta_scale,
+                                                   __global _FLOAT* delta_bias,
+                                                   const __global _FLOAT* savedMean,
+                                                   const __global _FLOAT* savedInvVariance)
 {
 
     int xgid    = get_global_id(0);
@@ -169,15 +169,15 @@ __kernel void MIOpenBatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
 }
 
 __kernel void MIOpenBatchNormBwdPerActivation(const __global _FLOAT* x_in,
-                                        const __global _FLOAT* dy_in,
-                                        unsigned int N,
-                                        unsigned int in_nstride,
-                                        unsigned int in_cstride,
-                                        __global _FLOAT* dx_out,
-                                        const __global _FLOAT* scale,
-                                        __global _FLOAT* delta_scale,
-                                        __global _FLOAT* delta_bias,
-                                        double epsilon)
+                                              const __global _FLOAT* dy_in,
+                                              unsigned int N,
+                                              unsigned int in_nstride,
+                                              unsigned int in_cstride,
+                                              __global _FLOAT* dx_out,
+                                              const __global _FLOAT* scale,
+                                              __global _FLOAT* delta_scale,
+                                              __global _FLOAT* delta_bias,
+                                              double epsilon)
 {
 
     int xgid    = get_global_id(0);
