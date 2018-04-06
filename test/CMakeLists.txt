@@ -134,9 +134,9 @@ foreach(TEST ${TESTS})
 endforeach()
 
 # add_sanitize_test(perfdb.cpp)
-add_sanitize_test(cache.cpp)
-add_sanitize_test(tensor_test.cpp)
-add_sanitize_test(type_name.cpp)
+# add_sanitize_test(cache.cpp)
+# add_sanitize_test(tensor_test.cpp)
+# add_sanitize_test(type_name.cpp)
 
 function(add_custom_test NAME)
     set(options ALL)
