@@ -54,21 +54,21 @@ inline static bool Inc_1_2_4_8_16(int& v)
 }
 
 template <int first, int... others>
-inline static bool Is_From_Pack_c(int& v)
+inline static bool Is_From_Pack_c(const int v)
 {
     return (v == first) || Is_From_Pack_c<others...>(v);
 }
 
-template <>
-inline bool Is_From_Pack_c<0, 0>(int&)
-{
-    return false;
-}
-
 template <int first, int... others>
-inline static bool Is_From_Pack(int& v)
+inline static bool Is_From_Pack(const int v)
 {
     return Is_From_Pack_c<first, others..., 0, 0>(v);
+}
+
+template <>
+inline bool Is_From_Pack_c<0, 0>(const int)
+{
+    return false;
 }
 
 template <int next, int... others>
@@ -255,7 +255,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValidValue() const
         && Is_1_2_4_8_16(k_per_gpr)
         && Is_1_2_4_8_16(k_mult)
         && (1 <= read_size && read_size <= 4)
-        && Is_1_2_4(n_per_gpr)
+        && (Is_From_Pack<1,2,4>(n_per_gpr))
         && (n_part_cnt >= 1 && n_part_cnt <= 8)
         && Is_1_2_4(GetHWPerGpr())
         && Is_1_2_4_8_16(chunk_size); // clang-format on
@@ -291,9 +291,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
     }
     if(n_part_cnt > 1)
     {
-        int wave_size = 64;
-
-        int lds_size = ((n_part_cnt - 1) * wave_size * sizeof(float) * acc_gprs);
+        int lds_size = ((n_part_cnt - 1) * solver::wave_size * sizeof(float) * acc_gprs);
         if(!(lds_size <= (1 << 16)))
             return false;
     }
