@@ -592,7 +592,7 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
                                       int n_per_gpr_,
                                       int n_part_cnt_,
                                       int read_size_,
-                                      bool spare_);
+                                      bool);
     PerformanceConfigConvAsmBwdWrW1x1()
         : PerformanceConfigConvAsmBwdWrW1x1(-1, -1, -1, -1, -1, -1, -1, -1, false)
     {
