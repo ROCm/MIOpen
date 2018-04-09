@@ -168,8 +168,8 @@ output_buffer_size = output_stack_size * batch_size
 .SGPR_ALLOC soffset_out
 .SGPR_ALLOC soffset_wei
 .SGPR_ALLOC desc_in, 4 // input buffer descriptor
-.SGPR_ALLOC desc_out, 4	// weights buffer descriptor
-.SGPR_ALLOC desc_wei, 4	// output buffer descriptor
+.SGPR_ALLOC desc_out, 4 // weights buffer descriptor
+.SGPR_ALLOC desc_wei, 4 // output buffer descriptor
 .SGPR_ALLOC loop_n_cnt
 .SGPR_ALLOC loop_hw_cnt
 .SGPR_ALLOC c_base
@@ -487,7 +487,7 @@ loop_n_begin: // loop over batch (n)
             s_add_u32 s[soffset_out], s[soffset_out], 0 + active_lanes_in_full_chunks * read_size * 4 - k_off
             s_waitcnt 0
             
-            m_conv_accums read_size			
+            m_conv_accums read_size
         
         loop_hw_end:
             s_addk_i32 s[loop_hw_cnt], 1
@@ -573,7 +573,7 @@ loop_n_end:
             v_add_f32 v[accums + acum_idx], v[accums + acum_idx], v[\read_buffer + read_it]
             
             read_it = read_it + 1
-            wave_idx = wave_idx + 1	
+            wave_idx = wave_idx + 1
         .endr
     .endm
 
