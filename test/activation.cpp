@@ -173,9 +173,9 @@ template <class T>
 struct activation_driver : test_driver
 {
     tensor<T> input;
-    double alpha     = 1;
-    double beta      = 1;
-    double power     = 1;
+    double alpha     = 1.1;
+    double beta      = 1.2;
+    double power     = 1.3;
     std::string mode = "PATHTRU";
     std::unordered_map<std::string, std::function<void()>> lookup;
 
@@ -198,7 +198,7 @@ struct activation_driver : test_driver
                  [=](double x) { return 1 / (1 + std::exp(-x)); },
                  [=](double dy, double, double y) { return dy * y * (1 - y); });
         add_mode(miopenActivationTANH,
-                 [=](double x) { return alpha * std::tanh(beta * x); },
+                 [=](double x) { return beta * std::tanh(alpha * x); },
                  [=](double dy, double, double y) { return dy * (1 - y * y); });
         add_mode(miopenActivationRELU,
                  [=](double x) { return (x > 0) ? x : x * beta; },
@@ -214,10 +214,10 @@ struct activation_driver : test_driver
                  [=](double x) { return std::abs(x); },
                  [=](double dy, double x, double) { return dy * ((x >= 0) ? 1 : -1); });
         add_mode(miopenActivationPOWER,
-                 [=](double x) { return std::pow(alpha + beta * x, power); },
+                 [=](double x) { return std::pow(beta + alpha * x, power); },
                  [=](double, double x, double y) {
-                     auto divisor = alpha + beta * x;
-                     return (miopen::float_equal(divisor, 0)) ? 0 : alpha * beta * y / divisor;
+                     auto divisor = beta + alpha * x;
+                     return (miopen::float_equal(divisor, 0)) ? 0 : beta * alpha * y / divisor;
                  });
         add_mode(miopenActivationLEAKYRELU,
                  [=](double x) { return (x > 0) ? x : x * beta; },
@@ -228,17 +228,17 @@ struct activation_driver : test_driver
                     double v;
                     if(x < 0)
                         v = 0;
-                    else if( x < alpha )
+                    else if( x < beta )
                         v = x;
                     else
-                        v = alpha;
+                        v = beta;
 
                     return v;
                  },
-                 [=](double dy, double x, double) { return (x > 0 && x < alpha) ? dy : 0; });
+                 [=](double dy, double x, double) { return (x > 0 && x < beta) ? dy : 0; });
         add_mode(miopenActivationELU,
-                 [=](double x) { return (x > 0) ? x : alpha * (std::exp(x) - 1); },
-                 [=](double, double x, double y) { return (x > 0)? 1 : y + alpha; });
+                 [=](double x) { return (x > 0) ? x : beta * (std::exp(x) - 1); },
+                 [=](double dy, double x, double y) { return dy * ((x > 0)? 1 : y + beta); });
         add(input, "input", get_input_tensor());
         add(alpha, "alpha");
         add(beta, "beta");
