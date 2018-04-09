@@ -338,13 +338,16 @@ typedef enum {
  * Activation layer modes
  */
 typedef enum {
-    miopenActivationPATHTRU  = 0, /*!< No activation, pass through the data */
-    miopenActivationLOGISTIC = 1, /*!< Sigmoid function: \f$1 / (1 + e^{-x})\f$ */
-    miopenActivationTANH     = 2, /*!< Tanh activation \f$ \alpha * tanh( \beta * x) \f$ */
-    miopenActivationRELU     = 3, /*!< Rectified Linear Unit \f$ max(0, x) \f$ */
-    miopenActivationSOFTRELU = 4, /*!< \f$log(1 + e^x)\f$ */
-    miopenActivationABS      = 5, /*!< Absolute value \f$abs(x)\f$ */
-    miopenActivationPOWER = 6, /*!< Scaled and shifted power \f$(\alpha + \beta * x)^{power}\f$ */
+    miopenActivationPATHTRU     = 0, /*!< No activation, pass through the data */
+    miopenActivationLOGISTIC    = 1, /*!< Sigmoid function: \f$1 / (1 + e^{-x})\f$ */
+    miopenActivationTANH        = 2, /*!< Tanh activation \f$ \alpha * tanh( \beta * x) \f$ */
+    miopenActivationRELU        = 3, /*!< Rectified Linear Unit \f$ max(0, x) \f$ */
+    miopenActivationSOFTRELU    = 4, /*!< \f$log(1 + e^x)\f$ */
+    miopenActivationABS         = 5, /*!< Absolute value \f$abs(x)\f$ */
+    miopenActivationPOWER       = 6, /*!< Scaled and shifted power \f$(\alpha + \beta * x)^{power}\f$ */
+    miopenActivationLEAKYRELU   = 7, /*!< Leaky Rectified Linear Unit \f$  \f$ */
+    miopenActivationCLIPPEDRELU = 8, /*!< Clipped Rectified Linear Unit \f$  \f$ */
+    miopenActivationELU         = 9, /*!< Exponential Rectified Linear Unit \f$  \f$ */
 } miopenActivationMode_t;
 
 /** @addtogroup tensor
