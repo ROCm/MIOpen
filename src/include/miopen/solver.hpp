@@ -49,6 +49,7 @@ namespace miopen {
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 
 namespace solver {
+/// \todo Move wave_size into abstraction wich represent GPU information
 const int wave_size = 64;
 /// Describes a kernel source and whatever information required in order
 /// to build and run it (the former is unused for binary kernels).
