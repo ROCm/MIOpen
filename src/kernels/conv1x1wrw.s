@@ -99,11 +99,11 @@ log2 hw_per_gpr_log2, hw_per_gpr
 // chunk parameters
 c_quads = c_per_gpr * chunk_size / 16
 .if k_per_gpr > c_quads
-	k_ds_rotates = c_quads
-	k_dpp_rotates = k_per_gpr / c_quads
+    k_ds_rotates = c_quads
+    k_dpp_rotates = k_per_gpr / c_quads
 .else
-	k_ds_rotates = k_per_gpr
-	k_dpp_rotates = 1
+    k_ds_rotates = k_per_gpr
+    k_dpp_rotates = 1
 .endif
 metachunk_size = chunk_size * hw_per_gpr // hw pieces are not contiguous in vgpr
 log2 chunk_size_log2, chunk_size
@@ -136,19 +136,19 @@ active_lanes_in_full_chunks = metachunk_size - j
 points_in_full_chunks = full_chunks * active_lanes_in_full_chunks
 points_in_part_chunks = out_wh - points_in_full_chunks
 .if partial_chunks
-	active_lanes_in_part1_chunks = (points_in_part_chunks + partial_chunks - 1) / partial_chunks
-	active_lanes_in_part2_chunks = active_lanes_in_part1_chunks - 1
-	.if points_in_part_chunks % partial_chunks == 0
-		part1_chunks = partial_chunks
-	.else
-		part1_chunks = points_in_part_chunks % partial_chunks
-	.endif
-	part2_chunks = partial_chunks - part1_chunks
+    active_lanes_in_part1_chunks = (points_in_part_chunks + partial_chunks - 1) / partial_chunks
+    active_lanes_in_part2_chunks = active_lanes_in_part1_chunks - 1
+    .if points_in_part_chunks % partial_chunks == 0
+        part1_chunks = partial_chunks
+    .else
+        part1_chunks = points_in_part_chunks % partial_chunks
+    .endif
+    part2_chunks = partial_chunks - part1_chunks
 .else
-	part1_chunks = 0
-	part2_chunks = 0
-	active_lanes_in_part1_chunks = 0
-	active_lanes_in_part2_chunks = 0
+    part1_chunks = 0
+    part2_chunks = 0
+    active_lanes_in_part1_chunks = 0
+    active_lanes_in_part2_chunks = 0
 .endif
 static_assert (part1_chunks * active_lanes_in_part1_chunks + part2_chunks * active_lanes_in_part2_chunks == points_in_part_chunks)
 part2_offset = part1_chunks * 4 * active_lanes_in_part1_chunks
@@ -160,7 +160,7 @@ output_buffer_size = output_stack_size * batch_size
 
 .GPR_ALLOC_BEGIN
 .if limit_wave_cnt
-	.SET_MAX_WAVES_LIMIT limit_wave_cnt
+    .SET_MAX_WAVES_LIMIT limit_wave_cnt
 .endif
 
 .SGPR_ALLOC_FROM 5
@@ -227,417 +227,493 @@ gcnAsmConv1x1WrW:
      workgroup_group_segment_byte_size = .AUTO_LDS_BYTE_SIZE
     .end_amd_kernel_code_t
 
-    .include "macro1x1wrw.inc"
+    
+.macro m_conv_accums dwords
+    rotates_inflight = 0
+    k_ds = 0
+    .rept k_ds_rotates
+        i = 0
+        .rept \dwords
+            kx = 0
+            .rept k_mult
+                base_out = lines_out + kx * read_size
+                
+                .if k_ds > 0
+                    rotates_inflight = rotates_inflight - 1
+                    s_wait , rotates_inflight
+                .endif
+                
+                cx = 0
+                .rept c_mult
+                    base_in = lines_in + cx * read_size
+                    acc = accums + k_per_gpr * (cx * k_mult + kx) + k_ds * k_dpp_rotates
+                    v_mac_f32 v[acc], v[base_out+i], v[base_in+i]
+                    k_dpp = 0
+                    .rept k_dpp_rotates - 1
+                        k_dpp = k_dpp + 1
+                        v_mac_f32 v[acc+k_dpp], v[base_out+i], v[base_in+i] row_ror:16*k_dpp/k_dpp_rotates
+                    .endr
+                    cx = cx + 1
+                .endr
+                
+                .if (k_ds + 1) < k_ds_rotates
+                    static_assert (c_quads == 2 || c_quads == 4)
+                    .if c_quads == 2
+                        ds_swizzle_b32 v[base_out+i], v[base_out+i] offset:0xc200
+                    .elseif c_quads == 4
+                        ds_bpermute_b32 v[base_out+i], v[permute_addr], v[base_out+i]
+                    .endif
+                    rotates_inflight = rotates_inflight + 1
+                .endif
+                
+                kx = kx + 1
+            .endr
+            i = i + 1
+        .endr
+        k_ds = k_ds + 1
+    .endr
+.endm
 
-	s_load_dwordx2 s[desc_in:desc_in+1], s[kernarg:kernarg+1], 0x0 + in_ptr_off
-	s_load_dwordx2 s[desc_wei:desc_wei+1], s[kernarg:kernarg+1], 0x0 + wei_ptr_off
-	s_load_dwordx2 s[desc_out:desc_out+1], s[kernarg:kernarg+1], 0x0 + out_ptr_off
-	s_mov_b32 m0, -1
-	
-	// batch size per wave
-	//batch_size = (batch_size + n_part_cnt - 1) / n_part_cnt
+.macro m_acc_reduction first_round, rounds
+    i = 0
+    .rept \rounds
+        round = i + \first_round
+        acc = accums
+        .rept accums_cnt
+            .if i >= 1 && accums_cnt <= 2
+                s_nop 2 - accums_cnt
+            .endif
+            .if round == 0
+                v_add_f32 v[acc], v[acc], v[acc] quad_perm:[1,0,3,2]
+            .elseif round == 1
+                v_add_f32 v[acc], v[acc], v[acc] quad_perm:[2,3,0,1]
+            .elseif round == 2
+                v_add_f32 v[acc], v[acc], v[acc] row_ror:12
+            .elseif round == 3
+                v_add_f32 v[acc], v[acc], v[acc] row_ror:8
+            .elseif round == 4
+                static_assert (0) //v_add_f32 v[acc], v[acc], v[acc] row_bcast:15
+            .elseif round == 5
+                static_assert (0) //v_add_f32 v[acc], v[acc], v[acc] row_bcast:31
+            .else
+                static_assert (0)
+            .endif
+            acc = acc + 1
+        .endr
+        i = i + 1
+    .endr
+.endm
 
-	
-	v_readfirstlane_b32 s[wave_id], v[tid]
-	s_lshr_b32 s[wave_id], s[wave_id], 0+wave_size_log2
-	v_and_b32 v[tid], 0x3f, v[tid]
-	
-	// calculate input/output offsets
-	// example for c_per_gpr=4, k_per_gpr=2, n_per_gpr=1
-	// lanes  0-15: c0, k0, n0
-	// lanes 16-31: c1, k0, n0
-	// lanes 32-47: c2, k1, n0
-	// lanes 48-63: c3, k1, n0
-	vtmp = accums
-	c_id = lines_in
-	k_id = lines_out
-	v_lshrrev_b32 v[n_id], 0 + wave_size_log2 - n_per_gpr_log2, v[tid]
-	v_bfe_u32 v[c_id], v[tid], 0 + chunk_size_log2, 0 + c_per_gpr_log2
-	v_bfe_u32 v[k_id], v[tid], 0 + chunk_size_log2 + c_per_gpr_log2 - k_per_gpr_log2, 0 + k_per_gpr_log2
-	
-	s_mov_b32 s[stmp], 0 + input_feature_map_size
-	v_mul_lo_u32 v[voffset_in], s[stmp], v[c_id]
-	s_mov_b32 s[stmp], 0 + input_stack_size
-	v_mul_lo_u32 v[vtmp], s[stmp], v[n_id]
-	_v_add_nc_u32 v[voffset_in], v[voffset_in], v[vtmp] // c_off + n_off
-	
-	s_mov_b32 s[stmp], 0 + output_feature_map_size
-	v_mul_lo_u32 v[voffset_out], s[stmp], v[k_id]
-	s_mov_b32 s[stmp], 0 + output_stack_size
-	v_mul_lo_u32 v[vtmp], s[stmp], v[n_id]
-	_v_add_nc_u32 v[voffset_out], v[voffset_out], v[vtmp] // k_off + n_off
-	
-	vtmp2 = permute_addr
-	v_bfe_u32 v[vtmp], v[tid], 0 + chunk_size_log2 + c_per_gpr_log2, 0 + hw_per_gpr_log2 // hw peice id
-	v_lshlrev_b32 v[vtmp], 0 + chunk_size_log2, v[vtmp]
-	v_and_b32 v[vtmp2], 0 + chunk_size - 1, v[tid] // lane in chunk
-	_v_add_nc_u32 v[vtmp2], v[vtmp2], v[vtmp] // lane in metachunk
-	
-	v_mul_u32_u24 v[vtmp], 4 * part1_chunks, v[vtmp2]
-	_v_add_nc_u32 v[voffset_part1_in],  v[voffset_in], v[vtmp] // +hw_off
-	_v_add_nc_u32 v[voffset_part1_out], v[voffset_out], v[vtmp] // +hw_off
-	
-	v_mul_u32_u24 v[vtmp], 4 * part2_chunks, v[vtmp2]
-	_v_add_nc_u32 v[voffset_part2_in],  v[voffset_in], v[vtmp] // +hw_off
-	_v_add_nc_u32 v[voffset_part2_out], v[voffset_out], v[vtmp] // +hw_off
-	
-	v_mul_u32_u24 v[vtmp], 4 * read_size, v[vtmp2]
-	_v_add_nc_u32 v[voffset_in], v[voffset_in], v[vtmp] // +hw_off
-	_v_add_nc_u32 v[voffset_out], v[voffset_out], v[vtmp] // +hw_off
-	
-	v_mul_u32_u24 v[voffset_ldsr], 0 + 4 * read_size, v[tid]
-	s_mul_i32 s[stmp], 0 + 4 * read_size * wave_size, s[wave_id]
-	_v_add_nc_u32 v[voffset_ldsw], s[stmp], v[voffset_ldsr]
-		
-	
-	// calculate buffer scalar offsets
-	s_mul_i32 s[c_base], 0 + c_per_gpr * c_mult, s[gid_y]
-	s_mul_i32 s[k_base], 0 + k_per_gpr * k_mult, s[gid_z]
-	s_mul_i32 s[n_base], 0 + n_per_gpr, s[wave_id]
-	
-	s_mul_i32 s[soffset_in], 0 + input_stack_size, s[n_base]
-	s_mul_i32 s[stmp], 0 + input_feature_map_size, s[c_base]
-	s_add_u32 s[soffset_in], s[soffset_in], s[stmp]
-	
-	s_mul_i32 s[soffset_out], 0 + output_stack_size, s[n_base]
-	s_mul_i32 s[stmp], 0 + output_feature_map_size, s[k_base]
-	s_add_u32 s[soffset_out], s[soffset_out], s[stmp]
-	
-	s_mul_i32 s[stmp], 0 + c_per_gpr * c_mult, s[gid_y]
-	s_mul_i32 s[soffset_wei], 0 + filter_c_stride, s[stmp]
-	s_mul_i32 s[stmp], 0 + filter_k_stride, s[k_base]
-	s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
-	//s_mul_i32 s[soffset_wei], 0 + filter_c_stride, s[c_base]
-	//s_mul_i32 s[stmp], 0 + filter_k_stride, s[k_base]
-	//s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
-	
-	
-	// mask unused lanes
-	_v_add_nc_u32 v[c_id], s[c_base], v[c_id]
-	_v_add_nc_u32 v[k_id], s[k_base], v[k_id]
-	_v_add_nc_u32 v[n_id], s[n_base], v[n_id]
-	v_cmp_gt_u32 vcc, 0 + input_channels, v[c_id]
-	v_cndmask_b32_e32 v[voffset_in], -1, v[voffset_in], vcc
-	v_cmp_gt_u32 vcc, 0 + output_channels, v[k_id]
-	v_cndmask_b32_e32 v[voffset_out], -1, v[voffset_out], vcc
-	
-	v_mov_b32 v[vtmp], 0x7FFFFFFF
-	v_cmp_gt_u32 vcc, 0 + active_lanes_in_full_chunks, v[vtmp2]
-	v_cndmask_b32_e32 v[voffset_in],  v[vtmp], v[voffset_in], vcc
-	v_cndmask_b32_e32 v[voffset_out], v[vtmp], v[voffset_out], vcc
-	
-	v_cmp_gt_u32 vcc, 0 + active_lanes_in_part1_chunks, v[vtmp2]
-	v_cndmask_b32_e32 v[voffset_part1_in],  v[vtmp], v[voffset_part1_in], vcc
-	v_cndmask_b32_e32 v[voffset_part1_out], v[vtmp], v[voffset_part1_out], vcc
-	
-	v_cmp_gt_u32 vcc, 0 + active_lanes_in_part2_chunks, v[vtmp2]
-	v_cndmask_b32_e32 v[voffset_part2_in],  v[vtmp], v[voffset_part2_in], vcc
-	v_cndmask_b32_e32 v[voffset_part2_out], v[vtmp], v[voffset_part2_out], vcc
-	
-	.GPR_INVALIDATE c_id
-	.GPR_INVALIDATE k_id
-	.GPR_INVALIDATE vtmp
-	.GPR_INVALIDATE vtmp2
-	
-	// fill format and size fields of buffer descriptors
-	s_mov_b32 s[desc_in+2], input_buffer_size
-	s_mov_b32 s[desc_in+3], 0x00027000
-	s_mov_b32 s[desc_wei+2], filters_size
-	s_mov_b32 s[desc_wei+3], 0x00027000
-	s_mov_b32 s[desc_out+2], output_buffer_size
-	s_mov_b32 s[desc_out+3], 0x00027000
-	
-	i = 0
-	.rept accums_cnt
-		v_mov_b32 v[accums+i], 0
-		i = i + 1
-	.endr
-	
-	s_waitcnt 0
-	
-	// calculate buffer offsets
-	s_add_u32 s[desc_wei], s[desc_wei], s[soffset_wei]
-	s_addc_u32 s[1+desc_wei], 0, s[1+desc_wei]
-	s_sub_u32 s[2+desc_wei], s[2+desc_wei], s[soffset_wei]
-	s_max_i32 s[2+desc_wei], 0, s[2+desc_wei]
-	
-	// compute permute_addr
-	.if c_quads == 4
-		_v_add_nc_u32 v[permute_addr], 0 + wave_size / k_ds_rotates, v[tid]
-		v_lshlrev_b32 v[permute_addr], 2, v[permute_addr]
-	.endif
-	
-	s_mov_b32 s[loop_n_cnt], s[n_base]
-	
-	.macro m_load inout, total_adj, dwords1, voff1, dwords2=0, voff2=0
-		.if lines_\inout == lines_in
-			mult = c_mult
-			dst = lines_in
-			desc = desc_in
-			soff = soffset_in
-			adj_size = c_per_gpr * input_feature_map_size
-		.else
-			mult = k_mult
-			dst = lines_out
-			desc = desc_out
-			soff = soffset_out
-			adj_size = k_per_gpr * output_feature_map_size
-		.endif
-		.rept mult-1
-			m_buffer_load_dwordx \dwords1, dst,            \voff1, desc, soff
-			m_buffer_load_dwordx \dwords2, dst + \dwords1, \voff2, desc, soff, part2_offset
-			dst = dst + read_size
-			s_add_u32 s[soff], s[soff], 0 + adj_size
-			\total_adj = \total_adj + adj_size
-		.endr
-		m_buffer_load_dwordx \dwords1, dst,            \voff1, desc, soff
-		m_buffer_load_dwordx \dwords2, dst + \dwords1, \voff2, desc, soff, part2_offset
-	.endm
-	
-	
+
+
+    s_load_dwordx2 s[desc_in:desc_in+1], s[kernarg:kernarg+1], 0x0 + in_ptr_off
+    s_load_dwordx2 s[desc_wei:desc_wei+1], s[kernarg:kernarg+1], 0x0 + wei_ptr_off
+    s_load_dwordx2 s[desc_out:desc_out+1], s[kernarg:kernarg+1], 0x0 + out_ptr_off
+    s_mov_b32 m0, -1
+    
+    // batch size per wave
+    //batch_size = (batch_size + n_part_cnt - 1) / n_part_cnt
+
+    
+    v_readfirstlane_b32 s[wave_id], v[tid]
+    s_lshr_b32 s[wave_id], s[wave_id], 0+wave_size_log2
+    v_and_b32 v[tid], 0x3f, v[tid]
+    
+    // calculate input/output offsets
+    // example for c_per_gpr=4, k_per_gpr=2, n_per_gpr=1
+    // lanes  0-15: c0, k0, n0
+    // lanes 16-31: c1, k0, n0
+    // lanes 32-47: c2, k1, n0
+    // lanes 48-63: c3, k1, n0
+    vtmp = accums
+    c_id = lines_in
+    k_id = lines_out
+    v_lshrrev_b32 v[n_id], 0 + wave_size_log2 - n_per_gpr_log2, v[tid]
+    v_bfe_u32 v[c_id], v[tid], 0 + chunk_size_log2, 0 + c_per_gpr_log2
+    v_bfe_u32 v[k_id], v[tid], 0 + chunk_size_log2 + c_per_gpr_log2 - k_per_gpr_log2, 0 + k_per_gpr_log2
+    
+    s_mov_b32 s[stmp], 0 + input_feature_map_size
+    v_mul_lo_u32 v[voffset_in], s[stmp], v[c_id]
+    s_mov_b32 s[stmp], 0 + input_stack_size
+    v_mul_lo_u32 v[vtmp], s[stmp], v[n_id]
+    _v_add_nc_u32 v[voffset_in], v[voffset_in], v[vtmp] // c_off + n_off
+    
+    s_mov_b32 s[stmp], 0 + output_feature_map_size
+    v_mul_lo_u32 v[voffset_out], s[stmp], v[k_id]
+    s_mov_b32 s[stmp], 0 + output_stack_size
+    v_mul_lo_u32 v[vtmp], s[stmp], v[n_id]
+    _v_add_nc_u32 v[voffset_out], v[voffset_out], v[vtmp] // k_off + n_off
+    
+    vtmp2 = permute_addr
+    v_bfe_u32 v[vtmp], v[tid], 0 + chunk_size_log2 + c_per_gpr_log2, 0 + hw_per_gpr_log2 // hw peice id
+    v_lshlrev_b32 v[vtmp], 0 + chunk_size_log2, v[vtmp]
+    v_and_b32 v[vtmp2], 0 + chunk_size - 1, v[tid] // lane in chunk
+    _v_add_nc_u32 v[vtmp2], v[vtmp2], v[vtmp] // lane in metachunk
+    
+    v_mul_u32_u24 v[vtmp], 4 * part1_chunks, v[vtmp2]
+    _v_add_nc_u32 v[voffset_part1_in],  v[voffset_in], v[vtmp] // +hw_off
+    _v_add_nc_u32 v[voffset_part1_out], v[voffset_out], v[vtmp] // +hw_off
+    
+    v_mul_u32_u24 v[vtmp], 4 * part2_chunks, v[vtmp2]
+    _v_add_nc_u32 v[voffset_part2_in],  v[voffset_in], v[vtmp] // +hw_off
+    _v_add_nc_u32 v[voffset_part2_out], v[voffset_out], v[vtmp] // +hw_off
+    
+    v_mul_u32_u24 v[vtmp], 4 * read_size, v[vtmp2]
+    _v_add_nc_u32 v[voffset_in], v[voffset_in], v[vtmp] // +hw_off
+    _v_add_nc_u32 v[voffset_out], v[voffset_out], v[vtmp] // +hw_off
+    
+    v_mul_u32_u24 v[voffset_ldsr], 0 + 4 * read_size, v[tid]
+    s_mul_i32 s[stmp], 0 + 4 * read_size * wave_size, s[wave_id]
+    _v_add_nc_u32 v[voffset_ldsw], s[stmp], v[voffset_ldsr]
+        
+    
+    // calculate buffer scalar offsets
+    s_mul_i32 s[c_base], 0 + c_per_gpr * c_mult, s[gid_y]
+    s_mul_i32 s[k_base], 0 + k_per_gpr * k_mult, s[gid_z]
+    s_mul_i32 s[n_base], 0 + n_per_gpr, s[wave_id]
+    
+    s_mul_i32 s[soffset_in], 0 + input_stack_size, s[n_base]
+    s_mul_i32 s[stmp], 0 + input_feature_map_size, s[c_base]
+    s_add_u32 s[soffset_in], s[soffset_in], s[stmp]
+    
+    s_mul_i32 s[soffset_out], 0 + output_stack_size, s[n_base]
+    s_mul_i32 s[stmp], 0 + output_feature_map_size, s[k_base]
+    s_add_u32 s[soffset_out], s[soffset_out], s[stmp]
+    
+    s_mul_i32 s[stmp], 0 + c_per_gpr * c_mult, s[gid_y]
+    s_mul_i32 s[soffset_wei], 0 + filter_c_stride, s[stmp]
+    s_mul_i32 s[stmp], 0 + filter_k_stride, s[k_base]
+    s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
+    //s_mul_i32 s[soffset_wei], 0 + filter_c_stride, s[c_base]
+    //s_mul_i32 s[stmp], 0 + filter_k_stride, s[k_base]
+    //s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
+    
+    
+    // mask unused lanes
+    _v_add_nc_u32 v[c_id], s[c_base], v[c_id]
+    _v_add_nc_u32 v[k_id], s[k_base], v[k_id]
+    _v_add_nc_u32 v[n_id], s[n_base], v[n_id]
+    v_cmp_gt_u32 vcc, 0 + input_channels, v[c_id]
+    v_cndmask_b32_e32 v[voffset_in], -1, v[voffset_in], vcc
+    v_cmp_gt_u32 vcc, 0 + output_channels, v[k_id]
+    v_cndmask_b32_e32 v[voffset_out], -1, v[voffset_out], vcc
+    
+    v_mov_b32 v[vtmp], 0x7FFFFFFF
+    v_cmp_gt_u32 vcc, 0 + active_lanes_in_full_chunks, v[vtmp2]
+    v_cndmask_b32_e32 v[voffset_in],  v[vtmp], v[voffset_in], vcc
+    v_cndmask_b32_e32 v[voffset_out], v[vtmp], v[voffset_out], vcc
+    
+    v_cmp_gt_u32 vcc, 0 + active_lanes_in_part1_chunks, v[vtmp2]
+    v_cndmask_b32_e32 v[voffset_part1_in],  v[vtmp], v[voffset_part1_in], vcc
+    v_cndmask_b32_e32 v[voffset_part1_out], v[vtmp], v[voffset_part1_out], vcc
+    
+    v_cmp_gt_u32 vcc, 0 + active_lanes_in_part2_chunks, v[vtmp2]
+    v_cndmask_b32_e32 v[voffset_part2_in],  v[vtmp], v[voffset_part2_in], vcc
+    v_cndmask_b32_e32 v[voffset_part2_out], v[vtmp], v[voffset_part2_out], vcc
+    
+    .GPR_INVALIDATE c_id
+    .GPR_INVALIDATE k_id
+    .GPR_INVALIDATE vtmp
+    .GPR_INVALIDATE vtmp2
+    
+    // fill format and size fields of buffer descriptors
+    s_mov_b32 s[desc_in+2], input_buffer_size
+    s_mov_b32 s[desc_in+3], 0x00027000
+    s_mov_b32 s[desc_wei+2], filters_size
+    s_mov_b32 s[desc_wei+3], 0x00027000
+    s_mov_b32 s[desc_out+2], output_buffer_size
+    s_mov_b32 s[desc_out+3], 0x00027000
+    
+    i = 0
+    .rept accums_cnt
+        v_mov_b32 v[accums+i], 0
+        i = i + 1
+    .endr
+    
+    s_waitcnt 0
+    
+    // calculate buffer offsets
+    s_add_u32 s[desc_wei], s[desc_wei], s[soffset_wei]
+    s_addc_u32 s[1+desc_wei], 0, s[1+desc_wei]
+    s_sub_u32 s[2+desc_wei], s[2+desc_wei], s[soffset_wei]
+    s_max_i32 s[2+desc_wei], 0, s[2+desc_wei]
+    
+    // compute permute_addr
+    .if c_quads == 4
+        _v_add_nc_u32 v[permute_addr], 0 + wave_size / k_ds_rotates, v[tid]
+        v_lshlrev_b32 v[permute_addr], 2, v[permute_addr]
+    .endif
+    
+    s_mov_b32 s[loop_n_cnt], s[n_base]
+    
+    .macro m_load inout, total_adj, dwords1, voff1, dwords2=0, voff2=0
+        .if lines_\inout == lines_in
+            mult = c_mult
+            dst = lines_in
+            desc = desc_in
+            soff = soffset_in
+            adj_size = c_per_gpr * input_feature_map_size
+        .else
+            mult = k_mult
+            dst = lines_out
+            desc = desc_out
+            soff = soffset_out
+            adj_size = k_per_gpr * output_feature_map_size
+        .endif
+        .rept mult-1
+            m_buffer_load_dwordx \dwords1, dst,            \voff1, desc, soff
+            m_buffer_load_dwordx \dwords2, dst + \dwords1, \voff2, desc, soff, part2_offset
+            dst = dst + read_size
+            s_add_u32 s[soff], s[soff], 0 + adj_size
+            \total_adj = \total_adj + adj_size
+        .endr
+        m_buffer_load_dwordx \dwords1, dst,            \voff1, desc, soff
+        m_buffer_load_dwordx \dwords2, dst + \dwords1, \voff2, desc, soff, part2_offset
+    .endm
+    
+    
 
 loop_n_begin: // loop over batch (n)
-	s_mov_b32 s[loop_hw_cnt], 0
+    s_mov_b32 s[loop_hw_cnt], 0
 
-	c_off = 0
-	k_off = 0
-	.if full_reads
-		loop_hw_begin:
-			m_load in,  c_off, read_size, voffset_in
-			m_load out, k_off, read_size, voffset_out
-			
-			s_add_u32 s[soffset_in],  s[soffset_in],  0 + active_lanes_in_full_chunks * read_size * 4 - c_off
-			s_add_u32 s[soffset_out], s[soffset_out], 0 + active_lanes_in_full_chunks * read_size * 4 - k_off
-			s_waitcnt 0
-			
-			m_conv_accums read_size			
-		
-		loop_hw_end:
-			s_addk_i32 s[loop_hw_cnt], 1
-			s_cmpk_ge_u32 s[loop_hw_cnt], 0+full_reads
-			s_cbranch_scc0 loop_hw_begin
-	.endif
-	
-	c_off = full_chunks * 4 * active_lanes_in_full_chunks
-	k_off = full_chunks * 4 * active_lanes_in_full_chunks
-	.if partial_chunks
-		m_load in,  c_off, part1_chunks, voffset_part1_in,  part2_chunks, voffset_part2_in
-		m_load out, k_off, part1_chunks, voffset_part1_out, part2_chunks, voffset_part2_out
-		s_waitcnt 0
-		
-		m_conv_accums partial_chunks
-	.endif
-	
-	s_add_u32 s[soffset_in],  s[soffset_in],  0 + input_stack_size * n_per_gpr * n_part_cnt - c_off
-	s_add_u32 s[soffset_out], s[soffset_out], 0 + output_stack_size * n_per_gpr * n_part_cnt- k_off
+    c_off = 0
+    k_off = 0
+    .if full_reads
+        loop_hw_begin:
+            m_load in,  c_off, read_size, voffset_in
+            m_load out, k_off, read_size, voffset_out
+            
+            s_add_u32 s[soffset_in],  s[soffset_in],  0 + active_lanes_in_full_chunks * read_size * 4 - c_off
+            s_add_u32 s[soffset_out], s[soffset_out], 0 + active_lanes_in_full_chunks * read_size * 4 - k_off
+            s_waitcnt 0
+            
+            m_conv_accums read_size			
+        
+        loop_hw_end:
+            s_addk_i32 s[loop_hw_cnt], 1
+            s_cmpk_ge_u32 s[loop_hw_cnt], 0+full_reads
+            s_cbranch_scc0 loop_hw_begin
+    .endif
+    
+    c_off = full_chunks * 4 * active_lanes_in_full_chunks
+    k_off = full_chunks * 4 * active_lanes_in_full_chunks
+    .if partial_chunks
+        m_load in,  c_off, part1_chunks, voffset_part1_in,  part2_chunks, voffset_part2_in
+        m_load out, k_off, part1_chunks, voffset_part1_out, part2_chunks, voffset_part2_out
+        s_waitcnt 0
+        
+        m_conv_accums partial_chunks
+    .endif
+    
+    s_add_u32 s[soffset_in],  s[soffset_in],  0 + input_stack_size * n_per_gpr * n_part_cnt - c_off
+    s_add_u32 s[soffset_out], s[soffset_out], 0 + output_stack_size * n_per_gpr * n_part_cnt- k_off
 loop_n_end:
-	_v_add_nc_u32 v[n_id], 0 + (n_per_gpr * n_part_cnt) , v[n_id]
+    _v_add_nc_u32 v[n_id], 0 + (n_per_gpr * n_part_cnt) , v[n_id]
 
-	s_addk_i32 s[loop_n_cnt], 0 + n_per_gpr * n_part_cnt
-	s_cmpk_ge_u32 s[loop_n_cnt], 0 + batch_size
-	s_cbranch_scc0 loop_n_begin
-	
+    s_addk_i32 s[loop_n_cnt], 0 + n_per_gpr * n_part_cnt
+    s_cmpk_ge_u32 s[loop_n_cnt], 0 + batch_size
+    s_cbranch_scc0 loop_n_begin
+    
 
 
-	// reduction inside chunk
-	m_acc_reduction 0, chunk_size_log2
+    // reduction inside chunk
+    m_acc_reduction 0, chunk_size_log2
 
-	// reduction across n and hw pieces
-	.GPR_REUSE voffset_out, vtmp
-	.if n_per_gpr * hw_per_gpr > 1
-		.if chunk_size >= 4
-			v_lshlrev_b32 v[permute_addr], 2 + chunk_size_log2, v[tid]
-			m_bpermute accums, accums_cnt, permute_addr
-			// acc layout [n/hw][c]:
-			// c0n0 c1n0 c2n0 ... c0n1 c1n1 c2n1 ...
-			s_waitcnt 0 // todo: later
-			m_acc_reduction c_per_gpr_log2, n_per_gpr_log2 + hw_per_gpr_log2
-		.else
-			v_lshrrev_b32 v[vtmp], 0 + n_per_gpr_log2 + hw_per_gpr_log2, v[tid]
-			v_lshlrev_b32 v[permute_addr], 0 + c_per_gpr_log2, v[tid]
-			v_and_b32 v[permute_addr], 0 + wave_size/chunk_size - 1, v[permute_addr]
-			v_bfi_b32 v[permute_addr], 0 + c_per_gpr - 1, v[vtmp], v[permute_addr]
-			v_lshlrev_b32 v[permute_addr], 2 + chunk_size_log2, v[permute_addr]
-			m_bpermute accums, accums_cnt, permute_addr
-			// acc layout [c][n/hw]:
-			// c0n0 c0n1 c0n2 ... c1n0 c1n1 c1n2 ...
-			s_waitcnt 0 // todo: more later
-			
-			m_acc_reduction 0, n_per_gpr_log2 + hw_per_gpr_log2
-			
-			v_lshlrev_b32 v[permute_addr], 2 + n_per_gpr_log2 + hw_per_gpr_log2, v[tid]
-			m_bpermute accums, accums_cnt, permute_addr
-			s_waitcnt 0 // todo: finally more later
-		.endif
-	.endif
+    // reduction across n and hw pieces
+    .GPR_REUSE voffset_out, vtmp
+    .if n_per_gpr * hw_per_gpr > 1
+        .if chunk_size >= 4
+            v_lshlrev_b32 v[permute_addr], 2 + chunk_size_log2, v[tid]
+            m_bpermute accums, accums_cnt, permute_addr
+            // acc layout [n/hw][c]:
+            // c0n0 c1n0 c2n0 ... c0n1 c1n1 c2n1 ...
+            s_waitcnt 0 // todo: later
+            m_acc_reduction c_per_gpr_log2, n_per_gpr_log2 + hw_per_gpr_log2
+        .else
+            v_lshrrev_b32 v[vtmp], 0 + n_per_gpr_log2 + hw_per_gpr_log2, v[tid]
+            v_lshlrev_b32 v[permute_addr], 0 + c_per_gpr_log2, v[tid]
+            v_and_b32 v[permute_addr], 0 + wave_size/chunk_size - 1, v[permute_addr]
+            v_bfi_b32 v[permute_addr], 0 + c_per_gpr - 1, v[vtmp], v[permute_addr]
+            v_lshlrev_b32 v[permute_addr], 2 + chunk_size_log2, v[permute_addr]
+            m_bpermute accums, accums_cnt, permute_addr
+            // acc layout [c][n/hw]:
+            // c0n0 c0n1 c0n2 ... c1n0 c1n1 c1n2 ...
+            s_waitcnt 0 // todo: more later
+            
+            m_acc_reduction 0, n_per_gpr_log2 + hw_per_gpr_log2
+            
+            v_lshlrev_b32 v[permute_addr], 2 + n_per_gpr_log2 + hw_per_gpr_log2, v[tid]
+            m_bpermute accums, accums_cnt, permute_addr
+            s_waitcnt 0 // todo: finally more later
+        .endif
+    .endif
 
-	s_waitcnt 0
-	
+    s_waitcnt 0
+    
     .GPR_REUSE lines_in, lines_in_buffer
     .GPR_REUSE lines_out, lines_in_buffer2
     //used as one
 
-	//use LDS to merge waves
-	.macro acc_nvgpr_from_lds read_buffer, buffer_start, data_cnt
-		
-		acum_idx = \buffer_start / (n_part_cnt - 1)
-		wave_idx = \buffer_start - acum_idx * (n_part_cnt - 1)
-		read_it = 0
+    //use LDS to merge waves
+    .macro acc_nvgpr_from_lds read_buffer, buffer_start, data_cnt
+        
+        acum_idx = \buffer_start / (n_part_cnt - 1)
+        wave_idx = \buffer_start - acum_idx * (n_part_cnt - 1)
+        read_it = 0
 
-		.rept \data_cnt 
-			.if (wave_idx >= (n_part_cnt - 1))
-				wave_idx = 0
-				acum_idx = acum_idx + 1
-			.endif
-			.if (acum_idx >= accums_cnt)
-				acum_idx = 0
-			.endif
+        .rept \data_cnt 
+            .if (wave_idx >= (n_part_cnt - 1))
+                wave_idx = 0
+                acum_idx = acum_idx + 1
+            .endif
+            .if (acum_idx >= accums_cnt)
+                acum_idx = 0
+            .endif
 
-			v_add_f32 v[accums + acum_idx], v[accums + acum_idx], v[\read_buffer + read_it]
-			
-			read_it = read_it + 1
-			wave_idx = wave_idx + 1	
-		.endr
-	.endm
+            v_add_f32 v[accums + acum_idx], v[accums + acum_idx], v[\read_buffer + read_it]
+            
+            read_it = read_it + 1
+            wave_idx = wave_idx + 1	
+        .endr
+    .endm
 
-	.if (n_part_cnt > 1)
-		lds_read_size = 1
-		v_mul_u32_u24 v[voffset_ldsw], 0 + 4 * lds_read_size, v[tid]
+    .if (n_part_cnt > 1)
+        lds_read_size = 1
+        v_mul_u32_u24 v[voffset_ldsw], 0 + 4 * lds_read_size, v[tid]
 
-		s_cmpk_eq_u32 s[wave_id], 0
-		s_cbranch_scc1 lds_read_begin
-		
-		s_sub_u32 s[stmp], s[wave_id], 1
-		
-		s_mul_i32 s[stmp], 0 + 4 * lds_read_size * wave_size, s[stmp]
-		_v_add_nc_u32 v[voffset_ldsw], s[stmp], v[voffset_ldsw]
+        s_cmpk_eq_u32 s[wave_id], 0
+        s_cbranch_scc1 lds_read_begin
+        
+        s_sub_u32 s[stmp], s[wave_id], 1
+        
+        s_mul_i32 s[stmp], 0 + 4 * lds_read_size * wave_size, s[stmp]
+        _v_add_nc_u32 v[voffset_ldsw], s[stmp], v[voffset_ldsw]
 
-		lds_wr_id = 0
-		.rept accums_cnt
-			lds_acc_off = wave_size * (n_part_cnt - 1 )* 4 * lds_wr_id
-			ds_write_b32 v[voffset_ldsw], v[accums + lds_wr_id], offset:0+lds_acc_off + accums_lds
-			lds_wr_id = lds_wr_id + 1
-		.endr
-		s_wait , 0
+        lds_wr_id = 0
+        .rept accums_cnt
+            lds_acc_off = wave_size * (n_part_cnt - 1 )* 4 * lds_wr_id
+            ds_write_b32 v[voffset_ldsw], v[accums + lds_wr_id], offset:0+lds_acc_off + accums_lds
+            lds_wr_id = lds_wr_id + 1
+        .endr
+        s_wait , 0
 
-		s_endpgm
-		
-		lds_read_begin:
-		s_barrier 
-		
-		lines_io_size = read_size * (c_mult + k_mult)
-		lines_in_id = 0
-		first_element = 0
-		lds_acc_off = 0
-		
-		.rept accums_cnt * (n_part_cnt - 1)
-			.if(lines_in_id >= lines_io_size)
-				s_wait , 0
-				acc_nvgpr_from_lds lines_in_buffer, first_element, lines_in_id
-				first_element = first_element + lines_in_id
-				lines_in_id = 0
-			.endif
-			ds_read_b32 v[lines_in_buffer + lines_in_id], v[voffset_ldsw], offset:0+lds_acc_off + accums_lds
-			lds_acc_off = lds_acc_off + wave_size * 4 * lds_read_size
-			lines_in_id = lines_in_id + 1
-		.endr
-		s_wait , 0
-		acc_nvgpr_from_lds lines_in_buffer, first_element, lines_in_id
-	.endif
+        s_endpgm
+        
+        lds_read_begin:
+        s_barrier 
+        
+        lines_io_size = read_size * (c_mult + k_mult)
+        lines_in_id = 0
+        first_element = 0
+        lds_acc_off = 0
+        
+        .rept accums_cnt * (n_part_cnt - 1)
+            .if(lines_in_id >= lines_io_size)
+                s_wait , 0
+                acc_nvgpr_from_lds lines_in_buffer, first_element, lines_in_id
+                first_element = first_element + lines_in_id
+                lines_in_id = 0
+            .endif
+            ds_read_b32 v[lines_in_buffer + lines_in_id], v[voffset_ldsw], offset:0+lds_acc_off + accums_lds
+            lds_acc_off = lds_acc_off + wave_size * 4 * lds_read_size
+            lines_in_id = lines_in_id + 1
+        .endr
+        s_wait , 0
+        acc_nvgpr_from_lds lines_in_buffer, first_element, lines_in_id
+    .endif
     
     .GPR_REUSE lines_in_buffer, lines_in
     .GPR_REUSE lines_in_buffer2, lines_out
-	
-	// STORE
-	// prepare output addresses
-	.GPR_REUSE voffset_in, voffset_wei
-	.GPR_REUSE lines_in, c_off
-	.GPR_REUSE lines_out, k_off
-	.GPR_REUSE voffset_part1_in, c_gid
-	.GPR_REUSE voffset_part2_in, k_gid
-	.GPR_REUSE voffset_part1_out, c_off_masked
-	.GPR_REUSE voffset_part2_out, k_off_masked
-	.GPR_REUSE n_id, invalid_addr
-	v_mov_b32 v[invalid_addr], 0x7FFFFFFF
-	//v_mov_b32 v[invalid_addr], 0x40000000
-	
-	_v_add_nc_u32 v[c_gid], s[c_base], v[tid]
-	v_mul_u32_u24 v[c_off], 0 + filter_c_stride, v[tid]
-	v_cmp_gt_i32 vcc, 0 + c_per_gpr, v[tid]
-	v_cndmask_b32_e32 v[c_off], v[invalid_addr], v[c_off], vcc
-	
-	.macro _v_add_nc_u32_ror dst, src0, src1, ror
-		.long 0x320000FA + ((\src1) << 9) + ((\dst) << 17)
-		.long 0xFF012100 + \src0 + ((\ror - 1) << 8)
-	.endm
-	
-	v_bfe_u32 v[k_off], v[tid], 0 + c_per_gpr_log2 - k_per_gpr_log2, 0 + k_per_gpr_log2
-	_v_add_nc_u32 v[k_gid], s[k_base], v[k_off]
-	v_mul_u32_u24 v[k_off], 0 + filter_k_stride, v[k_off]
-	
-	_v_add_nc_u32 v[permute_addr], 0 + wave_size / k_ds_rotates, v[tid]
-	v_lshlrev_b32 v[permute_addr], 2, v[permute_addr]
+    
+    // STORE
+    // prepare output addresses
+    .GPR_REUSE voffset_in, voffset_wei
+    .GPR_REUSE lines_in, c_off
+    .GPR_REUSE lines_out, k_off
+    .GPR_REUSE voffset_part1_in, c_gid
+    .GPR_REUSE voffset_part2_in, k_gid
+    .GPR_REUSE voffset_part1_out, c_off_masked
+    .GPR_REUSE voffset_part2_out, k_off_masked
+    .GPR_REUSE n_id, invalid_addr
+    v_mov_b32 v[invalid_addr], 0x7FFFFFFF
+    //v_mov_b32 v[invalid_addr], 0x40000000
+    
+    _v_add_nc_u32 v[c_gid], s[c_base], v[tid]
+    v_mul_u32_u24 v[c_off], 0 + filter_c_stride, v[tid]
+    v_cmp_gt_i32 vcc, 0 + c_per_gpr, v[tid]
+    v_cndmask_b32_e32 v[c_off], v[invalid_addr], v[c_off], vcc
+    
+    .macro _v_add_nc_u32_ror dst, src0, src1, ror
+        .long 0x320000FA + ((\src1) << 9) + ((\dst) << 17)
+        .long 0xFF012100 + \src0 + ((\ror - 1) << 8)
+    .endm
+    
+    v_bfe_u32 v[k_off], v[tid], 0 + c_per_gpr_log2 - k_per_gpr_log2, 0 + k_per_gpr_log2
+    _v_add_nc_u32 v[k_gid], s[k_base], v[k_off]
+    v_mul_u32_u24 v[k_off], 0 + filter_k_stride, v[k_off]
+    
+    _v_add_nc_u32 v[permute_addr], 0 + wave_size / k_ds_rotates, v[tid]
+    v_lshlrev_b32 v[permute_addr], 2, v[permute_addr]
 
-	
-	// store accums
-	k_ds = 0
-	rotates_inflight = 0
-	.rept k_ds_rotates
-		
-		.if k_ds > 0
-			rotates_inflight = rotates_inflight - 2
-			s_wait , rotates_inflight
-		.endif
-		
-		kx = 0
-		.rept k_mult
-			v_cmp_gt_i32 vcc, 0 + output_channels - kx * k_per_gpr, v[k_gid]
-			v_cndmask_b32_e32 v[k_off_masked], v[invalid_addr], v[k_off], vcc
-			cx = 0
-			.rept c_mult
-				v_cmp_gt_i32 vcc, 0 + input_channels - cx * c_per_gpr, v[c_gid]
-				v_cndmask_b32_e32 v[c_off_masked], v[invalid_addr], v[c_off], vcc
-				k_dpp = 0
-				.rept k_dpp_rotates
-					k = k_ds * k_dpp_rotates + k_dpp
-					b = (k_dpp * c_per_gpr / k_per_gpr) % 16 // lanes to ror
-					.if b == 0
-						_v_add_nc_u32 v[voffset_wei], v[k_off_masked], v[c_off_masked]
-					.else
-						.if (.option.machine_version_major == 8) // workaround for asm
-							_v_add_nc_u32_ror voffset_wei, k_off_masked, c_off_masked, b
-						.else
-							_v_add_nc_u32 v[voffset_wei], v[k_off_masked], v[c_off_masked] row_ror:b
-						.endif
-					.endif
-					acc = accums + k_per_gpr * (cx * k_mult + kx) + k_ds * k_dpp_rotates
-					s_mov_b32 s[stmp], 0 + cx * c_per_gpr * filter_c_stride + kx * k_per_gpr * filter_k_stride
-					buffer_store_dword v[acc+k_dpp], v[voffset_wei], s[desc_wei:desc_wei+3], s[stmp] offen
-					
-					k_dpp = k_dpp + 1
-				.endr
-				cx = cx + 1
-			.endr
-			kx = kx + 1
-		.endr
-		k_ds = k_ds + 1
-		
-		.if k_ds < k_ds_rotates
-			static_assert (c_quads == 2 || c_quads == 4)
-			.if c_quads == 2
-				ds_swizzle_b32 v[k_off], v[k_off] offset:0xc200
-				ds_swizzle_b32 v[k_gid], v[k_gid] offset:0xc200
-			.elseif c_quads == 4
-				ds_bpermute_b32 v[k_off], v[permute_addr], v[k_off]
-				ds_bpermute_b32 v[k_gid], v[permute_addr], v[k_gid]
-			.endif
-			rotates_inflight = rotates_inflight + 1
-		.endif
-	.endr
-
-	
+    
+    // store accums
+    k_ds = 0
+    rotates_inflight = 0
+    .rept k_ds_rotates
+        
+        .if k_ds > 0
+            rotates_inflight = rotates_inflight - 2
+            s_wait , rotates_inflight
+        .endif
+        
+        kx = 0
+        .rept k_mult
+            v_cmp_gt_i32 vcc, 0 + output_channels - kx * k_per_gpr, v[k_gid]
+            v_cndmask_b32_e32 v[k_off_masked], v[invalid_addr], v[k_off], vcc
+            cx = 0
+            .rept c_mult
+                v_cmp_gt_i32 vcc, 0 + input_channels - cx * c_per_gpr, v[c_gid]
+                v_cndmask_b32_e32 v[c_off_masked], v[invalid_addr], v[c_off], vcc
+                k_dpp = 0
+                .rept k_dpp_rotates
+                    k = k_ds * k_dpp_rotates + k_dpp
+                    b = (k_dpp * c_per_gpr / k_per_gpr) % 16 // lanes to ror
+                    .if b == 0
+                        _v_add_nc_u32 v[voffset_wei], v[k_off_masked], v[c_off_masked]
+                    .else
+                        .if (.option.machine_version_major == 8) // workaround for asm
+                            _v_add_nc_u32_ror voffset_wei, k_off_masked, c_off_masked, b
+                        .else
+                            _v_add_nc_u32 v[voffset_wei], v[k_off_masked], v[c_off_masked] row_ror:b
+                        .endif
+                    .endif
+                    acc = accums + k_per_gpr * (cx * k_mult + kx) + k_ds * k_dpp_rotates
+                    s_mov_b32 s[stmp], 0 + cx * c_per_gpr * filter_c_stride + kx * k_per_gpr * filter_k_stride
+                    buffer_store_dword v[acc+k_dpp], v[voffset_wei], s[desc_wei:desc_wei+3], s[stmp] offen
+                    
+                    k_dpp = k_dpp + 1
+                .endr
+                cx = cx + 1
+            .endr
+            kx = kx + 1
+        .endr
+        k_ds = k_ds + 1
+        
+        .if k_ds < k_ds_rotates
+            static_assert (c_quads == 2 || c_quads == 4)
+            .if c_quads == 2
+                ds_swizzle_b32 v[k_off], v[k_off] offset:0xc200
+                ds_swizzle_b32 v[k_gid], v[k_gid] offset:0xc200
+            .elseif c_quads == 4
+                ds_bpermute_b32 v[k_off], v[permute_addr], v[k_off]
+                ds_bpermute_b32 v[k_gid], v[permute_addr], v[k_gid]
+            .endif
+            rotates_inflight = rotates_inflight + 1
+        .endif
+    .endr
 
 s_endpgm
+
 
 .Lfunc_end0:
     .size gcnAsmConv1x1WrW, .Lfunc_end0 - gcnAsmConv1x1WrW
