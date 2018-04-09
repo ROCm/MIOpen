@@ -267,6 +267,7 @@ MIOPEN_DECLARE_OBJECT(miopenActivationDescriptor);
 */
 MIOPEN_DECLARE_OBJECT(miopenRNNDescriptor);
 
+
 /*! @ingroup tensor
  * @enum miopenDataType_t
  * MIOpen floating point datatypes. Currently only 32-bit floats are fully supported in MIOpen.
@@ -1691,6 +1692,220 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT SOFTMAX DOXYGEN GROUP
+
+
+/*! @ingroup FUSION
+* @brief Creates the miopenRNNDescriptor_t type
+*/
+
+
+/*!  @enum miopenFuseMode_t
+* Fuse mode selection
+*/
+typedef enum {
+	miopenFuseVertical = 0, /*!< vertical fusion */
+	miopenFuseHorizontal = 1, /*!< horizontal fusion */
+} miopenFuseMode_t;
+
+
+/*!  @enum miopenFuseMode_t
+* Fuse mode selection
+*/
+typedef enum {
+	miopenConvolutionForwardOp = 0, /*!< convolution data forward */
+	miopenBatchNormForwardInferenceOp = 1, /*!< batch normalization forward inference */
+	miopenActivationForwardOp = 2, /*!< activation forward */
+	miopenTensorMapOp = 3, /*!< element-wise tensor op */
+} miopenOperator_t;
+
+
+MIOPEN_DECLARE_OBJECT(miopenFusionPlanDescriptor);
+MIOPEN_DECLARE_OBJECT(miopenFusionDescriptor);
+MIOPEN_DECLARE_OBJECT(miopenOperatorDescriptor);
+
+
+
+/** @addtogroup FUSION
+*
+*  @{
+*/
+
+
+
+/*! @brief Creates the FUSION plan descriptor object
+*
+* @param activDesc Pointer to an FUSION plan descriptor type
+* @return          miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateFusionPlanDescriptor(miopenFusionPlanDescriptor* fuseDesc);
+
+
+/*! @brief Creates the FUSION descriptor object
+*
+* @param activDesc Pointer to a FUSION descriptor type
+* @return          miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateFusionDescriptor(miopenFusionDescriptor* fuseDesc);
+
+/*! @brief returns the miopen operator type.
+*
+* @param activDesc Pointer to a FUSION descriptor type
+* @return          miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenGetOperatorType(const miopenOperatorDescriptor convOp,
+	miopenOperator_t* opType
+    );
+
+
+/*! @brief Creates miopen convolution forward operator object
+*
+* @param convOp    Pointer to an operator type
+* @param xDesc              Tensor descriptor for data input tensor x (input)
+* @param wDesc              Tensor descriptor for weight tensor w (input)
+* @param convDesc           Convolution layer descriptor (input)
+* @param yDesc              Tensor descriptor for output data tensor y (input)
+* @param exhaustiveSearch   A boolean to toggle a full search of all algorithms and configurations
+* (input)
+* @return          miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateConvForwardOp(miopenOperatorDescriptor* convOp,
+	const miopenTensorDescriptor_t xDesc,
+	const miopenTensorDescriptor_t wDesc,
+	const miopenConvolutionDescriptor_t convDesc,
+	const miopenTensorDescriptor_t yDesc,
+	bool exhaustiveSearch
+	);
+
+
+/*! @brief Creates miopen activation forward operator object
+*
+* @param activeOp    Pointer to an operator type
+* @param activDesc      Descriptor for activation layer (input)
+* @param alpha          Floating point scaling factor, allocated on the host (input)
+* @param xDesc          Tensor descriptor for data input tensor x (input)
+* @param beta           Floating point shift factor, allocated on the host (input)
+* @param yDesc          Tensor descriptor for output data tensor y (input)
+
+* @return          miopenStatus_t
+*/
+
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateActivationForwardOp(miopenOperatorDescriptor* activOp,
+    const miopenActivationDescriptor_t activDesc,
+    const void* alpha,
+    const miopenTensorDescriptor_t xDesc,
+    const void* beta,
+    const miopenTensorDescriptor_t yDesc
+    );
+
+
+/*! @brief create a forward inference op for batch normalization
+*
+* Batch normalization op.
+* Takes in batch normalization mode bn_mode and input tensor x, output tensor y, bnBias and bnScale
+* with their descriptor.
+*
+* If either estimatedMean, or estimatedVariance are null pointers then the values for the mean and
+* variance will not be used.
+*
+* @param activeOp    Pointer to an operator type
+* @param bn_mode                   Batch normalization mode (input)
+* @param alpha                     Floating point scaling factor, allocated on the host (input)
+* @param beta                      Floating point shift factor, allocated on the host (input)
+* @param xDesc                     Tensor descriptor for data input tensor x (input)
+* @param yDesc                     Tensor descriptor for output data tensor y (input)
+* @param bnScaleBiasMeanVarDesc    Tensor descriptor for BN scaling, shifting, saved variance and
+* mean (input)
+* @param bnScale                   Batch norm scaling, gamma, tensor (input)
+* @param bnBias                    Batch norm bias, beta, tensor (input)
+* @param estimatedMean             Running average saved during forward training (input)
+* @param estimatedVariance         Running variance saved during forward training (input)
+* @param epsilon                   Value to stabilize inverse variance calculation (input)
+* @return                          miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateBatchNormalizationForwardInferenceOp(miopenOperatorDescriptor* bnOp,
+	miopenBatchNormMode_t bn_mode,
+	void* alpha,
+	void* beta,
+	const miopenTensorDescriptor_t xDesc,
+	const miopenTensorDescriptor_t yDesc,
+	const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc,
+	void* bnScale,
+	void* bnBias,
+	void* estimatedMean,
+	void* estimatedVariance,
+	double epsilon);
+
+/*! @brief build a fusion descriptor
+*
+* In general the function describes a tree of operators.
+* It may mix horizontal and vertical fusions.
+* The order of descriptors define the logical order of opertaions.
+* The vertical ops has to be excuted sequentially.
+* Each vertical op is a single MIOpen operator.
+* The "horizontal" descriptor defines a parallel execution of the sequentially executed set of ops defined with proper vetical fusion descriptors.
+* The end of "horizontal" decriptor defines a synchronization points of its sequential children.
+* 
+* @param mode       sequential (vertical) or parallel (horizontal) (input)
+* @param n_ops      number of operators (input)
+* @param ops        set of operators (input)
+*
+* @return           miopenStatus_t
+*/
+
+MIOPEN_EXPORT miopenStatus_t
+miopenSetFusionDescriptor(
+	miopenFusionDescriptor fuseDescr,
+	const miopenFuseMode_t mode,
+	const size_t n_ops,
+    const miopenOperatorDescriptor * ops
+    );
+
+
+/*! @brief build a exection plan of the kernel fusion for inference
+*
+* The function verify the sub-graph can be fused.
+* It selects and builds a fused control path.
+*
+* @param handle         MIOpen handle (input)
+* @param fusePlanDescr  fused plan descriptor (output)
+* @param fuseDescr      operational sub-graph descriptor (input)
+* @param workSpaceSize  Pointer to workSpaceSize (output)
+*
+* @return           miopenStatus_t
+*/
+
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateFusionPlanForwardInference(
+	miopenHandle_t handle,
+	miopenFusionPlanDescriptor fusePlanDescr,
+	const miopenFusionDescriptor fuseDescr,
+	size_t* workSpaceSize
+);
+
+/*! @brief build a execute the plan of the kernel fusion for inference
+*
+* The function verify the sub-graph can be fused.
+* It selects and builds a fused control path.
+*
+* @param fusePlanDescr  fused plan descriptor (ou)
+* @param fuseDescr      operational sub-graph description (input)
+*
+* @return           miopenStatus_t
+*/
+
+MIOPEN_EXPORT miopenStatus_t
+miopenExecuteFusionPlanForwardInference(const miopenFusionPlanDescriptor fusePlanDescr
+);
+
+/** @} */
+// CLOSEOUT FUSION DOXYGEN GROUP
+
 
 /** @addtogroup RNN
 *
