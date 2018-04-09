@@ -178,7 +178,7 @@ ActivationFunction_Leaky_ReLU(uint n, _FLOAT* res, const _FLOAT* data, const _FL
 }
 
 __attribute__((always_inline)) void
-ActivationFunction_Clipped_RELU(uint n, _FLOAT* res, const _FLOAT* data, const _FLOAT ceiling)
+ActivationFunction_Clipped_ReLU(uint n, _FLOAT* res, const _FLOAT* data, const _FLOAT ceiling)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -548,7 +548,6 @@ __kernel void MIOpenActiveBwdLite(__global _FLOAT* bot_diff,
                                              bot_diff_dat,
                                              (const _FLOAT*)top_diff_dat,
                                              (const _FLOAT*)bot_dat,
-                                             (const _FLOAT*)top_dat,
                                              scale);
     }
 #elif MLO_NRN_OP_ID == MLO_NEURON_ELU
@@ -664,7 +663,6 @@ __kernel void MIOpenActiveBwd2DLite(__global _FLOAT* bot_diff,
                                              bot_diff_dat,
                                              (const _FLOAT*)top_diff_dat,
                                              (const _FLOAT*)bot_dat,
-                                             (const _FLOAT*)top_dat,
                                              scale);
     }
 
@@ -1068,7 +1066,6 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
                                              bot_diff_dat,
                                              (const _FLOAT*)top_diff_dat,
                                              (const _FLOAT*)bot_dat,
-                                             (const _FLOAT*)top_dat,
                                              scale);
     }
 

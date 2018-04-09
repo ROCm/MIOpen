@@ -222,6 +222,23 @@ struct activation_driver : test_driver
         add_mode(miopenActivationLEAKYRELU,
                  [=](double x) { return (x > 0) ? x : x * beta; },
                  [=](double dy, double, double) { return std::max(double(0), dy); });
+        add_mode(miopenActivationCLIPPEDRELU,
+                 [=](double x)
+                 { 
+                    double v;
+                    if(x < 0)
+                        v = 0;
+                    else if( x < alpha )
+                        v = x;
+                    else
+                        v = alpha;
+
+                    return v;
+                 },
+                 [=](double dy, double x, double) { return (x > 0 && x < alpha) ? dy : 0; });
+        add_mode(miopenActivationELU,
+                 [=](double x) { return (x > 0) ? x : alpha * (std::exp(x) - 1); },
+                 [=](double, double x, double y) { return (x > 0)? 1 : y + alpha; });
         add(input, "input", get_input_tensor());
         add(alpha, "alpha");
         add(beta, "beta");
