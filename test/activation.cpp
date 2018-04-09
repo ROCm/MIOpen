@@ -53,6 +53,9 @@ std::string to_name(miopenActivationMode_t m)
         STRING_CASE(miopenActivationSOFTRELU)
         STRING_CASE(miopenActivationABS)
         STRING_CASE(miopenActivationPOWER)
+        STRING_CASE(miopenActivationLEAKYRELU)
+        STRING_CASE(miopenActivationCLIPPEDRELU)
+        STRING_CASE(miopenActivationELU)
     }
     return "";
 }
@@ -216,6 +219,9 @@ struct activation_driver : test_driver
                      auto divisor = alpha + beta * x;
                      return (miopen::float_equal(divisor, 0)) ? 0 : alpha * beta * y / divisor;
                  });
+        add_mode(miopenActivationLEAKYRELU,
+                 [=](double x) { return (x > 0) ? x : x * beta; },
+                 [=](double dy, double, double) { return std::max(double(0), dy); });
         add(input, "input", get_input_tensor());
         add(alpha, "alpha");
         add(beta, "beta");

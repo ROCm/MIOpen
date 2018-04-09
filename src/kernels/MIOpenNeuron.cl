@@ -45,19 +45,21 @@
 
 #define MLO_NRN_GROUP_SZ2 1
 
-#define MLO_NEURON_PASTHRU 0                       // x
-#define MLO_NEURON_LOGISTIC MLO_NEURON_PASTHRU + 1 //	1 / (1 + e^-x)	//Sigmoid
-#define MLO_NEURON_TANH MLO_NEURON_LOGISTIC + 1    //	a * tanh( b * x)
-#define MLO_NEURON_RELU MLO_NEURON_TANH + 1        //	max(0, x)
-#define MLO_NEURON_SOFTRELU \
-    MLO_NEURON_RELU + 1                        //	log(1 + e^x)   // bonomial normal log likelihood
-#define MLO_NEURON_ABS MLO_NEURON_SOFTRELU + 1 //	abs(x)
-#define MLO_NEURON_POWER MLO_NEURON_ABS + 1    // (a + b * x ) ^power
-//#define MLO_NEURON_BRELU		MLO_NEURON_POWER + 1		//	min(a, max(0, x))
-//#define MLO_NEURON_SQUARE		BRELU + 1			//	x^2
-//#define MLO_NEURON_SQR			MLO_NEURON_SQUARE + 1		//	sqr(x)
-//#define MLO_NEURON_LINEAR		MLO_NEURON_SQR	+ 1			//	a + b * x
-#define MLO_NEURON_TOTAL MLO_NEURON_POWER + 1
+#define MLO_NEURON_PASTHRU        0                          // x
+#define MLO_NEURON_LOGISTIC       1                          // 1 / (1 + e^-x)	//Sigmoid
+#define MLO_NEURON_TANH           2                          // a * tanh( b * x)
+#define MLO_NEURON_RELU           3                          // max(0, x)
+#define MLO_NEURON_SOFTRELU       4                          // log(1 + e^x)   // bonomial normal log likelihood
+#define MLO_NEURON_ABS            5                          // abs(x)
+#define MLO_NEURON_POWER          6                          // (a + b * x ) ^power
+#define MLO_NEURON_LEAKY_RELU     7                          // a*x | x<=0; x | x>0
+#define MLO_NEURON_CLIPPED_RELU   8                          // 0 | x<=0; x | 0<x<=a; a | x>a
+#define MLO_NEURON_ELU            9                          // a*(exp(x)-1) | x<=0; x | x>0
+//#define MLO_NEURON_BRELU       10                          // min(a, max(0, x))
+//#define MLO_NEURON_SQUARE      11                          // x^2
+//#define MLO_NEURON_SQR         12                          // sqr(x)
+//#define MLO_NEURON_LINEAR      13                          // a + b * x
+#define MLO_NEURON_TOTAL         10
 
 __attribute__((always_inline)) void
 ActivationFunction_PassThru(uint n, _FLOAT* res, const _FLOAT* data)
@@ -166,6 +168,34 @@ __attribute__((always_inline)) void ActivationFunction_BNLL(uint n, _FLOAT* res,
     }
 }
 
+__attribute__((always_inline)) void
+ActivationFunction_Leaky_ReLU(uint n, _FLOAT* res, const _FLOAT* data, const _FLOAT leak_slope)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        res[i] = data[i] * ( (data[i] > 0) ? (_FLOAT)1.f : leak_slope );
+    }
+}
+
+__attribute__((always_inline)) void
+ActivationFunction_Clipped_RELU(uint n, _FLOAT* res, const _FLOAT* data, const _FLOAT ceiling)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        _FLOAT arg = (data[i] > 0) ? data[i] : 0;
+        res[i] = (arg > ceiling) ? ceiling : arg;
+    }
+}
+
+__attribute__((always_inline)) void
+ActivationFunction_ELU(uint n, _FLOAT* res, const _FLOAT* data, const _FLOAT alpha)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        res[i] = (data[i] > 0) ? data[i] : alpha * (exp(data[i]) - (_FLOAT)1.f);
+    }
+}
+
 void ActivationFunction(
     uint n, _FLOAT* res, const _FLOAT* data, _FLOAT power, _FLOAT alpha, _FLOAT beta)
 {
@@ -206,6 +236,15 @@ void ActivationFunction(
     // (shift + scale * x ) ^power
 
     ActivationFunction_Power(n, res, data, power, alpha, beta);
+
+#elif MLO_NRN_OP_ID == MLO_NEURON_LEAKY_RELU
+    ActivationFunction_Leaky_ReLU(n, res, data, alpha);
+
+#elif MLO_NRN_OP_ID == MLO_NEURON_CLIPPED_RELU
+    ActivationFunction_Clipped_ReLU(n, res, data, alpha);
+
+#elif MLO_NRN_OP_ID == MLO_NEURON_ELU
+    ActivationFunction_ELU(n, res, data, alpha);
 
 #endif
 }
@@ -304,6 +343,44 @@ __attribute__((always_inline)) void ActivationFunction_BNLL_Diff(uint n,
         //		_FLOAT kBNLL_THRESHOLD = (_FLOAT)50.;
         _FLOAT expval = exp(fmin(bot_data[i], kBNLL_THRESHOLD));
         bot_diff[i]   = top_diff[i] * expval / (expval + (_FLOAT)1.f);
+    }
+}
+
+__attribute__((always_inline)) void ActivationFunction_Leaky_ReLU_Diff(uint n,
+                                                                       _FLOAT* bot_diff,
+                                                                       const _FLOAT* top_diff,
+                                                                       const _FLOAT* bot_data,
+                                                                       const _FLOAT leak_slope)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        bot_diff[i] = top_diff[i] * ((bot_data[i] > 0) ? (_FLOAT)1.f : leak_slope);
+    }
+}
+
+__attribute__((always_inline)) void ActivationFunction_Clipped_ReLU_Diff(uint n,
+                                                                         _FLOAT* bot_diff,
+                                                                         const _FLOAT* top_diff,
+                                                                         const _FLOAT* bot_data,
+                                                                         const _FLOAT ceiling)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        bot_diff[i] = top_diff[i] * ((bot_data[i] > 0 && bot_data[i] < ceiling) ? (_FLOAT)1.f : 0);
+    }
+}
+
+__attribute__((always_inline)) void ActivationFunction_ELU_Diff(uint n,
+                                                                _FLOAT* bot_diff,
+                                                                const _FLOAT* top_diff,
+                                                                const _FLOAT* bot_data,
+                                                                const _FLOAT* top_data,
+                                                                const _FLOAT alpha)
+{
+
+    for(uint i = 0; i < n; ++i)
+    {
+        bot_diff[i] = top_diff[i] * ((bot_data[i] >= 0) ? 1 : top_data[i] + alpha);
     }
 }
 
@@ -457,6 +534,32 @@ __kernel void MIOpenActiveBwdLite(__global _FLOAT* bot_diff,
     //	log(1 + exp(x))
     ActivationFunction_BNLL_Diff(
         MLO_READ_UNIT, bot_diff_dat, (const _FLOAT*)top_diff_dat, (const _FLOAT*)bot_dat);
+#elif MLO_NRN_OP_ID == MLO_NEURON_LEAKY_RELU
+    {
+        ActivationFunction_Leaky_ReLU_Diff(MLO_READ_UNIT,
+                                           bot_diff_dat,
+                                           (const _FLOAT*)top_diff_dat,
+                                           (const _FLOAT*)bot_dat,
+                                           scale);
+    }
+#elif MLO_NRN_OP_ID == MLO_NEURON_CLIPPED_RELU
+    {
+        ActivationFunction_Clipped_ReLU_Diff(MLO_READ_UNIT,
+                                             bot_diff_dat,
+                                             (const _FLOAT*)top_diff_dat,
+                                             (const _FLOAT*)bot_dat,
+                                             (const _FLOAT*)top_dat,
+                                             scale);
+    }
+#elif MLO_NRN_OP_ID == MLO_NEURON_ELU
+    {
+        ActivationFunction_ELU_Diff(MLO_READ_UNIT,
+                                    bot_diff_dat,
+                                    (const _FLOAT*)top_diff_dat,
+                                    (const _FLOAT*)bot_dat,
+                                    (const _FLOAT*)top_dat,
+                                    scale);
+    }
 #endif
 
     *((__global MLO_READ_TYPE*)(bot_diff + bot_diff_offset + index)) =
@@ -545,6 +648,35 @@ __kernel void MIOpenActiveBwd2DLite(__global _FLOAT* bot_diff,
     //	log(1 + exp(x))
     ActivationFunction_BNLL_Diff(
         MLO_READ_UNIT, bot_diff_dat, (const _FLOAT*)top_diff_dat, (const _FLOAT*)bot_dat);
+
+#elif MLO_NRN_OP_ID == MLO_NEURON_LEAKY_RELU
+    {
+        ActivationFunction_Leaky_ReLU_Diff(MLO_READ_UNIT,
+                                           bot_diff_dat,
+                                           (const _FLOAT*)top_diff_dat,
+                                           (const _FLOAT*)bot_dat,
+                                           scale);
+    }
+
+#elif MLO_NRN_OP_ID == MLO_NEURON_CLIPPED_RELU
+    {
+        ActivationFunction_Clipped_ReLU_Diff(MLO_READ_UNIT,
+                                             bot_diff_dat,
+                                             (const _FLOAT*)top_diff_dat,
+                                             (const _FLOAT*)bot_dat,
+                                             (const _FLOAT*)top_dat,
+                                             scale);
+    }
+
+#elif MLO_NRN_OP_ID == MLO_NEURON_ELU
+    {
+        ActivationFunction_ELU_Diff(MLO_READ_UNIT,
+                                    bot_diff_dat,
+                                    (const _FLOAT*)top_diff_dat,
+                                    (const _FLOAT*)bot_dat,
+                                    (const _FLOAT*)top_dat,
+                                    scale);
+    }
 #endif
 
     *((__global MLO_READ_TYPE*)(bot_diff + bot_diff_offset + bot_diff_index)) =
@@ -920,6 +1052,36 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
     //	log(1 + exp(x))
     ActivationFunction_BNLL_Diff(
         MLO_READ_UNIT, bot_diff_dat, (const _FLOAT*)top_diff_dat, (const _FLOAT*)bot_dat);
+
+#elif MLO_NRN_OP_ID == MLO_NEURON_LEAKY_RELU
+    {
+        ActivationFunction_Leaky_ReLU_Diff(MLO_READ_UNIT,
+                                           bot_diff_dat,
+                                           (const _FLOAT*)top_diff_dat,
+                                           (const _FLOAT*)bot_dat,
+                                           scale);
+    }
+
+#elif MLO_NRN_OP_ID == MLO_NEURON_CLIPPED_RELU
+    {
+        ActivationFunction_Clipped_ReLU_Diff(MLO_READ_UNIT,
+                                             bot_diff_dat,
+                                             (const _FLOAT*)top_diff_dat,
+                                             (const _FLOAT*)bot_dat,
+                                             (const _FLOAT*)top_dat,
+                                             scale);
+    }
+
+#elif MLO_NRN_OP_ID == MLO_NEURON_ELU
+    {
+        ActivationFunction_ELU_Diff(MLO_READ_UNIT,
+                                    bot_diff_dat,
+                                    (const _FLOAT*)top_diff_dat,
+                                    (const _FLOAT*)bot_dat,
+                                    (const _FLOAT*)top_dat,
+                                    scale);
+    }
+
 #endif
 
 #if MLO_N_PIXS_OFF > 0
