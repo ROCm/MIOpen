@@ -54,47 +54,47 @@ inline static bool Inc_1_2_4_8_16(int& v)
 }
 
 template <int first, int... others>
-inline static bool Is_From_Pack_c(const int v)
+inline static bool IsFromPackContinue(const int v)
 {
-    return (v == first) || Is_From_Pack_c<others...>(v);
+    return (v == first) || IsFromPackContinue<others...>(v);
 }
 
 template <int first, int... others>
-inline static bool Is_From_Pack(const int v)
+inline static bool IsFromPack(const int v)
 {
-    return Is_From_Pack_c<first, others..., 0, 0>(v);
+    return IsFromPackContinue<first, others..., 0, 0>(v);
 }
 
 template <>
-inline bool Is_From_Pack_c<0, 0>(const int)
+inline bool IsFromPackContinue<0, 0>(const int)
 {
     return false;
 }
 
 template <int next, int... others>
-inline static bool Inc_pack_next(int& v)
+inline static bool IncPackNext(int& v)
 {
     v = next;
     return true;
 }
 
 template <int first, int... others>
-inline static bool Inc_pack_continue(int& v)
+inline static bool IncPackContinue(int& v)
 {
-    return ((v == first) && Inc_pack_next<others...>(v)) || Inc_pack_continue<others...>(v);
+    return ((v == first) && IncPackNext<others...>(v)) || IncPackContinue<others...>(v);
 }
 
 template <>
-inline bool Inc_pack_continue<0, 0>(int&)
+inline bool IncPackContinue<0, 0>(int&)
 {
     return false;
 }
 
 template <int first, int... others>
-inline static bool Inc_pack(int& v)
+inline static bool IncPack(int& v)
 {
-    assert((Is_From_Pack<first, others...>(v)));
-    Inc_pack_continue<first, others..., first, 0, 0>(v);
+    assert((IsFromPack<first, others...>(v)));
+    IncPackContinue<first, others..., first, 0, 0>(v);
 
     return (v == first);
 }
@@ -117,6 +117,7 @@ inline static bool Inc_1_2_4(int& v)
 }
 
 inline static bool Is_1_2_4(const int& v) { return v == 1 || v == 2 || v == 4; }
+
 
 bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
 {
@@ -165,21 +166,21 @@ bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
             }
             do
             {
-                if(!Inc_pack<2, 4>(read_size))
+                if(!IncPack<2, 4>(read_size))
                     break;
-                if(!Inc_pack<1, 2, 4, 8>(chunk_size))
+                if(!IncPack<1, 2, 4, 8>(chunk_size))
                     break;
-                if(!Inc_pack<2, 4, 8, 16>(c_per_gpr))
+                if(!IncPack<2, 4, 8, 16>(c_per_gpr))
                     break;
-                if(!Inc_pack<2, 4, 8, 16>(c_mult))
+                if(!IncPack<2, 4, 8, 16>(c_mult))
                     break;
-                if(!Inc_pack<2, 4, 8>(k_per_gpr))
+                if(!IncPack<2, 4, 8>(k_per_gpr))
                     break;
-                if(!Inc_pack<2, 4, 8>(k_mult))
+                if(!IncPack<2, 4, 8>(k_mult))
                     break;
-                if(!Inc_pack<1, 2>(n_per_gpr))
+                if(!IncPack<1, 2>(n_per_gpr))
                     break;
-                if(!Inc_pack<1, 2, 4, 8>(n_part_cnt))
+                if(!IncPack<1, 2, 4, 8>(n_part_cnt))
                     break;
                 return false;
             } while(false);
@@ -188,21 +189,21 @@ bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
         {
             do
             {
-                if(!Inc_pack<1, 2, 4>(read_size))
+                if(!IncPack<1, 2, 4>(read_size))
                     break;
-                if(!Inc_pack<1, 2, 4, 8>(chunk_size))
+                if(!IncPack<1, 2, 4, 8>(chunk_size))
                     break;
-                if(!Inc_pack<1, 2, 4, 8, 16>(c_per_gpr))
+                if(!IncPack<1, 2, 4, 8, 16>(c_per_gpr))
                     break;
-                if(!Inc_pack<1, 2, 4, 8, 16>(c_mult))
+                if(!IncPack<1, 2, 4, 8, 16>(c_mult))
                     break;
-                if(!Inc_pack<1, 2, 4, 8>(k_per_gpr))
+                if(!IncPack<1, 2, 4, 8>(k_per_gpr))
                     break;
-                if(!Inc_pack<1, 2, 4, 8>(k_mult))
+                if(!IncPack<1, 2, 4, 8>(k_mult))
                     break;
-                if(!Inc_pack<1, 2>(n_per_gpr))
+                if(!IncPack<1, 2>(n_per_gpr))
                     break;
-                if(!Inc_pack<1, 2, 4, 8>(n_part_cnt))
+                if(!IncPack<1, 2, 4, 8>(n_part_cnt))
                     break;
                 return false;
             } while(false);
@@ -255,7 +256,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValidValue() const
         && Is_1_2_4_8_16(k_per_gpr)
         && Is_1_2_4_8_16(k_mult)
         && (1 <= read_size && read_size <= 4)
-        && (Is_From_Pack<1,2,4>(n_per_gpr))
+        && (IsFromPack<1,2,4>(n_per_gpr))
         && (n_part_cnt >= 1 && n_part_cnt <= 8)
         && Is_1_2_4(GetHWPerGpr())
         && Is_1_2_4_8_16(chunk_size); // clang-format on
@@ -630,12 +631,12 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     kernel.comp_options = options.str();
 
     kernel.l_wk.clear(); // workgroupsize
-    kernel.l_wk.push_back(64 * pcfg->GetNPartCnt());
+    kernel.l_wk.push_back(solver::wave_size * pcfg->GetNPartCnt());
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
     kernel.g_wk.clear(); // gridsize
-    kernel.g_wk.push_back(64 * pcfg->GetNPartCnt());
+    kernel.g_wk.push_back(solver::wave_size * pcfg->GetNPartCnt());
     kernel.g_wk.push_back(
         divide_round_plus_inf(params.n_outputs, pcfg->GetCPerGpr() * pcfg->GetCMult()));
     kernel.g_wk.push_back(
