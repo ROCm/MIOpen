@@ -1715,7 +1715,8 @@ typedef enum {
 	miopenConvolutionForwardOp = 0, /*!< convolution data forward */
 	miopenBatchNormForwardInferenceOp = 1, /*!< batch normalization forward inference */
 	miopenActivationForwardOp = 2, /*!< activation forward */
-	miopenTensorMapOp = 3, /*!< element-wise tensor op */
+	miopenPoolingForwardInferenceOp = 3, /*!< pooling forward inference */
+	miopenTensorEltwiseOp = 4, /*!< element-wise tensor op */
 } miopenOperator_t;
 
 
@@ -1751,44 +1752,39 @@ miopenCreateFusionDescriptor(miopenFusionDescriptor* fuseDesc);
 
 /*! @brief returns the miopen operator type.
 *
-* @param activDesc Pointer to a FUSION descriptor type
+* @param miopenOp  operator handle (input)
+* @param opType    pointer to a returned type (output)
 * @return          miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
-miopenGetOperatorType(const miopenOperatorDescriptor convOp,
+miopenGetOperatorType(const miopenOperatorDescriptor miopenOp,
 	miopenOperator_t* opType
     );
 
 
-/*! @brief Creates miopen convolution forward operator object
+/*! @brief Creates miopen convolution forward operator.
 *
 * @param convOp    Pointer to an operator type
-* @param xDesc              Tensor descriptor for data input tensor x (input)
 * @param wDesc              Tensor descriptor for weight tensor w (input)
 * @param convDesc           Convolution layer descriptor (input)
-* @param yDesc              Tensor descriptor for output data tensor y (input)
 * @param exhaustiveSearch   A boolean to toggle a full search of all algorithms and configurations
 * (input)
 * @return          miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateConvForwardOp(miopenOperatorDescriptor* convOp,
-	const miopenTensorDescriptor_t xDesc,
 	const miopenTensorDescriptor_t wDesc,
 	const miopenConvolutionDescriptor_t convDesc,
-	const miopenTensorDescriptor_t yDesc,
 	bool exhaustiveSearch
 	);
 
 
-/*! @brief Creates miopen activation forward operator object
+/*! @brief Creates miopen activation forward operator
 *
 * @param activeOp    Pointer to an operator type
 * @param activDesc      Descriptor for activation layer (input)
 * @param alpha          Floating point scaling factor, allocated on the host (input)
-* @param xDesc          Tensor descriptor for data input tensor x (input)
 * @param beta           Floating point shift factor, allocated on the host (input)
-* @param yDesc          Tensor descriptor for output data tensor y (input)
 
 * @return          miopenStatus_t
 */
@@ -1797,13 +1793,11 @@ MIOPEN_EXPORT miopenStatus_t
 miopenCreateActivationForwardOp(miopenOperatorDescriptor* activOp,
     const miopenActivationDescriptor_t activDesc,
     const void* alpha,
-    const miopenTensorDescriptor_t xDesc,
-    const void* beta,
-    const miopenTensorDescriptor_t yDesc
+    const void* beta
     );
 
 
-/*! @brief create a forward inference op for batch normalization
+/*! @brief creates a forward inference operator for batch normalization
 *
 * Batch normalization op.
 * Takes in batch normalization mode bn_mode and input tensor x, output tensor y, bnBias and bnScale
@@ -1816,8 +1810,6 @@ miopenCreateActivationForwardOp(miopenOperatorDescriptor* activOp,
 * @param bn_mode                   Batch normalization mode (input)
 * @param alpha                     Floating point scaling factor, allocated on the host (input)
 * @param beta                      Floating point shift factor, allocated on the host (input)
-* @param xDesc                     Tensor descriptor for data input tensor x (input)
-* @param yDesc                     Tensor descriptor for output data tensor y (input)
 * @param bnScaleBiasMeanVarDesc    Tensor descriptor for BN scaling, shifting, saved variance and
 * mean (input)
 * @param bnScale                   Batch norm scaling, gamma, tensor (input)
@@ -1832,8 +1824,6 @@ miopenCreateBatchNormalizationForwardInferenceOp(miopenOperatorDescriptor* bnOp,
 	miopenBatchNormMode_t bn_mode,
 	void* alpha,
 	void* beta,
-	const miopenTensorDescriptor_t xDesc,
-	const miopenTensorDescriptor_t yDesc,
 	const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc,
 	void* bnScale,
 	void* bnBias,
@@ -1841,15 +1831,16 @@ miopenCreateBatchNormalizationForwardInferenceOp(miopenOperatorDescriptor* bnOp,
 	void* estimatedVariance,
 	double epsilon);
 
-/*! @brief build a fusion descriptor
+
+/*! @brief build a fusion descriptor.
 *
-* In general the function describes a tree of operators.
-* It may mix horizontal and vertical fusions.
-* The order of descriptors define the logical order of opertaions.
+* In general the function describes a unidirection sub-graphs of operators.
+* It may mix sequetial (horizontal) and parallel (vertical) fusions.
+* The order of descriptors defines the logical order of opertaions.
 * The vertical ops has to be excuted sequentially.
 * Each vertical op is a single MIOpen operator.
 * The "horizontal" descriptor defines a parallel execution of the sequentially executed set of ops defined with proper vetical fusion descriptors.
-* The end of "horizontal" decriptor defines a synchronization points of its sequential children.
+* The end of "horizontal" decriptor defines a synchronization points for its sequential children.
 * 
 * @param mode       sequential (vertical) or parallel (horizontal) (input)
 * @param n_ops      number of operators (input)
@@ -1867,16 +1858,16 @@ miopenSetFusionDescriptor(
     );
 
 
-/*! @brief build a exection plan of the kernel fusion for inference
+/*! @brief build a exection plan of the forward inference kernel fusion
 *
-* The function verify the sub-graph can be fused.
+* The function verifies the sub-graph can be fused.
 * It selects and builds a fused control path.
 *
 * @param handle         MIOpen handle (input)
 * @param fusePlanDescr  fused plan descriptor (output)
 * @param fuseDescr      operational sub-graph descriptor (input)
-* @param srcDesc        source tensor descriptor(input)
-* @param dstDesc        dst tensor descriptor (input)
+* @param srcDesc        sub-graph source tensor descriptor(input)
+* @param dstDesc        sub-graph dst tensor descriptor (input)
 * @param workSpaceSize  pointer to workSpaceSize (output)
 *
 * @return           miopenStatus_t
@@ -1892,17 +1883,17 @@ miopenCreateFusionPlanForwardInference(
 	size_t* workSpaceSize
 );
 
-/*! @brief build a execute the plan of the kernel fusion for inference
+/*! @brief execute the plan of the forward inference kernel fusion
 *
-* The function execute a fused sub-graph.
+* The function executes a fused sub-graph.
 *
 * @param handle         MIOpen handle (input)
 * @param fusePlanDescr  fused plan descriptor (input)
 * @param src            source data tensor  (input)
 * @param dst            destination data tensor  (output)
 * @param workSpace      Pointer to workspace required (input)
-* @param workSpaceSize  Size in bytes of the memory determined by the find step (input)
-* @param n_weights       number of weight and other buffers requiered for the plan execution(input)
+* @param workSpaceSize  Size in bytes of the work space memory (input)
+* @param n_weights       number of weights and other buffers requiered for the plan execution(input)
 * @param weights         array of buffer pointers  (input)
 * @return           miopenStatus_t
 */
