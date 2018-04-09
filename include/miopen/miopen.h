@@ -1708,7 +1708,7 @@ typedef enum {
 } miopenFuseMode_t;
 
 
-/*!  @enum miopenFuseMode_t
+/*!  @enum miopenOperator_t
 * Fuse mode selection
 */
 typedef enum {
@@ -1875,32 +1875,48 @@ miopenSetFusionDescriptor(
 * @param handle         MIOpen handle (input)
 * @param fusePlanDescr  fused plan descriptor (output)
 * @param fuseDescr      operational sub-graph descriptor (input)
-* @param workSpaceSize  Pointer to workSpaceSize (output)
+* @param srcDesc        source tensor descriptor(input)
+* @param dstDesc        dst tensor descriptor (input)
+* @param workSpaceSize  pointer to workSpaceSize (output)
 *
 * @return           miopenStatus_t
 */
 
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateFusionPlanForwardInference(
-	miopenHandle_t handle,
+	const miopenHandle_t handle,
 	miopenFusionPlanDescriptor fusePlanDescr,
 	const miopenFusionDescriptor fuseDescr,
+	const miopenTensorDescriptor_t srcDesc,
+	const miopenTensorDescriptor_t dstDesc,
 	size_t* workSpaceSize
 );
 
 /*! @brief build a execute the plan of the kernel fusion for inference
 *
-* The function verify the sub-graph can be fused.
-* It selects and builds a fused control path.
+* The function execute a fused sub-graph.
 *
-* @param fusePlanDescr  fused plan descriptor (ou)
-* @param fuseDescr      operational sub-graph description (input)
-*
+* @param handle         MIOpen handle (input)
+* @param fusePlanDescr  fused plan descriptor (input)
+* @param src            source data tensor  (input)
+* @param dst            destination data tensor  (output)
+* @param workSpace      Pointer to workspace required (input)
+* @param workSpaceSize  Size in bytes of the memory determined by the find step (input)
+* @param n_weights       number of weight and other buffers requiered for the plan execution(input)
+* @param weights         array of buffer pointers  (input)
 * @return           miopenStatus_t
 */
 
 MIOPEN_EXPORT miopenStatus_t
-miopenExecuteFusionPlanForwardInference(const miopenFusionPlanDescriptor fusePlanDescr
+miopenExecuteFusionPlanForwardInference(
+	const miopenHandle_t handle,
+	const miopenFusionPlanDescriptor fusePlanDescr,
+	void* src,
+	void* dst,
+	void* workSpace,
+	size_t workSpaceSize,
+	size_t n_weights,
+	void ** weights
 );
 
 /** @} */
