@@ -1051,6 +1051,12 @@ void GRUBwdDataCPUVerify(std::vector<T>& din,
                                        1)) *
                             dervactivfunc(rsvspace[hid_shift + (bacc + bs) * hy_stride + h], 2);
                     }
+
+                    rsvspace[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h + h +
+                             numlayer * batch_n * hy_stride] =
+                        wkspace[hid_shift + (bacc + bs) * hy_stride + 2 * hy_h + h] *
+                        rsvspace[hid_shift + (bacc + bs) * hy_stride + hy_h + h +
+                                 numlayer * batch_n * hy_stride];
                 }
             }
 
@@ -1137,6 +1143,12 @@ void GRUBwdDataCPUVerify(std::vector<T>& din,
                                      rsvspace[hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h + h],
                                      2));
                         }
+
+                        rsvspace[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h + hy_h + h +
+                                 numlayer * batch_n * hy_stride] =
+                            wkspace[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h] *
+                            rsvspace[hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h +
+                                     numlayer * batch_n * hy_stride];
                     }
                 }
             }
@@ -2263,7 +2275,7 @@ struct verify_backward_data_gru
             dhy.resize(realHiddenSize);
     }
 
-    std::tuple<std::vector<T>, std::vector<T>, /*std::vector<T>,*/ std::vector<T>> cpu()
+    std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> cpu()
     {
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -2332,7 +2344,7 @@ struct verify_backward_data_gru
                   << std::endl;
 #endif
 
-        auto retSet = std::make_tuple(dx, (nodhx ? initHidden : dhx), /*reserveSpace, */ workSpace);
+        auto retSet = std::make_tuple(dx, (nodhx ? initHidden : dhx), reserveSpace, workSpace);
 
 #if(MIO_GRU_TEST_DEBUG > 0)
         std::cout << "Done with GRU backward data CPU" << std::endl;
@@ -2341,7 +2353,7 @@ struct verify_backward_data_gru
         return retSet;
     }
 
-    std::tuple<std::vector<T>, std::vector<T>, /*std::vector<T>,*/ std::vector<T>> gpu()
+    std::tuple<std::vector<T>, std::vector<T>, std::vector<T>, std::vector<T>> gpu()
     {
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -2424,7 +2436,7 @@ struct verify_backward_data_gru
 
         auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
                                       (nodhx ? initHidden : handle.Read<T>(dhx_dev, dhx.size())),
-                                      /* handle.Read<T>(reserveSpace_dev, reserveSpace.size()), */
+                                      handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
                                       handle.Read<T>(workSpace_dev, workSpace.size()));
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -2888,27 +2900,26 @@ struct gru_driver : test_driver
             inputMode, inVecReal,  hx_sz,   nohx,      nodhy,     nodhx});
 
         // RETURNS:  std::make_tuple(dx, dhx, reserveSpace, workSpace);
-        // BUGGY: auto reserveSpaceBwdData = std::get<2>(bwdDataOutputPair.second);
-        auto workSpaceBwdData = std::get<2>(bwdDataOutputPair.second);
-        auto dweights_pair =
-            verify(verify_backward_weights_gru<T>{rnnDesc,
-                                                  input,
-                                                  dyin,
-                                                  hx,
-                                                  reserveSpaceFwdTrain, // reserveSpaceBwdData,
-                                                  workSpaceBwdData,
-                                                  batchSeq,
-                                                  hiddenSize,
-                                                  wei_sz,
-                                                  batch_n,
-                                                  seqLength,
-                                                  numLayers,
-                                                  biasMode,
-                                                  dirMode,
-                                                  inputMode,
-                                                  inVecReal,
-                                                  hx_sz,
-                                                  nohx});
+        auto reserveSpaceBwdData = std::get<2>(bwdDataOutputPair.second);
+        auto workSpaceBwdData    = std::get<3>(bwdDataOutputPair.second);
+        auto dweights_pair       = verify(verify_backward_weights_gru<T>{rnnDesc,
+                                                                   input,
+                                                                   dyin,
+                                                                   hx,
+                                                                   reserveSpaceBwdData,
+                                                                   workSpaceBwdData,
+                                                                   batchSeq,
+                                                                   hiddenSize,
+                                                                   wei_sz,
+                                                                   batch_n,
+                                                                   seqLength,
+                                                                   numLayers,
+                                                                   biasMode,
+                                                                   dirMode,
+                                                                   inputMode,
+                                                                   inVecReal,
+                                                                   hx_sz,
+                                                                   nohx});
 
         verify(verify_forward_infer_gru<T>{rnnDesc,
                                            input,
