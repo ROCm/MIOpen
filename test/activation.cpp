@@ -173,9 +173,9 @@ template <class T>
 struct activation_driver : test_driver
 {
     tensor<T> input;
-    double alpha     = 1.1;
-    double beta      = 1.2;
-    double power     = 1.3;
+    double alpha     = 1.2;
+    double beta      = 2.3;
+    double power     = 3.4;
     std::string mode = "PATHTRU";
     std::unordered_map<std::string, std::function<void()>> lookup;
 
@@ -214,10 +214,10 @@ struct activation_driver : test_driver
                  [=](double x) { return std::abs(x); },
                  [=](double dy, double x, double) { return dy * ((x >= 0) ? 1 : -1); });
         add_mode(miopenActivationPOWER,
-                 [=](double x) { return std::pow(beta + alpha * x, power); },
+                 [=](double x) { return std::pow(alpha + beta * x, power); },
                  [=](double, double x, double y) {
-                     auto divisor = beta + alpha * x;
-                     return (miopen::float_equal(divisor, 0)) ? 0 : beta * alpha * y / divisor;
+                     auto divisor = alpha + beta * x;
+                     return (miopen::float_equal(divisor, 0)) ? 0 : power * beta * y / divisor;
                  });
         add_mode(miopenActivationLEAKYRELU,
                  [=](double x) { return (x > 0) ? x : x * beta; },

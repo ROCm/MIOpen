@@ -146,12 +146,12 @@ ActivationFunction_Linear(uint n, _FLOAT* res, const _FLOAT* data, _FLOAT alpha,
 }
 
 __attribute__((always_inline)) void ActivationFunction_Power(
-    uint n, _FLOAT* res, const _FLOAT* data, _FLOAT power, _FLOAT alpha, _FLOAT beta)
+    uint n, _FLOAT* res, const _FLOAT* data, _FLOAT power, _FLOAT scale, _FLOAT shift)
 {
     for(uint i = 0; i < n; i++)
     {
         // (shift + scale * x ) ^power
-        _FLOAT arg     = alpha + data[i] * beta;
+        _FLOAT arg     = shift + data[i] * scale;
         _FLOAT run_arg = (arg == (_FLOAT)0) ? (_FLOAT)1 : arg;
         res[i]         = (arg == (_FLOAT)0) ? (_FLOAT)0 : pow(run_arg, power);
     }
@@ -386,10 +386,10 @@ __attribute__((always_inline)) void ActivationFunction_ELU_Diff(uint n,
 }
 
 __attribute__((always_inline)) void ActivationFunction_Diff(uint n, 
-                                                            _FLOAT* bot_diff_data, 
-                                                            const _FLOAT* top_diff_data, 
-                                                            const _FLOAT* bot_data,
-                                                            const _FLOAT* top_data,
+                                                            _FLOAT* bot_diff_dat, 
+                                                            const _FLOAT* top_diff_dat, 
+                                                            const _FLOAT* bot_dat,
+                                                            const _FLOAT* top_dat,
                                                             const _FLOAT diff_scale,
                                                             const _FLOAT power, 
                                                             const _FLOAT scale, 
@@ -564,10 +564,10 @@ __kernel void MIOpenActiveBwdLite(__global _FLOAT* bot_diff,
     *((MLO_READ_TYPE*)top_dat) = *((const __global MLO_READ_TYPE*)(top + top_offset + index));
 
     ActivationFunction_Diff(MLO_READ_UNIT, 
-                            bot_diff_data, 
-                            top_diff_data, 
-                            bot_data,
-                            top_data,
+                            bot_diff_dat, 
+                            top_diff_dat, 
+                            bot_dat,
+                            top_dat,
                             diff_scale,
                             power, 
                             scale, 
@@ -621,10 +621,10 @@ __kernel void MIOpenActiveBwd2DLite(__global _FLOAT* bot_diff,
     *((MLO_READ_TYPE*)top_dat) = *((const __global MLO_READ_TYPE*)(top + top_offset + top_index));
 
     ActivationFunction_Diff(MLO_READ_UNIT, 
-                            bot_diff_data, 
-                            top_diff_data, 
-                            bot_data,
-                            top_data,
+                            bot_diff_dat, 
+                            top_diff_dat, 
+                            bot_dat,
+                            top_dat,
                             diff_scale,
                             power, 
                             scale, 
@@ -965,10 +965,10 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
     }
 
     ActivationFunction_Diff(MLO_READ_UNIT, 
-                            bot_diff_data, 
-                            top_diff_data, 
-                            bot_data,
-                            top_data,
+                            bot_diff_dat, 
+                            top_diff_dat, 
+                            bot_dat,
+                            top_dat,
                             diff_scale,
                             power, 
                             scale, 
