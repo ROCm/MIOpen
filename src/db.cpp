@@ -126,7 +126,7 @@ bool Db::Remove(const std::string& key, const std::string& id)
 
 boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPositions* pos)
 {
-    if(pos)
+    if(pos != nullptr)
     {
         pos->begin = -1;
         pos->end   = -1;
@@ -192,7 +192,7 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
             MIOPEN_LOG_E("Contents: " << contents);
         }
         // A record with matching key have been found.
-        if(pos)
+        if(pos != nullptr)
         {
             pos->begin = line_begin;
             pos->end   = next_line_begin;

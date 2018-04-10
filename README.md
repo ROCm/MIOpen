@@ -18,7 +18,17 @@ AMD's library for high peformance machine learning primitives. MIOpen supports t
 * [Boost](http://www.boost.org/) at least version 1.58
   * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/doc/src/cache.md)
 
-Instructions to install the above dependencies are present in this [section](#installing-the-dependencies).
+## Installing the dependencies
+
+The dependencies can be installed with the `install_deps.cmake`, script: `cmake -P install_deps.cmake`
+
+
+This will install by default to `/usr/local` but it can be installed in another location with `--prefix` argument:
+```
+cmake -P install_deps.cmake --prefix /some/local/dir
+```
+
+Instructions to manually install all the dependencies on Ubuntu v16 are present in this [section](#installing-the-dependencies-manually).
 
 ## Installing MIOpen with pre-built packages
 
@@ -167,19 +177,7 @@ Also, githooks can be installed to format the code per-commit:
 ./.githooks/install
 ```
 
-## Installing the dependencies
-
-The dependencies can be installed with the `install_deps.cmake`, script:
-
-```
-cmake -P install_deps.cmake
-```
-
-This will install by default to `/usr/local` but it can be installed in another location with `--prefix` argument:
-
-```
-cmake -P install_deps.cmake --prefix /some/local/dir
-```
+## Installing the dependencies manually
 
 If Ubuntu v16 is used then the `OpenSSL` and `Boost` packages can also be installed by:
 ```
@@ -188,3 +186,15 @@ sudo apt-get install libboost-dev
 sudo apt-get install libboost-system-dev
 sudo apt-get install libboost-filesystem-dev
 ```
+
+`half` header needs to be installed from [here](http://half.sourceforge.net/). 
+
+## Using docker
+
+The easiest way is to use docker. You can build the top-level docker file:
+
+    docker build -t miopen .
+
+Then to enter the developement environment use `docker run`:
+
+    docker run --device='/dev/kfd' --device='/dev/dri' -v=`pwd`:/data -w /data --group-add video -it miopen

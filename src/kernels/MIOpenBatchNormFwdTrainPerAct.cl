@@ -102,7 +102,7 @@
 
 //==================== PER ACTIVATION =======================
 
-__kernel void BatchNormFwdTrainPerActivation(
+__kernel void MIOpenBatchNormFwdTrainPerActivation(
     const __global _FLOAT* __restrict in,    /* x input */
     unsigned int in_nstride,                 /* C*H*W */
     unsigned int in_cstride,                 /* H*W */
