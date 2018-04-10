@@ -50,8 +50,8 @@
 #define MLO_NEURON_SOFTRELU       4                          // log(1 + e^x)   // bonomial normal log likelihood
 #define MLO_NEURON_ABS            5                          // abs(x)
 #define MLO_NEURON_POWER          6                          // (a + b * x ) ^power
-#define MLO_NEURON_LEAKY_RELU     7                          // a*x | x<=0; x | x>0
-#define MLO_NEURON_CLIPPED_RELU   8                          // 0 | x<=0; x | 0<x<=a; a | x>a
+#define MLO_NEURON_CLIPPED_RELU   7                          // min(a, max(0, x))
+#define MLO_NEURON_LEAKY_RELU     8                          // a*x | x<=0; x | x>0
 #define MLO_NEURON_ELU            9                          // a*(exp(x)-1) | x<=0; x | x>0
 #define MLO_NEURON_TOTAL         10
 #endif
