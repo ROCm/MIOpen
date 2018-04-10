@@ -383,7 +383,8 @@ struct mlo_construct_direct2D
     * arbitrary combination of kerenl sizes, strides
     */
 
-    miopen::solver::ConvSolution FindSolution();
+    miopen::solver::ConvSolution FindSolution(); /// \todo remove this
+    void FindAllSolutions(std::vector<miopen::solver::ConvSolution>& ss);
 
     miopen::Db GetDb() const;
 
