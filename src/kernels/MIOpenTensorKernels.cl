@@ -741,7 +741,11 @@ __kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
     int gid1 = get_global_id(1);
 
     int a_index = gid1 * a_nstride + gid0 * RD_BLCK;
+#ifdef BIAS
+    int b_index = gid0 * RD_BLCK;
+#else
     int b_index = gid1 * b_nstride + gid0 * RD_BLCK;
+#endif
     int c_index = gid1 * c_nstride + gid0 * RD_BLCK;
 
     MIOPEN_TYPE a_dat[RD_BLCK];
