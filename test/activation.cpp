@@ -193,7 +193,9 @@ struct activation_driver : test_driver
 
     activation_driver()
     {
-        add_mode(miopenActivationPATHTRU, [=](T x) { return x; }, [=](T, T x, T) { return x; });
+        add_mode(miopenActivationPATHTRU, 
+                [=](double x) { return x; },
+                [=](double dy, double , double) { return dy; });
         add_mode(miopenActivationLOGISTIC,
                 [=](double x) { return 1 / (1 + std::exp(-x)); },
                 [=](double dy, double, double y) { return dy * y * (1 - y); });
@@ -203,7 +205,7 @@ struct activation_driver : test_driver
                 [=](double dy, double, double y) { return dy * alpha * (beta - y * y / beta); });
         add_mode(miopenActivationRELU,
                 [=](double x) { return (x > 0) ? x : x * beta; },
-                [=](double dy, double, double) { return std::max(double(0), dy); });
+                [=](double dy, double x, double) { return (x > 0) ? dy : 0; });
         add_mode(miopenActivationSOFTRELU,
                 [=](double x) { return std::log1p(std::exp(x)); },
                 [=](double dy, double x, double) {
