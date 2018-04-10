@@ -315,13 +315,13 @@ int ActivationDriver<Tgpu, Tref>::VerifyForward()
     miopenActivationMode_t v_mode;
     double v_Alpha;
     double v_Beta;
-    double v_Power;
+    double v_Gamma;
 
-    miopenGetActivationDescriptor(activDesc, &v_mode, &v_Alpha, &v_Beta, &v_Power);
+    miopenGetActivationDescriptor(activDesc, &v_mode, &v_Alpha, &v_Beta, &v_Gamma);
 
     int match = 1;
     match     = mloNeuronForwardRunHostAndVerify<Tgpu, Tref>(v_mode,
-                                                         static_cast<Tref>(v_Power),
+                                                         static_cast<Tref>(v_Gamma),
                                                          static_cast<Tref>(v_Alpha),
                                                          static_cast<Tref>(v_Beta),
                                                          in.size(),
@@ -349,13 +349,13 @@ int ActivationDriver<Tgpu, Tref>::VerifyBackward()
     miopenActivationMode_t v_mode;
     double v_Alpha;
     double v_Beta;
-    double v_Power;
+    double v_Gamma;
 
-    miopenGetActivationDescriptor(activDesc, &v_mode, &v_Alpha, &v_Beta, &v_Power);
+    miopenGetActivationDescriptor(activDesc, &v_mode, &v_Alpha, &v_Beta, &v_Gamma);
 
     int match = 1;
     match     = mloNeuronBackwardRunHostAndVerify<Tgpu, Tref>(v_mode,
-                                                          static_cast<Tref>(v_Power),
+                                                          static_cast<Tref>(v_Gamma),
                                                           static_cast<Tref>(v_Alpha),
                                                           static_cast<Tref>(v_Beta),
                                                           dinhost.size(),
