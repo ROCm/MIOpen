@@ -1716,7 +1716,8 @@ typedef enum {
 	miopenBatchNormForwardInferenceOp = 1, /*!< batch normalization forward inference */
 	miopenActivationForwardOp = 2, /*!< activation forward */
 	miopenPoolingForwardInferenceOp = 3, /*!< pooling forward inference */
-	miopenTensorEltwiseOp = 4, /*!< element-wise tensor op */
+	miopenBiasForwardOp = 4, /*!< bias forward */
+	miopenTensorEltwiseOp = 5, /*!< element-wise tensor op */
 } miopenOperator_t;
 
 
@@ -1735,20 +1736,37 @@ MIOPEN_DECLARE_OBJECT(miopenOperatorDescriptor);
 
 /*! @brief Creates the FUSION plan descriptor object
 *
-* @param activDesc Pointer to an FUSION plan descriptor type
+* @param fuaePlanDesc Pointer to an FUSION plan descriptor type
 * @return          miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
-miopenCreateFusionPlanDescriptor(miopenFusionPlanDescriptor* fuseDesc);
+miopenCreateFusionPlanDescriptor(miopenFusionPlanDescriptor* fusePlanDesc);
+
+/*! @brief Destroy the FUSION plan descriptor object
+*
+* @param fusePlanDesc an FUSION plan descriptor type
+* @return          miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor fusePlanDesc);
 
 
 /*! @brief Creates the FUSION descriptor object
 *
-* @param activDesc Pointer to a FUSION descriptor type
+* @param fuseDesc Pointer to a FUSION descriptor type
 * @return          miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateFusionDescriptor(miopenFusionDescriptor* fuseDesc);
+
+
+/*! @brief Destroy the FUSION descriptor object
+*
+* @param fuseDesc to a FUSION descriptor type
+* @return          miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenDestroyFusionDescriptor(miopenFusionDescriptor fuseDesc);
 
 /*! @brief returns the miopen operator type.
 *
@@ -1765,8 +1783,9 @@ miopenGetOperatorType(const miopenOperatorDescriptor miopenOp,
 /*! @brief Creates miopen convolution forward operator.
 *
 * @param convOp    Pointer to an operator type
-* @param wDesc              Tensor descriptor for weight tensor w (input)
+* @param wDesc              Tensor descriptor for weight tensor(input)
 * @param immutableWeights   weights are no going to changed while running inference
+* @param bDesc              Tensor descriptor for bias tensor(input)
 * @param convDesc           Convolution layer descriptor (input)
 * @param exhaustiveSearch   A boolean to toggle a full search of all algorithms and configurations
 * (input)
@@ -1776,6 +1795,7 @@ MIOPEN_EXPORT miopenStatus_t
 miopenCreateConvForwardOp(miopenOperatorDescriptor* convOp,
 	const miopenTensorDescriptor_t wDesc,
 	bool immutableWeights,
+	const miopenTensorDescriptor_t bDesc,
 	const miopenConvolutionDescriptor_t convDesc,
 	bool exhaustiveSearch
 	);
