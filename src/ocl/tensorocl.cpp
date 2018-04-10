@@ -134,8 +134,8 @@ void OpTensor3d(Handle& handle,
         auto miopen_alpha1 = as_float(*(static_cast<const float*>(alpha1)));
         auto miopen_beta   = as_float(*(static_cast<const float*>(beta)));
 
-        if(clens[0] == 1 && blens[0] == 1 && alens[0] == 1 && blens[1] == clens[1] &&
-           blens[2] == clens[2])
+        if(clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&
+           (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2])
         {
 
             network_config +=
@@ -227,8 +227,8 @@ void OpTensor3d(Handle& handle,
 
         const std::vector<size_t> vld{local_threads, 1, 1};
 
-        if(clens[0] == 1 && blens[0] == 1 && alens[0] == 1 && blens[1] == clens[1] &&
-           blens[2] == clens[2])
+        if(clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&
+           (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2])
         {
             parms += " -DUSE_2D_TENSOR_LITE";
 
@@ -245,6 +245,11 @@ void OpTensor3d(Handle& handle,
             if(!float_equal(miopen_beta, 0.0))
             {
                 parms += " -DBETA";
+            }
+
+            if(blens[1] == 1)
+            {
+                parms += " -DBIAS";
             }
 
             const std::vector<size_t> vgd1{MAP_RD, clens[1], 1};
