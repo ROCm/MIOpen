@@ -52,7 +52,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 
     double activ_alpha = GetAlpha();
     double activ_beta  = GetBeta();
-    double activ_power = GetPower();
+    double activ_gamma = GetGamma();
 
     std::string network_config{};
 
@@ -103,7 +103,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
             std::string compiler_options;
             auto f_activ_alpha = as_float(activ_alpha);
             auto f_activ_beta  = as_float(activ_beta);
-            auto f_activ_power = as_float(activ_power);
+            auto f_activ_power = as_float(activ_gamma);
 
             size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3)
                                                                    ? x_lens[1]
@@ -323,7 +323,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
             construct_params.setBotDescFromMLDesc(xDesc);
 
             construct_params.setNeuronDescr(
-                static_cast<int>(mode), activ_power, activ_beta, activ_alpha);
+                static_cast<int>(mode), activ_gamma, activ_beta, activ_alpha);
 
             mloConstruct(construct_params);
 
@@ -336,11 +336,11 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
             const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
 
             int imode = mode;
-            construct_params.getNeuronDescr(imode, activ_power, activ_beta, activ_alpha);
+            construct_params.getNeuronDescr(imode, activ_gamma, activ_beta, activ_alpha);
 
             auto f_activ_alpha = as_float(activ_alpha);
             auto f_activ_beta  = as_float(activ_beta);
-            auto f_activ_power = as_float(activ_power);
+            auto f_activ_power = as_float(activ_gamma);
 
             compiler_options +=
                 " -DMLO_N_IN=" + std::to_string(nIn) + " -DMLO_C_IN=" + std::to_string(cIn) +
@@ -412,7 +412,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 
     double activ_alpha = GetAlpha();
     double activ_beta  = GetBeta();
-    double activ_power = GetPower();
+    double activ_gamma = GetGamma();
 
     std::string network_config = {};
 
@@ -499,8 +499,8 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 
             auto f_activ_alpha = as_float(activ_alpha);
             auto f_activ_beta  = as_float(activ_beta);
-            auto f_activ_power = as_float(activ_power);
-            auto f_diff_scale  = as_float(activ_beta * activ_power);
+            auto f_activ_power = as_float(activ_gamma);
+            auto f_diff_scale  = as_float(activ_beta * activ_gamma);
 
             // second dim is height
             size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3)
@@ -849,7 +849,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 
             int activ_mode = this->GetMode();
 
-            construct_params.setNeuronDescr(activ_mode, activ_power, activ_beta, activ_alpha);
+            construct_params.setNeuronDescr(activ_mode, activ_gamma, activ_beta, activ_alpha);
 
             mloConstruct(construct_params);
 
@@ -863,7 +863,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 
             auto f_activ_alpha = as_float(this->GetAlpha());
             auto f_activ_beta  = as_float(this->GetBeta());
-            auto f_activ_power = as_float(this->GetPower());
+            auto f_activ_power = as_float(this->GetGamma());
             auto f_diff_scale  = f_activ_beta * f_activ_power;
 
             compiler_options +=
