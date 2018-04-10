@@ -123,7 +123,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         }
         else if(in_n_vert_reads < 2)
         {
-            std::cout << "CONFIG ERROR: not enough local memory for the configuration\n";
+            MIOPEN_LOG_E("Not enough local memory to run direct algorithm");
             return ConvSolution(miopenStatusUnknownError);
         }
     }

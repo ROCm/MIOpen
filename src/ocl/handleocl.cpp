@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/config.h>
 #include <miopen/device_name.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
@@ -33,6 +34,9 @@
 #include <miopen/load_file.hpp>
 #include <boost/filesystem.hpp>
 #include <miopen/handle_lock.hpp>
+#if MIOPEN_USE_MIOPENGEMM
+#include <miopen/gemm_geometry.hpp>
+#endif
 #include <string>
 
 #ifndef _WIN32
@@ -290,7 +294,7 @@ struct HandleImpl
                 }
 
                 platform = platforms[i];
-                if(!strcmp(pbuf, "Advanced Micro Devices, Inc."))
+                if(strcmp(pbuf, "Advanced Micro Devices, Inc.") == 0)
                 {
                     break;
                 }

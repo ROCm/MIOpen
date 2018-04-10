@@ -70,7 +70,7 @@ struct handle_mutex
 
     handle_mutex(const char* name) : flock(name) {}
 
-    bool try_lock() { return std::try_lock(m, flock); }
+    bool try_lock() { return std::try_lock(m, flock) != 0; }
 
     void lock() { std::lock(m, flock); }
 
