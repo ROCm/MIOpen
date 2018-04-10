@@ -1851,15 +1851,17 @@ MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingForwardInferenceOp(
 /*! @brief build a fusion descriptor.
 *
 * In general the function describes a unidirection sub-graphs of operators.
-* It may mix sequetial (horizontal) and parallel (vertical) fusions.
-* The order of descriptors defines the logical order of opertaions.
+* It may mix sequential (horizontal) and parallel (vertical) fusions.
+* The order of descriptors defines the logical order of operations.
 * The vertical ops has to be excuted sequentially.
 * Each vertical op is a single MIOpen operator.
-* The "horizontal" descriptor defines a parallel execution of the sequentially executed set of ops defined with proper vetical fusion descriptors.
+* The "horizontal" descriptor defines a parallel execution of the sequentially executed set of ops defined with proper vertical fusion descriptors.
 * The end of "horizontal" decriptor defines a synchronization points for its sequential children.
+* The horizontal descriptor is ana array of vertical Fusion descriptors.
 * 
 * @param mode       sequential (vertical) or parallel (horizontal) (input)
-* @param n_ops      number of operators (input)
+* @param n          number of operators (input)
+* @param vertFuse  set of vertical fusion operators
 * @param ops        set of operators (input)
 *
 * @return           miopenStatus_t
@@ -1869,7 +1871,8 @@ MIOPEN_EXPORT miopenStatus_t
 miopenSetFusionDescriptor(
 	miopenFusionDescriptor fuseDescr,
 	const miopenFuseMode_t mode,
-	const size_t n_ops,
+	const size_t n,
+	const miopenFusionDescriptor *vertFuse,
     const miopenOperatorDescriptor * ops
     );
 
