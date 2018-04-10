@@ -53,8 +53,8 @@ std::string to_name(miopenActivationMode_t m)
         STRING_CASE(miopenActivationSOFTRELU)
         STRING_CASE(miopenActivationABS)
         STRING_CASE(miopenActivationPOWER)
-        STRING_CASE(miopenActivationLEAKYRELU)
         STRING_CASE(miopenActivationCLIPPEDRELU)
+        STRING_CASE(miopenActivationLEAKYRELU)
         STRING_CASE(miopenActivationELU)
     }
     return "";
@@ -199,7 +199,7 @@ struct activation_driver : test_driver
                  [=](double dy, double, double y) { return dy * y * (1 - y); });
         add_mode(miopenActivationTANH,
                  [=](double x) { return beta * std::tanh(alpha * x); },
-                 [=](double dy, double, double y) { return dy * (1 - y * y); });
+                 [=](double dy, double, double y) { return dy * alpha * (beta - y * y / beta); });
         add_mode(miopenActivationRELU,
                  [=](double x) { return (x > 0) ? x : x * beta; },
                  [=](double dy, double, double) { return std::max(double(0), dy); });
@@ -219,26 +219,15 @@ struct activation_driver : test_driver
                      auto divisor = alpha + beta * x;
                      return (miopen::float_equal(divisor, 0)) ? 0 : power * beta * y / divisor;
                  });
-        add_mode(miopenActivationLEAKYRELU,
-                 [=](double x) { return (x > 0) ? x : x * beta; },
-                 [=](double dy, double, double) { return std::max(double(0), dy); });
         add_mode(miopenActivationCLIPPEDRELU,
-                 [=](double x)
-                 { 
-                    double v;
-                    if(x < 0)
-                        v = 0;
-                    else if( x < beta )
-                        v = x;
-                    else
-                        v = beta;
-
-                    return v;
-                 },
-                 [=](double dy, double x, double) { return (x > 0 && x < beta) ? dy : 0; });
+                 [=](double x) { return std::min(alpha, std::max((double)0, x)); },
+                 [=](double dy, double x, double) { return (x > 0 && x < alpha) ? dy : 0; });
+        add_mode(miopenActivationLEAKYRELU,
+                 [=](double x) { return (x > 0) ? x : x * alpha; },
+                 [=](double dy, double, double) { return std::max(double(0), dy); });
         add_mode(miopenActivationELU,
-                 [=](double x) { return (x > 0) ? x : beta * (std::exp(x) - 1); },
-                 [=](double dy, double x, double y) { return dy * ((x > 0)? 1 : y + beta); });
+                 [=](double x) { return (x > 0) ? x : alpha * (std::exp(x) - 1); },
+                 [=](double dy, double x, double y) { return dy * ((x > 0)? 1 : y + alpha); });
         add(input, "input", get_input_tensor());
         add(alpha, "alpha");
         add(beta, "beta");
