@@ -60,8 +60,11 @@
 //#define MLO_NEURON_LINEAR      12                          // a + b * x
 #define MLO_NEURON_TOTAL         10
 
-__attribute__((always_inline)) void
-ActivationFunction_PassThru(uint n, _FLOAT* res, const _FLOAT* data)
+static __constant _FLOAT kBNLL_THRESHOLD = (_FLOAT)50.;
+
+
+__attribute__((always_inline))
+void ActivationFunction_PassThru(const uint n, _FLOAT* res, const _FLOAT* data)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -69,8 +72,10 @@ ActivationFunction_PassThru(uint n, _FLOAT* res, const _FLOAT* data)
     }
 }
 
-__attribute__((always_inline)) void
-ActivationFunction_ReLU(uint n, _FLOAT* res, const _FLOAT* data)
+__attribute__((always_inline))
+void ActivationFunction_ReLU(const uint n, 
+                             _FLOAT* res, 
+                             const _FLOAT* data)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -78,8 +83,8 @@ ActivationFunction_ReLU(uint n, _FLOAT* res, const _FLOAT* data)
     }
 }
 
-__attribute__((always_inline)) void
-ActivationFunction_Sigmoid(uint n, _FLOAT* res, const _FLOAT* data)
+__attribute__((always_inline))
+void ActivationFunction_Sigmoid(const uint n, _FLOAT* res, const _FLOAT* data)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -88,8 +93,12 @@ ActivationFunction_Sigmoid(uint n, _FLOAT* res, const _FLOAT* data)
     }
 }
 
-__attribute__((always_inline)) void
-ActivationFunction_TanH(int n, _FLOAT* res, const _FLOAT* data, _FLOAT beta, _FLOAT alpha)
+__attribute__((always_inline))
+void ActivationFunction_TanH(const uint n,
+                             _FLOAT* res,
+                             const _FLOAT* data,
+                             const _FLOAT beta,
+                             const _FLOAT alpha)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -97,7 +106,9 @@ ActivationFunction_TanH(int n, _FLOAT* res, const _FLOAT* data, _FLOAT beta, _FL
         res[i] = beta * tanh(alpha * data[i]);
     }
 }
-__attribute__((always_inline)) void ActivationFunction_Abs(uint n, _FLOAT* res, const _FLOAT* data)
+
+__attribute__((always_inline))
+void ActivationFunction_Abs(const uint n, _FLOAT* res, const _FLOAT* data)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -105,8 +116,10 @@ __attribute__((always_inline)) void ActivationFunction_Abs(uint n, _FLOAT* res, 
     }
 }
 
-__attribute__((always_inline)) void
-ActivationFunction_Square(uint n, _FLOAT* res, const _FLOAT* data)
+__attribute__((always_inline))
+void ActivationFunction_Square(const uint n, 
+                               _FLOAT* res, 
+                               const _FLOAT* data)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -115,7 +128,8 @@ ActivationFunction_Square(uint n, _FLOAT* res, const _FLOAT* data)
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_Sqrt(uint n, _FLOAT* res, const _FLOAT* data)
+__attribute__((always_inline))
+void ActivationFunction_Sqrt(const uint n, _FLOAT* res, const _FLOAT* data)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -124,8 +138,8 @@ __attribute__((always_inline)) void ActivationFunction_Sqrt(uint n, _FLOAT* res,
     }
 }
 
-__attribute__((always_inline)) void
-ActivationFunction_Linear(uint n, _FLOAT* res, const _FLOAT* data, _FLOAT scale, _FLOAT shift)
+__attribute__((always_inline))
+void ActivationFunction_Linear(const uint n, _FLOAT* res, const _FLOAT* data, _FLOAT scale, _FLOAT shift)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -133,8 +147,13 @@ ActivationFunction_Linear(uint n, _FLOAT* res, const _FLOAT* data, _FLOAT scale,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_Power(
-    uint n, _FLOAT* res, const _FLOAT* data, _FLOAT power, _FLOAT scale, _FLOAT shift)
+__attribute__((always_inline))
+void ActivationFunction_Power(const uint n, 
+                              _FLOAT* res, 
+                              const _FLOAT* data, 
+                              const _FLOAT power, 
+                              const _FLOAT scale, 
+                              const _FLOAT shift)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -145,8 +164,8 @@ __attribute__((always_inline)) void ActivationFunction_Power(
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_BNLL(uint n, _FLOAT* res, const _FLOAT* data)
-
+__attribute__((always_inline))
+void ActivationFunction_BNLL(const uint n, _FLOAT* res, const _FLOAT* data)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -156,8 +175,8 @@ __attribute__((always_inline)) void ActivationFunction_BNLL(uint n, _FLOAT* res,
     }
 }
 
-__attribute__((always_inline)) void
-ActivationFunction_Leaky_ReLU(uint n, _FLOAT* res, const _FLOAT* data, const _FLOAT leak_slope)
+__attribute__((always_inline))
+void ActivationFunction_Leaky_ReLU(const uint n, _FLOAT* res, const _FLOAT* data, const _FLOAT leak_slope)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -165,8 +184,8 @@ ActivationFunction_Leaky_ReLU(uint n, _FLOAT* res, const _FLOAT* data, const _FL
     }
 }
 
-__attribute__((always_inline)) void
-ActivationFunction_Clipped_ReLU(uint n, _FLOAT* res, const _FLOAT* data, const _FLOAT ceiling)
+__attribute__((always_inline))
+void ActivationFunction_Clipped_ReLU(const uint n, _FLOAT* res, const _FLOAT* data, const _FLOAT ceiling)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -174,8 +193,8 @@ ActivationFunction_Clipped_ReLU(uint n, _FLOAT* res, const _FLOAT* data, const _
     }
 }
 
-__attribute__((always_inline)) void
-ActivationFunction_ELU(uint n, _FLOAT* res, const _FLOAT* data, const _FLOAT alpha)
+__attribute__((always_inline))
+void ActivationFunction_ELU(const uint n, _FLOAT* res, const _FLOAT* data, const _FLOAT alpha)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -184,12 +203,8 @@ ActivationFunction_ELU(uint n, _FLOAT* res, const _FLOAT* data, const _FLOAT alp
 }
 
 __attribute__((always_inline))
-void ActivationFunction(
-    uint n, _FLOAT* res, const _FLOAT* data, const _FLOAT gamma, const _FLOAT beta, const _FLOAT alpha)
+void ActivationFunction(const uint n, _FLOAT* res, const _FLOAT* data, const _FLOAT gamma, const _FLOAT beta, const _FLOAT alpha)
 {
-    (void)gamma;
-    (void)beta;
-    (void)alpha;
 #if MLO_NRN_OP_ID == MLO_NEURON_PASTHRU
     {
         ActivationFunction_PassThru(n, res, data);
@@ -250,12 +265,17 @@ void ActivationFunction(
 /*                                  DIFF                                      */
 /******************************************************************************/
 
-static __constant _FLOAT kBNLL_THRESHOLD = (_FLOAT)50.;
+__attribute__((always_inline))
+void ActivationFunction_PassThru_Diff(const uint n, _FLOAT* bot_diff, const _FLOAT* top_diff)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        bot_diff[i] = top_diff[i];
+    }
+}
 
-__attribute__((always_inline)) void ActivationFunction_ReLU_Diff(uint n,
-                                                                 _FLOAT* bot_diff,
-                                                                 const _FLOAT* top_diff,
-                                                                 const _FLOAT* bot_data)
+__attribute__((always_inline))
+void ActivationFunction_ReLU_Diff(const uint n, _FLOAT* bot_diff, const _FLOAT* top_diff, const _FLOAT* bot_data)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -263,12 +283,13 @@ __attribute__((always_inline)) void ActivationFunction_ReLU_Diff(uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_TanH_Diff(uint n,
-                                                                 _FLOAT* bot_diff,
-                                                                 const _FLOAT* top_diff,
-                                                                 const _FLOAT* top_data,
-                                                                 const _FLOAT beta,
-                                                                 const _FLOAT alpha)
+__attribute__((always_inline))
+void ActivationFunction_TanH_Diff(const uint n,
+                                  _FLOAT* bot_diff,
+                                  const _FLOAT* top_diff,
+                                  const _FLOAT* top_data,
+                                  const _FLOAT beta,
+                                  const _FLOAT alpha)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -285,10 +306,11 @@ __attribute__((always_inline)) void ActivationFunction_TanH_Diff(uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_Sigmoid_Diff(uint n,
-                                                                    _FLOAT* bot_diff,
-                                                                    const _FLOAT* top_diff,
-                                                                    const _FLOAT* top_data)
+__attribute__((always_inline))
+void ActivationFunction_Sigmoid_Diff(const uint n,
+                                     _FLOAT* bot_diff,
+                                     const _FLOAT* top_diff,
+                                     const _FLOAT* top_data)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -298,10 +320,11 @@ __attribute__((always_inline)) void ActivationFunction_Sigmoid_Diff(uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_Abs_Diff(uint n,
-                                                                _FLOAT* bot_diff,
-                                                                const _FLOAT* top_diff,
-                                                                const _FLOAT* bot_data)
+__attribute__((always_inline))
+void ActivationFunction_Abs_Diff(const uint n,
+                                 _FLOAT* bot_diff,
+                                 const _FLOAT* top_diff,
+                                 const _FLOAT* bot_data)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -311,17 +334,17 @@ __attribute__((always_inline)) void ActivationFunction_Abs_Diff(uint n,
 
 // Compute dy/dx = scale * power * (shift + scale * x)^(power - 1)
 //               = diff_scale * y / (shift + scale * x)
-__attribute__((always_inline)) void ActivationFunction_Power_Diff(uint n,
-                                                                  _FLOAT* bot_diff,
-                                                                  UNUSED const _FLOAT* top_diff,
-                                                                  const _FLOAT* top_data,
-                                                                  const _FLOAT* bot_data,
-                                                                  _FLOAT diff_scale,
-                                                                  UNUSED _FLOAT power,
-                                                                  _FLOAT scale,
-                                                                  _FLOAT shift)
+__attribute__((always_inline))
+void ActivationFunction_Power_Diff(const uint n,
+                                   _FLOAT* bot_diff,
+                                   UNUSED const _FLOAT* top_diff,
+                                   const _FLOAT* top_data,
+                                   const _FLOAT* bot_data,
+                                   _FLOAT diff_scale,
+                                   UNUSED _FLOAT power,
+                                   const _FLOAT scale,
+                                   const _FLOAT shift)
 {
-
     for(uint i = 0; i < n; ++i)
     {
         _FLOAT arg = shift + bot_data[i] * scale;
@@ -335,10 +358,11 @@ __attribute__((always_inline)) void ActivationFunction_Power_Diff(uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_BNLL_Diff(uint n,
-                                                                 _FLOAT* bot_diff,
-                                                                 const _FLOAT* top_diff,
-                                                                 const _FLOAT* bot_data)
+__attribute__((always_inline))
+void ActivationFunction_BNLL_Diff(const uint n,
+                                  _FLOAT* bot_diff,
+                                  const _FLOAT* top_diff,
+                                  const _FLOAT* bot_data)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -349,11 +373,12 @@ __attribute__((always_inline)) void ActivationFunction_BNLL_Diff(uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_Leaky_ReLU_Diff(uint n,
-                                                                       _FLOAT* bot_diff,
-                                                                       const _FLOAT* top_diff,
-                                                                       const _FLOAT* bot_data,
-                                                                       const _FLOAT leak_slope)
+__attribute__((always_inline))
+void ActivationFunction_Leaky_ReLU_Diff(const uint n,
+                                        _FLOAT* bot_diff,
+                                        const _FLOAT* top_diff,
+                                        const _FLOAT* bot_data,
+                                        const _FLOAT leak_slope)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -361,11 +386,12 @@ __attribute__((always_inline)) void ActivationFunction_Leaky_ReLU_Diff(uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_Clipped_ReLU_Diff(uint n,
-                                                                         _FLOAT* bot_diff,
-                                                                         const _FLOAT* top_diff,
-                                                                         const _FLOAT* bot_data,
-                                                                         const _FLOAT ceiling)
+__attribute__((always_inline))
+void ActivationFunction_Clipped_ReLU_Diff(const uint n,
+                                          _FLOAT* bot_diff,
+                                          const _FLOAT* top_diff,
+                                          const _FLOAT* bot_data,
+                                          const _FLOAT ceiling)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -373,31 +399,36 @@ __attribute__((always_inline)) void ActivationFunction_Clipped_ReLU_Diff(uint n,
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_ELU_Diff(uint n,
-                                                                _FLOAT* bot_diff,
-                                                                const _FLOAT* top_diff,
-                                                                const _FLOAT* bot_data,
-                                                                const _FLOAT* top_data,
-                                                                const _FLOAT alpha)
+__attribute__((always_inline))
+void ActivationFunction_ELU_Diff(const uint n,
+                                 _FLOAT* bot_diff,
+                                 const _FLOAT* top_diff,
+                                 const _FLOAT* bot_data,
+                                 const _FLOAT* top_data,
+                                 const _FLOAT alpha)
 {
-
     for(uint i = 0; i < n; ++i)
     {
         bot_diff[i] = top_diff[i] * ((bot_data[i] >= 0) ? 1 : top_data[i] + alpha);
     }
 }
 
-__attribute__((always_inline)) void ActivationFunction_Diff(uint n, 
-                                                            _FLOAT* bot_diff_dat, 
-                                                            const _FLOAT* top_diff_dat, 
-                                                            const _FLOAT* bot_dat,
-                                                            const _FLOAT* top_dat,
-                                                            const _FLOAT diff_scale,
-                                                            const _FLOAT gamma, 
-                                                            const _FLOAT beta, 
-                                                            const _FLOAT alpha)
+__attribute__((always_inline))
+void ActivationFunction_Diff(const uint n, 
+                             _FLOAT* bot_diff_dat, 
+                             const _FLOAT* top_diff_dat, 
+                             const _FLOAT* bot_dat,
+                             const _FLOAT* top_dat,
+                             const _FLOAT diff_scale,
+                             const _FLOAT gamma, 
+                             const _FLOAT beta, 
+                             const _FLOAT alpha)
 {
-#if MLO_NRN_OP_ID == MLO_NEURON_LOGISTIC
+#if MLO_NRN_OP_ID == MLO_NEURON_PASTHRU
+    {
+        ActivationFunction_PassThru_Diff(n, bot_diff_dat, top_diff_dat);
+    }
+#elif MLO_NRN_OP_ID == MLO_NEURON_LOGISTIC
     {
         // y = 1/(1 + exp(-x))
         ActivationFunction_Sigmoid_Diff(n, bot_diff_dat, top_diff_dat, top_dat);
@@ -504,7 +535,6 @@ __kernel void MIOpenActiveFwd2DLite(const __global _FLOAT* bot,
                                     const uint bot_stride,
                                     const uint top_stride)
 {
-
     (void)gamma;
     (void)beta;
     (void)alpha;
