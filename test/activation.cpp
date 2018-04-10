@@ -46,7 +46,7 @@ std::string to_name(miopenActivationMode_t m)
     case x: return #x; break;
     switch(m)
     {
-        STRING_CASE(miopenActivationPATHTRU)
+        STRING_CASE(miopenActivationPASTHRU)
         STRING_CASE(miopenActivationLOGISTIC)
         STRING_CASE(miopenActivationTANH)
         STRING_CASE(miopenActivationRELU)
@@ -193,7 +193,7 @@ struct activation_driver : test_driver
 
     activation_driver()
     {
-        add_mode(miopenActivationPATHTRU, 
+        add_mode(miopenActivationPASTHRU, 
                 [=](double x) { return x; },
                 [=](double dy, double , double) { return dy; });
         add_mode(miopenActivationLOGISTIC,
