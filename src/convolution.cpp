@@ -356,9 +356,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         {
             size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
             size_t workspace_size_fft  = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
-
-            return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft
-                                                             : workspace_size_gemm);
+            return std::max(workspace_size_fft, workspace_size_gemm);
         }
     }
 }
@@ -396,9 +394,7 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         {
             size_t workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
             size_t workspace_size_fft  = BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc);
-
-            return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft
-                                                             : workspace_size_gemm);
+            return std::max(workspace_size_fft, workspace_size_gemm);
         }
     }
 }
@@ -618,6 +614,7 @@ size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
     return std::max(BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc),
                     BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc));
 }
+
 std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c)
 {
     stream << c.pad_h << ", ";

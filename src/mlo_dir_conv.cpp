@@ -85,19 +85,6 @@ miopen::solver::ConvSolution mlo_construct_winograd::FindSolution()
     // clang-format on
 }
 
-miopen::solver::ConvSolution mlo_construct_BwdWrW2D::FindSolution()
-{
-    // clang-format off
-    return miopen::solver::SearchForSolution<
-        miopen::solver::ConvAsmBwdWrW1x1,
-        miopen::solver::ConvAsmBwdWrW3x3,
-        miopen::solver::ConvOclBwdWrW2,
-        miopen::solver::ConvOclBwdWrW53,
-        miopen::solver::ConvOclBwdWrW1x1
-    >(_search_params, this->GetDb());
-    // clang-format on
-}
-
 void mlo_construct_BwdWrW2D::FindAllSolutions(std::vector<miopen::solver::ConvSolution>& ss)
 {
     // clang-format off
