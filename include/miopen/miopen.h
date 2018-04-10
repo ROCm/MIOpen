@@ -1766,6 +1766,7 @@ miopenGetOperatorType(const miopenOperatorDescriptor miopenOp,
 *
 * @param convOp    Pointer to an operator type
 * @param wDesc              Tensor descriptor for weight tensor w (input)
+* @param immutableWeights   weights are no going to changed while running inference
 * @param convDesc           Convolution layer descriptor (input)
 * @param exhaustiveSearch   A boolean to toggle a full search of all algorithms and configurations
 * (input)
@@ -1774,6 +1775,7 @@ miopenGetOperatorType(const miopenOperatorDescriptor miopenOp,
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateConvForwardOp(miopenOperatorDescriptor* convOp,
 	const miopenTensorDescriptor_t wDesc,
+	bool immutableWeights,
 	const miopenConvolutionDescriptor_t convDesc,
 	bool exhaustiveSearch
 	);
@@ -1831,6 +1833,20 @@ miopenCreateBatchNormalizationForwardInferenceOp(miopenOperatorDescriptor* bnOp,
 	void* estimatedVariance,
 	double epsilon);
 
+
+/*! @brief Create a forward inference pooling op
+*
+*
+* @param poolDesc       Descriptor for pooling layer (input)
+* @param alpha          Floating point scaling factor, allocated on the host (input)
+* @param beta           Floating point shift factor, allocated on the host (input)
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingForwardInferenceOp(
+	const miopenPoolingDescriptor_t poolDesc,
+	const void* alpha,
+	const void* beta
+    );
 
 /*! @brief build a fusion descriptor.
 *
