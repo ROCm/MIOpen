@@ -138,8 +138,9 @@ void OpTensor3d(Handle& handle,
            (blens[1] == clens[1] || blens[1] == 1) && blens[2] == clens[2])
         {
 
-            network_config +=
-                std::to_string(clens[2]) + std::to_string(clens[1]) + std::to_string(miopen_beta);
+            network_config += std::to_string(clens[2]) + std::to_string(clens[1]) +
+                              std::to_string(float_equal(miopen_beta, 0.0)) +
+                              std::to_string(blens[1] == 1);
 
             auto&& kernels = handle.GetKernels("Op2dTensorLite", network_config);
 
