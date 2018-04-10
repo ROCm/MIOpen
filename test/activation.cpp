@@ -175,7 +175,7 @@ struct activation_driver : test_driver
     tensor<T> input;
     double alpha     = 1.2;
     double beta      = 2.3;
-    double power     = 3.4;
+    double gamma     = 3.4;
     std::string mode = "PATHTRU";
     std::unordered_map<std::string, std::function<void()>> lookup;
 
@@ -214,10 +214,10 @@ struct activation_driver : test_driver
                  [=](double x) { return std::abs(x); },
                  [=](double dy, double x, double) { return dy * ((x >= 0) ? 1 : -1); });
         add_mode(miopenActivationPOWER,
-                 [=](double x) { return std::pow(alpha + beta * x, power); },
+                 [=](double x) { return std::pow(alpha + beta * x, gamma); },
                  [=](double, double x, double y) {
                      auto divisor = alpha + beta * x;
-                     return (miopen::float_equal(divisor, 0)) ? 0 : power * beta * y / divisor;
+                     return (miopen::float_equal(divisor, 0)) ? 0 : gamma * beta * y / divisor;
                  });
         add_mode(miopenActivationCLIPPEDRELU,
                  [=](double x) { return std::min(alpha, std::max((double)0, x)); },
@@ -231,7 +231,7 @@ struct activation_driver : test_driver
         add(input, "input", get_input_tensor());
         add(alpha, "alpha");
         add(beta, "beta");
-        add(power, "power");
+        add(gamma, "gamma");
         add(mode, "mode", generate_data(modes()));
     }
 
@@ -244,7 +244,7 @@ struct activation_driver : test_driver
 
     miopen::ActivationDescriptor make_descriptor(miopenActivationMode_t m) const
     {
-        return {m, alpha, beta, power};
+        return {m, alpha, beta, gamma};
     }
 
     static std::string transform_mode(std::string s)
