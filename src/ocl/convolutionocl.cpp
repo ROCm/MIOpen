@@ -125,6 +125,32 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
     }
 }
 
+static inline void AddKernels(Handle& handle,
+                              const std::string& algorithm_name,
+                              const std::string& network_config,
+                              const miopen::solver::ConvSolution& s,
+                              std::vector<KernelInvoke>* const kernels)
+{
+    int i = 0;
+    for(auto& k : s.construction_params)
+    {
+        MIOPEN_LOG_I2(k.kernel_name);
+        auto kernel = handle.AddKernel(algorithm_name,
+                                       network_config,
+                                       k.kernel_file,
+                                       k.kernel_name,
+                                       k.l_wk,
+                                       k.g_wk,
+                                       k.comp_options,
+                                       i);
+        if(kernels != nullptr)
+        {
+            kernels->push_back(kernel);
+        }
+        ++i;
+    }
+}
+
 int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
                                             const TensorDescriptor& xDesc,
                                             const TensorDescriptor& wDesc,
@@ -141,15 +167,11 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
     mlo_construct_direct2D construct_params(direction);
     construct_params.setDoSearch(exhaustiveSearch);
     construct_params.saveSearchRequest(true);
-
     construct_params.setGeneralCompOptions("");
-
     construct_params.setStream(&handle);
-
     construct_params.setOutputDescFromMLDesc(yDesc);
     construct_params.setInputDescFromMLDesc(xDesc);
     construct_params.setWeightDescFromMLDesc(wDesc);
-
     construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
     if((IsWinograd3x3Supported(handle, direction != 0, wDesc, (direction != 0 ? xDesc : yDesc)) &&
@@ -158,79 +180,25 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
         return -1;
     }
 
+    {
+        int N, C, H, W, K, n_groups;
+        construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+        extraArgs = std::make_tuple(N, C, H, W, K, n_groups);
+    }
+
     try
     {
         miopen::solver::ConvSolution solution;
         mloConstruct(construct_params, solution);
         if(!solution.Succeeded())
             return -1;
-        const auto& kernels_info = solution.construction_params;
-        const auto& k_info       = kernels_info[0];
 
         std::string network_config;
         construct_params.mloBuildConf_Key(network_config);
 
         const std::string algorithm = (direction == 1) ? "miopenConvolutionFwdAlgoDirect"
                                                        : "miopenConvolutionBwdDataAlgoDirect";
-
-        {
-            int N, C, H, W, K, n_groups;
-            construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-            extraArgs = std::make_tuple(N, C, H, W, K, n_groups);
-        }
-        /// \todo Rework this into loop.
-        // if not 11x11
-        if(k_info.kernel_file !=
-           "MIOpenConvFwd_LxL_11.cl") // is_forward ? "MIOpenCvFwd11x11" : "MIOpenCvBwd11x11"
-        {
-
-            auto k = handle.AddKernel(algorithm,
-                                      network_config,
-                                      k_info.kernel_file,
-                                      k_info.kernel_name,
-                                      k_info.l_wk,
-                                      k_info.g_wk,
-                                      k_info.comp_options);
-            kernels.push_back(k);
-        }
-        else
-        {
-            if(kernels_info.size() == 1)
-            {
-                auto k1 = handle.AddKernel(algorithm,
-                                           network_config,
-                                           k_info.kernel_file,
-                                           k_info.kernel_name,
-                                           k_info.l_wk,
-                                           k_info.g_wk,
-                                           k_info.comp_options);
-
-                kernels.push_back(k1);
-            }
-            else
-            {
-                assert(kernels_info.size() == 2);
-                auto k1 = handle.AddKernel(algorithm,
-                                           network_config,
-                                           k_info.kernel_file,
-                                           k_info.kernel_name,
-                                           k_info.l_wk,
-                                           k_info.g_wk,
-                                           k_info.comp_options);
-                kernels.push_back(k1);
-
-                const auto& k2_info = kernels_info[1]; // second pass kernel
-                auto k2             = handle.AddKernel(algorithm,
-                                           network_config,
-                                           k2_info.kernel_file,
-                                           k2_info.kernel_name,
-                                           k2_info.l_wk,
-                                           k2_info.g_wk,
-                                           k2_info.comp_options,
-                                           1);
-                kernels.push_back(k2);
-            }
-        }
+        AddKernels(handle, algorithm, network_config, solution, &kernels);
         return 0;
     }
     catch(miopen::Exception&)
@@ -1793,32 +1761,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
     if(miopen::CheckNumericsEnabled() != 0)
     {
         miopen::checkNumericsOutput(handle, dxDesc, dx);
-    }
-}
-
-static inline void AddKernels(Handle& handle,
-                              const std::string& algorithm_name,
-                              const std::string& network_config,
-                              const miopen::solver::ConvSolution& s,
-                              std::vector<KernelInvoke>* const kernels)
-{
-    int i = 0;
-    for(auto& k : s.construction_params)
-    {
-        MIOPEN_LOG_I2(k.kernel_name);
-        auto kernel = handle.AddKernel(algorithm_name,
-                                       network_config,
-                                       k.kernel_file,
-                                       k.kernel_name,
-                                       k.l_wk,
-                                       k.g_wk,
-                                       k.comp_options,
-                                       i);
-        if(kernels != nullptr)
-        {
-            kernels->push_back(kernel);
-        }
-        ++i;
     }
 }
 
