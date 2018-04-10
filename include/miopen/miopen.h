@@ -1976,12 +1976,12 @@ MIOPEN_EXPORT miopenStatus_t
 miopenExecuteFusionPlanForwardInference(
 	const miopenHandle_t handle,
 	const miopenFusionPlanDescriptor fusePlanDescr,
-	void* src,
-	void* dst,
+	const void* src,
+	const void* dst,
 	void* workSpace,
 	size_t workSpaceSize,
 	size_t n_weights,
-	void ** weights
+	const void ** weights
 );
 
 /** @} */

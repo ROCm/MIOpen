@@ -69,7 +69,7 @@ extern "C" miopenStatus_t miopenCreateActivationForwardOp(miopenOperatorDescript
 	                                                      const void* beta)
 {
 
-	MIOPEN_LOG_FUNCTION(convOp, activDesc, alpha, beta);
+	MIOPEN_LOG_FUNCTION(activOp, activDesc, alpha, beta);
 	return (miopenStatusSuccess);
 }
 
@@ -86,10 +86,72 @@ extern "C" miopenStatus_t miopenCreateBatchNormalizationForwardInferenceOp(miope
 	                                                                       double epsilon)
 {
 
-	MIOPEN_LOG_FUNCTION(nOp, bn_mode, alpha, beta, bnScaleBiasMeanVarDesc, bnScale, bnBias, estimatedMean, estimatedVariance, epsilon);
+	MIOPEN_LOG_FUNCTION(bnOp, bn_mode, alpha, beta, bnScaleBiasMeanVarDesc, bnScale, bnBias, estimatedMean, estimatedVariance, epsilon);
 	return (miopenStatusSuccess);
 }
 
+extern "C"  miopenStatus_t miopenCreatePoolingForwardInferenceOp(miopenOperatorDescriptor* poolingOp,
+	                                                             const miopenPoolingDescriptor_t poolDesc,
+	                                                             const void* alpha,
+	                                                             const void* beta
+                                                                 )
+{
+
+	MIOPEN_LOG_FUNCTION(poolingOp, poolDesc, alpha, beta);
+	return (miopenStatusSuccess);
+}
+
+extern "C"  miopenStatus_t miopenCreateEltWizeOp(miopenOperatorDescriptor* eltWiseOp,
+	                                             const size_t n,
+	                                             const char* op,
+	                                             double ALPHA,
+	                                             double BETA,
+	                                             double GAMMA)
+{
+
+	MIOPEN_LOG_FUNCTION(eltWiseOp, n, op, ALPHA, BETA, GAMMA);
+	return (miopenStatusSuccess);
+}
+
+
+extern "C"  miopenStatus_t miopenSetFusionDescriptor(miopenFusionDescriptor fuseDescr,
+	                                                 const miopenFuseMode_t mode,
+	                                                 const size_t n,
+	                                                 const miopenFusionDescriptor *vertFuse,
+	                                                 const miopenOperatorDescriptor * ops)
+
+{
+
+	MIOPEN_LOG_FUNCTION(fuseDescr, mode, n, vertFuse, ops);
+	return (miopenStatusSuccess);
+}
+
+extern "C" miopenStatus_t miopenCreateFusionPlanForwardInference(const miopenHandle_t handle,
+	                                                             miopenFusionPlanDescriptor fusePlanDescr,
+	                                                             const miopenFusionDescriptor fuseDescr,
+	                                                             const miopenTensorDescriptor_t srcDesc,
+	                                                             const miopenTensorDescriptor_t dstDesc,
+	                                                            size_t* workSpaceSize)
+{
+
+	MIOPEN_LOG_FUNCTION(handle, fusePlanDescr, fuseDescr, srcDesc, dstDesc, workSpaceSize);
+	return (miopenStatusSuccess);
+}
+
+extern "C" miopenStatus_t miopenExecuteFusionPlanForwardInference(const miopenHandle_t handle,
+	                                                              const miopenFusionPlanDescriptor fusePlanDescr,
+	                                                              const void* src,
+	                                                              const void* dst,
+	                                                              void* workSpace,
+	                                                              size_t workSpaceSize,
+	                                                              size_t n_weights,
+	                                                              const void ** weights
+                                                                  )
+{
+
+	MIOPEN_LOG_FUNCTION(handle, fusePlanDescr, src, dst, workSpace, workSpaceSize, n_weights, const void ** weights);
+	return (miopenStatusSuccess);
+}
 
 extern "C" miopenStatus_t miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor fusePlanDesc)
 {
