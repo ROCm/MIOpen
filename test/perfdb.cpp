@@ -536,8 +536,9 @@ class DBMultiThreadedTestWork
     }
 
     template <class TDbConstructor>
-    static inline void
-    ReadWorkItem(unsigned int id, const TDbConstructor& db_constructor, const std::string& log_postfix)
+    static inline void ReadWorkItem(unsigned int id,
+                                    const TDbConstructor& db_constructor,
+                                    const std::string& log_postfix)
     {
         RedirectLogs(id, log_postfix, [&db_constructor]() { ReadCommonPart(db_constructor); });
     }
@@ -552,7 +553,7 @@ class DBMultiThreadedTestWork
     template <class TDbConstructor>
     static inline void ValidateCommonPart(const TDbConstructor& db_constructor)
     {
-        auto db = db_constructor();
+        auto db       = db_constructor();
         const auto cp = common_part();
 
         for(auto i = 0u; i < common_part_size; i++)
@@ -613,8 +614,9 @@ class DBMultiThreadedTestWork
         }
 
         std::cout << "Common part. Section with separate db instances." << std::endl;
-        ReadCommonPartSection(
-            common_part_size / 2, common_part_size, [&db_constructor]() { return db_constructor(); });
+        ReadCommonPartSection(common_part_size / 2, common_part_size, [&db_constructor]() {
+            return db_constructor();
+        });
     }
 
     template <class TDbGetter>
@@ -645,8 +647,9 @@ class DBMultiThreadedTestWork
         }
 
         std::cout << "Common part. Section with separate db instances." << std::endl;
-        CommonPartSection(
-            common_part_size / 2, common_part_size, [&db_constructor]() { return db_constructor(); });
+        CommonPartSection(common_part_size / 2, common_part_size, [&db_constructor]() {
+            return db_constructor();
+        });
     }
 
     template <class TDbGetter>
@@ -677,8 +680,9 @@ class DBMultiThreadedTestWork
         }
 
         std::cout << "Unique part. Section with separate db instances." << std::endl;
-        UniquePartSection(
-            rnd, unique_part_size / 2, unique_part_size, [&db_constructor]() { return db_constructor(); });
+        UniquePartSection(rnd, unique_part_size / 2, unique_part_size, [&db_constructor]() {
+            return db_constructor();
+        });
     }
 
     template <class TDbGetter>
@@ -744,7 +748,7 @@ class DbMultiThreadedTest : public DbTest
         std::cout << "Launching test threads..." << std::endl;
         threads.reserve(DBMultiThreadedTestWork::threads_count);
         const std::string p = temp_file;
-        const auto c = [&p]() { return Db(p); };
+        const auto c        = [&p]() { return Db(p); };
 
         {
             std::unique_lock<std::mutex> lock(mutex);
@@ -777,7 +781,7 @@ class DbMultiThreadedReadTest : public DbTest
 
         std::cout << "Initializing test data..." << std::endl;
         const std::string p = temp_file;
-        const auto c = [&p]() { return Db(p); };
+        const auto c        = [&p]() { return Db(p); };
         ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
 
@@ -828,8 +832,7 @@ class DbMultiProcessTest : public DbTest
             for(auto& child : children)
             {
                 auto command = exe_path().string() + " --" + write_arg + " --" + id_arg + " " +
-                               std::to_string(id++) + " --" + path_arg + " " +
-                               temp_file.Path();
+                               std::to_string(id++) + " --" + path_arg + " " + temp_file.Path();
 
                 if(thread_logs_root())
                     command += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " +
@@ -852,7 +855,7 @@ class DbMultiProcessTest : public DbTest
         std::cout << "Validation results..." << std::endl;
 
         const std::string p = temp_file;
-        const auto c = [&p]() { return Db(p); };
+        const auto c        = [&p]() { return Db(p); };
         DBMultiThreadedTestWork::ValidateCommonPart(c);
     }
 
@@ -887,7 +890,7 @@ class DbMultiProcessReadTest : public DbTest
 
         std::cout << "Initializing test data..." << std::endl;
         std::string p = temp_file;
-        const auto c = [&p]() { return Db(p); };
+        const auto c  = [&p]() { return Db(p); };
         DBMultiThreadedTestWork::FillForReading(c);
 
         std::cout << "Launching test processes..." << std::endl;
@@ -1042,7 +1045,7 @@ class DbMultiFileWriteTest : public DbMultiFileTest
 
 class DbMultiFileMultiThreadedReadTest : public DbMultiFileTest
 {
-public:
+    public:
     inline void Run() const
     {
         std::cout << "Testing db for multifile multithreaded read access..." << std::endl;
@@ -1052,8 +1055,8 @@ public:
 
         std::cout << "Initializing test data..." << std::endl;
         const std::string p = temp_file;
-        const auto& up = user_db_path;
-        const auto c = [&p, up]() { return MultiFileDb(p, up); };
+        const auto& up      = user_db_path;
+        const auto c        = [&p, up]() { return MultiFileDb(p, up); };
         ResetDb();
         DBMultiThreadedTestWork::FillForReading(c);
 
@@ -1063,22 +1066,22 @@ public:
         {
             std::unique_lock<std::mutex> lock(mutex);
 
-            for (auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
                 threads.emplace_back([c, &mutex, i]() {
-                (void)std::unique_lock<std::mutex>(mutex);
-                DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
-            });
+                    (void)std::unique_lock<std::mutex>(mutex);
+                    DBMultiThreadedTestWork::ReadWorkItem(i, c, "mt");
+                });
         }
 
         std::cout << "Waiting for test threads..." << std::endl;
-        for (auto& thread : threads)
+        for(auto& thread : threads)
             thread.join();
     }
 };
 
 class DbMultiFileMultiThreadedTest : public DbMultiFileTest
 {
-public:
+    public:
     static constexpr const char* logs_path_arg = "thread-logs-root";
 
     inline void Run() const
@@ -1095,21 +1098,21 @@ public:
         std::cout << "Launching test threads..." << std::endl;
         threads.reserve(DBMultiThreadedTestWork::threads_count);
         const std::string p = temp_file;
-        const auto up = user_db_path;
-        const auto c = [&p, &up]() { return MultiFileDb(p, up); };
+        const auto up       = user_db_path;
+        const auto c        = [&p, &up]() { return MultiFileDb(p, up); };
 
         {
             std::unique_lock<std::mutex> lock(mutex);
 
-            for (auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
+            for(auto i = 0u; i < DBMultiThreadedTestWork::threads_count; i++)
                 threads.emplace_back([c, &mutex, i]() {
-                (void)std::unique_lock<std::mutex>(mutex);
-                DBMultiThreadedTestWork::WorkItem(i, c, "mt");
-            });
+                    (void)std::unique_lock<std::mutex>(mutex);
+                    DBMultiThreadedTestWork::WorkItem(i, c, "mt");
+                });
         }
 
         std::cout << "Waiting for test threads..." << std::endl;
-        for (auto& thread : threads)
+        for(auto& thread : threads)
             thread.join();
 
         std::cout << "Validation results..." << std::endl;
@@ -1119,7 +1122,7 @@ public:
 
 struct PerfDbDriver : test_driver
 {
-public:
+    public:
     PerfDbDriver()
     {
         add(logs_root, DbMultiThreadedTest::logs_path_arg);
@@ -1131,13 +1134,12 @@ public:
 
     void run() const
     {
-        if (!logs_root.empty())
+        if(!logs_root.empty())
             thread_logs_root() = logs_root;
 
-        if (mt_child_id >= 0)
+        if(mt_child_id >= 0)
         {
-            DbMultiProcessTest::WorkItem(
-                mt_child_id, mt_child_db_path, test_experimental_write);
+            DbMultiProcessTest::WorkItem(mt_child_id, mt_child_db_path, test_experimental_write);
             return;
         }
 
@@ -1155,7 +1157,7 @@ public:
         DbMultiFileWriteTest().Run();
         DbMultiFileMultiThreadedReadTest().Run();
 
-        if (test_experimental_write)
+        if(test_experimental_write)
         {
             DbMultiThreadedTest().Run();
             DbMultiProcessTest().Run();
@@ -1163,7 +1165,7 @@ public:
         }
     }
 
-private:
+    private:
     bool test_experimental_write = false;
     std::string logs_root;
 
