@@ -58,7 +58,10 @@ static boost::filesystem::path& exe_path()
 
 static boost::optional<std::string>& thread_logs_root()
 {
-    static boost::optional<std::string> path = boost::none;
+    static std::mutex mutex;
+    std::lock_guard<std::mutex> lock(mutex);
+
+    static boost::optional<std::string> path(boost::none);
     return path;
 }
 
@@ -84,7 +87,8 @@ struct TestData
     };
 
     inline TestData(NoInit) : x(0), y(0) {}
-    inline TestData() : x(Rnd().Next()), y(Rnd().Next()) {}
+    inline TestData(Random& rnd) : x(rnd.Next()), y(rnd.Next()) {}
+    inline TestData() : TestData(Rnd()) {}
     inline TestData(int x_, int y_) : x(x_), y(y_) {}
 
     template <unsigned int seed>
@@ -699,14 +703,7 @@ class DBMultiThreadedTestWork
         {
             auto key = LimitedRandom(rnd, common_part_size / ids_per_key + 2);
             auto id  = LimitedRandom(rnd, ids_per_key + 1);
-            TestData data(TestData::NoInit{});
-
-            {
-                static std::mutex mutex;
-                std::lock_guard<std::mutex> lock(mutex);
-
-                data = TestData{};
-            }
+            TestData data(rnd);
 
             db_getter().Update(std::to_string(key), std::to_string(id), data);
         }
