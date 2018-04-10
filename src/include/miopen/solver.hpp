@@ -256,7 +256,7 @@ void SearchForAllSolutions(const Context& search_params, miopen::Db db, std::vec
                 /// \todo If Solver is applicable it must provide an appropriate Solution.
                 /// This is not the case for some 20x5 convolutions (and possibly others).
                 /// Normally we should not get here and message level should be Error.
-                /// For now, let's use Info (not Warning) level is not used to avoid
+                /// For now, let's use Info (not Warning) level to avoid
                 /// flooding the console.
                 MIOPEN_LLOG_I(SolverDbId(solver) << ": [Warning] Applicable Solver not succeeded.");
             }

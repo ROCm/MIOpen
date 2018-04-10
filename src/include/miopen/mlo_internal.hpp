@@ -843,7 +843,6 @@ struct mlo_construct_BwdWrW2D : mlo_construct_direct2D
         _search_params.direction.SetBackwardWrW();
     }
 
-    miopen::solver::ConvSolution FindSolution();
     void FindAllSolutions(std::vector<miopen::solver::ConvSolution>& ss);
 };
 
