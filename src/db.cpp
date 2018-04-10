@@ -75,7 +75,7 @@ Db::Db(const std::string& filename_)
 }
 
 #define VALIDATE_LOCK(lock) \
-    if(!lock) \
+    if(!lock)               \
         MIOPEN_THROW("Db lock has failed to lock.");
 
 static std::chrono::seconds GetLockTimeout() { return std::chrono::seconds{60}; }
@@ -115,7 +115,7 @@ bool Db::Remove(const std::string& key, const std::string& id)
 {
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
     VALIDATE_LOCK(lock);
-    auto record     = FindRecordUnsafe(key, nullptr);
+    auto record = FindRecordUnsafe(key, nullptr);
     if(!record)
         return false;
     bool erased = record->EraseValues(id);
