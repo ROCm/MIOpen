@@ -63,7 +63,8 @@ set( MIOpen_Source
     db.cpp
     db_record.cpp
     find_controls.cpp
-    load_file.cpp
+    fused_api.cpp
+	load_file.cpp
     pooling_api.cpp
     kernel_warnings.cpp
     logger.cpp
