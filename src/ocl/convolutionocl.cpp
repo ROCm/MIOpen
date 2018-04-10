@@ -1796,12 +1796,11 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
     }
 }
 
-static inline void
-FindConvBwdWeightsAlgorithmDirectAddKernels(Handle& handle,
-                                            const std::string& algorithm_name,
-                                            const std::string& network_config,
-                                            const miopen::solver::ConvSolution& s,
-                                            std::vector<KernelInvoke>* const kernels)
+static inline void AddKernels(Handle& handle,
+                              const std::string& algorithm_name,
+                              const std::string& network_config,
+                              const miopen::solver::ConvSolution& s,
+                              std::vector<KernelInvoke>* const kernels)
 {
     int i = 0;
     for(auto& k : s.construction_params)
@@ -1851,8 +1850,7 @@ inline float FindConvBwdWeightsAlgorithmDirectRun(Handle& handle,
     assert((s.workspce_sz != 0 && kernels_info.size() == 2) ||
            (s.workspce_sz == 0 && kernels_info.size() == 1));
     std::vector<KernelInvoke> kernels;
-    FindConvBwdWeightsAlgorithmDirectAddKernels(
-        handle, algorithm_name, network_config, s, &kernels);
+    AddKernels(handle, algorithm_name, network_config, s, &kernels);
     const auto& k_info = kernels_info[0];
     if(kernels_info.size() == 1)
     {
@@ -2083,7 +2081,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 const std::string algorithm_name = perf_name + "_Main";
 
                 visit_float(dyDesc.GetType(), [&](auto as_float) {
-                    miopen::solver::ConvSolution found{miopenStatusUnknownError};
+                    miopen::solver::ConvSolution selected{miopenStatusUnknownError};
                     float best = std::numeric_limits<float>::max();
                     std::vector<miopen::solver::ConvSolution> all;
                     mloConstruct(construct_params, all);
@@ -2132,24 +2130,24 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                             << best);
                         if(elapsed < best)
                         {
-                            best  = elapsed;
-                            found = s;
+                            best     = elapsed;
+                            selected = s;
                         }
                     }
-                    if(found.Succeeded())
+                    if(selected.Succeeded())
                     {
-                        FindConvBwdWeightsAlgorithmDirectAddKernels(
-                            handle, algorithm_name, network_config, found, nullptr);
-                        MIOPEN_LLOG_I("Found " << found.construction_params[0].kernel_name
-                                               << (found.construction_params.size() > 1
-                                                       ? (std::string(", ") +
-                                                          found.construction_params[1].kernel_name)
-                                                       : std::string())
-                                               << ": "
-                                               << best
-                                               << ", "
-                                               << found.workspce_sz);
-                        perf_db.push_back(PerfField{perf_name, best, found.workspce_sz});
+                        AddKernels(handle, algorithm_name, network_config, selected, nullptr);
+                        MIOPEN_LLOG_I("Selected: "
+                                      << selected.construction_params[0].kernel_name
+                                      << (selected.construction_params.size() > 1
+                                              ? (std::string(", ") +
+                                                 selected.construction_params[1].kernel_name)
+                                              : std::string())
+                                      << ": "
+                                      << best
+                                      << ", "
+                                      << selected.workspce_sz);
+                        perf_db.push_back(PerfField{perf_name, best, selected.workspce_sz});
                     }
                 });
             }
