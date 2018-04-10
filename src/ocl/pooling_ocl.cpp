@@ -53,7 +53,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
-    if(miopen::CheckNumericsEnabled())
+    if(miopen::CheckNumericsEnabled() != 0)
     {
         miopen::checkNumericsInput(handle, xDesc, x);
         if(!float_equal(*(static_cast<const float*>(beta)), 0))
@@ -109,7 +109,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
         pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
 
     std::string network_config =
-        std::to_string(pooling_method) + std::to_string(do_backward) +
+        std::to_string(pooling_method) + std::to_string(static_cast<int>(do_backward)) +
         std::to_string(xDesc.GetType()) + std::to_string(nInStride) + std::to_string(nOutStride) +
         std::to_string(nIn) + std::to_string(nOut) + std::to_string(nInStride) +
         std::to_string(nOutStride) + std::to_string(cIn) + std::to_string(cOut) +
@@ -139,7 +139,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
         handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
             x, y, workSpace);
     }
-    if(miopen::CheckNumericsEnabled())
+    if(miopen::CheckNumericsEnabled() != 0)
     {
         miopen::checkNumericsOutput(handle, yDesc, y);
     }
@@ -166,7 +166,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
-    if(miopen::CheckNumericsEnabled())
+    if(miopen::CheckNumericsEnabled() != 0)
     {
         // miopen::checkNumericsInput(handle, yDesc, y); // not actually used?
         miopen::checkNumericsInput(handle, dyDesc, dy);
@@ -298,7 +298,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
         }
     }
 
-    if(miopen::CheckNumericsEnabled())
+    if(miopen::CheckNumericsEnabled() != 0)
     {
         miopen::checkNumericsOutput(handle, dxDesc, dx);
     }

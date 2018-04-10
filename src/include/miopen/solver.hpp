@@ -337,6 +337,75 @@ struct ConvAsm3x3U : SolverBase<ConvolutionContext>
                               float& elapsed_time) const;
 };
 
+struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
+{
+    // ------------------- // Full set          Optimized       Spare
+    // ----------------------------------------------------------------------------
+    int read_size;         // [1..4]            <same>          <same>
+    int k_mult;            // 1,[4,8,12..32]    16,32           1,4
+    int chunks_per_wave;   // [1..16]           [1..8]          <same>
+    int chunk_size;        // 2^n[1..64]        2^n[16..64]     1,4
+    int n_blocks_per_wave; // [1..8]            [1..4]          <same>
+    int waves_in_group;    // [1..8]            [1..4]          <same>
+    bool use_spare_set;
+
+    PerformanceConfigConvAsm1x1U(int, int, int, int, int, int, bool);
+    PerformanceConfigConvAsm1x1U() : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1, false) {}
+    PerformanceConfigConvAsm1x1U(bool spare) : PerformanceConfigConvAsm1x1U(1, 1, 1, 1, 1, 1, spare)
+    {
+    }
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.read_size, "read_size");
+        f(self.k_mult, "k_mult");
+        f(self.chunks_per_wave, "chunks_per_wave");
+        f(self.chunk_size, "chunk_size");
+        f(self.n_blocks_per_wave, "n_blocks_per_wave");
+        f(self.waves_in_group, "waves_in_group");
+    }
+
+    // clang-format off
+    int GetReadSize() const { return read_size; }
+    int GetKMult() const { return k_mult; }
+    int GetChunksPerWave() const { return chunks_per_wave; }
+    int GetChunkSize() const { return chunk_size; }
+    int GetNBlocksPerWave() const { return n_blocks_per_wave; }
+    int GetWavesInGroup() const { return waves_in_group; }
+    int GetNPerGpr() const { assert(chunk_size); return 64 / chunk_size; }
+    // clang-format on
+
+    void EuristicInit(const ConvolutionContext& config);
+    bool IsValidValue() const;
+    bool SetNextValue();
+    bool IsValid(const ConvolutionContext& config) const;
+    bool operator==(const PerformanceConfigConvAsm1x1U& other) const;
+    std::string ToString() const;
+    bool IsValidForProblem(const ConvolutionContext& config) const;
+};
+
+struct ConvAsm1x1U : SolverBase<ConvolutionContext>
+{
+    PerformanceConfigConvAsm1x1U GetPerformanceConfig(const ConvolutionContext&) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&,
+                                  const PerformanceConfigConvAsm1x1U&) const;
+    PerformanceConfigConvAsm1x1U Search(const ConvolutionContext&) const;
+    bool IsApplicable(const ConvolutionContext& params) const;
+    bool IsFast(const ConvolutionContext& params) const;
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const PerformanceConfigConvAsm1x1U& config,
+                             bool disableConfigOverrideFromEnv = false) const;
+    int RunAndMeasureSolution(miopen::Handle& profile_h,
+                              Data_t bot_ocl_buf,
+                              Data_t top_ocl_buf,
+                              Data_t wei_ocl_buf,
+                              Data_t bias_ocl_buf,
+                              const ConvolutionContext& params,
+                              const ConvSolution& solution,
+                              float& elapsed_time) const;
+};
+
 struct ConvAsm5x10u2v2f1 : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;

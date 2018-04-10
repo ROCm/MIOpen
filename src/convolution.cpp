@@ -208,7 +208,15 @@ size_t
 ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMMTranspose(const TensorDescriptor& xDesc,
                                                             const TensorDescriptor& yDesc) const
 {
-    size_t x_t_size = xDesc.GetElementSize() * GetTypeSize(xDesc.GetType());
+
+    int in_n, in_c;
+    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
+
+    size_t x_t_size = in_n * in_c * out_h * out_w * GetTypeSize(xDesc.GetType());
+
     size_t y_t_size = yDesc.GetElementSize() * GetTypeSize(yDesc.GetType());
 
     return x_t_size + y_t_size;
@@ -236,7 +244,8 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
     int _n_outputs, _kernel_size0, _kernel_size1;
     int _n_outputs_w, _n_inputs_w;
 
-    const auto device_is_gfx9_no_xnack = (device_name == "gfx900");
+    const auto device_is_gfx9_no_xnack =
+        (device_name == "gfx900" || device_name == "gfx904" || device_name == "gfx906");
     const bool device_is_gfx8_no_xnack = (device_name == "gfx800" || device_name == "gfx802" ||
                                           device_name == "gfx803" || device_name == "gfx804");
     if(!device_is_gfx8_no_xnack && !device_is_gfx9_no_xnack)
@@ -529,7 +538,14 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMM(Handle& handle,
 size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMMTranspose(
     const TensorDescriptor& dyDesc, const TensorDescriptor& dxDesc) const
 {
-    size_t dx_t_size = dxDesc.GetElementSize() * GetTypeSize(dxDesc.GetType());
+    int in_n, in_c;
+    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
+
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
+
+    size_t dx_t_size = in_n * in_c * out_h * out_w * GetTypeSize(dxDesc.GetType());
+
     size_t dy_t_size = dyDesc.GetElementSize() * GetTypeSize(dyDesc.GetType());
 
     return dx_t_size + dy_t_size;

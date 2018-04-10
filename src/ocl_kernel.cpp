@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <miopen/oclkernel.hpp>
 #include <miopen/handle_lock.hpp>
+#include <miopen/logger.hpp>
 
 namespace miopen {
 
@@ -32,13 +33,13 @@ namespace miopen {
 static std::string DimToFormattedString(const size_t* dims, size_t count)
 {
     std::stringstream ss;
-    ss << "{ ";
+    ss << '{';
     for(size_t i = 0; i < count; ++i)
     {
         if(i > 0)
-        {
             ss << ", ";
-        }
+        else
+            ss << ' ';
         ss << dims[i];
     }
     ss << " }";
@@ -49,16 +50,13 @@ static std::string DimToFormattedString(const size_t* dims, size_t count)
 void OCLKernelInvoke::run() const
 {
 #ifndef NDEBUG
-    std::cout << "kernel_name = " << GetName();
-    std::cout << ", work_dim = " << work_dim;
-    std::cout << ", global_work_offset = "
-              << (work_dim == 0 ? "NULL"
-                                : DimToFormattedString(global_work_offset.data(), work_dim));
-    std::cout << ", global_work_dim = " << DimToFormattedString(global_work_dim.data(), work_dim);
-    std::cout << ", local_work_dim = "
-              << (local_work_dim[0] == 0 ? "NULL"
-                                         : DimToFormattedString(local_work_dim.data(), work_dim));
-    std::cout << std::endl;
+    MIOPEN_LOG_I2("kernel_name = " << GetName() << ", work_dim = " << work_dim
+                                   << ", global_work_offset = "
+                                   << DimToFormattedString(global_work_offset.data(), work_dim)
+                                   << ", global_work_dim = "
+                                   << DimToFormattedString(global_work_dim.data(), work_dim)
+                                   << ", local_work_dim = "
+                                   << DimToFormattedString(local_work_dim.data(), work_dim));
 #endif // !NDEBUG
 
     MIOPEN_HANDLE_LOCK
@@ -106,10 +104,8 @@ std::string OCLKernelInvoke::GetName() const
 OCLKernelInvoke OCLKernel::Invoke(cl_command_queue q, std::function<void(cl_event&)> callback) const
 {
 #ifndef NDEBUG
-    std::cout << "Info: "
-              << "Invoking kernel: " << GetName(); // grid size + \n in OCLKernelInvoke::run()
-#endif                                             // !NDEBUG
-
+    MIOPEN_LOG_I(GetName());
+#endif
     OCLKernelInvoke result{q, kernel, gdims.size(), {}, {}, {}, callback};
     std::copy(gdims.begin(), gdims.end(), result.global_work_dim.begin());
     std::copy(ldims.begin(), ldims.end(), result.local_work_dim.begin());

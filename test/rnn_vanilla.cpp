@@ -1622,6 +1622,7 @@ struct verify_forward_train_rnn
         case(1): std::cout << "Hidden state tensor failed verification." << std::endl; break;
         case(2): std::cout << "Weight tensor failed verification." << std::endl; break;
         case(3): std::cout << "Reserved space tensor failed verification." << std::endl; break;
+        default: break;
         }
     }
 };
@@ -1900,6 +1901,7 @@ struct verify_backward_data_rnn
         case(1): std::cout << "Hidden state dhx tensor failed verification." << std::endl; break;
         case(2): std::cout << "Weight tensor failed verification." << std::endl; break;
         case(3): std::cout << "Reserved space tensor failed verification." << std::endl; break;
+        default: break;
         }
     }
 };

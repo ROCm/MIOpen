@@ -26,8 +26,11 @@
 #ifndef GUARD_MIOPEN_GEMM_GEOMETRY_HPP_
 #define GUARD_MIOPEN_GEMM_GEOMETRY_HPP_
 
+#include <miopen/config.h>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/tensor.hpp>
+
+#if MIOPEN_USE_MIOPENGEMM
 #include <miopengemm/miogemm.hpp>
 
 #include <mutex>
@@ -79,10 +82,7 @@ struct GemmGeometry
                  int c_offset);
 };
 
-using GemmKey = std::pair<std::string, std::string>;
-std::unordered_map<GemmKey, GemmGeometry, SimpleHash>& gemm_geo_map();
-std::unique_lock<std::mutex> get_gemm_geo_map_lock();
-
 } // namespace miopen
+#endif // MIOPEN_USE_MIOPENGEMM
 
 #endif // GUARD_MIOPEN_GEMM_GEOMETRY_HPP_

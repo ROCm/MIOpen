@@ -62,9 +62,9 @@ ADD cmake/mingw-toolchain.cmake $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
 RUN cget -p $PREFIX/x86_64-w64-mingw32 init -t $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
 
 # Build hcc
-RUN git clone https://github.com/RadeonOpenCompute/hcc.git -b roc-1.7.x /hcc && \
+RUN git clone https://github.com/RadeonOpenCompute/hcc.git -b clang_tot_upgrade /hcc && \
     cd hcc && \
-    git reset --hard 7e18c649964637507d21f1420baf4907148ff7b5 && \
+    git reset --hard 9f0e695782398524b3d2015716172ea0f71d8e3b && \
     git submodule init && \
     git submodule update --recursive && \
     cget -p $PREFIX install hcc,. && cd .. && rm -rf /hcc
@@ -77,7 +77,7 @@ RUN ln -s $PREFIX /opt/rocm/hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 
 # Install cppcheck
-RUN cget -p $PREFIX install danmar/cppcheck@ab02595be1b17035b534db655f9e119080a368bc
+RUN cget -p $PREFIX install danmar/cppcheck@94048d93f6982cca72aff91e10a377cc907ca0d6
 
 # Install hip
 RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@852d5ae46ce1f62f4c5fdab89445d60f7464d965

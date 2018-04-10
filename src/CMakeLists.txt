@@ -106,6 +106,7 @@ set( MIOpen_Source
     tensor_api.cpp
     solver.cpp
     solver/conv_asm_3x3u.cpp
+    solver/conv_asm_1x1u.cpp
     solver/conv_asm_5x10u2v2f1.cpp
     solver/conv_asm_5x10u2v2b1.cpp
     solver/conv_asm_7x7c3h224w224k64u2v2p3q3f1.cpp
@@ -166,6 +167,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvFFT.cl
         kernels/bugzilla_34765_detect.s
         kernels/conv3x3.s
+        kernels/conv1x1u.s
         kernels/conv3x3wrw.s
         kernels/conv1x1wrw.s
         kernels/conv5x10u2v2f1.s
@@ -386,6 +388,7 @@ rocm_export_targets(
 
 # Install db files
 install(FILES
+    kernels/gfx803_36.cd.pdb.txt
     kernels/gfx803_64.cd.pdb.txt
     kernels/gfx900_64.cd.pdb.txt
  DESTINATION ${DATA_INSTALL_DIR}/db)

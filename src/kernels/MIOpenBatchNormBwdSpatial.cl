@@ -214,19 +214,19 @@ static inline void dppSimpleRedBcast64(_FLOAT* value)
 #define MIO_BN_SNHW (MIO_BN_NLOOPM * MIO_BN_SEGIHW)
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
-                    const __global _FLOAT* __restrict dy_in,
-                    __global _FLOAT* __restrict dx_out,
-                    const __global _FLOAT* bnScale,
-                    __global _FLOAT* __restrict dscale,
-                    __global _FLOAT* __restrict dbias,
+MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
+                          const __global _FLOAT* __restrict dy_in,
+                          __global _FLOAT* __restrict dx_out,
+                          const __global _FLOAT* bnScale,
+                          __global _FLOAT* __restrict dscale,
+                          __global _FLOAT* __restrict dbias,
 #if(MIO_BN_USESAVED == 0)
-                    double epsilon,
+                          double epsilon,
 #elif(MIO_BN_USESAVED == 1)
-                    const __global _FLOAT* savedMean,
-                    const __global _FLOAT* savedInvVariance,
+                          const __global _FLOAT* savedMean,
+                          const __global _FLOAT* savedInvVariance,
 #endif
-                    _FLOAT INHW)
+                          _FLOAT INHW)
 {
 
     // SPATIAL
@@ -468,19 +468,19 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #define MIO_BN_LESS (MIO_BN_NHW - MIO_BN_REM)
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
-                    const __global _FLOAT* __restrict dy_in,
-                    __global _FLOAT* __restrict dx_out,
-                    const __global _FLOAT* bnScale,
-                    __global _FLOAT* __restrict dscale,
-                    __global _FLOAT* __restrict dbias,
+MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
+                          const __global _FLOAT* __restrict dy_in,
+                          __global _FLOAT* __restrict dx_out,
+                          const __global _FLOAT* bnScale,
+                          __global _FLOAT* __restrict dscale,
+                          __global _FLOAT* __restrict dbias,
 #if(MIO_BN_USESAVED == 0)
-                    double epsilon,
+                          double epsilon,
 #elif(MIO_BN_USESAVED == 1)
-                    const __global _FLOAT* savedMean,
-                    const __global _FLOAT* savedInvVariance,
+                          const __global _FLOAT* savedMean,
+                          const __global _FLOAT* savedInvVariance,
 #endif
-                    _FLOAT INHW)
+                          _FLOAT INHW)
 {
 
     // SPATIAL
@@ -775,9 +775,9 @@ BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #if(MIO_BN_USESAVED == 0)
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbuff,
-                                     _FLOAT INHW,
-                                     double epsilon)
+MIOpenBatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbuff,
+                                           _FLOAT INHW,
+                                           double epsilon)
 {
     _FLOAT variance             = (_FLOAT)0.;
     _FLOAT invVariance          = (_FLOAT)0.;
@@ -886,8 +886,8 @@ BatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbuff,
 }
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormBwdSpatialMeanVariance(const __global _FLOAT* __restrict in,
-                                __global _FLOAT* __restrict mvbuff)
+MIOpenBatchNormBwdSpatialMeanVariance(const __global _FLOAT* __restrict in,
+                                      __global _FLOAT* __restrict mvbuff)
 {
 
     unsigned int ylid    = get_local_id(1);
@@ -974,16 +974,16 @@ BatchNormBwdSpatialMeanVariance(const __global _FLOAT* __restrict in,
 #endif // end USESAVED == 0
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
-                               const __global _FLOAT* dy_in,
-                               __global _FLOAT* buff
+MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
+                                     const __global _FLOAT* dy_in,
+                                     __global _FLOAT* buff
 #if(MIO_BN_USESAVED == 1)
 
-                               ,
-                               const __global _FLOAT* savedMean,
-                               const __global _FLOAT* savedInvVariance
+                                     ,
+                                     const __global _FLOAT* savedMean,
+                                     const __global _FLOAT* savedInvVariance
 #endif
-                               )
+                                     )
 {
 
     unsigned int xgid    = get_global_id(0);
@@ -1095,9 +1095,9 @@ BatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
 }
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormBwdSpatialFinalDScaleDBias(__global _FLOAT* buff,
-                                    __global _FLOAT* delta_scale,
-                                    __global _FLOAT* delta_bias)
+MIOpenBatchNormBwdSpatialFinalDScaleDBias(__global _FLOAT* buff,
+                                          __global _FLOAT* delta_scale,
+                                          __global _FLOAT* delta_bias)
 {
 
     _FLOAT ds = (_FLOAT)0.;
@@ -1199,17 +1199,17 @@ BatchNormBwdSpatialFinalDScaleDBias(__global _FLOAT* buff,
 }
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormBwdSpatialDX(const __global _FLOAT* x_in,
-                      const __global _FLOAT* dy_in,
-                      __global _FLOAT* dx_out,
-                      const __global _FLOAT* bnScale,
-                      __global _FLOAT* delta_scale,
-                      __global _FLOAT* delta_bias,
+MIOpenBatchNormBwdSpatialDX(const __global _FLOAT* x_in,
+                            const __global _FLOAT* dy_in,
+                            __global _FLOAT* dx_out,
+                            const __global _FLOAT* bnScale,
+                            __global _FLOAT* delta_scale,
+                            __global _FLOAT* delta_bias,
 #if(MIO_BN_USESAVED == 1)
-                      const __global _FLOAT* savedMean,
-                      const __global _FLOAT* savedInvVariance,
+                            const __global _FLOAT* savedMean,
+                            const __global _FLOAT* savedInvVariance,
 #endif
-                      _FLOAT INHW)
+                            _FLOAT INHW)
 {
 
     int xgid = get_global_id(0);
@@ -1276,19 +1276,19 @@ BatchNormBwdSpatialDX(const __global _FLOAT* x_in,
 //=============== SINGLE WORKGROUP PER CHANNEL
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
-                    const __global _FLOAT* __restrict dy_in,
-                    __global _FLOAT* __restrict dx_out,
-                    const __global _FLOAT* bnScale,
-                    __global _FLOAT* __restrict dscale,
-                    __global _FLOAT* __restrict dbias,
+MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
+                          const __global _FLOAT* __restrict dy_in,
+                          __global _FLOAT* __restrict dx_out,
+                          const __global _FLOAT* bnScale,
+                          __global _FLOAT* __restrict dscale,
+                          __global _FLOAT* __restrict dbias,
 #if(MIO_BN_USESAVED == 0)
-                    double epsilon,
+                          double epsilon,
 #elif(MIO_BN_USESAVED == 1)
-                    const __global _FLOAT* savedMean,
-                    const __global _FLOAT* savedInvVariance,
+                          const __global _FLOAT* savedMean,
+                          const __global _FLOAT* savedInvVariance,
 #endif
-                    _FLOAT INHW)
+                          _FLOAT INHW)
 {
 
     // SPATIAL
