@@ -1716,8 +1716,7 @@ typedef enum {
 	miopenBatchNormForwardInferenceOp = 1, /*!< batch normalization forward inference */
 	miopenActivationForwardOp = 2, /*!< activation forward */
 	miopenPoolingForwardInferenceOp = 3, /*!< pooling forward inference */
-	miopenBiasForwardOp = 4, /*!< bias forward */
-	miopenTensorEltwiseOp = 5, /*!< element-wise tensor op */
+	miopenTensorEltwiseOp = 4, /*!< element-wise tensor op */
 } miopenOperator_t;
 
 
@@ -1770,7 +1769,7 @@ miopenDestroyFusionDescriptor(miopenFusionDescriptor fuseDesc);
 
 /*! @brief returns the miopen operator type.
 *
-* @param miopenOp  operator handle (input)
+* @param miopenOp  operator (input)
 * @param opType    pointer to a returned type (output)
 * @return          miopenStatus_t
 */
@@ -1779,6 +1778,13 @@ miopenGetOperatorType(const miopenOperatorDescriptor miopenOp,
 	miopenOperator_t* opType
     );
 
+/*! @brief Destroy MIOpen operator object
+*
+* @param miopenOp  operator (input)
+* @return          miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenDestroyOperator(const miopenOperatorDescriptor miopenOp);
 
 /*! @brief Creates miopen convolution forward operator.
 *
@@ -1856,17 +1862,46 @@ miopenCreateBatchNormalizationForwardInferenceOp(miopenOperatorDescriptor* bnOp,
 
 /*! @brief Create a forward inference pooling op
 *
-*
+* @param poolingOp      pooling operator (output)
 * @param poolDesc       Descriptor for pooling layer (input)
 * @param alpha          Floating point scaling factor, allocated on the host (input)
 * @param beta           Floating point shift factor, allocated on the host (input)
 * @return               miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingForwardInferenceOp(
+	miopenOperatorDescriptor* poolingOp,
 	const miopenPoolingDescriptor_t poolDesc,
 	const void* alpha,
 	const void* beta
     );
+
+/*! @brief Create a element-wise  op
+*
+* the op string has to have a following form
+* "(<any number of algebara operators over the verible X and/or any single argument OpenCl intrinsic over X and/or any transforms using ALPHA, BETA, GAMMA as a coeffients>)" 
+* samples:
+* "(log(X*X + AlPHA)/BETA)"
+* "(exp(-ALPHA/X + BETA*BETA + GAMMA))"
+*
+* @param eltWiseOp      element-wise operator over a tensor (output)
+* @param n              size of the folloing buffer in bytes incuding terminating nulls (input)
+* @param op             a null-terminated string representing an op (input)
+* @param ALPHA          coefficent
+* @param BETA           ''
+* @param GAMMA          ''
+
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCreateEltWizeOp(
+	miopenOperatorDescriptor* eltWiseOp,
+	const size_t n,
+	const char* op,
+	double ALPHA,
+	double BETA,
+	double GAMMA
+);
+
+
 
 /*! @brief build a fusion descriptor.
 *
