@@ -140,7 +140,7 @@ void OpTensor3d(Handle& handle,
 
             network_config += std::to_string(clens[2]) + std::to_string(clens[1]) +
                               std::to_string(float_equal(miopen_beta, 0.0)) +
-                              std::to_string(blens[1] == 1);
+                              std::to_string(blens[1] == 1) + std::to_string(max_num_wg);
 
             auto&& kernels = handle.GetKernels("Op2dTensorLite", network_config);
 
@@ -253,7 +253,11 @@ void OpTensor3d(Handle& handle,
                 parms += " -DBIAS";
             }
 
-            const std::vector<size_t> vgd1{MAP_RD, clens[1], 1};
+            num_wg_orig = num_wg = clens[1];
+            num_wg               = num_wg > max_num_wg ? max_num_wg : num_wg;
+            parms += " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
+
+            const std::vector<size_t> vgd1{MAP_RD, static_cast<size_t>(num_wg), 1};
 
             handle.AddKernel(
                 "Op2dTensorLite", network_config, program_name, "Op2dTensorLite", vld, vgd1, parms)(
@@ -268,7 +272,8 @@ void OpTensor3d(Handle& handle,
                 miopen_beta,
                 long(Aoffset),
                 long(Boffset),
-                long(Coffset));
+                long(Coffset),
+                num_wg_orig);
         }
         else
         {
