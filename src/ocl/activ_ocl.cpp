@@ -103,7 +103,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
             std::string compiler_options;
             auto f_activ_alpha = as_float(activ_alpha);
             auto f_activ_beta  = as_float(activ_beta);
-            auto f_activ_power = as_float(activ_gamma);
+            auto f_activ_gamma = as_float(activ_gamma);
 
             size_t height = (x_lens.size() == 2) ? x_lens[0] : (x_lens.size() == 3)
                                                                    ? x_lens[1]
@@ -132,7 +132,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                 {
                     kernel(x,
                            y,
-                           f_activ_power,
+                           f_activ_gamma,
                            f_activ_beta,
                            f_activ_alpha,
                            static_cast<long long>(xOffset),
@@ -142,7 +142,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                 {
                     kernel(x,
                            y,
-                           f_activ_power,
+                           f_activ_gamma,
                            f_activ_beta,
                            f_activ_alpha,
                            static_cast<long long>(xOffset),
@@ -192,7 +192,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                                      vgd,
                                      compiler_options)(x,
                                                        y,
-                                                       as_float(f_activ_power),
+                                                       as_float(f_activ_gamma),
                                                        as_float(f_activ_beta),
                                                        as_float(f_activ_alpha),
                                                        static_cast<long long>(xOffset),
@@ -212,7 +212,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                                      vgd,
                                      compiler_options)(x,
                                                        y,
-                                                       as_float(f_activ_power),
+                                                       as_float(f_activ_gamma),
                                                        as_float(f_activ_beta),
                                                        as_float(f_activ_alpha),
                                                        static_cast<long long>(xOffset),
@@ -340,7 +340,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
 
             auto f_activ_alpha = as_float(activ_alpha);
             auto f_activ_beta  = as_float(activ_beta);
-            auto f_activ_power = as_float(activ_gamma);
+            auto f_activ_gamma = as_float(activ_gamma);
 
             compiler_options +=
                 " -DMLO_N_IN=" + std::to_string(nIn) + " -DMLO_C_IN=" + std::to_string(cIn) +
@@ -374,7 +374,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                              vgd,
                              compiler_options)(x,
                                                y,
-                                               as_float(f_activ_power),
+                                               as_float(f_activ_gamma),
                                                as_float(f_activ_beta),
                                                as_float(f_activ_alpha),
                                                static_cast<long long>(xOffset),
@@ -499,7 +499,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 
             auto f_activ_alpha = as_float(activ_alpha);
             auto f_activ_beta  = as_float(activ_beta);
-            auto f_activ_power = as_float(activ_gamma);
+            auto f_activ_gamma = as_float(activ_gamma);
             auto f_diff_scale  = as_float(activ_beta * activ_gamma);
 
             // second dim is height
@@ -533,7 +533,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                            x,
                            y,
                            f_diff_scale,
-                           f_activ_power,
+                           f_activ_gamma,
                            f_activ_beta,
                            f_activ_alpha,
                            static_cast<long long>(dxOffset),
@@ -548,7 +548,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                            x,
                            y,
                            f_diff_scale,
-                           f_activ_power,
+                           f_activ_gamma,
                            f_activ_beta,
                            f_activ_alpha,
                            static_cast<long long>(dxOffset),
@@ -608,7 +608,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                                                        x,
                                                        y,
                                                        as_float(f_diff_scale),
-                                                       as_float(f_activ_power),
+                                                       as_float(f_activ_gamma),
                                                        as_float(f_activ_beta),
                                                        as_float(f_activ_alpha),
                                                        static_cast<long long>(dxOffset),
@@ -635,7 +635,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                                                        x,
                                                        y,
                                                        as_float(f_diff_scale),
-                                                       as_float(f_activ_power),
+                                                       as_float(f_activ_gamma),
                                                        as_float(f_activ_beta),
                                                        as_float(f_activ_alpha),
                                                        static_cast<long long>(dxOffset),
@@ -863,8 +863,8 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
 
             auto f_activ_alpha = as_float(this->GetAlpha());
             auto f_activ_beta  = as_float(this->GetBeta());
-            auto f_activ_power = as_float(this->GetGamma());
-            auto f_diff_scale  = f_activ_beta * f_activ_power;
+            auto f_activ_gamma = as_float(this->GetGamma());
+            auto f_diff_scale  = f_activ_beta * f_activ_gamma;
 
             compiler_options +=
                 " -DMLO_N_IN=" + std::to_string(nIn) + " -DMLO_C_IN=" + std::to_string(cIn) +
@@ -904,7 +904,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                                                x,
                                                y,
                                                as_float(f_diff_scale),
-                                               as_float(f_activ_power),
+                                               as_float(f_activ_gamma),
                                                as_float(f_activ_beta),
                                                as_float(f_activ_alpha),
                                                static_cast<long long>(dxOffset),
