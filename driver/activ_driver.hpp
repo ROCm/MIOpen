@@ -157,7 +157,7 @@ int ActivationDriver<Tgpu, Tref>::AddCmdLineArgs()
         "mode", 'm', "3", "Activation Mode (relu,..., see spec) (Default=3(relu))", "int");
     inflags.AddInputFlag("alpha", 'A', "0.0", "Activation shift (Default=0.0)", "double");
     inflags.AddInputFlag("beta", 'B', "0.0", "Activation scale (Default=0.0)", "double");
-    inflags.AddInputFlag("power", 'P', "1.0", "Activation power (Default=1.0)", "double");
+    inflags.AddInputFlag("gamma", 'P', "1.0", "Activation gamma (Default=1.0)", "double");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -183,10 +183,10 @@ int ActivationDriver<Tgpu, Tref>::SetActivationDescriptorFromCmdLineArgs()
     miopenActivationMode_t mode;
     double Alpha = inflags.GetValueDouble("alpha");
     double Beta  = inflags.GetValueDouble("beta");
-    double Power = inflags.GetValueDouble("power");
+    double Gamma = inflags.GetValueDouble("gamma");
     mode         = static_cast<miopenActivationMode_t>(inflags.GetValueInt("mode"));
 
-    return (miopenSetActivationDescriptor(activDesc, mode, Alpha, Beta, Power));
+    return (miopenSetActivationDescriptor(activDesc, mode, Alpha, Beta, Gamma));
 }
 
 template <typename Tgpu, typename Tref>

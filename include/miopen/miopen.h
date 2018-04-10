@@ -1552,7 +1552,7 @@ miopenCreateActivationDescriptor(miopenActivationDescriptor_t* activDesc);
  * @param mode         Activation mode enum (input)
  * @param activAlpha   Alpha value for some activation modes (input)
  * @param activBeta    Beta value for some activation modes (input)
- * @param activPower   Power exponent value for some activation modes (input)
+ * @param activGamma   Gamma value for some activation modes (input)
  * @return             miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -1560,7 +1560,7 @@ miopenSetActivationDescriptor(const miopenActivationDescriptor_t activDesc,
                               miopenActivationMode_t mode,
                               double activAlpha,
                               double activBeta,
-                              double activPower);
+                              double activGamma);
 
 /*! @brief Gets the activation layer descriptor details
  *
@@ -1570,7 +1570,7 @@ miopenSetActivationDescriptor(const miopenActivationDescriptor_t activDesc,
  * @param mode         Activation mode enum (output)
  * @param activAlpha   Alpha value for some activation modes (output)
  * @param activBeta    Beta value for some activation modes (output)
- * @param activPower   Power exponent value for some activation modes (output)
+ * @param activGamma   Gamma value for some activation modes (output)
  * @return             miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -1578,7 +1578,7 @@ miopenGetActivationDescriptor(const miopenActivationDescriptor_t activDesc,
                               miopenActivationMode_t* mode,
                               double* activAlpha,
                               double* activBeta,
-                              double* activPower);
+                              double* activGamma);
 
 /*! @brief Execute an activation forward layer
  *
