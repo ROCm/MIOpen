@@ -55,7 +55,7 @@ std::ostream& operator<<(std::ostream& stream, const ActivationDescriptor& x)
 {
     MIOPEN_LOG_ENUM(stream,
                     x.mode,
-                    miopenActivationPATHTRU,
+                    miopenActivationPASTHRU,
                     miopenActivationLOGISTIC,
                     miopenActivationTANH,
                     miopenActivationRELU,
