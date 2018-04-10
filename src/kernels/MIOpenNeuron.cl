@@ -125,11 +125,11 @@ __attribute__((always_inline)) void ActivationFunction_Sqrt(uint n, _FLOAT* res,
 }
 
 __attribute__((always_inline)) void
-ActivationFunction_Linear(uint n, _FLOAT* res, const _FLOAT* data, _FLOAT alpha, _FLOAT beta)
+ActivationFunction_Linear(uint n, _FLOAT* res, const _FLOAT* data, _FLOAT scale, _FLOAT shift)
 {
     for(uint i = 0; i < n; ++i)
     {
-        res[i] = alpha + beta * data[i];
+        res[i] = shift + scale * data[i];
     }
 }
 
