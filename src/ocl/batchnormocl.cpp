@@ -28,6 +28,7 @@
 #include <miopen/float_equal.hpp>
 #include <miopen/check_numerics.hpp>
 #include <miopen/visit_float.hpp>
+#include <miopen/logger.hpp>
 #include <chrono>
 
 namespace miopen {
@@ -65,7 +66,7 @@ void BatchNormForwardTraining(Handle& handle,
     }
     if(!xDesc.IsPacked())
     {
-        std::cerr << "Only fully packed tensors supported." << std::endl;
+        MIOPEN_LOG_E("Only fully packed tensors supported.");
         MIOPEN_THROW(miopenStatusBadParm);
     }
     if(xDesc.GetSize() < 3)
@@ -77,7 +78,7 @@ void BatchNormForwardTraining(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
-    if(miopen::CheckNumericsEnabled())
+    if(miopen::CheckNumericsEnabled() != 0)
     {
         miopen::checkNumericsInput(handle, xDesc, x);
         miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnScale);
@@ -172,9 +173,11 @@ void BatchNormForwardTraining(Handle& handle,
         std::string network_config =
             std::to_string(variant) + std::to_string(xgridsize) + std::to_string(ldsgcn) +
             std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
-            "rs" + std::to_string(resultsave) + std::to_string(resultrunning) + "type" +
-            std::to_string(bfp16parm) + std::to_string(bfp32parm) + std::to_string(in_nchw) +
-            std::to_string(single) + std::to_string(in_cstride);
+            "rs" + std::to_string(static_cast<int>(resultsave)) +
+            std::to_string(static_cast<int>(resultrunning)) + "type" +
+            std::to_string(static_cast<int>(bfp16parm)) +
+            std::to_string(static_cast<int>(bfp32parm)) + std::to_string(in_nchw) +
+            std::to_string(static_cast<int>(single)) + std::to_string(in_cstride);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
@@ -231,7 +234,7 @@ void BatchNormForwardTraining(Handle& handle,
             else
             {
 
-                std::string kernel_name  = "BatchNormFwdTrainSpatial";
+                std::string kernel_name  = "MIOpenBatchNormFwdTrainSpatial";
                 std::string program_name = "MIOpenBatchNormFwdTrainSpatial.cl";
 
                 vld.push_back(xlocalsize);
@@ -243,25 +246,23 @@ void BatchNormForwardTraining(Handle& handle,
                 vgd.push_back(zgridsize);
 
                 std::string parms =
-                    " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) + " -DMIOPEN_USE_FP32=" +
-                    std::to_string(bfp32parm) + " -DMIO_SAVE_MEAN_VARIANCE=" +
-                    std::to_string(resultsave) + " -DMIO_RUNNING_RESULT=" +
-                    std::to_string(resultrunning) + " -DMIO_BN_N=" + std::to_string(n) +
-                    " -DMIO_BN_C=" + std::to_string(c) + " -DMIO_BN_HW=" +
-                    std::to_string(in_cstride) + " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
-                    " -DMIO_BN_CHW=" + std::to_string(in_nstride) + " -DMIO_BN_NCHW=" +
-                    std::to_string(in_nchw) + " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) +
-                    " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" +
-                    std::to_string(variant) + " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
-                    " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" +
-                    std::to_string(zlocalsize);
+                    " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
+                    " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                    " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(static_cast<int>(resultsave)) +
+                    " -DMIO_RUNNING_RESULT=" + std::to_string(static_cast<int>(resultrunning)) +
+                    " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
+                    " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
+                    std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+                    " -DMIO_BN_NCHW=" + std::to_string(in_nchw) + " -DMIO_BN_LDS_SIZE=" +
+                    std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" + std::to_string(ldsgcn) +
+                    " -DMIO_BN_VARIANT=" + std::to_string(variant) + " -DMIO_BN_GRP0=" +
+                    std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                    " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-                std::cout << kernel_name << ":: ";
-                std::cout << algo_name << std::endl;
-                std::cout << parms << std::endl;
-                std::cout << network_config << std::endl;
-#endif
+                MIOPEN_LOG_I2(kernel_name << ":: " << algo_name);
+                MIOPEN_LOG_I2("..." << parms);
+                MIOPEN_LOG_I2("..." << network_config);
+
                 bnFwdTrainSelectSingle(handle,
                                        xDesc.GetType(),
                                        program_name,
@@ -363,27 +364,24 @@ void BatchNormForwardTraining(Handle& handle,
                 vgd.push_back(ygridsize);
                 vgd.push_back(zgridsize);
 
-                std::string kernel_name  = "BatchNormFwdTrainSpatial";
+                std::string kernel_name  = "MIOpenBatchNormFwdTrainSpatial";
                 std::string program_name = "MIOpenBatchNormFwdTrainSpatial.cl";
                 std::string parms =
-                    " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) + " -DMIOPEN_USE_FP32=" +
-                    std::to_string(bfp32parm) + " -DMIO_SAVE_MEAN_VARIANCE=" +
-                    std::to_string(resultsave) + " -DMIO_RUNNING_RESULT=" +
-                    std::to_string(resultrunning) + " -DMIO_BN_N=" + std::to_string(n) +
-                    " -DMIO_BN_C=" + std::to_string(c) + " -DMIO_BN_HW=" +
-                    std::to_string(in_cstride) + " -DMIO_BN_NHW=" + std::to_string(in_nhw) +
-                    " -DMIO_BN_CHW=" + std::to_string(in_nstride) + " -DMIO_BN_NCHW=" +
-                    std::to_string(in_nchw) + " -DMIO_BN_NGRPS=" +
+                    " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
+                    " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                    " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(static_cast<int>(resultsave)) +
+                    " -DMIO_RUNNING_RESULT=" + std::to_string(static_cast<int>(resultrunning)) +
+                    " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
+                    " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
+                    std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+                    " -DMIO_BN_NCHW=" + std::to_string(in_nchw) + " -DMIO_BN_NGRPS=" +
                     std::to_string(int(std::ceil(float(ygridsize) / ylocalsize))) +
                     " -DMIO_BN_LDS_SIZE=" + std::to_string(ldsnogcn) + " -DMIO_BN_LDSGCN_SIZE=" +
                     std::to_string(ldsgcn) + " -DMIO_BN_VARIANT=" + std::to_string(variant) +
                     " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
                     std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-                std::cout << kernel_name << ":: ";
-                std::cout << parms << std::endl;
-#endif
+                MIOPEN_LOG_I2(kernel_name << ":: " << parms);
 
                 bnFwdTrainSelectMulti(handle,
                                       xDesc.GetType(),
@@ -419,9 +417,11 @@ void BatchNormForwardTraining(Handle& handle,
         ygridsize             = segment * ylocalsize;
         std::string algo_name = "miopenBatchNormForwardTrainingPerActivation";
         std::string network_config =
-            std::to_string(bfp16parm) + std::to_string(bfp32parm) + std::to_string(xgridsize) +
+            std::to_string(static_cast<int>(bfp16parm)) +
+            std::to_string(static_cast<int>(bfp32parm)) + std::to_string(xgridsize) +
             std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
-            std::to_string(resultsave) + std::to_string(resultrunning) + std::to_string(in_nchw) +
+            std::to_string(static_cast<int>(resultsave)) +
+            std::to_string(static_cast<int>(resultrunning)) + std::to_string(in_nchw) +
             std::to_string(segment) + std::to_string(n) + std::to_string(in_cstride);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
@@ -486,27 +486,25 @@ void BatchNormForwardTraining(Handle& handle,
             vld.push_back(zlocalsize);
 
             std::string parms =
-                " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) + " -DMIOPEN_USE_FP32=" +
-                std::to_string(bfp32parm) + " -DMIO_SAVE_MEAN_VARIANCE=" +
-                std::to_string(resultsave) + " -DMIO_RUNNING_RESULT=" +
-                std::to_string(resultrunning) + " -DMIO_BN_N=" + std::to_string(n) +
-                " -DMIO_BN_C=" + std::to_string(c) + " -DMIO_BN_HW=" + std::to_string(in_cstride) +
-                " -DMIO_BN_NHW=" + std::to_string(in_nhw) + " -DMIO_BN_CHW=" +
-                std::to_string(in_nstride) + " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize) +
-                " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
-                std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) +
-                " -DMIO_BN_NCHW=" + std::to_string(in_nchw);
+                " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
+                " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                " -DMIO_SAVE_MEAN_VARIANCE=" + std::to_string(static_cast<int>(resultsave)) +
+                " -DMIO_RUNNING_RESULT=" + std::to_string(static_cast<int>(resultrunning)) +
+                " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
+                " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
+                std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+                " -DMIO_BN_LDS_SIZE=" + std::to_string(ylocalsize) + " -DMIO_BN_GRP0=" +
+                std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                " -DMIO_BN_GRP2=" + std::to_string(zlocalsize) + " -DMIO_BN_NCHW=" +
+                std::to_string(in_nchw);
 
             std::string program_name = "MIOpenBatchNormFwdTrainPerAct.cl";
-            std::string kernel_name  = "BatchNormFwdTrainPerActivation";
+            std::string kernel_name  = "MIOpenBatchNormFwdTrainPerActivation";
 
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-            std::cout << kernel_name << ":: ";
-            std::cout << parms << std::endl;
-            printf("No kernel found, adding kernel.\nxgridsize: %ld, ygridsize: %ld\n",
-                   xgridsize,
-                   ygridsize);
-#endif
+            MIOPEN_LOG_I2(kernel_name << ":: " << parms);
+            MIOPEN_LOG_I2("No kernel found, adding kernel.");
+            MIOPEN_LOG_I2("xgridsize: " << xgridsize << " ygridsize: " << ygridsize);
+
             if(resultsave && resultrunning)
             {
                 handle.AddKernel(
@@ -562,7 +560,7 @@ void BatchNormForwardTraining(Handle& handle,
         }
     } // end per-activation
 
-    if(miopen::CheckNumericsEnabled())
+    if(miopen::CheckNumericsEnabled() != 0)
     {
         miopen::checkNumericsOutput(handle, yDesc, y);
         miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultRunningMean);
@@ -589,7 +587,7 @@ void BatchNormForwardInference(Handle& handle,
                                ConstData_t estimatedVariance,
                                double epsilon)
 {
-    if(miopen::CheckNumericsEnabled())
+    if(miopen::CheckNumericsEnabled() != 0)
     {
         miopen::checkNumericsInput(handle, xDesc, x);
         miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnScale);
@@ -622,7 +620,7 @@ void BatchNormForwardInference(Handle& handle,
         if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
            !float_equal(*(static_cast<const float*>(beta)), 0))
         {
-            std::cerr << "Only alpha=1 and beta=0 is supported" << std::endl;
+            MIOPEN_LOG_E("Only alpha=1 and beta=0 is supported");
             MIOPEN_THROW(miopenStatusBadParm);
         }
 
@@ -650,13 +648,13 @@ void BatchNormForwardInference(Handle& handle,
         auto xgridsize = size_t(c);
         auto ygridsize = size_t(segment * ylocalsize);
 
-        std::string algo_name      = "miopenBatchNormalizationForwardInference";
-        std::string network_config = std::to_string(n) + std::to_string(in_cstride) +
-                                     std::to_string(in_nstride) + std::to_string(segment) + "dims" +
-                                     std::to_string(xgridsize) + std::to_string(ygridsize) +
-                                     std::to_string(xlocalsize) + std::to_string(ylocalsize) +
-                                     +"type" + std::to_string(bfp16parm) +
-                                     std::to_string(bfp32parm) + "mode" + std::to_string(bn_mode);
+        std::string algo_name = "miopenBatchNormalizationForwardInference";
+        std::string network_config =
+            std::to_string(n) + std::to_string(in_cstride) + std::to_string(in_nstride) +
+            std::to_string(segment) + "dims" + std::to_string(xgridsize) +
+            std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
+            +"type" + std::to_string(static_cast<int>(bfp16parm)) +
+            std::to_string(static_cast<int>(bfp32parm)) + "mode" + std::to_string(bn_mode);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
         if(!kernels.empty())
@@ -670,7 +668,7 @@ void BatchNormForwardInference(Handle& handle,
             size_t zlocalsize        = 1;
             size_t zgridsize         = 1;
             std::string program_name = "MIOpenBatchNormFwdInfer"; // build this up
-            std::string kernel_name  = "BatchNormFwdInfer";
+            std::string kernel_name  = "MIOpenBatchNormFwdInfer";
             if(bn_mode == miopenBNSpatial)
             { // SPATIAL kernels
                 program_name += "Spatial.cl";
@@ -683,11 +681,12 @@ void BatchNormForwardInference(Handle& handle,
             }
 
             std::string parms =
-                " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) + " -DMIOPEN_USE_FP32=" +
-                std::to_string(bfp32parm) + " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_HW=" +
-                std::to_string(in_cstride) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
-                " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
-                std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+                " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
+                " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_HW=" + std::to_string(in_cstride) +
+                " -DMIO_BN_CHW=" + std::to_string(in_nstride) + " -DMIO_BN_GRP0=" +
+                std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
             vld.push_back(xlocalsize);
             vld.push_back(ylocalsize);
@@ -696,20 +695,15 @@ void BatchNormForwardInference(Handle& handle,
             vgd.push_back(ygridsize);
             vgd.push_back(zgridsize);
 
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-            std::cout << kernel_name << ":: ";
-            std::cout << parms << std::endl;
-#endif
+            MIOPEN_LOG_I2(kernel_name << ":: " << parms);
+
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 x, y, estimatedMean, estimatedVariance, bnScale, bnBias, epsilon);
         }
     }
     else // Need to recalculated everything, let's just call training kernel in that case
     {
-
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-        std::cout << "Call to fwd train from forward inference:: ";
-#endif
+        MIOPEN_LOG_I2("Call to fwd train from forward inference:: ");
         BatchNormForwardTraining(handle,
                                  bn_mode,
                                  alpha,
@@ -728,7 +722,7 @@ void BatchNormForwardInference(Handle& handle,
                                  nullptr,
                                  nullptr);
     }
-    if(miopen::CheckNumericsEnabled())
+    if(miopen::CheckNumericsEnabled() != 0)
     {
         miopen::checkNumericsOutput(handle, yDesc, y);
     }
@@ -760,7 +754,7 @@ void BatchNormBackward(Handle& handle,
 #if(MIO_BN_TIME_EVERYTHING == 1)
     auto t_start = std::chrono::high_resolution_clock::now();
 #endif
-    if(miopen::CheckNumericsEnabled())
+    if(miopen::CheckNumericsEnabled() != 0)
     {
         miopen::checkNumericsInput(handle, xDesc, x);
         miopen::checkNumericsInput(handle, dyDesc, dy);
@@ -790,13 +784,13 @@ void BatchNormBackward(Handle& handle,
     if(!float_equal(*(static_cast<const float*>(alphaDataDiff)), 1.0) ||
        !float_equal(*(static_cast<const float*>(betaDataDiff)), 0))
     {
-        std::cerr << "Only alphaDataDiff=1 and betaDataDiff=0 is supported" << std::endl;
+        MIOPEN_LOG_E("Only alphaDataDiff=1 and betaDataDiff=0 is supported");
         MIOPEN_THROW(miopenStatusBadParm);
     }
     if(!float_equal(*(static_cast<const float*>(alphaParamDiff)), 1.0) ||
        !float_equal(*(static_cast<const float*>(betaParamDiff)), 0))
     {
-        std::cerr << "Only alphaParamDiff=1 and betaParamDiff=0 is supported" << std::endl;
+        MIOPEN_LOG_E("Only alphaParamDiff=1 and betaParamDiff=0 is supported");
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
@@ -854,7 +848,7 @@ void BatchNormBackward(Handle& handle,
         }
         else if(in_nhw < 33554432 && in_cstride > 512)
         {
-            variant    = 3;
+            variant    = (n >= 32) ? 1 : 3;
             ylocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
             xgridsize  = c;
             ygridsize  = ylocalsize;
@@ -885,9 +879,10 @@ void BatchNormBackward(Handle& handle,
         std::string network_config =
             std::to_string(variant) + std::to_string(xgridsize) + std::to_string(in_cstride) +
             std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
-            std::to_string(useSaved) + std::to_string(bfp16parm) + std::to_string(bfp32parm) +
-            std::to_string(in_nchw) + std::to_string(single) + std::to_string(c) +
-            std::to_string(ldsgcn);
+            std::to_string(static_cast<int>(useSaved)) +
+            std::to_string(static_cast<int>(bfp16parm)) +
+            std::to_string(static_cast<int>(bfp32parm)) + std::to_string(in_nchw) +
+            std::to_string(static_cast<int>(single)) + std::to_string(c) + std::to_string(ldsgcn);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
@@ -920,7 +915,7 @@ void BatchNormBackward(Handle& handle,
             {
 
                 std::string program_name = "MIOpenBatchNormBwdSpatial.cl";
-                std::string kernel_name  = "BatchNormBwdSpatial";
+                std::string kernel_name  = "MIOpenBatchNormBwdSpatial";
 
                 vld.push_back(xlocalsize);
                 vld.push_back(ylocalsize);
@@ -931,8 +926,9 @@ void BatchNormBackward(Handle& handle,
                 vgd.push_back(zgridsize);
 
                 std::string parms =
-                    " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) + " -DMIOPEN_USE_FP32=" +
-                    std::to_string(bfp32parm) + " -DMIO_BN_USESAVED=" + std::to_string(useSaved) +
+                    " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
+                    " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                    " -DMIO_BN_USESAVED=" + std::to_string(static_cast<int>(useSaved)) +
                     " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
                     " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
                     std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
@@ -942,10 +938,7 @@ void BatchNormBackward(Handle& handle,
                     std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
                     " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-                std::cout << kernel_name << ":: ";
-                std::cout << parms << std::endl;
-#endif
+                MIOPEN_LOG_I2(kernel_name << ":: " << parms);
 
                 bnBwdTrainSelectSingle(handle,
                                        xDesc.GetType(),
@@ -1031,10 +1024,11 @@ void BatchNormBackward(Handle& handle,
                 vgd.push_back(zgridsize);
 
                 std::string program_name = "MIOpenBatchNormBwdSpatial.cl";
-                std::string kernel_name  = "BatchNormBwdSpatial";
+                std::string kernel_name  = "MIOpenBatchNormBwdSpatial";
                 std::string parms =
-                    " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) + " -DMIOPEN_USE_FP32=" +
-                    std::to_string(bfp32parm) + " -DMIO_BN_USESAVED=" + std::to_string(useSaved) +
+                    " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
+                    " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                    " -DMIO_BN_USESAVED=" + std::to_string(static_cast<int>(useSaved)) +
                     " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
                     " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
                     std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
@@ -1045,10 +1039,7 @@ void BatchNormBackward(Handle& handle,
                     " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
                     std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
-#if(MIOPEN_BN_CPP_DEBUG == 1)
-                std::cout << kernel_name << ":: ";
-                std::cout << parms << std::endl;
-#endif
+                MIOPEN_LOG_I2(kernel_name << ":: " << parms);
 
                 bnBwdTrainSelectMulti(handle,
                                       xDesc.GetType(),
@@ -1086,12 +1077,13 @@ void BatchNormBackward(Handle& handle,
             useSaved = false;
         }
 
-        std::string algo_name      = "miopenBatchNormBackwardPropPerActivation";
-        std::string network_config = std::to_string(xDesc.GetType()) + std::to_string(xgridsize) +
-                                     std::to_string(ygridsize) + std::to_string(xlocalsize) +
-                                     std::to_string(ylocalsize) + std::to_string(useSaved) +
-                                     std::to_string(bfp16parm) + std::to_string(bfp32parm) +
-                                     std::to_string(in_nhw);
+        std::string algo_name = "miopenBatchNormBackwardPropPerActivation";
+        std::string network_config =
+            std::to_string(xDesc.GetType()) + std::to_string(xgridsize) +
+            std::to_string(ygridsize) + std::to_string(xlocalsize) + std::to_string(ylocalsize) +
+            std::to_string(static_cast<int>(useSaved)) +
+            std::to_string(static_cast<int>(bfp16parm)) +
+            std::to_string(static_cast<int>(bfp32parm)) + std::to_string(in_nhw);
 
         auto&& kernels = handle.GetKernels(algo_name, network_config);
 
@@ -1139,17 +1131,18 @@ void BatchNormBackward(Handle& handle,
             vgd.push_back(zgridsize);
 
             std::string program_name = "MIOpenBatchNormBwdPerAct.cl";
-            std::string kernel_name  = "BatchNormBwdPerActivation";
+            std::string kernel_name  = "MIOpenBatchNormBwdPerActivation";
 
             std::string parms =
-                " -DMIOPEN_USE_FP16=" + std::to_string(bfp16parm) + " -DMIOPEN_USE_FP32=" +
-                std::to_string(bfp32parm) + " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" +
-                std::to_string(c) + " -DMIO_BN_HW=" + std::to_string(in_cstride) +
-                " -DMIO_BN_NHW=" + std::to_string(in_nhw) + " -DMIO_BN_CHW=" +
-                std::to_string(in_nstride) + " -DMIO_BN_NCHW=" + std::to_string(in_nchw) +
-                " -DMIO_BN_NGRPS=" + std::to_string(int(std::ceil(float(ygridsize) / ylocalsize))) +
-                " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" +
-                std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
+                " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
+                " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_C=" + std::to_string(c) +
+                " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_NHW=" +
+                std::to_string(in_nhw) + " -DMIO_BN_CHW=" + std::to_string(in_nstride) +
+                " -DMIO_BN_NCHW=" + std::to_string(in_nchw) + " -DMIO_BN_NGRPS=" +
+                std::to_string(int(std::ceil(float(ygridsize) / ylocalsize))) + " -DMIO_BN_GRP0=" +
+                std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
+                " -DMIO_BN_GRP2=" + std::to_string(zlocalsize);
 
             if(useSaved)
             {
@@ -1185,7 +1178,7 @@ void BatchNormBackward(Handle& handle,
             }
         }
     }
-    if(miopen::CheckNumericsEnabled())
+    if(miopen::CheckNumericsEnabled() != 0)
     {
         miopen::checkNumericsOutput(handle, dxDesc, dx);
         miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnScaleDiff);

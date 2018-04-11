@@ -144,7 +144,7 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& params) 
 
     construction_params.comp_options =
         std::string("-DMLO_GRP_SZ=") +
-        std::to_string(static_cast<long long>(ocl_group_sz0 * ocl_group_sz1 * ocl_group_sz2)) +
+        std::to_string(static_cast<long long>(ocl_group_sz0) * ocl_group_sz1 * ocl_group_sz2) +
         std::string(" -DMLO_GRP_SZ0=") + std::to_string(static_cast<long long>(ocl_group_sz0)) +
         std::string(" -DMLO_GRP_SZ1=") + std::to_string(static_cast<long long>(ocl_group_sz1)) +
         std::string(" -DMLO_GRP_SZ2=") + std::to_string(static_cast<long long>(ocl_group_sz2)) +
@@ -195,11 +195,11 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ConvolutionContext& params) 
         std::to_string(
             static_cast<long long>(n_in_pix_vert)) // size of output processing group in 1 dim
         + std::string(" -DMLO_WEI_SZ=") +
-        std::to_string(static_cast<long long>(params.n_outputs * params.n_inputs *
-                                              params.kernel_size0 * params.kernel_size1)) +
+        std::to_string(static_cast<long long>(params.n_outputs) * params.n_inputs *
+                       params.kernel_size0 * params.kernel_size1) +
         std::string(" -DMLO_WEIGHTS_STRIDE=") +
-        std::to_string(static_cast<long long>(params.n_inputs * params.kernel_size0 *
-                                              params.kernel_size1)) //	weights stride
+        std::to_string(static_cast<long long>(params.n_inputs) * params.kernel_size0 *
+                       params.kernel_size1) //	weights stride
         + std::string(" -DMLO_N_STACKS=") +
         std::to_string(static_cast<long long>(n_stack_blocks)) // n of separate data stacks
         + std::string(" -DMLO_N_PROCS0=") +

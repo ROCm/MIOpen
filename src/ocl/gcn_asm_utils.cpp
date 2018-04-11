@@ -58,7 +58,7 @@ static int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostr
 std::string GetGcnAssemblerPathImpl()
 {
     const auto asm_path_env_p = miopen::GetStringEnv(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH{});
-    if(asm_path_env_p)
+    if(asm_path_env_p != nullptr)
     {
         return CleanupPath(asm_path_env_p);
     }
@@ -139,7 +139,7 @@ static int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostr
 
         if(redirect_stdout)
         {
-            while(!feof(pipe.get()))
+            while(feof(pipe.get()) == 0)
                 if(fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
                     *out << buffer.data();
         }
@@ -172,7 +172,7 @@ static std::string CleanupPath(const char* p)
     static const char bad[] = "!#$*;<>?@\\^`{|}";
     for(char* c = &path[0]; c < (&path[0] + path.length()); ++c)
     {
-        if(std::iscntrl(*c))
+        if(std::iscntrl(*c) != 0)
         {
             *c = '_';
             continue;
