@@ -1921,6 +1921,7 @@ struct verify_forward_train_lstm
         case(2): std::cout << "Cell state tensor failed verification." << std::endl; break;
         case(3): std::cout << "Weight tensor failed verification." << std::endl; break;
         case(4): std::cout << "Reserved space tensor failed verification." << std::endl; break;
+        default: break;
         }
     }
 };
@@ -2233,6 +2234,7 @@ struct verify_backward_data_lstm
         case(2): std::cout << "Hidden cell dcx tensor failed verification." << std::endl; break;
         case(3): std::cout << "Reserved Space tensor failed verification." << std::endl; break;
         case(4): std::cout << "Workspace space tensor failed verification." << std::endl; break;
+        default: break;
         }
     }
 };

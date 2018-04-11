@@ -187,7 +187,7 @@ struct ProblemDescription
         void Set(int forward)
         {
             assert(0 <= forward && forward <= 1);
-            v = forward ? Value::Forward : Value::Backward;
+            v = forward != 0 ? Value::Forward : Value::Backward;
         }
         template <typename T>
         void Set(T) = delete;
@@ -638,7 +638,8 @@ struct mlo_construct_direct2D
             _search_params.out_data_type      = data_type;
         }
 
-        _search_params.bias_sz = (_search_params.bias) ? _search_params.n_outputs * data_len : 0;
+        _search_params.bias_sz =
+            (_search_params.bias) != 0 ? _search_params.n_outputs * data_len : 0;
     }
 
     /*
@@ -671,7 +672,8 @@ struct mlo_construct_direct2D
         _search_params.top_sz             = size;
         _search_params.out_layout         = layout;
         _search_params.out_data_type      = data_type;
-        _search_params.bias_sz = (_search_params.bias) ? _search_params.n_outputs * data_len : 0;
+        _search_params.bias_sz =
+            (_search_params.bias) != 0 ? _search_params.n_outputs * data_len : 0;
     }
 
     /*
@@ -837,7 +839,10 @@ struct mlo_construct_direct2D
         params = _search_params;
     }
 
-    std::string db_path() const { return _db_path ? _db_path : _search_params.GetPerfDbPath(); }
+    std::string db_path() const
+    {
+        return _db_path != nullptr ? _db_path : _search_params.GetPerfDbPath();
+    }
 
     int mloConstructBwd() { return (0); }
     int mloConstructFwd() { return (0); }
@@ -1049,19 +1054,19 @@ struct mlo_construct_norm : mlo_construct_direct2D
     double _normK     = 0.0;
 };
 
-#define MLO_NEURON_PASTHRU 0                       // x
-#define MLO_NEURON_LOGISTIC MLO_NEURON_PASTHRU + 1 //	1 / (1 + e^-x)	//Sigmoid
-#define MLO_NEURON_TANH MLO_NEURON_LOGISTIC + 1    //	a * tanh( b * x)
-#define MLO_NEURON_RELU MLO_NEURON_TANH + 1        //	max(0, x)
-#define MLO_NEURON_BRELU MLO_NEURON_RELU + 1       //	min(a, max(0, x))
+#define MLO_NEURON_PASTHRU 0                         // x
+#define MLO_NEURON_LOGISTIC (MLO_NEURON_PASTHRU + 1) //	1 / (1 + e^-x)	//Sigmoid
+#define MLO_NEURON_TANH (MLO_NEURON_LOGISTIC + 1)    //	a * tanh( b * x)
+#define MLO_NEURON_RELU (MLO_NEURON_TANH + 1)        //	max(0, x)
+#define MLO_NEURON_BRELU (MLO_NEURON_RELU + 1)       //	min(a, max(0, x))
 #define MLO_NEURON_SOFTRELU \
-    MLO_NEURON_BRELU + 1                       //	log(1 + e^x)   // bonomial normal log likelihood
-#define MLO_NEURON_ABS MLO_NEURON_SOFTRELU + 1 //	abs(x)
-#define MLO_NEURON_SQUARE MLO_NEURON_ABS + 1   //	x^2
-#define MLO_NEURON_SQR MLO_NEURON_SQUARE + 1   //	sqr(x)
-#define MLO_NEURON_LINEAR MLO_NEURON_SQR + 1   //	a + b * x
-#define MLO_NEURON_POWER MLO_NEURON_LINEAR + 1 // (a + b * x ) ^power
-#define MLO_NEURON_TOTAL MLO_NEURON_POWER + 1
+    (MLO_NEURON_BRELU + 1)                       //	log(1 + e^x)   // bonomial normal log likelihood
+#define MLO_NEURON_ABS (MLO_NEURON_SOFTRELU + 1) //	abs(x)
+#define MLO_NEURON_SQUARE (MLO_NEURON_ABS + 1)   //	x^2
+#define MLO_NEURON_SQR (MLO_NEURON_SQUARE + 1)   //	sqr(x)
+#define MLO_NEURON_LINEAR (MLO_NEURON_SQR + 1)   //	a + b * x
+#define MLO_NEURON_POWER (MLO_NEURON_LINEAR + 1) // (a + b * x ) ^power
+#define MLO_NEURON_TOTAL (MLO_NEURON_POWER + 1)
 
 struct mlo_construct_neuron : mlo_construct_direct2D
 {

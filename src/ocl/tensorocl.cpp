@@ -64,7 +64,7 @@ static bool IsBitmapLeadingOnes(unsigned int& bitmap, int n_size, int first_not_
 
     for(int i = first_not_one; i >= 0; i--)
     {
-        bool is_one = (bitmap & (1 << (n_size - 1 - i)));
+        bool is_one = (bitmap & (1 << (n_size - 1 - i))) != 0u;
         leading_ones &= is_one;
     }
     return leading_ones;
@@ -401,7 +401,8 @@ void OpTensor4d(Handle& handle,
 
     // Special case for adding tensors in place
     size_t global_threads;
-    global_threads = (leading_ones == 1 && (d - 1) == 3) ? num_wg : num_wg * local_threads;
+    global_threads =
+        (static_cast<int>(leading_ones) == 1 && (d - 1) == 3) ? num_wg : num_wg * local_threads;
     global_threads = (global_threads < local_threads) ? local_threads : global_threads;
 
     const std::vector<size_t> vgd{global_threads, 1, 1};
@@ -431,7 +432,7 @@ void OpTensor4d(Handle& handle,
         auto miopen_alpha1 = as_float(*(static_cast<const float*>(alpha1)));
         auto miopen_beta   = as_float(*(static_cast<const float*>(beta)));
 
-        if(fwd_conv_bias)
+        if(fwd_conv_bias != 0)
         {
             network_config += std::to_string(incr_wg);
 
@@ -641,7 +642,7 @@ void OpTensor4d(Handle& handle,
         case 3: parms += "miopenMax"; break;
         }
 
-        if(fwd_conv_bias)
+        if(fwd_conv_bias != 0)
         {
             parms += " -DINCR_WG=" + std::to_string(incr_wg);
 
@@ -1462,6 +1463,7 @@ void SetTensor(
 
         break;
     }
+    default: assert(false);
     }
 }
 
@@ -1606,6 +1608,7 @@ void ScaleTensor(
 
         break;
     }
+    default: assert(false);
     }
 }
 
@@ -1789,6 +1792,7 @@ void CopyTensor(Handle& handle,
 
             break;
         }
+        default: assert(false);
         }
     }
     else
