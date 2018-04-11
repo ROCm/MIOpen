@@ -130,7 +130,6 @@ extern "C" miopenStatus_t miopenCreateFusionPlanForwardInference(const miopenHan
 	                                                             miopenFusionPlanDescriptor fusePlanDescr,
 	                                                             const miopenFusionDescriptor fuseDescr,
 	                                                             const miopenTensorDescriptor_t srcDesc,
-	                                                             const miopenTensorDescriptor_t dstDesc,
 	                                                            size_t* workSpaceSize)
 {
 
