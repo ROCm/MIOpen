@@ -340,14 +340,17 @@ typedef enum {
 typedef enum {
     miopenActivationPASTHRU  = 0, /*!< No activation, pass through the data */
     miopenActivationLOGISTIC = 1, /*!< Sigmoid function: \f$1 / (1 + e^{-x})\f$ */
-    miopenActivationTANH     = 2, /*!< Tanh activation \f$ \alpha * tanh( \beta * x) \f$ */
+    miopenActivationTANH     = 2, /*!< Tanh activation \f$ \beta * tanh( \alpha * x) \f$ */
     miopenActivationRELU     = 3, /*!< Rectified Linear Unit \f$ max(0, x) \f$ */
     miopenActivationSOFTRELU = 4, /*!< \f$log(1 + e^x)\f$ */
     miopenActivationABS      = 5, /*!< Absolute value \f$abs(x)\f$ */
-    miopenActivationPOWER = 6, /*!< Scaled and shifted power \f$(\alpha + \beta * x)^{power}\f$ */
-    miopenActivationCLIPPEDRELU = 7, /*!< Clipped Rectified Linear Unit \f$  \f$ */
-    miopenActivationLEAKYRELU   = 8, /*!< Leaky Rectified Linear Unit \f$  \f$ */
-    miopenActivationELU         = 9, /*!< Exponential Rectified Linear Unit \f$  \f$ */
+    miopenActivationPOWER = 6, /*!< Scaled and shifted power \f$(\alpha + \beta * x)^{gamma}\f$ */
+    miopenActivationCLIPPEDRELU =
+        7, /*!< Clipped Rectified Linear Unit \f$ min(alpha, max(0,x)) \f$ */
+    miopenActivationLEAKYRELU =
+        8, /*!< Leaky Rectified Linear Unit \f$ \alpha * x | x <= 0; x | x > 0 \f$ */
+    miopenActivationELU =
+        9, /*!< Exponential Rectified Linear Unit \f$ \alpha * x | x <= 0; x | x > 0 \f$ */
 } miopenActivationMode_t;
 
 /** @addtogroup tensor
