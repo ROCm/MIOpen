@@ -311,7 +311,7 @@ template <typename Tgpu, typename Tref>
 int ActivationDriver<Tgpu, Tref>::VerifyForward()
 {
 
-    const Tref allowedEps = (1 << 2);
+    const Tref allowedEps = 1e-10;
     miopenActivationMode_t v_mode;
     double v_Alpha;
     double v_Beta;
@@ -345,7 +345,7 @@ template <typename Tgpu, typename Tref>
 int ActivationDriver<Tgpu, Tref>::VerifyBackward()
 {
 
-    const Tref allowedEps = (1 << 2);
+    const Tref allowedEps = 1e-6;
     miopenActivationMode_t v_mode;
     double v_Alpha;
     double v_Beta;
