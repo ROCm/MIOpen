@@ -223,7 +223,7 @@ struct activation_driver : test_driver
                      return (miopen::float_equal(divisor, 0)) ? 0 : gamma * beta * y / divisor;
                  });
         add_mode(miopenActivationCLIPPEDRELU,
-                 [=](double x) { return std::min(alpha, std::max((double)0, x)); },
+                 [=](double x) { return std::min(alpha, std::max(double(0), x)); },
                  [=](double dy, double x, double) { return (x > 0 && x < alpha) ? dy : 0; });
         add_mode(miopenActivationLEAKYRELU,
                  [=](double x) { return (x > 0) ? x : x * alpha; },
