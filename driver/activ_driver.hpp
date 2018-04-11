@@ -322,8 +322,8 @@ int ActivationDriver<Tgpu, Tref>::VerifyForward()
     int match = 1;
     match     = mloNeuronForwardRunHostAndVerify<Tgpu, Tref>(v_mode,
                                                          static_cast<Tref>(v_Gamma),
-                                                         static_cast<Tref>(v_Alpha),
                                                          static_cast<Tref>(v_Beta),
+                                                         static_cast<Tref>(v_Alpha),
                                                          in.size(),
                                                          in.data(),
                                                          out.data(),
@@ -356,8 +356,8 @@ int ActivationDriver<Tgpu, Tref>::VerifyBackward()
     int match = 1;
     match     = mloNeuronBackwardRunHostAndVerify<Tgpu, Tref>(v_mode,
                                                           static_cast<Tref>(v_Gamma),
-                                                          static_cast<Tref>(v_Alpha),
                                                           static_cast<Tref>(v_Beta),
+                                                          static_cast<Tref>(v_Alpha),
                                                           dinhost.size(),
                                                           in.data(),
                                                           out.data(),

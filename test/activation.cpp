@@ -204,7 +204,7 @@ struct activation_driver : test_driver
                 [=](double x) { return beta * std::tanh(alpha * x); }, 
                 [=](double dy, double, double y) { return dy * alpha * (beta - y * y / beta); });
         add_mode(miopenActivationRELU,
-                [=](double x) { return (x > 0) ? x : x * beta; },
+                [=](double x) { return (x > 0) ? x : 0; },
                 [=](double dy, double x, double) { return (x > 0) ? dy : 0; });
         add_mode(miopenActivationSOFTRELU,
                 [=](double x) { return std::log1p(std::exp(x)); },
