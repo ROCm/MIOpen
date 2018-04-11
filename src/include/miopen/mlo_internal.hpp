@@ -1060,7 +1060,7 @@ struct mlo_construct_neuron : mlo_construct_direct2D
     {
         _neuron_type = 0;
         _gamma       = 0;
-        _beta       = 1;
+        _beta        = 1;
         _alpha       = 0;
     }
 
@@ -1068,7 +1068,7 @@ struct mlo_construct_neuron : mlo_construct_direct2D
     {
         _neuron_type = neuron_type;
         _gamma       = gamma;
-        _beta       = beta;
+        _beta        = beta;
         _alpha       = alpha;
     }
 
@@ -1076,7 +1076,7 @@ struct mlo_construct_neuron : mlo_construct_direct2D
     {
         neuron_type = _neuron_type;
         gamma       = _gamma;
-        beta       = _beta;
+        beta        = _beta;
         alpha       = _alpha;
     }
 
