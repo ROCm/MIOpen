@@ -38,8 +38,6 @@
 
 #include <miopen/float_equal.hpp>
 
-#include "calcerr.hpp"
-
 ////////////////////////////////////////////////////////////
 //
 ///////////////////////////////////////////////////////////
@@ -59,6 +57,12 @@
 #endif
 
 const float kBNLL_THRESHOLD = 50.;
+
+template<typename T>
+T calculate_relative_error(T uref, T u)
+{
+    return std::abs(u - uref) / std::max(std::numeric_limits<T>::epsilon(),std::abs(uref));
+}
 
 template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
           typename _Tcheck /* the data type used in CPU checkings (usually double) */>
@@ -124,7 +128,7 @@ int mloNeuronForwardRunHostAndVerify(int neuron_type,
     {
         _Tcheck c_val = c_res[i];
         _Tcheck g_val = static_cast<_Tcheck>(top_ptr[i]);
-        double err    = CalcErr(c_val, g_val);
+        double err    = calculate_relative_error(c_val, g_val);
 
         if(err > allowedEps || std::isnan(c_val) || std::isnan(g_val) || !std::isfinite(c_val) ||
            !std::isfinite(g_val))
@@ -228,7 +232,7 @@ int mloNeuronBackwardRunHostAndVerify(int neuron_type,
     {
         _Tcheck c_val = bot_df_cpu[i];
         _Tcheck g_val = static_cast<_Tcheck>(bot_df_ptr[i]);
-        double err    = CalcErr(c_val, g_val);
+        double err    = calculate_relative_error(c_val, g_val);
 
         if(err > allowedEps || std::isnan(c_val) || std::isnan(g_val))
         {
