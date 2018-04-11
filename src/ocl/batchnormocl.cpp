@@ -234,7 +234,7 @@ void BatchNormForwardTraining(Handle& handle,
             else
             {
 
-                std::string kernel_name  = "BatchNormFwdTrainSpatial";
+                std::string kernel_name  = "MIOpenBatchNormFwdTrainSpatial";
                 std::string program_name = "MIOpenBatchNormFwdTrainSpatial.cl";
 
                 vld.push_back(xlocalsize);
@@ -364,7 +364,7 @@ void BatchNormForwardTraining(Handle& handle,
                 vgd.push_back(ygridsize);
                 vgd.push_back(zgridsize);
 
-                std::string kernel_name  = "BatchNormFwdTrainSpatial";
+                std::string kernel_name  = "MIOpenBatchNormFwdTrainSpatial";
                 std::string program_name = "MIOpenBatchNormFwdTrainSpatial.cl";
                 std::string parms =
                     " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
@@ -499,7 +499,7 @@ void BatchNormForwardTraining(Handle& handle,
                 std::to_string(in_nchw);
 
             std::string program_name = "MIOpenBatchNormFwdTrainPerAct.cl";
-            std::string kernel_name  = "BatchNormFwdTrainPerActivation";
+            std::string kernel_name  = "MIOpenBatchNormFwdTrainPerActivation";
 
             MIOPEN_LOG_I2(kernel_name << ":: " << parms);
             MIOPEN_LOG_I2("No kernel found, adding kernel.");
@@ -668,7 +668,7 @@ void BatchNormForwardInference(Handle& handle,
             size_t zlocalsize        = 1;
             size_t zgridsize         = 1;
             std::string program_name = "MIOpenBatchNormFwdInfer"; // build this up
-            std::string kernel_name  = "BatchNormFwdInfer";
+            std::string kernel_name  = "MIOpenBatchNormFwdInfer";
             if(bn_mode == miopenBNSpatial)
             { // SPATIAL kernels
                 program_name += "Spatial.cl";
@@ -848,7 +848,7 @@ void BatchNormBackward(Handle& handle,
         }
         else if(in_nhw < 33554432 && in_cstride > 512)
         {
-            variant    = 3;
+            variant    = (n >= 32) ? 1 : 3;
             ylocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
             xgridsize  = c;
             ygridsize  = ylocalsize;
@@ -915,7 +915,7 @@ void BatchNormBackward(Handle& handle,
             {
 
                 std::string program_name = "MIOpenBatchNormBwdSpatial.cl";
-                std::string kernel_name  = "BatchNormBwdSpatial";
+                std::string kernel_name  = "MIOpenBatchNormBwdSpatial";
 
                 vld.push_back(xlocalsize);
                 vld.push_back(ylocalsize);
@@ -1024,7 +1024,7 @@ void BatchNormBackward(Handle& handle,
                 vgd.push_back(zgridsize);
 
                 std::string program_name = "MIOpenBatchNormBwdSpatial.cl";
-                std::string kernel_name  = "BatchNormBwdSpatial";
+                std::string kernel_name  = "MIOpenBatchNormBwdSpatial";
                 std::string parms =
                     " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
                     " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
@@ -1131,7 +1131,7 @@ void BatchNormBackward(Handle& handle,
             vgd.push_back(zgridsize);
 
             std::string program_name = "MIOpenBatchNormBwdPerAct.cl";
-            std::string kernel_name  = "BatchNormBwdPerActivation";
+            std::string kernel_name  = "MIOpenBatchNormBwdPerActivation";
 
             std::string parms =
                 " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
