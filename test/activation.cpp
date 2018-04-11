@@ -229,7 +229,7 @@ struct activation_driver : test_driver
                  [=](double x) { return (x > 0) ? x : x * alpha; },
                  [=](double dy, double, double) { return std::max(double(0), dy); });
         add_mode(miopenActivationELU,
-                 [=](double x) { return (x > 0) ? x : alpha * (std::exp(x) - 1); },
+                 [=](double x) { return (x > 0) ? x : alpha * std::expm1(x); },
                  [=](double dy, double x, double y) { return dy * ((x > 0) ? 1 : y + alpha); });
         add(input, "input", get_input_tensor());
         add(alpha, "alpha");
