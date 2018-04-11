@@ -350,7 +350,8 @@ typedef enum {
     miopenActivationLEAKYRELU =
         8, /*!< Leaky Rectified Linear Unit \f$ \alpha * x | x <= 0; x | x > 0 \f$ */
     miopenActivationELU =
-        9, /*!< Exponential Rectified Linear Unit \f$ \alpha * (e^{x} - 1) | x <= 0; x | x > 0 \f$ */
+        9, /*!< Exponential Rectified Linear Unit \f$ \alpha * (e^{x} - 1) | x <= 0; x | x > 0 \f$
+              */
 } miopenActivationMode_t;
 
 /** @addtogroup tensor
