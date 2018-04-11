@@ -115,7 +115,7 @@ int mloNeuronForwardRunHostAndVerify(int neuron_type,
         f = [=](_Tcheck x) { return (x > 0) ? x : x * alpha; };
         break;
     case MLO_NEURON_ELU: // alpah * (exp(x)-1) | x<=0; x | x>0
-        f = [=](_Tcheck x) { return (x > 0) ? x : alpha * (std::exp(x) - 1); };
+        f = [=](_Tcheck x) { return (x > 0) ? x : alpha * std::expm1(x); };
         break;
     default: printf("ERROR: unknown neuron type: %d\n", neuron_type); break;
     }
