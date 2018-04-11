@@ -95,17 +95,17 @@
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
-__kernel void BatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
-                                             const __global _FLOAT* dy_in,
-                                             unsigned int N,
-                                             unsigned int in_nstride,
-                                             unsigned int in_cstride,
-                                             __global _FLOAT* dx_out,
-                                             const __global _FLOAT* scale,
-                                             __global _FLOAT* delta_scale,
-                                             __global _FLOAT* delta_bias,
-                                             const __global _FLOAT* savedMean,
-                                             const __global _FLOAT* savedInvVariance)
+__kernel void MIOpenBatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
+                                                   const __global _FLOAT* dy_in,
+                                                   unsigned int N,
+                                                   unsigned int in_nstride,
+                                                   unsigned int in_cstride,
+                                                   __global _FLOAT* dx_out,
+                                                   const __global _FLOAT* scale,
+                                                   __global _FLOAT* delta_scale,
+                                                   __global _FLOAT* delta_bias,
+                                                   const __global _FLOAT* savedMean,
+                                                   const __global _FLOAT* savedInvVariance)
 {
 
     int xgid    = get_global_id(0);
@@ -168,16 +168,16 @@ __kernel void BatchNormBwdPerActivationSaved(const __global _FLOAT* x_in,
     } // end for(img_offset) //image mini_batch is processed
 }
 
-__kernel void BatchNormBwdPerActivation(const __global _FLOAT* x_in,
-                                        const __global _FLOAT* dy_in,
-                                        unsigned int N,
-                                        unsigned int in_nstride,
-                                        unsigned int in_cstride,
-                                        __global _FLOAT* dx_out,
-                                        const __global _FLOAT* scale,
-                                        __global _FLOAT* delta_scale,
-                                        __global _FLOAT* delta_bias,
-                                        double epsilon)
+__kernel void MIOpenBatchNormBwdPerActivation(const __global _FLOAT* x_in,
+                                              const __global _FLOAT* dy_in,
+                                              unsigned int N,
+                                              unsigned int in_nstride,
+                                              unsigned int in_cstride,
+                                              __global _FLOAT* dx_out,
+                                              const __global _FLOAT* scale,
+                                              __global _FLOAT* delta_scale,
+                                              __global _FLOAT* delta_bias,
+                                              double epsilon)
 {
 
     int xgid    = get_global_id(0);
