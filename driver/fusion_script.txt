@@ -1,0 +1,2 @@
+conv -n 1 -c 16 -H 16 -W 16 -x 1 -y 1 -p 0 -q 0 -u 2 -v 2
+bnorm -A 0.01 -B 0.
