@@ -129,7 +129,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
     int wei_len = (bi * (in_h + hy_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
     if(biased)
     {
-        int in_bias = inputMode == 1 ? 1 : 2;
+        int in_bias = 2;
         wei_len += (bi * in_bias + (numlayer - 1) * bi * 2) * hy_h;
     }
 
@@ -162,6 +162,19 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                         {
                             hid_state.at(hid_shift + bs * hy_stride + hy_h + h) +=
                                 in_state.at(bs * in_stride + h);
+                        }
+                    }
+                }
+
+                // from bias
+                if(biased)
+                {
+                    for(int bs = 0; bs < batch_n; bs++)
+                    {
+                        for(int h = 0; h < hy_stride; h++)
+                        {
+                            hid_state.at(hid_shift + bs * hy_stride + h) +=
+                                wei.at(wei_shift_bias + h);
                         }
                     }
                 }
@@ -226,9 +239,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
             // from bias
             if(biased)
             {
-                int wei_shift_bias_temp =
-                    (inputMode == 1) ? (wei_shift_bias + bi * hy_h + bi * (li - 1) * 2 * hy_h)
-                                     : (wei_shift_bias + bi * li * 2 * hy_h);
+                int wei_shift_bias_temp = wei_shift_bias + bi * li * 2 * hy_h;
 
                 for(int bs = 0; bs < batch_n; bs++)
                 {
@@ -278,9 +289,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                     // from bias
                     if(biased)
                     {
-                        int wei_shift_bias_temp = (inputMode == 1)
-                                                      ? (wei_shift_bias + bi * li * 2 * hy_h)
-                                                      : (wei_shift_bias + bi * (li * 2 + 1) * hy_h);
+                        int wei_shift_bias_temp = wei_shift_bias + bi * (li * 2 + 1) * hy_h;
 
                         for(int bs = 0; bs < in_n[ti]; bs++)
                         {
@@ -315,9 +324,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                         // from bias
                         if(biased)
                         {
-                            int wei_shift_bias_temp =
-                                (inputMode == 1) ? (wei_shift_bias + bi * li * 2 * hy_h)
-                                                 : (wei_shift_bias + bi * (li * 2 + 1) * hy_h);
+                            int wei_shift_bias_temp = wei_shift_bias + bi * (li * 2 + 1) * hy_h;
 
                             for(int bs = 0; bs < in_n.at(seqLength - 1 - ti); bs++)
                             {
@@ -355,9 +362,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                 // from bias
                 if(biased)
                 {
-                    int wei_shift_bias_temp = (inputMode == 1)
-                                                  ? (wei_shift_bias + bi * li * 2 * hy_h)
-                                                  : (wei_shift_bias + bi * (li * 2 + 1) * hy_h);
+                    int wei_shift_bias_temp = wei_shift_bias + bi * (li * 2 + 1) * hy_h;
 
                     for(int bs = 0; bs < in_n[ti]; bs++)
                     {
@@ -397,9 +402,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                         // from bias
                         if(biased)
                         {
-                            int wei_shift_bias_temp =
-                                (inputMode == 1) ? (wei_shift_bias + bi * li * 2 * hy_h)
-                                                 : (wei_shift_bias + bi * (li * 2 + 1) * hy_h);
+                            int wei_shift_bias_temp = wei_shift_bias + bi * (li * 2 + 1) * hy_h;
 
                             for(int bs = in_n.at(seqLength - ti); bs < in_n.at(seqLength - 1 - ti);
                                 bs++)
@@ -435,9 +438,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                     // from bias
                     if(biased)
                     {
-                        int wei_shift_bias_temp = (inputMode == 1)
-                                                      ? (wei_shift_bias + bi * li * 2 * hy_h)
-                                                      : (wei_shift_bias + bi * (li * 2 + 1) * hy_h);
+                        int wei_shift_bias_temp = wei_shift_bias + bi * (li * 2 + 1) * hy_h;
 
                         for(int bs = 0; bs < in_n.at(seqLength - ti); bs++)
                         {
@@ -613,7 +614,7 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
     int wei_len = (bi * (in_h + hy_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
     if(biased)
     {
-        int in_bias = (inputMode == 1) ? 1 : 2;
+        int in_bias = 2;
         wei_len += (bi * in_bias + (numlayer - 1) * bi * 2) * hy_h;
     }
 
@@ -965,7 +966,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
     int wei_shift_bias = wei_len;
     if(biased)
     {
-        int in_bias = inputMode == 1 ? 1 : 2;
+        int in_bias = 2;
         wei_len += (bi * in_bias + (numlayer - 1) * bi * 2) * hy_h;
     }
 
@@ -997,15 +998,14 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
                                0,
                                1,
                                1);
-
-                if(biased)
+            }
+            if(biased)
+            {
+                for(int h = 0; h < hy_stride; h++)
                 {
-                    for(int h = 0; h < hy_stride; h++)
+                    for(int w = 0; w < batch_n; w++)
                     {
-                        for(int w = 0; w < batch_n; w++)
-                        {
-                            dwei_state.at(wei_shift_bias + h) += wkspace.at(w * hy_stride + h);
-                        }
+                        dwei_state.at(wei_shift_bias + h) += wkspace.at(w * hy_stride + h);
                     }
                 }
             }
@@ -1036,9 +1036,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 
             if(biased)
             {
-                wei_shift = (inputMode == 1)
-                                ? (wei_shift_bias + bi * hy_h + (li - 1) * bi * 2 * hy_h)
-                                : (wei_shift_bias + li * bi * 2 * hy_h);
+                wei_shift = wei_shift_bias + li * bi * 2 * hy_h;
 
                 for(int h = 0; h < hy_stride; h++)
                 {
@@ -1087,9 +1085,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 
                     if(biased)
                     {
-                        int bias_shift = (inputMode == 1)
-                                             ? (wei_shift_bias + li * bi * 2 * hy_h)
-                                             : (wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h);
+                        int bias_shift = wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h;
 
                         for(int h = 0; h < hy_h; h++)
                         {
@@ -1126,9 +1122,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 
                 if(biased)
                 {
-                    int bias_shift = (inputMode == 1)
-                                         ? (wei_shift_bias + li * bi * 2 * hy_h)
-                                         : (wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h);
+                    int bias_shift = wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h;
 
                     for(int h = 0; h < hy_h; h++)
                     {
@@ -1167,10 +1161,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 
                         if(biased)
                         {
-                            int bias_shift =
-                                (inputMode == 1)
-                                    ? (wei_shift_bias + li * bi * 2 * hy_h)
-                                    : (wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h);
+                            int bias_shift = wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h;
 
                             for(int h = 0; h < hy_h; h++)
                             {
@@ -1208,10 +1199,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 
                         if(biased)
                         {
-                            int bias_shift =
-                                (inputMode == 1)
-                                    ? (wei_shift_bias + li * bi * 2 * hy_h)
-                                    : (wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h);
+                            int bias_shift = wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h;
 
                             for(int h = 0; h < hy_h; h++)
                             {
@@ -1246,9 +1234,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 
                     if(biased)
                     {
-                        int bias_shift = (inputMode == 1)
-                                             ? (wei_shift_bias + li * bi * 2 * hy_h)
-                                             : (wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h);
+                        int bias_shift = wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h;
 
                         for(int h = 0; h < hy_h; h++)
                         {
