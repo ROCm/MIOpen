@@ -182,7 +182,7 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
     {
         std::string s;
         const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3U_PERF_VALS{});
-        if(p_asciz)
+        if(p_asciz != nullptr)
         {
             s = std::string(p_asciz);
             if(!s.empty()) // else nothing to parse.

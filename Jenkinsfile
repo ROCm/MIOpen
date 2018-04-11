@@ -72,7 +72,7 @@ def rocmnode(body) {
 }
 
 // Static checks
-rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
+rocmtest opencl_tidy: rocmnode('rocmtest') { cmake_build ->
     stage('Clang Tidy') {
         sh '''
             rm -rf build
@@ -82,7 +82,7 @@ rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
             make -j8 -k analyze
         '''
     }
-}, format: rocmnode('rocm') { cmake_build ->
+}, format: rocmnode('rocmtest') { cmake_build ->
     stage('Clang Format') {
         sh '''
             find . -iname \'*.h\' \
@@ -96,7 +96,7 @@ rocmtest opencl_tidy: rocmnode('rocm') { cmake_build ->
             | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-3.8 -style=file {} | diff - {}\'
         '''
     }
-}, hip_tidy: rocmnode('rocm') { cmake_build ->
+}, hip_tidy: rocmnode('rocmtest') { cmake_build ->
     stage('Hip Tidy') {
         sh '''
             rm -rf build

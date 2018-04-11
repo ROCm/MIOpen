@@ -57,7 +57,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 1.3.0)
+rocm_setup_version(VERSION 1.3.1)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
@@ -222,9 +222,7 @@ enable_clang_tidy(
         -hicpp-use-override
         -llvm-header-guard
         -llvm-include-order
-        -misc-macro-parentheses
         -misc-misplaced-const
-        -misc-misplaced-widening-cast
         -modernize-pass-by-value
         -modernize-use-default-member-init
         -modernize-use-equals-default
@@ -232,9 +230,6 @@ enable_clang_tidy(
         -performance-unnecessary-value-param
         -readability-braces-around-statements
         -readability-else-after-return
-        -readability-implicit-bool-cast
-        -readability-implicit-bool-conversion
-        -readability-misleading-indentation
         -readability-named-parameter
         ${CLANG_TIDY_CHECKS}
     ERRORS
@@ -260,8 +255,6 @@ enable_cppcheck(
         passedByValue
         # preprocessorErrorDirective
         unusedStructMember
-        # TODO: Try to reenable this without needing inline suppressions
-        leakReturnValNotUsed
         # Ignore initializer lists in the tests
         useInitializationList:*test/*.cpp
         *:*.cl
