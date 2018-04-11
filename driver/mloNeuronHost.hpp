@@ -93,7 +93,7 @@ int mloNeuronForwardRunHostAndVerify(int neuron_type,
         f = [=](_Tcheck x) { return beta * std::tanh(alpha * x); };
         break;
     case MLO_NEURON_RELU: //	max(0, x)
-        f = [=](_Tcheck x) { return (x > 0) ? x : x * beta; };
+        f = [=](_Tcheck x) { return (x > 0) ? x : 0; };
         break;
     case MLO_NEURON_SOFTRELU: //	log(1 + e^x)   // bonomial normal log likelihood
         f = [=](_Tcheck x) { return std::log1p(std::exp(x)); };
@@ -212,7 +212,7 @@ int mloNeuronBackwardRunHostAndVerify(int neuron_type,
         f = [=](_Tcheck dy, _Tcheck x, _Tcheck) { return (x > 0 && x < alpha) ? dy : 0; };
         break;
     case MLO_NEURON_LEAKY_RELU:  // alpha * x | x<=0; x | x>0
-        f = [=](_Tcheck dy, _Tcheck, _Tcheck) { return std::max(_Tcheck(0), dy); };
+        f = [=](_Tcheck dy, _Tcheck x, _Tcheck) { return dy * ((x > 0) ? 1 : alpha); };
         break;
     case MLO_NEURON_ELU:  // alpah * (exp(x)-1) | x<=0; x | x>0
         f = [=](_Tcheck dy, _Tcheck x, _Tcheck y) { return dy * ((x > 0)? 1 : y + alpha); };
@@ -226,8 +226,8 @@ int mloNeuronBackwardRunHostAndVerify(int neuron_type,
 
     for(size_t i = 0; i < size && match; ++i)
     {
-        _Tcheck c_val = static_cast<_Tgpu>(bot_df_cpu[i]);
-        _Tcheck g_val = static_cast<_Tgpu>(bot_df_ptr[i]);
+        _Tcheck c_val = bot_df_cpu[i];
+        _Tcheck g_val = static_cast<_Tcheck>(bot_df_ptr[i]);
         double err    = CalcErr(c_val, g_val);
 
         if(err > allowedEps || std::isnan(c_val) || std::isnan(g_val))
