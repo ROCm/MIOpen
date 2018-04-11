@@ -1941,7 +1941,6 @@ miopenSetFusionDescriptor(
 * @param fusePlanDescr  fused plan descriptor (output)
 * @param fuseDescr      operational sub-graph descriptor (input)
 * @param srcDesc        sub-graph source tensor descriptor(input)
-* @param dstDesc        sub-graph dst tensor descriptor (input)
 * @param workSpaceSize  pointer to workSpaceSize (output)
 *
 * @return           miopenStatus_t
@@ -1953,7 +1952,6 @@ miopenCreateFusionPlanForwardInference(
 	miopenFusionPlanDescriptor fusePlanDescr,
 	const miopenFusionDescriptor fuseDescr,
 	const miopenTensorDescriptor_t srcDesc,
-	const miopenTensorDescriptor_t dstDesc,
 	size_t* workSpaceSize
 );
 
