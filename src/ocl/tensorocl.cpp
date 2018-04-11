@@ -160,7 +160,8 @@ void OpTensor3d(Handle& handle,
                        miopen_beta,
                        long(Aoffset),
                        long(Boffset),
-                       long(Coffset));
+                       long(Coffset),
+                       int(clens[1]));
 
                 return;
             }
@@ -254,8 +255,8 @@ void OpTensor3d(Handle& handle,
                 parms += " -DBIAS";
             }
 
-            num_wg_orig = num_wg = clens[1];
-            num_wg               = num_wg > max_num_wg ? max_num_wg : num_wg;
+            num_wg = clens[1];
+            num_wg = num_wg > max_num_wg ? max_num_wg : num_wg;
             parms += " -DMAX_NUM_WG=" + std::to_string(max_num_wg);
 
             const std::vector<size_t> vgd1{MAP_RD, static_cast<size_t>(num_wg), 1};
@@ -274,7 +275,7 @@ void OpTensor3d(Handle& handle,
                 long(Aoffset),
                 long(Boffset),
                 long(Coffset),
-                num_wg_orig);
+                int(clens[1]));
         }
         else
         {
