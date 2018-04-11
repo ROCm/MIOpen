@@ -77,7 +77,7 @@ RUN ln -s $PREFIX /opt/rocm/hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 
 # Install cppcheck
-RUN cget -p $PREFIX install danmar/cppcheck@94048d93f6982cca72aff91e10a377cc907ca0d6
+RUN cget -p $PREFIX install danmar/cppcheck@9db64ca93418da3ffd730dc8f7d2e364b7b30b31
 
 # Install hip
 RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@852d5ae46ce1f62f4c5fdab89445d60f7464d965
