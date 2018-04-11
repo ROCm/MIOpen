@@ -727,11 +727,17 @@ __kernel void Op3dTensorGeneric(global MIOPEN_TYPE* a,
 __kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
                              const int a_nstride,
                              const global MIOPEN_TYPE* b,
+#ifdef BIAS
+                             UNUSED
+#endif
                              const int b_nstride,
                              global MIOPEN_TYPE* c,
                              const int c_nstride,
                              const MIOPEN_TYPE alpha0,
                              const MIOPEN_TYPE alpha1,
+#ifndef BETA
+                             UNUSED
+#endif
                              const MIOPEN_TYPE beta,
                              const long Aoffset,
                              const long Boffset,
@@ -741,9 +747,12 @@ __kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
     int gid0 = get_global_id(0);
     int gid1 = get_global_id(1);
 
-#ifdef BIAS
-    int b_index = gid0 * RD_BLCK;
+    MIOPEN_TYPE a_dat[RD_BLCK];
     MIOPEN_TYPE b_dat[RD_BLCK];
+    MIOPEN_TYPE c_dat[RD_BLCK];
+
+#ifdef BIAS
+    int b_index          = gid0 * RD_BLCK;
     *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + Boffset + b_index));
 #endif
 
@@ -752,17 +761,13 @@ __kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
         int a_index = gid1 * a_nstride + gid0 * RD_BLCK;
         int c_index = gid1 * c_nstride + gid0 * RD_BLCK;
 
-        MIOPEN_TYPE a_dat[RD_BLCK];
-        MIOPEN_TYPE c_dat[RD_BLCK];
-
         *((READ_TYPE*)a_dat) = *((const global READ_TYPE*)(a + Aoffset + a_index));
 #ifdef BETA
         *((READ_TYPE*)c_dat) = *((const global READ_TYPE*)(c + Coffset + c_index));
 #endif
 
 #ifndef BIAS
-        int b_index = gid1 * b_nstride + gid0 * RD_BLCK;
-        MIOPEN_TYPE b_dat[RD_BLCK];
+        int b_index          = gid1 * b_nstride + gid0 * RD_BLCK;
         *((READ_TYPE*)b_dat) = *((const global READ_TYPE*)(b + Boffset + b_index));
 #endif
 
@@ -776,10 +781,6 @@ __kernel void Op2dTensorLite(const global MIOPEN_TYPE* a,
         }
 
         *((global READ_TYPE*)(c + Coffset + c_index)) = *((READ_TYPE*)c_dat);
-
-#ifndef BETA
-        (void)beta;
-#endif
     }
 }
 
