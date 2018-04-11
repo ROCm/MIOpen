@@ -45,14 +45,14 @@
 #ifndef MLO_NEURON_PASTHRU
 #define MLO_NEURON_PASTHRU 0      // x
 #define MLO_NEURON_LOGISTIC 1     // 1 / (1 + e^-x)	//Sigmoid
-#define MLO_NEURON_TANH 2         // a * tanh( b * x)
+#define MLO_NEURON_TANH 2         // beta * tanh(alpha * x)
 #define MLO_NEURON_RELU 3         // max(0, x)
 #define MLO_NEURON_SOFTRELU 4     // log(1 + e^x)   // bonomial normal log likelihood
 #define MLO_NEURON_ABS 5          // abs(x)
-#define MLO_NEURON_POWER 6        // (a + b * x ) ^gamma
-#define MLO_NEURON_CLIPPED_RELU 7 // min(a, max(0, x))
-#define MLO_NEURON_LEAKY_RELU 8   // a*x | x<=0; x | x>0
-#define MLO_NEURON_ELU 9          // a*(exp(x)-1) | x<=0; x | x>0
+#define MLO_NEURON_POWER 6        // (alpha + beta * x )^gamma
+#define MLO_NEURON_CLIPPED_RELU 7 // min(alpha, max(0, x))
+#define MLO_NEURON_LEAKY_RELU 8   // alpha * x | x <= 0; x | x > 0
+#define MLO_NEURON_ELU 9          // alpha * (e^x - 1) | x <= 0; x | x > 0
 #define MLO_NEURON_TOTAL 10
 #endif
 
