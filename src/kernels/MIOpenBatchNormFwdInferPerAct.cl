@@ -84,7 +84,7 @@
 #endif
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormFwdInferPerActivationEst(
+MIOpenBatchNormFwdInferPerActivationEst(
     const __global _FLOAT* in,                     /* x input */
     __global _FLOAT* __restrict out,               /* y output */
     __global _FLOAT* __restrict estimatedMean,     /*input and output, same descriptor as bias*/
