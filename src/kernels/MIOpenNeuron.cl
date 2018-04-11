@@ -55,6 +55,7 @@
 #define MLO_NEURON_CLIPPED_RELU 7 // min(alpha, max(0, x))
 #define MLO_NEURON_LEAKY_RELU 8   // alpha * x | x <= 0; x | x > 0
 #define MLO_NEURON_ELU 9          // alpha * (e^x - 1) | x <= 0; x | x > 0
+
 //#define MLO_NEURON_SQUARE 10      // x^2
 //#define MLO_NEURON_SQR 11         // sqr(x)
 #define MLO_NEURON_TOTAL 10
