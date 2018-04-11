@@ -109,7 +109,7 @@ int mloNeuronForwardRunHostAndVerify(int neuron_type,
         f = [=](_Tcheck x) { return std::pow(alpha + beta * x, gamma); };
         break;
     case MLO_NEURON_CLIPPED_RELU: // min(alpha, max(0, x))
-        f = [=](_Tcheck x) { return std::min(alpha, std::max((_Tcheck)0, x)); };
+        f = [=](_Tcheck x) { return std::min(alpha, std::max(_Tcheck(0), x)); };
         break;
     case MLO_NEURON_LEAKY_RELU: // alpha * x | x<=0; x | x>0
         f = [=](_Tcheck x) { return (x > 0) ? x : x * alpha; };
