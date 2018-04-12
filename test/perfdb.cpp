@@ -164,7 +164,7 @@ class DbTest
     static const std::array<std::pair<const char*, TestData>, 2>& common_data()
     {
         static const std::array<std::pair<const char*, TestData>, 2> data{
-            std::make_pair(id1(), value1()), std::make_pair(id0(), value0()),
+            (std::make_pair(id1(), value1())), (std::make_pair(id0(), value0())),
         };
 
         return data;
@@ -497,9 +497,9 @@ class DbParallelTest : public DbTest
         }
 
         const std::array<std::pair<const char*, TestData>, 3> data{
-            std::make_pair(id0(), value0()),
-            std::make_pair(id1(), value1()),
-            std::make_pair(id2(), value2()),
+            (std::make_pair(id0(), value0())),
+            (std::make_pair(id1(), value1())),
+            (std::make_pair(id2(), value2())),
         };
 
         ValidateSingleEntry(key(), data, Db(temp_file));
@@ -509,9 +509,9 @@ class DbParallelTest : public DbTest
 class DBMultiThreadedTestWork
 {
     public:
-    static constexpr unsigned int threads_count    = 128;
-    static constexpr unsigned int common_part_size = 128;
-    static constexpr unsigned int unique_part_size = 128;
+    static constexpr unsigned int threads_count    = 64;
+    static constexpr unsigned int common_part_size = 64;
+    static constexpr unsigned int unique_part_size = 64;
     static constexpr unsigned int ids_per_key      = 16;
     static constexpr unsigned int common_part_seed = 435345;
 
@@ -973,7 +973,7 @@ class DbMultiFileReadTest : public DbMultiFileTest
     static const std::array<std::pair<const char*, TestData>, 1>& single_item_data()
     {
         static const std::array<std::pair<const char*, TestData>, 1> data{
-            std::make_pair(id0(), value0()),
+            (std::make_pair(id0(), value0())),
         };
 
         return data;
