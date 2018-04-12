@@ -49,7 +49,8 @@ namespace miopen {
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 
 namespace solver {
-
+/// \todo Move wave_size into abstraction wich represent GPU information
+const int wave_size = 64;
 /// Describes a kernel source and whatever information required in order
 /// to build and run it (the former is unused for binary kernels).
 struct KernelInfo
@@ -555,12 +556,16 @@ struct ConvAsmBwdWrW3x3 : SolverBase<ConvolutionContext>
 
 struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsmBwdWrW1x1>
 {
-    int c_per_gpr; // {1,2,4,8,16}
-    int c_mult;    // {1,2,4,8,16}
-    int k_per_gpr; // {1,2,4,8,16}
-    int k_mult;    // {1,2,4,8,16}
-    int read_size; // [1..4]
-    int n_per_gpr; // {1,2,4}
+
+    int chunk_size; // {1,2,4,8,16}
+    int c_per_gpr;  // {1,2,4,8,16}
+    int c_mult;     // {1,2,4,8,16}
+    int k_per_gpr;  // {1,2,4,8,16}
+    int k_mult;     // {1,2,4,8,16}
+    int n_per_gpr;  // {1,2,4}
+    int n_part_cnt; // [1..8]
+    int read_size;  // [1..4]
+    bool use_spare_set;
 
     /// The following conditions must be met.
     ///
@@ -580,34 +585,48 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
     /// - fwd_K := Num output channels for forward convolution (-k).
     ///   For backward, this is actually n_inputs.
 
-    PerformanceConfigConvAsmBwdWrW1x1(
-        int c_per_gpr_, int c_mult_, int k_per_gpr_, int k_mult_, int read_size_, int n_per_gpr_);
-    PerformanceConfigConvAsmBwdWrW1x1() : PerformanceConfigConvAsmBwdWrW1x1(-1, -1, -1, -1, -1, -1)
+    PerformanceConfigConvAsmBwdWrW1x1(int chunk_size_,
+                                      int c_per_gpr_,
+                                      int c_mult_,
+                                      int k_per_gpr_,
+                                      int k_mult_,
+                                      int n_per_gpr_,
+                                      int n_part_cnt_,
+                                      int read_size_,
+                                      bool);
+    PerformanceConfigConvAsmBwdWrW1x1()
+        : PerformanceConfigConvAsmBwdWrW1x1(-1, -1, -1, -1, -1, -1, -1, -1, false)
     {
     }
-    PerformanceConfigConvAsmBwdWrW1x1(bool) : PerformanceConfigConvAsmBwdWrW1x1(1, 1, 1, 1, 1, 1) {}
+    PerformanceConfigConvAsmBwdWrW1x1(bool spare)
+        : PerformanceConfigConvAsmBwdWrW1x1(1, 1, 1, 1, 1, 1, 1, 1, spare)
+    {
+    }
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
     {
+        f(self.chunk_size, "chunk_size");
         f(self.c_per_gpr, "c_per_gpr");
         f(self.c_mult, "c_mult");
         f(self.k_per_gpr, "k_per_gpr");
         f(self.k_mult, "k_mult");
-        f(self.read_size, "read_size");
         f(self.n_per_gpr, "n_per_gpr");
+        f(self.n_part_cnt, "n_part_cnt");
+        f(self.read_size, "read_size");
     }
 
     // clang-format off
-    int GetNPerGpr() const { return n_per_gpr; }
-    int GetPipeDepth() const { return 1; }
+    int GetChunkSize() const { return chunk_size; }
     int GetCPerGpr() const { return c_per_gpr; }
     int GetCMult() const { return c_mult; }
     int GetKPerGpr() const { return k_per_gpr; }
     int GetKMult() const { return k_mult; }
+    int GetNPerGpr() const { return n_per_gpr; }
+    int GetNPartCnt() const { return n_part_cnt; }
+    int GetHWPerGpr() const {   assert(c_per_gpr); assert(n_per_gpr); assert(chunk_size);  
+                                return wave_size / (c_per_gpr * n_per_gpr * chunk_size); } // "hw" stands for "height-and-width".
     int GetReadSize() const { return read_size; }
-    int GetChunkSize() const { assert(c_per_gpr); return 16 / c_per_gpr; }
-    int GetHwPerGpr() const { assert(n_per_gpr); return 4 / n_per_gpr; } // "hw" stands for "height-and-width".
     // clang-format on
 
     void EuristicInit(const ConvolutionContext& config);
