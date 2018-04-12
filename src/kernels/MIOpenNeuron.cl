@@ -55,7 +55,6 @@
 #define MLO_NEURON_CLIPPED_RELU 7 // min(alpha, max(0, x))
 #define MLO_NEURON_LEAKY_RELU 8   // alpha * x | x <= 0; x | x > 0
 #define MLO_NEURON_ELU 9          // alpha * (e^x - 1) | x <= 0; x | x > 0
-
 //#define MLO_NEURON_SQUARE 10      // x^2
 //#define MLO_NEURON_SQR 11         // sqr(x)
 #define MLO_NEURON_TOTAL 10
@@ -179,7 +178,7 @@ __attribute__((always_inline)) void ActivationFunction_Power(const uint n,
 {
     for(uint i = 0; i < n; ++i)
     {
-        // y = (alpha + beta * x ) ^ power
+        // y = (alpha + beta * x ) ^ gamma
         _FLOAT arg     = alpha + data[i] * beta;
         _FLOAT run_arg = (arg == (_FLOAT)0) ? (_FLOAT)1 : arg;
         res[i]         = (arg == (_FLOAT)0) ? (_FLOAT)0 : pow(run_arg, gamma);

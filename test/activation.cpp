@@ -227,7 +227,7 @@ struct activation_driver : test_driver
                  [=](double dy, double x, double) { return (x > 0 && x < alpha) ? dy : 0; });
         add_mode(miopenActivationLEAKYRELU,
                  [=](double x) { return (x > 0) ? x : x * alpha; },
-                 [=](double dy, double, double) { return std::max(double(0), dy); });
+                 [=](double dy, double x, double) { return dy * ((x > 0) ? 1 : alpha); });
         add_mode(miopenActivationELU,
                  [=](double x) { return (x > 0) ? x : alpha * std::expm1(x); },
                  [=](double dy, double x, double y) { return dy * ((x > 0) ? 1 : y + alpha); });
