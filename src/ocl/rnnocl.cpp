@@ -1050,8 +1050,8 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
             hx_size[2] = hy_h;
             sp_size[2] = hy_h;
 
-            int bacc   = batch_n;
-            int baccbi = 0;
+            bacc   = batch_n;
+            baccbi = 0;
             for(int ti = seqLen - 1; ti >= 0; ti--)
             {
                 bacc -= in_n.at(ti);
@@ -2171,8 +2171,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
             hx_size[2] = hy_h;
             sp_size[2] = hy_h;
 
-            int bacc   = batch_n;
-            int baccbi = 0;
+            bacc   = batch_n;
+            baccbi = 0;
             for(int ti = seqLen - 1; ti >= 0; ti--)
             {
                 bacc -= in_n.at(ti);
@@ -3340,16 +3340,16 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
             hx_size[2] = hy_h;
             sp_size[2] = hy_h;
 
-            int bacc   = 0;
-            int baccbi = batch_n;
+            bacc   = 0;
+            baccbi = batch_n;
             for(int ti = 0; ti < seqLen; ti++)
             {
                 baccbi -= in_n.at(seqLen - 1 - ti);
                 for(int ri = 0; ri < bi; ri++)
                 {
-                    int cur_time  = ri == 0 ? ti : seqLen - 1 - ti;
-                    int cur_batch = ri == 0 ? bacc : baccbi;
-                    int use_time  = 0;
+                    cur_time      = ri == 0 ? ti : seqLen - 1 - ti;
+                    cur_batch     = ri == 0 ? bacc : baccbi;
+                    use_time      = 0;
                     int use_batch = 0;
 
                     if(ti > 0)
