@@ -236,8 +236,8 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
             }
             else
             {
-                tdim[0] = hsize;
-                tdim[1] = hsize * 2;
+                tdim[0] = hsize * 2;
+                tdim[1] = hsize;
             }
         }
         else // IS the input layer
@@ -504,7 +504,7 @@ std::size_t RNNDescriptor::GetLayerParamSize(Handle& /*handle*/,
     }
 }
 
-std::size_t RNNDescriptor::GetLayerBiasSize(Handle& /* handle */, int layer, int biasID)
+std::size_t RNNDescriptor::GetLayerBiasSize(Handle& /* handle */, int /*layer*/, int /*biasID*/)
 {
     return size_t(typeSize * hsize); // is ther more needed here?
 }
