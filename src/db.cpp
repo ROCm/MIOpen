@@ -74,9 +74,12 @@ Db::Db(const std::string& filename_)
 {
 }
 
-#define VALIDATE_LOCK(lock) \
-    if(!lock)               \
-        MIOPEN_THROW("Db lock has failed to lock.");
+#define VALIDATE_LOCK(lock)                              \
+    do                                                   \
+    {                                                    \
+        if(!(lock))                                      \
+            MIOPEN_THROW("Db lock has failed to lock."); \
+    } while(false)
 
 static std::chrono::seconds GetLockTimeout() { return std::chrono::seconds{60}; }
 
