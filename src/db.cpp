@@ -54,7 +54,7 @@ struct RecordPositions
     std::streamoff end   = -1;
 };
 
-inline static std::string LockFilePath(const boost::filesystem::path& filename_)
+std::string LockFilePath(const boost::filesystem::path& filename_)
 {
     const auto directory = boost::filesystem::temp_directory_path() / "miopen-lockfiles";
 
