@@ -157,7 +157,8 @@ class DbTest
 {
     public:
     DbTest() : temp_file("miopen.tests.perfdb") {}
-    virtual ~DbTest() {}
+
+    virtual ~DbTest() { std::remove(LockFilePath(temp_file.Path()).c_str()); }
 
     protected:
     static const TestData& key()
@@ -528,9 +529,9 @@ class DbParallelTest : public DbTest
 class DBMultiThreadedTestWork
 {
     public:
-    static constexpr unsigned int threads_count    = 128;
-    static constexpr unsigned int common_part_size = 128;
-    static constexpr unsigned int unique_part_size = 128;
+    static constexpr unsigned int threads_count    = 64;
+    static constexpr unsigned int common_part_size = 64;
+    static constexpr unsigned int unique_part_size = 64;
     static constexpr unsigned int ids_per_key      = 16;
     static constexpr unsigned int common_part_seed = 435345;
 
