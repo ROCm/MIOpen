@@ -33,10 +33,18 @@
 
 #include <string>
 
+namespace boost {
+namespace filesystem {
+class path;
+} // namespace filesystem
+} // namespace boost
+
 namespace miopen {
 
 struct RecordPositions;
 class LockFile;
+
+std::string LockFilePath(const boost::filesystem::path& filename_);
 
 /// No instance of this class should be used from several threads at the same time.
 class Db

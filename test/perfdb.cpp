@@ -156,7 +156,8 @@ class DbTest
 {
     public:
     DbTest() : temp_file("miopen.tests.perfdb") {}
-    virtual ~DbTest() = default;
+
+    virtual ~DbTest() { std::remove(LockFilePath(temp_file.Path()).c_str()); }
 
     protected:
     TempFile temp_file;
