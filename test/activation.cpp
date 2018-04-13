@@ -176,7 +176,7 @@ struct activation_driver : test_driver
     double alpha     = 1.2;
     double beta      = 2.3;
     double gamma     = 3.4;
-    std::string mode = "PATHTRU";
+    std::string mode = "PASTHRU";
     std::unordered_map<std::string, std::function<void()>> lookup;
 
     template <class A>
