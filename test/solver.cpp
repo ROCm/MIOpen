@@ -143,19 +143,18 @@ class TrivialConstruct : public mlo_construct_direct2D
         _db_path = db_path;
     }
 
-    solver::ConvSolution FindSolution()
+    solver::ConvSolution FindSolution() const
     {
+        Db db(_db_path);
+
         // clang-format off
         return miopen::solver::SearchForSolution<
             TrivialSlowTestSolver,
             TrivialTestSolver,
             SearchableTestSolver
-        >(_search_params, this->GetDb());
+        >(_search_params, db);
         // clang-format on
     }
-
-    protected:
-    std::string db_path() const { return _db_path; }
 };
 
 class SolverTest
