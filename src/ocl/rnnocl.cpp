@@ -1059,13 +1059,12 @@ void RNNDescriptor::RNNForwardInference(Handle& handle,
                 {
                     int cur_time  = ri == 0 ? ti : seqLen - 1 - ti;
                     int cur_batch = ri == 0 ? bacc : baccbi;
-                    int use_time  = 0;
                     int use_batch = 0;
 
                     if(ti < seqLen - 1)
                     {
-                        use_time  = ri == 0 ? ti + 1 : seqLen - 2 - ti;
-                        use_batch = in_n.at(use_time);
+                        int use_time = ri == 0 ? ti + 1 : seqLen - 2 - ti;
+                        use_batch    = in_n.at(use_time);
                     }
 
                     if(in_n.at(cur_time) > use_batch)
@@ -2180,13 +2179,12 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                 {
                     int cur_time  = ri == 0 ? ti : seqLen - 1 - ti;
                     int cur_batch = ri == 0 ? bacc : baccbi;
-                    int use_time  = 0;
                     int use_batch = 0;
 
                     if(ti < seqLen - 1)
                     {
-                        use_time  = ri == 0 ? ti + 1 : seqLen - 2 - ti;
-                        use_batch = in_n.at(use_time);
+                        int use_time = ri == 0 ? ti + 1 : seqLen - 2 - ti;
+                        use_batch    = in_n.at(use_time);
                     }
 
                     if(in_n.at(cur_time) > use_batch)
