@@ -59,23 +59,21 @@ inline void expect_equality(const TLeft& left,
 }
 
 #define CHECK(...)                                    \
-    \
-do                                             \
+    do                                                \
     {                                                 \
         if(!(__VA_ARGS__))                            \
             failed(#__VA_ARGS__, __FILE__, __LINE__); \
-    \
-}                                              \
-    while(false)
+                                                      \
+    } while(false)
+
 #define EXPECT(...)                                         \
-    \
-do                                                   \
+    do                                                      \
     {                                                       \
         if(!(__VA_ARGS__))                                  \
             failed_abort(#__VA_ARGS__, __FILE__, __LINE__); \
-    \
-}                                                    \
-    while(false)
+                                                            \
+    } while(false)
+
 #define EXPECT_EQUAL(LEFT, RIGHT) \
     expect_equality((LEFT), (RIGHT), #LEFT, #RIGHT, __FILE__, __LINE__)
 #define STATUS(...) EXPECT((__VA_ARGS__) == 0)
