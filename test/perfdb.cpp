@@ -164,10 +164,11 @@ class DbTest
 
     static const std::array<std::pair<const char*, TestData>, 2>& common_data()
     {
-        static const std::array<std::pair<const char*, TestData>, 2> data{{
-            /// \ref https://stackoverflow.com/questions/22501368/why-wasnt-a-double-curly-braces-syntax-preferred-for-constructors-taking-a-std
-            std::make_pair(id1(), value1()), std::make_pair(id0(), value0())
-        }};
+        static const std::array<std::pair<const char*, TestData>, 2> data{
+            {/// \ref
+             /// https://stackoverflow.com/questions/22501368/why-wasnt-a-double-curly-braces-syntax-preferred-for-constructors-taking-a-std
+             std::make_pair(id1(), value1()),
+             std::make_pair(id0(), value0())}};
 
         return data;
     }
@@ -974,9 +975,8 @@ class DbMultiFileReadTest : public DbMultiFileTest
     private:
     static const std::array<std::pair<const char*, TestData>, 1>& single_item_data()
     {
-        static const std::array<std::pair<const char*, TestData>, 1> data{{
-            std::make_pair(id0(), value0())
-        }};
+        static const std::array<std::pair<const char*, TestData>, 1> data{
+            {std::make_pair(id0(), value0())}};
 
         return data;
     }
