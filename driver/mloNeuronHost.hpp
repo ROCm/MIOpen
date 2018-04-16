@@ -233,6 +233,7 @@ int mloNeuronBackwardRunHostAndVerify(int neuron_type,
         if(err > allowedEps || std::isnan(c_val) || std::isnan(g_val))
         {
             std::cout << "Difference in neuron back-propagation: " << err << " too large at " << i
+                      << " dy = " << top_df_cpu[i] << " x = " << bot_cpu[i] << " y = " << top_cpu[i] << " "
                       << " c_v = " << c_val << " vs g_val = " << g_val << " tolerance = "<< allowedEps << std::endl;
             match = 0;
         }
