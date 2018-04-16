@@ -272,7 +272,6 @@ struct ConvolutionContext : ProblemDescription
         // clang-format on
     }
 
-#ifndef MIOPEN_SINGLE_FILE_DB
     std::string GetUserPerfDbPath() const
     {
         // clang-format off
@@ -281,10 +280,9 @@ struct ConvolutionContext : ProblemDescription
              + GetStream().GetDeviceName()
              + "_"
              + std::to_string(GetStream().GetMaxComputeUnits())
-             + ".cd.rdb.txt";
+             + ".cd.updb.txt";
         // clang-format on
     }
-#endif
 
     private:
     Handle* _stream = nullptr;

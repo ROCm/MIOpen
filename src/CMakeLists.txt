@@ -271,10 +271,6 @@ add_library( MIOpen
     ${MIOpen_Source}
     )
 
-if (BUILD_DEV)
-    target_compile_definitions(MIOpen PRIVATE MIOPEN_SINGLE_FILE_DB)
-endif()
-
 set_target_properties(MIOpen PROPERTIES SOVERSION 1)
 
 clang_tidy_check(MIOpen)
