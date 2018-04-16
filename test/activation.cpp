@@ -173,7 +173,7 @@ template <class T>
 struct activation_driver : test_driver
 {
     tensor<T> input;
-    double alpha     = 1.2;
+    double alpha     = 0.95;
     double beta      = 2.3;
     double gamma     = 3.4;
     std::string mode = "PASTHRU";
