@@ -256,6 +256,7 @@ struct ConvolutionContext : ProblemDescription
     int n_timer_iter       = 0;
     rocm_meta_version rmv  = rocm_meta_version::Default;
     std::string general_compile_options;
+    bool workaround_disable_search_enforce = false;
 
     inline Handle& GetStream() const { return *_stream; }
     inline void SetStream(Handle* stream) { _stream = stream; }
@@ -803,6 +804,11 @@ struct mlo_construct_direct2D
     inline void setGeneralCompOptions(const std::string& options)
     {
         _search_params.general_compile_options += options;
+    }
+
+    inline void setWorkaroundDisableSearchEnforce(bool v)
+    {
+        _search_params.workaround_disable_search_enforce = v;
     }
 
     // MD: Hack to get the key outside of mlo_internal
