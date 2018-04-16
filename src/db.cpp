@@ -45,6 +45,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <string>
+#include "include/miopen/db.hpp"
 
 namespace miopen {
 
@@ -74,7 +75,7 @@ Db::Db(const std::string& filename_)
 {
 }
 
-#define VALIDATE_LOCK(lock)                              \
+#define MIOPEN_VALIDATE_LOCK(lock)                       \
     do                                                   \
     {                                                    \
         if(!(lock))                                      \
