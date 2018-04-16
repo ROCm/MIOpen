@@ -41,12 +41,6 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                                              size_t xOffset,
                                              size_t yOffset)
 {
-
-    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
-       !float_equal(*(static_cast<const float*>(beta)), 0))
-    {
-        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
-    }
     miopenStatus_t status = miopenStatusSuccess;
     mlo_construct_neuron construct_params(1); // forward
 
@@ -400,12 +394,6 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                                               size_t xOffset,
                                               size_t dxOffset)
 {
-
-    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
-       !float_equal(*(static_cast<const float*>(beta)), 0))
-    {
-        MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
-    }
     miopenStatus_t status = miopenStatusSuccess;
 
     mlo_construct_neuron construct_params(0); // backward
