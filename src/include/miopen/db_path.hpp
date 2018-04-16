@@ -31,9 +31,7 @@
 namespace miopen {
 
 std::string GetDbPath();
-#ifndef MIOPEN_SINGLE_FILE_DB
 std::string GetUserDbPath();
-#endif // !MIOPEN_SINGLE_FILE_DB
 
 } // namespace miopen
 
