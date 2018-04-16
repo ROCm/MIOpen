@@ -386,12 +386,7 @@ struct mlo_construct_direct2D
     */
 
     miopen::solver::ConvSolution FindSolution();
-
-#ifndef MIOPEN_SINGLE_FILE_DB
     miopen::MultiFileDb GetDb() const;
-#else
-    miopen::Db GetDb() const;
-#endif
 
     /*
     * returns parameter values that are compiled in legacy kernels for kernels using them as
