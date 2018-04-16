@@ -170,12 +170,43 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
                                                  : "miopenConvolutionBwdDataAlgoDirect";
 
         {
-            int N, C, H, W, K, n_groups;
-            construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-            extraArgs = std::make_tuple(N, C, H, W, K, n_groups);
+            int N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W;
+            construct_params.getCompiledInParameters(
+                &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+            extraArgs = std::make_tuple(N, C, out_H, out_W, K, n_groups);
         }
         // if not 11x11
-        if(program_name != "MIOpenConvFwd_LxL_11.cl")
+        if(program_name == "MIOpenUtilKernels3.cl")
+        {
+            const std::vector<mlo_kernel_info>& bwd_wrw_info = construct_params.getKernelsInfo();
+            assert(bwd_wrw_info.size() == 2);
+
+            const mlo_kernel_info& bwd_wrw = bwd_wrw_info[0];
+
+            auto k1 = handle.AddKernel(algorithm,
+                                       network_config,
+                                       std::get<1>(bwd_wrw),
+                                       std::get<0>(bwd_wrw),
+                                       std::get<4>(bwd_wrw),
+                                       std::get<3>(bwd_wrw),
+                                       std::get<2>(bwd_wrw));
+
+            kernels.push_back(k1);
+
+            const mlo_kernel_info& bwd_wrw_main = bwd_wrw_info[1];
+
+            network_config += "x1";
+            auto k2 = handle.AddKernel(algorithm + "_pass2",
+                                       network_config,
+                                       std::get<1>(bwd_wrw_main),
+                                       std::get<0>(bwd_wrw_main),
+                                       std::get<4>(bwd_wrw_main),
+                                       std::get<3>(bwd_wrw_main),
+                                       std::get<2>(bwd_wrw_main));
+
+            kernels.push_back(k2);
+        }
+        else if(program_name != "MIOpenConvFwd_LxL_11.cl")
         {
 
             auto k = handle.AddKernel(
@@ -509,6 +540,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             if(FindDirectKernel(
                    handle, xDesc, wDesc, yDesc, eka, kernel_direct, exhaustiveSearch, 1) == 0)
             { // Forward
+                size_t workspace_req =
+                    this->ForwardGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc);
 
                 // Execute the direct kernel
                 float time_direct = 0;
@@ -516,24 +549,46 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 visit_float(xDesc.GetType(), [&](auto as_float) {
                     for(auto& k : kernel_direct)
                     {
-                        if(k.GetName() == "gcnAsmConv1x1U")
+                        if(k.GetName() == "SubSample")
+                        {
+                            k(x, workSpace);
+                        }
+                        else if(k.GetName() == "gcnAsmConv1x1U")
                         {
                             int unused       = 0;
                             int* return_addr = nullptr;
-                            int N, C, H, W, K, n_groups;
-                            std::tie(N, C, H, W, K, n_groups) = eka;
-                            k(N,
-                              C,
-                              H,
-                              W,
-                              K,
-                              n_groups,
-                              unused,
-                              unused,
-                              x,
-                              w,
-                              tmp_y.get(),
-                              return_addr);
+                            int N, C, out_H, out_W, K, n_groups;
+                            std::tie(N, C, out_H, out_W, K, n_groups) = eka;
+                            if(workspace_req != 0)
+                            {
+                                k(N,
+                                  C,
+                                  out_H,
+                                  out_W,
+                                  K,
+                                  n_groups,
+                                  unused,
+                                  unused,
+                                  workSpace,
+                                  w,
+                                  tmp_y.get(),
+                                  return_addr);
+                            }
+                            else
+                            {
+                                k(N,
+                                  C,
+                                  out_H,
+                                  out_W,
+                                  K,
+                                  n_groups,
+                                  unused,
+                                  unused,
+                                  x,
+                                  w,
+                                  tmp_y.get(),
+                                  return_addr);
+                            }
                         }
                         else
                         {
@@ -543,7 +598,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                     }
                 });
 
-                perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoDirect", time_direct, 0});
+                perf_db.push_back(
+                    PerfField{"miopenConvolutionFwdAlgoDirect", time_direct, workspace_req});
             }
 
             // FFT algo
@@ -574,14 +630,18 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     if(perf_db.empty())
         MIOPEN_THROW("Fwd Convolution cannot be executed due to incorrect params");
 
+    for(int i = 0; i < perf_db.size(); i++)
+        printf("algo name: %s time: %f\n", perf_db[i].name.c_str(), perf_db[i].time);
+
     // sort the perf_db
-    std::sort(begin(perf_db), end(perf_db));
+    // std::sort(begin(perf_db), end(perf_db));
 
     // update perfResults
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
 
     for(int i = 0; i < *returnedAlgoCount; i++)
     {
+
         perfResults[i].fwd_algo =
             static_cast<miopenConvFwdAlgorithm_t>(FwdAlgoResolver(perf_db[i].name));
         perfResults[i].time   = perf_db[i].time;
@@ -664,8 +724,33 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             auto kernel                = handle.GetKernel(algorithm_name, network_config);
 
             visit_float(xDesc.GetType(), [&](auto as_float) {
+                if((kernel.GetName() == "SubSample"))
+                {
+                    kernel(x, workSpace);
+
+                    network_config += "x1";
+                    auto kernel2 = handle.GetKernel(algorithm_name + "_pass2", network_config);
+
+                    int unused       = 0;
+                    int* return_addr = nullptr;
+                    int N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W;
+                    construct_params.getCompiledInParameters(
+                        &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+                    kernel2(N,
+                            C,
+                            out_H,
+                            out_W,
+                            K,
+                            n_groups,
+                            unused,
+                            unused,
+                            workSpace,
+                            w,
+                            y,
+                            return_addr);
+                }
                 // if not 11x11
-                if((kernel.GetName() != "MIOpenCvFwd11x11"))
+                else if((kernel.GetName() != "MIOpenCvFwd11x11"))
                 {
                     if(kernel.GetName() == "gcnAsmConv1x1U")
                     {

@@ -338,9 +338,13 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         // 1x1_stride=2
         if((wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && dilation_h == 1 &&
             dilation_w == 1) &&
-           ((in_h <= 14 && in_w <= 14 && u == 1 && v == 1) || (u == 2 && v == 2)))
+           ((u == 1 && v == 1) || (u == 2 && v == 2)))
         {
-            return ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
+            size_t gemm_trans = ((in_h > 14 || in_w > 14) && u == 1 && v == 1)
+                                    ? 0
+                                    : ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
+            size_t direct = ForwardGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc);
+            return std::max(gemm_trans, direct);
         }
 
         // Check if Winograd is available
@@ -567,6 +571,29 @@ size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
         gemm_size = 0;
 
     return gemm_size;
+}
+
+size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeDirect(Handle& handle,
+                                                            const TensorDescriptor& xDesc,
+                                                            const TensorDescriptor& yDesc,
+                                                            const TensorDescriptor& wDesc) const
+{
+    try
+    {
+        mlo_construct_direct2D construct_params(1); // forward
+        construct_params.doSearch(false);
+        construct_params.setStream(&handle);
+        construct_params.setOutputDescFromMLDesc(yDesc);
+        construct_params.setInputDescFromMLDesc(xDesc);
+        construct_params.setWeightDescFromMLDesc(wDesc);
+        construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+        mloConstruct(construct_params);
+        return construct_params.getWorkSpaceSzBytes();
+    }
+    catch(const miopen::Exception&)
+    {
+        return 0;
+    }
 }
 
 size_t

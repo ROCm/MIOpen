@@ -281,8 +281,9 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
     // clang-format off
     bool ok = (params.pad0 == 0         // -q  pad_w
         && params.pad1 == 0             // -p  pad_h
-        && params.kernel_stride0 == 1   // -u  stride_w
-        && params.kernel_stride1 == 1   // -v  stride_h
+        && params.kernel_stride0 <= 2   // -u  stride_w
+        && params.kernel_stride1 <= 2   // -v  stride_h
+        && params.kernel_stride0 == params.kernel_stride1
         && params.kernel_size0 == 1     // -x  S wei_w
         && params.kernel_size1 == 1     // -y  R wei_h
         && params.kernel_dilation0 == 1
@@ -311,6 +312,10 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
     }
     // Check limits:
     auto h_w = static_cast<long>(params.in_height) * params.in_width;
+    if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
+    {
+        h_w = static_cast<long>(params.out_height) * params.out_width;
+    }
     const auto r_s     = static_cast<long>(params.kernel_size1) * params.kernel_size0;
     const auto c_h_w   = static_cast<long>(params.n_inputs) * h_w;    // C*H*W
     const auto k_h_w   = static_cast<long>(params.n_outputs) * h_w;   // K*H*W
@@ -345,11 +350,90 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     ConvSolution result;
     std::ostringstream options;
 
+    if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
+    {
+
+        result.passes = 2;
+    }
+    else
+    {
+        result.passes = 1;
+    }
+
+    result.workspce_sz = 0;
+
+    if(result.passes > 1 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1) &&
+       params.direction.IsForward())
+    {
+        // subsampled input, in_height equals to image size after downsampling
+        int in_batch_stride =
+            params.out_width * params.out_height * params.n_inputs; // C * out_H * out_W
+        int write_unit =
+            (params.out_width % 4 == 0) ? 4 : (params.out_width % 3 == 0)
+                                                  ? 3
+                                                  : (params.out_width % 2 == 0) ? 2 : 1;
+        int n_grp0_size0 = 256;
+
+        const auto subsample_kernel_compilation_options =
+            std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
+            std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
+            std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(params.kernel_stride0) +
+            std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(params.kernel_stride1) +
+            std::string(" -DMLO_WRITE_UNIT=") + std::to_string(write_unit) +
+            std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(params.out_channel_stride) +
+            std::string(" -DMLO_OUT_STRIDE=") + std::to_string(params.out_stride) +
+            std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(in_batch_stride) +
+            std::string(" -DMLO_IN0_BATCH_STRIDE=") + std::to_string(params.in_batch_stride) +
+            std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(params.in_channel_stride) +
+            std::string(" -DMLO_IN0_STRIDE=") + std::to_string(params.in_stride) +
+            params.general_compile_options;
+
+        KernelInfo kernel;
+
+        kernel.l_wk.push_back(n_grp0_size0);
+        kernel.l_wk.push_back(1);
+        kernel.l_wk.push_back(1);
+        // output is number of subsampled input maps
+        size_t gbl_wk0 = (in_batch_stride / write_unit);
+        size_t gbl_wk1 = params.batch_sz;
+        size_t gbl_wk2 = 1;
+
+        kernel.g_wk.push_back(gbl_wk0);
+        kernel.g_wk.push_back(gbl_wk1);
+        kernel.g_wk.push_back(gbl_wk2);
+
+        kernel.kernel_file = "MIOpenUtilKernels3.cl";
+
+        kernel.kernel_name = "SubSample";
+
+        kernel.comp_options = subsample_kernel_compilation_options;
+
+        result.construction_params.push_back(kernel);
+
+        assert(params.out_data_type == "FP16" || params.out_data_type == "FP32" ||
+               params.out_data_type == "FP64");
+        int data_len =
+            (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
+        result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
+
+        // Note that params.in_height/params.in_width are swapped for output size when initialized
+        // in mlo_internal.hpp for backward convolutions
+        GenerateClangDefsym(options, "img_h", params.out_height); // H
+        GenerateClangDefsym(options, "img_w", params.out_width);  // W
+        GenerateClangDefsym(options, "stride_h", 1);
+        GenerateClangDefsym(options, "stride_w", 1);
+    }
+    else
+    {
+        // Note that params.out_height/params.out_width are swapped for input size when initialized
+        // in mlo_internal.hpp for backward convolutions
+        GenerateClangDefsym(options, "img_h", params.in_height); // H
+        GenerateClangDefsym(options, "img_w", params.in_width);  // W
+        GenerateClangDefsym(options, "stride_h", params.kernel_stride1);
+        GenerateClangDefsym(options, "stride_w", params.kernel_stride0);
+    }
+
     // Note that params.n_outputs and params.n_inputs are swapped for backward convolutions.
-    GenerateClangDefsym(options, "img_h", params.in_height); // H
-    GenerateClangDefsym(options, "img_w", params.in_width);  // W
-    GenerateClangDefsym(options, "stride_h", params.kernel_stride1);
-    GenerateClangDefsym(options, "stride_w", params.kernel_stride0);
     GenerateClangDefsym(options, "batch_size", params.batch_sz);       // N
     GenerateClangDefsym(options, "input_channels", params.n_inputs);   // C
     GenerateClangDefsym(options, "output_channels", params.n_outputs); // K
@@ -404,7 +488,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     kinfo.g_wk.clear(); // gridsize
     const int hw_per_wave = pcfg->GetChunksPerWave() * pcfg->GetChunkSize();
     kinfo.g_wk.push_back(kinfo.l_wk[0] *
-                         divide_round_plus_inf(params.in_height * params.in_width, hw_per_wave));
+                         divide_round_plus_inf(params.out_height * params.out_width, hw_per_wave));
     kinfo.g_wk.push_back(divide_round_plus_inf(params.n_outputs, pcfg->GetKMult()));
     const int n_images_per_wave = pcfg->GetNBlocksPerWave() * pcfg->GetNPerGpr();
     kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_images_per_wave));
