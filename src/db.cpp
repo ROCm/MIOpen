@@ -90,35 +90,35 @@ using shared_lock    = std::shared_lock<LockFile>;
 boost::optional<DbRecord> Db::FindRecord(const std::string& key)
 {
     const auto lock = shared_lock(lock_file, GetLockTimeout());
-    VALIDATE_LOCK(lock);
+    MIOPEN_VALIDATE_LOCK(lock);
     return FindRecordUnsafe(key, nullptr);
 }
 
 bool Db::StoreRecord(const DbRecord& record)
 {
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
-    VALIDATE_LOCK(lock);
+    MIOPEN_VALIDATE_LOCK(lock);
     return StoreRecordUnsafe(record);
 }
 
 bool Db::UpdateRecord(DbRecord& record)
 {
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
-    VALIDATE_LOCK(lock);
+    MIOPEN_VALIDATE_LOCK(lock);
     return UpdateRecordUnsafe(record);
 }
 
 bool Db::RemoveRecord(const std::string& key)
 {
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
-    VALIDATE_LOCK(lock);
+    MIOPEN_VALIDATE_LOCK(lock);
     return RemoveRecordUnsafe(key);
 }
 
 bool Db::Remove(const std::string& key, const std::string& id)
 {
     const auto lock = exclusive_lock(lock_file, GetLockTimeout());
-    VALIDATE_LOCK(lock);
+    MIOPEN_VALIDATE_LOCK(lock);
     auto record = FindRecordUnsafe(key, nullptr);
     if(!record)
         return false;
