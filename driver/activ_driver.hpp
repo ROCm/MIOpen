@@ -155,8 +155,8 @@ int ActivationDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
     inflags.AddInputFlag(
         "mode", 'm', "3", "Activation Mode (relu,..., see spec) (Default=3(relu))", "int");
-    inflags.AddInputFlag("alpha", 'A', "0.0", "Activation shift (Default=0.0)", "double");
-    inflags.AddInputFlag("beta", 'B', "0.0", "Activation scale (Default=0.0)", "double");
+    inflags.AddInputFlag("alpha", 'A', "1.0", "Activation alpha (Default=1.0)", "double");
+    inflags.AddInputFlag("beta", 'B', "1.0", "Activation beta (Default=1.0)", "double");
     inflags.AddInputFlag("gamma", 'P', "1.0", "Activation gamma (Default=1.0)", "double");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
@@ -311,7 +311,7 @@ template <typename Tgpu, typename Tref>
 int ActivationDriver<Tgpu, Tref>::VerifyForward()
 {
 
-    const Tref allowedEps = 1e-10;
+    const double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
     miopenActivationMode_t v_mode;
     double v_Alpha;
     double v_Beta;
@@ -327,7 +327,7 @@ int ActivationDriver<Tgpu, Tref>::VerifyForward()
                                                          in.size(),
                                                          in.data(),
                                                          out.data(),
-                                                         allowedEps);
+                                                         static_cast<Tref>(allowedEps));
 
     if(match)
         printf("Forward Activation Verifies on CPU and GPU\n");
@@ -345,7 +345,7 @@ template <typename Tgpu, typename Tref>
 int ActivationDriver<Tgpu, Tref>::VerifyBackward()
 {
 
-    const Tref allowedEps = 1e-6;
+    const double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
     miopenActivationMode_t v_mode;
     double v_Alpha;
     double v_Beta;
@@ -363,7 +363,7 @@ int ActivationDriver<Tgpu, Tref>::VerifyBackward()
                                                           out.data(),
                                                           din.data(),
                                                           dout.data(),
-                                                          allowedEps);
+                                                          static_cast<Tref>(allowedEps));
     if(match)
         printf("Backward Activation Verifies on CPU and GPU\n");
     return miopenStatusSuccess;
