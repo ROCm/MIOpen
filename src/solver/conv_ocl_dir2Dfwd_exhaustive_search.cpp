@@ -115,6 +115,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
             result.out_pix_tile1 = 0;
         }
     }
+    MIOPEN_LOG_I2("Returns: " << result);
     return result;
 }
 
