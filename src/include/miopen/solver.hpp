@@ -104,6 +104,8 @@ struct ConvSolution
     inline bool Succeeded() const { return status == miopenStatusSuccess; }
 };
 
+std::ostream& operator<<(std::ostream& os, const ConvSolution& s);
+
 template <class Solver>
 std::string ComputeSolverDbId(Solver)
 {
