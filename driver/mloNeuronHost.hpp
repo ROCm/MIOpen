@@ -76,8 +76,7 @@ int mloNeuronForwardRunHostAndVerify(int neuron_type,
                                      _Tcheck allowedEps)
 {
 
-    int match = 1;
-    // c-emulator
+    int match      = 1;
     _Tcheck* c_res = new _Tcheck[size];
     _Tcheck* data  = new _Tcheck[size];
     for(size_t k = 0; k < size; k++)
@@ -133,7 +132,9 @@ int mloNeuronForwardRunHostAndVerify(int neuron_type,
            !std::isfinite(g_val))
         {
             std::cout << "Difference in neuron layer: " << err << " too large at " << i
-                      << " c_v = " << c_val << " vs g_val = " << g_val << " tolerance = "<< allowedEps << std::endl;
+                      << " x = " << data[i] << " "
+                      << " c_v = " << c_val << " vs g_val = " << g_val
+                      << " tolerance = " << allowedEps << std::endl;
             match = 0;
         }
     }
@@ -201,7 +202,7 @@ int mloNeuronBackwardRunHostAndVerify(int neuron_type,
         };
         break;
     case MLO_NEURON_ABS: //	abs(x)
-        f = [=](_Tcheck dy, _Tcheck x, _Tcheck) { return dy * ((x >= 0) ? 1 : -1); };
+        f = [=](_Tcheck dy, _Tcheck x, _Tcheck) { return dy * ((x > 0) ? 1 : -1); };
         break;
     case MLO_NEURON_POWER: // (alpha + beta * x) ^ gamma
         f = [=](_Tcheck, _Tcheck x, _Tcheck y) {
@@ -233,8 +234,10 @@ int mloNeuronBackwardRunHostAndVerify(int neuron_type,
         if(err > allowedEps || std::isnan(c_val) || std::isnan(g_val))
         {
             std::cout << "Difference in neuron back-propagation: " << err << " too large at " << i
-                      << " dy = " << top_df_cpu[i] << " x = " << bot_cpu[i] << " y = " << top_cpu[i] << " "
-                      << " c_v = " << c_val << " vs g_val = " << g_val << " tolerance = "<< allowedEps << std::endl;
+                      << " dy = " << top_df_cpu[i] << " x = " << bot_cpu[i] << " y = " << top_cpu[i]
+                      << " "
+                      << " c_v = " << c_val << " vs g_val = " << g_val
+                      << " tolerance = " << allowedEps << std::endl;
             match = 0;
         }
     }

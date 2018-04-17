@@ -215,7 +215,7 @@ struct activation_driver : test_driver
                  });
         add_mode(miopenActivationABS,
                  [=](double x) { return std::abs(x); },
-                 [=](double dy, double x, double) { return dy * ((x >= 0) ? 1 : -1); });
+                 [=](double dy, double x, double) { return dy * ((x > 0) ? 1 : -1); });
         add_mode(miopenActivationPOWER,
                  [=](double x) { return std::pow(alpha + beta * x, gamma); },
                  [=](double, double x, double y) {
@@ -224,7 +224,7 @@ struct activation_driver : test_driver
                  });
         add_mode(miopenActivationCLIPPEDRELU,
                  [=](double x) { return std::min(alpha, std::max(double(0), x)); },
-                 [=](double dy, double x, double) { return (x > 0 && x < alpha) ? dy : 0; });
+                 [=](double dy, double x, double) { return (x > 0 && x <= alpha) ? dy : 0; });
         add_mode(miopenActivationLEAKYRELU,
                  [=](double x) { return (x > 0) ? x : x * alpha; },
                  [=](double dy, double x, double) { return dy * ((x > 0) ? 1 : alpha); });
