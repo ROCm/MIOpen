@@ -479,7 +479,7 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
                                std::size_t cache_index)
 {
 
-    //std::cerr << " algorithm = " << algorithm << " network_config = " << network_config << " program_name = " << program_name << std::endl;
+    std::cerr << " algorithm = " << algorithm << " network_config = " << network_config << " program_name = " << program_name << " kernel_name = " << kernel_name << " params = " << params << std::endl;
     auto obj = this->impl->cache.AddKernel(
         *this, algorithm, network_config, program_name, kernel_name, vld, vgd, params, cache_index);
     return this->Run(obj);
