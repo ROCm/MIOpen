@@ -228,6 +228,10 @@ int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         case MLO_NEURON_POWER:
             in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(2.0));
             break;
+        case MLO_NEURON_ELU:
+            in[i] = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>(0.005), static_cast<Tgpu>(2.0))
+                          : RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(-0.005));
+            break;
         default: in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0)); break;
         }
     }
@@ -328,13 +332,6 @@ int ActivationDriver<Tgpu, Tref>::VerifyForward()
     double v_Gamma;
 
     miopenGetActivationDescriptor(activDesc, &v_mode, &v_Alpha, &v_Beta, &v_Gamma);
-
-    // custom tolerance
-    if(std::is_same<Tgpu, float>())
-    {
-        if(v_mode == MLO_NEURON_ELU)
-            allowedEps = std::numeric_limits<Tgpu>::epsilon() * 1200;
-    }
 
     int match = 1;
     match     = mloNeuronForwardRunHostAndVerify<Tgpu, Tref>(v_mode,
