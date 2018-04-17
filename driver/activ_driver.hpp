@@ -155,9 +155,9 @@ int ActivationDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
     inflags.AddInputFlag(
         "mode", 'm', "3", "Activation Mode (relu,..., see spec) (Default=3(relu))", "int");
-    inflags.AddInputFlag("alpha", 'A', "1.0", "Activation alpha (Default=1.0)", "double");
-    inflags.AddInputFlag("beta", 'B', "1.0", "Activation beta (Default=1.0)", "double");
-    inflags.AddInputFlag("gamma", 'P', "1.0", "Activation gamma (Default=1.0)", "double");
+    inflags.AddInputFlag("alpha", 'A', "0.8192", "Activation alpha (Default=0.8192)", "double");
+    inflags.AddInputFlag("beta", 'B', "2.3", "Activation beta (Default=2.3)", "double");
+    inflags.AddInputFlag("gamma", 'G', "3.4", "Activation gamma (Default=3.4)", "double");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -216,9 +216,20 @@ int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     dout    = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
     dinhost = std::vector<Tref>(in_sz, static_cast<Tref>(0));
 
+    miopenActivationMode_t activation_mode;
+    double d;
+
+    miopenGetActivationDescriptor(activDesc, &activation_mode, &d, &d, &d);
+
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+        switch(activation_mode)
+        {
+        case MLO_NEURON_POWER:
+            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(2.0));
+            break;
+        default: in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0)); break;
+        }
     }
 
     for(int i = 0; i < out_sz; i++)
@@ -310,13 +321,20 @@ template <typename Tgpu, typename Tref>
 int ActivationDriver<Tgpu, Tref>::VerifyForward()
 {
 
-    const double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
+    double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
     miopenActivationMode_t v_mode;
     double v_Alpha;
     double v_Beta;
     double v_Gamma;
 
     miopenGetActivationDescriptor(activDesc, &v_mode, &v_Alpha, &v_Beta, &v_Gamma);
+
+    // custom tolerance
+    if(std::is_same<Tgpu, float>())
+    {
+        if(v_mode == MLO_NEURON_ELU)
+            allowedEps = std::numeric_limits<Tgpu>::epsilon() * 1200;
+    }
 
     int match = 1;
     match     = mloNeuronForwardRunHostAndVerify<Tgpu, Tref>(v_mode,
@@ -344,7 +362,7 @@ template <typename Tgpu, typename Tref>
 int ActivationDriver<Tgpu, Tref>::VerifyBackward()
 {
 
-    const double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
+    double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
     miopenActivationMode_t v_mode;
     double v_Alpha;
     double v_Beta;
