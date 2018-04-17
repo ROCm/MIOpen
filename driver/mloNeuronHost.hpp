@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#ifndef MLO_NEURONHOST_H_
-#define MLO_NEURONHOST_H_
+#ifndef MIOPEN_NEURONHOST_H_
+#define MIOPEN_NEURONHOST_H_
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -42,18 +42,18 @@
 //
 ///////////////////////////////////////////////////////////
 
-#ifndef MLO_NEURON_PASTHRU
-#define MLO_NEURON_PASTHRU 0      // x
-#define MLO_NEURON_LOGISTIC 1     // 1 / (1 + e^-x)	//Sigmoid
-#define MLO_NEURON_TANH 2         // beta * tanh(alpha * x)
-#define MLO_NEURON_RELU 3         // max(0, x)
-#define MLO_NEURON_SOFTRELU 4     // log(1 + e^x)   // bonomial normal log likelihood
-#define MLO_NEURON_ABS 5          // abs(x)
-#define MLO_NEURON_POWER 6        // (alpha + beta * x )^gamma
-#define MLO_NEURON_CLIPPED_RELU 7 // min(alpha, max(0, x))
-#define MLO_NEURON_LEAKY_RELU 8   // alpha * x | x <= 0; x | x > 0
-#define MLO_NEURON_ELU 9          // alpha * (e^x - 1) | x <= 0; x | x > 0
-#define MLO_NEURON_TOTAL 10
+#ifndef MIOPEN_NEURON_PASTHRU
+#define MIOPEN_NEURON_PASTHRU 0      // x
+#define MIOPEN_NEURON_LOGISTIC 1     // 1 / (1 + e^-x)	//Sigmoid
+#define MIOPEN_NEURON_TANH 2         // beta * tanh(alpha * x)
+#define MIOPEN_NEURON_RELU 3         // max(0, x)
+#define MIOPEN_NEURON_SOFTRELU 4     // log(1 + e^x)   // bonomial normal log likelihood
+#define MIOPEN_NEURON_ABS 5          // abs(x)
+#define MIOPEN_NEURON_POWER 6        // (alpha + beta * x )^gamma
+#define MIOPEN_NEURON_CLIPPED_RELU 7 // min(alpha, max(0, x))
+#define MIOPEN_NEURON_LEAKY_RELU 8   // alpha * x | x <= 0; x | x > 0
+#define MIOPEN_NEURON_ELU 9          // alpha * (e^x - 1) | x <= 0; x | x > 0
+#define MIOPEN_NEURON_TOTAL 10
 #endif
 
 const float kBNLL_THRESHOLD = 50.;
@@ -86,37 +86,37 @@ int mloNeuronForwardRunHostAndVerify(int neuron_type,
 
     switch(neuron_type)
     {
-    case MLO_NEURON_PASTHRU: //	x
+    case MIOPEN_NEURON_PASTHRU: //	x
         f = [=](_Tcheck x) { return x; };
         break;
-    case MLO_NEURON_LOGISTIC: //	1 / (1 + e^-x)	//Sigmoid
+    case MIOPEN_NEURON_LOGISTIC: //	1 / (1 + e^-x)	//Sigmoid
         f = [=](_Tcheck x) { return 1 / (1 + std::exp(-x)); };
         break;
-    case MLO_NEURON_TANH: //	beta * tanh(alpha * x)
+    case MIOPEN_NEURON_TANH: //	beta * tanh(alpha * x)
         f = [=](_Tcheck x) { return beta * std::tanh(alpha * x); };
         break;
-    case MLO_NEURON_RELU: //	max(0, x)
+    case MIOPEN_NEURON_RELU: //	max(0, x)
         f = [=](_Tcheck x) { return (x > 0) ? x : 0; };
         break;
-    case MLO_NEURON_SOFTRELU: //	log(1 + e^x)   // bonomial normal log likelihood
+    case MIOPEN_NEURON_SOFTRELU: //	log(1 + e^x)   // bonomial normal log likelihood
         f = [=](_Tcheck x) { return std::log1p(std::exp(x)); };
         break;
-    case MLO_NEURON_ABS: //	abs(x)
+    case MIOPEN_NEURON_ABS: //	abs(x)
         f = [=](_Tcheck x) { return std::abs(x); };
         break;
-    case MLO_NEURON_POWER: // (alpha + beta * x) ^ gamma
+    case MIOPEN_NEURON_POWER: // (alpha + beta * x) ^ gamma
         f = [=](_Tcheck x) {
             _Tcheck v = alpha + beta * x;
             return v <= std::numeric_limits<_Tcheck>::epsilon() ? 0 : pow(v, gamma);
         };
         break;
-    case MLO_NEURON_CLIPPED_RELU: // min(alpha, max(0, x))
+    case MIOPEN_NEURON_CLIPPED_RELU: // min(alpha, max(0, x))
         f = [=](_Tcheck x) { return std::min(alpha, std::max(_Tcheck(0), x)); };
         break;
-    case MLO_NEURON_LEAKY_RELU: // alpha * x | x<=0; x | x>0
+    case MIOPEN_NEURON_LEAKY_RELU: // alpha * x | x<=0; x | x>0
         f = [=](_Tcheck x) { return (x > 0) ? x : x * alpha; };
         break;
-    case MLO_NEURON_ELU: // alpah * (exp(x)-1) | x<=0; x | x>0
+    case MIOPEN_NEURON_ELU: // alpah * (exp(x)-1) | x<=0; x | x>0
         f = [=](_Tcheck x) { return (x > 0) ? x : alpha * std::expm1(x); };
         break;
     default: printf("ERROR: unknown neuron type: %d\n", neuron_type); break;
@@ -186,41 +186,41 @@ int mloNeuronBackwardRunHostAndVerify(int neuron_type,
 
     switch(neuron_type)
     {
-    case MLO_NEURON_PASTHRU: //	x
+    case MIOPEN_NEURON_PASTHRU: //	x
         f = [=](_Tcheck dy, _Tcheck, _Tcheck) { return dy; };
         break;
-    case MLO_NEURON_LOGISTIC: //	1 / (1 + e^-x)	//Sigmoid
+    case MIOPEN_NEURON_LOGISTIC: //	1 / (1 + e^-x)	//Sigmoid
         f = [=](_Tcheck dy, _Tcheck, _Tcheck y) { return dy * y * (1 - y); };
         break;
-    case MLO_NEURON_TANH: //	beta * tanh(alpha * x)
+    case MIOPEN_NEURON_TANH: //	beta * tanh(alpha * x)
         f = [=](_Tcheck dy, _Tcheck, _Tcheck y) { return dy * alpha * (beta - y * y / beta); };
         break;
-    case MLO_NEURON_RELU: //	max(0, x)
+    case MIOPEN_NEURON_RELU: //	max(0, x)
         f = [=](_Tcheck dy, _Tcheck x, _Tcheck) { return (x > 0) ? dy : 0; };
         break;
-    case MLO_NEURON_SOFTRELU: //	log(1 + e^x)   // bonomial normal log likelihood
+    case MIOPEN_NEURON_SOFTRELU: //	log(1 + e^x)   // bonomial normal log likelihood
         f = [=](_Tcheck dy, _Tcheck x, _Tcheck) {
             _Tcheck threshold = kBNLL_THRESHOLD;
             _Tcheck expval    = std::exp(std::min(x, threshold));
             return dy * expval / (expval + 1.0);
         };
         break;
-    case MLO_NEURON_ABS: //	abs(x)
+    case MIOPEN_NEURON_ABS: //	abs(x)
         f = [=](_Tcheck dy, _Tcheck x, _Tcheck) { return dy * ((x > 0) ? 1 : -1); };
         break;
-    case MLO_NEURON_POWER: // (alpha + beta * x) ^ gamma
+    case MIOPEN_NEURON_POWER: // (alpha + beta * x) ^ gamma
         f = [=](_Tcheck, _Tcheck x, _Tcheck y) {
             _Tcheck v = alpha + beta * x;
             return v <= std::numeric_limits<_Tcheck>::epsilon() ? 0 : gamma * beta * y / v;
         };
         break;
-    case MLO_NEURON_CLIPPED_RELU: // min(alpha, max(0, x))
+    case MIOPEN_NEURON_CLIPPED_RELU: // min(alpha, max(0, x))
         f = [=](_Tcheck dy, _Tcheck x, _Tcheck) { return (x > 0 && x < alpha) ? dy : 0; };
         break;
-    case MLO_NEURON_LEAKY_RELU: // alpha * x | x<=0; x | x>0
+    case MIOPEN_NEURON_LEAKY_RELU: // alpha * x | x<=0; x | x>0
         f = [=](_Tcheck dy, _Tcheck x, _Tcheck) { return dy * ((x > 0) ? 1 : alpha); };
         break;
-    case MLO_NEURON_ELU: // alpah * (exp(x)-1) | x<=0; x | x>0
+    case MIOPEN_NEURON_ELU: // alpah * (exp(x)-1) | x<=0; x | x>0
         f = [=](_Tcheck dy, _Tcheck x, _Tcheck y) { return dy * ((x > 0) ? 1 : y + alpha); };
         break;
     default: printf("ERROR: unknown neuron type: %d\n", neuron_type); break;
