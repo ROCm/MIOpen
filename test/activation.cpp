@@ -217,10 +217,13 @@ struct activation_driver : test_driver
                  [=](double x) { return std::abs(x); },
                  [=](double dy, double x, double) { return dy * ((x > 0) ? 1 : -1); });
         add_mode(miopenActivationPOWER,
-                 [=](double x) { return std::pow(alpha + beta * x, gamma); },
+                 [=](double x) {
+                     double v = alpha + beta * x;
+                     return v <= std::numeric_limits<double>::epsilon() ? 0 : pow(v, gamma);
+                 },
                  [=](double, double x, double y) {
-                     auto divisor = alpha + beta * x;
-                     return (miopen::float_equal(divisor, 0)) ? 0 : gamma * beta * y / divisor;
+                     auto v = alpha + beta * x;
+                     return v <= std::numeric_limits<double>::epsilon() ? 0 : gamma * beta * y / v;
                  });
         add_mode(miopenActivationCLIPPEDRELU,
                  [=](double x) { return std::min(alpha, std::max(double(0), x)); },

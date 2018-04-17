@@ -105,7 +105,10 @@ int mloNeuronForwardRunHostAndVerify(int neuron_type,
         f = [=](_Tcheck x) { return std::abs(x); };
         break;
     case MLO_NEURON_POWER: // (alpha + beta * x) ^ gamma
-        f = [=](_Tcheck x) { return std::pow(alpha + beta * x, gamma); };
+        f = [=](_Tcheck x) {
+            _Tcheck v = alpha + beta * x;
+            return v <= std::numeric_limits<_Tcheck>::epsilon() ? 0 : pow(v, gamma);
+        };
         break;
     case MLO_NEURON_CLIPPED_RELU: // min(alpha, max(0, x))
         f = [=](_Tcheck x) { return std::min(alpha, std::max(_Tcheck(0), x)); };
@@ -124,12 +127,13 @@ int mloNeuronForwardRunHostAndVerify(int neuron_type,
 
     for(size_t i = 0; i < size && match; i++)
     {
-        _Tcheck c_val = c_res[i];
-        _Tcheck g_val = static_cast<_Tcheck>(top_ptr[i]);
-        double err    = calculate_relative_error(c_val, g_val);
+        _Tcheck c_val  = c_res[i];
+        _Tcheck g_val  = static_cast<_Tcheck>(top_ptr[i]);
+        double err     = std::abs(c_val - g_val);
+        double err_rel = calculate_relative_error(c_val, g_val);
 
-        if(err > allowedEps || std::isnan(c_val) || std::isnan(g_val) || !std::isfinite(c_val) ||
-           !std::isfinite(g_val))
+        if((err > allowedEps && err_rel > allowedEps) || std::isnan(c_val) || std::isnan(g_val) ||
+           !std::isfinite(c_val) || !std::isfinite(g_val))
         {
             std::cout << "Difference in neuron layer: " << err << " too large at " << i
                       << " x = " << data[i] << " "
@@ -206,8 +210,8 @@ int mloNeuronBackwardRunHostAndVerify(int neuron_type,
         break;
     case MLO_NEURON_POWER: // (alpha + beta * x) ^ gamma
         f = [=](_Tcheck, _Tcheck x, _Tcheck y) {
-            _Tcheck divisor = alpha + beta * x;
-            return (miopen::float_equal(divisor, 0)) ? 0 : gamma * beta * y / divisor;
+            _Tcheck v = alpha + beta * x;
+            return v <= std::numeric_limits<_Tcheck>::epsilon() ? 0 : gamma * beta * y / v;
         };
         break;
     case MLO_NEURON_CLIPPED_RELU: // min(alpha, max(0, x))
@@ -227,11 +231,13 @@ int mloNeuronBackwardRunHostAndVerify(int neuron_type,
 
     for(size_t i = 0; i < size && match; ++i)
     {
-        _Tcheck c_val = bot_df_cpu[i];
-        _Tcheck g_val = static_cast<_Tcheck>(bot_df_ptr[i]);
-        double err    = calculate_relative_error(c_val, g_val);
+        _Tcheck c_val  = bot_df_cpu[i];
+        _Tcheck g_val  = static_cast<_Tcheck>(bot_df_ptr[i]);
+        double err     = std::abs(c_val - g_val);
+        double err_rel = calculate_relative_error(c_val, g_val);
 
-        if(err > allowedEps || std::isnan(c_val) || std::isnan(g_val))
+        if((err > allowedEps && err_rel > allowedEps) || std::isnan(c_val) || std::isnan(g_val) ||
+           !std::isfinite(c_val) || !std::isfinite(g_val))
         {
             std::cout << "Difference in neuron back-propagation: " << err << " too large at " << i
                       << " dy = " << top_df_cpu[i] << " x = " << bot_cpu[i] << " y = " << top_cpu[i]
