@@ -33,6 +33,7 @@
 #include <miopen/miopen.h>
 #include <miopen/perf_field.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/solver.hpp>
 
 namespace miopen {
 
@@ -180,6 +181,16 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                          std::vector<KernelInvoke>& kernels,
                          bool exhaustiveSearch,
                          int direction) const;
+
+    int GetDirectSolutions(Handle& handle,
+                           const TensorDescriptor& xDesc,
+                           const TensorDescriptor& wDesc,
+                           const TensorDescriptor& yDesc,
+                           bool exhaustiveSearch,
+                           int direction,
+                           std::vector<miopen::solver::ConvSolution>& solutions,
+                           std::string& network_config,
+                           ExtraKernelArgs& extraArgs) const;
 
     void ConvolutionForward(Handle& handle,
                             const void* alpha,
