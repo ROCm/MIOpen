@@ -155,9 +155,9 @@ int ActivationDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
     inflags.AddInputFlag(
         "mode", 'm', "3", "Activation Mode (relu,..., see spec) (Default=3(relu))", "int");
-    inflags.AddInputFlag("alpha", 'A', "0.8192", "Activation alpha (Default=0.8192)", "double");
-    inflags.AddInputFlag("beta", 'B', "2.3", "Activation beta (Default=2.3)", "double");
-    inflags.AddInputFlag("gamma", 'G', "3.4", "Activation gamma (Default=3.4)", "double");
+    inflags.AddInputFlag("alpha", 'A', "1", "Activation alpha (Default=1)", "double");
+    inflags.AddInputFlag("beta", 'B', "1", "Activation beta (Default=1)", "double");
+    inflags.AddInputFlag("gamma", 'G', "1", "Activation gamma (Default=1)", "double");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -217,9 +217,9 @@ int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     dinhost = std::vector<Tref>(in_sz, static_cast<Tref>(0));
 
     miopenActivationMode_t activation_mode;
-    double d;
+    double alpha, beta, gamma;
 
-    miopenGetActivationDescriptor(activDesc, &activation_mode, &d, &d, &d);
+    miopenGetActivationDescriptor(activDesc, &activation_mode, &alpha, &beta, &gamma);
 
     for(int i = 0; i < in_sz; i++)
     {
@@ -244,13 +244,24 @@ int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
             break;
         case MLO_NEURON_POWER:
-            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(2.0));
+        {
+            double v = - alpha / beta;
+            in[i] = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>((v+0.005)/beta), static_cast<Tgpu>((v+2.0)/beta))
+                          : RAN_GEN<Tgpu>(static_cast<Tgpu>((v-2.0)/beta), static_cast<Tgpu>((v-0.005)/beta));
             break;
+        }
         case MLO_NEURON_CLIPPED_RELU:
-            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+            if( i % 3 == 0 )
+                in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-1.0*alpha), static_cast<Tgpu>(-0.005*alpha));
+            else if( i % 3 == 1 )
+                in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.005*alpha), static_cast<Tgpu>(0.995*alpha));
+            else
+                in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(1.005*alpha), static_cast<Tgpu>(2.0*alpha));
+
             break;
         case MLO_NEURON_LEAKY_RELU:
-            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+            in[i] = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(-0.005))
+                          : RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.005), static_cast<Tgpu>(1.0));
             break;
         case MLO_NEURON_ELU:
             in[i] = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>(0.005), static_cast<Tgpu>(2.0))
@@ -285,7 +296,7 @@ template <typename Tgpu, typename Tref>
 int ActivationDriver<Tgpu, Tref>::RunForwardGPU()
 {
 
-    Tgpu alpha = static_cast<Tgpu>(1), beta = static_cast<Tgpu>(0);
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     miopenActivationForward(GetHandle(),
                             activDesc,

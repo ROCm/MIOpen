@@ -32,9 +32,11 @@
 #if MIOPEN_USE_FP16 == 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
+#define EPSILON (_FLOAT)0.0001
 #endif
 #if MIOPEN_USE_FP32 == 1
 #define _FLOAT float
+#define EPSILON (_FLOAT)0.000001
 #endif
 
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
@@ -180,7 +182,7 @@ __attribute__((always_inline)) void ActivationFunction_Power(const uint n,
     {
         // y = (alpha + beta * x ) ^ gamma
         _FLOAT arg = alpha + data[i] * beta;
-        res[i]     = pow(arg, gamma);
+        res[i]     = arg <= EPSILON ? (_FLOAT)0 : pow(arg, gamma);
     }
 }
 
@@ -349,18 +351,8 @@ __attribute__((always_inline)) void ActivationFunction_TanH_Diff(const uint n,
     {
         // dy/dx = alpha * (beta - y^2 / beta)
         _FLOAT y = top_data[i];
-
-#if MIOPEN_USE_FP16 == 1
-        bot_diff[i] = (fabs(beta) <= (_FLOAT)0.0001)
-                          ? (_FLOAT)0
-                          : (top_diff[i] * alpha * (beta - y * y / beta));
-#endif
-
-#if MIOPEN_USE_FP32 == 1
-        bot_diff[i] = (fabs(beta) <= (_FLOAT)0.000001)
-                          ? (_FLOAT)0
-                          : (top_diff[i] * alpha * (beta - y * y / beta));
-#endif
+        bot_diff[i] =
+            fabs(beta) <= EPSILON ? (_FLOAT)0 : (top_diff[i] * alpha * (beta - y * y / beta));
     }
 }
 
@@ -398,7 +390,7 @@ __attribute__((always_inline)) void ActivationFunction_Abs_Diff(const uint n,
     }
 }
 
-// Compute dy/dx = beta * power * (alpha + beta * x)^(gamma - 1)
+// Compute dy/dx = beta * gamma * (alpha + beta * x)^(gamma - 1)
 //               = diff_scale * y / (alpha + beta * x)
 __attribute__((always_inline)) void ActivationFunction_Power_Diff(const uint n,
                                                                   _FLOAT* bot_diff,
@@ -412,14 +404,8 @@ __attribute__((always_inline)) void ActivationFunction_Power_Diff(const uint n,
 {
     for(uint i = 0; i < n; ++i)
     {
-        _FLOAT arg = alpha + bot_data[i] * beta;
-#if MIOPEN_USE_FP16 == 1
-        bot_diff[i] = (fabs(arg) <= (_FLOAT)0.0001) ? (_FLOAT)0 : (diff_scale * top_data[i] / arg);
-#endif
-#if MIOPEN_USE_FP32 == 1
-        bot_diff[i] =
-            (fabs(arg) <= (_FLOAT)0.000001) ? (_FLOAT)0 : (diff_scale * top_data[i] / arg);
-#endif
+        _FLOAT arg  = alpha + bot_data[i] * beta;
+        bot_diff[i] = arg <= EPSILON ? (_FLOAT)0 : (diff_scale * top_data[i] / arg);
     }
 }
 
