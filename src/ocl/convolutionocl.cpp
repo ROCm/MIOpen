@@ -2022,14 +2022,15 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 const std::string perf_name      = "miopenConvolutionBwdWeightsAlgoDirect";
                 const std::string algorithm_name = perf_name + "_Main";
 
-                visit_float(dyDesc.GetType(), [&](auto as_float) {
-                    miopen::solver::ConvSolution selected{miopenStatusUnknownError};
-                    float best = std::numeric_limits<float>::max();
-                    std::vector<miopen::solver::ConvSolution> all;
-                    mloConstruct(construct_params, all);
+                miopen::solver::ConvSolution selected{miopenStatusUnknownError};
+                float best = std::numeric_limits<float>::max();
+                std::vector<miopen::solver::ConvSolution> all;
+                mloConstruct(construct_params, all);
 #if WORKAROUND_ISSUE_791
-                    int n_pure_opencl_solutions = 0;
+                int n_pure_opencl_solutions = 0;
 #endif
+
+                visit_float(dyDesc.GetType(), [&](auto as_float) {
                     for(const auto& sol : all)
                     {
 #if WORKAROUND_ISSUE_791
@@ -2068,14 +2069,14 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                             selected = sol;
                         }
                     }
-                    if(selected.Succeeded())
-                    {
-                        AddKernels(handle, algorithm_name, network_config, selected, nullptr);
-                        MIOPEN_LLOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
-                                                   << selected.workspce_sz);
-                        perf_db.push_back(PerfField{perf_name, best, selected.workspce_sz});
-                    }
                 });
+                if(selected.Succeeded())
+                {
+                    AddKernels(handle, algorithm_name, network_config, selected, nullptr);
+                    MIOPEN_LLOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
+                                               << selected.workspce_sz);
+                    perf_db.push_back(PerfField{perf_name, best, selected.workspce_sz});
+                }
             }
         }
     }
