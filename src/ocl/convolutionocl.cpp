@@ -207,6 +207,96 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
     }
 }
 
+int ConvolutionDescriptor::GetDirectSolutions(Handle& handle,
+                                              const TensorDescriptor& xDesc,
+                                              const TensorDescriptor& wDesc,
+                                              const TensorDescriptor& yDesc,
+                                              bool exhaustiveSearch,
+                                              int direction,
+                                              std::vector<miopen::solver::ConvSolution>& solutions,
+                                              std::string& network_config,
+                                              ExtraKernelArgs& extraArgs) const
+{
+
+    if(!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+        return -1;
+
+    mlo_construct_direct2D construct_params(direction);
+    construct_params.setDoSearch(exhaustiveSearch);
+    construct_params.saveSearchRequest(true);
+    construct_params.setGeneralCompOptions("");
+    construct_params.setStream(&handle);
+    construct_params.setOutputDescFromMLDesc(yDesc);
+    construct_params.setInputDescFromMLDesc(xDesc);
+    construct_params.setWeightDescFromMLDesc(wDesc);
+    construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+
+    if((IsWinograd3x3Supported(handle, direction != 0, wDesc, (direction != 0 ? xDesc : yDesc)) &&
+        construct_params.mloIsFastBinaryWinograd3x3U()))
+    {
+        return -1;
+    }
+
+    try
+    {
+        int N, C, H, W, K, n_groups;
+        construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+        extraArgs = std::make_tuple(N, C, H, W, K, n_groups);
+        construct_params.mloBuildConf_Key(network_config);
+        mloConstruct(construct_params, solutions);
+        return 0;
+    }
+    catch(miopen::Exception&)
+    {
+        return -1;
+    }
+}
+
+template <typename T>
+inline float FindConvAlgoDirectRun(Handle& handle,
+                                   const std::string& algorithm_name,
+                                   const std::string& network_config,
+                                   const miopen::solver::ConvSolution& solution,
+                                   const ExtraKernelArgs& extraArgs,
+                                   ConstData_t x,
+                                   ConstData_t w,
+                                   Data_t y,
+                                   T padding_val)
+{
+    float elapsed = 0;
+    std::vector<KernelInvoke> kernels;
+    AddKernels(handle, algorithm_name, network_config, solution, &kernels);
+    for(auto& k : kernels)
+    {
+        if(k.GetName() == "gcnAsmConv1x1U")
+        {
+            int unused       = 0;
+            int* return_addr = nullptr;
+            int N, C, H, W, K, n_groups;
+            std::tie(N, C, H, W, K, n_groups) = extraArgs;
+            k(N, C, H, W, K, n_groups, unused, unused, x, w, y, return_addr);
+        }
+        else
+        {
+            k(x, w, y, padding_val);
+        }
+        elapsed += handle.GetKernelTime();
+    }
+    return elapsed;
+}
+
+#if WORKAROUND_ISSUE_791
+static inline bool IsPureOpenCLSolution(const miopen::solver::ConvSolution& s)
+{
+    for(auto& k : s.construction_params)
+    {
+        if(!miopen::EndsWith(k.kernel_file, ".cl"))
+            return false;
+    }
+    return true;
+}
+#endif
+
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                                  const TensorDescriptor& xDesc,
                                                  ConstData_t x,
@@ -464,45 +554,56 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
             // Direct algo
             ExtraKernelArgs eka;
-            std::vector<KernelInvoke> kernel_direct;
-            if(FindDirectKernel(
-                   handle, xDesc, wDesc, yDesc, eka, kernel_direct, exhaustiveSearch, 1) == 0)
-            { // Forward
-
-                // Execute the direct kernel
-                float time_direct = 0;
-                float padding_val = 0;
+            std::vector<miopen::solver::ConvSolution> directAll;
+            if(GetDirectSolutions(handle,
+                                  xDesc,
+                                  wDesc,
+                                  yDesc,
+                                  exhaustiveSearch,
+                                  1,
+                                  directAll,
+                                  network_config,
+                                  eka) == 0)
+            {
+                const std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
+                miopen::solver::ConvSolution selected{miopenStatusUnknownError};
+                float best = std::numeric_limits<float>::max();
+#if WORKAROUND_ISSUE_791
+                int n_pure_opencl_solutions = 0;
+#endif
                 visit_float(xDesc.GetType(), [&](auto as_float) {
-                    for(auto& k : kernel_direct)
+                    for(const auto& sol : directAll)
                     {
-                        if(k.GetName() == "gcnAsmConv1x1U")
+#if WORKAROUND_ISSUE_791
+                        /// Try only the first "pure" OpenCL solution.
+                        /// It seems that OpenCL solvers imply that only the 1st one
+                        /// applicable solution shall be used while the rest of OpenCL
+                        /// solutions shall be ignored.
+                        if(IsPureOpenCLSolution(sol))
                         {
-                            int unused       = 0;
-                            int* return_addr = nullptr;
-                            int N, C, H, W, K, n_groups;
-                            std::tie(N, C, H, W, K, n_groups) = eka;
-                            k(N,
-                              C,
-                              H,
-                              W,
-                              K,
-                              n_groups,
-                              unused,
-                              unused,
-                              x,
-                              w,
-                              tmp_y.get(),
-                              return_addr);
+                            ++n_pure_opencl_solutions;
+                            if(n_pure_opencl_solutions > 1)
+                                continue;
                         }
-                        else
+#endif
+                        float elapsed = FindConvAlgoDirectRun(
+                            handle, "", "", sol, eka, x, w, tmp_y.get(), as_float(0.0f));
+                        MIOPEN_LLOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
+                                          << best);
+                        if(elapsed < best)
                         {
-                            k(x, w, tmp_y.get(), as_float(padding_val));
+                            best     = elapsed;
+                            selected = sol;
                         }
-                        time_direct += handle.GetKernelTime();
                     }
                 });
-
-                perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoDirect", time_direct, 0});
+                if(selected.Succeeded())
+                {
+                    AddKernels(handle, algorithm_name, network_config, selected, nullptr);
+                    MIOPEN_LLOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
+                                               << selected.workspce_sz);
+                    perf_db.push_back(PerfField{algorithm_name, best, selected.workspce_sz});
+                }
             }
 
             // FFT algo
@@ -1764,16 +1865,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
     }
 }
 
-static inline bool IsPureOpenCLSolution(const miopen::solver::ConvSolution& s)
-{
-    for(auto& k : s.construction_params)
-    {
-        if(!miopen::EndsWith(k.kernel_file, ".cl"))
-            return false;
-    }
-    return true;
-}
-
 template <typename T>
 inline float FindConvBwdWeightsAlgorithmDirectRun(Handle& handle,
                                                   const std::string& algorithm_name,
@@ -2020,7 +2111,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
                 construct_params.mloBuildConf_Key(network_config);
                 const std::string perf_name      = "miopenConvolutionBwdWeightsAlgoDirect";
-                const std::string algorithm_name = perf_name + "_Main";
+                const std::string algorithm_name = perf_name + "_Main"; /// \todo remove this
 
                 miopen::solver::ConvSolution selected{miopenStatusUnknownError};
                 float best = std::numeric_limits<float>::max();
