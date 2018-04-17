@@ -175,12 +175,12 @@ struct ProblemDescription
     size_t weights_sz      = 0;
     size_t bias_sz         = 0;
     int deconvolution      = 0;
-    int in_stride          = 0; // Used in norm & pooling only.
-    int out_stride         = 0; // Used in norm & pooling only.
-    int in_channel_stride  = 0; // Used in norm & pooling only.
-    int in_batch_stride    = 0; // Used in norm & pooling only.
-    int out_channel_stride = 0; // Used in norm & pooling only.
-    int out_batch_stride   = 0; // Used in norm & pooling only.
+    int in_stride          = 0;
+    int out_stride         = 0;
+    int in_channel_stride  = 0;
+    int in_batch_stride    = 0;
+    int out_channel_stride = 0;
+    int out_batch_stride   = 0;
     struct Direction
     {
         enum class Value
@@ -968,20 +968,6 @@ struct mlo_construct_norm : mlo_construct_direct2D, mlo_construct_activ_lrn_pool
     double _normBeta  = 0.0;
     double _normK     = 0.0;
 };
-
-#define MLO_NEURON_PASTHRU 0                         // x
-#define MLO_NEURON_LOGISTIC (MLO_NEURON_PASTHRU + 1) //	1 / (1 + e^-x)	//Sigmoid
-#define MLO_NEURON_TANH (MLO_NEURON_LOGISTIC + 1)    //	a * tanh( b * x)
-#define MLO_NEURON_RELU (MLO_NEURON_TANH + 1)        //	max(0, x)
-#define MLO_NEURON_BRELU (MLO_NEURON_RELU + 1)       //	min(a, max(0, x))
-#define MLO_NEURON_SOFTRELU \
-    (MLO_NEURON_BRELU + 1)                       //	log(1 + e^x)   // bonomial normal log likelihood
-#define MLO_NEURON_ABS (MLO_NEURON_SOFTRELU + 1) //	abs(x)
-#define MLO_NEURON_SQUARE (MLO_NEURON_ABS + 1)   //	x^2
-#define MLO_NEURON_SQR (MLO_NEURON_SQUARE + 1)   //	sqr(x)
-#define MLO_NEURON_LINEAR (MLO_NEURON_SQR + 1)   //	a + b * x
-#define MLO_NEURON_POWER (MLO_NEURON_LINEAR + 1) // (a + b * x ) ^power
-#define MLO_NEURON_TOTAL (MLO_NEURON_POWER + 1)
 
 struct mlo_construct_neuron : mlo_construct_direct2D, mlo_construct_activ_lrn_pooling_common
 {

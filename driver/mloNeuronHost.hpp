@@ -42,21 +42,20 @@
 //
 ///////////////////////////////////////////////////////////
 
-#ifndef MLO_NEURON_PASTHRU
-#define MLO_NEURON_PASTHRU 0                       // x
-#define MLO_NEURON_LOGISTIC MLO_NEURON_PASTHRU + 1 //	1 / (1 + e^-x)	//Sigmoid
-#define MLO_NEURON_TANH MLO_NEURON_LOGISTIC + 1    //	a * tanh( b * x)
-#define MLO_NEURON_RELU MLO_NEURON_TANH + 1        //	max(0, x)
+/// \todo This needs to be reimplemented.
+#define MLO_NEURON_PASTHRU 0                         // x
+#define MLO_NEURON_LOGISTIC (MLO_NEURON_PASTHRU + 1) //	1 / (1 + e^-x)	//Sigmoid
+#define MLO_NEURON_TANH (MLO_NEURON_LOGISTIC + 1)    //	a * tanh( b * x)
+#define MLO_NEURON_RELU (MLO_NEURON_TANH + 1)        //	max(0, x)
+#define MLO_NEURON_BRELU (MLO_NEURON_RELU + 1)       //	min(a, max(0, x))
 #define MLO_NEURON_SOFTRELU \
-    MLO_NEURON_RELU + 1                        //	log(1 + e^x)   // bonomial normal log likelihood
-#define MLO_NEURON_ABS MLO_NEURON_SOFTRELU + 1 //	abs(x)
-#define MLO_NEURON_POWER MLO_NEURON_ABS + 1    // (a + b * x ) ^power
-//#define MLO_NEURON_BRELU		MLO_NEURON_POWER + 1		//	min(a, max(0, x))
-//#define MLO_NEURON_SQUARE		BRELU + 1			//	x^2
-//#define MLO_NEURON_SQR			MLO_NEURON_SQUARE + 1		//	sqr(x)
-//#define MLO_NEURON_LINEAR		MLO_NEURON_SQR	+ 1			//	a + b * x
-#define MLO_NEURON_TOTAL MLO_NEURON_POWER + 1
-#endif
+    (MLO_NEURON_BRELU + 1)                       //	log(1 + e^x)   // bonomial normal log likelihood
+#define MLO_NEURON_ABS (MLO_NEURON_SOFTRELU + 1) //	abs(x)
+#define MLO_NEURON_SQUARE (MLO_NEURON_ABS + 1)   //	x^2
+#define MLO_NEURON_SQR (MLO_NEURON_SQUARE + 1)   //	sqr(x)
+#define MLO_NEURON_LINEAR (MLO_NEURON_SQR + 1)   //	a + b * x
+#define MLO_NEURON_POWER (MLO_NEURON_LINEAR + 1) // (a + b * x ) ^power
+#define MLO_NEURON_TOTAL (MLO_NEURON_POWER + 1)
 
 const float kBNLL_THRESHOLD = 50.;
 
