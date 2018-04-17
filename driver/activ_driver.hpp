@@ -225,45 +225,50 @@ int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     {
         switch(activation_mode)
         {
-        case MLO_NEURON_PASTHRU:
+        case MIOPEN_NEURON_PASTHRU:
             in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
             break;
-        case MLO_NEURON_LOGISTIC:
+        case MIOPEN_NEURON_LOGISTIC:
             in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
             break;
-        case MLO_NEURON_TANH:
+        case MIOPEN_NEURON_TANH:
             in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
             break;
-        case MLO_NEURON_RELU:
+        case MIOPEN_NEURON_RELU:
             in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
             break;
-        case MLO_NEURON_SOFTRELU:
+        case MIOPEN_NEURON_SOFTRELU:
             in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
             break;
-        case MLO_NEURON_ABS:
+        case MIOPEN_NEURON_ABS:
             in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
             break;
-        case MLO_NEURON_POWER:
+        case MIOPEN_NEURON_POWER:
         {
-            double v = - alpha / beta;
-            in[i] = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>((v+0.005)/beta), static_cast<Tgpu>((v+2.0)/beta))
-                          : RAN_GEN<Tgpu>(static_cast<Tgpu>((v-2.0)/beta), static_cast<Tgpu>((v-0.005)/beta));
+            double v = -alpha / beta;
+            in[i]    = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>((v + 0.005) / beta),
+                                          static_cast<Tgpu>((v + 2.0) / beta))
+                          : RAN_GEN<Tgpu>(static_cast<Tgpu>((v - 2.0) / beta),
+                                          static_cast<Tgpu>((v - 0.005) / beta));
             break;
         }
-        case MLO_NEURON_CLIPPED_RELU:
-            if( i % 3 == 0 )
-                in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-1.0*alpha), static_cast<Tgpu>(-0.005*alpha));
-            else if( i % 3 == 1 )
-                in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.005*alpha), static_cast<Tgpu>(0.995*alpha));
+        case MIOPEN_NEURON_CLIPPED_RELU:
+            if(i % 3 == 0)
+                in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-1.0 * alpha),
+                                      static_cast<Tgpu>(-0.005 * alpha));
+            else if(i % 3 == 1)
+                in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.005 * alpha),
+                                      static_cast<Tgpu>(0.995 * alpha));
             else
-                in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(1.005*alpha), static_cast<Tgpu>(2.0*alpha));
+                in[i] =
+                    RAN_GEN<Tgpu>(static_cast<Tgpu>(1.005 * alpha), static_cast<Tgpu>(2.0 * alpha));
 
             break;
-        case MLO_NEURON_LEAKY_RELU:
+        case MIOPEN_NEURON_LEAKY_RELU:
             in[i] = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(-0.005))
                           : RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.005), static_cast<Tgpu>(1.0));
             break;
-        case MLO_NEURON_ELU:
+        case MIOPEN_NEURON_ELU:
             in[i] = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>(0.005), static_cast<Tgpu>(2.0))
                           : RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(-0.005));
             break;

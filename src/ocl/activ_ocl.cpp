@@ -157,8 +157,8 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                     type_opt = " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
                 }
 
-                compiler_options = " -DLITE -DMLO_READ_UNIT=" + std::to_string(read_unit) +
-                                   " -DMLO_READ_TYPE=" + READ_TYPE + " -DMLO_NRN_OP_ID=" +
+                compiler_options = " -DLITE -DMIOPEN_READ_UNIT=" + std::to_string(read_unit) +
+                                   " -DMIOPEN_READ_TYPE=" + READ_TYPE + " -DMIOPEN_NRN_OP_ID=" +
                                    std::to_string(mode) + type_opt;
 
                 std::vector<size_t> vld;
@@ -337,28 +337,30 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
             auto f_activ_gamma = as_float(activ_gamma);
 
             compiler_options +=
-                " -DMLO_N_IN=" + std::to_string(nIn) + " -DMLO_C_IN=" + std::to_string(cIn) +
-                " -DMLO_H_IN=" + std::to_string(hIn) + " -DMLO_W_IN=" + std::to_string(wIn) +
-                " -DMLO_N_IN_STRIDE=" + std::to_string(nInStride) + " -DMLO_C_IN_STRIDE=" +
-                std::to_string(cInStride) + " -DMLO_H_IN_STRIDE=" + std::to_string(hInStride) +
-                " -DMLO_W_IN_STRIDE=" + std::to_string(wInStride) + " -DMLO_N_OUT=" +
-                std::to_string(nOut) + " -DMLO_C_OUT=" + std::to_string(cOut) + " -DMLO_H_OUT=" +
-                std::to_string(hOut) + " -DMLO_W_OUT=" + std::to_string(wOut) +
-                " -DMLO_N_OUT_STRIDE=" + std::to_string(nOutStride) + " -DMLO_C_OUT_STRIDE=" +
-                std::to_string(cOutStride) + " -DMLO_H_OUT_STRIDE=" + std::to_string(hOutStride) +
-                " -DMLO_W_OUT_STRIDE=" + std::to_string(wOutStride) + " -DMLO_N_DIN=" +
-                std::to_string(1) + " -DMLO_C_DIN=" + std::to_string(1) + " -DMLO_H_DIN=" +
-                std::to_string(1) + " -DMLO_W_DIN=" + std::to_string(1) + " -DMLO_N_DIN_STRIDE=" +
-                std::to_string(1) + " -DMLO_C_DIN_STRIDE=" + std::to_string(1) +
-                " -DMLO_H_DIN_STRIDE=" + std::to_string(1) + " -DMLO_W_DIN_STRIDE=" +
-                std::to_string(1) + " -DMLO_N_DOUT=" + std::to_string(1) + " -DMLO_C_DOUT=" +
-                std::to_string(1) + " -DMLO_H_DOUT=" + std::to_string(1) + " -DMLO_W_DOUT=" +
-                std::to_string(1) + " -DMLO_N_DOUT_STRIDE=" + std::to_string(1) +
-                " -DMLO_C_DOUT_STRIDE=" + std::to_string(1) + " -DMLO_H_DOUT_STRIDE=" +
-                std::to_string(1) + " -DMLO_W_DOUT_STRIDE=" + std::to_string(1) +
-                " -DMLO_IN_BLOCK_SZ=" + std::to_string(cIn * hIn * wIn) + " -DMLO_OUT_BLOCK_SZ=" +
-                std::to_string(cOut * hOut * wOut) + " -DMLO_DIN_BLOCK_SZ=" + std::to_string(1) +
-                " -DMLO_DOUT_BLOCK_SZ=" + std::to_string(1);
+                " -DMIOPEN_N_IN=" + std::to_string(nIn) + " -DMIOPEN_C_IN=" + std::to_string(cIn) +
+                " -DMIOPEN_H_IN=" + std::to_string(hIn) + " -DMIOPEN_W_IN=" + std::to_string(wIn) +
+                " -DMIOPEN_N_IN_STRIDE=" + std::to_string(nInStride) + " -DMIOPEN_C_IN_STRIDE=" +
+                std::to_string(cInStride) + " -DMIOPEN_H_IN_STRIDE=" + std::to_string(hInStride) +
+                " -DMIOPEN_W_IN_STRIDE=" + std::to_string(wInStride) + " -DMIOPEN_N_OUT=" +
+                std::to_string(nOut) + " -DMIOPEN_C_OUT=" + std::to_string(cOut) +
+                " -DMIOPEN_H_OUT=" + std::to_string(hOut) + " -DMIOPEN_W_OUT=" +
+                std::to_string(wOut) + " -DMIOPEN_N_OUT_STRIDE=" + std::to_string(nOutStride) +
+                " -DMIOPEN_C_OUT_STRIDE=" + std::to_string(cOutStride) + " -DMIOPEN_H_OUT_STRIDE=" +
+                std::to_string(hOutStride) + " -DMIOPEN_W_OUT_STRIDE=" +
+                std::to_string(wOutStride) + " -DMIOPEN_N_DIN=" + std::to_string(1) +
+                " -DMIOPEN_C_DIN=" + std::to_string(1) + " -DMIOPEN_H_DIN=" + std::to_string(1) +
+                " -DMIOPEN_W_DIN=" + std::to_string(1) + " -DMIOPEN_N_DIN_STRIDE=" +
+                std::to_string(1) + " -DMIOPEN_C_DIN_STRIDE=" + std::to_string(1) +
+                " -DMIOPEN_H_DIN_STRIDE=" + std::to_string(1) + " -DMIOPEN_W_DIN_STRIDE=" +
+                std::to_string(1) + " -DMIOPEN_N_DOUT=" + std::to_string(1) + " -DMIOPEN_C_DOUT=" +
+                std::to_string(1) + " -DMIOPEN_H_DOUT=" + std::to_string(1) + " -DMIOPEN_W_DOUT=" +
+                std::to_string(1) + " -DMIOPEN_N_DOUT_STRIDE=" + std::to_string(1) +
+                " -DMIOPEN_C_DOUT_STRIDE=" + std::to_string(1) + " -DMIOPEN_H_DOUT_STRIDE=" +
+                std::to_string(1) + " -DMIOPEN_W_DOUT_STRIDE=" + std::to_string(1) +
+                " -DMIOPEN_IN_BLOCK_SZ=" + std::to_string(cIn * hIn * wIn) +
+                " -DMIOPEN_OUT_BLOCK_SZ=" + std::to_string(cOut * hOut * wOut) +
+                " -DMIOPEN_DIN_BLOCK_SZ=" + std::to_string(1) + " -DMIOPEN_DOUT_BLOCK_SZ=" +
+                std::to_string(1);
 
             handle.AddKernel("miopenActivationForward",
                              network_config,
@@ -562,8 +564,8 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                     type_opt = " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
                 }
 
-                compiler_options = " -DLITE -DMLO_READ_UNIT=" + std::to_string(read_unit) +
-                                   " -DMLO_READ_TYPE=" + READ_TYPE + " -DMLO_NRN_OP_ID=" +
+                compiler_options = " -DLITE -DMIOPEN_READ_UNIT=" + std::to_string(read_unit) +
+                                   " -DMIOPEN_READ_TYPE=" + READ_TYPE + " -DMIOPEN_NRN_OP_ID=" +
                                    std::to_string(mode) + type_opt;
 
                 std::vector<size_t> vld;
@@ -855,31 +857,33 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
             auto f_diff_scale  = f_activ_beta * f_activ_gamma;
 
             compiler_options +=
-                " -DMLO_N_IN=" + std::to_string(nIn) + " -DMLO_C_IN=" + std::to_string(cIn) +
-                " -DMLO_H_IN=" + std::to_string(hIn) + " -DMLO_W_IN=" + std::to_string(wIn) +
-                " -DMLO_N_IN_STRIDE=" + std::to_string(nInStride) + " -DMLO_C_IN_STRIDE=" +
-                std::to_string(cInStride) + " -DMLO_H_IN_STRIDE=" + std::to_string(hInStride) +
-                " -DMLO_W_IN_STRIDE=" + std::to_string(wInStride) + " -DMLO_N_OUT=" +
-                std::to_string(nOut) + " -DMLO_C_OUT=" + std::to_string(cOut) + " -DMLO_H_OUT=" +
-                std::to_string(hOut) + " -DMLO_W_OUT=" + std::to_string(wOut) +
-                " -DMLO_N_OUT_STRIDE=" + std::to_string(nOutStride) + " -DMLO_C_OUT_STRIDE=" +
-                std::to_string(cOutStride) + " -DMLO_H_OUT_STRIDE=" + std::to_string(hOutStride) +
-                " -DMLO_W_OUT_STRIDE=" + std::to_string(wOutStride) + " -DMLO_N_DIN=" +
-                std::to_string(ndIn) + " -DMLO_C_DIN=" + std::to_string(cdIn) + " -DMLO_H_DIN=" +
-                std::to_string(hdIn) + " -DMLO_W_DIN=" + std::to_string(wdIn) +
-                " -DMLO_N_DIN_STRIDE=" + std::to_string(ndInStride) + " -DMLO_C_DIN_STRIDE=" +
-                std::to_string(cdInStride) + " -DMLO_H_DIN_STRIDE=" + std::to_string(hdInStride) +
-                " -DMLO_W_DIN_STRIDE=" + std::to_string(wdInStride) + " -DMLO_N_DOUT=" +
-                std::to_string(ndOut) + " -DMLO_C_DOUT=" + std::to_string(cdOut) +
-                " -DMLO_H_DOUT=" + std::to_string(hdOut) + " -DMLO_W_DOUT=" +
-                std::to_string(wdOut) + " -DMLO_N_DOUT_STRIDE=" + std::to_string(ndOutStride) +
-                " -DMLO_C_DOUT_STRIDE=" + std::to_string(cdOutStride) + " -DMLO_H_DOUT_STRIDE=" +
-                std::to_string(hdOutStride) + " -DMLO_W_DOUT_STRIDE=" +
-                std::to_string(wdOutStride) + " -DMLO_IN_BLOCK_SZ=" +
-                std::to_string(cIn * hIn * wIn) + " -DMLO_OUT_BLOCK_SZ=" +
-                std::to_string(cOut * hOut * wOut) + " -DMLO_DIN_BLOCK_SZ=" +
-                std::to_string(cdIn * hdIn * wdIn) + " -DMLO_DOUT_BLOCK_SZ=" +
-                std::to_string(cdOut * hdOut * wdOut);
+                " -DMIOPEN_N_IN=" + std::to_string(nIn) + " -DMIOPEN_C_IN=" + std::to_string(cIn) +
+                " -DMIOPEN_H_IN=" + std::to_string(hIn) + " -DMIOPEN_W_IN=" + std::to_string(wIn) +
+                " -DMIOPEN_N_IN_STRIDE=" + std::to_string(nInStride) + " -DMIOPEN_C_IN_STRIDE=" +
+                std::to_string(cInStride) + " -DMIOPEN_H_IN_STRIDE=" + std::to_string(hInStride) +
+                " -DMIOPEN_W_IN_STRIDE=" + std::to_string(wInStride) + " -DMIOPEN_N_OUT=" +
+                std::to_string(nOut) + " -DMIOPEN_C_OUT=" + std::to_string(cOut) +
+                " -DMIOPEN_H_OUT=" + std::to_string(hOut) + " -DMIOPEN_W_OUT=" +
+                std::to_string(wOut) + " -DMIOPEN_N_OUT_STRIDE=" + std::to_string(nOutStride) +
+                " -DMIOPEN_C_OUT_STRIDE=" + std::to_string(cOutStride) + " -DMIOPEN_H_OUT_STRIDE=" +
+                std::to_string(hOutStride) + " -DMIOPEN_W_OUT_STRIDE=" +
+                std::to_string(wOutStride) + " -DMIOPEN_N_DIN=" + std::to_string(ndIn) +
+                " -DMIOPEN_C_DIN=" + std::to_string(cdIn) + " -DMIOPEN_H_DIN=" +
+                std::to_string(hdIn) + " -DMIOPEN_W_DIN=" + std::to_string(wdIn) +
+                " -DMIOPEN_N_DIN_STRIDE=" + std::to_string(ndInStride) + " -DMIOPEN_C_DIN_STRIDE=" +
+                std::to_string(cdInStride) + " -DMIOPEN_H_DIN_STRIDE=" +
+                std::to_string(hdInStride) + " -DMIOPEN_W_DIN_STRIDE=" +
+                std::to_string(wdInStride) + " -DMIOPEN_N_DOUT=" + std::to_string(ndOut) +
+                " -DMIOPEN_C_DOUT=" + std::to_string(cdOut) + " -DMIOPEN_H_DOUT=" +
+                std::to_string(hdOut) + " -DMIOPEN_W_DOUT=" + std::to_string(wdOut) +
+                " -DMIOPEN_N_DOUT_STRIDE=" + std::to_string(ndOutStride) +
+                " -DMIOPEN_C_DOUT_STRIDE=" + std::to_string(cdOutStride) +
+                " -DMIOPEN_H_DOUT_STRIDE=" + std::to_string(hdOutStride) +
+                " -DMIOPEN_W_DOUT_STRIDE=" + std::to_string(wdOutStride) +
+                " -DMIOPEN_IN_BLOCK_SZ=" + std::to_string(cIn * hIn * wIn) +
+                " -DMIOPEN_OUT_BLOCK_SZ=" + std::to_string(cOut * hOut * wOut) +
+                " -DMIOPEN_DIN_BLOCK_SZ=" + std::to_string(cdIn * hdIn * wdIn) +
+                " -DMIOPEN_DOUT_BLOCK_SZ=" + std::to_string(cdOut * hdOut * wdOut);
 
             handle.AddKernel("miopenActivationBackward",
                              network_config,
