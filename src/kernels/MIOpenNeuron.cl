@@ -45,21 +45,21 @@
 
 #define UNUSED __attribute__((__unused__))
 
-#define MLO_NRN_GROUP_SZ2 1
+#define MIOPEN_NRN_GROUP_SZ2 1
 
-#define MLO_NEURON_PASTHRU 0      // x
-#define MLO_NEURON_LOGISTIC 1     // 1 / (1 + e^-x)	//Sigmoid
-#define MLO_NEURON_TANH 2         // beta * tanh(alpha * x)
-#define MLO_NEURON_RELU 3         // max(0, x)
-#define MLO_NEURON_SOFTRELU 4     // log(1 + e^x)   // bonomial normal log likelihood
-#define MLO_NEURON_ABS 5          // abs(x)
-#define MLO_NEURON_POWER 6        // (alpha + beta * x )^gamma
-#define MLO_NEURON_CLIPPED_RELU 7 // min(alpha, max(0, x))
-#define MLO_NEURON_LEAKY_RELU 8   // alpha * x | x <= 0; x | x > 0
-#define MLO_NEURON_ELU 9          // alpha * (e^x - 1) | x <= 0; x | x > 0
-//#define MLO_NEURON_SQUARE 10      // x^2
-//#define MLO_NEURON_SQR 11         // sqr(x)
-#define MLO_NEURON_TOTAL 10
+#define MIOPEN_NEURON_PASTHRU 0      // x
+#define MIOPEN_NEURON_LOGISTIC 1     // 1 / (1 + e^-x)	//Sigmoid
+#define MIOPEN_NEURON_TANH 2         // beta * tanh(alpha * x)
+#define MIOPEN_NEURON_RELU 3         // max(0, x)
+#define MIOPEN_NEURON_SOFTRELU 4     // log(1 + e^x)   // bonomial normal log likelihood
+#define MIOPEN_NEURON_ABS 5          // abs(x)
+#define MIOPEN_NEURON_POWER 6        // (alpha + beta * x )^gamma
+#define MIOPEN_NEURON_CLIPPED_RELU 7 // min(alpha, max(0, x))
+#define MIOPEN_NEURON_LEAKY_RELU 8   // alpha * x | x <= 0; x | x > 0
+#define MIOPEN_NEURON_ELU 9          // alpha * (e^x - 1) | x <= 0; x | x > 0
+//#define MIOPEN_NEURON_SQUARE 10      // x^2
+//#define MIOPEN_NEURON_SQR 11         // sqr(x)
+#define MIOPEN_NEURON_TOTAL 10
 
 static __constant _FLOAT kBNLL_THRESHOLD = (_FLOAT)50.;
 
@@ -247,55 +247,55 @@ __attribute__((always_inline)) void ActivationFunction(const uint n,
                                                        const _FLOAT beta,
                                                        const _FLOAT alpha)
 {
-#if MLO_NRN_OP_ID == MLO_NEURON_PASTHRU
+#if MIOPEN_NRN_OP_ID == MIOPEN_NEURON_PASTHRU
     {
         ActivationFunction_PassThru(n, res, data, gamma, beta, alpha);
     }
-#elif MLO_NRN_OP_ID == MLO_NEURON_LOGISTIC
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_LOGISTIC
     {
         // y = 1/(1 + exp(-x))
         ActivationFunction_Sigmoid(n, res, data, gamma, beta, alpha);
     }
-#elif MLO_NRN_OP_ID == MLO_NEURON_TANH
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_TANH
     {
         // y = beta * tanh(alpha * x)
         ActivationFunction_TanH(n, res, data, gamma, beta, alpha);
     }
-#elif MLO_NRN_OP_ID == MLO_NEURON_RELU
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_RELU
     {
         ActivationFunction_ReLU(n, res, data, gamma, beta, alpha);
     }
-#elif MLO_NRN_OP_ID == MLO_NEURON_SOFTRELU
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_SOFTRELU
     {
         // y = log(1 + exp(x))
         ActivationFunction_BNLL(n, res, data, gamma, beta, alpha);
     }
-#elif MLO_NRN_OP_ID == MLO_NEURON_ABS
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_ABS
     {
         ActivationFunction_Abs(n, res, data, gamma, beta, alpha);
     }
-#elif MLO_NRN_OP_ID == MLO_NEURON_POWER
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_POWER
     {
         // y = (alpha + beta * x ) ^ gamma
         ActivationFunction_Power(n, res, data, gamma, beta, alpha);
     }
-#elif MLO_NRN_OP_ID == MLO_NEURON_CLIPPED_RELU
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_CLIPPED_RELU
     {
         ActivationFunction_Clipped_ReLU(n, res, data, gamma, beta, alpha);
     }
-#elif MLO_NRN_OP_ID == MLO_NEURON_LEAKY_RELU
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_LEAKY_RELU
     {
         ActivationFunction_Leaky_ReLU(n, res, data, gamma, beta, alpha);
     }
-#elif MLO_NRN_OP_ID == MLO_NEURON_ELU
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_ELU
     {
         ActivationFunction_ELU(n, res, data, gamma, beta, alpha);
     }
-//#elif MLO_NRN_OP_ID==MLO_NEURON_SQUARE
+//#elif MIOPEN_NRN_OP_ID==MIOPEN_NEURON_SQUARE
 //    {
 //        ActivationFunction_Square(res, data);
 //    }
-//#elif MLO_NRN_OP_ID==MLO_NEURON_SQR
+//#elif MIOPEN_NRN_OP_ID==MIOPEN_NEURON_SQR
 //    {
 //	    ActivationFunction_Sqrt(n, res, data);
 //    }
@@ -489,56 +489,56 @@ __attribute__((always_inline)) void ActivationFunction_Diff(const uint n,
                                                             const _FLOAT beta,
                                                             const _FLOAT alpha)
 {
-#if MLO_NRN_OP_ID == MLO_NEURON_PASTHRU
+#if MIOPEN_NRN_OP_ID == MIOPEN_NEURON_PASTHRU
     {
         ActivationFunction_PassThru_Diff(
             n, bot_diff, top_diff, bot_data, top_data, diff_scale, gamma, beta, alpha);
     }
-#elif MLO_NRN_OP_ID == MLO_NEURON_LOGISTIC
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_LOGISTIC
     {
         // y = 1/(1 + exp(-x))
         ActivationFunction_Sigmoid_Diff(
             n, bot_diff, top_diff, bot_data, top_data, diff_scale, gamma, beta, alpha);
     }
-#elif MLO_NRN_OP_ID == MLO_NEURON_TANH
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_TANH
     {
         // y = beta * tanh(alpha * x)
         ActivationFunction_TanH_Diff(
             n, bot_diff, top_diff, bot_data, top_data, diff_scale, gamma, beta, alpha);
     }
-#elif MLO_NRN_OP_ID == MLO_NEURON_RELU
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_RELU
     {
         ActivationFunction_ReLU_Diff(
             n, bot_diff, top_diff, bot_data, top_data, diff_scale, gamma, beta, alpha);
     }
-#elif MLO_NRN_OP_ID == MLO_NEURON_SOFTRELU
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_SOFTRELU
     {
         // y = log(1 + exp(x))
         ActivationFunction_BNLL_Diff(
             n, bot_diff, top_diff, bot_data, top_data, diff_scale, gamma, beta, alpha);
     }
-#elif MLO_NRN_OP_ID == MLO_NEURON_ABS
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_ABS
     {
         ActivationFunction_Abs_Diff(
             n, bot_diff, top_diff, bot_data, top_data, diff_scale, gamma, beta, alpha);
     }
-#elif MLO_NRN_OP_ID == MLO_NEURON_POWER
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_POWER
     {
         // y = (alpha + beta * x ) ^ gamma
         ActivationFunction_Power_Diff(
             n, bot_diff, top_diff, bot_data, top_data, diff_scale, gamma, beta, alpha);
     }
-#elif MLO_NRN_OP_ID == MLO_NEURON_CLIPPED_RELU
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_CLIPPED_RELU
     {
         ActivationFunction_Clipped_ReLU_Diff(
             n, bot_diff, top_diff, bot_data, top_data, diff_scale, gamma, beta, alpha);
     }
-#elif MLO_NRN_OP_ID == MLO_NEURON_LEAKY_RELU
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_LEAKY_RELU
     {
         ActivationFunction_Leaky_ReLU_Diff(
             n, bot_diff, top_diff, bot_data, top_data, diff_scale, gamma, beta, alpha);
     }
-#elif MLO_NRN_OP_ID == MLO_NEURON_ELU
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_ELU
     {
         ActivationFunction_ELU_Diff(
             n, bot_diff, top_diff, bot_data, top_data, diff_scale, gamma, beta, alpha);
@@ -572,16 +572,16 @@ __kernel void MIOpenActiveFwdLite(const __global _FLOAT* bot,
 {
     uint gid0 = get_global_id(0);
 
-    uint index = gid0 * MLO_READ_UNIT;
+    uint index = gid0 * MIOPEN_READ_UNIT;
 
-    _FLOAT data[MLO_READ_UNIT];
-    _FLOAT response[MLO_READ_UNIT];
+    _FLOAT data[MIOPEN_READ_UNIT];
+    _FLOAT response[MIOPEN_READ_UNIT];
 
-    *((MLO_READ_TYPE*)data) = *((const __global MLO_READ_TYPE*)(bot + bot_offset + index));
+    *((MIOPEN_READ_TYPE*)data) = *((const __global MIOPEN_READ_TYPE*)(bot + bot_offset + index));
 
-    ActivationFunction(MLO_READ_UNIT, response, (const _FLOAT*)data, gamma, beta, alpha);
+    ActivationFunction(MIOPEN_READ_UNIT, response, (const _FLOAT*)data, gamma, beta, alpha);
 
-    *((__global MLO_READ_TYPE*)(top + top_offset + index)) = *((MLO_READ_TYPE*)response);
+    *((__global MIOPEN_READ_TYPE*)(top + top_offset + index)) = *((MIOPEN_READ_TYPE*)response);
 }
 
 /**********************************************************************************************
@@ -600,17 +600,18 @@ __kernel void MIOpenActiveFwd2DLite(const __global _FLOAT* bot,
     uint x_id = get_global_id(0);
     uint y    = get_global_id(1);
 
-    uint bot_index = y * bot_stride + x_id * MLO_READ_UNIT;
-    uint top_index = y * top_stride + x_id * MLO_READ_UNIT;
+    uint bot_index = y * bot_stride + x_id * MIOPEN_READ_UNIT;
+    uint top_index = y * top_stride + x_id * MIOPEN_READ_UNIT;
 
-    _FLOAT data[MLO_READ_UNIT];
-    _FLOAT response[MLO_READ_UNIT];
+    _FLOAT data[MIOPEN_READ_UNIT];
+    _FLOAT response[MIOPEN_READ_UNIT];
 
-    *((MLO_READ_TYPE*)data) = *((const __global MLO_READ_TYPE*)(bot + bot_offset + bot_index));
+    *((MIOPEN_READ_TYPE*)data) =
+        *((const __global MIOPEN_READ_TYPE*)(bot + bot_offset + bot_index));
 
-    ActivationFunction(MLO_READ_UNIT, response, (const _FLOAT*)data, gamma, beta, alpha);
+    ActivationFunction(MIOPEN_READ_UNIT, response, (const _FLOAT*)data, gamma, beta, alpha);
 
-    *((__global MLO_READ_TYPE*)(top + top_offset + top_index)) = *((MLO_READ_TYPE*)response);
+    *((__global MIOPEN_READ_TYPE*)(top + top_offset + top_index)) = *((MIOPEN_READ_TYPE*)response);
 }
 
 /**********************************************************************************************
@@ -631,19 +632,19 @@ __kernel void MIOpenActiveBwdLite(__global _FLOAT* bot_diff,
 {
     int gid0 = get_global_id(0);
 
-    int index = gid0 * MLO_READ_UNIT;
+    int index = gid0 * MIOPEN_READ_UNIT;
 
-    _FLOAT bot_diff_dat[MLO_READ_UNIT];
-    _FLOAT top_diff_dat[MLO_READ_UNIT];
-    _FLOAT bot_dat[MLO_READ_UNIT];
-    _FLOAT top_dat[MLO_READ_UNIT];
+    _FLOAT bot_diff_dat[MIOPEN_READ_UNIT];
+    _FLOAT top_diff_dat[MIOPEN_READ_UNIT];
+    _FLOAT bot_dat[MIOPEN_READ_UNIT];
+    _FLOAT top_dat[MIOPEN_READ_UNIT];
 
-    *((MLO_READ_TYPE*)top_diff_dat) =
-        *((const __global MLO_READ_TYPE*)(top_diff + top_diff_offset + index));
-    *((MLO_READ_TYPE*)bot_dat) = *((const __global MLO_READ_TYPE*)(bot + bot_offset + index));
-    *((MLO_READ_TYPE*)top_dat) = *((const __global MLO_READ_TYPE*)(top + top_offset + index));
+    *((MIOPEN_READ_TYPE*)top_diff_dat) =
+        *((const __global MIOPEN_READ_TYPE*)(top_diff + top_diff_offset + index));
+    *((MIOPEN_READ_TYPE*)bot_dat) = *((const __global MIOPEN_READ_TYPE*)(bot + bot_offset + index));
+    *((MIOPEN_READ_TYPE*)top_dat) = *((const __global MIOPEN_READ_TYPE*)(top + top_offset + index));
 
-    ActivationFunction_Diff(MLO_READ_UNIT,
+    ActivationFunction_Diff(MIOPEN_READ_UNIT,
                             bot_diff_dat,
                             top_diff_dat,
                             bot_dat,
@@ -653,8 +654,8 @@ __kernel void MIOpenActiveBwdLite(__global _FLOAT* bot_diff,
                             beta,
                             alpha);
 
-    *((__global MLO_READ_TYPE*)(bot_diff + bot_diff_offset + index)) =
-        *((MLO_READ_TYPE*)bot_diff_dat);
+    *((__global MIOPEN_READ_TYPE*)(bot_diff + bot_diff_offset + index)) =
+        *((MIOPEN_READ_TYPE*)bot_diff_dat);
 }
 
 /**********************************************************************************************
@@ -680,22 +681,24 @@ __kernel void MIOpenActiveBwd2DLite(__global _FLOAT* bot_diff,
     uint x_id = get_global_id(0);
     uint y    = get_global_id(1);
 
-    uint bot_diff_index = y * bot_diff_stride + x_id * MLO_READ_UNIT;
-    uint top_diff_index = y * top_diff_stride + x_id * MLO_READ_UNIT;
-    uint bot_index      = y * bot_stride + x_id * MLO_READ_UNIT;
-    uint top_index      = y * top_stride + x_id * MLO_READ_UNIT;
+    uint bot_diff_index = y * bot_diff_stride + x_id * MIOPEN_READ_UNIT;
+    uint top_diff_index = y * top_diff_stride + x_id * MIOPEN_READ_UNIT;
+    uint bot_index      = y * bot_stride + x_id * MIOPEN_READ_UNIT;
+    uint top_index      = y * top_stride + x_id * MIOPEN_READ_UNIT;
 
-    _FLOAT bot_diff_dat[MLO_READ_UNIT];
-    _FLOAT top_diff_dat[MLO_READ_UNIT];
-    _FLOAT bot_dat[MLO_READ_UNIT];
-    _FLOAT top_dat[MLO_READ_UNIT];
+    _FLOAT bot_diff_dat[MIOPEN_READ_UNIT];
+    _FLOAT top_diff_dat[MIOPEN_READ_UNIT];
+    _FLOAT bot_dat[MIOPEN_READ_UNIT];
+    _FLOAT top_dat[MIOPEN_READ_UNIT];
 
-    *((MLO_READ_TYPE*)top_diff_dat) =
-        *((const __global MLO_READ_TYPE*)(top_diff + top_diff_offset + top_diff_index));
-    *((MLO_READ_TYPE*)bot_dat) = *((const __global MLO_READ_TYPE*)(bot + bot_offset + bot_index));
-    *((MLO_READ_TYPE*)top_dat) = *((const __global MLO_READ_TYPE*)(top + top_offset + top_index));
+    *((MIOPEN_READ_TYPE*)top_diff_dat) =
+        *((const __global MIOPEN_READ_TYPE*)(top_diff + top_diff_offset + top_diff_index));
+    *((MIOPEN_READ_TYPE*)bot_dat) =
+        *((const __global MIOPEN_READ_TYPE*)(bot + bot_offset + bot_index));
+    *((MIOPEN_READ_TYPE*)top_dat) =
+        *((const __global MIOPEN_READ_TYPE*)(top + top_offset + top_index));
 
-    ActivationFunction_Diff(MLO_READ_UNIT,
+    ActivationFunction_Diff(MIOPEN_READ_UNIT,
                             bot_diff_dat,
                             top_diff_dat,
                             bot_dat,
@@ -705,8 +708,8 @@ __kernel void MIOpenActiveBwd2DLite(__global _FLOAT* bot_diff,
                             beta,
                             alpha);
 
-    *((__global MLO_READ_TYPE*)(bot_diff + bot_diff_offset + bot_diff_index)) =
-        *((MLO_READ_TYPE*)bot_diff_dat);
+    *((__global MIOPEN_READ_TYPE*)(bot_diff + bot_diff_offset + bot_diff_index)) =
+        *((MIOPEN_READ_TYPE*)bot_diff_dat);
 }
 
 /**************************************************************************************************************/
@@ -714,8 +717,9 @@ __kernel void MIOpenActiveBwd2DLite(__global _FLOAT* bot_diff,
 #else
 
 /***************************************************************************************************************/
-__attribute__((reqd_work_group_size(MLO_NRN_GROUP_SZ0, MLO_NRN_GROUP_SZ1, MLO_NRN_GROUP_SZ2)))
-__kernel void
+__attribute__((reqd_work_group_size(MIOPEN_NRN_GROUP_SZ0,
+                                    MIOPEN_NRN_GROUP_SZ1,
+                                    MIOPEN_NRN_GROUP_SZ2))) __kernel void
 MIOpenNeuronFwd(const __global _FLOAT* bot,
                 __global _FLOAT* top,
                 _FLOAT gamma,
@@ -726,49 +730,52 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
 {
     int x            = get_global_id(0); // channel x
 
-#if MLO_N_OUT_STRIDE > MLO_OUT_BLOCK_SZ
-    int n_out_stride = MLO_N_OUT_STRIDE;
-    int c_out        = MLO_C_OUT;
-    int h_out        = MLO_H_OUT;
-    int w_out        = MLO_W_OUT;
+#if MIOPEN_N_OUT_STRIDE > MIOPEN_OUT_BLOCK_SZ
+    int n_out_stride = MIOPEN_N_OUT_STRIDE;
+    int c_out        = MIOPEN_C_OUT;
+    int h_out        = MIOPEN_H_OUT;
+    int w_out        = MIOPEN_W_OUT;
 #endif
-#if MLO_N_IN_STRIDE > MLO_IN_BLOCK_SZ
-    int n_in_stride  = MLO_N_IN_STRIDE;
-    int c_in         = MLO_C_IN;
-    int h_in         = MLO_H_IN;
-    int w_in         = MLO_W_IN;
+#if MIOPEN_N_IN_STRIDE > MIOPEN_IN_BLOCK_SZ
+    int n_in_stride  = MIOPEN_N_IN_STRIDE;
+    int c_in         = MIOPEN_C_IN;
+    int h_in         = MIOPEN_H_IN;
+    int w_in         = MIOPEN_W_IN;
 #endif
 
-    _FLOAT data[MLO_READ_UNIT];
-    _FLOAT response[MLO_READ_UNIT];
-#if MLO_N_PIXS_OFF > 0
-    if(x == MLO_MAP_SZ_ALIGNED - 1)
+    _FLOAT data[MIOPEN_READ_UNIT];
+    _FLOAT response[MIOPEN_READ_UNIT];
+#if MIOPEN_N_PIXS_OFF > 0
+    if(x == MIOPEN_MAP_SZ_ALIGNED - 1)
     {
         int i = 0;
-        for(; i < MLO_N_PIXS_OFF; ++i)
+        for(; i < MIOPEN_N_PIXS_OFF; ++i)
         {
-#if MLO_N_IN_STRIDE > MLO_IN_BLOCK_SZ
+#if MIOPEN_N_IN_STRIDE > MIOPEN_IN_BLOCK_SZ
             if(n_in_stride > c_in * h_in * w_in && c_in != 0 && h_in != 0 && w_in != 0)
             {
                 int loc, n_loc, c_loc, h_loc, w_loc;
-                loc   = x * MLO_READ_UNIT + i;
-                n_loc = loc / (MLO_C_IN * MLO_H_IN * MLO_W_IN);
-                c_loc = (loc % (MLO_C_IN * MLO_H_IN * MLO_W_IN)) / (MLO_H_IN * MLO_W_IN);
-                h_loc =
-                    ((loc % (MLO_C_IN * MLO_H_IN * MLO_W_IN)) % (MLO_H_IN * MLO_W_IN)) / MLO_W_IN;
-                w_loc =
-                    ((loc % (MLO_C_IN * MLO_H_IN * MLO_W_IN)) % (MLO_H_IN * MLO_W_IN)) % MLO_W_IN;
+                loc   = x * MIOPEN_READ_UNIT + i;
+                n_loc = loc / (MIOPEN_C_IN * MIOPEN_H_IN * MIOPEN_W_IN);
+                c_loc =
+                    (loc % (MIOPEN_C_IN * MIOPEN_H_IN * MIOPEN_W_IN)) / (MIOPEN_H_IN * MIOPEN_W_IN);
+                h_loc = ((loc % (MIOPEN_C_IN * MIOPEN_H_IN * MIOPEN_W_IN)) %
+                         (MIOPEN_H_IN * MIOPEN_W_IN)) /
+                        MIOPEN_W_IN;
+                w_loc = ((loc % (MIOPEN_C_IN * MIOPEN_H_IN * MIOPEN_W_IN)) %
+                         (MIOPEN_H_IN * MIOPEN_W_IN)) %
+                        MIOPEN_W_IN;
 
-                data[i] = bot[xOffset + n_loc * MLO_N_IN_STRIDE + c_loc * MLO_C_IN_STRIDE +
-                              h_loc * MLO_H_IN_STRIDE + w_loc * MLO_W_IN_STRIDE];
+                data[i] = bot[xOffset + n_loc * MIOPEN_N_IN_STRIDE + c_loc * MIOPEN_C_IN_STRIDE +
+                              h_loc * MIOPEN_H_IN_STRIDE + w_loc * MIOPEN_W_IN_STRIDE];
             }
             else
 #endif
             {
-                data[i] = bot[xOffset + x * MLO_READ_UNIT + i];
+                data[i] = bot[xOffset + x * MIOPEN_READ_UNIT + i];
             }
         }
-        for(; i < MLO_READ_UNIT; ++i)
+        for(; i < MIOPEN_READ_UNIT; ++i)
         {
             data[i] = (_FLOAT)1.f;
         }
@@ -776,91 +783,101 @@ MIOpenNeuronFwd(const __global _FLOAT* bot,
     else
 #endif
     {
-        for(int i = 0; i < MLO_READ_UNIT; ++i)
+        for(int i = 0; i < MIOPEN_READ_UNIT; ++i)
         {
-#if MLO_N_IN_STRIDE > MLO_IN_BLOCK_SZ
+#if MIOPEN_N_IN_STRIDE > MIOPEN_IN_BLOCK_SZ
             if(n_in_stride > c_in * h_in * w_in && c_in != 0 && h_in != 0 && w_in != 0)
             {
                 int loc, n_loc, c_loc, h_loc, w_loc;
-                loc   = x * MLO_READ_UNIT + i;
-                n_loc = loc / (MLO_C_IN * MLO_H_IN * MLO_W_IN);
-                c_loc = (loc % (MLO_C_IN * MLO_H_IN * MLO_W_IN)) / (MLO_H_IN * MLO_W_IN);
-                h_loc =
-                    ((loc % (MLO_C_IN * MLO_H_IN * MLO_W_IN)) % (MLO_H_IN * MLO_W_IN)) / MLO_W_IN;
-                w_loc =
-                    ((loc % (MLO_C_IN * MLO_H_IN * MLO_W_IN)) % (MLO_H_IN * MLO_W_IN)) % MLO_W_IN;
+                loc   = x * MIOPEN_READ_UNIT + i;
+                n_loc = loc / (MIOPEN_C_IN * MIOPEN_H_IN * MIOPEN_W_IN);
+                c_loc =
+                    (loc % (MIOPEN_C_IN * MIOPEN_H_IN * MIOPEN_W_IN)) / (MIOPEN_H_IN * MIOPEN_W_IN);
+                h_loc = ((loc % (MIOPEN_C_IN * MIOPEN_H_IN * MIOPEN_W_IN)) %
+                         (MIOPEN_H_IN * MIOPEN_W_IN)) /
+                        MIOPEN_W_IN;
+                w_loc = ((loc % (MIOPEN_C_IN * MIOPEN_H_IN * MIOPEN_W_IN)) %
+                         (MIOPEN_H_IN * MIOPEN_W_IN)) %
+                        MIOPEN_W_IN;
 
-                data[i] = bot[xOffset + n_loc * MLO_N_IN_STRIDE + c_loc * MLO_C_IN_STRIDE +
-                              h_loc * MLO_H_IN_STRIDE + w_loc * MLO_W_IN_STRIDE];
+                data[i] = bot[xOffset + n_loc * MIOPEN_N_IN_STRIDE + c_loc * MIOPEN_C_IN_STRIDE +
+                              h_loc * MIOPEN_H_IN_STRIDE + w_loc * MIOPEN_W_IN_STRIDE];
             }
             else
 #endif
             {
-                data[i] = bot[xOffset + x * MLO_READ_UNIT + i];
+                data[i] = bot[xOffset + x * MIOPEN_READ_UNIT + i];
             }
         }
     }
-    ActivationFunction(MLO_READ_UNIT, response, (const _FLOAT*)data, gamma, beta, alpha);
+    ActivationFunction(MIOPEN_READ_UNIT, response, (const _FLOAT*)data, gamma, beta, alpha);
 
-#if MLO_N_PIXS_OFF > 0
-    if(x == MLO_MAP_SZ_ALIGNED - 1)
+#if MIOPEN_N_PIXS_OFF > 0
+    if(x == MIOPEN_MAP_SZ_ALIGNED - 1)
     {
         int i = 0;
-        for(; i < MLO_N_PIXS_OFF; ++i)
+        for(; i < MIOPEN_N_PIXS_OFF; ++i)
         {
-#if MLO_N_OUT_STRIDE > MLO_OUT_BLOCK_SZ
+#if MIOPEN_N_OUT_STRIDE > MIOPEN_OUT_BLOCK_SZ
             if(n_out_stride > c_out * h_out * w_out && c_out != 0 && h_out != 0 && w_out != 0)
             {
                 int loc, n_loc, c_loc, h_loc, w_loc;
-                loc   = x * MLO_READ_UNIT + i;
-                n_loc = loc / (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT);
-                c_loc = (loc % (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)) / (MLO_H_OUT * MLO_W_OUT);
-                h_loc = ((loc % (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)) % (MLO_H_OUT * MLO_W_OUT)) /
-                        MLO_W_OUT;
-                w_loc = ((loc % (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)) % (MLO_H_OUT * MLO_W_OUT)) %
-                        MLO_W_OUT;
+                loc   = x * MIOPEN_READ_UNIT + i;
+                n_loc = loc / (MIOPEN_C_OUT * MIOPEN_H_OUT * MIOPEN_W_OUT);
+                c_loc = (loc % (MIOPEN_C_OUT * MIOPEN_H_OUT * MIOPEN_W_OUT)) /
+                        (MIOPEN_H_OUT * MIOPEN_W_OUT);
+                h_loc = ((loc % (MIOPEN_C_OUT * MIOPEN_H_OUT * MIOPEN_W_OUT)) %
+                         (MIOPEN_H_OUT * MIOPEN_W_OUT)) /
+                        MIOPEN_W_OUT;
+                w_loc = ((loc % (MIOPEN_C_OUT * MIOPEN_H_OUT * MIOPEN_W_OUT)) %
+                         (MIOPEN_H_OUT * MIOPEN_W_OUT)) %
+                        MIOPEN_W_OUT;
 
-                top[yOffset + n_loc * MLO_N_OUT_STRIDE + c_loc * MLO_C_OUT_STRIDE +
-                    h_loc * MLO_H_OUT_STRIDE + w_loc * MLO_W_OUT_STRIDE] = response[i];
+                top[yOffset + n_loc * MIOPEN_N_OUT_STRIDE + c_loc * MIOPEN_C_OUT_STRIDE +
+                    h_loc * MIOPEN_H_OUT_STRIDE + w_loc * MIOPEN_W_OUT_STRIDE] = response[i];
             }
             else
 #endif
             {
-                top[yOffset + x * MLO_READ_UNIT + i] = response[i];
+                top[yOffset + x * MIOPEN_READ_UNIT + i] = response[i];
             }
         }
     }
     else
 #endif
     {
-        for(int i = 0; i < MLO_READ_UNIT; ++i)
+        for(int i = 0; i < MIOPEN_READ_UNIT; ++i)
         {
-#if MLO_N_OUT_STRIDE > MLO_OUT_BLOCK_SZ
+#if MIOPEN_N_OUT_STRIDE > MIOPEN_OUT_BLOCK_SZ
             if(n_out_stride > c_out * h_out * w_out && c_out != 0 && h_out != 0 && w_out != 0)
             {
                 int loc, n_loc, c_loc, h_loc, w_loc;
-                loc   = x * MLO_READ_UNIT + i;
-                n_loc = loc / (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT);
-                c_loc = (loc % (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)) / (MLO_H_OUT * MLO_W_OUT);
-                h_loc = ((loc % (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)) % (MLO_H_OUT * MLO_W_OUT)) /
-                        MLO_W_OUT;
-                w_loc = ((loc % (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)) % (MLO_H_OUT * MLO_W_OUT)) %
-                        MLO_W_OUT;
+                loc   = x * MIOPEN_READ_UNIT + i;
+                n_loc = loc / (MIOPEN_C_OUT * MIOPEN_H_OUT * MIOPEN_W_OUT);
+                c_loc = (loc % (MIOPEN_C_OUT * MIOPEN_H_OUT * MIOPEN_W_OUT)) /
+                        (MIOPEN_H_OUT * MIOPEN_W_OUT);
+                h_loc = ((loc % (MIOPEN_C_OUT * MIOPEN_H_OUT * MIOPEN_W_OUT)) %
+                         (MIOPEN_H_OUT * MIOPEN_W_OUT)) /
+                        MIOPEN_W_OUT;
+                w_loc = ((loc % (MIOPEN_C_OUT * MIOPEN_H_OUT * MIOPEN_W_OUT)) %
+                         (MIOPEN_H_OUT * MIOPEN_W_OUT)) %
+                        MIOPEN_W_OUT;
 
-                top[yOffset + n_loc * MLO_N_OUT_STRIDE + c_loc * MLO_C_OUT_STRIDE +
-                    h_loc * MLO_H_OUT_STRIDE + w_loc * MLO_W_OUT_STRIDE] = response[i];
+                top[yOffset + n_loc * MIOPEN_N_OUT_STRIDE + c_loc * MIOPEN_C_OUT_STRIDE +
+                    h_loc * MIOPEN_H_OUT_STRIDE + w_loc * MIOPEN_W_OUT_STRIDE] = response[i];
             }
             else
 #endif
             {
-                top[yOffset + x * MLO_READ_UNIT + i] = response[i];
+                top[yOffset + x * MIOPEN_READ_UNIT + i] = response[i];
             }
         }
     }
 }
 
-__attribute__((reqd_work_group_size(MLO_NRN_GROUP_SZ0, MLO_NRN_GROUP_SZ1, MLO_NRN_GROUP_SZ2)))
-__kernel void
+__attribute__((reqd_work_group_size(MIOPEN_NRN_GROUP_SZ0,
+                                    MIOPEN_NRN_GROUP_SZ1,
+                                    MIOPEN_NRN_GROUP_SZ2))) __kernel void
 MIOpenNeuronBwd(__global _FLOAT* bot_diff,
                 __global const _FLOAT* top_diff,
                 __global const _FLOAT* bot_data,
@@ -876,41 +893,41 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
 {
     int x             = get_global_id(0); // channel x
 
-#if MLO_N_OUT_STRIDE > MLO_OUT_BLOCK_SZ || MLO_N_DOUT_STRIDE > MLO_DOUT_BLOCK_SZ || \
-    MLO_N_IN_STRIDE > MLO_IN_BLOCK_SZ
-    int n_out_stride  = MLO_N_OUT_STRIDE;
-    int c_out         = MLO_C_OUT;
-    int h_out         = MLO_H_OUT;
-    int w_out         = MLO_W_OUT;
-    int n_dout_stride = MLO_N_DOUT_STRIDE;
-    int c_dout        = MLO_C_DOUT;
-    int h_dout        = MLO_H_DOUT;
-    int w_dout        = MLO_W_DOUT;
-    int n_in_stride   = MLO_N_IN_STRIDE;
-    int c_in          = MLO_C_IN;
-    int h_in          = MLO_H_IN;
-    int w_in          = MLO_W_IN;
+#if MIOPEN_N_OUT_STRIDE > MIOPEN_OUT_BLOCK_SZ || MIOPEN_N_DOUT_STRIDE > MIOPEN_DOUT_BLOCK_SZ || \
+    MIOPEN_N_IN_STRIDE > MIOPEN_IN_BLOCK_SZ
+    int n_out_stride  = MIOPEN_N_OUT_STRIDE;
+    int c_out         = MIOPEN_C_OUT;
+    int h_out         = MIOPEN_H_OUT;
+    int w_out         = MIOPEN_W_OUT;
+    int n_dout_stride = MIOPEN_N_DOUT_STRIDE;
+    int c_dout        = MIOPEN_C_DOUT;
+    int h_dout        = MIOPEN_H_DOUT;
+    int w_dout        = MIOPEN_W_DOUT;
+    int n_in_stride   = MIOPEN_N_IN_STRIDE;
+    int c_in          = MIOPEN_C_IN;
+    int h_in          = MIOPEN_H_IN;
+    int w_in          = MIOPEN_W_IN;
 #endif
 
-#if MLO_N_DIN_STRIDE > MLO_DIN_BLOCK_SZ
-    int n_din_stride  = MLO_N_DIN_STRIDE;
-    int c_din         = MLO_C_DIN;
-    int h_din         = MLO_H_DIN;
-    int w_din         = MLO_W_DIN;
+#if MIOPEN_N_DIN_STRIDE > MIOPEN_DIN_BLOCK_SZ
+    int n_din_stride  = MIOPEN_N_DIN_STRIDE;
+    int c_din         = MIOPEN_C_DIN;
+    int h_din         = MIOPEN_H_DIN;
+    int w_din         = MIOPEN_W_DIN;
 #endif
 
-    _FLOAT bot_diff_dat[MLO_READ_UNIT];
-    _FLOAT top_diff_dat[MLO_READ_UNIT];
-    _FLOAT bot_dat[MLO_READ_UNIT];
-    _FLOAT top_dat[MLO_READ_UNIT];
-#if MLO_N_PIXS_OFF > 0
-    if(x == MLO_MAP_SZ_ALIGNED - 1)
+    _FLOAT bot_diff_dat[MIOPEN_READ_UNIT];
+    _FLOAT top_diff_dat[MIOPEN_READ_UNIT];
+    _FLOAT bot_dat[MIOPEN_READ_UNIT];
+    _FLOAT top_dat[MIOPEN_READ_UNIT];
+#if MIOPEN_N_PIXS_OFF > 0
+    if(x == MIOPEN_MAP_SZ_ALIGNED - 1)
     {
         int i = 0;
-        for(; i < MLO_N_PIXS_OFF; ++i)
+        for(; i < MIOPEN_N_PIXS_OFF; ++i)
         {
-#if MLO_N_OUT_STRIDE > MLO_OUT_BLOCK_SZ || MLO_N_DOUT_STRIDE > MLO_DOUT_BLOCK_SZ || \
-    MLO_N_IN_STRIDE > MLO_IN_BLOCK_SZ
+#if MIOPEN_N_OUT_STRIDE > MIOPEN_OUT_BLOCK_SZ || MIOPEN_N_DOUT_STRIDE > MIOPEN_DOUT_BLOCK_SZ || \
+    MIOPEN_N_IN_STRIDE > MIOPEN_IN_BLOCK_SZ
             if((n_out_stride > c_out * h_out * w_out || n_dout_stride > c_dout * h_dout * w_dout ||
                 n_in_stride > c_in * h_in * w_in) &&
                c_out != 0 && h_out != 0 && w_out != 0 && c_dout != 0 && h_dout != 0 &&
@@ -918,54 +935,60 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
             {
                 int loc, n_loc_top_diff, c_loc_top_diff, h_loc_top_diff, w_loc_top_diff, n_loc_top,
                     c_loc_top, h_loc_top, w_loc_top, n_loc_bot, c_loc_bot, h_loc_bot, w_loc_bot;
-                loc = x * MLO_READ_UNIT + i;
+                loc = x * MIOPEN_READ_UNIT + i;
 
-                n_loc_top_diff = loc / (MLO_C_DOUT * MLO_H_DOUT * MLO_W_DOUT);
-                c_loc_top_diff =
-                    (loc % (MLO_C_DOUT * MLO_H_DOUT * MLO_W_DOUT)) / (MLO_H_DOUT * MLO_W_DOUT);
-                h_loc_top_diff =
-                    ((loc % (MLO_C_DOUT * MLO_H_DOUT * MLO_W_DOUT)) % (MLO_H_DOUT * MLO_W_DOUT)) /
-                    MLO_W_DOUT;
-                w_loc_top_diff =
-                    ((loc % (MLO_C_DOUT * MLO_H_DOUT * MLO_W_DOUT)) % (MLO_H_DOUT * MLO_W_DOUT)) %
-                    MLO_W_DOUT;
+                n_loc_top_diff = loc / (MIOPEN_C_DOUT * MIOPEN_H_DOUT * MIOPEN_W_DOUT);
+                c_loc_top_diff = (loc % (MIOPEN_C_DOUT * MIOPEN_H_DOUT * MIOPEN_W_DOUT)) /
+                                 (MIOPEN_H_DOUT * MIOPEN_W_DOUT);
+                h_loc_top_diff = ((loc % (MIOPEN_C_DOUT * MIOPEN_H_DOUT * MIOPEN_W_DOUT)) %
+                                  (MIOPEN_H_DOUT * MIOPEN_W_DOUT)) /
+                                 MIOPEN_W_DOUT;
+                w_loc_top_diff = ((loc % (MIOPEN_C_DOUT * MIOPEN_H_DOUT * MIOPEN_W_DOUT)) %
+                                  (MIOPEN_H_DOUT * MIOPEN_W_DOUT)) %
+                                 MIOPEN_W_DOUT;
 
-                n_loc_top = loc / (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT);
-                c_loc_top = (loc % (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)) / (MLO_H_OUT * MLO_W_OUT);
-                h_loc_top =
-                    ((loc % (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)) % (MLO_H_OUT * MLO_W_OUT)) /
-                    MLO_W_OUT;
-                w_loc_top =
-                    ((loc % (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)) % (MLO_H_OUT * MLO_W_OUT)) %
-                    MLO_W_OUT;
+                n_loc_top = loc / (MIOPEN_C_OUT * MIOPEN_H_OUT * MIOPEN_W_OUT);
+                c_loc_top = (loc % (MIOPEN_C_OUT * MIOPEN_H_OUT * MIOPEN_W_OUT)) /
+                            (MIOPEN_H_OUT * MIOPEN_W_OUT);
+                h_loc_top = ((loc % (MIOPEN_C_OUT * MIOPEN_H_OUT * MIOPEN_W_OUT)) %
+                             (MIOPEN_H_OUT * MIOPEN_W_OUT)) /
+                            MIOPEN_W_OUT;
+                w_loc_top = ((loc % (MIOPEN_C_OUT * MIOPEN_H_OUT * MIOPEN_W_OUT)) %
+                             (MIOPEN_H_OUT * MIOPEN_W_OUT)) %
+                            MIOPEN_W_OUT;
 
-                n_loc_bot = loc / (MLO_C_IN * MLO_H_IN * MLO_W_IN);
-                c_loc_bot = (loc % (MLO_C_IN * MLO_H_IN * MLO_W_IN)) / (MLO_H_IN * MLO_W_IN);
-                h_loc_bot =
-                    ((loc % (MLO_C_IN * MLO_H_IN * MLO_W_IN)) % (MLO_H_IN * MLO_W_IN)) / MLO_W_IN;
-                w_loc_bot =
-                    ((loc % (MLO_C_IN * MLO_H_IN * MLO_W_IN)) % (MLO_H_IN * MLO_W_IN)) % MLO_W_IN;
+                n_loc_bot = loc / (MIOPEN_C_IN * MIOPEN_H_IN * MIOPEN_W_IN);
+                c_loc_bot =
+                    (loc % (MIOPEN_C_IN * MIOPEN_H_IN * MIOPEN_W_IN)) / (MIOPEN_H_IN * MIOPEN_W_IN);
+                h_loc_bot = ((loc % (MIOPEN_C_IN * MIOPEN_H_IN * MIOPEN_W_IN)) %
+                             (MIOPEN_H_IN * MIOPEN_W_IN)) /
+                            MIOPEN_W_IN;
+                w_loc_bot = ((loc % (MIOPEN_C_IN * MIOPEN_H_IN * MIOPEN_W_IN)) %
+                             (MIOPEN_H_IN * MIOPEN_W_IN)) %
+                            MIOPEN_W_IN;
 
-                top_diff_dat[i] = top_diff[dyOffset + n_loc_top_diff * MLO_N_DOUT_STRIDE +
-                                           c_loc_top_diff * MLO_C_DOUT_STRIDE +
-                                           h_loc_top_diff * MLO_H_DOUT_STRIDE +
-                                           w_loc_top_diff * MLO_W_DOUT_STRIDE];
+                top_diff_dat[i] = top_diff[dyOffset + n_loc_top_diff * MIOPEN_N_DOUT_STRIDE +
+                                           c_loc_top_diff * MIOPEN_C_DOUT_STRIDE +
+                                           h_loc_top_diff * MIOPEN_H_DOUT_STRIDE +
+                                           w_loc_top_diff * MIOPEN_W_DOUT_STRIDE];
                 bot_dat[i] =
-                    bot_data[xOffset + n_loc_bot * MLO_N_IN_STRIDE + c_loc_bot * MLO_C_IN_STRIDE +
-                             h_loc_bot * MLO_H_IN_STRIDE + w_loc_bot * MLO_W_IN_STRIDE];
+                    bot_data[xOffset + n_loc_bot * MIOPEN_N_IN_STRIDE +
+                             c_loc_bot * MIOPEN_C_IN_STRIDE + h_loc_bot * MIOPEN_H_IN_STRIDE +
+                             w_loc_bot * MIOPEN_W_IN_STRIDE];
                 top_dat[i] =
-                    top_data[yOffset + n_loc_top * MLO_N_OUT_STRIDE + c_loc_top * MLO_C_OUT_STRIDE +
-                             h_loc_top * MLO_H_OUT_STRIDE + w_loc_top * MLO_W_OUT_STRIDE];
+                    top_data[yOffset + n_loc_top * MIOPEN_N_OUT_STRIDE +
+                             c_loc_top * MIOPEN_C_OUT_STRIDE + h_loc_top * MIOPEN_H_OUT_STRIDE +
+                             w_loc_top * MIOPEN_W_OUT_STRIDE];
             }
             else
 #endif
             {
-                top_diff_dat[i] = top_diff[dyOffset + x * MLO_READ_UNIT + i];
-                bot_dat[i]      = bot_data[xOffset + x * MLO_READ_UNIT + i];
-                top_dat[i]      = top_data[yOffset + x * MLO_READ_UNIT + i];
+                top_diff_dat[i] = top_diff[dyOffset + x * MIOPEN_READ_UNIT + i];
+                bot_dat[i]      = bot_data[xOffset + x * MIOPEN_READ_UNIT + i];
+                top_dat[i]      = top_data[yOffset + x * MIOPEN_READ_UNIT + i];
             }
         }
-        for(; i < MLO_READ_UNIT; ++i)
+        for(; i < MIOPEN_READ_UNIT; ++i)
         {
             top_diff_dat[i] = (_FLOAT)1.f;
             bot_dat[i]      = (_FLOAT)1.f;
@@ -975,10 +998,10 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
     else
 #endif
     {
-        for(int i = 0; i < MLO_READ_UNIT; ++i)
+        for(int i = 0; i < MIOPEN_READ_UNIT; ++i)
         {
-#if MLO_N_OUT_STRIDE > MLO_OUT_BLOCK_SZ || MLO_N_DOUT_STRIDE > MLO_DOUT_BLOCK_SZ || \
-    MLO_N_IN_STRIDE > MLO_IN_BLOCK_SZ
+#if MIOPEN_N_OUT_STRIDE > MIOPEN_OUT_BLOCK_SZ || MIOPEN_N_DOUT_STRIDE > MIOPEN_DOUT_BLOCK_SZ || \
+    MIOPEN_N_IN_STRIDE > MIOPEN_IN_BLOCK_SZ
             if((n_out_stride > c_out * h_out * w_out || n_dout_stride > c_dout * h_dout * w_dout ||
                 n_in_stride > c_in * h_in * w_in) &&
                c_out != 0 && h_out != 0 && w_out != 0 && c_dout != 0 && h_dout != 0 &&
@@ -986,56 +1009,62 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
             {
                 int loc, n_loc_top_diff, c_loc_top_diff, h_loc_top_diff, w_loc_top_diff, n_loc_top,
                     c_loc_top, h_loc_top, w_loc_top, n_loc_bot, c_loc_bot, h_loc_bot, w_loc_bot;
-                loc = x * MLO_READ_UNIT + i;
+                loc = x * MIOPEN_READ_UNIT + i;
 
-                n_loc_top_diff = loc / (MLO_C_DOUT * MLO_H_DOUT * MLO_W_DOUT);
-                c_loc_top_diff =
-                    (loc % (MLO_C_DOUT * MLO_H_DOUT * MLO_W_DOUT)) / (MLO_H_DOUT * MLO_W_DOUT);
-                h_loc_top_diff =
-                    ((loc % (MLO_C_DOUT * MLO_H_DOUT * MLO_W_DOUT)) % (MLO_H_DOUT * MLO_W_DOUT)) /
-                    MLO_W_DOUT;
-                w_loc_top_diff =
-                    ((loc % (MLO_C_DOUT * MLO_H_DOUT * MLO_W_DOUT)) % (MLO_H_DOUT * MLO_W_DOUT)) %
-                    MLO_W_DOUT;
+                n_loc_top_diff = loc / (MIOPEN_C_DOUT * MIOPEN_H_DOUT * MIOPEN_W_DOUT);
+                c_loc_top_diff = (loc % (MIOPEN_C_DOUT * MIOPEN_H_DOUT * MIOPEN_W_DOUT)) /
+                                 (MIOPEN_H_DOUT * MIOPEN_W_DOUT);
+                h_loc_top_diff = ((loc % (MIOPEN_C_DOUT * MIOPEN_H_DOUT * MIOPEN_W_DOUT)) %
+                                  (MIOPEN_H_DOUT * MIOPEN_W_DOUT)) /
+                                 MIOPEN_W_DOUT;
+                w_loc_top_diff = ((loc % (MIOPEN_C_DOUT * MIOPEN_H_DOUT * MIOPEN_W_DOUT)) %
+                                  (MIOPEN_H_DOUT * MIOPEN_W_DOUT)) %
+                                 MIOPEN_W_DOUT;
 
-                n_loc_top = loc / (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT);
-                c_loc_top = (loc % (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)) / (MLO_H_OUT * MLO_W_OUT);
-                h_loc_top =
-                    ((loc % (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)) % (MLO_H_OUT * MLO_W_OUT)) /
-                    MLO_W_OUT;
-                w_loc_top =
-                    ((loc % (MLO_C_OUT * MLO_H_OUT * MLO_W_OUT)) % (MLO_H_OUT * MLO_W_OUT)) %
-                    MLO_W_OUT;
+                n_loc_top = loc / (MIOPEN_C_OUT * MIOPEN_H_OUT * MIOPEN_W_OUT);
+                c_loc_top = (loc % (MIOPEN_C_OUT * MIOPEN_H_OUT * MIOPEN_W_OUT)) /
+                            (MIOPEN_H_OUT * MIOPEN_W_OUT);
+                h_loc_top = ((loc % (MIOPEN_C_OUT * MIOPEN_H_OUT * MIOPEN_W_OUT)) %
+                             (MIOPEN_H_OUT * MIOPEN_W_OUT)) /
+                            MIOPEN_W_OUT;
+                w_loc_top = ((loc % (MIOPEN_C_OUT * MIOPEN_H_OUT * MIOPEN_W_OUT)) %
+                             (MIOPEN_H_OUT * MIOPEN_W_OUT)) %
+                            MIOPEN_W_OUT;
 
-                n_loc_bot = loc / (MLO_C_IN * MLO_H_IN * MLO_W_IN);
-                c_loc_bot = (loc % (MLO_C_IN * MLO_H_IN * MLO_W_IN)) / (MLO_H_IN * MLO_W_IN);
-                h_loc_bot =
-                    ((loc % (MLO_C_IN * MLO_H_IN * MLO_W_IN)) % (MLO_H_IN * MLO_W_IN)) / MLO_W_IN;
-                w_loc_bot =
-                    ((loc % (MLO_C_IN * MLO_H_IN * MLO_W_IN)) % (MLO_H_IN * MLO_W_IN)) % MLO_W_IN;
+                n_loc_bot = loc / (MIOPEN_C_IN * MIOPEN_H_IN * MIOPEN_W_IN);
+                c_loc_bot =
+                    (loc % (MIOPEN_C_IN * MIOPEN_H_IN * MIOPEN_W_IN)) / (MIOPEN_H_IN * MIOPEN_W_IN);
+                h_loc_bot = ((loc % (MIOPEN_C_IN * MIOPEN_H_IN * MIOPEN_W_IN)) %
+                             (MIOPEN_H_IN * MIOPEN_W_IN)) /
+                            MIOPEN_W_IN;
+                w_loc_bot = ((loc % (MIOPEN_C_IN * MIOPEN_H_IN * MIOPEN_W_IN)) %
+                             (MIOPEN_H_IN * MIOPEN_W_IN)) %
+                            MIOPEN_W_IN;
 
-                top_diff_dat[i] = top_diff[dyOffset + n_loc_top_diff * MLO_N_DOUT_STRIDE +
-                                           c_loc_top_diff * MLO_C_DOUT_STRIDE +
-                                           h_loc_top_diff * MLO_H_DOUT_STRIDE +
-                                           w_loc_top_diff * MLO_W_DOUT_STRIDE];
+                top_diff_dat[i] = top_diff[dyOffset + n_loc_top_diff * MIOPEN_N_DOUT_STRIDE +
+                                           c_loc_top_diff * MIOPEN_C_DOUT_STRIDE +
+                                           h_loc_top_diff * MIOPEN_H_DOUT_STRIDE +
+                                           w_loc_top_diff * MIOPEN_W_DOUT_STRIDE];
                 bot_dat[i] =
-                    bot_data[xOffset + n_loc_bot * MLO_N_IN_STRIDE + c_loc_bot * MLO_C_IN_STRIDE +
-                             h_loc_bot * MLO_H_IN_STRIDE + w_loc_bot * MLO_W_IN_STRIDE];
+                    bot_data[xOffset + n_loc_bot * MIOPEN_N_IN_STRIDE +
+                             c_loc_bot * MIOPEN_C_IN_STRIDE + h_loc_bot * MIOPEN_H_IN_STRIDE +
+                             w_loc_bot * MIOPEN_W_IN_STRIDE];
                 top_dat[i] =
-                    top_data[yOffset + n_loc_top * MLO_N_OUT_STRIDE + c_loc_top * MLO_C_OUT_STRIDE +
-                             h_loc_top * MLO_H_OUT_STRIDE + w_loc_top * MLO_W_OUT_STRIDE];
+                    top_data[yOffset + n_loc_top * MIOPEN_N_OUT_STRIDE +
+                             c_loc_top * MIOPEN_C_OUT_STRIDE + h_loc_top * MIOPEN_H_OUT_STRIDE +
+                             w_loc_top * MIOPEN_W_OUT_STRIDE];
             }
             else
 #endif
             {
-                top_diff_dat[i] = top_diff[dyOffset + x * MLO_READ_UNIT + i];
-                bot_dat[i]      = bot_data[xOffset + x * MLO_READ_UNIT + i];
-                top_dat[i]      = top_data[yOffset + x * MLO_READ_UNIT + i];
+                top_diff_dat[i] = top_diff[dyOffset + x * MIOPEN_READ_UNIT + i];
+                bot_dat[i]      = bot_data[xOffset + x * MIOPEN_READ_UNIT + i];
+                top_dat[i]      = top_data[yOffset + x * MIOPEN_READ_UNIT + i];
             }
         }
     }
 
-    ActivationFunction_Diff(MLO_READ_UNIT,
+    ActivationFunction_Diff(MIOPEN_READ_UNIT,
                             bot_diff_dat,
                             top_diff_dat,
                             bot_dat,
@@ -1045,68 +1074,70 @@ MIOpenNeuronBwd(__global _FLOAT* bot_diff,
                             beta,
                             alpha);
 
-#if MLO_N_PIXS_OFF > 0
-    if(x == MLO_MAP_SZ_ALIGNED - 1)
+#if MIOPEN_N_PIXS_OFF > 0
+    if(x == MIOPEN_MAP_SZ_ALIGNED - 1)
     {
         int i = 0;
-        for(; i < MLO_N_PIXS_OFF; ++i)
+        for(; i < MIOPEN_N_PIXS_OFF; ++i)
         {
-#if MLO_N_DIN_STRIDE > MLO_DIN_BLOCK_SZ
+#if MIOPEN_N_DIN_STRIDE > MIOPEN_DIN_BLOCK_SZ
             if(n_din_stride > c_din * h_din * w_din && c_din != 0 && h_din != 0 && w_din != 0)
             {
                 int loc, n_loc_bot_diff, c_loc_bot_diff, h_loc_bot_diff, w_loc_bot_diff;
-                loc = x * MLO_READ_UNIT + i;
+                loc = x * MIOPEN_READ_UNIT + i;
 
-                n_loc_bot_diff = loc / (MLO_C_DIN * MLO_H_DIN * MLO_W_DIN);
-                c_loc_bot_diff =
-                    (loc % (MLO_C_DIN * MLO_H_DIN * MLO_W_DIN)) / (MLO_H_DIN * MLO_W_DIN);
-                h_loc_bot_diff =
-                    ((loc % (MLO_C_DIN * MLO_H_DIN * MLO_W_DIN)) % (MLO_H_DIN * MLO_W_DIN)) /
-                    MLO_W_DIN;
-                w_loc_bot_diff =
-                    ((loc % (MLO_C_DIN * MLO_H_DIN * MLO_W_DIN)) % (MLO_H_DIN * MLO_W_DIN)) %
-                    MLO_W_DIN;
+                n_loc_bot_diff = loc / (MIOPEN_C_DIN * MIOPEN_H_DIN * MIOPEN_W_DIN);
+                c_loc_bot_diff = (loc % (MIOPEN_C_DIN * MIOPEN_H_DIN * MIOPEN_W_DIN)) /
+                                 (MIOPEN_H_DIN * MIOPEN_W_DIN);
+                h_loc_bot_diff = ((loc % (MIOPEN_C_DIN * MIOPEN_H_DIN * MIOPEN_W_DIN)) %
+                                  (MIOPEN_H_DIN * MIOPEN_W_DIN)) /
+                                 MIOPEN_W_DIN;
+                w_loc_bot_diff = ((loc % (MIOPEN_C_DIN * MIOPEN_H_DIN * MIOPEN_W_DIN)) %
+                                  (MIOPEN_H_DIN * MIOPEN_W_DIN)) %
+                                 MIOPEN_W_DIN;
 
-                bot_diff[dxOffset + n_loc_bot_diff * MLO_N_DIN_STRIDE +
-                         c_loc_bot_diff * MLO_C_DIN_STRIDE + h_loc_bot_diff * MLO_H_DIN_STRIDE +
-                         w_loc_bot_diff * MLO_W_DIN_STRIDE] = bot_diff_dat[i];
+                bot_diff[dxOffset + n_loc_bot_diff * MIOPEN_N_DIN_STRIDE +
+                         c_loc_bot_diff * MIOPEN_C_DIN_STRIDE +
+                         h_loc_bot_diff * MIOPEN_H_DIN_STRIDE +
+                         w_loc_bot_diff * MIOPEN_W_DIN_STRIDE] = bot_diff_dat[i];
             }
             else
 #endif
             {
-                bot_diff[dxOffset + x * MLO_READ_UNIT + i] = bot_diff_dat[i];
+                bot_diff[dxOffset + x * MIOPEN_READ_UNIT + i] = bot_diff_dat[i];
             }
         }
     }
     else
 #endif
     {
-        for(int i = 0; i < MLO_READ_UNIT; ++i)
+        for(int i = 0; i < MIOPEN_READ_UNIT; ++i)
         {
-#if MLO_N_DIN_STRIDE > MLO_DIN_BLOCK_SZ
+#if MIOPEN_N_DIN_STRIDE > MIOPEN_DIN_BLOCK_SZ
             if(n_din_stride > c_din * h_din * w_din && c_din != 0 && h_din != 0 && w_din != 0)
             {
                 int loc, n_loc_bot_diff, c_loc_bot_diff, h_loc_bot_diff, w_loc_bot_diff;
-                loc = x * MLO_READ_UNIT + i;
+                loc = x * MIOPEN_READ_UNIT + i;
 
-                n_loc_bot_diff = loc / (MLO_C_DIN * MLO_H_DIN * MLO_W_DIN);
-                c_loc_bot_diff =
-                    (loc % (MLO_C_DIN * MLO_H_DIN * MLO_W_DIN)) / (MLO_H_DIN * MLO_W_DIN);
-                h_loc_bot_diff =
-                    ((loc % (MLO_C_DIN * MLO_H_DIN * MLO_W_DIN)) % (MLO_H_DIN * MLO_W_DIN)) /
-                    MLO_W_DIN;
-                w_loc_bot_diff =
-                    ((loc % (MLO_C_DIN * MLO_H_DIN * MLO_W_DIN)) % (MLO_H_DIN * MLO_W_DIN)) %
-                    MLO_W_DIN;
+                n_loc_bot_diff = loc / (MIOPEN_C_DIN * MIOPEN_H_DIN * MIOPEN_W_DIN);
+                c_loc_bot_diff = (loc % (MIOPEN_C_DIN * MIOPEN_H_DIN * MIOPEN_W_DIN)) /
+                                 (MIOPEN_H_DIN * MIOPEN_W_DIN);
+                h_loc_bot_diff = ((loc % (MIOPEN_C_DIN * MIOPEN_H_DIN * MIOPEN_W_DIN)) %
+                                  (MIOPEN_H_DIN * MIOPEN_W_DIN)) /
+                                 MIOPEN_W_DIN;
+                w_loc_bot_diff = ((loc % (MIOPEN_C_DIN * MIOPEN_H_DIN * MIOPEN_W_DIN)) %
+                                  (MIOPEN_H_DIN * MIOPEN_W_DIN)) %
+                                 MIOPEN_W_DIN;
 
-                bot_diff[dxOffset + n_loc_bot_diff * MLO_N_DIN_STRIDE +
-                         c_loc_bot_diff * MLO_C_DIN_STRIDE + h_loc_bot_diff * MLO_H_DIN_STRIDE +
-                         w_loc_bot_diff * MLO_W_DIN_STRIDE] = bot_diff_dat[i];
+                bot_diff[dxOffset + n_loc_bot_diff * MIOPEN_N_DIN_STRIDE +
+                         c_loc_bot_diff * MIOPEN_C_DIN_STRIDE +
+                         h_loc_bot_diff * MIOPEN_H_DIN_STRIDE +
+                         w_loc_bot_diff * MIOPEN_W_DIN_STRIDE] = bot_diff_dat[i];
             }
             else
 #endif
             {
-                bot_diff[dxOffset + x * MLO_READ_UNIT + i] = bot_diff_dat[i];
+                bot_diff[dxOffset + x * MIOPEN_READ_UNIT + i] = bot_diff_dat[i];
             }
         }
     }
