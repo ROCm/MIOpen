@@ -225,14 +225,37 @@ int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     {
         switch(activation_mode)
         {
+        case MLO_NEURON_PASTHRU:
+            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+            break;
+        case MLO_NEURON_LOGISTIC:
+            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+            break;
+        case MLO_NEURON_TANH:
+            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+            break;
+        case MLO_NEURON_RELU:
+            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+            break;
+        case MLO_NEURON_SOFTRELU:
+            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+            break;
+        case MLO_NEURON_ABS:
+            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+            break;
         case MLO_NEURON_POWER:
             in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(2.0));
+            break;
+        case MLO_NEURON_CLIPPED_RELU:
+            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+            break;
+        case MLO_NEURON_LEAKY_RELU:
+            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
             break;
         case MLO_NEURON_ELU:
             in[i] = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>(0.005), static_cast<Tgpu>(2.0))
                           : RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(-0.005));
             break;
-        default: in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0)); break;
         }
     }
 
