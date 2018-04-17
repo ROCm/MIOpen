@@ -366,6 +366,30 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     }
 }
 
+size_t
+ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeDirect(Handle& handle,
+                                                          const TensorDescriptor& dxDesc,
+                                                          const TensorDescriptor& dyDesc,
+                                                          const TensorDescriptor& wDesc) const
+{
+    try
+    {
+        mlo_construct_direct2D construct_params(2); // backward
+        construct_params.doSearch(false);
+        construct_params.setStream(&handle);
+        construct_params.setOutputDescFromMLDesc(dyDesc);
+        construct_params.setInputDescFromMLDesc(dxDesc);
+        construct_params.setWeightDescFromMLDesc(wDesc);
+        construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+        mloConstruct(construct_params);
+        return construct_params.getWorkSpaceSzBytes();
+    }
+    catch(const miopen::Exception&)
+    {
+        return 0;
+    }
+}
+
 size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
                                                            const TensorDescriptor& wDesc,
                                                            const TensorDescriptor& dyDesc,
@@ -384,7 +408,8 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
            dilation_w == 1 && dilation_h == 1)
         {
-            return BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc);
+            return std::max(BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc),
+                            BackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc));
         }
         // Check if Winograd is available
         // If Winograd is present, there is no advantage in letting
