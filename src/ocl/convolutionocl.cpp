@@ -2030,7 +2030,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 #if WORKAROUND_ISSUE_791
                     int n_pure_opencl_solutions = 0;
 #endif
-                    for(const auto& s : all)
+                    for(const auto& sol : all)
                     {
 #if WORKAROUND_ISSUE_791
                         /// Try only the first "pure" OpenCL solution.
@@ -2039,7 +2039,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         /// solutions shall be ignored. There is issue
                         /// https://github.com/AMDComputeLibraries/MLOpen/issues/791
                         /// which possibly reveals the problem.
-                        if(IsPureOpenCLSolution(s))
+                        if(IsPureOpenCLSolution(sol))
                         {
                             ++n_pure_opencl_solutions;
                             if(n_pure_opencl_solutions > 1)
@@ -2053,42 +2053,26 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                                              "",
                                                                              "",
                                                                              construct_params,
-                                                                             s,
+                                                                             sol,
                                                                              dy,
                                                                              x,
                                                                              tmp_dw.get(),
                                                                              workSpace,
                                                                              workSpaceSize,
                                                                              as_float(0.0f));
-                        /// \todo Rework printing kernel names.
-                        MIOPEN_LLOG_I(
-                            s.construction_params[0].kernel_name
-                            << (s.construction_params.size() > 1
-                                    ? (std::string(", ") + s.construction_params[1].kernel_name)
-                                    : std::string())
-                            << ": "
-                            << elapsed
-                            << (elapsed < best ? " < " : " >= ")
-                            << best);
+                        MIOPEN_LLOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
+                                          << best);
                         if(elapsed < best)
                         {
                             best     = elapsed;
-                            selected = s;
+                            selected = sol;
                         }
                     }
                     if(selected.Succeeded())
                     {
                         AddKernels(handle, algorithm_name, network_config, selected, nullptr);
-                        MIOPEN_LLOG_I("Selected: "
-                                      << selected.construction_params[0].kernel_name
-                                      << (selected.construction_params.size() > 1
-                                              ? (std::string(", ") +
-                                                 selected.construction_params[1].kernel_name)
-                                              : std::string())
-                                      << ": "
-                                      << best
-                                      << ", "
-                                      << selected.workspce_sz);
+                        MIOPEN_LLOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
+                                                   << selected.workspce_sz);
                         perf_db.push_back(PerfField{perf_name, best, selected.workspce_sz});
                     }
                 });
