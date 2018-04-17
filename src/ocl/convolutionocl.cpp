@@ -175,37 +175,44 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
                 &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
             extraArgs = std::make_tuple(N, C, out_H, out_W, K, n_groups);
         }
-        // if not 11x11
-        if(program_name == "MIOpenUtilKernels3.cl")
-        {
-            const std::vector<mlo_kernel_info>& bwd_wrw_info = construct_params.getKernelsInfo();
-            assert(bwd_wrw_info.size() == 2);
 
-            const mlo_kernel_info& bwd_wrw = bwd_wrw_info[0];
+        //std::cerr << " program_name = " << program_name << " kernel_name = " << kernel_name
+                  //<< " parms = " << parms << " network_config = " << network_config
+                  //<< " algorithm = " << algorithm << std::endl;
+
+        const std::vector<mlo_kernel_info>& bwd_wrw_info = construct_params.getKernelsInfo();
+
+        // subsample
+        if(bwd_wrw_info.size() == 2 && (std::get<1>(bwd_wrw_info[1]) == "MIOpenUtilKernels3.cl" ||
+                                        std::get<1>(bwd_wrw_info[0]) == "MIOpenUtilKernels3.cl"))
+        {
+
+            const mlo_kernel_info& bwd_wrw_1 = bwd_wrw_info[0];
 
             auto k1 = handle.AddKernel(algorithm,
                                        network_config,
-                                       std::get<1>(bwd_wrw),
-                                       std::get<0>(bwd_wrw),
-                                       std::get<4>(bwd_wrw),
-                                       std::get<3>(bwd_wrw),
-                                       std::get<2>(bwd_wrw));
+                                       std::get<1>(bwd_wrw_1),
+                                       std::get<0>(bwd_wrw_1),
+                                       std::get<4>(bwd_wrw_1),
+                                       std::get<3>(bwd_wrw_1),
+                                       std::get<2>(bwd_wrw_1));
 
             kernels.push_back(k1);
 
-            const mlo_kernel_info& bwd_wrw_main = bwd_wrw_info[1];
+            const mlo_kernel_info& bwd_wrw_2 = bwd_wrw_info[1];
 
             network_config += "x1";
             auto k2 = handle.AddKernel(algorithm + "_pass2",
                                        network_config,
-                                       std::get<1>(bwd_wrw_main),
-                                       std::get<0>(bwd_wrw_main),
-                                       std::get<4>(bwd_wrw_main),
-                                       std::get<3>(bwd_wrw_main),
-                                       std::get<2>(bwd_wrw_main));
+                                       std::get<1>(bwd_wrw_2),
+                                       std::get<0>(bwd_wrw_2),
+                                       std::get<4>(bwd_wrw_2),
+                                       std::get<3>(bwd_wrw_2),
+                                       std::get<2>(bwd_wrw_2));
 
             kernels.push_back(k2);
         }
+        // if not 11x11
         else if(program_name != "MIOpenConvFwd_LxL_11.cl")
         {
 
@@ -216,7 +223,6 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
         }
         else
         {
-            const std::vector<mlo_kernel_info>& bwd_wrw_info = construct_params.getKernelsInfo();
             /*
             * get info for all kernels of the layer
             * std::string _kernel_name;
@@ -1300,30 +1306,56 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             if(FindDirectKernel(
                    handle, dxDesc, wDesc, dyDesc, eka, kernel_direct, exhaustiveSearch, 0) == 0)
             { // Backward
+
+                size_t workspace_req =
+                    this->BackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc);
+
                 float time_direct = 0;
                 float padding_val = 0;
 
                 visit_float(dyDesc.GetType(), [&](auto as_float) {
                     for(auto& k : kernel_direct)
                     {
-                        if(k.GetName() == "gcnAsmConv1x1U")
+                        if(k.GetName() == "SubSample")
+                        {
+                            k(dy, workSpace);
+                        }
+                        else if(k.GetName() == "gcnAsmConv1x1U")
                         {
                             int unused       = 0;
                             int* return_addr = nullptr;
-                            int N, C, H, W, K, n_groups;
-                            std::tie(N, C, H, W, K, n_groups) = eka;
-                            k(N,
-                              C,
-                              H,
-                              W,
-                              K,
-                              n_groups,
-                              unused,
-                              unused,
-                              dy,
-                              w,
-                              tmp_dx.get(),
-                              return_addr);
+                            int N, C, out_H, out_W, K, n_groups;
+                            std::tie(N, C, out_H, out_W, K, n_groups) = eka;
+                            if(workspace_req != 0)
+                            {
+                                k(N,
+                                  C,
+                                  out_H,
+                                  out_W,
+                                  K,
+                                  n_groups,
+                                  unused,
+                                  unused,
+                                  workSpace,
+                                  w,
+                                  tmp_dx.get(),
+                                  return_addr);
+                            }
+                            else
+                            {
+                                k(N,
+                                  C,
+                                  out_H,
+                                  out_W,
+                                  K,
+                                  n_groups,
+                                  unused,
+                                  unused,
+                                  dy,
+                                  w,
+                                  tmp_dx.get(),
+                                  return_addr);
+                            }
                         }
                         else
                         {
