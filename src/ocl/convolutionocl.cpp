@@ -720,8 +720,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             float padding_val          = 0;
             auto kernel                = handle.GetKernel(algorithm_name, network_config);
 
-            std::cerr << "ConvolutionForward kernel = " << kernel.GetName() << std::endl;
-
             visit_float(xDesc.GetType(), [&](auto as_float) {
                 if((kernel.GetName() == "SubSample"))
                 {
