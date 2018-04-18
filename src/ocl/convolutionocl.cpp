@@ -176,10 +176,6 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
             extraArgs = std::make_tuple(N, C, out_H, out_W, K, n_groups);
         }
 
-        //std::cerr << " program_name = " << program_name << " kernel_name = " << kernel_name
-                  //<< " parms = " << parms << " network_config = " << network_config
-                  //<< " algorithm = " << algorithm << std::endl;
-
         const std::vector<mlo_kernel_info>& bwd_wrw_info = construct_params.getKernelsInfo();
 
         // subsample
@@ -393,8 +389,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     {
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
-        //#if MIOPEN_USE_MIOPENGEMM
-#if 0
+#if MIOPEN_USE_MIOPENGEMM
         if(xDesc.GetType() == miopenFloat)
         {
             float time_gemm = 0;
@@ -493,7 +488,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 #endif
         if(dilation_h == 1 && dilation_w == 1)
         {
-#if 0
             // Winograd algo
             WinogradKernelParams k_p;
             KernelInvoke kernel_wino;
@@ -540,7 +534,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 time_wino = handle.GetKernelTime();
                 perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoWinograd", time_wino, 0});
             }
-#endif
 
             // Direct algo
             ExtraKernelArgs eka;
@@ -610,7 +603,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                     PerfField{"miopenConvolutionFwdAlgoDirect", time_direct, workspace_req});
             }
 
-#if 0
             // FFT algo
             std::vector<KernelInvoke> kernels_fft;
             size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
@@ -633,7 +625,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                         PerfField{"miopenConvolutionFwdAlgoFFT", time_fft, workspace_fft});
                 }
             }
-#endif
         }
     }
 
@@ -1228,7 +1219,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         if(dilation_h == 1 && dilation_w == 1)
         {
 
-#if 0
             // Winograd algo
             WinogradKernelParams k_p;
             KernelInvoke kernel_wino;
@@ -1305,7 +1295,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 time_wino = handle.GetKernelTime();
                 perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoWinograd", time_wino, 0});
             }
-#endif
 
             // Direct algo
             ExtraKernelArgs eka;
@@ -1375,7 +1364,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoDirect", time_direct, 0});
             }
 
-#if 0
             // FFT algo
             std::vector<KernelInvoke> kernels_fft;
             size_t workspace_fft = BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc);
@@ -1398,14 +1386,12 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                         PerfField{"miopenConvolutionBwdDataAlgoFFT", time_fft, workspace_fft});
                 }
             }
-#endif
         }
 
         // GEMM based
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
-        //#if MIOPEN_USE_MIOPENGEMM
-#if 0 
+#if MIOPEN_USE_MIOPENGEMM
         if(dyDesc.GetType() == miopenFloat)
         {
 
@@ -1612,7 +1598,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                     construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
                     kernel(N, C, H, W, K, n_groups, unused, unused, dy, w, workSpace, return_addr);
 
-                    auto kernel2 = handle.GetKernel("miopenConvolutionBwdDataAlgoDirect_pass2", network_config);
+                    auto kernel2 = handle.GetKernel("miopenConvolutionBwdDataAlgoDirect_pass2",
+                                                    network_config);
 
                     kernel2(workSpace, dx);
                 }

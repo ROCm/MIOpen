@@ -368,21 +368,21 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     {
         // subsampled input, in_height equals to image size after downsampling
         int in_batch_stride = 0, write_unit = 0;
-        if(params.direction.IsForward()) 
+        if(params.direction.IsForward())
         {
             in_batch_stride = params.out_width * params.out_height * params.n_inputs;
             write_unit =
                 (params.out_width % 4 == 0) ? 4 : (params.out_width % 3 == 0)
-                ? 3
-                : (params.out_width % 2 == 0) ? 2 : 1;
+                                                      ? 3
+                                                      : (params.out_width % 2 == 0) ? 2 : 1;
         }
         else
         {
-            in_batch_stride = params.in_width * params.in_height * params.n_outputs; // C * out_H * out_W
-            write_unit =
-                (params.in_width % 4 == 0) ? 4 : (params.in_width % 3 == 0)
-                ? 3
-                : (params.in_width % 2 == 0) ? 2 : 1;
+            in_batch_stride =
+                params.in_width * params.in_height * params.n_outputs; // C * out_H * out_W
+            write_unit = (params.in_width % 4 == 0) ? 4 : (params.in_width % 3 == 0)
+                                                              ? 3
+                                                              : (params.in_width % 2 == 0) ? 2 : 1;
         }
 
         int n_grp0_size0 = 256;
@@ -510,11 +510,12 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     const int hw_per_wave = pcfg->GetChunksPerWave() * pcfg->GetChunkSize();
 
     if(params.direction.IsForward())
-        kinfo.g_wk.push_back(kinfo.l_wk[0] *
-                divide_round_plus_inf(params.out_height * params.out_width, hw_per_wave));
+        kinfo.g_wk.push_back(
+            kinfo.l_wk[0] *
+            divide_round_plus_inf(params.out_height * params.out_width, hw_per_wave));
     else
-        kinfo.g_wk.push_back(kinfo.l_wk[0] *
-                divide_round_plus_inf(params.in_height * params.in_width, hw_per_wave));
+        kinfo.g_wk.push_back(
+            kinfo.l_wk[0] * divide_round_plus_inf(params.in_height * params.in_width, hw_per_wave));
 
     kinfo.g_wk.push_back(divide_round_plus_inf(params.n_outputs, pcfg->GetKMult()));
     const int n_images_per_wave = pcfg->GetNBlocksPerWave() * pcfg->GetNPerGpr();
@@ -534,13 +535,13 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 }
 
 int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
-        Data_t bot_ocl_buf,
-        Data_t top_ocl_buf,
-        Data_t wei_ocl_buf,
-        Data_t bias_ocl_buf,
-        const ConvolutionContext& params,
-        const ConvSolution& solution,
-        float& elapsed_time) const
+                                       Data_t bot_ocl_buf,
+                                       Data_t top_ocl_buf,
+                                       Data_t wei_ocl_buf,
+                                       Data_t bias_ocl_buf,
+                                       const ConvolutionContext& params,
+                                       const ConvSolution& solution,
+                                       float& elapsed_time) const
 {
     assert(bias_ocl_buf == nullptr);
     (void)bias_ocl_buf;
