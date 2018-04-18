@@ -201,7 +201,6 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
 
             const mlo_kernel_info& bwd_wrw_2 = bwd_wrw_info[1];
 
-            network_config += "x1";
             auto k2 = handle.AddKernel(algorithm + "_pass2",
                                        network_config,
                                        std::get<1>(bwd_wrw_2),
@@ -739,7 +738,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 {
                     kernel(x, workSpace);
 
-                    network_config += "x1";
                     auto kernel2 = handle.GetKernel(algorithm_name + "_pass2", network_config);
 
                     int unused       = 0;
@@ -747,6 +745,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     int N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W;
                     construct_params.getCompiledInParameters(
                         &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+
                     kernel2(N,
                             C,
                             out_H,
@@ -1324,7 +1323,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 visit_float(dyDesc.GetType(), [&](auto as_float) {
                     for(auto& k : kernel_direct)
                     {
-                        if(k.GetName() == "SubSample")
+                        if(k.GetName() == "UpSample")
                         {
                             k(workSpace, tmp_dx.get());
                         }
@@ -1611,10 +1610,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                     int* return_addr = nullptr;
                     int N, C, H, W, K, n_groups;
                     construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-                    std::cerr << " N = " << N << " C = " << C << " H = " << H << " W = " << W << std::endl;
                     kernel(N, C, H, W, K, n_groups, unused, unused, dy, w, workSpace, return_addr);
 
-                    network_config += "x1";
                     auto kernel2 = handle.GetKernel("miopenConvolutionBwdDataAlgoDirect_pass2", network_config);
 
                     kernel2(workSpace, dx);
