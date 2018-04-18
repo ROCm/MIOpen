@@ -301,7 +301,7 @@ template <typename Tgpu, typename Tref>
 int ActivationDriver<Tgpu, Tref>::RunForwardGPU()
 {
 
-    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
+    float alpha = 1, beta = 0;
 
     miopenActivationForward(GetHandle(),
                             activDesc,
@@ -333,7 +333,7 @@ int ActivationDriver<Tgpu, Tref>::RunForwardCPU()
 template <typename Tgpu, typename Tref>
 int ActivationDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    Tgpu alpha = static_cast<Tgpu>(1), beta = static_cast<Tgpu>(0);
+    float alpha = 1, beta = 0;
 
     miopenActivationBackward(GetHandle(),
                              activDesc,
