@@ -1357,7 +1357,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     }
                 });
 
-                perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoDirect", time_direct, 0});
+                perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoDirect", time_direct, workspace_req});
             }
 
             // FFT algo
