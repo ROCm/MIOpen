@@ -362,9 +362,6 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
     result.workspce_sz = 0;
 
-    std::cerr << "params.n_inputs = " << params.n_inputs << " params.in_width = " << params.in_width << " params.in_height = " << params.in_height << std::endl;
-    std::cerr << "params.n_outputs = " << params.n_outputs << " params.out_width = " << params.out_width << " params.out_height = " << params.out_height << std::endl;
-
     KernelInfo kernel;
 
     if(result.passes > 1 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
@@ -404,7 +401,6 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
             std::string(" -DMLO_IN0_STRIDE=") + std::to_string(params.in_stride) +
             params.general_compile_options;
 
-
         kernel.l_wk.push_back(n_grp0_size0);
         kernel.l_wk.push_back(1);
         kernel.l_wk.push_back(1);
@@ -419,10 +415,12 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
         kernel.kernel_file = "MIOpenUtilKernels3.cl";
 
-        kernel.kernel_name = "SubSample";
+        if(params.direction.IsForward())
+            kernel.kernel_name = "SubSample";
+        else
+            kernel.kernel_name = "UpSample";
 
         kernel.comp_options = subsample_kernel_compilation_options;
-
 
         assert(params.out_data_type == "FP16" || params.out_data_type == "FP32" ||
                params.out_data_type == "FP64");
@@ -502,8 +500,6 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
     KernelInfo kinfo;
     kinfo.comp_options = options.str();
-
-    std::cerr << options.str() << std::endl;
 
     kinfo.l_wk.clear(); // workgroupsize
     kinfo.l_wk.push_back(64 * pcfg->GetWavesInGroup());
