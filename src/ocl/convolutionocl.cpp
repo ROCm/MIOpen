@@ -197,7 +197,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
 
             const mlo_kernel_info& bwd_wrw_2 = bwd_wrw_info[1];
 
-            auto k2 = handle.AddKernel(algorithm,
+            auto k2 = handle.AddKernel(algorithm + "_pass2",
                                        network_config,
                                        std::get<1>(bwd_wrw_2),
                                        std::get<0>(bwd_wrw_2),
@@ -720,14 +720,14 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             float padding_val          = 0;
             auto kernel                = handle.GetKernel(algorithm_name, network_config);
 
+            std::cerr << "ConvolutionForward kernel = " << kernel.GetName() << std::endl;
+
             visit_float(xDesc.GetType(), [&](auto as_float) {
                 if((kernel.GetName() == "SubSample"))
                 {
                     kernel(x, workSpace);
 
-                    auto&& kernels = handle.GetKernels(algorithm_name, network_config);
-
-                    auto kernel2 = kernels[1];
+                    auto kernel2 = handle.GetKernel(algorithm_name + "_pass2", network_config);
 
                     int unused       = 0;
                     int* return_addr = nullptr;
@@ -1599,11 +1599,11 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                     construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
                     kernel(N, C, H, W, K, n_groups, unused, unused, dy, w, workSpace, return_addr);
 
-                    auto&& kernels = handle.GetKernels(algorithm_name, network_config);
+                    auto&& kernels = handle.GetKernels(algorithm_name + "_pass2", network_config);
 
-                    if(kernels.size() > 1)
+                    if(!kernels.empty())
                     {
-                        auto kernel2 = kernels[1];
+                        auto kernel2 = kernels[0];
                         kernel2(workSpace, dx);
                     }
                 }
