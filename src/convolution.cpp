@@ -374,7 +374,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeDirect(Handle& handle,
 {
     try
     {
-        mlo_construct_direct2D construct_params(2); // backward
+        mlo_construct_direct2D construct_params(0); // backward
         construct_params.doSearch(false);
         construct_params.setStream(&handle);
         construct_params.setOutputDescFromMLDesc(dyDesc);
