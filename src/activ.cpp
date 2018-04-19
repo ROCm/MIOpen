@@ -39,8 +39,8 @@ ActivationDescriptor::ActivationDescriptor(miopenActivationMode_t m, const doubl
 ActivationDescriptor::ActivationDescriptor(miopenActivationMode_t m,
                                            double alpha,
                                            double beta,
-                                           double power)
-    : parms({alpha, beta, power}), mode(m)
+                                           double gamma)
+    : parms({alpha, beta, gamma}), mode(m)
 {
 }
 
@@ -50,23 +50,21 @@ double ActivationDescriptor::GetAlpha() const { return this->parms[0]; }
 
 double ActivationDescriptor::GetBeta() const { return this->parms[1]; }
 
-double ActivationDescriptor::GetPower() const { return this->parms[2]; }
+double ActivationDescriptor::GetGamma() const { return this->parms[2]; }
 std::ostream& operator<<(std::ostream& stream, const ActivationDescriptor& x)
 {
     MIOPEN_LOG_ENUM(stream,
                     x.mode,
-                    miopenActivationPATHTRU,
+                    miopenActivationPASTHRU,
                     miopenActivationLOGISTIC,
                     miopenActivationTANH,
                     miopenActivationRELU,
                     miopenActivationSOFTRELU,
                     miopenActivationABS,
-                    miopenActivationPOWER
-                    // miopenActivationBRELU,
-                    // miopenActivationSQUARE,
-                    // miopenActivationSQR,
-                    // miopenActivationLINEAR
-                    )
+                    miopenActivationPOWER,
+                    miopenActivationCLIPPEDRELU,
+                    miopenActivationLEAKYRELU,
+                    miopenActivationELU)
         << ", ";
     LogRange(stream, x.parms, ", ") << ", ";
     return stream;
