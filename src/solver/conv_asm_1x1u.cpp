@@ -535,7 +535,18 @@ int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
 {
     assert(bias_ocl_buf == nullptr);
     (void)bias_ocl_buf;
-    const KernelInfo k_info = solution.construction_params.back();
+    KernelInfo k_info;
+
+    if(params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
+        k_info = solution.construction_params.back();
+    else
+    {
+        if(params.direction.IsForward())
+            k_info = solution.construction_params[1];
+        else
+            k_info = solution.construction_params[0];
+    }
+
 #ifdef NDEBUG
     try
 #endif
@@ -550,23 +561,43 @@ int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
                                           k_info.l_wk,
                                           k_info.g_wk,
                                           k_info.comp_options);
+
         int unused       = 0;
         int* return_addr = nullptr;
         auto n_groups =
             static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
 
-        kernel(params.batch_sz,  // N
-               params.n_inputs,  // C
-               params.in_height, // H
-               params.in_width,  // W
-               params.n_outputs, // K
-               n_groups,         // n_groups
-               unused,
-               unused,
-               bot_ocl_buf,
-               wei_ocl_buf,
-               top_ocl_buf,
-               return_addr);
+        if(params.direction.IsForward())
+        {
+            kernel(params.batch_sz,   // N
+                   params.n_inputs,   // C
+                   params.out_height, // H
+                   params.out_width,  // W
+                   params.n_outputs,  // K
+                   n_groups,          // n_groups
+                   unused,
+                   unused,
+                   bot_ocl_buf,
+                   wei_ocl_buf,
+                   top_ocl_buf,
+                   return_addr);
+        }
+        else
+        {
+            kernel(params.batch_sz,  // N
+                   params.n_inputs,  // C
+                   params.in_height, // H
+                   params.in_width,  // W
+                   params.n_outputs, // K
+                   n_groups,         // n_groups
+                   unused,
+                   unused,
+                   bot_ocl_buf,
+                   wei_ocl_buf,
+                   top_ocl_buf,
+                   return_addr);
+        }
+
         elapsed_time = profile_h.GetKernelTime();
     }
 #ifdef NDEBUG
