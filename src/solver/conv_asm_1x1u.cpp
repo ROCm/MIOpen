@@ -350,21 +350,11 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     ConvSolution result;
     std::ostringstream options;
 
-    if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
-    {
-
-        result.passes = 2;
-    }
-    else
-    {
-        result.passes = 1;
-    }
-
     result.workspce_sz = 0;
 
     KernelInfo kernel;
 
-    if(result.passes > 1 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
+    if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
     {
         // subsampled input, in_height equals to image size after downsampling
         int in_batch_stride = 0, write_unit = 0;
@@ -524,12 +514,12 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     kinfo.kernel_file = "conv1x1u.s";
     kinfo.kernel_name = "gcnAsmConv1x1U";
 
-    if(result.passes > 1 && params.direction.IsForward())
+    if((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) && params.direction.IsForward())
         result.construction_params.push_back(kernel);
 
     result.construction_params.push_back(kinfo);
 
-    if(result.passes > 1 && !params.direction.IsForward())
+    if((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) && !params.direction.IsForward())
         result.construction_params.push_back(kernel);
     return result;
 }

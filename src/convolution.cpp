@@ -343,7 +343,8 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
             size_t gemm_trans = ((in_h > 14 || in_w > 14) && u == 1 && v == 1)
                                     ? 0
                                     : ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
-            size_t direct = ForwardGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc);
+            size_t direct =
+                (u == 2 && v == 2) ? ForwardGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc) : 0;
             return std::max(gemm_trans, direct);
         }
 
@@ -408,8 +409,11 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
            dilation_w == 1 && dilation_h == 1)
         {
-            return std::max(BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc),
-                            BackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc));
+            size_t gemm_trans = BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc);
+            size_t direct     = (u == 2 && v == 2)
+                                ? BackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc)
+                                : 0;
+            return std::max(gemm_trans, direct);
         }
         // Check if Winograd is available
         // If Winograd is present, there is no advantage in letting
