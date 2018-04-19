@@ -338,13 +338,20 @@ typedef enum {
  * Activation layer modes
  */
 typedef enum {
-    miopenActivationPATHTRU  = 0, /*!< No activation, pass through the data */
+    miopenActivationPASTHRU  = 0, /*!< No activation, pass through the data */
     miopenActivationLOGISTIC = 1, /*!< Sigmoid function: \f$1 / (1 + e^{-x})\f$ */
-    miopenActivationTANH     = 2, /*!< Tanh activation \f$ \alpha * tanh( \beta * x) \f$ */
+    miopenActivationTANH     = 2, /*!< Tanh activation \f$ \beta * tanh( \alpha * x) \f$ */
     miopenActivationRELU     = 3, /*!< Rectified Linear Unit \f$ max(0, x) \f$ */
     miopenActivationSOFTRELU = 4, /*!< \f$log(1 + e^x)\f$ */
     miopenActivationABS      = 5, /*!< Absolute value \f$abs(x)\f$ */
-    miopenActivationPOWER = 6, /*!< Scaled and shifted power \f$(\alpha + \beta * x)^{power}\f$ */
+    miopenActivationPOWER = 6, /*!< Scaled and shifted power \f$(\alpha + \beta * x)^{gamma}\f$ */
+    miopenActivationCLIPPEDRELU =
+        7, /*!< Clipped Rectified Linear Unit \f$ min(\alpha, max(0,x)) \f$ */
+    miopenActivationLEAKYRELU =
+        8, /*!< Leaky Rectified Linear Unit \f$ \alpha * x | x <= 0; x | x > 0 \f$ */
+    miopenActivationELU =
+        9, /*!< Exponential Rectified Linear Unit \f$ \alpha * (e^{x} - 1) | x <= 0; x | x > 0 \f$
+              */
 } miopenActivationMode_t;
 
 /** @addtogroup tensor
@@ -1549,7 +1556,7 @@ miopenCreateActivationDescriptor(miopenActivationDescriptor_t* activDesc);
  * @param mode         Activation mode enum (input)
  * @param activAlpha   Alpha value for some activation modes (input)
  * @param activBeta    Beta value for some activation modes (input)
- * @param activPower   Power exponent value for some activation modes (input)
+ * @param activGamma   Gamma value for some activation modes (input)
  * @return             miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -1557,7 +1564,7 @@ miopenSetActivationDescriptor(const miopenActivationDescriptor_t activDesc,
                               miopenActivationMode_t mode,
                               double activAlpha,
                               double activBeta,
-                              double activPower);
+                              double activGamma);
 
 /*! @brief Gets the activation layer descriptor details
  *
@@ -1567,7 +1574,7 @@ miopenSetActivationDescriptor(const miopenActivationDescriptor_t activDesc,
  * @param mode         Activation mode enum (output)
  * @param activAlpha   Alpha value for some activation modes (output)
  * @param activBeta    Beta value for some activation modes (output)
- * @param activPower   Power exponent value for some activation modes (output)
+ * @param activGamma   Gamma value for some activation modes (output)
  * @return             miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -1575,7 +1582,7 @@ miopenGetActivationDescriptor(const miopenActivationDescriptor_t activDesc,
                               miopenActivationMode_t* mode,
                               double* activAlpha,
                               double* activBeta,
-                              double* activPower);
+                              double* activGamma);
 
 /*! @brief Execute an activation forward layer
  *
