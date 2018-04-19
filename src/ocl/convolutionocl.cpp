@@ -173,48 +173,53 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
             int N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W;
             construct_params.getCompiledInParameters(
                 &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
-            extraArgs = std::make_tuple(N, C, out_H, out_W, K, n_groups);
+
+            if(direction == 1)
+                extraArgs = std::make_tuple(N, C, out_H, out_W, K, n_groups);
+            else
+                extraArgs = std::make_tuple(N, C, H, W, K, n_groups);
         }
 
         const std::vector<mlo_kernel_info>& bwd_wrw_info = construct_params.getKernelsInfo();
 
-        // subsample
-        if(bwd_wrw_info.size() == 2 && (std::get<1>(bwd_wrw_info[1]) == "MIOpenUtilKernels3.cl" ||
-                                        std::get<1>(bwd_wrw_info[0]) == "MIOpenUtilKernels3.cl"))
-        {
-
-            const mlo_kernel_info& bwd_wrw_1 = bwd_wrw_info[0];
-
-            auto k1 = handle.AddKernel(algorithm,
-                                       network_config,
-                                       std::get<1>(bwd_wrw_1),
-                                       std::get<0>(bwd_wrw_1),
-                                       std::get<4>(bwd_wrw_1),
-                                       std::get<3>(bwd_wrw_1),
-                                       std::get<2>(bwd_wrw_1));
-
-            kernels.push_back(k1);
-
-            const mlo_kernel_info& bwd_wrw_2 = bwd_wrw_info[1];
-
-            auto k2 = handle.AddKernel(algorithm + "_pass2",
-                                       network_config,
-                                       std::get<1>(bwd_wrw_2),
-                                       std::get<0>(bwd_wrw_2),
-                                       std::get<4>(bwd_wrw_2),
-                                       std::get<3>(bwd_wrw_2),
-                                       std::get<2>(bwd_wrw_2));
-
-            kernels.push_back(k2);
-        }
         // if not 11x11
-        else if(program_name != "MIOpenConvFwd_LxL_11.cl")
+        if(program_name != "MIOpenConvFwd_LxL_11.cl")
         {
+            if(bwd_wrw_info.size() == 2)
+            {
 
-            auto k = handle.AddKernel(
-                algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
+                const mlo_kernel_info& bwd_wrw_1 = bwd_wrw_info[0];
 
-            kernels.push_back(k);
+                auto k1 = handle.AddKernel(algorithm,
+                                           network_config,
+                                           std::get<1>(bwd_wrw_1),
+                                           std::get<0>(bwd_wrw_1),
+                                           std::get<4>(bwd_wrw_1),
+                                           std::get<3>(bwd_wrw_1),
+                                           std::get<2>(bwd_wrw_1));
+
+                kernels.push_back(k1);
+
+                const mlo_kernel_info& bwd_wrw_2 = bwd_wrw_info[1];
+
+                auto k2 = handle.AddKernel(algorithm + "_pass2",
+                                           network_config,
+                                           std::get<1>(bwd_wrw_2),
+                                           std::get<0>(bwd_wrw_2),
+                                           std::get<4>(bwd_wrw_2),
+                                           std::get<3>(bwd_wrw_2),
+                                           std::get<2>(bwd_wrw_2));
+
+                kernels.push_back(k2);
+            }
+            else
+            {
+
+                auto k = handle.AddKernel(
+                    algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
+
+                kernels.push_back(k);
+            }
         }
         else
         {
@@ -542,7 +547,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                    handle, xDesc, wDesc, yDesc, eka, kernel_direct, exhaustiveSearch, 1) == 0)
             { // Forward
                 size_t workspace_req =
-                    this->ForwardGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc);
+                    (u == 2 && v == 2)
+                        ? this->ForwardGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc)
+                        : 0;
 
                 // Execute the direct kernel
                 float time_direct = 0;
@@ -1300,7 +1307,9 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             { // Backward
 
                 size_t workspace_req =
-                    this->BackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc);
+                    (u == 2 && v == 2)
+                        ? this->BackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc)
+                        : 0;
 
                 float time_direct = 0;
                 float padding_val = 0;
@@ -1316,14 +1325,14 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                         {
                             int unused       = 0;
                             int* return_addr = nullptr;
-                            int N, C, out_H, out_W, K, n_groups;
-                            std::tie(N, C, out_H, out_W, K, n_groups) = eka;
+                            int N, C, H, W, K, n_groups;
+                            std::tie(N, C, H, W, K, n_groups) = eka;
                             if(workspace_req != 0)
                             {
                                 k(N,
                                   C,
-                                  out_H,
-                                  out_W,
+                                  H,
+                                  W,
                                   K,
                                   n_groups,
                                   unused,
@@ -1337,8 +1346,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                             {
                                 k(N,
                                   C,
-                                  out_H,
-                                  out_W,
+                                  H,
+                                  W,
                                   K,
                                   n_groups,
                                   unused,
@@ -1593,6 +1602,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 {
                     int unused       = 0;
                     int* return_addr = nullptr;
+
                     int N, C, H, W, K, n_groups;
                     construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
                     kernel(N, C, H, W, K, n_groups, unused, unused, dy, w, workSpace, return_addr);
