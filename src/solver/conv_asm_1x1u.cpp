@@ -524,12 +524,12 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     kinfo.kernel_file = "conv1x1u.s";
     kinfo.kernel_name = "gcnAsmConv1x1U";
 
-    if(params.direction.IsForward())
+    if(result.passes > 1 && params.direction.IsForward())
         result.construction_params.push_back(kernel);
 
     result.construction_params.push_back(kinfo);
 
-    if(!params.direction.IsForward())
+    if(result.passes > 1 && !params.direction.IsForward())
         result.construction_params.push_back(kernel);
     return result;
 }
