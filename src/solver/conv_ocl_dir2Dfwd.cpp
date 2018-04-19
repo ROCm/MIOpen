@@ -33,9 +33,12 @@ namespace solver {
 
 bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
 {
-    return (params.kernel_stride0 == params.kernel_stride1 && params.pad0 == params.pad1 &&
-            !(!params.direction.IsForward() &&
-              (params.kernel_stride0 > 2 || params.kernel_stride1 > 2)));
+    // clang-format off
+    return !(params.kernel_size0 == 1 && params.kernel_size1 == 1)
+        && params.kernel_stride0 == params.kernel_stride1
+        && params.pad0 == params.pad1
+        && !(!params.direction.IsForward() && (params.kernel_stride0 > 2 || params.kernel_stride1 > 2));
+    // clang-format on
 }
 
 ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
@@ -63,15 +66,18 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
     result.n_out_pix_tiles = std::min(params.n_outputs, searched_params.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
-    result.out_pix_tile1 = ((!params.direction.IsForward() && params.kernel_stride1 > 1) ||
-                            (searched_params.out_pix_tile1 == 0 /* DIV/0 */))
+    result.out_pix_tile1 = (!params.direction.IsForward() && params.kernel_stride1 > 1)
                                ? params.kernel_stride1
                                : searched_params.out_pix_tile1;
-    result.out_pix_tile0 = ((!params.direction.IsForward() && params.kernel_stride0 > 1) ||
-                            (searched_params.out_pix_tile0 == 0 /* DIV/0 */))
+    result.out_pix_tile0 = (!params.direction.IsForward() && params.kernel_stride0 > 1)
                                ? params.kernel_stride0
                                : searched_params.out_pix_tile0;
 
+    if(result.out_pix_tile1 == 0 || result.out_pix_tile0 == 0 /* DIV/0 */)
+    {
+        MIOPEN_LOG_E("result.out_pix_tile1 == 0 || result.out_pix_tile0 == 0");
+        return ConvSolution(miopenStatusInternalError);
+    }
     result.grp_tile0 = std::max(8, (result.in_tile0 / result.out_pix_tile0));
     result.grp_tile1 = std::max(8, (result.in_tile1 / result.out_pix_tile1));
     result.in_tile0  = result.grp_tile0 * result.out_pix_tile0;
@@ -194,6 +200,11 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
 
     size_t gbl_wk0 = n_out_tile_blocks0 * n_out_tile_blocks1;
 
+    if(n_out_tiles_perstack == 0 /* DIV/0 */)
+    {
+        MIOPEN_LOG_E("n_out_tiles_perstack == 0");
+        return ConvSolution(miopenStatusInternalError);
+    }
     size_t gbl_wk1 = (params.n_outputs + n_out_tiles_perstack - 1) / n_out_tiles_perstack;
     size_t gbl_wk2 = (params.batch_sz + result.n_stacks - 1) / result.n_stacks;
 
