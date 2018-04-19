@@ -214,7 +214,6 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
             }
             else
             {
-
                 auto k = handle.AddKernel(
                     algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
 
@@ -1605,14 +1604,18 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
                     int N, C, H, W, K, n_groups;
                     construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-                    kernel(N, C, H, W, K, n_groups, unused, unused, dy, w, workSpace, return_addr);
 
                     auto&& kernels = handle.GetKernels(algorithm_name + "_pass2", network_config);
 
                     if(!kernels.empty())
                     {
+                        kernel(N, C, H, W, K, n_groups, unused, unused, dy, w, workSpace, return_addr);
                         auto kernel2 = kernels[0];
                         kernel2(workSpace, dx);
+                    }
+                    else
+                    {
+                        kernel(N, C, H, W, K, n_groups, unused, unused, dy, w, dx, return_addr);
                     }
                 }
                 else
