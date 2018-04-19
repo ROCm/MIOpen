@@ -514,13 +514,6 @@ struct ConvOclDirectFwd1x1 : ConvOclDirectFwdLegacyExhaustiveSearch
                              const LegacyPerformanceConfig& searched_params) const;
 };
 
-struct ConvOclDirectFwdC : ConvOclDirectFwdLegacyExhaustiveSearch
-{
-    bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const LegacyPerformanceConfig& searched_params) const;
-};
-
 struct ConvBinWinograd3x3U : SolverBase<ConvolutionContext>
 {
     bool IsApplicable(const ConvolutionContext& params) const;
