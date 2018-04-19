@@ -1609,7 +1609,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
                     if(!kernels.empty())
                     {
-                        kernel(N, C, H, W, K, n_groups, unused, unused, dy, w, workSpace, return_addr);
+                        kernel(
+                            N, C, H, W, K, n_groups, unused, unused, dy, w, workSpace, return_addr);
                         auto kernel2 = kernels[0];
                         kernel2(workSpace, dx);
                     }
