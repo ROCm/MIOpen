@@ -364,9 +364,6 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
     KernelInfo kernel;
 
-    
-
-
     if(result.passes == 2)
     {
         // subsampled input, in_height equals to image size after downsampling
@@ -391,7 +388,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         int n_grp0_size0 = 256;
 
         const auto subsample_kernel_compilation_options =
-            std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
+            " -DUPSAMPLE" + std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
             std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
             std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(params.kernel_stride0) +
             std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(params.kernel_stride1) +
@@ -400,6 +397,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
             std::string(" -DMLO_OUT_STRIDE=") + std::to_string(params.out_stride) +
             std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(in_batch_stride) +
             std::string(" -DMLO_IN0_BATCH_STRIDE=") + std::to_string(params.in_batch_stride) +
+            std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(params.out_batch_stride) +
             std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(params.in_channel_stride) +
             std::string(" -DMLO_IN0_STRIDE=") + std::to_string(params.in_stride) +
             params.general_compile_options;
