@@ -1702,34 +1702,80 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
 
 
 /*! @ingroup FUSION
-* @brief Creates the miopenRNNDescriptor_t type
+* @brief MIOpen fusion interface
 */
-
-
-/*!  @enum miopenFuseMode_t
-* Fuse mode selection
-*/
-typedef enum {
-	miopenFuseVertical = 0, /*!< vertical fusion */
-	miopenFuseHorizontal = 1, /*!< horizontal fusion */
-} miopenFuseMode_t;
-
-
-/*!  @enum miopenOperator_t
-* Fuse mode selection
-*/
-typedef enum {
-	miopenConvolutionForwardOp = 0, /*!< convolution data forward */
-	miopenBatchNormForwardInferenceOp = 1, /*!< batch normalization forward inference */
-	miopenActivationForwardOp = 2, /*!< activation forward */
-	miopenPoolingForwardInferenceOp = 3, /*!< pooling forward inference */
-	miopenTensorEltwiseOp = 4, /*!< element-wise tensor op */
-} miopenOperator_t;
-
 
 MIOPEN_DECLARE_OBJECT(miopenFusionPlanDescriptor);
 MIOPEN_DECLARE_OBJECT(miopenFusionDescriptor);
 MIOPEN_DECLARE_OBJECT(miopenOperatorDescriptor);
+
+/*! @enum miopenPipelineMode_t
+* @brief Pipeline mode selection
+*/
+typedef enum {
+	miopenPipelineForwardInference = 0, /*!< forward inference */
+	miopenPipelineForwardTraining = 1, /*!< forward training */
+	miopenPipelineDataGradient = 2, /*!< back prop data gradient */
+	miopenPipelineWightGradient = 3 /*!< back prop weights gradient */
+} miopenPipelineMode_t;
+
+
+/*! @enum miopenOperator_t
+* @brief MIOpen operators to be fused
+*/
+typedef enum {
+	miopenConvolutionOp = 0, /*!< convolution */
+	miopenBatchNormOp = 1, /*!< batch normalization */
+	miopenActivationOp = 2, /*!< activation */
+	miopenPoolingOp = 3, /*!< pooling forward */
+	miopenTensorEltwiseOp = 4, /*!< element-wise tensor op */
+} miopenOperator_t;
+
+
+
+/*! @struct miopenEdge_t
+* @brief Defines an operation edge
+*/
+
+typedef struct miopen_edge{
+     const char * name;  /*!< edge name */
+     double alpha;       /*!< scale */
+	 bool immutable;     /*!< immutable data */
+	 const miopenTensorDescriptor_t data;  /*!< data */
+} miopenEdge_t;
+
+
+/*! @struct miopenOp_t
+* @brief common part of op definition
+*/
+typedef struct miopen_op {
+	const char * name; /*!< opration instance name if applicable */
+	int n_inputEdges;  /*!< number of input edges */
+	const miopenEdge_t * inputEdges; /*!< input edges definitions */
+	int n_outputEdges; /*!< number of output edges */
+	const miopenEdge_t * outputEdges; /*!< output edges definitions */
+	int n_internEdges; /*!< number of internal edges */
+	const miopenEdge_t * internEdges; /*!< internal edges definitions (weights) */
+} miopenOp_t;
+
+/*! @struct miopenOpCost_t
+* @brief cost of a single (possibly fused) op 
+*/
+typedef struct miopen_op_cost {
+	size_t workSpace;  /*!< requiered worspace */
+	double time;  /*!< execution time */
+	double deviceUtilization;  /*!< % of device utilized bt the op */
+} miopenOpCost_t;
+
+
+/*! @struct miopenOpRealization_t
+* @brief op realization descriptor; describes one possible way to execute the op.
+*/
+typedef struct miopen_op_realization {
+	miopenOperatorDescriptor opDescr;
+	miopenOp_t opDef;
+	miopenOpCost_t opCost;
+} miopenOpRealization_t;
 
 
 
@@ -1757,34 +1803,6 @@ MIOPEN_EXPORT miopenStatus_t
 miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor fusePlanDesc);
 
 
-/*! @brief Creates the FUSION descriptor object
-*
-* @param fuseDesc Pointer to a FUSION descriptor type
-* @return          miopenStatus_t
-*/
-MIOPEN_EXPORT miopenStatus_t
-miopenCreateFusionDescriptor(miopenFusionDescriptor* fuseDesc);
-
-
-/*! @brief Destroy the FUSION descriptor object
-*
-* @param fuseDesc to a FUSION descriptor type
-* @return          miopenStatus_t
-*/
-MIOPEN_EXPORT miopenStatus_t
-miopenDestroyFusionDescriptor(miopenFusionDescriptor fuseDesc);
-
-/*! @brief returns the miopen operator type.
-*
-* @param miopenOp  operator (input)
-* @param opType    pointer to a returned type (output)
-* @return          miopenStatus_t
-*/
-MIOPEN_EXPORT miopenStatus_t
-miopenGetOperatorType(const miopenOperatorDescriptor miopenOp,
-	miopenOperator_t* opType
-    );
-
 /*! @brief Destroy MIOpen operator object
 *
 * @param miopenOp  operator (input)
@@ -1793,30 +1811,30 @@ miopenGetOperatorType(const miopenOperatorDescriptor miopenOp,
 MIOPEN_EXPORT miopenStatus_t
 miopenDestroyOperator(const miopenOperatorDescriptor miopenOp);
 
-/*! @brief Creates miopen convolution forward operator.
+/*! @brief Creates miopen convolution operator.
 *
-* @param convOp    Pointer to an operator type
-* @param wDesc              Tensor descriptor for weight tensor(input)
-* @param immutableWeights   weights are no going to changed while running inference
-* @param bDesc              Tensor descriptor for bias tensor(input)
+* @param convOp             Pointer to an operator type (output)
+* @param pipelineMode       pipeline the op is operating in (input)
+* @param opDesc             common operator descriptor (input)
 * @param convDesc           Convolution layer descriptor (input)
 * @param exhaustiveSearch   A boolean to toggle a full search of all algorithms and configurations
 * (input)
 * @return          miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
-miopenCreateConvForwardOp(miopenOperatorDescriptor* convOp,
-	const miopenTensorDescriptor_t wDesc,
-	bool immutableWeights,
-	const miopenTensorDescriptor_t bDesc,
+miopenCreateConvOp(miopenOperatorDescriptor* convOp,
+	miopenPipelineMode_t pipelineMode,
+	const miopenOp_t  opDesc,
 	const miopenConvolutionDescriptor_t convDesc,
 	bool exhaustiveSearch
 	);
 
 
-/*! @brief Creates miopen activation forward operator
+/*! @brief Creates miopen operator
 *
-* @param activeOp    Pointer to an operator type
+* @param activeOp       Pointer to an operator type (output)
+* @param pipelineMode   pipeline the op is operating in (input)
+* @param opDesc         common operator descriptor (input)
 * @param activDesc      Descriptor for activation layer (input)
 * @param alpha          Floating point scaling factor, allocated on the host (input)
 * @param beta           Floating point shift factor, allocated on the host (input)
@@ -1825,28 +1843,25 @@ miopenCreateConvForwardOp(miopenOperatorDescriptor* convOp,
 */
 
 MIOPEN_EXPORT miopenStatus_t
-miopenCreateActivationForwardOp(miopenOperatorDescriptor* activOp,
-    const miopenActivationDescriptor_t activDesc,
+miopenCreateActivationOp(miopenOperatorDescriptor* activOp,
+	miopenPipelineMode_t pipelineMode,
+	const miopenOp_t  opDesc,
+	const miopenActivationDescriptor_t activDesc,
     const void* alpha,
     const void* beta
     );
 
 
-/*! @brief creates a forward inference operator for batch normalization
+/*! @brief creates a operator for batch normalization
 *
 * Batch normalization op.
-* Takes in batch normalization mode bn_mode and input tensor x, output tensor y, bnBias and bnScale
-* with their descriptor.
 *
-* If either estimatedMean, or estimatedVariance are null pointers then the values for the mean and
-* variance will not be used.
-*
-* @param activeOp    Pointer to an operator type
+* @param bnOp                      Pointer to an operator type (output)
+* @param pipelineMode              pipeline the op is operating in (input)
+* @param opDesc                    common operator descriptor (input)
 * @param bn_mode                   Batch normalization mode (input)
 * @param alpha                     Floating point scaling factor, allocated on the host (input)
 * @param beta                      Floating point shift factor, allocated on the host (input)
-* @param bnScaleBiasMeanVarDesc    Tensor descriptor for BN scaling, shifting, saved variance and
-* mean (input)
 * @param bnScale                   Batch norm scaling, gamma, tensor (input)
 * @param bnBias                    Batch norm bias, beta, tensor (input)
 * @param estimatedMean             Running average saved during forward training (input)
@@ -1855,11 +1870,12 @@ miopenCreateActivationForwardOp(miopenOperatorDescriptor* activOp,
 * @return                          miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
-miopenCreateBatchNormalizationForwardInferenceOp(miopenOperatorDescriptor* bnOp,
+miopenCreateBatchNormalizationOp(miopenOperatorDescriptor* bnOp,
+	miopenPipelineMode_t pipelineMode,
+	const miopenOp_t  opDesc,
 	miopenBatchNormMode_t bn_mode,
 	void* alpha,
 	void* beta,
-	const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc,
 	void* bnScale,
 	void* bnBias,
 	void* estimatedMean,
@@ -1867,16 +1883,20 @@ miopenCreateBatchNormalizationForwardInferenceOp(miopenOperatorDescriptor* bnOp,
 	double epsilon);
 
 
-/*! @brief Create a forward inference pooling op
+/*! @brief Create a forward pooling op
 *
 * @param poolingOp      pooling operator (output)
+* @param pipelineMode   pipeline the op is operating in (input)
+* @param opDesc         common operator descriptor (input)
 * @param poolDesc       Descriptor for pooling layer (input)
 * @param alpha          Floating point scaling factor, allocated on the host (input)
 * @param beta           Floating point shift factor, allocated on the host (input)
 * @return               miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingForwardInferenceOp(
+MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingOp(
 	miopenOperatorDescriptor* poolingOp,
+	miopenPipelineMode_t pipelineMode,
+	const miopenOp_t  opDesc,
 	const miopenPoolingDescriptor_t poolDesc,
 	const void* alpha,
 	const void* beta
@@ -1891,6 +1911,8 @@ MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingForwardInferenceOp(
 * "(exp(-ALPHA/X + BETA*BETA + GAMMA))"
 *
 * @param eltWiseOp      element-wise operator over a tensor (output)
+* @param pipelineMode   pipeline the op is operating in (input)
+* @param opDesc         common operator descriptor (input)
 * @param n              size of the folloing buffer in bytes incuding terminating nulls (input)
 * @param op             a null-terminated string representing an op (input)
 * @param ALPHA          coefficent
@@ -1901,6 +1923,8 @@ MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingForwardInferenceOp(
 */
 MIOPEN_EXPORT miopenStatus_t miopenCreateEltWizeOp(
 	miopenOperatorDescriptor* eltWiseOp,
+	miopenPipelineMode_t pipelineMode,
+	const miopenOp_t  opDesc,
 	const size_t n,
 	const char* op,
 	double ALPHA,
@@ -1908,85 +1932,117 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateEltWizeOp(
 	double GAMMA
 );
 
-
-
-/*! @brief build a fusion descriptor.
+/*! @brief returns the miopen operator type.
 *
-* In general the function describes a unidirection sub-graphs of operators.
-* It may mix sequential (horizontal) and parallel (vertical) fusions.
-* The order of descriptors defines the logical order of operations.
-* The vertical ops has to be excuted sequentially.
-* Each vertical op is a single MIOpen operator.
-* The "horizontal" descriptor defines a parallel execution of the sequentially executed set of ops defined with proper vertical fusion descriptors.
-* The end of "horizontal" decriptor defines a synchronization points for its sequential children.
-* The horizontal descriptor is ana array of vertical Fusion descriptors.
-* 
-* @param mode       sequential (vertical) or parallel (horizontal) (input)
-* @param n          number of operators (input)
-* @param vertFuse  set of vertical fusion operators
-* @param ops        set of operators (input)
+* @param miopenOp  operator (input)
+* @param opType    pointer to a returned type (output)
+* @return          miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenGetOperatorType(const miopenOperatorDescriptor miopenOp,
+	miopenOperator_t* opType
+);
+
+/*! @brief returns the number of possible realizations of the op.
+*
+* @param miopenOp  operator (input)
+* @param nReal     pointer to a returned number (output)
+* @return          miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenGetNRealizations(const miopenOperatorDescriptor miopenOp,
+	size_t* nReal
+);
+
+/*! @brief returns the possible realizations of the op.
+*
+* @param miopenOp  operator (input)
+* @param nReal     number of realization (input)
+* @param opReal    realizations (output)
+* @param nReal     pointer to an actual returned number of realiazations(output)
+* @return          miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenGetRealizations(const miopenOperatorDescriptor miopenOp,
+	size_t nReal,
+	miopenOpRealization_t * opReal,
+    size_t * nRet
+);
+
+
+/*! @brief geta cost of a particular fuzed sub-graph
+*
+* The subgraph is represented as an array of realizations connected by names of realization edges.
+* The function verifies the sub-graph can be fused.
+* It returns a planned cost assisiated with fused version of the sub-graph.
+*
+* @param handle         MIOpen handle (input)
+* @param nOps           number of ops (input)
+* @param opReal         array of ops realizations (input)
+* @param opCost         pointer to the assossiated cosr structure (output)
 *
 * @return           miopenStatus_t
 */
 
 MIOPEN_EXPORT miopenStatus_t
-miopenSetFusionDescriptor(
-	miopenFusionDescriptor fuseDescr,
-	const miopenFuseMode_t mode,
-	const size_t n,
-	const miopenFusionDescriptor *vertFuse,
-    const miopenOperatorDescriptor * ops
-    );
+miopenGetFusionPlanCost(
+	const miopenHandle_t handle,
+	size_t nOps,
+	const miopenOpRealization_t * opReal,
+	miopenOpCost_t * opCost
+);
 
-
-/*! @brief build a exection plan of the forward inference kernel fusion
+/*! @brief build a exection plan of the fused sub-graph
 *
+* The subgraph is represented as an array of realizations connected by names of realization edges.
 * The function verifies the sub-graph can be fused.
-* It selects and builds a fused control path.
+* It returns a plan of the fused version of the sub-graph.
 *
 * @param handle         MIOpen handle (input)
 * @param fusePlanDescr  fused plan descriptor (output)
-* @param fuseDescr      operational sub-graph descriptor (input)
-* @param srcDesc        sub-graph source tensor descriptor(input)
-* @param workSpaceSize  pointer to workSpaceSize (output)
+* @param nOps           number of ops (input)
+* @param opReal         array of ops realizations (input)
 *
 * @return           miopenStatus_t
 */
 
 MIOPEN_EXPORT miopenStatus_t
-miopenCreateFusionPlanForwardInference(
+miopenCreateFusionPlan(
 	const miopenHandle_t handle,
 	miopenFusionPlanDescriptor fusePlanDescr,
-	const miopenFusionDescriptor fuseDescr,
-	const miopenTensorDescriptor_t srcDesc,
-	size_t* workSpaceSize
+	size_t nOps,
+	const miopenOpRealization_t * opReal
 );
 
-/*! @brief execute the plan of the forward inference kernel fusion
+/*! @brief execute the plan of the fused sub-graph
 *
 * The function executes a fused sub-graph.
 *
 * @param handle         MIOpen handle (input)
 * @param fusePlanDescr  fused plan descriptor (input)
-* @param src            source data tensor  (input)
-* @param dst            destination data tensor  (output)
+* @param n_src          number of the fused sub-graph sources(input)
+* @param src            source data tensors  (input)
+* @param n_dst          number of the fused sub-graph destinations(input)
+* @param dst            destination data tensors  (output)
+* @param n_weights      number of weights and other buffers requiered for the plan execution(input)
+* @param weights        array of buffer pointers  (input)
 * @param workSpace      Pointer to workspace required (input)
 * @param workSpaceSize  Size in bytes of the work space memory (input)
-* @param n_weights       number of weights and other buffers requiered for the plan execution(input)
-* @param weights         array of buffer pointers  (input)
 * @return           miopenStatus_t
 */
 
 MIOPEN_EXPORT miopenStatus_t
-miopenExecuteFusionPlanForwardInference(
+miopenExecuteFusionPlan(
 	const miopenHandle_t handle,
 	const miopenFusionPlanDescriptor fusePlanDescr,
-	const void* src,
-	const void* dst,
-	void* workSpace,
-	size_t workSpaceSize,
+	size_t n_src,
+	const void** src,
+	size_t n_dst,
+	const void** dst,
 	size_t n_weights,
-	const void ** weights
+	const void ** weights,
+	void* workSpace,
+	size_t workSpaceSize
 );
 
 /** @} */
