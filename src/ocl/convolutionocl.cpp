@@ -1318,7 +1318,11 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     {
                         if(k.GetName() == "UpSample")
                         {
+                            float zero = 0.f;
+                            SetTensor(handle, dxDesc, tmp_dx.get(), &zero);
+                            time_direct += handle.GetKernelTime();
                             k(workSpace, tmp_dx.get());
+                            time_direct += handle.GetKernelTime();
                         }
                         else if(k.GetName() == "gcnAsmConv1x1U")
                         {
@@ -1356,12 +1360,13 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                   tmp_dx.get(),
                                   return_addr);
                             }
+                            time_direct += handle.GetKernelTime();
                         }
                         else
                         {
                             k(dy, w, tmp_dx.get(), as_float(padding_val));
+                            time_direct += handle.GetKernelTime();
                         }
-                        time_direct += handle.GetKernelTime();
                     }
                 });
 
@@ -1597,6 +1602,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             auto kernel                = handle.GetKernel(algorithm_name, network_config);
 
             visit_float(dyDesc.GetType(), [&](auto as_float) {
+                float t1 = 0;
                 if(kernel.GetName() == "gcnAsmConv1x1U")
                 {
                     int unused       = 0;
@@ -1609,20 +1615,38 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
                     if(!kernels.empty())
                     {
+                        float zero = 0.f;
+                        SetTensor(handle, dxDesc, dx, &zero);
+                        if(handle.IsProfilingEnabled())
+                            t1 = handle.GetKernelTime();
+
                         kernel(
                             N, C, H, W, K, n_groups, unused, unused, dy, w, workSpace, return_addr);
+                        if(handle.IsProfilingEnabled())
+                            t1 += handle.GetKernelTime();
                         auto kernel2 = kernels[0];
                         kernel2(workSpace, dx);
+                        if(handle.IsProfilingEnabled())
+                            t1 += handle.GetKernelTime();
                     }
                     else
                     {
                         kernel(N, C, H, W, K, n_groups, unused, unused, dy, w, dx, return_addr);
+                        if(handle.IsProfilingEnabled())
+                            t1 += handle.GetKernelTime();
                     }
                 }
                 else
                 {
                     float padding_val = 0;
                     kernel(dy, w, dx, as_float(padding_val));
+                    if(handle.IsProfilingEnabled())
+                        t1 += handle.GetKernelTime();
+                }
+                if(handle.IsProfilingEnabled())
+                {
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(t1);
                 }
             });
             break;
