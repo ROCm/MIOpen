@@ -133,7 +133,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/inst_wrappers.inc
         kernels/common.inc
         kernels/conv_sizes.inc
-        kernels/macro1x1wrw.inc
         kernels/gpr_alloc.inc)
 
     set(MIOPEN_KERNELS
