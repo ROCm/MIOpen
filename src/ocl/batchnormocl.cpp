@@ -134,11 +134,11 @@ void BatchNormForwardTraining(Handle& handle,
         if(in_nhw < 33554432 && in_cstride > 1024)
         {
             variant    = 1;
-            ylocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
-            xgridsize  = c;
-            ygridsize  = ylocalsize;
-            ldsgcn     = ylocalsize / 64;
-            ldsnogcn   = ylocalsize;
+            xlocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
+            xgridsize  = xlocalsize * c;
+            ygridsize  = 1;
+            ldsgcn     = xlocalsize / 64;
+            ldsnogcn   = xlocalsize;
         }
         else if(in_nhw < 33554432 && in_cstride > 512)
         {
@@ -840,11 +840,10 @@ void BatchNormBackward(Handle& handle,
         if(in_nhw < 33554432 && in_cstride > 1024)
         {
             variant    = 1;
-            ylocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
-            xgridsize  = c;
-            ygridsize  = ylocalsize;
-            ldsgcn     = ylocalsize / 64;
-            ldsnogcn   = ylocalsize;
+            xlocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
+            xgridsize  = c*xlocalsize;
+            ldsgcn     = xlocalsize / 64;
+            ldsnogcn   = xlocalsize;
         }
         else if(in_nhw < 33554432 && in_cstride > 512)
         {
@@ -874,6 +873,7 @@ void BatchNormBackward(Handle& handle,
             ldsgcn       = ylocalsize / 64;
             ldsnogcn     = ylocalsize;
         }
+//        printf("VARIANT: %d\n",variant);
 
         std::string algo_name = "miopenBatchNormBackwardPropSpatial";
         std::string network_config =
