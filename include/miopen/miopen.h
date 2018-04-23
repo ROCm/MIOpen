@@ -1706,7 +1706,6 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
 */
 
 MIOPEN_DECLARE_OBJECT(miopenFusionPlanDescriptor);
-MIOPEN_DECLARE_OBJECT(miopenFusionDescriptor);
 MIOPEN_DECLARE_OBJECT(miopenOperatorDescriptor);
 
 /*! @enum miopenPipelineMode_t
@@ -1823,7 +1822,7 @@ miopenDestroyOperator(const miopenOperatorDescriptor miopenOp);
 */
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateConvOp(miopenOperatorDescriptor* convOp,
-	miopenPipelineMode_t pipelineMode,
+	const miopenPipelineMode_t pipelineMode,
 	const miopenOp_t  opDesc,
 	const miopenConvolutionDescriptor_t convDesc,
 	bool exhaustiveSearch
@@ -1844,7 +1843,7 @@ miopenCreateConvOp(miopenOperatorDescriptor* convOp,
 
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateActivationOp(miopenOperatorDescriptor* activOp,
-	miopenPipelineMode_t pipelineMode,
+	const miopenPipelineMode_t pipelineMode,
 	const miopenOp_t  opDesc,
 	const miopenActivationDescriptor_t activDesc,
     const void* alpha,
@@ -1871,15 +1870,15 @@ miopenCreateActivationOp(miopenOperatorDescriptor* activOp,
 */
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateBatchNormalizationOp(miopenOperatorDescriptor* bnOp,
-	miopenPipelineMode_t pipelineMode,
+	const miopenPipelineMode_t pipelineMode,
 	const miopenOp_t  opDesc,
-	miopenBatchNormMode_t bn_mode,
-	void* alpha,
-	void* beta,
-	void* bnScale,
-	void* bnBias,
-	void* estimatedMean,
-	void* estimatedVariance,
+	const miopenBatchNormMode_t bn_mode,
+	const void* alpha,
+	const void* beta,
+	const void* bnScale,
+	const void* bnBias,
+	const void* estimatedMean,
+	const void* estimatedVariance,
 	double epsilon);
 
 
@@ -1895,7 +1894,7 @@ miopenCreateBatchNormalizationOp(miopenOperatorDescriptor* bnOp,
 */
 MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingOp(
 	miopenOperatorDescriptor* poolingOp,
-	miopenPipelineMode_t pipelineMode,
+	const miopenPipelineMode_t pipelineMode,
 	const miopenOp_t  opDesc,
 	const miopenPoolingDescriptor_t poolDesc,
 	const void* alpha,
@@ -1923,7 +1922,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingOp(
 */
 MIOPEN_EXPORT miopenStatus_t miopenCreateEltWizeOp(
 	miopenOperatorDescriptor* eltWiseOp,
-	miopenPipelineMode_t pipelineMode,
+	const miopenPipelineMode_t pipelineMode,
 	const miopenOp_t  opDesc,
 	const size_t n,
 	const char* op,
@@ -1964,7 +1963,7 @@ miopenGetNRealizations(const miopenOperatorDescriptor miopenOp,
 */
 MIOPEN_EXPORT miopenStatus_t
 miopenGetRealizations(const miopenOperatorDescriptor miopenOp,
-	size_t nReal,
+	const size_t nReal,
 	miopenOpRealization_t * opReal,
     size_t * nRet
 );
@@ -1987,7 +1986,7 @@ miopenGetRealizations(const miopenOperatorDescriptor miopenOp,
 MIOPEN_EXPORT miopenStatus_t
 miopenGetFusionPlanCost(
 	const miopenHandle_t handle,
-	size_t nOps,
+	const size_t nOps,
 	const miopenOpRealization_t * opReal,
 	miopenOpCost_t * opCost
 );
@@ -2009,8 +2008,8 @@ miopenGetFusionPlanCost(
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateFusionPlan(
 	const miopenHandle_t handle,
-	miopenFusionPlanDescriptor fusePlanDescr,
-	size_t nOps,
+	const miopenFusionPlanDescriptor fusePlanDescr,
+	const size_t nOps,
 	const miopenOpRealization_t * opReal
 );
 
@@ -2041,7 +2040,7 @@ miopenExecuteFusionPlan(
 	const void** dst,
 	size_t n_weights,
 	const void ** weights,
-	void* workSpace,
+	const void* workSpace,
 	size_t workSpaceSize
 );
 
