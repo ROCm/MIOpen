@@ -55,89 +55,37 @@ inline void createTensorDescArray(std::vector<miopen::TensorDescriptor>& td,
 }
 
 // RNN VANILLA configs
-inline std::vector<int> get_rnn_num_layers()
-{
-    // return {{1, 5, 20}};
-    return {{1, 5}};
-}
+inline std::vector<int> get_rnn_num_layers() { return {{1, 3}}; }
 
-inline std::vector<int> get_rnn_batchSize()
-{
-    // return {128};
-    return {31};
-}
+inline std::vector<int> get_rnn_batchSize() { return {{1, 17}}; }
 
-inline std::vector<int> get_rnn_seq_len()
-{
-    // return {50};
-    return {{3, 51}};
-}
+inline std::vector<int> get_rnn_seq_len() { return {{1, 3, 51}}; }
 
-inline std::vector<int> get_rnn_vector_len()
-{
-    // return {32};
-    return {31};
-}
+inline std::vector<int> get_rnn_vector_len() { return {31}; }
 
-inline std::vector<int> get_rnn_hidden_size()
-{
-    // return {{16,64,128,256,1760,2048,2560}};
-    return {127};
-}
+inline std::vector<int> get_rnn_hidden_size() { return {127}; }
 
 // LSTM configs
-inline std::vector<int> get_lstm_num_layers() { return {{1, 5}}; }
+inline std::vector<int> get_lstm_num_layers() { return {{1, 3}}; }
 
-inline std::vector<int> get_lstm_batchSize()
-{
-    // return {16};
-    return {31};
-}
+inline std::vector<int> get_lstm_batchSize() { return {{1, 17}}; }
 
-inline std::vector<int> get_lstm_seq_len()
-{
-    return {25};
-    // return {{2, 50}};
-}
+inline std::vector<int> get_lstm_seq_len() { return {{1, 25}}; }
 
-inline std::vector<int> get_lstm_vector_len()
-{
-    return {17};
-    // return {{4, 32}};
-}
+inline std::vector<int> get_lstm_vector_len() { return {17}; }
 
-inline std::vector<int> get_lstm_hidden_size()
-{
-    return {67};
-    // return {{16,64,128,256,1760,2048,2560}};
-}
+inline std::vector<int> get_lstm_hidden_size() { return {67}; }
 
 // GRU configs
-inline std::vector<int> get_gru_num_layers() { return {{1, 5}}; }
+inline std::vector<int> get_gru_num_layers() { return {{1, 3}}; }
 
-inline std::vector<int> get_gru_batchSize()
-{
-    // return {16};
-    return {31};
-}
+inline std::vector<int> get_gru_batchSize() { return {{1, 17}}; }
 
-inline std::vector<int> get_gru_seq_len()
-{
-    return {23};
-    // return {{2, 50}};
-}
+inline std::vector<int> get_gru_seq_len() { return {{1, 23}}; }
 
-inline std::vector<int> get_gru_vector_len()
-{
-    return {13};
-    // return {{4, 32}};
-}
+inline std::vector<int> get_gru_vector_len() { return {13}; }
 
-inline std::vector<int> get_gru_hidden_size()
-{
-    return {67};
-    // return {{16,64,128,256,1760,2048,2560}};
-}
+inline std::vector<int> get_gru_hidden_size() { return {67}; }
 
 inline std::vector<std::vector<int>> generate_batchSeq(const int batchSize, const int seqLength)
 {
@@ -175,16 +123,12 @@ inline float activfunc(float x, int actvf)
     float alpha = 1, beta0 = 0, beta1 = 1;
     if(actvf == 0)
     {
-        //        float y = 0;
-        //        return std::max(x, y);
         return (x > 0) ? x : x * beta0;
     }
     else if(actvf == 2)
     {
         return 1 / (1 + std::exp(-x));
     }
-
-    //    return tanh(x);
     return alpha * std::tanh(beta1 * x);
 }
 

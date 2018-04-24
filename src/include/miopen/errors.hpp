@@ -65,7 +65,7 @@ std::string HIPErrorMessage(int error, const std::string& msg = "");
 
 // TODO(paul): Debug builds should leave the exception uncaught
 template <class F>
-miopenStatus_t try_(F f)
+miopenStatus_t try_(F f, bool output = true)
 {
     try
     {
@@ -73,12 +73,14 @@ miopenStatus_t try_(F f)
     }
     catch(const Exception& ex)
     {
-        std::cerr << "MIOpen Error: " << ex.what() << std::endl;
+        if(output)
+            std::cerr << "MIOpen Error: " << ex.what() << std::endl;
         return ex.status;
     }
     catch(const std::exception& ex)
     {
-        std::cerr << "MIOpen Error: " << ex.what() << std::endl;
+        if(output)
+            std::cerr << "MIOpen Error: " << ex.what() << std::endl;
         return miopenStatusUnknownError;
     }
     catch(...)
@@ -89,7 +91,7 @@ miopenStatus_t try_(F f)
 }
 
 template <class T>
-auto deref(T& x, miopenStatus_t err = miopenStatusBadParm)
+auto deref(T&& x, miopenStatus_t err = miopenStatusBadParm)
     -> decltype((x == nullptr), get_object(*x))
 {
     if(x == nullptr)

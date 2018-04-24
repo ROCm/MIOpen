@@ -36,8 +36,22 @@
 
 namespace miopen {
 
-using WinogradKernelParams =
-    std::tuple<int, int, int, int, int, int, int, int, int, int, int, int, bool>;
+using WinogradKernelParams = std::tuple<int /*N*/,
+                                        int /*C*/,
+                                        int /*H*/,
+                                        int /*W*/,
+                                        int /*K*/,
+                                        int /*n_groups*/,
+                                        int /*out_H*/,
+                                        int /*out_W*/,
+                                        int /*R*/,
+                                        int /*S*/,
+                                        int /*pad_H*/,
+                                        int /*pad_W*/,
+                                        bool /*isRxS*/>;
+
+using ExtraKernelArgs =
+    std::tuple<int /*N*/, int /*C*/, int /*H*/, int /*W*/, int /*K*/, int /*n_groups*/>;
 
 struct ConvolutionDescriptor : miopenConvolutionDescriptor
 {
@@ -78,6 +92,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     size_t ForwardGetWorkSpaceSizeGEMM(Handle& handle,
                                        const TensorDescriptor& wDesc,
                                        const TensorDescriptor& yDesc) const;
+
+    size_t ForwardGetWorkSpaceSizeGEMMTranspose(const TensorDescriptor& xDesc,
+                                                const TensorDescriptor& yDesc) const;
 
     size_t ForwardGetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
                                       const TensorDescriptor& xDesc,
@@ -159,6 +176,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                          const TensorDescriptor& xDesc,
                          const TensorDescriptor& wDesc,
                          const TensorDescriptor& yDesc,
+                         ExtraKernelArgs& extraArgs,
                          std::vector<KernelInvoke>& kernels,
                          bool exhaustiveSearch,
                          int direction) const;
@@ -179,6 +197,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
     size_t BackwardDataGetWorkSpaceSizeGEMM(Handle& handle,
                                             const TensorDescriptor& wDesc,
                                             const TensorDescriptor& dyDesc) const;
+
+    size_t BackwardDataGetWorkSpaceSizeGEMMTranspose(const TensorDescriptor& dyDesc,
+                                                     const TensorDescriptor& dxDesc) const;
 
     size_t BackwardGetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
                                        const TensorDescriptor& dyDesc,

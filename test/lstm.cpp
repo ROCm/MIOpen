@@ -75,13 +75,14 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
                       int out_h, // 1 by hy_h related function for unidirection, 2 by hy_h
                                  // related function for bidirection
                       int inputMode,
-                      std::vector<T>& rsvspace)
+                      std::vector<T>& rsvspace,
+                      bool hx_is_null = false,
+                      bool cx_is_null = false)
 {
     int batch_n = sumvc(in_n);
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bacc, baccbi; // accumulation of batch
-    int bi = bidirection ? 2 : 1;
+    int bi       = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
     int out_stride = out_h;
@@ -138,19 +139,6 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
                         }
                     }
                 }
-
-                // from bias
-                if(biased)
-                {
-                    for(int bs = 0; bs < batch_n; bs++)
-                    {
-                        for(int h = 0; h < wei_stride; h++)
-                        {
-                            rsvspace.at(hid_shift + bs * hy_stride + h) +=
-                                wei.at(wei_shift_bias + h);
-                        }
-                    }
-                }
             }
             else
             {
@@ -180,8 +168,7 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
                         for(int h = 0; h < wei_stride; h++)
                         {
                             rsvspace.at(hid_shift + bs * hy_stride + h) +=
-                                (wei.at(wei_shift_bias + h) +
-                                 wei.at(wei_shift_bias + wei_stride + h));
+                                wei.at(wei_shift_bias + h);
                         }
                     }
                 }
@@ -222,16 +209,15 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
                     for(int h = 0; h < wei_stride; h++)
                     {
                         rsvspace.at(hid_shift + bs * hy_stride + h) +=
-                            (wei.at(wei_shift_bias_temp + h) +
-                             wei.at(wei_shift_bias_temp + wei_stride + h));
+                            wei.at(wei_shift_bias_temp + h);
                     }
                 }
             }
         }
 
         // from hidden state
-        bacc   = 0;
-        baccbi = batch_n;
+        int bacc   = 0;
+        int baccbi = batch_n;
         for(int ti = 0; ti < seqLength; ti++)
         {
             baccbi -= in_n.at(seqLength - 1 - ti);
@@ -239,43 +225,81 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
 
             if(ti == 0)
             {
-                RNN_mm_cpu<T>(&hx[hx_shift],
-                              hy_h,
-                              in_n.at(ti),
-                              uni_stride,
-                              0,
-                              &wei[wei_shift],
-                              hy_h,
-                              hy_h * 4,
-                              uni_stride,
-                              RNN_MM_TRANSPOSE,
-                              &rsvspace[hid_shift + bacc * hy_stride],
-                              hy_h * 4,
-                              in_n.at(ti),
-                              hy_stride,
-                              0,
-                              1,
-                              1);
-
-                if(bidirection)
+                if(!hx_is_null)
                 {
-                    RNN_mm_cpu<T>(&hx[hx_shift + hy_n * hy_h],
+                    RNN_mm_cpu<T>(&hx[hx_shift],
                                   hy_h,
-                                  in_n.at(seqLength - 1 - ti),
+                                  in_n.at(ti),
                                   uni_stride,
                                   0,
-                                  &wei[wei_shift + 4 * hy_h * uni_stride],
+                                  &wei[wei_shift],
                                   hy_h,
                                   hy_h * 4,
                                   uni_stride,
                                   RNN_MM_TRANSPOSE,
-                                  &rsvspace[hid_shift + baccbi * hy_stride + 4 * hy_h],
+                                  &rsvspace[hid_shift + bacc * hy_stride],
                                   hy_h * 4,
-                                  in_n.at(seqLength - 1 - ti),
+                                  in_n.at(ti),
                                   hy_stride,
                                   0,
                                   1,
                                   1);
+
+                    // from bias
+                    if(biased)
+                    {
+                        int wei_shift_bias_temp =
+                            (inputMode == 1) ? (wei_shift_bias + li * 2 * wei_stride)
+                                             : (wei_shift_bias + (li * 2 + 1) * wei_stride);
+
+                        for(int bs = 0; bs < in_n.at(ti); bs++)
+                        {
+                            for(int h = 0; h < 4 * hy_h; h++)
+                            {
+                                rsvspace.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
+                                    wei.at(wei_shift_bias_temp + h);
+                            }
+                        }
+                    }
+
+                    if(bidirection)
+                    {
+                        RNN_mm_cpu<T>(&hx[hx_shift + hy_n * hy_h],
+                                      hy_h,
+                                      in_n.at(seqLength - 1 - ti),
+                                      uni_stride,
+                                      0,
+                                      &wei[wei_shift + 4 * hy_h * uni_stride],
+                                      hy_h,
+                                      hy_h * 4,
+                                      uni_stride,
+                                      RNN_MM_TRANSPOSE,
+                                      &rsvspace[hid_shift + baccbi * hy_stride + 4 * hy_h],
+                                      hy_h * 4,
+                                      in_n.at(seqLength - 1 - ti),
+                                      hy_stride,
+                                      0,
+                                      1,
+                                      1);
+
+                        // from bias
+                        if(biased)
+                        {
+                            int wei_shift_bias_temp =
+                                (inputMode == 1) ? (wei_shift_bias + li * 2 * wei_stride)
+                                                 : (wei_shift_bias + (li * 2 + 1) * wei_stride);
+
+                            for(int bs = 0; bs < in_n.at(seqLength - 1 - ti); bs++)
+                            {
+                                for(int h = 0; h < 4 * hy_h; h++)
+                                {
+                                    rsvspace.at(hid_shift + baccbi * hy_stride + 4 * hy_h +
+                                                bs * hy_stride + h) +=
+                                        wei.at(wei_shift_bias_temp + 4 * hy_h + h);
+                                }
+                            }
+                        }
+                    }
                 }
             }
             else
@@ -298,11 +322,28 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
                               1,
                               1);
 
+                // from bias
+                if(biased)
+                {
+                    int wei_shift_bias_temp = (inputMode == 1)
+                                                  ? (wei_shift_bias + li * 2 * wei_stride)
+                                                  : (wei_shift_bias + (li * 2 + 1) * wei_stride);
+
+                    for(int bs = 0; bs < in_n.at(ti); bs++)
+                    {
+                        for(int h = 0; h < 4 * hy_h; h++)
+                        {
+                            rsvspace.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
+                                wei.at(wei_shift_bias_temp + h);
+                        }
+                    }
+                }
+
                 if(bidirection)
                 {
                     RNN_mm_cpu<T>(&hy_host[hx_shift + hy_n * hy_h],
                                   hy_h,
-                                  in_n.at(seqLength - 1 - ti),
+                                  in_n.at(seqLength - ti),
                                   uni_stride,
                                   0,
                                   &wei[wei_shift + 4 * hy_h * uni_stride],
@@ -312,11 +353,29 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
                                   RNN_MM_TRANSPOSE,
                                   &rsvspace[hid_shift + baccbi * hy_stride + 4 * hy_h],
                                   hy_h * 4,
-                                  in_n.at(seqLength - 1 - ti),
+                                  in_n.at(seqLength - ti),
                                   hy_stride,
                                   0,
                                   1,
                                   1);
+
+                    // from bias
+                    if(biased)
+                    {
+                        int wei_shift_bias_temp =
+                            (inputMode == 1) ? (wei_shift_bias + li * 2 * wei_stride)
+                                             : (wei_shift_bias + (li * 2 + 1) * wei_stride);
+
+                        for(int bs = 0; bs < in_n.at(seqLength - ti); bs++)
+                        {
+                            for(int h = 0; h < 4 * hy_h; h++)
+                            {
+                                rsvspace.at(hid_shift + baccbi * hy_stride + 4 * hy_h +
+                                            bs * hy_stride + h) +=
+                                    wei.at(wei_shift_bias_temp + 4 * hy_h + h);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -330,10 +389,14 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
                                   1);
                     if(ti == 0)
                     {
-                        rsvspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
-                            activfunc(rsvspace.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h),
-                                      2) *
-                            cx.at(hx_shift + bs * uni_stride + h);
+                        if(!cx_is_null)
+                        {
+                            rsvspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
+                                activfunc(
+                                    rsvspace.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h),
+                                    2) *
+                                cx.at(hx_shift + bs * uni_stride + h);
+                        }
                     }
                     else
                     {
@@ -396,12 +459,15 @@ void LSTMFwdCPUVerify(std::vector<T>& in,
                                 1);
                         if(ti == 0)
                         {
-                            rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
-                                        hy_h + h) +=
-                                activfunc(rsvspace.at(hid_shift + (baccbi + bs) * hy_stride +
-                                                      5 * hy_h + h),
-                                          2) *
-                                cx.at(hx_shift + bs * uni_stride + hy_n * hy_h + h);
+                            if(!cx_is_null)
+                            {
+                                rsvspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
+                                            hy_h + h) +=
+                                    activfunc(rsvspace.at(hid_shift + (baccbi + bs) * hy_stride +
+                                                          5 * hy_h + h),
+                                              2) *
+                                    cx.at(hx_shift + bs * uni_stride + hy_n * hy_h + h);
+                            }
                         }
                         else
                         {
@@ -517,15 +583,17 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
                                      // hy_h related function for bidirection
                           int inputMode,
                           std::vector<T>& rsvspace,
-                          std::vector<T>& wkspace)
+                          std::vector<T>& wkspace,
+                          bool cx_is_null  = false,
+                          bool dhy_is_null = false,
+                          bool dcy_is_null = false)
 {
     int batch_n = sumvc(in_n);
     (void)out;
     (void)hx;
 
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bacc, baccbi; // accumulation of batch
-    int bi = bidirection ? 2 : 1;
+    int bi       = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
     int out_stride = out_h;
@@ -596,8 +664,8 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
         }
 
         // from hidden state
-        bacc   = batch_n;
-        baccbi = 0;
+        int bacc   = batch_n;
+        int baccbi = 0;
         for(int ti = seqLength - 1; ti >= 0; ti--)
         {
             bacc -= in_n.at(ti);
@@ -608,10 +676,16 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
                 {
                     for(int h = 0; h < hy_h; h++)
                     {
-                        wkspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 5 * hy_h + h) +=
-                            dhy.at(hx_shift + bs * uni_stride + h);
-                        wkspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
-                            dcy.at(hx_shift + bs * uni_stride + h);
+                        if(!dhy_is_null)
+                        {
+                            wkspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 5 * hy_h + h) +=
+                                dhy.at(hx_shift + bs * uni_stride + h);
+                        }
+                        if(!dcy_is_null)
+                        {
+                            wkspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) +=
+                                dcy.at(hx_shift + bs * uni_stride + h);
+                        }
                     }
                 }
 
@@ -621,12 +695,18 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
                     {
                         for(int h = 0; h < hy_h; h++)
                         {
-                            wkspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 5 * hy_h +
-                                       hy_h + h) +=
-                                dhy.at(hx_shift + bs * uni_stride + hy_n * hy_h + h);
-                            wkspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
-                                       hy_h + h) +=
-                                dcy.at(hx_shift + bs * uni_stride + hy_n * hy_h + h);
+                            if(!dhy_is_null)
+                            {
+                                wkspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 5 * hy_h +
+                                           hy_h + h) +=
+                                    dhy.at(hx_shift + bs * uni_stride + hy_n * hy_h + h);
+                            }
+                            if(!dcy_is_null)
+                            {
+                                wkspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
+                                           hy_h + h) +=
+                                    dcy.at(hx_shift + bs * uni_stride + hy_n * hy_h + h);
+                            }
                         }
                     }
                 }
@@ -708,11 +788,15 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
 
                     if(ti == 0)
                     {
-                        wkspace.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h) +=
-                            wkspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h + h) *
-                            cx.at(hx_shift + bs * uni_stride + h) *
-                            dervactivfunc(
-                                rsvspace.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h), 2);
+                        if(!cx_is_null)
+                        {
+                            wkspace.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h) +=
+                                wkspace.at(hid_shift + (bacc + bs) * hy_stride + bi * 4 * hy_h +
+                                           h) *
+                                cx.at(hx_shift + bs * uni_stride + h) *
+                                dervactivfunc(
+                                    rsvspace.at(hid_shift + (bacc + bs) * hy_stride + hy_h + h), 2);
+                        }
                     }
                     else
                     {
@@ -776,13 +860,17 @@ void LSTMBwdDataCPUVerify(std::vector<T>& din_host,
 
                         if(ti == 0)
                         {
-                            wkspace.at(hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h) +=
-                                wkspace.at(hid_shift + (baccbi + bs) * hy_stride + bi * 4 * hy_h +
-                                           hy_h + h) *
-                                cx.at(hx_shift + bs * uni_stride + hy_n * hy_h + h) *
-                                dervactivfunc(rsvspace.at(hid_shift + (baccbi + bs) * hy_stride +
-                                                          5 * hy_h + h),
-                                              2);
+                            if(!cx_is_null)
+                            {
+                                wkspace.at(hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h) +=
+                                    wkspace.at(hid_shift + (baccbi + bs) * hy_stride +
+                                               bi * 4 * hy_h + hy_h + h) *
+                                    cx.at(hx_shift + bs * uni_stride + hy_n * hy_h + h) *
+                                    dervactivfunc(rsvspace.at(hid_shift +
+                                                              (baccbi + bs) * hy_stride + 5 * hy_h +
+                                                              h),
+                                                  2);
+                            }
                         }
                         else
                         {
@@ -968,12 +1056,12 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
                                        // by hy_h related function for bidirection
                             int inputMode,
                             std::vector<T>& rsvspace,
-                            std::vector<T>& wkspace)
+                            std::vector<T>& wkspace,
+                            bool hx_is_null = false)
 {
     int batch_n  = sumvc(in_n);
     int numlayer = bidirection ? hy_d / 2 : hy_d;
-    int bacc; // accumulation of batch
-    int bi = bidirection ? 2 : 1;
+    int bi       = bidirection ? 2 : 1;
 
     int in_stride  = in_h;
     int wei_stride = bi * 4 * hy_h;
@@ -1010,20 +1098,7 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
         // between layers
         if(li == 0)
         {
-            if(inputMode == 1)
-            {
-                if(biased)
-                {
-                    for(int h = 0; h < wei_stride; h++)
-                    {
-                        for(int w = 0; w < batch_n; w++)
-                        {
-                            dwei_host.at(wei_shift_bias + h) += wkspace.at(w * hy_stride + h);
-                        }
-                    }
-                }
-            }
-            else
+            if(inputMode != 1)
             {
                 RNN_mm_cpu<T>(wkspace.data(),
                               hy_h * bi * 4,
@@ -1051,8 +1126,6 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
                         {
                             dwei_host.at(wei_shift_bias + h) += wkspace.at(w * hy_stride + h);
                         }
-                        dwei_host.at(wei_shift_bias + wei_stride + h) =
-                            dwei_host.at(wei_shift_bias + h);
                     }
                 }
             }
@@ -1093,13 +1166,12 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
                     {
                         dwei_host.at(wei_shift + h) += wkspace.at(hid_shift + w * hy_stride + h);
                     }
-                    dwei_host.at(wei_shift + wei_stride + h) = dwei_host.at(wei_shift + h);
                 }
             }
         }
 
         // between time
-        bacc = 0;
+        int bacc = 0;
         for(int ti = 0; ti < seqLength; ti++)
         {
             int hid_shift = li * batch_n * hy_stride + bacc * hy_stride;
@@ -1110,23 +1182,42 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
             // between time
             if(ti == 0)
             {
-                RNN_mm_cpu<T>(&wkspace[hid_shift],
-                              hy_h * 4,
-                              in_n.at(ti),
-                              hy_stride,
-                              RNN_MM_TRANSPOSE,
-                              &hx[hx_shift],
-                              hy_h,
-                              in_n.at(ti),
-                              uni_stride,
-                              0,
-                              &dwei_host[wei_shift],
-                              hy_h,
-                              hy_h * 4,
-                              uni_stride,
-                              0,
-                              1,
-                              1);
+                if(!hx_is_null)
+                {
+                    RNN_mm_cpu<T>(&wkspace[hid_shift],
+                                  hy_h * 4,
+                                  in_n.at(ti),
+                                  hy_stride,
+                                  RNN_MM_TRANSPOSE,
+                                  &hx[hx_shift],
+                                  hy_h,
+                                  in_n.at(ti),
+                                  uni_stride,
+                                  0,
+                                  &dwei_host[wei_shift],
+                                  hy_h,
+                                  hy_h * 4,
+                                  uni_stride,
+                                  0,
+                                  1,
+                                  1);
+
+                    if(biased)
+                    {
+                        int bias_shift = (inputMode == 1)
+                                             ? (wei_shift_bias + li * 2 * wei_stride)
+                                             : (wei_shift_bias + li * 2 * wei_stride + wei_stride);
+
+                        for(int h = 0; h < hy_h * 4; h++)
+                        {
+                            for(int w = 0; w < in_n.at(ti); w++)
+                            {
+                                dwei_host.at(bias_shift + h) +=
+                                    wkspace.at(hid_shift + w * hy_stride + h);
+                            }
+                        }
+                    }
+                }
             }
             else
             {
@@ -1150,29 +1241,65 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
                               0,
                               1,
                               1);
+
+                if(biased)
+                {
+                    int bias_shift = (inputMode == 1)
+                                         ? (wei_shift_bias + li * 2 * wei_stride)
+                                         : (wei_shift_bias + li * 2 * wei_stride + wei_stride);
+
+                    for(int h = 0; h < hy_h * 4; h++)
+                    {
+                        for(int w = 0; w < in_n.at(ti); w++)
+                        {
+                            dwei_host.at(bias_shift + h) +=
+                                wkspace.at(hid_shift + w * hy_stride + h);
+                        }
+                    }
+                }
             }
 
             if(bidirection)
             {
                 if(ti == seqLength - 1)
                 {
-                    RNN_mm_cpu<T>(&wkspace[hid_shift + 4 * hy_h],
-                                  hy_h * 4,
-                                  in_n.at(ti),
-                                  hy_stride,
-                                  RNN_MM_TRANSPOSE,
-                                  &hx[hx_shift + hy_n * hy_h],
-                                  hy_h,
-                                  in_n.at(ti),
-                                  uni_stride,
-                                  0,
-                                  &dwei_host[wei_shift + 4 * hy_h * uni_stride],
-                                  hy_h,
-                                  hy_h * 4,
-                                  uni_stride,
-                                  0,
-                                  1,
-                                  1);
+                    if(!hx_is_null)
+                    {
+                        RNN_mm_cpu<T>(&wkspace[hid_shift + 4 * hy_h],
+                                      hy_h * 4,
+                                      in_n.at(ti),
+                                      hy_stride,
+                                      RNN_MM_TRANSPOSE,
+                                      &hx[hx_shift + hy_n * hy_h],
+                                      hy_h,
+                                      in_n.at(ti),
+                                      uni_stride,
+                                      0,
+                                      &dwei_host[wei_shift + 4 * hy_h * uni_stride],
+                                      hy_h,
+                                      hy_h * 4,
+                                      uni_stride,
+                                      0,
+                                      1,
+                                      1);
+
+                        if(biased)
+                        {
+                            int bias_shift =
+                                (inputMode == 1)
+                                    ? (wei_shift_bias + li * 2 * wei_stride)
+                                    : (wei_shift_bias + li * 2 * wei_stride + wei_stride);
+
+                            for(int h = 0; h < hy_h * 4; h++)
+                            {
+                                for(int w = 0; w < in_n.at(ti); w++)
+                                {
+                                    dwei_host.at(bias_shift + hy_h * 4 + h) +=
+                                        wkspace.at(hid_shift + hy_h * 4 + w * hy_stride + h);
+                                }
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -1196,6 +1323,22 @@ void LSTMBwdWeightCPUVerify(std::vector<T>& in,
                                   0,
                                   1,
                                   1);
+
+                    if(biased)
+                    {
+                        int bias_shift = (inputMode == 1)
+                                             ? (wei_shift_bias + li * 2 * wei_stride)
+                                             : (wei_shift_bias + li * 2 * wei_stride + wei_stride);
+
+                        for(int h = 0; h < hy_h * 4; h++)
+                        {
+                            for(int w = 0; w < in_n.at(ti + 1); w++)
+                            {
+                                dwei_host.at(bias_shift + hy_h * 4 + h) +=
+                                    wkspace.at(hid_shift + hy_h * 4 + w * hy_stride + h);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1228,6 +1371,8 @@ struct verify_forward_infer_lstm
     size_t realHiddenSize;
     bool nohx;
     bool nocx;
+    bool nohy;
+    bool nocy;
 
     verify_forward_infer_lstm(miopenRNNDescriptor_t pRD,
                               const std::vector<T>& px,
@@ -1245,7 +1390,9 @@ struct verify_forward_infer_lstm
                               const int pVL,
                               const size_t pHXZ,
                               const bool pnohx = false,
-                              const bool pnocx = false)
+                              const bool pnocx = false,
+                              const bool pnohy = false,
+                              const bool pnocy = false)
     {
         rnnDesc = pRD;
         input   = px;
@@ -1259,6 +1406,9 @@ struct verify_forward_infer_lstm
         hiddenSize     = pHS;
         inputVecLen    = pVL;
         realHiddenSize = pHXZ;
+
+        nohy = pnohy;
+        nocy = pnocy;
 
         nohx = pnohx;
         if(!nohx)
@@ -1327,7 +1477,9 @@ struct verify_forward_infer_lstm
                          bi_stride,       // 1 by hy_h related function for unidirection, 2 by hy_h
                                           // related function for bidirection
                          inputMode,
-                         reserveSpace);
+                         reserveSpace,
+                         nohx,
+                         nocx);
 
 #if(MIO_LSTM_TEST_DEBUG == 2)
         for(int i = 0; i < output.size(); i++)
@@ -1386,15 +1538,13 @@ struct verify_forward_infer_lstm
         auto weights_dev = handle.Write(weights);
         auto hy          = initHidden;
         std::fill(hy.begin(), hy.end(), 0.);
-        auto hy_dev = handle.Write(hy);
-        auto cy     = initCell;
+        auto cy = initCell;
         std::fill(cy.begin(), cy.end(), 0.);
-        auto cy_dev = handle.Write(cy);
 
         auto workSpace_dev = handle.Write(workSpace);
 
         std::vector<int> hlens(3, 0);
-        hlens[0] = nLayers * (dirMode) ? 2 : 1;
+        hlens[0] = nLayers * (dirMode ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopenFloat, hlens.data(), 3);
@@ -1417,9 +1567,9 @@ struct verify_forward_infer_lstm
                                   outputDescs.data(),
                                   output_dev.get(),
                                   &hiddenDesc,
-                                  hy_dev.get(),
+                                  ((nohy) ? nullptr : handle.Write(hy).get()),
                                   &hiddenDesc,
-                                  cy_dev.get(),
+                                  ((nocy) ? nullptr : handle.Write(cy).get()),
                                   workSpace_dev.get(),
                                   workSpaceSize);
 
@@ -1495,6 +1645,8 @@ struct verify_forward_train_lstm
     size_t realHiddenSize;
     bool nohx;
     bool nocx;
+    bool nohy;
+    bool nocy;
 
     verify_forward_train_lstm(miopenRNNDescriptor_t pRD,
                               const std::vector<T>& px,
@@ -1512,7 +1664,9 @@ struct verify_forward_train_lstm
                               const int pVL,
                               const size_t pHXZ,
                               const bool pnohx = false,
-                              const bool pnocx = false)
+                              const bool pnocx = false,
+                              const bool pnohy = false,
+                              const bool pnocy = false)
     {
         rnnDesc     = pRD;
         input       = px;
@@ -1528,6 +1682,9 @@ struct verify_forward_train_lstm
         inputVecLen = pVL;
 
         realHiddenSize = pHXZ;
+
+        nohy = pnohy;
+        nocy = pnocy;
 
         nohx = pnohx;
         if(!nohx)
@@ -1596,7 +1753,9 @@ struct verify_forward_train_lstm
                          bi_stride,       // 1 by hy_h related function for unidirection, 2 by hy_h
                                           // related function for bidirection
                          inputMode,
-                         reserveSpace);
+                         reserveSpace,
+                         nohx,
+                         nocx);
 
 #if(MIO_LSTM_TEST_DEBUG == 2)
         for(int i = 0; i < output.size(); i++)
@@ -1612,7 +1771,10 @@ struct verify_forward_train_lstm
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
-        auto retSet = std::make_tuple(output, hiddenState, cellState, reserveSpace);
+
+        auto retSet = std::make_tuple(
+            output, (nohy ? initHidden : hiddenState), (nocy ? initCell : cellState), reserveSpace);
+
 #if(MIO_LSTM_TEST_DEBUG > 0)
         std::cout << "Done with LSTM forward train CPU" << std::endl;
         std::cout << "---------------------------------\n" << std::endl;
@@ -1668,7 +1830,7 @@ struct verify_forward_train_lstm
         auto reserveSpace_dev = handle.Write(reserveSpace);
 
         std::vector<int> hlens(3, 0);
-        hlens[0] = nLayers * (dirMode) ? 2 : 1;
+        hlens[0] = nLayers * (dirMode ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopenFloat, hlens.data(), 3);
@@ -1691,9 +1853,9 @@ struct verify_forward_train_lstm
                                  outputDescs.data(),
                                  output_dev.get(),
                                  &hiddenDesc,
-                                 hy_dev.get(),
+                                 ((nohy) ? nullptr : hy_dev.get()),
                                  &hiddenDesc,
-                                 cy_dev.get(),
+                                 ((nocy) ? nullptr : cy_dev.get()),
                                  workSpace_dev.get(),
                                  workSpaceSize,
                                  reserveSpace_dev.get(),
@@ -1709,8 +1871,8 @@ struct verify_forward_train_lstm
 
         auto retSet =
             std::make_tuple(handle.Read<T>(output_dev, output.size()),
-                            handle.Read<T>(hy_dev, hy.size()),
-                            handle.Read<T>(cy_dev, cy.size()),
+                            (nohy ? initHidden : handle.Read<T>(hy_dev, hy.size())),
+                            (nocy ? initCell : handle.Read<T>(cy_dev, cy.size())),
                             handle.Read<T>(reserveSpace_dev, reserveSpaceSize / sizeof(T)));
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
@@ -1759,6 +1921,7 @@ struct verify_forward_train_lstm
         case(2): std::cout << "Cell state tensor failed verification." << std::endl; break;
         case(3): std::cout << "Weight tensor failed verification." << std::endl; break;
         case(4): std::cout << "Reserved space tensor failed verification." << std::endl; break;
+        default: break;
         }
     }
 };
@@ -1793,6 +1956,8 @@ struct verify_backward_data_lstm
     bool nocx;
     bool nodhy;
     bool nodcy;
+    bool nodhx;
+    bool nodcx;
 
     verify_backward_data_lstm(miopenRNNDescriptor_t pRD,
                               const std::vector<T>& py,
@@ -1816,7 +1981,9 @@ struct verify_backward_data_lstm
                               const bool pnohx  = false,
                               const bool pnocx  = false,
                               const bool pnodhy = false,
-                              const bool pnodcy = false)
+                              const bool pnodcy = false,
+                              const bool pnodhx = false,
+                              const bool pnodcx = false)
     {
         rnnDesc = pRD;
         yin     = py;
@@ -1832,6 +1999,9 @@ struct verify_backward_data_lstm
         hiddenSize     = pHS;
         inputVecLen    = pVL;
         realHiddenSize = pHXZ;
+
+        nodhx = pnodhx;
+        nodcx = pnodcx;
 
         nohx = pnohx;
         if(!nohx)
@@ -1911,7 +2081,10 @@ struct verify_backward_data_lstm
                              // hy_h related function for bidirection
                              inputMode,
                              reserveSpace,
-                             workSpace);
+                             workSpace,
+                             nocx,
+                             nodhy,
+                             nodcy);
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -1920,7 +2093,10 @@ struct verify_backward_data_lstm
                   << std::chrono::duration<double>(t_end - t_start).count() << " seconds."
                   << std::endl;
 #endif
-        auto retSet = std::make_tuple(dx, dhx, dcx, reserveSpace, workSpace);
+
+        auto retSet = std::make_tuple(
+            dx, (nodhx ? initHidden : dhx), (nodcx ? initCell : dcx), reserveSpace, workSpace);
+
 #if(MIO_LSTM_TEST_DEBUG > 0)
         std::cout << "Done with LSTM backward data CPU" << std::endl;
         std::cout << "---------------------------------\n" << std::endl;
@@ -1958,7 +2134,7 @@ struct verify_backward_data_lstm
         auto weights_dev      = handle.Write(weights);
 
         std::vector<int> hlens(3, 0);
-        hlens[0] = nLayers * (dirMode) ? 2 : 1;
+        hlens[0] = nLayers * (dirMode ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopenFloat, hlens.data(), 3);
@@ -1998,17 +2174,17 @@ struct verify_backward_data_lstm
                               inputDescs.data(),
                               dx_dev.get(),
                               &hiddenDesc,
-                              dhx_dev.get(),
+                              ((nodhx) ? nullptr : dhx_dev.get()),
                               &hiddenDesc,
-                              dcx_dev.get(),
+                              ((nodcx) ? nullptr : dcx_dev.get()),
                               workSpace_dev.get(),
                               workSpaceSize,
                               reserveSpace_dev.get(),
                               reserveSpace.size() * sizeof(T));
 
         auto retSet = std::make_tuple(handle.Read<T>(dx_dev, dx.size()),
-                                      handle.Read<T>(dhx_dev, dhx.size()),
-                                      handle.Read<T>(dcx_dev, dcx.size()),
+                                      (nodhx ? initHidden : handle.Read<T>(dhx_dev, dhx.size())),
+                                      (nodcx ? initCell : handle.Read<T>(dcx_dev, dcx.size())),
                                       handle.Read<T>(reserveSpace_dev, reserveSpace.size()),
                                       handle.Read<T>(workSpace_dev, workSpace.size()));
 
@@ -2058,6 +2234,7 @@ struct verify_backward_data_lstm
         case(2): std::cout << "Hidden cell dcx tensor failed verification." << std::endl; break;
         case(3): std::cout << "Reserved Space tensor failed verification." << std::endl; break;
         case(4): std::cout << "Workspace space tensor failed verification." << std::endl; break;
+        default: break;
         }
     }
 };
@@ -2165,7 +2342,8 @@ struct verify_backward_weights_lstm
                                                 // by hy_h related function for bidirection
                                inputMode,
                                reserveSpace,
-                               workSpace);
+                               workSpace,
+                               nohx);
 
 #if(MIO_RNN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -2206,15 +2384,12 @@ struct verify_backward_weights_lstm
         miopen::TensorDescriptor weightDesc(miopenFloat, &weightSize, 1);
 
         std::vector<int> hlens(3, 0);
-        hlens[0] = nLayers * (dirMode) ? 2 : 1;
+        hlens[0] = nLayers * (dirMode ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopenFloat, hlens.data(), 3);
         auto dy_dev    = handle.Write(dy);
         auto input_dev = handle.Write(input);
-
-        std::vector<int> wlen(1, 0);
-        wlen[0] = weightSize;
 
         miopenRNNBackwardWeights(&handle,
                                  rnnDesc,
@@ -2289,10 +2464,15 @@ struct lstm_driver : test_driver
     int batchSize{};
 
     // Null pointer input
-    bool nohx  = false;
-    bool nodhy = false;
-    bool nocx  = false;
-    bool nodcy = false;
+    bool nohx          = false;
+    bool nodhy         = false;
+    bool nocx          = false;
+    bool nodcy         = false;
+    bool nohy          = false;
+    bool nodhx         = false;
+    bool nocy          = false;
+    bool nodcx         = false;
+    bool flatBatchFill = false;
 
     lstm_driver()
     {
@@ -2300,7 +2480,7 @@ struct lstm_driver : test_driver
         // this->batch_factor = 4;
         std::vector<int> modes(2, 0);
         modes[1] = 1;
-        std::vector<int> defaultBS(2, 17);
+        std::vector<int> defaultBS(1);
 
         // this->verbose=true;
         add(batchSize, "batch-size", generate_data(get_lstm_batchSize(), {17}));
@@ -2312,6 +2492,11 @@ struct lstm_driver : test_driver
         add(nodhy, "no-dhy", flag());
         add(nocx, "no-cx", flag());
         add(nodcy, "no-dcy", flag());
+        add(nohy, "no-hy", flag());
+        add(nodhx, "no-dhx", flag());
+        add(nocy, "no-cy", flag());
+        add(nodcx, "no-dcx", flag());
+        add(flatBatchFill, "flat-batch-fill", flag());
 
 #if(MIO_LSTM_TEST_DEBUG == 3)
         biasMode  = 0;
@@ -2330,17 +2515,40 @@ struct lstm_driver : test_driver
     void run()
     {
 
+        if(batchSeq.empty() || !batchSeq[0])
+        {
+            std::cout << "Empty batch sequence. Filling uniformly with batch size: " << batchSize
+                      << std::endl;
+            if(flatBatchFill)
+            {
+                batchSeq.clear();
+                batchSeq.resize(seqLength, batchSize);
+            }
+            else
+            {
+                batchSeq = generate_batchSeq(batchSize, seqLength)[0];
+            }
+        }
+
+        if(batchSeq.size() != seqLength)
+        {
+            std::cerr << "FAILED: Batch sequence vector length, does not match sequence length."
+                      << std::endl;
+            std::abort();
+        }
+
 #if(MIO_LSTM_TEST_DEBUG == 2)
         for(int i = 0; i < seqLength; i++)
         {
             std::cout << "batch seq[" << i << "]: " << batchSeq.at(i) << std::endl;
         }
 #endif
+
+        auto&& handle = get_handle();
+
         int batch_n = 0;
         for(auto& n : batchSeq)
             batch_n += n;
-
-        auto&& handle = get_handle();
 
         miopenRNNDescriptor_t rnnDesc;
         miopenCreateRNNDescriptor(&rnnDesc);
@@ -2356,6 +2564,7 @@ struct lstm_driver : test_driver
                                miopenFloat);
 
         // Create input tensor
+        // If we are in skip mode, take the real input size to be the vector length.
         auto inVecReal    = (inputMode) ? hiddenSize : inVecLen;
         std::size_t in_sz = inVecReal * batch_n;
         std::vector<T> input(in_sz);
@@ -2396,6 +2605,10 @@ struct lstm_driver : test_driver
         std::cout << ", nocx: " << nocx;
         std::cout << ", nodhy: " << nodhy;
         std::cout << ", nodcy: " << nodcy << std::endl;
+        std::cout << "nohy: " << nohy;
+        std::cout << ", nocy: " << nocy;
+        std::cout << ", nodhx: " << nodhx;
+        std::cout << ", nodcx: " << nodcx << std::endl;
 #endif
 
         if(!nohx)
@@ -2445,7 +2658,9 @@ struct lstm_driver : test_driver
                                                                       inVecReal,
                                                                       hx_sz,
                                                                       nohx,
-                                                                      nocx});
+                                                                      nocx,
+                                                                      nohy,
+                                                                      nocy});
 
         /// RETURNS std::make_tuple(output, hiddenState, cellState, reserveSpace);
         auto yin                  = std::get<0>(fwdTrainOutputPair.second);
@@ -2470,11 +2685,13 @@ struct lstm_driver : test_driver
                                                 seqLength, numLayers,  biasMode,
                                                 dirMode,   inputMode,  inVecReal,
                                                 hx_sz,     nohx,       nocx,
-                                                nodhy,     nodcy});
+                                                nodhy,     nodcy,      nodhx,
+                                                nodcx});
 
         // RETURNS:  std::make_tuple(dx, dhx, dcx, reserveSpace, workSpace);
         auto reserveSpaceBwdData = std::get<3>(bwdDataOutputPair.second);
         auto workSpaceBwdData    = std::get<4>(bwdDataOutputPair.second);
+
 #if(MIO_LSTM_TEST_DEBUG > 0)
         printf("Running backward weights LSTM.\n");
         printf("reserve sz: %d, workSpace sz: %d, weight sz: %d\n",
@@ -2518,7 +2735,9 @@ struct lstm_driver : test_driver
                                             inVecReal,
                                             hx_sz,
                                             nohx,
-                                            nocx});
+                                            nocx,
+                                            nohy,
+                                            nocy});
 
         /* normal hx/cx/dhy/dcy input test end */
 
