@@ -1318,9 +1318,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     {
                         if(k.GetName() == "UpSample")
                         {
-                            float zero = 0.f;
-                            SetTensor(handle, dxDesc, tmp_dx.get(), &zero);
-                            time_direct += handle.GetKernelTime();
                             k(workSpace, tmp_dx.get());
                             time_direct += handle.GetKernelTime();
                         }
@@ -1615,11 +1612,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
                     if(!kernels.empty())
                     {
-                        float zero = 0.f;
-                        SetTensor(handle, dxDesc, dx, &zero);
-                        if(handle.IsProfilingEnabled())
-                            t1 = handle.GetKernelTime();
-
                         kernel(
                             N, C, H, W, K, n_groups, unused, unused, dy, w, workSpace, return_addr);
                         if(handle.IsProfilingEnabled())
