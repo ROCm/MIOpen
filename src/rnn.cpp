@@ -236,8 +236,8 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
             }
             else
             {
-                tdim[0] = hsize * 2;
-                tdim[1] = hsize;
+                tdim[0] = hsize;
+                tdim[1] = hsize * 2;
             }
         }
         else // IS the input layer
@@ -618,11 +618,7 @@ void RNNDescriptor::SetLayerParam(Handle& handle,
     // 2. Calculate the strides for the matrix
     std::vector<int> pstride(2, 1);
 
-    int bi              = dirMode == miopenRNNbidirection ? 2 : 1;
-    auto inputVectorLen = xDesc.GetLengths()[1];
-    pstride[0] = (layer < bi && paramID < nHiddenTensorsPerLayer && inputMode != miopenRNNskip)
-                     ? inputVectorLen
-                     : hsize;
+    pstride[1] = paramDesc.GetLengths()[0];
 
     std::vector<int> intLens(paramDesc.GetLengths().begin(), paramDesc.GetLengths().end());
 
