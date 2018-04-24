@@ -67,7 +67,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     }
 
     const auto name                    = params.GetStream().GetDeviceName();
-    const auto device_is_gfx9_no_xnack = (name == "gfx900");
+    const auto device_is_gfx9_no_xnack = (name == "gfx900" || name == "gfx904" || name == "gfx906");
     const bool device_is_gfx8_no_xnack =
         (name == "gfx800" || name == "gfx802" || name == "gfx803" || name == "gfx804");
     if(!device_is_gfx8_no_xnack && !device_is_gfx9_no_xnack)
@@ -184,6 +184,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         && (shader_K * shader_OH * shader_OW) <= std::pow(2, 28)
         && (shader_K * shader_R * shader_S) <= std::pow(2, 28)
         && (shader_C * shader_R * shader_S) <= std::pow(2, 28)
+        && params.float_size == 32
         && params.in_layout == "NCHW";
     // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
     // clang-format on

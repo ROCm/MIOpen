@@ -44,6 +44,7 @@
 .macro static_assert fufufu
 	.if !\fufufu
 		.error "\fufufu is false"
+		.end
 	.endif
 .endm
 
@@ -97,3 +98,14 @@ maxU24 = 1 << 24
 wave_size = 64
 log2 wave_size_log2, wave_size
 
+.macro m_buffer_load_dwordx size, dst, off, desc, soff, ioff=0
+    .if \size == 1
+        buffer_load_dword v[\dst], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
+    .elseif \size == 2
+        buffer_load_dwordx2 v[\dst:\dst+\size-1], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
+    .elseif \size == 3
+        buffer_load_dwordx3 v[\dst:\dst+\size-1], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
+    .elseif \size == 4
+        buffer_load_dwordx4 v[\dst:\dst+\size-1], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
+    .endif
+.endm
