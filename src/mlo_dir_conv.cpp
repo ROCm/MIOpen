@@ -36,7 +36,7 @@
 #include <unordered_map>
 
 #include <miopen/solver.hpp>
-#include <miopen/db_record.hpp>
+#include <miopen/db.hpp>
 #include <miopen/env.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/mlo_internal.hpp>
@@ -44,26 +44,13 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
-bool mlo_construct_direct2D::mloIsCompilerWorkarounds() const
-{
-    bool ret = false;
-    return ret;
-}
-
 /************************************************************************************************************************
  **
  **			CONSTRUCT CONVOLUTIONAL LAYER
  **
  ************************************************************************************************************************/
 
-miopen::DbRecord mlo_construct_direct2D::GetDbRecord() const
-{
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    return {db_path(), _search_params, true};
-#else
-    return {db_path(), _search_params};
-#endif
-}
+miopen::Db mlo_construct_direct2D::GetDb() const { return {db_path()}; }
 
 /*
    construction has been split into 2
@@ -75,6 +62,7 @@ miopen::solver::ConvSolution mlo_construct_direct2D::FindSolution()
     // clang-format off
     return miopen::solver::SearchForSolution<
         miopen::solver::ConvAsm3x3U,
+        miopen::solver::ConvAsm1x1U,
         miopen::solver::ConvAsm5x10u2v2f1,
         miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1,
         miopen::solver::ConvAsm5x10u2v2b1,
@@ -82,9 +70,8 @@ miopen::solver::ConvSolution mlo_construct_direct2D::FindSolution()
         miopen::solver::ConvOclDirectFwdGen,
         miopen::solver::ConvOclDirectFwd3x3,
         miopen::solver::ConvOclDirectFwd1x1,
-        miopen::solver::ConvOclDirectFwdC,
         miopen::solver::ConvOclDirectFwd
-    >(_search_params, this->GetDbRecord());
+    >(_search_params, this->GetDb());
     // clang-format on
 }
 
@@ -94,7 +81,7 @@ miopen::solver::ConvSolution mlo_construct_winograd::FindSolution()
     return miopen::solver::SearchForSolution<
         miopen::solver::ConvBinWinograd3x3U,
         miopen::solver::ConvBinWinogradRxS
-    >(_search_params, this->GetDbRecord());
+    >(_search_params, this->GetDb());
     // clang-format on
 }
 
@@ -107,7 +94,7 @@ miopen::solver::ConvSolution mlo_construct_BwdWrW2D::FindSolution()
         miopen::solver::ConvOclBwdWrW2,
         miopen::solver::ConvOclBwdWrW53,
         miopen::solver::ConvOclBwdWrW1x1
-    >(_search_params, this->GetDbRecord());
+    >(_search_params, this->GetDb());
     // clang-format on
 }
 
@@ -266,34 +253,18 @@ void mlo_construct_direct2D::setupFloats()
 void mlo_construct_direct2D::setupRocm()
 {
     // Detect assembly kernels
-    _search_params.use_binaries        = false;
-    _search_params.assembler_available = false;
-    _search_params.rmv                 = rocm_meta_version::Default;
+    _search_params.use_binaries    = false;
+    _search_params.use_asm_kernels = false;
+    _search_params.rmv             = rocm_meta_version::Default;
     if(mloIsAmdRocmOpencl(_search_params))
     {
-        _search_params.assembler_available = _search_params.float_size == 32 &&
-                                             !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) &&
-                                             ValidateGcnAssembler();
+        _search_params.use_asm_kernels =
+            !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
 #ifndef HIP_OC_FINALIZER
         _search_params.use_binaries =
-            _search_params.float_size == 32 &&
             !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
 #endif
     }
-}
-
-bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
-{
-    bool ret =
-        (_search_params.in_height == 227 && _search_params.in_width == 227 &&
-         (_search_params.n_inputs & 0x3) > 0 && _search_params.kernel_size0 == 3 &&
-         _search_params.kernel_size1 == 3 && _search_params.pad0 == 1 && _search_params.pad1 == 1 &&
-         _search_params.kernel_stride0 == 1 && _search_params.kernel_stride1 == 1) ||
-        (_search_params.in_height == 231 && _search_params.in_width == 231 &&
-         _search_params.n_inputs == 1 && _search_params.kernel_size0 == 3 &&
-         _search_params.kernel_size1 == 3 && _search_params.pad0 == 1 && _search_params.pad1 == 1 &&
-         _search_params.kernel_stride0 == 1 && _search_params.kernel_stride1 == 1);
-    return ret;
 }
 
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3U() const

@@ -39,6 +39,8 @@
 #include <sstream>
 
 #ifdef __linux__
+#include <miopen/temp_file.hpp>
+
 #include <paths.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -48,66 +50,6 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH)
 
-struct tmp_dir_env
-{
-    static const char* value() { return "TMPDIR"; }
-};
-
-#ifdef __linux__
-class TempFile
-{
-    public:
-    TempFile(const std::string& path_template)
-        : _path(GetTempDirectoryPath() + "/" + path_template + "-XXXXXX")
-    {
-        _fd = mkstemp(&_path[0]);
-        if(_fd == -1)
-        {
-            MIOPEN_THROW("Error: TempFile: mkstemp()");
-        }
-    }
-
-    ~TempFile()
-    {
-        const int remove_rc = std::remove(_path.c_str());
-        const int close_rc  = close(_fd);
-        if(remove_rc != 0 || close_rc != 0)
-        {
-#ifndef NDEBUG // Be quiet in release versions.
-            std::fprintf(stderr,
-                         "Error: TempFile: On removal of '%s', remove_rc = %d, close_rc = %d.\n",
-                         _path.c_str(),
-                         remove_rc,
-                         close_rc);
-#endif
-        }
-    }
-
-    inline const std::string& Path() { return _path; }
-    inline operator const std::string&() { return _path; }
-
-    private:
-    std::string _path;
-    int _fd;
-
-    static const std::string GetTempDirectoryPath()
-    {
-        const auto path = miopen::GetStringEnv(tmp_dir_env{});
-        if(path != nullptr)
-        {
-            return path;
-        }
-#if defined(P_tmpdir)
-        return P_tmpdir; // a string literal, if defined.
-#elif defined(_PATH_TMP)
-        return _PATH_TMP; // a string literal, if defined.
-#else
-        return "/tmp";
-#endif
-    }
-};
-#endif
-
 static std::string CleanupPath(const char* p);
 
 // Redirecting both input and output is not supported.
@@ -116,7 +58,7 @@ static int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostr
 std::string GetGcnAssemblerPathImpl()
 {
     const auto asm_path_env_p = miopen::GetStringEnv(MIOPEN_EXPERIMENTAL_GCN_ASM_PATH{});
-    if(asm_path_env_p)
+    if(asm_path_env_p != nullptr)
     {
         return CleanupPath(asm_path_env_p);
     }
@@ -197,7 +139,7 @@ static int ExecuteGcnAssembler(const std::string& p, std::istream* in, std::ostr
 
         if(redirect_stdout)
         {
-            while(!feof(pipe.get()))
+            while(feof(pipe.get()) == 0)
                 if(fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
                     *out << buffer.data();
         }
@@ -230,7 +172,7 @@ static std::string CleanupPath(const char* p)
     static const char bad[] = "!#$*;<>?@\\^`{|}";
     for(char* c = &path[0]; c < (&path[0] + path.length()); ++c)
     {
-        if(std::iscntrl(*c))
+        if(std::iscntrl(*c) != 0)
         {
             *c = '_';
             continue;
@@ -255,7 +197,7 @@ static std::string CleanupPath(const char* p)
 void AmdgcnAssemble(std::string& source, const std::string& params)
 {
 #ifdef __linux__
-    TempFile outfile("amdgcn-asm-out-XXXXXX");
+    miopen::TempFile outfile("amdgcn-asm-out-XXXXXX");
 
     std::ostringstream workaround_options;
     if(GcnAssemblerHasBug34765())

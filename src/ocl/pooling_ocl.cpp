@@ -53,7 +53,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
-    if(miopen::CheckNumericsEnabled())
+    if(miopen::CheckNumericsEnabled() != 0)
     {
         miopen::checkNumericsInput(handle, xDesc, x);
         if(!float_equal(*(static_cast<const float*>(beta)), 0))
@@ -108,24 +108,38 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     construct_params.setPoolingDescr(
         pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
 
-    construct_params.doBackward(do_backward);
+    std::string network_config =
+        std::to_string(pooling_method) + std::to_string(static_cast<int>(do_backward)) +
+        std::to_string(xDesc.GetType()) + std::to_string(nInStride) + std::to_string(nOutStride) +
+        std::to_string(nIn) + std::to_string(nOut) + std::to_string(nInStride) +
+        std::to_string(nOutStride) + std::to_string(cIn) + std::to_string(cOut) +
+        std::to_string(cInStride) + std::to_string(cOutStride) + std::to_string(hIn) +
+        std::to_string(hOut) + std::to_string(hInStride) + std::to_string(hOutStride) +
+        std::to_string(lens[0]) + std::to_string(lens[1]) + std::to_string(strides[0]) +
+        std::to_string(strides[1]) + std::to_string(pads[0]) + std::to_string(pads[1]);
 
-    mloConstruct(construct_params);
+    std::string algo_name = "miopenPooling2dForward";
+    // printf("Pooling forward network_config: %s\n", network_config.c_str());
+    auto&& kernels = handle.GetKernels(algo_name, network_config);
+    if(!kernels.empty())
+    {
+        kernels.front()(x, y, workSpace);
+    }
+    else
+    {
+        construct_params.doBackward(do_backward);
 
-    std::string program_name = construct_params.getKernelFile();      // CL kernel filename
-    std::string kernel_name  = construct_params.getKernelName();      // kernel name
-    std::string parms        = construct_params.getCompilerOptions(); // kernel parameters
+        mloConstruct(construct_params);
+        std::string parms              = construct_params.getCompilerOptions(); // kernel parameters
+        std::string program_name       = construct_params.getKernelFile(); // CL kernel filename
+        std::string kernel_name        = construct_params.getKernelName(); // kernel name
+        const std::vector<size_t>& vld = construct_params.getLocalWkSize();
+        const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
 
-    std::string network_config;
-    construct_params.mloBuildConf_Key(network_config);
-
-    const std::vector<size_t>& vld = construct_params.getLocalWkSize();
-    const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
-
-    handle.AddKernel("miopenPooling2dDForward", "", program_name, kernel_name, vld, vgd, parms)(
-        x, y, workSpace);
-
-    if(miopen::CheckNumericsEnabled())
+        handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
+            x, y, workSpace);
+    }
+    if(miopen::CheckNumericsEnabled() != 0)
     {
         miopen::checkNumericsOutput(handle, yDesc, y);
     }
@@ -152,7 +166,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     {
         MIOPEN_THROW("Only alpha=1 and beta=0 is supported");
     }
-    if(miopen::CheckNumericsEnabled())
+    if(miopen::CheckNumericsEnabled() != 0)
     {
         // miopen::checkNumericsInput(handle, yDesc, y); // not actually used?
         miopen::checkNumericsInput(handle, dyDesc, dy);
@@ -237,34 +251,54 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     construct_params.setPoolingDescr(
         pooling_method, lens[0], lens[1], pads[0], pads[1], strides[0], strides[1]);
 
-    mloConstruct(construct_params);
+    std::string network_config =
+        std::to_string(pooling_method) + std::to_string(xDesc.GetType()) +
+        std::to_string(nInStride) + std::to_string(nOutStride) + std::to_string(nIn) +
+        std::to_string(nOut) + std::to_string(nInStride) + std::to_string(nOutStride) +
+        std::to_string(cIn) + std::to_string(cOut) + std::to_string(cInStride) +
+        std::to_string(cOutStride) + std::to_string(hIn) + std::to_string(hOut) +
+        std::to_string(hInStride) + std::to_string(hOutStride) + std::to_string(lens[0]) +
+        std::to_string(lens[1]) + std::to_string(strides[0]) + std::to_string(strides[1]) +
+        std::to_string(pads[0]) + std::to_string(pads[1]);
+    // printf("Pooling backward network_config: %s\n", network_config.c_str());
+    std::string algo_name = "miopenPooling2dBackward";
 
-    std::string program_name = construct_params.getKernelFile();      // CL kernel filename
-    std::string kernel_name  = construct_params.getKernelName();      // kernel name
-    std::string parms        = construct_params.getCompilerOptions(); // kernel parameters
-
-    std::string network_config;
-    construct_params.mloBuildConf_Key(network_config);
-
-    const std::vector<size_t>& vld = construct_params.getLocalWkSize();
-    const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
-
-    // Compile the kernel if not aleady compiled
-    auto k =
-        handle.AddKernel("miopenPooling2dBackward", "", program_name, kernel_name, vld, vgd, parms);
-
-    // Set kernel arguments
-    // Use proper arguments
-    if(mode == miopenPoolingMax)
+    auto&& kernels = handle.GetKernels(algo_name, network_config);
+    if(!kernels.empty())
     {
-        k(dy, dx, workSpace);
+        if(mode == miopenPoolingMax)
+        {
+            kernels.front()(dy, dx, workSpace);
+        }
+        else
+        {
+            kernels.front()(dy, dx);
+        }
     }
     else
     {
-        k(dy, dx);
+
+        mloConstruct(construct_params);
+        const std::vector<size_t>& vld = construct_params.getLocalWkSize();
+        const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
+        std::string program_name       = construct_params.getKernelFile(); // CL kernel filename
+        std::string kernel_name        = construct_params.getKernelName(); // kernel name
+        std::string parms              = construct_params.getCompilerOptions(); // kernel parameters
+        auto k =
+            handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms);
+
+        if(mode == miopenPoolingMax)
+        {
+
+            k(dy, dx, workSpace);
+        }
+        else
+        {
+            k(dy, dx);
+        }
     }
 
-    if(miopen::CheckNumericsEnabled())
+    if(miopen::CheckNumericsEnabled() != 0)
     {
         miopen::checkNumericsOutput(handle, dxDesc, dx);
     }
