@@ -41,6 +41,16 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED)
 namespace miopen {
 namespace solver {
 
+static inline bool UseSubsample(const ConvolutionContext& c)
+{
+    return (c.kernel_stride0 > 1 || c.kernel_stride1 > 1) && c.direction.IsForward();
+}
+
+static inline bool UseUpsample(const ConvolutionContext& c)
+{
+    return (c.kernel_stride0 > 1 || c.kernel_stride1 > 1) && !c.direction.IsForward();
+}
+
 /// \todo move to separate header and use in other solvers.
 template <int L, int H>
 inline static bool IsTwoPower(const int v)
@@ -349,22 +359,13 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 {
     ConvSolution result;
 
-    if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
-    {
-        result.passes = 2;
-    }
-    else
-    {
-        result.passes = 1;
-    }
-
     std::ostringstream options;
 
     result.workspce_sz = 0;
 
     KernelInfo kernel;
 
-    if(result.passes == 2)
+    if(UseSubsample(params) || UseUpsample(params))
     {
         // subsampled input, in_height equals to image size after downsampling
         int in_batch_stride = 0, write_unit = 0;
@@ -525,12 +526,12 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     kinfo.kernel_file = "conv1x1u.s";
     kinfo.kernel_name = "gcnAsmConv1x1U";
 
-    if(result.passes == 2 && params.direction.IsForward())
+    if(UseSubsample(params))
         result.construction_params.push_back(kernel);
 
     result.construction_params.push_back(kinfo);
 
-    if(result.passes == 2 && !params.direction.IsForward())
+    if(UseUpsample(params))
         result.construction_params.push_back(kernel);
     return result;
 }
