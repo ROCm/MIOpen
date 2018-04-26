@@ -40,7 +40,6 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
         && !(params.direction.IsBackwardData() && (params.kernel_stride0 > 2 || params.kernel_stride1 > 2))
         /// \todo Workaround to avoid LDS overallocation issue:
         && !(params.direction.IsForward()
-            && params.float_size == 16
             && params.kernel_size0 == 11
             && params.kernel_size1 == 11
             && params.kernel_stride0 == 4)
