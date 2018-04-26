@@ -554,6 +554,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 float time_direct = 0;
                 float padding_val = 0;
                 visit_float(xDesc.GetType(), [&](auto as_float) {
+                    int n_kernels = 0;
                     for(auto& k : kernel_direct)
                     {
                         if(k.GetName() == "SubSample")
@@ -566,42 +567,25 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                             int* return_addr = nullptr;
                             int N, C, H, W, K, n_groups;
                             std::tie(N, C, H, W, K, n_groups) = eka;
-                            if(workspace_req != 0)
-                            {
-                                k(N,
-                                  C,
-                                  H,
-                                  W,
-                                  K,
-                                  n_groups,
-                                  unused,
-                                  unused,
-                                  workSpace,
-                                  w,
-                                  tmp_y.get(),
-                                  return_addr);
-                            }
-                            else
-                            {
-                                k(N,
-                                  C,
-                                  H,
-                                  W,
-                                  K,
-                                  n_groups,
-                                  unused,
-                                  unused,
-                                  x,
-                                  w,
-                                  tmp_y.get(),
-                                  return_addr);
-                            }
+                            k(N,
+                              C,
+                              H,
+                              W,
+                              K,
+                              n_groups,
+                              unused,
+                              unused,
+                              (n_kernels == 1) ? workSpace : x,
+                              w,
+                              tmp_y.get(),
+                              return_addr);
                         }
                         else
                         {
                             k(x, w, tmp_y.get(), as_float(padding_val));
                         }
                         time_direct += handle.GetKernelTime();
+                        n_kernels++;
                     }
                 });
 
