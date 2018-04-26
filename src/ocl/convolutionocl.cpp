@@ -564,14 +564,14 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                         {
                             int unused       = 0;
                             int* return_addr = nullptr;
-                            int N, C, out_H, out_W, K, n_groups;
-                            std::tie(N, C, out_H, out_W, K, n_groups) = eka;
+                            int N, C, H, W, K, n_groups;
+                            std::tie(N, C, H, W, K, n_groups) = eka;
                             if(workspace_req != 0)
                             {
                                 k(N,
                                   C,
-                                  out_H,
-                                  out_W,
+                                  H,
+                                  W,
                                   K,
                                   n_groups,
                                   unused,
@@ -585,8 +585,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                             {
                                 k(N,
                                   C,
-                                  out_H,
-                                  out_W,
+                                  H,
+                                  W,
                                   K,
                                   n_groups,
                                   unused,

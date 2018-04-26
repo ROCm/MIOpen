@@ -48,7 +48,7 @@ static inline bool UseSubsample(const ConvolutionContext& c)
 
 static inline bool UseUpsample(const ConvolutionContext& c)
 {
-    return (c.kernel_stride0 > 1 || c.kernel_stride1 > 1) && c.direction.IsBackward();
+    return (c.kernel_stride0 > 1 || c.kernel_stride1 > 1) && c.direction.IsBackwardData();
 }
 
 static inline int AsmImgHeight(const ConvolutionContext& c)
@@ -521,15 +521,12 @@ int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
     (void)bias_ocl_buf;
     KernelInfo k_info;
 
-    if(params.kernel_stride0 == 1 && params.kernel_stride1 == 1)
-        k_info = solution.construction_params.back();
+    if(UseSubsample(params))
+        k_info = solution.construction_params[1];
+    else if(UseUpsample(params))
+        k_info = solution.construction_params[0];
     else
-    {
-        if(params.direction.IsForward())
-            k_info = solution.construction_params[1];
-        else
-            k_info = solution.construction_params[0];
-    }
+        k_info = solution.construction_params[0];
 
 #ifdef NDEBUG
     try
@@ -551,36 +548,18 @@ int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
         auto n_groups =
             static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
 
-        if(params.direction.IsForward())
-        {
-            kernel(params.batch_sz,   // N
-                   params.n_inputs,   // C
-                   params.out_height, // H
-                   params.out_width,  // W
-                   params.n_outputs,  // K
-                   n_groups,          // n_groups
-                   unused,
-                   unused,
-                   bot_ocl_buf,
-                   wei_ocl_buf,
-                   top_ocl_buf,
-                   return_addr);
-        }
-        else
-        {
-            kernel(params.batch_sz,  // N
-                   params.n_inputs,  // C
-                   params.in_height, // H
-                   params.in_width,  // W
-                   params.n_outputs, // K
-                   n_groups,         // n_groups
-                   unused,
-                   unused,
-                   bot_ocl_buf,
-                   wei_ocl_buf,
-                   top_ocl_buf,
-                   return_addr);
-        }
+        kernel(params.batch_sz,      // N
+               params.n_inputs,      // C
+               AsmImgHeight(params), // H
+               AsmImgWidth(params),  // W
+               params.n_outputs,     // K
+               n_groups,             // n_groups
+               unused,
+               unused,
+               bot_ocl_buf,
+               wei_ocl_buf,
+               top_ocl_buf,
+               return_addr);
 
         elapsed_time = profile_h.GetKernelTime();
     }
