@@ -29,6 +29,7 @@
 #include <iterator>
 #include <limits>
 #include <memory>
+#include <sys/time.h>
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
@@ -103,11 +104,17 @@ struct verify_tensor_set
         auto&& handle  = get_handle();
         auto super_dev = handle.Write(superGpu.data);
 
+        struct timeval start, end;
+        gettimeofday(&start, NULL);
         miopen::SetTensor(handle, subDesc, super_dev.get(), &alpha, offset);
+        gettimeofday(&end, NULL);
+
+        long w_time = ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec)); 
 
         std::size_t nbyte = sizeof(T{}) * std::accumulate(
             subDesc.GetLengths().begin(), subDesc.GetLengths().end(), std::size_t{1}, std::multiplies<std::size_t>());
 
+        std::cout << "wall time: " << w_time/1000.0 << "ms" << std::endl;
         std::cout << "bandwidth: " << nbyte/((std::size_t(1)<<30)*handle.GetKernelTime()/1000) << "GB/s" << std::endl;
 
         superGpu.data = handle.Read<T>(super_dev, superGpu.data.size());
@@ -170,7 +177,7 @@ struct tensor_set_driver : test_driver
         printf("Generating super tensors...");
         fflush(nullptr);
 #endif
-        std::vector<int> lens = {{1, 128, 256, 192, 192}};
+        std::vector<int> lens = {{1,  64, 128, 192, 192}};
 //      std::vector<int> lens = {{1, 128, 256, 64, 64}};
         super                 = tensor<T>{lens}.generate(rand_gen{});
 
@@ -181,9 +188,9 @@ struct tensor_set_driver : test_driver
         fflush(nullptr);
 #endif
 
-        add(subLens, "subLens", generate_data(get_sub_tensor(), {1,64,256,192,192}));
-//      add(subLens, "subLens", generate_data(get_sub_tensor(), {1*64*256*192*192}));
-        add(offset, "offset", generate_data(get_tensor_offset(), 256*192*192));
+//      add(subLens, "subLens", generate_data(get_sub_tensor(), {1,32,128,192,192}));
+        add(subLens, "subLens", generate_data(get_sub_tensor(), {1*32*128*192*192}));
+        add(offset, "offset", generate_data(get_tensor_offset(), 128*192*192));
 
 //      add(subLens, "subLens", generate_data(get_sub_tensor(), {1,64,256,64,64}));
 //      add(subLens, "subLens", generate_data(get_sub_tensor(), {1*64*256*64*64}));

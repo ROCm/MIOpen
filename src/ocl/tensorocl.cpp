@@ -1401,7 +1401,8 @@ void SetTensor(
                                   {wld, 1, 1},
                                   {wgd, 1, 1},
                                   parms);
-        std::cout << __func__ << "lens : " << lens << std::endl
+        std::cout << __func__ << std::endl
+                              << "lens : " << lens << std::endl
                               << "worker_sizes: " << worker_sizes << std::endl
                               << "wgd: " << wgd << ", wld: " << wld << std::endl;
     }
