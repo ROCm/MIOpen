@@ -39,11 +39,17 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
         && !(params.kernel_size0 == 1 && params.kernel_size1 == 1)
         && !(params.direction.IsBackwardData() && (params.kernel_stride0 > 2 || params.kernel_stride1 > 2))
         /// \todo Workaround to avoid LDS overallocation issue:
-        && !(params.direction.IsForward() && params.float_size == 16 && params.kernel_size0 == 11 && params.kernel_size1 == 11)
+        && !(params.direction.IsForward()
+            && params.float_size == 16
+            && params.kernel_size0 == 11
+            && params.kernel_size1 == 11
+            && params.kernel_stride0 == 4)
         /// \todo Workaround to avoid FP16 precision issue:
         /// While MIOpenConvUni is up to 4x faster than MIOpenCDFGen (even not auto-tuned),
         /// it seems that is has 4x..20x worse precision, and some "test_conv --half" tests fail.
-        && !(params.direction.IsForward() && params.float_size == 16);
+        && !(params.direction.IsForward()
+            && params.float_size == 16
+            && params.kernel_stride0 == 2);
     // clang-format on
 }
 
