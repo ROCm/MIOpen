@@ -256,15 +256,15 @@ int ConvolutionDescriptor::FindDataDirectSolutions(
 }
 
 template <typename T>
-inline float FindConvAlgoDirectRun(Handle& handle,
-                                   const std::string& algorithm_name,
-                                   const std::string& network_config,
-                                   const miopen::solver::ConvSolution& solution,
-                                   const ExtraKernelArgs& extraArgs,
-                                   ConstData_t x,
-                                   ConstData_t w,
-                                   Data_t y,
-                                   T padding_val)
+inline float RunConvDataDirectSolution(Handle& handle,
+                                       const std::string& algorithm_name,
+                                       const std::string& network_config,
+                                       const miopen::solver::ConvSolution& solution,
+                                       const ExtraKernelArgs& extraArgs,
+                                       ConstData_t in, // Fwd: x, Bwd: dy
+                                       ConstData_t weights,
+                                       Data_t out, // Fwd: y, Bwd: dx
+                                       T padding_val)
 {
     float elapsed = 0;
     std::vector<KernelInvoke> kernels;
@@ -277,11 +277,11 @@ inline float FindConvAlgoDirectRun(Handle& handle,
             int* return_addr = nullptr;
             int N, C, H, W, K, n_groups;
             std::tie(N, C, H, W, K, n_groups) = extraArgs;
-            k(N, C, H, W, K, n_groups, unused, unused, x, w, y, return_addr);
+            k(N, C, H, W, K, n_groups, unused, unused, in, weights, out, return_addr);
         }
         else
         {
-            k(x, w, y, padding_val);
+            k(in, weights, out, padding_val);
         }
         elapsed += handle.GetKernelTime();
     }
@@ -589,7 +589,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                 continue;
                         }
 #endif
-                        float elapsed = FindConvAlgoDirectRun(
+                        float elapsed = RunConvDataDirectSolution(
                             handle, "", "", sol, eka, x, w, tmp_y.get(), as_float(0.0f));
                         MIOPEN_LLOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
                                           << best);
