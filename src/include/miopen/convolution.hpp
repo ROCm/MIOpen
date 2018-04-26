@@ -50,8 +50,14 @@ using WinogradKernelParams = std::tuple<int /*N*/,
                                         int /*pad_W*/,
                                         bool /*isRxS*/>;
 
-using ExtraKernelArgs =
-    std::tuple<int /*N*/, int /*C*/, int /*H*/, int /*W*/, int /*K*/, int /*n_groups*/>;
+using ExtraKernelArgs = std::tuple<int /*N*/,
+                                   int /*C*/,
+                                   int /*H*/,
+                                   int /*W*/,
+                                   int /*K*/,
+                                   int /*n_groups*/,
+                                   int /*out_H*/,
+                                   int /*out_W*/>;
 
 struct ConvolutionDescriptor : miopenConvolutionDescriptor
 {
