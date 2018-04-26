@@ -242,13 +242,32 @@ inline void InitRandomly(std::vector<float>& vec)
         *p++ = static_cast<float>(rand() * (1.0 / RAND_MAX));
 }
 
+inline size_t divide_round_plus_inf(const size_t x, const size_t y)
+{
+    assert(/*x >= 0 &&*/ y > 0);
+    if(x % y != 0)
+        return x / y + 1;
+    return x / y;
+}
+
+enum class SearchTweak
+{
+    None,
+    // When the 2x subsampling kernel is used in the solution, and we
+    // skip it during auto-tune, the input (top) buffer of the
+    // could be made 4x smaller:
+    Skip2xSubsample,
+};
+
 /// Solver member function requirements:
 /// * GetPerformanceConfig shall be implemented.
 ///   - Its return type shall be suitable for instantiation of the ComputedContainer.
 /// * GetSolution shall be implemented.
 /// * RunAndMeasureSolution shall be implemented.
 template <class Solver, class Context>
-auto GenericSearch(const Solver s, const Context& context)
+auto GenericSearch(const Solver s,
+                   const Context& context,
+                   const SearchTweak tweak = SearchTweak::None)
     -> decltype(s.GetPerformanceConfig(context))
 {
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
@@ -257,8 +276,11 @@ auto GenericSearch(const Solver s, const Context& context)
     profile_h.EnableProfiling(true);
 
     // Allocate buffers, init input buffers.
+    size_t top_size = context.top_sz / sizeof(float);
+    if(tweak == SearchTweak::Skip2xSubsample)
+        top_size = divide_round_plus_inf(top_size, 2 * 2);
     std::vector<float> bot(context.bot_sz / sizeof(float));
-    std::vector<float> top(context.top_sz / sizeof(float));
+    std::vector<float> top(top_size);
     std::vector<float> wei(context.weights_sz / sizeof(float));
     std::vector<float> bias(context.bias_sz / sizeof(float));
     if(!context.direction.IsForward())
