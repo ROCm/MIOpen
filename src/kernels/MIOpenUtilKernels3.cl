@@ -118,7 +118,7 @@ UpSample(const __global _FLOAT* __restrict in, __global _FLOAT* __restrict out)
     for(uint i = 0; i < MLO_WRITE_UNIT;
         ++i, in_ptr++, out_ptr += MLO_FILTER0_STRIDE0, out_ptr_1 += MLO_FILTER0_STRIDE0)
     {
-        *out_ptr         = *in_ptr;
+        *out_ptr = *in_ptr;
     }
 }
 #endif
