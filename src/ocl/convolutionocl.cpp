@@ -187,7 +187,6 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
         {
             if(bwd_wrw_info.size() == 2)
             {
-
                 const mlo_kernel_info& bwd_wrw_1 = bwd_wrw_info[0];
 
                 auto k1 = handle.AddKernel(algorithm,
@@ -196,19 +195,21 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
                                            std::get<0>(bwd_wrw_1),
                                            std::get<4>(bwd_wrw_1),
                                            std::get<3>(bwd_wrw_1),
-                                           std::get<2>(bwd_wrw_1));
+                                           std::get<2>(bwd_wrw_1),
+                                           0);
 
                 kernels.push_back(k1);
 
                 const mlo_kernel_info& bwd_wrw_2 = bwd_wrw_info[1];
 
-                auto k2 = handle.AddKernel(algorithm + "_pass2",
+                auto k2 = handle.AddKernel(algorithm,
                                            network_config,
                                            std::get<1>(bwd_wrw_2),
                                            std::get<0>(bwd_wrw_2),
                                            std::get<4>(bwd_wrw_2),
                                            std::get<3>(bwd_wrw_2),
-                                           std::get<2>(bwd_wrw_2));
+                                           std::get<2>(bwd_wrw_2),
+                                           1);
 
                 kernels.push_back(k2);
             }
@@ -546,9 +547,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                    handle, xDesc, wDesc, yDesc, eka, kernel_direct, exhaustiveSearch, 1) == 0)
             { // Forward
                 size_t workspace_req =
-                    (u == 2 && v == 2)
-                        ? this->ForwardGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc)
-                        : 0;
+                    this->ForwardGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc);
 
                 // Execute the direct kernel
                 float time_direct = 0;
@@ -713,9 +712,15 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             visit_float(xDesc.GetType(), [&](auto as_float) {
                 if((kernel.GetName() == "SubSample"))
                 {
+                    auto kernels = handle.GetKernels(algorithm_name, network_config);
+
+                    auto kernel = kernels[0];
+
                     kernel(x, workSpace);
 
-                    auto kernel2 = handle.GetKernel(algorithm_name + "_pass2", network_config);
+                    assert(kernels.size() == 2 && kernel2.GetName() == "gcnAsmConv1x1U");
+
+                    auto kernel2 = kernels[1];
 
                     int unused       = 0;
                     int* return_addr = nullptr;
@@ -1290,9 +1295,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             { // Backward
 
                 size_t workspace_req =
-                    (u == 2 && v == 2)
-                        ? this->BackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc)
-                        : 0;
+                    this->BackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc);
 
                 float time_direct = 0;
                 float padding_val = 0;
@@ -1595,27 +1598,34 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                     int N, C, H, W, K, n_groups;
                     construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
 
-                    auto&& kernels = handle.GetKernels(algorithm_name + "_pass2", network_config);
+                    auto&& kernels = handle.GetKernels(algorithm_name, network_config);
 
-                    if(!kernels.empty())
+                    kernel(N,
+                           C,
+                           H,
+                           W,
+                           K,
+                           n_groups,
+                           unused,
+                           unused,
+                           dy,
+                           w,
+                           (kernels.size() == 2) ? workSpace : dx,
+                           return_addr);
+                    if(handle.IsProfilingEnabled())
+                        t1 += handle.GetKernelTime();
+
+                    if(kernels.size() == 2)
                     {
+                        auto kernel2 = kernels[1];
+                        assert(kernel2.GetName() == "UpSample");
+
                         float zero = 0.f;
                         SetTensor(handle, dxDesc, dx, &zero);
                         if(handle.IsProfilingEnabled())
                             t1 = handle.GetKernelTime();
 
-                        kernel(
-                            N, C, H, W, K, n_groups, unused, unused, dy, w, workSpace, return_addr);
-                        if(handle.IsProfilingEnabled())
-                            t1 += handle.GetKernelTime();
-                        auto kernel2 = kernels[0];
                         kernel2(workSpace, dx);
-                        if(handle.IsProfilingEnabled())
-                            t1 += handle.GetKernelTime();
-                    }
-                    else
-                    {
-                        kernel(N, C, H, W, K, n_groups, unused, unused, dy, w, dx, return_addr);
                         if(handle.IsProfilingEnabled())
                             t1 += handle.GetKernelTime();
                     }
