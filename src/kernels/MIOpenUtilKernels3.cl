@@ -111,13 +111,20 @@ UpSample(const __global _FLOAT* __restrict in, __global _FLOAT* __restrict out)
     uint out_x   = in_x * MLO_FILTER0_STRIDE0;
     uint out_off = batch_id * MLO_OUT_BATCH_STRIDE + map_id * MLO_OUT_CHANNEL_STRIDE +
                    out_y * MLO_OUT_STRIDE + out_x;
+    uint out_off_1 = batch_id * MLO_OUT_BATCH_STRIDE + map_id * MLO_OUT_CHANNEL_STRIDE +
+                     (out_y + 1) * MLO_OUT_STRIDE + out_x;
 
     const __global _FLOAT* in_ptr = &in[in_off];
     __global _FLOAT* out_ptr      = &out[out_off];
+    __global _FLOAT* out_ptr_1    = &out[out_off_1];
 
-    for(uint i = 0; i < MLO_WRITE_UNIT; ++i, in_ptr++, out_ptr += MLO_FILTER0_STRIDE0)
+    for(uint i = 0; i < MLO_WRITE_UNIT;
+        ++i, in_ptr++, out_ptr += MLO_FILTER0_STRIDE0, out_ptr_1 += MLO_FILTER0_STRIDE0)
     {
-        *out_ptr = *in_ptr;
+        *out_ptr         = *in_ptr;
+        *(out_ptr + 1)   = 0;
+        *out_ptr_1       = 0;
+        *(out_ptr_1 + 1) = 0;
     }
 }
 #endif
