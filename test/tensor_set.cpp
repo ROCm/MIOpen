@@ -102,7 +102,14 @@ struct verify_tensor_set
 
         auto&& handle  = get_handle();
         auto super_dev = handle.Write(superGpu.data);
+
         miopen::SetTensor(handle, subDesc, super_dev.get(), &alpha, offset);
+
+        std::size_t nbyte = sizeof(T{}) * std::accumulate(
+            subDesc.GetLengths().begin(), subDesc.GetLengths().end(), std::size_t{1}, std::multiplies<std::size_t>());
+
+        std::cout << "bandwidth: " << nbyte/((std::size_t(1)<<30)*handle.GetKernelTime()/1000) << "GB/s" << std::endl;
+
         superGpu.data = handle.Read<T>(super_dev, superGpu.data.size());
 
 #if(MIO_TENSORSET_DEBUG == 1)
@@ -128,6 +135,7 @@ struct tensor_set_driver : test_driver
     std::vector<int> subLens;
     int offset = 0;
 
+#if 0
     tensor_set_driver()
     {
 
@@ -153,6 +161,40 @@ struct tensor_set_driver : test_driver
         fflush(nullptr);
 #endif
     }
+#endif
+
+    tensor_set_driver()
+    {
+
+#if(MIO_TENSORSET_DEBUG == 1)
+        printf("Generating super tensors...");
+        fflush(nullptr);
+#endif
+        std::vector<int> lens = {{1, 128, 256, 192, 192}};
+//      std::vector<int> lens = {{1, 128, 256, 64, 64}};
+        super                 = tensor<T>{lens}.generate(rand_gen{});
+
+#if(MIO_TENSORSET_DEBUG == 1)
+        printf("done.\n");
+        fflush(nullptr);
+        printf("Generating sub-tensors lengths...");
+        fflush(nullptr);
+#endif
+
+        add(subLens, "subLens", generate_data(get_sub_tensor(), {1,64,256,192,192}));
+//      add(subLens, "subLens", generate_data(get_sub_tensor(), {1*64*256*192*192}));
+        add(offset, "offset", generate_data(get_tensor_offset(), 256*192*192));
+
+//      add(subLens, "subLens", generate_data(get_sub_tensor(), {1,64,256,64,64}));
+//      add(subLens, "subLens", generate_data(get_sub_tensor(), {1*64*256*64*64}));
+//      add(offset, "offset", generate_data(get_tensor_offset(), 256*64*64));
+
+#if(MIO_TENSORSET_DEBUG == 1)
+        printf("done.\n");
+        fflush(nullptr);
+#endif
+    }
+
 
     void run()
     {
