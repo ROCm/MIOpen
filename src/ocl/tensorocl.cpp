@@ -1324,6 +1324,26 @@ static std::vector<std::size_t> get_worker_sizes(const std::vector<std::size_t>&
     return worker_sizes;
 }
 
+template<typename T>
+std::ostream& operator<<(std::ostream& os, const std::vector<T>& vs)
+{
+    os << "{ ";
+    for(auto & v : vs)
+       os << v << " ";
+    os << "}";
+    return os;  
+}
+
+template<typename T, std::size_t N>
+std::ostream& operator<<(std::ostream& os, const std::array<T,N>& vs)  
+{
+    os << "{ ";
+    for(auto & v : vs)
+       os << v << " ";
+    os << "}";
+    return os;  
+}
+
 void SetTensor(
     Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha, const int offset)
 {
@@ -1381,8 +1401,14 @@ void SetTensor(
                                   {wld, 1, 1},
                                   {wgd, 1, 1},
                                   parms);
+        std::cout << __func__ << "lens : " << lens << std::endl
+                              << "worker_sizes: " << worker_sizes << std::endl
+                              << "wgd: " << wgd << ", wld: " << wld << std::endl;
     }
 
+    std::cout << __func__ << "global: " << kernel.global_work_dim << std::endl
+                          << "local: "  << kernel.local_work_dim << std::endl
+                          << std::endl;
     switch(ydim)
     {
     case 1:
