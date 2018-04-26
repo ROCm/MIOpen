@@ -209,21 +209,22 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
     }
 }
 
-int ConvolutionDescriptor::GetDirectSolutions(Handle& handle,
-                                              const TensorDescriptor& xDesc,
-                                              const TensorDescriptor& wDesc,
-                                              const TensorDescriptor& yDesc,
-                                              bool exhaustiveSearch,
-                                              int direction,
-                                              std::vector<miopen::solver::ConvSolution>& solutions,
-                                              std::string& network_config,
-                                              ExtraKernelArgs& extraArgs) const
+int ConvolutionDescriptor::FindDataDirectSolutions(
+    Handle& handle,
+    const TensorDescriptor& xDesc,
+    const TensorDescriptor& wDesc,
+    const TensorDescriptor& yDesc,
+    bool exhaustiveSearch,
+    bool isForward,
+    std::vector<miopen::solver::ConvSolution>& solutions,
+    std::string& network_config,
+    ExtraKernelArgs& extraArgs) const
 {
 
     if(!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
         return -1;
 
-    mlo_construct_direct2D construct_params(direction);
+    mlo_construct_direct2D construct_params(isForward ? 1 : 0);
     construct_params.setDoSearch(exhaustiveSearch);
     construct_params.saveSearchRequest(true);
     construct_params.setGeneralCompOptions("");
@@ -233,7 +234,7 @@ int ConvolutionDescriptor::GetDirectSolutions(Handle& handle,
     construct_params.setWeightDescFromMLDesc(wDesc);
     construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-    if((IsWinograd3x3Supported(handle, direction != 0, wDesc, (direction != 0 ? xDesc : yDesc)) &&
+    if((IsWinograd3x3Supported(handle, isForward, wDesc, (isForward ? xDesc : yDesc)) &&
         construct_params.mloIsFastBinaryWinograd3x3U()))
     {
         return -1;
@@ -557,15 +558,15 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             // Direct algo
             ExtraKernelArgs eka;
             std::vector<miopen::solver::ConvSolution> directAll;
-            if(GetDirectSolutions(handle,
-                                  xDesc,
-                                  wDesc,
-                                  yDesc,
-                                  exhaustiveSearch,
-                                  1,
-                                  directAll,
-                                  network_config,
-                                  eka) == 0)
+            if(FindDataDirectSolutions(handle,
+                                       xDesc,
+                                       wDesc,
+                                       yDesc,
+                                       exhaustiveSearch,
+                                       true,
+                                       directAll,
+                                       network_config,
+                                       eka) == 0)
             {
                 const std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
                 miopen::solver::ConvSolution selected{miopenStatusUnknownError};
