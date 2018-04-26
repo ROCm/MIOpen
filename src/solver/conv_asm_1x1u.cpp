@@ -51,6 +51,16 @@ static inline bool UseUpsample(const ConvolutionContext& c)
     return (c.kernel_stride0 > 1 || c.kernel_stride1 > 1) && !c.direction.IsForward();
 }
 
+static inline int AsmImgHeight(const ConvolutionContext& c)
+{
+    return UseSubsample(c) ? c.out_height : c.in_height;
+}
+
+static inline int AsmImgWidth(const ConvolutionContext& c)
+{
+    return UseSubsample(c) ? c.out_width : c.in_width;
+}
+
 /// \todo move to separate header and use in other solvers.
 template <int L, int H>
 inline static bool IsTwoPower(const int v)
@@ -321,11 +331,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
             return false;
     }
     // Check limits:
-    auto h_w = static_cast<long>(params.in_height) * params.in_width;
-    if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
-    {
-        h_w = static_cast<long>(params.out_height) * params.out_width;
-    }
+    auto h_w = static_cast<long>(AsmImgHeight(params)) * AsmImgWidth(params);
     const auto r_s     = static_cast<long>(params.kernel_size1) * params.kernel_size0;
     const auto c_h_w   = static_cast<long>(params.n_inputs) * h_w;    // C*H*W
     const auto k_h_w   = static_cast<long>(params.n_outputs) * h_w;   // K*H*W
@@ -368,23 +374,12 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     if(UseSubsample(params) || UseUpsample(params))
     {
         // subsampled input, in_height equals to image size after downsampling
-        int in_batch_stride = 0, write_unit = 0;
-        if(params.direction.IsForward())
-        {
-            in_batch_stride = params.out_width * params.out_height * params.n_inputs;
-            write_unit =
-                (params.out_width % 4 == 0) ? 4 : (params.out_width % 3 == 0)
-                                                      ? 3
-                                                      : (params.out_width % 2 == 0) ? 2 : 1;
-        }
-        else
-        {
-            in_batch_stride =
-                params.in_width * params.in_height * params.n_outputs; // C * out_H * out_W
-            write_unit = (params.in_width % 4 == 0) ? 4 : (params.in_width % 3 == 0)
-                                                              ? 3
-                                                              : (params.in_width % 2 == 0) ? 2 : 1;
-        }
+        int in_batch_stride = AsmImgWidth(params) * AsmImgHeight(params) *
+                              (UseSubsample(params) ? params.n_inputs : params.n_outputs);
+        int write_unit =
+            (AsmImgWidth(params) % 4 == 0) ? 4 : (AsmImgWidth(params) % 3 == 0)
+                                                     ? 3
+                                                     : (AsmImgWidth(params) % 2 == 0) ? 2 : 1;
 
         int n_grp0_size0 = 256;
 
@@ -429,31 +424,12 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         int data_len =
             (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
         result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
+    }
 
-        // Note that params.in_height/params.in_width are swapped for output size when initialized
-        // in mlo_internal.hpp for backward convolutions
-        if(params.direction.IsForward())
-        {
-            GenerateClangDefsym(options, "img_h", params.out_height); // H
-            GenerateClangDefsym(options, "img_w", params.out_width);  // W
-        }
-        else
-        {
-            GenerateClangDefsym(options, "img_h", params.in_height); // H
-            GenerateClangDefsym(options, "img_w", params.in_width);  // W
-        }
-        GenerateClangDefsym(options, "stride_h", 1);
-        GenerateClangDefsym(options, "stride_w", 1);
-    }
-    else
-    {
-        // Note that params.out_height/params.out_width are swapped for input size when initialized
-        // in mlo_internal.hpp for backward convolutions
-        GenerateClangDefsym(options, "img_h", params.in_height); // H
-        GenerateClangDefsym(options, "img_w", params.in_width);  // W
-        GenerateClangDefsym(options, "stride_h", params.kernel_stride1);
-        GenerateClangDefsym(options, "stride_w", params.kernel_stride0);
-    }
+    GenerateClangDefsym(options, "stride_h", 1);
+    GenerateClangDefsym(options, "stride_w", 1);
+    GenerateClangDefsym(options, "img_h", AsmImgHeight(params)); // H
+    GenerateClangDefsym(options, "img_w", AsmImgWidth(params));  // W
 
     // Note that params.n_outputs and params.n_inputs are swapped for backward convolutions.
     GenerateClangDefsym(options, "batch_size", params.batch_sz);       // N
@@ -511,13 +487,9 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     kinfo.g_wk.clear(); // gridsize
     const int hw_per_wave = pcfg->GetChunksPerWave() * pcfg->GetChunkSize();
 
-    if(params.direction.IsForward())
-        kinfo.g_wk.push_back(
-            kinfo.l_wk[0] *
-            divide_round_plus_inf(params.out_height * params.out_width, hw_per_wave));
-    else
-        kinfo.g_wk.push_back(
-            kinfo.l_wk[0] * divide_round_plus_inf(params.in_height * params.in_width, hw_per_wave));
+    kinfo.g_wk.push_back(
+        kinfo.l_wk[0] *
+        divide_round_plus_inf(AsmImgHeight(params) * AsmImgWidth(params), hw_per_wave));
 
     kinfo.g_wk.push_back(divide_round_plus_inf(params.n_outputs, pcfg->GetKMult()));
     const int n_images_per_wave = pcfg->GetNBlocksPerWave() * pcfg->GetNPerGpr();
