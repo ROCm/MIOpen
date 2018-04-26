@@ -48,7 +48,7 @@ static inline bool UseSubsample(const ConvolutionContext& c)
 
 static inline bool UseUpsample(const ConvolutionContext& c)
 {
-    return (c.kernel_stride0 > 1 || c.kernel_stride1 > 1) && !c.direction.IsForward();
+    return (c.kernel_stride0 > 1 || c.kernel_stride1 > 1) && c.direction.IsBackward();
 }
 
 static inline int AsmImgHeight(const ConvolutionContext& c)
@@ -412,7 +412,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
         kernel.kernel_file = "MIOpenUtilKernels3.cl";
 
-        if(params.direction.IsForward())
+        if(UseSubsample(params))
             kernel.kernel_name = "SubSample";
         else
             kernel.kernel_name = "UpSample";
