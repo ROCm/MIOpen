@@ -174,10 +174,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
             construct_params.getCompiledInParameters(
                 &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
 
-            if(direction == 1)
-                extraArgs = std::make_tuple(N, C, out_H, out_W, K, n_groups);
-            else
-                extraArgs = std::make_tuple(N, C, H, W, K, n_groups);
+            extraArgs = std::make_tuple(N, C, H, W, K, n_groups, out_H, out_W);
         }
 
         const std::vector<mlo_kernel_info>& bwd_wrw_info = construct_params.getKernelsInfo();
@@ -564,12 +561,13 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                         {
                             int unused       = 0;
                             int* return_addr = nullptr;
-                            int N, C, H, W, K, n_groups;
-                            std::tie(N, C, H, W, K, n_groups) = eka;
+                            int N, C, K, n_groups, out_H, out_W;
+                            std::tie(N, C, std::ignore, std::ignore, K, n_groups, out_H, out_W) =
+                                eka;
                             k(N,
                               C,
-                              H,
-                              W,
+                              out_H,
+                              out_W,
                               K,
                               n_groups,
                               unused,
@@ -1299,6 +1297,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 float padding_val = 0;
 
                 visit_float(dyDesc.GetType(), [&](auto as_float) {
+                    int n_kernels = 0;
                     for(auto& k : kernel_direct)
                     {
                         if(k.GetName() == "UpSample")
@@ -1314,37 +1313,20 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                             int unused       = 0;
                             int* return_addr = nullptr;
                             int N, C, H, W, K, n_groups;
-                            std::tie(N, C, H, W, K, n_groups) = eka;
-                            if(workspace_req != 0)
-                            {
-                                k(N,
-                                  C,
-                                  H,
-                                  W,
-                                  K,
-                                  n_groups,
-                                  unused,
-                                  unused,
-                                  dy,
-                                  w,
-                                  workSpace,
-                                  return_addr);
-                            }
-                            else
-                            {
-                                k(N,
-                                  C,
-                                  H,
-                                  W,
-                                  K,
-                                  n_groups,
-                                  unused,
-                                  unused,
-                                  dy,
-                                  w,
-                                  tmp_dx.get(),
-                                  return_addr);
-                            }
+                            std::tie(N, C, H, W, K, n_groups, std::ignore, std::ignore) = eka;
+                            k(N,
+                              C,
+                              H,
+                              W,
+                              K,
+                              n_groups,
+                              unused,
+                              unused,
+                              dy,
+                              w,
+                              (n_kernels == 1) ? workSpace : tmp_dx.get(),
+                              return_addr);
+
                             time_direct += handle.GetKernelTime();
                         }
                         else
@@ -1352,6 +1334,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                             k(dy, w, tmp_dx.get(), as_float(padding_val));
                             time_direct += handle.GetKernelTime();
                         }
+                        n_kernels++;
                     }
                 });
 
