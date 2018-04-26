@@ -39,8 +39,7 @@
 #endif
 
 #define WORKAROUND_ISSUE_791 1 /// \todo Fix & remove the workaround.
-#define WORKAROUND_ISSUE_791_NEW \
-    0 /// \todo Fix & remove the workaround. /// FIXME get rid of this or create ticket.
+#define WORKAROUND_FIXME_FWD 1 /// \todo Fix & remove the workaround.
 
 namespace miopen {
 
@@ -288,7 +287,7 @@ inline float RunConvDataDirectSolution(Handle& handle,
     return elapsed;
 }
 
-#if(WORKAROUND_ISSUE_791 || WORKAROUND_ISSUE_791_NEW)
+#if(WORKAROUND_ISSUE_791 || WORKAROUND_FIXME_FWD)
 static inline bool IsPureOpenCLSolution(const miopen::solver::ConvSolution& s)
 {
     for(auto& k : s.construction_params)
@@ -571,13 +570,13 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 const std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
                 miopen::solver::ConvSolution selected{miopenStatusUnknownError};
                 float best = std::numeric_limits<float>::max();
-#if WORKAROUND_ISSUE_791_NEW
+#if WORKAROUND_FIXME_FWD
                 int n_pure_opencl_solutions = 0;
 #endif
                 visit_float(xDesc.GetType(), [&](auto as_float) {
                     for(const auto& sol : directAll)
                     {
-#if WORKAROUND_ISSUE_791_NEW
+#if WORKAROUND_FIXME_FWD
                         /// Try only the first "pure" OpenCL solution.
                         /// It seems that OpenCL solvers imply that only the 1st one
                         /// applicable solution shall be used while the rest of OpenCL
