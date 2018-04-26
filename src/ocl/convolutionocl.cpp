@@ -716,9 +716,9 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     kernel(x, workSpace);
 
                     auto kernels = handle.GetKernels(algorithm_name, network_config);
-                    assert(kernels.size() == 2 && kernel2.GetName() == "gcnAsmConv1x1U");
 
                     auto kernel2 = kernels[1];
+                    assert(kernel2.GetName() == "gcnAsmConv1x1U");
 
                     int unused       = 0;
                     int* return_addr = nullptr;
