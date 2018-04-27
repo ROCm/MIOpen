@@ -1324,24 +1324,106 @@ static std::vector<std::size_t> get_worker_sizes(const std::vector<std::size_t>&
     return worker_sizes;
 }
 
-template<typename T>
+template <typename T>
 std::ostream& operator<<(std::ostream& os, const std::vector<T>& vs)
 {
     os << "{ ";
-    for(auto & v : vs)
-       os << v << " ";
+    for(auto& v : vs)
+        os << v << " ";
     os << "}";
-    return os;  
+    return os;
 }
 
-template<typename T, std::size_t N>
-std::ostream& operator<<(std::ostream& os, const std::array<T,N>& vs)  
+template <typename T, std::size_t N>
+std::ostream& operator<<(std::ostream& os, const std::array<T, N>& vs)
 {
     os << "{ ";
-    for(auto & v : vs)
-       os << v << " ";
+    for(auto& v : vs)
+        os << v << " ";
     os << "}";
-    return os;  
+    return os;
+}
+
+void flatten_tensor_descriptor(const TensorDescriptor& desc,
+                                   std::size_t& flattened_dim,
+                                   std::vector<std::size_t>& flattened_lengths,
+                                   std::vector<std::size_t>& flattened_strides)
+{
+    flattened_dim = 0;
+    flattened_lengths.clear();
+    flattened_strides.clear();
+
+    // is packed
+    if(desc.IsPacked())
+    {
+        flattened_dim = 1;
+        flattened_lengths.push_back(desc.GetElementSize());
+        flattened_strides.push_back(1);
+
+        return;
+    }
+
+    // is non-packed tensor, get rid of dimension, where length is 1
+    std::size_t dim = 0;
+    std::vector<std::size_t> lengths;
+    std::vector<std::size_t> strides;
+
+    for(std::size_t i = 0; i < desc.GetSize(); ++i)
+    {
+        std::size_t len = desc.GetLengths()[i];
+        if(len > 1)
+        {
+            ++dim;
+            lengths.push_back(len);
+            strides.push_back(desc.GetStrides()[i]);
+        }
+    }
+
+    std::cout << "get rid of 1 lengths: " << lengths << std::endl
+              << "get rid of 1 strides: " << strides << std::endl;
+
+    // is a scalar
+    if(dim == 0)
+    {
+        flattened_dim = 1;
+        flattened_lengths.push_back(1);
+        flattened_strides.push_back(1);
+
+        return;
+    }
+
+    // start flattening tensor
+    std::vector<std::size_t> full_lengths(dim);
+
+    full_lengths[0] = std::numeric_limits<std::size_t>::max();
+    for(std::size_t i = 1; i < dim; ++i)
+        full_lengths[i] = strides[i - 1] / strides[i];
+
+    std::cout << __func__ << ": full_lengths: " << full_lengths << std::endl;
+
+    auto flattened_len = lengths[0];
+    for(std::size_t i = 1; i < dim; ++i)
+    {
+        auto len      = lengths[i];
+        auto full_len = full_lengths[i];
+
+        if(len == full_len)
+            flattened_len *= len;
+        else
+        {
+            flattened_lengths.push_back(flattened_len);
+            flattened_strides.push_back(strides[i-1]);
+            flattened_len = lengths[i];
+        }
+    }
+    flattened_lengths.push_back(flattened_len);
+    flattened_strides.push_back(strides[dim-1]);
+
+    flattened_dim = flattened_lengths.size();
+
+    std::cout << "flattened lengths: " << flattened_lengths << std::endl
+              << "flattened strides: " << flattened_strides << std::endl;
+    return;
 }
 
 void SetTensor(
@@ -1352,16 +1434,20 @@ void SetTensor(
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    auto ydim = yDesc.GetLengths().size();
+    std::size_t flattened_dim;
+    std::vector<std::size_t> flattened_lengths;
+    std::vector<std::size_t> flattened_strides;
 
-    assert(ydim > 0 && ydim <= 5);
+    flatten_tensor_descriptor(
+        yDesc, flattened_dim, flattened_lengths, flattened_strides);
 
-    std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(ydim) + "d";
+    assert(flattened_dim > 0 && flattened_dim <= 5);
 
-    const std::vector<std::size_t>& lens = yDesc.GetLengths();
+    std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(flattened_dim) + "d";
 
-    std::string network_config = "set " + std::to_string(yDesc.GetType());
-    for(auto& len : lens)
+    const miopenDataType_t dataType = yDesc.GetType();
+    std::string network_config      = "set " + std::to_string(dataType);
+    for(auto& len : flattened_lengths)
     {
         network_config += " " + std::to_string(len);
     }
@@ -1378,7 +1464,7 @@ void SetTensor(
     {
         std::string program_name = "MIOpenSubTensorOpWithScalarKernel.cl";
 
-        std::vector<std::size_t> worker_sizes = get_worker_sizes(lens);
+        std::vector<std::size_t> worker_sizes = get_worker_sizes(flattened_lengths);
 
         std::size_t wgd = std::accumulate(worker_sizes.begin(),
                                           worker_sizes.end(),
@@ -1388,8 +1474,8 @@ void SetTensor(
         std::size_t wld = 256 < wgd ? 256 : wgd;
 
         std::string parms = "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_SET" +
-                            parms_half_or_float(yDesc.GetType());
-        for(int i = 0; i < ydim; ++i)
+                            parms_half_or_float(dataType);
+        for(int i = 0; i < flattened_dim; ++i)
         {
             parms += " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
         }
@@ -1402,92 +1488,95 @@ void SetTensor(
                                   {wgd, 1, 1},
                                   parms);
         std::cout << __func__ << std::endl
-                              << "lens : " << lens << std::endl
-                              << "worker_sizes: " << worker_sizes << std::endl
-                              << "wgd: " << wgd << ", wld: " << wld << std::endl;
+                  << "real lengths: " << yDesc.GetLengths() << std::endl
+                  << "real strides: " << yDesc.GetStrides() << std::endl
+                  << "flattened_lengths: " << flattened_lengths << std::endl
+                  << "flattened_strides: " << flattened_strides << std::endl
+                  << "worker_sizes: " << worker_sizes << std::endl
+                  << "wgd: " << wgd << ", wld: " << wld << std::endl;
     }
 
     std::cout << __func__ << "global: " << kernel.global_work_dim << std::endl
-                          << "local: "  << kernel.local_work_dim << std::endl
-                          << std::endl;
-    switch(ydim)
+              << "local: " << kernel.local_work_dim << std::endl
+              << std::endl;
+    switch(flattened_dim)
     {
     case 1:
     {
-        visit_float(yDesc.GetType(), [&](auto as_float) {
+        visit_float((dataType), [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc.GetStrides()[0]),
-                   int(yDesc.GetLengths()[0]));
+                   int(flattened_strides[0]),
+                   int(flattened_lengths[0]));
         });
 
         break;
     }
     case 2:
     {
-        visit_float(yDesc.GetType(), [&](auto as_float) {
+        visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc.GetStrides()[0]),
-                   int(yDesc.GetStrides()[1]),
-                   int(yDesc.GetLengths()[0]),
-                   int(yDesc.GetLengths()[1]));
+                   int(flattened_strides[0]),
+                   int(flattened_strides[1]),
+                   int(flattened_lengths[0]),
+                   int(flattened_lengths[1]));
         });
 
         break;
     }
     case 3:
     {
-        visit_float(yDesc.GetType(), [&](auto as_float) {
+        visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc.GetStrides()[0]),
-                   int(yDesc.GetStrides()[1]),
-                   int(yDesc.GetStrides()[2]),
-                   int(yDesc.GetLengths()[0]),
-                   int(yDesc.GetLengths()[1]),
-                   int(yDesc.GetLengths()[2]));
+                   int(flattened_strides[0]),
+                   int(flattened_strides[1]),
+                   int(flattened_strides[2]),
+                   int(flattened_lengths[0]),
+                   int(flattened_lengths[1]),
+                   int(flattened_lengths[2]));
         });
 
         break;
     }
     case 4:
     {
-        visit_float(yDesc.GetType(), [&](auto as_float) {
+        visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc.GetStrides()[0]),
-                   int(yDesc.GetStrides()[1]),
-                   int(yDesc.GetStrides()[2]),
-                   int(yDesc.GetStrides()[3]),
-                   int(yDesc.GetLengths()[0]),
-                   int(yDesc.GetLengths()[1]),
-                   int(yDesc.GetLengths()[2]),
-                   int(yDesc.GetLengths()[3]));
+                   int(flattened_strides[0]),
+                   int(flattened_strides[1]),
+                   int(flattened_strides[2]),
+                   int(flattened_strides[3]),
+                   int(flattened_lengths[0]),
+                   int(flattened_lengths[1]),
+                   int(flattened_lengths[2]),
+                   int(flattened_lengths[3]));
         });
 
         break;
     }
     case 5:
     {
-        visit_float(yDesc.GetType(), [&](auto as_float) {
+        visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc.GetStrides()[0]),
-                   int(yDesc.GetStrides()[1]),
-                   int(yDesc.GetStrides()[2]),
-                   int(yDesc.GetStrides()[3]),
-                   int(yDesc.GetStrides()[4]),
-                   int(yDesc.GetLengths()[0]),
-                   int(yDesc.GetLengths()[1]),
-                   int(yDesc.GetLengths()[2]),
-                   int(yDesc.GetLengths()[3]),
-                   int(yDesc.GetLengths()[4]));
+                   int(flattened_strides[0]),
+                   int(flattened_strides[1]),
+                   int(flattened_strides[2]),
+                   int(flattened_strides[3]),
+                   int(flattened_strides[4]),
+                   int(flattened_lengths[0]),
+                   int(flattened_lengths[1]),
+                   int(flattened_lengths[2]),
+                   int(flattened_lengths[3]),
+                   int(flattened_lengths[4]));
         });
 
         break;
