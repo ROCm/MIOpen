@@ -171,31 +171,66 @@ regLDSreduce(_FLOAT* value, __local _FLOAT* data, unsigned int localID, _FLOAT s
 
 #ifdef __AMDGCN__
 
-static inline void dpp_reduction(_FLOAT *temp_sum)
+static inline void dpp_reduction(_FLOAT* temp_sum)
 {
-    __asm__ volatile ("v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0\ns_nop 1" : "=v"(*temp_sum) : "0"(*temp_sum));
-    __asm__ volatile ("v_add_f32 %0 %0 %0 row_shr:2 bound_ctrl:0\ns_nop 1" : "=v"(*temp_sum) : "0"(*temp_sum));
-    __asm__ volatile ("v_add_f32 %0 %0 %0 row_shr:4 bank_mask:0xe\ns_nop 1" : "=v"(*temp_sum) : "0"(*temp_sum));
-    __asm__ volatile ("v_add_f32 %0 %0 %0 row_shr:8 bank_mask:0xc\ns_nop 1" : "=v"(*temp_sum) : "0"(*temp_sum));
-    __asm__ volatile ("v_add_f32 %0 %0 %0 row_bcast:15 row_mask:0xa\ns_nop 1" : "=v"(*temp_sum) : "0"(*temp_sum));
-    __asm__ volatile ("v_add_f32 %0 %0 %0 row_bcast:31 row_mask:0xc\ns_nop 1" : "=v"(*temp_sum) : "0"(*temp_sum));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0\ns_nop 1"
+                     : "=v"(*temp_sum)
+                     : "0"(*temp_sum));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:2 bound_ctrl:0\ns_nop 1"
+                     : "=v"(*temp_sum)
+                     : "0"(*temp_sum));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:4 bank_mask:0xe\ns_nop 1"
+                     : "=v"(*temp_sum)
+                     : "0"(*temp_sum));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:8 bank_mask:0xc\ns_nop 1"
+                     : "=v"(*temp_sum)
+                     : "0"(*temp_sum));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_bcast:15 row_mask:0xa\ns_nop 1"
+                     : "=v"(*temp_sum)
+                     : "0"(*temp_sum));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_bcast:31 row_mask:0xc\ns_nop 1"
+                     : "=v"(*temp_sum)
+                     : "0"(*temp_sum));
 }
 
-static inline void dpp_interleaved_reduction(_FLOAT *temp_sum1, _FLOAT *temp_sum2)
+static inline void dpp_interleaved_reduction(_FLOAT* temp_sum1, _FLOAT* temp_sum2)
 {
-    __asm__ volatile ("v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0" : "=v"(*temp_sum1) : "0"(*temp_sum1));
-    __asm__ volatile ("v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0\ns_nop 0" : "=v"(*temp_sum2) : "0"(*temp_sum2));
-    __asm__ volatile ("v_add_f32 %0 %0 %0 row_shr:2 bound_ctrl:0" : "=v"(*temp_sum1) : "0"(*temp_sum1));
-    __asm__ volatile ("v_add_f32 %0 %0 %0 row_shr:2 bound_ctrl:0\ns_nop 0" : "=v"(*temp_sum2) : "0"(*temp_sum2));
-    __asm__ volatile ("v_add_f32 %0 %0 %0 row_shr:4 bank_mask:0xe" : "=v"(*temp_sum1) : "0"(*temp_sum1));
-    __asm__ volatile ("v_add_f32 %0 %0 %0 row_shr:4 bank_mask:0xe\ns_nop 0" : "=v"(*temp_sum2) : "0"(*temp_sum2));
-    __asm__ volatile ("v_add_f32 %0 %0 %0 row_shr:8 bank_mask:0xc\n" : "=v"(*temp_sum1) : "0"(*temp_sum1));
-    __asm__ volatile ("v_add_f32 %0 %0 %0 row_shr:8 bank_mask:0xc\ns_nop 0" : "=v"(*temp_sum2) : "0"(*temp_sum2));
-    __asm__ volatile ("v_add_f32 %0 %0 %0 row_bcast:15 row_mask:0xa\n" : "=v"(*temp_sum1) : "0"(*temp_sum1));
-    __asm__ volatile ("v_add_f32 %0 %0 %0 row_bcast:15 row_mask:0xa\ns_nop 0" : "=v"(*temp_sum2) : "0"(*temp_sum2));
-    __asm__ volatile ("v_add_f32 %0 %0 %0 row_bcast:31 row_mask:0xc" : "=v"(*temp_sum1) : "0"(*temp_sum1));
-    __asm__ volatile ("v_add_f32 %0 %0 %0 row_bcast:31 row_mask:0xc\ns_nop 0" : "=v"(*temp_sum2) : "0"(*temp_sum2));
-
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0"
+                     : "=v"(*temp_sum1)
+                     : "0"(*temp_sum1));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0\ns_nop 0"
+                     : "=v"(*temp_sum2)
+                     : "0"(*temp_sum2));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:2 bound_ctrl:0"
+                     : "=v"(*temp_sum1)
+                     : "0"(*temp_sum1));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:2 bound_ctrl:0\ns_nop 0"
+                     : "=v"(*temp_sum2)
+                     : "0"(*temp_sum2));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:4 bank_mask:0xe"
+                     : "=v"(*temp_sum1)
+                     : "0"(*temp_sum1));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:4 bank_mask:0xe\ns_nop 0"
+                     : "=v"(*temp_sum2)
+                     : "0"(*temp_sum2));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:8 bank_mask:0xc\n"
+                     : "=v"(*temp_sum1)
+                     : "0"(*temp_sum1));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:8 bank_mask:0xc\ns_nop 0"
+                     : "=v"(*temp_sum2)
+                     : "0"(*temp_sum2));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_bcast:15 row_mask:0xa\n"
+                     : "=v"(*temp_sum1)
+                     : "0"(*temp_sum1));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_bcast:15 row_mask:0xa\ns_nop 0"
+                     : "=v"(*temp_sum2)
+                     : "0"(*temp_sum2));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_bcast:31 row_mask:0xc"
+                     : "=v"(*temp_sum1)
+                     : "0"(*temp_sum1));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_bcast:31 row_mask:0xc\ns_nop 0"
+                     : "=v"(*temp_sum2)
+                     : "0"(*temp_sum2));
 }
 
 #endif
@@ -270,7 +305,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         mean += batchvalues[MIO_BN_NLOOPM];
         variance = mad(batchvalues[MIO_BN_NLOOPM], batchvalues[MIO_BN_NLOOPM], variance);
     }
-
+    barrier(CLK_LOCAL_MEM_FENCE);
 #ifndef __AMDGCN__
     __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
 
@@ -390,7 +425,6 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #define MIO_BN_REMOUT (MIO_BN_NHW - ((MIO_BN_NHW / MIO_BN_CHUNK) * MIO_BN_CHUNK))
 #define MIO_BN_LESSOUT (MIO_BN_NHW - MIO_BN_REMOUT)
 
-
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT* __restrict out,
@@ -411,7 +445,6 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                )
 {
 
-
     // SPATIAL
     _FLOAT mean        = (_FLOAT)0.;
     _FLOAT variance    = (_FLOAT)0.;
@@ -423,12 +456,11 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
     int index = 0;
     int lid   = get_local_id(0);
-    int gid  = get_global_id(0);
+    int gid   = get_global_id(0);
     int grpid = get_group_id(0);
     int chwid = grpid * MIO_BN_HW;
     int nidx  = 0;
     int hwidx = 0;
-
 
     if(lid == 0)
     {
@@ -437,25 +469,26 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    __attribute__((opencl_unroll_hint(2))) 
-    for(unsigned int k = lid; k < MIO_BN_LESS; k += MIO_BN_GRP0)
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid; k < MIO_BN_LESS;
+                                               k += MIO_BN_GRP0)
     {
-        nidx           = k / MIO_BN_HW;
-        hwidx          = k - (nidx * MIO_BN_HW);
-        index          = nidx * MIO_BN_CHW + chwid + hwidx;
+        nidx       = k / MIO_BN_HW;
+        hwidx      = k - (nidx * MIO_BN_HW);
+        index      = nidx * MIO_BN_CHW + chwid + hwidx;
         _FLOAT xin = *(in + index);
         mean += xin;
-        variance        = mad(xin, xin, variance);
+        variance = mad(xin, xin, variance);
     }
 #if(MIO_BN_REM)
-    if(lid < MIO_BN_REM){
+    if(lid < MIO_BN_REM)
+    {
         unsigned int remkey = lid + MIO_BN_LESS;
         nidx                = remkey / MIO_BN_HW;
         hwidx               = remkey - (nidx * MIO_BN_HW);
         index               = nidx * MIO_BN_CHW + chwid + hwidx;
-        _FLOAT xin = *(in + index);
+        _FLOAT xin          = *(in + index);
         mean += xin;
-        variance           = mad(xin, xin, variance);
+        variance = mad(xin, xin, variance);
     }
 #endif
 
@@ -515,43 +548,44 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     pvbias  = lcl_bias;
     _FLOAT xhat[MIO_MAX_READ];
 
-    __attribute__((opencl_unroll_hint(2))) 
-    for(unsigned int k = (MIO_MAX_READ*lid); k < MIO_BN_LESSOUT; k += MIO_BN_CHUNK)
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = (MIO_MAX_READ * lid);
+                                               k < MIO_BN_LESSOUT;
+                                               k += MIO_BN_CHUNK)
     {
-        for(unsigned int j = 0; j <MIO_MAX_READ ; j++ )
+        for(unsigned int j = 0; j < MIO_MAX_READ; j++)
         {
-            unsigned int l = k+j;
-            nidx       = l / MIO_BN_HW;
-            hwidx      = l - (nidx * MIO_BN_HW);
-            index      = nidx * MIO_BN_CHW + chwid + hwidx;
-            xhat[j]    = (*(in + index) - mean) * invVariance;
+            unsigned int l = k + j;
+            nidx           = l / MIO_BN_HW;
+            hwidx          = l - (nidx * MIO_BN_HW);
+            index          = nidx * MIO_BN_CHW + chwid + hwidx;
+            xhat[j]        = (*(in + index) - mean) * invVariance;
         }
-        for(unsigned int j = 0; j <MIO_MAX_READ ; j++ )
+        for(unsigned int j = 0; j < MIO_MAX_READ; j++)
         {
-            unsigned int l = k+j;
-            nidx       = l / MIO_BN_HW;
-            hwidx      = l - (nidx * MIO_BN_HW);
-            index      = nidx * MIO_BN_CHW + chwid + hwidx;
+            unsigned int l = k + j;
+            nidx           = l / MIO_BN_HW;
+            hwidx          = l - (nidx * MIO_BN_HW);
+            index          = nidx * MIO_BN_CHW + chwid + hwidx;
             *(out + index) = mad(pvscale, xhat[j], pvbias);
         }
     } // end for
 #if(MIO_BN_REMOUT)
-    unsigned int remkeyout = (MIO_MAX_READ*lid) + MIO_BN_LESSOUT;
-    for(unsigned int j = 0; j <MIO_MAX_READ ; j++)
+    unsigned int remkeyout = (MIO_MAX_READ * lid) + MIO_BN_LESSOUT;
+    for(unsigned int j = 0; j < MIO_MAX_READ; j++)
     {
-        unsigned int l = remkeyout+j;
-        nidx       = l / MIO_BN_HW;
-        hwidx      = l - (nidx * MIO_BN_HW);
-        index      = nidx * MIO_BN_CHW + chwid + hwidx;
-        _FLOAT xin = (index < MIO_BN_NCHW) ? *(in + index) : 0.;
-        xhat[j]    = (xin - mean) * invVariance;
+        unsigned int l = remkeyout + j;
+        nidx           = l / MIO_BN_HW;
+        hwidx          = l - (nidx * MIO_BN_HW);
+        index          = nidx * MIO_BN_CHW + chwid + hwidx;
+        _FLOAT xin     = (index < MIO_BN_NCHW) ? *(in + index) : 0.;
+        xhat[j]        = (xin - mean) * invVariance;
     }
-    for(unsigned int j = 0; j <MIO_MAX_READ ; j++ )
+    for(unsigned int j = 0; j < MIO_MAX_READ; j++)
     {
-        unsigned int l = remkeyout+j;
-        nidx       = l / MIO_BN_HW;
-        hwidx      = l - (nidx * MIO_BN_HW);
-        index      = nidx * MIO_BN_CHW + chwid + hwidx;
+        unsigned int l = remkeyout + j;
+        nidx           = l / MIO_BN_HW;
+        hwidx          = l - (nidx * MIO_BN_HW);
+        index          = nidx * MIO_BN_CHW + chwid + hwidx;
         if(index < MIO_BN_NCHW)
         {
             *(out + index) = mad(pvscale, xhat[j], pvbias);
@@ -570,7 +604,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #endif
 
 #if(MIO_RUNNING_RESULT == 1)
-        _FLOAT pvt_runMean              = *(resultRunningMean + grpid);
+        _FLOAT pvt_runMean               = *(resultRunningMean + grpid);
         _FLOAT pvt_newRunMean =
             mad((_FLOAT)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
         resultRunningMean[grpid] =
@@ -578,8 +612,9 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         const _FLOAT adjust = (MIO_BN_NHW == 1)
                                   ? variance
                                   : variance * ((_FLOAT)MIO_BN_NHW / (_FLOAT)(MIO_BN_NHW - 1.0));
-        resultRunningVariance[grpid] = (1 - (_FLOAT)expAvgFactor) * *(resultRunningVariance + grpid) +
-                                      (_FLOAT)expAvgFactor * adjust;
+        resultRunningVariance[grpid] =
+            (1 - (_FLOAT)expAvgFactor) * *(resultRunningVariance + grpid) +
+            (_FLOAT)expAvgFactor * adjust;
 #endif
     }
 #endif
@@ -907,8 +942,9 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     __local _FLOAT lcl_scale;
 
     unsigned int index;
-    unsigned int lid  = get_local_id(1);
-    unsigned int xgid = get_global_id(0);
+    unsigned int lid   = get_local_id(0);
+    unsigned int grpid = get_group_id(0);
+    unsigned int cidx  = grpid * MIO_BN_HW;
 
 #if(MIO_BN_N < MIO_BN_MAXN)
     _FLOAT minibatch[MIO_BN_N];
@@ -916,8 +952,8 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
     if(lid == 0)
     {
-        lcl_scale = *(scale + xgid);
-        lcl_bias  = *(bias + xgid);
+        lcl_scale = *(scale + grpid);
+        lcl_bias  = *(bias + grpid);
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     // MEAN
@@ -925,7 +961,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     {
         __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_N; n++)
         {
-            index        = n * MIO_BN_CHW + xgid * MIO_BN_HW + lid;
+            index        = n * MIO_BN_CHW + cidx + lid;
 #if(MIO_BN_N < MIO_BN_MAXN)
             minibatch[n] = *(in + index);
             mean += minibatch[n];
@@ -937,7 +973,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #endif
         }
     }
-
+    barrier(CLK_LOCAL_MEM_FENCE);
 #ifndef __AMDGCN__
     __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
 
@@ -1006,7 +1042,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         { // apply normalization
-            index      = n * MIO_BN_CHW + xgid * MIO_BN_HW + lid;
+            index      = n * MIO_BN_CHW + cidx + lid;
 #if(MIO_BN_N < MIO_BN_MAXN)
             inhat      = (minibatch[n] - mean) * invVariance; // (in[index] - mean) * invVariance;
 #else
@@ -1017,26 +1053,27 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }     // end if
 
 #if(MIO_SAVE_MEAN_VARIANCE == 1 || MIO_RUNNING_RESULT == 1)
-    if(get_global_id(1) == 0)
+    if(lid == 0)
     {
 
 // Save mean and calculate and save running mean
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-        *(resultSaveMean + xgid)        = mean;
-        *(resultSaveInvVariance + xgid) = invVariance;
+        *(resultSaveMean + grpid)        = mean;
+        *(resultSaveInvVariance + grpid) = invVariance;
 #endif
 
 #if(MIO_RUNNING_RESULT == 1)
-        _FLOAT pvt_runMean              = *(resultRunningMean + xgid);
+        _FLOAT pvt_runMean               = *(resultRunningMean + grpid);
         _FLOAT pvt_newRunMean =
             mad((_FLOAT)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
-        resultRunningMean[xgid] =
+        resultRunningMean[grpid] =
             mad(mean, (_FLOAT)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
         const _FLOAT adjust = (MIO_BN_NHW == 1)
                                   ? variance
                                   : variance * ((_FLOAT)MIO_BN_NHW / (_FLOAT)(MIO_BN_NHW - 1.0));
-        resultRunningVariance[xgid] = (1 - (_FLOAT)expAvgFactor) * *(resultRunningVariance + xgid) +
-                                      (_FLOAT)expAvgFactor * adjust;
+        resultRunningVariance[grpid] =
+            (1 - (_FLOAT)expAvgFactor) * *(resultRunningVariance + grpid) +
+            (_FLOAT)expAvgFactor * adjust;
 #endif
     }
 #endif
