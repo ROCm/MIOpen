@@ -133,21 +133,20 @@ void BatchNormForwardTraining(Handle& handle,
         unsigned int ldsnogcn = 0;
         if(in_nhw < 33554432 && in_cstride > 1024)
         {
-            variant    = 1;
-            xlocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
-            xgridsize  = xlocalsize * c;
-            ygridsize  = 1;
-            ldsgcn     = xlocalsize / 64;
-            ldsnogcn   = xlocalsize;
+            variant = 1;
+            xlocalsize =
+                1024; // std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
+            xgridsize = xlocalsize * c;
+            ldsgcn    = xlocalsize / 64;
+            ldsnogcn  = xlocalsize;
         }
         else if(in_nhw < 33554432 && in_cstride > 512)
         {
             variant    = 3;
-            ylocalsize = 64 * ((in_cstride + 63) / 64);
-            xgridsize  = c;
-            ygridsize  = ylocalsize;
-            ldsgcn     = ylocalsize / 64;
-            ldsnogcn   = ylocalsize;
+            xlocalsize = 64 * ((in_cstride + 63) / 64);
+            xgridsize  = c * xlocalsize;
+            ldsgcn     = xlocalsize / 64;
+            ldsnogcn   = xlocalsize;
         }
         else if(in_cstride <= 512)
         {
@@ -840,19 +839,18 @@ void BatchNormBackward(Handle& handle,
         if(in_nhw < 33554432 && in_cstride > 1024)
         {
             variant    = 1;
-            xlocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
-            xgridsize  = c*xlocalsize;
+            xlocalsize = 1024;
+            xgridsize  = c * xlocalsize;
             ldsgcn     = xlocalsize / 64;
             ldsnogcn   = xlocalsize;
         }
         else if(in_nhw < 33554432 && in_cstride > 512)
         {
             variant    = (n >= 32) ? 1 : 3;
-            ylocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
-            xgridsize  = c;
-            ygridsize  = ylocalsize;
-            ldsgcn     = ylocalsize / 64;
-            ldsnogcn   = ylocalsize;
+            xlocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
+            xgridsize  = c * xlocalsize;
+            ldsgcn     = xlocalsize / 64;
+            ldsnogcn   = xlocalsize;
         }
         else if(in_cstride <= 512)
         {
@@ -873,7 +871,7 @@ void BatchNormBackward(Handle& handle,
             ldsgcn       = ylocalsize / 64;
             ldsnogcn     = ylocalsize;
         }
-//        printf("VARIANT: %d\n",variant);
+        //        printf("VARIANT: %d\n",variant);
 
         std::string algo_name = "miopenBatchNormBackwardPropSpatial";
         std::string network_config =
