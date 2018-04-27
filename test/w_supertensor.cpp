@@ -105,12 +105,6 @@ std::vector<float> generate_w_tensor(miopenRNNDescriptor_t rnnDesc,
                     size_t biasSize = 0;
                     miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
 
-                    if((inMode == miopenRNNskip) && (layer < 2) && (layerID < num_HiddenLayer))
-                    {
-                        EXPECT(biasSize == 0);
-                        continue;
-                    }
-
                     biasSize /= sizeof(float);
 
                     for(int i = 0; i < biasSize; i++)
@@ -161,12 +155,6 @@ std::vector<float> generate_w_tensor(miopenRNNDescriptor_t rnnDesc,
                 {
                     size_t biasSize = 0;
                     miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
-
-                    if((inMode == miopenRNNskip) && (layer < 1) && (layerID < num_HiddenLayer))
-                    {
-                        EXPECT(biasSize == 0);
-                        continue;
-                    }
 
                     biasSize /= sizeof(float);
 
@@ -290,7 +278,7 @@ struct verify_w_tensor_get
         {
             for(int layer = 0; layer < num_layer * bi; layer++)
             {
-                int layerID = (inMode == miopenRNNskip && layer < bi) ? num_HiddenLayer : 0;
+                int layerID = 0;
 
                 for(; layerID < num_HiddenLayer * 2; layerID++)
                 {
@@ -444,7 +432,12 @@ struct verify_w_tensor_set
                                        layerID,
                                        paramTensor,
                                        param_dev_in.get());
+            }
 
+            layerID = 0;
+
+            for(; layerID < num_HiddenLayer * 2; layerID++)
+            {
                 if(biasMode == miopenRNNwithBias)
                 {
                     size_t biasSize = 0;
