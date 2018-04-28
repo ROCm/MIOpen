@@ -85,25 +85,25 @@ struct TestData
     {
     };
 
-    inline TestData(NoInit) : x(0), y(0) {}
-    inline TestData(Random& rnd) : x(rnd.Next()), y(rnd.Next()) {}
-    inline TestData() : x(Rnd().Next()), y(Rnd().Next()) {}
-    inline TestData(int x_, int y_) : x(x_), y(y_) {}
+    TestData(NoInit) : x(0), y(0) {}
+    TestData(Random& rnd) : x(rnd.Next()), y(rnd.Next()) {}
+    TestData() : x(Rnd().Next()), y(Rnd().Next()) {}
+    TestData(int x_, int y_) : x(x_), y(y_) {}
 
     template <unsigned int seed>
-    static inline TestData Seeded()
+    static TestData Seeded()
     {
         static Random rnd(seed);
         return {static_cast<int>(rnd.Next()), static_cast<int>(rnd.Next())};
     }
 
-    inline void Serialize(std::ostream& s) const
+    void Serialize(std::ostream& s) const
     {
         static const auto sep = ',';
         s << x << sep << y;
     }
 
-    inline bool Deserialize(const std::string& s)
+    bool Deserialize(const std::string& s)
     {
         static const auto sep = ',';
         TestData t(NoInit{});
@@ -118,10 +118,10 @@ struct TestData
         return true;
     }
 
-    inline bool operator==(const TestData& other) const { return x == other.x && y == other.y; }
+    bool operator==(const TestData& other) const { return x == other.x && y == other.y; }
 
     private:
-    static inline bool DeserializeField(std::istream& from, int* ret, char separator)
+    static bool DeserializeField(std::istream& from, int* ret, char separator)
     {
         std::string part;
 
@@ -139,7 +139,7 @@ struct TestData
         return true;
     }
 
-    static inline Random& Rnd()
+    static Random& Rnd()
     {
         static Random rnd;
         return rnd;
@@ -171,7 +171,7 @@ class DbTest
         return data;
     }
 
-    inline void ResetDb() const { (void)std::ofstream(temp_file); }
+    void ResetDb() const { (void)std::ofstream(temp_file); }
 
     static const TestData& key()
     {
@@ -203,9 +203,9 @@ class DbTest
     static const char* missing_id() { return "3"; }
 
     template <class TKey, class TValue, size_t count>
-    static inline void RawWrite(const std::string& db_path,
-                                const TKey& key,
-                                const std::array<std::pair<const char*, TValue>, count> values)
+    static void RawWrite(const std::string& db_path,
+                         const TKey& key,
+                         const std::array<std::pair<const char*, TValue>, count> values)
     {
         std::ostringstream ss_vals;
         ss_vals << key.x << ',' << key.y << '=';
@@ -225,8 +225,9 @@ class DbTest
     }
 
     template <class TDb, class TKey, class TValue, size_t count>
-    static inline void ValidateSingleEntry(
-        TKey key, const std::array<std::pair<const char*, TValue>, count> values, TDb db)
+    static void ValidateSingleEntry(TKey key,
+                                    const std::array<std::pair<const char*, TValue>, count> values,
+                                    TDb db)
     {
         boost::optional<DbRecord> record = db.FindRecord(key);
 
@@ -244,7 +245,7 @@ class DbTest
 class DbFindTest : public DbTest
 {
     public:
-    inline void Run() const
+    void Run() const
     {
         std::cout << "Testing db for reading premade file by FindRecord..." << std::endl;
 
@@ -263,7 +264,7 @@ class DbFindTest : public DbTest
 class DbStoreTest : public DbTest
 {
     public:
-    inline void Run() const
+    void Run() const
     {
         std::cout << "Testing db for reading stored data..." << std::endl;
 
@@ -288,7 +289,7 @@ class DbStoreTest : public DbTest
 class DbUpdateTest : public DbTest
 {
     public:
-    inline void Run() const
+    void Run() const
     {
         std::cout << "Testing db for updating existing records..." << std::endl;
 
@@ -328,7 +329,7 @@ class DbUpdateTest : public DbTest
 class DbRemoveTest : public DbTest
 {
     public:
-    inline void Run() const
+    void Run() const
     {
         std::cout << "Testing db for removing records..." << std::endl;
 
@@ -356,7 +357,7 @@ class DbRemoveTest : public DbTest
 class DbReadTest : public DbTest
 {
     public:
-    inline void Run() const
+    void Run() const
     {
         std::cout << "Testing db for reading premade file by Load..." << std::endl;
 
@@ -369,7 +370,7 @@ class DbReadTest : public DbTest
 class DbWriteTest : public DbTest
 {
     public:
-    inline void Run() const
+    void Run() const
     {
         std::cout << "Testing db for storing unexistent records by update..." << std::endl;
 
@@ -392,7 +393,7 @@ class DbWriteTest : public DbTest
 class DbOperationsTest : public DbTest
 {
     public:
-    inline void Run() const
+    void Run() const
     {
         std::cout << "Testing different db operations db..." << std::endl;
 
@@ -468,7 +469,7 @@ class DbOperationsTest : public DbTest
 class DbParallelTest : public DbTest
 {
     public:
-    inline void Run() const
+    void Run() const
     {
         std::cout << "Testing db for using two objects targeting one file existing in one scope..."
                   << std::endl;
@@ -514,7 +515,7 @@ class DBMultiThreadedTestWork
     static constexpr unsigned int ids_per_key      = 16;
     static constexpr unsigned int common_part_seed = 435345;
 
-    static inline const std::array<TestData, common_part_size>& common_part()
+    static const std::array<TestData, common_part_size>& common_part()
     {
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);
@@ -523,10 +524,10 @@ class DBMultiThreadedTestWork
         return ref;
     }
 
-    static inline void Initialize() { (void)common_part(); }
+    static void Initialize() { (void)common_part(); }
 
     template <class TDbConstructor>
-    static inline void
+    static void
     WorkItem(unsigned int id, const TDbConstructor& db_constructor, const std::string& log_postfix)
     {
         RedirectLogs(id, log_postfix, [id, &db_constructor]() {
@@ -536,22 +537,22 @@ class DBMultiThreadedTestWork
     }
 
     template <class TDbConstructor>
-    static inline void ReadWorkItem(unsigned int id,
-                                    const TDbConstructor& db_constructor,
-                                    const std::string& log_postfix)
+    static void ReadWorkItem(unsigned int id,
+                             const TDbConstructor& db_constructor,
+                             const std::string& log_postfix)
     {
         RedirectLogs(id, log_postfix, [&db_constructor]() { ReadCommonPart(db_constructor); });
     }
 
     template <class TDbConstructor>
-    static inline void FillForReading(const TDbConstructor& db_constructor)
+    static void FillForReading(const TDbConstructor& db_constructor)
     {
         auto db = db_constructor();
         CommonPartSection(0u, common_part_size, [&db]() { return db; });
     }
 
     template <class TDbConstructor>
-    static inline void ValidateCommonPart(const TDbConstructor& db_constructor)
+    static void ValidateCommonPart(const TDbConstructor& db_constructor)
     {
         auto db       = db_constructor();
         const auto cp = common_part();
@@ -570,8 +571,7 @@ class DBMultiThreadedTestWork
 
     private:
     template <class TWorker>
-    static inline void
-    RedirectLogs(unsigned int id, const std::string& log_postfix, const TWorker& worker)
+    static void RedirectLogs(unsigned int id, const std::string& log_postfix, const TWorker& worker)
     {
         std::ofstream log;
         std::ofstream log_err;
@@ -605,7 +605,7 @@ class DBMultiThreadedTestWork
     }
 
     template <class TDbConstructor>
-    static inline void ReadCommonPart(const TDbConstructor& db_constructor)
+    static void ReadCommonPart(const TDbConstructor& db_constructor)
     {
         std::cout << "Common part. Section with common db instance." << std::endl;
         {
@@ -620,7 +620,7 @@ class DBMultiThreadedTestWork
     }
 
     template <class TDbGetter>
-    static inline void
+    static void
     ReadCommonPartSection(unsigned int start, unsigned int end, const TDbGetter& db_getter)
     {
         const auto cp = common_part();
@@ -638,7 +638,7 @@ class DBMultiThreadedTestWork
     }
 
     template <class TDbConstructor>
-    static inline void CommonPart(const TDbConstructor& db_constructor)
+    static void CommonPart(const TDbConstructor& db_constructor)
     {
         std::cout << "Common part. Section with common db instance." << std::endl;
         {
@@ -653,8 +653,7 @@ class DBMultiThreadedTestWork
     }
 
     template <class TDbGetter>
-    static inline void
-    CommonPartSection(unsigned int start, unsigned int end, const TDbGetter& db_getter)
+    static void CommonPartSection(unsigned int start, unsigned int end, const TDbGetter& db_getter)
     {
         const auto cp = common_part();
 
@@ -669,7 +668,7 @@ class DBMultiThreadedTestWork
     }
 
     template <class TDbConstructor>
-    static inline void UniquePart(unsigned int id, const TDbConstructor& db_constructor)
+    static void UniquePart(unsigned int id, const TDbConstructor& db_constructor)
     {
         Random rnd(123123 + id);
 
@@ -686,7 +685,7 @@ class DBMultiThreadedTestWork
     }
 
     template <class TDbGetter>
-    static inline void
+    static void
     UniquePartSection(Random& rnd, unsigned int start, unsigned int end, const TDbGetter& db_getter)
     {
         for(auto i = start; i < end; i++)
@@ -699,8 +698,7 @@ class DBMultiThreadedTestWork
         }
     }
 
-    static inline std::mt19937::result_type LimitedRandom(Random& rnd,
-                                                          std::mt19937::result_type min)
+    static std::mt19937::result_type LimitedRandom(Random& rnd, std::mt19937::result_type min)
     {
         std::mt19937::result_type key;
 
@@ -711,7 +709,7 @@ class DBMultiThreadedTestWork
         return key;
     }
 
-    static inline const std::array<TestData, common_part_size>& common_part_init()
+    static const std::array<TestData, common_part_size>& common_part_init()
     {
         static std::array<TestData, common_part_size> data;
 
@@ -727,7 +725,7 @@ class DbMultiThreadedTest : public DbTest
     public:
     static constexpr const char* logs_path_arg = "thread-logs-root";
 
-    inline void Run() const
+    void Run() const
     {
         std::cout << "Testing db for multithreaded write access..." << std::endl;
 
@@ -765,7 +763,7 @@ class DbMultiThreadedTest : public DbTest
 class DbMultiThreadedReadTest : public DbTest
 {
     public:
-    inline void Run() const
+    void Run() const
     {
         std::cout << "Testing db for multithreaded read access..." << std::endl;
 
@@ -804,7 +802,7 @@ class DbMultiProcessTest : public DbTest
     static constexpr const char* id_arg    = "mp-test-child";
     static constexpr const char* path_arg  = "mp-test-child-path";
 
-    inline void Run() const
+    void Run() const
     {
         std::cout << "Testing db for multiprocess write access..." << std::endl;
 
@@ -852,7 +850,7 @@ class DbMultiProcessTest : public DbTest
         DBMultiThreadedTestWork::ValidateCommonPart(c);
     }
 
-    static inline void WorkItem(unsigned int id, const std::string& db_path, bool write)
+    static void WorkItem(unsigned int id, const std::string& db_path, bool write)
     {
         {
             auto& file_lock = LockFile::Get(LockFilePath(db_path).c_str());
@@ -874,7 +872,7 @@ class DbMultiProcessTest : public DbTest
 class DbMultiProcessReadTest : public DbTest
 {
     public:
-    inline void Run() const
+    void Run() const
     {
         std::cout << "Testing db for multiprocess read access..." << std::endl;
 
@@ -920,7 +918,7 @@ class DbMultiProcessReadTest : public DbTest
         std::remove(lock_file_path.c_str());
     }
 
-    static inline void WorkItem(unsigned int id, const std::string& db_path)
+    static void WorkItem(unsigned int id, const std::string& db_path)
     {
         {
             auto& file_lock = LockFile::Get(LockFilePath(db_path).c_str());
@@ -941,7 +939,7 @@ class DbMultiFileTest : public DbTest
     protected:
     const std::string user_db_path = temp_file.Path() + ".user";
 
-    inline void ResetDb() const
+    void ResetDb() const
     {
         DbTest::ResetDb();
         (void)std::ofstream(user_db_path);
@@ -951,7 +949,7 @@ class DbMultiFileTest : public DbTest
 class DbMultiFileReadTest : public DbMultiFileTest
 {
     public:
-    inline void Run() const
+    void Run() const
     {
         std::cout << "Running multifile read test..." << std::endl;
 
@@ -976,7 +974,7 @@ class DbMultiFileReadTest : public DbMultiFileTest
         return data;
     }
 
-    inline void MergedAndMissing() const
+    void MergedAndMissing() const
     {
         RawWrite(temp_file, key(), common_data());
 
@@ -988,19 +986,19 @@ class DbMultiFileReadTest : public DbMultiFileTest
         EXPECT(!record1);
     }
 
-    inline void ReadUser() const
+    void ReadUser() const
     {
         RawWrite(user_db_path, key(), single_item_data());
         ValidateSingleEntry(key(), single_item_data(), MultiFileDb(temp_file, user_db_path));
     }
 
-    inline void ReadInstalled() const
+    void ReadInstalled() const
     {
         RawWrite(temp_file, key(), single_item_data());
         ValidateSingleEntry(key(), single_item_data(), MultiFileDb(temp_file, user_db_path));
     }
 
-    inline void ReadConflict() const
+    void ReadConflict() const
     {
         RawWrite(temp_file, key(), single_item_data());
         ReadUser();
@@ -1010,7 +1008,7 @@ class DbMultiFileReadTest : public DbMultiFileTest
 class DbMultiFileWriteTest : public DbMultiFileTest
 {
     public:
-    inline void Run() const
+    void Run() const
     {
         std::cout << "Running multifile write test..." << std::endl;
 
@@ -1034,10 +1032,105 @@ class DbMultiFileWriteTest : public DbMultiFileTest
     }
 };
 
+class DbMultiFileOperationsTest : public DbMultiFileTest
+{
+    public:
+    void Run() const
+    {
+        ResetDb();
+        PrepareDb();
+        UpdateTest();
+        LoadTest();
+        RemoveTest();
+        RemoveRecordTest();
+    }
+
+    void PrepareDb() const
+    {
+        std::cout << "Running multifile operations test..." << std::endl;
+
+        {
+            DbRecord record(key());
+            EXPECT(record.SetValues(id0(), value0()));
+            EXPECT(record.SetValues(id1(), value2()));
+
+            Db db(temp_file);
+            EXPECT(db.StoreRecord(record));
+        }
+    }
+
+    void UpdateTest() const
+    {
+        std::cout << "Update test..." << std::endl;
+
+        {
+            MultiFileDb db(temp_file, user_db_path);
+            EXPECT(db.Update(key(), id1(), value1()));
+        }
+
+        {
+            Db db(user_db_path);
+            TestData read(TestData::NoInit{});
+            EXPECT(!db.Load(key(), id0(), read));
+            EXPECT(db.Load(key(), id1(), read));
+            EXPECT_EQUAL(read, value1());
+        }
+
+        {
+            Db db(temp_file);
+            TestData read(TestData::NoInit{});
+            EXPECT(db.Load(key(), id0(), read));
+            EXPECT_EQUAL(read, value0());
+            EXPECT(db.Load(key(), id1(), read));
+            EXPECT_EQUAL(read, value2());
+        }
+    }
+
+    void LoadTest() const
+    {
+        std::cout << "Load test..." << std::endl;
+
+        MultiFileDb db(temp_file, user_db_path);
+        TestData read(TestData::NoInit{});
+        EXPECT(db.Load(key(), id0(), read));
+        EXPECT_EQUAL(read, value0());
+        EXPECT(db.Load(key(), id1(), read));
+        EXPECT_EQUAL(read, value1());
+    }
+
+    void RemoveTest() const
+    {
+        std::cout << "Remove test..." << std::endl;
+
+        MultiFileDb db(temp_file, user_db_path);
+        EXPECT(!db.Remove(key(), id0()));
+        EXPECT(db.Remove(key(), id1()));
+
+        TestData read(TestData::NoInit{});
+        EXPECT(db.Load(key(), id0(), read));
+        EXPECT_EQUAL(read, value0());
+        EXPECT(db.Load(key(), id1(), read));
+        EXPECT_EQUAL(read, value2());
+    }
+
+    void RemoveRecordTest() const
+    {
+        std::cout << "Remove record test..." << std::endl;
+
+        MultiFileDb db(temp_file, user_db_path);
+        EXPECT(db.Update(key(), id1(), value1()));
+        EXPECT(db.RemoveRecord(key()));
+        EXPECT(db.Load(key(), id0(), read));
+        EXPECT_EQUAL(read, value0());
+        EXPECT(db.Load(key(), id1(), read));
+        EXPECT_EQUAL(read, value2());
+    }
+};
+
 class DbMultiFileMultiThreadedReadTest : public DbMultiFileTest
 {
     public:
-    inline void Run() const
+    void Run() const
     {
         std::cout << "Testing db for multifile multithreaded read access..." << std::endl;
 
@@ -1075,7 +1168,7 @@ class DbMultiFileMultiThreadedTest : public DbMultiFileTest
     public:
     static constexpr const char* logs_path_arg = "thread-logs-root";
 
-    inline void Run() const
+    void Run() const
     {
         std::cout << "Testing db for multifile multithreaded write access..." << std::endl;
 
@@ -1113,11 +1206,10 @@ class DbMultiFileMultiThreadedTest : public DbMultiFileTest
 
 struct PerfDbDriver : test_driver
 {
-    public:
     PerfDbDriver()
     {
-        add(logs_root, miopen::tests::DbMultiThreadedTest::logs_path_arg);
-        add(test_write, miopen::tests::DbMultiProcessTest::write_arg, flag());
+        add(logs_root, DbMultiThreadedTest::logs_path_arg);
+        add(test_write, DbMultiProcessTest::write_arg, flag());
 
         add(mt_child_id, DbMultiProcessTest::id_arg);
         add(mt_child_db_path, DbMultiProcessTest::path_arg);
@@ -1130,22 +1222,29 @@ struct PerfDbDriver : test_driver
 
         if(mt_child_id >= 0)
         {
-            miopen::tests::DbMultiProcessTest::WorkItem(mt_child_id, mt_child_db_path, test_write);
+            DbMultiProcessTest::WorkItem(mt_child_id, mt_child_db_path, test_write);
             return;
         }
 
-        miopen::tests::DbFindTest().Run();
-        miopen::tests::DbStoreTest().Run();
-        miopen::tests::DbUpdateTest().Run();
-        miopen::tests::DbRemoveTest().Run();
-        miopen::tests::DbReadTest().Run();
-        miopen::tests::DbWriteTest().Run();
-        miopen::tests::DbOperationsTest().Run();
-        miopen::tests::DbParallelTest().Run();
-        miopen::tests::DbMultiThreadedReadTest().Run();
-        miopen::tests::DbMultiProcessReadTest().Run();
-        miopen::tests::DbMultiThreadedTest().Run();
-        miopen::tests::DbMultiProcessTest().Run();
+        DbFindTest().Run();
+        DbStoreTest().Run();
+        DbUpdateTest().Run();
+        DbRemoveTest().Run();
+        DbReadTest().Run();
+        DbWriteTest().Run();
+        DbOperationsTest().Run();
+        DbParallelTest().Run();
+
+        DbMultiThreadedReadTest().Run();
+        DbMultiProcessReadTest().Run();
+        DbMultiThreadedTest().Run();
+        DbMultiProcessTest().Run();
+
+        DbMultiFileReadTest().Run();
+        DbMultiFileWriteTest().Run();
+        DbMultiFileOperationsTest().Run();
+        DbMultiFileMultiThreadedReadTest().Run();
+        DbMultiFileMultiThreadedTest().Run();
     }
 
     private:
