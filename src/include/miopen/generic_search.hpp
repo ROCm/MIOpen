@@ -253,10 +253,13 @@ inline size_t divide_round_plus_inf(const size_t x, const size_t y)
 enum class SearchTweak
 {
     None,
-    // When the 2x subsampling kernel is used in the solution, and we
-    // skip it during auto-tune, the input (top) buffer of the
-    // could be made 4x smaller:
-    Skip2xSubsample,
+    // The top buffer could be made 4x smaller for some cases, e.g.
+    // when the 2x subsampling kernel is used at the dx input of
+    // the WrW convolution, but we are skipping it during auto-tune:
+    Impl4xReduceTop_,
+    Skipped2xSubsample_dxWrW = Impl4xReduceTop_,
+    Skipped2xSubsample_yFwd  = Impl4xReduceTop_,
+    Skipped2xUpsample_dxBwd  = Impl4xReduceTop_,
 };
 
 /// Solver member function requirements:
@@ -264,6 +267,26 @@ enum class SearchTweak
 ///   - Its return type shall be suitable for instantiation of the ComputedContainer.
 /// * GetSolution shall be implemented.
 /// * RunAndMeasureSolution shall be implemented.
+///
+/// clang-format-off
+/// -----------------------------------------------
+/// Dataflow:
+///      Forward:
+///          wei[] (w) --> +--------+
+///                        | kernel | --> top[] (y)
+///          bot[] (x) --> +--------+
+///
+///      Backward data:
+///          wei[] (w) --> +--------+
+///                        | kernel | --> top[] (dx)
+///         bot[] (dy) --> +--------+
+///
+///      Backward WrW:
+///         top[] (dx) --> +--------+
+///                        | kernel | --> wei[] (dw)
+///         bot[] (dy) --> +--------+
+/// ------------------------------------------------
+/// clang-format-on
 template <class Solver, class Context>
 auto GenericSearch(const Solver s,
                    const Context& context,
@@ -277,15 +300,14 @@ auto GenericSearch(const Solver s,
 
     // Allocate buffers, init input buffers.
     size_t top_size = context.top_sz / sizeof(float);
-    if(tweak == SearchTweak::Skip2xSubsample)
+    if(tweak == SearchTweak::Impl4xReduceTop_)
         top_size = divide_round_plus_inf(top_size, 2 * 2);
     std::vector<float> bot(context.bot_sz / sizeof(float));
     std::vector<float> top(top_size);
     std::vector<float> wei(context.weights_sz / sizeof(float));
     std::vector<float> bias(context.bias_sz / sizeof(float));
-    if(!context.direction.IsForward())
-        InitRandomly(bot);
-    if(!context.direction.IsBackwardData())
+    InitRandomly(bot);
+    if(!(context.direction.IsBackwardData() || context.direction.IsForward()))
         InitRandomly(top);
     if(!context.direction.IsBackwardWrW())
         InitRandomly(wei, -0.5, 0.001);
@@ -402,6 +424,20 @@ auto GenericSearch(const Solver s,
                           << best_config);
     if(!is_passed)
         MIOPEN_THROW("Search failed");
+    // Run once with the default config and show score.
+    float default_time = 0;
+    if(s.RunAndMeasureSolution(profile_h,
+                               bot_ocl_buf.get(),
+                               top_ocl_buf.get(),
+                               wei_ocl_buf.get(),
+                               context.bias ? bias_ocl_buf.get() : nullptr,
+                               context,
+                               s.GetSolution(context, s.GetPerformanceConfig(context)),
+                               default_time) == 0)
+    {
+        const float score = (best_time != 0) ? default_time / best_time : 0.0f;
+        MIOPEN_LOG_W("...Score: " << score << " (default time " << default_time << ')');
+    }
     return best_config;
 }
 
