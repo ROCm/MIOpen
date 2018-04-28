@@ -36,8 +36,8 @@ bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
     if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
         return false;
 
-    /// \todo Workaround for issue 918
-    if(params.pad0 >= params.kernel_size0 || params.pad1 >= params.kernel_size1)
+    /// \todo Workaround for issue 918. Looks like dy tensor with padding < 1 is not supported.
+    if((params.GetBackwardPad0() < 1 || params.GetBackwardPad1() < 1))
         return false;
 
     return ((params.kernel_size0 >= params.kernel_size1) &&
@@ -305,7 +305,7 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
         kernel.l_wk.push_back(1);
         kernel.l_wk.push_back(1);
 
-        assert(ut_read_unit !=0);
+        assert(ut_read_unit != 0);
         int gbl_ut_wk0 = wei_bstride * params.n_inputs / ut_read_unit;
 
         kernel.g_wk.push_back(gbl_ut_wk0);

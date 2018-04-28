@@ -33,9 +33,16 @@ namespace solver {
 
 bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
 {
-    return (params.kernel_stride0 == params.kernel_stride1 && params.pad0 == params.pad1 &&
-            !(!params.direction.IsForward() &&
-              (params.kernel_stride0 > 2 || params.kernel_stride1 > 2)));
+    // clang-format off
+    // Cases when dy has negative padding are not supported (issue 918)
+    if(params.direction.IsBackwardData()
+        && (params.GetBackwardPad0() < 0 || params.GetBackwardPad1() < 0))
+        return false;
+
+    return params.kernel_stride0 == params.kernel_stride1
+        && params.pad0 == params.pad1
+        && !(params.direction.IsBackwardData() && (params.kernel_stride0 > 2 || params.kernel_stride1 > 2));
+    // clang-format on
 }
 
 ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
