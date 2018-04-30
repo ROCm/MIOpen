@@ -1078,11 +1078,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
 
         {
             Db db(temp_file);
-            TestData read(TestData::NoInit{});
-            EXPECT(db.Load(key(), id0(), read));
-            EXPECT_EQUAL(read, value0());
-            EXPECT(db.Load(key(), id1(), read));
-            EXPECT_EQUAL(read, value2());
+            ValidateData(db, value2());
         }
     }
 
@@ -1091,11 +1087,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
         std::cout << "Load test..." << std::endl;
 
         MultiFileDb db(temp_file, user_db_path);
-        TestData read(TestData::NoInit{});
-        EXPECT(db.Load(key(), id0(), read));
-        EXPECT_EQUAL(read, value0());
-        EXPECT(db.Load(key(), id1(), read));
-        EXPECT_EQUAL(read, value1());
+        ValidateData(db, value1());
     }
 
     void RemoveTest() const
@@ -1106,11 +1098,7 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
         EXPECT(!db.Remove(key(), id0()));
         EXPECT(db.Remove(key(), id1()));
 
-        TestData read(TestData::NoInit{});
-        EXPECT(db.Load(key(), id0(), read));
-        EXPECT_EQUAL(read, value0());
-        EXPECT(db.Load(key(), id1(), read));
-        EXPECT_EQUAL(read, value2());
+        ValidateData(db, value2());
     }
 
     void RemoveRecordTest() const
@@ -1120,10 +1108,18 @@ class DbMultiFileOperationsTest : public DbMultiFileTest
         MultiFileDb db(temp_file, user_db_path);
         EXPECT(db.Update(key(), id1(), value1()));
         EXPECT(db.RemoveRecord(key()));
+
+        ValidateData(db, value2());
+    }
+
+    template <class TDb>
+    void ValidateData(TDb& db, const TestData& id1Value) const
+    {
+        TestData read(TestData::NoInit{});
         EXPECT(db.Load(key(), id0(), read));
         EXPECT_EQUAL(read, value0());
         EXPECT(db.Load(key(), id1(), read));
-        EXPECT_EQUAL(read, value2());
+        EXPECT_EQUAL(read, id1Value);
     }
 };
 
