@@ -584,6 +584,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
         construct_params.setInputDescFromMLDesc(xDesc);
         construct_params.setWeightDescFromMLDesc(dwDesc);
         construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+        construct_params.setWorkaroundDisableSearchEnforce(true);
         mloConstruct(construct_params);
         return construct_params.getWorkSpaceSzBytes();
     }

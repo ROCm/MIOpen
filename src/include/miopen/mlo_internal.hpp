@@ -256,6 +256,7 @@ struct ConvolutionContext : ProblemDescription
     int n_timer_iter       = 0;
     rocm_meta_version rmv  = rocm_meta_version::Default;
     std::string general_compile_options;
+    bool workaround_disable_search_enforce = false;
 
     inline Handle& GetStream() const { return *_stream; }
     inline void SetStream(Handle* stream) { _stream = stream; }
@@ -805,6 +806,11 @@ struct mlo_construct_direct2D
         _search_params.general_compile_options += options;
     }
 
+    inline void setWorkaroundDisableSearchEnforce(bool v)
+    {
+        _search_params.workaround_disable_search_enforce = v;
+    }
+
     // MD: Hack to get the key outside of mlo_internal
     int mloBuildConf_Key(std::string& conf_key) const;
 
@@ -1054,44 +1060,30 @@ struct mlo_construct_norm : mlo_construct_direct2D
     double _normK     = 0.0;
 };
 
-#define MLO_NEURON_PASTHRU 0                         // x
-#define MLO_NEURON_LOGISTIC (MLO_NEURON_PASTHRU + 1) //	1 / (1 + e^-x)	//Sigmoid
-#define MLO_NEURON_TANH (MLO_NEURON_LOGISTIC + 1)    //	a * tanh( b * x)
-#define MLO_NEURON_RELU (MLO_NEURON_TANH + 1)        //	max(0, x)
-#define MLO_NEURON_BRELU (MLO_NEURON_RELU + 1)       //	min(a, max(0, x))
-#define MLO_NEURON_SOFTRELU \
-    (MLO_NEURON_BRELU + 1)                       //	log(1 + e^x)   // bonomial normal log likelihood
-#define MLO_NEURON_ABS (MLO_NEURON_SOFTRELU + 1) //	abs(x)
-#define MLO_NEURON_SQUARE (MLO_NEURON_ABS + 1)   //	x^2
-#define MLO_NEURON_SQR (MLO_NEURON_SQUARE + 1)   //	sqr(x)
-#define MLO_NEURON_LINEAR (MLO_NEURON_SQR + 1)   //	a + b * x
-#define MLO_NEURON_POWER (MLO_NEURON_LINEAR + 1) // (a + b * x ) ^power
-#define MLO_NEURON_TOTAL (MLO_NEURON_POWER + 1)
-
 struct mlo_construct_neuron : mlo_construct_direct2D
 {
     mlo_construct_neuron(int dir) : mlo_construct_direct2D(dir)
     {
         _neuron_type = 0;
-        _power       = 0;
-        _scale       = 1;
-        _shift       = 0;
+        _gamma       = 0;
+        _beta        = 1;
+        _alpha       = 0;
     }
 
-    inline void setNeuronDescr(int neuron_type, double power, double scale, double shift)
+    inline void setNeuronDescr(int neuron_type, double gamma, double beta, double alpha)
     {
         _neuron_type = neuron_type;
-        _power       = power;
-        _scale       = scale;
-        _shift       = shift;
+        _gamma       = gamma;
+        _beta        = beta;
+        _alpha       = alpha;
     }
 
-    inline void getNeuronDescr(int& neuron_type, double& power, double& scale, double& shift) const
+    inline void getNeuronDescr(int& neuron_type, double& gamma, double& beta, double& alpha) const
     {
         neuron_type = _neuron_type;
-        power       = _power;
-        scale       = _scale;
-        shift       = _shift;
+        gamma       = _gamma;
+        beta        = _beta;
+        alpha       = _alpha;
     }
 
     void mloConstruct();
@@ -1100,9 +1092,9 @@ struct mlo_construct_neuron : mlo_construct_direct2D
     int mloConstructFwd();
     int mloConstructBwd();
     int _neuron_type;
-    double _power;
-    double _scale;
-    double _shift;
+    double _gamma;
+    double _beta;
+    double _alpha;
 };
 
 #endif
