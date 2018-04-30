@@ -620,6 +620,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     // sort the perf_db
     std::sort(begin(perf_db), end(perf_db));
+    for(const auto& entry : perf_db)
+        MIOPEN_LOG_I(entry.name << "\t" << entry.time << "\t" << entry.workspace);
 
     // update perfResults
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
@@ -630,9 +632,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             static_cast<miopenConvFwdAlgorithm_t>(FwdAlgoResolver(perf_db[i].name));
         perfResults[i].time   = perf_db[i].time;
         perfResults[i].memory = perf_db[i].workspace;
-        MIOPEN_LOG_I("algo = " << perfResults[i].fwd_algo << ", time = " << perfResults[i].time
-                               << ", workspace = "
-                               << perfResults[i].memory);
     }
 }
 
@@ -1480,6 +1479,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
     // sort the perf_db
     std::sort(begin(perf_db), end(perf_db));
+    for(const auto& entry : perf_db)
+        MIOPEN_LOG_I(entry.name << "\t" << entry.time << "\t" << entry.workspace);
 
     // update perfResults
     *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
