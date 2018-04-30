@@ -574,11 +574,12 @@ int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
 
 PerformanceConfigConvAsm1x1U ConvAsm1x1U::Search(const ConvolutionContext& context) const
 {
-    return GenericSearch(*this,
-                         context,
-                         UseSubsample(context) || UseUpsample(context)
-                             ? SearchTweak::Skip2xSubsample
-                             : SearchTweak::None);
+    return GenericSearch(
+        *this,
+        context,
+        UseSubsample(context)
+            ? SearchTweak::Skipped2xSubsample_yFwd
+            : (UseUpsample(context) ? SearchTweak::Skipped2xUpsample_dxBwd : SearchTweak::None));
 }
 
 } // namespace solver
