@@ -29,6 +29,7 @@
 #include <iterator>
 #include <limits>
 #include <memory>
+#include <sys/time.h>
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
@@ -119,8 +120,27 @@ struct verify_tensor_copy
         auto&& handle   = get_handle();
         auto csuper_dev = handle.Write(csuperGpu.data);
         auto asuper_dev = handle.Write(asuper.data);
+
+        struct timeval start, end;
+        gettimeofday(&start, NULL);
         miopen::CopyTensor(
             handle, srcDesc, asuper_dev.get(), dstDesc, csuper_dev.get(), srcOffset, dstOffset);
+        gettimeofday(&end, NULL);
+
+        long w_time =
+            ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec));
+
+        std::size_t nbyte = sizeof(T{}) * std::accumulate(srcDesc.GetLengths().begin(),
+                                                          srcDesc.GetLengths().end(),
+                                                          std::size_t{1},
+                                                          std::multiplies<std::size_t>());
+
+        std::cout << "wall time: " << w_time / 1000.0 << "ms" << std::endl;
+        std::cout << "kernel time: " << handle.GetKernelTime() << "ms" << std::endl;
+        std::cout << "bandwidth: "
+                  << 2.0 * (float)nbyte / ((std::size_t(1) << 30) * handle.GetKernelTime() / 1000)
+                  << "GB/s" << std::endl;
+
         csuperGpu.data = handle.Read<T>(csuper_dev, csuperGpu.data.size());
 
 #if(MIO_TENSORCOPY_DEBUG == 1)
@@ -152,6 +172,7 @@ struct tensor_copy_driver : test_driver
     std::vector<int> copylens;
     std::vector<int> offsets;
 
+#if 1
     tensor_copy_driver()
     {
 
@@ -179,7 +200,22 @@ struct tensor_copy_driver : test_driver
         fflush(nullptr);
 #endif
     }
+#endif
 
+#if 0
+    tensor_copy_driver()
+    {
+        std::vector<int> alens = {{1,  64, 128, 192, 192}};
+        std::vector<int> clens = {{1,  64, 128, 192, 192}};
+      //std::vector<int> clens = {{1, 128,  64, 192, 192}};
+        aSuper                 = tensor<T>{alens}.generate(rand_gen{});
+        cSuper                 = tensor<T>{clens}.generate(rand_gen{});
+
+        add(copylens, "copy-lens", generate_data(get_sub_tensor(), {1, 64,  64, 192, 192}));
+        add(offsets, "offsets", generate_data(get_tensor_offsets(), {192 * 192}));
+
+    }
+#endif
     void run()
     {
         std::vector<size_t> aSuperStrides = aSuper.desc.GetStrides();
