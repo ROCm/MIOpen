@@ -127,6 +127,63 @@ std::size_t TensorDescriptor::GetNumBytes() const
 
 bool TensorDescriptor::IsPacked() const { return this->packed; }
 
+TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
+{
+    // is packed
+    if(IsPacked())
+        return {GetType(), {GetElementSize()}, {1}};
+
+    // ignore dimensions, where length is 1
+    std::size_t dim = 0;
+    std::vector<std::size_t> lengths;
+    std::vector<std::size_t> strides;
+
+    for(std::size_t i = 0; i < GetSize(); ++i)
+    {
+        std::size_t len = GetLengths()[i];
+        if(len > 1)
+        {
+            ++dim;
+            lengths.push_back(len);
+            strides.push_back(GetStrides()[i]);
+        }
+    }
+
+    // is a scalar
+    if(dim == 0)
+        return {GetType(), {1}, {1}};
+
+    // start flattening tensor
+    std::vector<std::size_t> full_lengths(dim);
+
+    full_lengths[0] = std::numeric_limits<std::size_t>::max();
+    for(std::size_t i   = 1; i < dim; ++i)
+        full_lengths[i] = strides[i - 1] / strides[i];
+
+    std::vector<std::size_t> flattened_lengths;
+    std::vector<std::size_t> flattened_strides;
+
+    std::size_t flattened_len = lengths[0];
+    for(std::size_t i = 1; i < dim; ++i)
+    {
+        std::size_t len      = lengths[i];
+        std::size_t full_len = full_lengths[i];
+
+        if(len == full_len)
+            flattened_len *= len;
+        else
+        {
+            flattened_lengths.push_back(flattened_len);
+            flattened_strides.push_back(strides[i - 1]);
+            flattened_len = lengths[i];
+        }
+    }
+    flattened_lengths.push_back(flattened_len);
+    flattened_strides.push_back(strides[dim - 1]);
+
+    return {GetType(), flattened_lengths, flattened_strides};
+}
+
 bool TensorDescriptor::operator==(const TensorDescriptor& rhs) const
 {
     assert(this->lens.size() == rhs.strides.size());
