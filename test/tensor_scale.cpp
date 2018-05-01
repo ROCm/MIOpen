@@ -29,6 +29,7 @@
 #include <iterator>
 #include <limits>
 #include <memory>
+#include <sys/time.h>
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
@@ -102,7 +103,26 @@ struct verify_tensor_scale
 
         auto&& handle  = get_handle();
         auto super_dev = handle.Write(superGpu.data);
+
+        struct timeval start, end;
+        gettimeofday(&start, NULL);
         miopen::ScaleTensor(handle, subDesc, super_dev.get(), &alpha, offset);
+        gettimeofday(&end, NULL);
+
+        long w_time =
+            ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec));
+
+        std::size_t nbyte = sizeof(T{}) * std::accumulate(subDesc.GetLengths().begin(),
+                                                          subDesc.GetLengths().end(),
+                                                          std::size_t{1},
+                                                          std::multiplies<std::size_t>());
+
+        std::cout << "wall time: " << w_time / 1000.0 << "ms" << std::endl;
+        std::cout << "kernel time: " << handle.GetKernelTime() << "ms" << std::endl;
+        std::cout << "bandwidth: "
+                  << 2.0 * (float)nbyte / ((std::size_t(1) << 30) * handle.GetKernelTime() / 1000)
+                  << "GB/s" << std::endl;
+
         superGpu.data = handle.Read<T>(super_dev, superGpu.data.size());
 
 #if(MIO_TENSORSCALE_DEBUG == 1)
@@ -128,6 +148,7 @@ struct tensor_scale_driver : test_driver
     std::vector<int> subLens;
     int offset = 0;
 
+#if 1
     tensor_scale_driver()
     {
 
@@ -153,6 +174,60 @@ struct tensor_scale_driver : test_driver
         fflush(nullptr);
 #endif
     }
+#endif
+
+#if 0
+    tensor_scale_driver()
+    {
+#if 0
+        std::vector<int> lens = {{1, 128, 256, 64, 64}};
+        super = tensor<T>{lens}.generate(rand_gen{});
+ 
+        add(subLens, "subLens", generate_data(get_sub_tensor(), {1,64,256,64,64}));
+        add(offset, "offset", generate_data(get_tensor_offset(), 256*64*64));
+#endif
+
+#if 1
+        std::vector<int> lens = {{1, 64, 128, 192, 192}};
+        super = tensor<T>{lens}.generate(rand_gen{});
+
+        add(subLens, "subLens", generate_data(get_sub_tensor(), {1, 32, 128, 192, 192}));
+        add(offset, "offset", generate_data(get_tensor_offset(), 128 * 192 * 192));
+#endif
+
+#if 0
+        std::vector<int> lens = {{1, 64, 128, 256, 256}};
+        super = tensor<T>{lens}.generate(rand_gen{});
+
+        add(subLens, "subLens", generate_data(get_sub_tensor(), {1, 32, 1, 256, 256}));
+        add(offset, "offset", generate_data(get_tensor_offset(), 128 * 256 * 256));
+#endif
+
+#if 0
+        std::vector<int> lens = {{1000000, 512}};
+        super = tensor<T>{lens}.generate(rand_gen{});
+
+        add(subLens, "subLens", generate_data(get_sub_tensor(), {100000, 192}));
+        add(offset, "offset", generate_data(get_tensor_offset(), 1024));
+#endif
+
+#if 0
+        std::vector<int> lens = {{1000000, 512}};
+        super = tensor<T>{lens}.generate(rand_gen{});
+
+        add(subLens, "subLens", generate_data(get_sub_tensor(), {100000, 256}));
+        add(offset, "offset", generate_data(get_tensor_offset(), 1024));
+#endif
+
+#if 0
+        std::vector<int> lens = {{1000000, 512}};
+        super = tensor<T>{lens}.generate(rand_gen{});
+
+        add(subLens, "subLens", generate_data(get_sub_tensor(), {100000, 512}));
+        add(offset, "offset", generate_data(get_tensor_offset(), 1024));
+#endif
+    }
+#endif
 
     void run()
     {
