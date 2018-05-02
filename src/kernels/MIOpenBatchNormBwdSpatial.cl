@@ -494,11 +494,17 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #elif(MIO_BN_VARIANT == 1)
 
-#define MIO_BN_REM (MIO_BN_NHW - ((MIO_BN_NHW / MIO_BN_GRP0) * MIO_BN_GRP0))
-#define MIO_BN_LESS (MIO_BN_NHW - MIO_BN_REM)
 
 #define MIO_MAX_READ 2
-
+#define RD_BLK 1
+#define GRPRD (MIO_BN_GRP0*RD_BLK*4)
+#define MIO_BN_REM4 (MIO_BN_NHW - ((MIO_BN_NHW / GRPRD) * GRPRD))
+#define MIO_BN_LESS4 (MIO_BN_NHW - MIO_BN_REM4)
+#define MIO_BN_CHUNK4 (MIO_MAX_READ * GRPRD)
+#define MIO_BN_REMOUT4 (MIO_BN_NHW - ((MIO_BN_NHW / MIO_BN_CHUNK4) * MIO_BN_CHUNK4))
+#define MIO_BN_LESSOUT4 (MIO_BN_NHW - MIO_BN_REMOUT4)
+#define MIO_BN_REM (MIO_BN_NHW - ((MIO_BN_NHW / MIO_BN_GRP0) * MIO_BN_GRP0))
+#define MIO_BN_LESS (MIO_BN_NHW - MIO_BN_REM)
 #define MIO_BN_CHUNK (MIO_MAX_READ * MIO_BN_GRP0)
 #define MIO_BN_REMOUT (MIO_BN_NHW - ((MIO_BN_NHW / MIO_BN_CHUNK) * MIO_BN_CHUNK))
 #define MIO_BN_LESSOUT (MIO_BN_NHW - MIO_BN_REMOUT)
@@ -556,7 +562,46 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #if(MIO_BN_USESAVED == 0)
     //==== CALC MEAN and VARIANCE ONCE AGAIN =======================
     _FLOAT variance = (_FLOAT)0.;
+#if(MIO_BN_HW >= 4096)
+    _FLOAT4 read4;
+    __attribute__((opencl_unroll_hint(2))) 
+    for(unsigned int k = lid<<2; k < MIO_BN_LESS4; k += GRPRD)
+    {
+        nidx  = k / MIO_BN_HW;
+        hwidx = k - (nidx * MIO_BN_HW);
+        index = nidx * MIO_BN_CHW + chwid + hwidx;
+        read4 = *((const global _FLOAT4*)(x_in + index));
+        mean += read4.x;
+        mean += read4.y;
+        mean += read4.z;
+        mean += read4.w;
+        variance = mad(read4.x, read4.x, variance);
+        variance = mad(read4.y, read4.y, variance);
+        variance = mad(read4.z, read4.z, variance);
+        variance = mad(read4.w, read4.w, variance);
+    }
 
+#if(MIO_BN_REM4)
+    if(lid < MIO_BN_REM4)
+    {        
+        unsigned int remkey = lid + MIO_BN_LESS4;
+        nidx                = remkey / MIO_BN_HW;
+        hwidx               = remkey - (nidx * MIO_BN_HW);
+        index               = nidx * MIO_BN_CHW + chwid + hwidx;
+        if(index < MIO_BN_NCHW){
+            read4[rd] = *((const global _FLOAT4*)(x_in + index));
+            mean += read4.x;
+            mean += read4.y;
+            mean += read4.z;
+            mean += read4.w;
+            variance = mad(read4.x, read4.x, variance);
+            variance = mad(read4.y, read4.y, variance);
+            variance = mad(read4.z, read4.z, variance);
+            variance = mad(read4.w, read4.w, variance);
+        }
+    }
+#endif
+#else
     for(unsigned int k = lid; k < MIO_BN_LESS; k += MIO_BN_GRP0)
     {
         nidx      = k / MIO_BN_HW;
@@ -577,7 +622,9 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         mean += in;
         variance = mad(in, in, variance);
     }
-#endif
+#endif // end REM
+#endif // end if 4096
+
     barrier(CLK_LOCAL_MEM_FENCE);
 // REDUCE MEAN AND VARIANCE -----------------------
 #ifndef __AMDGCN__
@@ -640,27 +687,54 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #endif
 
-    for(unsigned int k = lid; k < MIO_BN_LESS; k += MIO_BN_GRP0)
+    _FLOAT4 dyRead4;
+    _FLOAT4 xread4;
+    _FLOAT4 xhat4;    
+    __attribute__((opencl_unroll_hint(2))) 
+    for(unsigned int k = lid<<2; k < MIO_BN_LESS4; k += GRPRD)
     {
-        nidx    = k / MIO_BN_HW;
-        hwidx   = k - (nidx * MIO_BN_HW);
-        index   = nidx * MIO_BN_CHW + chwid + hwidx;
-        dyvalue = *(dy_in + index);
-        xhat    = (*(x_in + index) - mean) * invVariance;
-        db += dyvalue;
-        ds = mad(xhat, dyvalue, ds);
+        nidx  = k / MIO_BN_HW;
+        hwidx = k - (nidx * MIO_BN_HW);
+        index = nidx * MIO_BN_CHW + chwid + hwidx;
+        xread4  = *((const global _FLOAT4*)(x_in + index));
+        xhat4.x = (xread4.x - mean) * invVariance;
+        xhat4.y = (xread4.y - mean) * invVariance;
+        xhat4.z = (xread4.z - mean) * invVariance;
+        xhat4.w = (xread4.w - mean) * invVariance;
+        dyRead4 = *((const global _FLOAT4*)(dy_in + index));
+        db += dyRead4.x;
+        db += dyRead4.y;
+        db += dyRead4.z;
+        db += dyRead4.w;
+        ds = mad(xhat4.x, dyRead4.x, ds);
+        ds = mad(xhat4.y, dyRead4.y, ds);
+        ds = mad(xhat4.z, dyRead4.z, ds);
+        ds = mad(xhat4.w, dyRead4.w, ds);
     }
-#if(MIO_BN_REM)
-    if(lid < MIO_BN_REM)
-    {
-        unsigned int remkey = lid + MIO_BN_LESS;
+
+#if(MIO_BN_REM4)
+    if(lid < MIO_BN_REM4)
+    {        
+        unsigned int remkey = lid + MIO_BN_LESS4;
         nidx                = remkey / MIO_BN_HW;
         hwidx               = remkey - (nidx * MIO_BN_HW);
         index               = nidx * MIO_BN_CHW + chwid + hwidx;
-        dyvalue             = *(dy_in + index);
-        xhat                = (*(x_in + index) - mean) * invVariance;
-        db += dyvalue;
-        ds = mad(xhat, dyvalue, ds);
+        if(index < MIO_BN_NCHW){
+            xread4  = *((const global _FLOAT4*)(x_in + index));
+            dyRead4 = *((const global _FLOAT4*)(dy_in + index));
+            xhat4.x = (xread4.x - mean) * invVariance;
+            xhat4.y = (xread4.y - mean) * invVariance;
+            xhat4.z = (xread4.z - mean) * invVariance;
+            xhat4.w = (xread4.w - mean) * invVariance;
+            db += dyRead4.x;
+            db += dyRead4.y;
+            db += dyRead4.z;
+            db += dyRead4.w;
+            ds = mad(xhat4.x, dyRead4.x, ds);
+            ds = mad(xhat4.y, dyRead4.y, ds);
+            ds = mad(xhat4.z, dyRead4.z, ds);
+            ds = mad(xhat4.w, dyRead4.w, ds);
+        }
     }
 #endif
     barrier(CLK_LOCAL_MEM_FENCE);
@@ -727,8 +801,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
 
     _FLOAT vals[MIO_MAX_READ];
-
-    //__attribute__((opencl_unroll_hint(2)))
+    __attribute__((opencl_unroll_hint(2)))
     for(unsigned int k = (MIO_MAX_READ * lid); k < MIO_BN_LESSOUT; k += MIO_BN_CHUNK)
     {
         for(unsigned int j = 0; j < MIO_MAX_READ; j++)
@@ -743,7 +816,6 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             tmp2           = -xhat * ds;
             vals[j]        = tmp3 * (tmp2 + tmp1);
         }
-        // mem_fence(CLK_GLOBAL_MEM_FENCE);
         barrier(CLK_GLOBAL_MEM_FENCE);
         for(unsigned int j = 0; j < MIO_MAX_READ; j++)
         {
@@ -751,15 +823,11 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             nidx           = l / MIO_BN_HW;
             hwidx          = l - (nidx * MIO_BN_HW);
             index          = nidx * MIO_BN_CHW + chwid + hwidx;
-            // if(index > 2*MIO_BN_NCHW){ printf("dxout: %f, other: %f\n", dx_out[index], tmp3 *
-            // (tmp2 + tmp1));}
-            // if((int)val % MIO_BN_HW)
-            *(dx_out + index) = vals[j]; // tmp3 * (tmp2 + tmp1);
+            *(dx_out + index) = vals[j];
         }
     }
 
 #if(MIO_BN_REMOUT)
-
     unsigned int remkeyout = (MIO_MAX_READ * lid) + MIO_BN_LESSOUT;
     for(unsigned int j = 0; j < MIO_MAX_READ; j++)
     {
@@ -789,41 +857,6 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         }
     }
 #endif
-    //__attribute__((opencl_unroll_hint(2)))
-    /*    for(unsigned int k = lid; k < MIO_BN_LESS; k += MIO_BN_GRP0)
-        {
-            nidx           = k / MIO_BN_HW;
-            hwidx          = k - (nidx * MIO_BN_HW);
-            index          = nidx * MIO_BN_CHW + chwid + hwidx;
-            dyvalue        = *(dy_in + index);
-            xhat           = (*(x_in + index) - mean) * invVariance;
-            tmp1           = mad(NHW, dyvalue, -db);
-            tmp2           = -xhat * ds;
-            _FLOAT val = tmp3 * (tmp2 + tmp1);
-            //if(index > 2*MIO_BN_NCHW){ printf("dxout: %f, other: %f\n", dx_out[index], tmp3 *
-    (tmp2 + tmp1));}
-            //if((int)val % MIO_BN_HW)
-                *(dx_out + index) = val;//tmp3 * (tmp2 + tmp1);
-        }
-
-    #if(MIO_BN_REM)
-        if(lid < MIO_BN_REM){
-            unsigned int remkey = lid + MIO_BN_LESS;
-            nidx  = remkey / MIO_BN_HW;
-            hwidx = remkey - (nidx * MIO_BN_HW);
-            index = nidx * MIO_BN_CHW + chwid + hwidx;
-            if(index < MIO_BN_NCHW)
-            {
-                dyvalue = *(dy_in + index);
-                xhat   = (*(x_in + index) - mean) * invVariance;
-                tmp1           = mad(NHW, dyvalue, -db);
-                tmp2           = -xhat * ds;
-                //if(index > 2*MIO_BN_NCHW){ printf("dxout: %f, other: %f\n", dx_out[index], tmp3 *
-    (tmp2 + tmp1));}
-                *(dx_out + index) = tmp3 * (tmp2 + tmp1);
-            }
-        }
-    #endif*/
 }
 
 #elif(MIO_BN_VARIANT == 2)
