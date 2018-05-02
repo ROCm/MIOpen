@@ -49,8 +49,8 @@
 
 #define EPSILON 1e-4
 
-#define ERRTOL 1e-5
-#define RMSTOL_FP32 1e-5
+#define ERRTOL 1e-4
+#define RMSTOL_FP32 1e-4
 #define RMSTOL_FP16 0.5e-3
 
 #ifdef MIOPEN_BACKEND_HIP
