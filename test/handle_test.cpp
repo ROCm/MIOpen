@@ -31,6 +31,14 @@ void test_multithreads()
     run2s(h, 4);
 }
 
+std::string WriteError() { return "__kernel void write(__global int* data) { f(data); }\n"; }
+
+void test_errors()
+{
+    auto&& h = get_handle();
+    EXPECT(throws([&] { h.AddKernel("GEMM", "", WriteError(), "write", {1, 1, 1}, {1, 1, 1}, ""); }));
+}
+
 std::string WriteNop() { return "__kernel void write(__global int* data) {}\n"; }
 
 void test_warnings()
@@ -44,5 +52,6 @@ void test_warnings()
 int main()
 {
     test_multithreads();
+    test_errors();
     test_warnings();
 }
