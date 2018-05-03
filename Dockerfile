@@ -46,6 +46,10 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Setup ubsan environment to printstacktrace
+RUN ln -s /usr/bin/llvm-symbolizer-3.8 /usr/local/bin/llvm-symbolizer
+ENV UBSAN_OPTIONS=print_stacktrace=1
+
 # Install an init system
 RUN wget https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64.deb
 RUN dpkg -i dumb-init_*.deb && rm dumb-init_*.deb
@@ -58,9 +62,9 @@ ADD cmake/mingw-toolchain.cmake $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
 RUN cget -p $PREFIX/x86_64-w64-mingw32 init -t $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
 
 # Build hcc
-RUN git clone https://github.com/RadeonOpenCompute/hcc.git -b roc-1.7.x /hcc && \
+RUN git clone https://github.com/RadeonOpenCompute/hcc.git -b clang_tot_upgrade /hcc && \
     cd hcc && \
-    git reset --hard 0faf3b594c0add0a05b26a7894744a943dc7b44c && \
+    git reset --hard 9f0e695782398524b3d2015716172ea0f71d8e3b && \
     git submodule init && \
     git submodule update --recursive && \
     cget -p $PREFIX install hcc,. && cd .. && rm -rf /hcc
@@ -73,7 +77,7 @@ RUN ln -s $PREFIX /opt/rocm/hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 
 # Install cppcheck
-RUN cget -p $PREFIX install danmar/cppcheck@1.81
+RUN cget -p $PREFIX install danmar/cppcheck@9db64ca93418da3ffd730dc8f7d2e364b7b30b31
 
 # Install hip
 RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@852d5ae46ce1f62f4c5fdab89445d60f7464d965

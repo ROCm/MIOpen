@@ -33,6 +33,7 @@
 #include <miopen/object.hpp>
 #include <miopen/each_args.hpp>
 #include <miopen/returns.hpp>
+#include <miopen/errors.hpp>
 #include <vector>
 // TODO(paul): remove this include later
 #include <cstdio>
@@ -59,6 +60,16 @@ template <std::size_t N, class T, class U>
 auto tien(T&& x, U y)
     MIOPEN_RETURNS(tie_impl(std::forward<T>(x), y, typename detail::gens<N>::type{}));
 
+inline std::size_t GetTypeSize(miopenDataType_t d)
+{
+    switch(d)
+    {
+    case miopenFloat: return 4;
+    case miopenHalf: return 2;
+    }
+    MIOPEN_THROW("Unknown data type");
+}
+
 struct TensorDescriptor : miopenTensorDescriptor
 {
     TensorDescriptor();
@@ -68,6 +79,19 @@ struct TensorDescriptor : miopenTensorDescriptor
                      std::initializer_list<std::size_t> pstrides);
     TensorDescriptor(miopenDataType_t t, const int* plens, int size);
     TensorDescriptor(miopenDataType_t t, const int* plens, const int* pstrides, int size);
+    template <class Range>
+    TensorDescriptor(miopenDataType_t t, const Range& plens)
+        : lens(plens.begin(), plens.end()), packed(true), type(t)
+    {
+        this->CalculateStrides();
+    }
+
+    template <class Range1, class Range2, class = decltype(std::declval<Range1>().begin())>
+    TensorDescriptor(miopenDataType_t t, const Range1& plens, const Range2& pstrides)
+        : lens(plens.begin(), plens.end()), strides(pstrides.begin(), pstrides.end()), type(t)
+    {
+        packed = (this->GetElementSize() == this->GetElementSpace());
+    }
 
     void CalculateStrides();
 
@@ -91,6 +115,8 @@ struct TensorDescriptor : miopenTensorDescriptor
         return this->GetIndex({static_cast<int>(is)...});
     }
 
+    bool IsPacked() const;
+
     bool operator==(const TensorDescriptor& rhs) const;
     bool operator!=(const TensorDescriptor& rhs) const;
     bool operator<(const TensorDescriptor& rhs) const;
@@ -103,6 +129,8 @@ struct TensorDescriptor : miopenTensorDescriptor
     private:
     std::vector<std::size_t> lens;
     std::vector<std::size_t> strides;
+
+    bool packed;
 
     miopenDataType_t type = miopenFloat;
 };

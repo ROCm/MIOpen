@@ -24,6 +24,9 @@
  *
  *******************************************************************************/
 
+#ifndef GUARD_MIOPEN_HANDLE_LOCK_HPP
+#define GUARD_MIOPEN_HANDLE_LOCK_HPP
+
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/filesystem.hpp>
@@ -67,7 +70,7 @@ struct handle_mutex
 
     handle_mutex(const char* name) : flock(name) {}
 
-    bool try_lock() { return std::try_lock(m, flock); }
+    bool try_lock() { return std::try_lock(m, flock) != 0; }
 
     void lock() { std::lock(m, flock); }
 
@@ -95,10 +98,12 @@ struct handle_mutex
 };
 
 template <class T>
-inline std::unique_lock<handle_mutex> get_handle_lock(T, int timeout = 60)
+inline std::unique_lock<handle_mutex> get_handle_lock(T, int timeout = 120)
 {
     static handle_mutex m{get_handle_lock_path(T::value()).c_str()};
     return {m, std::chrono::seconds{timeout}};
 }
 
 } // namespace miopen
+
+#endif // GUARD_MIOPEN_HANDLE_LOCK_HPP

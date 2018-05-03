@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2018 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,18 +23,22 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <cstdlib>
-#include <miopen/db.hpp>
+
+#ifndef GUARD_MLOPEN_SIMPLE_HASH_HPP
+#define GUARD_MLOPEN_SIMPLE_HASH_HPP
+
+#include <string>
 
 namespace miopen {
-
-std::string GetDbPath()
+struct SimpleHash
 {
-    auto p = std::getenv("MIOPEN_DB_PATH"); /// \todo Read env once - use GetStringEnv().
-    if(p == nullptr)
-        return "${MIOPEN_DB_PATH}";
-    else
-        return p;
-}
+    size_t operator()(const std::pair<std::string, std::string>& p) const
+    {
+        using std::hash;
+        return (hash<std::string>()(p.first) ^ hash<std::string>()(p.second));
+    }
+};
 
 } // namespace miopen
+
+#endif
