@@ -93,11 +93,11 @@ void BatchNormForwardTraining(Handle& handle,
     unsigned int in_nhw     = n * in_cstride;
     unsigned int in_nchw    = n * in_nstride;
 
-    size_t xlocalsize = 1;
+    size_t xlocalsize = 1024;
     size_t ylocalsize = 1;
     size_t zlocalsize = 1;
 
-    size_t xgridsize = 1;
+    size_t xgridsize = c * xlocalsize;
     size_t ygridsize = 1;
     size_t zgridsize = 1;
 
@@ -129,36 +129,27 @@ void BatchNormForwardTraining(Handle& handle,
     {
         bool single           = true;
         unsigned int variant  = 1;
-        unsigned int ldsgcn   = 0;
-        unsigned int ldsnogcn = 0;
+        unsigned int ldsgcn   = xlocalsize / 64;
+        unsigned int ldsnogcn = xlocalsize;
         if(in_nhw < 33554432 && in_cstride > 1024)
         {
-            variant = 1;
-            xlocalsize =
-                1024; // std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
-            xgridsize = xlocalsize * c;
-            ldsgcn    = xlocalsize / 64;
-            ldsnogcn  = xlocalsize;
+            //
         }
         else if(in_nhw < 33554432 && in_cstride > 512)
         {
             variant    = 3;
             xlocalsize = 64 * ((in_cstride + 63) / 64);
-            xgridsize  = c * xlocalsize;
             ldsgcn     = xlocalsize / 64;
             ldsnogcn   = xlocalsize;
         }
         else if(in_cstride <= 512)
         {
-            xlocalsize = 1024;
             variant    = 0;
-            xgridsize  = xlocalsize * c;
-            ldsgcn     = xlocalsize / 64;
-            ldsnogcn   = xlocalsize;
         }
         else
         {
             variant      = 2;
+            xlocalsize   = 1;
             ylocalsize   = 1024;
             auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
             xgridsize    = c;

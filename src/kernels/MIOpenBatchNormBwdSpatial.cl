@@ -494,10 +494,9 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #elif(MIO_BN_VARIANT == 1)
 
-
 #define MIO_MAX_READ 2
 #define RD_BLK 1
-#define GRPRD (MIO_BN_GRP0*RD_BLK*4)
+#define GRPRD (MIO_BN_GRP0 * RD_BLK * 4)
 #define MIO_BN_REM4 (MIO_BN_NHW - ((MIO_BN_NHW / GRPRD) * GRPRD))
 #define MIO_BN_LESS4 (MIO_BN_NHW - MIO_BN_REM4)
 #define MIO_BN_CHUNK4 (MIO_MAX_READ * GRPRD)
@@ -564,8 +563,8 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     _FLOAT variance = (_FLOAT)0.;
 #if(MIO_BN_HW >= 4096)
     _FLOAT4 read4;
-    __attribute__((opencl_unroll_hint(2))) 
-    for(unsigned int k = lid<<2; k < MIO_BN_LESS4; k += GRPRD)
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid << 2; k < MIO_BN_LESS4;
+                                               k += GRPRD)
     {
         nidx  = k / MIO_BN_HW;
         hwidx = k - (nidx * MIO_BN_HW);
@@ -583,13 +582,14 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #if(MIO_BN_REM4)
     if(lid < MIO_BN_REM4)
-    {        
+    {
         unsigned int remkey = lid + MIO_BN_LESS4;
         nidx                = remkey / MIO_BN_HW;
         hwidx               = remkey - (nidx * MIO_BN_HW);
         index               = nidx * MIO_BN_CHW + chwid + hwidx;
-        if(index < MIO_BN_NCHW){
-            read4[rd] = *((const global _FLOAT4*)(x_in + index));
+        if(index < MIO_BN_NCHW)
+        {
+            read4 = *((const global _FLOAT4*)(x_in + index));
             mean += read4.x;
             mean += read4.y;
             mean += read4.z;
@@ -689,13 +689,13 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
     _FLOAT4 dyRead4;
     _FLOAT4 xread4;
-    _FLOAT4 xhat4;    
-    __attribute__((opencl_unroll_hint(2))) 
-    for(unsigned int k = lid<<2; k < MIO_BN_LESS4; k += GRPRD)
+    _FLOAT4 xhat4;
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = lid << 2; k < MIO_BN_LESS4;
+                                               k += GRPRD)
     {
-        nidx  = k / MIO_BN_HW;
-        hwidx = k - (nidx * MIO_BN_HW);
-        index = nidx * MIO_BN_CHW + chwid + hwidx;
+        nidx    = k / MIO_BN_HW;
+        hwidx   = k - (nidx * MIO_BN_HW);
+        index   = nidx * MIO_BN_CHW + chwid + hwidx;
         xread4  = *((const global _FLOAT4*)(x_in + index));
         xhat4.x = (xread4.x - mean) * invVariance;
         xhat4.y = (xread4.y - mean) * invVariance;
@@ -714,12 +714,13 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #if(MIO_BN_REM4)
     if(lid < MIO_BN_REM4)
-    {        
+    {
         unsigned int remkey = lid + MIO_BN_LESS4;
         nidx                = remkey / MIO_BN_HW;
         hwidx               = remkey - (nidx * MIO_BN_HW);
         index               = nidx * MIO_BN_CHW + chwid + hwidx;
-        if(index < MIO_BN_NCHW){
+        if(index < MIO_BN_NCHW)
+        {
             xread4  = *((const global _FLOAT4*)(x_in + index));
             dyRead4 = *((const global _FLOAT4*)(dy_in + index));
             xhat4.x = (xread4.x - mean) * invVariance;
@@ -801,8 +802,9 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
 
     _FLOAT vals[MIO_MAX_READ];
-    __attribute__((opencl_unroll_hint(2)))
-    for(unsigned int k = (MIO_MAX_READ * lid); k < MIO_BN_LESSOUT; k += MIO_BN_CHUNK)
+    __attribute__((opencl_unroll_hint(2))) for(unsigned int k = (MIO_MAX_READ * lid);
+                                               k < MIO_BN_LESSOUT;
+                                               k += MIO_BN_CHUNK)
     {
         for(unsigned int j = 0; j < MIO_MAX_READ; j++)
         {
@@ -819,10 +821,10 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         barrier(CLK_GLOBAL_MEM_FENCE);
         for(unsigned int j = 0; j < MIO_MAX_READ; j++)
         {
-            unsigned int l = k + j;
-            nidx           = l / MIO_BN_HW;
-            hwidx          = l - (nidx * MIO_BN_HW);
-            index          = nidx * MIO_BN_CHW + chwid + hwidx;
+            unsigned int l    = k + j;
+            nidx              = l / MIO_BN_HW;
+            hwidx             = l - (nidx * MIO_BN_HW);
+            index             = nidx * MIO_BN_CHW + chwid + hwidx;
             *(dx_out + index) = vals[j];
         }
     }
