@@ -39,9 +39,12 @@ void test_errors()
     EXPECT(throws([&] {
         h.AddKernel("GEMM", "", WriteError(), "write", {1, 1, 1}, {1, 1, 1}, "");
     }));
-    try {
+    try
+    {
         h.AddKernel("GEMM", "", WriteError(), "write", {1, 1, 1}, {1, 1, 1}, "");
-    } catch(miopen::Exception& e) {
+    }
+    catch(miopen::Exception& e)
+    {
         EXPECT(!std::string(e.what()).empty());
     }
 }
@@ -60,7 +63,7 @@ int main()
 {
     test_multithreads();
     test_errors();
-    // Warnings currently dont work in opencl
+// Warnings currently dont work in opencl
 #if !MIOPEN_BACKEND_OPENCL
     test_warnings();
 #endif
