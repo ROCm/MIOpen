@@ -618,7 +618,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         nidx                = remkey / MIO_BN_HW;
         hwidx               = remkey - (nidx * MIO_BN_HW);
         index               = nidx * MIO_BN_CHW + chwid + hwidx;
-        _FLOAT in           = *(x_in + index);
+        _FLOAT in           = (index < MIO_BN_NCHW) ? *(x_in + index) : 0.;
         mean += in;
         variance = mad(in, in, variance);
     }
@@ -697,11 +697,11 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         hwidx   = k - (nidx * MIO_BN_HW);
         index   = nidx * MIO_BN_CHW + chwid + hwidx;
         xread4  = *((const global _FLOAT4*)(x_in + index));
+        dyRead4 = *((const global _FLOAT4*)(dy_in + index));
         xhat4.x = (xread4.x - mean) * invVariance;
         xhat4.y = (xread4.y - mean) * invVariance;
         xhat4.z = (xread4.z - mean) * invVariance;
         xhat4.w = (xread4.w - mean) * invVariance;
-        dyRead4 = *((const global _FLOAT4*)(dy_in + index));
         db += dyRead4.x;
         db += dyRead4.y;
         db += dyRead4.z;
@@ -713,9 +713,9 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
 
 #if(MIO_BN_REM4)
-    if(lid < MIO_BN_REM4)
+    //  if(lid < MIO_BN_REM4)
     {
-        unsigned int remkey = lid + MIO_BN_LESS4;
+        unsigned int remkey = (lid << 2) + MIO_BN_LESS4;
         nidx                = remkey / MIO_BN_HW;
         hwidx               = remkey - (nidx * MIO_BN_HW);
         index               = nidx * MIO_BN_CHW + chwid + hwidx;
@@ -738,7 +738,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         }
     }
 #endif
-    barrier(CLK_LOCAL_MEM_FENCE);
+    barrier(CLK_GLOBAL_MEM_FENCE);
 
 // This reduction is around .5% of total
 #ifndef __AMDGCN__

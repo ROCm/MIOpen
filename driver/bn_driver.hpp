@@ -47,7 +47,7 @@
 #define MIO_BN_DEBUG 1
 #define MIO_BN_MAX_DEBUGLOOP 65536
 
-#define EPSILON 1e-4
+#define EPSILON 1e-3
 
 #define ERRTOL 1e-4
 #define RMSTOL_FP32 1e-4
