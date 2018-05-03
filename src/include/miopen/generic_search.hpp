@@ -301,7 +301,7 @@ auto GenericSearch(const Solver s,
     // Allocate buffers, init input buffers.
     size_t top_size = context.top_sz / sizeof(float);
     if(tweak == SearchTweak::Impl4xReduceTop_)
-        top_size = divide_round_plus_inf(top_size, 2 * 2);
+        top_size = divide_round_plus_inf(top_size, static_cast<size_t>(2 * 2));
     std::vector<float> bot(context.bot_sz / sizeof(float));
     std::vector<float> top(top_size);
     std::vector<float> wei(context.weights_sz / sizeof(float));
