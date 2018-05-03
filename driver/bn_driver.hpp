@@ -44,7 +44,7 @@
 #include <vector>
 #include "random.hpp"
 
-#define MIO_BN_DEBUG 1
+#define MIO_BN_DEBUG 0
 #define MIO_BN_MAX_DEBUGLOOP 65536
 
 #define EPSILON 1e-3

@@ -107,11 +107,15 @@ void profileSequence(Handle& handle, unsigned char select, float* ctime)
     case 2:
         if(handle.IsProfilingEnabled())
         {
+
+#if(MIO_BN_CPP_PROF == 1)
             ktime = handle.GetKernelTime();
             handle.AccumKernelTime(*ctime);
-#if(MIO_BN_CPP_PROF == 1)
             printf("ktime2: %lf\n", ktime);
             printf("ctime: %f\n", *ctime + ktime);
+#else
+            handle.GetKernelTime();
+            handle.AccumKernelTime(*ctime);
 #endif
         }
         break;
