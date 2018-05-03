@@ -64,6 +64,12 @@ static boost::optional<std::string>& thread_logs_root()
     return path;
 }
 
+static bool& full_set()
+{
+    static bool full_set = false;
+    return full_set;
+}
+
 class Random
 {
     public:
@@ -509,18 +515,18 @@ class DbParallelTest : public DbTest
 class DBMultiThreadedTestWork
 {
     public:
-    static constexpr unsigned int threads_count    = 64;
-    static constexpr unsigned int common_part_size = 64;
-    static constexpr unsigned int unique_part_size = 64;
+    static unsigned int threads_count;
+    static unsigned int common_part_size;
+    static unsigned int unique_part_size;
     static constexpr unsigned int ids_per_key      = 16;
     static constexpr unsigned int common_part_seed = 435345;
 
-    static const std::array<TestData, common_part_size>& common_part()
+    static const std::vector<TestData>& common_part()
     {
         static std::mutex mutex;
         std::lock_guard<std::mutex> lock(mutex);
 
-        static const std::array<TestData, common_part_size>& ref = common_part_init();
+        static const auto& ref = common_part_init();
         return ref;
     }
 
@@ -709,9 +715,9 @@ class DBMultiThreadedTestWork
         return key;
     }
 
-    static const std::array<TestData, common_part_size>& common_part_init()
+    static const std::vector<TestData>& common_part_init()
     {
-        static std::array<TestData, common_part_size> data;
+        static std::vector<TestData> data(common_part_size, TestData{TestData::NoInit{}});
 
         for(auto i  = 0u; i < common_part_size; i++)
             data[i] = TestData::Seeded<common_part_seed>();
@@ -719,6 +725,10 @@ class DBMultiThreadedTestWork
         return data;
     }
 };
+
+unsigned int DBMultiThreadedTestWork::threads_count = 16;
+unsigned int DBMultiThreadedTestWork::common_part_size = 32;
+unsigned int DBMultiThreadedTestWork::unique_part_size = 32;
 
 class DbMultiThreadedTest : public DbTest
 {
@@ -829,6 +839,9 @@ class DbMultiProcessTest : public DbTest
                     command += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " +
                                *thread_logs_root();
 
+                if (full_set())
+                    command += " --all";
+
                 child = popen(command.c_str(), "w");
             }
         }
@@ -900,6 +913,9 @@ class DbMultiProcessReadTest : public DbTest
                 if(thread_logs_root())
                     command += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " +
                                *thread_logs_root();
+
+                if (full_set())
+                    command += " --all";
 
                 std::cout << command << std::endl;
                 child = popen(command.c_str(), "w");
@@ -1215,6 +1231,15 @@ struct PerfDbDriver : test_driver
     {
         if(!logs_root.empty())
             thread_logs_root() = logs_root;
+
+        if (full_set)
+        {
+            tests::full_set() = true;
+
+            DBMultiThreadedTestWork::threads_count = 64;
+            DBMultiThreadedTestWork::common_part_size = 64;
+            DBMultiThreadedTestWork::unique_part_size = 64;
+        }
 
         if(mt_child_id >= 0)
         {
