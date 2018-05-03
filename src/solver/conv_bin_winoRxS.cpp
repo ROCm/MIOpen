@@ -56,24 +56,18 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 
-    if(!(params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
-    {
-        return false;
-    }
-
     if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
     {
         return false;
     }
 
-    const auto name                    = params.GetStream().GetDeviceName();
-    const auto device_is_gfx9_no_xnack = (name == "gfx900" || name == "gfx904" || name == "gfx906");
-    const bool device_is_gfx8_no_xnack =
-        (name == "gfx800" || name == "gfx802" || name == "gfx803" || name == "gfx804");
-    if(!device_is_gfx8_no_xnack && !device_is_gfx9_no_xnack)
-    {
+    const auto name = params.GetStream().GetDeviceName();
+    // clang-format off
+    if (! ((name == "gfx803" && (params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
+        || (name == "gfx900" && (params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
+        || (name == "gfx906" && params.rmv == rocm_meta_version::AMDHSA_1_0)))
         return false;
-    }
+    // clang-format on
 
     // Check if kernel is suitable for the problem description
     // and is able to correctly run with given parameters.
@@ -207,37 +201,23 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
 
     kernel.kernel_name = "sp3AsmConvRxSU";
     kernel.kernel_file = "conv_3x3_wheel_alpha_v9_0_15";
+
     if(params.kernel_stride0 == 2)
     {
         if(params.direction.IsForward())
-        {
             kernel.kernel_file += "_stride_2_dec";
-        }
         else
-        {
             kernel.kernel_file += "_stride_2_dil";
-        }
     }
-    if(name.find("gfx8") != std::string::npos)
-    {
-        kernel.kernel_file += "_gfx803";
-    }
-    else
-    {
-        kernel.kernel_file += "_gfx900";
-    }
+
+    kernel.kernel_file += ("_" + name);
+
     if(params.rmv == rocm_meta_version::V3)
-    {
         kernel.kernel_file += "_m30";
-    }
     else if(params.rmv == rocm_meta_version::AMDHSA_1_0)
-    {
         kernel.kernel_file += "_md10";
-    }
     else
-    {
         MIOPEN_THROW("ConvBinWinogradRxS: Unsupported metadata version.");
-    }
 
     kernel.kernel_file += ".so";
 
