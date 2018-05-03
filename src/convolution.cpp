@@ -331,20 +331,18 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         int in_h, in_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
+        size_t direct_workspace = ForwardGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc);
+
         if(dilation_w > 1 || dilation_h > 1)
-            return ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
+            return std::max(ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc), direct_workspace);
 
         // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
         // 1x1_stride=2
         if((wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && dilation_h == 1 &&
             dilation_w == 1) &&
-           ((u == 1 && v == 1) || (u == 2 && v == 2)))
+           ((in_h <= 14 && in_w <= 14 && u == 1 && v == 1) || (u == 2 && v == 2)))
         {
-            size_t gemm_trans = ((in_h > 14 || in_w > 14) && u == 1 && v == 1)
-                                    ? 0
-                                    : ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
-            size_t direct = ForwardGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc);
-            return std::max(gemm_trans, direct);
+            return std::max(ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc), direct_workspace);
         }
 
         // Check if Winograd is available
@@ -353,15 +351,16 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         // use more workspace.
         if(IsWinograd3x3Supported(handle, true, wDesc, xDesc))
         {
-            return 0;
+            return direct_workspace;
         }
         else
         {
             size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
             size_t workspace_size_fft  = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
 
-            return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft
-                                                             : workspace_size_gemm);
+            return std::max((workspace_size_fft > workspace_size_gemm ? workspace_size_fft
+                                                                      : workspace_size_gemm),
+                            direct_workspace);
         }
     }
 }
@@ -381,6 +380,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeDirect(Handle& handle,
         construct_params.setInputDescFromMLDesc(dxDesc);
         construct_params.setWeightDescFromMLDesc(wDesc);
         construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+        construct_params.setWorkaroundDisableSearchEnforce(true);
         mloConstruct(construct_params);
         return construct_params.getWorkSpaceSzBytes();
     }
@@ -402,15 +402,17 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         int wei_h, wei_w;
         std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
+        size_t direct_workspace = BackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc);
+
         if(dilation_w > 1 || dilation_h > 1)
-            return BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
+            return std::max(BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc),
+                            direct_workspace);
 
         if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
            dilation_w == 1 && dilation_h == 1)
         {
             size_t gemm_trans = BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc);
-            size_t direct     = BackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc);
-            return std::max(gemm_trans, direct);
+            return std::max(gemm_trans, direct_workspace);
         }
         // Check if Winograd is available
         // If Winograd is present, there is no advantage in letting
@@ -418,15 +420,16 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         // use more workspace.
         if(IsWinograd3x3Supported(handle, false, wDesc, dyDesc))
         {
-            return 0;
+            return direct_workspace;
         }
         else
         {
             size_t workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
             size_t workspace_size_fft  = BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc);
 
-            return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft
-                                                             : workspace_size_gemm);
+            return std::max((workspace_size_fft > workspace_size_gemm ? workspace_size_fft
+                                                                      : workspace_size_gemm),
+                            direct_workspace);
         }
     }
 }
@@ -613,6 +616,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeDirect(Handle& handle,
         construct_params.setInputDescFromMLDesc(xDesc);
         construct_params.setWeightDescFromMLDesc(wDesc);
         construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+        construct_params.setWorkaroundDisableSearchEnforce(true);
         mloConstruct(construct_params);
         return construct_params.getWorkSpaceSzBytes();
     }
