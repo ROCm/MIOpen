@@ -38,6 +38,7 @@
 #include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>
+#include "random.hpp"
 
 #ifdef MIOPEN_BACKEND_HIP
 #ifndef CL_SUCCESS
@@ -45,7 +46,7 @@
 #endif
 #endif
 
-template <typename T>
+template <typename Tgpu, typename Tref>
 class ActivationDriver : public Driver
 {
     public:
@@ -54,10 +55,11 @@ class ActivationDriver : public Driver
         miopenCreateTensorDescriptor(&inputTensor);
         miopenCreateTensorDescriptor(&outputTensor);
 
-        miopenCreateActivationDescriptor(&activDesc);
-
         miopenCreateTensorDescriptor(&dInputTensor);
         miopenCreateTensorDescriptor(&dOutputTensor);
+
+        miopenCreateActivationDescriptor(&activDesc);
+        data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
     int AddCmdLineArgs();
@@ -72,10 +74,10 @@ class ActivationDriver : public Driver
     int AllocateBuffersAndCopy();
 
     int RunForwardGPU();
-    int RunForwardCPU();
+    int RunForwardCPU(); // Verify implements it
 
     int RunBackwardGPU();
-    int RunBackwardCPU();
+    int RunBackwardCPU(); // Verify implements it
 
     int VerifyBackward();
     int VerifyForward();
@@ -98,24 +100,25 @@ class ActivationDriver : public Driver
     std::unique_ptr<GPUMem> out_dev;
     std::unique_ptr<GPUMem> scale_dev;
 
-    std::vector<T> in;
-    std::vector<T> out;
-    std::vector<T> outhost;
+    std::vector<Tgpu> in;
+    std::vector<Tgpu> out;
+    std::vector<Tref> outhost;
 
     miopenActivationDescriptor_t activDesc;
 
     miopenTensorDescriptor_t dInputTensor;
     miopenTensorDescriptor_t dOutputTensor;
+
     std::unique_ptr<GPUMem> din_dev;
     std::unique_ptr<GPUMem> dout_dev;
 
-    std::vector<T> din;
-    std::vector<T> dout;
-    std::vector<T> dinhost;
+    std::vector<Tgpu> din;
+    std::vector<Tgpu> dout;
+    std::vector<Tref> dinhost;
 };
 
-template <typename T>
-int ActivationDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
+template <typename Tgpu, typename Tref>
+int ActivationDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
@@ -123,27 +126,27 @@ int ActivationDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
     {
         miopenEnableProfiling(GetHandle(), true);
     }
-    return 0;
+    return miopenStatusSuccess;
 }
 
-template <typename T>
-int ActivationDriver<T>::GetandSetData()
+template <typename Tgpu, typename Tref>
+int ActivationDriver<Tgpu, Tref>::GetandSetData()
 {
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
 
-    SetTensor4d(inputTensor, in_len);
+    SetTensor4d(inputTensor, in_len, data_type);
 
     SetActivationDescriptorFromCmdLineArgs();
 
-    SetTensor4d(outputTensor, in_len);
+    SetTensor4d(outputTensor, in_len, data_type);
 
-    SetTensor4d(dInputTensor, in_len);
-    SetTensor4d(dOutputTensor, in_len);
+    SetTensor4d(dInputTensor, in_len, data_type);
+    SetTensor4d(dOutputTensor, in_len, data_type);
     return (0);
 }
 
-template <typename T>
-int ActivationDriver<T>::AddCmdLineArgs()
+template <typename Tgpu, typename Tref>
+int ActivationDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "0", "Run only Forward LRN Normalization (Default=0)", "int");
     inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
@@ -152,18 +155,18 @@ int ActivationDriver<T>::AddCmdLineArgs()
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
     inflags.AddInputFlag(
         "mode", 'm', "3", "Activation Mode (relu,..., see spec) (Default=3(relu))", "int");
-    inflags.AddInputFlag("alpha", 'A', "0.0", "Activation shift (Default=0.0)", "double");
-    inflags.AddInputFlag("beta", 'B', "0.0", "Activation scale (Default=0.0)", "double");
-    inflags.AddInputFlag("power", 'P', "1.0", "Activation power (Default=1.0)", "double");
+    inflags.AddInputFlag("alpha", 'A', "1", "Activation alpha (Default=1)", "double");
+    inflags.AddInputFlag("beta", 'B', "1", "Activation beta (Default=1)", "double");
+    inflags.AddInputFlag("gamma", 'G', "1", "Activation gamma (Default=1)", "double");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
 
-    return 0;
+    return miopenStatusSuccess;
 }
 
-template <typename T>
-std::vector<int> ActivationDriver<T>::GetInputTensorLengthsFromCmdLine()
+template <typename Tgpu, typename Tref>
+std::vector<int> ActivationDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     int in_n = inflags.GetValueInt("batchsize");
     int in_c = inflags.GetValueInt("in_channels");
@@ -173,22 +176,21 @@ std::vector<int> ActivationDriver<T>::GetInputTensorLengthsFromCmdLine()
     return std::vector<int>({in_n, in_c, in_h, in_w});
 }
 
-template <typename T>
-int ActivationDriver<T>::SetActivationDescriptorFromCmdLineArgs()
+template <typename Tgpu, typename Tref>
+int ActivationDriver<Tgpu, Tref>::SetActivationDescriptorFromCmdLineArgs()
 {
 
     miopenActivationMode_t mode;
     double Alpha = inflags.GetValueDouble("alpha");
     double Beta  = inflags.GetValueDouble("beta");
-    double Power = inflags.GetValueDouble("power");
+    double Gamma = inflags.GetValueDouble("gamma");
     mode         = static_cast<miopenActivationMode_t>(inflags.GetValueInt("mode"));
 
-    miopenSetActivationDescriptor(activDesc, mode, Alpha, Beta, Power);
-    return (0);
+    return (miopenSetActivationDescriptor(activDesc, mode, Alpha, Beta, Gamma));
 }
 
-template <typename T>
-int ActivationDriver<T>::AllocateBuffersAndCopy()
+template <typename Tgpu, typename Tref>
+int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
 
     size_t in_sz  = GetTensorSize(inputTensor);
@@ -200,29 +202,84 @@ int ActivationDriver<T>::AllocateBuffersAndCopy()
 #elif MIOPEN_BACKEND_HIP
     uint32_t ctx = 0;
 #endif
-    in_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
-    out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
+    in_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
-    din_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
-    dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
+    din_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
-    in      = std::vector<float>(in_sz);
-    out     = std::vector<float>(out_sz, 0);
-    outhost = std::vector<float>(out_sz, 0);
+    in      = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    out     = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
-    din     = std::vector<float>(in_sz);
-    dout    = std::vector<float>(out_sz, 0);
-    dinhost = std::vector<float>(in_sz, 0);
+    din     = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    dout    = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    dinhost = std::vector<Tref>(in_sz, static_cast<Tref>(0));
+
+    miopenActivationMode_t activation_mode;
+    double alpha, beta, gamma;
+
+    miopenGetActivationDescriptor(activDesc, &activation_mode, &alpha, &beta, &gamma);
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = static_cast<T>(static_cast<double>(rand()) * (1.0 / RAND_MAX));
+        switch(activation_mode)
+        {
+        case MIOPEN_NEURON_PASTHRU:
+            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+            break;
+        case MIOPEN_NEURON_LOGISTIC:
+            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+            break;
+        case MIOPEN_NEURON_TANH:
+            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+            break;
+        case MIOPEN_NEURON_RELU:
+            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+            break;
+        case MIOPEN_NEURON_SOFTRELU:
+            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+            break;
+        case MIOPEN_NEURON_ABS:
+            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
+            break;
+        case MIOPEN_NEURON_POWER:
+        {
+            double v = -alpha / beta;
+            in[i]    = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>((v + 0.005) / beta),
+                                          static_cast<Tgpu>((v + 2.0) / beta))
+                          : RAN_GEN<Tgpu>(static_cast<Tgpu>((v - 2.0) / beta),
+                                          static_cast<Tgpu>((v - 0.005) / beta));
+            break;
+        }
+        case MIOPEN_NEURON_CLIPPED_RELU:
+            if(i % 3 == 0)
+                in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-1.0 * alpha),
+                                      static_cast<Tgpu>(-0.005 * alpha));
+            else if(i % 3 == 1)
+                in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.005 * alpha),
+                                      static_cast<Tgpu>(0.995 * alpha));
+            else
+                in[i] =
+                    RAN_GEN<Tgpu>(static_cast<Tgpu>(1.005 * alpha), static_cast<Tgpu>(2.0 * alpha));
+
+            break;
+        case MIOPEN_NEURON_LEAKY_RELU:
+            in[i] = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(-0.005))
+                          : RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.005), static_cast<Tgpu>(1.0));
+            break;
+        case MIOPEN_NEURON_ELU:
+            in[i] = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>(0.005), static_cast<Tgpu>(2.0))
+                          : RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(-0.005));
+            break;
+        }
     }
 
     for(int i = 0; i < out_sz; i++)
     {
-        dout[i] = static_cast<T>(static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5) * 0.001);
+        dout[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
     }
+
 #if MIOPEN_BACKEND_OPENCL
     cl_int status;
 #elif MIOPEN_BACKEND_HIP
@@ -240,8 +297,8 @@ int ActivationDriver<T>::AllocateBuffersAndCopy()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int ActivationDriver<T>::RunForwardGPU()
+template <typename Tgpu, typename Tref>
+int ActivationDriver<Tgpu, Tref>::RunForwardGPU()
 {
 
     float alpha = 1, beta = 0;
@@ -267,16 +324,16 @@ int ActivationDriver<T>::RunForwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int ActivationDriver<T>::RunForwardCPU()
+template <typename Tgpu, typename Tref>
+int ActivationDriver<Tgpu, Tref>::RunForwardCPU()
 {
     return (0);
 }
 
-template <typename T>
-int ActivationDriver<T>::RunBackwardGPU()
+template <typename Tgpu, typename Tref>
+int ActivationDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    float alpha = 1., beta = 0.;
+    float alpha = 1, beta = 0;
 
     miopenActivationBackward(GetHandle(),
                              activDesc,
@@ -299,68 +356,70 @@ int ActivationDriver<T>::RunBackwardGPU()
     }
 
     din_dev->FromGPU(GetStream(), din.data());
-    return (0);
+
+    return miopenStatusSuccess;
 }
 
-template <typename T>
-int ActivationDriver<T>::VerifyForward()
+template <typename Tgpu, typename Tref>
+int ActivationDriver<Tgpu, Tref>::VerifyForward()
 {
-    const double allowedEps = (1 << 2);
+
+    double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
     miopenActivationMode_t v_mode;
     double v_Alpha;
     double v_Beta;
-    double v_Power;
+    double v_Gamma;
 
-    miopenGetActivationDescriptor(activDesc, &v_mode, &v_Alpha, &v_Beta, &v_Power);
+    miopenGetActivationDescriptor(activDesc, &v_mode, &v_Alpha, &v_Beta, &v_Gamma);
 
     int match = 1;
-    match     = mloNeuronForwardRunHostAndVerify<T>(v_mode,
-                                                static_cast<T>(v_Power),
-                                                static_cast<T>(v_Alpha),
-                                                static_cast<T>(v_Beta),
-                                                in.size(),
-                                                in.data(),
-                                                out.data(),
-                                                allowedEps);
+    match     = mloNeuronForwardRunHostAndVerify<Tgpu, Tref>(v_mode,
+                                                         static_cast<Tref>(v_Gamma),
+                                                         static_cast<Tref>(v_Beta),
+                                                         static_cast<Tref>(v_Alpha),
+                                                         in.size(),
+                                                         in.data(),
+                                                         out.data(),
+                                                         static_cast<Tref>(allowedEps));
 
     if(match)
         printf("Forward Activation Verifies on CPU and GPU\n");
-    return 0;
+    return miopenStatusSuccess;
 }
 
-template <typename T>
-int ActivationDriver<T>::RunBackwardCPU()
+template <typename Tgpu, typename Tref>
+int ActivationDriver<Tgpu, Tref>::RunBackwardCPU()
 {
 
-    return 0;
+    return miopenStatusSuccess;
 }
 
-template <typename T>
-int ActivationDriver<T>::VerifyBackward()
+template <typename Tgpu, typename Tref>
+int ActivationDriver<Tgpu, Tref>::VerifyBackward()
 {
 
-    const double allowedEps = (1 << 2);
+    double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
     miopenActivationMode_t v_mode;
     double v_Alpha;
     double v_Beta;
-    double v_Power;
+    double v_Gamma;
 
-    miopenGetActivationDescriptor(activDesc, &v_mode, &v_Alpha, &v_Beta, &v_Power);
+    miopenGetActivationDescriptor(activDesc, &v_mode, &v_Alpha, &v_Beta, &v_Gamma);
 
     int match = 1;
-    match     = mloNeuronBackwardRunHostAndVerify<T>(v_mode,
-                                                 static_cast<T>(v_Power),
-                                                 static_cast<T>(v_Alpha),
-                                                 static_cast<T>(v_Beta),
-                                                 dinhost.size(),
-                                                 in.data(),
-                                                 out.data(),
-                                                 din.data(),
-                                                 dout.data(),
-                                                 allowedEps);
+    match     = mloNeuronBackwardRunHostAndVerify<Tgpu, Tref>(v_mode,
+                                                          static_cast<Tref>(v_Gamma),
+                                                          static_cast<Tref>(v_Beta),
+                                                          static_cast<Tref>(v_Alpha),
+                                                          dinhost.size(),
+                                                          in.data(),
+                                                          out.data(),
+                                                          din.data(),
+                                                          dout.data(),
+                                                          static_cast<Tref>(allowedEps));
     if(match)
         printf("Backward Activation Verifies on CPU and GPU\n");
-    return 0;
+    return miopenStatusSuccess;
 }
 
 #endif // GUARD_MIOPEN_ACTIV_DRIVER_HPP
