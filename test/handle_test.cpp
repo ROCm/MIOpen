@@ -36,7 +36,9 @@ std::string WriteError() { return "__kernel void write(__global int* data) { f(d
 void test_errors()
 {
     auto&& h = get_handle();
-    EXPECT(throws([&] { h.AddKernel("GEMM", "", WriteError(), "write", {1, 1, 1}, {1, 1, 1}, ""); }));
+    EXPECT(throws([&] {
+        h.AddKernel("GEMM", "", WriteError(), "write", {1, 1, 1}, {1, 1, 1}, "");
+    }));
 }
 
 std::string WriteNop() { return "__kernel void write(__global int* data) {}\n"; }
