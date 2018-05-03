@@ -726,7 +726,7 @@ class DBMultiThreadedTestWork
     }
 };
 
-unsigned int DBMultiThreadedTestWork::threads_count = 16;
+unsigned int DBMultiThreadedTestWork::threads_count    = 16;
 unsigned int DBMultiThreadedTestWork::common_part_size = 32;
 unsigned int DBMultiThreadedTestWork::unique_part_size = 32;
 
@@ -839,7 +839,7 @@ class DbMultiProcessTest : public DbTest
                     command += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " +
                                *thread_logs_root();
 
-                if (full_set())
+                if(full_set())
                     command += " --all";
 
                 child = popen(command.c_str(), "w");
@@ -914,7 +914,7 @@ class DbMultiProcessReadTest : public DbTest
                     command += std::string(" --") + DbMultiThreadedTest::logs_path_arg + " " +
                                *thread_logs_root();
 
-                if (full_set())
+                if(full_set())
                     command += " --all";
 
                 std::cout << command << std::endl;
@@ -1232,11 +1232,11 @@ struct PerfDbDriver : test_driver
         if(!logs_root.empty())
             thread_logs_root() = logs_root;
 
-        if (full_set)
+        if(full_set)
         {
             tests::full_set() = true;
 
-            DBMultiThreadedTestWork::threads_count = 64;
+            DBMultiThreadedTestWork::threads_count    = 64;
             DBMultiThreadedTestWork::common_part_size = 64;
             DBMultiThreadedTestWork::unique_part_size = 64;
         }
