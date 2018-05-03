@@ -713,30 +713,28 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     }
 
 #if(MIO_BN_REM4)
-    //  if(lid < MIO_BN_REM4)
+    unsigned int remkey = (lid << 2) + MIO_BN_LESS4;
+    nidx                = remkey / MIO_BN_HW;
+    hwidx               = remkey - (nidx * MIO_BN_HW);
+    index               = nidx * MIO_BN_CHW + chwid + hwidx;
+    if(index < MIO_BN_NCHW)
     {
-        unsigned int remkey = (lid << 2) + MIO_BN_LESS4;
-        nidx                = remkey / MIO_BN_HW;
-        hwidx               = remkey - (nidx * MIO_BN_HW);
-        index               = nidx * MIO_BN_CHW + chwid + hwidx;
-        if(index < MIO_BN_NCHW)
-        {
-            xread4  = *((const global _FLOAT4*)(x_in + index));
-            dyRead4 = *((const global _FLOAT4*)(dy_in + index));
-            xhat4.x = (xread4.x - mean) * invVariance;
-            xhat4.y = (xread4.y - mean) * invVariance;
-            xhat4.z = (xread4.z - mean) * invVariance;
-            xhat4.w = (xread4.w - mean) * invVariance;
-            db += dyRead4.x;
-            db += dyRead4.y;
-            db += dyRead4.z;
-            db += dyRead4.w;
-            ds = mad(xhat4.x, dyRead4.x, ds);
-            ds = mad(xhat4.y, dyRead4.y, ds);
-            ds = mad(xhat4.z, dyRead4.z, ds);
-            ds = mad(xhat4.w, dyRead4.w, ds);
-        }
+        xread4  = *((const global _FLOAT4*)(x_in + index));
+        dyRead4 = *((const global _FLOAT4*)(dy_in + index));
+        xhat4.x = (xread4.x - mean) * invVariance;
+        xhat4.y = (xread4.y - mean) * invVariance;
+        xhat4.z = (xread4.z - mean) * invVariance;
+        xhat4.w = (xread4.w - mean) * invVariance;
+        db += dyRead4.x;
+        db += dyRead4.y;
+        db += dyRead4.z;
+        db += dyRead4.w;
+        ds = mad(xhat4.x, dyRead4.x, ds);
+        ds = mad(xhat4.y, dyRead4.y, ds);
+        ds = mad(xhat4.z, dyRead4.z, ds);
+        ds = mad(xhat4.w, dyRead4.w, ds);
     }
+
 #endif
     barrier(CLK_GLOBAL_MEM_FENCE);
 
