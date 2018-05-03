@@ -31,7 +31,7 @@ void test_multithreads()
     run2s(h, 4);
 }
 
-std::string WriteError() { return "__kernel void write(__global int* data) { f(data); }\n"; }
+std::string WriteError() { return "__kernel void write(__global int* data) { data[i] = 0; }\n"; }
 
 void test_errors()
 {
@@ -39,6 +39,11 @@ void test_errors()
     EXPECT(throws([&] {
         h.AddKernel("GEMM", "", WriteError(), "write", {1, 1, 1}, {1, 1, 1}, "");
     }));
+    try {
+        h.AddKernel("GEMM", "", WriteError(), "write", {1, 1, 1}, {1, 1, 1}, "");
+    } catch(miopen::Exception& e) {
+        EXPECT(!std::string(e.what()).empty());
+    }
 }
 
 std::string WriteNop() { return "__kernel void write(__global int* data) {}\n"; }
@@ -55,5 +60,9 @@ int main()
 {
     test_multithreads();
     test_errors();
+    // Warnings currently dont work in opencl
+#if !MIOPEN_BACKEND_OPENCL
     test_warnings();
+#endif
+    printf("End\n");
 }
