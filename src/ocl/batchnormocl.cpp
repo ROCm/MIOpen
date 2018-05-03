@@ -401,7 +401,7 @@ void BatchNormForwardTraining(Handle& handle,
     }
     else // else run per activation
     {
-
+        xlocalsize            = 1;
         ylocalsize            = 256;
         auto segment          = std::ceil(double(in_cstride) / double(ylocalsize));
         xgridsize             = c;
