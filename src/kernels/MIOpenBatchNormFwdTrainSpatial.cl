@@ -469,7 +469,6 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
     int index = 0;
     int lid   = get_local_id(0);
-    int gid   = get_global_id(0);
     int grpid = get_group_id(0);
     int chwid = grpid * MIO_BN_HW;
     int nidx  = 0;
@@ -502,25 +501,23 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }
 
 #if(MIO_BN_REM4)
-    // if(lid < MIO_BN_REM4)
+    unsigned int remkey = (lid << 2) + MIO_BN_LESS4;
+    nidx                = remkey / MIO_BN_HW;
+    hwidx               = remkey - (nidx * MIO_BN_HW);
+    index               = nidx * MIO_BN_CHW + chwid + hwidx;
+    if(index < MIO_BN_NCHW)
     {
-        unsigned int remkey = (lid << 2) + MIO_BN_LESS4;
-        nidx                = remkey / MIO_BN_HW;
-        hwidx               = remkey - (nidx * MIO_BN_HW);
-        index               = nidx * MIO_BN_CHW + chwid + hwidx;
-        if(index < MIO_BN_NCHW)
-        {
-            read4 = *((const global _FLOAT4*)(in + index));
-            mean += read4.x;
-            mean += read4.y;
-            mean += read4.z;
-            mean += read4.w;
-            variance = mad(read4.x, read4.x, variance);
-            variance = mad(read4.y, read4.y, variance);
-            variance = mad(read4.z, read4.z, variance);
-            variance = mad(read4.w, read4.w, variance);
-        }
+        read4 = *((const global _FLOAT4*)(in + index));
+        mean += read4.x;
+        mean += read4.y;
+        mean += read4.z;
+        mean += read4.w;
+        variance = mad(read4.x, read4.x, variance);
+        variance = mad(read4.y, read4.y, variance);
+        variance = mad(read4.z, read4.z, variance);
+        variance = mad(read4.w, read4.w, variance);
     }
+
 #endif
 
 #else
