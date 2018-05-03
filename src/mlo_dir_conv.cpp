@@ -36,20 +36,13 @@
 #include <unordered_map>
 
 #include <miopen/solver.hpp>
-#include <miopen/db_record.hpp>
+#include <miopen/db.hpp>
 #include <miopen/env.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/mlo_utils.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
-
-bool mlo_construct_direct2D::mloIsCompilerWorkarounds() const
-{
-    bool ret = false;
-    return ret;
-}
 
 /************************************************************************************************************************
  **
@@ -57,14 +50,7 @@ bool mlo_construct_direct2D::mloIsCompilerWorkarounds() const
  **
  ************************************************************************************************************************/
 
-miopen::DbRecord mlo_construct_direct2D::GetDbRecord() const
-{
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    return {db_path(), _search_params, true};
-#else
-    return {db_path(), _search_params};
-#endif
-}
+miopen::Db mlo_construct_direct2D::GetDb() const { return {db_path()}; }
 
 /*
    construction has been split into 2
@@ -76,6 +62,7 @@ miopen::solver::ConvSolution mlo_construct_direct2D::FindSolution()
     // clang-format off
     return miopen::solver::SearchForSolution<
         miopen::solver::ConvAsm3x3U,
+        miopen::solver::ConvAsm1x1U,
         miopen::solver::ConvAsm5x10u2v2f1,
         miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1,
         miopen::solver::ConvAsm5x10u2v2b1,
@@ -83,9 +70,8 @@ miopen::solver::ConvSolution mlo_construct_direct2D::FindSolution()
         miopen::solver::ConvOclDirectFwdGen,
         miopen::solver::ConvOclDirectFwd3x3,
         miopen::solver::ConvOclDirectFwd1x1,
-        miopen::solver::ConvOclDirectFwdC,
         miopen::solver::ConvOclDirectFwd
-    >(_search_params, this->GetDbRecord());
+    >(_search_params, this->GetDb());
     // clang-format on
 }
 
@@ -95,7 +81,7 @@ miopen::solver::ConvSolution mlo_construct_winograd::FindSolution()
     return miopen::solver::SearchForSolution<
         miopen::solver::ConvBinWinograd3x3U,
         miopen::solver::ConvBinWinogradRxS
-    >(_search_params, this->GetDbRecord());
+    >(_search_params, this->GetDb());
     // clang-format on
 }
 
@@ -108,7 +94,7 @@ miopen::solver::ConvSolution mlo_construct_BwdWrW2D::FindSolution()
         miopen::solver::ConvOclBwdWrW2,
         miopen::solver::ConvOclBwdWrW53,
         miopen::solver::ConvOclBwdWrW1x1
-    >(_search_params, this->GetDbRecord());
+    >(_search_params, this->GetDb());
     // clang-format on
 }
 
@@ -258,37 +244,27 @@ void mlo_construct_direct2D::setupFloats()
     {
         _search_params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
     }
+    else if(_search_params.float_size == 16)
+    {
+        _search_params.general_compile_options += " -DMIOPEN_USE_FP32=0 -DMIOPEN_USE_FP16=1";
+    }
 }
 
 void mlo_construct_direct2D::setupRocm()
 {
     // Detect assembly kernels
-    _search_params.use_binaries        = false;
-    _search_params.assembler_available = false;
-    _search_params.rmv                 = rocm_meta_version::Default;
+    _search_params.use_binaries    = false;
+    _search_params.use_asm_kernels = false;
+    _search_params.rmv             = rocm_meta_version::Default;
     if(mloIsAmdRocmOpencl(_search_params))
     {
-        _search_params.assembler_available =
+        _search_params.use_asm_kernels =
             !miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}) && ValidateGcnAssembler();
 #ifndef HIP_OC_FINALIZER
         _search_params.use_binaries =
             !miopen::IsDisabled(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES{});
 #endif
     }
-}
-
-bool mlo_construct_BwdWrW2D::mloIsCompilerWorkarounds() const
-{
-    bool ret =
-        (_search_params.in_height == 227 && _search_params.in_width == 227 &&
-         (_search_params.n_inputs & 0x3) > 0 && _search_params.kernel_size0 == 3 &&
-         _search_params.kernel_size1 == 3 && _search_params.pad0 == 1 && _search_params.pad1 == 1 &&
-         _search_params.kernel_stride0 == 1 && _search_params.kernel_stride1 == 1) ||
-        (_search_params.in_height == 231 && _search_params.in_width == 231 &&
-         _search_params.n_inputs == 1 && _search_params.kernel_size0 == 3 &&
-         _search_params.kernel_size1 == 3 && _search_params.pad0 == 1 && _search_params.pad1 == 1 &&
-         _search_params.kernel_stride0 == 1 && _search_params.kernel_stride1 == 1);
-    return ret;
 }
 
 bool mlo_construct_direct2D::mloIsFastBinaryWinograd3x3U() const
@@ -388,10 +364,9 @@ mlo_construct_direct2D::setWeightDescFromMLDesc(const miopen::TensorDescriptor& 
     std::string data_type = weight_tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
     setWeightsDescr(
-        "NCHW", "FP32", nWei, cWei, hWei, wWei, nWeiStride, cWeiStride, hWeiStride, wWeiStride);
+        "NCHW", data_type, nWei, cWei, hWei, wWei, nWeiStride, cWeiStride, hWeiStride, wWeiStride);
 
-    size_t weights_sz = nWei * cWei * hWei * wWei * sizeof(float);
-    return weights_sz;
+    return weight_tensor.GetElementSpace();
 }
 
 size_t
@@ -414,10 +389,8 @@ mlo_construct_direct2D::setOutputDescFromMLDesc(const miopen::TensorDescriptor& 
     std::string data_type = output_tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
     setOutputDescr(
-        "NCHW", "FP32", nOut, cOut, hOut, wOut, nOutStride, cOutStride, hOutStride, wOutStride);
-
-    size_t output_sz = nOut * cOut * hOut * wOut * sizeof(float);
-    return output_sz;
+        "NCHW", data_type, nOut, cOut, hOut, wOut, nOutStride, cOutStride, hOutStride, wOutStride);
+    return output_tensor.GetElementSpace();
 }
 
 size_t mlo_construct_direct2D::setInputDescFromMLDesc(const miopen::TensorDescriptor& input_tensor)
@@ -438,11 +411,10 @@ size_t mlo_construct_direct2D::setInputDescFromMLDesc(const miopen::TensorDescri
 
     std::string data_type = input_tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
-    setInputDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+    setInputDescr(
+        "NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
 
-    size_t input_sz = nIn * cIn * hIn * wIn * sizeof(float);
-
-    return input_sz;
+    return input_tensor.GetElementSpace();
 }
 
 size_t mlo_construct_direct2D::setTopDescFromMLDesc(const miopen::TensorDescriptor& tensor)
@@ -461,11 +433,9 @@ size_t mlo_construct_direct2D::setTopDescFromMLDesc(const miopen::TensorDescript
 
     std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
-    setTopDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+    setTopDescr("NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
 
-    size_t input_sz = nIn * cIn * hIn * wIn * sizeof(float);
-
-    return input_sz;
+    return tensor.GetElementSpace();
 }
 size_t mlo_construct_direct2D::setBotDescFromMLDesc(const miopen::TensorDescriptor& tensor)
 {
@@ -483,11 +453,9 @@ size_t mlo_construct_direct2D::setBotDescFromMLDesc(const miopen::TensorDescript
 
     std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
-    setBotDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+    setBotDescr("NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
 
-    size_t input_sz = nIn * cIn * hIn * wIn * sizeof(float);
-
-    return input_sz;
+    return tensor.GetElementSpace();
 }
 
 size_t mlo_construct_direct2D::setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
@@ -506,11 +474,10 @@ size_t mlo_construct_direct2D::setTopDfDescFromMLDesc(const miopen::TensorDescri
 
     std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
-    setTopDfDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+    setTopDfDescr(
+        "NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
 
-    size_t input_sz = nIn * cIn * hIn * wIn * sizeof(float);
-
-    return input_sz;
+    return tensor.GetElementSpace();
 }
 size_t mlo_construct_direct2D::setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
 {
@@ -528,9 +495,8 @@ size_t mlo_construct_direct2D::setBotDfDescFromMLDesc(const miopen::TensorDescri
 
     std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
-    setBotDfDescr("NCHW", "FP32", nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+    setBotDfDescr(
+        "NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
 
-    size_t input_sz = nIn * cIn * hIn * wIn * sizeof(float);
-
-    return input_sz;
+    return tensor.GetElementSpace();
 }

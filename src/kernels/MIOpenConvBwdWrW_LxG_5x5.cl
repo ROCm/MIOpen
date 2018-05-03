@@ -299,7 +299,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
     for(int i = 0; i < MLO_TOP_DAT_SZ; ++i)
     {
-        top_dat[i] = 0;
+        top_dat[i] = (_FLOAT)(0);
     }
 
 #define MLO_ACCUM_SZ (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0)
@@ -308,13 +308,13 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
     for(int i = 0; i < MLO_ACCUM_SZ; ++i)
     {
-        pvt_accum[i] = 0;
+        pvt_accum[i] = (_FLOAT)(0);
     }
 
     // zero out LDS
     for(int i = lcl_id; i < (MLO_LCL_SZ); i += MLO_GRP_SZ)
     {
-        lcl[i] = 0;
+        lcl[i] = (_FLOAT)(0);
     }
 
     // over all batches
@@ -325,7 +325,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     {
         for(int i = 0; i < MLO_TOP_DAT_SZ; ++i)
         {
-            top_dat[i] = 0;
+            top_dat[i] = (_FLOAT)(0);
         }
 
         int gbl_in_scan_off  = gbl_in_off;
@@ -340,10 +340,10 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         for(int j = 0; j < MLO_FILTER_SIZE1 - 1; ++j, gbl_out_scan_off += MLO_OUT_STRIDE)
         {
             int top_df_off = gbl_out_scan_off;
-            _FLOAT mask    = 1;
+            _FLOAT mask    = (_FLOAT)(1);
 #if MLO_IN_HEIGHT != MLO_OUT_HEIGHT || MLO_FILTER_SIZE1 - 1 > MLO_OUT_HEIGHT
             top_df_off = (j < MLO_OUT_HEIGHT) ? top_df_off : 0;
-            mask       = (j < MLO_OUT_HEIGHT) ? 1 : 0;
+            mask       = (j < MLO_OUT_HEIGHT) ? 1 : (_FLOAT)(0);
 #endif
 
 #if MLO_OUT_N_PIXS_OFF > 0
@@ -362,7 +362,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 }
                 for(; i < MLO_IN_TILE0; ++i)
                 {
-                    top_dat[j * MLO_IN_TILE0 + i] = 0;
+                    top_dat[j * MLO_IN_TILE0 + i] = (_FLOAT)(0);
                 }
             }
             else
@@ -404,11 +404,11 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         {
 
             int top_df_off = gbl_out_scan_off;
-            _FLOAT mask    = 1;
+            _FLOAT mask    = (_FLOAT)(1);
 
 #if MLO_IN_HEIGHT != MLO_OUT_HEIGHT || MLO_FILTER_SIZE1 > MLO_OUT_HEIGHT
             top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
-            mask       = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
+            mask       = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? (_FLOAT)(1) : (_FLOAT)(0);
 #endif
 // move in the last output scans
 #if MLO_OUT_N_PIXS_OFF > 0
@@ -428,7 +428,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 }
                 for(; i < MLO_IN_TILE0; ++i)
                 {
-                    top_dat[(MLO_FILTER_SIZE1 - 1) * MLO_IN_TILE0 + i] = 0;
+                    top_dat[(MLO_FILTER_SIZE1 - 1) * MLO_IN_TILE0 + i] = (_FLOAT)(0);
                 }
             }
             else
@@ -530,7 +530,7 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* weight_df_tmp, __global _FLOAT* weight
     _FLOAT pvt_accum_wei[MLO_UT_READ_UNIT];
     for(int i = 0; i < MLO_UT_READ_UNIT; ++i)
     {
-        pvt_accum_wei[i] = 0;
+        pvt_accum_wei[i] = (_FLOAT)(0);
     }
 
     int batch_loop = (MLO_BATCH_SZ + (MLO_N_BATCH_LOOPS * MLO_N_LCL_BATCHS) - 1) /

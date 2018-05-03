@@ -29,6 +29,7 @@ cmake_minimum_required( VERSION 2.8.12 )
 
 add_executable(MIOpenDriver EXCLUDE_FROM_ALL main.cpp InputFlags.cpp)
 target_link_libraries(MIOpenDriver MIOpen)
+target_include_directories(MIOpenDriver SYSTEM PUBLIC ${HALF_INCLUDE_DIR})
 install(TARGETS MIOpenDriver 
     OPTIONAL 
     RUNTIME DESTINATION bin)

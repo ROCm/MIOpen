@@ -57,7 +57,8 @@ else()
             -Winit-self
             -Wreturn-type
             -Wsequence-point
-            -Wshadow
+            # Shadow is broken on gcc when using lambdas
+            # -Wshadow
             -Wswitch
             -Wtrigraphs
             -Wundef

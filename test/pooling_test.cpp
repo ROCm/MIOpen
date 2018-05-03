@@ -54,7 +54,7 @@ struct pooling_operators
     miopen::PoolingDescriptor filter;
     pooling_operators(miopen::PoolingDescriptor f) : filter(f) {}
 
-    T start() const
+    double start() const
     {
         if(filter.GetMode() == miopenPoolingMax)
             return std::numeric_limits<T>::lowest();
@@ -62,18 +62,23 @@ struct pooling_operators
             return 0.0;
     }
 
-    T operator()(T x, T y) const
+    double operator()(double x, double y) const
     {
         if(filter.GetMode() == miopenPoolingMax)
-            return std::max(x, y);
+        {
+            double m = std::max(x, y);
+            return (m);
+        }
         else
             return x + y;
     }
 
-    T final(T x, T y)
+    double final(double x, double y)
     {
         if(filter.GetMode() == miopenPoolingMax)
-            return x;
+        {
+            return (x);
+        }
         else
             return x / y;
     }
@@ -99,16 +104,21 @@ struct verify_forward_pooling
         auto op = pooling_operators<T>{filter};
 
         out.par_for_each([&](int o, int w, int i, int j) {
-            const int start_x = i * v - pad_h;
-            const int start_y = j * u - pad_w;
+            const int start_x0 = i * v - pad_h;
+            const int start_y0 = j * u - pad_w;
 
-            const int hend = std::min(start_x + window_h, in_h + pad_h);
-            const int wend = std::min(start_y + window_w, in_w + pad_w);
+            const int hend = std::min(start_x0 + window_h, in_h);
+            const int wend = std::min(start_y0 + window_w, in_w);
 
-            const int pool_size = (hend - start_x) * (wend - start_y);
+            const int start_x = std::max(start_x0, 0);
+            const int start_y = std::max(start_y0, 0);
 
-            T acc = op.start();
-            ford(window_h, window_w)([&](int x, int y) {
+            const int w_h       = (hend - start_x);
+            const int w_w       = (wend - start_y);
+            const int pool_size = std::max(w_h * w_w, 1);
+
+            double acc = op.start();
+            ford(w_h, w_w)([&](int x, int y) {
                 const int in_x = start_x + x;
                 const int in_y = start_y + y;
                 if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
@@ -116,7 +126,7 @@ struct verify_forward_pooling
                     acc = op(acc, input(o, w, in_x, in_y));
                 }
             });
-            out(o, w, i, j) = op.final(acc, pool_size);
+            out(o, w, i, j) = T(op.final(acc, pool_size));
         });
         return out;
     }
@@ -218,16 +228,19 @@ struct verify_backward_pooling
             else
             {
                 ford(out_h, out_w, window_h, window_w)([&](int i, int j, int x, int y) {
-                    const int start_x = i * v - pad_h;
-                    const int start_y = j * u - pad_w;
+                    const int start_x0 = i * v - pad_h;
+                    const int start_y0 = j * u - pad_w;
 
-                    const int hend = std::min(start_x + window_h, in_h + pad_h);
-                    const int wend = std::min(start_y + window_w, in_w + pad_w);
+                    const int hend      = std::min(start_x0 + window_h, in_h);
+                    const int wend      = std::min(start_y0 + window_w, in_w);
+                    const int start_x   = std::max(start_x0, 0);
+                    const int start_y   = std::max(start_y0, 0);
+                    const int w_h       = (hend - start_x);
+                    const int w_w       = (wend - start_y);
+                    const int pool_size = std::max(w_h * w_w, 1);
 
-                    const int pool_size = (hend - start_x) * (wend - start_y);
-
-                    const int in_x = start_x + x;
-                    const int in_y = start_y + y;
+                    const int in_x = start_x0 + x;
+                    const int in_y = start_y0 + y;
                     if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
                     {
                         dinput(o, w, in_x, in_y) += dout(o, w, i, j) / pool_size;
@@ -338,7 +351,7 @@ struct pooling_driver : test_driver
 
     void run()
     {
-        int in_h, in_w, window_h, window_w, out_h, out_w;
+        int in_h, in_w, window_h, window_w, out_h, out_w, pad_h, pad_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
 
         miopen::PoolingDescriptor filter{mode_lookup.at(miopen::ToUpper(mode)),
@@ -382,15 +395,23 @@ struct pooling_driver : test_driver
                 return;
         }
 
-        std::vector<uint8_t> indices{};
-        auto out  = verify(verify_forward_pooling{}, input, filter, indices);
-        auto dout = out.first;
-        dout.generate([&](int n, int c, int h, int w) {
-            T x      = out.first(n, c, h, w);
-            double y = (877 * n + 547 * c + 701 * h + 1049 * w + static_cast<int>(769 * x)) % 2503;
-            return ((x * y) / 1301.0);
-        });
-        verify(verify_backward_pooling{}, input, dout, out.first, filter, indices);
+        std::tie(pad_h, pad_w) = miopen::tien<2>(filter.GetPads());
+
+        if((window_h < (in_h + 2 * pad_h)) && (window_w < (in_w + 2 * pad_w)))
+        {
+            std::vector<uint8_t> indices{};
+            auto out  = verify(verify_forward_pooling{}, input, filter, indices);
+            auto dout = out.first;
+            dout.generate([&](int n, int c, int h, int w) {
+                auto x = static_cast<std::size_t>(std::max<double>(
+                             out.first(n, c, h, w), std::numeric_limits<int>::max())) %
+                         2503;
+                double y = (877 * n) % 2503 + (547 * c) % 2503 + (701 * h) % 2503 +
+                           (1049 * w) % 2503 + (769 * x) % 2503;
+                return ((x * y) / (2503.0 * 2503.0));
+            });
+            verify(verify_backward_pooling{}, input, dout, out.first, filter, indices);
+        }
     }
 };
 

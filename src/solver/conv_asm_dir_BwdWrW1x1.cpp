@@ -26,131 +26,38 @@
 
 #include <sstream>
 #include <limits>
-#include <iterator>
-#include <chrono>
+#include <cassert>
 
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/env.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/solver.hpp>
+#include <miopen/generic_search.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_SEARCH_OPTIMIZED)
 
 namespace miopen {
-
-/// \todo Factor out this (to generic search implementation)
-class Timer
-{
-    public:
-    Timer(){};
-    void start() { st = std::chrono::steady_clock::now(); }
-    float elapsed_ms()
-    {
-        capture();
-        return std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(et - st)
-            .count();
-    }
-
-    private:
-    void capture() { et = std::chrono::steady_clock::now(); }
-    std::chrono::time_point<std::chrono::steady_clock> st;
-    std::chrono::time_point<std::chrono::steady_clock> et;
-};
-
 namespace solver {
 
-/// \todo Factor out this (to generic search implementation)
-class VirtualIteratorWrW1x1;
-
-/// \todo Factor out this (to generic search implementation)
-///
-/// This container (together with corresponding iterator) provies access
-/// to a set of performance configs which, by definition, must be
-/// suitable for the given problem config.
-///
-/// It does not hold values themselves as these would take too much memory
-/// but can be easily computed (and that is what iterator actually does).
-///
-/// The container holds problem config information instead. This info
-/// is required for advancing the iterator to the next valid configuration.
-/// Also it provides const_iterator, begin() and end().
-class VirtualContainer1x1WrW
+static inline bool UseSubsample(const ConvolutionContext& c)
 {
-    // Valid iterator shall denote an element of a container.
-    const ConvolutionContext& config;
-    friend class VirtualIteratorWrW1x1;
-
-    public:
-    using const_iterator = VirtualIteratorWrW1x1;
-    VirtualContainer1x1WrW(const ConvolutionContext& config_) : config(config_) {}
-    VirtualIteratorWrW1x1 begin() const;
-    VirtualIteratorWrW1x1 end() const;
-};
-
-// Iterator shall advance to the next valid config, i.e. the one which
-// satisfies PerformanceConfig.IsValid(ProblemConfig)
-class VirtualIteratorWrW1x1
-    : public std::iterator<std::input_iterator_tag, PerformanceConfigConvAsmBwdWrW1x1>
-{
-    value_type v; // PerformanceConfigConvAsmBwdWrW1x1
-    const VirtualContainer1x1WrW* container;
-
-    static const value_type& GetMinValue();
-    static const value_type& GetOutOfRangeValue();
-
-    /// Implements begin()
-    VirtualIteratorWrW1x1(const VirtualContainer1x1WrW* container_)
-        : v(GetMinValue()), container(container_)
-    {
-        if(!IsValid())
-            Next();
-    }
-    friend class VirtualContainer1x1WrW; // Passes itself to private ctor in order to construct
-                                         // begin().
-    void Next();
-    bool IsValid();
-
-    public:
-    /// Implementes end() and also serves as a default ctor.
-    VirtualIteratorWrW1x1() : v(GetOutOfRangeValue()), container(nullptr) {}
-
-    bool operator!=(VirtualIteratorWrW1x1 const& other) const;
-    const value_type& operator*() const { return v; }
-    const value_type* operator->() const { return &v; }
-    VirtualIteratorWrW1x1& operator++()
-    {
-        Next();
-        return *this;
-    }
-};
-
-inline VirtualIteratorWrW1x1 VirtualContainer1x1WrW::begin() const { return {this}; }
-
-inline VirtualIteratorWrW1x1 VirtualContainer1x1WrW::end() const { return {}; }
-
-const VirtualIteratorWrW1x1::value_type& VirtualIteratorWrW1x1::GetMinValue()
-{
-    static const value_type val(1, 1, 1, 1, 1, 1);
-    return val;
+    return c.kernel_stride0 > 1 || c.kernel_stride1 > 1;
 }
 
-const VirtualIteratorWrW1x1::value_type& VirtualIteratorWrW1x1::GetOutOfRangeValue()
+/// After 2x subsampling kernel, image size on asm kernel input becomes 4x (2*2) smaller.
+/// As padding = 0, we can simply re-use output image size (no computations required).
+/// \note For backward convolutions input image size is held in
+/// out_height/out_width and vice versa.
+static inline int AsmImgHeight(const ConvolutionContext& c)
 {
-    static const value_type val(-1, -1, -1, -1, -1, -1);
-    return val;
+    return UseSubsample(c) ? c.in_height : c.out_height;
 }
 
-inline bool VirtualIteratorWrW1x1::IsValid()
+static inline int AsmImgWidth(const ConvolutionContext& c)
 {
-    if(!container)
-        return false;
-    return v.IsValid(container->config);
-}
-
-inline bool VirtualIteratorWrW1x1::operator!=(VirtualIteratorWrW1x1 const& other) const
-{
-    return !(v.IsEqual(other.v) && container == other.container);
+    return UseSubsample(c) ? c.in_width : c.out_width;
 }
 
 inline static bool Inc_1_2_4_8_16(int& v)
@@ -163,6 +70,54 @@ inline static bool Inc_1_2_4_8_16(int& v)
     }
     v = v * 2;
     return false;
+}
+
+/// \todo Rework, factor out to separate header and use in other solvers.
+/// \todo Clarify functions semantics.
+template <int first, int... others>
+inline static bool IsFromPackContinue(const int v)
+{
+    return (v == first) || IsFromPackContinue<others...>(v);
+}
+
+template <int first, int... others>
+inline static bool IsFromPack(const int v)
+{
+    return IsFromPackContinue<first, others..., 0, 0>(v);
+}
+
+template <>
+inline bool IsFromPackContinue<0, 0>(const int)
+{
+    return false;
+}
+
+template <int next, int... others>
+inline static bool IncPackNext(int& v)
+{
+    v = next;
+    return true;
+}
+
+template <int first, int... others>
+inline static bool IncPackContinue(int& v)
+{
+    return ((v == first) && IncPackNext<others...>(v)) || IncPackContinue<others...>(v);
+}
+
+template <>
+inline bool IncPackContinue<0, 0>(int&)
+{
+    return false;
+}
+
+template <int first, int... others>
+inline static bool IncPack(int& v)
+{
+    assert((IsFromPack<first, others...>(v)));
+    IncPackContinue<first, others..., first, 0, 0>(v);
+
+    return (v == first);
 }
 
 inline static bool Is_1_2_4_8_16(const int& v)
@@ -184,65 +139,136 @@ inline static bool Inc_1_2_4(int& v)
 
 inline static bool Is_1_2_4(const int& v) { return v == 1 || v == 2 || v == 4; }
 
-void VirtualIteratorWrW1x1::Next()
+bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
 {
-    if(container == nullptr)
+    // Increment with wrap-around:
+    // select fast or full method
+    if(miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_SEARCH_OPTIMIZED{}))
     {
-        v = GetOutOfRangeValue();
-        return;
-    }
-    do
-    {
-        // Increment with wrap-around:
         do
         {
-            if(!Inc_1_2_4_8_16(v.c_per_gpr))
+            if(++read_size <= 4)
                 break;
-            if(!Inc_1_2_4_8_16(v.c_mult))
+            read_size = 1;
+            if(++n_part_cnt <= 8)
                 break;
-            if(!Inc_1_2_4_8_16(v.k_per_gpr))
+            n_part_cnt = 1;
+            if(!Inc_1_2_4_8_16(chunk_size))
                 break;
-            if(!Inc_1_2_4_8_16(v.k_mult))
+            if(!Inc_1_2_4_8_16(c_per_gpr))
                 break;
-            if(++v.read_size <= 4)
+            if(!Inc_1_2_4_8_16(c_mult))
                 break;
-            v.read_size = 1;
-            if(!Inc_1_2_4(v.n_per_gpr))
+            if(!Inc_1_2_4_8_16(k_per_gpr))
+                break;
+            if(!Inc_1_2_4_8_16(k_mult))
+                break;
+            if(!Inc_1_2_4(n_per_gpr))
                 break;
             // All the fields (components) of performance confic have wrapped around.
-            // The next one is not the min (in the allowed range) but a one beyond the end.
-            // Iterator is useless from now.
-            v         = GetOutOfRangeValue();
-            container = nullptr;
-            return;
+            return false;
         } while(false);
-    } while(!IsValid());
+    }
+    else
+    {
+        if(!use_spare_set) // first or second perfParam pack
+        {
+            // if SetNextValue executed from default class state
+            if((read_size == 1) && (c_per_gpr == 1) && (c_mult == 1) && (k_mult == 1) &&
+               (k_per_gpr == 1) && (chunk_size == 1) && (n_per_gpr == 1) && (n_part_cnt == 1))
+            {
+                read_size = 2;
+                c_per_gpr = 2;
+                c_mult    = 2;
+                k_per_gpr = 2;
+                k_mult    = 2;
+                return true;
+            }
+            do
+            {
+                if(!IncPack<2, 4>(read_size))
+                    break;
+                if(!IncPack<1, 2, 4, 8>(chunk_size))
+                    break;
+                if(!IncPack<2, 4, 8, 16>(c_per_gpr))
+                    break;
+                if(!IncPack<2, 4, 8, 16>(c_mult))
+                    break;
+                if(!IncPack<2, 4, 8>(k_per_gpr))
+                    break;
+                if(!IncPack<2, 4, 8>(k_mult))
+                    break;
+                if(!IncPack<1, 2>(n_per_gpr))
+                    break;
+                if(!IncPack<1, 2, 4, 8>(n_part_cnt))
+                    break;
+                return false;
+            } while(false);
+        }
+        else
+        {
+            do
+            {
+                if(!IncPack<1, 2, 4>(read_size))
+                    break;
+                if(!IncPack<1, 2, 4, 8>(chunk_size))
+                    break;
+                if(!IncPack<1, 2, 4, 8, 16>(c_per_gpr))
+                    break;
+                if(!IncPack<1, 2, 4, 8, 16>(c_mult))
+                    break;
+                if(!IncPack<1, 2, 4, 8>(k_per_gpr))
+                    break;
+                if(!IncPack<1, 2, 4, 8>(k_mult))
+                    break;
+                if(!IncPack<1, 2>(n_per_gpr))
+                    break;
+                if(!IncPack<1, 2, 4, 8>(n_part_cnt))
+                    break;
+                return false;
+            } while(false);
+        }
+    }
+    return true;
 }
 
-PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(
-    int c_per_gpr_, int c_mult_, int k_per_gpr_, int k_mult_, int read_size_, int n_per_gpr_)
-    : c_per_gpr(c_per_gpr_),
+PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(int chunk_size_,
+                                                                     int c_per_gpr_,
+                                                                     int c_mult_,
+                                                                     int k_per_gpr_,
+                                                                     int k_mult_,
+                                                                     int n_per_gpr_,
+                                                                     int n_part_cnt_,
+                                                                     int read_size_,
+                                                                     bool use_spare_set_)
+    : chunk_size(chunk_size_),
+      c_per_gpr(c_per_gpr_),
       c_mult(c_mult_),
       k_per_gpr(k_per_gpr_),
       k_mult(k_mult_),
+      n_per_gpr(n_per_gpr_),
+      n_part_cnt(n_part_cnt_),
       read_size(read_size_),
-      n_per_gpr(n_per_gpr_)
+      use_spare_set(use_spare_set_)
 {
 }
 
-inline bool
-PerformanceConfigConvAsmBwdWrW1x1::IsEqual(const PerformanceConfigConvAsmBwdWrW1x1& other) const
+inline bool PerformanceConfigConvAsmBwdWrW1x1::
+operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const
 {
     // clang-format off
-    return c_per_gpr == other.c_per_gpr
+    return chunk_size == other.chunk_size
+        && c_per_gpr == other.c_per_gpr
         && c_mult == other.c_mult
         && k_per_gpr == other.k_per_gpr
         && k_mult == other.k_mult
+        && n_per_gpr == other.n_per_gpr
+        && n_part_cnt == other.n_part_cnt
         && read_size == other.read_size
-        && n_per_gpr == other.n_per_gpr; // clang-format on
+        && use_spare_set == other.use_spare_set; // clang-format on
 }
 
-bool PerformanceConfigConvAsmBwdWrW1x1::IsValidRange() const
+bool PerformanceConfigConvAsmBwdWrW1x1::IsValidValue() const
 {
     // clang-format off
     return Is_1_2_4_8_16(c_per_gpr)
@@ -250,16 +276,26 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValidRange() const
         && Is_1_2_4_8_16(k_per_gpr)
         && Is_1_2_4_8_16(k_mult)
         && (1 <= read_size && read_size <= 4)
-        && Is_1_2_4(n_per_gpr); // clang-format on
+        && (IsFromPack<1,2,4>(n_per_gpr))
+        && (n_part_cnt >= 1 && n_part_cnt <= 8)
+        && Is_1_2_4(GetHWPerGpr())
+        && Is_1_2_4_8_16(chunk_size); // clang-format on
 }
 
 bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config) const
 {
-    if(!IsValidRange())
+
+    if(!IsValidValue())
         return false;
-    assert((GetChunkSize() * c_per_gpr) == 16);
+    if(!((chunk_size * c_per_gpr) >= 16 && ((chunk_size == 1 || c_per_gpr * chunk_size <= 16))))
+        return false;
+
     if(!(k_per_gpr <= c_per_gpr))
         return false;
+
+    if(!(c_per_gpr * n_per_gpr * GetHWPerGpr() * chunk_size == wave_size))
+        return false;
+
     if(c_mult > 1 || k_mult > 1)
     {
         assert(c_per_gpr * c_mult != 0);
@@ -269,9 +305,16 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
         if(!(config.n_inputs % (k_per_gpr * k_mult) == 0))
             return false;
     }
-    if(!(c_mult * k_mult * k_per_gpr + 9 + (c_mult + k_mult) * read_size * GetPipeDepth() <= 256))
+    int acc_gprs = c_mult * k_mult * k_per_gpr;
+    if(!(acc_gprs + 11 + (c_mult + k_mult) * read_size <= (n_part_cnt > 4 ? 128 : 256)))
     {
         return false;
+    }
+    if(n_part_cnt > 1)
+    {
+        int lds_size = ((n_part_cnt - 1) * solver::wave_size * sizeof(float) * acc_gprs);
+        if(!(lds_size <= (1 << 16)))
+            return false;
     }
     return true;
 }
@@ -279,53 +322,91 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 void PerformanceConfigConvAsmBwdWrW1x1::EuristicInit(const ConvolutionContext& config)
 {
     read_size = 4;
-    n_per_gpr = (config.batch_sz >= 4 && (config.out_height * config.out_width) <= 128) ? 4 : 1;
+    n_per_gpr =
+        (config.batch_sz >= 4 && (AsmImgHeight(config) * AsmImgWidth(config)) <= 128) ? 4 : 1;
 
     const auto c_k_256 = config.n_outputs * config.n_inputs / 256; // C*K/256
     if(c_k_256 < 2)
     {
-        c_per_gpr = 1;
-        c_mult    = 1;
-        k_per_gpr = 1;
-        k_mult    = 1;
+        c_per_gpr  = 1;
+        chunk_size = 16 / c_per_gpr;
+        c_mult     = 1;
+        k_per_gpr  = 1;
+        k_mult     = 1;
+        n_per_gpr  = 1;
+        n_part_cnt = 1;
+        read_size  = 1;
     }
     else if(c_k_256 < (2 * 4))
     {
-        c_per_gpr = 1;
-        c_mult    = 2;
-        k_per_gpr = 1;
-        k_mult    = 2;
+        c_per_gpr  = 1;
+        chunk_size = 16 / c_per_gpr;
+        c_mult     = 2;
+        k_per_gpr  = 1;
+        k_mult     = 2;
+        n_per_gpr  = 1;
+        n_part_cnt = 1;
+        read_size  = 1;
     }
     else if(c_k_256 < (2 * 4 * 4))
     {
-        c_per_gpr = 2;
-        c_mult    = 2;
-        k_per_gpr = 2;
-        k_mult    = 2;
+        c_per_gpr  = 2;
+        chunk_size = 16 / c_per_gpr;
+        c_mult     = 2;
+        k_per_gpr  = 2;
+        k_mult     = 2;
+        n_per_gpr  = 2;
+        n_part_cnt = 2;
+        read_size  = 2;
     }
     else if(c_k_256 < (2 * 4 * 4 * 4))
     {
-        c_per_gpr = 2;
-        c_mult    = 4;
-        k_per_gpr = 2;
-        k_mult    = 4;
+        c_per_gpr  = 2;
+        chunk_size = 16 / c_per_gpr;
+        c_mult     = 4;
+        k_per_gpr  = 2;
+        k_mult     = 4;
+        n_per_gpr  = 2;
+        n_part_cnt = 2;
+        read_size  = 4;
     }
     else
     {
-        c_per_gpr = 4;
-        c_mult    = 4;
-        k_per_gpr = 4;
-        k_mult    = 4;
+        c_per_gpr  = 2;
+        chunk_size = 16 / c_per_gpr;
+        c_mult     = 4;
+        k_per_gpr  = 2;
+        k_mult     = 4;
+        n_per_gpr  = 4;
+        n_part_cnt = 4;
+        read_size  = 4;
     }
 
     if(!IsValid(config))
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
-        c_per_gpr = 4;
-        c_mult    = 1;
-        k_per_gpr = 4;
-        k_mult    = 1;
-        assert(IsValid(config));
+
+        c_per_gpr  = 2;
+        chunk_size = 16 / c_per_gpr;
+        c_mult     = 1;
+        k_per_gpr  = 2;
+        k_mult     = 1;
+        n_per_gpr  = 1;
+        n_part_cnt = 1;
+        read_size  = 1;
+        if(!IsValid(config))
+        {
+            MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative 2-nd re-init...");
+            chunk_size = 1;
+            c_per_gpr  = 1;
+            c_mult     = 1;
+            k_per_gpr  = 1;
+            k_mult     = 1;
+            n_per_gpr  = 1;
+            n_part_cnt = 1;
+            read_size  = 1;
+            assert(IsValid(config));
+        }
     }
     MIOPEN_LOG_I(ToString());
 }
@@ -349,12 +430,12 @@ ConvAsmBwdWrW1x1::GetPerformanceConfig(const ConvolutionContext& params) const
 bool ConvAsmBwdWrW1x1::IsValidPerformanceConfig(const ConvolutionContext& problem,
                                                 const PerformanceConfigConvAsmBwdWrW1x1& c) const
 {
-    return c.IsValidRange() && c.IsValid(problem);
+    return c.IsValidValue() && c.IsValid(problem);
 }
 
 bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!params.assembler_available)
+    if(!params.use_asm_kernels)
     {
         return false;
     }
@@ -375,27 +456,24 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     }
     assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
     // clang-format off
-    bool ok = (params.pad0 == 0          // -q  pad_w
+    bool ok = (params.pad0 == 0         // -q  pad_w
         && params.pad1 == 0             // -p  pad_h
         && params.kernel_stride0 <= 2   // -u  stride_w
         && params.kernel_stride1 <= 2   // -v  stride_h
-	&& params.kernel_stride0 == params.kernel_stride1
+        && params.kernel_stride0 == params.kernel_stride1
         && params.kernel_size0 == 1     // -x  S wei_w
         && params.kernel_size1 == 1     // -y  R wei_h
         && params.kernel_dilation0 == 1
         && params.kernel_dilation1 == 1
         && params.bias == 0
+        && params.float_size == 32
         && params.in_layout == "NCHW");
     if(!ok)
     {
         return false; // Early exit to speed up the check.
     }
     // Check limits:
-    auto h_w = static_cast<long>(params.out_height) * params.out_width;
-    if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
-    {
-        h_w = static_cast<long>(params.in_height) * params.in_width;
-    }
+    const auto h_w     = static_cast<long>(AsmImgHeight(params)) * AsmImgWidth(params);
     const auto r_s     = static_cast<long>(params.kernel_size1) * params.kernel_size0;
     const auto c_h_w   = static_cast<long>(params.n_outputs) * h_w;   // C*H*W
     const auto k_h_w   = static_cast<long>(params.n_inputs) * h_w;    // K*H*W
@@ -427,23 +505,14 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
                                            const PerformanceConfigConvAsmBwdWrW1x1& config,
                                            const bool disableConfigOverrideFromEnv) const
 {
+
     ConvSolution result;
     std::ostringstream options;
 
     assert(params.pad1 == 0 && params.pad0 == 0);
-    if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
-    {
-
-        result.passes = 2;
-    }
-    else
-    {
-        result.passes = 1;
-    }
-
     result.workspce_sz = 0;
 
-    if(result.passes > 1 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
+    if(UseSubsample(params))
     {
 
         // subsampled input, in_height equals to image size after downsampling
@@ -494,24 +563,11 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         int data_len =
             (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
         result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
-
-        // Note that params.in_height/params.in_width are swapped for output size when initialized
-        // in mlo_internal.hpp for backward convolutions
-        GenerateClangDefsym(options, "img_h", params.in_height); // H
-        GenerateClangDefsym(options, "img_w", params.in_width);  // W
-        GenerateClangDefsym(options, "stride_h", 1);
-        GenerateClangDefsym(options, "stride_w", 1);
     }
-    else
-    {
-        // Note that params.out_height/params.out_width are swapped for input size when initialized
-        // in mlo_internal.hpp for backward convolutions
-        GenerateClangDefsym(options, "img_h", params.out_height); // H
-        GenerateClangDefsym(options, "img_w", params.out_width);  // W
-        GenerateClangDefsym(options, "stride_h", params.kernel_stride1);
-        GenerateClangDefsym(options, "stride_w", params.kernel_stride0);
-    }
-
+    GenerateClangDefsym(options, "stride_h", 1);
+    GenerateClangDefsym(options, "stride_w", 1);
+    GenerateClangDefsym(options, "img_h", AsmImgHeight(params)); // H
+    GenerateClangDefsym(options, "img_w", AsmImgWidth(params));  // W
     GenerateClangDefsym(options, "batch_size", params.batch_sz); // N
     // Note that params.n_outputs and params.n_inputs are swapped for backward convolutions.
     GenerateClangDefsym(options, "input_channels", params.n_outputs); // C
@@ -529,11 +585,12 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
     const PerformanceConfigConvAsmBwdWrW1x1* pcfg = &config;
     PerformanceConfigConvAsmBwdWrW1x1 fromEnv;
+
     if(!disableConfigOverrideFromEnv)
     {
         std::string s;
         const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_PERF_VALS{});
-        if(p_asciz)
+        if(p_asciz != nullptr)
         {
             s = std::string(p_asciz);
             if(!s.empty()) // else nothing to parse.
@@ -552,27 +609,28 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
             }
         }
     }
-    GenerateClangDefsym(options, "n_per_gpr", pcfg->GetNPerGpr());
-    GenerateClangDefsym(options, "pipe_depth", pcfg->GetPipeDepth());
+
+    GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
     GenerateClangDefsym(options, "c_per_gpr", pcfg->GetCPerGpr());
     GenerateClangDefsym(options, "c_mult", pcfg->GetCMult());
     GenerateClangDefsym(options, "k_per_gpr", pcfg->GetKPerGpr());
     GenerateClangDefsym(options, "k_mult", pcfg->GetKMult());
+    GenerateClangDefsym(options, "n_per_gpr", pcfg->GetNPerGpr());
+    GenerateClangDefsym(options, "n_part_cnt", pcfg->GetNPartCnt());
+    GenerateClangDefsym(options, "hw_per_gpr", pcfg->GetHWPerGpr());
     GenerateClangDefsym(options, "read_size", pcfg->GetReadSize());
-    GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
-    GenerateClangDefsym(options, "hw_per_gpr", pcfg->GetHwPerGpr());
 
     KernelInfo kernel;
 
     kernel.comp_options = options.str();
 
     kernel.l_wk.clear(); // workgroupsize
-    kernel.l_wk.push_back(64);
+    kernel.l_wk.push_back(solver::wave_size * pcfg->GetNPartCnt());
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
     kernel.g_wk.clear(); // gridsize
-    kernel.g_wk.push_back(64);
+    kernel.g_wk.push_back(solver::wave_size * pcfg->GetNPartCnt());
     kernel.g_wk.push_back(
         divide_round_plus_inf(params.n_outputs, pcfg->GetCPerGpr() * pcfg->GetCMult()));
     kernel.g_wk.push_back(
@@ -586,81 +644,23 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     return result;
 }
 
-/// \todo Factor out this (to generic search implementation)
-class Heartbeat1x1WrW
+int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
+                                            Data_t bot_ocl_buf,
+                                            Data_t top_ocl_buf,
+                                            Data_t wei_ocl_buf,
+                                            Data_t bias_ocl_buf,
+                                            const ConvolutionContext& params,
+                                            const ConvSolution& solution,
+                                            float& elapsed_time) const
 {
-    size_t n_within_beat;
-    size_t n_best;
-    float best_time; // within beat
-    float elapsed_cumulative;
-    miopen::Timer timer;
-    PerformanceConfigConvAsmBwdWrW1x1 best_config;
-
-    void Continue()
-    {
-        best_time     = std::numeric_limits<float>::max();
-        n_within_beat = 0;
-        timer.start();
-    }
-
-    public:
-    Heartbeat1x1WrW() : n_within_beat(), n_best(), best_time(), elapsed_cumulative() {}
-
-    void Start()
-    {
-        elapsed_cumulative = 0.0f;
-        best_config        = PerformanceConfigConvAsmBwdWrW1x1();
-        Continue();
-    }
-
-    void Monitor(const bool is_recent_failed,
-                 const float recent_time,
-                 const size_t n_recent,
-                 const float total_best,
-                 size_t n_failed,
-                 size_t n_total,
-                 const PerformanceConfigConvAsmBwdWrW1x1& recent_config)
-    {
-        ++n_within_beat;
-        if(!is_recent_failed && (recent_time < best_time))
-        {
-            best_time   = recent_time;
-            n_best      = n_recent;
-            best_config = recent_config;
-        }
-        const float elapsed = timer.elapsed_ms();
-        if(elapsed > 3000)
-        {
-            elapsed_cumulative += elapsed;
-            const float eta_sec =
-                n_recent ? ((n_total - n_recent) * (elapsed_cumulative / n_recent) / 1000)
-                         : 0.0f; // paraniod
-            MIOPEN_LOG_W(n_recent << '/' << n_failed << '/' << n_total << ' ' << total_best
-                                  << ", best within recent "
-                                  << n_within_beat
-                                  << ": "
-                                  << best_time
-                                  << " #"
-                                  << n_best
-                                  << ' '
-                                  << best_config
-                                  << ", ETA:"
-                                  << eta_sec
-                                  << " sec.");
-            Continue();
-        }
-    }
-};
-
-static int RunSolution(miopen::Handle& profile_h,
-                       Data_t bot_ocl_buf,
-                       Data_t top_ocl_buf,
-                       Data_t wei_ocl_buf,
-                       const ConvolutionContext& params,
-                       const ConvSolution& solution,
-                       float& elapsed_time)
-{
-    (void)params; // -warning
+    assert(bias_ocl_buf == nullptr);
+    (void)bias_ocl_buf;
+    /// \note This is used during auto-tune process.
+    /// Elapsed time of the subsampling kernel
+    /// does not depend on the PerformanceConfig, and thus
+    /// considered constant for all available Solutions.
+    /// So we do not need to time the subsampling kernel
+    /// during auto-tune and just skipping it here.
     const KernelInfo k_info = solution.construction_params.back();
 #ifdef NDEBUG
     try
@@ -678,13 +678,15 @@ static int RunSolution(miopen::Handle& profile_h,
                                           k_info.comp_options);
         int unused       = 0;
         int* return_addr = nullptr;
+        auto n_groups =
+            static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
 
-        kernel(unused, // N
-               unused, // C
-               unused, // H
-               unused, // W
-               unused, // K
-               unused, // n_groups
+        kernel(params.batch_sz,      // N
+               params.n_outputs,     // C
+               AsmImgHeight(params), // H
+               AsmImgWidth(params),  // W
+               params.n_inputs,      // K
+               n_groups,             // n_groups
                unused,
                unused,
                top_ocl_buf,
@@ -702,133 +704,12 @@ static int RunSolution(miopen::Handle& profile_h,
     return 0;
 }
 
-static void
-InitRandomly(std::vector<float>& vec, const double offset = 0.0, const double factor = 1.0)
+PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& context) const
 {
-    float* p = vec.data();
-    for(int i = 0; i < vec.size(); ++i)
-        *p++ = static_cast<float>((rand() * (1.0 / RAND_MAX) + offset) * factor);
-}
-
-PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& params) const
-{
-    PerformanceConfigConvAsmBwdWrW1x1 best_config;
-    miopen::Handle profile_h;
-    profile_h.EnableProfiling(true);
-
-    // Allocate buffers, init input buffers.
-    std::vector<float> bot(params.bot_sz / sizeof(float));
-    std::vector<float> top(params.top_sz / sizeof(float));
-    std::vector<float> wei(params.weights_sz / sizeof(float));
-    InitRandomly(bot);
-    InitRandomly(top);
-    auto bot_ocl_buf = profile_h.Write(bot);
-    auto top_ocl_buf = profile_h.Write(top);
-    auto wei_ocl_buf = profile_h.Write(wei);
-
-    int n_runs_total = 0;
-    const VirtualContainer1x1WrW all_configs(params);
-    {
-        for(const auto& dummy : all_configs)
-        {
-            ++n_runs_total;
-            (void)dummy;
-        }
-    }
-    MIOPEN_LOG_W("Searching the best solution among " << n_runs_total << "...");
-    bool is_passed   = false; // left false only if all iterations failed.
-    float best_time  = std::numeric_limits<float>::max();
-    size_t n_failed  = 0;
-    size_t n_current = 0;
-    size_t n_best    = 0;
-    Heartbeat1x1WrW heartbeat;
-    heartbeat.Start();
-    for(const auto& current_config : all_configs)
-    {
-        float elapsed_time;
-        MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_runs_total << ' '
-                          << current_config);
-        // Smooth the jitter of the measured time.:
-        // If 1st probe isn't worse than the best one by 5%,
-        // then re-run 4 more times and compute average time,
-        // and decide using average vs. the best.
-        auto ret = RunSolution(profile_h,
-                               bot_ocl_buf.get(),
-                               top_ocl_buf.get(),
-                               wei_ocl_buf.get(),
-                               params,
-                               GetSolution(params, current_config, true),
-                               elapsed_time);
-        if(ret == 0)
-        {
-            if(elapsed_time / best_time < 1.05f)
-            {
-                MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time << " = "
-                                                      << (elapsed_time / best_time));
-                float temp;
-                for(int i = 0; i < 4; ++i)
-                {
-                    ret = RunSolution(profile_h,
-                                      bot_ocl_buf.get(),
-                                      top_ocl_buf.get(),
-                                      wei_ocl_buf.get(),
-                                      params,
-                                      GetSolution(params, current_config, true),
-                                      temp);
-                    if(ret != 0)
-                    {
-                        break;
-                    }
-                    elapsed_time += temp;
-                }
-                if(ret == 0)
-                {
-                    is_passed = true;
-                    elapsed_time /= 5;
-                    if(elapsed_time < best_time)
-                    {
-                        MIOPEN_LOG_I('#' << n_current << '/' << n_failed << '/' << n_runs_total
-                                         << ' '
-                                         << elapsed_time
-                                         << " < "
-                                         << best_time
-                                         << ' '
-                                         << current_config);
-                        best_config = current_config;
-                        best_time   = elapsed_time;
-                        n_best      = n_current;
-                    }
-                    else
-                    {
-                        MIOPEN_LOG_I2(
-                            "Average is not better: " << elapsed_time << " >= " << best_time);
-                    }
-                }
-            }
-        }
-
-        if(ret != 0)
-        {
-            MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
-                             << " Failed rc="
-                             << ret);
-            ++n_failed;
-        }
-        heartbeat.Monitor(
-            ret != 0, elapsed_time, n_current, best_time, n_failed, n_runs_total, current_config);
-        ++n_current;
-    }
-
-    profile_h.EnableProfiling(false);
-    MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
-                          << n_best
-                          << ' '
-                          << best_time
-                          << ' '
-                          << best_config);
-    if(!is_passed)
-        MIOPEN_THROW("Search failed for PerformanceConfigConvAsmBwdWrW1x1");
-    return best_config;
+    return GenericSearch(*this,
+                         context,
+                         UseSubsample(context) ? SearchTweak::Skipped2xSubsample_dxWrW
+                                               : SearchTweak::None);
 }
 
 } // namespace solver

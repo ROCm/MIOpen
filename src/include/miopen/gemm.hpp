@@ -31,7 +31,8 @@
 
 namespace miopen {
 
-GemmGeometry GetGemmGeometry(std::string algorithm_name, std::string network_config);
+GemmGeometry
+GetGemmGeometry(Handle& handle, std::string algorithm_name, std::string network_config);
 
 GemmGeometry CreateGemmGeometryTranBwdData(const TensorDescriptor& dyDesc,
                                            const TensorDescriptor& wDesc,
@@ -51,11 +52,23 @@ GemmGeometry CreateGemmGeometryConvBwdData(const TensorDescriptor& dyDesc,
                                            bool isDataColMajor,
                                            std::string& network_config);
 
+GemmGeometry CreateGemmGeometryConvBwdDataCNHW(const TensorDescriptor& dyDesc,
+                                               const TensorDescriptor& wDesc,
+                                               const TensorDescriptor& dxDesc,
+                                               bool isDataColMajor,
+                                               std::string& network_config);
+
 GemmGeometry CreateGemmGeometryConvFwd(const TensorDescriptor& xDesc,
                                        const TensorDescriptor& wDesc,
                                        const TensorDescriptor& yDesc,
                                        bool isDataColMajor,
                                        std::string& network_config);
+
+GemmGeometry CreateGemmGeometryConvFwdCNHW(const TensorDescriptor& xDesc,
+                                           const TensorDescriptor& wDesc,
+                                           const TensorDescriptor& yDesc,
+                                           bool isDataColMajor,
+                                           std::string& network_config);
 
 GemmGeometry CreateGemmGeometryRNN(int M,
                                    int N,
@@ -89,6 +102,28 @@ GemmGeometry ScanGemmGeometryRNN(Handle& handle,
                                  bool isDataColMajor,
                                  std::string& network_config,
                                  float timeout);
+
+void RunGemmGeometryRNN(Handle& handle,
+                        ConstData_t A,
+                        ConstData_t B,
+                        Data_t C,
+                        int M,
+                        int N,
+                        int K,
+                        float alpha,
+                        float beta,
+                        bool tA,
+                        bool tB,
+                        bool tC,
+                        int lda,
+                        int ldb,
+                        int ldc,
+                        int a_offset,
+                        int b_offset,
+                        int c_offset,
+                        bool isDataColMajor,
+                        std::string& network_config,
+                        float timeout);
 
 GemmGeometry CreateMIOpenGemmGeometry(int M,
                                       int N,

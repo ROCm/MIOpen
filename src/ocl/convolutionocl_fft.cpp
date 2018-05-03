@@ -133,6 +133,10 @@ static int FindFFTKernel(Handle& handle,
     if(miopen::IsDisabled(MIOPEN_DEBUG_CONV_FFT{}))
         return -1;
 
+    if(xDesc.GetType() != miopenFloat || wDesc.GetType() != miopenFloat ||
+       yDesc.GetType() != miopenFloat)
+        return -1;
+
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(xDesc.GetLengths());
 
@@ -220,9 +224,9 @@ static int FindFFTKernel(Handle& handle,
         if((out_n * out_c >= 64) && ((out_n * out_c) % 32 == 0))
             ot_tranpose_choice = 1;
 
-        int in_tranpose_bwidth = in_tranpose_choice ? 32 : 16;
-        int wt_tranpose_bwidth = wt_tranpose_choice ? 32 : 16;
-        int ot_tranpose_bwidth = ot_tranpose_choice ? 32 : 16;
+        int in_tranpose_bwidth = in_tranpose_choice != 0 ? 32 : 16;
+        int wt_tranpose_bwidth = wt_tranpose_choice != 0 ? 32 : 16;
+        int ot_tranpose_bwidth = ot_tranpose_choice != 0 ? 32 : 16;
 
         local_work_size[2][0] = 256;
         global_work_size[2][0] =
@@ -322,6 +326,7 @@ static int FindFFTKernel(Handle& handle,
         case 4: kernel_name += "MIOpenConvFFT_cgemm"; break;
         case 5: kernel_name += "MIOpenConvFFT_transpose_out"; break;
         case 6: kernel_name += "MIOpenConvFFT_inv_out"; break;
+        default: assert(false);
         }
 
         std::string network_config = config_prefix + std::to_string(ik);
@@ -436,6 +441,7 @@ static float ExecuteFFTKernel(Handle& handle,
         break;
         case 5: k(workSpace); break;
         case 6: k(workSpace, y); break;
+        default: assert(false);
         }
 
         if(timed)
