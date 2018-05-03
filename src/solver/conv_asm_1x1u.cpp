@@ -51,6 +51,10 @@ static inline bool UseUpsample(const ConvolutionContext& c)
     return (c.kernel_stride0 > 1 || c.kernel_stride1 > 1) && c.direction.IsBackwardData();
 }
 
+/// After 2x subsampling kernel, image size on asm kernel input becomes 4x (2*2) smaller.
+/// As padding = 0, we can simply re-use output image size (no computations required).
+/// \note For backward convolutions input image size is held in
+/// out_height/out_width and vice versa.
 static inline int AsmImgHeight(const ConvolutionContext& c)
 {
     return UseSubsample(c) ? c.out_height : c.in_height;

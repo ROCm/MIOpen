@@ -561,18 +561,17 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                         {
                             int unused       = 0;
                             int* return_addr = nullptr;
-                            int N, C, K, n_groups, out_H, out_W;
-                            std::tie(N, C, std::ignore, std::ignore, K, n_groups, out_H, out_W) =
-                                eka;
+                            int N, C, H, W, K, n_groups, out_H, out_W;
+                            std::tie(N, C, H, W, K, n_groups, out_H, out_W) = eka;
                             k(N,
                               C,
-                              out_H,
-                              out_W,
+                              n_kernels == 1 ? out_H : H,
+                              n_kernels == 1 ? out_H : H,
                               K,
                               n_groups,
                               unused,
                               unused,
-                              (n_kernels == 1) ? workSpace : x,
+                              n_kernels == 1 ? workSpace : x,
                               w,
                               tmp_y.get(),
                               return_addr);
@@ -1301,32 +1300,39 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     {
                         if(k.GetName() == "UpSample")
                         {
-                            float zero = 0.f;
-                            SetTensor(handle, dxDesc, tmp_dx.get(), &zero);
-                            time_direct += handle.GetKernelTime();
-                            k(workSpace, tmp_dx.get());
-                            time_direct += handle.GetKernelTime();
+                            if(workSpace != nullptr && workSpaceSize >= workspace_req)
+                            {
+                                float zero = 0.f;
+                                SetTensor(handle, dxDesc, tmp_dx.get(), &zero);
+                                time_direct += handle.GetKernelTime();
+                                k(workSpace, tmp_dx.get());
+                                time_direct += handle.GetKernelTime();
+                            }
                         }
                         else if(k.GetName() == "gcnAsmConv1x1U")
                         {
-                            int unused       = 0;
-                            int* return_addr = nullptr;
-                            int N, C, H, W, K, n_groups;
-                            std::tie(N, C, H, W, K, n_groups, std::ignore, std::ignore) = eka;
-                            k(N,
-                              C,
-                              H,
-                              W,
-                              K,
-                              n_groups,
-                              unused,
-                              unused,
-                              dy,
-                              w,
-                              (n_kernels == 1) ? workSpace : tmp_dx.get(),
-                              return_addr);
+                            if(kernel_direct.size() == 1 ||
+                               (workSpace != nullptr && workSpaceSize >= workspace_req))
+                            {
+                                int unused       = 0;
+                                int* return_addr = nullptr;
+                                int N, C, H, W, K, n_groups;
+                                std::tie(N, C, H, W, K, n_groups, std::ignore, std::ignore) = eka;
+                                k(N,
+                                  C,
+                                  H,
+                                  W,
+                                  K,
+                                  n_groups,
+                                  unused,
+                                  unused,
+                                  dy,
+                                  w,
+                                  (n_kernels == 0) ? workSpace : tmp_dx.get(),
+                                  return_addr);
 
-                            time_direct += handle.GetKernelTime();
+                                time_direct += handle.GetKernelTime();
+                            }
                         }
                         else
                         {
