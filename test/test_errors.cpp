@@ -19,9 +19,7 @@ void test_invalid_ocl_error()
 void test_throw_cl_status()
 {
 #if MIOPEN_BACKEND_OPENCL
-    EXPECT(throws([]{
-        MIOPEN_THROW_CL_STATUS(CL_DEVICE_NOT_FOUND);
-    }));
+    EXPECT(throws([] { MIOPEN_THROW_CL_STATUS(CL_DEVICE_NOT_FOUND); }));
 #endif
 }
 
