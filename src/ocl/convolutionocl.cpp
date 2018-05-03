@@ -1328,7 +1328,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                   unused,
                                   dy,
                                   w,
-                                  (n_kernels == 0) ? workSpace : tmp_dx.get(),
+                                  (kernel_direct.size() == 2 && n_kernels == 0) ? workSpace
+                                                                                : tmp_dx.get(),
                                   return_addr);
 
                                 time_direct += handle.GetKernelTime();
