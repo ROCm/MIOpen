@@ -16,6 +16,15 @@ void test_invalid_ocl_error()
 #endif
 }
 
+void test_throw_cl_status()
+{
+#if MIOPEN_BACKEND_OPENCL
+    EXPECT(throws([]{
+        MIOPEN_THROW_CL_STATUS(CL_DEVICE_NOT_FOUND);
+    }));
+#endif
+}
+
 void test_try()
 {
     EXPECT(miopen::try_([] {}) == miopenStatusSuccess);
@@ -29,6 +38,7 @@ void test_try()
 int main()
 {
     test_ocl_error();
+    test_throw_cl_status();
     test_invalid_ocl_error();
     test_try();
 }
