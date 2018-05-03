@@ -67,5 +67,4 @@ int main()
 #if !MIOPEN_BACKEND_OPENCL
     test_warnings();
 #endif
-    printf("End\n");
 }
