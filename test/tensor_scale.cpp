@@ -232,7 +232,7 @@ struct tensor_scale_driver : test_driver
     void run()
     {
         std::vector<size_t> superStrides = super.desc.GetStrides();
-        std::vector<int> subStrides(superStrides.begin() + (5 - subLens.size()),
+        std::vector<int> subStrides(superStrides.begin() + (super.desc.GetSize() - subLens.size()),
                                     superStrides.end());
 
         subDesc =
