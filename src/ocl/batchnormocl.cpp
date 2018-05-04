@@ -159,7 +159,6 @@ void BatchNormForwardTraining(Handle& handle,
             ldsgcn       = ylocalsize / 64;
             ldsnogcn     = ylocalsize;
         }
-        // printf("Variant: %d, xlocalsize: %d\n",variant, xlocalsize);
         std::string algo_name = "miopenBatchNormForwardTrainingSpatial";
         std::string network_config =
             std::to_string(variant) + std::to_string(xgridsize) + std::to_string(ldsgcn) +
@@ -863,7 +862,6 @@ void BatchNormBackward(Handle& handle,
             ldsgcn       = ylocalsize / 64;
             ldsnogcn     = ylocalsize;
         }
-        // printf("Backwards: Variant: %d, xlocalsize: %d\n",variant, xlocalsize);
         std::string algo_name = "miopenBatchNormBackwardPropSpatial";
         std::string network_config =
             std::to_string(variant) + std::to_string(xgridsize) + std::to_string(in_cstride) +
