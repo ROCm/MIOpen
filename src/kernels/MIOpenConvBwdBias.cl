@@ -85,6 +85,11 @@ MIOpenConvBwdB(const __global _FLOAT* top_df, __global _FLOAT* bias_df)
             for(int k = 0; k < MLO_N_PIX_OFF; k++)
                 sum += top_df[glb_top_df_offset + k];
         }
+        else
+        {
+            for(int k = 0; k < MLO_CONVBWDB_UNITSIZE; k++)
+                sum += top_df[glb_top_df_offset + k];
+        }
 #else
         for(int k = 0; k < MLO_CONVBWDB_UNITSIZE; k++)
             sum += top_df[glb_top_df_offset + k];
