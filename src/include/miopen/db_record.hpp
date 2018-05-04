@@ -140,6 +140,7 @@ class DbRecord
 
     friend class Db;
 };
+
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_DB_RECORD_HPP_
