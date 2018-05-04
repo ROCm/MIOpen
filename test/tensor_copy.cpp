@@ -219,9 +219,9 @@ struct tensor_copy_driver : test_driver
     {
         std::vector<size_t> aSuperStrides = aSuper.desc.GetStrides();
         std::vector<size_t> cSuperStrides = cSuper.desc.GetStrides();
-        std::vector<int> astrides(aSuperStrides.begin() + (5 - copylens.size()),
+        std::vector<int> astrides(aSuperStrides.begin() + (aSuper.desc.GetSize() - copylens.size()),
                                   aSuperStrides.end());
-        std::vector<int> cstrides(cSuperStrides.begin() + (5 - copylens.size()),
+        std::vector<int> cstrides(cSuperStrides.begin() + (cSuper.desc.GetSize() - copylens.size()),
                                   cSuperStrides.end());
 
         srcDesc =
