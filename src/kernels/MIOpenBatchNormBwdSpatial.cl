@@ -542,7 +542,6 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
     unsigned int index = 0;
     unsigned int lid   = get_local_id(0);
-    unsigned int gid   = get_global_id(0);
     unsigned int grpid = get_group_id(0);
     unsigned int chwid = grpid * MIO_BN_HW;
     unsigned int nidx  = 0;
