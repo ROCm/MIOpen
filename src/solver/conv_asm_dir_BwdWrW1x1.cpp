@@ -41,6 +41,25 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1WRW_SEARCH_OPTIMIZED)
 namespace miopen {
 namespace solver {
 
+static inline bool UseSubsample(const ConvolutionContext& c)
+{
+    return c.kernel_stride0 > 1 || c.kernel_stride1 > 1;
+}
+
+/// After 2x subsampling kernel, image size on asm kernel input becomes 4x (2*2) smaller.
+/// As padding = 0, we can simply re-use output image size (no computations required).
+/// \note For backward convolutions input image size is held in
+/// out_height/out_width and vice versa.
+static inline int AsmImgHeight(const ConvolutionContext& c)
+{
+    return UseSubsample(c) ? c.in_height : c.out_height;
+}
+
+static inline int AsmImgWidth(const ConvolutionContext& c)
+{
+    return UseSubsample(c) ? c.in_width : c.out_width;
+}
+
 inline static bool Inc_1_2_4_8_16(int& v)
 {
     assert(v == 1 || v == 2 || v == 4 || v == 8 || v == 16);
@@ -303,7 +322,8 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 void PerformanceConfigConvAsmBwdWrW1x1::EuristicInit(const ConvolutionContext& config)
 {
     read_size = 4;
-    n_per_gpr = (config.batch_sz >= 4 && (config.out_height * config.out_width) <= 128) ? 4 : 1;
+    n_per_gpr =
+        (config.batch_sz >= 4 && (AsmImgHeight(config) * AsmImgWidth(config)) <= 128) ? 4 : 1;
 
     const auto c_k_256 = config.n_outputs * config.n_inputs / 256; // C*K/256
     if(c_k_256 < 2)
@@ -436,7 +456,7 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
     }
     assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
     // clang-format off
-    bool ok = (params.pad0 == 0          // -q  pad_w
+    bool ok = (params.pad0 == 0         // -q  pad_w
         && params.pad1 == 0             // -p  pad_h
         && params.kernel_stride0 <= 2   // -u  stride_w
         && params.kernel_stride1 <= 2   // -v  stride_h
@@ -453,11 +473,7 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         return false; // Early exit to speed up the check.
     }
     // Check limits:
-    auto h_w = static_cast<long>(params.out_height) * params.out_width;
-    if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
-    {
-        h_w = static_cast<long>(params.in_height) * params.in_width;
-    }
+    const auto h_w     = static_cast<long>(AsmImgHeight(params)) * AsmImgWidth(params);
     const auto r_s     = static_cast<long>(params.kernel_size1) * params.kernel_size0;
     const auto c_h_w   = static_cast<long>(params.n_outputs) * h_w;   // C*H*W
     const auto k_h_w   = static_cast<long>(params.n_inputs) * h_w;    // K*H*W
@@ -494,19 +510,9 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
     std::ostringstream options;
 
     assert(params.pad1 == 0 && params.pad0 == 0);
-    if(params.kernel_stride0 > 1 || params.kernel_stride1 > 1)
-    {
-
-        result.passes = 2;
-    }
-    else
-    {
-        result.passes = 1;
-    }
-
     result.workspce_sz = 0;
 
-    if(result.passes > 1 && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
+    if(UseSubsample(params))
     {
 
         // subsampled input, in_height equals to image size after downsampling
@@ -557,24 +563,11 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         int data_len =
             (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
         result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
-
-        // Note that params.in_height/params.in_width are swapped for output size when initialized
-        // in mlo_internal.hpp for backward convolutions
-        GenerateClangDefsym(options, "img_h", params.in_height); // H
-        GenerateClangDefsym(options, "img_w", params.in_width);  // W
-        GenerateClangDefsym(options, "stride_h", 1);
-        GenerateClangDefsym(options, "stride_w", 1);
     }
-    else
-    {
-        // Note that params.out_height/params.out_width are swapped for input size when initialized
-        // in mlo_internal.hpp for backward convolutions
-        GenerateClangDefsym(options, "img_h", params.out_height); // H
-        GenerateClangDefsym(options, "img_w", params.out_width);  // W
-        GenerateClangDefsym(options, "stride_h", params.kernel_stride1);
-        GenerateClangDefsym(options, "stride_w", params.kernel_stride0);
-    }
-
+    GenerateClangDefsym(options, "stride_h", 1);
+    GenerateClangDefsym(options, "stride_w", 1);
+    GenerateClangDefsym(options, "img_h", AsmImgHeight(params)); // H
+    GenerateClangDefsym(options, "img_w", AsmImgWidth(params));  // W
     GenerateClangDefsym(options, "batch_size", params.batch_sz); // N
     // Note that params.n_outputs and params.n_inputs are swapped for backward convolutions.
     GenerateClangDefsym(options, "input_channels", params.n_outputs); // C
@@ -662,6 +655,12 @@ int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
 {
     assert(bias_ocl_buf == nullptr);
     (void)bias_ocl_buf;
+    /// \note This is used during auto-tune process.
+    /// Elapsed time of the subsampling kernel
+    /// does not depend on the PerformanceConfig, and thus
+    /// considered constant for all available Solutions.
+    /// So we do not need to time the subsampling kernel
+    /// during auto-tune and just skipping it here.
     const KernelInfo k_info = solution.construction_params.back();
 #ifdef NDEBUG
     try
@@ -682,12 +681,12 @@ int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
         auto n_groups =
             static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
 
-        kernel(params.batch_sz,   // N
-               params.n_outputs,  // C
-               params.out_height, // H
-               params.out_width,  // W
-               params.n_inputs,   // K
-               n_groups,          // n_groups
+        kernel(params.batch_sz,      // N
+               params.n_outputs,     // C
+               AsmImgHeight(params), // H
+               AsmImgWidth(params),  // W
+               params.n_inputs,      // K
+               n_groups,             // n_groups
                unused,
                unused,
                top_ocl_buf,
@@ -707,7 +706,10 @@ int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
 
 PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& context) const
 {
-    return GenericSearch(*this, context);
+    return GenericSearch(*this,
+                         context,
+                         UseSubsample(context) ? SearchTweak::Skipped2xSubsample_dxWrW
+                                               : SearchTweak::None);
 }
 
 } // namespace solver
