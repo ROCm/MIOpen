@@ -138,7 +138,8 @@ struct verify_tensor_copy
         std::cout << "wall time: " << w_time / 1000.0 << "ms" << std::endl;
         std::cout << "kernel time: " << handle.GetKernelTime() << "ms" << std::endl;
         std::cout << "bandwidth: "
-                  << 2.0 * (float)nbyte / ((std::size_t(1) << 30) * handle.GetKernelTime() / 1000)
+                  << 2.0 * (float)nbyte /
+                         ((float)(std::size_t(1) << 30) * handle.GetKernelTime() / 1000.0)
                   << "GB/s" << std::endl;
 
         csuperGpu.data = handle.Read<T>(csuper_dev, csuperGpu.data.size());
@@ -205,15 +206,13 @@ struct tensor_copy_driver : test_driver
 #if 0
     tensor_copy_driver()
     {
-        std::vector<int> alens = {{1,  64, 128, 192, 192}};
-        std::vector<int> clens = {{1,  64, 128, 192, 192}};
-      //std::vector<int> clens = {{1, 128,  64, 192, 192}};
+        std::vector<int> alens = {{1, 64, 128, 192, 192}};
+        std::vector<int> clens = {{1, 128, 64, 192, 192}};
         aSuper                 = tensor<T>{alens}.generate(rand_gen{});
         cSuper                 = tensor<T>{clens}.generate(rand_gen{});
 
-        add(copylens, "copy-lens", generate_data(get_sub_tensor(), {1, 64,  64, 192, 192}));
+        add(copylens, "copy-lens", generate_data(get_sub_tensor(), {1, 64, 64, 192, 192}));
         add(offsets, "offsets", generate_data(get_tensor_offsets(), {192 * 192}));
-
     }
 #endif
     void run()

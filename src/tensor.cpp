@@ -28,7 +28,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
-#include <numeric>
+#include <miopen/functional.hpp>
 #include <string>
 
 namespace miopen {
@@ -134,54 +134,56 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
         return {GetType(), {GetElementSize()}, {1}};
 
     // ignore dimensions, where length is 1
-    std::size_t dim = 0;
-    std::vector<std::size_t> lengths;
-    std::vector<std::size_t> strides;
+    std::size_t non1_ndim = 0;
+    std::vector<std::size_t> non1_lengths;
+    std::vector<std::size_t> non1_strides;
 
     for(std::size_t i = 0; i < GetSize(); ++i)
     {
         std::size_t len = GetLengths()[i];
         if(len > 1)
         {
-            ++dim;
-            lengths.push_back(len);
-            strides.push_back(GetStrides()[i]);
+            ++non1_ndim;
+            non1_lengths.push_back(len);
+            non1_strides.push_back(GetStrides()[i]);
         }
     }
 
     // is a scalar
-    if(dim == 0)
+    if(non1_ndim == 0)
         return {GetType(), {1}, {1}};
 
     // start flattening tensor
-    std::vector<std::size_t> full_lengths(dim);
+    std::vector<std::size_t> full_lengths(non1_ndim);
 
-    full_lengths[0] = std::numeric_limits<std::size_t>::max();
-    for(std::size_t i   = 1; i < dim; ++i)
-        full_lengths[i] = strides[i - 1] / strides[i];
+    full_lengths[0] = 0; // the 0-th dimension full-length doesn't matter
+    for(std::size_t i   = 1; i < non1_ndim; ++i)
+        full_lengths[i] = non1_strides[i - 1] / non1_strides[i];
 
-    std::vector<std::size_t> flattened_lengths;
-    std::vector<std::size_t> flattened_strides;
+    std::vector<std::size_t> flat_lengths;
+    std::vector<std::size_t> flat_strides;
 
-    std::size_t flattened_len = lengths[0];
-    for(std::size_t i = 1; i < dim; ++i)
+    std::size_t flat_len = non1_lengths[0];
+    for(std::size_t i = 1; i < non1_ndim; ++i)
     {
-        std::size_t len      = lengths[i];
+        std::size_t len      = non1_lengths[i];
         std::size_t full_len = full_lengths[i];
 
         if(len == full_len)
-            flattened_len *= len;
+        {
+            flat_len *= len;
+        }
         else
         {
-            flattened_lengths.push_back(flattened_len);
-            flattened_strides.push_back(strides[i - 1]);
-            flattened_len = lengths[i];
+            flat_lengths.push_back(flat_len);
+            flat_strides.push_back(non1_strides[i - 1]);
+            flat_len = non1_lengths[i];
         }
     }
-    flattened_lengths.push_back(flattened_len);
-    flattened_strides.push_back(strides[dim - 1]);
+    flat_lengths.push_back(flat_len);
+    flat_strides.push_back(non1_strides[non1_ndim - 1]);
 
-    return {GetType(), flattened_lengths, flattened_strides};
+    return {GetType(), flat_lengths, flat_strides};
 }
 
 bool TensorDescriptor::operator==(const TensorDescriptor& rhs) const
@@ -220,6 +222,214 @@ std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t)
 {
     return LogRange(stream, t.lens, ", ");
 }
+
+template <typename... TDescriptors>
+void get_consistent_flattened_tensor_descriptors(
+    std::tuple<const TDescriptors&...> real_descriptors,
+    std::tuple<TDescriptors&...> flat_descriptors)
+{
+    constexpr std::size_t NTensor = std::tuple_size<std::tuple<TDescriptors&...>>::value;
+
+    using TN = std::integral_constant<std::size_t, NTensor>;
+
+    if(NTensor == 0)
+        MIOPEN_THROW(miopenStatusBadParm, "NTensor == 0.");
+
+    miopenDataType_t data_type = std::get<0>(real_descriptors).GetType();
+
+#if 0
+    call_n_time(
+        [&](const auto i) {
+            constexpr int itensor = decltype(i)::value;
+            std::cout << __func__ << ": tensor " << itensor << ", real_lengths "
+                      << std::get<itensor>(real_descriptors).GetLengths() << ", real_strides "
+                      << std::get<itensor>(real_descriptors).GetStrides() << std::endl;
+        },
+        TN{});
+#endif
+
+#if 1
+    // check input tensor descriptors
+    auto& real_desc_0_lens = std::get<0>(real_descriptors).GetLengths();
+
+    call_n_time(
+        [&](const auto i) {
+            constexpr std::size_t itensor = decltype(i)::value;
+
+            if(i > 0)
+            {
+                auto& real_desc_lens = std::get<itensor>(real_descriptors).GetLengths();
+
+                if(real_desc_0_lens != real_desc_lens)
+                    MIOPEN_THROW(miopenStatusBadParm, "Lengths of Tensors are different.");
+            }
+        },
+        TN{});
+#endif
+
+    // check if is all packed
+    bool is_all_packed = true;
+
+    call_n_time(
+        [&](const auto i) {
+            constexpr int itensor = decltype(i)::value;
+
+            if(is_all_packed)
+            {
+                if(!std::get<itensor>(real_descriptors).IsPacked())
+                    is_all_packed = false;
+            }
+        },
+        TN{});
+    // std::cout << __func__ << ": is_all_packed: " << is_all_packed << std::endl;
+
+    // all packed
+    if(is_all_packed)
+    {
+        std::size_t element_size = std::get<0>(real_descriptors).GetElementSize();
+
+        call_n_time(
+            [&](const auto i) {
+                constexpr int itensor = decltype(i)::value;
+                std::get<itensor>(flat_descriptors) =
+                    TensorDescriptor{data_type, {element_size}, {1}};
+            },
+            TN{});
+
+        return; // early return for all-packed tensors
+    }
+
+#if 1
+    // ignore dimensions, where non1_lengths of all tensors are 1
+    const std::size_t real_ndim                  = std::get<0>(real_descriptors).GetSize();
+    const std::vector<std::size_t>& real_lengths = std::get<0>(real_descriptors).GetLengths();
+
+    std::size_t non1_ndim = 0;
+    std::vector<std::size_t> non1_lengths;
+    std::array<std::vector<std::size_t>, NTensor> array_of_non1_strides;
+
+    for(std::size_t idim = 0; idim < real_ndim; ++idim)
+    {
+        std::size_t len = real_lengths[idim];
+        if(len > 1)
+        {
+            ++non1_ndim;
+            non1_lengths.push_back(len);
+
+            call_n_time(
+                [&](const auto i) {
+                    constexpr int itensor = decltype(i)::value;
+                    array_of_non1_strides[itensor].push_back(
+                        std::get<itensor>(real_descriptors).GetStrides()[idim]);
+                    return true;
+                },
+                TN{});
+        }
+    }// now, non1_ndim, non1_lengths, array_of_non1_strides contains non-1-length dimensions
+
+    // std::cout << __func__ << ": non1_ndim: " << non1_ndim << std::endl;
+    // std::cout << __func__ << ": non1_lengths: " << non1_lengths << std::endl;
+#endif
+
+    // is scalar
+    if(non1_ndim == 0)
+    {
+        call_n_time(
+            [&](const auto i) {
+                constexpr int itensor               = decltype(i)::value;
+                std::get<itensor>(flat_descriptors) = TensorDescriptor{data_type, {1}, {1}};
+            },
+            TN{});
+
+        return; // early return for all-scalar tensors
+    }
+
+    // start flattening tensors
+    std::array<std::vector<std::size_t>, NTensor> array_of_full_lengths;
+
+    call_n_time(
+        [&](const auto i) {
+            constexpr int itensor = decltype(i)::value;
+            array_of_full_lengths[itensor].reserve(non1_ndim);
+        },
+        TN{});
+
+    for(std::size_t idim = 1; idim < non1_ndim; ++idim)
+    // the 0-th dimension full-length doesn't matter
+    {
+        for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
+            array_of_full_lengths[itensor][idim] =
+                array_of_non1_strides[itensor][idim - 1] / array_of_non1_strides[itensor][idim];
+    }
+
+    std::vector<std::size_t> flat_lengths;
+    std::array<std::vector<std::size_t>, NTensor> array_of_flat_strides;
+
+    std::size_t flat_len = non1_lengths[0];
+    for(std::size_t idim = 1; idim < non1_ndim; ++idim)
+    {
+        std::size_t len = non1_lengths[idim];
+
+        bool is_all_full_length = true;
+        for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
+        {
+            if(len != array_of_full_lengths[itensor][idim])
+            {
+                is_all_full_length = false;
+                break;
+            }
+        }
+
+        if(is_all_full_length)
+        {
+            flat_len *= len;
+        }
+        else
+        {
+            flat_lengths.push_back(flat_len);
+
+            for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
+                array_of_flat_strides[itensor].push_back(array_of_non1_strides[itensor][idim - 1]);
+
+            flat_len = non1_lengths[idim];
+        }
+    }
+
+    flat_lengths.push_back(flat_len);
+    for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
+        array_of_flat_strides[itensor].push_back(array_of_non1_strides[itensor][non1_ndim - 1]);
+
+    call_n_time(
+        [&](const auto i) {
+            constexpr int itensor = decltype(i)::value;
+            std::get<itensor>(flat_descriptors) =
+                TensorDescriptor{data_type, flat_lengths, array_of_flat_strides[itensor]};
+        },
+        TN{});
+
+#if 0
+    // print
+    call_n_time(
+        [&](const auto i) {
+            constexpr int itensor = decltype(i)::value;
+            std::cout << __func__ << ": tensor " << itensor << ", flat_lengths "
+                      << std::get<itensor>(flat_descriptors).GetLengths() << ", flat_strides "
+                      << std::get<itensor>(flat_descriptors).GetStrides() << std::endl;
+        },
+        TN{});
+#endif
+}
+
+template
+void get_consistent_flattened_tensor_descriptors(
+    std::tuple<const TensorDescriptor&, const TensorDescriptor&> real_descriptors,
+    std::tuple<TensorDescriptor&, TensorDescriptor&> flat_descriptors);
+
+template
+void get_consistent_flattened_tensor_descriptors(
+    std::tuple<const TensorDescriptor&, const TensorDescriptor&, const TensorDescriptor&>
+        real_descriptors,
+    std::tuple<TensorDescriptor&, TensorDescriptor&, TensorDescriptor&> flat_descriptors);
 
 } // namespace miopen
 
