@@ -45,6 +45,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <string>
+#include "include/miopen/db.hpp"
 
 namespace miopen {
 
@@ -74,60 +75,51 @@ Db::Db(const std::string& filename_)
 {
 }
 
-template <class TLock>
-inline static void ValidateLock(const TLock& lock)
-{
-    if(!lock)
-        MIOPEN_THROW("Db lock has failed to lock.");
-}
+#define MIOPEN_VALIDATE_LOCK(lock)                       \
+    do                                                   \
+    {                                                    \
+        if(!(lock))                                      \
+            MIOPEN_THROW("Db lock has failed to lock."); \
+    } while(false)
 
 static std::chrono::seconds GetLockTimeout() { return std::chrono::seconds{60}; }
 
 using exclusive_lock = std::unique_lock<LockFile>;
 using shared_lock    = std::shared_lock<LockFile>;
 
-inline static exclusive_lock MakeExclusiveLock(LockFile& lock_file)
-{
-    auto lock = exclusive_lock(lock_file, GetLockTimeout());
-    ValidateLock(lock);
-    return lock;
-}
-
-inline static shared_lock MakeSharedLock(LockFile& lock_file)
-{
-    auto lock = shared_lock(lock_file, GetLockTimeout());
-    ValidateLock(lock);
-    return lock;
-}
-
 boost::optional<DbRecord> Db::FindRecord(const std::string& key)
 {
-    const auto lock = MakeSharedLock(lock_file);
+    const auto lock = shared_lock(lock_file, GetLockTimeout());
+    MIOPEN_VALIDATE_LOCK(lock);
     return FindRecordUnsafe(key, nullptr);
 }
 
 bool Db::StoreRecord(const DbRecord& record)
 {
-    const auto lock = MakeExclusiveLock(lock_file);
+    const auto lock = exclusive_lock(lock_file, GetLockTimeout());
+    MIOPEN_VALIDATE_LOCK(lock);
     return StoreRecordUnsafe(record);
 }
 
 bool Db::UpdateRecord(DbRecord& record)
 {
-    const auto lock = MakeExclusiveLock(lock_file);
+    const auto lock = exclusive_lock(lock_file, GetLockTimeout());
+    MIOPEN_VALIDATE_LOCK(lock);
     return UpdateRecordUnsafe(record);
 }
 
 bool Db::RemoveRecord(const std::string& key)
 {
-    const auto lock = MakeExclusiveLock(lock_file);
+    const auto lock = exclusive_lock(lock_file, GetLockTimeout());
+    MIOPEN_VALIDATE_LOCK(lock);
     return RemoveRecordUnsafe(key);
 }
 
 bool Db::Remove(const std::string& key, const std::string& id)
 {
-    const auto lock = MakeExclusiveLock(lock_file);
-    auto record     = FindRecordUnsafe(key, nullptr);
+    const auto lock = exclusive_lock(lock_file, GetLockTimeout());
+    MIOPEN_VALIDATE_LOCK(lock);
+    auto record = FindRecordUnsafe(key, nullptr);
     if(!record)
         return false;
     bool erased = record->EraseValues(id);
