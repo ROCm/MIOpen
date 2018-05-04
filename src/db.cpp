@@ -145,6 +145,8 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
     if(!file)
     {
         if(warn_if_unreadable)
+            MIOPEN_LOG_W("File is unreadable: " << filename);
+        else
             MIOPEN_LOG_I("File is unreadable: " << filename);
 
         return boost::none;
