@@ -842,17 +842,17 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             tmp2    = -xhat * ds;
             vals[j] = tmp3 * (tmp2 + tmp1);
         }
-        barrier(CLK_GLOBAL_MEM_FENCE);
-        for(unsigned int j = 0; j < MIO_MAX_READ; j++)
+    }
+    barrier(CLK_GLOBAL_MEM_FENCE);
+    for(unsigned int j = 0; j < MIO_MAX_READ; j++)
+    {
+        unsigned int l = remkeyout + j;
+        nidx           = l / MIO_BN_HW;
+        hwidx          = l - (nidx * MIO_BN_HW);
+        index          = nidx * MIO_BN_CHW + chwid + hwidx;
+        if(index < MIO_BN_NCHW)
         {
-            unsigned int l = remkeyout + j;
-            nidx           = l / MIO_BN_HW;
-            hwidx          = l - (nidx * MIO_BN_HW);
-            index          = nidx * MIO_BN_CHW + chwid + hwidx;
-            if(index < MIO_BN_NCHW)
-            {
-                *(dx_out + index) = vals[j];
-            }
+            *(dx_out + index) = vals[j];
         }
     }
 #endif
