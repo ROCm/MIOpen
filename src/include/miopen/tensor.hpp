@@ -34,7 +34,6 @@
 #include <miopen/each_args.hpp>
 #include <miopen/returns.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/static_for_loop.hpp>
 #include <vector>
 // TODO(paul): remove this include later
 #include <cstdio>
@@ -138,35 +137,10 @@ struct TensorDescriptor : miopenTensorDescriptor
     miopenDataType_t type = miopenFloat;
 };
 
-template <typename... TDescTypes>
-void flatten_tensor_descriptor(std::tuple<const TDescTypes&...> desc_tuple,
-                               std::tuple<TDescTypes&...> desc_tuple_flattened)
-{
-    constexpr std::size_t N = std::tuple_size<std::tuple<TDescTypes&...>>::value;
-    assert(N > 0);
-
-    std::cout << __func__ << ": " << N << std::endl;
-
-    using integral_0 = std::integral_constant<int, 0>;
-    using integral_N = std::integral_constant<int, N>;
-
-    auto lambda = [&](const auto begin, const auto end, const auto current) {
-        constexpr int i = decltype(current)::value;
-
-        auto desc_0_lens = std::get<0>(desc_tuple).GetLengths();
-        auto desc_i_lens = std::get<i>(desc_tuple).GetLengths();
-
-        std::cout << __func__ << ": desc " << 0 << ": " << std::get<0>(desc_tuple) << std::endl;
-        std::cout << __func__ << ": desc " << i << ": " << std::get<i>(desc_tuple) << std::endl;
-
-        if(desc_0_lens == desc_i_lens)
-            std::cout << __func__ << ": same" << std::endl;
-        else
-            std::cout << __func__ << ": diff" << std::endl;
-    };
-
-    static_for<integral_0, integral_N, integral_0, decltype(lambda)>{}.impl(lambda);
-}
+template <typename... TDescriptors>
+void get_consistent_flattened_tensor_descriptors(
+    std::tuple<const TDescriptors&...> real_descriptors,
+    std::tuple<TDescriptors&...> flat_descriptors);
 
 } // namespace miopen
 

@@ -1352,18 +1352,18 @@ void SetTensor(
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    const TensorDescriptor yDesc_flattened = yDesc.GetFlattenedTensorDescriptor();
+    const TensorDescriptor yDesc_flat = yDesc.GetFlattenedTensorDescriptor();
 
-    const std::size_t yDim_flattened = yDesc_flattened.GetSize();
+    const std::size_t yDim_flat = yDesc_flat.GetSize();
 
-    assert(yDim_flattened > 0 && yDim_flattened <= 5);
+    assert(yDim_flat > 0 && yDim_flat <= 5);
 
-    std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(yDim_flattened) + "d";
+    std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(yDim_flat) + "d";
 
-    const miopenDataType_t dataType = yDesc_flattened.GetType();
+    const miopenDataType_t dataType = yDesc_flat.GetType();
 
     std::string network_config = "set " + std::to_string(dataType);
-    for(auto& len : yDesc_flattened.GetLengths())
+    for(auto& len : yDesc_flat.GetLengths())
     {
         network_config += " " + std::to_string(len);
     }
@@ -1380,7 +1380,7 @@ void SetTensor(
     {
         std::string program_name = "MIOpenSubTensorOpWithScalarKernel.cl";
 
-        std::vector<std::size_t> worker_sizes = get_worker_sizes(yDesc_flattened.GetLengths());
+        std::vector<std::size_t> worker_sizes = get_worker_sizes(yDesc_flat.GetLengths());
 
         std::size_t wgd = std::accumulate(worker_sizes.begin(),
                                           worker_sizes.end(),
@@ -1391,7 +1391,7 @@ void SetTensor(
 
         std::string parms = "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_SET" +
                             parms_half_or_float(dataType);
-        for(int i = 0; i < yDim_flattened; ++i)
+        for(int i = 0; i < yDim_flat; ++i)
         {
             parms += " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
         }
@@ -1404,20 +1404,20 @@ void SetTensor(
                                   {wgd, 1, 1},
                                   parms);
 #if 1
-        if(yDesc.GetSize() != yDesc_flattened.GetSize())
+        if(yDesc.GetSize() != yDesc_flat.GetSize())
         {
             std::cout << __func__ << std::endl
                       << "real lengths: " << yDesc.GetLengths() << std::endl
                       << "real strides: " << yDesc.GetStrides() << std::endl
-                      << "flattened lengths(): " << yDesc_flattened.GetLengths() << std::endl
-                      << "flattened strides(): " << yDesc_flattened.GetStrides() << std::endl
+                      << "flattened lengths(): " << yDesc_flat.GetLengths() << std::endl
+                      << "flattened strides(): " << yDesc_flat.GetStrides() << std::endl
                       << "worker_sizes: " << worker_sizes << std::endl
                       << "wgd: " << wgd << ", wld: " << wld << std::endl;
         }
 #endif
     }
 
-    switch(yDim_flattened)
+    switch(yDim_flat)
     {
     case 1:
     {
@@ -1425,8 +1425,8 @@ void SetTensor(
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flattened.GetStrides()[0]),
-                   int(yDesc_flattened.GetLengths()[0]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetLengths()[0]));
         });
 
         break;
@@ -1437,10 +1437,10 @@ void SetTensor(
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flattened.GetStrides()[0]),
-                   int(yDesc_flattened.GetStrides()[1]),
-                   int(yDesc_flattened.GetLengths()[0]),
-                   int(yDesc_flattened.GetLengths()[1]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetStrides()[1]),
+                   int(yDesc_flat.GetLengths()[0]),
+                   int(yDesc_flat.GetLengths()[1]));
         });
 
         break;
@@ -1451,12 +1451,12 @@ void SetTensor(
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flattened.GetStrides()[0]),
-                   int(yDesc_flattened.GetStrides()[1]),
-                   int(yDesc_flattened.GetStrides()[2]),
-                   int(yDesc_flattened.GetLengths()[0]),
-                   int(yDesc_flattened.GetLengths()[1]),
-                   int(yDesc_flattened.GetLengths()[2]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetStrides()[1]),
+                   int(yDesc_flat.GetStrides()[2]),
+                   int(yDesc_flat.GetLengths()[0]),
+                   int(yDesc_flat.GetLengths()[1]),
+                   int(yDesc_flat.GetLengths()[2]));
         });
 
         break;
@@ -1467,14 +1467,14 @@ void SetTensor(
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flattened.GetStrides()[0]),
-                   int(yDesc_flattened.GetStrides()[1]),
-                   int(yDesc_flattened.GetStrides()[2]),
-                   int(yDesc_flattened.GetStrides()[3]),
-                   int(yDesc_flattened.GetLengths()[0]),
-                   int(yDesc_flattened.GetLengths()[1]),
-                   int(yDesc_flattened.GetLengths()[2]),
-                   int(yDesc_flattened.GetLengths()[3]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetStrides()[1]),
+                   int(yDesc_flat.GetStrides()[2]),
+                   int(yDesc_flat.GetStrides()[3]),
+                   int(yDesc_flat.GetLengths()[0]),
+                   int(yDesc_flat.GetLengths()[1]),
+                   int(yDesc_flat.GetLengths()[2]),
+                   int(yDesc_flat.GetLengths()[3]));
         });
 
         break;
@@ -1485,16 +1485,16 @@ void SetTensor(
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flattened.GetStrides()[0]),
-                   int(yDesc_flattened.GetStrides()[1]),
-                   int(yDesc_flattened.GetStrides()[2]),
-                   int(yDesc_flattened.GetStrides()[3]),
-                   int(yDesc_flattened.GetStrides()[4]),
-                   int(yDesc_flattened.GetLengths()[0]),
-                   int(yDesc_flattened.GetLengths()[1]),
-                   int(yDesc_flattened.GetLengths()[2]),
-                   int(yDesc_flattened.GetLengths()[3]),
-                   int(yDesc_flattened.GetLengths()[4]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetStrides()[1]),
+                   int(yDesc_flat.GetStrides()[2]),
+                   int(yDesc_flat.GetStrides()[3]),
+                   int(yDesc_flat.GetStrides()[4]),
+                   int(yDesc_flat.GetLengths()[0]),
+                   int(yDesc_flat.GetLengths()[1]),
+                   int(yDesc_flat.GetLengths()[2]),
+                   int(yDesc_flat.GetLengths()[3]),
+                   int(yDesc_flat.GetLengths()[4]));
         });
 
         break;
@@ -1511,19 +1511,19 @@ void ScaleTensor(
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    const TensorDescriptor yDesc_flattened = yDesc.GetFlattenedTensorDescriptor();
+    const TensorDescriptor yDesc_flat = yDesc.GetFlattenedTensorDescriptor();
 
-    const std::size_t yDim_flattened = yDesc_flattened.GetSize();
+    const std::size_t yDim_flat = yDesc_flat.GetSize();
 
-    assert(yDim_flattened > 0 && yDim_flattened <= 5);
+    assert(yDim_flat > 0 && yDim_flat <= 5);
 
-    const miopenDataType_t dataType = yDesc_flattened.GetType();
+    const miopenDataType_t dataType = yDesc_flat.GetType();
 
-    std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(yDim_flattened) + "d";
+    std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(yDim_flat) + "d";
 
-    const std::vector<std::size_t>& lens = yDesc_flattened.GetLengths();
+    const std::vector<std::size_t>& lens = yDesc_flat.GetLengths();
 
-    std::string network_config = "scale " + std::to_string(yDesc_flattened.GetType());
+    std::string network_config = "scale " + std::to_string(yDesc_flat.GetType());
     for(auto& len : lens)
     {
         network_config += " " + std::to_string(len);
@@ -1552,7 +1552,7 @@ void ScaleTensor(
 
         std::string parms = "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_MULTIPLY" +
                             parms_half_or_float(dataType);
-        for(int i = 0; i < yDim_flattened; ++i)
+        for(int i = 0; i < yDim_flat; ++i)
         {
             parms += " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
         }
@@ -1566,20 +1566,20 @@ void ScaleTensor(
                                   parms);
 
 #if 1
-        if(yDesc.GetSize() != yDesc_flattened.GetSize())
+        if(yDesc.GetSize() != yDesc_flat.GetSize())
         {
             std::cout << __func__ << std::endl
                       << "real lengths: " << yDesc.GetLengths() << std::endl
                       << "real strides: " << yDesc.GetStrides() << std::endl
-                      << "flattened lengths(): " << yDesc_flattened.GetLengths() << std::endl
-                      << "flattened strides(): " << yDesc_flattened.GetStrides() << std::endl
+                      << "flattened lengths(): " << yDesc_flat.GetLengths() << std::endl
+                      << "flattened strides(): " << yDesc_flat.GetStrides() << std::endl
                       << "worker_sizes: " << worker_sizes << std::endl
                       << "wgd: " << wgd << ", wld: " << wld << std::endl;
         }
 #endif
     }
 
-    switch(yDim_flattened)
+    switch(yDim_flat)
     {
     case 1:
     {
@@ -1587,8 +1587,8 @@ void ScaleTensor(
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flattened.GetStrides()[0]),
-                   int(yDesc_flattened.GetLengths()[0]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetLengths()[0]));
         });
 
         break;
@@ -1599,10 +1599,10 @@ void ScaleTensor(
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flattened.GetStrides()[0]),
-                   int(yDesc_flattened.GetStrides()[1]),
-                   int(yDesc_flattened.GetLengths()[0]),
-                   int(yDesc_flattened.GetLengths()[1]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetStrides()[1]),
+                   int(yDesc_flat.GetLengths()[0]),
+                   int(yDesc_flat.GetLengths()[1]));
         });
 
         break;
@@ -1613,12 +1613,12 @@ void ScaleTensor(
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flattened.GetStrides()[0]),
-                   int(yDesc_flattened.GetStrides()[1]),
-                   int(yDesc_flattened.GetStrides()[2]),
-                   int(yDesc_flattened.GetLengths()[0]),
-                   int(yDesc_flattened.GetLengths()[1]),
-                   int(yDesc_flattened.GetLengths()[2]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetStrides()[1]),
+                   int(yDesc_flat.GetStrides()[2]),
+                   int(yDesc_flat.GetLengths()[0]),
+                   int(yDesc_flat.GetLengths()[1]),
+                   int(yDesc_flat.GetLengths()[2]));
         });
 
         break;
@@ -1629,14 +1629,14 @@ void ScaleTensor(
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flattened.GetStrides()[0]),
-                   int(yDesc_flattened.GetStrides()[1]),
-                   int(yDesc_flattened.GetStrides()[2]),
-                   int(yDesc_flattened.GetStrides()[3]),
-                   int(yDesc_flattened.GetLengths()[0]),
-                   int(yDesc_flattened.GetLengths()[1]),
-                   int(yDesc_flattened.GetLengths()[2]),
-                   int(yDesc_flattened.GetLengths()[3]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetStrides()[1]),
+                   int(yDesc_flat.GetStrides()[2]),
+                   int(yDesc_flat.GetStrides()[3]),
+                   int(yDesc_flat.GetLengths()[0]),
+                   int(yDesc_flat.GetLengths()[1]),
+                   int(yDesc_flat.GetLengths()[2]),
+                   int(yDesc_flat.GetLengths()[3]));
         });
 
         break;
@@ -1647,16 +1647,16 @@ void ScaleTensor(
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc_flattened.GetStrides()[0]),
-                   int(yDesc_flattened.GetStrides()[1]),
-                   int(yDesc_flattened.GetStrides()[2]),
-                   int(yDesc_flattened.GetStrides()[3]),
-                   int(yDesc_flattened.GetStrides()[4]),
-                   int(yDesc_flattened.GetLengths()[0]),
-                   int(yDesc_flattened.GetLengths()[1]),
-                   int(yDesc_flattened.GetLengths()[2]),
-                   int(yDesc_flattened.GetLengths()[3]),
-                   int(yDesc_flattened.GetLengths()[4]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetStrides()[1]),
+                   int(yDesc_flat.GetStrides()[2]),
+                   int(yDesc_flat.GetStrides()[3]),
+                   int(yDesc_flat.GetStrides()[4]),
+                   int(yDesc_flat.GetLengths()[0]),
+                   int(yDesc_flat.GetLengths()[1]),
+                   int(yDesc_flat.GetLengths()[2]),
+                   int(yDesc_flat.GetLengths()[3]),
+                   int(yDesc_flat.GetLengths()[4]));
         });
 
         break;
@@ -1693,39 +1693,25 @@ void CopyTensor(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
     }
 
-    {
-        const TensorDescriptor aDesc = srcDesc, bDesc = dstDesc;
-        TensorDescriptor aDesc_flat, bDesc_flat;
+    TensorDescriptor srcDesc_flat, dstDesc_flat;
 
-        flatten_tensor_descriptor(std::tie(aDesc, bDesc), std::tie(aDesc_flat, bDesc_flat));
-    }
+    get_consistent_flattened_tensor_descriptors(std::tie(srcDesc, dstDesc),
+                                                std::tie(srcDesc_flat, dstDesc_flat));
 
-    const TensorDescriptor srcDesc_flattened = srcDesc.GetFlattenedTensorDescriptor();
-    const TensorDescriptor dstDesc_flattened = dstDesc.GetFlattenedTensorDescriptor();
+    std::size_t srcDim_flat = srcDesc_flat.GetSize();
 
-    bool same_flatten_lengths = srcDesc_flattened.GetLengths() == dstDesc_flattened.GetLengths();
-
-    const TensorDescriptor& srcDesc_effective = same_flatten_lengths ? srcDesc_flattened : srcDesc;
-    const TensorDescriptor& dstDesc_effective = same_flatten_lengths ? dstDesc_flattened : dstDesc;
-
-    if(srcDesc_effective.GetLengths().size() > 5 || srcDesc_effective.GetLengths().size() > 5)
+    if(srcDim_flat < 1 || srcDim_flat > 5)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension sizes unsupported.");
     }
 
-    if(srcOffset > 0 || dstOffset > 0 ||
-       (!(srcDesc_effective.IsPacked() && dstDesc_effective.IsPacked())))
+    if(srcOffset > 0 || dstOffset > 0 || (!(srcDesc_flat.IsPacked() && dstDesc_flat.IsPacked())))
     {
-        std::size_t srcDim_effecitive = srcDesc_effective.GetSize();
+        std::string kernel_name = "SubTensorOpWithSubTensor" + std::to_string(srcDim_flat) + "d";
 
-        assert(srcDim_effecitive > 0 && srcDim_effecitive <= 5);
+        const std::vector<std::size_t>& lens = srcDesc_flat.GetLengths();
 
-        std::string kernel_name =
-            "SubTensorOpWithSubTensor" + std::to_string(srcDim_effecitive) + "d";
-
-        const std::vector<std::size_t>& lens = srcDesc_effective.GetLengths();
-
-        std::string network_config = "copy " + std::to_string(srcDesc_effective.GetType());
+        std::string network_config = "copy " + std::to_string(srcDesc_flat.GetType());
         for(auto& len : lens)
         {
             network_config += " " + std::to_string(len);
@@ -1753,8 +1739,8 @@ void CopyTensor(Handle& handle,
             std::size_t wld = 256 < wgd ? 256 : wgd;
 
             std::string parms = "-DSUBTENSOR_OP_WITH_SUBTENSOR=SUBTENSOR_OP_WITH_SUBTENSOR_COPY" +
-                                parms_half_or_float(srcDesc_effective.GetType());
-            for(int i = 0; i < srcDim_effecitive; ++i)
+                                parms_half_or_float(srcDesc_flat.GetType());
+            for(int i = 0; i < srcDim_flat; ++i)
             {
                 parms +=
                     " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
@@ -1769,39 +1755,34 @@ void CopyTensor(Handle& handle,
                                       parms);
 
 #if 1
-            if(srcDesc.GetSize() != srcDesc_flattened.GetSize())
+            if(srcDesc.GetSize() != srcDesc_flat.GetSize())
             {
-                std::cout
-                    << __func__ << std::endl
-                    << "src real lengths: " << srcDesc.GetLengths() << std::endl
-                    << "src real strides: " << srcDesc.GetStrides() << std::endl
-                    << "src flattened lengths(): " << srcDesc_flattened.GetLengths() << std::endl
-                    << "src flattened strides(): " << srcDesc_flattened.GetStrides() << std::endl
-                    << "src effective lengths(): " << srcDesc_effective.GetLengths() << std::endl
-                    << "src effective strides(): " << srcDesc_effective.GetStrides() << std::endl
-                    << "dst real lengths: " << dstDesc.GetLengths() << std::endl
-                    << "dst real strides: " << dstDesc.GetStrides() << std::endl
-                    << "dst flattened lengths(): " << dstDesc_flattened.GetLengths() << std::endl
-                    << "dst flattened strides(): " << dstDesc_flattened.GetStrides() << std::endl
-                    << "dst effective lengths(): " << dstDesc_effective.GetLengths() << std::endl
-                    << "dst effective strides(): " << dstDesc_effective.GetStrides() << std::endl
-                    << "worker_sizes: " << worker_sizes << std::endl
-                    << "wgd: " << wgd << ", wld: " << wld << std::endl;
+                std::cout << __func__ << std::endl
+                          << "src real lengths: " << srcDesc.GetLengths() << std::endl
+                          << "src real strides: " << srcDesc.GetStrides() << std::endl
+                          << "src flat lengths: " << srcDesc_flat.GetLengths() << std::endl
+                          << "src flat strides: " << srcDesc_flat.GetStrides() << std::endl
+                          << "dst real lengths: " << dstDesc.GetLengths() << std::endl
+                          << "dst real strides: " << dstDesc.GetStrides() << std::endl
+                          << "dst flat lengths: " << dstDesc_flat.GetLengths() << std::endl
+                          << "dst flat strides: " << dstDesc_flat.GetStrides() << std::endl
+                          << "worker_sizes: " << worker_sizes << std::endl
+                          << "wgd: " << wgd << ", wld: " << wld << std::endl;
             }
 #endif
         }
 
-        switch(srcDim_effecitive)
+        switch(srcDim_flat)
         {
         case 1:
         {
             kernel(src,
                    srcOffset,
-                   int(srcDesc_effective.GetStrides()[0]),
-                   int(srcDesc_effective.GetLengths()[0]),
+                   int(srcDesc_flat.GetStrides()[0]),
+                   int(srcDesc_flat.GetLengths()[0]),
                    dst,
                    dstOffset,
-                   int(dstDesc_effective.GetStrides()[0]));
+                   int(dstDesc_flat.GetStrides()[0]));
 
             break;
         }
@@ -1809,14 +1790,14 @@ void CopyTensor(Handle& handle,
         {
             kernel(src,
                    srcOffset,
-                   int(srcDesc_effective.GetStrides()[0]),
-                   int(srcDesc_effective.GetStrides()[1]),
-                   int(srcDesc_effective.GetLengths()[0]),
-                   int(srcDesc_effective.GetLengths()[1]),
+                   int(srcDesc_flat.GetStrides()[0]),
+                   int(srcDesc_flat.GetStrides()[1]),
+                   int(srcDesc_flat.GetLengths()[0]),
+                   int(srcDesc_flat.GetLengths()[1]),
                    dst,
                    dstOffset,
-                   int(dstDesc_effective.GetStrides()[0]),
-                   int(dstDesc_effective.GetStrides()[1]));
+                   int(dstDesc_flat.GetStrides()[0]),
+                   int(dstDesc_flat.GetStrides()[1]));
 
             break;
         }
@@ -1824,17 +1805,17 @@ void CopyTensor(Handle& handle,
         {
             kernel(src,
                    srcOffset,
-                   int(srcDesc_effective.GetStrides()[0]),
-                   int(srcDesc_effective.GetStrides()[1]),
-                   int(srcDesc_effective.GetStrides()[2]),
-                   int(srcDesc_effective.GetLengths()[0]),
-                   int(srcDesc_effective.GetLengths()[1]),
-                   int(srcDesc_effective.GetLengths()[2]),
+                   int(srcDesc_flat.GetStrides()[0]),
+                   int(srcDesc_flat.GetStrides()[1]),
+                   int(srcDesc_flat.GetStrides()[2]),
+                   int(srcDesc_flat.GetLengths()[0]),
+                   int(srcDesc_flat.GetLengths()[1]),
+                   int(srcDesc_flat.GetLengths()[2]),
                    dst,
                    dstOffset,
-                   int(dstDesc_effective.GetStrides()[0]),
-                   int(dstDesc_effective.GetStrides()[1]),
-                   int(dstDesc_effective.GetStrides()[2]));
+                   int(dstDesc_flat.GetStrides()[0]),
+                   int(dstDesc_flat.GetStrides()[1]),
+                   int(dstDesc_flat.GetStrides()[2]));
 
             break;
         }
@@ -1842,20 +1823,20 @@ void CopyTensor(Handle& handle,
         {
             kernel(src,
                    srcOffset,
-                   int(srcDesc_effective.GetStrides()[0]),
-                   int(srcDesc_effective.GetStrides()[1]),
-                   int(srcDesc_effective.GetStrides()[2]),
-                   int(srcDesc_effective.GetStrides()[3]),
-                   int(srcDesc_effective.GetLengths()[0]),
-                   int(srcDesc_effective.GetLengths()[1]),
-                   int(srcDesc_effective.GetLengths()[2]),
-                   int(srcDesc_effective.GetLengths()[3]),
+                   int(srcDesc_flat.GetStrides()[0]),
+                   int(srcDesc_flat.GetStrides()[1]),
+                   int(srcDesc_flat.GetStrides()[2]),
+                   int(srcDesc_flat.GetStrides()[3]),
+                   int(srcDesc_flat.GetLengths()[0]),
+                   int(srcDesc_flat.GetLengths()[1]),
+                   int(srcDesc_flat.GetLengths()[2]),
+                   int(srcDesc_flat.GetLengths()[3]),
                    dst,
                    dstOffset,
-                   int(dstDesc_effective.GetStrides()[0]),
-                   int(dstDesc_effective.GetStrides()[1]),
-                   int(dstDesc_effective.GetStrides()[2]),
-                   int(dstDesc_effective.GetStrides()[3]));
+                   int(dstDesc_flat.GetStrides()[0]),
+                   int(dstDesc_flat.GetStrides()[1]),
+                   int(dstDesc_flat.GetStrides()[2]),
+                   int(dstDesc_flat.GetStrides()[3]));
 
             break;
         }
@@ -1863,23 +1844,23 @@ void CopyTensor(Handle& handle,
         {
             kernel(src,
                    srcOffset,
-                   int(srcDesc_effective.GetStrides()[0]),
-                   int(srcDesc_effective.GetStrides()[1]),
-                   int(srcDesc_effective.GetStrides()[2]),
-                   int(srcDesc_effective.GetStrides()[3]),
-                   int(srcDesc_effective.GetStrides()[4]),
-                   int(srcDesc_effective.GetLengths()[0]),
-                   int(srcDesc_effective.GetLengths()[1]),
-                   int(srcDesc_effective.GetLengths()[2]),
-                   int(srcDesc_effective.GetLengths()[3]),
-                   int(srcDesc_effective.GetLengths()[4]),
+                   int(srcDesc_flat.GetStrides()[0]),
+                   int(srcDesc_flat.GetStrides()[1]),
+                   int(srcDesc_flat.GetStrides()[2]),
+                   int(srcDesc_flat.GetStrides()[3]),
+                   int(srcDesc_flat.GetStrides()[4]),
+                   int(srcDesc_flat.GetLengths()[0]),
+                   int(srcDesc_flat.GetLengths()[1]),
+                   int(srcDesc_flat.GetLengths()[2]),
+                   int(srcDesc_flat.GetLengths()[3]),
+                   int(srcDesc_flat.GetLengths()[4]),
                    dst,
                    dstOffset,
-                   int(dstDesc_effective.GetStrides()[0]),
-                   int(dstDesc_effective.GetStrides()[1]),
-                   int(dstDesc_effective.GetStrides()[2]),
-                   int(dstDesc_effective.GetStrides()[3]),
-                   int(dstDesc_effective.GetStrides()[4]));
+                   int(dstDesc_flat.GetStrides()[0]),
+                   int(dstDesc_flat.GetStrides()[1]),
+                   int(dstDesc_flat.GetStrides()[2]),
+                   int(dstDesc_flat.GetStrides()[3]),
+                   int(dstDesc_flat.GetStrides()[4]));
 
             break;
         }
@@ -1888,9 +1869,7 @@ void CopyTensor(Handle& handle,
     }
     else
     {
-        handle.Copy(src,
-                    dst,
-                    srcDesc_effective.GetElementSize() * GetTypeSize(srcDesc_effective.GetType()));
+        handle.Copy(src, dst, srcDesc_flat.GetElementSize() * GetTypeSize(srcDesc_flat.GetType()));
     }
 }
 
