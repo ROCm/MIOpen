@@ -544,7 +544,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                    handle, xDesc, wDesc, yDesc, eka, kernel_direct, exhaustiveSearch, 1) == 0)
             { // Forward
                 size_t workspace_req =
-                    this->ForwardGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc);
+                    this->ForwardBackwardDataGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc, 1);
 
                 // Execute the direct kernel
                 float time_direct = 0;
@@ -1288,8 +1288,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                    handle, dxDesc, wDesc, dyDesc, eka, kernel_direct, exhaustiveSearch, 0) == 0)
             { // Backward
 
-                size_t workspace_req =
-                    this->BackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc);
+                size_t workspace_req = this->ForwardBackwardDataGetWorkSpaceSizeDirect(
+                    handle, dxDesc, dyDesc, wDesc, 0);
 
                 float time_direct = 0;
                 float padding_val = 0;

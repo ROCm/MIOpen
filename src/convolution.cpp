@@ -28,6 +28,8 @@
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
+
 namespace miopen {
 
 ConvolutionDescriptor::ConvolutionDescriptor(
@@ -331,7 +333,8 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         int in_h, in_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
-        const size_t direct_workspace = ForwardGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc);
+        const size_t direct_workspace =
+            ForwardBackwardDataGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc, 1);
 
         if(dilation_w > 1 || dilation_h > 1)
             return std::max(ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc), direct_workspace);
@@ -363,31 +366,6 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     }
 }
 
-size_t
-ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeDirect(Handle& handle,
-                                                          const TensorDescriptor& dxDesc,
-                                                          const TensorDescriptor& dyDesc,
-                                                          const TensorDescriptor& wDesc) const
-{
-    try
-    {
-        mlo_construct_direct2D construct_params(0); // backward
-        construct_params.doSearch(false);
-        construct_params.setStream(&handle);
-        construct_params.setOutputDescFromMLDesc(dyDesc);
-        construct_params.setInputDescFromMLDesc(dxDesc);
-        construct_params.setWeightDescFromMLDesc(wDesc);
-        construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
-        construct_params.setWorkaroundDisableSearchEnforce(true);
-        mloConstruct(construct_params);
-        return construct_params.getWorkSpaceSzBytes();
-    }
-    catch(const miopen::Exception&)
-    {
-        return 0;
-    }
-}
-
 size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
                                                            const TensorDescriptor& wDesc,
                                                            const TensorDescriptor& dyDesc,
@@ -401,7 +379,7 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
         const size_t direct_workspace =
-            BackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc);
+            ForwardBackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc, 0);
 
         if(dilation_w > 1 || dilation_h > 1)
             return std::max(BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc),
@@ -599,21 +577,28 @@ size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
     return gemm_size;
 }
 
-size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeDirect(Handle& handle,
-                                                            const TensorDescriptor& xDesc,
-                                                            const TensorDescriptor& yDesc,
-                                                            const TensorDescriptor& wDesc) const
+size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
+    Handle& handle,
+    const TensorDescriptor& xDesc,
+    const TensorDescriptor& yDesc,
+    const TensorDescriptor& wDesc,
+    int direction) const // 1: Forward, 0: BackwardData
 {
+
+    if(!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+        return 0;
+
+    mlo_construct_direct2D construct_params(direction);
+    construct_params.doSearch(false);
+    construct_params.setStream(&handle);
+    construct_params.setOutputDescFromMLDesc(yDesc);
+    construct_params.setInputDescFromMLDesc(xDesc);
+    construct_params.setWeightDescFromMLDesc(wDesc);
+    construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+    construct_params.setWorkaroundDisableSearchEnforce(true);
+
     try
     {
-        mlo_construct_direct2D construct_params(1); // forward
-        construct_params.doSearch(false);
-        construct_params.setStream(&handle);
-        construct_params.setOutputDescFromMLDesc(yDesc);
-        construct_params.setInputDescFromMLDesc(xDesc);
-        construct_params.setWeightDescFromMLDesc(wDesc);
-        construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
-        construct_params.setWorkaroundDisableSearchEnforce(true);
         mloConstruct(construct_params);
         return construct_params.getWorkSpaceSzBytes();
     }
