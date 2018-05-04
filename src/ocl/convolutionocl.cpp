@@ -1295,7 +1295,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 float padding_val = 0;
 
                 visit_float(dyDesc.GetType(), [&](auto as_float) {
-                    int n_kernels = 0;
+
                     for(auto& k : kernel_direct)
                     {
                         if(k.GetName() == "UpSample")
@@ -1338,7 +1338,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                             k(dy, w, tmp_dx.get(), as_float(padding_val));
                             time_direct += handle.GetKernelTime();
                         }
-                        n_kernels++;
                     }
                 });
 
