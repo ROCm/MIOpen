@@ -566,7 +566,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                             k(N,
                               C,
                               n_kernels == 1 ? out_H : H,
-                              n_kernels == 1 ? out_H : H,
+                              n_kernels == 1 ? out_W : W,
                               K,
                               n_groups,
                               unused,
@@ -708,13 +708,13 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             visit_float(xDesc.GetType(), [&](auto as_float) {
                 if((kernel.GetName() == "SubSample"))
                 {
+                    auto kernels = handle.GetKernels(algorithm_name, network_config);
+
+                    assert(kernels.size() == 2 && kernels[2].GetName() == "gcnAsmConv1x1U");
 
                     kernel(x, workSpace);
 
-                    auto kernels = handle.GetKernels(algorithm_name, network_config);
-
                     auto kernel2 = kernels[1];
-                    assert(kernel2.GetName() == "gcnAsmConv1x1U");
 
                     int unused       = 0;
                     int* return_addr = nullptr;
@@ -1300,40 +1300,38 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     {
                         if(k.GetName() == "UpSample")
                         {
-                            if(workSpace != nullptr && workSpaceSize >= workspace_req)
-                            {
-                                float zero = 0.f;
-                                SetTensor(handle, dxDesc, tmp_dx.get(), &zero);
-                                time_direct += handle.GetKernelTime();
-                                k(workSpace, tmp_dx.get());
-                                time_direct += handle.GetKernelTime();
-                            }
+                            assert(workSpace != nullptr && workSpaceSize >= workspace_req);
+
+                            // Initialization required for upsampling in bwd direction
+                            float zero = 0.f;
+                            SetTensor(handle, dxDesc, tmp_dx.get(), &zero);
+                            time_direct += handle.GetKernelTime();
+                            k(workSpace, tmp_dx.get());
+                            time_direct += handle.GetKernelTime();
                         }
                         else if(k.GetName() == "gcnAsmConv1x1U")
                         {
-                            if(kernel_direct.size() == 1 ||
-                               (workSpace != nullptr && workSpaceSize >= workspace_req))
-                            {
-                                int unused       = 0;
-                                int* return_addr = nullptr;
-                                int N, C, H, W, K, n_groups;
-                                std::tie(N, C, H, W, K, n_groups, std::ignore, std::ignore) = eka;
-                                k(N,
-                                  C,
-                                  H,
-                                  W,
-                                  K,
-                                  n_groups,
-                                  unused,
-                                  unused,
-                                  dy,
-                                  w,
-                                  (kernel_direct.size() == 2 && n_kernels == 0) ? workSpace
-                                                                                : tmp_dx.get(),
-                                  return_addr);
+                            assert(kernel_direct.size() == 1 ||
+                                   (workSpace != nullptr && workSpaceSize >= workspace_req));
 
-                                time_direct += handle.GetKernelTime();
-                            }
+                            int unused       = 0;
+                            int* return_addr = nullptr;
+                            int N, C, H, W, K, n_groups;
+                            std::tie(N, C, H, W, K, n_groups, std::ignore, std::ignore) = eka;
+                            k(N,
+                              C,
+                              H,
+                              W,
+                              K,
+                              n_groups,
+                              unused,
+                              unused,
+                              dy,
+                              w,
+                              (kernel_direct.size() == 2) ? workSpace : tmp_dx.get(),
+                              return_addr);
+
+                            time_direct += handle.GetKernelTime();
                         }
                         else
                         {
@@ -1387,6 +1385,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc))
             {
 
+                // Initialization required for upsampling in bwd direction
                 float zero = 0.f;
                 SetTensor(handle, dxDesc, tmp_dx.get(), &zero);
                 time_gemm = handle.GetKernelTime();
@@ -1609,6 +1608,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                         auto kernel2 = kernels[1];
                         assert(kernel2.GetName() == "UpSample");
 
+                        // Initialization required for upsampling in bwd direction
                         float zero = 0.f;
                         SetTensor(handle, dxDesc, dx, &zero);
                         if(handle.IsProfilingEnabled())
