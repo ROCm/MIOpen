@@ -382,8 +382,7 @@ ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeDirect(Handle& handle,
         construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
         construct_params.setWorkaroundDisableSearchEnforce(true);
         mloConstruct(construct_params);
-        return construct_params.FindSolution().Succeeded() ? construct_params.getWorkSpaceSzBytes()
-                                                           : 0;
+        return construct_params.getWorkSpaceSzBytes();
     }
     catch(const miopen::Exception&)
     {
@@ -619,8 +618,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeDirect(Handle& handle,
         construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
         construct_params.setWorkaroundDisableSearchEnforce(true);
         mloConstruct(construct_params);
-        return construct_params.FindSolution().Succeeded() ? construct_params.getWorkSpaceSzBytes()
-                                                           : 0;
+        return construct_params.getWorkSpaceSzBytes();
     }
     catch(const miopen::Exception&)
     {
@@ -645,8 +643,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
         construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
         construct_params.setWorkaroundDisableSearchEnforce(true);
         mloConstruct(construct_params);
-        return construct_params.FindSolution().Succeeded() ? construct_params.getWorkSpaceSzBytes()
-                                                           : 0;
+        return construct_params.getWorkSpaceSzBytes();
     }
     catch(const miopen::Exception&)
     {
