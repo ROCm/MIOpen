@@ -97,6 +97,13 @@ sequence_t<F> sequence(F f)
     return {std::move(f)};
 }
 
+template <typename F, std::size_t N>
+void call_n_time(F f, std::integral_constant<std::size_t, N>)
+{
+    auto fs = [&f](auto... is) { return each_args(f, is...); };
+    sequence(fs)(std::integral_constant<std::size_t, N>{});
+}
+
 template <class T>
 struct cast_to
 {
