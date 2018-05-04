@@ -331,7 +331,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         int in_h, in_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
-        size_t direct_workspace = ForwardGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc);
+        const size_t direct_workspace = ForwardGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc);
 
         if(dilation_w > 1 || dilation_h > 1)
             return std::max(ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc), direct_workspace);
@@ -351,16 +351,14 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         // use more workspace.
         if(IsWinograd3x3Supported(handle, true, wDesc, xDesc))
         {
-            return direct_workspace;
+            return 0;
         }
         else
         {
             size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
             size_t workspace_size_fft  = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
 
-            return std::max((workspace_size_fft > workspace_size_gemm ? workspace_size_fft
-                                                                      : workspace_size_gemm),
-                            direct_workspace);
+            return std::max(std::max(workspace_size_fft, workspace_size_gemm), direct_workspace);
         }
     }
 }
@@ -402,7 +400,8 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         int wei_h, wei_w;
         std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
-        size_t direct_workspace = BackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc);
+        const size_t direct_workspace =
+            BackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc);
 
         if(dilation_w > 1 || dilation_h > 1)
             return std::max(BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc),
@@ -420,16 +419,14 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         // use more workspace.
         if(IsWinograd3x3Supported(handle, false, wDesc, dyDesc))
         {
-            return direct_workspace;
+            return 0;
         }
         else
         {
             size_t workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
             size_t workspace_size_fft  = BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc);
 
-            return std::max((workspace_size_fft > workspace_size_gemm ? workspace_size_fft
-                                                                      : workspace_size_gemm),
-                            direct_workspace);
+            return std::max(std::max(workspace_size_fft, workspace_size_gemm), direct_workspace);
         }
     }
 }
