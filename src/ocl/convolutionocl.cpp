@@ -710,7 +710,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 {
                     auto kernels = handle.GetKernels(algorithm_name, network_config);
 
-                    assert(kernels.size() == 2 && kernels[2].GetName() == "gcnAsmConv1x1U");
+                    assert(kernels.size() == 2 && kernels[1].GetName() == "gcnAsmConv1x1U");
 
                     kernel(x, workSpace);
 
