@@ -1303,6 +1303,10 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                             assert(workSpace != nullptr && workSpaceSize >= workspace_req);
 
                             // Initialization required for upsampling in bwd direction
+                            // TODO: we'll need to do something with this in the future.
+                            // Possibilities:
+                            // 1: Add kernel (from SetTensor) to the Solution in the Solver.
+                            // 2: Fix UpSample kernel, probably by means of conditional compilation.
                             float zero = 0.f;
                             SetTensor(handle, dxDesc, tmp_dx.get(), &zero);
                             time_direct += handle.GetKernelTime();
@@ -1608,6 +1612,9 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                         assert(kernel2.GetName() == "UpSample");
 
                         // Initialization required for upsampling in bwd direction
+                        // TODO: we'll need to do something with this in the future. Possibilities:
+                        // 1: Add kernel (from SetTensor) to the Solution in the Solver.
+                        // 2: Fix UpSample kernel, probably by means of conditional compilation.
                         float zero = 0.f;
                         SetTensor(handle, dxDesc, dx, &zero);
                         if(handle.IsProfilingEnabled())
