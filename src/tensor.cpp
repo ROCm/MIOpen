@@ -222,7 +222,6 @@ std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t)
     return LogRange(stream, t.lens, ", ");
 }
 
-
 } // namespace miopen
 
 // TODO(paul): Remove
