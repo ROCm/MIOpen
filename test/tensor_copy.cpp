@@ -109,7 +109,8 @@ struct verify_tensor_copy
         auto dstSuper_dev = handle.Write(dstSuperGpu.data);
         auto srcSuper_dev = handle.Write(srcSuper.data);
 
-        struct timeval start{}, end{};
+        timeval start{};
+        timeval end{};
         gettimeofday(&start, nullptr);
         miopen::CopyTensor(
             handle, srcDesc, srcSuper_dev.get(), dstDesc, dstSuper_dev.get(), srcOffset, dstOffset);

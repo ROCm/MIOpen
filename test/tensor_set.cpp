@@ -87,7 +87,8 @@ struct verify_tensor_set
         auto&& handle  = get_handle();
         auto super_dev = handle.Write(superGpu.data);
 
-        struct timeval start{}, end{};
+        timeval start{};
+        timeval end{};
         gettimeofday(&start, nullptr);
         miopen::SetTensor(handle, subDesc, super_dev.get(), &alpha, offset);
         gettimeofday(&end, nullptr);

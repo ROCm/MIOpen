@@ -138,7 +138,6 @@ struct TensorDescriptor : miopenTensorDescriptor
     miopenDataType_t type = miopenFloat;
 };
 
-
 template <typename... TDescriptors>
 void get_consistent_flattened_tensor_descriptors(
     std::tuple<const TDescriptors&...> real_descriptors,
@@ -229,7 +228,6 @@ void get_consistent_flattened_tensor_descriptors(
                 TN{});
         }
     } // now, non1_ndim, non1_lengths, array_of_non1_strides contains non-1-length dimensions
-
 
     // is scalar
     if(non1_ndim == 0)
