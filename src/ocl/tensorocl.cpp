@@ -1403,7 +1403,7 @@ void SetTensor(
                                   {wld, 1, 1},
                                   {wgd, 1, 1},
                                   parms);
-#if 1
+#if 0
         if(yDesc.GetSize() != yDesc_flat.GetSize())
         {
             std::cout << __func__ << std::endl
@@ -1565,7 +1565,7 @@ void ScaleTensor(
                                   {wgd, 1, 1},
                                   parms);
 
-#if 1
+#if 0
         if(yDesc.GetSize() != yDesc_flat.GetSize())
         {
             std::cout << __func__ << std::endl
@@ -1754,7 +1754,7 @@ void CopyTensor(Handle& handle,
                                       {wgd, 1, 1},
                                       parms);
 
-#if 1
+#if 0
             if(srcDesc.GetSize() != srcDesc_flat.GetSize())
             {
                 std::cout << __func__ << std::endl
