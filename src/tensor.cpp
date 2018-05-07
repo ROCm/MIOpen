@@ -325,10 +325,10 @@ void get_consistent_flattened_tensor_descriptors(
                 },
                 TN{});
         }
-    }// now, non1_ndim, non1_lengths, array_of_non1_strides contains non-1-length dimensions
+    } // now, non1_ndim, non1_lengths, array_of_non1_strides contains non-1-length dimensions
 
-    // std::cout << __func__ << ": non1_ndim: " << non1_ndim << std::endl;
-    // std::cout << __func__ << ": non1_lengths: " << non1_lengths << std::endl;
+// std::cout << __func__ << ": non1_ndim: " << non1_ndim << std::endl;
+// std::cout << __func__ << ": non1_lengths: " << non1_lengths << std::endl;
 #endif
 
     // is scalar
@@ -420,13 +420,11 @@ void get_consistent_flattened_tensor_descriptors(
 #endif
 }
 
-template
-void get_consistent_flattened_tensor_descriptors(
+template void get_consistent_flattened_tensor_descriptors(
     std::tuple<const TensorDescriptor&, const TensorDescriptor&> real_descriptors,
     std::tuple<TensorDescriptor&, TensorDescriptor&> flat_descriptors);
 
-template
-void get_consistent_flattened_tensor_descriptors(
+template void get_consistent_flattened_tensor_descriptors(
     std::tuple<const TensorDescriptor&, const TensorDescriptor&, const TensorDescriptor&>
         real_descriptors,
     std::tuple<TensorDescriptor&, TensorDescriptor&, TensorDescriptor&> flat_descriptors);
