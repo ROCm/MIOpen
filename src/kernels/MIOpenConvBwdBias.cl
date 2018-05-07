@@ -43,7 +43,7 @@
 
 static inline int iDiv(int v, int d)
 {
-    int r = (int)((float)v / d + 0.00001f);
+    int r = v / d;
     return (r);
 }
 
