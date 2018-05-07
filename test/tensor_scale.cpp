@@ -87,10 +87,10 @@ struct verify_tensor_scale
         auto&& handle  = get_handle();
         auto super_dev = handle.Write(superGpu.data);
 
-        struct timeval start, end;
-        gettimeofday(&start, NULL);
+        struct timeval start{}, end{};
+        gettimeofday(&start, nullptr);
         miopen::ScaleTensor(handle, subDesc, super_dev.get(), &alpha, offset);
-        gettimeofday(&end, NULL);
+        gettimeofday(&end, nullptr);
 
         long w_time =
             ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec));
@@ -103,7 +103,8 @@ struct verify_tensor_scale
         std::cout << "wall time: " << w_time / 1000.0 << " ms" << std::endl;
         // std::cout << "kernel time: " << handle.GetKernelTime() << " ms" << std::endl;
         std::cout << "bandwidth: "
-                  << 2.0 * (float)nbyte / ((std::size_t(1) << 30) * handle.GetKernelTime() / 1000)
+                  << 2.0 * (static_cast<float>(nbyte) / (static_cast<float>(std::size_t(1) << 30) *
+                                                         handle.GetKernelTime() / 1000.0))
                   << "GB/s" << std::endl;
 
         superGpu.data = handle.Read<T>(super_dev, superGpu.data.size());
