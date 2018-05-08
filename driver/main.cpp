@@ -29,6 +29,7 @@
 #include "activ_driver.hpp"
 #include "bn_driver.hpp"
 #include "conv_driver.hpp"
+#include "convInfer_driver.hpp"
 #include "driver.hpp"
 #include "gemm_driver.hpp"
 #include "lrn_driver.hpp"
@@ -57,6 +58,10 @@ int main(int argc, char* argv[])
     else if(base_arg == "convfp16")
     {
         drv = new ConvDriver<float16, double>();
+    }
+    else if(base_arg == "convInfer")
+    {
+        drv = new ConvInferDriver<float, double>();
     }
     else if(base_arg == "pool")
     {
@@ -124,7 +129,7 @@ int main(int argc, char* argv[])
     drv->GetandSetData();
     drv->AllocateBuffersAndCopy();
 
-    int fargval     = drv->GetInputFlags().GetValueInt("forw");
+    int fargval     = (base_arg != "convInfer") ? drv->GetInputFlags().GetValueInt("forw") : 1;
     bool bnFwdInVer = (fargval == 2 && (base_arg == "bnorm"));
     bool verifyarg  = (drv->GetInputFlags().GetValueInt("verify") == 1);
 
