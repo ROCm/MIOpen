@@ -678,9 +678,9 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             construct_params.mloBuildConf_Key(network_config);
 
             auto&& kernels = handle.GetKernels("miopenConvolutionFwdAlgoDirect", network_config);
-//#if(!defined(__GNUC__) || defined(__clang__)) // w/a for segfault in gcc 5.4.0
+#if(!defined(__GNUC__) || defined(__clang__)) // w/a for segfault in gcc 5.4.0
             const
-//#endif
+#endif
                 auto num_kernels = kernels.size();
             const auto p_kernel  = std::begin(kernels);
             auto kernel          = *p_kernel;
