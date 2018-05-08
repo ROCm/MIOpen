@@ -235,7 +235,6 @@ template <class... Solvers, class Context, class Db, class Solution>
 void SearchForAllSolutions(const Context& search_params, Db db, std::vector<Solution>& ss)
 {
     assert(ss.empty());
-    assert(search_params.direction.IsBackwardWrW() || search_params.direction.IsForward());
 
 // Using const here causes gcc to ICE
 #if(!defined(__GNUC__) || defined(__clang__))
