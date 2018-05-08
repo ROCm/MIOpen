@@ -139,11 +139,11 @@ struct TensorDescriptor : miopenTensorDescriptor
 };
 
 template <typename... TDescriptors>
-std::array<TensorDescriptor, sizeof...(TDescriptors)> get_consistent_flattened_tensor_descriptors(
-    const TDescriptors&... real_descriptor_elements)
+std::tuple<TDescriptors...>
+get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descriptor_elements)
 {
     std::tuple<const TDescriptors&...> real_descriptors = std::tie(real_descriptor_elements...);
-    std::array<TensorDescriptor, sizeof...(TDescriptors)> flat_descriptors;
+    std::tuple<TDescriptors...> flat_descriptors;
 
     constexpr std::size_t NTensor = std::tuple_size<std::tuple<TDescriptors&...>>::value;
 
@@ -194,7 +194,7 @@ std::array<TensorDescriptor, sizeof...(TDescriptors)> get_consistent_flattened_t
         call_n_time(
             [&](const auto i) {
                 constexpr std::size_t itensor       = i;
-                flat_descriptors[itensor] = TensorDescriptor{
+                std::get<itensor>(flat_descriptors) = TensorDescriptor{
                     std::get<itensor>(real_descriptors).GetType(), {element_size}, {1}};
             },
             TN{});
@@ -234,7 +234,7 @@ std::array<TensorDescriptor, sizeof...(TDescriptors)> get_consistent_flattened_t
         call_n_time(
             [&](const auto i) {
                 constexpr std::size_t itensor = i;
-                flat_descriptors[itensor] =
+                std::get<itensor>(flat_descriptors) =
                     TensorDescriptor{std::get<itensor>(real_descriptors).GetType(), {1}, {1}};
             },
             TN{});
@@ -300,7 +300,7 @@ std::array<TensorDescriptor, sizeof...(TDescriptors)> get_consistent_flattened_t
     call_n_time(
         [&](const auto i) {
             constexpr std::size_t itensor = i;
-            flat_descriptors[itensor] =
+            std::get<itensor>(flat_descriptors) =
                 TensorDescriptor{std::get<itensor>(real_descriptors).GetType(),
                                  flat_lengths,
                                  array_of_flat_strides[itensor]};
