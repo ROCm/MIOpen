@@ -127,19 +127,22 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
     // 9_0_14 readme: Additional limitations in the dilated case are R> 1 and  C %2==0
-    if(params.direction.IsBackwardData() && params.kernel_stride0 != 1)
+    const bool is_dilated_stride_2 =
+        (params.direction.IsBackwardData() && params.kernel_stride0 != 1);
+    if(is_dilated_stride_2)
     {
         if(!(shader_R > 1))
             return false;
         if(!(shader_C % 2 == 0))
             return false;
     }
-    // If the padded filter size from above is 3*k x 3*l, then
+    // If the padded_R x padded_S filter size from above is 3*k x 3*l
+    // or (special case for dilated with stride 2) 3*k x 6*l, then
     // it should be that k*l*C  >=18
     {
-        assert(padded_R % 3 == 0 && padded_S % 3 == 0);
+        assert(padded_R % 3 == 0 && padded_S % (is_dilated_stride_2 ? 6 : 3) == 0);
         const int k = padded_R / 3;
-        const int l = padded_S / 3;
+        const int l = padded_S / (is_dilated_stride_2 ? 6 : 3);
         if(k * l * shader_C < 18)
         {
             return false;
