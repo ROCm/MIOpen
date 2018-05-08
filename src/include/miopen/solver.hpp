@@ -197,6 +197,7 @@ ConvSolution FindSolution(Solver s, const Context& context, Db& db)
     return FindSolutionImpl(rank<1>{}, s, context, db);
 }
 
+/// \todo This is not needed anymore. Remove all uses
 // Search for a solution among many solvers
 template <class... Solvers, class Context, class Db>
 auto SearchForSolution(const Context& search_params, Db db) ->
@@ -230,8 +231,8 @@ auto SearchForSolution(const Context& search_params, Db db) ->
 }
 
 // Search for all applicable solutions among many solvers
-template <class... Solvers, class Context, class Solution>
-void SearchForAllSolutions(const Context& search_params, miopen::Db db, std::vector<Solution>& ss)
+template <class... Solvers, class Context, class Db, class Solution>
+void SearchForAllSolutions(const Context& search_params, Db db, std::vector<Solution>& ss)
 {
     assert(ss.empty());
     assert(search_params.direction.IsBackwardWrW() || search_params.direction.IsForward());
