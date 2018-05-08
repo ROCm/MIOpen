@@ -139,10 +139,12 @@ struct TensorDescriptor : miopenTensorDescriptor
 };
 
 template <typename... TDescriptors>
-void get_consistent_flattened_tensor_descriptors(
-    std::tuple<const TDescriptors&...> real_descriptors,
-    std::tuple<TDescriptors&...> flat_descriptors)
+std::array<TensorDescriptor, sizeof...(TDescriptors)> get_consistent_flattened_tensor_descriptors(
+    const TDescriptors&... real_descriptor_elements)
 {
+    std::tuple<const TDescriptors&...> real_descriptors = std::tie(real_descriptor_elements...);
+    std::array<TensorDescriptor, sizeof...(TDescriptors)> flat_descriptors;
+
     constexpr std::size_t NTensor = std::tuple_size<std::tuple<TDescriptors&...>>::value;
 
     using TN = std::integral_constant<std::size_t, NTensor>;
@@ -192,12 +194,12 @@ void get_consistent_flattened_tensor_descriptors(
         call_n_time(
             [&](const auto i) {
                 constexpr std::size_t itensor       = i;
-                std::get<itensor>(flat_descriptors) = TensorDescriptor{
+                flat_descriptors[itensor] = TensorDescriptor{
                     std::get<itensor>(real_descriptors).GetType(), {element_size}, {1}};
             },
             TN{});
 
-        return; // early return for all-packed tensors
+        return flat_descriptors; // early return for all-packed tensors
     }
 
     // ignore dimensions, where non1_lengths of all tensors are 1
@@ -221,7 +223,6 @@ void get_consistent_flattened_tensor_descriptors(
                     constexpr std::size_t itensor = i;
                     array_of_non1_strides[itensor].push_back(
                         std::get<itensor>(real_descriptors).GetStrides()[idim]);
-                    return true;
                 },
                 TN{});
         }
@@ -233,12 +234,12 @@ void get_consistent_flattened_tensor_descriptors(
         call_n_time(
             [&](const auto i) {
                 constexpr std::size_t itensor = i;
-                std::get<itensor>(flat_descriptors) =
+                flat_descriptors[itensor] =
                     TensorDescriptor{std::get<itensor>(real_descriptors).GetType(), {1}, {1}};
             },
             TN{});
 
-        return; // early return for all-scalar tensors
+        return flat_descriptors; // early return for all-scalar tensors
     }
 
     // start flattening tensors
@@ -299,12 +300,14 @@ void get_consistent_flattened_tensor_descriptors(
     call_n_time(
         [&](const auto i) {
             constexpr std::size_t itensor = i;
-            std::get<itensor>(flat_descriptors) =
+            flat_descriptors[itensor] =
                 TensorDescriptor{std::get<itensor>(real_descriptors).GetType(),
                                  flat_lengths,
                                  array_of_flat_strides[itensor]};
         },
         TN{});
+
+    return flat_descriptors;
 }
 
 } // namespace miopen

@@ -1695,8 +1695,7 @@ void CopyTensor(Handle& handle,
 
     TensorDescriptor srcDesc_flat, dstDesc_flat;
 
-    get_consistent_flattened_tensor_descriptors(std::tie(srcDesc, dstDesc),
-                                                std::tie(srcDesc_flat, dstDesc_flat));
+    std::tie(srcDesc_flat, dstDesc_flat) = miopen::tien<2>(get_consistent_flattened_tensor_descriptors(srcDesc, dstDesc));
 
     std::size_t srcDim_flat = srcDesc_flat.GetSize();
 
