@@ -765,8 +765,9 @@ class DbMultiThreadedTest : public DbTest
         for(auto& thread : threads)
             thread.join();
 
-        std::cout << "Validation results..." << std::endl;
+        std::cout << "Validating results..." << std::endl;
         DBMultiThreadedTestWork::ValidateCommonPart(c);
+        std::cout << "Validation passed..." << std::endl;
     }
 };
 
@@ -856,11 +857,13 @@ class DbMultiProcessTest : public DbTest
         }
 
         std::remove(lock_file_path.c_str());
-        std::cout << "Validation results..." << std::endl;
 
         const std::string p = temp_file;
         const auto c        = [&p]() { return Db(p); };
+
+        std::cout << "Validating results..." << std::endl;
         DBMultiThreadedTestWork::ValidateCommonPart(c);
+        std::cout << "Validation passed..." << std::endl;
     }
 
     static void WorkItem(unsigned int id, const std::string& db_path, bool write)
@@ -1211,8 +1214,9 @@ class DbMultiFileMultiThreadedTest : public DbMultiFileTest
         for(auto& thread : threads)
             thread.join();
 
-        std::cout << "Validation results..." << std::endl;
+        std::cout << "Validating results..." << std::endl;
         DBMultiThreadedTestWork::ValidateCommonPart(c);
+        std::cout << "Validation passed..." << std::endl;
     }
 };
 
