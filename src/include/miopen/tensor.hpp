@@ -150,17 +150,15 @@ void get_consistent_flattened_tensor_descriptors(
     if(NTensor == 0)
         MIOPEN_THROW(miopenStatusBadParm, "NTensor == 0.");
 
-    miopenDataType_t data_type = std::get<0>(real_descriptors).GetType();
-
 #if 1
     // check input tensor descriptors
     auto& real_desc_0_lens = std::get<0>(real_descriptors).GetLengths();
 
     call_n_time(
         [&](const auto i) {
-            constexpr std::size_t itensor = decltype(i)::value;
+            constexpr std::size_t itensor = i;
 
-            if(i > 0)
+            if(itensor > 0)
             {
                 auto& real_desc_lens = std::get<itensor>(real_descriptors).GetLengths();
 
@@ -176,7 +174,7 @@ void get_consistent_flattened_tensor_descriptors(
 
     call_n_time(
         [&](const auto i) {
-            constexpr int itensor = decltype(i)::value;
+            constexpr std::size_t itensor = i;
 
             if(is_all_packed)
             {
@@ -193,9 +191,9 @@ void get_consistent_flattened_tensor_descriptors(
 
         call_n_time(
             [&](const auto i) {
-                constexpr int itensor = decltype(i)::value;
-                std::get<itensor>(flat_descriptors) =
-                    TensorDescriptor{data_type, {element_size}, {1}};
+                constexpr std::size_t itensor       = i;
+                std::get<itensor>(flat_descriptors) = TensorDescriptor{
+                    std::get<itensor>(real_descriptors).GetType(), {element_size}, {1}};
             },
             TN{});
 
@@ -220,7 +218,7 @@ void get_consistent_flattened_tensor_descriptors(
 
             call_n_time(
                 [&](const auto i) {
-                    constexpr int itensor = decltype(i)::value;
+                    constexpr std::size_t itensor = i;
                     array_of_non1_strides[itensor].push_back(
                         std::get<itensor>(real_descriptors).GetStrides()[idim]);
                     return true;
@@ -234,8 +232,9 @@ void get_consistent_flattened_tensor_descriptors(
     {
         call_n_time(
             [&](const auto i) {
-                constexpr int itensor               = decltype(i)::value;
-                std::get<itensor>(flat_descriptors) = TensorDescriptor{data_type, {1}, {1}};
+                constexpr std::size_t itensor = i;
+                std::get<itensor>(flat_descriptors) =
+                    TensorDescriptor{std::get<itensor>(real_descriptors).GetType(), {1}, {1}};
             },
             TN{});
 
@@ -247,7 +246,7 @@ void get_consistent_flattened_tensor_descriptors(
 
     call_n_time(
         [&](const auto i) {
-            constexpr int itensor = decltype(i)::value;
+            constexpr std::size_t itensor = i;
             array_of_full_lengths[itensor].reserve(non1_ndim);
         },
         TN{});
@@ -299,9 +298,11 @@ void get_consistent_flattened_tensor_descriptors(
 
     call_n_time(
         [&](const auto i) {
-            constexpr int itensor = decltype(i)::value;
+            constexpr std::size_t itensor = i;
             std::get<itensor>(flat_descriptors) =
-                TensorDescriptor{data_type, flat_lengths, array_of_flat_strides[itensor]};
+                TensorDescriptor{std::get<itensor>(real_descriptors).GetType(),
+                                 flat_lengths,
+                                 array_of_flat_strides[itensor]};
         },
         TN{});
 }
