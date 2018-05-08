@@ -244,14 +244,12 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
     int _n_outputs, _kernel_size0, _kernel_size1;
     int _n_outputs_w, _n_inputs_w;
 
-    const auto device_is_gfx9_no_xnack =
-        (device_name == "gfx900" || device_name == "gfx904" || device_name == "gfx906");
-    const bool device_is_gfx8_no_xnack = (device_name == "gfx800" || device_name == "gfx802" ||
-                                          device_name == "gfx803" || device_name == "gfx804");
-    if(!device_is_gfx8_no_xnack && !device_is_gfx9_no_xnack)
+    // Assumed rocm_meta_version::AMDHSA_1_0 or newer.
+    if(!(device_name == "gfx803" || device_name == "gfx900" || device_name == "gfx906"))
     {
         return false;
     }
+    const auto device_is_gfx8 = (device_name.find("gfx8") != std::string::npos);
 
     std::tie(_batch_sz, _n_inputs, _in_height, _in_width)             = tien<4>(xDesc.GetLengths());
     std::tie(_n_outputs_w, _n_inputs_w, _kernel_size0, _kernel_size1) = tien<4>(wDesc.GetLengths());
@@ -265,8 +263,8 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
            (_n_outputs * _in_height * _in_width) <= std::pow(2, 28) &&
            (_n_inputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28) &&
            (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28) && _n_inputs % 2 == 0 &&
-           _n_inputs >= (device_is_gfx8_no_xnack ? 16 : 18) &&
-           (GetTypeSize(wDesc.GetType()) == 4) && (GetTypeSize(xDesc.GetType()) == 4);
+           _n_inputs >= (device_is_gfx8 ? 16 : 18) && (GetTypeSize(wDesc.GetType()) == 4) &&
+           (GetTypeSize(xDesc.GetType()) == 4);
 }
 
 bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& wDesc) const

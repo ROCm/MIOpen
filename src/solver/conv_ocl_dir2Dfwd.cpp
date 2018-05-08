@@ -34,6 +34,11 @@ namespace solver {
 bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
 {
     // clang-format off
+    // Cases when dy has negative padding are not supported (issue 918)
+    if(params.direction.IsBackwardData()
+        && (params.GetBackwardPad0() < 0 || params.GetBackwardPad1() < 0))
+        return false;
+
     return params.kernel_stride0 == params.kernel_stride1
         && params.pad0 == params.pad1
         && !(params.kernel_size0 == 1 && params.kernel_size1 == 1)
