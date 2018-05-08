@@ -653,8 +653,8 @@ int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
     /// Elapsed time of the subsampling kernel
     /// does not depend on the PerformanceConfig, and thus
     /// considered constant for all available Solutions.
-    /// That is why we do not need to measure its elapsed time
-    /// during auto-tune and simply skip the subsampling kernel.
+    /// So we do not need to time the subsampling kernel
+    /// during auto-tune and just skipping it here.
     const KernelInfo k_info = solution.construction_params.back();
 #ifdef NDEBUG
     try
@@ -700,8 +700,10 @@ int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
 
 PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& context) const
 {
-    return GenericSearch(
-        *this, context, UseSubsample(context) ? SearchTweak::Skip2xSubsample : SearchTweak::None);
+    return GenericSearch(*this,
+                         context,
+                         UseSubsample(context) ? SearchTweak::Skipped2xSubsample_dxWrW
+                                               : SearchTweak::None);
 }
 
 } // namespace solver
