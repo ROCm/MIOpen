@@ -173,15 +173,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               size_t workSpaceSize,
                               bool timed = false) const;
 
-    int FindDirectKernel(Handle& handle,
-                         const TensorDescriptor& xDesc,
-                         const TensorDescriptor& wDesc,
-                         const TensorDescriptor& yDesc,
-                         ExtraKernelArgs& extraArgs,
-                         std::vector<KernelInvoke>& kernels,
-                         bool exhaustiveSearch,
-                         int direction) const;
-
     int FindDataDirectSolutions(Handle& handle,
                                 const TensorDescriptor& xDesc,
                                 const TensorDescriptor& wDesc,
