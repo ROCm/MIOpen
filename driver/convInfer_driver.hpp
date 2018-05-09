@@ -117,9 +117,6 @@ class ConvInferDriver : public Driver
 
     private:
     miopenBatchNormMode_t bn_mode;
-    bool saveMeanVar;
-    bool bsaveMeanVar;
-    bool keepRunningMeanVar;
     bool estimatedMeanVar;
 
     unsigned char back;
@@ -132,37 +129,26 @@ class ConvInferDriver : public Driver
 
     miopenActivationDescriptor_t activDesc;
 
-    std::unique_ptr<GPUMem> dyin_dev; // this is the output of fwd
     std::unique_ptr<GPUMem> in_dev;
+    std::unique_ptr<GPUMem> din_dev;
     std::unique_ptr<GPUMem> out_dev;
     std::unique_ptr<GPUMem> scale_dev;
     std::unique_ptr<GPUMem> bias_dev;
-
-    std::unique_ptr<GPUMem> dxout_dev;
-    std::unique_ptr<GPUMem> dscale_dev;
-    std::unique_ptr<GPUMem> dbias_dev;
 
     std::unique_ptr<GPUMem> runningMean_dev;
     std::unique_ptr<GPUMem> runningVariance_dev;
     std::unique_ptr<GPUMem> saveMean_dev;
     std::unique_ptr<GPUMem> saveInvVariance_dev;
 
-    std::vector<Tgpu> dyin; // output of forward
     std::vector<Tgpu> in;
     std::vector<Tgpu> out;
+    std::vector<Tgpu> din_host;
     std::vector<Tref> out_host;
-    std::vector<Tgpu> dxout;
-    std::vector<Tref> dxout_host;
 
     std::vector<Tgpu> scale;
     std::vector<Tgpu> scale_host;
     std::vector<Tgpu> bias;
     std::vector<Tgpu> bias_host;
-
-    std::vector<Tgpu> dscale;
-    std::vector<Tref> dscale_host;
-    std::vector<Tgpu> dbias;
-    std::vector<Tref> dbias_host;
 
     std::vector<Tgpu> runningMean;
     std::vector<Tgpu> runningVariance;
@@ -201,7 +187,7 @@ int ConvInferDriver<Tgpu, Tref>::SetActivationDescriptorFromCmdLineArgs()
     double Alpha = inflags.GetValueDouble("alpha");
     double Beta  = inflags.GetValueDouble("beta");
     double Gamma = inflags.GetValueDouble("gamma");
-    mode         = static_cast<miopenActivationMode_t>(inflags.GetValueInt("mode"));
+    mode         = static_cast<miopenActivationMode_t>(inflags.GetValueInt("activMode"));
 
     return (miopenSetActivationDescriptor(activDesc, mode, Alpha, Beta, Gamma));
 }
@@ -252,8 +238,10 @@ int ConvInferDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
     inflags.AddInputFlag("printconv", 'P', "1", "Print Convolution Dimensions (Default=1)", "int");
-    inflags.AddInputFlag("mode",
-                         'm',
+    inflags.AddInputFlag(
+        "activMode", 'm', "3", "Activation Mode (relu,..., see spec) (Default=3(relu))", "int");
+    inflags.AddInputFlag("bnMode",
+                         'M',
                          "0",
                          "Normalization Mode (per-activation (0) or spatial (1)) (Default=0)",
                          "int");
@@ -262,12 +250,6 @@ int ConvInferDriver<Tgpu, Tref>::AddCmdLineArgs()
         's',
         "0",
         "Save off mean and inverse variance, or on backprop, use these values. (Default=0)",
-        "int");
-    inflags.AddInputFlag(
-        "run",
-        'r',
-        "0",
-        "Keep running mean and variance, or on inference, use these values. (Default=0)",
         "int");
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
@@ -294,47 +276,17 @@ int ConvInferDriver<Tgpu, Tref>::SetBNParametersFromCmdLineArgs()
     //    	double bnBeta = inflags.GetValueDouble("beta");
 
     // batch norm mode type
-    if(inflags.GetValueInt("mode") == 0)
+    if(inflags.GetValueInt("bnMode") == 0)
     {
         bn_mode = miopenBNPerActivation;
     }
-    else if(inflags.GetValueInt("mode") == 1)
+    else if(inflags.GetValueInt("bnMode") == 1)
     {
         bn_mode = miopenBNSpatial;
     }
     else
     {
         printf("Incorrect Batch Normalization Mode\n");
-        exit(EXIT_FAILURE);
-    }
-
-    // save off mean and variance?
-    if(inflags.GetValueInt("save") == 0)
-    {
-        saveMeanVar = false;
-    }
-    else if(inflags.GetValueInt("save") == 1)
-    {
-        saveMeanVar = true;
-    }
-    else
-    {
-        printf("Incorrect Batch Normalization Save mode\n");
-        exit(EXIT_FAILURE);
-    }
-
-    // keep running mean and variance
-    if(inflags.GetValueInt("run") == 0)
-    {
-        keepRunningMeanVar = false;
-    }
-    else if(inflags.GetValueInt("run") == 1)
-    {
-        keepRunningMeanVar = true;
-    }
-    else
-    {
-        printf("Incorrect Batch Normalization Running mode\n");
         exit(EXIT_FAILURE);
     }
 
@@ -353,27 +305,6 @@ int ConvInferDriver<Tgpu, Tref>::createSaveBuffers()
     int status   = 0;
     uint32_t ctx = 0;
 #endif
-
-    size_t sb_sz = GetTensorSize(biasScaleTensor);
-
-    if(saveMeanVar)
-    {
-        // GPU allocation
-        saveMean_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
-        saveInvVariance_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
-
-        // GPU host allocation
-        saveMean        = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-        saveInvVariance = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-
-        // CPU allocation
-        saveMean_host        = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
-        saveInvVariance_host = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
-
-        // GPU data transfer
-        status |= saveMean_dev->ToGPU(q, saveMean.data());
-        status |= saveInvVariance_dev->ToGPU(q, saveInvVariance.data());
-    }
 
     if(status != CL_SUCCESS)
         printf("Error copying data to GPU\n");
@@ -395,38 +326,31 @@ int ConvInferDriver<Tgpu, Tref>::createRunningBuffers()
 #endif
     size_t sb_sz = GetTensorSize(biasScaleTensor);
 
-    if(keepRunningMeanVar)
+    // GPU allocation
+    runningMean_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
+    runningVariance_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
+
+    // GPU host allocation
+    runningMean     = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+    runningVariance = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+
+    // CPU allocation
+    runningMean_host     = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
+    runningVariance_host = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
+
+    // Populate
+    for(int i = 0; i < sb_sz; i++)
     {
-        // GPU allocation
-        runningMean_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
-        runningVariance_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
-
-        // GPU host allocation
-        runningMean     = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-        runningVariance = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-
-        // CPU allocation
-        runningMean_host     = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
-        runningVariance_host = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
-
-        // Populate
-        for(int i = 0; i < sb_sz; i++)
-        {
-            runningMean_host[i] = runningMean[i] =
-                RAN_GEN<Tref>(static_cast<Tref>(0.0), static_cast<Tref>(1.0));
-            runningVariance_host[i] = runningVariance[i] =
-                RAN_GEN<Tref>(static_cast<Tref>(0.0), static_cast<Tref>(1.0));
-        }
-
-        // GPU data transfer
-        status |= runningMean_dev->ToGPU(q, runningMean.data());
-        status |= runningVariance_dev->ToGPU(q, runningVariance.data());
+        runningMean_host[i] = runningMean[i] =
+            RAN_GEN<Tref>(static_cast<Tref>(0.0), static_cast<Tref>(1.0));
+        runningVariance_host[i] = runningVariance[i] =
+            RAN_GEN<Tref>(static_cast<Tref>(0.0), static_cast<Tref>(1.0));
     }
-    else
-    {
-        runningMean_dev     = nullptr;
-        runningVariance_dev = nullptr;
-    }
+
+    // GPU data transfer
+    status |= runningMean_dev->ToGPU(q, runningMean.data());
+    status |= runningVariance_dev->ToGPU(q, runningVariance.data());
+
     if(status != CL_SUCCESS)
         printf("Error copying data to GPU\n");
 
@@ -453,15 +377,17 @@ int ConvInferDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     // GPU allocation
     in_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    din_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
     scale_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
     bias_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
     out_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
     // GPU host allocation
-    in    = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    out   = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    scale = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-    bias  = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+    in       = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    out      = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    din_host = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    scale    = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+    bias     = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
 
     // CPU allocation
     out_host   = std::vector<Tref>(out_sz, static_cast<Tref>(0));
@@ -560,42 +486,21 @@ int ConvInferDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 void ConvInferDriver<Tgpu, Tref>::runGPUBNFwdInference(Tref epsilon, float alpha, float beta)
 {
-
-    if(keepRunningMeanVar)
-    { // use precalculated mean and variance
-        miopenBatchNormalizationForwardInference(GetHandle(),
-                                                 bn_mode,
-                                                 &alpha,
-                                                 &beta,
-                                                 inputTensor,
-                                                 in_dev->GetMem(),
-                                                 outputTensor,
-                                                 out_dev->GetMem(),
-                                                 biasScaleTensor,
-                                                 scale_dev->GetMem(),
-                                                 bias_dev->GetMem(),
-                                                 runningMean_dev->GetMem(),
-                                                 runningVariance_dev->GetMem(),
-                                                 epsilon);
-    }
-    else
-    { // recalculate mean and variance
-        miopenBatchNormalizationForwardInference(GetHandle(),
-                                                 bn_mode,
-                                                 &alpha,
-                                                 &beta,
-                                                 inputTensor,
-                                                 in_dev->GetMem(),
-                                                 outputTensor,
-                                                 out_dev->GetMem(),
-                                                 biasScaleTensor,
-                                                 scale_dev->GetMem(),
-                                                 bias_dev->GetMem(),
-                                                 nullptr,
-                                                 nullptr,
-                                                 epsilon);
-    }
-
+    miopenBatchNormalizationForwardInference(GetHandle(),
+                                             bn_mode,
+                                             &alpha,
+                                             &beta,
+                                             inputTensor,
+                                             in_dev->GetMem(),
+                                             outputTensor,
+                                             out_dev->GetMem(),
+                                             // din_dev->GetMem(),
+                                             biasScaleTensor,
+                                             scale_dev->GetMem(),
+                                             bias_dev->GetMem(),
+                                             runningMean_dev->GetMem(),
+                                             runningVariance_dev->GetMem(),
+                                             epsilon);
     return;
 }
 
@@ -607,6 +512,7 @@ void ConvInferDriver<Tgpu, Tref>::runGPUActivFwdInference(float alpha, float bet
                             activDesc,
                             &alpha,
                             inputTensor,
+                            // din_dev->GetMem(),
                             in_dev->GetMem(),
                             &beta,
                             outputTensor,
@@ -633,10 +539,10 @@ int ConvInferDriver<Tgpu, Tref>::RunForwardGPU()
 
         START_TIME;
 
-        //printf("Running for inference.\n");
-        //runGPUBNFwdInference(epsilon, alpha, beta);
+        // printf("Running for inference.\n");
+        runGPUBNFwdInference(epsilon, alpha, beta);
 
-        runGPUActivFwdInference(alpha, beta);
+        // runGPUActivFwdInference(alpha, beta);
 
         miopen::deref(GetHandle()).Finish();
         STOP_TIME;
@@ -698,7 +604,7 @@ void ConvInferDriver<Tgpu, Tref>::runCPUBNFwdInference(
                                              scale_host.data(),
                                              bias_host.data(),
                                              epsilon,
-                                             keepRunningMeanVar,
+                                             true,
                                              runningMean_host.data(),
                                              runningVariance_host.data());
     }
@@ -713,7 +619,7 @@ void ConvInferDriver<Tgpu, Tref>::runCPUBNFwdInference(
                                        scale_host.data(),
                                        bias_host.data(),
                                        epsilon,
-                                       keepRunningMeanVar,
+                                       true,
                                        runningMean_host.data(),
                                        runningVariance_host.data());
     }
@@ -764,9 +670,8 @@ template <typename Tgpu, typename Tref>
 int ConvInferDriver<Tgpu, Tref>::VerifyForward()
 {
 
+#if 1
     RunForwardCPU();
-
-#if 0
     const Tref maxrms = static_cast<Tref>((sizeof(Tgpu) == 4) ? RMSTOL_FP32 : RMSTOL_FP16);
 
 #if(MIO_BN_DEBUG == 1)
@@ -822,7 +727,7 @@ int ConvInferDriver<Tgpu, Tref>::VerifyForward()
     {
         std::cout << "Forward Batch Norm Verifies on CPU and GPU." << std::endl;
     }
-#endif
+#else
 
     double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
     miopenActivationMode_t v_mode;
@@ -844,6 +749,7 @@ int ConvInferDriver<Tgpu, Tref>::VerifyForward()
 
     if(match)
         printf("Forward Activation Verifies on CPU and GPU\n");
+#endif
 
     return miopenStatusSuccess;
 }
