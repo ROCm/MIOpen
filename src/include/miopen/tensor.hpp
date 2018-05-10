@@ -156,8 +156,7 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
 {
     constexpr std::size_t NTensor = sizeof...(TDescriptors);
 
-    std::array<const TensorDescriptor*, NTensor> real_descriptors = {
-        (&real_descriptor_elements)...};
+    std::array<const TensorDescriptor*, NTensor> real_descriptors{(&real_descriptor_elements)...};
     std::array<TensorDescriptor, NTensor> flat_descriptors;
 
 #if 1
