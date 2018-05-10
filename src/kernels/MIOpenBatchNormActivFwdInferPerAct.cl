@@ -616,8 +616,7 @@ MIOpenBatchNormActivFwdInferPerActEst(
     double epsilon,
     const _FLOAT gamma,
     const _FLOAT beta,
-    const _FLOAT alpha
-    )
+    const _FLOAT alpha)
 {
 
     // PER ACTIVATION
@@ -649,23 +648,22 @@ MIOpenBatchNormActivFwdInferPerActEst(
             for(int n = 0; n < MIO_BN_N; n++)
             {
                 // per (x-dims) channel load a block of data into LDS
-                index      = MIO_BN_CHW * n + adjIndex;
-                elemStd    = *(in + index) - mean; // (x_i - mean)
-                inhat      = elemStd * invVariance;
-                //out[index] = mad(pvt_scale, inhat, pvt_bias); //	y_i = gamma*x_hat + beta
+                index   = MIO_BN_CHW * n + adjIndex;
+                elemStd = *(in + index) - mean; // (x_i - mean)
+                inhat   = elemStd * invVariance;
+                // out[index] = mad(pvt_scale, inhat, pvt_bias); //	y_i = gamma*x_hat + beta
                 _FLOAT tmp = mad(pvt_scale, inhat, pvt_bias);
                 _FLOAT out_t;
                 ActivationFunction(1, &out_t, (const _FLOAT*)&tmp, gamma, beta, alpha);
                 out[index] = out_t;
-            }                                                 // end for
-        }                                                     // end if
-    } // end for(img_offset) //image mini_batch is processed
+            } // end for
+        }     // end if
+    }         // end for(img_offset) //image mini_batch is processed
 }
 
 // Restore warnings
 #ifdef __clang__
 #pragma clang diagnostic pop
 #pragma clang diagnostic pop
-
 
 #endif // #ifdef LITE
