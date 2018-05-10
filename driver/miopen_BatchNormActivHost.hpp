@@ -348,6 +348,7 @@ void miopenBNActiveNeuronFwdInferHost(int neuron_type,
 {
 
     _Tcheck* data = new _Tcheck[size];
+
     for(size_t k = 0; k < size; k++)
         data[k]  = static_cast<_Tcheck>(bot_ptr[k]);
 
@@ -449,6 +450,7 @@ int miopenBNActiveVerify(miopenBatchNormMode_t bn_mode,
                          Tgpu* out_ptr,
                          Tref allowedEps)
 {
+
     if(bn_mode == miopenBNPerActivation)
     { // 1xCxHxW
         miopenBNActiveBNPerActivFwdInferHost(batch_sz,
@@ -481,7 +483,6 @@ int miopenBNActiveVerify(miopenBatchNormMode_t bn_mode,
     }
 
     Tref* c_res = new Tref[size];
-
     miopenBNActiveNeuronFwdInferHost<Tgpu, Tref>(
         neuron_type, gamma, beta, alpha, size, BNout_ptr, c_res);
 

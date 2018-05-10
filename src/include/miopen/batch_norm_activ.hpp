@@ -42,24 +42,23 @@
 
 namespace miopen {
 void BatchNormActivForwardInference(Handle& handle,
-                               miopenBatchNormMode_t bn_mode,
-                               const void* alpha,
-                               const void* beta,
-                               const TensorDescriptor& xDesc,
-                               ConstData_t x,
-                               const TensorDescriptor& yDesc,
-                               Data_t y,
-                               const TensorDescriptor& bnScaleBiasMeanVarDesc,
-                               ConstData_t bnScale,
-                               ConstData_t bnBias,
-                               ConstData_t estimatedMean,
-                               ConstData_t estimatedVariance,
-                               double epsilon,
-                               miopenActivationMode_t activ_mode,
-                               double activ_alpha,
-                               double activ_beta,
-                               double activ_gama
-                               );
+                                    miopenBatchNormMode_t bn_mode,
+                                    const void* alpha,
+                                    const void* beta,
+                                    const TensorDescriptor& xDesc,
+                                    ConstData_t x,
+                                    const TensorDescriptor& yDesc,
+                                    Data_t y,
+                                    const TensorDescriptor& bnScaleBiasMeanVarDesc,
+                                    ConstData_t bnScale,
+                                    ConstData_t bnBias,
+                                    ConstData_t estimatedMean,
+                                    ConstData_t estimatedVariance,
+                                    double epsilon,
+                                    miopenActivationMode_t activ_mode,
+                                    double activ_alpha,
+                                    double activ_beta,
+                                    double activ_gama);
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_BATCHNORMALIZATION_HPP_
