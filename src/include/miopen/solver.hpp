@@ -197,8 +197,7 @@ ConvSolution FindSolution(Solver s, const Context& context, Db& db)
     return FindSolutionImpl(rank<1>{}, s, context, db);
 }
 
-/// \todo This is not needed anymore. Remove all uses
-// Search for a solution among many solvers
+// Search for the 1st applicable solution among many solvers
 template <class... Solvers, class Context, class Db>
 auto SearchForSolution(const Context& search_params, Db db) ->
     typename std::common_type<decltype(FindSolution(Solvers{}, search_params, db))...>::type
