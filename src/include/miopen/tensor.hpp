@@ -206,7 +206,7 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
             ++non1_ndim;
             non1_lengths.push_back(len);
 
-            for(int itensor = 0; itensor < NTensor; ++itensor)
+            for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
                 array_of_non1_strides[itensor].push_back(
                     real_descriptors[itensor]->GetStrides()[idim]);
         }
@@ -225,7 +225,7 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
     // start flattening tensors
     std::array<std::vector<std::size_t>, NTensor> array_of_full_lengths;
 
-    for(int itensor = 0; itensor < NTensor; ++itensor)
+    for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
         array_of_full_lengths[itensor].reserve(non1_ndim);
 
     for(std::size_t idim = 1; idim < non1_ndim; ++idim)
