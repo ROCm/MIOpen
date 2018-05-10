@@ -338,19 +338,16 @@ int miopenBNActiveBNPerActivFwdInferHost(int n_batchs,
 
 template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
           typename _Tcheck /* the data type used in CPU checkings (usually double) */>
-int miopenBNActiveNeuronFwdInferHost(int neuron_type,
-                                     _Tcheck gamma,
-                                     _Tcheck beta,
-                                     _Tcheck alpha,
-                                     size_t size,
-                                     const _Tgpu* bot_ptr,
-                                     const _Tgpu* top_ptr,
-                                     _Tcheck allowedEps)
+void miopenBNActiveNeuronFwdInferHost(int neuron_type,
+                                      _Tcheck gamma,
+                                      _Tcheck beta,
+                                      _Tcheck alpha,
+                                      size_t size,
+                                      const _Tgpu* bot_ptr,
+                                      _Tcheck* c_res)
 {
 
-    int match      = 1;
-    _Tcheck* c_res = new _Tcheck[size];
-    _Tcheck* data  = new _Tcheck[size];
+    _Tcheck* data = new _Tcheck[size];
     for(size_t k = 0; k < size; k++)
         data[k]  = static_cast<_Tcheck>(bot_ptr[k]);
 
@@ -397,6 +394,20 @@ int miopenBNActiveNeuronFwdInferHost(int neuron_type,
     for(size_t i = 0; i < size; i++)
         c_res[i] = f(data[i]);
 
+    if(data)
+    {
+        delete[] data;
+    }
+}
+
+template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
+          typename _Tcheck /* the data type used in CPU checkings (usually double) */>
+int miopenBNActiveFwdInferVerify(size_t size,
+                                 const _Tcheck* c_res,
+                                 const _Tgpu* top_ptr,
+                                 _Tcheck allowedEps)
+{
+    int match = 1;
     for(size_t i = 0; i < size && match; i++)
     {
         _Tcheck c_val  = c_res[i];
@@ -408,20 +419,10 @@ int miopenBNActiveNeuronFwdInferHost(int neuron_type,
            !std::isfinite(c_val) || !std::isfinite(g_val))
         {
             std::cout << "Difference in neuron layer: " << err << " too large at " << i
-                      << " x = " << data[i] << " "
                       << " c_v = " << c_val << " vs g_val = " << g_val
                       << " tolerance = " << allowedEps << std::endl;
             match = 0;
         }
-    }
-
-    if(c_res)
-    {
-        delete[] c_res;
-    }
-    if(data)
-    {
-        delete[] data;
     }
 
     return (match);
@@ -479,8 +480,12 @@ int miopenBNActiveVerify(miopenBatchNormMode_t bn_mode,
                                             estimatedVariance);
     }
 
-    int match = miopenBNActiveNeuronFwdInferHost<Tgpu, Tref>(
-        neuron_type, gamma, beta, alpha, size, BNout_ptr, out_ptr, allowedEps);
+    Tref* c_res = new Tref[size];
+
+    miopenBNActiveNeuronFwdInferHost<Tgpu, Tref>(
+        neuron_type, gamma, beta, alpha, size, BNout_ptr, c_res);
+
+    int match = miopenBNActiveFwdInferVerify<Tgpu, Tref>(size, c_res, out_ptr, allowedEps);
 
     return match;
 }
