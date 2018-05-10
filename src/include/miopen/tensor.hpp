@@ -61,6 +61,17 @@ template <std::size_t N, class T, class U>
 auto tien(T&& x, U y)
     MIOPEN_RETURNS(tie_impl(std::forward<T>(x), y, typename detail::gens<N>::type{}));
 
+template <typename T, std::size_t... Ns>
+auto to_tuple_impl(T&& x, detail::seq<Ns...>)
+{
+    return std::make_tuple(std::move(x[Ns])...);
+}
+
+template <typename T>
+auto to_tuple(T&& x)
+    MIOPEN_RETURNS(to_tuple_impl(std::forward<T>(x),
+                                 typename detail::gens<std::tuple_size<T>::value>::type{}));
+
 inline std::size_t GetTypeSize(miopenDataType_t d)
 {
     switch(d)
@@ -142,8 +153,9 @@ template <typename... TDescriptors>
 std::tuple<TDescriptors...>
 get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descriptor_elements)
 {
+    std::tuple<TDescriptors...> flat_descriptor_tuple;
     std::tuple<const TDescriptors&...> real_descriptors = std::tie(real_descriptor_elements...);
-    std::tuple<TDescriptors...> flat_descriptors;
+    std::array<TensorDescriptor, sizeof...(TDescriptors)> flat_descriptors;
 
     constexpr std::size_t NTensor = std::tuple_size<std::tuple<TDescriptors&...>>::value;
 
@@ -193,16 +205,18 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
 
         call_n_time(
             [&](const auto i) {
-                constexpr std::size_t itensor       = i;
-                std::get<itensor>(flat_descriptors) = TensorDescriptor{
+                constexpr std::size_t itensor = i;
+                flat_descriptors[itensor]     = TensorDescriptor{
                     std::get<itensor>(real_descriptors).GetType(), {element_size}, {1}};
             },
             TN{});
 
-        return flat_descriptors; // early return for all-packed tensors
+        flat_descriptor_tuple = to_tuple(std::move(flat_descriptors));
+
+        return flat_descriptor_tuple; // early return for all-packed tensors
     }
 
-    // ignore dimensions, where non1_lengths of all tensors are 1
+    // ignore dimensions, where lengths of all tensors are 1
     const std::size_t real_ndim                  = std::get<0>(real_descriptors).GetSize();
     const std::vector<std::size_t>& real_lengths = std::get<0>(real_descriptors).GetLengths();
 
@@ -234,12 +248,14 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
         call_n_time(
             [&](const auto i) {
                 constexpr std::size_t itensor = i;
-                std::get<itensor>(flat_descriptors) =
+                flat_descriptors[itensor] =
                     TensorDescriptor{std::get<itensor>(real_descriptors).GetType(), {1}, {1}};
             },
             TN{});
 
-        return flat_descriptors; // early return for all-scalar tensors
+        flat_descriptor_tuple = to_tuple(std::move(flat_descriptors));
+
+        return flat_descriptor_tuple; // early return for all-scalar tensors
     }
 
     // start flattening tensors
@@ -300,14 +316,16 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
     call_n_time(
         [&](const auto i) {
             constexpr std::size_t itensor = i;
-            std::get<itensor>(flat_descriptors) =
+            flat_descriptors[itensor] =
                 TensorDescriptor{std::get<itensor>(real_descriptors).GetType(),
                                  flat_lengths,
                                  array_of_flat_strides[itensor]};
         },
         TN{});
 
-    return flat_descriptors;
+    flat_descriptor_tuple = to_tuple(std::move(flat_descriptors));
+
+    return flat_descriptor_tuple;
 }
 
 } // namespace miopen
