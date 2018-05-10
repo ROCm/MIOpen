@@ -146,7 +146,7 @@ std::string ParseBaseArg(int argc, char* argv[])
 
     std::string arg = argv[1];
 
-    if(arg != "conv" && arg != "convfp16" && arg != "convInfer" && arg != "pool" && arg != "poolfp16" && arg != "lrn" &&
+    if(arg != "conv" && arg != "convfp16" && arg != "CBAInfer" && arg != "pool" && arg != "poolfp16" && arg != "lrn" &&
        arg != "lrnfp16" && arg != "activ" && arg != "activfp16" && arg != "softmax" &&
        arg != "softmaxfp16" && arg != "bnorm" && arg != "bnormfp16" &&
        arg != "rnn" /*&& arg != "rnnfp16" */ && arg != "gemm" /*&& arg != "gemmfp16"*/)
