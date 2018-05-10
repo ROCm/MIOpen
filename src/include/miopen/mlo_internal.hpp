@@ -395,7 +395,7 @@ struct mlo_construct_direct2D
     * arbitrary combination of kerenl sizes, strides
     */
 
-    miopen::solver::ConvSolution FindSolution(); /// \todo remove this
+    miopen::solver::ConvSolution FindSolution();
     void FindAllSolutions(std::vector<miopen::solver::ConvSolution>& ss);
     miopen::MultiFileDb GetDb() const;
 
@@ -837,15 +837,14 @@ struct mlo_construct_direct2D
     bool _do_backward = false;
 
     // local memory size per group
-    size_t _dev_local_mem_sz = 0; // FIXME unused
+    size_t _dev_local_mem_sz = 0; /// \todo Written but not read - remove?
     // wave size
     int _hw_wave_sz = 0;
     // cl_queue
-    size_t _bot_df_sz = 0; // bytes // FIXME unused
-    size_t _top_df_sz = 0; // bytes // FIXME unused
+    size_t _bot_df_sz = 0; /// \todo Written but not read - remove?
+    size_t _top_df_sz = 0; /// \todo Written but not read - remove?
     /// \todo <end>
 
-    /// \todo This is for testing. Factor this out.
     const char* _db_path = nullptr;
 };
 

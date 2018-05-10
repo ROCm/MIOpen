@@ -2080,8 +2080,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
                 construct_params.mloBuildConf_Key(network_config);
-                const std::string perf_name      = "miopenConvolutionBwdWeightsAlgoDirect";
-                const std::string algorithm_name = perf_name + "_Main"; /// \todo remove this
+                const std::string algorithm_name = "miopenConvolutionBwdWeightsAlgoDirect";
 
                 miopen::solver::ConvSolution selected{miopenStatusUnknownError};
                 float best = std::numeric_limits<float>::max();
@@ -2130,7 +2129,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     AddKernels(handle, algorithm_name, network_config, selected, nullptr);
                     MIOPEN_LLOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
                                                << selected.workspce_sz);
-                    perf_db.push_back(PerfField{perf_name, best, selected.workspce_sz});
+                    perf_db.push_back(PerfField{algorithm_name, best, selected.workspce_sz});
                 }
             }
         }
@@ -2322,8 +2321,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     std::string network_config;
                     construct_params.mloBuildConf_Key(network_config);
 
-                    auto&& kernels = handle.GetKernels("miopenConvolutionBwdWeightsAlgoDirect_Main",
-                                                       network_config);
+                    auto&& kernels =
+                        handle.GetKernels("miopenConvolutionBwdWeightsAlgoDirect", network_config);
                     if(kernels.empty())
                         MIOPEN_THROW("No kernels found");
                     auto kernel = kernels.front();
