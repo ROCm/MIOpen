@@ -45,6 +45,8 @@
 #include "random.hpp"
 #include "mloNeuronHost.hpp"
 
+#include <miopen/batch_norm_activ.hpp>
+
 #define MIO_BN_DEBUG 0
 #define MIO_BN_MAX_DEBUGLOOP 65536
 
@@ -394,13 +396,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     scale_host = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
     bias_host  = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
 
-// Data initialization
-#if 0
+    // Data initialization
     for(int i = 0; i < in_sz; i++)
     {
         in[i] = std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0)));
     }
-#endif
 
     // Using random beta and gamma
     for(int i = 0; i < sb_sz; i++)
@@ -412,68 +412,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     status |= bias_dev->ToGPU(q, bias.data());
     status |= out_dev->ToGPU(q, out.data());
     status |= createRunningBuffers();
-
-#if 1
-    miopenActivationMode_t activation_mode;
-    double alpha, beta, gamma;
-
-    miopenGetActivationDescriptor(activDesc, &activation_mode, &alpha, &beta, &gamma);
-
-    for(int i = 0; i < in_sz; i++)
-    {
-        switch(activation_mode)
-        {
-        case MIOPEN_NEURON_PASTHRU:
-            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
-            break;
-        case MIOPEN_NEURON_LOGISTIC:
-            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
-            break;
-        case MIOPEN_NEURON_TANH:
-            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
-            break;
-        case MIOPEN_NEURON_RELU:
-            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
-            break;
-        case MIOPEN_NEURON_SOFTRELU:
-            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
-            break;
-        case MIOPEN_NEURON_ABS:
-            in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(2.0));
-            break;
-        case MIOPEN_NEURON_POWER:
-        {
-            double v = -alpha / beta;
-            in[i]    = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>((v + 0.005) / beta),
-                                          static_cast<Tgpu>((v + 2.0) / beta))
-                          : RAN_GEN<Tgpu>(static_cast<Tgpu>((v - 2.0) / beta),
-                                          static_cast<Tgpu>((v - 0.005) / beta));
-            break;
-        }
-        case MIOPEN_NEURON_CLIPPED_RELU:
-            if(i % 3 == 0)
-                in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(-1.0 * alpha),
-                                      static_cast<Tgpu>(-0.005 * alpha));
-            else if(i % 3 == 1)
-                in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.005 * alpha),
-                                      static_cast<Tgpu>(0.995 * alpha));
-            else
-                in[i] =
-                    RAN_GEN<Tgpu>(static_cast<Tgpu>(1.005 * alpha), static_cast<Tgpu>(2.0 * alpha));
-
-            break;
-        case MIOPEN_NEURON_LEAKY_RELU:
-            in[i] = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(-0.005))
-                          : RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.005), static_cast<Tgpu>(1.0));
-            break;
-        case MIOPEN_NEURON_ELU:
-            in[i] = i % 2 ? RAN_GEN<Tgpu>(static_cast<Tgpu>(0.005), static_cast<Tgpu>(2.0))
-                          : RAN_GEN<Tgpu>(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(-0.005));
-            break;
-        }
-    }
-#endif
-
     status |= in_dev->ToGPU(q, in.data());
 
     if(status != CL_SUCCESS)
@@ -536,10 +474,33 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
 
         START_TIME;
 
-        // printf("Running for inference.\n");
-        runGPUBNFwdInference(epsilon, alpha, beta);
+        double activ_alpha, activ_beta, activ_gamma;
+        miopenActivationMode_t activ_mode;
+        miopenGetActivationDescriptor(
+            activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
 
-        runGPUActivFwdInference(alpha, beta);
+        miopen::BatchNormActivForwardInference(miopen::deref(GetHandle()),
+                                               bn_mode,
+                                               &alpha,
+                                               &beta,
+                                               miopen::deref(inputTensor),
+                                               in_dev->GetMem(),
+                                               miopen::deref(outputTensor),
+                                               out_dev->GetMem(),
+                                               miopen::deref(biasScaleTensor),
+                                               scale_dev->GetMem(),
+                                               bias_dev->GetMem(),
+                                               runningMean_dev->GetMem(),
+                                               runningVariance_dev->GetMem(),
+                                               epsilon,
+                                               activ_mode,
+                                               activ_alpha,
+                                               activ_beta,
+                                               activ_gamma);
+
+        // printf("Running for inference.\n");
+        // runGPUBNFwdInference(epsilon, alpha, beta);
+        // runGPUActivFwdInference(alpha, beta);
 
         miopen::deref(GetHandle()).Finish();
         STOP_TIME;
