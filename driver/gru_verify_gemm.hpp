@@ -85,7 +85,7 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
     int wei_len        = wei_shift_bias;
     if(biased)
     {
-        int in_bias = inputMode == 1 ? 1 : 2;
+        int in_bias = 2;
         wei_len += (in_bias + (numlayer - 1) * 2) * wei_stride;
     }
 
@@ -101,9 +101,7 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
     {
         int hid_shift           = li * batch_n * hy_stride;
         int hx_shift            = li * in_n[0] * h_stride;
-        int wei_shift_bias_temp = (inputMode == 1)
-                                      ? (wei_shift_bias + wei_stride + (li - 1) * 2 * wei_stride)
-                                      : (wei_shift_bias + li * 2 * wei_stride);
+        int wei_shift_bias_temp = wei_shift_bias + li * 2 * wei_stride;
 
         // from input
         if(li == 0)
@@ -123,6 +121,18 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                                 hid_state[hid_shift + bs * hy_stride + (gi + 3) * hy_h + h] +=
                                     in_state[bs * in_stride + h];
                             }
+                        }
+                    }
+                }
+
+                // from bias
+                if(biased)
+                {
+                    for(int bs = 0; bs < batch_n; bs++)
+                    {
+                        for(int h = 0; h < wei_stride; h++)
+                        {
+                            hid_state[hid_shift + bs * hy_stride + h] += wei[wei_shift_bias + h];
                         }
                     }
                 }
@@ -233,22 +243,11 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                         {
                             for(int h = 0; h < hy_h; h++)
                             {
-                                if(li == 0 && inputMode == 1)
+                                for(int gi = 0; gi < 2; gi++)
                                 {
-                                    for(int gi = 0; gi < 2; gi++)
-                                    {
-                                        hid_state[hid_shift + (bacc + bs) * hy_stride + gi * hy_h +
-                                                  h] += wei[wei_shift_bias + gi * hy_h + h];
-                                    }
-                                }
-                                else
-                                {
-                                    for(int gi = 0; gi < 2; gi++)
-                                    {
-                                        hid_state[hid_shift + (bacc + bs) * hy_stride + gi * hy_h +
-                                                  h] +=
-                                            wei[wei_shift_bias_temp + wei_stride + gi * hy_h + h];
-                                    }
+                                    hid_state[hid_shift + (bacc + bs) * hy_stride + gi * hy_h +
+                                              h] +=
+                                        wei[wei_shift_bias_temp + wei_stride + gi * hy_h + h];
                                 }
                             }
                         }
@@ -278,17 +277,9 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                         {
                             for(int h = 0; h < hy_h; h++)
                             {
-                                if(li == 0 && inputMode == 1)
-                                {
-                                    hid_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h +
-                                              h] += wei[wei_shift_bias + 2 * hy_h + h];
-                                }
-                                else
-                                {
-                                    hid_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h +
-                                              h] +=
-                                        wei[wei_shift_bias_temp + wei_stride + 2 * hy_h + h];
-                                }
+                                hid_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h +
+                                          h] +=
+                                    wei[wei_shift_bias_temp + wei_stride + 2 * hy_h + h];
                             }
                         }
                     }
@@ -320,24 +311,12 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                             {
                                 for(int h = 0; h < hy_h; h++)
                                 {
-                                    if(li == 0 && inputMode == 1)
+                                    for(int gi = 0; gi < 2; gi++)
                                     {
-                                        for(int gi = 0; gi < 2; gi++)
-                                        {
-                                            hid_state[hid_shift + (baccbi + bs) * hy_stride +
-                                                      (3 + gi) * hy_h + h] +=
-                                                wei[wei_shift_bias + (3 + gi) * hy_h + h];
-                                        }
-                                    }
-                                    else
-                                    {
-                                        for(int gi = 0; gi < 2; gi++)
-                                        {
-                                            hid_state[hid_shift + (baccbi + bs) * hy_stride +
-                                                      (3 + gi) * hy_h + h] +=
-                                                wei[wei_shift_bias_temp + wei_stride +
-                                                    (3 + gi) * hy_h + h];
-                                        }
+                                        hid_state[hid_shift + (baccbi + bs) * hy_stride +
+                                                  (3 + gi) * hy_h + h] +=
+                                            wei[wei_shift_bias_temp + wei_stride + (3 + gi) * hy_h +
+                                                h];
                                     }
                                 }
                             }
@@ -368,18 +347,9 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                             {
                                 for(int h = 0; h < hy_h; h++)
                                 {
-                                    if(li == 0 && inputMode == 1)
-                                    {
-                                        hid_state[hid_shift + (baccbi + bs) * hy_stride +
-                                                  bi * 3 * hy_h + hy_h + h] +=
-                                            wei[wei_shift_bias + 5 * hy_h + h];
-                                    }
-                                    else
-                                    {
-                                        hid_state[hid_shift + (baccbi + bs) * hy_stride +
-                                                  bi * 3 * hy_h + hy_h + h] +=
-                                            wei[wei_shift_bias_temp + wei_stride + 5 * hy_h + h];
-                                    }
+                                    hid_state[hid_shift + (baccbi + bs) * hy_stride +
+                                              bi * 3 * hy_h + hy_h + h] +=
+                                        wei[wei_shift_bias_temp + wei_stride + 5 * hy_h + h];
                                 }
                             }
                         }
@@ -412,22 +382,10 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                     {
                         for(int h = 0; h < hy_h; h++)
                         {
-                            if(li == 0 && inputMode == 1)
+                            for(int gi = 0; gi < 2; gi++)
                             {
-                                for(int gi = 0; gi < 2; gi++)
-                                {
-                                    hid_state[hid_shift + (bacc + bs) * hy_stride + gi * hy_h +
-                                              h] += wei[wei_shift_bias + gi * hy_h + h];
-                                }
-                            }
-                            else
-                            {
-                                for(int gi = 0; gi < 2; gi++)
-                                {
-                                    hid_state[hid_shift + (bacc + bs) * hy_stride + gi * hy_h +
-                                              h] +=
-                                        wei[wei_shift_bias_temp + wei_stride + gi * hy_h + h];
-                                }
+                                hid_state[hid_shift + (bacc + bs) * hy_stride + gi * hy_h + h] +=
+                                    wei[wei_shift_bias_temp + wei_stride + gi * hy_h + h];
                             }
                         }
                     }
@@ -457,23 +415,92 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                     {
                         for(int h = 0; h < hy_h; h++)
                         {
-                            if(li == 0 && inputMode == 1)
-                            {
-                                hid_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h +
-                                          h] += wei[wei_shift_bias + 2 * hy_h + h];
-                            }
-                            else
-                            {
-                                hid_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h +
-                                          h] +=
-                                    wei[wei_shift_bias_temp + wei_stride + 2 * hy_h + h];
-                            }
+                            hid_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h + h] +=
+                                wei[wei_shift_bias_temp + wei_stride + 2 * hy_h + h];
                         }
                     }
                 }
 
                 if(bidirection)
                 {
+
+                    if(!hx_is_null && in_n.at(seqLength - 1 - ti) > in_n.at(seqLength - ti))
+                    {
+                        ADNN_mm_cpu<T>(
+                            const_cast<T*>(
+                                &hx_state[hx_shift + hy_n * hy_h + in_n.at(seqLength - ti) * hy_h]),
+                            hy_h,
+                            (in_n.at(seqLength - 1 - ti) - in_n.at(seqLength - ti)),
+                            uni_stride,
+                            0,
+                            const_cast<T*>(&wei_state[wei_shift + 3 * hy_h * uni_stride]),
+                            hy_h,
+                            hy_h * 2,
+                            uni_stride,
+                            ADNN_MM_TRANSPOSE,
+                            &hid_state[hid_shift + (baccbi + in_n.at(seqLength - ti)) * hy_stride +
+                                       3 * hy_h],
+                            hy_h * 2,
+                            (in_n.at(seqLength - 1 - ti) - in_n.at(seqLength - ti)),
+                            hy_stride,
+                            0,
+                            1,
+                            1);
+
+                        if(biased)
+                        {
+                            for(int bs = in_n.at(seqLength - ti); bs < in_n.at(seqLength - 1 - ti);
+                                bs++)
+                            {
+                                for(int h = 0; h < hy_h; h++)
+                                {
+                                    for(int gi = 0; gi < 2; gi++)
+                                    {
+                                        hid_state[hid_shift + (baccbi + bs) * hy_stride +
+                                                  (3 + gi) * hy_h + h] +=
+                                            wei[wei_shift_bias_temp + wei_stride + (3 + gi) * hy_h +
+                                                h];
+                                    }
+                                }
+                            }
+                        }
+
+                        ADNN_mm_cpu<T>(
+                            const_cast<T*>(
+                                &hx_state[hx_shift + hy_n * hy_h + in_n.at(seqLength - ti) * hy_h]),
+                            hy_h,
+                            (in_n.at(seqLength - 1 - ti) - in_n.at(seqLength - ti)),
+                            uni_stride,
+                            0,
+                            const_cast<T*>(&wei_state[wei_shift + 5 * hy_h * uni_stride]),
+                            hy_h,
+                            hy_h,
+                            uni_stride,
+                            ADNN_MM_TRANSPOSE,
+                            &hid_state[hid_shift + (baccbi + in_n.at(seqLength - ti)) * hy_stride +
+                                       bi * 3 * hy_h + hy_h],
+                            hy_h,
+                            (in_n.at(seqLength - 1 - ti) - in_n.at(seqLength - ti)),
+                            hy_stride,
+                            0,
+                            1,
+                            1);
+
+                        if(biased)
+                        {
+                            for(int bs = in_n.at(seqLength - ti); bs < in_n.at(seqLength - 1 - ti);
+                                bs++)
+                            {
+                                for(int h = 0; h < hy_h; h++)
+                                {
+                                    hid_state[hid_shift + (baccbi + bs) * hy_stride +
+                                              bi * 3 * hy_h + hy_h + h] +=
+                                        wei[wei_shift_bias_temp + wei_stride + 5 * hy_h + h];
+                                }
+                            }
+                        }
+                    }
+
                     ADNN_mm_cpu<T>(const_cast<T*>(&hy_state[hx_shift + hy_n * hy_h]),
                                    hy_h,
                                    in_n[seqLength - ti],
@@ -498,24 +525,11 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                         {
                             for(int h = 0; h < hy_h; h++)
                             {
-                                if(li == 0 && inputMode == 1)
+                                for(int gi = 0; gi < 2; gi++)
                                 {
-                                    for(int gi = 0; gi < 2; gi++)
-                                    {
-                                        hid_state[hid_shift + (baccbi + bs) * hy_stride +
-                                                  (3 + gi) * hy_h + h] +=
-                                            wei[wei_shift_bias + (3 + gi) * hy_h + h];
-                                    }
-                                }
-                                else
-                                {
-                                    for(int gi = 0; gi < 2; gi++)
-                                    {
-                                        hid_state[hid_shift + (baccbi + bs) * hy_stride +
-                                                  (3 + gi) * hy_h + h] +=
-                                            wei[wei_shift_bias_temp + wei_stride + (3 + gi) * hy_h +
-                                                h];
-                                    }
+                                    hid_state[hid_shift + (baccbi + bs) * hy_stride +
+                                              (3 + gi) * hy_h + h] +=
+                                        wei[wei_shift_bias_temp + wei_stride + (3 + gi) * hy_h + h];
                                 }
                             }
                         }
@@ -546,18 +560,9 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                         {
                             for(int h = 0; h < hy_h; h++)
                             {
-                                if(li == 0 && inputMode == 1)
-                                {
-                                    hid_state[hid_shift + (baccbi + bs) * hy_stride +
-                                              bi * 3 * hy_h + hy_h + h] +=
-                                        wei[wei_shift_bias + 5 * hy_h + h];
-                                }
-                                else
-                                {
-                                    hid_state[hid_shift + (baccbi + bs) * hy_stride +
-                                              bi * 3 * hy_h + hy_h + h] +=
-                                        wei[wei_shift_bias_temp + wei_stride + 5 * hy_h + h];
-                                }
+                                hid_state[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h +
+                                          hy_h + h] +=
+                                    wei[wei_shift_bias_temp + wei_stride + 5 * hy_h + h];
                             }
                         }
                     }
@@ -688,6 +693,19 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
                         }
                         else
                         {
+                            if(!hx_is_null && in_n.at(seqLength - 1 - ti) > in_n.at(seqLength - ti))
+                            {
+                                if(bs >= in_n.at(seqLength - ti))
+                                {
+                                    hid_state[hid_shift + (baccbi + bs) * hy_stride +
+                                              bi * 3 * hy_h + hy_h + h] +=
+                                        (activfunc(hid_state[hid_shift + (baccbi + bs) * hy_stride +
+                                                             3 * hy_h + h],
+                                                   2) *
+                                         hx[hx_shift + bs * uni_stride + hy_n * hy_h + h]);
+                                }
+                            }
+
                             hid_state[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h + hy_h +
                                       h] +=
                                 ((1 - activfunc(hid_state[hid_shift + (baccbi + bs) * hy_stride +
@@ -729,15 +747,6 @@ void RunGRUForwardGEMMCPUVerify(std::vector<T>& in,
             }
 
             bacc += in_n[ti];
-        }
-
-        // hy clean
-        for(int bs = in_n[seqLength - 1]; bs < in_n[0]; bs++)
-        {
-            for(int h = 0; h < hy_h; h++)
-            {
-                hy_state[hx_shift + bs * uni_stride + h] = 0;
-            }
         }
     }
 
@@ -859,7 +868,7 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
     int wei_len = (in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride;
     if(biased)
     {
-        int in_bias = inputMode == 1 ? 1 : 2;
+        int in_bias = 2;
         wei_len += (in_bias + (numlayer - 1) * 2) * wei_stride;
     }
 
@@ -948,6 +957,18 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
             }
             else
             {
+                if(!dhy_is_null && in_n.at(ti) > in_n.at(ti + 1))
+                {
+                    for(int bs = in_n.at(ti + 1); bs < in_n.at(ti); bs++)
+                    {
+                        for(int h = 0; h < hy_h; h++)
+                        {
+                            dh_state[hid_shift + (bacc + bs) * hy_stride + bi * 3 * hy_h + h] +=
+                                dhy_state[hx_shift + bs * uni_stride + h];
+                        }
+                    }
+                }
+
                 int pretime_shift = li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride;
 
                 ADNN_mm_cpu<T>(const_cast<T*>(&dh_state[pretime_shift]),
@@ -1134,21 +1155,10 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
                             dervactivfunc(
                                 rsvspace[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h], 1);
 
-                        if(ti == 0)
-                        {
-                            dh_state[hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h] =
-                                rsvspace[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h +
-                                         hy_h + h + numlayer * batch_n * hy_stride];
-                        }
-                        else
-                        {
-                            if(bs < in_n[seqLength - ti])
-                            {
-                                dh_state[hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h] =
-                                    rsvspace[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h +
-                                             hy_h + h + numlayer * batch_n * hy_stride];
-                            }
-                        }
+                        dh_state[hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h] =
+                            rsvspace[hid_shift + (baccbi + bs) * hy_stride + bi * 3 * hy_h + hy_h +
+                                     h + numlayer * batch_n * hy_stride];
+
                         dh_state[hid_shift + (baccbi + bs) * hy_stride + 4 * hy_h + h] *=
                             (dh_state[hid_shift + (baccbi + bs) * hy_stride + 5 * hy_h + h] *
                              dervactivfunc(
@@ -1179,6 +1189,16 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
                         }
                         else
                         {
+                            if(!hx_is_null &&
+                               in_n.at(seqLength - 1 - ti) > in_n.at(seqLength - ti) &&
+                               bs >= in_n.at(seqLength - ti))
+                            {
+                                dh_state[hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h + h] +=
+                                    (dh_state[hid_shift + (baccbi + bs) * hy_stride +
+                                              bi * 3 * hy_h + hy_h + h] *
+                                     hx_state[hx_shift + bs * uni_stride + hy_n * hy_h + h]);
+                            }
+
                             if(bs < in_n[seqLength - ti])
                             {
                                 dh_state[hid_shift + (baccbi + bs) * hy_stride + 3 * hy_h + h] +=
@@ -1263,57 +1283,75 @@ void RunGRUBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
 
         if(bidirection)
         {
-            pretime_shift = li * batch_n * hy_stride + (batch_n - in_n[seqLength - 1]) * hy_stride;
+            int ti = seqLength - 1, cur_bat = 0, pre_bat = batch_n;
 
-            ADNN_mm_cpu<T>(const_cast<T*>(&dh_state[pretime_shift + 3 * hy_h]),
-                           hy_h * 2,
-                           in_n[seqLength - 1],
-                           hy_stride,
-                           0,
-                           const_cast<T*>(&wei_state[weitime_shift + 3 * hy_h * uni_stride]),
-                           hy_h,
-                           hy_h * 2,
-                           uni_stride,
-                           0,
-                           &dhx_state[hx_shift + hy_n * hy_h],
-                           hy_h,
-                           in_n[seqLength - 1],
-                           uni_stride,
-                           0,
-                           1,
-                           1);
-
-            for(int bs = 0; bs < in_n[seqLength - 1]; bs++)
+            while(ti >= 0)
             {
-                for(int h = 0; h < hy_h; h++)
+                pre_bat -= in_n.at(ti);
+                if(in_n.at(ti) > cur_bat)
                 {
-                    dhx_state[hx_shift + bs * uni_stride + hy_n * hy_h + h] +=
-                        dh_state[pretime_shift + bs * hy_stride + bi * 3 * hy_h + hy_h + h] *
-                        activfunc(rsvspace[pretime_shift + bs * hy_stride + 3 * hy_h + h], 2);
+                    pretime_shift = li * batch_n * hy_stride + (pre_bat + cur_bat) * hy_stride;
 
-                    dcx_state[hx_shift + bs * uni_stride + hy_n * hy_h + h] =
-                        dh_state[pretime_shift + bs * hy_stride + 5 * hy_h + h] *
-                        activfunc(rsvspace[pretime_shift + bs * hy_stride + 4 * hy_h + h], 2);
+                    ADNN_mm_cpu<T>(
+                        const_cast<T*>(&dh_state[pretime_shift + 3 * hy_h]),
+                        hy_h * 2,
+                        (in_n.at(ti) - cur_bat),
+                        hy_stride,
+                        0,
+                        const_cast<T*>(&wei_state[weitime_shift + 3 * hy_h * uni_stride]),
+                        hy_h,
+                        hy_h * 2,
+                        uni_stride,
+                        0,
+                        &dhx_state[hx_shift + hy_n * hy_h + cur_bat * hy_h],
+                        hy_h,
+                        (in_n.at(ti) - cur_bat),
+                        uni_stride,
+                        0,
+                        1,
+                        1);
+
+                    for(int bs = cur_bat; bs < in_n.at(ti); bs++)
+                    {
+                        for(int h = 0; h < hy_h; h++)
+                        {
+                            dhx_state[hx_shift + bs * uni_stride + hy_n * hy_h + h] +=
+                                dh_state[pretime_shift + (bs - cur_bat) * hy_stride +
+                                         bi * 3 * hy_h + hy_h + h] *
+                                activfunc(rsvspace[pretime_shift + (bs - cur_bat) * hy_stride +
+                                                   3 * hy_h + h],
+                                          2);
+
+                            dcx_state[hx_shift + bs * uni_stride + hy_n * hy_h + h] =
+                                dh_state[pretime_shift + (bs - cur_bat) * hy_stride + 5 * hy_h +
+                                         h] *
+                                activfunc(rsvspace[pretime_shift + (bs - cur_bat) * hy_stride +
+                                                   4 * hy_h + h],
+                                          2);
+                        }
+                    }
+
+                    ADNN_mm_cpu<T>(
+                        const_cast<T*>(&dcx_state[hx_shift + hy_n * hy_h + cur_bat * hy_h]),
+                        hy_h,
+                        (in_n.at(ti) - cur_bat),
+                        uni_stride,
+                        0,
+                        const_cast<T*>(&wei_state[weitime_shift + 5 * hy_h * uni_stride]),
+                        hy_h,
+                        hy_h,
+                        uni_stride,
+                        0,
+                        &dhx_state[hx_shift + hy_n * hy_h + cur_bat * hy_h],
+                        hy_h,
+                        (in_n.at(ti) - cur_bat),
+                        uni_stride,
+                        0,
+                        1,
+                        1);
                 }
+                cur_bat = in_n.at(ti--);
             }
-
-            ADNN_mm_cpu<T>(const_cast<T*>(&dcx_state[hx_shift + hy_n * hy_h]),
-                           hy_h,
-                           in_n[seqLength - 1],
-                           uni_stride,
-                           0,
-                           const_cast<T*>(&wei_state[weitime_shift + 5 * hy_h * uni_stride]),
-                           hy_h,
-                           hy_h,
-                           uni_stride,
-                           0,
-                           &dhx_state[hx_shift + hy_n * hy_h],
-                           hy_h,
-                           in_n[seqLength - 1],
-                           uni_stride,
-                           0,
-                           1,
-                           1);
         }
     }
 
@@ -1474,7 +1512,7 @@ void RunGRUBackwardWeightGEMMCPUVerify(std::vector<T>& in,
     int wei_len        = wei_shift_bias;
     if(biased)
     {
-        int in_bias = inputMode == 1 ? 1 : 2;
+        int in_bias = 2;
         wei_len += (in_bias + (numlayer - 1) * 2) * wei_stride;
     }
 
@@ -1507,15 +1545,15 @@ void RunGRUBackwardWeightGEMMCPUVerify(std::vector<T>& in,
                                0,
                                1,
                                1);
+            }
 
-                if(biased)
+            if(biased)
+            {
+                for(int h = 0; h < wei_stride; h++)
                 {
-                    for(int h = 0; h < wei_stride; h++)
+                    for(int w = 0; w < batch_n; w++)
                     {
-                        for(int w = 0; w < batch_n; w++)
-                        {
-                            dwei_state[wei_shift_bias + h] += wkspace_state[w * hy_stride + h];
-                        }
+                        dwei_state[wei_shift_bias + h] += wkspace_state[w * hy_stride + h];
                     }
                 }
             }
@@ -1546,9 +1584,7 @@ void RunGRUBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 
             if(biased)
             {
-                wei_shift = (inputMode == 1)
-                                ? (wei_shift_bias + wei_stride + (li - 1) * 2 * wei_stride)
-                                : (wei_shift_bias + li * 2 * wei_stride);
+                wei_shift = wei_shift_bias + li * 2 * wei_stride;
 
                 for(int h = 0; h < wei_stride; h++)
                 {
@@ -1603,9 +1639,7 @@ void RunGRUBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 
                     if(biased)
                     {
-                        int bias_shift = (inputMode == 1)
-                                             ? (wei_shift_bias + li * 2 * wei_stride)
-                                             : (wei_shift_bias + li * 2 * wei_stride + wei_stride);
+                        int bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
 
                         for(int h = 0; h < hy_h * 3; h++)
                         {
@@ -1643,9 +1677,7 @@ void RunGRUBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 
                 if(biased)
                 {
-                    int bias_shift = (inputMode == 1)
-                                         ? (wei_shift_bias + li * 2 * wei_stride)
-                                         : (wei_shift_bias + li * 2 * wei_stride + wei_stride);
+                    int bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
 
                     for(int h = 0; h < hy_h * 3; h++)
                     {
@@ -1693,10 +1725,7 @@ void RunGRUBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 
                         if(biased)
                         {
-                            int bias_shift =
-                                (inputMode == 1)
-                                    ? (wei_shift_bias + li * 2 * wei_stride)
-                                    : (wei_shift_bias + li * 2 * wei_stride + wei_stride);
+                            int bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
 
                             for(int h = 0; h < hy_h * 3; h++)
                             {
@@ -1711,6 +1740,44 @@ void RunGRUBackwardWeightGEMMCPUVerify(std::vector<T>& in,
                 }
                 else
                 {
+                    if(!hx_is_null && in_n.at(ti) > in_n.at(ti + 1))
+                    {
+                        ADNN_mm_cpu<T>(
+                            const_cast<T*>(
+                                &wkspace_state[hid_shift + 3 * hy_h + in_n.at(ti + 1) * hy_stride]),
+                            hy_h * 3,
+                            (in_n.at(ti) - in_n.at(ti + 1)),
+                            hy_stride,
+                            ADNN_MM_TRANSPOSE,
+                            const_cast<T*>(
+                                &hx_state[hx_shift + hy_n * hy_h + in_n.at(ti + 1) * hy_h]),
+                            hy_h,
+                            (in_n.at(ti) - in_n.at(ti + 1)),
+                            uni_stride,
+                            0,
+                            &dwei_state[wei_shift + 3 * hy_h * uni_stride],
+                            hy_h,
+                            hy_h * 3,
+                            uni_stride,
+                            0,
+                            1,
+                            1);
+
+                        if(biased)
+                        {
+                            int bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
+
+                            for(int h = 0; h < hy_h * 3; h++)
+                            {
+                                for(int w = in_n.at(ti + 1); w < in_n.at(ti); w++)
+                                {
+                                    dwei_state[bias_shift + 3 * hy_h + h] +=
+                                        wkspace_state[hid_shift + 3 * hy_h + w * hy_stride + h];
+                                }
+                            }
+                        }
+                    }
+
                     pretime_shift =
                         li * batch_n * hy_stride + (bacc + in_n[ti]) * hy_stride + bi * 3 * hy_h;
 
@@ -1734,9 +1801,7 @@ void RunGRUBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 
                     if(biased)
                     {
-                        int bias_shift = (inputMode == 1)
-                                             ? (wei_shift_bias + li * 2 * wei_stride)
-                                             : (wei_shift_bias + li * 2 * wei_stride + wei_stride);
+                        int bias_shift = wei_shift_bias + li * 2 * wei_stride + wei_stride;
 
                         for(int h = 0; h < hy_h * 3; h++)
                         {
