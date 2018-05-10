@@ -36,6 +36,7 @@
 #include <miopen/returns.hpp>
 #include <miopen/errors.hpp>
 #include <vector>
+#include <algorithm>
 // TODO(paul): remove this include later
 #include <cstdio>
 
@@ -153,72 +154,45 @@ template <typename... TDescriptors>
 std::tuple<TDescriptors...>
 get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descriptor_elements)
 {
-    std::tuple<TDescriptors...> flat_descriptor_tuple;
-    std::tuple<const TDescriptors&...> real_descriptors = std::tie(real_descriptor_elements...);
-    std::array<TensorDescriptor, sizeof...(TDescriptors)> flat_descriptors;
+    constexpr std::size_t NTensor = sizeof...(TDescriptors);
 
-    constexpr std::size_t NTensor = std::tuple_size<std::tuple<TDescriptors&...>>::value;
+    std::array<const TensorDescriptor*, NTensor> real_descriptors = {
+        (&real_descriptor_elements)...};
+    std::array<TensorDescriptor, NTensor> flat_descriptors;
 
-    using TN = std::integral_constant<std::size_t, NTensor>;
-
+#if 1
     if(NTensor == 0)
         MIOPEN_THROW(miopenStatusBadParm, "NTensor == 0.");
 
-#if 1
     // check input tensor descriptors
-    auto& real_desc_0_lens = std::get<0>(real_descriptors).GetLengths();
+    auto& real_desc_0_lens = real_descriptors[0]->GetLengths();
 
-    call_n_time(
-        [&](const auto i) {
-            constexpr std::size_t itensor = i;
+    for(std::size_t itensor = 1; itensor < NTensor; ++itensor)
+    {
+        auto& real_desc_lens = real_descriptors[itensor]->GetLengths();
 
-            if(itensor > 0)
-            {
-                auto& real_desc_lens = std::get<itensor>(real_descriptors).GetLengths();
-
-                if(real_desc_0_lens != real_desc_lens)
-                    MIOPEN_THROW(miopenStatusBadParm, "Lengths of Tensors are different.");
-            }
-        },
-        TN{});
+        if(real_desc_0_lens != real_desc_lens)
+            MIOPEN_THROW(miopenStatusBadParm, "Lengths of Tensors are different.");
+    }
 #endif
 
     // check if is all packed
-    bool is_all_packed = true;
+    auto f_is_packed = [&](const TensorDescriptor* desc) -> bool { return desc->IsPacked(); };
 
-    call_n_time(
-        [&](const auto i) {
-            constexpr std::size_t itensor = i;
-
-            if(is_all_packed)
-            {
-                if(!std::get<itensor>(real_descriptors).IsPacked())
-                    is_all_packed = false;
-            }
-        },
-        TN{});
-
-    // all packed
-    if(is_all_packed)
+    if(std::all_of(real_descriptors.begin(), real_descriptors.end(), f_is_packed))
     {
-        std::size_t element_size = std::get<0>(real_descriptors).GetElementSize();
+        std::size_t element_size = real_descriptors[0]->GetElementSize();
 
-        call_n_time(
-            [&](const auto i) {
-                constexpr std::size_t itensor = i;
-                flat_descriptors[itensor]     = TensorDescriptor{
-                    std::get<itensor>(real_descriptors).GetType(), {element_size}, {1}};
-            },
-            TN{});
+        for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
+            flat_descriptors[itensor] =
+                TensorDescriptor{real_descriptors[itensor]->GetType(), {element_size}, {1}};
 
-        flat_descriptor_tuple = to_tuple(std::move(flat_descriptors));
-
-        return flat_descriptor_tuple; // early return for all-packed tensors
+        return to_tuple(std::move(flat_descriptors)); // early return for all-packed tensors
     }
 
     // ignore dimensions, where lengths of all tensors are 1
-    const std::size_t real_ndim                  = std::get<0>(real_descriptors).GetSize();
-    const std::vector<std::size_t>& real_lengths = std::get<0>(real_descriptors).GetLengths();
+    const std::size_t real_ndim                  = real_descriptors[0]->GetSize();
+    const std::vector<std::size_t>& real_lengths = real_descriptors[0]->GetLengths();
 
     std::size_t non1_ndim = 0;
     std::vector<std::size_t> non1_lengths;
@@ -232,41 +206,27 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
             ++non1_ndim;
             non1_lengths.push_back(len);
 
-            call_n_time(
-                [&](const auto i) {
-                    constexpr std::size_t itensor = i;
-                    array_of_non1_strides[itensor].push_back(
-                        std::get<itensor>(real_descriptors).GetStrides()[idim]);
-                },
-                TN{});
+            for(int itensor = 0; itensor < NTensor; ++itensor)
+                array_of_non1_strides[itensor].push_back(
+                    real_descriptors[itensor]->GetStrides()[idim]);
         }
     } // now, non1_ndim, non1_lengths, array_of_non1_strides contains non-1-length dimensions
 
     // is scalar
     if(non1_ndim == 0)
     {
-        call_n_time(
-            [&](const auto i) {
-                constexpr std::size_t itensor = i;
-                flat_descriptors[itensor] =
-                    TensorDescriptor{std::get<itensor>(real_descriptors).GetType(), {1}, {1}};
-            },
-            TN{});
+        for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
+            flat_descriptors[itensor] =
+                TensorDescriptor{real_descriptors[itensor]->GetType(), {1}, {1}};
 
-        flat_descriptor_tuple = to_tuple(std::move(flat_descriptors));
-
-        return flat_descriptor_tuple; // early return for all-scalar tensors
+        return to_tuple(std::move(flat_descriptors)); // early return for all-scalar tensors
     }
 
     // start flattening tensors
     std::array<std::vector<std::size_t>, NTensor> array_of_full_lengths;
 
-    call_n_time(
-        [&](const auto i) {
-            constexpr std::size_t itensor = i;
-            array_of_full_lengths[itensor].reserve(non1_ndim);
-        },
-        TN{});
+    for(int itensor = 0; itensor < NTensor; ++itensor)
+        array_of_full_lengths[itensor].reserve(non1_ndim);
 
     for(std::size_t idim = 1; idim < non1_ndim; ++idim)
     // the 0-th dimension full-length doesn't matter
@@ -284,17 +244,12 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
     {
         std::size_t len = non1_lengths[idim];
 
-        bool is_all_full_length = true;
-        for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
-        {
-            if(len != array_of_full_lengths[itensor][idim])
-            {
-                is_all_full_length = false;
-                break;
-            }
-        }
+        auto f_is_full_length = [&](const std::vector<std::size_t>& full_lengths) -> bool {
+            return len == full_lengths[idim];
+        };
 
-        if(is_all_full_length)
+        if(std::all_of(
+               array_of_full_lengths.begin(), array_of_full_lengths.end(), f_is_full_length))
         {
             flat_len *= len;
         }
@@ -305,7 +260,7 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
             for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
                 array_of_flat_strides[itensor].push_back(array_of_non1_strides[itensor][idim - 1]);
 
-            flat_len = non1_lengths[idim];
+            flat_len = len;
         }
     }
 
@@ -313,19 +268,13 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
     for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
         array_of_flat_strides[itensor].push_back(array_of_non1_strides[itensor][non1_ndim - 1]);
 
-    call_n_time(
-        [&](const auto i) {
-            constexpr std::size_t itensor = i;
-            flat_descriptors[itensor] =
-                TensorDescriptor{std::get<itensor>(real_descriptors).GetType(),
-                                 flat_lengths,
-                                 array_of_flat_strides[itensor]};
-        },
-        TN{});
+    for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
+    {
+        flat_descriptors[itensor] = TensorDescriptor{
+            real_descriptors[itensor]->GetType(), flat_lengths, array_of_flat_strides[itensor]};
+    }
 
-    flat_descriptor_tuple = to_tuple(std::move(flat_descriptors));
-
-    return flat_descriptor_tuple;
+    return to_tuple(std::move(flat_descriptors));
 }
 
 } // namespace miopen

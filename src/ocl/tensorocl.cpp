@@ -1698,6 +1698,21 @@ void CopyTensor(Handle& handle,
     std::tie(srcDesc_flat, dstDesc_flat) =
         get_consistent_flattened_tensor_descriptors(srcDesc, dstDesc);
 
+#if 0
+    if(srcDesc.GetSize() != srcDesc_flat.GetSize())
+    {
+        std::cout << __func__ << std::endl
+                  << "src real lengths: " << srcDesc.GetLengths() << std::endl
+                  << "src real strides: " << srcDesc.GetStrides() << std::endl
+                  << "src flat lengths: " << srcDesc_flat.GetLengths() << std::endl
+                  << "src flat strides: " << srcDesc_flat.GetStrides() << std::endl
+                  << "dst real lengths: " << dstDesc.GetLengths() << std::endl
+                  << "dst real strides: " << dstDesc.GetStrides() << std::endl
+                  << "dst flat lengths: " << dstDesc_flat.GetLengths() << std::endl
+                  << "dst flat strides: " << dstDesc_flat.GetStrides() << std::endl;
+    }
+#endif
+
     std::size_t srcDim_flat = srcDesc_flat.GetSize();
 
     if(srcDim_flat < 1 || srcDim_flat > 5)
@@ -1758,14 +1773,6 @@ void CopyTensor(Handle& handle,
             if(srcDesc.GetSize() != srcDesc_flat.GetSize())
             {
                 std::cout << __func__ << std::endl
-                          << "src real lengths: " << srcDesc.GetLengths() << std::endl
-                          << "src real strides: " << srcDesc.GetStrides() << std::endl
-                          << "src flat lengths: " << srcDesc_flat.GetLengths() << std::endl
-                          << "src flat strides: " << srcDesc_flat.GetStrides() << std::endl
-                          << "dst real lengths: " << dstDesc.GetLengths() << std::endl
-                          << "dst real strides: " << dstDesc.GetStrides() << std::endl
-                          << "dst flat lengths: " << dstDesc_flat.GetLengths() << std::endl
-                          << "dst flat strides: " << dstDesc_flat.GetStrides() << std::endl
                           << "worker_sizes: " << worker_sizes << std::endl
                           << "wgd: " << wgd << ", wld: " << wld << std::endl;
             }
