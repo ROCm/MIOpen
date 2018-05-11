@@ -291,14 +291,6 @@ __attribute__((always_inline)) void ActivationFunction(const uint n,
     {
         ActivationFunction_ELU(n, res, data, gamma, beta, alpha);
     }
-//#elif MIOPEN_NRN_OP_ID==MIOPEN_NEURON_SQUARE
-//    {
-//        ActivationFunction_Square(res, data);
-//    }
-//#elif MIOPEN_NRN_OP_ID==MIOPEN_NEURON_SQR
-//    {
-//	    ActivationFunction_Sqrt(n, res, data);
-//    }
 #endif
 }
 
@@ -489,6 +481,7 @@ __attribute__((always_inline)) void ActivationFunction_Diff(const uint n,
                                                             const _FLOAT beta,
                                                             const _FLOAT alpha)
 {
+
 #if MIOPEN_NRN_OP_ID == MIOPEN_NEURON_PASTHRU
     {
         ActivationFunction_PassThru_Diff(
@@ -554,6 +547,23 @@ __attribute__((always_inline)) void ActivationFunction_Diff(const uint n,
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
+__attribute__((always_inline)) void BatchNormFunction_MAD(const uint n,
+                                                          _FLOAT* out,
+                                                          const _FLOAT* in,
+                                                          const _FLOAT mean,
+                                                          const _FLOAT var,
+                                                          const _FLOAT scale,
+                                                          const _FLOAT bias,
+                                                          double epsilon)
+{
+    _FLOAT invVariance = rsqrt(fabs(var + epsilon));
+
+    for(uint i = 0; i < n; ++i)
+    {
+        out[i] = mad(scale, (in[i] - mean) * invVariance, bias);
+    }
+}
+
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormActivFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x input */
                                        __global _FLOAT* __restrict out,      /* y output */
@@ -566,50 +576,37 @@ MIOpenBatchNormActivFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* 
                                        const _FLOAT beta,
                                        const _FLOAT alpha)
 {
+    int gid0 = get_global_id(0);
+    int gid1 = get_global_id(1);
 
-    int xgid = get_global_id(0);
-    int ygid = get_global_id(1);
-    local _FLOAT lmean;
-    local _FLOAT lvar;
-    local _FLOAT lscale;
-    local _FLOAT lbias;
+    _FLOAT lmean;
+    _FLOAT lvar;
+    _FLOAT lscale;
+    _FLOAT lbias;
 
-    unsigned int cidx = xgid * MIO_BN_HW;
-    unsigned int index;
+    int c_i  = gid1;
+    int n_i  = gid0 / MIO_BN_HW_RD;
+    int hw_i = gid0 % MIO_BN_HW_RD;
 
-    _FLOAT mean, variance, invVariance;
-    _FLOAT inhat;
-    _FLOAT pscale, pbias;
+    unsigned int c_offset = c_i * MIO_BN_HW;
 
-    if(get_local_id(1) == 0)
-    {
-        lmean  = *(estimatedMean + xgid);
-        lvar   = *(estimatedVariance + xgid);
-        lscale = *(scale + xgid); // dims 1xCx1x1
-        lbias  = *(bias + xgid);
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
-    // move across the sections of the image mini_batch stack
-    if(ygid < MIO_BN_HW)
-    {
-        mean        = lmean;
-        variance    = lvar;
-        pscale      = lscale;
-        pbias       = lbias;
-        invVariance = rsqrt(fabs(variance + epsilon));
+    // if(get_local_id(0) == 0)
+    //{
+    lmean  = *(estimatedMean + c_i);
+    lvar   = *(estimatedVariance + c_i);
+    lscale = *(scale + c_i); // dims 1xCx1x1
+    lbias  = *(bias + c_i);
+    //}
+    // barrier(CLK_LOCAL_MEM_FENCE);
 
-#pragma unroll
-        for(int n = 0; n < MIO_BN_N; n++)
-        {
-            index = n * MIO_BN_CHW + cidx + ygid;
-            inhat = (*(in + index) - mean) * invVariance;
-            // out[index] = mad(pscale, inhat, pbias); // y_i = gamma*x_hat + beta
-            _FLOAT tmp = mad(pscale, inhat, pbias);
-            _FLOAT out_t;
-            ActivationFunction(1, &out_t, (const _FLOAT*)&tmp, gamma, beta, alpha);
-            out[index] = out_t;
-        } // end for(img_offset)
-    }
+    int index = n_i * MIO_BN_CHW + c_offset + hw_i * MIOPEN_READ_UNIT;
+    _FLOAT data[MIOPEN_READ_UNIT];
+    _FLOAT response[MIOPEN_READ_UNIT];
+    *((MIOPEN_READ_TYPE*)data) = *((const __global MIOPEN_READ_TYPE*)(in + index));
+    BatchNormFunction_MAD(
+        MIOPEN_READ_UNIT, response, (const _FLOAT*)data, lmean, lvar, lscale, lbias, epsilon);
+    ActivationFunction(MIOPEN_READ_UNIT, data, (const _FLOAT*)response, gamma, beta, alpha);
+    *((__global MIOPEN_READ_TYPE*)(out + index)) = *((MIOPEN_READ_TYPE*)data);
 } // end spatial norm
 
 // Restore warnings
