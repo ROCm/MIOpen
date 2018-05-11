@@ -426,16 +426,29 @@ struct mlo_construct_direct2D
                                         int* const K,
                                         int* const n_groups,
                                         int* const out_H,
+                                        int* const out_W) const
+    {
+        getCompiledInParameters(N, C, H, W, K, n_groups);
+        assert(out_H && out_W);
+        *out_H = _search_params.out_height;
+        *out_W = _search_params.out_width;
+    }
+
+    inline void getCompiledInParameters(int* const N,
+                                        int* const C,
+                                        int* const H,
+                                        int* const W,
+                                        int* const K,
+                                        int* const n_groups,
+                                        int* const out_H,
                                         int* const out_W,
                                         int* const R,
                                         int* const S,
                                         int* const pad_H,
                                         int* const pad_W) const
     {
-        getCompiledInParameters(N, C, H, W, K, n_groups);
-        assert(out_H && out_W && R && S && pad_H && pad_W);
-        *out_H = _search_params.out_height;
-        *out_W = _search_params.out_width;
+        getCompiledInParameters(N, C, H, W, K, n_groups, out_H, out_W);
+        assert(R && S && pad_H && pad_W);
         *R     = _search_params.kernel_size1;
         *S     = _search_params.kernel_size0;
         *pad_H = _search_params.direction.IsForward() ? _search_params.pad1

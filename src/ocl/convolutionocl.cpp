@@ -202,9 +202,9 @@ int ConvolutionDescriptor::FindDataDirectSolutions(
 
     try
     {
-        int N, C, H, W, K, n_groups;
-        construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-        extraArgs = std::make_tuple(N, C, H, W, K, n_groups);
+        int N, C, H, W, K, n_groups, out_H, out_W;
+        construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
+        extraArgs = std::make_tuple(N, C, H, W, K, n_groups, out_H, out_W);
         construct_params.mloBuildConf_Key(network_config);
         mloConstruct(construct_params, solutions);
         return 0;
@@ -216,36 +216,96 @@ int ConvolutionDescriptor::FindDataDirectSolutions(
 }
 
 template <typename T>
-inline float RunConvDataDirectSolution(Handle& handle,
-                                       const std::string& algorithm_name,
-                                       const std::string& network_config,
-                                       const miopen::solver::ConvSolution& solution,
-                                       const ExtraKernelArgs& extraArgs,
-                                       ConstData_t in, // Fwd: x, Bwd: dy
-                                       ConstData_t weights,
-                                       Data_t out, // Fwd: y, Bwd: dx
-                                       T padding_val)
+inline int
+EstimateSolutionConvForwardBackwardDataDirect(Handle& handle,
+                                              const miopen::solver::ConvSolution& solution,
+                                              const ExtraKernelArgs& extraArgs,
+                                              ConstData_t in, // Fwd: x, Bwd: dy
+                                              ConstData_t weights,
+                                              Data_t out, // Fwd: y, Bwd: dx
+                                              const TensorDescriptor& outDesc,
+                                              Data_t workSpace,
+                                              const size_t workSpaceSize,
+                                              T padding_val,
+                                              float& elapsed)
 {
-    float elapsed = 0;
+    // Fail if required workspace is not provided.
+    if(solution.workspce_sz != 0)
+    {
+        if(workSpace == nullptr || workSpaceSize < solution.workspce_sz)
+            return -1;
+    }
     std::vector<KernelInvoke> kernels;
-    AddKernels(handle, algorithm_name, network_config, solution, &kernels);
+    AddKernels(handle, "", "", solution, &kernels);
+    if(kernels.size() > 2)
+        return -2;
+
+    bool with_subsample = false;
+    bool with_upsample  = false;
     for(auto& k : kernels)
     {
-        if(k.GetName() == "gcnAsmConv1x1U")
+        if(k.GetName() == "SubSample")
+            with_subsample = true;
+        else if(k.GetName() == "UpSample")
+            with_upsample = true;
+    }
+    assert(!(with_subsample && with_upsample));
+    if(with_subsample && with_upsample)
+        return -3;
+
+    ConstData_t conv_in = with_subsample
+                              ? workSpace
+                              : in; /// \todo Check implicit conversion - workspace type is Data_t.
+    Data_t conv_out = with_upsample ? workSpace : out;
+
+    elapsed = 0.0f;
+    for(auto& k : kernels)
+    {
+
+        if(k.GetName() == "SubSample")
+        {
+            k(in, workSpace);
+        }
+        else if(k.GetName() == "UpSample")
+        {
+            {
+                /// \todo Initialization is required for upsampling. This leads to small perf drop.
+                /// 1: Add kernel (from SetTensor) to the Solution in the Solver.
+                /// 2: Fix UpSample kernel, probably by means of conditional compilation.
+                float zero = 0.f;
+                SetTensor(handle, outDesc, out, &zero);
+                elapsed += handle.GetKernelTime();
+            }
+            k(workSpace, out);
+        }
+        else if(k.GetName() == "gcnAsmConv1x1U")
         {
             int unused       = 0;
             int* return_addr = nullptr;
-            int N, C, H, W, K, n_groups;
-            std::tie(N, C, H, W, K, n_groups) = extraArgs;
-            k(N, C, H, W, K, n_groups, unused, unused, in, weights, out, return_addr);
+            int N, C, H, W, K, n_groups, out_H, out_W;
+            std::tie(N, C, H, W, K, n_groups, out_H, out_W) = extraArgs;
+            int conv_H = (with_subsample ? out_H : H); // Trick; see respective Solver.
+            int conv_W = (with_subsample ? out_W : W);
+            k(N,
+              C,
+              conv_H,
+              conv_W,
+              K,
+              n_groups,
+              unused,
+              unused,
+              conv_in,
+              weights,
+              conv_out,
+              return_addr);
         }
         else
         {
-            k(in, weights, out, padding_val);
+            k(conv_in, weights, conv_out, padding_val);
         }
         elapsed += handle.GetKernelTime();
     }
-    return elapsed;
+    return 0;
 }
 
 #if(WORKAROUND_FIXME_WRW || WORKAROUND_FIXME_FWD || WORKAROUND_FIXME_BWD)
@@ -528,7 +588,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                        network_config,
                                        eka) == 0)
             {
-                const std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
                 miopen::solver::ConvSolution selected{miopenStatusUnknownError};
                 float best = std::numeric_limits<float>::max();
 #if WORKAROUND_FIXME_FWD
@@ -545,19 +604,38 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                 continue;
                         }
 #endif
-                        float elapsed = RunConvDataDirectSolution(
-                            handle, "", "", sol, eka, x, w, tmp_y.get(), as_float(0.0f));
-                        MIOPEN_LLOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
-                                          << best);
-                        if(elapsed < best)
+                        float elapsed = 0.0f;
+                        const int rc  = EstimateSolutionConvForwardBackwardDataDirect(handle,
+                                                                                     sol,
+                                                                                     eka,
+                                                                                     x,
+                                                                                     w,
+                                                                                     tmp_y.get(),
+                                                                                     yDesc,
+                                                                                     workSpace,
+                                                                                     workSpaceSize,
+                                                                                     as_float(0.0f),
+                                                                                     elapsed);
+                        if(rc != 0)
                         {
-                            best     = elapsed;
-                            selected = sol;
+                            MIOPEN_LLOG_E(sol << " returns " << rc);
+                        }
+                        else
+                        {
+                            MIOPEN_LLOG_I(sol << ": " << elapsed
+                                              << (elapsed < best ? " < " : " >= ")
+                                              << best);
+                            if(elapsed < best)
+                            {
+                                best     = elapsed;
+                                selected = sol;
+                            }
                         }
                     }
                 });
                 if(selected.Succeeded())
                 {
+                    const std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
                     AddKernels(handle, algorithm_name, network_config, selected, nullptr);
                     MIOPEN_LLOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
                                                << selected.workspce_sz);
@@ -687,9 +765,52 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             float padding_val    = 0;
 
             visit_float(xDesc.GetType(), [&](auto as_float) {
-                if((kernel.GetName() != "MIOpenCvFwd11x11")) // FIXME Rework this.
+                // Miminum checks. Only check what is required to select
+                // proper invocation procedure & workspace sanity.
+                float elapsed = 0;
+                if((kernel.GetName() == "MIOpenCvFwd11x11") && num_kernels == 2)
                 {
-                    assert(num_kernels == 1);
+                    handle.ResetKernelTime();
+                    kernel(x, w, y, as_float(padding_val));
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
+
+                    kernel = *(p_kernel + 1);
+                    kernel(x, w, y, as_float(padding_val));
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
+                }
+                else if(num_kernels == 2 && workSpace != nullptr && workSpaceSize != 0)
+                {
+                    assert(kernel.GetName() == "SubSample");
+                    kernel(x, workSpace);
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
+
+                    kernel = *(p_kernel + 1);
+                    assert(kernel.GetName() == "gcnAsmConv1x1U");
+                    int unused       = 0;
+                    int* return_addr = nullptr;
+                    int N, C, H, W, K, n_groups, out_H, out_W;
+                    construct_params.getCompiledInParameters(
+                        &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
+                    kernel(N,
+                           C,
+                           out_H,
+                           out_W,
+                           K,
+                           n_groups,
+                           unused,
+                           unused,
+                           workSpace,
+                           w,
+                           y,
+                           return_addr);
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
+                }
+                else if(num_kernels == 1)
+                {
                     if(kernel.GetName() == "gcnAsmConv1x1U")
                     {
                         int unused       = 0;
@@ -702,24 +823,17 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     {
                         kernel(x, w, y, as_float(padding_val));
                     }
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
                 }
                 else
                 {
-                    assert(1 <= num_kernels && num_kernels <= 2);
-                    if(1 == num_kernels)
-                    {
-                        kernel(x, w, y, as_float(padding_val));
-                    }
-                    else
-                    {
-                        handle.ResetKernelTime();
-                        kernel(x, w, y, as_float(padding_val));
-                        float time0 = handle.GetKernelTime();
-
-                        auto kernel2 = *(p_kernel + 1);
-                        kernel2(x, w, y, as_float(padding_val));
-                        handle.AccumKernelTime(time0);
-                    }
+                    MIOPEN_THROW("Error running Direct Forward convolution (none workspace?)");
+                }
+                if(handle.IsProfilingEnabled())
+                {
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed);
                 }
             });
         }
@@ -1143,6 +1257,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     {
         if(dilation_h == 1 && dilation_w == 1)
         {
+
             // Winograd algo
             WinogradKernelParams k_p;
             KernelInvoke kernel_wino;
@@ -1233,7 +1348,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                        network_config,
                                        eka) == 0)
             {
-                const std::string algorithm_name = "miopenConvolutionBwdDataAlgoDirect";
                 miopen::solver::ConvSolution selected{miopenStatusUnknownError};
                 float best = std::numeric_limits<float>::max();
 #if WORKAROUND_FIXME_BWD
@@ -1250,19 +1364,38 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                 continue;
                         }
 #endif
-                        float elapsed = RunConvDataDirectSolution(
-                            handle, "", "", sol, eka, dy, w, tmp_dx.get(), as_float(0.0f));
-                        MIOPEN_LLOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
-                                          << best);
-                        if(elapsed < best)
+                        float elapsed = 0.0f;
+                        const int rc  = EstimateSolutionConvForwardBackwardDataDirect(handle,
+                                                                                     sol,
+                                                                                     eka,
+                                                                                     dy,
+                                                                                     w,
+                                                                                     tmp_dx.get(),
+                                                                                     dxDesc,
+                                                                                     workSpace,
+                                                                                     workSpaceSize,
+                                                                                     as_float(0.0f),
+                                                                                     elapsed);
+                        if(rc != 0)
                         {
-                            best     = elapsed;
-                            selected = sol;
+                            MIOPEN_LLOG_E(sol << " returns " << rc);
+                        }
+                        else
+                        {
+                            MIOPEN_LLOG_I(sol << ": " << elapsed
+                                              << (elapsed < best ? " < " : " >= ")
+                                              << best);
+                            if(elapsed < best)
+                            {
+                                best     = elapsed;
+                                selected = sol;
+                            }
                         }
                     }
                 });
                 if(selected.Succeeded())
                 {
+                    const std::string algorithm_name = "miopenConvolutionBwdDataAlgoDirect";
                     AddKernels(handle, algorithm_name, network_config, selected, nullptr);
                     MIOPEN_LLOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
                                                << selected.workspce_sz);
@@ -1309,6 +1442,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc))
             {
 
+                // Initialization required for upsampling in bwd direction
                 float zero = 0.f;
                 SetTensor(handle, dxDesc, tmp_dx.get(), &zero);
                 time_gemm = handle.GetKernelTime();
@@ -1496,23 +1630,65 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
             auto&& kernels =
                 handle.GetKernels("miopenConvolutionBwdDataAlgoDirect", network_config);
-            assert(kernels.size() == 1);
             const auto p_kernel = std::begin(kernels);
             auto kernel         = *p_kernel;
             float padding_val   = 0;
+            assert(1 <= kernels.size() && kernels.size() <= 2);
 
             visit_float(dyDesc.GetType(), [&](auto as_float) {
+                float t1 = 0;
                 if(kernel.GetName() == "gcnAsmConv1x1U")
                 {
                     int unused       = 0;
                     int* return_addr = nullptr;
+
                     int N, C, H, W, K, n_groups;
                     construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-                    kernel(N, C, H, W, K, n_groups, unused, unused, dy, w, dx, return_addr);
+
+                    kernel(N,
+                           C,
+                           H,
+                           W,
+                           K,
+                           n_groups,
+                           unused,
+                           unused,
+                           dy,
+                           w,
+                           (kernels.size() == 2) ? workSpace : dx,
+                           return_addr);
+                    if(handle.IsProfilingEnabled())
+                        t1 += handle.GetKernelTime();
+
+                    if(kernels.size() == 2)
+                    {
+                        kernel = *(p_kernel + 1);
+                        assert(kernel.GetName() == "UpSample");
+
+                        /// \todo Initialization is required for upsampling. This leads to small
+                        /// perf drop.
+                        /// 1: Add kernel (from SetTensor) to the Solution in the Solver.
+                        /// 2: Fix UpSample kernel, probably by means of conditional compilation.
+                        float zero = 0.f;
+                        SetTensor(handle, dxDesc, dx, &zero);
+                        if(handle.IsProfilingEnabled())
+                            t1 += handle.GetKernelTime();
+
+                        kernel(workSpace, dx);
+                        if(handle.IsProfilingEnabled())
+                            t1 += handle.GetKernelTime();
+                    }
                 }
                 else
                 {
                     kernel(dy, w, dx, as_float(padding_val));
+                    if(handle.IsProfilingEnabled())
+                        t1 += handle.GetKernelTime();
+                }
+                if(handle.IsProfilingEnabled())
+                {
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(t1);
                 }
             });
             break;
@@ -2365,15 +2541,15 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                             {
                                 int unused       = 0;
                                 int* return_addr = nullptr;
-                                int N, C, H, W, K, n_groups;
-                                // H/W are image size after downsampling, parsed from img_h/img_w in
-                                // conv_asm_dir_BwdWrW1x1.cpp
+                                int N, C, H, W, K, n_groups, out_H, out_W;
                                 construct_params.getCompiledInParameters(
-                                    &N, &C, &H, &W, &K, &n_groups);
+                                    &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
+                                // out_H/W are used instead of H/W; see comment in AsmImgHeight(),
+                                // conv_asm_dir_BwdWrW1x1.cpp.
                                 kernel2(N,
                                         C,
-                                        H,
-                                        W,
+                                        out_H,
+                                        out_W,
                                         K,
                                         n_groups,
                                         unused,
