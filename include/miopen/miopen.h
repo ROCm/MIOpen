@@ -1740,75 +1740,7 @@ typedef enum {
     miopenTensorOp     = 4, /*!< element-wise tensor op */
 } miopenOperator_t;
 
-/*! @struct miopenActivationOpParams_t
-* @brief Contains the activation operator parameters
-*/
-typedef struct
-{
-    miopenActivationMode_t mode;
-    void* alpha;
-    void* beta;
-    double activAlpha;
-    double activBeta;
-    double activGamma;
-} miopenActivationOpParams_t;
 
-typedef struct
-{
-    miopenBatchNormMode_t bn_mode;
-    void* alpha;
-    void* beta;
-    miopenTensorDescriptor_t bnScaleBiasMeanVarDesc;
-    void* bnScale;
-    void* bnBias;
-    void* estimatedMean;
-    void* estimatedVariance;
-    double epsilon
-} miopenBatchNormOpParams_t;
-
-typedef struct
-{
-    miopenConvFwdAlgorithm_t algo;
-    miopenTensorDescriptor_t wDesc;
-    void* w;
-} miopenConvolutionOpParams_t;
-
-typedef struct
-{
-    void* alpha;
-    void* beta;
-    int windowHeight;
-    int windowWidth;
-    int pad_h;
-    int pad_w;
-    int vstride;
-    int hstride;
-} miopenPoolingOpParams_t;
-
-/*! @struct miopenEdge_t
-* @brief Defines an operation edge
-*/
-typedef struct miopen_edge
-{
-    const char* name;                    /*!< edge name */
-    double alpha;                        /*!< scale */
-    bool immutable;                      /*!< immutable data */
-    const miopenTensorDescriptor_t data; /*!< data */
-} miopenEdge_t;
-
-/*! @struct miopenOp_t
-* @brief common part of op definition
-*/
-typedef struct miopen_op
-{
-    const char* name;                /*!< opration instance name if applicable */
-    int n_inputEdges;                /*!< number of input edges */
-    const miopenEdge_t* inputEdges;  /*!< input edges definitions */
-    int n_outputEdges;               /*!< number of output edges */
-    const miopenEdge_t* outputEdges; /*!< output edges definitions */
-    int n_internEdges;               /*!< number of internal edges */
-    const miopenEdge_t* internEdges; /*!< internal edges definitions (weights) */
-} miopenOp_t;
 
 /*! @struct miopenOpCost_t
 * @brief cost of a single (possibly fused) op
@@ -1836,7 +1768,7 @@ typedef struct miopen_op_realization
 * @return          miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
-miopenCreateFusionPlanDescriptor(miopenFusionPlanDescriptor* fusePlanDesc);
+miopenCreateFusionPlanDescriptor(miopenFusionPlanDescriptor_t* fusePlanDesc);
 
 /*! @brief Destroy the FUSION plan descriptor object
 *
@@ -1844,14 +1776,31 @@ miopenCreateFusionPlanDescriptor(miopenFusionPlanDescriptor* fusePlanDesc);
 * @return          miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
-miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor fusePlanDesc);
+miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc);
 
 /*! @brief Destroy MIOpen operator object
 *
 * @param miopenOp  operator (input)
 * @return          miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenDestroyOperator(const miopenOperatorDescriptor miopenOp);
+MIOPEN_EXPORT miopenStatus_t miopenDestroyOperator(miopenOperatorDescriptor_t miopenOp);
+
+
+MIOPEN_EXPORT miopenStatus_t miopenCheckFusionPlans(miopenFusionPlanDescriptor_t* fusePlanDesc,
+                                                 miopenOperator_t* arrayOfOperators,
+                                                 const size_t numOps,
+                                                 const miopenPipelineMode_t pipelineMode,
+                                                 const miopenFusionDirection_t fuseDirection);
+
+MIOPEN_EXPORT miopenStatus_t miopenSetFusionPlanDescriptor(miopenFusionPlanDescriptor_t* fusePlanDesc,
+                              miopenOperatorDescriptor_t* arrayOfOperators,
+                              const size_t numOps,
+                              const miopenPipelineMode_t pipelineMode,
+                              const miopenFusionDirection_t fuseDirection);
+
+
+MIOPEN_EXPORT miopenStatus_t miopenCreateOp(miopenOperatorDescriptor_t* Op, const miopenOperator_t operator);
+
 
 /*! @brief Creates miopen convolution operator.
 *
@@ -1863,11 +1812,14 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyOperator(const miopenOperatorDescripto
 * (input)
 * @return          miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenCreateConvOp(miopenOperatorDescriptor* convOp,
-                                                const miopenPipelineMode_t pipelineMode,
-                                                const miopenOp_t opDesc,
-                                                const miopenConvolutionDescriptor_t convDesc,
-                                                bool exhaustiveSearch);
+MIOPEN_EXPORT miopenStatus_t miopenConfigConvInferenceOp(miopenOperatorDescriptor_t* convOp,
+                                                      miopenConvolutionDescriptor_t convDesc,
+                                                      miopenConvFwdAlgorithm_t algo,
+                                                      const TensorDescriptor& xDesc,
+                                                      const TensorDescriptor& wDesc,
+                                                      const TensorDescriptor& yDesc);
+
+
 
 /*! @brief Creates miopen operator
 *
@@ -1881,12 +1833,11 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateConvOp(miopenOperatorDescriptor* convOp
 * @return          miopenStatus_t
 */
 
-MIOPEN_EXPORT miopenStatus_t miopenCreateActivationOp(miopenOperatorDescriptor* activOp,
-                                                      const miopenPipelineMode_t pipelineMode,
-                                                      const miopenOp_t opDesc,
-                                                      const miopenActivationDescriptor_t activDesc,
-                                                      const void* alpha,
-                                                      const void* beta);
+MIOPEN_EXPORT miopenStatus_t miopenConfigActivationInferenceOp(miopenOperatorDescriptor_t* activOp,
+                                  const miopenActivationDescriptor_t activDesc,
+                                  const TensorDescriptor& xDesc,
+                                  const TensorDescriptor& yDesc);
+
 
 /*! @brief creates a operator for batch normalization
 *
@@ -1906,17 +1857,18 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateActivationOp(miopenOperatorDescriptor* 
 * @return                          miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
-miopenCreateBatchNormalizationOp(miopenOperatorDescriptor* bnOp,
-                                 const miopenPipelineMode_t pipelineMode,
-                                 const miopenOp_t opDesc,
-                                 const miopenBatchNormMode_t bn_mode,
-                                 const void* alpha,
-                                 const void* beta,
-                                 const void* bnScale,
-                                 const void* bnBias,
-                                 const void* estimatedMean,
-                                 const void* estimatedVariance,
-                                 double epsilon);
+miopenConfigBatchNormInferenceOp(miopenOperatorDescriptor_t* bnOp,
+                                 const TensorDescriptor& xDesc,
+                                 const TensorDescriptor& yDesc,
+                                 const TensorDescriptor& bnScaleBiasMeanVarDesc);
+
+
+
+MIOPEN_EXPORT miopenStatus_t
+miopenConfigPoolingInferenceOp(miopenOperatorDescriptor_t* poolOp,
+                                 const miopenPoolingDescriptor_t poolDesc,
+                                 const TensorDescriptor& xDesc,
+                                 const TensorDescriptor& yDesc);
 
 /*! @brief Create a forward pooling op
 *
@@ -1935,34 +1887,33 @@ MIOPEN_EXPORT miopenStatus_t miopenCreatePoolingOp(miopenOperatorDescriptor* poo
                                                    const void* alpha,
                                                    const void* beta);
 
-/*! @brief Create a element-wise  op
-*
-* the op string has to have a following form
-* "(<any number of algebara operators over the verible X and/or any single argument OpenCl intrinsic
-over X and/or any transforms using ALPHA, BETA, GAMMA as a coeffients>)"
-* samples:
-* "(log(X*X + AlPHA)/BETA)"
-* "(exp(-ALPHA/X + BETA*BETA + GAMMA))"
-*
-* @param eltWiseOp      element-wise operator over a tensor (output)
-* @param pipelineMode   pipeline the op is operating in (input)
-* @param opDesc         common operator descriptor (input)
-* @param n              size of the folloing buffer in bytes incuding terminating nulls (input)
-* @param op             a null-terminated string representing an op (input)
-* @param ALPHA          coefficent
-* @param BETA           ''
-* @param GAMMA          ''
 
-* @return               miopenStatus_t
-*/
-MIOPEN_EXPORT miopenStatus_t miopenCreateEltWizeOp(miopenOperatorDescriptor* eltWiseOp,
-                                                   const miopenPipelineMode_t pipelineMode,
-                                                   const miopenOp_t opDesc,
-                                                   const size_t n,
-                                                   const char* op,
-                                                   double ALPHA,
-                                                   double BETA,
-                                                   double GAMMA);
+MIOPEN_EXPORT miopenStatus_t miopenSetArgsConvInferenceOp(const miopenOperatorDescriptor_t convOp,
+                                                       const void* w);
+
+
+
+MIOPEN_EXPORT miopenStatus_t miopenSetArgsBatchNormInferenceOp(const miopenOperatorDescriptor_t bnOp,
+                                                            miopenOperatorArgs_t* bnArgs,
+                                                            const void* bnScale,
+                                                            const void* bnBias,
+                                                            const void* estimatedMean,
+                                                            const void* estimatedVariance,
+                                                            const double epsilon);
+
+
+
+MIOPEN_EXPORT miopenStatus_t miopenSetArgsActivationInferenceOp(const miopenOperatorDescriptor_t activOp,
+                                   miopenOperatorArgs_t* actArgs);
+
+
+// This is essentially a noop, but it forces the users to have a matching length arg array in
+// execute
+MIOPEN_EXPORT miopenStatus_t miopenSetArgsPoolingInferenceOp(miopenOperatorDescriptor_t* poolingOp,
+                                                          const miopenPoolingDescriptor_t poolDesc);
+
+
+
 
 /*! @brief returns the miopen operator type.
 *
@@ -1973,41 +1924,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateEltWizeOp(miopenOperatorDescriptor* elt
 MIOPEN_EXPORT miopenStatus_t miopenGetOperatorType(const miopenOperatorDescriptor miopenOp,
                                                    miopenOperator_t* opType);
 
-/*! @brief returns the number of possible realizations of the op.
-*
-* @param miopenOp  operator (input)
-* @param nReal     pointer to a returned number (output)
-* @return          miopenStatus_t
-*/
-MIOPEN_EXPORT miopenStatus_t miopenGetNRealizations(const miopenOperatorDescriptor miopenOp,
-                                                    size_t* nReal);
 
-/*! @brief returns the possible realizations of the op.
-*
-* @param miopenOp  operator (input)
-* @param nReal     number of realization (input)
-* @param opReal    realizations (output)
-* @param nReal     pointer to an actual returned number of realiazations(output)
-* @return          miopenStatus_t
-*/
-MIOPEN_EXPORT miopenStatus_t miopenGetRealizations(const miopenOperatorDescriptor miopenOp,
-                                                   const size_t nReal,
-                                                   miopenOpRealization_t* opReal,
-                                                   size_t* nRet);
-
-/*! @brief geta cost of a particular fuzed sub-graph
-*
-* The subgraph is represented as an array of realizations connected by names of realization edges.
-* The function verifies the sub-graph can be fused.
-* It returns a planned cost assisiated with fused version of the sub-graph.
-*
-* @param handle         MIOpen handle (input)
-* @param nOps           number of ops (input)
-* @param opReal         array of ops realizations (input)
-* @param opCost         pointer to the assossiated cosr structure (output)
-*
-* @return           miopenStatus_t
-*/
 
 MIOPEN_EXPORT miopenStatus_t miopenGetFusionPlanCost(const miopenHandle_t handle,
                                                      const size_t nOps,
@@ -2027,11 +1944,10 @@ MIOPEN_EXPORT miopenStatus_t miopenGetFusionPlanCost(const miopenHandle_t handle
 *
 * @return           miopenStatus_t
 */
-
-MIOPEN_EXPORT miopenStatus_t miopenCreateFusionPlan(const miopenHandle_t handle,
-                                                    const miopenFusionPlanDescriptor fusePlanDescr,
-                                                    const size_t nOps,
-                                                    const miopenOpRealization_t* opReal);
+MIOPEN_EXPORT miopenStatus_t miopenGetFusionPlanCostEstimate(const miopenHandle_t handle,
+                                const miopenFusionPlanDescriptor_t fusePlanDesc,
+                                const miopenOperatorDescriptor_t* arrayOfOperatorDesc,
+                                miopenOpCost_t* opCost);
 
 /*! @brief execute the plan of the fused sub-graph
 *

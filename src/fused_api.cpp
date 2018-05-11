@@ -42,9 +42,9 @@ extern "C" miopenStatus_t miopenCheckFusionPlans(miopenFusionPlanDescriptor_t* f
                                                  miopenOperator_t* arrayOfOperators,
                                                  const size_t numOps,
                                                  const miopenPipelineMode_t pipelineMode,
-                                                 const miopenFusionDirection_t fuseDirection);
+                                                 const miopenFusionDirection_t fuseDirection)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, arrayOfOperators, numOps, pipelineMode, fuseDirection);
     return (miopenStatusSuccess);
 }
 
@@ -57,9 +57,9 @@ miopenSetFusionPlanDescriptor(miopenFusionPlanDescriptor_t* fusePlanDesc,
                               miopenOperatorDescriptor_t* arrayOfOperators,
                               const size_t numOps,
                               const miopenPipelineMode_t pipelineMode,
-                              const miopenFusionDirection_t fuseDirection);
+                              const miopenFusionDirection_t fuseDirection)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, arrayOfOperators, numOps, pipelineMode, fuseDirection);
     return (miopenStatusSuccess);
 }
 
@@ -72,14 +72,16 @@ miopenCreateOp(miopenOperatorDescriptor_t* Op, const miopenOperator_t operator)
     return (miopenStatusSuccess);
 }
 
+
+// IF the algo is not present 
 extern "C" miopenStatus_t miopenConfigConvInferenceOp(miopenOperatorDescriptor_t* convOp,
                                                       miopenConvolutionDescriptor_t convDesc,
                                                       miopenConvFwdAlgorithm_t algo,
                                                       const TensorDescriptor& xDesc,
                                                       const TensorDescriptor& wDesc,
-                                                      const TensorDescriptor& yDesc, )
+                                                      const TensorDescriptor& yDesc)
 {
-    MIOPEN_LOG_FUNCTION(convOp, convDesc, xDesc, wDesc, yDesc);
+    MIOPEN_LOG_FUNCTION(convOp, convDesc, algo, xDesc, wDesc, yDesc);
     return (miopenStatusSuccess);
 }
 
@@ -101,6 +103,17 @@ miopenConfigBatchNormInferenceOp(miopenOperatorDescriptor_t* bnOp,
 {
 
     MIOPEN_LOG_FUNCTION(bnOp, bn_mode, xDesc, yDesc, bnScaleBiasMeanVarDesc);
+    return (miopenStatusSuccess);
+}
+
+extern "C" miopenStatus_t
+miopenConfigPoolingInferenceOp(miopenOperatorDescriptor_t* poolOp,
+                                 const miopenPoolingDescriptor_t poolDesc,
+                                 const TensorDescriptor& xDesc,
+                                 const TensorDescriptor& yDesc)
+{
+
+    MIOPEN_LOG_FUNCTION(poolOp, poolDesc, xDesc, yDesc);
     return (miopenStatusSuccess);
 }
 
@@ -137,19 +150,10 @@ extern "C" miopenStatus_t miopenSetArgsBatchNormInferenceOp(const miopenOperator
 // execute
 extern "C" miopenStatus_t
 miopenSetArgsActivationInferenceOp(const miopenOperatorDescriptor_t activOp,
-                                   miopenOperatorArgs_t* actArgs);
+                                   miopenOperatorArgs_t* actArgs)
 {
 
-    MIOPEN_LOG_FUNCTION(bnOp,
-                        dataType,
-                        bn_mode,
-                        alpha,
-                        beta,
-                        bnScale,
-                        bnBias,
-                        estimatedMean,
-                        estimatedVariance,
-                        epsilon);
+    MIOPEN_LOG_FUNCTION(activOp, actArgs);
     return (miopenStatusSuccess);
 }
 
@@ -159,7 +163,7 @@ extern "C" miopenStatus_t miopenSetArgsPoolingInferenceOp(miopenOperatorDescript
                                                           const miopenPoolingDescriptor_t poolDesc)
 {
 
-    MIOPEN_LOG_FUNCTION(poolingOp, poolDesc, alpha, beta);
+    MIOPEN_LOG_FUNCTION(poolingOp, poolDesc);
     return (miopenStatusSuccess);
 }
 
@@ -173,11 +177,18 @@ extern "C" miopenStatus_t
 miopenExecuteFusionPlan(const miopenHandle_t handle,
                         const miopenFusionPlanDescriptor_t fusePlanDesc,
                         const miopenOperatorDescriptor_t* arrayOfOperatorDesc,
+                        const miopenTensorDescriptor_t xDesc,
+                        const void* x,
+                        const miopenTensorDescriptor_t yDesc,
+                        void* y
                         const miopenOperatorArgs_t* arrayOfArgs)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc, arrayOfOperatorDesc, arrayOfArgs);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, arrayOfOperatorDesc, xDesc, x, yDesc, y, arrayOfArgs);
     return (miopenStatusSuccess);
 }
+
+
+
 
 extern "C" miopenStatus_t miopenGetOperatorType(const miopenOperatorDescriptor miopenOp,
                                                 miopenOperator_t* opType)
@@ -196,49 +207,29 @@ miopenGetFusionPlanCostEstimate(const miopenHandle_t handle,
     return (miopenStatusSuccess);
 }
 
-extern "C" miopenStatus_t miopenCreateFusionPlan(const miopenHandle_t handle,
-                                                 const miopenFusionPlanDescriptor fusePlanDescr,
-                                                 const size_t nOps,
-                                                 const miopenOpRealization_t* opReal)
-{
 
-    MIOPEN_LOG_FUNCTION(handle, fusePlanDescr, nOps, opReal);
+extern "C" miopenStatus_t
+miopenGetFusionPlanCostEmpirical(const miopenHandle_t handle,
+                                  const miopenFusionPlanDescriptor_t fusePlanDesc,
+                                  const miopenOperatorDescriptor_t* arrayOfOperatorDesc,
+                                  const size_t workSpaceSize,
+                                  void* workSpace,
+                                  openOperatorArgs_t* arrayOfArgs
+                                  miopenOpCost_t* opCost)
+{
+    MIOPEN_LOG_FUNCTION(miopenOp, nOps, opReal, opCost);
     return (miopenStatusSuccess);
 }
 
-extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
-                                                  const miopenFusionPlanDescriptor fusePlanDescr,
-                                                  size_t n_src,
-                                                  const void** src,
-                                                  size_t n_dst,
-                                                  const void** dst,
-                                                  size_t n_weights,
-                                                  const void** weights,
-                                                  const void* workSpace,
-                                                  size_t workSpaceSize)
-{
 
-    MIOPEN_LOG_FUNCTION(handle,
-                        fusePlanDescr,
-                        n_src,
-                        src,
-                        n_dst,
-                        dst,
-                        n_weights,
-                        weights,
-                        workSpace,
-                        workSpaceSize);
-    return (miopenStatusSuccess);
-}
-
-extern "C" miopenStatus_t miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor fusePlanDesc)
+extern "C" miopenStatus_t miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc)
 {
 
     MIOPEN_LOG_FUNCTION(fusePlanDesc)
     return (miopenStatusSuccess);
 }
 
-extern "C" miopenStatus_t miopenDestroyOperator(const miopenOperatorDescriptor miopenOp)
+extern "C" miopenStatus_t miopenDestroyOperator(miopenOperatorDescriptor_t miopenOp)
 {
 
     MIOPEN_LOG_FUNCTION(miopenOp)
