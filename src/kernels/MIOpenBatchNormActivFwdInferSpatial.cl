@@ -617,6 +617,7 @@ MIOpenBatchNormActivFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* 
     _FLOAT response[MIOPEN_READ_UNIT];
     _FLOAT invVariance = rsqrt(fabs(pvar + epsilon));
 
+    __attribute__((opencl_unroll_hint(2)))
     for(n_i = 0; n_i < MIO_BN_N; n_i++)
     {
         int index                  = n_i * MIO_BN_CHW + c_offset + hw_i * MIOPEN_READ_UNIT;
