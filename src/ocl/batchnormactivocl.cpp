@@ -102,7 +102,8 @@ void BatchNormActivForwardInference(Handle& handle,
     unsigned int in_nstride = c * h * w;
     unsigned int in_cstride = h * w;
 
-    size_t read_len  = n * h * w;
+    // size_t read_len  = n * h * w;
+    size_t read_len  = h * w;
     size_t read_unit = (in_cstride % 4 == 0) ? 4 : (in_cstride % 2 == 0) ? 2 : 1;
     // size_t read_unit = 1;
     size_t MAP_RD = read_len / read_unit;
@@ -158,7 +159,8 @@ void BatchNormActivForwardInference(Handle& handle,
             " -DMIOPEN_READ_UNIT=" + std::to_string(read_unit) + " -DMIO_BN_HW_RD=" +
             std::to_string(in_cstride / read_unit) + " -DMIOPEN_READ_TYPE=" + READ_TYPE +
             " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" +
-            std::to_string(zlocalsize) + " -DMIOPEN_NRN_OP_ID=" + std::to_string(activ_mode);
+            std::to_string(zlocalsize) + " -DMIOPEN_NRN_OP_ID=" + std::to_string(activ_mode) +
+            " -DMIO_BN_N=" + std::to_string(n);
 
         vld.push_back(xlocalsize);
         vld.push_back(ylocalsize);
