@@ -35,9 +35,33 @@
 
 namespace miopen {
 
-/*! @struct miopenActivationOpParams_t
-* @brief Contains the activation operator parameters
+
+/*! @struct miopenEdge_t
+* @brief Defines an operation edge
 */
+typedef struct miopen_edge
+{
+    const char* name;                    /*!< edge name */
+    double alpha;                        /*!< scale */
+    bool immutable;                      /*!< immutable data */
+    const miopenTensorDescriptor_t data; /*!< data */
+} miopenEdge_t;
+
+/*! @struct miopenOp_t
+* @brief common part of op definition
+*/
+typedef struct miopen_op
+{
+    const char* name;                /*!< opration instance name if applicable */
+    int n_inputEdges;                /*!< number of input edges */
+    const miopenEdge_t* inputEdges;  /*!< input edges definitions */
+    int n_outputEdges;               /*!< number of output edges */
+    const miopenEdge_t* outputEdges; /*!< output edges definitions */
+    int n_internEdges;               /*!< number of internal edges */
+    const miopenEdge_t* internEdges; /*!< internal edges definitions (weights) */
+} miopenOp_t;
+
+
 typedef struct
 {
     miopenActivationMode_t mode;
