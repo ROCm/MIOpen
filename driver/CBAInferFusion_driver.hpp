@@ -479,6 +479,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
         miopenGetActivationDescriptor(
             activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
 
+#if 1
         miopen::BatchNormActivForwardInference(miopen::deref(GetHandle()),
                                                bn_mode,
                                                &alpha,
@@ -498,9 +499,10 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
                                                activ_beta,
                                                activ_gamma);
 
-        // printf("Running for inference.\n");
-        // runGPUBNFwdInference(epsilon, alpha, beta);
-        // runGPUActivFwdInference(alpha, beta);
+#else
+        runGPUBNFwdInference(epsilon, alpha, beta);
+        runGPUActivFwdInference(alpha, beta);
+#endif
 
         miopen::deref(GetHandle()).Finish();
         STOP_TIME;
