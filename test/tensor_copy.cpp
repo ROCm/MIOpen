@@ -109,27 +109,28 @@ struct verify_tensor_copy
         auto dstSuper_dev = handle.Write(dstSuperGpu.data);
         auto srcSuper_dev = handle.Write(srcSuper.data);
 
-        timeval start{};
-        timeval end{};
-        gettimeofday(&start, nullptr);
+        // timeval start{};
+        // timeval end{};
+        // gettimeofday(&start, nullptr);
         miopen::CopyTensor(
             handle, srcDesc, srcSuper_dev.get(), dstDesc, dstSuper_dev.get(), srcOffset, dstOffset);
-        gettimeofday(&end, nullptr);
+        // gettimeofday(&end, nullptr);
 
-        long w_time =
-            ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec));
+        // long w_time =
+        //    ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec));
 
-        std::size_t nbyte = sizeof(T{}) * std::accumulate(srcDesc.GetLengths().begin(),
-                                                          srcDesc.GetLengths().end(),
-                                                          std::size_t{1},
-                                                          std::multiplies<std::size_t>());
+        // std::size_t nbyte = sizeof(T{}) * std::accumulate(srcDesc.GetLengths().begin(),
+        //                                                  srcDesc.GetLengths().end(),
+        //                                                  std::size_t{1},
+        //                                                  std::multiplies<std::size_t>());
 
-        std::cout << "wall time: " << w_time / 1000.0 << "ms" << std::endl;
+        // std::cout << "wall time: " << w_time / 1000.0 << "ms" << std::endl;
         // std::cout << "kernel time: " << handle.GetKernelTime() << "ms" << std::endl;
-        std::cout << "bandwidth: "
-                  << 2.0 * (static_cast<float>(nbyte) / (static_cast<float>(std::size_t(1) << 30) *
-                                                         handle.GetKernelTime() / 1000.0))
-                  << "GB/s" << std::endl;
+        // std::cout << "bandwidth: "
+        //          << 2.0 * (static_cast<float>(nbyte) / (static_cast<float>(std::size_t(1) << 30)
+        //          *
+        //                                                 handle.GetKernelTime() / 1000.0))
+        //          << "GB/s" << std::endl;
 
         dstSuperGpu.data = handle.Read<T>(dstSuper_dev, dstSuperGpu.data.size());
 
