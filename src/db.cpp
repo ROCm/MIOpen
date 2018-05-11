@@ -70,8 +70,10 @@ std::string LockFilePath(const boost::filesystem::path& filename_)
     return file.string();
 }
 
-Db::Db(const std::string& filename_)
-    : filename(filename_), lock_file(LockFile::Get(LockFilePath(filename_).c_str()))
+Db::Db(const std::string& filename_, bool warn_if_unreadable_)
+    : filename(filename_),
+      lock_file(LockFile::Get(LockFilePath(filename_).c_str())),
+      warn_if_unreadable(warn_if_unreadable_)
 {
 }
 
@@ -142,7 +144,11 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
 
     if(!file)
     {
-        MIOPEN_LOG_W("File is unreadable: " << filename);
+        if(warn_if_unreadable)
+            MIOPEN_LOG_W("File is unreadable: " << filename);
+        else
+            MIOPEN_LOG_I("File is unreadable: " << filename);
+
         return boost::none;
     }
 
