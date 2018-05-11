@@ -117,8 +117,8 @@ void BatchNormActivForwardInference(Handle& handle,
     std::vector<size_t> vld;
     std::vector<size_t> vgd;
 
-    size_t xgridsize = size_t(MAP_RD);
-    size_t ygridsize = size_t(c);
+    auto xgridsize = MAP_RD;
+    auto ygridsize = size_t(c);
     size_t zgridsize = 1;
 
     std::string algo_name = "miopenBatchNormalizationActiveForwardInference";
