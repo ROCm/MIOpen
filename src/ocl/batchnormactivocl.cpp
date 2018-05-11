@@ -102,23 +102,31 @@ void BatchNormActivForwardInference(Handle& handle,
     unsigned int in_nstride = c * h * w;
     unsigned int in_cstride = h * w;
 
-    size_t xlocalsize = 1;
-    auto ylocalsize   = size_t((in_cstride > 1024) ? 1024 : ((64 >= in_cstride) ? 64 : 256));
+    size_t read_len  = n * h * w;
+    size_t read_unit = (in_cstride % 4 == 0) ? 4 : (in_cstride % 2 == 0) ? 2 : 1;
+    // size_t read_unit = 1;
+    size_t MAP_RD = read_len / read_unit;
+    const std::string READ_TYPE =
+        (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
+
+    size_t xlocalsize = 256;
+    size_t ylocalsize = 1;
+    size_t zlocalsize = 1;
 
     std::vector<size_t> vld;
     std::vector<size_t> vgd;
 
-    auto segment   = std::ceil(double(in_cstride) / double(ylocalsize));
-    auto xgridsize = size_t(c);
-    auto ygridsize = size_t(segment * ylocalsize);
+    size_t xgridsize = size_t(MAP_RD);
+    size_t ygridsize = size_t(c);
+    size_t zgridsize = 1;
 
     std::string algo_name = "miopenBatchNormalizationActiveForwardInference";
     std::string network_config =
-        std::to_string(n) + std::to_string(in_cstride) + std::to_string(in_nstride) +
-        std::to_string(segment) + "dims" + std::to_string(xgridsize) + std::to_string(ygridsize) +
-        std::to_string(xlocalsize) + std::to_string(ylocalsize) + +"type" +
-        std::to_string(static_cast<int>(bfp16parm)) + std::to_string(static_cast<int>(bfp32parm)) +
-        "mode" + std::to_string(bn_mode) + std::to_string(activ_mode);
+        std::to_string(n) + std::to_string(in_cstride) + std::to_string(in_nstride) + "dims" +
+        std::to_string(xgridsize) + std::to_string(ygridsize) + std::to_string(xlocalsize) +
+        std::to_string(ylocalsize) + +"type" + std::to_string(static_cast<int>(bfp16parm)) +
+        std::to_string(static_cast<int>(bfp32parm)) + "mode" + std::to_string(bn_mode) +
+        std::to_string(activ_mode);
 
     auto&& kernels = handle.GetKernels(algo_name, network_config);
     if(!kernels.empty())
@@ -129,8 +137,6 @@ void BatchNormActivForwardInference(Handle& handle,
     else
     {
 
-        size_t zlocalsize        = 1;
-        size_t zgridsize         = 1;
         std::string program_name = "MIOpenBatchNormActivFwdInfer"; // build this up
         std::string kernel_name  = "MIOpenBatchNormActivFwdInfer";
         if(bn_mode == miopenBNSpatial)
@@ -149,6 +155,8 @@ void BatchNormActivForwardInference(Handle& handle,
             " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) + " -DMIO_BN_N=" +
             std::to_string(n) + " -DMIO_BN_HW=" + std::to_string(in_cstride) + " -DMIO_BN_CHW=" +
             std::to_string(in_nstride) + " -DMIO_BN_GRP0=" + std::to_string(xlocalsize) +
+            " -DMIOPEN_READ_UNIT=" + std::to_string(read_unit) + " -DMIO_BN_HW_RD=" +
+            std::to_string(in_cstride / read_unit) + " -DMIOPEN_READ_TYPE=" + READ_TYPE +
             " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) + " -DMIO_BN_GRP2=" +
             std::to_string(zlocalsize) + " -DMIOPEN_NRN_OP_ID=" + std::to_string(activ_mode);
 
