@@ -1618,7 +1618,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                         float zero = 0.f;
                         SetTensor(handle, dxDesc, dx, &zero);
                         if(handle.IsProfilingEnabled())
-                            t1 = handle.GetKernelTime();
+                            t1 += handle.GetKernelTime();
 
                         kernel2(workSpace, dx);
                         if(handle.IsProfilingEnabled())
