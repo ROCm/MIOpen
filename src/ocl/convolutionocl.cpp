@@ -253,10 +253,9 @@ EstimateSolutionConvForwardBackwardDataDirect(Handle& handle,
     if(with_subsample && with_upsample)
         return -3;
 
-    ConstData_t conv_in = with_subsample
-                              ? workSpace
-                              : in; /// \todo Check implicit conversion - workspace type is Data_t.
-    Data_t conv_out = with_upsample ? workSpace : out;
+    // Note implicit conversion: Data_t to ConstData_t (workSpace).
+    ConstData_t conv_in = with_subsample ? workSpace : in;
+    Data_t conv_out     = with_upsample ? workSpace : out;
 
     elapsed = 0.0f;
     for(auto& k : kernels)
@@ -762,15 +761,14 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 auto num_kernels = kernels.size();
             const auto p_kernel  = std::begin(kernels);
             auto kernel          = *p_kernel;
-            float padding_val    = 0;
 
             visit_float(xDesc.GetType(), [&](auto as_float) {
                 // Miminum checks. Only check what is required to select
                 // proper invocation procedure & workspace sanity.
-                float elapsed = 0;
+                float padding_val = 0;
+                float elapsed     = 0;
                 if((kernel.GetName() == "MIOpenCvFwd11x11") && num_kernels == 2)
                 {
-                    handle.ResetKernelTime();
                     kernel(x, w, y, as_float(padding_val));
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
@@ -1632,7 +1630,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 handle.GetKernels("miopenConvolutionBwdDataAlgoDirect", network_config);
             const auto p_kernel = std::begin(kernels);
             auto kernel         = *p_kernel;
-            float padding_val   = 0;
             assert(1 <= kernels.size() && kernels.size() <= 2);
 
             visit_float(dyDesc.GetType(), [&](auto as_float) {
@@ -1681,6 +1678,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 }
                 else
                 {
+                    float padding_val = 0;
                     kernel(dy, w, dx, as_float(padding_val));
                     if(handle.IsProfilingEnabled())
                         t1 += handle.GetKernelTime();
