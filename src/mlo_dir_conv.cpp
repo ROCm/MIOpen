@@ -50,7 +50,10 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
  **
  ************************************************************************************************************************/
 
-miopen::Db mlo_construct_direct2D::GetDb() const { return {db_path()}; }
+miopen::MultiFileDb mlo_construct_direct2D::GetDb() const
+{
+    return {db_path(), _search_params.GetUserPerfDbPath()};
+}
 
 /*
    construction has been split into 2
