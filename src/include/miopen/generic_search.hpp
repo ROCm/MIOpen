@@ -253,13 +253,14 @@ inline size_t divide_round_plus_inf(const size_t x, const size_t y)
 enum class SearchTweak
 {
     None,
-    // The top buffer could be made 4x smaller for some cases, e.g.
+    // The top/bot buffer could be made 4x smaller for some cases, e.g.
     // when the 2x subsampling kernel is used at the dx input of
     // the WrW convolution, but we are skipping it during auto-tune:
     Impl4xReduceTop_,
     Skipped2xSubsample_dxWrW = Impl4xReduceTop_,
-    Skipped2xSubsample_yFwd  = Impl4xReduceTop_,
     Skipped2xUpsample_dxBwd  = Impl4xReduceTop_,
+    Impl4xReduceBot_,
+    Skipped2xSubsample_yFwd = Impl4xReduceBot_,
 };
 
 /// Solver member function requirements:
@@ -302,8 +303,13 @@ auto GenericSearch(const Solver s,
     size_t top_size = context.top_sz / sizeof(float);
     if(tweak == SearchTweak::Impl4xReduceTop_)
         top_size = divide_round_plus_inf(top_size, static_cast<size_t>(2 * 2));
-    std::vector<float> bot(context.bot_sz / sizeof(float));
     std::vector<float> top(top_size);
+
+    size_t bot_size = context.bot_sz / sizeof(float);
+    if(tweak == SearchTweak::Impl4xReduceBot_)
+        bot_size = divide_round_plus_inf(bot_size, static_cast<size_t>(2 * 2));
+    std::vector<float> bot(bot_size);
+
     std::vector<float> wei(context.weights_sz / sizeof(float));
     std::vector<float> bias(context.bias_sz / sizeof(float));
     InitRandomly(bot);
