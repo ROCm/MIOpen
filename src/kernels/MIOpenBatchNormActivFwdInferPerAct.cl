@@ -291,14 +291,6 @@ __attribute__((always_inline)) void ActivationFunction(const uint n,
     {
         ActivationFunction_ELU(n, res, data, gamma, beta, alpha);
     }
-//#elif MIOPEN_NRN_OP_ID==MIOPEN_NEURON_SQUARE
-//    {
-//        ActivationFunction_Square(res, data);
-//    }
-//#elif MIOPEN_NRN_OP_ID==MIOPEN_NEURON_SQR
-//    {
-//	    ActivationFunction_Sqrt(n, res, data);
-//    }
 #endif
 }
 
@@ -554,60 +546,70 @@ __attribute__((always_inline)) void ActivationFunction_Diff(const uint n,
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
+__attribute__((always_inline)) void BatchNormFunction(const uint n,
+                                                      _FLOAT* out,
+                                                      const _FLOAT* in,
+                                                      const _FLOAT* mean,
+                                                      const _FLOAT* invVariance,
+                                                      const _FLOAT* scale,
+                                                      const _FLOAT* bias)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        out[i] = mad(scale[i], (in[i] - mean[i]) * invVariance[i], bias[i]);
+    }
+}
+
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormActivFwdInferPerActEst(
-    const __global _FLOAT* in,                     /* x input */
-    __global _FLOAT* __restrict out,               /* y output */
-    __global _FLOAT* __restrict estimatedMean,     /*input and output, same descriptor as bias*/
-    __global _FLOAT* __restrict estimatedVariance, /*input and output*/
-    const __global _FLOAT* __restrict scale,       /* gamma 1xCxHxW */
-    const __global _FLOAT* __restrict bias,        /* beta 1xCxHxW */
+    const __global _FLOAT* in,                       /* x input */
+    __global _FLOAT* __restrict out,                 /* y output */
+    const __global _FLOAT* __restrict estimatedMean, /*input and output, same descriptor as bias*/
+    const __global _FLOAT* __restrict estimatedVariance, /*input and output*/
+    const __global _FLOAT* __restrict scale,             /* gamma 1xCxHxW */
+    const __global _FLOAT* __restrict bias,              /* beta 1xCxHxW */
     double epsilon,
     const _FLOAT gamma,
     const _FLOAT beta,
     const _FLOAT alpha)
 {
+    int gid0 = get_global_id(0);
+    int gid1 = get_global_id(1);
 
-    // PER ACTIVATION
-    _FLOAT mean, variance;
-    _FLOAT invVariance, elemStd, inhat;
-    _FLOAT pvt_scale, pvt_bias;
-    unsigned int adjIndex, inImgIndex, index;
+    int chw_i = gid0 * MIOPEN_READ_UNIT;
 
-    int xgid    = get_global_id(0);
-    int ygid    = get_global_id(1);
-    int yglb_sz = get_global_size(1);
+    _FLOAT pmean[MIOPEN_READ_UNIT];
+    _FLOAT pvar[MIOPEN_READ_UNIT];
+    _FLOAT pscale[MIOPEN_READ_UNIT];
+    _FLOAT pbias[MIOPEN_READ_UNIT];
 
-    int Cidx = MIO_BN_HW * xgid;
+    *((MIOPEN_READ_TYPE*)pmean)  = *((const __global MIOPEN_READ_TYPE*)(estimatedMean + chw_i));
+    *((MIOPEN_READ_TYPE*)pvar)   = *((const __global MIOPEN_READ_TYPE*)(estimatedVariance + chw_i));
+    *((MIOPEN_READ_TYPE*)pscale) = *((const __global MIOPEN_READ_TYPE*)(scale + chw_i));
+    *((MIOPEN_READ_TYPE*)pbias)  = *((const __global MIOPEN_READ_TYPE*)(bias + chw_i));
 
-    // move across the sections of an image in the mini_batch stack
-    for(int img_offset = 0; img_offset < MIO_BN_HW; img_offset += yglb_sz)
+    //_FLOAT pmean   = estimatedMean[chw_i];
+    //_FLOAT pvar    = estimatedVariance[chw_i];
+    //_FLOAT pscale   = scale[chw_i];
+    //_FLOAT pbias    = bias[chw_i];
+
+    _FLOAT data[MIOPEN_READ_UNIT];
+    _FLOAT response[MIOPEN_READ_UNIT];
+    _FLOAT pinvVariance[MIOPEN_READ_UNIT];
+
+    for(int i           = 0; i < MIOPEN_READ_UNIT; i++)
+        pinvVariance[i] = rsqrt(fabs(pvar[i] + epsilon));
+
+    int n_i = 0;
+    __attribute__((opencl_unroll_hint(2))) for(n_i = 0; n_i < MIO_BN_N; n_i++)
     {
-        inImgIndex = img_offset + ygid;
-        if(inImgIndex < MIO_BN_HW)
-        {
-            adjIndex    = Cidx + inImgIndex; // gamma and beta tensor index
-            mean        = estimatedMean[adjIndex];
-            variance    = estimatedVariance[adjIndex];
-            invVariance = rsqrt(fabs(variance + epsilon));
-            pvt_scale   = *(scale + adjIndex);
-            pvt_bias    = *(bias + adjIndex);
-
-#pragma unroll
-            for(int n = 0; n < MIO_BN_N; n++)
-            {
-                // per (x-dims) channel load a block of data into LDS
-                index   = MIO_BN_CHW * n + adjIndex;
-                elemStd = *(in + index) - mean; // (x_i - mean)
-                inhat   = elemStd * invVariance;
-                // out[index] = mad(pvt_scale, inhat, pvt_bias); //	y_i = gamma*x_hat + beta
-                _FLOAT tmp = mad(pvt_scale, inhat, pvt_bias);
-                _FLOAT out_t;
-                ActivationFunction(1, &out_t, (const _FLOAT*)&tmp, gamma, beta, alpha);
-                out[index] = out_t;
-            } // end for
-        }     // end if
-    }         // end for(img_offset) //image mini_batch is processed
+        int index                  = n_i * MIO_BN_CHW + chw_i;
+        *((MIOPEN_READ_TYPE*)data) = *((const __global MIOPEN_READ_TYPE*)(in + index));
+        BatchNormFunction(
+            MIOPEN_READ_UNIT, response, (const _FLOAT*)data, pmean, pinvVariance, pscale, pbias);
+        ActivationFunction(MIOPEN_READ_UNIT, data, (const _FLOAT*)response, gamma, beta, alpha);
+        *((__global MIOPEN_READ_TYPE*)(out + index)) = *((MIOPEN_READ_TYPE*)data);
+    }
 }
 
 // Restore warnings

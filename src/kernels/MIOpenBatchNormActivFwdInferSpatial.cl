@@ -559,13 +559,13 @@ __attribute__((always_inline)) void ActivationFunction_Diff(const uint n,
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
-__attribute__((always_inline)) void BatchNormFunction_MAD(const uint n,
-                                                          _FLOAT* out,
-                                                          const _FLOAT* in,
-                                                          const _FLOAT mean,
-                                                          const _FLOAT invVariance,
-                                                          const _FLOAT scale,
-                                                          const _FLOAT bias)
+__attribute__((always_inline)) void BatchNormFunction(const uint n,
+                                                      _FLOAT* out,
+                                                      const _FLOAT* in,
+                                                      const _FLOAT mean,
+                                                      const _FLOAT invVariance,
+                                                      const _FLOAT scale,
+                                                      const _FLOAT bias)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -593,9 +593,10 @@ MIOpenBatchNormActivFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* 
     __local _FLOAT lscale;
     __local _FLOAT lbias;
 
-    int c_i  = gid1;
-    int n_i  = iDiv(gid0, MIO_BN_HW_RD);
-    int hw_i = iMod(gid0, n_i, MIO_BN_HW_RD);
+    int c_i = gid1;
+    // int n_i  = iDiv(gid0, MIO_BN_HW_RD);
+    // int hw_i = iMod(gid0, n_i, MIO_BN_HW_RD);
+    int hw_i = gid0;
 
     unsigned int c_offset = c_i * MIO_BN_HW;
 
@@ -617,12 +618,12 @@ MIOpenBatchNormActivFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* 
     _FLOAT response[MIOPEN_READ_UNIT];
     _FLOAT invVariance = rsqrt(fabs(pvar + epsilon));
 
-    __attribute__((opencl_unroll_hint(2)))
-    for(n_i = 0; n_i < MIO_BN_N; n_i++)
+    int n_i = 0;
+    __attribute__((opencl_unroll_hint(2))) for(n_i = 0; n_i < MIO_BN_N; n_i++)
     {
         int index                  = n_i * MIO_BN_CHW + c_offset + hw_i * MIOPEN_READ_UNIT;
         *((MIOPEN_READ_TYPE*)data) = *((const __global MIOPEN_READ_TYPE*)(in + index));
-        BatchNormFunction_MAD(
+        BatchNormFunction(
             MIOPEN_READ_UNIT, response, (const _FLOAT*)data, pmean, invVariance, pscale, pbias);
         ActivationFunction(MIOPEN_READ_UNIT, data, (const _FLOAT*)response, gamma, beta, alpha);
         *((__global MIOPEN_READ_TYPE*)(out + index)) = *((MIOPEN_READ_TYPE*)data);
