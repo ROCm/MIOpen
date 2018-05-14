@@ -28,6 +28,8 @@
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
+
 namespace miopen {
 
 ConvolutionDescriptor::ConvolutionDescriptor(
@@ -244,14 +246,12 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
     int _n_outputs, _kernel_size0, _kernel_size1;
     int _n_outputs_w, _n_inputs_w;
 
-    const auto device_is_gfx9_no_xnack =
-        (device_name == "gfx900" || device_name == "gfx904" || device_name == "gfx906");
-    const bool device_is_gfx8_no_xnack = (device_name == "gfx800" || device_name == "gfx802" ||
-                                          device_name == "gfx803" || device_name == "gfx804");
-    if(!device_is_gfx8_no_xnack && !device_is_gfx9_no_xnack)
+    // Assumed rocm_meta_version::AMDHSA_1_0 or newer.
+    if(!(device_name == "gfx803" || device_name == "gfx900" || device_name == "gfx906"))
     {
         return false;
     }
+    const auto device_is_gfx8 = (device_name.find("gfx8") != std::string::npos);
 
     std::tie(_batch_sz, _n_inputs, _in_height, _in_width)             = tien<4>(xDesc.GetLengths());
     std::tie(_n_outputs_w, _n_inputs_w, _kernel_size0, _kernel_size1) = tien<4>(wDesc.GetLengths());
@@ -265,8 +265,8 @@ bool ConvolutionDescriptor::IsWinograd3x3Supported(Handle& handle,
            (_n_outputs * _in_height * _in_width) <= std::pow(2, 28) &&
            (_n_inputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28) &&
            (_n_outputs * _kernel_size0 * _kernel_size1) <= std::pow(2, 28) && _n_inputs % 2 == 0 &&
-           _n_inputs >= (device_is_gfx8_no_xnack ? 16 : 18) &&
-           (GetTypeSize(wDesc.GetType()) == 4) && (GetTypeSize(xDesc.GetType()) == 4);
+           _n_inputs >= (device_is_gfx8 ? 16 : 18) && (GetTypeSize(wDesc.GetType()) == 4) &&
+           (GetTypeSize(xDesc.GetType()) == 4);
 }
 
 bool ConvolutionDescriptor::IsBwdWeightsDirectSupported(const TensorDescriptor& wDesc) const
@@ -331,8 +331,11 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         int in_h, in_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
+        const size_t direct_workspace =
+            ForwardBackwardDataGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc, 1);
+
         if(dilation_w > 1 || dilation_h > 1)
-            return ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
+            return std::max(ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc), direct_workspace);
 
         // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
         // 1x1_stride=2
@@ -340,7 +343,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
             dilation_w == 1) &&
            ((in_h <= 14 && in_w <= 14 && u == 1 && v == 1) || (u == 2 && v == 2)))
         {
-            return ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
+            return std::max(ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc), direct_workspace);
         }
 
         // Check if Winograd is available
@@ -356,8 +359,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
             size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
             size_t workspace_size_fft  = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
 
-            return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft
-                                                             : workspace_size_gemm);
+            return std::max(std::max(workspace_size_fft, workspace_size_gemm), direct_workspace);
         }
     }
 }
@@ -374,13 +376,18 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         int wei_h, wei_w;
         std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
+        const size_t direct_workspace =
+            ForwardBackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc, 0);
+
         if(dilation_w > 1 || dilation_h > 1)
-            return BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
+            return std::max(BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc),
+                            direct_workspace);
 
         if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
            dilation_w == 1 && dilation_h == 1)
         {
-            return BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc);
+            size_t gemm_trans = BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc);
+            return std::max(gemm_trans, direct_workspace);
         }
         // Check if Winograd is available
         // If Winograd is present, there is no advantage in letting
@@ -395,8 +402,7 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
             size_t workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
             size_t workspace_size_fft  = BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc);
 
-            return (workspace_size_fft > workspace_size_gemm ? workspace_size_fft
-                                                             : workspace_size_gemm);
+            return std::max(std::max(workspace_size_fft, workspace_size_gemm), direct_workspace);
         }
     }
 }
@@ -567,6 +573,37 @@ size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
         gemm_size = 0;
 
     return gemm_size;
+}
+
+size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
+    Handle& handle,
+    const TensorDescriptor& xDesc,
+    const TensorDescriptor& yDesc,
+    const TensorDescriptor& wDesc,
+    int direction) const // 1: Forward, 0: BackwardData
+{
+
+    if(!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+        return 0;
+
+    mlo_construct_direct2D construct_params(direction);
+    construct_params.doSearch(false);
+    construct_params.setStream(&handle);
+    construct_params.setOutputDescFromMLDesc(yDesc);
+    construct_params.setInputDescFromMLDesc(xDesc);
+    construct_params.setWeightDescFromMLDesc(wDesc);
+    construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+    construct_params.setWorkaroundDisableSearchEnforce(true);
+
+    try
+    {
+        mloConstruct(construct_params);
+        return construct_params.getWorkSpaceSzBytes();
+    }
+    catch(const miopen::Exception&)
+    {
+        return 0;
+    }
 }
 
 size_t
