@@ -480,7 +480,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
             activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
 
         float time0 = 0.0, time1 = 0.0;
-#if 0
+#if 1
         miopen::BatchNormActivForwardInference(miopen::deref(GetHandle()),
                                                bn_mode,
                                                &alpha,
@@ -523,7 +523,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
         if(inflags.GetValueStr("time") == "1")
         {
             float time = time0 + time1;
-            lowtime = (time < lowtime) ? time : lowtime;
+            lowtime    = (time < lowtime) ? time : lowtime;
             if(iters > 1 && i > 0)
                 avgtime += time;
         }
