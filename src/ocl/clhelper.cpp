@@ -96,8 +96,10 @@ static void BuildProgram(cl_program program, cl_device_id device, const std::str
 {
     auto status = clBuildProgram(program, 1, &device, params.c_str(), nullptr, nullptr);
 
-#ifndef NDEBUG
-    std::cout << BuildProgramInfo(program, device) << std::endl;
+#if MIOPEN_BUILD_DEV || !defined(NDEBUG)
+    auto msg = BuildProgramInfo(program, device);
+    if(!msg.empty())
+        std::cerr << msg << std::endl;
 #endif
 
     if(status != CL_SUCCESS)
