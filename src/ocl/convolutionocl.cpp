@@ -1301,7 +1301,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
                     for(auto& k : kernel_direct)
                     {
-                        /// disabled in asm1x1u due to the overhead of Subsampler.
+                        /// disabled in asm1x1u due to the overhead of UpSampler.
                         if(k.GetName() == "UpSample")
                         {
                             assert(workSpace != nullptr && workSpaceSize >= workspace_req);
@@ -1610,7 +1610,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                     if(handle.IsProfilingEnabled())
                         t1 += handle.GetKernelTime();
 
-                    /// disabled in asm1x1u due to the overhead of Subsampler.
+                    /// disabled in asm1x1u due to the overhead of UpSampler.
                     if(kernels.size() == 2)
                     {
                         auto kernel2 = kernels[1];
