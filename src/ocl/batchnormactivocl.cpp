@@ -171,8 +171,6 @@ void BatchNormActivForwardInference(Handle& handle,
             auto f_activ_beta  = as_float(activ_beta);
             auto f_activ_gama  = as_float(activ_gama);
 
-            MIOPEN_LOG_I2(kernel_name << ":: " << parms);
-
             handle.AddKernel(algo_name, network_config, program_name, kernel_name, vld, vgd, parms)(
                 x,
                 y,
