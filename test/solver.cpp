@@ -25,6 +25,8 @@
 *******************************************************************************/
 
 #include <miopen/solver.hpp>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/temp_file.hpp>
 
 #include <cstdlib>
 #include <functional>
@@ -32,8 +34,6 @@
 #include <typeinfo>
 
 #include "get_handle.hpp"
-#include <miopen/mlo_internal.hpp>
-#include "temp_file_path.hpp"
 #include "test.hpp"
 
 namespace miopen {
@@ -143,19 +143,18 @@ class TrivialConstruct : public mlo_construct_direct2D
         _db_path = db_path;
     }
 
-    solver::ConvSolution FindSolution()
+    solver::ConvSolution FindSolution() const
     {
+        Db db(_db_path);
+
         // clang-format off
         return miopen::solver::SearchForSolution<
             TrivialSlowTestSolver,
             TrivialTestSolver,
             SearchableTestSolver
-        >(_search_params, this->GetDbRecord());
+        >(_search_params, db);
         // clang-format on
     }
-
-    protected:
-    std::string db_path() const { return _db_path; }
 };
 
 class SolverTest
@@ -163,7 +162,7 @@ class SolverTest
     public:
     void Run() const
     {
-        TempFilePath db_path("/tmp/miopen.tests.solver.XXXXXX");
+        TempFile db_path("miopen.tests.solver");
 
         ConstructTest(db_path, TrivialSlowTestSolver::FileName(), [](mlo_construct_direct2D& c) {
             c.setInputDescr("", "", 0, 0, 1, 1, 0, 0, 0, 0);
@@ -195,11 +194,11 @@ class SolverTest
     }
 
     private:
-    void ConstructTest(const char* db_path,
+    void ConstructTest(const std::string& db_path,
                        const char* expected_kernel,
                        std::function<void(mlo_construct_direct2D&)> context_filler) const
     {
-        TrivialConstruct construct(db_path, 1);
+        TrivialConstruct construct(db_path.c_str(), 1);
         construct.setStream(&get_handle());
 
         context_filler(construct);

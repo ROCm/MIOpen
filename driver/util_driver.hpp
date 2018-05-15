@@ -26,8 +26,10 @@
 #ifndef GUARD_MIOPEN_UTIL_DRIVER_HPP
 #define GUARD_MIOPEN_UTIL_DRIVER_HPP
 
-template <typename T>
-void Im2ColCPU(std::vector<T>& in,
+// Tin is data type of input data,
+// Tout is data type of output data
+template <typename Tin, typename Tout>
+void Im2ColCPU(std::vector<Tin>& in,
                const size_t in_offset,
                const int in_c,
                const int in_h,
@@ -40,7 +42,7 @@ void Im2ColCPU(std::vector<T>& in,
                const int pad_w,
                const int u,
                const int v,
-               std::vector<T>& col)
+               std::vector<Tout>& col)
 {
     int col_m = in_c * wei_h * wei_w;
 
@@ -61,25 +63,27 @@ void Im2ColCPU(std::vector<T>& in,
 
                 if(in_off_h >= 0 && in_off_h < in_h && in_off_w >= 0 && in_off_w < in_w)
                     col[n * out_h * out_w + h * out_w + w] =
-                        in_iter[ch * in_h * in_w + in_off_h * in_w + in_off_w];
+                        static_cast<Tout>(in_iter[ch * in_h * in_w + in_off_h * in_w + in_off_w]);
                 else
-                    col[n * out_h * out_w + h * out_w + w] = 0;
+                    col[n * out_h * out_w + h * out_w + w] = static_cast<Tout>(0);
             }
         }
     }
 }
 
-template <typename T>
-void Col2ImCPU(std::vector<T> data_col,
+// Tin is data type of input data,
+// Tout is data type of output data
+template <typename Tin, typename Tout>
+void Col2ImCPU(std::vector<Tin> data_col,
                const int channels,
                const int height,
                const int width,
                const int ksize,
                const int pad,
                const int stride,
-               std::vector<T> data_im)
+               std::vector<Tout> data_im)
 {
-    memset(data_im, 0, sizeof(T) * height * width * channels);
+    memset(data_im, 0, sizeof(Tout) * height * width * channels);
     int height_col   = (height + 2 * pad - ksize) / stride + 1;
     int width_col    = (width + 2 * pad - ksize) / stride + 1;
     height_col       = (height_col < 0) ? 1 : height_col;
@@ -99,7 +103,7 @@ void Col2ImCPU(std::vector<T> data_col,
                 if(h_pad >= 0 && h_pad < height && w_pad >= 0 && w_pad < width)
                 {
                     data_im[(c_im * height + h_pad) * width + w_pad] +=
-                        data_col[(c * height_col + h) * width_col + w];
+                        static_cast<Tout>(data_col[(c * height_col + h) * width_col + w]);
                 }
             }
         }

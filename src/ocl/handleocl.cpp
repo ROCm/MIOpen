@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <miopen/config.h>
 #include <miopen/device_name.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
@@ -33,6 +34,9 @@
 #include <miopen/load_file.hpp>
 #include <boost/filesystem.hpp>
 #include <miopen/handle_lock.hpp>
+#if MIOPEN_USE_MIOPENGEMM
+#include <miopen/gemm_geometry.hpp>
+#endif
 #include <string>
 
 #ifndef _WIN32
@@ -290,7 +294,7 @@ struct HandleImpl
                 }
 
                 platform = platforms[i];
-                if(!strcmp(pbuf, "Advanced Micro Devices, Inc."))
+                if(strcmp(pbuf, "Advanced Micro Devices, Inc.") == 0)
                 {
                     break;
                 }
@@ -555,6 +559,7 @@ std::size_t Handle::GetMaxComputeUnits()
 Allocator::ManageDataPtr Handle::Create(std::size_t sz)
 {
     MIOPEN_HANDLE_LOCK
+    this->Finish();
     return this->impl->allocator(sz);
 }
 
@@ -562,6 +567,7 @@ Allocator::ManageDataPtr&
 Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz)
 {
     MIOPEN_HANDLE_LOCK
+    this->Finish();
     cl_int status = clEnqueueWriteBuffer(
         this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
     if(status != CL_SUCCESS)
@@ -574,6 +580,7 @@ Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t s
 void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz)
 {
     MIOPEN_HANDLE_LOCK
+    this->Finish();
     auto status = clEnqueueReadBuffer(
         this->GetStream(), ddata.get(), CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
     if(status != CL_SUCCESS)
@@ -585,6 +592,7 @@ void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size
 void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size)
 {
     MIOPEN_HANDLE_LOCK
+    this->Finish();
     auto status =
         clEnqueueCopyBuffer(this->GetStream(), src, dest, 0, 0, size, 0, nullptr, nullptr);
     if(status != CL_SUCCESS)

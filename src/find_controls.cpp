@@ -53,7 +53,7 @@ const char* ToCString(const FindEnforceAction mode)
 FindEnforceAction GetFindEnforceActionImpl()
 {
     const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_ENFORCE{});
-    if(!p_asciz)
+    if(p_asciz == nullptr)
         return FindEnforceAction::Default_;
     std::string str = p_asciz;
     for(auto& c : str)
@@ -99,7 +99,7 @@ const char* ToCString(const FindEnforceScope mode)
 FindEnforceScope GetFindEnforceScopeImpl()
 {
     const char* const p_asciz = miopen::GetStringEnv(MIOPEN_FIND_ENFORCE_SCOPE{});
-    if(!p_asciz)
+    if(p_asciz == nullptr)
         return FindEnforceScope::Default_;
     std::string str = p_asciz;
     for(auto& c : str)

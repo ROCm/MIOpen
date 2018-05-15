@@ -71,7 +71,8 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                                            // related function for bidirection
                                 int squash,
                                 int inputMode,
-                                std::vector<T>& rsvspace)
+                                std::vector<T>& rsvspace,
+                                bool hx_is_null = false)
 {
     //    printf("FWD TRAIN CPU:\n");
     //    printf("seqLen: %d, in_h: %d, hy_d: %d, hy_n: %d, hy_h: %d, out_h: %d\n", seqLength, in_h,
@@ -128,7 +129,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
     int wei_len = (bi * (in_h + hy_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
     if(biased)
     {
-        int in_bias = inputMode == 1 ? 1 : 2;
+        int in_bias = 2;
         wei_len += (bi * in_bias + (numlayer - 1) * bi * 2) * hy_h;
     }
 
@@ -206,8 +207,7 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                         for(int h = 0; h < hy_stride; h++)
                         {
                             hid_state.at(hid_shift + bs * hy_stride + h) +=
-                                (wei.at(wei_shift_bias + h) +
-                                 wei.at(wei_shift_bias + hy_stride + h));
+                                wei.at(wei_shift_bias + h);
                         }
                     }
                 }
@@ -239,17 +239,14 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
             // from bias
             if(biased)
             {
-                int wei_shift_bias_temp =
-                    (inputMode == 1) ? (wei_shift_bias + bi * hy_h + bi * (li - 1) * 2 * hy_h)
-                                     : (wei_shift_bias + bi * li * 2 * hy_h);
+                int wei_shift_bias_temp = wei_shift_bias + bi * li * 2 * hy_h;
 
                 for(int bs = 0; bs < batch_n; bs++)
                 {
                     for(int h = 0; h < hy_stride; h++)
                     {
                         hid_state.at(hid_shift + bs * hy_stride + h) +=
-                            (wei.at(wei_shift_bias_temp + h) +
-                             wei.at(wei_shift_bias_temp + hy_stride + h));
+                            wei.at(wei_shift_bias_temp + h);
                     }
                 }
             }
@@ -269,43 +266,77 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 
             if(ti == 0)
             {
-                ADNN_mm_cpu<T>(&hx_state[hx_shift],
-                               hy_h,
-                               in_n[ti],
-                               uni_stride,
-                               0,
-                               &wei_state[wei_shift],
-                               hy_h,
-                               hy_h,
-                               uni_stride,
-                               ADNN_MM_TRANSPOSE,
-                               &hid_state[hid_shift + bacc * hy_stride],
-                               hy_h,
-                               in_n[ti],
-                               hy_stride,
-                               0,
-                               1,
-                               1);
-
-                if(bidirection)
+                if(!hx_is_null)
                 {
-                    ADNN_mm_cpu<T>(&hx_state[hx_shift + hy_n * hy_h],
+                    ADNN_mm_cpu<T>(&hx_state[hx_shift],
                                    hy_h,
-                                   in_n[seqLength - 1 - ti],
+                                   in_n[ti],
                                    uni_stride,
                                    0,
-                                   &wei_state[wei_shift + hy_h * uni_stride],
+                                   &wei_state[wei_shift],
                                    hy_h,
                                    hy_h,
                                    uni_stride,
                                    ADNN_MM_TRANSPOSE,
-                                   &hid_state[hid_shift + baccbi * hy_stride + hy_h],
+                                   &hid_state[hid_shift + bacc * hy_stride],
                                    hy_h,
-                                   in_n[seqLength - 1 - ti],
+                                   in_n[ti],
                                    hy_stride,
                                    0,
                                    1,
                                    1);
+
+                    // from bias
+                    if(biased)
+                    {
+                        int wei_shift_bias_temp = wei_shift_bias + bi * (li * 2 + 1) * hy_h;
+
+                        for(int bs = 0; bs < in_n[ti]; bs++)
+                        {
+                            for(int h = 0; h < hy_h; h++)
+                            {
+                                hid_state.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
+                                    wei.at(wei_shift_bias_temp + h);
+                            }
+                        }
+                    }
+
+                    if(bidirection)
+                    {
+                        ADNN_mm_cpu<T>(&hx_state[hx_shift + hy_n * hy_h],
+                                       hy_h,
+                                       in_n[seqLength - 1 - ti],
+                                       uni_stride,
+                                       0,
+                                       &wei_state[wei_shift + hy_h * uni_stride],
+                                       hy_h,
+                                       hy_h,
+                                       uni_stride,
+                                       ADNN_MM_TRANSPOSE,
+                                       &hid_state[hid_shift + baccbi * hy_stride + hy_h],
+                                       hy_h,
+                                       in_n[seqLength - 1 - ti],
+                                       hy_stride,
+                                       0,
+                                       1,
+                                       1);
+
+                        // from bias
+                        if(biased)
+                        {
+                            int wei_shift_bias_temp = wei_shift_bias + bi * (li * 2 + 1) * hy_h;
+
+                            for(int bs = 0; bs < in_n.at(seqLength - 1 - ti); bs++)
+                            {
+                                for(int h = 0; h < hy_h; h++)
+                                {
+                                    hid_state.at(hid_shift + baccbi * hy_stride + hy_h +
+                                                 bs * hy_stride + h) +=
+                                        wei.at(wei_shift_bias_temp + hy_h + h);
+                                }
+                            }
+                        }
+                    }
                 }
             }
             else
@@ -328,11 +359,67 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                                1,
                                1);
 
+                // from bias
+                if(biased)
+                {
+                    int wei_shift_bias_temp = wei_shift_bias + bi * (li * 2 + 1) * hy_h;
+
+                    for(int bs = 0; bs < in_n[ti]; bs++)
+                    {
+                        for(int h = 0; h < hy_h; h++)
+                        {
+                            hid_state.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
+                                wei.at(wei_shift_bias_temp + h);
+                        }
+                    }
+                }
+
                 if(bidirection)
                 {
+
+                    if(!hx_is_null && in_n.at(seqLength - 1 - ti) > in_n.at(seqLength - ti))
+                    {
+                        ADNN_mm_cpu<T>(
+                            &hx_state[hx_shift + hy_n * hy_h + in_n.at(seqLength - ti) * hy_h],
+                            hy_h,
+                            (in_n.at(seqLength - 1 - ti) - in_n.at(seqLength - ti)),
+                            uni_stride,
+                            0,
+                            &wei_state[wei_shift + hy_h * uni_stride],
+                            hy_h,
+                            hy_h,
+                            uni_stride,
+                            ADNN_MM_TRANSPOSE,
+                            &hid_state[hid_shift + (baccbi + in_n.at(seqLength - ti)) * hy_stride +
+                                       hy_h],
+                            hy_h,
+                            (in_n.at(seqLength - 1 - ti) - in_n.at(seqLength - ti)),
+                            hy_stride,
+                            0,
+                            1,
+                            1);
+
+                        // from bias
+                        if(biased)
+                        {
+                            int wei_shift_bias_temp = wei_shift_bias + bi * (li * 2 + 1) * hy_h;
+
+                            for(int bs = in_n.at(seqLength - ti); bs < in_n.at(seqLength - 1 - ti);
+                                bs++)
+                            {
+                                for(int h = 0; h < hy_h; h++)
+                                {
+                                    hid_state.at(hid_shift + baccbi * hy_stride + hy_h +
+                                                 bs * hy_stride + h) +=
+                                        wei.at(wei_shift_bias_temp + hy_h + h);
+                                }
+                            }
+                        }
+                    }
+
                     ADNN_mm_cpu<T>(&hy_state[hx_shift + hy_n * hy_h],
                                    hy_h,
-                                   in_n[seqLength - 1 - ti],
+                                   in_n[seqLength - ti],
                                    uni_stride,
                                    0,
                                    &wei_state[wei_shift + hy_h * uni_stride],
@@ -342,11 +429,27 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
                                    ADNN_MM_TRANSPOSE,
                                    &hid_state[hid_shift + baccbi * hy_stride + hy_h],
                                    hy_h,
-                                   in_n[seqLength - 1 - ti],
+                                   in_n[seqLength - ti],
                                    hy_stride,
                                    0,
                                    1,
                                    1);
+
+                    // from bias
+                    if(biased)
+                    {
+                        int wei_shift_bias_temp = wei_shift_bias + bi * (li * 2 + 1) * hy_h;
+
+                        for(int bs = 0; bs < in_n.at(seqLength - ti); bs++)
+                        {
+                            for(int h = 0; h < hy_h; h++)
+                            {
+                                hid_state.at(hid_shift + baccbi * hy_stride + hy_h +
+                                             bs * hy_stride + h) +=
+                                    wei.at(wei_shift_bias_temp + hy_h + h);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -405,15 +508,6 @@ void RunRNNForwardGEMMCPUVerify(std::vector<T>& in,
 
             bacc += in_n.at(ti);
         }
-
-        // hy clean
-        for(int bs = in_n.at(seqLength - 1); bs < in_n.at(0); bs++)
-        {
-            for(int h = 0; h < hy_h; h++)
-            {
-                hy_host.at(hx_shift + bs * uni_stride + h) = 0;
-            }
-        }
     }
 
     // output
@@ -455,7 +549,8 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
                                      int squash,
                                      int inputMode,
                                      std::vector<T>& rsvspace,
-                                     std::vector<T>& wkspace)
+                                     std::vector<T>& wkspace,
+                                     bool dhy_is_null = false)
 {
     /*
         printf("BWD DATA CPU driver:\n");
@@ -519,7 +614,7 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
     int wei_len = (bi * (in_h + hy_h) + (numlayer - 1) * bi * (bi + 1) * hy_h) * hy_h;
     if(biased)
     {
-        int in_bias = (inputMode == 1) ? 1 : 2;
+        int in_bias = 2;
         wei_len += (bi * in_bias + (numlayer - 1) * bi * 2) * hy_h;
     }
 
@@ -577,22 +672,49 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
         {
             bacc -= in_n.at(ti);
 
-            for(int bs = 0; bs < in_n.at(ti); bs++)
+            // from post state
+            if(ti == seqLength - 1)
             {
-                for(int h = 0; h < hy_h; h++)
+                if(!dhy_is_null)
                 {
-                    // from post state
-                    if(ti == seqLength - 1)
+                    for(int bs = 0; bs < in_n.at(ti); bs++)
                     {
-                        dh_state.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
-                            dhy_state.at(hx_shift + bs * uni_stride + h);
+                        for(int h = 0; h < hy_h; h++)
+                        {
+                            dh_state.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
+                                dhy_state.at(hx_shift + bs * uni_stride + h);
+                        }
                     }
-                    else
+                }
+            }
+            else
+            {
+                if(!dhy_is_null && in_n.at(ti) > in_n.at(ti + 1))
+                {
+                    for(int bs = in_n.at(ti + 1); bs < in_n.at(ti); bs++)
+                    {
+                        for(int h = 0; h < hy_h; h++)
+                        {
+                            dh_state.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
+                                dhy_state.at(hx_shift + bs * uni_stride + h);
+                        }
+                    }
+                }
+
+                for(int bs = 0; bs < in_n.at(ti + 1); bs++)
+                {
+                    for(int h = 0; h < hy_h; h++)
                     {
                         dh_state.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
                             dhx_state.at(hx_shift + bs * uni_stride + h);
                     }
+                }
+            }
 
+            for(int bs = 0; bs < in_n.at(ti); bs++)
+            {
+                for(int h = 0; h < hy_h; h++)
+                {
                     dh_state.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) *= dervactivfunc(
                         rsvspace.at(hid_shift + bacc * hy_stride + bs * hy_stride + h), squash);
                     wkspace.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) =
@@ -600,9 +722,12 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
                 }
             }
 
-            for(int bs = 0; bs < in_n.at(ti); bs++)
+            if(ti < seqLength - 1)
             {
-                memset(&dhx_state[hx_shift + bs * uni_stride], 0, hy_h * sizeof(T));
+                for(int bs = 0; bs < in_n.at(ti + 1); bs++)
+                {
+                    memset(&dhx_state[hx_shift + bs * uni_stride], 0, hy_h * sizeof(T));
+                }
             }
 
             wei_shift = li == 0 ? (in_h * hy_stride) : (bi * (in_h + hy_h) * hy_h +
@@ -636,9 +761,12 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
                         // from post state
                         if(ti == seqLength - 1)
                         {
-                            dh_state.at(hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride +
-                                        h) +=
-                                dhy_state.at(hx_shift + hy_n * hy_h + bs * uni_stride + h);
+                            if(!dhy_is_null)
+                            {
+                                dh_state.at(hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride +
+                                            h) +=
+                                    dhy_state.at(hx_shift + hy_n * hy_h + bs * uni_stride + h);
+                            }
                         }
                         else
                         {
@@ -656,10 +784,14 @@ void RunRNNBackwardDataGEMMCPUVerify(std::vector<T>& din_host,
                     }
                 }
 
-                for(int bs = 0; bs < in_n.at(seqLength - 1 - ti); bs++)
+                if(ti < seqLength - 1)
                 {
-                    memset(
-                        &dhx_state[hx_shift + bs * uni_stride + hy_n * hy_h], 0, hy_h * sizeof(T));
+                    for(int bs = 0; bs < in_n.at(seqLength - 1 - ti); bs++)
+                    {
+                        memset(&dhx_state[hx_shift + bs * uni_stride + hy_n * hy_h],
+                               0,
+                               hy_h * sizeof(T));
+                    }
                 }
 
                 ADNN_mm_cpu<T>(&dh_state[hid_shift + baccbi * hy_stride + hy_h],
@@ -760,7 +892,8 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
                                        int squash,
                                        int inputMode,
                                        std::vector<T>& rsvspace,
-                                       std::vector<T>& wkspace)
+                                       std::vector<T>& wkspace,
+                                       bool hx_is_null = false)
 {
 
     //    printf("BWD WEGIHTS CPU driver:\n");
@@ -833,7 +966,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
     int wei_shift_bias = wei_len;
     if(biased)
     {
-        int in_bias = inputMode == 1 ? 1 : 2;
+        int in_bias = 2;
         wei_len += (bi * in_bias + (numlayer - 1) * bi * 2) * hy_h;
     }
 
@@ -846,20 +979,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
         // between layers
         if(li == 0)
         {
-            if(inputMode == 1)
-            {
-                if(biased)
-                {
-                    for(int h = 0; h < hy_stride; h++)
-                    {
-                        for(int w = 0; w < batch_n; w++)
-                        {
-                            dwei_state.at(wei_shift_bias + h) += wkspace.at(w * hy_stride + h);
-                        }
-                    }
-                }
-            }
-            else
+            if(inputMode != 1)
             {
                 ADNN_mm_cpu<T>(wkspace_state.data(),
                                hy_h * bi,
@@ -878,17 +998,14 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
                                0,
                                1,
                                1);
-
-                if(biased)
+            }
+            if(biased)
+            {
+                for(int h = 0; h < hy_stride; h++)
                 {
-                    for(int h = 0; h < hy_stride; h++)
+                    for(int w = 0; w < batch_n; w++)
                     {
-                        for(int w = 0; w < batch_n; w++)
-                        {
-                            dwei_state.at(wei_shift_bias + h) += wkspace.at(w * hy_stride + h);
-                        }
-                        dwei_state.at(wei_shift_bias + hy_stride + h) =
-                            dwei_state.at(wei_shift_bias + h);
+                        dwei_state.at(wei_shift_bias + h) += wkspace.at(w * hy_stride + h);
                     }
                 }
             }
@@ -919,9 +1036,7 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
 
             if(biased)
             {
-                wei_shift = (inputMode == 1)
-                                ? (wei_shift_bias + bi * hy_h + (li - 1) * bi * 2 * hy_h)
-                                : (wei_shift_bias + li * bi * 2 * hy_h);
+                wei_shift = wei_shift_bias + li * bi * 2 * hy_h;
 
                 for(int h = 0; h < hy_stride; h++)
                 {
@@ -929,7 +1044,6 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
                     {
                         dwei_state.at(wei_shift + h) += wkspace.at(hid_shift + w * hy_stride + h);
                     }
-                    dwei_state.at(wei_shift + hy_stride + h) = dwei_state.at(wei_shift + h);
                 }
             }
         }
@@ -949,23 +1063,40 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
             // between time
             if(ti == 0)
             {
-                ADNN_mm_cpu<T>(&wkspace_state[hid_shift],
-                               hy_h,
-                               in_n.at(ti),
-                               hy_stride,
-                               ADNN_MM_TRANSPOSE,
-                               &hx_state[hx_shift],
-                               hy_h,
-                               in_n.at(ti),
-                               uni_stride,
-                               0,
-                               &dwei_state[wei_shift],
-                               hy_h,
-                               hy_h,
-                               uni_stride,
-                               0,
-                               1,
-                               1);
+                if(!hx_is_null)
+                {
+                    ADNN_mm_cpu<T>(&wkspace_state[hid_shift],
+                                   hy_h,
+                                   in_n.at(ti),
+                                   hy_stride,
+                                   ADNN_MM_TRANSPOSE,
+                                   &hx_state[hx_shift],
+                                   hy_h,
+                                   in_n.at(ti),
+                                   uni_stride,
+                                   0,
+                                   &dwei_state[wei_shift],
+                                   hy_h,
+                                   hy_h,
+                                   uni_stride,
+                                   0,
+                                   1,
+                                   1);
+
+                    if(biased)
+                    {
+                        int bias_shift = wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h;
+
+                        for(int h = 0; h < hy_h; h++)
+                        {
+                            for(int w = 0; w < in_n.at(ti); w++)
+                            {
+                                dwei_state.at(bias_shift + h) +=
+                                    wkspace.at(hid_shift + w * hy_stride + h);
+                            }
+                        }
+                    }
+                }
             }
             else
             {
@@ -988,32 +1119,99 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
                                0,
                                1,
                                1);
+
+                if(biased)
+                {
+                    int bias_shift = wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h;
+
+                    for(int h = 0; h < hy_h; h++)
+                    {
+                        for(int w = 0; w < in_n.at(ti); w++)
+                        {
+                            dwei_state.at(bias_shift + h) +=
+                                wkspace.at(hid_shift + w * hy_stride + h);
+                        }
+                    }
+                }
             }
 
             if(bidirection)
             {
                 if(ti == seqLength - 1)
                 {
-                    ADNN_mm_cpu<T>(&wkspace_state[hid_shift + hy_h],
-                                   hy_h,
-                                   in_n.at(ti),
-                                   hy_stride,
-                                   ADNN_MM_TRANSPOSE,
-                                   &hx_state[hx_shift + hy_n * hy_h],
-                                   hy_h,
-                                   in_n.at(ti),
-                                   uni_stride,
-                                   0,
-                                   &dwei_state[wei_shift + hy_h * uni_stride],
-                                   hy_h,
-                                   hy_h,
-                                   uni_stride,
-                                   0,
-                                   1,
-                                   1);
+                    if(!hx_is_null)
+                    {
+                        ADNN_mm_cpu<T>(&wkspace_state[hid_shift + hy_h],
+                                       hy_h,
+                                       in_n.at(ti),
+                                       hy_stride,
+                                       ADNN_MM_TRANSPOSE,
+                                       &hx_state[hx_shift + hy_n * hy_h],
+                                       hy_h,
+                                       in_n.at(ti),
+                                       uni_stride,
+                                       0,
+                                       &dwei_state[wei_shift + hy_h * uni_stride],
+                                       hy_h,
+                                       hy_h,
+                                       uni_stride,
+                                       0,
+                                       1,
+                                       1);
+
+                        if(biased)
+                        {
+                            int bias_shift = wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h;
+
+                            for(int h = 0; h < hy_h; h++)
+                            {
+                                for(int w = 0; w < in_n.at(ti); w++)
+                                {
+                                    dwei_state.at(bias_shift + hy_h + h) +=
+                                        wkspace.at(hid_shift + w * hy_stride + hy_h + h);
+                                }
+                            }
+                        }
+                    }
                 }
                 else
                 {
+                    if(!hx_is_null && in_n.at(ti) > in_n.at(ti + 1))
+                    {
+                        ADNN_mm_cpu<T>(
+                            &wkspace_state[hid_shift + hy_h + in_n.at(ti + 1) * hy_stride],
+                            hy_h,
+                            (in_n.at(ti) - in_n.at(ti + 1)),
+                            hy_stride,
+                            ADNN_MM_TRANSPOSE,
+                            &hx_state[hx_shift + hy_n * hy_h + in_n.at(ti + 1) * hy_h],
+                            hy_h,
+                            (in_n.at(ti) - in_n.at(ti + 1)),
+                            uni_stride,
+                            0,
+                            &dwei_state[wei_shift + hy_h * uni_stride],
+                            hy_h,
+                            hy_h,
+                            uni_stride,
+                            0,
+                            1,
+                            1);
+
+                        if(biased)
+                        {
+                            int bias_shift = wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h;
+
+                            for(int h = 0; h < hy_h; h++)
+                            {
+                                for(int w = in_n.at(ti + 1); w < in_n.at(ti); w++)
+                                {
+                                    dwei_state.at(bias_shift + hy_h + h) +=
+                                        wkspace.at(hid_shift + w * hy_stride + hy_h + h);
+                                }
+                            }
+                        }
+                    }
+
                     pretime_shift = li * bi * batch_n * hy_h + (bacc + in_n.at(ti)) * hy_stride;
 
                     ADNN_mm_cpu<T>(const_cast<T*>(&wkspace_state[hid_shift + hy_h]),
@@ -1033,6 +1231,20 @@ void RunRNNBackwardWeightGEMMCPUVerify(std::vector<T>& in,
                                    0,
                                    1,
                                    1);
+
+                    if(biased)
+                    {
+                        int bias_shift = wei_shift_bias + li * bi * 2 * hy_h + bi * hy_h;
+
+                        for(int h = 0; h < hy_h; h++)
+                        {
+                            for(int w = 0; w < in_n.at(ti + 1); w++)
+                            {
+                                dwei_state.at(bias_shift + hy_h + h) +=
+                                    wkspace.at(hid_shift + w * hy_stride + hy_h + h);
+                            }
+                        }
+                    }
                 }
             }
 

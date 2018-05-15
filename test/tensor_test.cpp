@@ -816,7 +816,7 @@ struct check_tensor_support : tensor_base
 
     void run()
     {
-        EXPECT(miopenSet4dTensorDescriptor(tensor, miopenHalf, 100, 32, 8, 8) !=
+        EXPECT(miopenSet4dTensorDescriptor(tensor, miopenHalf, 100, 32, 8, 8) ==
                miopenStatusSuccess);
     }
 };

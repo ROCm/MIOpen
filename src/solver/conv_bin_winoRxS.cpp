@@ -56,24 +56,18 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 
-    if(!(params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
-    {
-        return false;
-    }
-
     if(!(params.direction.IsForward() || params.direction.IsBackwardData()))
     {
         return false;
     }
 
-    const auto name                    = params.GetStream().GetDeviceName();
-    const auto device_is_gfx9_no_xnack = (name == "gfx900");
-    const bool device_is_gfx8_no_xnack =
-        (name == "gfx800" || name == "gfx802" || name == "gfx803" || name == "gfx804");
-    if(!device_is_gfx8_no_xnack && !device_is_gfx9_no_xnack)
-    {
+    const auto name = params.GetStream().GetDeviceName();
+    // clang-format off
+    if (! ((name == "gfx803" && (params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
+        || (name == "gfx900" && (params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
+        || (name == "gfx906" && params.rmv == rocm_meta_version::AMDHSA_1_0)))
         return false;
-    }
+    // clang-format on
 
     // Check if kernel is suitable for the problem description
     // and is able to correctly run with given parameters.
@@ -133,19 +127,22 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
     // 9_0_14 readme: Additional limitations in the dilated case are R> 1 and  C %2==0
-    if(params.direction.IsBackwardData() && params.kernel_stride0 != 1)
+    const bool is_dilated_stride_2 =
+        (params.direction.IsBackwardData() && params.kernel_stride0 != 1);
+    if(is_dilated_stride_2)
     {
         if(!(shader_R > 1))
             return false;
         if(!(shader_C % 2 == 0))
             return false;
     }
-    // If the padded filter size from above is 3*k x 3*l, then
+    // If the padded_R x padded_S filter size from above is 3*k x 3*l
+    // or (special case for dilated with stride 2) 3*k x 6*l, then
     // it should be that k*l*C  >=18
     {
-        assert(padded_R % 3 == 0 && padded_S % 3 == 0);
+        assert(padded_R % 3 == 0 && padded_S % (is_dilated_stride_2 ? 6 : 3) == 0);
         const int k = padded_R / 3;
-        const int l = padded_S / 3;
+        const int l = padded_S / (is_dilated_stride_2 ? 6 : 3);
         if(k * l * shader_C < 18)
         {
             return false;
@@ -184,6 +181,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
         && (shader_K * shader_OH * shader_OW) <= std::pow(2, 28)
         && (shader_K * shader_R * shader_S) <= std::pow(2, 28)
         && (shader_C * shader_R * shader_S) <= std::pow(2, 28)
+        && params.float_size == 32
         && params.in_layout == "NCHW";
     // && (isForwardDirection() ? _weights_layout == "KCHW" : _weights_layout == "CKHW" )
     // clang-format on
@@ -206,37 +204,23 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
 
     kernel.kernel_name = "sp3AsmConvRxSU";
     kernel.kernel_file = "conv_3x3_wheel_alpha_v9_0_15";
+
     if(params.kernel_stride0 == 2)
     {
         if(params.direction.IsForward())
-        {
             kernel.kernel_file += "_stride_2_dec";
-        }
         else
-        {
             kernel.kernel_file += "_stride_2_dil";
-        }
     }
-    if(name.find("gfx8") != std::string::npos)
-    {
-        kernel.kernel_file += "_gfx803";
-    }
-    else
-    {
-        kernel.kernel_file += "_gfx900";
-    }
+
+    kernel.kernel_file += ("_" + name);
+
     if(params.rmv == rocm_meta_version::V3)
-    {
         kernel.kernel_file += "_m30";
-    }
     else if(params.rmv == rocm_meta_version::AMDHSA_1_0)
-    {
         kernel.kernel_file += "_md10";
-    }
     else
-    {
         MIOPEN_THROW("ConvBinWinogradRxS: Unsupported metadata version.");
-    }
 
     kernel.kernel_file += ".so";
 

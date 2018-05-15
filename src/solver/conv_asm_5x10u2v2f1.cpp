@@ -33,7 +33,7 @@ namespace solver {
 
 bool ConvAsm5x10u2v2f1::IsApplicable(const ConvolutionContext& params) const
 {
-    if(!params.assembler_available)
+    if(!params.use_asm_kernels)
     {
         return false;
     }
@@ -46,7 +46,7 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ConvolutionContext& params) const
     const std::string name = params.GetStream().GetDeviceName();
     const bool device_is_gfx8_9_no_xnack =
         (name == "gfx800" || name == "gfx802" || name == "gfx803" || name == "gfx804" ||
-         name == "gfx900");
+         name == "gfx900" || name == "gfx904" || name == "gfx906");
     if(!device_is_gfx8_9_no_xnack)
     {
         return false;
@@ -55,7 +55,7 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
-    assert(params.weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
+    assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet.
 
     // Min image + padding shall be not smaller than filter matrix.
     const int min_in_width  = params.kernel_size0 - params.pad0 * 2;
@@ -64,23 +64,24 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ConvolutionContext& params) const
     const int max_in_width  = 8192 - 1;
     const int max_in_height = 131077 - 1;
 
-    return                            // Opt. Param   Restrictions in source
-        params.pad0 >= 0              // -q   pad_w   // [0..5] for now FIXME
-        && params.pad0 <= 5           //
-        && params.pad1 >= 0           // -p   pad_h   // [0..5] for now FIXME
-        && params.pad1 <= 5           //
-        && params.kernel_stride0 == 2 // -u   inp_u   fixed
-        && params.kernel_stride1 == 2 // -v   inp_v   fixed
-        && params.kernel_size0 == 10  // -x   wei_w   fixed
-        && params.kernel_size1 == 5   // -y   wei_h   fixed
-        && params.n_inputs >= 1       // -c   wei_c   no upper limit
-        && params.n_outputs % 16 == 0 // -k   wei_k   no upper limit
-        && params.n_outputs >= 1 && params.in_width >= min_in_width             // -W   inp_w
-        && params.in_width <= max_in_width && params.in_height >= min_in_height // -H   inp_h
-        && params.in_height <= max_in_height &&
-        params.in_layout == "NCHW"; //              hardcoded
-    // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" ) //
-    // See fixme above.
+    // clang-format off
+    return 0 <= params.pad0 && params.pad0 <= 5 // -q   pad_w   // [0..5] for now FIXME
+        && 0 <= params.pad1 && params.pad1 <= 5 // -p   pad_h   // [0..5] for now FIXME
+        && params.kernel_stride0 == 2           // -u   inp_u   fixed
+        && params.kernel_stride1 == 2           // -v   inp_v   fixed
+        && params.kernel_size0 == 10            // -x   wei_w   fixed
+        && params.kernel_size1 == 5             // -y   wei_h   fixed
+        && params.n_inputs >= 1                 // -c   wei_c   no upper limit
+        && params.n_outputs % 16 == 0           // -k   wei_k   no upper limit
+        && params.n_outputs >= 1
+        && params.in_width >= min_in_width      // -W   inp_w
+        && params.in_width <= max_in_width
+        && params.in_height >= min_in_height    // -H   inp_h
+        && params.in_height <= max_in_height
+        && params.float_size == 32
+        && params.in_layout == "NCHW";          // hardcoded
+        // && (params.forward ? params.weights_layout == "KCHW" : params.weights_layout == "CKHW" )
+    // clang-format on
 }
 
 static inline int AlignUp(int val, unsigned step)

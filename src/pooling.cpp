@@ -100,10 +100,15 @@ PoolingDescriptor::GetForwardOutputDim(const TensorDescriptor& tensorDesc) const
     std::tie(window_h, window_w) = miopen::tien<2>(GetLengths());
     miopenPaddingMode_t _pMode = GetPaddingMode();
 
+    assert(u > 0);
+    assert(v > 0);
+    assert(window_h < (input_h + 2 * pad_h));
+    assert(window_w < (input_w + 2 * pad_w));
+
     auto output_h = std::max<std::ptrdiff_t>(
-        1, std::ceil((input_h - window_h + 2 * pad_h) / static_cast<float>(u)) + 1);
+        1, std::ceil((input_h + 2 * pad_h - window_h) / static_cast<float>(u)) + 1);
     auto output_w = std::max<std::ptrdiff_t>(
-        1, std::ceil((input_w - window_w + 2 * pad_w) / static_cast<float>(v)) + 1);
+        1, std::ceil((input_w + 2 * pad_w - window_w) / static_cast<float>(v)) + 1);
 
     if(_pMode == miopenPaddingSame)
     {

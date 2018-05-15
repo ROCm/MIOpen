@@ -53,21 +53,21 @@
 .endm
 
 .macro .CHECK_SGPR_ALLOCATION gprs_to_allocate=0
-	.if (.SGPR_NEXT_FREE + \gprs_to_allocate) >= .AVAILABLE_SGPRS
+	.if (.SGPR_NEXT_FREE + \gprs_to_allocate) > .AVAILABLE_SGPRS
 		.error "Error: out of free sgprs"
         .end
 	.endif
 .endm
 
 .macro .CHECK_VGPR_ALLOCATION gprs_to_allocate=0
-	.if (.VGPR_NEXT_FREE + \gprs_to_allocate) >= .AVAILABLE_VGPRS
+	.if (.VGPR_NEXT_FREE + \gprs_to_allocate) > .AVAILABLE_VGPRS
 		.error "Error: out of free vgprs"
         .end
 	.endif
 .endm
 
 .macro .CHECK_LDS_ALLOCATION bytes_to_allocate=0
-	.if (.LDS_NEXT_FREE + \bytes_to_allocate) >= .AVAILABLE_LDS
+	.if (.LDS_NEXT_FREE + \bytes_to_allocate) > .AVAILABLE_LDS
 		.error "Error: out of free lds"
         .end
 	.endif

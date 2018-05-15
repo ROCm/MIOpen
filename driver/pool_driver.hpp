@@ -28,7 +28,6 @@
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "mloConvHost.hpp"
 #include "mloPoolingHost.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
@@ -41,8 +40,9 @@
 #include <miopen/pooling.hpp>
 #include <numeric>
 #include <vector>
+#include "random.hpp"
 
-template <typename T>
+template <typename Tgpu, typename Tref>
 class PoolDriver : public Driver
 {
     public:
@@ -55,6 +55,7 @@ class PoolDriver : public Driver
         miopenCreateTensorDescriptor(&dOutputTensor);
 
         miopenCreatePoolingDescriptor(&poolDesc);
+        data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
     }
 
     int AddCmdLineArgs();
@@ -71,10 +72,10 @@ class PoolDriver : public Driver
     int AllocateBuffersAndCopy();
 
     int RunForwardGPU();
-    // int RunForwardCPU(); // Verify implements it
+    int RunForwardCPU(); // Verify implements it
 
     int RunBackwardGPU();
-    // int RunBackwardCPU(); // Verify implements it
+    int RunBackwardCPU(); // Verify implements it
 
     int VerifyBackward();
     int VerifyForward();
@@ -98,10 +99,10 @@ class PoolDriver : public Driver
     std::unique_ptr<GPUMem> mask_dev;
     std::vector<uint8_t> mask;
 
-    std::vector<T> in;
-    std::vector<T> out;
+    std::vector<Tgpu> in;
+    std::vector<Tgpu> out;
     std::vector<size_t> maskhost;
-    std::vector<T> outhost;
+    std::vector<Tref> outhost;
 
     miopenPoolingDescriptor_t poolDesc;
     bool do_backward;
@@ -112,13 +113,13 @@ class PoolDriver : public Driver
     std::unique_ptr<GPUMem> din_dev;
     std::unique_ptr<GPUMem> dout_dev;
 
-    std::vector<T> din;
-    std::vector<T> dout;
-    std::vector<T> dinhost;
+    std::vector<Tgpu> din;
+    std::vector<Tgpu> dout;
+    std::vector<Tref> dinhost;
 };
 
-template <typename T>
-int PoolDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
+template <typename Tgpu, typename Tref>
+int PoolDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
@@ -131,23 +132,23 @@ int PoolDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
     return 0;
 }
 
-template <typename T>
-int PoolDriver<T>::GetandSetData()
+template <typename Tgpu, typename Tref>
+int PoolDriver<Tgpu, Tref>::GetandSetData()
 {
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
 
-    SetTensor4d(inputTensor, in_len);
-    SetTensor4d(dInputTensor, in_len);
+    SetTensor4d(inputTensor, in_len, data_type);
+    SetTensor4d(dInputTensor, in_len, data_type);
     SetPoolDescriptorFromCmdLineArgs();
 
     std::vector<int> out_len = GetOutputTensorLengths();
-    SetTensor4d(outputTensor, out_len);
-    SetTensor4d(dOutputTensor, out_len);
+    SetTensor4d(outputTensor, out_len, data_type);
+    SetTensor4d(dOutputTensor, out_len, data_type);
     return (0);
 }
 
-template <typename T>
-int PoolDriver<T>::AddCmdLineArgs()
+template <typename Tgpu, typename Tref>
+int PoolDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "0", "Run only Forward Pooling (Default=0)", "int");
     inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
@@ -174,8 +175,8 @@ int PoolDriver<T>::AddCmdLineArgs()
     return 0;
 }
 
-template <typename T>
-std::vector<int> PoolDriver<T>::GetInputTensorLengthsFromCmdLine()
+template <typename Tgpu, typename Tref>
+std::vector<int> PoolDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     int in_n = inflags.GetValueInt("batchsize");
     int in_c = inflags.GetValueInt("in_channels");
@@ -185,8 +186,8 @@ std::vector<int> PoolDriver<T>::GetInputTensorLengthsFromCmdLine()
     return std::vector<int>({in_n, in_c, in_h, in_w});
 }
 
-template <typename T>
-int PoolDriver<T>::SetPoolDescriptorFromCmdLineArgs()
+template <typename Tgpu, typename Tref>
+int PoolDriver<Tgpu, Tref>::SetPoolDescriptorFromCmdLineArgs()
 {
 
     miopenPoolingMode_t mode;
@@ -238,8 +239,8 @@ int PoolDriver<T>::SetPoolDescriptorFromCmdLineArgs()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-std::vector<int> PoolDriver<T>::GetOutputTensorLengths()
+template <typename Tgpu, typename Tref>
+std::vector<int> PoolDriver<Tgpu, Tref>::GetOutputTensorLengths()
 {
     int n, c, h, w;
 
@@ -248,14 +249,17 @@ std::vector<int> PoolDriver<T>::GetOutputTensorLengths()
     return std::vector<int>({n, c, h, w});
 }
 
-template <typename T>
-int PoolDriver<T>::AllocateBuffersAndCopy()
+template <typename Tgpu, typename Tref>
+int PoolDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
 
     size_t in_sz         = GetTensorSize(inputTensor);
     size_t out_sz        = GetTensorSize(outputTensor);
     size_t workSpaceSize = 0;
     miopenPoolingGetWorkSpaceSize(outputTensor, &workSpaceSize);
+    size_t workSpaceNbVal =
+        workSpaceSize /
+        sizeof(uint8_t); // work space is used by mask_dev and mask which are of type uint8_t
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
@@ -263,32 +267,32 @@ int PoolDriver<T>::AllocateBuffersAndCopy()
 #elif MIOPEN_BACKEND_HIP
     uint32_t ctx = 0;
 #endif
-    in_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
-    out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
-    mask_dev =
-        std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceSize / sizeof(uint8_t), sizeof(uint8_t)));
-    mask = std::vector<uint8_t>(workSpaceSize / sizeof(uint8_t), 0);
+    in_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    mask_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceNbVal, sizeof(uint8_t)));
+    mask     = std::vector<uint8_t>(workSpaceNbVal, uint8_t(0));
 
-    din_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(float)));
-    dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(float)));
+    din_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
-    in       = std::vector<T>(in_sz);
-    out      = std::vector<T>(out_sz, 0);
-    maskhost = std::vector<size_t>(out_sz, 0);
-    outhost  = std::vector<T>(out_sz, 0);
+    in       = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    out      = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    maskhost = std::vector<size_t>(out_sz, static_cast<size_t>(0));
+    outhost  = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
-    din     = std::vector<T>(in_sz, 0);
-    dout    = std::vector<T>(out_sz);
-    dinhost = std::vector<T>(in_sz, 0);
+    din     = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    dout    = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    dinhost = std::vector<Tref>(in_sz, static_cast<Tref>(0));
 
     for(int i = 0; i < in_sz; i++)
     {
-        in[i] = rand() * (1.0 / RAND_MAX);
+        in[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     }
 
+    Tgpu Data_scale = static_cast<Tgpu>(0.001);
     for(int i = 0; i < out_sz; i++)
     {
-        dout[i] = static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5) * 0.001;
+        dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
     }
 
 #if MIOPEN_BACKEND_OPENCL
@@ -308,11 +312,11 @@ int PoolDriver<T>::AllocateBuffersAndCopy()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int PoolDriver<T>::RunForwardGPU()
+template <typename Tgpu, typename Tref>
+int PoolDriver<Tgpu, Tref>::RunForwardGPU()
 {
 
-    float alpha = 1, beta = 0;
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     miopenPoolingForward(GetHandle(),
                          poolDesc,
@@ -362,11 +366,16 @@ int PoolDriver<T>::RunForwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int PoolDriver<T>::RunBackwardGPU()
+template <typename Tgpu, typename Tref>
+int PoolDriver<Tgpu, Tref>::RunForwardCPU()
 {
+    return (0);
+}
 
-    float alpha = 1, beta = 0;
+template <typename Tgpu, typename Tref>
+int PoolDriver<Tgpu, Tref>::RunBackwardGPU()
+{
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     miopenPoolingBackward(GetHandle(),
                           poolDesc,
@@ -418,8 +427,8 @@ int PoolDriver<T>::RunBackwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename T>
-int PoolDriver<T>::VerifyForward()
+template <typename Tgpu, typename Tref>
+int PoolDriver<Tgpu, Tref>::VerifyForward()
 {
 
     int nInStride, cInStride, hInStride, wInStride;
@@ -467,31 +476,32 @@ int PoolDriver<T>::VerifyForward()
 
     int pooling_method = (mode == miopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 
-    bool match = mloPoolingForwardRunHostAndVerify<float>(pooling_method,
-                                                          pad_h,
-                                                          u,
-                                                          windowHeight,
-                                                          pad_w,
-                                                          v,
-                                                          windowWidth,
-                                                          nIn,
-                                                          cOut,
-                                                          hIn,
-                                                          wIn,
-                                                          hInStride,
-                                                          cInStride,
-                                                          nInStride,
-                                                          hOut,
-                                                          wOut,
-                                                          hOutStride,
-                                                          cOutStride,
-                                                          nOutStride,
-                                                          in.data(),
-                                                          out.data(),
-                                                          do_backward,
-                                                          maskhost.data(),
-                                                          mask.data(),
-                                                          1);
+    const Tref tolerance = (sizeof(Tgpu) == 4 || sizeof(Tgpu) == 8) ? 1e-6 : 1e-3;
+    bool match           = mloPoolingForwardRunHostAndVerify<Tgpu, Tref>(pooling_method,
+                                                               pad_h,
+                                                               u,
+                                                               windowHeight,
+                                                               pad_w,
+                                                               v,
+                                                               windowWidth,
+                                                               nIn,
+                                                               cOut,
+                                                               hIn,
+                                                               wIn,
+                                                               hInStride,
+                                                               cInStride,
+                                                               nInStride,
+                                                               hOut,
+                                                               wOut,
+                                                               hOutStride,
+                                                               cOutStride,
+                                                               nOutStride,
+                                                               in.data(),
+                                                               out.data(),
+                                                               do_backward,
+                                                               maskhost.data(),
+                                                               mask.data(),
+                                                               tolerance);
 
     printf(match ? "Forward Pooling Verifies on CPU and GPU\n"
                  : "Forward Pooling Verification Failed !!\n");
@@ -499,8 +509,15 @@ int PoolDriver<T>::VerifyForward()
     return 0;
 }
 
-template <typename T>
-int PoolDriver<T>::VerifyBackward()
+template <typename Tgpu, typename Tref>
+int PoolDriver<Tgpu, Tref>::RunBackwardCPU()
+{
+
+    return 0;
+}
+
+template <typename Tgpu, typename Tref>
+int PoolDriver<Tgpu, Tref>::VerifyBackward()
 {
 
     int nIn, cIn, hIn, wIn;
@@ -549,52 +566,52 @@ int PoolDriver<T>::VerifyBackward()
     }
     int pooling_method = (mode == miopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 
-    mloPoolingBackwardRunHost<float>(pooling_method,
-                                     windowHeight,
-                                     pad_h,
-                                     u,
-                                     windowWidth,
-                                     pad_w,
-                                     v,
-                                     // host output
-                                     dinhost.data(),
-                                     dout.data(),
-                                     maskhost.data(),
-                                     ndInStride,
-                                     cdInStride,
-                                     hdInStride,
-                                     wIn,
-                                     hIn,
-                                     cOut,
-                                     nOut,
-                                     ndOutStride,
-                                     cdOutStride,
-                                     hdOutStride,
-                                     wOut,
-                                     hOut);
+    mloPoolingBackwardRunHost<Tgpu, Tref>(pooling_method,
+                                          windowHeight,
+                                          pad_h,
+                                          u,
+                                          windowWidth,
+                                          pad_w,
+                                          v,
+                                          // host output
+                                          dinhost.data(),
+                                          dout.data(),
+                                          maskhost.data(),
+                                          ndInStride,
+                                          cdInStride,
+                                          hdInStride,
+                                          wIn,
+                                          hIn,
+                                          cOut,
+                                          nOut,
+                                          ndOutStride,
+                                          cdOutStride,
+                                          hdOutStride,
+                                          wOut,
+                                          hOut);
 
-    bool match              = true;
-    const double allowedEps = (1 << 2);
-    double max_sqr          = 1. / 100000000;
-    double max_abs_diff     = 1. / 100000000;
-    bool get_error_pos      = true;
+    bool match            = true;
+    const Tref allowedEps = (1 << 2);
+    Tref max_sqr          = 1. / 1000000; // 100000000;
+    Tref max_abs_diff     = 1. / 1000000; // 100000000;
+    bool get_error_pos    = true;
 
-    match = mloVerify<T>(nOut,
-                         cOut,
-                         hOut,
-                         wOut,
-                         ndOutStride,
-                         cdOutStride,
-                         hdOutStride,
-                         ndOutStride,
-                         cdOutStride,
-                         hdOutStride,
-                         dinhost.data(),
-                         din.data(),
-                         allowedEps,
-                         max_abs_diff,
-                         max_sqr,
-                         get_error_pos);
+    match = mloVerify<Tgpu, Tref>(nIn,
+                                  cIn,
+                                  hIn,
+                                  wIn,
+                                  ndInStride,
+                                  cdInStride,
+                                  hdInStride,
+                                  ndInStride,
+                                  cdInStride,
+                                  hdInStride,
+                                  dinhost.data(),
+                                  din.data(),
+                                  allowedEps,
+                                  max_abs_diff,
+                                  max_sqr,
+                                  get_error_pos);
 
     if(match)
         printf("Backward Pooling Verifies on CPU and GPU\n");
