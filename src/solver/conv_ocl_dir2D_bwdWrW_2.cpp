@@ -36,6 +36,10 @@ bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
     if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
         return false;
 
+    /// \todo Workaround for issue 918. Looks like dy tensor with padding < 1 is not supported.
+    if((params.GetBackwardPad0() < 1 || params.GetBackwardPad1() < 1))
+        return false;
+
     return ((params.kernel_size0 >= params.kernel_size1) &&
             ((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) ||
              (params.kernel_size0 > 5) || (params.kernel_size0 == 5 && params.in_width >= 64))) ||
@@ -122,6 +126,7 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
     // number  of batch iterations
     result.n_stacks = 1;
     result.n_stacks = std::min(params.batch_sz, result.n_stacks);
+    assert((N_BATCH_LOOPS * result.n_stacks) != 0);
     int n_batch_blks =
         (params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) / (N_BATCH_LOOPS * result.n_stacks);
 
@@ -129,6 +134,7 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
     while(n_batch_blks > 1 && wei_bstride * params.n_inputs * n_batch_blks > 4 * 1024 * 1024)
     {
         N_BATCH_LOOPS <<= 1;
+        assert((N_BATCH_LOOPS * result.n_stacks) != 0);
         n_batch_blks = (params.batch_sz + N_BATCH_LOOPS * result.n_stacks - 1) /
                        (N_BATCH_LOOPS * result.n_stacks);
     }
@@ -152,16 +158,13 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
     result.n_in_data_tiles = 1;
 
     // select output mapping
-
-    result.n_out_pix_tiles = std::min(result.n_out_pix_tiles, params.n_inputs);
-    result.n_out_pix_tiles =
-        (params.n_inputs % result.n_out_pix_tiles != 0) ? 1 : result.n_out_pix_tiles;
-    result.out_pix_tile1 = std::min(result.out_pix_tile1, params.n_inputs);
-    result.out_pix_tile1 = (params.n_inputs % result.out_pix_tile1 != 0) ? 1 : result.out_pix_tile1;
     int total_out_maps   = result.n_out_pix_tiles * result.out_pix_tile1;
-    result.out_pix_tile1 = (params.n_inputs % total_out_maps != 0) ? 1 : result.out_pix_tile1;
-    int N_OUT_BLK_GRP    = result.out_pix_tile1;
+    result.out_pix_tile1 = (total_out_maps > params.n_inputs) ? 1 : result.out_pix_tile1;
     total_out_maps       = result.n_out_pix_tiles * result.out_pix_tile1;
+    result.n_out_pix_tiles =
+        (total_out_maps > params.n_inputs) ? params.n_inputs : result.n_out_pix_tiles;
+    int N_OUT_BLK_GRP = result.out_pix_tile1;
+    total_out_maps    = result.n_out_pix_tiles * result.out_pix_tile1;
 
     // each wave is a filter row
     int GRP_SZ = _hw_wave_sz * n_waves;
@@ -170,8 +173,10 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
     std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
 
     // input is output
+    assert(read_unit != 0);
     int ALIGNED_OUT_SCAN_LN = ((params.in_width + read_unit - 1) / read_unit); // image aligned scan
 
+    assert(N_ALIGNED_OUT_SCAN_BLK != 0);
     int N_OUT_BLK = (params.in_height + N_ALIGNED_OUT_SCAN_BLK - 1) / N_ALIGNED_OUT_SCAN_BLK;
 
     int lcl_mem_sz =
@@ -271,6 +276,7 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
         // input is output
 
         size_t gbl_wk0 = GRP_SZ * params.n_outputs;
+        assert(total_out_maps != 0);
         size_t gbl_wk1 = ((params.n_inputs + total_out_maps - 1) / total_out_maps);
         size_t gbl_wk2 = n_batch_blks;
 
@@ -299,6 +305,7 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
         kernel.l_wk.push_back(1);
         kernel.l_wk.push_back(1);
 
+        assert(ut_read_unit != 0);
         int gbl_ut_wk0 = wei_bstride * params.n_inputs / ut_read_unit;
 
         kernel.g_wk.push_back(gbl_ut_wk0);

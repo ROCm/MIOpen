@@ -31,29 +31,7 @@
 #include <iomanip>
 #include <iostream>
 
-template <typename _T>
-double CalcErr(_T c_val, _T g_val)
-{
-    double err = 0;
-    if(sizeof(_T) == 4)
-    {
-        int* c_uval = reinterpret_cast<int*>(&c_val);
-        int* g_uval = reinterpret_cast<int*>(&g_val);
-        err         = static_cast<double>(std::abs(*c_uval - *g_uval));
-    }
-    else if(sizeof(_T) == 8)
-    {
-        int64_t* c_uval = reinterpret_cast<int64_t*>(&c_val);
-        int64_t* g_uval = reinterpret_cast<int64_t*>(&g_val);
-        err             = static_cast<double>(std::abs(*c_uval - *g_uval));
-    }
-
-    //		double delta = abs(c_val - g_val);
-    //	double nextafter_delta = nextafterf(min(abs(c_val), abs(g_val)), (_T)INFINITY) -
-    // min(abs(c_val), abs(g_val));
-    //		err = delta / nextafter_delta;
-    return err;
-}
+#include "calcerr.hpp"
 
 //#if 0 // disable functions
 #if 1
@@ -1042,7 +1020,8 @@ int mloDirectSPHost(
 
 #endif // disable functions
 
-template <typename _T>
+template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
+          typename _Tcheck /* the data type used in CPU checkings (usually double) */>
 bool mloVerify(int n_batchs,
                int n_channels,
                int height,
@@ -1053,11 +1032,11 @@ bool mloVerify(int n_batchs,
                int g_batch_stride,
                int g_channel_stride,
                int g_stride,
-               const _T* c_ptr,
-               const _T* g_ptr,
-               double eps,
-               double max_abs_diff,
-               double max_sqr,
+               const _Tcheck* c_ptr,
+               const _Tgpu* g_ptr,
+               _Tcheck eps,
+               _Tcheck max_abs_diff,
+               _Tcheck max_sqr,
                bool get_error_pos
                //	int dir,
                //	std::string name
@@ -1065,9 +1044,10 @@ bool mloVerify(int n_batchs,
 
 {
 
-    double sqr_accum = 0;
-    _T c_val_err = 0, g_val_err = 0;
-    double max_err = max_abs_diff;
+    _Tcheck sqr_accum = static_cast<_Tcheck>(0);
+    _Tcheck c_val_err = static_cast<_Tcheck>(0);
+    _Tcheck g_val_err = static_cast<_Tcheck>(0);
+    _Tcheck max_err   = max_abs_diff;
     int max_b = 0, max_c = 0, max_i = 0, max_j = 0;
 
     for(int b = 0; b < n_batchs; ++b)
@@ -1078,11 +1058,13 @@ bool mloVerify(int n_batchs,
             {
                 for(int i = 0; i < width; ++i)
                 {
-                    _T c_val = c_ptr[b * c_batch_stride + c * c_channel_stride + j * c_stride + i];
-                    _T g_val = g_ptr[b * g_batch_stride + c * g_channel_stride + j * g_stride + i];
+                    _Tcheck c_val =
+                        c_ptr[b * c_batch_stride + c * c_channel_stride + j * c_stride + i];
+                    _Tcheck g_val = static_cast<_Tcheck>(
+                        g_ptr[b * g_batch_stride + c * g_channel_stride + j * g_stride + i]);
 
                     sqr_accum += (c_val - g_val) * (c_val - g_val);
-                    double err = std::abs(c_val - g_val);
+                    _Tcheck err = std::abs(c_val - static_cast<_Tcheck>(g_val));
                     if(err > max_err)
                     {
                         max_err   = err;
@@ -1099,7 +1081,7 @@ bool mloVerify(int n_batchs,
     }
 
     sqr_accum =
-        std::sqrt(sqr_accum / (static_cast<double>(n_batchs * n_channels * height * width)));
+        std::sqrt(sqr_accum / (static_cast<_Tcheck>(n_batchs * n_channels * height * width)));
 
     bool match = true;
 
@@ -1123,17 +1105,20 @@ bool mloVerify(int n_batchs,
                     {
                         for(int i = 0; i < width && match; ++i)
                         {
-                            _T c_val =
+                            _Tcheck c_val =
                                 c_ptr[b * c_batch_stride + c * c_channel_stride + j * c_stride + i];
-                            _T g_val =
-                                g_ptr[b * g_batch_stride + c * g_channel_stride + j * g_stride + i];
+                            _Tcheck g_val = static_cast<_Tcheck>(
+                                g_ptr[b * g_batch_stride + c * g_channel_stride + j * g_stride +
+                                      i]);
 
-                            double err = CalcErr<_T>(c_val, g_val);
+                            _Tcheck err = CalcErr<_Tcheck>(c_val, g_val);
                             if((err > eps && std::abs(c_val - g_val) > max_abs_diff) ||
                                std::isnan(c_val) || std::isnan(g_val) || !std::isfinite(c_val) ||
                                !std::isfinite(g_val))
                             {
-                                std::cout << "Difference : " << err << " too large at " << b << ","
+                                std::cout << "Difference : " << err
+                                          << " too large (eps=" << std::fixed << std::setw(14)
+                                          << std::setprecision(12) << eps << ") at " << b << ","
                                           << c << ", " << j << "," << i << " c_v = " << std::fixed
                                           << std::setw(14) << std::setprecision(12) << c_val
                                           << " vs g_v = " << std::fixed << std::setw(14)

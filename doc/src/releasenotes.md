@@ -1,6 +1,39 @@
 
 ## MIOpen Release notes
 
+### 03/30/2018 [ 1.3.0 ]
+
+Notes: 
+
+- Performance improvements for RNNs
+- Performance improvements for convolutions using 1x1 filters
+- Performance improvement for Batch Normalization
+- This release adds preliminary fp16 support for Inference using CNNs
+- Bug fixes for various components of MIOpen
+
+Changes:
+
+- Added 2 new API for RNNs: miopenGetRNNLayerParamOffset and miopenGetRNNLayerBiasOffset
+- Added support for uninitialized hidden states and nullptr outputs in RNNs
+- Added support for Set and Scale operations for strided tensors with dimensions 1 to 5
+- Added multi-thread and multi-process support for the performance database
+- Improved performance for OpTensor
+- Fixed bug in convolutions for backward bias
+- Fixed logic issues in get and set layer functions and related w_supertensor test
+- Fixed hang in batch norm with batch sizes greater than 256
+
+Known Issues:
+
+- RNNs do not support fp16
+- Training with CNNs does not support fp16
+
+
+### 03/08/2018 [ 1.2.1 ]
+
+Notes:
+
+- This release adds support for ROCm 1.7.1.
+
 
 ### 12/15/2017 [ 1.2.0 ]
 

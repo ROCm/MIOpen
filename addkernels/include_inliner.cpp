@@ -33,7 +33,7 @@
 #endif
 #ifdef __linux__
 #include <linux/limits.h>
-#include <stdlib.h>
+#include <cstdlib>
 #endif // !WIN32
 
 #include "include_inliner.hpp"
@@ -64,7 +64,7 @@ static std::string GetAbsolutePath(const std::string& path)
 #endif
     return result;
 }
-}
+} // namespace PathHelpers
 
 InlineStackOverflowException::InlineStackOverflowException(const std::string& trace)
 {
@@ -94,8 +94,9 @@ void IncludeInliner::ProcessCore(std::istream& input,
         throw InlineStackOverflowException(GetIncludeStackTrace(0));
 
     _include_depth++;
-    _included_stack_head = new SourceFileDesc(file_name, _included_stack_head, line_number);
-    auto current_line    = 0;
+    _included_stack_head =
+        std::make_shared<SourceFileDesc>(file_name, _included_stack_head, line_number);
+    auto current_line = 0;
 
     while(!input.eof())
     {
@@ -106,7 +107,7 @@ void IncludeInliner::ProcessCore(std::istream& input,
         current_line++;
         std::transform(word.begin(), word.end(), word.begin(), ::tolower);
 
-        if(word == ".include")
+        if(!word.empty() && word == ".include")
         {
             const auto first_quote_pos = line.find('"', static_cast<int>(line_parser.tellg()) + 1);
             if(first_quote_pos == std::string::npos)
@@ -119,7 +120,7 @@ void IncludeInliner::ProcessCore(std::istream& input,
             const std::string include_file_path =
                 line.substr(first_quote_pos + 1, second_quote_pos - first_quote_pos - 1);
             const std::string abs_include_file_path(
-                PathHelpers::GetAbsolutePath(root + "/" + include_file_path));
+                PathHelpers::GetAbsolutePath(root + "/" + include_file_path)); // NOLINT
             std::ifstream include_file(abs_include_file_path, std::ios::in);
 
             if(!include_file.good())
@@ -136,8 +137,7 @@ void IncludeInliner::ProcessCore(std::istream& input,
         }
     }
 
-    auto prev_file = _included_stack_head->included_from;
-    delete _included_stack_head;
+    auto prev_file       = _included_stack_head->included_from;
     _included_stack_head = prev_file;
     _include_depth--;
 }

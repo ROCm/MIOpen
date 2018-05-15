@@ -11,6 +11,9 @@ MIOpen performs Exhaustive Search only if explicitly requested via MIOpen API an
 
 The optimized solution found during the successful Search process is written into the PerfDb for future re-use. That is why MIOpen will not Search for optimized solution more than once for a given problem in this mode.
 
+See documentation about miopenFind*() API calls for more info on how Search can be explicitly requested.
+
+
 **DB_UPDATE (2)**
 
 Similar to NONE, but Search will NOT be skipped if PerfDb contains relevant record. If Search is requested via MIOpen API, then MIOpen will perform the Search and update PerfDb.
@@ -34,3 +37,15 @@ Note: This mode is intended for tuning the MIOpen installation. When MIOpen is i
 **DB_CLEAN (5)**
 
 MIOpen removes relevant records from the PerfDb instead of just reading and using those. Search is blocked, even if explicitly requested.
+
+## MIOPEN_FIND_ENFORCE_SCOPE
+
+This variable allows to limit the scope of `MIOPEN_FIND_ENFORCE`, so that only forward, backward data or backward weights convolutions will be affected. Both symbolic and numeric values are supported, as shown below.
+
+**ALL (1)** `MIOPEN_FIND_ENFORCE` affects all convolutions. This is the default.
+		
+**CONV_FWD (2)** `MIOPEN_FIND_ENFORCE` affects only Forward convolutions.
+
+**CONV_BWD (3)** `MIOPEN_FIND_ENFORCE` affects only Backward Data convolutions.
+
+**CONV_WRW (4)** `MIOPEN_FIND_ENFORCE` affects only Backward With Regard to Weights (a.k.a WRW) convolutions.

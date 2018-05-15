@@ -90,13 +90,13 @@
 #endif
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-BatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x input */
-                            __global _FLOAT* __restrict out,      /* y output */
-                            const __global _FLOAT* __restrict estimatedMean,
-                            const __global _FLOAT* __restrict estimatedVariance,
-                            const __global _FLOAT* __restrict scale,
-                            const __global _FLOAT* __restrict bias,
-                            double epsilon)
+MIOpenBatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x input */
+                                  __global _FLOAT* __restrict out,      /* y output */
+                                  const __global _FLOAT* __restrict estimatedMean,
+                                  const __global _FLOAT* __restrict estimatedVariance,
+                                  const __global _FLOAT* __restrict scale,
+                                  const __global _FLOAT* __restrict bias,
+                                  double epsilon)
 {
 
     int xgid = get_global_id(0);

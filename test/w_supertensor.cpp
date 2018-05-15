@@ -43,6 +43,139 @@
 #include "driver.hpp"
 #include "test.hpp"
 
+std::vector<float> generate_w_tensor(miopenRNNDescriptor_t rnnDesc,
+                                     miopenRNNMode_t mode,
+                                     miopenRNNInputMode_t inMode,
+                                     miopenRNNDirectionMode_t directionMode,
+                                     miopenRNNBiasMode_t biasMode,
+                                     miopenTensorDescriptor_t inputTensor,
+                                     int num_layer)
+{
+    size_t wei_sz = 0;
+    auto&& handle = get_handle();
+    miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopenFloat);
+
+    wei_sz = wei_sz / sizeof(float);
+    std::vector<float> wei_h(wei_sz, 0);
+
+    int offset = 0;
+
+    int num_HiddenLayer = (mode == miopenRNNRELU) ? 1 : (mode == miopenGRU ? 3 : 4);
+
+    if(directionMode == miopenRNNbidirection)
+    {
+        for(int k = 0; k < num_layer * 4; k++)
+        {
+            for(int j = 0; j < num_HiddenLayer; j++)
+            {
+                int layer   = k % 2 + (k / 4) * 2;
+                int layerId = (k % 4 > 1) ? j + num_HiddenLayer : j;
+
+                size_t paramSize = 0;
+                miopenGetRNNLayerParamSize(
+                    &handle, rnnDesc, layer, inputTensor, layerId, &paramSize);
+
+                if((inMode == miopenRNNskip) && (layer < 2) && (layerId < num_HiddenLayer))
+                {
+                    EXPECT(paramSize == 0);
+                    continue;
+                }
+
+                paramSize /= sizeof(float);
+
+                for(int i = 0; i < paramSize; i++)
+                {
+                    wei_h[offset + i] = layer * 10 + layerId;
+                }
+
+                offset += paramSize;
+            }
+        }
+
+        if(biasMode == miopenRNNwithBias)
+        {
+            for(int k = 0; k < num_layer * 4; k++)
+            {
+                for(int j = 0; j < num_HiddenLayer; j++)
+                {
+
+                    int layer   = k % 2 + (k / 4) * 2;
+                    int layerID = (k % 4 > 1) ? j + num_HiddenLayer : j;
+
+                    size_t biasSize = 0;
+                    miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
+
+                    biasSize /= sizeof(float);
+
+                    for(int i = 0; i < biasSize; i++)
+                    {
+                        wei_h[offset + i] = -(layer * 10 + layerID);
+                    }
+                    offset += biasSize;
+                }
+            }
+        }
+    }
+    else
+    {
+        for(int layer = 0; layer < num_layer; layer++)
+        {
+            // int layerID = (inMode == miopenRNNskip && layer < 1) ? num_HiddenLayer : 0;
+
+            for(int layerID = 0; layerID < num_HiddenLayer * 2; layerID++)
+            {
+                size_t paramSize = 0;
+                miopenGetRNNLayerParamSize(
+                    &handle, rnnDesc, layer, inputTensor, layerID, &paramSize);
+
+                if((inMode == miopenRNNskip) && (layer < 1) && (layerID < num_HiddenLayer))
+                {
+                    EXPECT(paramSize == 0);
+                    continue;
+                }
+
+                paramSize /= sizeof(float);
+
+                for(int i = 0; i < paramSize; i++)
+                {
+                    wei_h[offset + i] = layer * 10 + layerID;
+                }
+
+                offset += paramSize;
+            }
+        }
+
+        if(biasMode == miopenRNNwithBias)
+        {
+            for(int layer = 0; layer < num_layer; layer++)
+            {
+                // int layerID = (inMode == miopenRNNskip && layer < 1) ? num_HiddenLayer : 0;
+
+                for(int layerID = 0; layerID < num_HiddenLayer * 2; layerID++)
+                {
+                    size_t biasSize = 0;
+                    miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
+
+                    biasSize /= sizeof(float);
+
+                    for(int i = 0; i < biasSize; i++)
+                    {
+                        wei_h[offset + i] = -(layer * 10 + layerID);
+                    }
+                    offset += biasSize;
+                }
+            }
+        }
+    }
+
+    // for(int i = 0; i < wei_sz; i++)
+    //{
+    // printf("[%d]: %f\n", i, wei_h[i]);
+    //}
+
+    return wei_h;
+}
+
 struct verify_w_tensor_get
 {
     miopenRNNDescriptor_t rnnDesc;
@@ -85,7 +218,8 @@ struct verify_w_tensor_get
         num_layer     = p_num_layer;
 
         auto&& handle = get_handle();
-        wei_dev       = handle.Write(fill_weight());
+        wei_dev       = handle.Write(generate_w_tensor(
+            rnnDesc, mode, inMode, directionMode, biasMode, inputTensor, num_layer));
     }
 
     std::vector<float> gpu() const
@@ -100,18 +234,11 @@ struct verify_w_tensor_get
         wei_sz = wei_sz / sizeof(float);
         std::vector<float> wei_h(wei_sz, 0);
 
-        int offset = 0;
-
         for(int layer = 0; layer < num_layer * bi; layer++)
         {
+            int layerID = (inMode == miopenRNNskip && layer < bi) ? num_HiddenLayer : 0;
 
-            int skip = 2;
-            if(inMode == miopenRNNskip && layer < bi)
-            {
-                skip = 1;
-            }
-
-            for(int layerID = 0; layerID < num_HiddenLayer * skip; layerID++)
+            for(; layerID < num_HiddenLayer * 2; layerID++)
             {
 
                 size_t paramSize = 0;
@@ -121,6 +248,7 @@ struct verify_w_tensor_get
                 size_t poffset = 0;
                 auto err       = miopenGetRNNLayerParamOffset(
                     rnnDesc, layer, inputTensor, layerID, paramTensor, &poffset);
+
                 if(err != miopenStatusSuccess)
                 {
                     std::cout << "Error in call to miopenGetRNNLayerParamOffset" << std::endl;
@@ -142,18 +270,25 @@ struct verify_w_tensor_get
 
                 auto param_h_out = handle.Read<float>(param_dev_out, paramSize);
 
-                memcpy(&wei_h[offset], &param_h_out[0], sizeof(float) * paramSize);
-                offset += paramSize;
+                memcpy(&wei_h[poffset], &param_h_out[0], sizeof(float) * paramSize);
+            }
+        }
 
-                if(biasMode == miopenRNNwithBias)
+        if(biasMode == miopenRNNwithBias)
+        {
+            for(int layer = 0; layer < num_layer * bi; layer++)
+            {
+                int layerID = 0;
+
+                for(; layerID < num_HiddenLayer * 2; layerID++)
                 {
-
-                    size_t biasSize = 0;
                     size_t boffset  = 0;
+                    size_t biasSize = 0;
 
                     miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
-                    err = miopenGetRNNLayerBiasOffset(
+                    auto err = miopenGetRNNLayerBiasOffset(
                         rnnDesc, layer, inputTensor, layerID, biasTensor, &boffset);
+
                     if(err != miopenStatusSuccess)
                     {
                         std::cout << "Error in call to miopenGetRNNLayerBiasOffset" << std::endl;
@@ -175,8 +310,7 @@ struct verify_w_tensor_get
 
                     auto bias_h_out = handle.Read<float>(bias_dev_out, biasSize);
 
-                    memcpy(&wei_h[offset], &bias_h_out[0], sizeof(float) * biasSize);
-                    offset += biasSize;
+                    memcpy(&wei_h[boffset], &bias_h_out[0], sizeof(float) * biasSize);
                 }
             }
         }
@@ -189,187 +323,10 @@ struct verify_w_tensor_get
         return wei_h;
     }
 
-    std::vector<float> fill_weight()
-    {
-        auto&& handle = get_handle();
-        size_t wei_sz = 0;
-        miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopenFloat);
-        wei_sz = wei_sz / sizeof(float);
-        std::vector<float> wei_h(wei_sz, 0);
-
-        int offset = 0;
-
-        int num_HiddenLayer = (mode == miopenRNNRELU) ? 1 : (mode == miopenGRU ? 3 : 4);
-
-        if(directionMode == miopenRNNbidirection)
-        {
-            for(int k = 0; k < num_layer * 4; k++)
-            {
-                for(int j = 0; j < num_HiddenLayer; j++)
-                {
-                    int layer   = k % 2 + (k / 4) * 2;
-                    int layerId = (k % 4 > 1) ? j + num_HiddenLayer : j;
-
-                    if((inMode == miopenRNNskip) && (layer < 2) && (layerId >= num_HiddenLayer))
-                    {
-                        break;
-                    }
-
-                    size_t paramSize = 0;
-                    miopenGetRNNLayerParamSize(
-                        &handle, rnnDesc, layer, inputTensor, layerId, &paramSize);
-
-                    paramSize /= sizeof(float);
-
-                    for(int i = 0; i < paramSize; i++)
-                    {
-                        wei_h[offset + i] = layer * 10 + layerId;
-                    }
-
-                    offset += paramSize;
-                }
-            }
-
-            if(biasMode == miopenRNNwithBias)
-            {
-                for(int k = 0; k < num_layer * 4; k++)
-                {
-                    for(int j = 0; j < num_HiddenLayer; j++)
-                    {
-
-                        int layer   = k % 2 + (k / 4) * 2;
-                        int layerID = (k % 4 > 1) ? j + num_HiddenLayer : j;
-
-                        if((inMode == miopenRNNskip) && (layer < 2) && (layerID >= num_HiddenLayer))
-                        {
-                            break;
-                        }
-
-                        size_t biasSize = 0;
-                        miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
-
-                        biasSize /= sizeof(float);
-
-                        for(int i = 0; i < biasSize; i++)
-                        {
-                            wei_h[offset + i] = layer * 10 + layerID;
-                        }
-                        offset += biasSize;
-                    }
-                }
-            }
-        }
-        else
-        {
-            for(int k = 0; k < num_layer; k++)
-            {
-                int skip = (inMode == miopenRNNskip && k < 1) ? 1 : 2;
-
-                for(int j = 0; j < num_HiddenLayer * skip; j++)
-                {
-                    size_t paramSize = 0;
-                    miopenGetRNNLayerParamSize(&handle, rnnDesc, k, inputTensor, j, &paramSize);
-
-                    paramSize /= sizeof(float);
-
-                    for(int i = 0; i < paramSize; i++)
-                    {
-                        wei_h[offset + i] = k * 10 + j;
-                    }
-
-                    offset += paramSize;
-                }
-            }
-
-            if(biasMode == miopenRNNwithBias)
-            {
-                for(int layer = 0; layer < num_layer; layer++)
-                {
-                    int skip = (inMode == miopenRNNskip && layer < 1) ? 1 : 2;
-
-                    for(int layerID = 0; layerID < num_HiddenLayer * skip; layerID++)
-                    {
-
-                        size_t biasSize = 0;
-                        miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
-
-                        biasSize /= sizeof(float);
-
-                        for(int i = 0; i < biasSize; i++)
-                        {
-                            wei_h[offset + i] = layer * 10 + layerID;
-                        }
-                        offset += biasSize;
-                    }
-                }
-            }
-        }
-        return wei_h;
-    }
-
     std::vector<float> cpu() const
     {
-        auto&& handle       = get_handle();
-        int num_HiddenLayer = (mode == miopenRNNRELU) ? 1 : (mode == miopenGRU ? 3 : 4);
-        int bi              = (directionMode == miopenRNNbidirection) ? 2 : 1;
-
-        size_t wei_sz = 0;
-        miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopenFloat);
-        wei_sz = wei_sz / sizeof(float);
-        std::vector<float> wei_h(wei_sz, 0);
-
-        int offset = 0;
-
-        for(int layer = 0; layer < num_layer * bi; layer++)
-        {
-
-            int skip = 2;
-            if(inMode == miopenRNNskip && layer < bi)
-            {
-                skip = 1;
-            }
-
-            for(int layerID = 0; layerID < num_HiddenLayer * skip; layerID++)
-            {
-
-                size_t paramSize = 0;
-                miopenGetRNNLayerParamSize(
-                    &handle, rnnDesc, layer, inputTensor, layerID, &paramSize);
-
-                paramSize /= sizeof(float);
-
-                for(int i = 0; i < paramSize; i++)
-                {
-                    wei_h[offset + i] = layer * 10 + layerID;
-                }
-
-                offset += paramSize;
-
-                if(biasMode == miopenRNNwithBias)
-                {
-
-                    size_t biasSize = 0;
-
-                    miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
-
-                    biasSize /= sizeof(float);
-
-                    for(int i = 0; i < biasSize; i++)
-                    {
-                        wei_h[offset + i] = layer * 10 + layerID;
-                    }
-
-                    offset += biasSize;
-                }
-            }
-        }
-
-        // for(int i = 0; i < wei_sz; i++)
-        //{
-        // printf("CPU [%d]: %f\n", i, wei_h[i]);
-        //}
-
-        return wei_h;
+        return generate_w_tensor(
+            rnnDesc, mode, inMode, directionMode, biasMode, inputTensor, num_layer);
     }
 
     void fail(float = 0) const {}
@@ -421,120 +378,8 @@ struct verify_w_tensor_set
 
     std::vector<float> cpu() const
     {
-        auto&& handle = get_handle();
-        size_t wei_sz = 0;
-        miopenGetRNNParamsSize(&handle, rnnDesc, inputTensor, &wei_sz, miopenFloat);
-        wei_sz = wei_sz / sizeof(float);
-        std::vector<float> wei_h(wei_sz, 0);
-
-        int offset = 0;
-
-        int num_HiddenLayer = (mode == miopenRNNRELU) ? 1 : (mode == miopenGRU ? 3 : 4);
-
-        if(directionMode == miopenRNNbidirection)
-        {
-            for(int k = 0; k < num_layer * 4; k++)
-            {
-                for(int j = 0; j < num_HiddenLayer; j++)
-                {
-                    int layer   = k % 2 + (k / 4) * 2;
-                    int layerId = (k % 4 > 1) ? j + num_HiddenLayer : j;
-
-                    if((inMode == miopenRNNskip) && (layer < 2) && (layerId >= num_HiddenLayer))
-                    {
-                        break;
-                    }
-
-                    size_t paramSize = 0;
-                    miopenGetRNNLayerParamSize(
-                        &handle, rnnDesc, layer, inputTensor, layerId, &paramSize);
-
-                    paramSize /= sizeof(float);
-
-                    for(int i = 0; i < paramSize; i++)
-                    {
-                        wei_h[offset + i] = layer * 10 + layerId;
-                    }
-
-                    offset += paramSize;
-                }
-            }
-
-            if(biasMode == miopenRNNwithBias)
-            {
-                for(int k = 0; k < num_layer * 4; k++)
-                {
-                    for(int j = 0; j < num_HiddenLayer; j++)
-                    {
-
-                        int layer   = k % 2 + (k / 4) * 2;
-                        int layerID = (k % 4 > 1) ? j + num_HiddenLayer : j;
-
-                        if((inMode == miopenRNNskip) && (layer < 2) && (layerID >= num_HiddenLayer))
-                        {
-                            break;
-                        }
-
-                        size_t biasSize = 0;
-                        miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
-
-                        biasSize /= sizeof(float);
-
-                        for(int i = 0; i < biasSize; i++)
-                        {
-                            wei_h[offset + i] = layer * 10 + layerID;
-                        }
-                        offset += biasSize;
-                    }
-                }
-            }
-        }
-        else
-        {
-            for(int k = 0; k < num_layer; k++)
-            {
-                int skip = (inMode == miopenRNNskip && k < 1) ? 1 : 2;
-
-                for(int j = 0; j < num_HiddenLayer * skip; j++)
-                {
-                    size_t paramSize = 0;
-                    miopenGetRNNLayerParamSize(&handle, rnnDesc, k, inputTensor, j, &paramSize);
-
-                    paramSize /= sizeof(float);
-
-                    for(int i = 0; i < paramSize; i++)
-                    {
-                        wei_h[offset + i] = k * 10 + j;
-                    }
-
-                    offset += paramSize;
-                }
-            }
-
-            if(biasMode == miopenRNNwithBias)
-            {
-                for(int layer = 0; layer < num_layer; layer++)
-                {
-                    int skip = (inMode == miopenRNNskip && layer < 1) ? 1 : 2;
-
-                    for(int layerID = 0; layerID < num_HiddenLayer * skip; layerID++)
-                    {
-
-                        size_t biasSize = 0;
-                        miopenGetRNNLayerBiasSize(&handle, rnnDesc, layer, layerID, &biasSize);
-
-                        biasSize /= sizeof(float);
-
-                        for(int i = 0; i < biasSize; i++)
-                        {
-                            wei_h[offset + i] = layer * 10 + layerID;
-                        }
-                        offset += biasSize;
-                    }
-                }
-            }
-        }
-        return wei_h;
+        return generate_w_tensor(
+            rnnDesc, mode, inMode, directionMode, biasMode, inputTensor, num_layer);
     }
 
     std::vector<float> gpu() const
@@ -548,14 +393,14 @@ struct verify_w_tensor_set
 
         for(int layer = 0; layer < num_layer * bi; layer++)
         {
+            int layerID = 0;
 
-            int skip = 2;
             if(inMode == miopenRNNskip && layer < bi)
             {
-                skip = 1;
+                layerID = num_HiddenLayer;
             }
 
-            for(int layerID = 0; layerID < num_HiddenLayer * skip; layerID++)
+            for(; layerID < num_HiddenLayer * 2; layerID++)
             {
 
                 size_t paramSize = 0;
@@ -587,7 +432,12 @@ struct verify_w_tensor_set
                                        layerID,
                                        paramTensor,
                                        param_dev_in.get());
+            }
 
+            layerID = 0;
+
+            for(; layerID < num_HiddenLayer * 2; layerID++)
+            {
                 if(biasMode == miopenRNNwithBias)
                 {
                     size_t biasSize = 0;
@@ -607,7 +457,7 @@ struct verify_w_tensor_set
                                           nullptr);
 
                     biasSize /= sizeof(float);
-                    std::vector<float> bias_h_in(biasSize, layer * 10 + layerID);
+                    std::vector<float> bias_h_in(biasSize, -(layer * 10 + layerID));
                     auto bias_dev_in = handle.Write(bias_h_in);
 
                     miopenSetRNNLayerBias(&handle,
@@ -624,6 +474,13 @@ struct verify_w_tensor_set
         }
 
         wei_sz = wei_sz / sizeof(float);
+
+        // auto wei_h = handle.Read<float>(wei_dev, wei_sz);
+        // for(int i = 0; i < wei_sz; i++)
+        //{
+        // printf("GPU [%d]: %f\n", i, wei_h[i]);
+        //}
+
         return handle.Read<float>(wei_dev, wei_sz);
     }
 

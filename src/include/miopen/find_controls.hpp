@@ -63,6 +63,8 @@ class FindEnforce
     template <class Context>
     bool IsScopeMatch(const Context& context) const
     {
+        if(context.workaround_disable_search_enforce)
+            return false;
         switch(scope)
         {
         case FindEnforceScope::All: return true;

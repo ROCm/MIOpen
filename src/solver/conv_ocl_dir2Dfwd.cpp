@@ -31,6 +31,20 @@
 namespace miopen {
 namespace solver {
 
+bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
+{
+    // clang-format off
+    // Cases when dy has negative padding are not supported (issue 918)
+    if(params.direction.IsBackwardData()
+        && (params.GetBackwardPad0() < 0 || params.GetBackwardPad1() < 0))
+        return false;
+
+    return params.kernel_stride0 == params.kernel_stride1
+        && params.pad0 == params.pad1
+        && !(params.direction.IsBackwardData() && (params.kernel_stride0 > 2 || params.kernel_stride1 > 2));
+    // clang-format on
+}
+
 ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
                                            const LegacyPerformanceConfig& searched_params) const
 {
@@ -56,12 +70,14 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
     result.n_out_pix_tiles = std::min(params.n_outputs, searched_params.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
-    result.out_pix_tile1 = (params.direction.IsForward() == 0 && params.kernel_stride1 > 1)
-                               ? params.kernel_stride1
-                               : searched_params.out_pix_tile1;
-    result.out_pix_tile0 = (params.direction.IsForward() == 0 && params.kernel_stride0 > 1)
-                               ? params.kernel_stride0
-                               : searched_params.out_pix_tile0;
+    result.out_pix_tile1 =
+        (static_cast<int>(params.direction.IsForward()) == 0 && params.kernel_stride1 > 1)
+            ? params.kernel_stride1
+            : searched_params.out_pix_tile1;
+    result.out_pix_tile0 =
+        (static_cast<int>(params.direction.IsForward()) == 0 && params.kernel_stride0 > 1)
+            ? params.kernel_stride0
+            : searched_params.out_pix_tile0;
 
     result.grp_tile0 = std::max(8, (result.in_tile0 / result.out_pix_tile0));
     result.grp_tile1 = std::max(8, (result.in_tile1 / result.out_pix_tile1));

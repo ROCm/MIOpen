@@ -1,3 +1,6 @@
+#ifndef GUARD_MIOPEN_CHECK_NUMERICS_HPP
+#define GUARD_MIOPEN_CHECK_NUMERICS_HPP
+
 #include <miopen/common.hpp>
 #include <miopen/util.hpp>
 
@@ -18,3 +21,5 @@ bool checkNumericsOutput(Handle& handle, const TensorDescriptor& dDesc, ConstDat
 bool checkNumericsImpl(
     Handle& handle, int mode, const TensorDescriptor& dDesc, ConstData_t data, bool isInput);
 } // namespace miopen
+
+#endif // GUARD_MIOPEN_CHECK_NUMERICS_HPP

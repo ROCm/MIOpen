@@ -40,12 +40,12 @@ extern "C" miopenStatus_t miopenSetActivationDescriptor(miopenActivationDescript
                                                         miopenActivationMode_t mode,
                                                         double activAlpha,
                                                         double activBeta,
-                                                        double activPower)
+                                                        double activGamma)
 {
 
-    MIOPEN_LOG_FUNCTION(activDesc, mode, activAlpha, activBeta, activPower);
+    MIOPEN_LOG_FUNCTION(activDesc, mode, activAlpha, activBeta, activGamma);
     return miopen::try_([&] {
-        std::initializer_list<double> parms = {activAlpha, activBeta, activPower};
+        std::initializer_list<double> parms = {activAlpha, activBeta, activGamma};
         miopen::deref(activDesc)            = miopen::ActivationDescriptor(mode, parms.begin());
     });
 }
@@ -54,15 +54,15 @@ extern "C" miopenStatus_t miopenGetActivationDescriptor(miopenActivationDescript
                                                         miopenActivationMode_t* mode,
                                                         double* activAlpha,
                                                         double* activBeta,
-                                                        double* activPower)
+                                                        double* activGamma)
 {
 
-    MIOPEN_LOG_FUNCTION(activDesc, mode, activAlpha, activBeta, activPower);
+    MIOPEN_LOG_FUNCTION(activDesc, mode, activAlpha, activBeta, activGamma);
     return miopen::try_([&] {
         *mode       = miopen::deref(activDesc).GetMode();
         *activAlpha = miopen::deref(activDesc).GetAlpha();
         *activBeta  = miopen::deref(activDesc).GetBeta();
-        *activPower = miopen::deref(activDesc).GetPower();
+        *activGamma = miopen::deref(activDesc).GetGamma();
     });
 }
 

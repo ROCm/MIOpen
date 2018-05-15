@@ -75,10 +75,16 @@ template <class T>
 std::false_type is_container(miopen::rank<0>, T&&);
 
 template <class T, class U>
-auto is_streamable(miopen::rank<1>, T&& x, U&& y) -> decltype((x >> y), std::true_type{});
+auto is_input_streamable(miopen::rank<1>, T&& x, U&& y) -> decltype((x >> y), std::true_type{});
 
 template <class T, class U>
-std::false_type is_streamable(miopen::rank<0>, T&&, U&&);
+std::false_type is_input_streamable(miopen::rank<0>, T&&, U&&);
+
+template <class T, class U>
+auto is_output_streamable(miopen::rank<1>, T&& x, U&& y) -> decltype((x << y), std::true_type{});
+
+template <class T, class U>
+std::false_type is_output_streamable(miopen::rank<0>, T&&, U&&);
 
 template <bool B>
 struct requires_bool
@@ -98,10 +104,18 @@ struct is_container : decltype(detail::is_container(miopen::rank<1>{}, std::decl
 };
 
 template <class T>
-struct is_streamable
-    : decltype(detail::is_streamable(miopen::rank<1>{},
-                                     std::declval<std::istream>(),
-                                     std::declval<typename std::add_lvalue_reference<T>::type>()))
+struct is_input_streamable : decltype(detail::is_input_streamable(
+                                 miopen::rank<1>{},
+                                 std::declval<std::istream>(),
+                                 std::declval<typename std::add_lvalue_reference<T>::type>()))
+{
+};
+
+template <class T>
+struct is_output_streamable : decltype(detail::is_output_streamable(
+                                  miopen::rank<1>{},
+                                  std::declval<std::ostream>(),
+                                  std::declval<typename std::add_lvalue_reference<T>::type>()))
 {
 };
 
@@ -121,14 +135,29 @@ struct is_streamable
 template <class T>
 struct value_parser
 {
-    template <ARGS_REQUIRES(is_streamable<T>{} and not std::is_pointer<T>{})>
+    template <ARGS_REQUIRES(is_input_streamable<T>{} and not std::is_pointer<T>{} and
+                            not std::is_enum<T>{})>
     static T apply(const std::string& x)
     {
         T result;
         std::stringstream ss;
         ss.str(x);
         ss >> result;
+        if(ss.fail())
+            throw std::runtime_error("Failed to parse: " + x);
         return result;
+    }
+
+    template <ARGS_REQUIRES(std::is_enum<T>{})>
+    static T apply(const std::string& x)
+    {
+        std::ptrdiff_t i;
+        std::stringstream ss;
+        ss.str(x);
+        ss >> i;
+        if(ss.fail())
+            throw std::runtime_error("Failed to parse: " + x);
+        return static_cast<T>(i);
     }
 };
 
@@ -136,7 +165,9 @@ struct any_value
 {
     std::string s;
 
-    template <class T, class = decltype(value_parser<T>::apply(std::string{}))>
+    template <class T,
+              class = decltype(value_parser<T>::apply(std::string{})),
+              ARGS_REQUIRES(not std::is_enum<T>{})>
     operator T() const
     {
         return value_parser<T>::apply(s);
@@ -179,7 +210,7 @@ struct write_value
         }
     }
 
-    template <class T, ARGS_REQUIRES(not is_multi_value<T>{} and is_streamable<T>{})>
+    template <class T, ARGS_REQUIRES(not is_multi_value<T>{} and is_input_streamable<T>{})>
     void operator()(T& result, std::vector<std::string> params) const
     {
         if(params.empty())
@@ -187,7 +218,7 @@ struct write_value
         result = value_parser<T>::apply(params.back());
     }
 
-    template <class T, ARGS_REQUIRES(not is_multi_value<T>{} and not is_streamable<T>{})>
+    template <class T, ARGS_REQUIRES(not is_multi_value<T>{} and not is_input_streamable<T>{})>
     void operator()(T& result, std::vector<std::string> params) const
     {
         switch(params.size())
@@ -236,4 +267,28 @@ struct write_value
         }
     }
 };
+
+struct read_value
+{
+    template <class Container,
+              ARGS_REQUIRES(is_container<Container>{} and not is_output_streamable<Container>{})>
+    std::string operator()(Container& xs) const
+    {
+        std::string result;
+        for(auto&& x : xs)
+        {
+            result += (*this)(x) + " ";
+        }
+        return result;
+    }
+
+    template <class T, ARGS_REQUIRES(is_output_streamable<T>{})>
+    std::string operator()(T& x) const
+    {
+        std::stringstream ss;
+        ss << x;
+        return ss.str();
+    }
+};
+
 } // namespace args
