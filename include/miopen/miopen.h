@@ -1740,8 +1740,6 @@ typedef enum {
     miopenOpTensorOp   = 4, /*!< element-wise tensor op */
 } miopenOperator_t;
 
-
-
 /*! @struct miopenOpCost_t
 * @brief cost of a single (possibly fused) op
 */
@@ -1751,7 +1749,6 @@ typedef struct miopen_op_cost
     double time;              /*!< execution time */
     double deviceUtilization; /*!< % of device utilized bt the op */
 } miopenOpCost_t;
-
 
 /*! @brief Creates the FUSION plan descriptor object
 *
@@ -1776,30 +1773,21 @@ miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc);
 */
 MIOPEN_EXPORT miopenStatus_t miopenDestroyOperator(miopenOperatorDescriptor_t miopenOp);
 
-
 MIOPEN_EXPORT miopenStatus_t miopenInitFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                    const miopenPipelineMode_t pipelineMode,
-                                                    const miopenFusionDirection_t fuseDirection);
+                                                  const miopenPipelineMode_t pipelineMode,
+                                                  const miopenFusionDirection_t fuseDirection);
 
-
-
-
-MIOPEN_EXPORT miopenStatus_t miopenAddOpToFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc, 
-                                                        miopenOperatorDescriptor_t op);
-
+MIOPEN_EXPORT miopenStatus_t miopenAddOpToFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                     miopenOperatorDescriptor_t op);
 
 MIOPEN_EXPORT miopenStatus_t miopenResetFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc);
 
-
 MIOPEN_EXPORT miopenStatus_t miopenIsFusionPlanValid(miopenFusionPlanDescriptor_t fusePlanDesc);
 
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateOp(miopenOperatorDescriptor_t* Op, const miopenOperator_t operator);
 
-MIOPEN_EXPORT miopenStatus_t miopenCreateOp(miopenOperatorDescriptor_t* Op, 
-                                                const miopenOperator_t operator);
-
-
-MIOPEN_EXPORT  miopenStatus_t miopenDestroyOperator(miopenOperatorDescriptor_t miopenOp);
-
+MIOPEN_EXPORT miopenStatus_t miopenDestroyOperator(miopenOperatorDescriptor_t miopenOp);
 
 /*! @brief Creates miopen convolution operator.
 *
@@ -1812,13 +1800,11 @@ MIOPEN_EXPORT  miopenStatus_t miopenDestroyOperator(miopenOperatorDescriptor_t m
 * @return          miopenStatus_t
 */
 MIOPEN_EXPORT miopenConfigConvInferenceOp(miopenOperatorDescriptor_t convOp,
-                                                      miopenConvolutionDescriptor_t convDesc,
-                                                      miopenConvFwdAlgorithm_t algo,
-                                                      const TensorDescriptor& xDesc,
-                                                      const TensorDescriptor& wDesc,
-                                                      const TensorDescriptor& yDesc);
-
-
+                                          miopenConvolutionDescriptor_t convDesc,
+                                          miopenConvFwdAlgorithm_t algo,
+                                          const TensorDescriptor& xDesc,
+                                          const TensorDescriptor& wDesc,
+                                          const TensorDescriptor& yDesc);
 
 /*! @brief Creates miopen operator
 *
@@ -1832,11 +1818,11 @@ MIOPEN_EXPORT miopenConfigConvInferenceOp(miopenOperatorDescriptor_t convOp,
 * @return          miopenStatus_t
 */
 
-MIOPEN_EXPORT miopenStatus_t miopenConfigActivationInferenceOp(miopenOperatorDescriptor_t activOp,
-                                                     const miopenActivationDescriptor_t activDesc,
-                                                     const TensorDescriptor& xDesc,
-                                                     const TensorDescriptor& yDesc);
-
+MIOPEN_EXPORT miopenStatus_t
+miopenConfigActivationInferenceOp(miopenOperatorDescriptor_t activOp,
+                                  const miopenActivationDescriptor_t activDesc,
+                                  const TensorDescriptor& xDesc,
+                                  const TensorDescriptor& yDesc);
 
 /*! @brief creates a operator for batch normalization
 *
@@ -1862,60 +1848,49 @@ miopenConfigBatchNormInferenceOp(miopenOperatorDescriptor_t bnOp,
                                  const TensorDescriptor& yDesc,
                                  const TensorDescriptor& bnScaleBiasMeanVarDesc);
 
-
-MIOPEN_EXPORT miopenStatus_t
-miopenConfigTensorOpInferenceOp(miopenOperatorDescriptor_t tOp,
-                                 miopenTensorOp_t tensorOp,
-                                 const TensorDescriptor& aDesc,
-                                 const TensorDescriptor& bDesc,
-                                 const TensorDescriptor& cDesc);
-
+MIOPEN_EXPORT miopenStatus_t miopenConfigTensorOpInferenceOp(miopenOperatorDescriptor_t tOp,
+                                                             miopenTensorOp_t tensorOp,
+                                                             const TensorDescriptor& aDesc,
+                                                             const TensorDescriptor& bDesc,
+                                                             const TensorDescriptor& cDesc);
 
 MIOPEN_EXPORT miopenStatus_t
 miopenConfigPoolingInferenceOp(miopenOperatorDescriptor_t poolOp,
-                                 const miopenPoolingDescriptor_t poolDesc,
-                                 const TensorDescriptor& xDesc,
-                                 const TensorDescriptor& yDesc);
+                               const miopenPoolingDescriptor_t poolDesc,
+                               const TensorDescriptor& xDesc,
+                               const TensorDescriptor& yDesc);
 
-MIOPEN_EXPORT miopenStatus_t miopenCreateOperatorArgs(miopenOperatorArgs_t *args);
+MIOPEN_EXPORT miopenStatus_t miopenCreateOperatorArgs(miopenOperatorArgs_t* args);
 
 MIOPEN_EXPORT miopenStatus_t miopenDestroyOperatorArgs(miopenOperatorArgs_t args);
 
-
 MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsConvInferenceOp(miopenOperatorArgs_t args,
-                                                       const miopenOperatorDescriptor_t convOp,
-                                                       const void* w);
+                                                            const miopenOperatorDescriptor_t convOp,
+                                                            const void* w);
 
+MIOPEN_EXPORT miopenStatus_t
+miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t args,
+                                  const miopenOperatorDescriptor_t bnOp,
+                                  const void* bnScale,
+                                  const void* bnBias,
+                                  const void* estimatedMean,
+                                  const void* estimatedVariance,
+                                  const double epsilon);
 
-
-MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t args,
-                                                            const miopenOperatorDescriptor_t bnOp,
-                                                            const void* bnScale,
-                                                            const void* bnBias,
-                                                            const void* estimatedMean,
-                                                            const void* estimatedVariance,
-                                                            const double epsilon);
-
-
-
-MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsActivationInference(miopenOperatorArgs_t args,
-                                   const miopenOperatorDescriptor_t activOp);
-
+MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsActivationInference(
+    miopenOperatorArgs_t args, const miopenOperatorDescriptor_t activOp);
 
 // This is essentially a noop, but it forces the users to have a matching length arg array in
 // execute
-MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsPoolingInference(miopenOperatorDescriptor_t poolingOp,
-                                                          const miopenPoolingDescriptor_t poolDesc);
-
-
+MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsPoolingInference(
+    miopenOperatorDescriptor_t poolingOp, const miopenPoolingDescriptor_t poolDesc);
 
 MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsTensorOp(miopenOperatorArgs_t args,
-                                                    const miopenOperatorDescriptor_t tOp,
-                                                    const void* alpha1,
-                                                    const void* alpha2,
-                                                    const void* beta,
-                                                    const void* B);
-
+                                                     const miopenOperatorDescriptor_t tOp,
+                                                     const void* alpha1,
+                                                     const void* alpha2,
+                                                     const void* beta,
+                                                     const void* B);
 
 /*! @brief returns the miopen operator type.
 *
@@ -1925,8 +1900,6 @@ MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsTensorOp(miopenOperatorArgs_t args,
 */
 MIOPEN_EXPORT miopenStatus_t miopenGetOperatorType(const miopenOperatorDescriptor miopenOp,
                                                    miopenOperator_t* opType);
-
-
 
 MIOPEN_EXPORT miopenStatus_t miopenGetFusionPlanCost(const miopenHandle_t handle,
                                                      const size_t nOps,
@@ -1946,7 +1919,8 @@ MIOPEN_EXPORT miopenStatus_t miopenGetFusionPlanCost(const miopenHandle_t handle
 *
 * @return           miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenGetFusionPlanCostEstimate(const miopenHandle_t handle,
+MIOPEN_EXPORT miopenStatus_t
+miopenGetFusionPlanCostEstimate(const miopenHandle_t handle,
                                 const miopenFusionPlanDescriptor_t fusePlanDesc,
                                 const miopenOperatorDescriptor_t* arrayOfOperatorDesc,
                                 miopenOpCost_t* opCost);
@@ -1968,80 +1942,74 @@ MIOPEN_EXPORT miopenStatus_t miopenGetFusionPlanCostEstimate(const miopenHandle_
 * @return           miopenStatus_t
 */
 
-MIOPEN_EXPORT miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
-                                                    const miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                    const miopenTensorDescriptor_t xDesc,
-                                                    const void* x,
-                                                    const miopenTensorDescriptor_t yDesc,
-                                                    void* y,
-                                                    miopenOperatorArgs_t args);
-
+MIOPEN_EXPORT miopenStatus_t
+miopenExecuteFusionPlan(const miopenHandle_t handle,
+                        const miopenFusionPlanDescriptor_t fusePlanDesc,
+                        const miopenTensorDescriptor_t xDesc,
+                        const void* x,
+                        const miopenTensorDescriptor_t yDesc,
+                        void* y,
+                        miopenOperatorArgs_t args);
 
 MIOPEN_EXPORT miopenStatus_t miopenGetOperatorType(const miopenOperatorDescriptor miopenOp,
-                                                miopenOperator_t* opType);
+                                                   miopenOperator_t* opType);
 
+MIOPEN_EXPORT miopenStatus_t
+miopenGetFusionPlanCostEstimate(const miopenHandle_t handle,
+                                const miopenFusionPlanDescriptor_t fusePlanDesc,
+                                miopenOpCost_t* opCost);
 
+MIOPEN_EXPORT miopenStatus_t
+miopenGetFusionPlanCostEmpirical(const miopenHandle_t handle,
+                                 const miopenFusionPlanDescriptor_t fusePlanDesc,
+                                 const size_t workSpaceSize,
+                                 void* workSpace,
+                                 openOperatorArgs_t args miopenOpCost_t* opCost);
 
-MIOPEN_EXPORT miopenStatus_t miopenGetFusionPlanCostEstimate(const miopenHandle_t handle,
-                                                const miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                miopenOpCost_t* opCost);
+MIOPEN_EXPORT miopenStatus_t
+miopenConvBatchNormActivationInference(miopenHandle_t handle,
+                                       const miopenConvolutionDescriptor_t convDesc,
+                                       const miopenTensorDescriptor_t xDesc,
+                                       const void* x,
+                                       const miopenTensorDescriptor_t wDesc,
+                                       const void* w,
+                                       miopenBatchNormMode_t bn_mode,
+                                       const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc,
+                                       void* bnScale,
+                                       void* bnBias,
+                                       void* estimatedMean,
+                                       void* estimatedVariance,
+                                       double epsilon const miopenActivationDescriptor_t activDesc,
+                                       const miopenTensorDescriptor_t yDesc,
+                                       void* y);
 
+MIOPEN_EXPORT miopenStatus_t
+miopenConvTensorOpActivationInference(miopenHandle_t handle,
+                                      const miopenConvolutionDescriptor_t convDesc,
+                                      const miopenTensorDescriptor_t xDesc,
+                                      const void* x,
+                                      const miopenTensorDescriptor_t wDesc,
+                                      const void* w,
+                                      const void* alpha1,
+                                      const void* alpha2,
+                                      const miopenTensorDescriptor_t bDesc,
+                                      const void* B,
+                                      const void* beta,
+                                      const miopenActivationDescriptor_t activDesc,
+                                      const miopenTensorDescriptor_t yDesc,
+                                      void* y);
 
-MIOPEN_EXPORT miopenStatus_t miopenGetFusionPlanCostEmpirical(const miopenHandle_t handle,
-                                  const miopenFusionPlanDescriptor_t fusePlanDesc,
-                                  const size_t workSpaceSize,
-                                  void* workSpace,
-                                  openOperatorArgs_t args
-                                  miopenOpCost_t* opCost);
-
-
-
-MIOPEN_EXPORT miopenStatus_t miopenConvBatchNormActivationInference(miopenHandle_t handle, 
-                                                        const miopenConvolutionDescriptor_t convDesc,
-                                                        const miopenTensorDescriptor_t xDesc,
-                                                        const void* x,
-                                                        const miopenTensorDescriptor_t wDesc,
-                                                        const void* w,
-                                                        miopenBatchNormMode_t bn_mode,
-                                                        const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc,
-                                                        void* bnScale,
-                                                        void* bnBias,
-                                                        void* estimatedMean,
-                                                        void* estimatedVariance,
-                                                        double epsilon
-                                                        const miopenActivationDescriptor_t activDesc,
-                                                        const miopenTensorDescriptor_t yDesc,
-                                                        void* y);
-
-
-
-MIOPEN_EXPORT miopenStatus_t miopenConvTensorOpActivationInference(miopenHandle_t handle, 
-                                                        const miopenConvolutionDescriptor_t convDesc,
-                                                        const miopenTensorDescriptor_t xDesc,
-                                                        const void* x,
-                                                        const miopenTensorDescriptor_t wDesc,
-                                                        const void* w,
-                                                        const void* alpha1,
-                                                        const void* alpha2,
-                                                        const miopenTensorDescriptor_t bDesc,
-                                                        const void* B,
-                                                        const void* beta,
-                                                        const miopenActivationDescriptor_t activDesc,
-                                                        const miopenTensorDescriptor_t yDesc,
-                                                        void* y);
-
-
-MIOPEN_EXPORT miopenStatus_t miopenConvActivationPoolingInference(miopenHandle_t handle, 
-                                                        const miopenConvolutionDescriptor_t convDesc,
-                                                        const miopenTensorDescriptor_t xDesc,
-                                                        const void* x,
-                                                        const miopenTensorDescriptor_t wDesc,
-                                                        const void* w,
-                                                        const miopenActivationDescriptor_t activDesc,
-                                                        const miopenPoolingDescriptor_t poolDesc,
-                                                        const miopenTensorDescriptor_t yDesc,
-                                                        void* y);
-
+MIOPEN_EXPORT miopenStatus_t
+miopenConvActivationPoolingInference(miopenHandle_t handle,
+                                     const miopenConvolutionDescriptor_t convDesc,
+                                     const miopenTensorDescriptor_t xDesc,
+                                     const void* x,
+                                     const miopenTensorDescriptor_t wDesc,
+                                     const void* w,
+                                     const miopenActivationDescriptor_t activDesc,
+                                     const miopenPoolingDescriptor_t poolDesc,
+                                     const miopenTensorDescriptor_t yDesc,
+                                     void* y);
 
 /** @} */
 // CLOSEOUT FUSION DOXYGEN GROUP
