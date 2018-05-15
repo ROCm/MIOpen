@@ -87,7 +87,7 @@ class ComputedIterator : public std::iterator<std::input_iterator_tag, Performan
     }
 
     // Implements container's begin()
-    ComputedIterator(const Context& problem) : v(true), p(&problem)
+    ComputedIterator(const Context& problem, const bool spare) : v(spare), p(&problem)
     {
         if(!v.IsValid(*p))
             Next();
@@ -118,6 +118,17 @@ template <typename PerformanceConfig, typename Context>
 class ComputedContainer
 {
     Context problem; // Hold a copy make the object independent of the environment.
+    bool spare;      // Use spare set of perf configs. Those are usually slower than main set.
+                     // Splitting the theoretically available set of perf configs to "main"
+                     // and "spare" sets allows for acceleration of the auto-tune process:
+                     // * If the "main" set is not empty, then skipping the "spare" set
+                     //   avoids wasting time, because the latter is slower by definition.
+                     // * Combining "spare" and "main" would lead to exponential growth of
+                     //   the resulting container, and thus to exponential slowdown.
+                     //
+                     // Nevertheless, a Solver is free to either use or not use this capability
+                     // (i.e. it is ok for PerformanceConfig(bool) to ignore its parameter).
+
     /// \note We do not add 'const' to keep the object assignable
     /// for the sake of flexibility. Nevertheless, all element accesses of
     /// the "computed container" shall be const.
@@ -125,8 +136,11 @@ class ComputedContainer
     public:
     using const_iterator = ComputedIterator<PerformanceConfig, Context>;
 
-    ComputedContainer(const Context& problem_) : problem(problem_) {}
-    const const_iterator begin() const { return {problem}; }
+    ComputedContainer(const Context& problem_, const bool spare_ = false)
+        : problem(problem_), spare(spare_)
+    {
+    }
+    const const_iterator begin() const { return {problem, spare}; }
     const const_iterator end() const { return {}; }
 };
 
@@ -195,8 +209,8 @@ class HeartBeat
         {
             elapsed_cumulative += elapsed;
             const float eta_sec =
-                n_recent ? ((n_total - n_recent) * (elapsed_cumulative / n_recent) / 1000)
-                         : 0.0f; // paraniod
+                n_recent != 0u ? ((n_total - n_recent) * (elapsed_cumulative / n_recent) / 1000)
+                               : 0.0f; // paraniod
             MIOPEN_LOG_W(n_recent << '/' << n_failed << '/' << n_total << ' ' << total_best
                                   << ", best within recent "
                                   << n_within_beat
@@ -228,13 +242,56 @@ inline void InitRandomly(std::vector<float>& vec)
         *p++ = static_cast<float>(rand() * (1.0 / RAND_MAX));
 }
 
+inline size_t divide_round_plus_inf(const size_t x, const size_t y)
+{
+    assert(/*x >= 0 &&*/ y > 0);
+    if(x % y != 0)
+        return x / y + 1;
+    return x / y;
+}
+
+enum class SearchTweak
+{
+    None,
+    // The top/bot buffer could be made 4x smaller for some cases, e.g.
+    // when the 2x subsampling kernel is used at the dx input of
+    // the WrW convolution, but we are skipping it during auto-tune:
+    Impl4xReduceTop_,
+    Skipped2xSubsample_dxWrW = Impl4xReduceTop_,
+    Skipped2xUpsample_dxBwd  = Impl4xReduceTop_,
+    Impl4xReduceBot_,
+    Skipped2xSubsample_yFwd = Impl4xReduceBot_,
+};
+
 /// Solver member function requirements:
 /// * GetPerformanceConfig shall be implemented.
 ///   - Its return type shall be suitable for instantiation of the ComputedContainer.
 /// * GetSolution shall be implemented.
 /// * RunAndMeasureSolution shall be implemented.
+///
+/// clang-format-off
+/// -----------------------------------------------
+/// Dataflow:
+///      Forward:
+///          wei[] (w) --> +--------+
+///                        | kernel | --> top[] (y)
+///          bot[] (x) --> +--------+
+///
+///      Backward data:
+///          wei[] (w) --> +--------+
+///                        | kernel | --> top[] (dx)
+///         bot[] (dy) --> +--------+
+///
+///      Backward WrW:
+///         top[] (dx) --> +--------+
+///                        | kernel | --> wei[] (dw)
+///         bot[] (dy) --> +--------+
+/// ------------------------------------------------
+/// clang-format-on
 template <class Solver, class Context>
-auto GenericSearch(const Solver s, const Context& context)
+auto GenericSearch(const Solver s,
+                   const Context& context,
+                   const SearchTweak tweak = SearchTweak::None)
     -> decltype(s.GetPerformanceConfig(context))
 {
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
@@ -243,13 +300,20 @@ auto GenericSearch(const Solver s, const Context& context)
     profile_h.EnableProfiling(true);
 
     // Allocate buffers, init input buffers.
-    std::vector<float> bot(context.bot_sz / sizeof(float));
-    std::vector<float> top(context.top_sz / sizeof(float));
+    size_t top_size = context.top_sz / sizeof(float);
+    if(tweak == SearchTweak::Impl4xReduceTop_)
+        top_size = divide_round_plus_inf(top_size, static_cast<size_t>(2 * 2));
+    std::vector<float> top(top_size);
+
+    size_t bot_size = context.bot_sz / sizeof(float);
+    if(tweak == SearchTweak::Impl4xReduceBot_)
+        bot_size = divide_round_plus_inf(bot_size, static_cast<size_t>(2 * 2));
+    std::vector<float> bot(bot_size);
+
     std::vector<float> wei(context.weights_sz / sizeof(float));
     std::vector<float> bias(context.bias_sz / sizeof(float));
-    if(!context.direction.IsForward())
-        InitRandomly(bot);
-    if(!context.direction.IsBackwardData())
+    InitRandomly(bot);
+    if(!(context.direction.IsBackwardData() || context.direction.IsForward()))
         InitRandomly(top);
     if(!context.direction.IsBackwardWrW())
         InitRandomly(wei, -0.5, 0.001);
@@ -260,9 +324,18 @@ auto GenericSearch(const Solver s, const Context& context)
     auto wei_ocl_buf  = profile_h.Write(wei);
     auto bias_ocl_buf = context.bias ? profile_h.Write(bias) : nullptr;
 
-    const ComputedContainer<PerformanceConfig, Context> all_configs(context);
-    const int n_runs_total = std::distance(all_configs.begin(), all_configs.end());
-    MIOPEN_LOG_W(SolverDbId(s) << ": Searching the best solution among " << n_runs_total << "...");
+    const ComputedContainer<PerformanceConfig, Context> main(context);
+    const int main_size = std::distance(main.begin(), main.end());
+    const ComputedContainer<PerformanceConfig, Context> spare(context, true);
+    const int spare_size = std::distance(spare.begin(), spare.end());
+    const bool useSpare  = (main_size == 0);
+
+    const ComputedContainer<PerformanceConfig, Context> all_configs = useSpare ? spare : main;
+    const int n_runs_total = useSpare ? spare_size : main_size;
+    MIOPEN_LOG_W(SolverDbId(s) << ": Searching the best solution among " << n_runs_total
+                               << (useSpare ? " (spare)" : "")
+                               << "...");
+
     bool is_passed   = false; // left false only if all iterations failed.
     float best_time  = std::numeric_limits<float>::max();
     size_t n_failed  = 0;
@@ -357,6 +430,20 @@ auto GenericSearch(const Solver s, const Context& context)
                           << best_config);
     if(!is_passed)
         MIOPEN_THROW("Search failed");
+    // Run once with the default config and show score.
+    float default_time = 0.0f;
+    if(s.RunAndMeasureSolution(profile_h,
+                               bot_ocl_buf.get(),
+                               top_ocl_buf.get(),
+                               wei_ocl_buf.get(),
+                               context.bias ? bias_ocl_buf.get() : nullptr,
+                               context,
+                               s.GetSolution(context, s.GetPerformanceConfig(context)),
+                               default_time) == 0)
+    {
+        const float score = (best_time > 0.0f) ? default_time / best_time : 0.0f;
+        MIOPEN_LOG_W("...Score: " << score << " (default time " << default_time << ')');
+    }
     return best_config;
 }
 

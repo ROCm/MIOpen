@@ -243,7 +243,7 @@ int mlo_construct_pooling2D::mloConstructBwd()
     }
     else
     {
-        std::cout << "Layer: %s. Error: unknowm method\n";
+        MIOPEN_LOG_E("Layer: %s. Error: unknowm method"); /// FIXME %s?
         ret = -1;
     }
     return (ret);

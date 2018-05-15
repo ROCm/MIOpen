@@ -26,6 +26,7 @@
 #include <miopen/gemm.hpp>
 #include <miopen/handle.hpp>
 
+#if MIOPEN_USE_MIOPENGEMM
 namespace miopen {
 
 GemmGeometry CreateGemmGeometryTranBwdData(const TensorDescriptor& dyDesc,
@@ -91,6 +92,50 @@ GemmGeometry CreateGemmGeometryConvBwdData(const TensorDescriptor& dyDesc,
     int K       = wei_n;
     int N       = out_h * out_w;
     int M       = in_c * wei_h * wei_w;
+    float alpha = 1.0;
+    float beta  = 0.0;
+    bool tA     = true;
+    bool tB     = false;
+    bool tC     = false;
+    int lda     = M;
+    int ldb     = N;
+    int ldc     = N;
+
+    MIOpenGEMM::Geometry tgg{};
+    GemmGeometry gg;
+    if(!isDataColMajor)
+    {
+        tgg = MIOpenGEMM::Geometry(true, tB, tA, tC, ldb, lda, ldc, N, M, K, 0, 'f');
+        gg  = GemmGeometry{"miopenConvolutionBwdDataAlgoGEMM", alpha, beta, tgg};
+    }
+    else
+    {
+        tgg = MIOpenGEMM::Geometry(false, tA, tB, tC, lda, ldb, ldc, M, N, K, 0, 'f');
+        gg  = GemmGeometry{"miopenConvolutionBwdDataAlgoGEMM", alpha, beta, tgg};
+    }
+    network_config = tgg.get_networkconfig_string();
+    return gg;
+}
+
+GemmGeometry CreateGemmGeometryConvBwdDataCNHW(const TensorDescriptor& dyDesc,
+                                               const TensorDescriptor& wDesc,
+                                               const TensorDescriptor& dxDesc,
+                                               bool isDataColMajor,
+                                               std::string& network_config)
+{
+    int in_n, in_c;
+    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
+
+    int wei_n, wei_h, wei_w;
+    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
+
+    // GEMM
+    int K       = wei_n;
+    int N       = in_n * out_h * out_w;
+    int M       = in_c;
     float alpha = 1.0;
     float beta  = 0.0;
     bool tA     = true;
@@ -283,13 +328,12 @@ GemmGeometry CreateMIOpenGemmGeometry(int M,
     }
 }
 
-GemmGeometry GetGemmGeometry(std::string algorithm_name, std::string network_config)
+GemmGeometry GetGemmGeometry(Handle& handle, std::string algorithm_name, std::string network_config)
 {
-    auto guard         = get_gemm_geo_map_lock();
-    auto gemm_iterator = gemm_geo_map().find(std::make_pair(algorithm_name, network_config));
-    if(gemm_iterator != gemm_geo_map().end())
+    auto gemm_iterator = handle.geo_map.find(std::make_pair(algorithm_name, network_config));
+    if(gemm_iterator != handle.geo_map.end())
     {
-        return gemm_iterator->second;
+        return *gemm_iterator->second;
     }
     else
     {
@@ -347,10 +391,10 @@ GemmGeometry ScanGemmGeometryRNN(Handle& handle,
     auto gg = CreateGemmGeometryRNN(
         M, N, K, alpha, beta, tA, tB, tC, lda, ldb, ldc, isDataColMajor, network_config);
 
-    auto gemm_iterator = gemm_geo_map().find(std::make_pair("miopenRNNAlgoGEMM", network_config));
-    if(gemm_iterator != gemm_geo_map().end())
+    auto gemm_iterator = handle.geo_map.find(std::make_pair("miopenRNNAlgoGEMM", network_config));
+    if(gemm_iterator != handle.geo_map.end())
     {
-        gg = gemm_iterator->second;
+        gg = *gemm_iterator->second;
     }
     else
     {
@@ -406,3 +450,4 @@ void RunGemmGeometryRNN(Handle& handle,
 }
 
 } // namespace miopen
+#endif // MIOPEN_USE_MIOPENGEMM

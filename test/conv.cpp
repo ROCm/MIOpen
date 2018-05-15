@@ -414,6 +414,7 @@ struct conv_driver : test_driver
     bool enable_backward_weights = false;
     bool do_backward_data        = true;
     int search                   = 0;
+    unsigned long max_value      = miopen_type<T>{} == miopenHalf ? 5 : 17;
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
         {"CONV", miopenConvolution}, {"TRANS", miopenTranspose}};
@@ -447,8 +448,7 @@ struct conv_driver : test_driver
 
     void run()
     {
-
-        int input_c, input_h, input_w, wei_c, wei_k, wei_h, wei_w, out_h, out_w;
+        int input_c, input_h, input_w, wei_c, wei_k, wei_h, wei_w;
         std::tie(wei_k, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
         std::tie(std::ignore, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());
 
@@ -472,8 +472,8 @@ struct conv_driver : test_driver
                 filter.pad_h = _pad_h / 2;
                 filter.pad_w = _pad_w / 2;
 
-                out_h = std::ceil(static_cast<double>(input_h) / filter.u);
-                out_w = std::ceil(static_cast<double>(input_w) / filter.v);
+                int out_h = std::ceil(static_cast<double>(input_h) / filter.u);
+                int out_w = std::ceil(static_cast<double>(input_w) / filter.v);
 
                 if(out_h <= 0 || out_w <= 0)
                     return;
@@ -485,8 +485,8 @@ struct conv_driver : test_driver
                 filter.pad_h = 0;
                 filter.pad_w = 0;
 
-                out_h = std::ceil(static_cast<double>(input_h - wei_h + 1) / filter.u);
-                out_w = std::ceil(static_cast<double>(input_w - wei_w + 1) / filter.v);
+                int out_h = std::ceil(static_cast<double>(input_h - wei_h + 1) / filter.u);
+                int out_w = std::ceil(static_cast<double>(input_w - wei_w + 1) / filter.v);
 
                 if(out_h <= 0 || out_w <= 0)
                     return;
@@ -498,10 +498,10 @@ struct conv_driver : test_driver
             {
                 auto out_p = verify(verify_forward_conv<T>{input, weights, filter, 0, search});
                 for(auto& x : out_p.first)
-                    x = (long(x + 19) * 2) % 17; // Clamp big numbers
+                    x = (long(x + 19) * 2) % max_value; // Clamp big numbers
                 if(do_backward_data)
                     verify(verify_backward_conv<T>{input, weights, out_p.first, filter, 0, search});
-                if(enable_backward_weights or MIOPEN_USE_MIOPENGEMM)
+                if(enable_backward_weights or (MIOPEN_USE_MIOPENGEMM and sizeof(T) > 2))
                 {
                     verify(verify_backward_weights_conv<T>{
                         input, weights, out_p.first, filter, 0, search});

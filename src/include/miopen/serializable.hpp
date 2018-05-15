@@ -106,9 +106,7 @@ struct Serializable
         static_cast<Derived&>(*this) = out;
         return true;
     }
-#if MIOPEN_PERFDB_CONV_LEGACY_SUPPORT
-    bool LegacyDeserialize(const std::string&) { return false; }
-#endif
+
     friend std::ostream& operator<<(std::ostream& os, const Derived& c)
     {
         c.Serialize(os);
