@@ -35,7 +35,6 @@
 
 namespace miopen {
 
-
 /*! @struct miopenEdge_t
 * @brief Defines an operation edge
 */
@@ -60,7 +59,6 @@ typedef struct miopen_op
     int n_internEdges;               /*!< number of internal edges */
     const miopenEdge_t* internEdges; /*!< internal edges definitions (weights) */
 } miopenOp_t;
-
 
 typedef struct
 {
