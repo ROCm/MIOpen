@@ -101,7 +101,8 @@ struct conv_bias_driver : test_driver
     {
         auto mode      = cmode_lookup[miopen::ToUpper(conv_mode)];
         tensor<T> bias = {1, output.desc.GetLengths()[1], 1, 1};
-	output.par_for_each([&](int n, int c, int h, int w) { output(n, c, h, w) = T(output(n, c, h, w) / 4.0); });
+        output.par_for_each(
+            [&](int n, int c, int h, int w) { output(n, c, h, w) = T(output(n, c, h, w) / 4.0); });
         verify(verify_backwards_bias<T>{output, bias, mode});
     }
 };
