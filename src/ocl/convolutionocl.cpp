@@ -553,6 +553,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                     int n_kernels = 0;
                     for(auto& k : kernel_direct)
                     {
+
+                        /// disabled in asm1x1u due to the overhead of Subsampler.
+                        /// TO-DO: we need to improve upsampler kernels
                         if(k.GetName() == "SubSample")
                         {
                             k(x, workSpace);
@@ -706,6 +709,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             auto kernel                = handle.GetKernel(algorithm_name, network_config);
 
             visit_float(xDesc.GetType(), [&](auto as_float) {
+                /// disabled in asm1x1u due to the overhead of Subsampler.
+                /// TO-DO: we need to improve upsampler kernels
                 if((kernel.GetName() == "SubSample"))
                 {
                     auto kernels = handle.GetKernels(algorithm_name, network_config);
@@ -1298,6 +1303,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
                     for(auto& k : kernel_direct)
                     {
+                        /// disabled in asm1x1u due to the overhead of Subsampler.
+                        /// TO-DO: we need to improve upsampler kernels
                         if(k.GetName() == "UpSample")
                         {
                             assert(workSpace != nullptr && workSpaceSize >= workspace_req);
@@ -1606,6 +1613,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                     if(handle.IsProfilingEnabled())
                         t1 += handle.GetKernelTime();
 
+                    /// disabled in asm1x1u due to the overhead of Subsampler.
+                    /// TO-DO: we need to improve upsampler kernels
                     if(kernels.size() == 2)
                     {
                         auto kernel2 = kernels[1];

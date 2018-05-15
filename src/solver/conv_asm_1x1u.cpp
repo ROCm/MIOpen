@@ -305,9 +305,15 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
     // clang-format off
     bool ok = (params.pad0 == 0         // -q  pad_w
         && params.pad1 == 0             // -p  pad_h
-        && params.kernel_stride0 <= 2   // -u  stride_w
-        && params.kernel_stride1 <= 2   // -v  stride_h
-        && params.kernel_stride0 == params.kernel_stride1
+        && params.kernel_stride0 == 1   // -u  stride_w
+        && params.kernel_stride1 == 1   // -v  stride_h
+        ///disabled asm_1x1u for stride=2 due to the overhead of
+        ///Up/Subsampler and SetTensor for UpSampler. 
+        ///TO-DO: In the futher, after improving up/subsampler kernels, we can
+        ///re-enable asm_1x1u for stride=2.
+        //&& params.kernel_stride0 <= 2   // -u  stride_w
+        //&& params.kernel_stride1 <= 2   // -v  stride_h
+        //&& params.kernel_stride0 == params.kernel_stride1
         && params.kernel_size0 == 1     // -x  S wei_w
         && params.kernel_size1 == 1     // -y  R wei_h
         && params.kernel_dilation0 == 1
