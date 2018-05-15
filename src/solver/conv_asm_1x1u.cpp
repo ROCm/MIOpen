@@ -306,7 +306,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
     bool ok = (params.pad0 == 0         // -q  pad_w
         && params.pad1 == 0             // -p  pad_h
         ///disabled asm_1x1u for stride=2 due to the overhead of
-        ///Up/Subsampler and SetTensor for UpSampler. (Refer to PR #940)  
+        ///Up/Subsampler and SetTensor for UpSampler. (Refer to issue #940)  
         && params.kernel_stride0 == 1   // -u  stride_w
         && params.kernel_stride0 == params.kernel_stride1
         && params.kernel_size0 == 1     // -x  S wei_w
