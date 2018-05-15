@@ -55,7 +55,7 @@ static inline int iMod(int v, int u, int d)
 
 static inline void ReduceKernel(__local float* lcl_mem, int sum_stride, int unit_id, int unit_len)
 {
-    float sum = 0.0f;
+    float sum      = 0.0f;
     int lcl_offset = unit_id * unit_len;
     for(int i = 0; i < unit_len; i += sum_stride)
     {
