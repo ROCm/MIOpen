@@ -553,7 +553,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                     int n_kernels = 0;
                     for(auto& k : kernel_direct)
                     {
-
                         if(k.GetName() == "SubSample")
                         {
                             k(x, workSpace);
