@@ -103,9 +103,12 @@ struct conv_bias_driver : test_driver
         tensor<T> bias = {1, output.desc.GetLengths()[1], 1, 1};
         int out_n, out_h, out_w;
         std::tie(out_n, std::ignore, out_h, out_w) = miopen::tien<4>(output.desc.GetLengths());
-        output.par_for_each([&](int n, int c, int h, int w) {
-            output(n, c, h, w) = T(output(n, c, h, w) * 65535.0f / (4 * out_n * out_h * out_w));
-        });
+        if(output.desc.GetType() == miopenHalf)
+        {
+            output.par_for_each([&](int n, int c, int h, int w) {
+                output(n, c, h, w) = T(output(n, c, h, w) * 65535.0f / (4 * out_n * out_h * out_w));
+            });
+        }
         verify(verify_backwards_bias<T>{output, bias, mode});
     }
 };
