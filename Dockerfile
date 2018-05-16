@@ -64,7 +64,7 @@ RUN cget -p $PREFIX/x86_64-w64-mingw32 init -t $PREFIX/x86_64-w64-mingw32/cmake/
 # Build hcc
 RUN git clone https://github.com/RadeonOpenCompute/hcc.git -b clang_tot_upgrade /hcc && \
     cd hcc && \
-    git reset --hard 9f0e695782398524b3d2015716172ea0f71d8e3b && \
+    git reset --hard 6e93604c7ba45047855c5b1f710d27ad3c88c610 && \
     git submodule init && \
     git submodule update --recursive && \
     cget -p $PREFIX install hcc,. && cd .. && rm -rf /hcc
@@ -77,10 +77,10 @@ RUN ln -s $PREFIX /opt/rocm/hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 
 # Install cppcheck
-RUN cget -p $PREFIX install danmar/cppcheck@9db64ca93418da3ffd730dc8f7d2e364b7b30b31
+RUN cget -p $PREFIX install danmar/cppcheck@fe1b1d537ecaa0e573000f7d073a0e661e3256f2
 
 # Install hip
-RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@852d5ae46ce1f62f4c5fdab89445d60f7464d965
+RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@5d4e14011fa80e44298ffa36ff36400cab82da69
 
 RUN cget -p $PREFIX install pfultz2/rocm-recipes
 
