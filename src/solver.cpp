@@ -41,5 +41,17 @@ std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
     return os << "} '" << k.comp_options << '\'';
 }
 
+std::ostream& operator<<(std::ostream& os, const ConvSolution& s)
+{
+    int i = 0;
+    for(auto& k : s.construction_params)
+    {
+        if(++i > 1)
+            os << '/';
+        os << k.kernel_name;
+    }
+    return os;
+}
+
 } // namespace solver
 } // namespace miopen
