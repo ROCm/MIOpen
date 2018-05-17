@@ -81,10 +81,50 @@ bool PerformanceConfigConvAsm3x3U::IsValidValue() const
         && (1 <= output_lines_per_wave && output_lines_per_wave <= 8); // clang-format on
 }
 
-bool PerformanceConfigConvAsm3x3U::IsValid(const ConvolutionContext&) const
+bool PerformanceConfigConvAsm3x3U::IsValid(const ConvolutionContext& params) const
 {
-    // No more conditions to check.
-    return IsValidValue();
+    if(!IsValidValue())
+        return false;
+
+    // Count the number of VGPRs required.
+    const auto& img_width  = params.in_width;
+    const auto& img_height = params.in_height;
+    int n                  = 0;
+
+    const bool enable_zero_line_padding_on_read = (img_height != output_lines_per_wave);
+    if(enable_zero_line_padding_on_read)
+        ++n;
+
+    const int img_x_blocks = img_width;
+    const int w64_chunks   = (img_x_blocks + 63) / 64;
+    assert(w64_chunks != 0);
+    if(w64_chunks == 0)
+        return false;
+    const int active_lanes = (img_x_blocks + w64_chunks - 1) / w64_chunks;
+    assert(active_lanes != 0);
+    if(active_lanes == 0)
+        return false;
+    const bool uneven_line_read_mode  = (img_x_blocks % active_lanes != 0);
+    const bool uneven_line_write_mode = (img_width % active_lanes != 0);
+    if(uneven_line_read_mode || uneven_line_write_mode)
+        ++n;
+
+    const int block_size_x        = 1;
+    const int gprs_per_input_line = (img_x_blocks * block_size_x + active_lanes - 1) / active_lanes;
+    const int input_lines_per_wave =
+        (img_height == output_lines_per_wave) ? output_lines_per_wave : (output_lines_per_wave + 2);
+    n += (gprs_per_input_line * input_lines_per_wave); // linesA
+    n += (gprs_per_input_line * input_lines_per_wave); // linesB
+
+    const bool enable_dpp_zero_column_padding = true;
+    if(enable_dpp_zero_column_padding)
+        n += 2;
+
+    const int acc_lines_per_wave = output_lines_per_wave;
+    n += (gprs_per_input_line * filters_per_wave * acc_lines_per_wave);
+
+    const int available_vgprs = 256;
+    return n < available_vgprs;
 }
 
 void PerformanceConfigConvAsm3x3U::EuristicInit(const ConvolutionContext&)
