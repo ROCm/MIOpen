@@ -70,24 +70,23 @@ struct KernelInfo
 /// Shall be refactored (possibly, to a class hierarchy).
 struct ConvSolution
 {
+    /// \todo Use better name than construction_params.
     std::vector<KernelInfo> construction_params; // impl may consist of multiple kernels.
     miopenStatus_t status;
-    int passes;
 
     size_t workspce_sz;
-    int grp_tile1;
-    int grp_tile0;
-    int in_tile1;
-    int in_tile0;
-    int out_pix_tile1;
-    int out_pix_tile0;
-    int n_out_pix_tiles;
-    int n_in_data_tiles;
-    int n_stacks;
+    int grp_tile1;       // total number ALUs per group
+    int grp_tile0;       // total number ALUs per group
+    int in_tile1;        // size of in-tile in local memory
+    int in_tile0;        // size of in-tile in local memory
+    int out_pix_tile1;   // # of generated pixels per output per wk-item  (ALU)
+    int out_pix_tile0;   // # of generated pixels per output per wk-item  (ALU)
+    int n_out_pix_tiles; // # output pixel tiles per wk-item (ALU)
+    int n_in_data_tiles; // # of blocks of different inputs in LDS
+    int n_stacks;        // # of diff stacks (part of batch).
 
-    ConvSolution(miopenStatus_t status_ = miopenStatusSuccess, int passes_ = 1)
+    ConvSolution(miopenStatus_t status_ = miopenStatusSuccess)
         : status(status_),
-          passes(passes_),
           workspce_sz(0),
           grp_tile1(-1),
           grp_tile0(-1),
@@ -103,6 +102,8 @@ struct ConvSolution
 
     inline bool Succeeded() const { return status == miopenStatusSuccess; }
 };
+
+std::ostream& operator<<(std::ostream& os, const ConvSolution& s);
 
 template <class Solver>
 std::string ComputeSolverDbId(Solver)
@@ -196,7 +197,7 @@ ConvSolution FindSolution(Solver s, const Context& context, Db& db)
     return FindSolutionImpl(rank<1>{}, s, context, db);
 }
 
-// Search for a solution among many solvers
+// Search for the 1st applicable solution among many solvers
 template <class... Solvers, class Context, class Db>
 auto SearchForSolution(const Context& search_params, Db db) ->
     typename std::common_type<decltype(FindSolution(Solvers{}, search_params, db))...>::type
@@ -217,7 +218,7 @@ auto SearchForSolution(const Context& search_params, Db db) ->
            (no_perf_filtering || solver.IsFast(search_params)))
         {
             solution = FindSolution(solver, search_params, db);
-            if(solution.Succeeded() && !search_params.n_passes && solution.construction_params.empty())
+            if(solution.Succeeded() && solution.construction_params.empty())
             {
                 MIOPEN_THROW(std::string("Internal error in solver: ") + SolverDbId(solver));
             }
@@ -464,13 +465,6 @@ struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
 };
 
 struct ConvOclDirectFwd1x1 : ConvOclDirectFwdLegacyExhaustiveSearch
-{
-    bool IsApplicable(const ConvolutionContext& params) const;
-    ConvSolution GetSolution(const ConvolutionContext& params,
-                             const LegacyPerformanceConfig& searched_params) const;
-};
-
-struct ConvOclDirectFwdC : ConvOclDirectFwdLegacyExhaustiveSearch
 {
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,

@@ -115,6 +115,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
             result.out_pix_tile1 = 0;
         }
     }
+    MIOPEN_LOG_I2("Returns: " << result);
     return result;
 }
 
@@ -131,7 +132,6 @@ static int MeasureLoop(Handle* profile_h,
                        const ConvolutionContext& params,
                        const LegacyPerformanceConfig& result)
 {
-    int ret = 0;
     ConvSolution kernel_search_result{miopenStatusNotInitialized};
 
     MIOPEN_STATIC_FOR_EACH(traits,
@@ -182,7 +182,6 @@ static int MeasureLoop(Handle* profile_h,
         else
         {
             double s = 0, e = 0;
-            int iter = (params.n_timer_iter <= 0) ? 1 : params.n_timer_iter;
 
             auto k = params.GetStream().AddKernel("",
                                                   "",
@@ -205,22 +204,19 @@ static int MeasureLoop(Handle* profile_h,
 
             s = miopen_mach_absolute_time();
 
-            for(int i = 0; i < iter && ret == 0; i++)
+            if(params.bias)
             {
-                if(params.bias)
-                {
-                    k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
-                }
-                else
-                {
-                    k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
-                }
+                k(bot_ocl_buf, wei_ocl_buf, bias_ocl_buf, top_ocl_buf, padding_value);
+            }
+            else
+            {
+                k(bot_ocl_buf, wei_ocl_buf, top_ocl_buf, padding_value);
             }
 
             params.GetStream().Finish();
             e = miopen_mach_absolute_time();
 
-            processing_time = subtractTimes(e, s) / iter;
+            processing_time = subtractTimes(e, s);
         }
     }
     catch(miopen::Exception&)
@@ -228,7 +224,7 @@ static int MeasureLoop(Handle* profile_h,
         return -1;
     }
 
-    return (ret);
+    return 0;
 }
 
 LegacyPerformanceConfig
@@ -238,7 +234,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
     bool is_passed = false;
 
     miopen::Handle profile_h;
-    double processing_time;
+    double processing_time = std::numeric_limits<double>::max();
 
     int min_grp_tile0 = 16;
     int min_grp_tile1 = 16;
@@ -313,7 +309,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
     int n_in_stacks_sz[2]  = {1, 2};
     int in_tiles[4]        = {64, 128, 256, 2048};
 
-    double min_proc_time = std::numeric_limits<float>::max();
+    double min_proc_time = std::numeric_limits<double>::max();
 
     size_t run_counter = 0;
 
@@ -507,6 +503,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
                             min_n_out_pix_tiles = result.n_out_pix_tiles;
                             min_n_in_data_tiles = result.n_in_data_tiles;
                             min_n_stacks        = result.n_stacks;
+                            MIOPEN_LOG_I2(
+                                "processing_time = " << processing_time << ", result = " << result);
                         }
 
                     } // for (int i_t = n_in_tiles_rg[0]; i_t <= n_in_tiles_rg[1]; ++i_t)
@@ -677,6 +675,9 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
                                         min_n_out_pix_tiles = result.n_out_pix_tiles;
                                         min_n_in_data_tiles = result.n_in_data_tiles;
                                         min_n_stacks        = result.n_stacks;
+                                        MIOPEN_LOG_I2("processing_time = " << processing_time
+                                                                           << ", result = "
+                                                                           << result);
                                     }
 
                                 } // for (int s = 0; s < 3; ++s)

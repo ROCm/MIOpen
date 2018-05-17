@@ -172,13 +172,13 @@ class SolverTest
         });
         ConstructTest(db_path, TrivialTestSolver::FileName(), [](mlo_construct_direct2D& c) {
             c.setInputDescr("", "", 0, 0, 0, 1, 0, 0, 0, 0);
-            c.doSearch(true);
+            c.setDoSearch(true);
         });
         ConstructTest(db_path,
                       SearchableTestSolver::NoSearchFileName(),
-                      [](mlo_construct_direct2D& c) { c.doSearch(false); });
+                      [](mlo_construct_direct2D& c) { c.setDoSearch(false); });
         ConstructTest(db_path, SearchableTestSolver::FileName(), [](mlo_construct_direct2D& c) {
-            c.doSearch(true);
+            c.setDoSearch(true);
         });
 
         const auto& searchable_solver = StaticContainer<const SearchableTestSolver>::Instance();
@@ -187,7 +187,7 @@ class SolverTest
         // Should read in both cases: result is already in DB, solver is searchable.
         ConstructTest(db_path, SearchableTestSolver::FileName(), [](mlo_construct_direct2D&) {});
         ConstructTest(db_path, SearchableTestSolver::FileName(), [](mlo_construct_direct2D& c) {
-            c.doSearch(true);
+            c.setDoSearch(true);
         });
         // Checking no more searches were done.
         EXPECT_EQUAL(searches, searchable_solver.searches_done());
@@ -202,9 +202,10 @@ class SolverTest
         construct.setStream(&get_handle());
 
         context_filler(construct);
-        mloConstruct(construct);
+        solver::ConvSolution sol;
+        mloConstruct(construct, sol);
 
-        EXPECT_EQUAL(construct.getKernelFile(), expected_kernel);
+        EXPECT_EQUAL(sol.construction_params[0].kernel_file, expected_kernel);
     }
 };
 } // namespace tests
