@@ -53,6 +53,26 @@ miopenStatus_t miopenGemm(miopenHandle_t handle,
                           int ldc,
                           int find);
 
+miopenStatus_t miopenGemmBatched(miopenHandle_t handle,
+                          bool isDataColMajor,
+                          bool transA,
+                          bool transB,
+                          int M,
+                          int N,
+                          int K,
+                          const void* alpha,
+                          const void* A,
+                          int lda,
+                          int bsa,
+                          const void* B,
+                          int ldb,
+                          int bsb,
+                          const void* beta,
+                          void* C,
+                          int ldc,
+                          int bsc,
+                          int batch_count);
+
 template <typename T>
 class GemmDriver : public Driver
 {
@@ -92,14 +112,20 @@ class GemmDriver : public Driver
     bool transA, transB;
     T alpha, beta;
 
-    int lda, ldb;
+    // stride
+    int lda, ldb, ldc;
+
+    int batch_count;
+
+    // batch stride
+    int bsa, bsb, bsc;
 };
 
 template <typename T>
 int GemmDriver<T>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Gemm (Default=1)", "int");
-    inflags.AddInputFlag("batchsize", 'b', "1", "batch size for Gemm (Default=1)", "int");
+    inflags.AddInputFlag("batch_count", 'b', "1", "batch count for Gemm (Default=1)", "int");
     inflags.AddInputFlag("a_h", 'm', "256", "Height of A matrix (Default=256)", "int");
     inflags.AddInputFlag("a_w", 'k', "256", "Width of A matrix (Default=256)", "int");
     inflags.AddInputFlag("b_w", 'n', "256", "Width of B matrix (Default=256)", "int");
@@ -142,6 +168,13 @@ int GemmDriver<T>::GetandSetData()
 
     lda = transA == 0 ? K : M;
     ldb = transB == 0 ? N : K;
+    ldc = N; //C is not transposed
+
+    batch_count = inflags.GetValueInt("batch_count");
+
+    bsa = M * K;
+    bsb = N * K;
+    bsc = M * N;
 
     return (0);
 }
@@ -150,9 +183,9 @@ template <typename T>
 int GemmDriver<T>::AllocateBuffersAndCopy()
 {
 
-    size_t a_sz = M * K;
-    size_t b_sz = K * N;
-    size_t c_sz = M * N;
+    size_t a_sz = batch_count * M * K;
+    size_t b_sz = batch_count * K * N;
+    size_t c_sz = batch_count * M * N;
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
@@ -200,23 +233,44 @@ int GemmDriver<T>::RunForwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
 
-#if MIOPEN_USE_MIOPENGEMM
-    miopenGemm(GetHandle(),
-               false, // isDataColMajor
-               transA,
-               transB,
-               M,
-               N,
-               K,
-               &alpha,
-               a_dev->GetMem(),
-               lda,
-               b_dev->GetMem(),
-               ldb,
-               &beta,
-               c_dev->GetMem(),
-               N,
-               1); // find needs to be on to compile the kernel
+#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
+        if(batch_count > 1)
+            miopenGemmBatched(GetHandle(),
+                   false, // isDataColMajor
+                   transA,
+                   transB,
+                   M,
+                   N,
+                   K,
+                   &alpha,
+                   a_dev->GetMem(),
+                   lda,
+                   bsa,
+                   b_dev->GetMem(),
+                   ldb,
+                   bsb,
+                   &beta,
+                   c_dev->GetMem(),
+                   ldc,
+                   bsc,
+                   batch_count);
+        else
+            miopenGemm(GetHandle(),
+                   false, // isDataColMajor
+                   transA,
+                   transB,
+                   M,
+                   N,
+                   K,
+                   &alpha,
+                   a_dev->GetMem(),
+                   lda,
+                   b_dev->GetMem(),
+                   ldb,
+                   &beta,
+                   c_dev->GetMem(),
+                   ldc,
+                   1); // find needs to be on to compile the kernel
     }
 
     if(inflags.GetValueInt("time") == 1)
