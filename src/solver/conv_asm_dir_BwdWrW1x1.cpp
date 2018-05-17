@@ -702,8 +702,9 @@ PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionCont
 {
     return GenericSearch(*this,
                          context,
-                         UseSubsample(context) ? SearchTweak::OVERRIDE_X_BUFFER_SIZE_BY_WORKSPACE_SIZE
-                                               : SearchTweak::NONE);
+                         UseSubsample(context)
+                             ? SearchTweak::OVERRIDE_X_BUFFER_SIZE_BY_WORKSPACE_SIZE
+                             : SearchTweak::NONE);
 }
 
 } // namespace solver
