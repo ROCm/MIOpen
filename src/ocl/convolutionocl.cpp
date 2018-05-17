@@ -484,6 +484,68 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                             ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc)});
             }
         }
+#elif MIOPEN_USE_ROCBLAS
+#if 0
+        //TODO add support for fp16
+        if(xDesc.GetType() == miopenFloat)
+        {
+            float time_gemm = 0;
+
+            // 1x1_stride=1 with GEMM and zero workspace
+            if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
+                    dilation_w == 1 && dilation_h == 1)
+            {
+                /*
+                GemmGeometry gg =
+                    CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
+
+                gg.FindSolution(.003, handle, x, w, tmp_y.get(), false);
+                gg.RunGemm(handle, x, w, tmp_y.get(), 0, 0, 0);
+                */
+
+                std::tie(M,N,K,lda,bsa,ldb,bsb,)
+
+
+                time_gemm = in_n * (handle.GetKernelTime());
+
+                perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoRocBLAS", time_gemm, 0});
+            }
+            // if not 1x1
+            else if(workSpace != nullptr &&
+                    workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc))
+            {
+                GemmGeometry gg =
+                    CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
+                float time_im2col = 0;
+                size_t in_offset  = 0;
+                time_im2col       = Im2ColGPU(handle,
+                                        xDesc.GetElementSize(),
+                                        x,
+                                        in_offset,
+                                        in_c,
+                                        in_h,
+                                        in_w,
+                                        wei_h,
+                                        wei_w,
+                                        out_h,
+                                        out_w,
+                                        pad_h,
+                                        pad_w,
+                                        u,
+                                        v,
+                                        dilation_h,
+                                        dilation_w,
+                                        workSpace);
+
+                gg.FindSolution(.003, handle, workSpace, w, tmp_y.get(), false);
+                gg.RunGemm(handle, workSpace, w, tmp_y.get(), 0, 0, 0);
+                time_gemm = in_n * (time_im2col + handle.GetKernelTime());
+                perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM",
+                                            time_gemm,
+                                            ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc)});
+            }
+        }
+#endif
 #else
         (void)workSpace;     // Suppress warning
         (void)workSpaceSize; // Suppress warning
