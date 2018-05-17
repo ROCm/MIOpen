@@ -296,15 +296,15 @@ auto GenericSearch(const Solver s,
     const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context));
 
     // Allocate buffers, init input buffers.
-    size_t top_size = context.top_sz / sizeof(float);
-    size_t bot_size = context.bot_sz / sizeof(float);
-    size_t wei_size = context.weights_sz / sizeof(float);
+    size_t top_size  = context.top_sz / sizeof(float);
+    size_t bot_size  = context.bot_sz / sizeof(float);
+    size_t wei_size  = context.weights_sz / sizeof(float);
     size_t bias_size = context.bias_sz / sizeof(float);
 
-    if (tweak == SearchTweak::OVERRIDE_X_BUFFER_SIZE_BY_WORKSPACE_SIZE)
+    if(tweak == SearchTweak::OVERRIDE_X_BUFFER_SIZE_BY_WORKSPACE_SIZE)
     {
         assert(default_solution.workspce_sz != 0);
-        if (context.direction.IsForward())
+        if(context.direction.IsForward())
             bot_size = default_solution.workspce_sz;
         else
             top_size = default_solution.workspce_sz;
@@ -351,31 +351,33 @@ auto GenericSearch(const Solver s,
     profile_h.EnableProfiling(true);
     for(const auto& current_config : all_configs)
     {
-        float elapsed_time;
+        float elapsed_time = 0.0f;
+        int ret            = 0;
         MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_runs_total << ' '
                           << current_config);
 
-        int ret = 0;                  
         const auto current_solution = s.GetSolution(context, current_config, true);
-        if (tweak == SearchTweak::OVERRIDE_X_BUFFER_SIZE_BY_WORKSPACE_SIZE
-         && default_solution.workspce_sz != current_solution.workspce_sz)
+        if(tweak == SearchTweak::OVERRIDE_X_BUFFER_SIZE_BY_WORKSPACE_SIZE &&
+           default_solution.workspce_sz != current_solution.workspce_sz)
         {
             ret = -2;
             MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
                              << "Workspace size should not depend on PerformanceConfig: "
-                             << default_solution.workspce_sz << " != " << current_solution.workspce_sz);
+                             << default_solution.workspce_sz
+                             << " != "
+                             << current_solution.workspce_sz);
         }
 
-        if (ret == 0)
+        if(ret == 0)
         {
             ret = s.RunAndMeasureSolution(profile_h,
-                                           bot_ocl_buf.get(),
-                                           top_ocl_buf.get(),
-                                           wei_ocl_buf.get(),
-                                           context.bias ? bias_ocl_buf.get() : nullptr,
-                                           context,
-                                           s.GetSolution(context, current_config, true),
-                                           elapsed_time);
+                                          bot_ocl_buf.get(),
+                                          top_ocl_buf.get(),
+                                          wei_ocl_buf.get(),
+                                          context.bias ? bias_ocl_buf.get() : nullptr,
+                                          context,
+                                          s.GetSolution(context, current_config, true),
+                                          elapsed_time);
         }
 
         if(ret == 0)
