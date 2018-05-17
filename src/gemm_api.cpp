@@ -28,19 +28,7 @@
 
 #if MIOPEN_USE_ROCBLAS
 #include <miopen/handle.hpp>
-#include <miopen/manage_ptr.hpp>
 #include <rocblas.h>
-
-using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_handle);
-
-rocblas_handle_ptr create_rocblas_handle_ptr(miopen::Handle& h)
-{
-    rocblas_handle x = nullptr;
-    rocblas_create_handle(&x);
-    auto result = rocblas_handle_ptr{x};
-    rocblas_set_stream(result.get(), h.GetStream());
-    return result;
-}
 #endif
 
 miopenStatus_t miopenGemm(miopenHandle_t handle,
@@ -73,11 +61,10 @@ miopenStatus_t miopenGemm(miopenHandle_t handle,
     hipEventCreate(&start);
     hipEventCreate(&stop);
     (void)find;
-    static rocblas_handle_ptr rhandle = create_rocblas_handle_ptr(miopen::deref(handle));
     float alpha_local                 = *static_cast<const float*>(alpha);
     float beta_local                  = *static_cast<const float*>(beta);
     hipEventRecord(start, nullptr);
-    rocblas_sgemm(rhandle.get(),
+    rocblas_sgemm(miopen::deref(handle).rhandle.get(),
                   transA ? rocblas_operation_transpose : rocblas_operation_none,
                   transB ? rocblas_operation_transpose : rocblas_operation_none,
                   M,
@@ -97,7 +84,7 @@ miopenStatus_t miopenGemm(miopenHandle_t handle,
     hipEventElapsedTime(&mS, start, stop);
     miopen::deref(handle).AccumKernelTime(mS);
     return miopenStatusSuccess;
-#else
+#elif MIOPEN_USE_MIOPENGEMM
 
     // JN make column major
     if(!isDataColMajor)
@@ -134,5 +121,7 @@ miopenStatus_t miopenGemm(miopenHandle_t handle,
         else
             gg.RunGemm(miopen::deref(handle), DataCast(A), DataCast(B), DataCast(C), 0, 0, 0);
     });
+#else
+    MIOPEN_THROW("No GEMM backend");
 #endif
 }

@@ -118,6 +118,17 @@ int set_default_device()
     return (pid % n);
 }
 
+#if MIOPEN_USE_ROCBLAS
+rocblas_handle_ptr create_rocblas_handle_ptr(Handle& h)
+{
+    rocblas_handle x = nullptr;
+    rocblas_create_handle(&x);
+    auto result = rocblas_handle_ptr{x};
+    rocblas_set_stream(result.get(), h.GetStream());
+    return result;
+}
+#endif
+
 struct HandleImpl
 {
     // typedef MIOPEN_MANAGE_PTR(hipStream_t, hipStreamDestroy) StreamPtr;
@@ -177,6 +188,10 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
         this->impl->stream = HandleImpl::reference_stream(stream);
 
     this->SetAllocator(nullptr, nullptr, nullptr);
+
+#if MIOPEN_USE_ROCBLAS
+    rhandle = create_rocblas_handle_ptr(miopen::deref(this));
+#endif
 }
 
 Handle::Handle() : impl(new HandleImpl())
@@ -191,6 +206,10 @@ Handle::Handle() : impl(new HandleImpl())
     this->impl->stream = HandleImpl::reference_stream(nullptr);
 #endif
     this->SetAllocator(nullptr, nullptr, nullptr);
+
+#if MIOPEN_USE_ROCBLAS
+    rhandle = create_rocblas_handle_ptr(miopen::deref(this));
+#endif
 }
 
 Handle::~Handle() {}
