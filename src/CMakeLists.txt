@@ -83,6 +83,7 @@ set( MIOpen_Source
     include/miopen/lock_file.hpp
     include/miopen/find_controls.hpp
     include/miopen/batch_norm.hpp
+    include/miopen/batch_norm_activ.hpp
     include/miopen/check_numerics.hpp
     include/miopen/common.hpp
     include/miopen/convolution.hpp
@@ -136,6 +137,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
 
     set(MIOPEN_KERNELS
         kernels/MIOpenCheckNumerics.cl
+        kernels/MIOpenBatchNormActivFwdInferPerAct.cl
+        kernels/MIOpenBatchNormActivFwdInferSpatial.cl
         kernels/MIOpenBatchNormFwdTrainSpatial.cl
         kernels/MIOpenBatchNormFwdTrainPerAct.cl
         kernels/MIOpenBatchNormFwdInferSpatial.cl
@@ -208,6 +211,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         mlo_dir_conv.cpp
         ocl/activ_ocl.cpp
         ocl/batchnormocl.cpp
+        ocl/batchnormactivocl.cpp
         ocl/convolutionocl.cpp
         ocl/convolutionocl_fft.cpp
         ocl/lrn_ocl.cpp
