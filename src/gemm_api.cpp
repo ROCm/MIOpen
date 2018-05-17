@@ -119,9 +119,96 @@ miopenStatus_t miopenGemm(miopenHandle_t handle,
             gg.RunGemm(miopen::deref(handle), DataCast(A), DataCast(B), DataCast(C), 0, 0, 0);
         }
         else
+        {
             gg.RunGemm(miopen::deref(handle), DataCast(A), DataCast(B), DataCast(C), 0, 0, 0);
+        }
     });
 #else
     MIOPEN_THROW("No GEMM backend");
 #endif
 }
+
+miopenStatus_t miopenGemmBatched(miopenHandle_t handle,
+                          bool isDataColMajor,
+                          bool transA,
+                          bool transB,
+                          int M,
+                          int N,
+                          int K,
+                          const void* alpha,
+                          const void* A,
+                          int lda,
+                          int bsa,
+                          const void* B,
+                          int ldb,
+                          int bsb,
+                          const void* beta,
+                          void* C,
+                          int ldc,
+                          int bsc,
+                          int batch_count)
+{
+#if MIOPEN_USE_ROCBLAS
+    if(!isDataColMajor)
+    {
+        std::swap(transA, transB);
+        std::swap(M, N);
+        std::swap(lda, ldb);
+        std::swap(A, B);
+    }
+
+    hipEvent_t start, stop;
+    hipEventCreate(&start);
+    hipEventCreate(&stop);
+    float alpha_local                 = *static_cast<const float*>(alpha);
+    float beta_local                  = *static_cast<const float*>(beta);
+    hipEventRecord(start, nullptr);
+    rocblas_sgemm_strided_batched(miopen::deref(handle).rhandle.get(),
+                  transA ? rocblas_operation_transpose : rocblas_operation_none,
+                  transB ? rocblas_operation_transpose : rocblas_operation_none,
+                  M,
+                  N,
+                  K,
+                  &alpha_local,
+                  static_cast<const float*>(A),
+                  lda,
+                  bsa,
+                  static_cast<const float*>(B),
+                  ldb,
+                  bsb,
+                  &beta_local,
+                  static_cast<float*>(C),
+                  ldc,
+                  bsc,
+                  batch_count);
+    hipEventRecord(stop, nullptr);
+    hipDeviceSynchronize();
+    float mS = 0;
+    hipEventElapsedTime(&mS, start, stop);
+    miopen::deref(handle).AccumKernelTime(mS);
+    return miopenStatusSuccess;
+#else
+    MIOPEN_THROW("No GEMM backend");
+#endif
+}
+
+/*
+ROCBLAS_EXPORT rocblas_status rocblas_sgemm_strided_batched(rocblas_handle handle,
+                                                            rocblas_operation transa,
+                                                            rocblas_operation transb,
+                                                            rocblas_int m,
+                                                            rocblas_int n,
+                                                            rocblas_int k,
+                                                            const float* alpha,
+                                                            const float* A,
+                                                            rocblas_int lda,
+                                                            rocblas_int bsa,
+                                                            const float* B,
+                                                            rocblas_int ldb,
+                                                            rocblas_int bsb,
+                                                            const float* beta,
+                                                            float* C,
+                                                            rocblas_int ldc,
+                                                            rocblas_int bsc,
+                                                            rocblas_int batch_count);
+*/
