@@ -252,16 +252,12 @@ inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
 
 enum class SearchTweak
 {
-    None,
+    NONE,
     // The buffer(s) needs to be adjusted in some cases.
-    // For example, dx buffer shall be made 4x smaller
+    // For example, dx buffer shall be made ~4x smaller
     // when the 2x subsampling kernel is used at the dx input of
     // the WrW convolution, but we are skipping it during auto-tune.
-    Impl4xReduceTop_,
-    Skipped2xSubsample_dxWrW = Impl4xReduceTop_,
-    Skipped2xUpsample_dxBwd  = Impl4xReduceTop_,
-    Impl4xReduceBot_,
-    Skipped2xSubsample_xFwd = Impl4xReduceBot_,
+    OVERRIDE_X_BUFFER_SIZE_BY_WORKSPACE_SIZE,
 };
 
 /// Solver member function requirements:
@@ -292,27 +288,32 @@ enum class SearchTweak
 template <class Solver, class Context>
 auto GenericSearch(const Solver s,
                    const Context& context,
-                   const SearchTweak tweak = SearchTweak::None)
+                   const SearchTweak tweak = SearchTweak::NONE)
     -> decltype(s.GetPerformanceConfig(context))
 {
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
     PerformanceConfig best_config;
-    miopen::Handle profile_h;
-    profile_h.EnableProfiling(true);
+    const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context));
 
     // Allocate buffers, init input buffers.
     size_t top_size = context.top_sz / sizeof(float);
-    if(tweak == SearchTweak::Impl4xReduceTop_)
-        top_size = divide_round_plus_inf(top_size, 4);
-    std::vector<float> top(top_size);
-
     size_t bot_size = context.bot_sz / sizeof(float);
-    if(tweak == SearchTweak::Impl4xReduceBot_)
-        bot_size = divide_round_plus_inf(bot_size, 4);
-    std::vector<float> bot(bot_size);
+    size_t wei_size = context.weights_sz / sizeof(float);
+    size_t bias_size = context.bias_sz / sizeof(float);
 
-    std::vector<float> wei(context.weights_sz / sizeof(float));
-    std::vector<float> bias(context.bias_sz / sizeof(float));
+    if (tweak == SearchTweak::OVERRIDE_X_BUFFER_SIZE_BY_WORKSPACE_SIZE)
+    {
+        assert(default_solution.workspce_sz != 0);
+        if (context.direction.IsForward())
+            bot_size = default_solution.workspce_sz;
+        else
+            top_size = default_solution.workspce_sz;
+    }
+
+    std::vector<float> top(top_size);
+    std::vector<float> bot(bot_size);
+    std::vector<float> wei(wei_size);
+    std::vector<float> bias(bias_size);
     InitRandomly(bot);
     if(!(context.direction.IsBackwardData() || context.direction.IsForward()))
         InitRandomly(top);
@@ -320,6 +321,8 @@ auto GenericSearch(const Solver s,
         InitRandomly(wei, -0.5, 0.001);
     if(context.bias)
         InitRandomly(bias);
+
+    miopen::Handle profile_h;
     auto bot_ocl_buf  = profile_h.Write(bot);
     auto top_ocl_buf  = profile_h.Write(top);
     auto wei_ocl_buf  = profile_h.Write(wei);
@@ -344,16 +347,28 @@ auto GenericSearch(const Solver s,
     size_t n_best    = 0;
     HeartBeat<PerformanceConfig> heartbeat;
     heartbeat.Start();
+
+    profile_h.EnableProfiling(true);
     for(const auto& current_config : all_configs)
     {
         float elapsed_time;
         MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_runs_total << ' '
                           << current_config);
-        // Smooth the jitter of measurements:
-        // If the 1st probe is NOT too bad (measured time <= 1.05 * best known time),
-        // then re-run it 4 times more and compute average time,
-        // and decide using average of all 5 attempts vs. the best.
-        auto ret = s.RunAndMeasureSolution(profile_h,
+
+        int ret = 0;                  
+        const auto current_solution = s.GetSolution(context, current_config, true);
+        if (tweak == SearchTweak::OVERRIDE_X_BUFFER_SIZE_BY_WORKSPACE_SIZE
+         && default_solution.workspce_sz != current_solution.workspce_sz)
+        {
+            ret = -2;
+            MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
+                             << "Workspace size should not depend on PerformanceConfig: "
+                             << default_solution.workspce_sz << " != " << current_solution.workspce_sz);
+        }
+
+        if (ret == 0)
+        {
+            ret = s.RunAndMeasureSolution(profile_h,
                                            bot_ocl_buf.get(),
                                            top_ocl_buf.get(),
                                            wei_ocl_buf.get(),
@@ -361,8 +376,14 @@ auto GenericSearch(const Solver s,
                                            context,
                                            s.GetSolution(context, current_config, true),
                                            elapsed_time);
+        }
+
         if(ret == 0)
         {
+            // Smooth the jitter of measurements:
+            // If the 1st probe is NOT too bad (measured time <= 1.05 * best known time),
+            // then re-run it 4 times more and compute average time,
+            // and decide using average of all 5 attempts vs. the best.
             if(elapsed_time / best_time < 1.05f)
             {
                 MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time << " = "
@@ -439,7 +460,7 @@ auto GenericSearch(const Solver s,
                                wei_ocl_buf.get(),
                                context.bias ? bias_ocl_buf.get() : nullptr,
                                context,
-                               s.GetSolution(context, s.GetPerformanceConfig(context)),
+                               default_solution,
                                default_time) == 0)
     {
         const float score = (best_time > 0.0f) ? default_time / best_time : 0.0f;
