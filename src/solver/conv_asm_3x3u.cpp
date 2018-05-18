@@ -116,9 +116,9 @@ bool PerformanceConfigConvAsm3x3U::IsValid(const ConvolutionContext& params) con
     n += (gprs_per_input_line * input_lines_per_wave); // linesA
     n += (gprs_per_input_line * input_lines_per_wave); // linesB
 
-    const bool enable_dpp_zero_column_padding = true;
-    if(enable_dpp_zero_column_padding)
-        n += 2;
+    // const bool enable_dpp_zero_column_padding = true;
+    // if(enable_dpp_zero_column_padding)
+    n += 2;
 
     const int acc_lines_per_wave = output_lines_per_wave;
     n += (gprs_per_input_line * filters_per_wave * acc_lines_per_wave);
