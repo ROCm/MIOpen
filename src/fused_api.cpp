@@ -65,7 +65,7 @@ extern "C" miopenStatus_t miopenCreateOpConvolutionForward(miopenFusionPlanDescr
 
 
 
-extern "C" miopenStatus_t miopenCreateOpConvolutionForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+extern "C" miopenStatus_t miopenCreateOpConvolutionBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                                       miopenOperatorDescriptor_t* convOp,
                                                       miopenConvolutionDescriptor_t convDesc,
                                                       miopenConvFwdAlgorithm_t fwdAlgo,
