@@ -33,45 +33,9 @@
 #include <float.h>
 #include <memory>
 #include <miopen/miopen.h>
+#include <miopen/gemm.hpp>
 #include <numeric>
 #include <vector>
-
-miopenStatus_t miopenGemm(miopenHandle_t handle,
-                          bool isDataColMajor,
-                          bool transA,
-                          bool transB,
-                          int M,
-                          int N,
-                          int K,
-                          const void* alpha,
-                          const void* A,
-                          int lda,
-                          const void* B,
-                          int ldb,
-                          const void* beta,
-                          void* C,
-                          int ldc,
-                          int find);
-
-miopenStatus_t miopenGemmBatched(miopenHandle_t handle,
-                          bool isDataColMajor,
-                          bool transA,
-                          bool transB,
-                          int M,
-                          int N,
-                          int K,
-                          const void* alpha,
-                          const void* A,
-                          int lda,
-                          int bsa,
-                          const void* B,
-                          int ldb,
-                          int bsb,
-                          const void* beta,
-                          void* C,
-                          int ldc,
-                          int bsc,
-                          int batch_count);
 
 template <typename T>
 class GemmDriver : public Driver
@@ -108,17 +72,9 @@ class GemmDriver : public Driver
     std::vector<T> c;
     std::vector<T> chost;
 
-    int M, N, K; // Netlib BLAS dims, user inputs
-    bool transA, transB;
     T alpha, beta;
 
-    // stride
-    int lda, ldb, ldc;
-
-    int batch_count;
-
-    // batch stride
-    int bsa, bsb, bsc;
+    miopen::GemmDescriptor desc;
 };
 
 template <typename T>
@@ -126,6 +82,7 @@ int GemmDriver<T>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Gemm (Default=1)", "int");
     inflags.AddInputFlag("batch_count", 'b', "1", "batch count for Gemm (Default=1)", "int");
+    inflags.AddInputFlag("isColMajor", 'C', "1", "Are matrices in column major? (Default=0)", "int");
     inflags.AddInputFlag("a_h", 'm', "256", "Height of A matrix (Default=256)", "int");
     inflags.AddInputFlag("a_w", 'k', "256", "Width of A matrix (Default=256)", "int");
     inflags.AddInputFlag("b_w", 'n', "256", "Width of B matrix (Default=256)", "int");
@@ -155,26 +112,27 @@ int GemmDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename T>
 int GemmDriver<T>::GetandSetData()
 {
+    desc.isColMajor = inflags.GetValueInt("isColMajor");
+    desc.m = inflags.GetValueInt("a_h");
+    desc.k = inflags.GetValueInt("a_w");
+    desc.n = inflags.GetValueInt("b_w");
 
-    M = inflags.GetValueInt("a_h");
-    K = inflags.GetValueInt("a_w");
-    N = inflags.GetValueInt("b_w");
-
-    transA = inflags.GetValueInt("transA");
-    transB = inflags.GetValueInt("transB");
+    desc.transA = inflags.GetValueInt("transA");
+    desc.transB = inflags.GetValueInt("transB");
 
     alpha = inflags.GetValueDouble("alpha");
     beta  = inflags.GetValueDouble("beta");
 
-    lda = transA == 0 ? K : M;
-    ldb = transB == 0 ? N : K;
-    ldc = N; //C is not transposed
+    // we are assuming: row-major, each matrix is saved in continuous memory, no empty memory between batches of matrices
+    desc.lda = desc.transA == 0 ? desc.k : desc.m;
+    desc.ldb = desc.transB == 0 ? desc.n : desc.k;
+    desc.ldc = desc.n; // C is never transposed
 
-    batch_count = inflags.GetValueInt("batch_count");
+    desc.batch_count = inflags.GetValueInt("batch_count");
 
-    bsa = M * K;
-    bsb = N * K;
-    bsc = M * N;
+    desc.bsa = desc.m * desc.k;
+    desc.bsb = desc.k * desc.n;
+    desc.bsc = desc.m * desc.n;
 
     return (0);
 }
@@ -183,9 +141,9 @@ template <typename T>
 int GemmDriver<T>::AllocateBuffersAndCopy()
 {
 
-    size_t a_sz = batch_count * M * K;
-    size_t b_sz = batch_count * K * N;
-    size_t c_sz = batch_count * M * N;
+    size_t a_sz = desc.batch_count * desc.m * desc.k;
+    size_t b_sz = desc.batch_count * desc.k * desc.n;
+    size_t c_sz = desc.batch_count * desc.m * desc.n;
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
@@ -229,47 +187,24 @@ int GemmDriver<T>::AllocateBuffersAndCopy()
 template <typename T>
 int GemmDriver<T>::RunForwardGPU()
 {
-
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-
-#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
-        if(batch_count > 1)
-            miopenGemmBatched(GetHandle(),
-                   false, // isDataColMajor
-                   transA,
-                   transB,
-                   M,
-                   N,
-                   K,
+        if(desc.batch_count > 1)
+            CallGemmBatched(miopen::deref(GetHandle()),
+                   desc,
                    &alpha,
                    a_dev->GetMem(),
-                   lda,
-                   bsa,
                    b_dev->GetMem(),
-                   ldb,
-                   bsb,
                    &beta,
-                   c_dev->GetMem(),
-                   ldc,
-                   bsc,
-                   batch_count);
+                   c_dev->GetMem());
         else
-            miopenGemm(GetHandle(),
-                   false, // isDataColMajor
-                   transA,
-                   transB,
-                   M,
-                   N,
-                   K,
+            CallGemm(miopen::deref(GetHandle()),
+                   desc,
                    &alpha,
                    a_dev->GetMem(),
-                   lda,
                    b_dev->GetMem(),
-                   ldb,
                    &beta,
                    c_dev->GetMem(),
-                   ldc,
                    1); // find needs to be on to compile the kernel
     }
 
@@ -281,9 +216,6 @@ int GemmDriver<T>::RunForwardGPU()
     }
 
     c_dev->FromGPU(GetStream(), c.data());
-#else
-    std::cerr << "GEMM is not supported\n";
-#endif
     return miopenStatusSuccess;
 }
 

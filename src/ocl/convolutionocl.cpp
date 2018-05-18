@@ -503,7 +503,27 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 gg.RunGemm(handle, x, w, tmp_y.get(), 0, 0, 0);
                 */
 
-                std::tie(M,N,K,lda,bsa,ldb,bsb,)
+                std::tie(m,n,k,lda,bsa,ldb,bsb,ldc,bsc,bcount) = GetConvolutionForwardBatchedGemmGeometry(xDesc, wDesc, yDesc);
+
+                miopenGemmBatched(GetHandle(),
+                       false, // isDataColMajor
+                       transA,
+                       transB,
+                       M,
+                       N,
+                       K,
+                       &alpha,
+                       a_dev->GetMem(),
+                       lda,
+                       bsa,
+                       b_dev->GetMem(),
+                       ldb,
+                       bsb,
+                       &beta,
+                       c_dev->GetMem(),
+                       ldc,
+                       bsc,
+                       batch_count);
 
 
                 time_gemm = in_n * (handle.GetKernelTime());
