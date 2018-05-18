@@ -451,3 +451,179 @@ void RunGemmGeometryRNN(Handle& handle,
 
 } // namespace miopen
 #endif // MIOPEN_USE_MIOPENGEMM
+
+namespace miopen
+{
+void CallGemm(Handle& handle,
+                          const GemmDescriptor gemm_desc,
+                          const void* alpha,
+                          const void* A,
+                          const void* B,
+                          const void* beta,
+                          void* C,
+                          int find)
+{
+#if MIOPEN_USE_ROCBLAS
+    (void)find;
+
+    bool transA = gemm_desc.transA;
+    bool transB = gemm_desc.transB;
+    int m = gemm_desc.m;
+    int n = gemm_desc.n;
+    int k = gemm_desc.k;
+    int lda = gemm_desc.lda;
+    int ldb = gemm_desc.ldb;
+    int ldc = gemm_desc.ldc;
+
+    if(!gemm_desc.isColMajor)
+    {
+        std::swap(transA, transB);
+        std::swap(m, n);
+        std::swap(lda, ldb);
+        std::swap(A, B);
+    }
+
+    hipEvent_t start, stop;
+    hipEventCreate(&start);
+    hipEventCreate(&stop);
+    float alpha_local                 = *static_cast<const float*>(alpha);
+    float beta_local                  = *static_cast<const float*>(beta);
+    hipEventRecord(start, nullptr);
+
+    rocblas_sgemm(handle.rhandle.get(),
+                  transA ? rocblas_operation_transpose : rocblas_operation_none,
+                  transB ? rocblas_operation_transpose : rocblas_operation_none,
+                  m,
+                  n,
+                  k,
+                  &alpha_local,
+                  static_cast<const float*>(A),
+                  lda,
+                  static_cast<const float*>(B),
+                  ldb,
+                  &beta_local,
+                  static_cast<float*>(C),
+                  ldc);
+
+    hipEventRecord(stop, nullptr);
+    hipDeviceSynchronize();
+    float mS = 0;
+    hipEventElapsedTime(&mS, start, stop);
+    handle.AccumKernelTime(mS);
+
+#elif MIOPEN_USE_MIOPENGEMM
+    bool transA = gemm_desc.transA;
+    bool transB = gemm_desc.transB;
+    int m = gemm_desc.m;
+    int n = gemm_desc.n;
+    int k = gemm_desc.k;
+    int lda = gemm_desc.lda;
+    int ldb = gemm_desc.ldb;
+    int ldc = gemm_desc.ldc;
+
+    // JN make column major
+    if(!gemm_desc.isColMajor)
+    {
+        std::swap(transA, transB);
+        std::swap(m, n);
+        std::swap(lda, ldb);
+        std::swap(A, B);
+    }
+
+    return miopen::try_([&] {
+        miopen::GemmGeometry gg =
+            miopen::CreateMIOpenGemmGeometry(m,
+                                             n,
+                                             k,
+                                             lda,
+                                             ldb,
+                                             ldc,
+                                             transA,
+                                             transB,
+                                             true,
+                                             *(static_cast<const float*>(alpha)),
+                                             *(static_cast<const float*>(beta)));
+
+        if(find != 0)
+        {
+            gg.FindSolution(
+                    //.003, miopen::deref(handle), DataCast(A), DataCast(B), DataCast(C), false);
+                60, miopen::deref(handle), DataCast(A), DataCast(B), DataCast(C), false);
+
+            gg.RunGemm(miopen::deref(handle), DataCast(A), DataCast(B), DataCast(C), 0, 0, 0);
+        }
+        else
+        {
+            gg.RunGemm(miopen::deref(handle), DataCast(A), DataCast(B), DataCast(C), 0, 0, 0);
+        }
+    });
+#else
+    MIOPEN_THROW("No GEMM backend");
+#endif
+}
+
+void CallGemmBatched(Handle& handle,
+                                 const GemmDescriptor gemm_desc,
+                                 const void* alpha,
+                                 const void* A,
+                                 const void* B,
+                                 const void* beta,
+                                 void* C)
+{
+#if MIOPEN_USE_ROCBLAS
+
+    bool transA = gemm_desc.transA;
+    bool transB = gemm_desc.transB;
+    int m = gemm_desc.m;
+    int n = gemm_desc.n;
+    int k = gemm_desc.k;
+    int lda = gemm_desc.lda;
+    int ldb = gemm_desc.ldb;
+    int ldc = gemm_desc.ldc;
+    int batch_count = gemm_desc.batch_count;
+    int bsa = gemm_desc.bsa;
+    int bsb = gemm_desc.bsb;
+    int bsc = gemm_desc.bsc;
+
+    if(!gemm_desc.isColMajor)
+    {
+        std::swap(transA, transB);
+        std::swap(m, n);
+        std::swap(lda, ldb);
+        std::swap(A, B);
+    }
+
+    hipEvent_t start, stop;
+    hipEventCreate(&start);
+    hipEventCreate(&stop);
+    float alpha_local                 = *static_cast<const float*>(alpha);
+    float beta_local                  = *static_cast<const float*>(beta);
+    hipEventRecord(start, nullptr);
+    rocblas_sgemm_strided_batched(handle.rhandle.get(),
+                  transA ? rocblas_operation_transpose : rocblas_operation_none,
+                  transB ? rocblas_operation_transpose : rocblas_operation_none,
+                  m,
+                  n,
+                  k,
+                  &alpha_local,
+                  static_cast<const float*>(A),
+                  lda,
+                  bsa,
+                  static_cast<const float*>(B),
+                  ldb,
+                  bsb,
+                  &beta_local,
+                  static_cast<float*>(C),
+                  ldc,
+                  bsc,
+                  batch_count);
+    hipEventRecord(stop, nullptr);
+    hipDeviceSynchronize();
+    float mS = 0;
+    hipEventElapsedTime(&mS, start, stop);
+    handle.AccumKernelTime(mS);
+#else
+    MIOPEN_THROW("No GEMM backend");
+#endif
+}
+} // namespace miopen
