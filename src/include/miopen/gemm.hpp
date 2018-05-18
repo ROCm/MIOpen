@@ -137,6 +137,23 @@ GemmGeometry CreateMIOpenGemmGeometry(int M,
                                       float alpha,
                                       float beta);
 
+void CallGemm(Handle& handle,
+                          const GemmDescriptor gemm_desc,
+                          const void* alpha,
+                          const void* A,
+                          const void* B,
+                          const void* beta,
+                          void* C,
+                          int find);
+
+void CallGemmBatched(Handle& handle,
+                                 const GemmDescriptor gemm_desc,
+                                 const void* alpha,
+                                 const void* A,
+                                 const void* B,
+                                 const void* beta,
+                                 void* C);
+
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_GEMM_HPP_

@@ -37,6 +37,25 @@
 
 namespace miopen {
 
+struct GemmDescriptor
+{
+    bool isColMajor;
+    bool transA;
+    bool transB;
+    int m;
+    int n;
+    int k;
+    int lda;
+    int ldb;
+    int ldc;
+
+    // for batched GEMM
+    int bsa;
+    int bsb;
+    int bsc;
+    int batch_count;
+};
+
 struct GemmGeometry
 {
     std::string algorithm_name;
