@@ -601,7 +601,7 @@ size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
     {
         miopen::solver::ConvSolution solution;
         mloConstruct(construct_params, solution);
-        return solution.workspce_sz;
+        return solution.Succeeded() ? solution.workspce_sz : 0;
     }
     catch(const miopen::Exception&)
     {
@@ -628,7 +628,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
     {
         miopen::solver::ConvSolution solution;
         mloConstruct(construct_params, solution);
-        return solution.workspce_sz;
+        return solution.Succeeded() ? solution.workspce_sz : 0;
     }
     catch(const miopen::Exception&)
     {
