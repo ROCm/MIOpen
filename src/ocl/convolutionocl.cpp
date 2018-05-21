@@ -79,8 +79,7 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
 
         construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-        miopen::solver::ConvSolution solution;
-        mloConstruct(construct_params, solution);
+        const auto solution = FindFirstSolution(construct_params);
         if(!solution.Succeeded())
             return -1;
         const auto& kernels_info = solution.construction_params;
@@ -157,8 +156,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
 
     try
     {
-        miopen::solver::ConvSolution solution;
-        mloConstruct(construct_params, solution);
+        const auto solution = FindFirstSolution(construct_params);
         if(!solution.Succeeded())
             return -1;
 
@@ -2051,7 +2049,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
                 miopen::solver::ConvSolution solution;
-                if((try_([&] { mloConstruct(construct_params, solution); }, false) ==
+                if((try_([&] { solution = FindFirstSolution(construct_params); }, false) ==
                     miopenStatusSuccess) &&
                    solution.Succeeded())
                 {

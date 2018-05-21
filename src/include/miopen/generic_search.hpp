@@ -252,12 +252,12 @@ inline size_t divide_round_plus_inf(const size_t x, const unsigned y)
 
 enum class SearchTweak
 {
-    NONE,
+    None,
     // The buffer(s) needs to be adjusted in some cases.
     // For example, dx buffer shall be made ~4x smaller
     // when the 2x subsampling kernel is used at the dx input of
     // the WrW convolution, but we are skipping it during auto-tune.
-    OVERRIDE_X_BUFFER_SIZE_BY_WORKSPACE_SIZE,
+    OverrideXBufferSizeByWorkspaceSize,
 };
 
 /// Solver member function requirements:
@@ -288,7 +288,7 @@ enum class SearchTweak
 template <class Solver, class Context>
 auto GenericSearch(const Solver s,
                    const Context& context,
-                   const SearchTweak tweak = SearchTweak::NONE)
+                   const SearchTweak tweak = SearchTweak::None)
     -> decltype(s.GetPerformanceConfig(context))
 {
     using PerformanceConfig = decltype(s.GetPerformanceConfig(context));
@@ -301,7 +301,7 @@ auto GenericSearch(const Solver s,
     size_t wei_size  = context.weights_sz / sizeof(float);
     size_t bias_size = context.bias_sz / sizeof(float);
 
-    if(tweak == SearchTweak::OVERRIDE_X_BUFFER_SIZE_BY_WORKSPACE_SIZE)
+    if(tweak == SearchTweak::OverrideXBufferSizeByWorkspaceSize)
     {
         assert(default_solution.workspce_sz != 0);
         if(context.direction.IsForward())
@@ -357,7 +357,7 @@ auto GenericSearch(const Solver s,
                           << current_config);
 
         const auto current_solution = s.GetSolution(context, current_config, true);
-        if(tweak == SearchTweak::OVERRIDE_X_BUFFER_SIZE_BY_WORKSPACE_SIZE &&
+        if(tweak == SearchTweak::OverrideXBufferSizeByWorkspaceSize &&
            default_solution.workspce_sz != current_solution.workspce_sz)
         {
             ret = -2;
