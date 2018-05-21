@@ -1729,17 +1729,6 @@ typedef enum {
     miopenHorizontal = 1, /*!< forward training */
 } miopenFusionDirection_t;
 
-/*! @enum miopenOperator_t
-* @brief MIOpen operators to be fused
-*/
-typedef enum {
-    miopenOpDirectConv = 0, /*!< convolution */
-    miopenOpBatchNorm  = 1, /*!< batch normalization */
-    miopenOpActivation = 2, /*!< activation */
-    miopenOpPooling    = 3, /*!< pooling forward */
-    miopenOpTensorOp   = 4, /*!< element-wise tensor op */
-} miopenOperator_t;
-
 /*! @struct miopenOpCost_t
 * @brief cost of a single (possibly fused) op
 */
@@ -1750,21 +1739,33 @@ typedef struct miopen_op_cost
     double deviceUtilization; /*!< % of device utilized bt the op */
 } miopenOpCost_t;
 
-/*! @brief Creates the FUSION plan descriptor object
+/*! @brief Creates the kenrel fusion plan descriptor object
 *
-* @param fuaePlanDesc Pointer to an FUSION plan descriptor type
+* @param fusePlanDesc Pointer to a fusion plan (output)
+* @param fuseDirection Horizontal or Vertical fusion (input)
+* @param inputDesc     Descriptor to tensor for the input (input)
+* @param outputDesc     Descriptor to tensor for the output (input)
 * @return          miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t
-miopenCreateFusionPlanDescriptor(miopenFusionPlanDescriptor_t* fusePlanDesc);
+MIOPEN_EXPORT miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* fusePlanDesc,
+                                                    miopenFusionDirection_t fuseDirection,
+                                                    const TensorDescriptor& inputDesc,
+                                                    const TensorDescriptor& outputDesc);
 
-/*! @brief Destroy the FUSION plan descriptor object
+/*! @brief Destroy the fusion plan descriptor object
 *
-* @param fusePlanDesc an FUSION plan descriptor type
+* @param fusePlanDesc A fusion plan descriptor type
 * @return          miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
 miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc);
+
+/*! @brief Checks if a fusion plan is supported
+*
+* @param fusePlanDesc A fusion plan descriptor
+* @return          miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenIsFusionPlanValid(miopenFusionPlanDescriptor_t fusePlanDesc);
 
 /*! @brief Destroy MIOpen operator object
 *
@@ -1773,101 +1774,209 @@ miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc);
 */
 MIOPEN_EXPORT miopenStatus_t miopenDestroyOperator(miopenOperatorDescriptor_t miopenOp);
 
-MIOPEN_EXPORT miopenStatus_t miopenInitFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                  const miopenPipelineMode_t pipelineMode,
-                                                  const miopenFusionDirection_t fuseDirection);
-
-MIOPEN_EXPORT miopenStatus_t miopenAddOpToFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                     miopenOperatorDescriptor_t op);
-
-MIOPEN_EXPORT miopenStatus_t miopenResetFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc);
-
-MIOPEN_EXPORT miopenStatus_t miopenIsFusionPlanValid(miopenFusionPlanDescriptor_t fusePlanDesc);
-
-MIOPEN_EXPORT miopenStatus_t
-miopenCreateOp(miopenOperatorDescriptor_t* Op, const miopenOperator_t operator);
-
-MIOPEN_EXPORT miopenStatus_t miopenDestroyOperator(miopenOperatorDescriptor_t miopenOp);
-
-/*! @brief Creates miopen convolution operator.
+/*! @brief Creates forward convolution operator.
 *
-* @param convOp             Pointer to an operator type (output)
-* @param pipelineMode       pipeline the op is operating in (input)
-* @param opDesc             common operator descriptor (input)
-* @param convDesc           Convolution layer descriptor (input)
-* @param exhaustiveSearch   A boolean to toggle a full search of all algorithms and configurations
-* (input)
+* @param fusePlanDesc   A fusion plan descriptor (input)
+* @param convOp         Pointer to an operator type (output)
+* @param convDesc       Convolution layer descriptor (input)
+* @param fwdAlgo        A MIOpen forward convolution algorithm (input)
+* @param wDesc          Descriptor for the weights tensor (input)
 * @return          miopenStatus_t
 */
-MIOPEN_EXPORT miopenConfigConvInferenceOp(miopenOperatorDescriptor_t convOp,
-                                          miopenConvolutionDescriptor_t convDesc,
-                                          miopenConvFwdAlgorithm_t algo,
-                                          const TensorDescriptor& xDesc,
-                                          const TensorDescriptor& wDesc,
-                                          const TensorDescriptor& yDesc);
+MIOPEN_EXPORT miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                       miopenOperatorDescriptor_t* convOp,
+                                                       miopenConvolutionDescriptor_t convDesc,
+                                                       miopenConvFwdAlgorithm_t fwdAlgo,
+                                                       const TensorDescriptor& wDesc);
 
-/*! @brief Creates miopen operator
+/*! @brief Creates backwards data convolution operator.
 *
-* @param activeOp       Pointer to an operator type (output)
-* @param pipelineMode   pipeline the op is operating in (input)
-* @param opDesc         common operator descriptor (input)
-* @param activDesc      Descriptor for activation layer (input)
-* @param alpha          Floating point scaling factor, allocated on the host (input)
-* @param beta           Floating point shift factor, allocated on the host (input)
-
-* @return          miopenStatus_t
-*/
-
-MIOPEN_EXPORT miopenStatus_t
-miopenConfigActivationInferenceOp(miopenOperatorDescriptor_t activOp,
-                                  const miopenActivationDescriptor_t activDesc,
-                                  const TensorDescriptor& xDesc,
-                                  const TensorDescriptor& yDesc);
-
-/*! @brief creates a operator for batch normalization
-*
-* Batch normalization op.
-*
-* @param bnOp                      Pointer to an operator type (output)
-* @param pipelineMode              pipeline the op is operating in (input)
-* @param opDesc                    common operator descriptor (input)
-* @param bn_mode                   Batch normalization mode (input)
-* @param alpha                     Floating point scaling factor, allocated on the host (input)
-* @param beta                      Floating point shift factor, allocated on the host (input)
-* @param bnScale                   Batch norm scaling, gamma, tensor (input)
-* @param bnBias                    Batch norm bias, beta, tensor (input)
-* @param estimatedMean             Running average saved during forward training (input)
-* @param estimatedVariance         Running variance saved during forward training (input)
-* @param epsilon                   Value to stabilize inverse variance calculation (input)
-* @return                          miopenStatus_t
+* @param fusePlanDesc   A fusion plan descriptor (input)
+* @param convOp         Pointer to an operator type (output)
+* @param convDesc       Convolution layer descriptor (input)
+* @param bwdDataAlgo        A MIOpen backwards data convolutin algorithm (input)
+* @param wDesc          Descriptor for the weights tensor (input)
+* @return               miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
-miopenConfigBatchNormInferenceOp(miopenOperatorDescriptor_t bnOp,
-                                 const miopenBatchNormMode_t bn_mode,
-                                 const TensorDescriptor& xDesc,
-                                 const TensorDescriptor& yDesc,
-                                 const TensorDescriptor& bnScaleBiasMeanVarDesc);
+miopenCreateOpConvBackwardData(miopenFusionPlanDescriptor_t fusePlanDesc,
+                               miopenOperatorDescriptor_t* convOp,
+                               miopenConvolutionDescriptor_t convDesc,
+                               miopenConvBwdDataAlgorithm_t bwdDataAlgo,
+                               const TensorDescriptor& wDesc);
 
-MIOPEN_EXPORT miopenStatus_t miopenConfigTensorOpInferenceOp(miopenOperatorDescriptor_t tOp,
-                                                             miopenTensorOp_t tensorOp,
-                                                             const TensorDescriptor& aDesc,
-                                                             const TensorDescriptor& bDesc,
-                                                             const TensorDescriptor& cDesc);
-
+/*! @brief Creates backwards weights convolution operator.
+*
+* @param fusePlanDesc    A fusion plan descriptor (input)
+* @param convOp          Pointer to an operator type (output)
+* @param convDesc        Convolution layer descriptor (input)
+* @param bwdWeightsAlgo  A MIOpen backwards data convolutin algorithm (input)
+* @param wDesc           Descriptor for the weights tensor (input)
+* @return                miopenStatus_t
+*/
 MIOPEN_EXPORT miopenStatus_t
-miopenConfigPoolingInferenceOp(miopenOperatorDescriptor_t poolOp,
-                               const miopenPoolingDescriptor_t poolDesc,
-                               const TensorDescriptor& xDesc,
-                               const TensorDescriptor& yDesc);
+miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                  miopenOperatorDescriptor_t* convOp,
+                                  miopenConvolutionDescriptor_t convDesc,
+                                  miopenConvBwdWeightsAlgorithm_t bwdWeightsAlgo,
+                                  const TensorDescriptor& wDesc);
 
+/*! @brief Creates a foward activation operator.
+*
+* @param fusePlanDesc    A fusion plan descriptor (input)
+* @param activOp         Pointer to an operator type (output)
+* @param activeDesc      Activation layer descriptor (input)
+* @return                miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                miopenOperatorDescriptor_t* activOp,
+                                const miopenActivationDescriptor_t activDesc);
+
+/*! @brief Creates a backward activation operator.
+*
+* @param fusePlanDesc    A fusion plan descriptor (input)
+* @param activOp         Pointer to an operator type (output)
+* @param activeDesc      Activation layer descriptor (input)
+* @return                miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateOpActivationBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                 miopenOperatorDescriptor_t* activOp,
+                                 const miopenActivationDescriptor_t activDesc)
+
+    /*! @brief creates a operator for batch normalization
+    *
+    * Batch normalization op.
+    *
+    * @param bnOp                      Pointer to an operator type (output)
+    * @param pipelineMode              pipeline the op is operating in (input)
+    * @param opDesc                    common operator descriptor (input)
+    * @param bn_mode                   Batch normalization mode (input)
+    * @param alpha                     Floating point scaling factor, allocated on the host (input)
+    * @param beta                      Floating point shift factor, allocated on the host (input)
+    * @param bnScale                   Batch norm scaling, gamma, tensor (input)
+    * @param bnBias                    Batch norm bias, beta, tensor (input)
+    * @param estimatedMean             Running average saved during forward training (input)
+    * @param estimatedVariance         Running variance saved during forward training (input)
+    * @param epsilon                   Value to stabilize inverse variance calculation (input)
+    * @return                          miopenStatus_t
+    */
+
+    /*! @brief Creates a forward inference batch normalization operator.
+    *
+    * @param fusePlanDesc  A fusion plan descriptor (input)
+    * @param bnOp          Pointer to an operator type (output)
+    * @param bn_mode       Batch normalization layer mode (input)
+    * @return              miopenStatus_t
+    */
+    MIOPEN_EXPORT miopenStatus_t
+    miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                     miopenOperatorDescriptor_t* bnOp,
+                                     const miopenBatchNormMode_t bn_mode);
+
+/*! @brief Creates a forward training batch normalization operator.
+*
+* @param fusePlanDesc  A fusion plan descriptor (input)
+* @param bnOp          Pointer to an operator type (output)
+* @param bn_mode       Batch normalization layer mode (input)
+* @return              miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateOpBatchNormForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                               miopenOperatorDescriptor_t* bnOp,
+                               const miopenBatchNormMode_t bn_mode);
+
+/*! @brief Creates a back propagation batch normalization operator.
+*
+* @param fusePlanDesc  A fusion plan descriptor (input)
+* @param bnOp          Pointer to an operator type (output)
+* @param bn_mode       Batch normalization layer mode (input)
+* @return              miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateOpBatchNormBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                miopenOperatorDescriptor_t* bnOp,
+                                const miopenBatchNormMode_t bn_mode);
+
+/*! @brief Creates tensor op operator
+*
+* @param fusePlanDesc  A fusion plan descriptor (input)
+* @param tOp      Pointer to an operator type (output)
+* @param tensorOp      A tensor operation (input)
+* @param bDesc         Descriptor for operand b of the tensor op (input)
+* @return              miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCreateOpTensorOp(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                    miopenOperatorDescriptor_t tOp,
+                                                    miopenTensorOp_t tensorOp,
+                                                    const TensorDescriptor& bDesc);
+
+/*! @brief Creates forward pooling operator
+*
+* @param fusePlanDesc  A fusion plan descriptor (input)
+* @param poolOp        Pointer to an operator type (output)
+* @param pooldesc      An MIOpen pooling descriptor  (input)
+* @return              miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCreateOpPoolingForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                          miopenOperatorDescriptor_t* poolOp,
+                                                          const miopenPoolingDescriptor_t poolDesc);
+
+/*! @brief Creates backward pooling operator
+*
+* @param fusePlanDesc  A fusion plan descriptor (input)
+* @param poolOp        Pointer to an operator type (output)
+* @param pooldesc      An MIOpen pooling descriptor  (input)
+* @return              miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateOpPoolingBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                              miopenOperatorDescriptor_t* poolOp,
+                              const miopenPoolingDescriptor_t poolDesc);
+
+/*! @brief Creates an operator argument object
+*
+* @param args        Pointer to an operator argument type (output)
+* @return            miopenStatus_t
+*/
 MIOPEN_EXPORT miopenStatus_t miopenCreateOperatorArgs(miopenOperatorArgs_t* args);
 
+/*! @brief Destroys an operator argument object
+*
+* @param args        An operator argument type (output)
+* @return            miopenStatus_t
+*/
 MIOPEN_EXPORT miopenStatus_t miopenDestroyOperatorArgs(miopenOperatorArgs_t args);
 
-MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsConvInferenceOp(miopenOperatorArgs_t args,
-                                                            const miopenOperatorDescriptor_t convOp,
-                                                            const void* w);
+/*! @brief Creates backward pooling operator
+*
+* @param fusePlanDesc  A fusion plan descriptor (input)
+* @param poolOp        Pointer to an operator type (output)
+* @param pooldesc      An MIOpen pooling descriptor  (input)
+* @return              miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
+                                                        const miopenOperatorDescriptor_t convOp,
+                                                        const void* w);
 
+MIOPEN_EXPORT miopenStatus_t
+miopenSetOpArgsConvBackwardData(miopenOperatorArgs_t args,
+                                const miopenOperatorDescriptor_t convOp,
+                                const void* w,
+                                void* workSpace,
+                                size_t workSpaceSize);
+
+MIOPEN_EXPORT miopenStatus_t
+miopenSetOpArgsConvBackwardWeights(miopenOperatorArgs_t args,
+                                   const miopenOperatorDescriptor_t convOp,
+                                   const void* x,
+                                   void* dw,
+                                   void* workSpace,
+                                   size_t workSpaceSize);
+//----
+
+// Fusion op args for Batch Normalization
 MIOPEN_EXPORT miopenStatus_t
 miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t args,
                                   const miopenOperatorDescriptor_t bnOp,
@@ -1875,141 +1984,88 @@ miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t args,
                                   const void* bnBias,
                                   const void* estimatedMean,
                                   const void* estimatedVariance,
-                                  const double epsilon);
+                                  double epsilon);
 
-MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsActivationInference(
-    miopenOperatorArgs_t args, const miopenOperatorDescriptor_t activOp);
+MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_t args,
+                                                             const miopenOperatorDescriptor_t bnOp,
+                                                             const void* bnScale,
+                                                             const void* bnBias,
+                                                             void* savedMean,
+                                                             void* savedInvVariance,
+                                                             void* runningMean,
+                                                             void* runningVariance,
+                                                             double epsilon);
 
-// This is essentially a noop, but it forces the users to have a matching length arg array in
-// execute
-MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsPoolingInference(
-    miopenOperatorDescriptor_t poolingOp, const miopenPoolingDescriptor_t poolDesc);
+MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs_t args,
+                                                              const miopenOperatorDescriptor_t bnOp,
+                                                              const void* x,
+                                                              const void* bnScale,
+                                                              void* resultBnScaleDiff,
+                                                              void* resultBnBiasDiff,
+                                                              const void* savedMean,
+                                                              const void* savedInvVariance);
+//---
+
+// Pooling arg ops
+MIOPEN_EXPORT miopenStatus_t
+miopenSetOpArgsPoolingForward(miopenOperatorArgs_t args,
+                              const miopenOperatorDescriptor_t poolingOp,
+                              bool do_backward,
+                              void* workSpace,
+                              size_t workSpaceSize);
+
+MIOPEN_EXPORT miopenStatus_t
+miopenSetOpArgsPoolingBackward(miopenOperatorArgs_t args,
+                               const miopenOperatorDescriptor_t poolingOp,
+                               const void* y,
+                               const void* x,
+                               const void* workSpace,
+                               size_t workSpaceSize);
+//----
 
 MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsTensorOp(miopenOperatorArgs_t args,
                                                      const miopenOperatorDescriptor_t tOp,
                                                      const void* alpha1,
                                                      const void* alpha2,
-                                                     const void* beta,
-                                                     const void* B);
-
-/*! @brief returns the miopen operator type.
-*
-* @param miopenOp  operator (input)
-* @param opType    pointer to a returned type (output)
-* @return          miopenStatus_t
-*/
-MIOPEN_EXPORT miopenStatus_t miopenGetOperatorType(const miopenOperatorDescriptor miopenOp,
-                                                   miopenOperator_t* opType);
-
-MIOPEN_EXPORT miopenStatus_t miopenGetFusionPlanCost(const miopenHandle_t handle,
-                                                     const size_t nOps,
-                                                     const miopenOpRealization_t* opReal,
-                                                     miopenOpCost_t* opCost);
-
-/*! @brief build a exection plan of the fused sub-graph
-*
-* The subgraph is represented as an array of realizations connected by names of realization edges.
-* The function verifies the sub-graph can be fused.
-* It returns a plan of the fused version of the sub-graph.
-*
-* @param handle         MIOpen handle (input)
-* @param fusePlanDescr  fused plan descriptor (output)
-* @param nOps           number of ops (input)
-* @param opReal         array of ops realizations (input)
-*
-* @return           miopenStatus_t
-*/
-MIOPEN_EXPORT miopenStatus_t
-miopenGetFusionPlanCostEstimate(const miopenHandle_t handle,
-                                const miopenFusionPlanDescriptor_t fusePlanDesc,
-                                const miopenOperatorDescriptor_t* arrayOfOperatorDesc,
-                                miopenOpCost_t* opCost);
+                                                     const void* B,
+                                                     const void* beta);
 
 /*! @brief execute the plan of the fused sub-graph
 *
 * The function executes a fused sub-graph.
 *
-* @param handle         MIOpen handle (input)
-* @param fusePlanDescr  fused plan descriptor (input)
-* @param n_src          number of the fused sub-graph sources(input)
-* @param src            source data tensors  (input)
-* @param n_dst          number of the fused sub-graph destinations(input)
-* @param dst            destination data tensors  (output)
-* @param n_weights      number of weights and other buffers requiered for the plan execution(input)
-* @param weights        array of buffer pointers  (input)
-* @param workSpace      Pointer to workspace required (input)
-* @param workSpaceSize  Size in bytes of the work space memory (input)
+* @param handle           MIOpen handle (input)
+* @param fusePlanDesc     fused plan descriptor (input)
+* @param inputDesc        Descriptor of theinput tensor (input)
+* @param input            Source data tensor  (input)
+* @param outputDesc       Decriptor of the output tensor (input)
+* @param output           Destination data tensor  (output)
+* @param args             An argument object of the fused kernel (input)
 * @return           miopenStatus_t
 */
-
 MIOPEN_EXPORT miopenStatus_t
 miopenExecuteFusionPlan(const miopenHandle_t handle,
                         const miopenFusionPlanDescriptor_t fusePlanDesc,
-                        const miopenTensorDescriptor_t xDesc,
-                        const void* x,
-                        const miopenTensorDescriptor_t yDesc,
-                        void* y,
+                        const miopenTensorDescriptor_t inputDesc,
+                        const void* input,
+                        const miopenTensorDescriptor_t outputDesc,
+                        void* output,
                         miopenOperatorArgs_t args);
 
-MIOPEN_EXPORT miopenStatus_t miopenGetOperatorType(const miopenOperatorDescriptor miopenOp,
-                                                   miopenOperator_t* opType);
-
+// Heurtistic based benchmarking.
 MIOPEN_EXPORT miopenStatus_t
 miopenGetFusionPlanCostEstimate(const miopenHandle_t handle,
                                 const miopenFusionPlanDescriptor_t fusePlanDesc,
                                 miopenOpCost_t* opCost);
 
+// Empirical benchmarking, aka we actually run the fusion plan.
 MIOPEN_EXPORT miopenStatus_t
 miopenGetFusionPlanCostEmpirical(const miopenHandle_t handle,
                                  const miopenFusionPlanDescriptor_t fusePlanDesc,
-                                 const size_t workSpaceSize,
                                  void* workSpace,
-                                 openOperatorArgs_t args miopenOpCost_t* opCost);
-
-MIOPEN_EXPORT miopenStatus_t
-miopenConvBatchNormActivationInference(miopenHandle_t handle,
-                                       const miopenConvolutionDescriptor_t convDesc,
-                                       const miopenTensorDescriptor_t xDesc,
-                                       const void* x,
-                                       const miopenTensorDescriptor_t wDesc,
-                                       const void* w,
-                                       miopenBatchNormMode_t bn_mode,
-                                       const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc,
-                                       void* bnScale,
-                                       void* bnBias,
-                                       void* estimatedMean,
-                                       void* estimatedVariance,
-                                       double epsilon const miopenActivationDescriptor_t activDesc,
-                                       const miopenTensorDescriptor_t yDesc,
-                                       void* y);
-
-MIOPEN_EXPORT miopenStatus_t
-miopenConvTensorOpActivationInference(miopenHandle_t handle,
-                                      const miopenConvolutionDescriptor_t convDesc,
-                                      const miopenTensorDescriptor_t xDesc,
-                                      const void* x,
-                                      const miopenTensorDescriptor_t wDesc,
-                                      const void* w,
-                                      const void* alpha1,
-                                      const void* alpha2,
-                                      const miopenTensorDescriptor_t bDesc,
-                                      const void* B,
-                                      const void* beta,
-                                      const miopenActivationDescriptor_t activDesc,
-                                      const miopenTensorDescriptor_t yDesc,
-                                      void* y);
-
-MIOPEN_EXPORT miopenStatus_t
-miopenConvActivationPoolingInference(miopenHandle_t handle,
-                                     const miopenConvolutionDescriptor_t convDesc,
-                                     const miopenTensorDescriptor_t xDesc,
-                                     const void* x,
-                                     const miopenTensorDescriptor_t wDesc,
-                                     const void* w,
-                                     const miopenActivationDescriptor_t activDesc,
-                                     const miopenPoolingDescriptor_t poolDesc,
-                                     const miopenTensorDescriptor_t yDesc,
-                                     void* y);
+                                 const size_t workSpaceSize,
+                                 openOperatorArgs_t args,
+                                 miopenOpCost_t* opCost);
 
 /** @} */
 // CLOSEOUT FUSION DOXYGEN GROUP
