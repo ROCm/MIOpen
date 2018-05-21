@@ -202,8 +202,7 @@ class SolverTest
         construct.setStream(&get_handle());
 
         context_filler(construct);
-        solver::ConvSolution sol;
-        mloConstruct(construct, sol);
+        const auto sol = FindFirstSolution(construct);
 
         EXPECT_EQUAL(sol.construction_params[0].kernel_file, expected_kernel);
     }
