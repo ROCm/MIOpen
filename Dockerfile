@@ -7,7 +7,7 @@ RUN dpkg --add-architecture i386
 
 # Add rocm repository
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y curl apt-utils wget
-RUN curl https://raw.githubusercontent.com/RadeonOpenCompute/ROCm-docker/develop/add-rocm.sh | bash
+RUN curl https://raw.githubusercontent.com/RadeonOpenCompute/ROCm-docker/master/add-rocm.sh | bash
 
 # Install dependencies required to build hcc
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
