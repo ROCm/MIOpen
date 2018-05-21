@@ -54,6 +54,8 @@ class GemmDriver : public Driver
 
     int RunForwardGPU();
 
+    int RunForwardCPU();
+
     int RunBackwardGPU();
 
     int VerifyBackward();
@@ -82,7 +84,8 @@ int GemmDriver<T>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Gemm (Default=1)", "int");
     inflags.AddInputFlag("batch_count", 'b', "1", "batch count for Gemm (Default=1)", "int");
-    inflags.AddInputFlag("isColMajor", 'C', "1", "Are matrices in column major? (Default=0)", "int");
+    inflags.AddInputFlag(
+        "isColMajor", 'C', "0", "Are matrices in column major? (Default=0)", "int");
     inflags.AddInputFlag("a_h", 'm', "256", "Height of A matrix (Default=256)", "int");
     inflags.AddInputFlag("a_w", 'k', "256", "Width of A matrix (Default=256)", "int");
     inflags.AddInputFlag("b_w", 'n', "256", "Width of B matrix (Default=256)", "int");
@@ -113,9 +116,9 @@ template <typename T>
 int GemmDriver<T>::GetandSetData()
 {
     desc.isColMajor = inflags.GetValueInt("isColMajor");
-    desc.m = inflags.GetValueInt("a_h");
-    desc.k = inflags.GetValueInt("a_w");
-    desc.n = inflags.GetValueInt("b_w");
+    desc.m          = inflags.GetValueInt("a_h");
+    desc.k          = inflags.GetValueInt("a_w");
+    desc.n          = inflags.GetValueInt("b_w");
 
     desc.transA = inflags.GetValueInt("transA");
     desc.transB = inflags.GetValueInt("transB");
@@ -123,7 +126,8 @@ int GemmDriver<T>::GetandSetData()
     alpha = inflags.GetValueDouble("alpha");
     beta  = inflags.GetValueDouble("beta");
 
-    // we are assuming: row-major, each matrix is saved in continuous memory, no empty memory between batches of matrices
+    // we are assuming: row-major, each matrix is saved in continuous memory, no empty memory
+    // between batches of matrices
     desc.lda = desc.transA == 0 ? desc.k : desc.m;
     desc.ldb = desc.transB == 0 ? desc.n : desc.k;
     desc.ldc = desc.n; // C is never transposed
@@ -131,6 +135,7 @@ int GemmDriver<T>::GetandSetData()
     desc.batch_count = inflags.GetValueInt("batch_count");
 
     desc.bsa = desc.m * desc.k;
+    desc.bsa = 0; // debug
     desc.bsb = desc.k * desc.n;
     desc.bsc = desc.m * desc.n;
 
@@ -163,11 +168,13 @@ int GemmDriver<T>::AllocateBuffersAndCopy()
     for(int i = 0; i < a_sz; i++)
     {
         a[i] = static_cast<T>(static_cast<double>(rand()) * (1.0 / RAND_MAX));
+        a[i] = static_cast<double>(1.0); // for debug
     }
 
     for(int i = 0; i < b_sz; i++)
     {
         b[i] = static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5) * 0.001;
+        b[i] = static_cast<double>(1.0); // debug
     }
 #if MIOPEN_BACKEND_OPENCL
     cl_int status;
@@ -191,32 +198,68 @@ int GemmDriver<T>::RunForwardGPU()
     {
         if(desc.batch_count > 1)
             CallGemmBatched(miopen::deref(GetHandle()),
-                   desc,
-                   &alpha,
-                   a_dev->GetMem(),
-                   b_dev->GetMem(),
-                   &beta,
-                   c_dev->GetMem());
+                            desc,
+                            &alpha,
+                            a_dev->GetMem(),
+                            0,
+                            b_dev->GetMem(),
+                            0,
+                            &beta,
+                            c_dev->GetMem(),
+                            0);
         else
             CallGemm(miopen::deref(GetHandle()),
-                   desc,
-                   &alpha,
-                   a_dev->GetMem(),
-                   b_dev->GetMem(),
-                   &beta,
-                   c_dev->GetMem(),
-                   1); // find needs to be on to compile the kernel
+                     desc,
+                     &alpha,
+                     a_dev->GetMem(),
+                     0,
+                     b_dev->GetMem(),
+                     0,
+                     &beta,
+                     c_dev->GetMem(),
+                     0,
+                     1); // find needs to be on to compile the kernel
     }
 
     if(inflags.GetValueInt("time") == 1)
     {
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
-        printf("GPU Kernel Time Gemm Elapsed: %f ms\n", time/inflags.GetValueInt("iter"));
+        printf("GPU Kernel Time Gemm Elapsed: %f ms\n", time / inflags.GetValueInt("iter"));
     }
 
     c_dev->FromGPU(GetStream(), c.data());
     return miopenStatusSuccess;
+}
+
+template<typename T>
+int GemmDriver<T>::RunForwardCPU()
+{
+    miopen::GemmDescriptor desc_tmp = desc;
+
+    const T* a_ptr = a.data();
+    const T* b_ptr = b.data();
+
+    if(desc_tmp.isColMajor || desc_tmp.transA || desc_tmp.transB)
+        MIOPEN_THROW("cannot deal with isColMajor, transA or transB for now");
+
+    for(int bi = 0; bi < desc_tmp.batch_count; ++bi)
+    {
+        for(int mi = 0; mi < desc_tmp.m; ++mi)
+        {
+            for(int ni = 0; ni < desc_tmp.n; ++ni)
+            {
+                double y = 0;
+                for(int  ki = 0; ki < desc_tmp.k; ++ki)
+                {
+                    y+= a_ptr[desc_tmp.bsa * bi + desc_tmp.lda * mi + ki] * b_ptr[desc_tmp.bsb * bi + desc_tmp.ldb * ki + ni]; 
+                }
+                chost[desc_tmp.bsc * bi + desc_tmp.ldc * mi + ni] = y;
+            } 
+        }
+    }
+
+    return 0;
 }
 
 template <typename T>
@@ -228,6 +271,23 @@ int GemmDriver<T>::RunBackwardGPU()
 template <typename T>
 int GemmDriver<T>::VerifyForward()
 {
+    RunForwardCPU();
+
+    c_dev->FromGPU(GetStream(), c.data());
+    std::cout << __func__ << ": c: " << c << std::endl;
+
+    auto error = miopen::rms_range(chost, c);
+    const double tolerance =
+        ((sizeof(T) == 4) ? static_cast<double>(1e-6) : static_cast<double>(7e-2));
+    if(!(error < tolerance))
+    {
+        std::cout << std::string("Forward GEMM Failed: ") << error << "\n";
+    }
+    else
+    {
+        printf("Forward GEMM Verifies on CPU and GPU (err=%f)\n", error);
+    }
+
     return 0;
 }
 
