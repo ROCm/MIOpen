@@ -138,22 +138,35 @@ GemmGeometry CreateMIOpenGemmGeometry(int M,
                                       float beta);
 
 void CallGemm(Handle& handle,
-                          const GemmDescriptor gemm_desc,
-                          const void* alpha,
-                          const void* A,
-                          const void* B,
-                          const void* beta,
-                          void* C,
-                          int find);
+              GemmDescriptor gemm_desc,
+              const void* alpha,
+              const void* A,
+              int a_offset,
+              const void* B,
+              int b_offset,
+              const void* beta,
+              void* C,
+              int c_offset,
+              int find);
 
 void CallGemmBatched(Handle& handle,
-                                 const GemmDescriptor gemm_desc,
-                                 const void* alpha,
-                                 const void* A,
-                                 const void* B,
-                                 const void* beta,
-                                 void* C);
+                     GemmDescriptor gemm_desc,
+                     const void* alpha,
+                     const void* A,
+                     int a_offset,
+                     const void* B,
+                     int b_offset,
+                     const void* beta,
+                     void* C,
+                     int c_offset);
 
+GemmDescriptor CreateGemmDescriptorConv1x1Fwd(const TensorDescriptor& xDesc,
+                                              const TensorDescriptor& wDesc,
+                                              const TensorDescriptor& yDesc);
+
+GemmDescriptor CreateGemmDescriptorConvIm2ColFwd(const TensorDescriptor& xDesc,
+                                                 const TensorDescriptor& wDesc,
+                                                 const TensorDescriptor& yDesc);
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_GEMM_HPP_
