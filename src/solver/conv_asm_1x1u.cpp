@@ -580,7 +580,7 @@ int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
 PerformanceConfigConvAsm1x1U ConvAsm1x1U::Search(const ConvolutionContext& context) const
 {
     if(UseSubsample(context) || UseUpsample(context))
-        return GenericSearch(*this, context, SearchTweak::OVERRIDE_X_BUFFER_SIZE_BY_WORKSPACE_SIZE);
+        return GenericSearch(*this, context, SearchTweak::OverrideXBufferSizeByWorkspaceSize);
     else
         return GenericSearch(*this, context);
 }

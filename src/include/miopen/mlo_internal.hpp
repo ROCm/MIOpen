@@ -302,11 +302,11 @@ auto mloConstruct(T& x) -> decltype(x.mloConstruct(), void())
 }
 
 template <class T>
-void mloConstruct(T& x, miopen::solver::ConvSolution& s)
+auto FindFirstSolution(T& x) -> decltype(x.FindSolution())
 {
     x.setupRocm();
     x.setupFloats();
-    s = x.FindSolution();
+    return x.FindSolution();
 }
 
 /// \todo Move this into respective Solution objects. --atamazov
