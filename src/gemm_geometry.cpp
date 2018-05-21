@@ -169,5 +169,23 @@ void GemmGeometry::RunGemm(Handle& handle,
     }
 }
 
+std::ostream& operator<<(std::ostream& os, const GemmDescriptor& gemm_desc)
+{
+    os << "{ ";
+    os << "isColMajor " << gemm_desc.isColMajor << ", ";
+    os << "transA "     << gemm_desc.transA     << ", ";
+    os << "transB "     << gemm_desc.transB     << ", ";
+    os << "m "          << gemm_desc.m          << ", ";
+    os << "n "          << gemm_desc.n          << ", ";
+    os << "k "          << gemm_desc.k          << ", ";
+    os << "lda "        << gemm_desc.lda        << ", ";
+    os << "ldb "        << gemm_desc.ldb        << ", ";
+    os << "ldc "        << gemm_desc.ldc        << ", ";
+    os << "bsa "        << gemm_desc.bsa        << ", ";
+    os << "bsb "        << gemm_desc.bsb        << ", ";
+    os << "bsc "        << gemm_desc.bsc        << ", ";
+    os << "batch_count "<< gemm_desc.batch_count<< " }";
+    return os;
+}
 } // namespace miopen
 #endif // MIOPEN_USE_MIOPENGEMM
