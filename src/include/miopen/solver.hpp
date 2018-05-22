@@ -283,9 +283,10 @@ void SearchForAllSolutions(const Context& search_params, Db db, std::vector<Solu
             !miopen::IsEnabled(MIOPEN_DEBUG_FIND_FIRST_CONV{});
 
     // clang-format off
+    bool skip_the_rest = false;
     MIOPEN_STATIC_FOR_EACH(solver, Solvers{}, {
         if(solver.IsApplicable(search_params) &&
-            (no_perf_filtering || solver.IsFast(search_params)))
+            (no_perf_filtering || solver.IsFast(search_params)) && !skip_the_rest)
         {
             const Solution s = FindSolution(solver, search_params, db);
             if(s.Succeeded())
@@ -294,9 +295,10 @@ void SearchForAllSolutions(const Context& search_params, Db db, std::vector<Solu
                 MIOPEN_LLOG_I2(SolverDbId(solver) << ": Success.");
 
                 if (miopen::IsEnabled(MIOPEN_DEBUG_FIND_FIRST_CONV{}))
-                    return;
-
-                if(IsPureOpenCLSolution(s))
+                {
+                    skip_the_rest= true;
+                }
+                else if(IsPureOpenCLSolution(s))
                 {
                     /// \todo (algorithm == Direct) is not checked here.
                     /// This is ok so far, as SearchForAllSolutions() is used only for direct convolutions (for now).
@@ -306,7 +308,9 @@ void SearchForAllSolutions(const Context& search_params, Db db, std::vector<Solu
                          && !miopen::IsDisabled(MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_BWD{}))
                      || (search_params.direction.IsBackwardWrW()
                          && !miopen::IsDisabled(MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_WRW{})))
-                        return;
+                    {
+                        skip_the_rest = true;
+                    }
                 }
             }
             else
@@ -321,7 +325,7 @@ void SearchForAllSolutions(const Context& search_params, Db db, std::vector<Solu
         }
         else
         {
-            MIOPEN_LLOG_I2(SolverDbId(solver) << ": Not applicable");
+            MIOPEN_LLOG_I2(SolverDbId(solver) << ": " << (skip_the_rest ? "Skipped" : "Not applicable"));
         }
     });
     // clang-format on
