@@ -241,8 +241,6 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 #define MIOPEN_LOG_FUNCTION(...)
 #endif
 
-/// \todo __PRETTY_FUNCTION__ is too verbose, __func_ it too short.
-/// Shall we add filename (no path, no ext) prior __func__.
 #define MIOPEN_LOG(level, ...)                                                                 \
     do                                                                                         \
     {                                                                                          \
