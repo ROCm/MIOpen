@@ -33,6 +33,7 @@
 #if MIOPEN_USE_FP16 == 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
+#define SIZEOF_FLOAT 2 /* sizeof is unavailable for preprocessor */
 #ifndef HALF_MAX
 #define MAX_VAL 65504 /* max value */
 #else
@@ -41,6 +42,7 @@
 #endif
 #if MIOPEN_USE_FP32 == 1
 #define _FLOAT float
+#define SIZEOF_FLOAT 4
 #ifndef FLT_MAX
 #define MAX_VAL 3.402823466e+38F /* max value */
 #else
@@ -60,6 +62,9 @@
 #ifndef MLO_FILTER_STRIDE1
 #define MLO_FILTER_STRIDE1 1
 #endif
+
+/// \todo Pass available LDS size to kernel during compilation.
+#define MLO_LDS_MAX_SIZE 65536
 
 #define MLO_FILTER_SZ (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0)
 
@@ -486,6 +491,9 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
               __global _FLOAT* __restrict out,
               UNUSED _FLOAT padding_val)
 {
+#if((MLO_IN_LCL_SZ + MLO_WEIGHTS_SZ) * SIZEOF_FLOAT) > MLO_LDS_MAX_SIZE
+#error "Local memory size should not exceed 64k."
+#endif
     __local _FLOAT lcl_indata[MLO_IN_LCL_SZ];
     __local _FLOAT lcl_wei[MLO_WEIGHTS_SZ];
     __private _FLOAT pvt_accum[MLO_PVT_ACCUM_DATA_SZ];
