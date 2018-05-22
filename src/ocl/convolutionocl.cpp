@@ -79,8 +79,7 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
 
         construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-        miopen::solver::ConvSolution solution;
-        mloConstruct(construct_params, solution);
+        const auto solution = FindFirstSolution(construct_params);
         if(!solution.Succeeded())
             return -1;
         const auto& kernels_info = solution.construction_params;
@@ -2454,7 +2453,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     }
                     else
                     {
-
                         assert(kernels.size() > 1);
                         // this pointer needed here as a workaround in gcc 5
                         assert(workSpace != nullptr &&
