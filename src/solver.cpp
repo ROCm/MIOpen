@@ -25,6 +25,8 @@
  *******************************************************************************/
 
 #include <miopen/solver.hpp>
+#include <miopen/stringutils.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 #include <ostream>
 
 namespace miopen {
@@ -39,6 +41,14 @@ std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
     for(const auto& size : k.l_wk)
         os << size << ' ';
     return os << "} '" << k.comp_options << '\'';
+}
+
+std::ostream& operator<<(std::ostream& os, const ConvSolution& s)
+{
+    auto strings =
+        s.construction_params | boost::adaptors::transformed([](auto k) { return k.kernel_name; });
+    os << JoinStrings(strings, "/");
+    return os;
 }
 
 } // namespace solver

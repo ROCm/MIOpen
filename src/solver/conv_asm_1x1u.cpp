@@ -305,8 +305,9 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
     // clang-format off
     bool ok = (params.pad0 == 0         // -q  pad_w
         && params.pad1 == 0             // -p  pad_h
-        && params.kernel_stride0 <= 2   // -u  stride_w
-        && params.kernel_stride1 <= 2   // -v  stride_h
+        ///disabled asm_1x1u for stride=2 due to the overhead of
+        ///Up/Subsampler and SetTensor for UpSampler. (Refer to issue #940)  
+        && params.kernel_stride0 == 1   // -u  stride_w
         && params.kernel_stride0 == params.kernel_stride1
         && params.kernel_size0 == 1     // -x  S wei_w
         && params.kernel_size1 == 1     // -y  R wei_h
@@ -578,10 +579,8 @@ int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
 
 PerformanceConfigConvAsm1x1U ConvAsm1x1U::Search(const ConvolutionContext& context) const
 {
-    if(UseSubsample(context))
-        return GenericSearch(*this, context, SearchTweak::Skipped2xSubsample_yFwd);
-    else if(UseUpsample(context))
-        return GenericSearch(*this, context, SearchTweak::Skipped2xUpsample_dxBwd);
+    if(UseSubsample(context) || UseUpsample(context))
+        return GenericSearch(*this, context, SearchTweak::OverrideXBufferSizeByWorkspaceSize);
     else
         return GenericSearch(*this, context);
 }
