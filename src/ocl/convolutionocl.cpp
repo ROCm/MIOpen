@@ -32,31 +32,10 @@
 #include <miopen/float_equal.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/check_numerics.hpp>
-#include <miopen/stringutils.hpp>
 
 #if MIOPEN_USE_MIOPENGEMM
 #include <miopen/gemm.hpp>
 #endif
-
-/// It seems that legacy OpenCL solvers imply that only the 1st one
-/// applicable solution shall be used. The rest of OpenCL
-/// solutions, in spite of that their IsApplicabe() return true,
-/// may fail (1) during exhaustive search, (2) during compilation,
-/// (3) on execution (like LDS overallocation) or (4) may reveal precision
-/// problems. That disallows for finding the really fastest OpenCL solution.
-///
-/// The workaround(s) below allows for running only the first "pure" OpenCL
-/// solution among all available ones. In other words, even if many OpenCL solutions
-/// availble (IsApplicable()), only the first one is tried (timed) and used.
-/// This avoids the problems (3) and (4) listed above.
-///
-/// \todo Note that problems (1) and (2) are not avoided by the workaround.
-/// This is because *finding* of all available OpenCL solutions (which includes
-/// the exhastuve search with all available OpenCL solutions), is not affected.
-///
-#define WORKAROUND_FIXME_WRW 1 /// \todo Fix issue 791 & remove the workaround.
-#define WORKAROUND_FIXME_FWD 1 /// \todo Fix & remove the workaround.
-#define WORKAROUND_FIXME_BWD 1 /// \todo Fix & remove the workaround.
 
 namespace miopen {
 
@@ -306,18 +285,6 @@ EstimateSolutionConvForwardBackwardDataDirect(Handle& handle,
     }
     return 0;
 }
-
-#if(WORKAROUND_FIXME_WRW || WORKAROUND_FIXME_FWD || WORKAROUND_FIXME_BWD)
-static inline bool IsPureOpenCLSolution(const miopen::solver::ConvSolution& s)
-{
-    for(auto& k : s.construction_params)
-    {
-        if(!miopen::EndsWith(k.kernel_file, ".cl"))
-            return false;
-    }
-    return true;
-}
-#endif
 
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                                  const TensorDescriptor& xDesc,
@@ -589,20 +556,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             {
                 miopen::solver::ConvSolution selected{miopenStatusUnknownError};
                 float best = std::numeric_limits<float>::max();
-#if WORKAROUND_FIXME_FWD
-                int n_pure_opencl_solutions = 0;
-#endif
                 visit_float(xDesc.GetType(), [&](auto as_float) {
                     for(const auto& sol : directAll)
                     {
-#if WORKAROUND_FIXME_FWD
-                        if(IsPureOpenCLSolution(sol))
-                        {
-                            ++n_pure_opencl_solutions;
-                            if(n_pure_opencl_solutions > 1)
-                                continue;
-                        }
-#endif
                         float elapsed = 0.0f;
                         const int rc  = EstimateSolutionConvForwardBackwardDataDirect(handle,
                                                                                      sol,
@@ -1348,20 +1304,9 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             {
                 miopen::solver::ConvSolution selected{miopenStatusUnknownError};
                 float best = std::numeric_limits<float>::max();
-#if WORKAROUND_FIXME_BWD
-                int n_pure_opencl_solutions = 0;
-#endif
                 visit_float(dyDesc.GetType(), [&](auto as_float) {
                     for(const auto& sol : directAll)
                     {
-#if WORKAROUND_FIXME_BWD
-                        if(IsPureOpenCLSolution(sol))
-                        {
-                            ++n_pure_opencl_solutions;
-                            if(n_pure_opencl_solutions > 1)
-                                continue;
-                        }
-#endif
                         float elapsed = 0.0f;
                         const int rc  = EstimateSolutionConvForwardBackwardDataDirect(handle,
                                                                                      sol,
@@ -2260,21 +2205,10 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 float best = std::numeric_limits<float>::max();
                 std::vector<miopen::solver::ConvSolution> all;
                 mloConstruct(construct_params, all);
-#if WORKAROUND_FIXME_WRW
-                int n_pure_opencl_solutions = 0;
-#endif
 
                 visit_float(dyDesc.GetType(), [&](auto as_float) {
                     for(const auto& sol : all)
                     {
-#if WORKAROUND_FIXME_WRW
-                        if(IsPureOpenCLSolution(sol))
-                        {
-                            ++n_pure_opencl_solutions;
-                            if(n_pure_opencl_solutions > 1)
-                                continue;
-                        }
-#endif
                         /// \todo If there is only one solution available,
                         /// we can avoid wasting time for building kernels with empty
                         /// algorithm_name and network_config.
