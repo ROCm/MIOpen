@@ -41,6 +41,30 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED)
 namespace miopen {
 namespace solver {
 
+static inline bool UseSubsample(const ConvolutionContext& c)
+{
+    return (c.kernel_stride0 > 1 || c.kernel_stride1 > 1) && c.direction.IsForward();
+}
+
+static inline bool UseUpsample(const ConvolutionContext& c)
+{
+    return (c.kernel_stride0 > 1 || c.kernel_stride1 > 1) && c.direction.IsBackwardData();
+}
+
+/// After 2x subsampling kernel, image size on asm kernel input becomes 4x (2*2) smaller.
+/// As padding = 0, we can simply re-use output image size (no computations required).
+/// \note For backward convolutions input image size is held in
+/// out_height/out_width and vice versa.
+static inline int AsmImgHeight(const ConvolutionContext& c)
+{
+    return UseSubsample(c) ? c.out_height : c.in_height;
+}
+
+static inline int AsmImgWidth(const ConvolutionContext& c)
+{
+    return UseSubsample(c) ? c.out_width : c.in_width;
+}
+
 /// \todo move to separate header and use in other solvers.
 template <int L, int H>
 inline static bool IsTwoPower(const int v)
@@ -281,8 +305,10 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
     // clang-format off
     bool ok = (params.pad0 == 0         // -q  pad_w
         && params.pad1 == 0             // -p  pad_h
+        ///disabled asm_1x1u for stride=2 due to the overhead of
+        ///Up/Subsampler and SetTensor for UpSampler. (Refer to issue #940)  
         && params.kernel_stride0 == 1   // -u  stride_w
-        && params.kernel_stride1 == 1   // -v  stride_h
+        && params.kernel_stride0 == params.kernel_stride1
         && params.kernel_size0 == 1     // -x  S wei_w
         && params.kernel_size1 == 1     // -y  R wei_h
         && params.kernel_dilation0 == 1
@@ -310,7 +336,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
             return false;
     }
     // Check limits:
-    auto h_w = static_cast<long>(params.in_height) * params.in_width;
+    auto h_w = static_cast<long>(AsmImgHeight(params)) * AsmImgWidth(params);
     const auto r_s     = static_cast<long>(params.kernel_size1) * params.kernel_size0;
     const auto c_h_w   = static_cast<long>(params.n_inputs) * h_w;    // C*H*W
     const auto k_h_w   = static_cast<long>(params.n_outputs) * h_w;   // K*H*W
@@ -343,13 +369,74 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
                                       const bool disableConfigOverrideFromEnv) const
 {
     ConvSolution result;
+
     std::ostringstream options;
 
+    result.workspce_sz = 0;
+
+    KernelInfo kernel;
+
+    if(UseSubsample(params) || UseUpsample(params))
+    {
+        // subsampled input, in_height equals to image size after downsampling
+        int in_batch_stride = AsmImgWidth(params) * AsmImgHeight(params) *
+                              (UseSubsample(params) ? params.n_inputs : params.n_outputs);
+        int write_unit =
+            (AsmImgWidth(params) % 4 == 0) ? 4 : (AsmImgWidth(params) % 3 == 0)
+                                                     ? 3
+                                                     : (AsmImgWidth(params) % 2 == 0) ? 2 : 1;
+
+        int n_grp0_size0 = 256;
+
+        const auto subsample_kernel_compilation_options =
+            " -DUPSAMPLE" + std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
+            std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
+            std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(params.kernel_stride0) +
+            std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(params.kernel_stride1) +
+            std::string(" -DMLO_WRITE_UNIT=") + std::to_string(write_unit) +
+            std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(params.out_channel_stride) +
+            std::string(" -DMLO_OUT_STRIDE=") + std::to_string(params.out_stride) +
+            std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(in_batch_stride) +
+            std::string(" -DMLO_IN0_BATCH_STRIDE=") + std::to_string(params.in_batch_stride) +
+            std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(params.out_batch_stride) +
+            std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(params.in_channel_stride) +
+            std::string(" -DMLO_IN0_STRIDE=") + std::to_string(params.in_stride) +
+            params.general_compile_options;
+
+        kernel.l_wk.push_back(n_grp0_size0);
+        kernel.l_wk.push_back(1);
+        kernel.l_wk.push_back(1);
+        // output is number of subsampled input maps
+        size_t gbl_wk0 = (in_batch_stride / write_unit);
+        size_t gbl_wk1 = params.batch_sz;
+        size_t gbl_wk2 = 1;
+
+        kernel.g_wk.push_back(gbl_wk0);
+        kernel.g_wk.push_back(gbl_wk1);
+        kernel.g_wk.push_back(gbl_wk2);
+
+        kernel.kernel_file = "MIOpenUtilKernels3.cl";
+
+        if(UseSubsample(params))
+            kernel.kernel_name = "SubSample";
+        else
+            kernel.kernel_name = "UpSample";
+
+        kernel.comp_options = subsample_kernel_compilation_options;
+
+        assert(params.out_data_type == "FP16" || params.out_data_type == "FP32" ||
+               params.out_data_type == "FP64");
+        int data_len =
+            (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
+        result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
+    }
+
+    GenerateClangDefsym(options, "stride_h", 1);
+    GenerateClangDefsym(options, "stride_w", 1);
+    GenerateClangDefsym(options, "img_h", AsmImgHeight(params)); // H
+    GenerateClangDefsym(options, "img_w", AsmImgWidth(params));  // W
+
     // Note that params.n_outputs and params.n_inputs are swapped for backward convolutions.
-    GenerateClangDefsym(options, "img_h", params.in_height); // H
-    GenerateClangDefsym(options, "img_w", params.in_width);  // W
-    GenerateClangDefsym(options, "stride_h", params.kernel_stride1);
-    GenerateClangDefsym(options, "stride_w", params.kernel_stride0);
     GenerateClangDefsym(options, "batch_size", params.batch_sz);       // N
     GenerateClangDefsym(options, "input_channels", params.n_inputs);   // C
     GenerateClangDefsym(options, "output_channels", params.n_outputs); // K
@@ -386,6 +473,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
             }
         }
     }
+
     GenerateClangDefsym(options, "read_size", pcfg->GetReadSize());
     GenerateClangDefsym(options, "k_mult", pcfg->GetKMult());
     GenerateClangDefsym(options, "chunks_per_wave", pcfg->GetChunksPerWave());
@@ -403,8 +491,11 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
     kinfo.g_wk.clear(); // gridsize
     const int hw_per_wave = pcfg->GetChunksPerWave() * pcfg->GetChunkSize();
-    kinfo.g_wk.push_back(kinfo.l_wk[0] *
-                         divide_round_plus_inf(params.in_height * params.in_width, hw_per_wave));
+
+    kinfo.g_wk.push_back(
+        kinfo.l_wk[0] *
+        divide_round_plus_inf(AsmImgHeight(params) * AsmImgWidth(params), hw_per_wave));
+
     kinfo.g_wk.push_back(divide_round_plus_inf(params.n_outputs, pcfg->GetKMult()));
     const int n_images_per_wave = pcfg->GetNBlocksPerWave() * pcfg->GetNPerGpr();
     kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_images_per_wave));
@@ -412,7 +503,13 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     kinfo.kernel_file = "conv1x1u.s";
     kinfo.kernel_name = "gcnAsmConv1x1U";
 
+    if(UseSubsample(params))
+        result.construction_params.push_back(kernel);
+
     result.construction_params.push_back(kinfo);
+
+    if(UseUpsample(params))
+        result.construction_params.push_back(kernel);
     return result;
 }
 
@@ -427,7 +524,15 @@ int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
 {
     assert(bias_ocl_buf == nullptr);
     (void)bias_ocl_buf;
-    const KernelInfo k_info = solution.construction_params.back();
+    KernelInfo k_info;
+
+    if(UseSubsample(params))
+        k_info = solution.construction_params[1];
+    else if(UseUpsample(params))
+        k_info = solution.construction_params[0];
+    else
+        k_info = solution.construction_params[0];
+
 #ifdef NDEBUG
     try
 #endif
@@ -442,23 +547,25 @@ int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
                                           k_info.l_wk,
                                           k_info.g_wk,
                                           k_info.comp_options);
+
         int unused       = 0;
         int* return_addr = nullptr;
         auto n_groups =
             static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
 
-        kernel(params.batch_sz,  // N
-               params.n_inputs,  // C
-               params.in_height, // H
-               params.in_width,  // W
-               params.n_outputs, // K
-               n_groups,         // n_groups
+        kernel(params.batch_sz,      // N
+               params.n_inputs,      // C
+               AsmImgHeight(params), // H
+               AsmImgWidth(params),  // W
+               params.n_outputs,     // K
+               n_groups,             // n_groups
                unused,
                unused,
                bot_ocl_buf,
                wei_ocl_buf,
                top_ocl_buf,
                return_addr);
+
         elapsed_time = profile_h.GetKernelTime();
     }
 #ifdef NDEBUG
@@ -472,7 +579,12 @@ int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
 
 PerformanceConfigConvAsm1x1U ConvAsm1x1U::Search(const ConvolutionContext& context) const
 {
-    return GenericSearch(*this, context);
+    if(UseSubsample(context))
+        return GenericSearch(*this, context, SearchTweak::Skipped2xSubsample_yFwd);
+    else if(UseUpsample(context))
+        return GenericSearch(*this, context, SearchTweak::Skipped2xUpsample_dxBwd);
+    else
+        return GenericSearch(*this, context);
 }
 
 } // namespace solver

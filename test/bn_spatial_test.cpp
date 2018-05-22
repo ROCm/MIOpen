@@ -1114,7 +1114,7 @@ struct batch_norm_spatial_driver : test_driver
         std::size_t n, c, h, w;
         std::tie(n, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
 
-        if(n == 1 || ((h * w > 1e6) && (input.desc.GetType() == miopenHalf)))
+        if(n == 1 || ((h * w > 1024) && (input.desc.GetType() == miopenHalf)))
         { // Invalid batch size for batch normalization
             return;
         }
@@ -1136,12 +1136,12 @@ struct batch_norm_spatial_driver : test_driver
             shift = tensor<T>{ssn, ssc, ssh, ssw};
             for(int i = 0; i < scale.desc.GetElementSize(); i++)
             {
-                scale[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * T(rand() % 100);
-                shift[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * T(rand() % 100);
+                scale[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
+                shift[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
             }
             for(int i = 0; i < input.desc.GetElementSize(); i++)
             {
-                input[i] = (((rand() % 2) == 1) ? -1 : 1) * (1e-4 * T(rand() % 100));
+                input[i] = (((rand() % 2) == 1) ? -1 : 1) * (1e-5 * T(rand() % 100));
             }
         }
 

@@ -60,7 +60,7 @@ void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
 void profileSequence(Handle& handle, unsigned char select, float* ctime)
 {
 
-    float ktime = 0.;
+    double ktime = 0.;
     assert((select < 3) && "profileSequence case incorrect");
     switch(select)
     {
@@ -74,7 +74,7 @@ void profileSequence(Handle& handle, unsigned char select, float* ctime)
             *ctime = ktime;
 
 #if(MIO_BN_CPP_PROF == 1)
-            printf("ktime: %f\n", ktime);
+            printf("ktime0: %lf\n", ktime);
             printf("ctime: %f\n", *ctime);
 #endif
         }
@@ -92,7 +92,7 @@ void profileSequence(Handle& handle, unsigned char select, float* ctime)
             *ctime += ktime;
 
 #if(MIO_BN_CPP_PROF == 1)
-            printf("ktime: %f\n", ktime);
+            printf("ktime1: %lf\n", ktime);
             printf("ctime: %f\n", *ctime);
 #endif
         }
@@ -107,8 +107,16 @@ void profileSequence(Handle& handle, unsigned char select, float* ctime)
     case 2:
         if(handle.IsProfilingEnabled())
         {
+
+#if(MIO_BN_CPP_PROF == 1)
+            ktime = handle.GetKernelTime();
+            handle.AccumKernelTime(*ctime);
+            printf("ktime2: %lf\n", ktime);
+            printf("ctime: %f\n", *ctime + ktime);
+#else
             handle.GetKernelTime();
             handle.AccumKernelTime(*ctime);
+#endif
         }
         break;
     default: assert(false);

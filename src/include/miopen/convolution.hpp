@@ -50,8 +50,14 @@ using WinogradKernelParams = std::tuple<int /*N*/,
                                         int /*pad_W*/,
                                         bool /*isRxS*/>;
 
-using ExtraKernelArgs =
-    std::tuple<int /*N*/, int /*C*/, int /*H*/, int /*W*/, int /*K*/, int /*n_groups*/>;
+using ExtraKernelArgs = std::tuple<int /*N*/,
+                                   int /*C*/,
+                                   int /*H*/,
+                                   int /*W*/,
+                                   int /*K*/,
+                                   int /*n_groups*/,
+                                   int /*out_H*/,
+                                   int /*out_W*/>;
 
 struct ConvolutionDescriptor : miopenConvolutionDescriptor
 {
@@ -95,6 +101,13 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
 
     size_t ForwardGetWorkSpaceSizeGEMMTranspose(const TensorDescriptor& xDesc,
                                                 const TensorDescriptor& yDesc) const;
+
+    size_t
+    ForwardBackwardDataGetWorkSpaceSizeDirect(Handle& handle,
+                                              const TensorDescriptor& xDesc,
+                                              const TensorDescriptor& yDesc,
+                                              const TensorDescriptor& wDesc,
+                                              int direction) const; // 1: Forward, 0: BackwardData
 
     size_t ForwardGetWorkSpaceSizeFFT(const TensorDescriptor& wDesc,
                                       const TensorDescriptor& xDesc,
