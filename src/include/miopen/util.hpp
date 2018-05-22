@@ -72,15 +72,6 @@ float Col2ImGPU(Handle& handle,
                 Data_t im,
                 size_t im_offset);
 
-float SubSampleGPU(
-    Handle& handle,
-    const std::
-        tuple<std::string, std::string, std::string, std::vector<size_t>, std::vector<size_t>>&
-            kernel_info,
-    std::string& network_config,
-    ConstData_t in,
-    Data_t out);
-
 float transpose_NCHW2CNHW(Handle& handle,
                           int n,
                           int c,
