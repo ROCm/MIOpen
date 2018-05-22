@@ -568,7 +568,7 @@ void CallGemm(Handle& handle,
 #endif
 }
 
-void CallGemmBatched(Handle& handle,
+void CallGemmStridedBatched(Handle& handle,
                      GemmDescriptor gemm_desc,
                      const void* alpha,
                      const void* A,
@@ -592,7 +592,7 @@ void CallGemmBatched(Handle& handle,
         std::swap(gemm_desc.transA, gemm_desc.transB);
         std::swap(gemm_desc.m, gemm_desc.n);
         std::swap(gemm_desc.lda, gemm_desc.ldb);
-        std::swap(gemm_desc.bsa, gemm_desc.bsb);
+        std::swap(gemm_desc.strideA, gemm_desc.strideB);
     }
 
     hipEvent_t start, stop;
@@ -616,14 +616,14 @@ void CallGemmBatched(Handle& handle,
         &alpha_local,
         static_cast<const float*>(A) + a_offset,
         gemm_desc.lda,
-        gemm_desc.bsa,
+        gemm_desc.strideA,
         static_cast<const float*>(B) + b_offset,
         gemm_desc.ldb,
-        gemm_desc.bsb,
+        gemm_desc.strideB,
         &beta_local,
         static_cast<float*>(C) + c_offset,
         gemm_desc.ldc,
-        gemm_desc.bsc,
+        gemm_desc.strideC,
         gemm_desc.batch_count);
     hipEventRecord(stop, nullptr);
     hipDeviceSynchronize();
@@ -663,9 +663,9 @@ GemmDescriptor CreateGemmDescriptorConv1x1Fwd(const TensorDescriptor& xDesc,
     gemm_desc.lda         = gemm_desc.k;
     gemm_desc.ldb         = gemm_desc.n;
     gemm_desc.ldc         = gemm_desc.n;
-    gemm_desc.bsa         = 0;
-    gemm_desc.bsb         = gemm_desc.k * gemm_desc.n;
-    gemm_desc.bsc         = gemm_desc.m * gemm_desc.n;
+    gemm_desc.strideA     = 0;
+    gemm_desc.strideB     = gemm_desc.k * gemm_desc.n;
+    gemm_desc.strideC     = gemm_desc.m * gemm_desc.n;
     gemm_desc.batch_count = in_n;
 
     return gemm_desc;
@@ -701,11 +701,31 @@ GemmDescriptor CreateGemmDescriptorConvIm2ColFwd(const TensorDescriptor& xDesc,
     gemm_desc.lda         = gemm_desc.k;
     gemm_desc.ldb         = gemm_desc.n;
     gemm_desc.ldc         = gemm_desc.n;
-    gemm_desc.bsa         = 0;
-    gemm_desc.bsb         = gemm_desc.k * gemm_desc.n;
-    gemm_desc.bsc         = gemm_desc.m * gemm_desc.n;
+    gemm_desc.strideA     = 0;
+    gemm_desc.strideB     = gemm_desc.k * gemm_desc.n;
+    gemm_desc.strideC     = gemm_desc.m * gemm_desc.n;
     gemm_desc.batch_count = in_n;
 
     return gemm_desc;
 }
+
+std::ostream& operator<<(std::ostream& os, const GemmDescriptor& gemm_desc)
+{
+    os << "{ ";
+    os << "isColMajor " << gemm_desc.isColMajor << ", ";
+    os << "transA "     << gemm_desc.transA     << ", ";
+    os << "transB "     << gemm_desc.transB     << ", ";
+    os << "m "          << gemm_desc.m          << ", ";
+    os << "n "          << gemm_desc.n          << ", ";
+    os << "k "          << gemm_desc.k          << ", ";
+    os << "lda "        << gemm_desc.lda        << ", ";
+    os << "ldb "        << gemm_desc.ldb        << ", ";
+    os << "ldc "        << gemm_desc.ldc        << ", ";
+    os << "strideA "    << gemm_desc.strideA    << ", ";
+    os << "strideB "    << gemm_desc.strideB    << ", ";
+    os << "strideC "    << gemm_desc.strideC    << ", ";
+    os << "batch_count "<< gemm_desc.batch_count<< " }";
+    return os;
+}
+
 } // namespace miopen

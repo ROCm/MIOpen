@@ -180,7 +180,7 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
 }
 
 size_t
-ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMMBatched(Handle& handle,
+ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMMStridedBatched(Handle& handle,
                                                           const TensorDescriptor& xDesc,
                                                           const TensorDescriptor& wDesc,
                                                           const TensorDescriptor& yDesc) const
@@ -376,7 +376,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
 
         if(dilation_w > 1 || dilation_h > 1)
             return std::max(
-                ForwardGetWorkSpaceSizeGEMMBatched(handle, xDesc, wDesc, yDesc),
+                ForwardGetWorkSpaceSizeGEMMStridedBatched(handle, xDesc, wDesc, yDesc),
                 std::max(ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc), direct_workspace));
 
         // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
@@ -386,7 +386,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
            ((in_h <= 14 && in_w <= 14 && u == 1 && v == 1) || (u == 2 && v == 2)))
         {
             return std::max(
-                ForwardGetWorkSpaceSizeGEMMBatched(handle, xDesc, wDesc, yDesc),
+                ForwardGetWorkSpaceSizeGEMMStridedBatched(handle, xDesc, wDesc, yDesc),
                 std::max(ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc), direct_workspace));
         }
 
@@ -400,13 +400,13 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         }
         else
         {
-            size_t workspace_size_gemm_batched =
-                ForwardGetWorkSpaceSizeGEMMBatched(handle, xDesc, wDesc, yDesc);
+            size_t workspace_size_gemm_strided_batched =
+                ForwardGetWorkSpaceSizeGEMMStridedBatched(handle, xDesc, wDesc, yDesc);
             size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
             size_t workspace_size_fft  = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
 
             return std::max(
-                workspace_size_gemm_batched,
+                workspace_size_gemm_strided_batched,
                 std::max(std::max(workspace_size_fft, workspace_size_gemm), direct_workspace));
         }
     }

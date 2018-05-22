@@ -420,7 +420,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
                 GemmDescriptor gemm_desc = CreateGemmDescriptorConv1x1Fwd(xDesc, wDesc, yDesc);
 
-                CallGemmBatched(
+                CallGemmStridedBatched(
                     handle, gemm_desc, &local_alpha, w, 0, x, 0, &local_beta, tmp_y.get(), 0);
 
                 time_gemm = handle.GetKernelTime();
@@ -431,14 +431,14 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             // if not 1x1
             else if(workSpace != nullptr &&
                     workSpaceSize >=
-                        ForwardGetWorkSpaceSizeGEMMBatched(handle, xDesc, wDesc, yDesc))
+                        ForwardGetWorkSpaceSizeGEMMStridedBatched(handle, xDesc, wDesc, yDesc))
             {
 // TODO: Im2ColGPU need a batched-version
 #if 1
                 std::cout << __func__ << ": non 1x1" << std::endl;
                 std::cout << __func__ << ": non 1x1: workSpaceSize: " << workSpaceSize
                           << ", needed: "
-                          << ForwardGetWorkSpaceSizeGEMMBatched(handle, xDesc, wDesc, yDesc)
+                          << ForwardGetWorkSpaceSizeGEMMStridedBatched(handle, xDesc, wDesc, yDesc)
                           << std::endl;
                 std::cout << __func__ << ": non 1x1: tmp_y size: "
                           << yDesc.GetElementSize() * GetTypeSize(yDesc.GetType()) << std::endl;
@@ -475,7 +475,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
                 GemmDescriptor gemm_desc = CreateGemmDescriptorConvIm2ColFwd(xDesc, wDesc, yDesc);
 
-                CallGemmBatched(handle,
+                CallGemmStridedBatched(handle,
                                 gemm_desc,
                                 &local_alpha,
                                 w,
@@ -491,7 +491,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 perf_db.push_back(
                     PerfField{"miopenConvolutionFwdAlgoGEMM",
                               time_gemm,
-                              ForwardGetWorkSpaceSizeGEMMBatched(handle, xDesc, wDesc, yDesc)});
+                              ForwardGetWorkSpaceSizeGEMMStridedBatched(handle, xDesc, wDesc, yDesc)});
             }
 #endif
         }
@@ -988,7 +988,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
                     GemmDescriptor gemm_desc = CreateGemmDescriptorConv1x1Fwd(xDesc, wDesc, yDesc);
 
-                    CallGemmBatched(handle, gemm_desc, &local_alpha, w, 0, x, 0, &local_beta, y, 0);
+                    CallGemmStridedBatched(handle, gemm_desc, &local_alpha, w, 0, x, 0, &local_beta, y, 0);
 
                     //for debug
                     {
@@ -1011,13 +1011,13 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 // if not 1x1
                 else if(workSpace != nullptr &&
                         workSpaceSize >=
-                            ForwardGetWorkSpaceSizeGEMMBatched(handle, xDesc, wDesc, yDesc))
+                            ForwardGetWorkSpaceSizeGEMMStridedBatched(handle, xDesc, wDesc, yDesc))
                 {
 #if 1
                     std::cout << __func__ << ": non 1x1" << std::endl;
                     std::cout << __func__ << ": non 1x1: workSpaceSize: " << workSpaceSize
                               << ", needed: "
-                              << ForwardGetWorkSpaceSizeGEMMBatched(handle, xDesc, wDesc, yDesc)
+                              << ForwardGetWorkSpaceSizeGEMMStridedBatched(handle, xDesc, wDesc, yDesc)
                               << std::endl;
                     std::cout << __func__ << ": non 1x1: tmp_y size: "
                               << yDesc.GetElementSize() * GetTypeSize(yDesc.GetType()) << std::endl;
@@ -1052,7 +1052,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     GemmDescriptor gemm_desc =
                         CreateGemmDescriptorConvIm2ColFwd(xDesc, wDesc, yDesc);
 
-                    CallGemmBatched(
+                    CallGemmStridedBatched(
                         handle, gemm_desc, &local_alpha, w, 0, workSpace, 0, &local_beta, y, 0);
                 }
 #endif
