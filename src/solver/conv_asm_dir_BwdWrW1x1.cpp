@@ -700,10 +700,10 @@ int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
 
 PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& context) const
 {
-    return GenericSearch(*this,
-                         context,
-                         UseSubsample(context) ? SearchTweak::Skipped2xSubsample_dxWrW
-                                               : SearchTweak::None);
+    if(UseSubsample(context))
+        return GenericSearch(*this, context, SearchTweak::OverrideXBufferSizeByWorkspaceSize);
+    else
+        return GenericSearch(*this, context);
 }
 
 } // namespace solver
