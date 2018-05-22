@@ -432,6 +432,7 @@ auto GenericSearch(const Solver s,
         MIOPEN_THROW("Search failed");
     // Run once with the default config and show score.
     float default_time = 0.0f;
+    profile_h.EnableProfiling(true);
     if(s.RunAndMeasureSolution(profile_h,
                                bot_ocl_buf.get(),
                                top_ocl_buf.get(),
@@ -444,6 +445,7 @@ auto GenericSearch(const Solver s,
         const float score = (best_time > 0.0f) ? default_time / best_time : 0.0f;
         MIOPEN_LOG_W("...Score: " << score << " (default time " << default_time << ')');
     }
+    profile_h.EnableProfiling(false);
     return best_config;
 }
 
