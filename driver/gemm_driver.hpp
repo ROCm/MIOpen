@@ -134,10 +134,10 @@ int GemmDriver<T>::GetandSetData()
 
     desc.batch_count = inflags.GetValueInt("batch_count");
 
-    desc.bsa = desc.m * desc.k;
-    desc.bsa = 0; // debug
-    desc.bsb = desc.k * desc.n;
-    desc.bsc = desc.m * desc.n;
+  //desc.strideA = desc.m * desc.k;
+    desc.strideA = 0; // debug
+    desc.strideB = desc.k * desc.n;
+    desc.strideC = desc.m * desc.n;
 
     return (0);
 }
@@ -145,10 +145,9 @@ int GemmDriver<T>::GetandSetData()
 template <typename T>
 int GemmDriver<T>::AllocateBuffersAndCopy()
 {
-
-    size_t a_sz = desc.batch_count * desc.m * desc.k;
-    size_t b_sz = desc.batch_count * desc.k * desc.n;
-    size_t c_sz = desc.batch_count * desc.m * desc.n;
+    size_t a_sz = desc.m * desc.k + ( desc.batch_count - 1 ) * desc.strideA;
+    size_t b_sz = desc.k * desc.n + ( desc.batch_count - 1 ) * desc.strideB;
+    size_t c_sz = desc.m * desc.n + ( desc.batch_count - 1 ) * desc.strideC;
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
@@ -162,7 +161,8 @@ int GemmDriver<T>::AllocateBuffersAndCopy()
 
     a     = std::vector<T>(a_sz);
     b     = std::vector<T>(b_sz);
-    c     = std::vector<T>(c_sz, 0.);
+ // c     = std::vector<T>(c_sz, 0.);
+    c     = std::vector<T>(c_sz, 1.);//debug
     chost = std::vector<T>(c_sz, 0.);
 
     for(int i = 0; i < a_sz; i++)
@@ -196,6 +196,34 @@ int GemmDriver<T>::RunForwardGPU()
 {
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
+        //debug
+        {
+            std::cout << std::endl;
+
+            std::vector<T> a_tmp(a_dev->sz);
+            a_dev->FromGPU(GetStream(), a_tmp.data());
+            std::cout << __func__ << "before GEMM, a_tmp: " << a_tmp << std::endl;
+
+            std::vector<T> b_tmp(b_dev->sz);
+            b_dev->FromGPU(GetStream(), b_tmp.data());
+            std::cout << __func__ << "before GEMM, b_tmp: " << b_tmp << std::endl;
+
+            std::vector<T> c_tmp(c_dev->sz);
+            c_dev->FromGPU(GetStream(), c_tmp.data());
+            std::cout << __func__ << "before GEMM, c_tmp: " << c_tmp << std::endl;
+        }
+
+        CallGemmStridedBatched(miopen::deref(GetHandle()),
+                        desc,
+                        &alpha,
+                        a_dev->GetMem(),
+                        0,
+                        b_dev->GetMem(),
+                        0,
+                        &beta,
+                        c_dev->GetMem(),
+                        0);
+#if 0
         if(desc.batch_count > 1)
             CallGemmBatched(miopen::deref(GetHandle()),
                             desc,
@@ -219,6 +247,23 @@ int GemmDriver<T>::RunForwardGPU()
                      c_dev->GetMem(),
                      0,
                      1); // find needs to be on to compile the kernel
+#endif
+        //debug
+        {
+            std::cout << std::endl;
+
+            std::vector<T> a_tmp(a_dev->sz);
+            a_dev->FromGPU(GetStream(), a_tmp.data());
+            std::cout << __func__ << ": after GEMM, a_tmp: " << a_tmp << std::endl;
+
+            std::vector<T> b_tmp(b_dev->sz);
+            b_dev->FromGPU(GetStream(), b_tmp.data());
+            std::cout << __func__ << ": after GEMM, b_tmp: " << b_tmp << std::endl;
+
+            std::vector<T> c_tmp(c_dev->sz);
+            c_dev->FromGPU(GetStream(), c_tmp.data());
+            std::cout << __func__ << ": after_GEMM, c_tmp: " << c_tmp << std::endl;
+        }
     }
 
     if(inflags.GetValueInt("time") == 1)
@@ -252,9 +297,9 @@ int GemmDriver<T>::RunForwardCPU()
                 double y = 0;
                 for(int  ki = 0; ki < desc_tmp.k; ++ki)
                 {
-                    y+= a_ptr[desc_tmp.bsa * bi + desc_tmp.lda * mi + ki] * b_ptr[desc_tmp.bsb * bi + desc_tmp.ldb * ki + ni]; 
+                    y+= a_ptr[desc_tmp.strideA * bi + desc_tmp.lda * mi + ki] * b_ptr[desc_tmp.strideB * bi + desc_tmp.ldb * ki + ni]; 
                 }
-                chost[desc_tmp.bsc * bi + desc_tmp.ldc * mi + ni] = y;
+                chost[desc_tmp.strideC * bi + desc_tmp.ldc * mi + ni] = y;
             } 
         }
     }
@@ -274,7 +319,11 @@ int GemmDriver<T>::VerifyForward()
     RunForwardCPU();
 
     c_dev->FromGPU(GetStream(), c.data());
-    std::cout << __func__ << ": c: " << c << std::endl;
+
+    float sum_c = std::accumulate(c.begin(), c.end(), float(0), std::plus<float>());
+    std::cout << __func__ << ": chost: " << chost << std::endl;
+    std::cout << __func__ << ": c    : " << c << std::endl;
+    std::cout << __func__ << ": sum_c " << sum_c << std::endl;
 
     auto error = miopen::rms_range(chost, c);
     const double tolerance =

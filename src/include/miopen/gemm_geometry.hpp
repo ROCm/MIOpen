@@ -37,42 +37,6 @@
 
 namespace miopen {
 
-struct GemmDescriptor
-{
-    // GEMM operation: C = alpha * op(A) * op(B) + beta * C.
-    // op() can be either transpose or no-operation for A or B.
-    // The shape (nRow x nCol) of op(A), op(B), C are:
-    //   m x n,
-    //   n x k,
-    //   m x n.
-    // A, B, C are what are actually being saved in memory,
-    //   they can either be all column-major or all row-major.
-    // lda, ldb, ldc are leading dimension strides of memory for A, B, C,
-    //   and leading dimension stride is:
-    //     cross-column memory stride for column-major A, B, C,
-    //     cross-row    memory stride for row   -major A, B, C.
-
-    bool isColMajor;
-    bool transA;
-    bool transB;
-    int m;
-    int n;
-    int k;
-
-    // leading dimension stride
-    int lda;
-    int ldb;
-    int ldc;
-
-    // for batched GEMM
-    int bsa;
-    int bsb;
-    int bsc;
-    int batch_count;
-};
-
-std::ostream& operator<<(std::ostream& os, const GemmDescriptor& gemm_desc);
-
 struct GemmGeometry
 {
     std::string algorithm_name;
