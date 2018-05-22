@@ -31,6 +31,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <set>
 #include <vector>
 
 namespace miopen {
@@ -60,62 +61,11 @@ typedef struct miopen_op
     const miopenEdge_t* internEdges; /*!< internal edges definitions (weights) */
 } miopenOp_t;
 
-typedef struct
+struct OperatorArgs : miopenOperatorArgs
 {
-    miopenActivationMode_t mode;
-    void* alpha;
-    void* beta;
-    double activAlpha;
-    double activBeta;
-    double activGamma;
-} miopenActivationOpParams_t;
+    OperatorArgs();
 
-typedef struct
-{
-    miopenBatchNormMode_t bn_mode;
-    void* alpha;
-    void* beta;
-    miopenTensorDescriptor_t bnScaleBiasMeanVarDesc;
-    void* bnScale;
-    void* bnBias;
-    void* estimatedMean;
-    void* estimatedVariance;
-    double epsilon
-} miopenBatchNormOpParams_t;
-
-typedef struct
-{
-    miopenConvFwdAlgorithm_t algo;
-    miopenTensorDescriptor_t wDesc;
-    void* w;
-} miopenConvolutionOpParams_t;
-
-typedef struct
-{
-    void* alpha;
-    void* beta;
-    int windowHeight;
-    int windowWidth;
-    int pad_h;
-    int pad_w;
-    int vstride;
-    int hstride;
-} miopenPoolingOpParams_t;
-
-// Valid fused operators
-std::set<std::vector<miopenOperator_t>> validFusions = {
-    {miopenBatchNormOp, miopenActivationOp},
-};
-
-struct OperatorDescriptor : miopenOperatorDescriptor
-{
-    OperatorDescriptor();
-    OperatorDescriptor(miopenActivationMode_t m, const double* pparms);
-    OperatorDescriptor(miopenActivationMode_t m, double alpha, double beta, double gamma);
-
-    miopenStatus_t ForwardInference(Handle& handle);
-
-    friend std::ostream& operator<<(std::ostream& stream, const OperatorDescriptor& x);
+    friend std::ostream& operator<<(std::ostream& stream, const OperatorArgs& x);
 
     private:
     std::vector<double> parms;
@@ -124,19 +74,26 @@ struct OperatorDescriptor : miopenOperatorDescriptor
 struct OperatorDescriptor : miopenOperatorDescriptor
 {
     OperatorDescriptor();
-    OperatorDescriptor(miopenActivationMode_t m, const double* pparms);
-    OperatorDescriptor(miopenActivationMode_t m, double alpha, double beta, double gamma);
-
-    miopenStatus_t ForwardInference(Handle& handle);
 
     friend std::ostream& operator<<(std::ostream& stream, const OperatorDescriptor& x);
+
+    private:
+    std::vector<double> parms;
+};
+
+struct FusionPlanDescriptor : miopenFusionPlanDescriptor
+{
+    FusionPlanDescriptor();
+
+    friend std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& x);
 
     private:
     std::vector<double> parms;
 };
 
 } // namespace miopen
-MIOPEN_DEFINE_OBJECT(miopenActivationDescriptor, miopen::ActivationDescriptor);
-#endif // _MIOPEN_ACTIV_HPP_
+MIOPEN_DEFINE_OBJECT(miopenOperatorDescriptor, miopen::OperatorDescriptor);
+MIOPEN_DEFINE_OBJECT(miopenFusionPlanDescriptor, miopen::FusionPlanDescriptor);
+MIOPEN_DEFINE_OBJECT(miopenOperatorArgs, miopen::OperatorArgs);
 
 #endif // _MIOPEN_FUSION_HPP_
