@@ -25,8 +25,16 @@
  *******************************************************************************/
 #include <array>
 #include <initializer_list>
+#include <miopen/pooling.hpp>
+#include <miopen/tensor_ops.hpp>
+#include <miopen/convolution.hpp>
+#include <miopen/batch_norm.hpp>
+#include <miopen/activ.hpp>
+#include <miopen/fusion.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_ops.hpp>
 
 // Return an error code that is "NotImplemented", if it exists then return success
 // This function should:
@@ -34,8 +42,8 @@
 // 		Set up the internal datastructures for the fused kernel.
 extern "C" miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* fusePlanDesc,
                                                  miopenFusionDirection_t fuseDirection,
-                                                 const TensorDescriptor& inputDesc,
-                                                 const TensorDescriptor& outputDesc)
+                                                 const miopenTensorDescriptor_t inputDesc,
+                                                 const miopenTensorDescriptor_t outputDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, fuseDirection, inputDesc, outputDesc);
     return (miopenStatusSuccess);
@@ -61,7 +69,7 @@ extern "C" miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t
                                                     miopenOperatorDescriptor_t* convOp,
                                                     miopenConvolutionDescriptor_t convDesc,
                                                     miopenConvFwdAlgorithm_t fwdAlgo,
-                                                    const TensorDescriptor& wDesc)
+                                                    const miopenTensorDescriptor_t wDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, fwdAlgo, wDesc);
     return (miopenStatusSuccess);
@@ -71,7 +79,7 @@ extern "C" miopenStatus_t miopenCreateOpConvBackwardData(miopenFusionPlanDescrip
                                                          miopenOperatorDescriptor_t* convOp,
                                                          miopenConvolutionDescriptor_t convDesc,
                                                          miopenConvBwdDataAlgorithm_t bwdDataAlgo,
-                                                         const TensorDescriptor& wDesc)
+                                                         const miopenTensorDescriptor_t wDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, bwdDataAlgo, wDesc);
     return (miopenStatusSuccess);
@@ -82,7 +90,7 @@ miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
                                   miopenOperatorDescriptor_t* convOp,
                                   miopenConvolutionDescriptor_t convDesc,
                                   miopenConvBwdWeightsAlgorithm_t bwdWeightsAlgo,
-                                  const TensorDescriptor& wDesc)
+                                  const miopenTensorDescriptor_t wDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, bwdWeightsAlgo, wDesc);
     return (miopenStatusSuccess);
@@ -140,9 +148,9 @@ extern "C" miopenStatus_t miopenCreateOpBatchNormBackward(miopenFusionPlanDescri
 extern "C" miopenStatus_t miopenCreateOpTensorOp(miopenFusionPlanDescriptor_t fusePlanDesc,
                                                  miopenOperatorDescriptor_t* tOp,
                                                  miopenTensorOp_t tensorOp,
-                                                 const TensorDescriptor& bDesc)
+                                                 const miopenTensorDescriptor_t bDesc)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc, tOp, tensorOp, aDesc, bDesc, cDesc);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, tOp, tensorOp, bDesc);
     return (miopenStatusSuccess);
 }
 //---
@@ -152,7 +160,7 @@ extern "C" miopenStatus_t miopenCreateOpPoolingForward(miopenFusionPlanDescripto
                                                        miopenOperatorDescriptor_t* poolOp,
                                                        const miopenPoolingDescriptor_t poolDesc)
 {
-    MIOPEN_LOG_FUNCTION(poolOp, poolDesc);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, poolOp, poolDesc);
     return (miopenStatusSuccess);
 }
 
@@ -160,7 +168,7 @@ extern "C" miopenStatus_t miopenCreateOpPoolingBackward(miopenFusionPlanDescript
                                                         miopenOperatorDescriptor_t* poolOp,
                                                         const miopenPoolingDescriptor_t poolDesc)
 {
-    MIOPEN_LOG_FUNCTION(poolOp, poolDesc);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, poolOp, poolDesc);
     return (miopenStatusSuccess);
 }
 //---
@@ -255,7 +263,7 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs_t 
                                                            const void* savedInvVariance)
 {
     MIOPEN_LOG_FUNCTION(
-        args, bnOp, x, bnScale, resultBnScaleDiff, resultBnScaleDiff, savedMean, savedInvVariance);
+        args, bnOp, x, bnScale, resultBnScaleDiff, resultBnBiasDiff, savedMean, savedInvVariance);
     return (miopenStatusSuccess);
 }
 //---
@@ -268,7 +276,7 @@ extern "C" miopenStatus_t miopenSetOpArgsPoolingForward(miopenOperatorArgs_t arg
                                                         size_t workSpaceSize)
 {
 
-    MIOPEN_LOG_FUNCTION(args, poolingOp, workSpace, workSpaceSize);
+    MIOPEN_LOG_FUNCTION(args, poolingOp, do_backward, workSpace, workSpaceSize);
     return (miopenStatusSuccess);
 }
 
@@ -297,7 +305,7 @@ extern "C" miopenStatus_t miopenSetOpArgsTensorOp(miopenOperatorArgs_t args,
 }
 
 // Return an error code that is "NotImplemented", if it exists then return success
-extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
+extern "C" miopenStatus_t miopenExecuteFusionPlan(miopenHandle_t handle,
                                                   const miopenFusionPlanDescriptor_t fusePlanDesc,
                                                   const miopenTensorDescriptor_t inputDesc,
                                                   const void* input,
@@ -305,31 +313,27 @@ extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
                                                   void* output,
                                                   miopenOperatorArgs_t args)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc, inputDesc, input, outputDesc, output, args);
+    // MIOPEN_LOG_FUNCTION(handle, fusePlanDesc, inputDesc, input, outputDesc, output, args);
     return (miopenStatusSuccess);
 }
 
 // Heurtistic based benchmarking.
-extern "C" miopenStatus_t
-miopenGetFusionPlanCostEstimate(miopenOpCost_t* opCost,
-                                const miopenHandle_t handle,
-                                const miopenFusionPlanDescriptor_t fusePlanDesc)
+extern "C" miopenStatus_t miopenGetFusionPlanCostEstimate(
+    miopenOpCost_t* opCost, miopenHandle_t handle, const miopenFusionPlanDescriptor_t fusePlanDesc)
 {
-    MIOPEN_LOG_FUNCTION(handle, fusePlanDesc, opCost);
+    // MIOPEN_LOG_FUNCTION(opCost, handle, fusePlanDesc);
     return (miopenStatusSuccess);
 }
 
 // Empirical benchmarking, aka we actually run the fusion plan.
 extern "C" miopenStatus_t
 miopenGetFusionPlanCostEmpirical(miopenOpCost_t* opCost,
-                                 const miopenHandle_t handle,
+                                 miopenHandle_t handle,
                                  const miopenFusionPlanDescriptor_t fusePlanDesc,
                                  const miopenTensorDescriptor_t inputDesc,
                                  const void* input,
-                                 const miopenTensorDescriptor_t outputDesc,
-                                 void* output,
-                                 openOperatorArgs_t args)
+                                 miopenOperatorArgs_t args)
 {
-    MIOPEN_LOG_FUNCTION(handle, fusePlanDesc, workSpaceSize, workSpace, args, opCost);
+    // MIOPEN_LOG_FUNCTION(opCost, handle, fusePlanDesc, inputDesc, input, args);
     return (miopenStatusSuccess);
 }
