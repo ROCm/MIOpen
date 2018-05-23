@@ -569,15 +569,15 @@ void CallGemm(Handle& handle,
 }
 
 void CallGemmStridedBatched(Handle& handle,
-                     GemmDescriptor gemm_desc,
-                     const void* alpha,
-                     const void* A,
-                     int a_offset,
-                     const void* B,
-                     int b_offset,
-                     const void* beta,
-                     void* C,
-                     int c_offset)
+                            GemmDescriptor gemm_desc,
+                            const void* alpha,
+                            const void* A,
+                            int a_offset,
+                            const void* B,
+                            int b_offset,
+                            const void* beta,
+                            void* C,
+                            int c_offset)
 {
 #if MIOPEN_USE_ROCBLAS
     std::cout << std::endl << __func__ << ": going to call rocblas" << std::endl;
@@ -601,7 +601,8 @@ void CallGemmStridedBatched(Handle& handle,
     float alpha_local = *static_cast<const float*>(alpha);
     float beta_local  = *static_cast<const float*>(beta);
 
-    std::cout << __func__ << ": alpha_local " << alpha_local << ", beta_local " << beta_local << std::endl;
+    std::cout << __func__ << ": alpha_local " << alpha_local << ", beta_local " << beta_local
+              << std::endl;
 
     std::cout << __func__ << ": gemm_desc after swap" << gemm_desc << std::endl;
 
@@ -713,18 +714,18 @@ std::ostream& operator<<(std::ostream& os, const GemmDescriptor& gemm_desc)
 {
     os << "{ ";
     os << "isColMajor " << gemm_desc.isColMajor << ", ";
-    os << "transA "     << gemm_desc.transA     << ", ";
-    os << "transB "     << gemm_desc.transB     << ", ";
-    os << "m "          << gemm_desc.m          << ", ";
-    os << "n "          << gemm_desc.n          << ", ";
-    os << "k "          << gemm_desc.k          << ", ";
-    os << "lda "        << gemm_desc.lda        << ", ";
-    os << "ldb "        << gemm_desc.ldb        << ", ";
-    os << "ldc "        << gemm_desc.ldc        << ", ";
-    os << "strideA "    << gemm_desc.strideA    << ", ";
-    os << "strideB "    << gemm_desc.strideB    << ", ";
-    os << "strideC "    << gemm_desc.strideC    << ", ";
-    os << "batch_count "<< gemm_desc.batch_count<< " }";
+    os << "transA " << gemm_desc.transA << ", ";
+    os << "transB " << gemm_desc.transB << ", ";
+    os << "m " << gemm_desc.m << ", ";
+    os << "n " << gemm_desc.n << ", ";
+    os << "k " << gemm_desc.k << ", ";
+    os << "lda " << gemm_desc.lda << ", ";
+    os << "ldb " << gemm_desc.ldb << ", ";
+    os << "ldc " << gemm_desc.ldc << ", ";
+    os << "strideA " << gemm_desc.strideA << ", ";
+    os << "strideB " << gemm_desc.strideB << ", ";
+    os << "strideC " << gemm_desc.strideC << ", ";
+    os << "batch_count " << gemm_desc.batch_count << " }";
     return os;
 }
 

@@ -134,8 +134,8 @@ int GemmDriver<T>::GetandSetData()
 
     desc.batch_count = inflags.GetValueInt("batch_count");
 
-  //desc.strideA = desc.m * desc.k;
-    desc.strideA = 0; // debug
+    desc.strideA = desc.m * desc.k;
+    // desc.strideA = 0; // debug
     desc.strideB = desc.k * desc.n;
     desc.strideC = desc.m * desc.n;
 
@@ -145,9 +145,9 @@ int GemmDriver<T>::GetandSetData()
 template <typename T>
 int GemmDriver<T>::AllocateBuffersAndCopy()
 {
-    size_t a_sz = desc.m * desc.k + ( desc.batch_count - 1 ) * desc.strideA;
-    size_t b_sz = desc.k * desc.n + ( desc.batch_count - 1 ) * desc.strideB;
-    size_t c_sz = desc.m * desc.n + ( desc.batch_count - 1 ) * desc.strideC;
+    size_t a_sz = desc.m * desc.k + (desc.batch_count - 1) * desc.strideA;
+    size_t b_sz = desc.k * desc.n + (desc.batch_count - 1) * desc.strideB;
+    size_t c_sz = desc.m * desc.n + (desc.batch_count - 1) * desc.strideC;
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
@@ -159,10 +159,10 @@ int GemmDriver<T>::AllocateBuffersAndCopy()
     b_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(T)));
     c_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, c_sz, sizeof(T)));
 
-    a     = std::vector<T>(a_sz);
-    b     = std::vector<T>(b_sz);
- // c     = std::vector<T>(c_sz, 0.);
-    c     = std::vector<T>(c_sz, 1.);//debug
+    a = std::vector<T>(a_sz);
+    b = std::vector<T>(b_sz);
+    // c     = std::vector<T>(c_sz, 0.);
+    c     = std::vector<T>(c_sz, 1.); // debug
     chost = std::vector<T>(c_sz, 0.);
 
     for(int i = 0; i < a_sz; i++)
@@ -196,7 +196,7 @@ int GemmDriver<T>::RunForwardGPU()
 {
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        //debug
+        // debug
         {
             std::cout << std::endl;
 
@@ -214,15 +214,15 @@ int GemmDriver<T>::RunForwardGPU()
         }
 
         CallGemmStridedBatched(miopen::deref(GetHandle()),
-                        desc,
-                        &alpha,
-                        a_dev->GetMem(),
-                        0,
-                        b_dev->GetMem(),
-                        0,
-                        &beta,
-                        c_dev->GetMem(),
-                        0);
+                               desc,
+                               &alpha,
+                               a_dev->GetMem(),
+                               0,
+                               b_dev->GetMem(),
+                               0,
+                               &beta,
+                               c_dev->GetMem(),
+                               0);
 #if 0
         if(desc.batch_count > 1)
             CallGemmBatched(miopen::deref(GetHandle()),
@@ -248,7 +248,7 @@ int GemmDriver<T>::RunForwardGPU()
                      0,
                      1); // find needs to be on to compile the kernel
 #endif
-        //debug
+        // debug
         {
             std::cout << std::endl;
 
@@ -277,7 +277,7 @@ int GemmDriver<T>::RunForwardGPU()
     return miopenStatusSuccess;
 }
 
-template<typename T>
+template <typename T>
 int GemmDriver<T>::RunForwardCPU()
 {
     miopen::GemmDescriptor desc_tmp = desc;
@@ -295,12 +295,13 @@ int GemmDriver<T>::RunForwardCPU()
             for(int ni = 0; ni < desc_tmp.n; ++ni)
             {
                 double y = 0;
-                for(int  ki = 0; ki < desc_tmp.k; ++ki)
+                for(int ki = 0; ki < desc_tmp.k; ++ki)
                 {
-                    y+= a_ptr[desc_tmp.strideA * bi + desc_tmp.lda * mi + ki] * b_ptr[desc_tmp.strideB * bi + desc_tmp.ldb * ki + ni]; 
+                    y += a_ptr[desc_tmp.strideA * bi + desc_tmp.lda * mi + ki] *
+                         b_ptr[desc_tmp.strideB * bi + desc_tmp.ldb * ki + ni];
                 }
                 chost[desc_tmp.strideC * bi + desc_tmp.ldc * mi + ni] = y;
-            } 
+            }
         }
     }
 

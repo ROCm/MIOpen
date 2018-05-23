@@ -179,46 +179,6 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
     //	);
 }
 
-size_t
-ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMMStridedBatched(Handle& handle,
-                                                          const TensorDescriptor& xDesc,
-                                                          const TensorDescriptor& wDesc,
-                                                          const TensorDescriptor& yDesc) const
-{
-#if MIOPEN_USE_ROCBLAS
-    int in_n;
-    std::tie(in_n, std::ignore, std::ignore, std::ignore) = miopen::tien<4>(xDesc.GetLengths());
-
-    int out_h, out_w;
-    std::tie(std::ignore, std::ignore, out_h, out_w) = miopen::tien<4>(yDesc.GetLengths());
-
-    int wei_c, wei_h, wei_w;
-    std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(wDesc.GetLengths());
-
-    size_t workspace_size =
-        in_n * wei_c * wei_h * wei_w * out_h * out_w * GetTypeSize(yDesc.GetType());
-
-    // No workspace is needed for 1x1_stride=1 convolutions
-    if(wei_h == 1 && wei_w == 1 && u == 1 && v == 1)
-    {
-        return 0;
-    }
-
-    // gfx803 devices have 4gb-6gb memory
-    if(workspace_size > (1 << 30) && handle.GetDeviceName() == "gfx803")
-    {
-        workspace_size = 0;
-    }
-
-    return workspace_size;
-#elif MIOPEN_USE_MIOPEN
-    // MIOpenGEMM has no batchd mode
-    return 0;
-#else
-    MIOPEN_THROW("not GEMM backend");
-#endif
-}
-
 size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(Handle& handle,
                                                           const TensorDescriptor& wDesc,
                                                           const TensorDescriptor& yDesc) const
@@ -375,9 +335,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
             ForwardBackwardDataGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc, 1);
 
         if(dilation_w > 1 || dilation_h > 1)
-            return std::max(
-                ForwardGetWorkSpaceSizeGEMMStridedBatched(handle, xDesc, wDesc, yDesc),
-                std::max(ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc), direct_workspace));
+            return std::max(ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc), direct_workspace);
 
         // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
         // 1x1_stride=2
@@ -385,9 +343,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
             dilation_w == 1) &&
            ((in_h <= 14 && in_w <= 14 && u == 1 && v == 1) || (u == 2 && v == 2)))
         {
-            return std::max(
-                ForwardGetWorkSpaceSizeGEMMStridedBatched(handle, xDesc, wDesc, yDesc),
-                std::max(ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc), direct_workspace));
+            return std::max(ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc), direct_workspace);
         }
 
         // Check if Winograd is available
@@ -400,14 +356,10 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         }
         else
         {
-            size_t workspace_size_gemm_strided_batched =
-                ForwardGetWorkSpaceSizeGEMMStridedBatched(handle, xDesc, wDesc, yDesc);
             size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
             size_t workspace_size_fft  = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
 
-            return std::max(
-                workspace_size_gemm_strided_batched,
-                std::max(std::max(workspace_size_fft, workspace_size_gemm), direct_workspace));
+            return std::max(std::max(workspace_size_fft, workspace_size_gemm), direct_workspace);
         }
     }
 }

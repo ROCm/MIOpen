@@ -186,15 +186,15 @@ void CallGemm(Handle& handle,
               int find);
 
 void CallGemmStridedBatched(Handle& handle,
-                     GemmDescriptor gemm_desc,
-                     const void* alpha,
-                     const void* A,
-                     int a_offset,
-                     const void* B,
-                     int b_offset,
-                     const void* beta,
-                     void* C,
-                     int c_offset);
+                            GemmDescriptor gemm_desc,
+                            const void* alpha,
+                            const void* A,
+                            int a_offset,
+                            const void* B,
+                            int b_offset,
+                            const void* beta,
+                            void* C,
+                            int c_offset);
 
 GemmDescriptor CreateGemmDescriptorConv1x1Fwd(const TensorDescriptor& xDesc,
                                               const TensorDescriptor& wDesc,

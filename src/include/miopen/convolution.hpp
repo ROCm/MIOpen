@@ -103,9 +103,9 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                                 const TensorDescriptor& yDesc) const;
 
     size_t ForwardGetWorkSpaceSizeGEMMStridedBatched(Handle& handle,
-                                              const TensorDescriptor& xDesc,
-                                              const TensorDescriptor& wDesc,
-                                              const TensorDescriptor& yDesc) const;
+                                                     const TensorDescriptor& xDesc,
+                                                     const TensorDescriptor& wDesc,
+                                                     const TensorDescriptor& yDesc) const;
 
     size_t
     ForwardBackwardDataGetWorkSpaceSizeDirect(Handle& handle,
