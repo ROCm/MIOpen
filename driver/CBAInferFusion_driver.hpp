@@ -266,7 +266,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
     SetTensor4d(inputTensor, in_len, data_type);
     SetTensor4d(weightTensor, wei_len, data_type);
     SetTensor4d(biasScaleTensor, sb_len, data_type);
-    //SetTensor4d(outputTensor, in_len, data_type);
+    // SetTensor4d(outputTensor, in_len, data_type);
 
     if(inflags.GetValueInt("bias") != 0)
     {
@@ -339,7 +339,7 @@ std::vector<int> CBAInferFusionDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdL
     int in_h = inflags.GetValueInt("in_h");
     int in_w = inflags.GetValueInt("in_w");
 
-    std::cerr << "inDesc = " << in_n <<"," << in_c << "," << in_h << "," << in_w << std::endl;
+    std::cerr << "inDesc = " << in_n << "," << in_c << "," << in_h << "," << in_w << std::endl;
 
     return std::vector<int>({in_n, in_c, in_h, in_w});
 }
@@ -369,14 +369,10 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetBNParametersFromCmdLineArgs()
 bool IsDirectSupported(int wei_h, int wei_w, int pad_h, int pad_w, int u, int v)
 {
     bool supported_filters =
-        ((wei_h == 1 && wei_w == 1) || (wei_h == 3 && wei_w == 3) ||
-         (wei_h == 5 && wei_w == 5) || (wei_h == 7 && wei_w == 7) ||
-         (wei_h == 9 && wei_w == 9) ||
-         (wei_h == 11 && wei_w == 11) ||
-         (wei_h == 5 && wei_w == 10 && u == 2 && v == 2 && pad_h == 0 &&
-          pad_w == 0) ||
-         (wei_h == 5 && wei_w == 20 && u == 2 && v == 2 && pad_h == 0 &&
-          pad_w == 0));
+        ((wei_h == 1 && wei_w == 1) || (wei_h == 3 && wei_w == 3) || (wei_h == 5 && wei_w == 5) ||
+         (wei_h == 7 && wei_w == 7) || (wei_h == 9 && wei_w == 9) || (wei_h == 11 && wei_w == 11) ||
+         (wei_h == 5 && wei_w == 10 && u == 2 && v == 2 && pad_h == 0 && pad_w == 0) ||
+         (wei_h == 5 && wei_w == 20 && u == 2 && v == 2 && pad_h == 0 && pad_w == 0));
 
     bool workarounds = ((wei_h == 3 && wei_w == 3 && (u > 2 || v > 2)) ||
                         (wei_h == 1 && wei_w == 1 && (pad_h > 0 || pad_w > 0)) ||
@@ -422,12 +418,13 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
         pad_w = 0;
     }
 
-    std::cerr << "convDesc = "  << wei_h << "," << wei_w << "," << pad_h << "," << pad_w << "," << u << "," << v << "," << dilation_h << "," << dilation_w << std::endl;
+    std::cerr << "convDesc = " << wei_h << "," << wei_w << "," << pad_h << "," << pad_w << "," << u
+              << "," << v << "," << dilation_h << "," << dilation_w << std::endl;
 
     if(!IsDirectSupported(wei_h, wei_w, pad_h, pad_w, u, v))
     {
-        std::cerr << "Direct is not support" << std::endl; 
-        return -1;
+        std::cerr << "Direct is not support" << std::endl;
+        exit(0);
     }
 
     miopen::deref(convDesc) =
@@ -572,16 +569,16 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     out_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
     // GPU host allocation
-    in            = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    wei           = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
-    out           = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    conv_res_host = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    bn_res_host   = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    scale         = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-    bias          = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+    in    = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    wei   = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
+    out   = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    scale = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+    bias  = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
 
     // CPU allocation
-    out_host = std::vector<Tref>(out_sz, static_cast<Tref>(0));
+    conv_res_host = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    bn_res_host   = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    out_host      = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
     // Data initialization
     for(int i = 0; i < in_sz; i++)
@@ -595,12 +592,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         scale[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
         bias[i]  = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     }
+    status |= in_dev->ToGPU(q, in.data());
     status |= wei_dev->ToGPU(q, wei.data());
     status |= scale_dev->ToGPU(q, scale.data());
     status |= bias_dev->ToGPU(q, bias.data());
-    status |= out_dev->ToGPU(q, out.data());
     status |= createRunningBuffers();
-    status |= in_dev->ToGPU(q, in.data());
 
     if(status != CL_SUCCESS)
         printf("Fatal: Error copying data to GPU\nExiting...\n\n");
@@ -717,18 +713,18 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
     FindConvForward(ret_algo_count, request_algo_count, perf_results);
 
     miopenConvolutionForward(GetHandle(),
-            &alpha,
-            inputTensor,
-            in_dev->GetMem(),
-            weightTensor,
-            wei_dev->GetMem(),
-            convDesc,
-            perf_results[0].fwd_algo, // use the fastest algo
-            &beta,
-            outputTensor,
-            conv_res_dev->GetMem(),
-            (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem() : nullptr,
-            (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetSize() : 0);
+                             &alpha,
+                             inputTensor,
+                             in_dev->GetMem(),
+                             weightTensor,
+                             wei_dev->GetMem(),
+                             convDesc,
+                             perf_results[0].fwd_algo, // use the fastest algo
+                             &beta,
+                             outputTensor,
+                             conv_res_dev->GetMem(),
+                             (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem() : nullptr,
+                             (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetSize() : 0);
 #endif
 
     if(inflags.GetValueInt("time") == 1)
@@ -739,7 +735,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
         STOP_TIME;
         if(WALL_CLOCK)
             printf("Wall-clock Time Forward Conv. Elapsed: %f ms\n",
-                    t.gettime_ms() / inflags.GetValueInt("iter"));
+                   t.gettime_ms() / inflags.GetValueInt("iter"));
 
         // printf("MIOpen Forward Conv. Algorithm: %d\n", perf_results[0].fwd_algo);
         printf("GPU Kernel Time Forward Conv. Elapsed: %f ms\n", time);
@@ -768,8 +764,6 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
         }
     }
 #endif
-
-    out_dev->FromGPU(GetStream(), out.data());
 
     return;
 }
@@ -803,7 +797,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
         miopenGetActivationDescriptor(
             activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
 
-        float time0 = 0.0, time1 = 0.0;
+        float time0 = 0.0, time1 = 0.0, time2 = 0.0;
 #if 0
         Tref epsilon = static_cast<Tref>(EPSILON);
         float alpha = static_cast<float>(1), beta = static_cast<float>(0);
@@ -829,10 +823,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
         miopenGetKernelTime(GetHandle(), &time0);
 #else
         runGPUConvFwdInference();
-        runGPUBNFwdInference();
         miopenGetKernelTime(GetHandle(), &time0);
-        runGPUActivFwdInference();
+        runGPUBNFwdInference();
         miopenGetKernelTime(GetHandle(), &time1);
+        runGPUActivFwdInference();
+        miopenGetKernelTime(GetHandle(), &time2);
 #endif
 
         miopen::deref(GetHandle()).Finish();
@@ -849,7 +844,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
 
         if(inflags.GetValueStr("time") == "1")
         {
-            float time = time0 + time1;
+            float time = time0 + time1 + time2;
             lowtime    = (time < lowtime) ? time : lowtime;
             if(iters > 1 && i > 0)
                 avgtime += time;
@@ -939,7 +934,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::VerifyForward()
 
     double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
 
-    int match = miopenBNActiveFwdInferVerify(out.size(), out_host.data(), out.data(), allowedEps);
+    int match = miopenInferVerify(out.size(), out_host.data(), out.data(), allowedEps);
 
     if(match)
         printf("Forward Activation Verifies on CPU and GPU\n");

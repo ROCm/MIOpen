@@ -414,10 +414,7 @@ void miopenBNActiveNeuronFwdInferHost(int neuron_type,
 
 template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
           typename _Tcheck /* the data type used in CPU checkings (usually double) */>
-int miopenBNActiveFwdInferVerify(size_t size,
-                                 const _Tcheck* c_res,
-                                 const _Tgpu* top_ptr,
-                                 _Tcheck allowedEps)
+int miopenInferVerify(size_t size, const _Tcheck* c_res, const _Tgpu* top_ptr, _Tcheck allowedEps)
 {
     int match = 1;
     for(size_t i = 0; i < size && match; i++)
@@ -633,7 +630,7 @@ int miopenBNActiveVerify(InputFlags inflags,
 
     double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
 
-    int match = miopenBNActiveFwdInferVerify<Tgpu, Tref>(out.size(), c_res, out.data(), allowedEps);
+    int match = miopenInferVerify<Tgpu, Tref>(out.size(), c_res, out.data(), allowedEps);
 
     return match;
 }
