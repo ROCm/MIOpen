@@ -42,8 +42,7 @@
 // 		Set up the internal datastructures for the fused kernel.
 extern "C" miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* fusePlanDesc,
                                                  miopenFusionDirection_t fuseDirection,
-                                                 const miopenTensorDescriptor_t inputDesc,
-                                                 const miopenTensorDescriptor_t outputDesc)
+                                                 const miopenTensorDescriptor_t inputDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, fuseDirection, inputDesc, outputDesc);
     return (miopenStatusSuccess);
@@ -189,6 +188,8 @@ extern "C" miopenStatus_t miopenDestroyOperatorArgs(miopenOperatorArgs_t args)
 // Fusion op args for Convolution
 extern "C" miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
                                                      const miopenOperatorDescriptor_t convOp,
+                                                     const void* alpha,
+                                                     const void* beta,
                                                      const void* w)
 {
     MIOPEN_LOG_FUNCTION(args, convOp, w);
@@ -197,6 +198,8 @@ extern "C" miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
 
 extern "C" miopenStatus_t miopenSetOpArgsConvBackwardData(miopenOperatorArgs_t args,
                                                           const miopenOperatorDescriptor_t convOp,
+                                                          const void* alpha,
+                                                          const void* beta,
                                                           const void* w,
                                                           void* workSpace,
                                                           size_t workSpaceSize)
@@ -208,6 +211,8 @@ extern "C" miopenStatus_t miopenSetOpArgsConvBackwardData(miopenOperatorArgs_t a
 extern "C" miopenStatus_t
 miopenSetOpArgsConvBackwardWeights(miopenOperatorArgs_t args,
                                    const miopenOperatorDescriptor_t convOp,
+                                   const void* alpha,
+                                   const void* beta,
                                    const void* x,
                                    void* dw,
                                    void* workSpace,
@@ -221,6 +226,8 @@ miopenSetOpArgsConvBackwardWeights(miopenOperatorArgs_t args,
 // Fusion op args for Batch Normalization
 extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t args,
                                                             const miopenOperatorDescriptor_t bnOp,
+                                                            const void* alpha,
+                                                            const void* beta,
                                                             const void* bnScale,
                                                             const void* bnBias,
                                                             const void* estimatedMean,
@@ -233,6 +240,8 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t
 
 extern "C" miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_t args,
                                                           const miopenOperatorDescriptor_t bnOp,
+                                                          const void* alpha,
+                                                          const void* beta,
                                                           const void* bnScale,
                                                           const void* bnBias,
                                                           void* savedMean,
@@ -255,6 +264,8 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_t a
 
 extern "C" miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs_t args,
                                                            const miopenOperatorDescriptor_t bnOp,
+                                                           const void* alpha,
+                                                           const void* beta,
                                                            const void* x,
                                                            const void* bnScale,
                                                            void* resultBnScaleDiff,
@@ -271,6 +282,8 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs_t 
 // Pooling arg ops
 extern "C" miopenStatus_t miopenSetOpArgsPoolingForward(miopenOperatorArgs_t args,
                                                         const miopenOperatorDescriptor_t poolingOp,
+                                                        const void* alpha,
+                                                        const void* beta,
                                                         bool do_backward,
                                                         void* workSpace,
                                                         size_t workSpaceSize)
@@ -282,6 +295,8 @@ extern "C" miopenStatus_t miopenSetOpArgsPoolingForward(miopenOperatorArgs_t arg
 
 extern "C" miopenStatus_t miopenSetOpArgsPoolingBackward(miopenOperatorArgs_t args,
                                                          const miopenOperatorDescriptor_t poolingOp,
+                                                         const void* alpha,
+                                                         const void* beta,
                                                          const void* y,
                                                          const void* x,
                                                          const void* workSpace,
@@ -295,6 +310,8 @@ extern "C" miopenStatus_t miopenSetOpArgsPoolingBackward(miopenOperatorArgs_t ar
 
 extern "C" miopenStatus_t miopenSetOpArgsTensorOp(miopenOperatorArgs_t args,
                                                   const miopenOperatorDescriptor_t tOp,
+                                                  const void* alpha,
+                                                  const void* beta,
                                                   const void* alpha1,
                                                   const void* alpha2,
                                                   const void* B,
