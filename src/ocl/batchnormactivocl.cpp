@@ -34,7 +34,7 @@
 namespace miopen {
 
 //============ BEGIN FORWARD INFERENCE ===============
-void BatchNormActivForwardInference(Handle& handle,
+void BatchNormActivInference(Handle& handle,
                                     miopenBatchNormMode_t bn_mode,
                                     const void* alpha,
                                     const void* beta,
