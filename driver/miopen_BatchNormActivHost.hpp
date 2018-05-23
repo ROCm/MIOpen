@@ -36,6 +36,20 @@
 #define MIO_BN_DIST 32
 #endif
 
+//#ifndef MIOPEN_NEURON_PASTHRU
+#define MIOPEN_NEURON_PASTHRU 0      // x
+#define MIOPEN_NEURON_LOGISTIC 1     // 1 / (1 + e^-x)  //Sigmoid
+#define MIOPEN_NEURON_TANH 2         // beta * tanh(alpha * x)
+#define MIOPEN_NEURON_RELU 3         // max(0, x)
+#define MIOPEN_NEURON_SOFTRELU 4     // log(1 + e^x)   // bonomial normal log likelihood
+#define MIOPEN_NEURON_ABS 5          // abs(x)
+#define MIOPEN_NEURON_POWER 6        // (alpha + beta * x )^gamma
+#define MIOPEN_NEURON_CLIPPED_RELU 7 // min(alpha, max(0, x))
+#define MIOPEN_NEURON_LEAKY_RELU 8   // alpha * x | x <= 0; x | x > 0
+#define MIOPEN_NEURON_ELU 9          // alpha * (e^x - 1) | x <= 0; x | x > 0
+#define MIOPEN_NEURON_TOTAL 10
+//#endif
+
 template <typename T>
 int miopenBNActiveBNSpatialFwdInferHost(int n_batchs,
                                         int channels,
