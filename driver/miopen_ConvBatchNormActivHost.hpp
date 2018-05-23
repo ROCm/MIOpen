@@ -535,7 +535,7 @@ int ConvForwardCPU(std::vector<Tgpu> in,
                 int in_off_h = i * u;
                 for(int j = 0; j < out_w; j++)
                 { // output_width (from getforwardoutputdim())
-                    Tref acc     = static_cast<Tref>(0);
+                    Tgpu acc     = static_cast<Tgpu>(0);
                     int in_off_w = j * v;
                     for(int k = 0; k < in_c; k++)
                     { // in_channels (RGB)
@@ -550,9 +550,9 @@ int ConvForwardCPU(std::vector<Tgpu> in,
                                     if(in_y >= 0 && in_y < in_w)
                                     {
                                         acc +=
-                                            static_cast<Tref>(in[o * in_nstride + k * in_cstride +
+                                            static_cast<Tgpu>(in[o * in_nstride + k * in_cstride +
                                                                  in_x * in_w + in_y]) *
-                                            static_cast<Tref>(
+                                            static_cast<Tgpu>(
                                                 wei[w * wei_nstride + k * wei_cstride +
                                                     x * wei_hstride + y]);
                                     }
@@ -560,7 +560,7 @@ int ConvForwardCPU(std::vector<Tgpu> in,
                             }
                         }
                     }
-                    acc = bias != 0 ? acc + static_cast<Tref>(b[w]) : acc;
+                    acc = bias != 0 ? acc + static_cast<Tgpu>(b[w]) : acc;
                     outhost[o * out_nstride + w * out_cstride + i * out_hstride + j] = acc;
                 }
             }
