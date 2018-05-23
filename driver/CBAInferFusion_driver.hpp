@@ -111,12 +111,14 @@ class CBAInferFusionDriver : public Driver
     int RunBackwardGPU();
     int RunBackwardCPU();
 
-    void runGPUBNFwdInference(Tref epsilon, float alpha, float beta);
-    void runCPUBNFwdInference(Tref epsilon, int batch_sz, int channels, int height, int width);
+    void runGPUBNFwdInference();
+    void runCPUBNFwdInference();
 
-    void runGPUActivFwdInference(float alpha, float beta);
-    int runGPUConvFwdInference();
-    // void runCPUActivFwdInference();
+    void runGPUActivFwdInference();
+    void runCPUActivFwdInference();
+
+    void runGPUConvFwdInference();
+    void runCPUConvFwdInference();
 
     int VerifyBackward();
     int VerifyForward();
@@ -173,7 +175,7 @@ class CBAInferFusionDriver : public Driver
 
     std::vector<Tgpu> in;
     std::vector<Tgpu> out;
-    std::vector<Tgpu> ba_host;
+    std::vector<Tgpu> bn_res_host;
     std::vector<Tref> out_host;
 
     std::vector<Tgpu> workspace_fwd;
@@ -335,9 +337,6 @@ std::vector<int> CBAInferFusionDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdL
 template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::SetBNParametersFromCmdLineArgs()
 {
-
-    //    	double bnAlpha = inflags.GetValueDouble("alpha");
-    //    	double bnBeta = inflags.GetValueDouble("beta");
 
     // batch norm mode type
     if(inflags.GetValueInt("bnMode") == 0)
@@ -545,11 +544,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     out_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
     // GPU host allocation
-    in      = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    out     = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    ba_host = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    scale   = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-    bias    = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+    in          = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    out         = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    bn_res_host = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    scale       = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+    bias        = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
 
     // CPU allocation
     out_host   = std::vector<Tref>(out_sz, static_cast<Tref>(0));
@@ -581,8 +580,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 }
 
 template <typename Tgpu, typename Tref>
-void CBAInferFusionDriver<Tgpu, Tref>::runGPUBNFwdInference(Tref epsilon, float alpha, float beta)
+void CBAInferFusionDriver<Tgpu, Tref>::runGPUBNFwdInference()
 {
+    Tref epsilon = static_cast<Tref>(EPSILON);
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
+
     miopenBatchNormalizationForwardInference(GetHandle(),
                                              bn_mode,
                                              &alpha,
@@ -601,8 +603,27 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBNFwdInference(Tref epsilon, float 
 }
 
 template <typename Tgpu, typename Tref>
-void CBAInferFusionDriver<Tgpu, Tref>::runGPUActivFwdInference(float alpha, float beta)
+void CBAInferFusionDriver<Tgpu, Tref>::runCPUActivFwdInference()
 {
+    double activ_alpha, activ_beta, activ_gamma;
+    miopenActivationMode_t activ_mode;
+    miopenGetActivationDescriptor(activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
+
+    miopenBNActiveNeuronFwdInferHost<Tgpu, Tref>(activ_mode,
+                                                 activ_gamma,
+                                                 activ_beta,
+                                                 activ_alpha,
+                                                 out.size(),
+                                                 bn_res_host.data(),
+                                                 out_host.data());
+
+    return;
+}
+
+template <typename Tgpu, typename Tref>
+void CBAInferFusionDriver<Tgpu, Tref>::runGPUActivFwdInference()
+{
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     miopenActivationForward(GetHandle(),
                             activDesc,
@@ -639,7 +660,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::FindConvForward(
 }
 
 template <typename Tgpu, typename Tref>
-int CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
+void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
 {
     int ret_algo_count;
     int request_algo_count = 2;
@@ -705,17 +726,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
     }
 
     out_dev->FromGPU(GetStream(), out.data());
-
-    return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
 {
-
-    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
-    Tref epsilon = static_cast<Tref>(EPSILON);
-
     Timer t;
     double fulltime = 0.;
     auto iters      = inflags.GetValueInt("iter");
@@ -755,10 +770,10 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
 
         miopenGetKernelTime(GetHandle(), &time0);
 #else
-        runGPUConvFwdInference();
-        runGPUBNFwdInference(epsilon, alpha, beta);
+        // runGPUConvFwdInference();
+        runGPUBNFwdInference();
         miopenGetKernelTime(GetHandle(), &time0);
-        runGPUActivFwdInference(alpha, beta);
+        runGPUActivFwdInference();
         miopenGetKernelTime(GetHandle(), &time1);
 #endif
 
@@ -806,20 +821,17 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
 }
 
 template <typename Tgpu, typename Tref>
-void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference(
-    Tref epsilon, int batch_sz, int channels, int height, int width)
+void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
 {
+    Tref epsilon = static_cast<Tref>(EPSILON);
 
     if(bn_mode == miopenBNPerActivation)
     { // 1xCxHxW
-        miopenBNFwdInferPerActivationRunHost(batch_sz,
-                                             channels,
-                                             height,
-                                             width,
+        miopenBNActiveBNPerActivFwdInferHost(inputTensor,
                                              in.data(),
-                                             out_host.data(),
-                                             scale_host.data(),
-                                             bias_host.data(),
+                                             bn_res_host.data(),
+                                             scale.data(),
+                                             bias.data(),
                                              epsilon,
                                              true,
                                              runningMean_host.data(),
@@ -827,18 +839,15 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference(
     }
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
-        miopenBNFwdInferSpatialRunHost(batch_sz,
-                                       channels,
-                                       height,
-                                       width,
-                                       in.data(),
-                                       out_host.data(),
-                                       scale_host.data(),
-                                       bias_host.data(),
-                                       epsilon,
-                                       true,
-                                       runningMean_host.data(),
-                                       runningVariance_host.data());
+        miopenBNActiveBNSpatialFwdInferHost(inputTensor,
+                                            in.data(),
+                                            bn_res_host.data(),
+                                            scale.data(),
+                                            bias.data(),
+                                            epsilon,
+                                            true,
+                                            runningMean_host.data(),
+                                            runningVariance_host.data());
     }
     else
     {
@@ -852,6 +861,9 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference(
 template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
 {
+    runCPUBNFwdInference();
+    runCPUActivFwdInference();
+
     return miopenStatusSuccess;
 }
 
@@ -864,22 +876,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::VerifyForward()
 {
-    //	T alpha = 0., beta  = 0.;
-    Tref epsilon = static_cast<Tref>(EPSILON);
+    RunForwardCPU();
 
-    int match = 1;
+    double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
 
-    miopenBNActiveVerify(inflags,
-                         inputTensor,
-                         activDesc,
-                         epsilon,
-                         runningMean_host.data(),
-                         runningVariance_host.data(),
-                         in,
-                         ba_host,
-                         scale_host,
-                         bias_host,
-                         out);
+    int match = miopenBNActiveFwdInferVerify(out.size(), out_host.data(), out.data(), allowedEps);
 
     if(match)
         printf("Forward Activation Verifies on CPU and GPU\n");
