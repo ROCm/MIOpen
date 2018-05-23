@@ -45,7 +45,7 @@
 #include "random.hpp"
 #include "mloNeuronHost.hpp"
 
-#include <miopen/batch_norm_activ.hpp>
+#include <miopen/conv_batch_norm_activ.hpp>
 
 #define MIO_BN_DEBUG 0
 #define MIO_BN_MAX_DEBUGLOOP 65536
@@ -176,7 +176,7 @@ class CBAInferFusionDriver : public Driver
     std::vector<Tgpu> bn_res_host;
     std::vector<Tref> out_host;
 
-    std::vector<Tgpu> workspace_fwd;
+    //std::vector<Tgpu> workspace_fwd;
 
     std::vector<Tgpu> scale;
     // std::vector<Tgpu> scale_host;
@@ -188,13 +188,13 @@ class CBAInferFusionDriver : public Driver
     // std::vector<Tref> runningMean_host;
     // std::vector<Tref> runningVariance_host;
 
-    std::vector<Tgpu> saveMean;
-    std::vector<Tgpu> saveInvVariance;
+    //std::vector<Tgpu> saveMean;
+    //std::vector<Tgpu> saveInvVariance;
 
-    std::vector<Tref> saveMean_host;
-    std::vector<Tref> saveInvVariance_host;
+    //std::vector<Tref> saveMean_host;
+    //std::vector<Tref> saveInvVariance_host;
 
-    std::vector<Tref> workspace_fwd_host;
+    //std::vector<Tref> workspace_fwd_host;
 
     int createSaveBuffers();
     int createRunningBuffers();
@@ -504,8 +504,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     {
         workspace_fwd_dev =
             std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceNbVal_fwd, sizeof(Tgpu)));
-        workspace_fwd      = std::vector<Tgpu>(workSpaceNbVal_fwd, static_cast<Tgpu>(0));
-        workspace_fwd_host = std::vector<Tref>(workSpaceNbVal_fwd, static_cast<Tref>(0));
+        //workspace_fwd      = std::vector<Tgpu>(workSpaceNbVal_fwd, static_cast<Tgpu>(0));
+        //workspace_fwd_host = std::vector<Tref>(workSpaceNbVal_fwd, static_cast<Tref>(0));
     }
 
 #if 0
