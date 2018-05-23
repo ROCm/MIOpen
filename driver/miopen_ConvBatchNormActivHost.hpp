@@ -29,6 +29,8 @@
 
 #include <cmath>
 #include <iomanip>
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
 
 #define MIO_HEIRARCH_SEL 0
 
@@ -37,10 +39,7 @@
 #endif
 
 template <typename T>
-int miopenBNActiveBNSpatialFwdInferHost(int n_batchs,
-                                        int channels,
-                                        int height,
-                                        int width,
+int miopenBNActiveBNSpatialFwdInferHost(miopenTensorDescriptor_t inputTensor,
                                         const T* in_ptr,
                                         T* out_ptr,
                                         T* scale_ptr,
@@ -50,6 +49,13 @@ int miopenBNActiveBNSpatialFwdInferHost(int n_batchs,
                                         double* estimatedMean,
                                         double* estimatedVariance)
 {
+    int nIn, cIn, hIn, wIn;
+    miopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
+
+    int n_batchs = nIn;
+    int channels = cIn;
+    int height   = hIn;
+    int width    = wIn;
 
     unsigned int index;
     unsigned int adjIndex;
@@ -224,10 +230,7 @@ int miopenBNActiveBNSpatialFwdInferHost(int n_batchs,
 }
 
 template <typename T>
-int miopenBNActiveBNPerActivFwdInferHost(int n_batchs,
-                                         int channels,
-                                         int height,
-                                         int width,
+int miopenBNActiveBNPerActivFwdInferHost(miopenTensorDescriptor_t inputTensor,
                                          const T* in_ptr,
                                          T* out_ptr,
                                          T* scale_ptr,
@@ -237,6 +240,14 @@ int miopenBNActiveBNPerActivFwdInferHost(int n_batchs,
                                          double* estimatedMean,
                                          double* estimatedVariance)
 { // use running mean and variance
+
+    int nIn, cIn, hIn, wIn;
+    miopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
+
+    int n_batchs = nIn;
+    int channels = cIn;
+    int height   = hIn;
+    int width    = wIn;
 
     // C*H*W is also stored as in_nstride, H*W is in_cstride, W is in_hstride.
     unsigned int index;
@@ -430,55 +441,63 @@ int miopenBNActiveFwdInferVerify(size_t size,
 }
 
 template <typename Tgpu, typename Tref>
-int ConvForwardCPU(std::vector<Tgpu> in, std::vector<Tgpu> outhost, std::vector<Tgpu> wei, std::vector<Tgpu> b, int bias, miopenConvolutionDescriptor_t convDesc, miopenTensorDescriptor_t inputTensor, miopenTensorDescriptor_t weightTensor, miopenTensorDescriptor_t outputTensor)
+int ConvForwardCPU(std::vector<Tgpu> in,
+                   std::vector<Tgpu> outhost,
+                   std::vector<Tgpu> wei,
+                   std::vector<Tgpu> b,
+                   int bias,
+                   miopenConvolutionDescriptor_t convDesc,
+                   miopenTensorDescriptor_t inputTensor,
+                   miopenTensorDescriptor_t weightTensor,
+                   miopenTensorDescriptor_t outputTensor)
 {
 
     int in_n, in_c, in_h, in_w;
     int in_nstride, in_cstride, in_hstride, in_wstride;
     miopenDataType_t dt;
     miopenGet4dTensorDescriptor(inputTensor,
-            &dt,
-            &in_n,
-            &in_c,
-            &in_h,
-            &in_w,
-            &in_nstride,
-            &in_cstride,
-            &in_hstride,
-            &in_wstride);
+                                &dt,
+                                &in_n,
+                                &in_c,
+                                &in_h,
+                                &in_w,
+                                &in_nstride,
+                                &in_cstride,
+                                &in_hstride,
+                                &in_wstride);
 
     int wei_n, wei_c, wei_h, wei_w;
     int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
 
     miopenGet4dTensorDescriptor(weightTensor,
-            &dt,
-            &wei_n,
-            &wei_c,
-            &wei_h,
-            &wei_w,
-            &wei_nstride,
-            &wei_cstride,
-            &wei_hstride,
-            &wei_wstride);
+                                &dt,
+                                &wei_n,
+                                &wei_c,
+                                &wei_h,
+                                &wei_w,
+                                &wei_nstride,
+                                &wei_cstride,
+                                &wei_hstride,
+                                &wei_wstride);
 
     int out_n, out_c, out_h, out_w;
     int out_nstride, out_cstride, out_hstride, out_wstride;
     miopenGet4dTensorDescriptor(outputTensor,
-            &dt,
-            &out_n,
-            &out_c,
-            &out_h,
-            &out_w,
-            &out_nstride,
-            &out_cstride,
-            &out_hstride,
-            &out_wstride);
+                                &dt,
+                                &out_n,
+                                &out_c,
+                                &out_h,
+                                &out_w,
+                                &out_nstride,
+                                &out_cstride,
+                                &out_hstride,
+                                &out_wstride);
 
     int u, v, pad_h, pad_w, dilation_h, dilation_w;
     miopenConvolutionMode_t mode;
     miopenPaddingMode_t pmode = miopen::deref(convDesc).paddingMode;
     miopenGetConvolutionDescriptor(
-            convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
     if(pmode == miopenPaddingSame)
     {
@@ -497,15 +516,15 @@ int ConvForwardCPU(std::vector<Tgpu> in, std::vector<Tgpu> outhost, std::vector<
         MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
 
     miopenGet4dTensorDescriptor(weightTensor,
-            &dt,
-            &wei_n,
-            &wei_c,
-            &wei_h,
-            &wei_w,
-            &wei_nstride,
-            &wei_cstride,
-            &wei_hstride,
-            &wei_wstride);
+                                &dt,
+                                &wei_n,
+                                &wei_c,
+                                &wei_h,
+                                &wei_w,
+                                &wei_nstride,
+                                &wei_cstride,
+                                &wei_hstride,
+                                &wei_wstride);
 
     for(int o = 0; o < out_n; o++)
     { // mini-batch size
@@ -530,19 +549,18 @@ int ConvForwardCPU(std::vector<Tgpu> in, std::vector<Tgpu> outhost, std::vector<
                                     int in_y = in_off_w - pad_w + y * dilation_w;
                                     if(in_y >= 0 && in_y < in_w)
                                     {
-                                        acc += static_cast<Tref>(
-                                                in[o * in_nstride + k * in_cstride +
-                                                in_x * in_w + in_y]) *
+                                        acc +=
+                                            static_cast<Tref>(in[o * in_nstride + k * in_cstride +
+                                                                 in_x * in_w + in_y]) *
                                             static_cast<Tref>(
-                                                    wei[w * wei_nstride + k * wei_cstride +
+                                                wei[w * wei_nstride + k * wei_cstride +
                                                     x * wei_hstride + y]);
                                     }
                                 }
                             }
                         }
                     }
-                    acc =
-                        bias != 0 ? acc + static_cast<Tref>(b[w]) : acc;
+                    acc = bias != 0 ? acc + static_cast<Tref>(b[w]) : acc;
                     outhost[o * out_nstride + w * out_cstride + i * out_hstride + j] = acc;
                 }
             }
@@ -553,37 +571,44 @@ int ConvForwardCPU(std::vector<Tgpu> in, std::vector<Tgpu> outhost, std::vector<
 }
 
 template <typename Tgpu, typename Tref>
-int miopenBNActiveVerify(miopenBatchNormMode_t bn_mode,
-                         int batch_sz,
-                         int channels,
-                         int height,
-                         int width,
-                         const Tgpu* in_ptr,
-                         Tgpu* BNout_ptr,
-                         Tgpu* scale_ptr,
-                         Tgpu* bias_ptr,
-                         double epsilon,
+int miopenBNActiveVerify(InputFlags inflags,
+                         miopenTensorDescriptor_t inputTensor,
+                         miopenActivationDescriptor_t activDesc,
+                         Tref epsilon,
                          double* estimatedMean,
                          double* estimatedVariance,
-                         int neuron_type,
-                         Tref gamma,
-                         Tref beta,
-                         Tref alpha,
-                         size_t size,
-                         Tgpu* out_ptr,
-                         Tref allowedEps)
+                         std::vector<Tgpu> in,
+                         std::vector<Tgpu> bn_res,
+                         std::vector<Tgpu> scale,
+                         std::vector<Tgpu> bias,
+                         std::vector<Tgpu> out)
 {
+    miopenBatchNormMode_t bn_mode;
+    if(inflags.GetValueInt("bnMode") == 0)
+    {
+        bn_mode = miopenBNPerActivation;
+    }
+    else if(inflags.GetValueInt("bnMode") == 1)
+    {
+        bn_mode = miopenBNSpatial;
+    }
+    else
+    {
+        printf("Incorrect Batch Normalization Mode\n");
+        exit(EXIT_FAILURE);
+    }
+
+    double activ_alpha, activ_beta, activ_gamma;
+    miopenActivationMode_t activ_mode;
+    miopenGetActivationDescriptor(activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
 
     if(bn_mode == miopenBNPerActivation)
     { // 1xCxHxW
-        miopenBNActiveBNPerActivFwdInferHost(batch_sz,
-                                             channels,
-                                             height,
-                                             width,
-                                             in_ptr,
-                                             BNout_ptr,
-                                             scale_ptr,
-                                             bias_ptr,
+        miopenBNActiveBNPerActivFwdInferHost(inputTensor,
+                                             in.data(),
+                                             bn_res.data(),
+                                             scale.data(),
+                                             bias.data(),
                                              epsilon,
                                              true,
                                              estimatedMean,
@@ -591,25 +616,24 @@ int miopenBNActiveVerify(miopenBatchNormMode_t bn_mode,
     }
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
-        miopenBNActiveBNSpatialFwdInferHost(batch_sz,
-                                            channels,
-                                            height,
-                                            width,
-                                            in_ptr,
-                                            BNout_ptr,
-                                            scale_ptr,
-                                            bias_ptr,
+        miopenBNActiveBNSpatialFwdInferHost(inputTensor,
+                                            in.data(),
+                                            bn_res.data(),
+                                            scale.data(),
+                                            bias.data(),
                                             epsilon,
                                             true,
                                             estimatedMean,
                                             estimatedVariance);
     }
 
-    Tref* c_res = new Tref[size];
+    Tref* c_res = new Tref[out.size()];
     miopenBNActiveNeuronFwdInferHost<Tgpu, Tref>(
-        neuron_type, gamma, beta, alpha, size, BNout_ptr, c_res);
+        activ_mode, activ_gamma, activ_beta, activ_alpha, out.size(), bn_res.data(), c_res);
 
-    int match = miopenBNActiveFwdInferVerify<Tgpu, Tref>(size, c_res, out_ptr, allowedEps);
+    double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
+
+    int match = miopenBNActiveFwdInferVerify<Tgpu, Tref>(out.size(), c_res, out.data(), allowedEps);
 
     return match;
 }
