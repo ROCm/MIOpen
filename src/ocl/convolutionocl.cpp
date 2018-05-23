@@ -33,7 +33,7 @@
 #include <miopen/visit_float.hpp>
 #include <miopen/check_numerics.hpp>
 
-#if MIOPEN_USE_MIOPENGEMM
+#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
 #include <miopen/gemm.hpp>
 #endif
 
