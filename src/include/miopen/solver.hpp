@@ -283,10 +283,11 @@ void SearchForAllSolutions(const Context& search_params, Db db, std::vector<Solu
             !miopen::IsEnabled(MIOPEN_DEBUG_FIND_FIRST_CONV{});
 
     // clang-format off
-    bool skip_the_rest = false;
+    bool skip_the_rest = false; // cppcheck-suppress knownConditionTrueFalse
     MIOPEN_STATIC_FOR_EACH(solver, Solvers{}, {
-        if(!skip_the_rest && solver.IsApplicable(search_params) &&
-            (no_perf_filtering || solver.IsFast(search_params)))
+        if(!skip_the_rest 
+            && solver.IsApplicable(search_params)
+            && (no_perf_filtering || solver.IsFast(search_params)))
         {
             const Solution s = FindSolution(solver, search_params, db);
             if(s.Succeeded())
