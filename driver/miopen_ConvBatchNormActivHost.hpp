@@ -46,8 +46,8 @@ int miopenBNActiveBNSpatialFwdInferHost(miopenTensorDescriptor_t inputTensor,
                                         T* bias_ptr,
                                         double epsilon,
                                         bool estmeanvar,
-                                        double* estimatedMean,
-                                        double* estimatedVariance)
+                                        T* estimatedMean,
+                                        T* estimatedVariance)
 {
     int nIn, cIn, hIn, wIn;
     miopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
@@ -237,8 +237,8 @@ int miopenBNActiveBNPerActivFwdInferHost(miopenTensorDescriptor_t inputTensor,
                                          T* bias_ptr,
                                          double epsilon,
                                          bool estmeanvar,
-                                         double* estimatedMean,
-                                         double* estimatedVariance)
+                                         T* estimatedMean,
+                                         T* estimatedVariance)
 { // use running mean and variance
 
     int nIn, cIn, hIn, wIn;
