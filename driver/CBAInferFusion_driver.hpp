@@ -166,12 +166,8 @@ class CBAInferFusionDriver : public Driver
     std::unique_ptr<GPUMem> saveMean_dev;
     std::unique_ptr<GPUMem> saveInvVariance_dev;
 
-    std::unique_ptr<GPUMem> b_dev;
-    std::unique_ptr<GPUMem> db_dev;
-
-    std::vector<Tgpu> b;
-    std::vector<Tgpu> db;
-    std::vector<Tref> db_host;
+    // std::unique_ptr<GPUMem> b_dev;
+    // std::vector<Tgpu> b;
 
     std::vector<Tgpu> in;
     std::vector<Tgpu> out;
@@ -183,14 +179,14 @@ class CBAInferFusionDriver : public Driver
     std::vector<Tgpu> workspace_fwd;
 
     std::vector<Tgpu> scale;
-    std::vector<Tgpu> scale_host;
+    // std::vector<Tgpu> scale_host;
     std::vector<Tgpu> bias;
-    std::vector<Tgpu> bias_host;
+    // std::vector<Tgpu> bias_host;
 
     std::vector<Tgpu> runningMean;
     std::vector<Tgpu> runningVariance;
-    std::vector<Tref> runningMean_host;
-    std::vector<Tref> runningVariance_host;
+    // std::vector<Tref> runningMean_host;
+    // std::vector<Tref> runningVariance_host;
 
     std::vector<Tgpu> saveMean;
     std::vector<Tgpu> saveInvVariance;
@@ -451,16 +447,14 @@ int CBAInferFusionDriver<Tgpu, Tref>::createRunningBuffers()
     runningVariance = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
 
     // CPU allocation
-    runningMean_host     = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
-    runningVariance_host = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
+    // runningMean_host     = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
+    // runningVariance_host = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
 
     // Populate
     for(int i = 0; i < sb_sz; i++)
     {
-        runningMean_host[i] = runningMean[i] =
-            RAN_GEN<Tref>(static_cast<Tref>(0.0), static_cast<Tref>(1.0));
-        runningVariance_host[i] = runningVariance[i] =
-            RAN_GEN<Tref>(static_cast<Tref>(0.0), static_cast<Tref>(1.0));
+        runningMean[i]     = RAN_GEN<Tref>(static_cast<Tref>(0.0), static_cast<Tref>(1.0));
+        runningVariance[i] = RAN_GEN<Tref>(static_cast<Tref>(0.0), static_cast<Tref>(1.0));
     }
 
     // GPU data transfer
@@ -514,27 +508,20 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         workspace_fwd_host = std::vector<Tref>(workSpaceNbVal_fwd, static_cast<Tref>(0));
     }
 
+#if 0
     if(inflags.GetValueInt("bias") != 0)
     {
         size_t b_sz = GetTensorSize(biasTensor);
         b_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(Tgpu)));
-        db_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(Tgpu)));
         b           = std::vector<Tgpu>(b_sz, static_cast<Tgpu>(0));
-        db          = std::vector<Tgpu>(b_sz, static_cast<Tgpu>(0));
-        db_host     = std::vector<Tref>(b_sz, static_cast<Tref>(0));
         for(int i = 0; i < b_sz; i++)
         {
             b[i]  = static_cast<Tgpu>(i % 8);
-            db[i] = static_cast<Tgpu>(i % 8);
-            if((inflags.GetValueStr("mode")) == "trans")
-            {
-                db[i] = 0;
-            }
         }
 
         b_dev->ToGPU(q, b.data());
-        db_dev->ToGPU(q, db.data());
     }
+#endif
 
     // GPU allocation
     in_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
@@ -555,9 +542,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     bias          = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
 
     // CPU allocation
-    out_host   = std::vector<Tref>(out_sz, static_cast<Tref>(0));
-    scale_host = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-    bias_host  = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+    out_host = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
     // Data initialization
     for(int i = 0; i < in_sz; i++)
@@ -568,8 +553,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     // Using random beta and gamma
     for(int i = 0; i < sb_sz; i++)
     {
-        scale[i] = scale_host[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-        bias[i] = bias_host[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        scale[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        bias[i]  = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     }
     status |= wei_dev->ToGPU(q, wei.data());
     status |= scale_dev->ToGPU(q, scale.data());
@@ -708,6 +693,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
         printf("GPU Kernel Time Forward Conv. Elapsed: %f ms\n", time);
     }
 
+#if 0
     if(inflags.GetValueInt("bias") != 0)
     {
         if((inflags.GetValueStr("mode")) == "conv")
@@ -729,6 +715,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
             printf("GPU Kernel Time Forward Conv. Bias Elapsed: %f ms\n", time);
         }
     }
+#endif
 
     out_dev->FromGPU(GetStream(), out.data());
 
@@ -739,15 +726,8 @@ template <typename Tgpu, typename Tref>
 void CBAInferFusionDriver<Tgpu, Tref>::runCPUConvFwdInference()
 {
     int bias_mode = inflags.GetValueInt("bias");
-    ConvForwardCPU<Tgpu, Tref>(in,
-                               conv_res_host,
-                               wei,
-                               bias_host,
-                               bias_mode,
-                               convDesc,
-                               inputTensor,
-                               weightTensor,
-                               outputTensor);
+    ConvForwardCPU<Tgpu, Tref>(
+        in, conv_res_host, wei, bias, bias_mode, convDesc, inputTensor, weightTensor, outputTensor);
 
     return;
 }
@@ -773,6 +753,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
 
         float time0 = 0.0, time1 = 0.0;
 #if 0
+        Tref epsilon = static_cast<Tref>(EPSILON);
+        float alpha = static_cast<float>(1), beta = static_cast<float>(0);
         miopen::BatchNormActivForwardInference(miopen::deref(GetHandle()),
                                                bn_mode,
                                                &alpha,
@@ -858,8 +840,8 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
                                              bias.data(),
                                              epsilon,
                                              true,
-                                             runningMean_host.data(),
-                                             runningVariance_host.data());
+                                             runningMean.data(),
+                                             runningVariance.data());
     }
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
@@ -870,8 +852,8 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
                                             bias.data(),
                                             epsilon,
                                             true,
-                                            runningMean_host.data(),
-                                            runningVariance_host.data());
+                                            runningMean.data(),
+                                            runningVariance.data());
     }
     else
     {
