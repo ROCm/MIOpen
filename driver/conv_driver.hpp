@@ -490,8 +490,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     wei  = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
     dwei = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
     dout = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-  //out  = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    out  = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(1)); //debug
+    // out  = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    out = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(1)); // debug
 
     outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
@@ -518,7 +518,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < in_sz; i++)
         {
-          //in[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            // in[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
             in[i] = static_cast<Tgpu>(1.0);
         }
     }
@@ -565,7 +565,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < wei_sz; i++)
         {
-          //wei[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
+            // wei[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
             wei[i] = static_cast<Tgpu>(1.0);
         }
     }
@@ -635,7 +635,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
 
     FindForward(ret_algo_count, request_algo_count, perf_results);
 
-    //for debugging
+    // for debugging
     out_dev->FromGPU(GetStream(), out.data());
     std::cout << __func__ << ": after FindForward, out: " << out << std::endl;
 
@@ -710,7 +710,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
         }
     }
 
-    //for debugging
+    // for debugging
     out_dev->FromGPU(GetStream(), out.data());
     std::cout << __func__ << ": after miopenConvolutionForward, out: " << out << std::endl;
 

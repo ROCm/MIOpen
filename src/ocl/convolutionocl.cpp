@@ -428,72 +428,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
                 perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, 0});
             }
-            // if not 1x1
-            else if(workSpace != nullptr &&
-                    workSpaceSize >=
-                        ForwardGetWorkSpaceSizeGEMMStridedBatched(handle, xDesc, wDesc, yDesc))
-            {
-// TODO: Im2ColGPU need a batched-version
-#if 1
-                std::cout << __func__ << ": non 1x1" << std::endl;
-                std::cout << __func__ << ": non 1x1: workSpaceSize: " << workSpaceSize
-                          << ", needed: "
-                          << ForwardGetWorkSpaceSizeGEMMStridedBatched(handle, xDesc, wDesc, yDesc)
-                          << std::endl;
-                std::cout << __func__ << ": non 1x1: tmp_y size: "
-                          << yDesc.GetElementSize() * GetTypeSize(yDesc.GetType()) << std::endl;
-
-                float time_gemm = 0;
-
-                for(int i = 0; i < in_n; i++)
-                {
-                    if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
-                    {
-                        size_t in_offset = i * in_c * in_h * in_w;
-                        Im2ColGPU(handle,
-                                  xDesc.GetElementSize(),
-                                  x,
-                                  in_offset,
-                                  in_c,
-                                  in_h,
-                                  in_w,
-                                  wei_h,
-                                  wei_w,
-                                  out_h,
-                                  out_w,
-                                  pad_h,
-                                  pad_w,
-                                  u,
-                                  v,
-                                  dilation_h,
-                                  dilation_w,
-                                  workSpace);
-
-                        time_gemm += handle.GetKernelTime();
-                    }
-                }
-
-                GemmDescriptor gemm_desc = CreateGemmDescriptorConvIm2ColFwd(xDesc, wDesc, yDesc);
-
-                CallGemmStridedBatched(handle,
-                                gemm_desc,
-                                &local_alpha,
-                                w,
-                                0,
-                                workSpace,
-                                0,
-                                &local_beta,
-                                tmp_y.get(),
-                                0);
-
-                time_gemm += handle.GetKernelTime();
-                time_gemm = 0; // TODO remove this
-                perf_db.push_back(
-                    PerfField{"miopenConvolutionFwdAlgoGEMM",
-                              time_gemm,
-                              ForwardGetWorkSpaceSizeGEMMStridedBatched(handle, xDesc, wDesc, yDesc)});
-            }
-#endif
         }
 #elif MIOPEN_USE_MIOPENGEMM
         if(xDesc.GetType() == miopenFloat)
@@ -967,53 +901,79 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 {
                     std::cout << __func__ << "1x1" << std::endl;
 
-                    //for debug
+                    // for debug
                     {
-                        std::vector<float> tmp_x(xDesc.GetElementSize(),0);
-                        hipMemcpy(tmp_x.data(), x, xDesc.GetElementSize() * GetTypeSize(xDesc.GetType()), hipMemcpyHostToDevice);
-                        std::cout << __func__ << ": x before callgemmbachted: " << tmp_x << std::endl;
+                        std::vector<float> tmp_x(xDesc.GetElementSize(), 0);
+                        hipMemcpy(tmp_x.data(),
+                                  x,
+                                  xDesc.GetElementSize() * GetTypeSize(xDesc.GetType()),
+                                  hipMemcpyHostToDevice);
+                        std::cout << __func__ << ": x before callgemmbachted: " << tmp_x
+                                  << std::endl;
 
-                        std::vector<float> tmp_w(wDesc.GetElementSize(),0);
-                        hipMemcpy(tmp_w.data(), w, wDesc.GetElementSize() * GetTypeSize(wDesc.GetType()), hipMemcpyHostToDevice);
-                        std::cout << __func__ << ": w before callgemmbachted: " << tmp_w << std::endl;
+                        std::vector<float> tmp_w(wDesc.GetElementSize(), 0);
+                        hipMemcpy(tmp_w.data(),
+                                  w,
+                                  wDesc.GetElementSize() * GetTypeSize(wDesc.GetType()),
+                                  hipMemcpyHostToDevice);
+                        std::cout << __func__ << ": w before callgemmbachted: " << tmp_w
+                                  << std::endl;
 
+                        std::vector<float> tmp_y(yDesc.GetElementSize(), 0);
+                        hipMemcpy(tmp_y.data(),
+                                  y,
+                                  yDesc.GetElementSize() * GetTypeSize(yDesc.GetType()),
+                                  hipMemcpyHostToDevice);
+                        std::cout << __func__ << ": y before callgemmbachted: " << tmp_y
+                                  << std::endl;
 
-                        std::vector<float> tmp_y(yDesc.GetElementSize(),0);
-                        hipMemcpy(tmp_y.data(), y, yDesc.GetElementSize() * GetTypeSize(yDesc.GetType()), hipMemcpyHostToDevice);
-                        std::cout << __func__ << ": y before callgemmbachted: " << tmp_y << std::endl;
-
-                        float sum_y = std::accumulate(tmp_y.begin(), tmp_y.end(), float(0), std::plus<float>());
+                        float sum_y = std::accumulate(
+                            tmp_y.begin(), tmp_y.end(), float(0), std::plus<float>());
                         std::cout << __func__ << ": sum_y" << sum_y << std::endl;
                     }
 
                     GemmDescriptor gemm_desc = CreateGemmDescriptorConv1x1Fwd(xDesc, wDesc, yDesc);
 
-                    CallGemmStridedBatched(handle, gemm_desc, &local_alpha, w, 0, x, 0, &local_beta, y, 0);
+                    CallGemmStridedBatched(
+                        handle, gemm_desc, &local_alpha, w, 0, x, 0, &local_beta, y, 0);
 
-                    //for debug
+                    // for debug
                     {
-                        std::vector<float> tmp_x(xDesc.GetElementSize(),0);
-                        hipMemcpy(tmp_x.data(), x, xDesc.GetElementSize() * GetTypeSize(xDesc.GetType()), hipMemcpyHostToDevice);
-                        std::cout << __func__ << ": x after callgemmbachted: " << tmp_x << std::endl;
+                        std::vector<float> tmp_x(xDesc.GetElementSize(), 0);
+                        hipMemcpy(tmp_x.data(),
+                                  x,
+                                  xDesc.GetElementSize() * GetTypeSize(xDesc.GetType()),
+                                  hipMemcpyHostToDevice);
+                        std::cout << __func__ << ": x after callgemmbachted: " << tmp_x
+                                  << std::endl;
 
-                        std::vector<float> tmp_w(wDesc.GetElementSize(),0);
-                        hipMemcpy(tmp_w.data(), w, wDesc.GetElementSize() * GetTypeSize(wDesc.GetType()), hipMemcpyHostToDevice);
-                        std::cout << __func__ << ": w after callgemmbachted: " << tmp_w << std::endl;
+                        std::vector<float> tmp_w(wDesc.GetElementSize(), 0);
+                        hipMemcpy(tmp_w.data(),
+                                  w,
+                                  wDesc.GetElementSize() * GetTypeSize(wDesc.GetType()),
+                                  hipMemcpyHostToDevice);
+                        std::cout << __func__ << ": w after callgemmbachted: " << tmp_w
+                                  << std::endl;
 
-                        std::vector<float> tmp_y(yDesc.GetElementSize(),0);
-                        hipMemcpy(tmp_y.data(), y, yDesc.GetElementSize() * GetTypeSize(yDesc.GetType()), hipMemcpyHostToDevice);
-                        std::cout << __func__ << ": y after callgemmbachted: " << tmp_y << std::endl;
+                        std::vector<float> tmp_y(yDesc.GetElementSize(), 0);
+                        hipMemcpy(tmp_y.data(),
+                                  y,
+                                  yDesc.GetElementSize() * GetTypeSize(yDesc.GetType()),
+                                  hipMemcpyHostToDevice);
+                        std::cout << __func__ << ": y after callgemmbachted: " << tmp_y
+                                  << std::endl;
 
-                        float sum_y = std::accumulate(tmp_y.begin(), tmp_y.end(), float(0), std::plus<float>());
+                        float sum_y = std::accumulate(
+                            tmp_y.begin(), tmp_y.end(), float(0), std::plus<float>());
                         std::cout << __func__ << ": sum_y" << sum_y << std::endl;
                     }
                 }
+#if 0
                 // if not 1x1
                 else if(workSpace != nullptr &&
                         workSpaceSize >=
                             ForwardGetWorkSpaceSizeGEMMStridedBatched(handle, xDesc, wDesc, yDesc))
                 {
-#if 1
                     std::cout << __func__ << ": non 1x1" << std::endl;
                     std::cout << __func__ << ": non 1x1: workSpaceSize: " << workSpaceSize
                               << ", needed: "
