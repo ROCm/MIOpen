@@ -44,7 +44,7 @@ extern "C" miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* f
                                                  miopenFusionDirection_t fuseDirection,
                                                  const miopenTensorDescriptor_t inputDesc)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc, fuseDirection, inputDesc, outputDesc);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, fuseDirection, inputDesc);
     return (miopenStatusSuccess);
 }
 
@@ -192,7 +192,7 @@ extern "C" miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
                                                      const void* beta,
                                                      const void* w)
 {
-    MIOPEN_LOG_FUNCTION(args, convOp, w);
+    MIOPEN_LOG_FUNCTION(args, alpha, beta, convOp, w);
     return (miopenStatusSuccess);
 }
 
@@ -204,7 +204,7 @@ extern "C" miopenStatus_t miopenSetOpArgsConvBackwardData(miopenOperatorArgs_t a
                                                           void* workSpace,
                                                           size_t workSpaceSize)
 {
-    MIOPEN_LOG_FUNCTION(args, convOp, w, workSpace, workSpaceSize);
+    MIOPEN_LOG_FUNCTION(args, convOp, alpha, beta, w, workSpace, workSpaceSize);
     return (miopenStatusSuccess);
 }
 
@@ -218,7 +218,7 @@ miopenSetOpArgsConvBackwardWeights(miopenOperatorArgs_t args,
                                    void* workSpace,
                                    size_t workSpaceSize)
 {
-    MIOPEN_LOG_FUNCTION(args, convOp, x, dw, workSpace, workSpaceSize);
+    MIOPEN_LOG_FUNCTION(args, convOp, alpha, beta, x, dw, workSpace, workSpaceSize);
     return (miopenStatusSuccess);
 }
 //----
@@ -234,7 +234,8 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t
                                                             const void* estimatedVariance,
                                                             double epsilon)
 {
-    MIOPEN_LOG_FUNCTION(args, bnOp, bnScale, bnBias, estimatedMean, estimatedVariance, epsilon);
+    MIOPEN_LOG_FUNCTION(
+        args, bnOp, alpha, beta, bnScale, bnBias, estimatedMean, estimatedVariance, epsilon);
     return (miopenStatusSuccess);
 }
 
@@ -252,6 +253,8 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_t a
 {
     MIOPEN_LOG_FUNCTION(args,
                         bnOp,
+                        alpha,
+                        beta,
                         bnScale,
                         bnBias,
                         savedMean,
@@ -273,8 +276,16 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs_t 
                                                            const void* savedMean,
                                                            const void* savedInvVariance)
 {
-    MIOPEN_LOG_FUNCTION(
-        args, bnOp, x, bnScale, resultBnScaleDiff, resultBnBiasDiff, savedMean, savedInvVariance);
+    MIOPEN_LOG_FUNCTION(args,
+                        bnOp,
+                        alpha,
+                        beta,
+                        x,
+                        bnScale,
+                        resultBnScaleDiff,
+                        resultBnBiasDiff,
+                        savedMean,
+                        savedInvVariance);
     return (miopenStatusSuccess);
 }
 //---
@@ -289,7 +300,7 @@ extern "C" miopenStatus_t miopenSetOpArgsPoolingForward(miopenOperatorArgs_t arg
                                                         size_t workSpaceSize)
 {
 
-    MIOPEN_LOG_FUNCTION(args, poolingOp, do_backward, workSpace, workSpaceSize);
+    MIOPEN_LOG_FUNCTION(args, poolingOp, alpha, beta, do_backward, workSpace, workSpaceSize);
     return (miopenStatusSuccess);
 }
 
@@ -303,15 +314,13 @@ extern "C" miopenStatus_t miopenSetOpArgsPoolingBackward(miopenOperatorArgs_t ar
                                                          size_t workSpaceSize)
 {
 
-    MIOPEN_LOG_FUNCTION(args, poolingOp, y, x, workSpace, workSpaceSize);
+    MIOPEN_LOG_FUNCTION(args, poolingOp, alpha, beta, y, x, workSpace, workSpaceSize);
     return (miopenStatusSuccess);
 }
 //----
 
 extern "C" miopenStatus_t miopenSetOpArgsTensorOp(miopenOperatorArgs_t args,
                                                   const miopenOperatorDescriptor_t tOp,
-                                                  const void* alpha,
-                                                  const void* beta,
                                                   const void* alpha1,
                                                   const void* alpha2,
                                                   const void* B,
