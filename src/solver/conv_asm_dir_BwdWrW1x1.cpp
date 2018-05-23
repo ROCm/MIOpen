@@ -440,11 +440,6 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 
-    if(params.n_passes)
-    {
-        return false;
-    }
-
     if(!(params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
     {
         return false;
@@ -514,7 +509,6 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
     if(UseSubsample(params))
     {
-
         // subsampled input, in_height equals to image size after downsampling
         int in_batch_stride = params.in_stride * params.in_height * params.n_outputs;
         int write_unit      = (params.in_width % 4 == 0) ? 4 : (params.in_width % 3 == 0)
@@ -706,10 +700,10 @@ int ConvAsmBwdWrW1x1::RunAndMeasureSolution(miopen::Handle& profile_h,
 
 PerformanceConfigConvAsmBwdWrW1x1 ConvAsmBwdWrW1x1::Search(const ConvolutionContext& context) const
 {
-    return GenericSearch(*this,
-                         context,
-                         UseSubsample(context) ? SearchTweak::Skipped2xSubsample_dxWrW
-                                               : SearchTweak::None);
+    if(UseSubsample(context))
+        return GenericSearch(*this, context, SearchTweak::OverrideXBufferSizeByWorkspaceSize);
+    else
+        return GenericSearch(*this, context);
 }
 
 } // namespace solver
