@@ -10,7 +10,7 @@ std::string Write2s()
     return "__kernel void write(__global int* data) { data[get_global_id(0)] *= 2; }\n";
 }
 
-void run(miopen::Handle& h, std::size_t n)
+void run2s(miopen::Handle& h, std::size_t n)
 {
     std::vector<int> data_in(n, 1);
     auto data_dev = h.Write(data_in);
@@ -22,11 +22,49 @@ void run(miopen::Handle& h, std::size_t n)
     CHECK(data_out == data_in);
 }
 
-int main()
+void test_multithreads()
 {
     auto&& h = get_handle();
-    std::thread([&] { run(h, 16); }).join();
-    std::thread([&] { run(h, 32); }).join();
-    std::thread([&] { std::thread([&] { run(h, 64); }).join(); }).join();
-    run(h, 4);
+    std::thread([&] { run2s(h, 16); }).join();
+    std::thread([&] { run2s(h, 32); }).join();
+    std::thread([&] { std::thread([&] { run2s(h, 64); }).join(); }).join();
+    run2s(h, 4);
+}
+
+std::string WriteError() { return "__kernel void write(__global int* data) { data[i] = 0; }\n"; }
+
+void test_errors()
+{
+    auto&& h = get_handle();
+    EXPECT(throws([&] {
+        h.AddKernel("GEMM", "", WriteError(), "write", {1, 1, 1}, {1, 1, 1}, "");
+    }));
+    try
+    {
+        h.AddKernel("GEMM", "", WriteError(), "write", {1, 1, 1}, {1, 1, 1}, "");
+    }
+    catch(miopen::Exception& e)
+    {
+        EXPECT(!std::string(e.what()).empty());
+    }
+}
+
+std::string WriteNop() { return "__kernel void write(__global int* data) {}\n"; }
+
+void test_warnings()
+{
+    auto&& h = get_handle();
+#if MIOPEN_BUILD_DEV
+    EXPECT(throws([&] { h.AddKernel("GEMM", "", WriteNop(), "write", {1, 1, 1}, {1, 1, 1}, ""); }));
+#endif
+}
+
+int main()
+{
+    test_multithreads();
+    test_errors();
+// Warnings currently dont work in opencl
+#if !MIOPEN_BACKEND_OPENCL
+    test_warnings();
+#endif
 }
