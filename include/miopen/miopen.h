@@ -1732,11 +1732,10 @@ typedef struct miopen_op_cost
 
 /*! @brief Creates the kenrel fusion plan descriptor object
 *
-* @param fusePlanDesc Pointer to a fusion plan (output)
+* @param fusePlanDesc  Pointer to a fusion plan (output)
 * @param fuseDirection Horizontal or Vertical fusion (input)
 * @param inputDesc     Descriptor to tensor for the input (input)
-* @param outputDesc     Descriptor to tensor for the output (input)
-* @return          miopenStatus_t
+* @return              miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* fusePlanDesc,
                                                     miopenFusionDirection_t fuseDirection,
@@ -1744,8 +1743,8 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t
 
 /*! @brief Destroy the fusion plan descriptor object
 *
-* @param fusePlanDesc A fusion plan descriptor type
-* @return          miopenStatus_t
+* @param fusePlanDesc  A fusion plan descriptor type
+* @return              miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
 miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc);
@@ -1753,7 +1752,7 @@ miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc);
 /*! @brief Checks if a fusion plan is supported
 *
 * @param fusePlanDesc A fusion plan descriptor
-* @return          miopenStatus_t
+* @return             miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenIsFusionPlanValid(miopenFusionPlanDescriptor_t fusePlanDesc);
 
@@ -1785,7 +1784,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescripto
 * @param fusePlanDesc   A fusion plan descriptor (input)
 * @param convOp         Pointer to an operator type (output)
 * @param convDesc       Convolution layer descriptor (input)
-* @param bwdDataAlgo        A MIOpen backwards data convolutin algorithm (input)
+* @param bwdDataAlgo    A MIOpen backwards data convolutin algorithm (input)
 * @param wDesc          Descriptor for the weights tensor (input)
 * @return               miopenStatus_t
 */
@@ -1818,7 +1817,7 @@ miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
 *
 * @param fusePlanDesc    A fusion plan descriptor (input)
 * @param activOp         Pointer to an operator type (output)
-* @param activDesc      Activation layer descriptor (input)
+* @param activDesc       Activation layer descriptor (input)
 * @return                miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
@@ -1830,7 +1829,7 @@ miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
 *
 * @param fusePlanDesc    A fusion plan descriptor (input)
 * @param activOp         Pointer to an operator type (output)
-* @param activDesc      Activation layer descriptor (input)
+* @param activDesc       Activation layer descriptor (input)
 * @return                miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
@@ -1881,7 +1880,7 @@ miopenCreateOpBatchNormBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
 /*! @brief Creates tensor op operator
 *
 * @param fusePlanDesc  A fusion plan descriptor (input)
-* @param tOp      Pointer to an operator type (output)
+* @param tOp           Pointer to an operator type (output)
 * @param tensorOp      A tensor operation (input)
 * @param bDesc         Descriptor for operand b of the tensor op (input)
 * @return              miopenStatus_t
