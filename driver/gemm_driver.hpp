@@ -38,6 +38,61 @@
 #include <vector>
 
 template <typename T>
+void cpuGemmStridedBatched(miopen::GemmDescriptor gemm_desc,
+                           const void* alpha,
+                           const void* A,
+                           int a_offset,
+                           const void* B,
+                           int b_offset,
+                           const void* beta,
+                           void* C,
+                           int c_offset)
+{
+
+    const T* a_ptr = static_cast<const T*>(A);
+    const T* b_ptr = static_cast<const T*>(B);
+    T* c_ptr       = static_cast<T*>(C);
+
+    const T alpha_local = *static_cast<const T*>(alpha);
+    const T beta_local  = *static_cast<const T*>(beta);
+
+    // our cpu GEMM logic is row-major
+    if(gemm_desc.isColMajor)
+    {
+        gemm_desc.isColMajor = false;
+        std::swap(a_ptr, b_ptr);
+        std::swap(a_offset, b_offset);
+        std::swap(gemm_desc.transA, gemm_desc.transB);
+        std::swap(gemm_desc.m, gemm_desc.n);
+        std::swap(gemm_desc.lda, gemm_desc.ldb);
+        std::swap(gemm_desc.strideA, gemm_desc.strideB);
+    }
+
+    for(int bi = 0; bi < gemm_desc.batch_count; ++bi)
+    {
+        for(int mi = 0; mi < gemm_desc.m; ++mi)
+        {
+            for(int ni = 0; ni < gemm_desc.n; ++ni)
+            {
+                double y = 0;
+                for(int ki = 0; ki < gemm_desc.k; ++ki)
+                {
+                    int aindex = gemm_desc.transA
+                                     ? a_offset + gemm_desc.strideA * bi + gemm_desc.lda * ki + mi
+                                     : a_offset + gemm_desc.strideA * bi + gemm_desc.lda * mi + ki;
+                    int bindex = gemm_desc.transB
+                                     ? b_offset + gemm_desc.strideB * bi + gemm_desc.ldb * ni + ki
+                                     : b_offset + gemm_desc.strideB * bi + gemm_desc.ldb * ki + ni;
+                    y += a_ptr[aindex] * b_ptr[bindex];
+                }
+                int cindex    = c_offset + gemm_desc.strideC * bi + gemm_desc.ldc * mi + ni;
+                c_ptr[cindex] = alpha_local * y + beta_local * c_ptr[cindex];
+            }
+        }
+    }
+}
+
+template <typename T>
 class GemmDriver : public Driver
 {
     public:
@@ -163,18 +218,18 @@ int GemmDriver<T>::AllocateBuffersAndCopy()
     b = std::vector<T>(b_sz);
     // c     = std::vector<T>(c_sz, 0.);
     c     = std::vector<T>(c_sz, 1.); // debug
-    chost = std::vector<T>(c_sz, 0.);
+    chost = c;
 
     for(int i = 0; i < a_sz; i++)
     {
-        a[i] = static_cast<T>(static_cast<double>(rand()) * (1.0 / RAND_MAX));
-        a[i] = static_cast<double>(1.0); // for debug
+        a[i] = static_cast<double>(rand()) * (1.0 / RAND_MAX);
+        a[i] = static_cast<double>(i); // for debug
     }
 
     for(int i = 0; i < b_sz; i++)
     {
         b[i] = static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5) * 0.001;
-        b[i] = static_cast<double>(1.0); // debug
+        b[i] = static_cast<double>(i); // debug
     }
 #if MIOPEN_BACKEND_OPENCL
     cl_int status;
@@ -280,30 +335,7 @@ int GemmDriver<T>::RunForwardGPU()
 template <typename T>
 int GemmDriver<T>::RunForwardCPU()
 {
-    miopen::GemmDescriptor desc_tmp = desc;
-
-    const T* a_ptr = a.data();
-    const T* b_ptr = b.data();
-
-    if(desc_tmp.isColMajor || desc_tmp.transA || desc_tmp.transB)
-        MIOPEN_THROW("cannot deal with isColMajor, transA or transB for now");
-
-    for(int bi = 0; bi < desc_tmp.batch_count; ++bi)
-    {
-        for(int mi = 0; mi < desc_tmp.m; ++mi)
-        {
-            for(int ni = 0; ni < desc_tmp.n; ++ni)
-            {
-                double y = 0;
-                for(int ki = 0; ki < desc_tmp.k; ++ki)
-                {
-                    y += a_ptr[desc_tmp.strideA * bi + desc_tmp.lda * mi + ki] *
-                         b_ptr[desc_tmp.strideB * bi + desc_tmp.ldb * ki + ni];
-                }
-                chost[desc_tmp.strideC * bi + desc_tmp.ldc * mi + ni] = y;
-            }
-        }
-    }
+    cpuGemmStridedBatched<T>(desc, &alpha, a.data(), 0, b.data(), 0, &beta, chost.data(), 0);
 
     return 0;
 }
