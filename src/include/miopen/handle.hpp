@@ -53,7 +53,7 @@ struct GemmGeometry;
 using GemmKey = std::pair<std::string, std::string>;
 #endif
 
-#if MIOPEN_USE_MIOPENGEMM
+#if MIOPEN_USE_ROCBLAS
 using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_handle);
 #endif
 
