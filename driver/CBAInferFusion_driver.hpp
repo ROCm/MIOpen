@@ -846,7 +846,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
         miopenBNActiveBNSpatialFwdInferHost(inputTensor,
-                                            in.data(),
+                                            conv_res_host.data(),
                                             bn_res_host.data(),
                                             scale.data(),
                                             bias.data(),
