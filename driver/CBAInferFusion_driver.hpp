@@ -46,6 +46,7 @@
 #include "mloNeuronHost.hpp"
 
 #include <miopen/conv_batch_norm_activ.hpp>
+#include <miopen/batch_norm_activ.hpp>
 
 #define MIO_BN_DEBUG 0
 #define MIO_BN_MAX_DEBUGLOOP 65536
@@ -176,7 +177,7 @@ class CBAInferFusionDriver : public Driver
     std::vector<Tgpu> bn_res_host;
     std::vector<Tref> out_host;
 
-    //std::vector<Tgpu> workspace_fwd;
+    // std::vector<Tgpu> workspace_fwd;
 
     std::vector<Tgpu> scale;
     // std::vector<Tgpu> scale_host;
@@ -188,13 +189,13 @@ class CBAInferFusionDriver : public Driver
     // std::vector<Tref> runningMean_host;
     // std::vector<Tref> runningVariance_host;
 
-    //std::vector<Tgpu> saveMean;
-    //std::vector<Tgpu> saveInvVariance;
+    // std::vector<Tgpu> saveMean;
+    // std::vector<Tgpu> saveInvVariance;
 
-    //std::vector<Tref> saveMean_host;
-    //std::vector<Tref> saveInvVariance_host;
+    // std::vector<Tref> saveMean_host;
+    // std::vector<Tref> saveInvVariance_host;
 
-    //std::vector<Tref> workspace_fwd_host;
+    // std::vector<Tref> workspace_fwd_host;
 
     int createSaveBuffers();
     int createRunningBuffers();
@@ -265,7 +266,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
     SetTensor4d(inputTensor, in_len, data_type);
     SetTensor4d(weightTensor, wei_len, data_type);
     SetTensor4d(biasScaleTensor, sb_len, data_type);
-    SetTensor4d(outputTensor, in_len, data_type);
+    //SetTensor4d(outputTensor, in_len, data_type);
 
     if(inflags.GetValueInt("bias") != 0)
     {
@@ -275,6 +276,12 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
     }
 
     SetActivationDescriptorFromCmdLineArgs();
+
+    std::vector<int> out_len = GetOutputTensorLengths();
+
+    SetTensor4d(outputTensor, out_len, data_type);
+
+    SetConvDescriptorFromCmdLineArgs();
 
     return miopenStatusSuccess;
 }
@@ -318,6 +325,9 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("dilation_w", 'j', "1", "Dilation of Filter Width (Default=1)", "int");
     inflags.AddInputFlag("search", 's', "0", "Search Kernel Config (Default=0)", "int");
 
+    inflags.AddInputFlag(
+        "pad_mode", 'z', "conv", "Padding Mode (same, valid, default) (Default=default)", "str");
+
     return miopenStatusSuccess;
 }
 
@@ -328,6 +338,8 @@ std::vector<int> CBAInferFusionDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdL
     int in_c = inflags.GetValueInt("in_channels");
     int in_h = inflags.GetValueInt("in_h");
     int in_w = inflags.GetValueInt("in_w");
+
+    std::cerr << "inDesc = " << in_n <<"," << in_c << "," << in_h << "," << in_w << std::endl;
 
     return std::vector<int>({in_n, in_c, in_h, in_w});
 }
@@ -352,6 +364,25 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetBNParametersFromCmdLineArgs()
     }
 
     return miopenStatusSuccess;
+}
+
+bool IsDirectSupported(int wei_h, int wei_w, int pad_h, int pad_w, int u, int v)
+{
+    bool supported_filters =
+        ((wei_h == 1 && wei_w == 1) || (wei_h == 3 && wei_w == 3) ||
+         (wei_h == 5 && wei_w == 5) || (wei_h == 7 && wei_w == 7) ||
+         (wei_h == 9 && wei_w == 9) ||
+         (wei_h == 11 && wei_w == 11) ||
+         (wei_h == 5 && wei_w == 10 && u == 2 && v == 2 && pad_h == 0 &&
+          pad_w == 0) ||
+         (wei_h == 5 && wei_w == 20 && u == 2 && v == 2 && pad_h == 0 &&
+          pad_w == 0));
+
+    bool workarounds = ((wei_h == 3 && wei_w == 3 && (u > 2 || v > 2)) ||
+                        (wei_h == 1 && wei_w == 1 && (pad_h > 0 || pad_w > 0)) ||
+                        (wei_h % 2 == 0 && wei_w % 2 == 0));
+
+    return (supported_filters && !workarounds);
 }
 
 template <typename Tgpu, typename Tref>
@@ -389,6 +420,14 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
         mode  = miopenConvolution;
         pad_h = 0;
         pad_w = 0;
+    }
+
+    std::cerr << "convDesc = "  << wei_h << "," << wei_w << "," << pad_h << "," << pad_w << "," << u << "," << v << "," << dilation_h << "," << dilation_w << std::endl;
+
+    if(!IsDirectSupported(wei_h, wei_w, pad_h, pad_w, u, v))
+    {
+        std::cerr << "Direct is not support" << std::endl; 
+        return -1;
     }
 
     miopen::deref(convDesc) =
@@ -500,12 +539,12 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     size_t workSpaceNbVal_fwd = workSpaceSize_fwd / sizeof(Tgpu);
 
+    std::cerr << "workSpaceNbVal_fwd = " << workSpaceNbVal_fwd << std::endl;
+
     if(workSpaceSize_fwd != 0)
     {
         workspace_fwd_dev =
             std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceNbVal_fwd, sizeof(Tgpu)));
-        //workspace_fwd      = std::vector<Tgpu>(workSpaceNbVal_fwd, static_cast<Tgpu>(0));
-        //workspace_fwd_host = std::vector<Tref>(workSpaceNbVal_fwd, static_cast<Tref>(0));
     }
 
 #if 0
@@ -525,8 +564,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     // GPU allocation
     in_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    conv_res_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    bn_res_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    conv_res_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    bn_res_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
     wei_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tgpu)));
     scale_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
     bias_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
@@ -652,32 +691,45 @@ int CBAInferFusionDriver<Tgpu, Tref>::FindConvForward(
 template <typename Tgpu, typename Tref>
 void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
 {
+
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
+
+    Timer t;
+    START_TIME;
+
+#if 0
+    miopen::DirectConvInference(miopen::deref(GetHandle()),
+                                &alpha,
+                                miopen::deref(inputTensor),
+                                in_dev->GetMem(),
+                                miopen::deref(weightTensor),
+                                wei_dev->GetMem(),
+                                &beta,
+                                miopen::deref(outputTensor),
+                                conv_res_dev->GetMem());
+
+#else
+
     int ret_algo_count;
     int request_algo_count = 2;
     std::vector<miopenConvAlgoPerf_t> perf_results(request_algo_count);
 
     FindConvForward(ret_algo_count, request_algo_count, perf_results);
 
-    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
-
-    size_t fwd_algo_mem = 0;
-
-    Timer t;
-    START_TIME;
-
     miopenConvolutionForward(GetHandle(),
-                             &alpha,
-                             inputTensor,
-                             in_dev->GetMem(),
-                             weightTensor,
-                             wei_dev->GetMem(),
-                             convDesc,
-                             miopenConvolutionFwdAlgoDirect, // use the fastest algo
-                             &beta,
-                             outputTensor,
-                             conv_res_dev->GetMem(),
-                             (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem() : nullptr,
-                             fwd_algo_mem);
+            &alpha,
+            inputTensor,
+            in_dev->GetMem(),
+            weightTensor,
+            wei_dev->GetMem(),
+            convDesc,
+            perf_results[0].fwd_algo, // use the fastest algo
+            &beta,
+            outputTensor,
+            conv_res_dev->GetMem(),
+            (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem() : nullptr,
+            (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetSize() : 0);
+#endif
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -687,7 +739,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
         STOP_TIME;
         if(WALL_CLOCK)
             printf("Wall-clock Time Forward Conv. Elapsed: %f ms\n",
-                   t.gettime_ms() / inflags.GetValueInt("iter"));
+                    t.gettime_ms() / inflags.GetValueInt("iter"));
 
         // printf("MIOpen Forward Conv. Algorithm: %d\n", perf_results[0].fwd_algo);
         printf("GPU Kernel Time Forward Conv. Elapsed: %f ms\n", time);

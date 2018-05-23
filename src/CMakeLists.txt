@@ -212,6 +212,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/activ_ocl.cpp
         ocl/batchnormocl.cpp
         ocl/batchnormactivocl.cpp
+        ocl/convbatchnormactivocl.cpp
         ocl/convolutionocl.cpp
         ocl/convolutionocl_fft.cpp
         ocl/lrn_ocl.cpp
