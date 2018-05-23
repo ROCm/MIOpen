@@ -1740,8 +1740,7 @@ typedef struct miopen_op_cost
 */
 MIOPEN_EXPORT miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* fusePlanDesc,
                                                     miopenFusionDirection_t fuseDirection,
-                                                    const miopenTensorDescriptor_t inputDesc,
-                                                    const miopenTensorDescriptor_t outputDesc);
+                                                    const miopenTensorDescriptor_t inputDesc);
 
 /*! @brief Destroy the fusion plan descriptor object
 *
@@ -1937,17 +1936,23 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyOperatorArgs(miopenOperatorArgs_t args
 *
 * @param args    An arguments object type (output)
 * @param convOp  Forward convolution operator (input)
+* @param alpha   Floating point scaling factor, allocated on the host (input)
+* @param beta    Floating point shift factor, allocated on the host (input)
 * @param w       Pointer to tensor memory  (input)
 * @return        miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
                                                         const miopenOperatorDescriptor_t convOp,
+                                                        const void* alpha,
+                                                        const void* beta,
                                                         const void* w);
 
 /*! @brief Sets the arguments for backwards data convolution op
 *
 * @param args           An arguments object type (output)
 * @param convOp         Backward data convolution operator (input)
+* @param alpha          Floating point scaling factor, allocated on the host (input)
+* @param beta           Floating point shift factor, allocated on the host (input)
 * @param w              Pointer to weights tensor memory  (input)
 * @param workSpace      Pointer to workspace memory  (input)
 * @param workSpaceSize  Scalar size of workspace  (input)
@@ -1956,6 +1961,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t arg
 MIOPEN_EXPORT miopenStatus_t
 miopenSetOpArgsConvBackwardData(miopenOperatorArgs_t args,
                                 const miopenOperatorDescriptor_t convOp,
+                                const void* alpha,
+                                const void* beta,
                                 const void* w,
                                 void* workSpace,
                                 size_t workSpaceSize);
@@ -1964,6 +1971,8 @@ miopenSetOpArgsConvBackwardData(miopenOperatorArgs_t args,
 *
 * @param args           An arguments object type (output)
 * @param convOp         Backward weights convolution operator (input)
+* @param alpha          Floating point scaling factor, allocated on the host (input)
+* @param beta           Floating point shift factor, allocated on the host (input)
 * @param x              Pointer to the forward input tensor memory  (input)
 * @param dw             Pointer to gradient weights memory  (input)
 * @param workSpace      Pointer to workspace memory  (input)
@@ -1973,6 +1982,8 @@ miopenSetOpArgsConvBackwardData(miopenOperatorArgs_t args,
 MIOPEN_EXPORT miopenStatus_t
 miopenSetOpArgsConvBackwardWeights(miopenOperatorArgs_t args,
                                    const miopenOperatorDescriptor_t convOp,
+                                   const void* alpha,
+                                   const void* beta,
                                    const void* x,
                                    void* dw,
                                    void* workSpace,
@@ -1984,6 +1995,8 @@ miopenSetOpArgsConvBackwardWeights(miopenOperatorArgs_t args,
 *
 * @param args               An arguments object type (output)
 * @param bnOp               Batch normalization inference operator (input)
+* @param alpha              Floating point scaling factor, allocated on the host (input)
+* @param beta               Floating point shift factor, allocated on the host (input)
 * @param bnScale            Pointer to the gamma tensor memory  (input)
 * @param bnBias             Pointer to the beta tensor memory  (input)
 * @param estimatedMean      Pointer to population mean memory  (input)
@@ -1994,6 +2007,8 @@ miopenSetOpArgsConvBackwardWeights(miopenOperatorArgs_t args,
 MIOPEN_EXPORT miopenStatus_t
 miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t args,
                                   const miopenOperatorDescriptor_t bnOp,
+                                  const void* alpha,
+                                  const void* beta,
                                   const void* bnScale,
                                   const void* bnBias,
                                   const void* estimatedMean,
@@ -2004,6 +2019,8 @@ miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t args,
 *
 * @param args               An arguments object type (output)
 * @param bnOp               Batch normalization forward operator (input)
+* @param alpha              Floating point scaling factor, allocated on the host (input)
+* @param beta               Floating point shift factor, allocated on the host (input)
 * @param bnScale            Pointer to the gamma tensor memory  (input)
 * @param bnBias             Pointer to the beta tensor memory  (input)
 * @param savedMean          Pointer to batch mean memory  (input)
@@ -2015,6 +2032,8 @@ miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t args,
 */
 MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_t args,
                                                              const miopenOperatorDescriptor_t bnOp,
+                                                             const void* alpha,
+                                                             const void* beta,
                                                              const void* bnScale,
                                                              const void* bnBias,
                                                              void* savedMean,
@@ -2027,6 +2046,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_
 *
 * @param args               An arguments object type (output)
 * @param bnOp               Batch normalization forward operator (input)
+* @param alpha              Floating point scaling factor, allocated on the host (input)
+* @param beta               Floating point shift factor, allocated on the host (input)
 * @param x                  Pointer to the forward input tensor memory  (input)
 * @param bnScale            Pointer to the gamma tensor memory  (input)
 * @param resultBnScaleDiff  Pointer to the gamma gradient tensor memory  (input)
@@ -2037,6 +2058,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_
 */
 MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs_t args,
                                                               const miopenOperatorDescriptor_t bnOp,
+                                                              const void* alpha,
+                                                              const void* beta,
                                                               const void* x,
                                                               const void* bnScale,
                                                               void* resultBnScaleDiff,
@@ -2049,7 +2072,9 @@ MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs
 /*! @brief Sets the arguments for forward pooling op
 *
 * @param args           An arguments object type (output)
-* @param poolingOp         Forward pooling operator (input)
+* @param poolingOp      Forward pooling operator (input)
+* @param alpha          Floating point scaling factor, allocated on the host (input)
+* @param beta           Floating point shift factor, allocated on the host (input)
 * @param do_backward    Boolean to signal training  (input)
 * @param workSpace      Pointer to workspace memory  (input)
 * @param workSpaceSize  Scalar size of workspace  (input)
@@ -2058,6 +2083,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs
 MIOPEN_EXPORT miopenStatus_t
 miopenSetOpArgsPoolingForward(miopenOperatorArgs_t args,
                               const miopenOperatorDescriptor_t poolingOp,
+                              const void* alpha,
+                              const void* beta,
                               bool do_backward,
                               void* workSpace,
                               size_t workSpaceSize);
@@ -2065,7 +2092,9 @@ miopenSetOpArgsPoolingForward(miopenOperatorArgs_t args,
 /*! @brief Sets the arguments for backward pooling op
 *
 * @param args           An arguments object type (output)
-* @param poolingOp         Backward pooling operator (input)
+* @param poolingOp      Backward pooling operator (input)
+* @param alpha          Floating point scaling factor, allocated on the host (input)
+* @param beta           Floating point shift factor, allocated on the host (input)
 * @param y              Pointer to the backward input tensor memory  (input)
 * @param x              Pointer to the forward input tensor memory  (input)
 * @param workSpace      Pointer to workspace memory  (input)
@@ -2075,6 +2104,8 @@ miopenSetOpArgsPoolingForward(miopenOperatorArgs_t args,
 MIOPEN_EXPORT miopenStatus_t
 miopenSetOpArgsPoolingBackward(miopenOperatorArgs_t args,
                                const miopenOperatorDescriptor_t poolingOp,
+                               const void* alpha,
+                               const void* beta,
                                const void* y,
                                const void* x,
                                const void* workSpace,
