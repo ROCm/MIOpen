@@ -285,8 +285,8 @@ void SearchForAllSolutions(const Context& search_params, Db db, std::vector<Solu
     // clang-format off
     bool skip_the_rest = false;
     MIOPEN_STATIC_FOR_EACH(solver, Solvers{}, {
-        if(solver.IsApplicable(search_params) &&
-            (no_perf_filtering || solver.IsFast(search_params)) && !skip_the_rest)
+        if(!skip_the_rest && solver.IsApplicable(search_params) &&
+            (no_perf_filtering || solver.IsFast(search_params)))
         {
             const Solution s = FindSolution(solver, search_params, db);
             if(s.Succeeded())
