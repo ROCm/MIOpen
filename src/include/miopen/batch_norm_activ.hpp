@@ -41,7 +41,7 @@
 #define MIO_BN_TIME_EVERYTHING 0
 
 namespace miopen {
-void BatchNormActivForwardInference(Handle& handle,
+void BatchNormActivInference(Handle& handle,
                                     miopenBatchNormMode_t bn_mode,
                                     const void* alpha,
                                     const void* beta,
