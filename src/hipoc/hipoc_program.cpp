@@ -72,9 +72,11 @@ hipModulePtr CreateModule(const std::string& program_name, std::string params, b
 
     hipModule_t raw_m;
     auto status = hipModuleLoad(&raw_m, hsaco_file.string().c_str());
-    hipModulePtr m{raw_m};
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status, "Failed creating module");
+    // We construct the module after the error even though this might leak
+    // memory because it causes a nasty double free in glibc if we dont
+    hipModulePtr m{raw_m};
     return m;
 }
 

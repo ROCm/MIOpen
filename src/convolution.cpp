@@ -322,6 +322,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
                                                       const TensorDescriptor& xDesc,
                                                       const TensorDescriptor& yDesc) const
 {
+    MIOPEN_LOG_I2("");
     if(mode == miopenTranspose)
         return BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc);
     else
@@ -369,6 +370,7 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
                                                            const TensorDescriptor& dyDesc,
                                                            const TensorDescriptor& dxDesc) const
 {
+    MIOPEN_LOG_I2("");
     if(mode == miopenTranspose)
         return ForwardGetWorkSpaceSizeGEMM(handle, wDesc, dxDesc);
     else
@@ -587,7 +589,7 @@ size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
         return 0;
 
     mlo_construct_direct2D construct_params(direction);
-    construct_params.doSearch(false);
+    construct_params.setDoSearch(false);
     construct_params.setStream(&handle);
     construct_params.setOutputDescFromMLDesc(yDesc);
     construct_params.setInputDescFromMLDesc(xDesc);
@@ -597,8 +599,8 @@ size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
 
     try
     {
-        mloConstruct(construct_params);
-        return construct_params.getWorkSpaceSzBytes();
+        const auto solution = FindFirstSolution(construct_params);
+        return solution.Succeeded() ? solution.workspce_sz : 0;
     }
     catch(const miopen::Exception&)
     {
@@ -612,18 +614,19 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
                                                              const TensorDescriptor& xDesc,
                                                              const TensorDescriptor& dwDesc) const
 {
+    mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
+    construct_params.setDoSearch(false);
+    construct_params.setStream(&handle);
+    construct_params.setOutputDescFromMLDesc(dyDesc);
+    construct_params.setInputDescFromMLDesc(xDesc);
+    construct_params.setWeightDescFromMLDesc(dwDesc);
+    construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+    construct_params.setWorkaroundDisableSearchEnforce(true);
+
     try
     {
-        mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
-        construct_params.doSearch(false);
-        construct_params.setStream(&handle);
-        construct_params.setOutputDescFromMLDesc(dyDesc);
-        construct_params.setInputDescFromMLDesc(xDesc);
-        construct_params.setWeightDescFromMLDesc(dwDesc);
-        construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
-        construct_params.setWorkaroundDisableSearchEnforce(true);
-        mloConstruct(construct_params);
-        return construct_params.getWorkSpaceSzBytes();
+        const auto solution = FindFirstSolution(construct_params);
+        return solution.Succeeded() ? solution.workspce_sz : 0;
     }
     catch(const miopen::Exception&)
     {
@@ -637,12 +640,14 @@ size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
     const TensorDescriptor& xDesc,
     const TensorDescriptor& dwDesc) const
 {
+    MIOPEN_LOG_I2("");
     if(mode == miopenTranspose)
         return BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc);
 
     return std::max(BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc),
                     BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc));
 }
+
 std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c)
 {
     stream << c.pad_h << ", ";

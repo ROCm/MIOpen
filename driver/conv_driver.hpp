@@ -26,13 +26,14 @@
 #ifndef GUARD_MIOPEN_CONV_DRIVER_HPP
 #define GUARD_MIOPEN_CONV_DRIVER_HPP
 
-//#ifdef MIOPEN_NEURON_SOFTRELU
-//#undef MIOPEN_NEURON_SOFTRELU
-//#endif
 
-//#ifdef MIOPEN_NEURON_POWER
-//#undef MIOPEN_NEURON_POWER
-//#endif
+#ifdef MIOPEN_NEURON_SOFTRELU /// \todo This needs to be explained or rewritten in clear manner.
+#undef MIOPEN_NEURON_SOFTRELU
+#endif
+
+#ifdef MIOPEN_NEURON_POWER /// \todo This needs to be explained or rewritten in clear manner.
+#undef MIOPEN_NEURON_POWER
+#endif
 
 #include "InputFlags.hpp"
 #include "conv_verify.hpp"
