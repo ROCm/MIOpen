@@ -266,11 +266,11 @@ void DirectConvInference(Handle& handle,
     construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
     construct_params.setStream(&handle);
 
-#if 0
+#if 1
     ConvolutionContext params;
     construct_params.mloCopyTo(params);
     params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
-    auto kernel_info = solver::GetSolution(params);
+    auto kernel_info               = solver::GetSolution(params);
     std::string program_name       = kernel_info.kernel_file;
     std::string kernel_name        = kernel_info.kernel_name;
     const std::string parms        = kernel_info.comp_options;

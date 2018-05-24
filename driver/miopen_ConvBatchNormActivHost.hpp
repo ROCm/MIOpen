@@ -44,8 +44,8 @@ int miopenBNActiveBNSpatialFwdInferHost(miopenTensorDescriptor_t inputTensor,
                                         Tref* out_ptr,
                                         Tgpu* scale_ptr,
                                         Tgpu* bias_ptr,
-                                        double epsilon,
-                                        bool estmeanvar,
+                                        Tref epsilon,
+                                        //bool estmeanvar,
                                         Tgpu* estimatedMean,
                                         Tgpu* estimatedVariance)
 {
@@ -65,167 +65,30 @@ int miopenBNActiveBNSpatialFwdInferHost(miopenTensorDescriptor_t inputTensor,
     double elemStd = 0.;
     int ret        = 0;
 
-    if(estmeanvar)
-    {
-
-        double variance = 0.;
-        double mean     = 0.;
-        double inhat    = 0.;
-        for(int cidx = 0; cidx < channels; cidx++)
-        { // via channel
-            mean             = estimatedMean[cidx];
-            variance         = estimatedVariance[cidx];
-            double invertVar = 1.0 / sqrt(variance + epsilon);
-            // process the batch per channel
-            for(int row = 0; row < height; row++)
-            { // via rows
-                for(int column = 0; column < width; column++)
-                { // via columns
-                    adjIndex = in_cstride * cidx + width * row + column;
-                    for(int bidx = 0; bidx < n_batchs; bidx++)
-                    { // via mini_batch
-                        index          = in_nstride * bidx + adjIndex;
-                        elemStd        = in_ptr[index] - mean;
-                        inhat          = elemStd * invertVar;
-                        out_ptr[index] = scale_ptr[cidx] * inhat + bias_ptr[cidx];
-                    } // end for (n)
-                }
+    double variance = 0.;
+    double mean     = 0.;
+    double inhat    = 0.;
+    for(int cidx = 0; cidx < channels; cidx++)
+    { // via channel
+        mean             = estimatedMean[cidx];
+        variance         = estimatedVariance[cidx];
+        double invertVar = 1.0 / sqrt(variance + epsilon);
+        // process the batch per channel
+        for(int row = 0; row < height; row++)
+        { // via rows
+            for(int column = 0; column < width; column++)
+            { // via columns
+                adjIndex = in_cstride * cidx + width * row + column;
+                for(int bidx = 0; bidx < n_batchs; bidx++)
+                { // via mini_batch
+                    index          = in_nstride * bidx + adjIndex;
+                    elemStd        = in_ptr[index] - mean;
+                    inhat          = elemStd * invertVar;
+                    out_ptr[index] = scale_ptr[cidx] * inhat + bias_ptr[cidx];
+                } // end for (n)
             }
         }
     }
-    else
-    {
-
-#if(MIO_HEIRARCH_SEL == 1)
-        double variance_accum_arr[MIO_BN_DIST];
-        double mean_accum_arr[MIO_BN_DIST];
-#endif
-
-        double variance_accum = 0.;
-        double mean_accum     = 0.;
-        for(int cidx = 0; cidx < channels; cidx++)
-        { // via channel
-#if(MIO_HEIRARCH_SEL == 1)
-            for(int i = 0; i < MIO_BN_DIST; i++)
-            {
-                variance_accum_arr[i] = 0.;
-                mean_accum_arr[i]     = 0.;
-            }
-#endif
-
-            mean_accum = 0.;
-#if(MIO_HEIRARCH_SEL == 0)
-            // process the batch per channel
-            for(int row = 0; row < height; row++)
-            { // via rows
-                for(int column = 0; column < width; column++)
-                { // via columns
-                    adjIndex = in_cstride * cidx + width * row + column;
-                    for(int bidx = 0; bidx < n_batchs; bidx++)
-                    { // via mini_batch
-                        index = in_nstride * bidx + adjIndex;
-                        // #1 calculate the mean
-                        // iterating through the stack of images in the mini_batch
-                        mean_accum += in_ptr[index];
-                    } // end for (n)
-                }     // end for (column)
-            }         // end for (row)
-#else
-            int imgIndex = 0;
-            // process the batch per channel
-            for(int im = 0; im < in_cstride; im += MIO_BN_DIST)
-            {
-                for(int i = 0; i < MIO_BN_DIST; i++)
-                {
-                    imgIndex = im + i;
-                    adjIndex = in_cstride * cidx + imgIndex;
-                    for(int bidx = 0; bidx < n_batchs; bidx++)
-                    { // via mini_batch
-                        index = in_nstride * bidx + adjIndex;
-                        // #1 calculate the mean
-                        // iterating through the stack of images in the mini_batch
-                        mean_accum_arr[i] += in_ptr[index];
-                    } // end for (n)
-                }     // end for (column)
-            }         // end for (row)
-            for(int i = 0; i < MIO_BN_DIST; i++)
-            {
-                mean_accum += mean_accum_arr[i];
-            }
-#endif
-            mean_accum /= double(in_cstride * n_batchs);
-
-            elemStd        = 0.;
-            variance_accum = 0.;
-#if(MIO_HEIRARCH_SEL == 0)
-            // #2 calculate the variances
-            // sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
-            for(int row = 0; row < height; row++)
-            { // via rows
-                for(int column = 0; column < width; column++)
-                { // via columns
-                    adjIndex = in_cstride * cidx + width * row + column;
-                    for(int bidx = 0; bidx < n_batchs; bidx++)
-                    { // via mini_batch
-                        // per (x-dims) channel load a block of data into LDS
-                        index = in_nstride * bidx + adjIndex;
-
-                        // using out buffer as scratchpad
-                        out_ptr[index] = elemStd = (in_ptr[index] - mean_accum); // (x_i - mean)
-                        variance_accum += (elemStd * elemStd); // sum{ (x_i - mean)^2 }
-                    }                                          // end for(n)
-                }                                              // end for (column)
-            }                                                  // end for (row)
-#else
-            for(int im = 0; im < in_cstride; im += MIO_BN_DIST)
-            {
-                for(int i = 0; i < MIO_BN_DIST; i++)
-                {
-                    imgIndex = im + i;
-                    adjIndex = in_cstride * cidx + imgIndex;
-                    for(int bidx = 0; bidx < n_batchs; bidx++)
-                    { // via mini_batch
-                        // per (x-dims) channel load a block of data into LDS
-                        index = in_nstride * bidx + adjIndex;
-
-                        // using out buffer as scratchpad
-                        out_ptr[index] = elemStd = (in_ptr[index] - mean_accum); // (x_i - mean)
-                        variance_accum_arr[i] += (elemStd * elemStd); // sum{ (x_i - mean)^2 }
-                    }                                                 // end for(n)
-                }                                                     // end for
-            }                                                         // end for
-            for(int i = 0; i < MIO_BN_DIST; i++)
-            {
-                variance_accum += variance_accum_arr[i];
-            }
-#endif
-            variance_accum /= double(in_cstride * n_batchs); // (1/N)*sum{ (x_i - mean)^2 }
-
-            // #3 add epsilon for numeric stability, sqr_root, and invert
-            double invertVar = 1.0 / sqrt(variance_accum + epsilon);
-
-            // #4 apply the normalization
-            // x_hat = (x_i - mean) / sqrt(variance_accum - epsilon)
-            for(int row = 0; row < height; row++)
-            { // via rows
-                for(int column = 0; column < width; column++)
-                { // via columns
-                    adjIndex = in_cstride * cidx + width * row + column;
-                    for(int bidx = 0; bidx < n_batchs; bidx++)
-                    { // via mini_batch
-                        index = in_nstride * bidx + adjIndex;
-                        // per (x-dims) channel load a block of data into LDS
-                        // elemStd = in_ptr[index] - mean_accum;// (x_i - mean)
-                        elemStd      = out_ptr[index]; // using saved values from output tensor
-                        double inhat = elemStd * invertVar;
-                        // #5 Gamma and Beta adjust
-                        // y_i = gamma*x_hat + beta
-                        out_ptr[index] = scale_ptr[cidx] * inhat + bias_ptr[cidx];
-                    } // end for(n_batchs)
-                }     // for (column)
-            }         // for (row)
-        }             // for (channel)
-    }                 // end if
     return (ret);
 }
 
@@ -235,8 +98,8 @@ int miopenBNActiveBNPerActivFwdInferHost(miopenTensorDescriptor_t inputTensor,
                                          Tref* out_ptr,
                                          Tgpu* scale_ptr,
                                          Tgpu* bias_ptr,
-                                         double epsilon,
-                                         bool estmeanvar,
+                                         Tref epsilon,
+                                         //bool estmeanvar,
                                          Tgpu* estimatedMean,
                                          Tgpu* estimatedVariance)
 { // use running mean and variance
@@ -258,91 +121,32 @@ int miopenBNActiveBNPerActivFwdInferHost(miopenTensorDescriptor_t inputTensor,
     double elemStd = 0.;
 
     int ret = 0;
-    if(estmeanvar)
-    {
 
-        printf("Running estimated mean / var inference on CPU.\n");
-        double mean     = 0.;
-        double variance = 0.;
-        for(int cidx = 0; cidx < channels; cidx++)
-        { // via channel
-            // process the batch per channel
-            for(int row = 0; row < height; row++)
-            { // via rows
-                for(int column = 0; column < width; column++)
-                { // via columns
-                    adjIndex          = in_cstride * cidx + width * row + column;
-                    mean              = estimatedMean[adjIndex];
-                    variance          = estimatedVariance[adjIndex];
-                    double elemInvVar = 1.0 / double(sqrt(variance + epsilon));
-                    for(int bidx = 0; bidx < n_batchs; bidx++)
-                    { // via mini_batch
-                        index = in_nstride * bidx + adjIndex;
-                        // per (x-dims) channel load a block of data into LDS
-                        elemStd      = in_ptr[index] - mean; // (x_i - mean)
-                        double inhat = elemStd * elemInvVar;
-                        // #5 Gamma and Beta adjust
-                        // y_i = gamma*x_hat + beta
-                        out_ptr[index] = scale_ptr[adjIndex] * inhat + bias_ptr[adjIndex];
-                    } // end for(n_batchs)
-                }     // for (column)
-            }
+    double mean     = 0.;
+    double variance = 0.;
+    for(int cidx = 0; cidx < channels; cidx++)
+    { // via channel
+        // process the batch per channel
+        for(int row = 0; row < height; row++)
+        { // via rows
+            for(int column = 0; column < width; column++)
+            { // via columns
+                adjIndex          = in_cstride * cidx + width * row + column;
+                mean              = estimatedMean[adjIndex];
+                variance          = estimatedVariance[adjIndex];
+                double elemInvVar = 1.0 / double(sqrt(variance + epsilon));
+                for(int bidx = 0; bidx < n_batchs; bidx++)
+                { // via mini_batch
+                    index = in_nstride * bidx + adjIndex;
+                    // per (x-dims) channel load a block of data into LDS
+                    elemStd      = in_ptr[index] - mean; // (x_i - mean)
+                    double inhat = elemStd * elemInvVar;
+                    // #5 Gamma and Beta adjust
+                    // y_i = gamma*x_hat + beta
+                    out_ptr[index] = scale_ptr[adjIndex] * inhat + bias_ptr[adjIndex];
+                } // end for(n_batchs)
+            }     // for (column)
         }
-    }
-    else
-    {
-
-        double mean_accum     = 0.;
-        double variance_accum = 0.;
-        for(int cidx = 0; cidx < channels; cidx++)
-        { // via channel
-            // process the batch per channel
-            for(int row = 0; row < height; row++)
-            { // via rows
-                for(int column = 0; column < width; column++)
-                { // via columns
-                    mean_accum = 0.;
-                    adjIndex   = in_cstride * cidx + width * row + column;
-                    for(int bidx = 0; bidx < n_batchs; bidx++)
-                    { // via mini_batch
-                        index = in_nstride * bidx + adjIndex;
-                        // #1 calculate the mean
-                        // iterating through the stack of images in the mini_batch
-                        mean_accum += in_ptr[index];
-                    }
-                    mean_accum /= double(n_batchs);
-
-                    elemStd        = 0.;
-                    variance_accum = 0.;
-                    // #2 calculate the variances
-                    // sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
-                    for(int bidx = 0; bidx < n_batchs; bidx++)
-                    { // via mini_batch
-                        // per (x-dims) channel load a block of data into LDS
-                        index   = in_nstride * bidx + adjIndex;
-                        elemStd = in_ptr[index] - mean_accum; // (x_i - mean)
-                        variance_accum += elemStd * elemStd;  // sum{ (x_i - mean)^2 }
-                    }                                         // end for(n)
-                    variance_accum /= double(n_batchs);       // (1/N)*sum{ (x_i - mean)^2 }
-
-                    // #3 add epsilon for numeric stability, sqr_root, and invert
-                    double elemInvVar = 1.0 / double(sqrt(variance_accum + epsilon));
-
-                    // #4 apply the normalization
-                    // x_hat = (x_i - mean) / sqrt(variance_accum - epsilon)
-                    for(int bidx = 0; bidx < n_batchs; bidx++)
-                    { // via mini_batch
-                        index = in_nstride * bidx + adjIndex;
-                        // per (x-dims) channel load a block of data into LDS
-                        elemStd      = in_ptr[index] - mean_accum; // (x_i - mean)
-                        double inhat = elemStd * elemInvVar;
-                        // #5 Gamma and Beta adjust
-                        // y_i = gamma*x_hat + beta
-                        out_ptr[index] = scale_ptr[adjIndex] * inhat + bias_ptr[adjIndex];
-                    } // end for(n_batchs)
-                }     // for (column)
-            }         // for (row)
-        }             // for (channel)
     }
     return (ret);
 }
