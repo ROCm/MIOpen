@@ -37,80 +37,10 @@ namespace miopen {
 
 namespace solver {
 
-LegacyPerformanceConfig GetPerformanceConfig(const ConvolutionContext& params)
-{
-    //
-    LegacyPerformanceConfig result{};
-    result.in_tile0 = (params.in_width <= 8) ? 8 : (params.in_width <= 16)
-                                                       ? 16
-                                                       : 32; // size of input data per ALU plane
-    result.in_tile1 = (params.in_height <= 8) ? 8 : (params.in_height <= 16)
-                                                        ? 16
-                                                        : 32; // size of input data per ALU plane
-
-    result.out_pix_tile0 =
-        std::max(params.kernel_stride0,
-                 ((result.in_tile0 == 8) ? 1 : 2)); // size of ouptput tile per wk-item (ALU))
-    result.out_pix_tile1 = std::max(params.kernel_stride1, ((result.in_tile1 == 8) ? 1 : 2)); //
-
-    result.grp_tile0 = std::max(8, (result.in_tile0 / result.out_pix_tile0));
-    result.grp_tile1 = std::max(8, (result.in_tile1 / result.out_pix_tile1));
-    result.in_tile0  = result.grp_tile0 * result.out_pix_tile0;
-    result.in_tile1  = result.grp_tile1 * result.out_pix_tile1;
-
-    result.n_out_pix_tiles = 8; // # output pixel tiles per wk-item (ALU)
-    result.n_in_data_tiles = 2; // # of blocks of different inputs in LDS
-
-    result.n_stacks = 1; // # of diff stacks (part of batch).
-
-    if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
-    {
-
-        // version
-        if(params.in_data_type == "FP32" && params.direction.IsForward() &&
-           params.n_inputs % 16 == 0 && params.n_outputs % 16 == 0)
-        {
-            result.n_in_data_tiles = 128;
-
-            result.n_out_pix_tiles = 32;
-            // 0 or 1
-            // CHEAT_SHADER_COMPILER =
-            result.out_pix_tile0 = 0;
-
-            // int version =
-            result.out_pix_tile1 = 1;
-        }
-        else
-        {
-            int i_sz             = params.out_height * params.out_width;
-            result.out_pix_tile0 = (i_sz & 1) != 0 ? 1 : 2;
-
-            if(params.pad0 > 0 || params.kernel_stride0 > 1)
-            {
-                if(params.direction.IsForward())
-                {
-                    result.out_pix_tile0 = (params.out_width & 1) != 0 ? 1 : 2;
-                }
-                else
-                {
-                    result.out_pix_tile0 =
-                        (((params.out_width & 1) != 0) || ((params.in_width & 1) != 0)) ? 1 : 2;
-                }
-            }
-
-            result.n_out_pix_tiles = 16;
-            result.n_in_data_tiles = 4;
-            result.grp_tile0       = 64;
-            // int version =
-            result.out_pix_tile1 = 0;
-        }
-    }
-    return result;
-}
-
 KernelInfo GetSolution(const ConvolutionContext& params)
 {
-    LegacyPerformanceConfig searched_params = GetPerformanceConfig(params);
+    ConvOclDirectFwdLegacyExhaustiveSearch ConvOclDirectSearch;
+    LegacyPerformanceConfig searched_params = ConvOclDirectSearch.GetPerformanceConfig(params);
 
     ConvSolution result;
 
