@@ -563,12 +563,12 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     wei_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tgpu)));
     scale_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
     bias_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
-    out_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    out_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
 
     // GPU host allocation
     in    = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
     wei   = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
-    out   = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    out   = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
     scale = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
     bias  = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
 
@@ -578,7 +578,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     // CPU allocation
     conv_res_host = std::vector<Tref>(in_sz, static_cast<Tref>(0));
     bn_res_host   = std::vector<Tref>(in_sz, static_cast<Tref>(0));
-    out_host      = std::vector<Tref>(out_sz, static_cast<Tref>(0));
+    out_host      = std::vector<Tref>(in_sz, static_cast<Tref>(0));
 
     // Data initialization
     for(int i = 0; i < in_sz; i++)
@@ -843,10 +843,10 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
 #else
         runGPUConvFwdInference();
         miopenGetKernelTime(GetHandle(), &time0);
-// runGPUBNFwdInference();
-// miopenGetKernelTime(GetHandle(), &time1);
-// runGPUActivFwdInference();
-// miopenGetKernelTime(GetHandle(), &time2);
+        runGPUBNFwdInference();
+        miopenGetKernelTime(GetHandle(), &time1);
+        runGPUActivFwdInference();
+        miopenGetKernelTime(GetHandle(), &time2);
 #endif
 
         miopen::deref(GetHandle()).Finish();
@@ -905,7 +905,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
                                              scale.data(),
                                              bias.data(),
                                              epsilon,
-                                             //true,
+                                             // true,
                                              runningMean.data(),
                                              runningVariance.data());
     }
@@ -917,7 +917,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
                                             scale.data(),
                                             bias.data(),
                                             epsilon,
-                                            //true,
+                                            // true,
                                             runningMean.data(),
                                             runningVariance.data());
     }
@@ -934,8 +934,8 @@ template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
 {
     runCPUConvFwdInference();
-    // runCPUBNFwdInference();
-    // runCPUActivFwdInference();
+    runCPUBNFwdInference();
+    runCPUActivFwdInference();
 
     return miopenStatusSuccess;
 }
@@ -957,10 +957,9 @@ int CBAInferFusionDriver<Tgpu, Tref>::VerifyForward()
 
     match &= miopenInferVerify(conv_res.size(), conv_res_host.data(), conv_res.data(), allowedEps);
 
-    // match &=
-    // miopenInferVerify(bn_res.size(), bn_res_host.data(), bn_res.data(), allowedEps);
-    // match &=
-    // miopenInferVerify(out.size(), out_host.data(), out.data(), allowedEps);
+    match &= miopenInferVerify(bn_res.size(), bn_res_host.data(), bn_res.data(), allowedEps);
+
+    match &= miopenInferVerify(out.size(), out_host.data(), out.data(), allowedEps);
 
     if(match)
         printf("Forward Activation Verifies on CPU and GPU\n");
