@@ -60,68 +60,6 @@ struct AutoEnableProfiling
     bool prev_state;
 };
 
-int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
-                                              const TensorDescriptor& xDesc,
-                                              const TensorDescriptor& wDesc,
-                                              const TensorDescriptor& yDesc,
-                                              WinogradKernelParams& k_p,
-                                              KernelInvoke& kernel,
-                                              int direction) const
-{
-    try
-    {
-        mlo_construct_winograd construct_params(direction);
-        construct_params.setStream(&handle);
-
-        construct_params.setOutputDescFromMLDesc(yDesc);
-        construct_params.setInputDescFromMLDesc(xDesc);
-        construct_params.setWeightDescFromMLDesc(wDesc);
-
-        construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
-
-        const auto solution = FindFirstSolution(construct_params);
-        if(!solution.Succeeded())
-            return -1;
-        const auto& kernels_info = solution.construction_params;
-        const auto& k_info       = kernels_info[0];
-
-        std::string network_config;
-        construct_params.mloBuildConf_Key(network_config);
-
-        std::string algorithm = (direction == 1) ? "miopenConvolutionFwdAlgoWinograd"
-                                                 : "miopenConvolutionBwdDataAlgoWinograd";
-        handle.ClearKernels(algorithm, network_config);
-        kernel = handle.AddKernel(algorithm,
-                                  network_config,
-                                  k_info.kernel_file,
-                                  k_info.kernel_name,
-                                  k_info.l_wk,
-                                  k_info.g_wk,
-                                  k_info.comp_options);
-        int N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W;
-        construct_params.getCompiledInParameters(
-            &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
-        k_p = std::make_tuple(N,
-                              C,
-                              H,
-                              W,
-                              K,
-                              n_groups,
-                              out_H,
-                              out_W,
-                              R,
-                              S,
-                              pad_H,
-                              pad_W,
-                              k_info.kernel_name == "sp3AsmConvRxSU");
-        return 0;
-    }
-    catch(miopen::Exception&)
-    {
-        return -1;
-    }
-}
-
 static inline void AddKernels(Handle& handle,
                               const std::string& algorithm_name,
                               const std::string& network_config,
@@ -156,65 +94,18 @@ static inline void AddKernels(Handle& handle,
     }
 }
 
-int ConvolutionDescriptor::FindDataDirectSolutions(
-    Handle& handle,
-    const TensorDescriptor& xDesc,
-    const TensorDescriptor& wDesc,
-    const TensorDescriptor& yDesc,
-    bool exhaustiveSearch,
-    bool isForward,
-    std::vector<miopen::solver::ConvSolution>& solutions,
-    std::string& network_config,
-    ExtraKernelArgs& extraArgs) const
-{
-
-    if(!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
-        return -1;
-
-    mlo_construct_direct2D construct_params(isForward ? 1 : 0);
-    construct_params.setDoSearch(exhaustiveSearch);
-    construct_params.saveSearchRequest(true);
-    construct_params.setGeneralCompOptions("");
-    construct_params.setStream(&handle);
-    construct_params.setOutputDescFromMLDesc(yDesc);
-    construct_params.setInputDescFromMLDesc(xDesc);
-    construct_params.setWeightDescFromMLDesc(wDesc);
-    construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
-
-    if((IsWinograd3x3Supported(handle, isForward, wDesc, (isForward ? xDesc : yDesc)) &&
-        construct_params.mloIsFastBinaryWinograd3x3U()))
-    {
-        return -1;
-    }
-
-    try
-    {
-        int N, C, H, W, K, n_groups, out_H, out_W;
-        construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
-        extraArgs = std::make_tuple(N, C, H, W, K, n_groups, out_H, out_W);
-        construct_params.mloBuildConf_Key(network_config);
-        mloConstruct(construct_params, solutions);
-        return 0;
-    }
-    catch(miopen::Exception&)
-    {
-        return -1;
-    }
-}
-
 template <typename T>
-inline int
-EstimateSolutionConvForwardBackwardDataDirect(Handle& handle,
-                                              const miopen::solver::ConvSolution& solution,
-                                              const ExtraKernelArgs& extraArgs,
-                                              ConstData_t in, // Fwd: x, Bwd: dy
-                                              ConstData_t weights,
-                                              Data_t out, // Fwd: y, Bwd: dx
-                                              const TensorDescriptor& outDesc,
-                                              Data_t workSpace,
-                                              const size_t workSpaceSize,
-                                              T padding_val,
-                                              float& elapsed)
+inline int EvaluateDataDirectSolution(Handle& handle,
+                                      const miopen::solver::ConvSolution& solution,
+                                      const ExtraKernelArgs& extraArgs,
+                                      ConstData_t in, // Fwd: x, Bwd: dy
+                                      ConstData_t weights,
+                                      Data_t out, // Fwd: y, Bwd: dx
+                                      const TensorDescriptor& outDesc,
+                                      Data_t workSpace,
+                                      const size_t workSpaceSize,
+                                      T padding_val,
+                                      float& elapsed)
 {
     // Fail if required workspace is not provided.
     if(solution.workspce_sz != 0)
@@ -292,6 +183,114 @@ EstimateSolutionConvForwardBackwardDataDirect(Handle& handle,
         elapsed += handle.GetKernelTime();
     }
     return 0;
+}
+
+int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
+                                              const TensorDescriptor& xDesc,
+                                              const TensorDescriptor& wDesc,
+                                              const TensorDescriptor& yDesc,
+                                              WinogradKernelParams& k_p,
+                                              KernelInvoke& kernel,
+                                              int direction) const
+{
+    try
+    {
+        mlo_construct_winograd construct_params(direction);
+        construct_params.setStream(&handle);
+
+        construct_params.setOutputDescFromMLDesc(yDesc);
+        construct_params.setInputDescFromMLDesc(xDesc);
+        construct_params.setWeightDescFromMLDesc(wDesc);
+
+        construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+
+        const auto solution = FindFirstSolution(construct_params);
+        if(!solution.Succeeded())
+            return -1;
+        const auto& kernels_info = solution.construction_params;
+        const auto& k_info       = kernels_info[0];
+
+        std::string network_config;
+        construct_params.mloBuildConf_Key(network_config);
+
+        std::string algorithm = (direction == 1) ? "miopenConvolutionFwdAlgoWinograd"
+                                                 : "miopenConvolutionBwdDataAlgoWinograd";
+        handle.ClearKernels(algorithm, network_config);
+        kernel = handle.AddKernel(algorithm,
+                                  network_config,
+                                  k_info.kernel_file,
+                                  k_info.kernel_name,
+                                  k_info.l_wk,
+                                  k_info.g_wk,
+                                  k_info.comp_options);
+        int N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W;
+        construct_params.getCompiledInParameters(
+            &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
+        k_p = std::make_tuple(N,
+                              C,
+                              H,
+                              W,
+                              K,
+                              n_groups,
+                              out_H,
+                              out_W,
+                              R,
+                              S,
+                              pad_H,
+                              pad_W,
+                              k_info.kernel_name == "sp3AsmConvRxSU");
+        return 0;
+    }
+    catch(miopen::Exception&)
+    {
+        return -1;
+    }
+}
+
+int ConvolutionDescriptor::FindDataDirectSolutions(
+    Handle& handle,
+    const TensorDescriptor& xDesc,
+    const TensorDescriptor& wDesc,
+    const TensorDescriptor& yDesc,
+    bool exhaustiveSearch,
+    bool isForward,
+    std::vector<miopen::solver::ConvSolution>& solutions,
+    std::string& network_config,
+    ExtraKernelArgs& extraArgs) const
+{
+
+    if(!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
+        return -1;
+
+    mlo_construct_direct2D construct_params(isForward ? 1 : 0);
+    construct_params.setDoSearch(exhaustiveSearch);
+    construct_params.saveSearchRequest(true);
+    construct_params.setGeneralCompOptions("");
+    construct_params.setStream(&handle);
+    construct_params.setOutputDescFromMLDesc(yDesc);
+    construct_params.setInputDescFromMLDesc(xDesc);
+    construct_params.setWeightDescFromMLDesc(wDesc);
+    construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+
+    if((IsWinograd3x3Supported(handle, isForward, wDesc, (isForward ? xDesc : yDesc)) &&
+        construct_params.mloIsFastBinaryWinograd3x3U()))
+    {
+        return -1;
+    }
+
+    try
+    {
+        int N, C, H, W, K, n_groups, out_H, out_W;
+        construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
+        extraArgs = std::make_tuple(N, C, H, W, K, n_groups, out_H, out_W);
+        construct_params.mloBuildConf_Key(network_config);
+        mloConstruct(construct_params, solutions);
+        return 0;
+    }
+    catch(miopen::Exception&)
+    {
+        return -1;
+    }
 }
 
 void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
@@ -568,17 +567,17 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                     for(const auto& sol : directAll)
                     {
                         float elapsed = 0.0f;
-                        const int rc  = EstimateSolutionConvForwardBackwardDataDirect(handle,
-                                                                                     sol,
-                                                                                     eka,
-                                                                                     x,
-                                                                                     w,
-                                                                                     tmp_y.get(),
-                                                                                     yDesc,
-                                                                                     workSpace,
-                                                                                     workSpaceSize,
-                                                                                     as_float(0.0f),
-                                                                                     elapsed);
+                        const int rc  = EvaluateDataDirectSolution(handle,
+                                                                  sol,
+                                                                  eka,
+                                                                  x,
+                                                                  w,
+                                                                  tmp_y.get(),
+                                                                  yDesc,
+                                                                  workSpace,
+                                                                  workSpaceSize,
+                                                                  as_float(0.0f),
+                                                                  elapsed);
                         if(rc != 0)
                         {
                             MIOPEN_LLOG_E(sol << " returns " << rc);
@@ -1316,17 +1315,17 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                     for(const auto& sol : directAll)
                     {
                         float elapsed = 0.0f;
-                        const int rc  = EstimateSolutionConvForwardBackwardDataDirect(handle,
-                                                                                     sol,
-                                                                                     eka,
-                                                                                     dy,
-                                                                                     w,
-                                                                                     tmp_dx.get(),
-                                                                                     dxDesc,
-                                                                                     workSpace,
-                                                                                     workSpaceSize,
-                                                                                     as_float(0.0f),
-                                                                                     elapsed);
+                        const int rc  = EvaluateDataDirectSolution(handle,
+                                                                  sol,
+                                                                  eka,
+                                                                  dy,
+                                                                  w,
+                                                                  tmp_dx.get(),
+                                                                  dxDesc,
+                                                                  workSpace,
+                                                                  workSpaceSize,
+                                                                  as_float(0.0f),
+                                                                  elapsed);
                         if(rc != 0)
                         {
                             MIOPEN_LLOG_E(sol << " returns " << rc);
@@ -1963,24 +1962,22 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 }
 
 template <typename T>
-inline float FindConvBwdWeightsAlgorithmDirectRun(Handle& handle,
-                                                  const std::string& algorithm_name,
-                                                  const std::string& network_config,
-                                                  const mlo_construct_BwdWrW2D& construct_params,
-                                                  const miopen::solver::ConvSolution& s,
-                                                  ConstData_t dy,
-                                                  ConstData_t x,
-                                                  Data_t dw,
-                                                  Data_t workSpace,
-                                                  const size_t workSpaceSize,
-                                                  T padding_val)
+inline float EvaluateWrWDirectSolution(Handle& handle,
+                                       const mlo_construct_BwdWrW2D& construct_params,
+                                       const miopen::solver::ConvSolution& s,
+                                       ConstData_t dy,
+                                       ConstData_t x,
+                                       Data_t dw,
+                                       Data_t workSpace,
+                                       const size_t workSpaceSize,
+                                       T padding_val)
 {
     float elapsed            = 0;
     const auto& kernels_info = s.construction_params;
     assert((s.workspce_sz != 0 && kernels_info.size() == 2) ||
            (s.workspce_sz == 0 && kernels_info.size() == 1));
     std::vector<KernelInvoke> kernels;
-    AddKernels(handle, algorithm_name, network_config, s, &kernels);
+    AddKernels(handle, "", "", s, &kernels);
     const auto& k_info = kernels_info[0];
     if(kernels_info.size() == 1)
     {
@@ -2220,17 +2217,15 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                         /// \todo If there is only one solution available,
                         /// we can avoid wasting time for building kernels with empty
                         /// algorithm_name and network_config.
-                        float elapsed = FindConvBwdWeightsAlgorithmDirectRun(handle,
-                                                                             "",
-                                                                             "",
-                                                                             construct_params,
-                                                                             sol,
-                                                                             dy,
-                                                                             x,
-                                                                             tmp_dw.get(),
-                                                                             workSpace,
-                                                                             workSpaceSize,
-                                                                             as_float(0.0f));
+                        float elapsed = EvaluateWrWDirectSolution(handle,
+                                                                  construct_params,
+                                                                  sol,
+                                                                  dy,
+                                                                  x,
+                                                                  tmp_dw.get(),
+                                                                  workSpace,
+                                                                  workSpaceSize,
+                                                                  as_float(0.0f));
                         MIOPEN_LLOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
                                           << best);
                         if(elapsed < best)
