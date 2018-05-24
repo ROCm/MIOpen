@@ -184,6 +184,14 @@ void KernelCache::AddKernel(Key key, Kernel k, std::size_t cache_index)
     v[cache_index] = k;
 }
 
+void KernelCache::ClearKernels(const std::string& algorithm, const std::string& network_config)
+{
+    assert(!network_config.empty() && !algorithm.empty());
+    const std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
+    auto&& v = this->kernel_map[key];
+    v.clear();
+}
+
 KernelCache::KernelCache() {}
 
 } // namespace miopen
