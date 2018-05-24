@@ -223,13 +223,6 @@ void DirectConvInference(Handle& handle,
                          int dilation_h,
                          int dilation_w)
 {
-    // int pad_h      = 0;
-    // int pad_w      = 0;
-    // int u          = 1;
-    // int v          = 1;
-    // int dilation_h = 1;
-    // int dilation_w = 1;
-
     if(x == nullptr || w == nullptr || y == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -242,9 +235,7 @@ void DirectConvInference(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    //    if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1]) {
-    //        MIOPEN_THROW(miopenStatusBadParm);
-    //    }
+
     if(xDesc.GetSize() < 3)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -261,7 +252,6 @@ void DirectConvInference(Handle& handle,
         miopen::checkNumericsInput(handle, wDesc, w);
     }
 
-    // MIOPEN_LOG_I("workspace = " << workSpaceSize);
     if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1])
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -276,33 +266,31 @@ void DirectConvInference(Handle& handle,
     construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
     construct_params.setStream(&handle);
 
-    // LegacyPerformanceConfig searched_params;
+#if 0
     ConvolutionContext params;
     construct_params.mloCopyTo(params);
     params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
     auto kernel_info = solver::GetSolution(params);
-
-    // mloConstruct(construct_params);
-
-    // std::string program_name = construct_params.getKernelFile();
-    // std::string kernel_name  = construct_params.getKernelName();
-    // const std::string& parms = construct_params.getCompilerOptions();
-    // const std::vector<size_t>& vld = construct_params.getLocalWkSize();
-    // const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
-
-    std::string network_config;
-    construct_params.mloBuildConf_Key(network_config);
-
     std::string program_name       = kernel_info.kernel_file;
     std::string kernel_name        = kernel_info.kernel_name;
     const std::string parms        = kernel_info.comp_options;
     const std::vector<size_t>& vld = kernel_info.l_wk;
     const std::vector<size_t>& vgd = kernel_info.g_wk;
+#else
+    mloConstruct(construct_params);
+    std::string program_name       = construct_params.getKernelFile();
+    std::string kernel_name        = construct_params.getKernelName();
+    const std::string& parms       = construct_params.getCompilerOptions();
+    const std::vector<size_t>& vld = construct_params.getLocalWkSize();
+    const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
+#endif
+
+    std::string network_config;
+    construct_params.mloBuildConf_Key(network_config);
 
     std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
     float padding_val          = 0;
 
-    // auto kernel                = handle.GetKernel(algorithm_name, network_config);
     auto kernel = handle.AddKernel(
         algorithm_name, network_config, program_name, kernel_name, vld, vgd, parms);
 

@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#ifndef MIO_BATCHNORMACTIVHOST_H_
-#define MIO_BATCHNORMACTIVHOST_H_
+#ifndef MIO_CONV_BATCHNORM_ACTIV_HOST_H_
+#define MIO_CONV_BATCHNORM_ACTIV_HOST_H_
 
 #include <cmath>
 #include <iomanip>
@@ -38,16 +38,16 @@
 #define MIO_BN_DIST 32
 #endif
 
-template <typename T>
+template <typename Tgpu, typename Tref>
 int miopenBNActiveBNSpatialFwdInferHost(miopenTensorDescriptor_t inputTensor,
-                                        const T* in_ptr,
-                                        T* out_ptr,
-                                        T* scale_ptr,
-                                        T* bias_ptr,
+                                        const Tref* in_ptr,
+                                        Tref* out_ptr,
+                                        Tgpu* scale_ptr,
+                                        Tgpu* bias_ptr,
                                         double epsilon,
                                         bool estmeanvar,
-                                        T* estimatedMean,
-                                        T* estimatedVariance)
+                                        Tgpu* estimatedMean,
+                                        Tgpu* estimatedVariance)
 {
     int nIn, cIn, hIn, wIn;
     miopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
@@ -229,16 +229,16 @@ int miopenBNActiveBNSpatialFwdInferHost(miopenTensorDescriptor_t inputTensor,
     return (ret);
 }
 
-template <typename T>
+template <typename Tgpu, typename Tref>
 int miopenBNActiveBNPerActivFwdInferHost(miopenTensorDescriptor_t inputTensor,
-                                         const T* in_ptr,
-                                         T* out_ptr,
-                                         T* scale_ptr,
-                                         T* bias_ptr,
+                                         const Tref* in_ptr,
+                                         Tref* out_ptr,
+                                         Tgpu* scale_ptr,
+                                         Tgpu* bias_ptr,
                                          double epsilon,
                                          bool estmeanvar,
-                                         T* estimatedMean,
-                                         T* estimatedVariance)
+                                         Tgpu* estimatedMean,
+                                         Tgpu* estimatedVariance)
 { // use running mean and variance
 
     int nIn, cIn, hIn, wIn;
@@ -347,58 +347,58 @@ int miopenBNActiveBNPerActivFwdInferHost(miopenTensorDescriptor_t inputTensor,
     return (ret);
 }
 
-template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
-          typename _Tcheck /* the data type used in CPU checkings (usually double) */>
+template <typename Tgpu /* the data type used in GPU computations (usually half) */,
+          typename Tref /* the data type used in CPU checkings (usually double) */>
 void miopenBNActiveNeuronFwdInferHost(int neuron_type,
-                                      _Tcheck gamma,
-                                      _Tcheck beta,
-                                      _Tcheck alpha,
+                                      Tref gamma,
+                                      Tref beta,
+                                      Tref alpha,
                                       size_t size,
-                                      const _Tgpu* bot_ptr,
-                                      _Tcheck* c_res)
+                                      const Tref* bot_ptr,
+                                      Tref* c_res)
 {
 
-    _Tcheck* data = new _Tcheck[size];
+    Tref* data = new Tref[size];
 
     for(size_t k = 0; k < size; k++)
-        data[k]  = static_cast<_Tcheck>(bot_ptr[k]);
+        data[k]  = static_cast<Tref>(bot_ptr[k]);
 
-    std::function<_Tcheck(_Tcheck)> f;
+    std::function<Tref(Tref)> f;
 
     switch(neuron_type)
     {
     case MIOPEN_NEURON_PASTHRU: //	x
-        f = [=](_Tcheck x) { return x; };
+        f = [=](Tref x) { return x; };
         break;
     case MIOPEN_NEURON_LOGISTIC: //	1 / (1 + e^-x)	//Sigmoid
-        f = [=](_Tcheck x) { return 1 / (1 + std::exp(-x)); };
+        f = [=](Tref x) { return 1 / (1 + std::exp(-x)); };
         break;
     case MIOPEN_NEURON_TANH: //	beta * tanh(alpha * x)
-        f = [=](_Tcheck x) { return beta * std::tanh(alpha * x); };
+        f = [=](Tref x) { return beta * std::tanh(alpha * x); };
         break;
     case MIOPEN_NEURON_RELU: //	max(0, x)
-        f = [=](_Tcheck x) { return (x > 0) ? x : 0; };
+        f = [=](Tref x) { return (x > 0) ? x : 0; };
         break;
     case MIOPEN_NEURON_SOFTRELU: //	log(1 + e^x)   // bonomial normal log likelihood
-        f = [=](_Tcheck x) { return std::log1p(std::exp(x)); };
+        f = [=](Tref x) { return std::log1p(std::exp(x)); };
         break;
     case MIOPEN_NEURON_ABS: //	abs(x)
-        f = [=](_Tcheck x) { return std::abs(x); };
+        f = [=](Tref x) { return std::abs(x); };
         break;
     case MIOPEN_NEURON_POWER: // (alpha + beta * x) ^ gamma
-        f = [=](_Tcheck x) {
-            _Tcheck v = alpha + beta * x;
-            return v <= std::numeric_limits<_Tcheck>::epsilon() ? 0 : pow(v, gamma);
+        f = [=](Tref x) {
+            Tref v = alpha + beta * x;
+            return v <= std::numeric_limits<Tref>::epsilon() ? 0 : pow(v, gamma);
         };
         break;
     case MIOPEN_NEURON_CLIPPED_RELU: // min(alpha, max(0, x))
-        f = [=](_Tcheck x) { return std::min(alpha, std::max(_Tcheck(0), x)); };
+        f = [=](Tref x) { return std::min(alpha, std::max(Tref(0), x)); };
         break;
     case MIOPEN_NEURON_LEAKY_RELU: // alpha * x | x<=0; x | x>0
-        f = [=](_Tcheck x) { return (x > 0) ? x : x * alpha; };
+        f = [=](Tref x) { return (x > 0) ? x : x * alpha; };
         break;
     case MIOPEN_NEURON_ELU: // alpah * (exp(x)-1) | x<=0; x | x>0
-        f = [=](_Tcheck x) { return (x > 0) ? x : alpha * std::expm1(x); };
+        f = [=](Tref x) { return (x > 0) ? x : alpha * std::expm1(x); };
         break;
     default: printf("ERROR: unknown neuron type: %d\n", neuron_type); break;
     }
@@ -412,15 +412,15 @@ void miopenBNActiveNeuronFwdInferHost(int neuron_type,
     }
 }
 
-template <typename _Tgpu /* the data type used in GPU computations (usually half) */,
-          typename _Tcheck /* the data type used in CPU checkings (usually double) */>
-int miopenInferVerify(size_t size, const _Tcheck* c_res, const _Tgpu* top_ptr, _Tcheck allowedEps)
+template <typename Tgpu /* the data type used in GPU computations (usually half) */,
+          typename Tref /* the data type used in CPU checkings (usually double) */>
+int miopenInferVerify(size_t size, const Tref* c_res, const Tgpu* top_ptr, Tref allowedEps)
 {
     int match = 1;
     for(size_t i = 0; i < size && match; i++)
     {
-        _Tcheck c_val  = c_res[i];
-        _Tcheck g_val  = static_cast<_Tcheck>(top_ptr[i]);
+        Tref c_val     = c_res[i];
+        Tref g_val     = static_cast<Tref>(top_ptr[i]);
         double err     = std::abs(c_val - g_val);
         double err_rel = calculate_relative_error(c_val, g_val);
 
@@ -439,7 +439,7 @@ int miopenInferVerify(size_t size, const _Tcheck* c_res, const _Tgpu* top_ptr, _
 
 template <typename Tgpu, typename Tref>
 int ConvForwardCPU(std::vector<Tgpu> in,
-                   std::vector<Tgpu> outhost,
+                   std::vector<Tref> outhost,
                    std::vector<Tgpu> wei,
                    std::vector<Tgpu> b,
                    int bias,
@@ -567,6 +567,7 @@ int ConvForwardCPU(std::vector<Tgpu> in,
     return 0;
 }
 
+#if 0
 template <typename Tgpu, typename Tref>
 int miopenBNActiveVerify(InputFlags inflags,
                          miopenTensorDescriptor_t inputTensor,
@@ -634,5 +635,6 @@ int miopenBNActiveVerify(InputFlags inflags,
 
     return match;
 }
+#endif
 
 #endif
