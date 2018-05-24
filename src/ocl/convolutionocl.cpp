@@ -90,6 +90,7 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
 
         std::string algorithm = (direction == 1) ? "miopenConvolutionFwdAlgoWinograd"
                                                  : "miopenConvolutionBwdDataAlgoWinograd";
+        handle.ClearKernels(algorithm, network_config);
         kernel = handle.AddKernel(algorithm,
                                   network_config,
                                   k_info.kernel_file,
@@ -127,6 +128,14 @@ static inline void AddKernels(Handle& handle,
                               const miopen::solver::ConvSolution& s,
                               std::vector<KernelInvoke>* const kernels)
 {
+    if(!algorithm_name.empty() && !network_config.empty())
+    {
+        handle.ClearKernels(algorithm_name, network_config);
+    }
+    else
+    {
+        assert(algorithm_name.empty() && network_config.empty());
+    }
     int i = 0;
     for(auto& k : s.construction_params)
     {
