@@ -173,8 +173,10 @@ class CBAInferFusionDriver : public Driver
     std::vector<Tgpu> in;
     std::vector<Tgpu> out;
     std::vector<Tgpu> wei;
-    std::vector<Tgpu> conv_res_host;
-    std::vector<Tgpu> bn_res_host;
+    std::vector<Tgpu> conv_res;
+
+    std::vector<Tref> conv_res_host;
+    std::vector<Tref> bn_res_host;
     std::vector<Tref> out_host;
 
     // std::vector<Tgpu> workspace_fwd;
@@ -268,12 +270,12 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
     SetTensor4d(biasScaleTensor, sb_len, data_type);
     // SetTensor4d(outputTensor, in_len, data_type);
 
-    if(inflags.GetValueInt("bias") != 0)
-    {
-        // mode == conv
-        std::vector<int> b_len{1, inflags.GetValueInt("out_channels"), 1, 1};
-        SetTensor4d(biasTensor, b_len, data_type);
-    }
+    // if(inflags.GetValueInt("bias") != 0)
+    //{
+    //// mode == conv
+    // std::vector<int> b_len{1, inflags.GetValueInt("out_channels"), 1, 1};
+    // SetTensor4d(biasTensor, b_len, data_type);
+    //}
 
     SetActivationDescriptorFromCmdLineArgs();
 
@@ -307,7 +309,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("alpha", 'A', "1.0", "Alpha (Default=1.0)", "float");
     inflags.AddInputFlag("beta", 'B', "0.", "Beta (Default=0.)", "float");
     inflags.AddInputFlag("gamma", 'G', "1", "Activation gamma (Default=1)", "double");
-    inflags.AddInputFlag("bias", 'b', "", "Use Bias (Default=0)", "int");
+    // inflags.AddInputFlag("bias", 'b', "", "Use Bias (Default=0)", "int");
     inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -575,9 +577,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     scale = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
     bias  = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
 
+    conv_res = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+
     // CPU allocation
-    conv_res_host = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    bn_res_host   = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    conv_res_host = std::vector<Tref>(out_sz, static_cast<Tref>(0));
+    bn_res_host   = std::vector<Tref>(out_sz, static_cast<Tref>(0));
     out_host      = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
     // Data initialization
@@ -778,13 +782,16 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
     }
 #endif
 
+    conv_res_dev->FromGPU(GetStream(), conv_res.data());
+
     return;
 }
 
 template <typename Tgpu, typename Tref>
 void CBAInferFusionDriver<Tgpu, Tref>::runCPUConvFwdInference()
 {
-    int bias_mode = inflags.GetValueInt("bias");
+    int bias_mode = 0;
+    // int bias_mode = inflags.GetValueInt("bias");
     ConvForwardCPU<Tgpu, Tref>(
         in, conv_res_host, wei, bias, bias_mode, convDesc, inputTensor, weightTensor, outputTensor);
 
@@ -837,10 +844,10 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
 #else
         runGPUConvFwdInference();
         miopenGetKernelTime(GetHandle(), &time0);
-        runGPUBNFwdInference();
-        miopenGetKernelTime(GetHandle(), &time1);
-        runGPUActivFwdInference();
-        miopenGetKernelTime(GetHandle(), &time2);
+// runGPUBNFwdInference();
+// miopenGetKernelTime(GetHandle(), &time1);
+// runGPUActivFwdInference();
+// miopenGetKernelTime(GetHandle(), &time2);
 #endif
 
         miopen::deref(GetHandle()).Finish();
@@ -928,8 +935,8 @@ template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
 {
     runCPUConvFwdInference();
-    runCPUBNFwdInference();
-    runCPUActivFwdInference();
+    // runCPUBNFwdInference();
+    // runCPUActivFwdInference();
 
     return miopenStatusSuccess;
 }
@@ -947,7 +954,10 @@ int CBAInferFusionDriver<Tgpu, Tref>::VerifyForward()
 
     double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
 
-    int match = miopenInferVerify(out.size(), out_host.data(), out.data(), allowedEps);
+    int match =
+        miopenInferVerify(conv_res.size(), conv_res_host.data(), conv_res.data(), allowedEps);
+
+    // int match = miopenInferVerify(out.size(), out_host.data(), out.data(), allowedEps);
 
     if(match)
         printf("Forward Activation Verifies on CPU and GPU\n");
