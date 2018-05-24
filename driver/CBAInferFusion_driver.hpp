@@ -693,7 +693,11 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
     Timer t;
     START_TIME;
 
-#if 0
+#if 1
+    // int ret_algo_count;
+    // int request_algo_count = 2;
+    // std::vector<miopenConvAlgoPerf_t> perf_results(request_algo_count);
+    // FindConvForward(ret_algo_count, request_algo_count, perf_results);
     miopen::DirectConvInference(miopen::deref(GetHandle()),
                                 &alpha,
                                 miopen::deref(inputTensor),

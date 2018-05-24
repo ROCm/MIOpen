@@ -30,24 +30,25 @@
 #include <miopen/check_numerics.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/logger.hpp>
+#include "miopen/solver.hpp"
 #include <chrono>
 
 namespace miopen {
 
 void DirectConvInference(Handle& handle,
-                        const void* alpha,
-                        const TensorDescriptor& xDesc,
-                        ConstData_t x,
-                        const TensorDescriptor& wDesc,
-                        ConstData_t w,
-                        const void* beta,
-                        const TensorDescriptor& yDesc,
-                        Data_t y)
+                         const void* alpha,
+                         const TensorDescriptor& xDesc,
+                         ConstData_t x,
+                         const TensorDescriptor& wDesc,
+                         ConstData_t w,
+                         const void* beta,
+                         const TensorDescriptor& yDesc,
+                         Data_t y)
 {
-    int pad_h = 0;
-    int pad_w = 0;
-    int u = 1;
-    int v = 1;
+    int pad_h      = 0;
+    int pad_w      = 0;
+    int u          = 1;
+    int v          = 1;
     int dilation_h = 1;
     int dilation_w = 1;
 
@@ -82,7 +83,7 @@ void DirectConvInference(Handle& handle,
         miopen::checkNumericsInput(handle, wDesc, w);
     }
 
-    //MIOPEN_LOG_I("workspace = " << workSpaceSize);
+    // MIOPEN_LOG_I("workspace = " << workSpaceSize);
     if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1])
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -90,47 +91,41 @@ void DirectConvInference(Handle& handle,
 
     // TODO(paul): Replicating code for now.
     mlo_construct_direct2D construct_params(1); // forward
+
+    construct_params.doSearch(false);
+    construct_params.saveSearchRequest(true);
+    construct_params.setGeneralCompOptions("");
+
     construct_params.setOutputDescFromMLDesc(yDesc);
     construct_params.setInputDescFromMLDesc(xDesc);
     construct_params.setWeightDescFromMLDesc(wDesc);
     construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
     construct_params.setStream(&handle);
 
+    mloConstruct(construct_params);
+
+    std::string program_name = construct_params.getKernelFile();
+    std::string kernel_name  = construct_params.getKernelName();
+    const std::string& parms = construct_params.getCompilerOptions();
+
     std::string network_config;
     construct_params.mloBuildConf_Key(network_config);
 
+    const std::vector<size_t>& vld = construct_params.getLocalWkSize();
+    const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
+
     std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
     float padding_val          = 0;
-    auto kernel                = handle.GetKernel(algorithm_name, network_config);
+
+    // auto kernel                = handle.GetKernel(algorithm_name, network_config);
+    auto kernel = handle.AddKernel(
+        algorithm_name, network_config, program_name, kernel_name, vld, vgd, parms);
+
+    std::cerr << " kernel name = " << kernel.GetName() << std::endl;
 
     visit_float(xDesc.GetType(), [&](auto as_float) {
         {
-            ConvolutionContext context;
-            construct_params.mloCopyTo(context);
-            context.n_passes = true;
-
-            Db db(context.GetPerfDbPath());
-            solver::ConvSolution solution =
-                FindSolution(solver::ConvOclDirectFwd11x11{}, context, db);
-
-            if(solution.passes == 1)
-            {
-                kernel(x, w, y, as_float(padding_val));
-            }
-            else
-            {
-                // second kernel has
-                network_config += "x1";
-                auto kernel2 = handle.GetKernel(algorithm_name + "_pass2", network_config);
-
-                handle.ResetKernelTime();
-                kernel(x, w, y, as_float(padding_val));
-
-                float time0 = handle.GetKernelTime();
-                kernel2(x, w, y, as_float(padding_val));
-
-                handle.AccumKernelTime(time0);
-            }
+            kernel(x, w, y, as_float(padding_val));
         }
     });
 
