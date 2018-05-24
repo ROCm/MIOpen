@@ -693,11 +693,14 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
     Timer t;
     START_TIME;
 
+    int pad_h      = inflags.GetValueInt("pad_h");
+    int pad_w      = inflags.GetValueInt("pad_w");
+    int u          = inflags.GetValueInt("conv_stride_0");
+    int v          = inflags.GetValueInt("conv_stride_1");
+    int dilation_h = inflags.GetValueInt("dilation_h");
+    int dilation_w = inflags.GetValueInt("dilation_w");
+
 #if 1
-    // int ret_algo_count;
-    // int request_algo_count = 2;
-    // std::vector<miopenConvAlgoPerf_t> perf_results(request_algo_count);
-    // FindConvForward(ret_algo_count, request_algo_count, perf_results);
     miopen::DirectConvInference(miopen::deref(GetHandle()),
                                 &alpha,
                                 miopen::deref(inputTensor),
@@ -706,7 +709,13 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
                                 wei_dev->GetMem(),
                                 &beta,
                                 miopen::deref(outputTensor),
-                                conv_res_dev->GetMem());
+                                conv_res_dev->GetMem(),
+                                pad_h,
+                                pad_w,
+                                u,
+                                v,
+                                dilation_h,
+                                dilation_w);
 
 #else
 

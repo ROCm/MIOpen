@@ -41,15 +41,20 @@
 namespace miopen {
 
 void DirectConvInference(Handle& handle,
-                        const void* alpha,
-                        const TensorDescriptor& xDesc,
-                        ConstData_t x,
-                        const TensorDescriptor& wDesc,
-                        ConstData_t w,
-                        const void* beta,
-                        const TensorDescriptor& yDesc,
-                        Data_t y);
+                         const void* alpha,
+                         const TensorDescriptor& xDesc,
+                         ConstData_t x,
+                         const TensorDescriptor& wDesc,
+                         ConstData_t w,
+                         const void* beta,
+                         const TensorDescriptor& yDesc,
+                         Data_t y,
+                         int pad_h,
+                         int pad_w,
+                         int u,
+                         int v,
+                         int dilation_h,
+                         int dilation_w);
 }
-
 
 #endif // GUARD_MIOPEN_BATCHNORMALIZATION_HPP_
