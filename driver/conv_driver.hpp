@@ -635,7 +635,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
 
     FindForward(ret_algo_count, request_algo_count, perf_results);
 
-#if 0    // for debugging
+#if 0 // for debugging
     std::vector<Tgpu> tmp_out(out.size());
     out_dev->FromGPU(GetStream(), tmp_out.data());
     std::cout << __func__ << ": after FindForward, tmp_out: " << tmp_out << std::endl;
@@ -711,8 +711,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
     }
 
     out_dev->FromGPU(GetStream(), out.data());
-    
-#if 0    // for debugging
+
+#if 0 // for debugging
     std::vector<Tgpu> tmp_out(out.size());
     out_dev->FromGPU(GetStream(), tmp_out.data());
     std::cout << __func__ << ": after convolution and everything, tmp_out: " << tmp_out << std::endl;
