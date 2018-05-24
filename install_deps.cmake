@@ -48,4 +48,4 @@ if(NOT CMakeGet_FOUND)
 endif()
 
 cmake_get(pfultz2/rocm-recipes PREFIX ${PREFIX} CMAKE_ARGS ${PARSE_UNPARSED_ARGUMENTS})
-cmake_get_from(${CMAKE_CURRENT_LIST_DIR}/dev-requirements.txt PREFIX ${PREFIX} CMAKE_ARGS ${PARSE_UNPARSED_ARGUMENTS})
+cmake_get_from(${CMAKE_CURRENT_LIST_DIR}/requirements.txt PREFIX ${PREFIX} CMAKE_ARGS ${PARSE_UNPARSED_ARGUMENTS})
