@@ -73,6 +73,9 @@ KernelInfo GetSolution(const ConvolutionContext& params)
             ? params.kernel_stride0
             : searched_params.out_pix_tile0;
 
+    result.out_pix_tile0 = result.out_pix_tile0 == 0 ? 1 : result.out_pix_tile0;
+    result.out_pix_tile1 = result.out_pix_tile1 == 0 ? 1 : result.out_pix_tile1;
+
     result.grp_tile0 = std::max(8, (result.in_tile0 / result.out_pix_tile0));
     result.grp_tile1 = std::max(8, (result.in_tile1 / result.out_pix_tile1));
     result.in_tile0  = result.grp_tile0 * result.out_pix_tile0;
