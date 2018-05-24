@@ -218,9 +218,10 @@ void CallGemmStridedBatched(Handle& handle,
         hipMemcpy(tmp_b.data(), B_old, b_sz * sizeof(float), hipMemcpyHostToDevice);
         hipMemcpy(tmp_c.data(), C, c_sz * sizeof(float), hipMemcpyHostToDevice);
 
-      //std::cout << __func__ << ": A before call rocblas: " << tmp_a << std::endl;
-      //std::cout << __func__ << ": B before call rocblas: " << tmp_b << std::endl;
-      //std::cout << __func__ << ": C before call rocblas: " << tmp_c << std::endl;
+        std::cout << std::endl;
+        // std::cout << __func__ << ": A before call rocblas: " << tmp_a << std::endl;
+        // std::cout << __func__ << ": B before call rocblas: " << tmp_b << std::endl;
+        // std::cout << __func__ << ": C before call rocblas: " << tmp_c << std::endl;
 
         float sum_c = std::accumulate(tmp_c.begin(), tmp_c.end(), float(0), std::plus<float>());
         std::cout << __func__ << ": sum_c before call rocblas" << sum_c << std::endl;
@@ -271,9 +272,10 @@ void CallGemmStridedBatched(Handle& handle,
         hipMemcpy(tmp_b.data(), B_old, b_sz * sizeof(float), hipMemcpyHostToDevice);
         hipMemcpy(tmp_c.data(), C, c_sz * sizeof(float), hipMemcpyHostToDevice);
 
-      //std::cout << __func__ << ": A after call rocblas: " << tmp_a << std::endl;
-      //std::cout << __func__ << ": B after call rocblas: " << tmp_b << std::endl;
-      //std::cout << __func__ << ": C after call rocblas: " << tmp_c << std::endl;
+        std::cout << std::endl;
+        // std::cout << __func__ << ": A after call rocblas: " << tmp_a << std::endl;
+        // std::cout << __func__ << ": B after call rocblas: " << tmp_b << std::endl;
+        // std::cout << __func__ << ": C after call rocblas: " << tmp_c << std::endl;
 
         float sum_c = std::accumulate(tmp_c.begin(), tmp_c.end(), float(0), std::plus<float>());
         std::cout << __func__ << ": sum_c after call rocblas" << sum_c << std::endl;
