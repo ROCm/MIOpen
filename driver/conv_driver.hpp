@@ -635,16 +635,17 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
 
     FindForward(ret_algo_count, request_algo_count, perf_results);
 
-    // for debugging
-    out_dev->FromGPU(GetStream(), out.data());
-    std::cout << __func__ << ": after FindForward, out: " << out << std::endl;
+#if 0    // for debugging
+    std::vector<Tgpu> tmp_out(out.size());
+    out_dev->FromGPU(GetStream(), tmp_out.data());
+    std::cout << __func__ << ": after FindForward, tmp_out: " << tmp_out << std::endl;
+#endif
 
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     Timer t;
     START_TIME;
 
-#if 1
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenConvolutionForward(GetHandle(),
@@ -662,7 +663,6 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
                                                                 : nullptr,
                                  perf_results[0].memory);
     }
-#endif
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -710,9 +710,13 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
         }
     }
 
-    // for debugging
     out_dev->FromGPU(GetStream(), out.data());
-    std::cout << __func__ << ": after miopenConvolutionForward, out: " << out << std::endl;
+    
+#if 0    // for debugging
+    std::vector<Tgpu> tmp_out(out.size());
+    out_dev->FromGPU(GetStream(), tmp_out.data());
+    std::cout << __func__ << ": after convolution and everything, tmp_out: " << tmp_out << std::endl;
+#endif
 
     if(inflags.GetValueInt("dump_output"))
     {
@@ -1664,8 +1668,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyForward()
         RunForwardCPU();
     }
 
+#if 0 // debug
     std::cout << __func__ << "outhost: " << outhost << std::endl;
     std::cout << __func__ << "out: " << out << std::endl;
+#endif
 
     auto error = miopen::rms_range(outhost, out);
     const Tref tolerance =

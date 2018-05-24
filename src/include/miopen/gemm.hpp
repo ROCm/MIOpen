@@ -67,6 +67,10 @@ struct GemmDescriptor
 
 std::ostream& operator<<(std::ostream& os, const GemmDescriptor& gemm_desc);
 
+} // namespace miopen
+
+namespace miopen {
+
 GemmGeometry
 GetGemmGeometry(Handle& handle, std::string algorithm_name, std::string network_config);
 
@@ -200,9 +204,9 @@ GemmDescriptor CreateGemmDescriptorConv1x1Fwd(const TensorDescriptor& xDesc,
                                               const TensorDescriptor& wDesc,
                                               const TensorDescriptor& yDesc);
 
-GemmDescriptor CreateGemmDescriptorConvIm2ColFwd(const TensorDescriptor& xDesc,
-                                                 const TensorDescriptor& wDesc,
-                                                 const TensorDescriptor& yDesc);
+GemmDescriptor CreateGemmDescriptorConv1x1BwdData(const TensorDescriptor& dyDesc,
+                                                  const TensorDescriptor& wDesc,
+                                                  const TensorDescriptor& dxDesc);
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_GEMM_HPP_
