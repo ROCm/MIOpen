@@ -531,15 +531,14 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         PadBufferSize(out_sz, sizeof(Tgpu));
     }
 
-    size_t workSpaceNbVal_fwd = workSpaceSize_fwd / sizeof(Tgpu);
+    //size_t workSpaceNbVal_fwd = workSpaceSize_fwd / sizeof(Tgpu);
+    //if(workSpaceSize_fwd != 0)
+    //{
+        //workspace_fwd_dev =
+            //std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceNbVal_fwd, sizeof(Tgpu)));
+    //}
 
-    std::cerr << "workSpaceNbVal_fwd = " << workSpaceNbVal_fwd << std::endl;
-
-    if(workSpaceSize_fwd != 0)
-    {
-        workspace_fwd_dev =
-            std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceNbVal_fwd, sizeof(Tgpu)));
-    }
+    //std::cerr << "workSpaceNbVal_fwd = " << workSpaceNbVal_fwd << std::endl;
 
 #if 0
     if(inflags.GetValueInt("bias") != 0)
