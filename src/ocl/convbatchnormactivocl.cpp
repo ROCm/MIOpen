@@ -269,7 +269,7 @@ void DirectConvInference(Handle& handle,
     construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
     construct_params.setStream(&handle);
 
-#if 1
+#if 0
     ConvolutionContext params;
     construct_params.mloCopyTo(params);
     params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
