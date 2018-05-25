@@ -90,6 +90,7 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
 
         std::string algorithm = (direction == 1) ? "miopenConvolutionFwdAlgoWinograd"
                                                  : "miopenConvolutionBwdDataAlgoWinograd";
+        handle.ClearKernels(algorithm, network_config);
         kernel = handle.AddKernel(algorithm,
                                   network_config,
                                   k_info.kernel_file,
@@ -181,6 +182,7 @@ int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
             extraArgs = std::make_tuple(N, C, H, W, K, n_groups, out_H, out_W);
         }
 
+        handle.ClearKernels(algorithm, network_config);
         if(solution.construction_params.size() == 2)
         {
             auto k1 = handle.AddKernel(
@@ -2054,6 +2056,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                    solution.Succeeded())
                 {
                     construct_params.mloBuildConf_Key(network_config);
+                    handle.ClearKernels("miopenConvolutionBwdWeightsAlgoDirect_Main",
+                                        network_config);
 
                     visit_float(dyDesc.GetType(), [&](auto as_float) {
 
