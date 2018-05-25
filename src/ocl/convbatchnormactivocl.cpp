@@ -86,9 +86,8 @@ KernelInfo GetSolution(const ConvolutionContext& params)
     int alu_tiles_sz = (alu_tile0 * alu_tile1);
     if(alu_tiles_sz > 256)
     {
-        std::cerr << "Error" << std::endl;
+        std::cerr << "ERROR: need out pix size ajustments\n";
         exit(0);
-        //			std::cout << "ERROR: need out pix size ajustments\n";
         // return ConvSolution(static_cast<miopenStatus_t>(-1));
     }
 
@@ -269,7 +268,7 @@ void DirectConvInference(Handle& handle,
     construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
     construct_params.setStream(&handle);
 
-#if 0
+#if 1
     ConvolutionContext params;
     construct_params.mloCopyTo(params);
     params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";

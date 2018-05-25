@@ -368,21 +368,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetBNParametersFromCmdLineArgs()
     return miopenStatusSuccess;
 }
 
-bool IsDirectSupported(int wei_h, int wei_w, int pad_h, int pad_w, int u, int v)
-{
-    bool supported_filters =
-        ((wei_h == 1 && wei_w == 1) || (wei_h == 3 && wei_w == 3) || (wei_h == 5 && wei_w == 5) ||
-         (wei_h == 7 && wei_w == 7) || (wei_h == 9 && wei_w == 9) || (wei_h == 11 && wei_w == 11) ||
-         (wei_h == 5 && wei_w == 10 && u == 2 && v == 2 && pad_h == 0 && pad_w == 0) ||
-         (wei_h == 5 && wei_w == 20 && u == 2 && v == 2 && pad_h == 0 && pad_w == 0));
-
-    bool workarounds = ((wei_h == 3 && wei_w == 3 && (u > 2 || v > 2)) ||
-                        (wei_h == 1 && wei_w == 1 && (pad_h > 0 || pad_w > 0)) ||
-                        (wei_h % 2 == 0 && wei_w % 2 == 0));
-
-    return (supported_filters && !workarounds);
-}
-
 template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
 {
@@ -420,14 +405,14 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
         pad_w = 0;
     }
 
-    std::cerr << "convDesc = " << wei_h << "," << wei_w << "," << pad_h << "," << pad_w << "," << u
-              << "," << v << "," << dilation_h << "," << dilation_w << std::endl;
-
-    if(!IsDirectSupported(wei_h, wei_w, pad_h, pad_w, u, v))
+    if(wei_h != wei_w)
     {
-        std::cerr << "Direct is not support" << std::endl;
+        std::cerr << "Direct is not supported" << std::endl;
         exit(0);
     }
+
+    std::cerr << "convDesc = " << wei_h << "," << wei_w << "," << pad_h << "," << pad_w << "," << u
+              << "," << v << "," << dilation_h << "," << dilation_w << std::endl;
 
     miopen::deref(convDesc) =
         miopen::ConvolutionDescriptor(mode, pmode, pad_h, pad_w, u, v, dilation_h, dilation_w);
@@ -745,19 +730,19 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
                              (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetSize() : 0);
 #endif
 
-    if(inflags.GetValueInt("time") == 1)
-    {
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
+// if(inflags.GetValueInt("time") == 1)
+//{
+// float time = 0.0;
+// miopenGetKernelTime(GetHandle(), &time);
 
-        STOP_TIME;
-        if(WALL_CLOCK)
-            printf("Wall-clock Time Forward Conv. Elapsed: %f ms\n",
-                   t.gettime_ms() / inflags.GetValueInt("iter"));
+// STOP_TIME;
+// if(WALL_CLOCK)
+// printf("Wall-clock Time Forward Conv. Elapsed: %f ms\n",
+// t.gettime_ms() / inflags.GetValueInt("iter"));
 
-        // printf("MIOpen Forward Conv. Algorithm: %d\n", perf_results[0].fwd_algo);
-        printf("GPU Kernel Time Forward Conv. Elapsed: %f ms\n", time);
-    }
+//// printf("MIOpen Forward Conv. Algorithm: %d\n", perf_results[0].fwd_algo);
+// printf("GPU Kernel Time Forward Conv. Elapsed: %f ms\n", time);
+//}
 
 #if 0
     if(inflags.GetValueInt("bias") != 0)
@@ -805,8 +790,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
     Timer t;
     double fulltime = 0.;
     auto iters      = inflags.GetValueInt("iter");
-    float lowtime   = 100000000.0;
-    float avgtime   = 0.;
+    // float lowtime   = 100000000.0;
+    // float avgtime   = 0.;
 
     for(int i = 0; i < iters; i++)
     {
@@ -818,7 +803,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
         miopenGetActivationDescriptor(
             activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
 
-        float time0 = 0.0, time1 = 0.0, time2 = 0.0;
+// float time0 = 0.0, time1 = 0.0, time2 = 0.0;
 #if 0
         Tref epsilon = static_cast<Tref>(EPSILON);
         float alpha = static_cast<float>(1), beta = static_cast<float>(0);
@@ -844,11 +829,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
         miopenGetKernelTime(GetHandle(), &time0);
 #else
         runGPUConvFwdInference();
-        miopenGetKernelTime(GetHandle(), &time0);
+        // miopenGetKernelTime(GetHandle(), &time0);
         runGPUBNFwdInference();
-        miopenGetKernelTime(GetHandle(), &time1);
+        // miopenGetKernelTime(GetHandle(), &time1);
         runGPUActivFwdInference();
-        miopenGetKernelTime(GetHandle(), &time2);
+// miopenGetKernelTime(GetHandle(), &time2);
 #endif
 
         miopen::deref(GetHandle()).Finish();
@@ -862,14 +847,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
                 fulltime = t.gettime_ms();
             // else do nothing, drop the first iteration
         }
-
-        if(inflags.GetValueStr("time") == "1")
-        {
-            float time = time0 + time1 + time2;
-            lowtime    = (time < lowtime) ? time : lowtime;
-            if(iters > 1 && i > 0)
-                avgtime += time;
-        }
     }
 
     if(WALL_CLOCK)
@@ -879,15 +856,15 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
                (iters > 1) ? iters - 1 : 1);
     }
 
-    if(inflags.GetValueStr("time") == "1")
-    {
-        printf("GPU Kernel Min Time Forward Batch Normalization Elapsed: %f ms\n", lowtime);
-        if(iters > 1)
-            printf("GPU Kernel Avg Time Forward Batch Normalization Elapsed: %f ms, for %d "
-                   "iterations.\n",
-                   avgtime / (iters - 1),
-                   iters - 1);
-    }
+    // if(inflags.GetValueStr("time") == "1")
+    //{
+    // printf("GPU Kernel Min Time Forward Batch Normalization Elapsed: %f ms\n", lowtime);
+    // if(iters > 1)
+    // printf("GPU Kernel Avg Time Forward Batch Normalization Elapsed: %f ms, for %d "
+    //"iterations.\n",
+    // avgtime / (iters - 1),
+    // iters - 1);
+    //}
 
     out_dev->FromGPU(GetStream(), out.data());
 
