@@ -247,33 +247,36 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
 {
 
     SetBNParametersFromCmdLineArgs();
+    SetConvDescriptorFromCmdLineArgs();
+    SetActivationDescriptorFromCmdLineArgs();
 
     std::vector<int> in_len  = GetInputTensorLengthsFromCmdLine();
     std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
+
+    SetTensor4d(inputTensor, in_len, data_type);
+    SetTensor4d(weightTensor, wei_len, data_type);
+
+    std::vector<int> out_len = GetOutputTensorLengths();
+    SetTensor4d(outputTensor, out_len, data_type);
+
     std::vector<int> sb_len;
 
     if(bn_mode == miopenBNPerActivation)
     { // 1xCxHxW
         sb_len.push_back(1);
-        sb_len.push_back(in_len[1]);
-        sb_len.push_back(in_len[2]);
-        sb_len.push_back(in_len[3]);
+        sb_len.push_back(out_len[1]);
+        sb_len.push_back(out_len[2]);
+        sb_len.push_back(out_len[3]);
     }
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
         sb_len.push_back(1);
-        sb_len.push_back(in_len[1]);
+        sb_len.push_back(out_len[1]);
         sb_len.push_back(1);
         sb_len.push_back(1);
     }
 
-    SetTensor4d(inputTensor, in_len, data_type);
-    SetTensor4d(weightTensor, wei_len, data_type);
     SetTensor4d(biasScaleTensor, sb_len, data_type);
-
-    SetConvDescriptorFromCmdLineArgs();
-    std::vector<int> out_len = GetOutputTensorLengths();
-    SetTensor4d(outputTensor, out_len, data_type);
 
     // if(inflags.GetValueInt("bias") != 0)
     //{
@@ -281,8 +284,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
     // std::vector<int> b_len{1, inflags.GetValueInt("out_channels"), 1, 1};
     // SetTensor4d(biasTensor, b_len, data_type);
     //}
-
-    SetActivationDescriptorFromCmdLineArgs();
 
     return miopenStatusSuccess;
 }
@@ -340,7 +341,7 @@ std::vector<int> CBAInferFusionDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdL
     int in_h = inflags.GetValueInt("in_h");
     int in_w = inflags.GetValueInt("in_w");
 
-    std::cerr << "inDesc = " << in_n << "," << in_c << "," << in_h << "," << in_w << std::endl;
+    std::cerr << "inTensor = " << in_n << "," << in_c << "," << in_h << "," << in_w << std::endl;
 
     return std::vector<int>({in_n, in_c, in_h, in_w});
 }
@@ -440,6 +441,8 @@ std::vector<int> CBAInferFusionDriver<Tgpu, Tref>::GetOutputTensorLengths()
 
     miopenGetConvolutionForwardOutputDim(convDesc, inputTensor, weightTensor, &n, &c, &h, &w);
 
+    std::cerr << "outTensor = " << n << "," << c << "," << h << "," << w << std::endl;
+
     return std::vector<int>({n, c, h, w});
 }
 
@@ -531,14 +534,14 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         PadBufferSize(out_sz, sizeof(Tgpu));
     }
 
-    //size_t workSpaceNbVal_fwd = workSpaceSize_fwd / sizeof(Tgpu);
-    //if(workSpaceSize_fwd != 0)
-    //{
-        //workspace_fwd_dev =
-            //std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceNbVal_fwd, sizeof(Tgpu)));
-    //}
+// size_t workSpaceNbVal_fwd = workSpaceSize_fwd / sizeof(Tgpu);
+// if(workSpaceSize_fwd != 0)
+//{
+// workspace_fwd_dev =
+// std::unique_ptr<GPUMem>(new GPUMem(ctx, workSpaceNbVal_fwd, sizeof(Tgpu)));
+//}
 
-    //std::cerr << "workSpaceNbVal_fwd = " << workSpaceNbVal_fwd << std::endl;
+// std::cerr << "workSpaceNbVal_fwd = " << workSpaceNbVal_fwd << std::endl;
 
 #if 0
     if(inflags.GetValueInt("bias") != 0)
@@ -557,27 +560,27 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     // GPU allocation
     in_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    conv_res_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    bn_res_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    conv_res_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    bn_res_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
     wei_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tgpu)));
     scale_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
     bias_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
-    out_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+    out_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
     // GPU host allocation
     in    = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
     wei   = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
-    out   = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    out   = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
     scale = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
     bias  = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
 
-    conv_res = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    bn_res   = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    conv_res = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    bn_res   = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
 
     // CPU allocation
-    conv_res_host = std::vector<Tref>(in_sz, static_cast<Tref>(0));
-    bn_res_host   = std::vector<Tref>(in_sz, static_cast<Tref>(0));
-    out_host      = std::vector<Tref>(in_sz, static_cast<Tref>(0));
+    conv_res_host = std::vector<Tref>(out_sz, static_cast<Tref>(0));
+    bn_res_host   = std::vector<Tref>(out_sz, static_cast<Tref>(0));
+    out_host      = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
     // Data initialization
     for(int i = 0; i < in_sz; i++)
@@ -613,7 +616,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBNFwdInference()
                                              bn_mode,
                                              &alpha,
                                              &beta,
-                                             inputTensor,
+                                             outputTensor,
                                              conv_res_dev->GetMem(),
                                              outputTensor,
                                              bn_res_dev->GetMem(),
@@ -655,7 +658,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUActivFwdInference()
     miopenActivationForward(GetHandle(),
                             activDesc,
                             &alpha,
-                            inputTensor,
+                            outputTensor,
                             bn_res_dev->GetMem(),
                             &beta,
                             outputTensor,
@@ -898,7 +901,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
 
     if(bn_mode == miopenBNPerActivation)
     { // 1xCxHxW
-        miopenBNActiveBNPerActivFwdInferHost(inputTensor,
+        miopenBNActiveBNPerActivFwdInferHost(outputTensor,
                                              conv_res_host.data(),
                                              bn_res_host.data(),
                                              scale.data(),
@@ -910,7 +913,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
     }
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
-        miopenBNActiveBNSpatialFwdInferHost(inputTensor,
+        miopenBNActiveBNSpatialFwdInferHost(outputTensor,
                                             conv_res_host.data(),
                                             bn_res_host.data(),
                                             scale.data(),

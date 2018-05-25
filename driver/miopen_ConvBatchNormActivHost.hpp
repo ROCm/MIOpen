@@ -39,15 +39,15 @@
 #endif
 
 template <typename Tgpu, typename Tref>
-int miopenBNActiveBNSpatialFwdInferHost(miopenTensorDescriptor_t inputTensor,
+int miopenBNActiveBNSpatialFwdInferHost(miopenTensorDescriptor_t& inputTensor,
                                         const Tref* in_ptr,
                                         Tref* out_ptr,
-                                        Tgpu* scale_ptr,
-                                        Tgpu* bias_ptr,
+                                        const Tgpu* scale_ptr,
+                                        const Tgpu* bias_ptr,
                                         Tref epsilon,
-                                        //bool estmeanvar,
-                                        Tgpu* estimatedMean,
-                                        Tgpu* estimatedVariance)
+                                        // bool estmeanvar,
+                                        const Tgpu* estimatedMean,
+                                        const Tgpu* estimatedVariance)
 {
     int nIn, cIn, hIn, wIn;
     miopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
@@ -93,15 +93,15 @@ int miopenBNActiveBNSpatialFwdInferHost(miopenTensorDescriptor_t inputTensor,
 }
 
 template <typename Tgpu, typename Tref>
-int miopenBNActiveBNPerActivFwdInferHost(miopenTensorDescriptor_t inputTensor,
+int miopenBNActiveBNPerActivFwdInferHost(miopenTensorDescriptor_t& inputTensor,
                                          const Tref* in_ptr,
                                          Tref* out_ptr,
-                                         Tgpu* scale_ptr,
-                                         Tgpu* bias_ptr,
+                                         const Tgpu* scale_ptr,
+                                         const Tgpu* bias_ptr,
                                          Tref epsilon,
-                                         //bool estmeanvar,
-                                         Tgpu* estimatedMean,
-                                         Tgpu* estimatedVariance)
+                                         // bool estmeanvar,
+                                         const Tgpu* estimatedMean,
+                                         const Tgpu* estimatedVariance)
 { // use running mean and variance
 
     int nIn, cIn, hIn, wIn;
@@ -242,15 +242,15 @@ int miopenInferVerify(size_t size, const Tref* c_res, const Tgpu* top_ptr, Tref 
 }
 
 template <typename Tgpu, typename Tref>
-int ConvForwardCPU(std::vector<Tgpu> in,
-                   std::vector<Tref> outhost,
-                   std::vector<Tgpu> wei,
-                   std::vector<Tgpu> b,
-                   int bias,
-                   miopenConvolutionDescriptor_t convDesc,
-                   miopenTensorDescriptor_t inputTensor,
-                   miopenTensorDescriptor_t weightTensor,
-                   miopenTensorDescriptor_t outputTensor)
+int ConvForwardCPU(const std::vector<Tgpu>& in,
+                   std::vector<Tref>& outhost,
+                   const std::vector<Tgpu>& wei,
+                   const std::vector<Tgpu>& b,
+                   const int bias,
+                   miopenConvolutionDescriptor_t& convDesc,
+                   miopenTensorDescriptor_t& inputTensor,
+                   miopenTensorDescriptor_t& weightTensor,
+                   miopenTensorDescriptor_t& outputTensor)
 {
 
     int in_n, in_c, in_h, in_w;
