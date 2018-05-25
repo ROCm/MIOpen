@@ -137,8 +137,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
 
     set(MIOPEN_KERNELS
         kernels/MIOpenCheckNumerics.cl
-        kernels/MIOpenBatchNormActivFwdInferPerAct.cl
-        kernels/MIOpenBatchNormActivFwdInferSpatial.cl
+        kernels/MIOpenBatchNormActivInfer.cl
         kernels/MIOpenBatchNormFwdTrainSpatial.cl
         kernels/MIOpenBatchNormFwdTrainPerAct.cl
         kernels/MIOpenBatchNormFwdInferSpatial.cl
@@ -146,6 +145,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenBatchNormBwdSpatial.cl
         kernels/MIOpenBatchNormBwdPerAct.cl
         kernels/MIOpenConvDirUni.cl
+        kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
