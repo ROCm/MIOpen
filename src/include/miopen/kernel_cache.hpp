@@ -77,6 +77,8 @@ class KernelCache
 
     void AddKernel(Key key, Kernel k, std::size_t cache_index);
 
+    void ClearKernels(const std::string& algorithm, const std::string& network_config);
+
     const std::vector<Kernel>& GetKernels(const std::string& algorithm,
                                           const std::string& network_config);
 
