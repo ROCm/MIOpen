@@ -201,7 +201,7 @@ KernelInfo GetSolution(const ConvolutionContext& params)
     kernel_params.g_wk.push_back(gbl_wk1);
     kernel_params.g_wk.push_back(gbl_wk2);
 
-    kernel_params.kernel_file = "MIOpenConvDirUni.cl";
+    kernel_params.kernel_file = "MIOpenConvDirBatchNormActiv.cl";
     kernel_params.kernel_name = "MIOpenConvUni";
 
     // result.construction_params.push_back(kernel_params);

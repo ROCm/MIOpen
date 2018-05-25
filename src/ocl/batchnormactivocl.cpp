@@ -116,8 +116,8 @@ void BatchNormActivInference(Handle& handle,
     }
     else
     {
-        std::string program_name = "MIOpenBatchNormActivFwdInfer"; // build this up
-        std::string kernel_name  = "MIOpenBatchNormActivFwdInfer";
+        std::string program_name = "MIOpenBatchNormActivInfer.cl"; // build this up
+        std::string kernel_name  = "MIOpenBatchNormActivInfer";
 
         size_t xlocalsize = 256;
         size_t ylocalsize = 1;
@@ -125,12 +125,10 @@ void BatchNormActivInference(Handle& handle,
 
         if(bn_mode == miopenBNSpatial)
         { // SPATIAL kernels
-            program_name += "Spatial.cl";
             kernel_name += "SpatialEst";
         }
         else
         { // PER ACTIVATION
-            program_name += "PerAct.cl";
             kernel_name += "PerActEst";
         }
 
