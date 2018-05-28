@@ -1,5 +1,5 @@
 pfultz2/rocm-recipes
+-f requirements.txt
 danmar/cppcheck@fe1b1d537ecaa0e573000f7d073a0e661e3256f2
 ROCm-Developer-Tools/HIP@5d4e14011fa80e44298ffa36ff36400cab82da69
 RadeonOpenCompute/clang-ocl@a180592885ecae5b8beadf667c633c246cec82b6
--f requirements.txt
