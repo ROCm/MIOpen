@@ -240,19 +240,19 @@ auto SearchForSolution(const Context& search_params, Db db) ->
 #endif
         auto no_perf_filtering = miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
 
-    // clang-format off
-    MIOPEN_STATIC_FOR_EACH(solver, Solvers{}, {
-        if(!solution.Succeeded() && solver.IsApplicable(search_params) &&
-           (no_perf_filtering || solver.IsFast(search_params)))
-        {
-            solution = FindSolution(solver, search_params, db);
-            if(solution.Succeeded() && solution.construction_params.empty())
+    miopen::each_args(
+        [&](auto solver) {
+            if(!solution.Succeeded() && solver.IsApplicable(search_params) &&
+               (no_perf_filtering || solver.IsFast(search_params)))
             {
-                MIOPEN_THROW(std::string("Internal error in solver: ") + SolverDbId(solver));
+                solution = FindSolution(solver, search_params, db);
+                if(solution.Succeeded() && solution.construction_params.empty())
+                {
+                    MIOPEN_THROW(std::string("Internal error in solver: ") + SolverDbId(solver));
+                }
             }
-        }
-    });
-    // clang-format on
+        },
+        Solvers{}...);
 
     return solution;
 }
@@ -283,8 +283,9 @@ void SearchForAllSolutions(const Context& search_params, Db db, std::vector<Solu
             !miopen::IsEnabled(MIOPEN_DEBUG_FIND_FIRST_CONV{});
 
     // clang-format off
-    bool skip_the_rest = false; // cppcheck-suppress knownConditionTrueFalse
-    MIOPEN_STATIC_FOR_EACH(solver, Solvers{}, {
+    bool skip_the_rest = false;
+    miopen::each_args([&](auto solver)
+    {   // cppcheck-suppress knownConditionTrueFalse
         if(!skip_the_rest 
             && solver.IsApplicable(search_params)
             && (no_perf_filtering || solver.IsFast(search_params)))
@@ -293,7 +294,7 @@ void SearchForAllSolutions(const Context& search_params, Db db, std::vector<Solu
             if(s.Succeeded())
             {
                 ss.push_back(s);
-                MIOPEN_LLOG_I2(SolverDbId(solver) << ": Success.");
+                MIOPEN_LOG_I2(SolverDbId(solver) << ": Success.");
 
                 if (miopen::IsEnabled(MIOPEN_DEBUG_FIND_FIRST_CONV{}))
                 {
@@ -321,14 +322,15 @@ void SearchForAllSolutions(const Context& search_params, Db db, std::vector<Solu
                 /// Normally we should not get here and message level should be Error.
                 /// For now, let's use Info (not Warning) level to avoid
                 /// flooding the console.
-                MIOPEN_LLOG_I(SolverDbId(solver) << ": [Warning] Applicable Solver not succeeded.");
+                MIOPEN_LOG_I(SolverDbId(solver) << ": [Warning] Applicable Solver not succeeded.");
             }
         }
         else
         {
-            MIOPEN_LLOG_I2(SolverDbId(solver) << ": " << (skip_the_rest ? "Skipped" : "Not applicable"));
+            MIOPEN_LOG_I2(SolverDbId(solver) << ": " << (skip_the_rest ? "Skipped" : "Not applicable"));
         }
-    });
+    },
+    Solvers{}...);
     // clang-format on
 }
 

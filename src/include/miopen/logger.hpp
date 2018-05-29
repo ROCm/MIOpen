@@ -246,9 +246,18 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
     {                                                                                          \
         if(miopen::IsLogging(level))                                                           \
         {                                                                                      \
+            std::string miopen_log_func{__func__};                                             \
+            if(miopen_log_func == "operator()") /* lambda*/                                    \
+            {                                                                                  \
+                const std::string pretty_function{__PRETTY_FUNCTION__};                        \
+                const std::string pretty_function_tail{                                        \
+                    pretty_function.substr(0, pretty_function.find_first_of('('))};            \
+                miopen_log_func =                                                              \
+                    pretty_function_tail.substr(1 + pretty_function_tail.find_last_of(':'));   \
+            }                                                                                  \
             std::stringstream miopen_log_ss; /* long name to avoid "shadowing name" warning */ \
             miopen_log_ss << miopen::PlatformName() << ": " << LoggingLevelToCString(level)    \
-                          << " [" << __func__ << "] " << __VA_ARGS__ << std::endl;             \
+                          << " [" << miopen_log_func << "] " << __VA_ARGS__ << std::endl;      \
             std::cerr << miopen_log_ss.str();                                                  \
         }                                                                                      \
     } while(false)
@@ -257,30 +266,6 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 #define MIOPEN_LOG_W(...) MIOPEN_LOG(miopen::LoggingLevel::Warning, __VA_ARGS__)
 #define MIOPEN_LOG_I(...) MIOPEN_LOG(miopen::LoggingLevel::Info, __VA_ARGS__)
 #define MIOPEN_LOG_I2(...) MIOPEN_LOG(miopen::LoggingLevel::Info2, __VA_ARGS__)
-
-// For use within lambdas only.
-#define MIOPEN_LAMBDA_LOG(level, ...)                                                             \
-    do                                                                                            \
-    {                                                                                             \
-        if(miopen::IsLogging(level))                                                              \
-        {                                                                                         \
-            const std::string pretty_function{__PRETTY_FUNCTION__};                               \
-            const std::string pretty_function_tail{                                               \
-                pretty_function.substr(0, pretty_function.find_first_of('('))};                   \
-            std::stringstream miopen_llog_ss;                                                     \
-            miopen_llog_ss << miopen::PlatformName() << ": " << LoggingLevelToCString(level)      \
-                           << " ["                                                                \
-                           << pretty_function_tail.substr(1 +                                     \
-                                                          pretty_function_tail.find_last_of(':')) \
-                           << "] " << __VA_ARGS__ << std::endl;                                   \
-            std::cerr << miopen_llog_ss.str();                                                    \
-        }                                                                                         \
-    } while(false)
-
-#define MIOPEN_LLOG_E(...) MIOPEN_LAMBDA_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
-#define MIOPEN_LLOG_W(...) MIOPEN_LAMBDA_LOG(miopen::LoggingLevel::Warning, __VA_ARGS__)
-#define MIOPEN_LLOG_I(...) MIOPEN_LAMBDA_LOG(miopen::LoggingLevel::Info, __VA_ARGS__)
-#define MIOPEN_LLOG_I2(...) MIOPEN_LAMBDA_LOG(miopen::LoggingLevel::Info2, __VA_ARGS__)
 
 } // namespace miopen
 
