@@ -55,6 +55,32 @@ void DirectConvInference(Handle& handle,
                          int v,
                          int dilation_h,
                          int dilation_w);
+
+void DirectConvBNActivInference(Handle& handle,
+                         const void* alpha,
+                         const TensorDescriptor& xDesc,
+                         ConstData_t x,
+                         const TensorDescriptor& wDesc,
+                         ConstData_t w,
+                         const void* beta,
+                         const TensorDescriptor& yDesc,
+                         Data_t y,
+                         int pad_h,
+                         int pad_w,
+                         int u,
+                         int v,
+                         int dilation_h,
+                         int dilation_w,
+                         ConstData_t bnScale,
+                         ConstData_t bnBias,
+                         ConstData_t estimatedMean,
+                         ConstData_t estimatedVariance,
+                         double epsilon,
+                         miopenActivationMode_t activ_mode,
+                         double activ_alpha,
+                         double activ_beta,
+                         double activ_gama
+                         );
 }
 
 #endif // GUARD_MIOPEN_BATCHNORMALIZATION_HPP_
