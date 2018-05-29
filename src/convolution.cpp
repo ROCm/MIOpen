@@ -600,7 +600,7 @@ size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
     try
     {
         std::vector<miopen::solver::ConvSolution> ss;
-        mloConstruct(construct_params, ss);
+        FindAllSolutions(construct_params, ss);
         size_t sz = 0;
         for(const auto& solution : ss)
         {
@@ -636,7 +636,7 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
     try
     {
         std::vector<miopen::solver::ConvSolution> ss;
-        mloConstruct(construct_params, ss);
+        FindAllSolutions(construct_params, ss);
         size_t sz = 0;
         for(const auto& solution : ss)
         {
