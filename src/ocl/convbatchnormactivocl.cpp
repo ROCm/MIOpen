@@ -202,7 +202,7 @@ KernelInfo GetSolution(const ConvolutionContext& params)
     kernel_params.g_wk.push_back(gbl_wk2);
 
     kernel_params.kernel_file = "MIOpenConvDirBatchNormActiv.cl";
-    kernel_params.kernel_name = "MIOpenConvUni";
+    kernel_params.kernel_name = "MIOpenConvUniBatchNormActiv";
 
     // result.construction_params.push_back(kernel_params);
     return kernel_params;
@@ -268,24 +268,12 @@ void DirectConvInference(Handle& handle,
     construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
     construct_params.setStream(&handle);
 
-#if 1
-    ConvolutionContext params;
-    construct_params.mloCopyTo(params);
-    params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
-    auto kernel_info               = solver::GetSolution(params);
-    std::string program_name       = kernel_info.kernel_file;
-    std::string kernel_name        = kernel_info.kernel_name;
-    const std::string parms        = kernel_info.comp_options;
-    const std::vector<size_t>& vld = kernel_info.l_wk;
-    const std::vector<size_t>& vgd = kernel_info.g_wk;
-#else
     mloConstruct(construct_params);
     std::string program_name       = construct_params.getKernelFile();
     std::string kernel_name        = construct_params.getKernelName();
     const std::string& parms       = construct_params.getCompilerOptions();
     const std::vector<size_t>& vld = construct_params.getLocalWkSize();
     const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
-#endif
 
     std::string network_config;
     construct_params.mloBuildConf_Key(network_config);
@@ -307,4 +295,121 @@ void DirectConvInference(Handle& handle,
         miopen::checkNumericsOutput(handle, yDesc, y);
     }
 }
+
+void DirectConvBNActivInference(Handle& handle,
+                         const void* alpha,
+                         const TensorDescriptor& xDesc,
+                         ConstData_t x,
+                         const TensorDescriptor& wDesc,
+                         ConstData_t w,
+                         const void* beta,
+                         const TensorDescriptor& yDesc,
+                         Data_t y,
+                         int pad_h,
+                         int pad_w,
+                         int u,
+                         int v,
+                         int dilation_h,
+                         int dilation_w,
+                         ConstData_t bnScale,
+                         ConstData_t bnBias,
+                         ConstData_t estimatedMean,
+                         ConstData_t estimatedVariance,
+                         double epsilon,
+                         miopenActivationMode_t activ_mode,
+                         double activ_alpha,
+                         double activ_beta,
+                         double activ_gama
+                         )
+{
+    if(x == nullptr || w == nullptr || y == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+    if(xDesc.GetSize() != yDesc.GetSize() || xDesc.GetSize() != wDesc.GetSize())
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+    if(xDesc.GetType() != yDesc.GetType() || xDesc.GetType() != wDesc.GetType())
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    if(xDesc.GetSize() < 3)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+    if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
+       !float_equal(*(static_cast<const float*>(beta)), 0))
+    {
+        MIOPEN_THROW(miopenStatusNotImplemented, "Only alpha=1 and beta=0 is supported");
+    }
+
+    if(miopen::CheckNumericsEnabled() != 0)
+    {
+        miopen::checkNumericsInput(handle, xDesc, x);
+        miopen::checkNumericsInput(handle, wDesc, w);
+    }
+
+    if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1])
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    // TODO(paul): Replicating code for now.
+    mlo_construct_direct2D construct_params(1); // forward
+
+    construct_params.setOutputDescFromMLDesc(yDesc);
+    construct_params.setInputDescFromMLDesc(xDesc);
+    construct_params.setWeightDescFromMLDesc(wDesc);
+    construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+    construct_params.setStream(&handle);
+
+    ConvolutionContext params;
+    construct_params.mloCopyTo(params);
+    params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
+    params.general_compile_options += " -DMIOPEN_NRN_OP_ID=" + std::to_string(activ_mode);
+    auto kernel_info               = solver::GetSolution(params);
+    std::string program_name       = kernel_info.kernel_file;
+    std::string kernel_name        = kernel_info.kernel_name;
+    const std::string parms        = kernel_info.comp_options;
+    const std::vector<size_t>& vld = kernel_info.l_wk;
+    const std::vector<size_t>& vgd = kernel_info.g_wk;
+
+    std::string network_config;
+    construct_params.mloBuildConf_Key(network_config);
+    network_config += std::to_string(activ_mode);
+
+    std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
+    float padding_val          = 0;
+
+    auto kernel = handle.AddKernel(
+        algorithm_name, network_config, program_name, kernel_name, vld, vgd, parms);
+
+    visit_float(xDesc.GetType(), [&](auto as_float) {
+        {
+        auto f_activ_alpha = as_float(activ_alpha);
+        auto f_activ_beta  = as_float(activ_beta);
+        auto f_activ_gama  = as_float(activ_gama);
+
+
+        kernel(x, w, y, as_float(padding_val),
+                estimatedMean,
+                estimatedVariance,
+                bnScale,
+                bnBias,
+                epsilon,
+                f_activ_gama,
+                f_activ_alpha,
+                f_activ_beta
+                );
+        }
+    });
+
+    if(miopen::CheckNumericsEnabled() != 0)
+    {
+        miopen::checkNumericsOutput(handle, yDesc, y);
+    }
+}
+
 }
