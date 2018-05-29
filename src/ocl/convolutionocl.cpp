@@ -580,13 +580,12 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                                                   elapsed);
                         if(rc != 0)
                         {
-                            MIOPEN_LLOG_E(sol << " returns " << rc);
+                            MIOPEN_LOG_E(sol << " returns " << rc);
                         }
                         else
                         {
-                            MIOPEN_LLOG_I(sol << ": " << elapsed
-                                              << (elapsed < best ? " < " : " >= ")
-                                              << best);
+                            MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
+                                             << best);
                             if(elapsed < best)
                             {
                                 best     = elapsed;
@@ -599,8 +598,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 {
                     const std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
                     AddKernels(handle, algorithm_name, network_config, selected, nullptr);
-                    MIOPEN_LLOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
-                                               << selected.workspce_sz);
+                    MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
+                                              << selected.workspce_sz);
                     perf_db.push_back(PerfField{algorithm_name, best, selected.workspce_sz});
                 }
             }
@@ -1328,13 +1327,12 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                                                   elapsed);
                         if(rc != 0)
                         {
-                            MIOPEN_LLOG_E(sol << " returns " << rc);
+                            MIOPEN_LOG_E(sol << " returns " << rc);
                         }
                         else
                         {
-                            MIOPEN_LLOG_I(sol << ": " << elapsed
-                                              << (elapsed < best ? " < " : " >= ")
-                                              << best);
+                            MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
+                                             << best);
                             if(elapsed < best)
                             {
                                 best     = elapsed;
@@ -1347,8 +1345,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 {
                     const std::string algorithm_name = "miopenConvolutionBwdDataAlgoDirect";
                     AddKernels(handle, algorithm_name, network_config, selected, nullptr);
-                    MIOPEN_LLOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
-                                               << selected.workspce_sz);
+                    MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
+                                              << selected.workspce_sz);
                     perf_db.push_back(PerfField{algorithm_name, best, selected.workspce_sz});
                 }
             }
@@ -2226,8 +2224,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                                   workSpace,
                                                                   workSpaceSize,
                                                                   as_float(0.0f));
-                        MIOPEN_LLOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
-                                          << best);
+                        MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
+                                         << best);
                         if(elapsed < best)
                         {
                             best     = elapsed;
@@ -2238,8 +2236,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 if(selected.Succeeded())
                 {
                     AddKernels(handle, algorithm_name, network_config, selected, nullptr);
-                    MIOPEN_LLOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
-                                               << selected.workspce_sz);
+                    MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
+                                              << selected.workspce_sz);
                     perf_db.push_back(PerfField{algorithm_name, best, selected.workspce_sz});
                 }
             }
