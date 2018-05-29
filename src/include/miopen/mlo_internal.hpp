@@ -310,7 +310,7 @@ auto FindFirstSolution(T& x) -> decltype(x.FindSolution())
 }
 
 template <class T>
-void mloConstruct(T& x, std::vector<miopen::solver::ConvSolution>& ss)
+void FindAllSolutions(T& x, std::vector<miopen::solver::ConvSolution>& ss)
 {
     x.setupRocm();
     x.setupFloats();
