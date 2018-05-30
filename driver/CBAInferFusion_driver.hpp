@@ -141,7 +141,7 @@ class CBAInferFusionDriver : public Driver
 
     private:
     miopenBatchNormMode_t bn_mode;
-    int bias_mode = 1;
+    int bias_mode = 0;
     bool estimatedMeanVar;
 
     unsigned char back;
@@ -312,7 +312,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("alpha", 'A', "1.0", "Alpha (Default=1.0)", "float");
     inflags.AddInputFlag("beta", 'B', "0.", "Beta (Default=0.)", "float");
     inflags.AddInputFlag("gamma", 'G', "1", "Activation gamma (Default=1)", "double");
-    // inflags.AddInputFlag("bias", 'b', "", "Use Bias (Default=0)", "int");
+    inflags.AddInputFlag("conv_bias", 'b', "", "Use Bias for Conv (Default=0)", "int");
     inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -407,6 +407,9 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
         pad_h = 0;
         pad_w = 0;
     }
+
+    if(inflags.GetValueInt("conv_bias") == 1)
+        bias_mode = 1;
 
     if(wei_h != wei_w)
     {
@@ -781,7 +784,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
             activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
 
         START_TIME;
-#if 1
+#if 0
         Tref epsilon = static_cast<Tref>(EPSILON);
         float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
