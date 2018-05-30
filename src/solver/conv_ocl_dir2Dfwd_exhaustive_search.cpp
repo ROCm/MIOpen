@@ -134,14 +134,14 @@ static int MeasureLoop(Handle* profile_h,
 {
     ConvSolution kernel_search_result{miopenStatusNotInitialized};
 
-    MIOPEN_STATIC_FOR_EACH(traits,
-                           Solvers{},
-                           {
-                               if(kernel_search_result.Succeeded() || traits.IsApplicable(params))
-                               {
-                                   kernel_search_result = traits.GetSolution(params, result);
-                               }
-                           });
+    miopen::each_args(
+        [&](auto s) {
+            if(kernel_search_result.Succeeded() || s.IsApplicable(params))
+            {
+                kernel_search_result = s.GetSolution(params, result);
+            }
+        },
+        Solvers{}...);
 
     if(!kernel_search_result.Succeeded())
     {
