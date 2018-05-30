@@ -267,21 +267,33 @@ void DirectConvInference(Handle& handle,
     construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
     construct_params.setStream(&handle);
 
-    mloConstruct(construct_params);
-    std::string program_name       = construct_params.getKernelFile();
-    std::string kernel_name        = construct_params.getKernelName();
-    const std::string& parms       = construct_params.getCompilerOptions();
-    const std::vector<size_t>& vld = construct_params.getLocalWkSize();
-    const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
-
     std::string network_config;
     construct_params.mloBuildConf_Key(network_config);
 
     std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
-    float padding_val          = 0;
 
-    auto kernel = handle.AddKernel(
-        algorithm_name, network_config, program_name, kernel_name, vld, vgd, parms);
+    auto&& kernels = handle.GetKernels(algorithm_name, network_config);
+
+    KernelInvoke kernel;
+
+    if(!kernels.empty())
+    {
+        kernel = kernels.front();
+    }
+    else
+    {
+        mloConstruct(construct_params);
+        std::string program_name       = construct_params.getKernelFile();
+        std::string kernel_name        = construct_params.getKernelName();
+        const std::string& parms       = construct_params.getCompilerOptions();
+        const std::vector<size_t>& vld = construct_params.getLocalWkSize();
+        const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
+
+        kernel = handle.AddKernel(
+            algorithm_name, network_config, program_name, kernel_name, vld, vgd, parms);
+    }
+
+    float padding_val = 0;
 
     visit_float(xDesc.GetType(), [&](auto as_float) {
         {
@@ -366,72 +378,82 @@ void DirectConvBNActivInference(Handle& handle,
     construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
     construct_params.setStream(&handle);
 
-    ConvolutionContext params;
-    construct_params.mloCopyTo(params);
-    params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
-    params.general_compile_options += " -DMIOPEN_NRN_OP_ID=" + std::to_string(activ_mode);
-    params.general_compile_options += " -DMLO_CONV_BIAS=" + std::to_string(bias_mode);
-
-    if(bn_mode == miopenBNSpatial)
-        params.general_compile_options += " -DSPATIAL_BN";
-    else
-        params.general_compile_options += " -DPERACT_BN";
-
-    auto kernel_info               = solver::GetSolution(params);
-    std::string program_name       = kernel_info.kernel_file;
-    std::string kernel_name        = kernel_info.kernel_name;
-    const std::string parms        = kernel_info.comp_options;
-    const std::vector<size_t>& vld = kernel_info.l_wk;
-    const std::vector<size_t>& vgd = kernel_info.g_wk;
-
     std::string network_config;
     construct_params.mloBuildConf_Key(network_config);
     network_config +=
         std::to_string(activ_mode) + std::to_string(bias_mode) + std::to_string(bn_mode);
 
-    std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
-    float padding_val          = 0;
+    std::string algorithm_name = "miopenDirConvBNActivAlgo";
 
-    auto kernel = handle.AddKernel(
-        algorithm_name, network_config, program_name, kernel_name, vld, vgd, parms);
+    auto&& kernels = handle.GetKernels(algorithm_name, network_config);
+
+    KernelInvoke kernel;
+
+    if(!kernels.empty())
+    {
+        kernel = kernels.front();
+    }
+    else
+    {
+        ConvolutionContext params;
+        construct_params.mloCopyTo(params);
+        params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
+        params.general_compile_options += " -DMIOPEN_NRN_OP_ID=" + std::to_string(activ_mode);
+        params.general_compile_options += " -DMLO_CONV_BIAS=" + std::to_string(bias_mode);
+
+        if(bn_mode == miopenBNSpatial)
+            params.general_compile_options += " -DSPATIAL_BN";
+        else
+            params.general_compile_options += " -DPERACT_BN";
+
+        auto kernel_info               = solver::GetSolution(params);
+        std::string program_name       = kernel_info.kernel_file;
+        std::string kernel_name        = kernel_info.kernel_name;
+        const std::string parms        = kernel_info.comp_options;
+        const std::vector<size_t>& vld = kernel_info.l_wk;
+        const std::vector<size_t>& vgd = kernel_info.g_wk;
+
+        kernel = handle.AddKernel(
+            algorithm_name, network_config, program_name, kernel_name, vld, vgd, parms);
+    }
+
+    float padding_val = 0;
 
     visit_float(xDesc.GetType(), [&](auto as_float) {
-        {
-            auto f_activ_alpha = as_float(activ_alpha);
-            auto f_activ_beta  = as_float(activ_beta);
-            auto f_activ_gama  = as_float(activ_gama);
+        auto f_activ_alpha = as_float(activ_alpha);
+        auto f_activ_beta  = as_float(activ_beta);
+        auto f_activ_gama  = as_float(activ_gama);
 
-            if(bias_mode != 0)
-            {
-                kernel(x,
-                       w,
-                       convBias,
-                       y,
-                       as_float(padding_val),
-                       estimatedMean,
-                       estimatedVariance,
-                       bnScale,
-                       bnBias,
-                       epsilon,
-                       f_activ_gama,
-                       f_activ_alpha,
-                       f_activ_beta);
-            }
-            else
-            {
-                kernel(x,
-                       w,
-                       y,
-                       as_float(padding_val),
-                       estimatedMean,
-                       estimatedVariance,
-                       bnScale,
-                       bnBias,
-                       epsilon,
-                       f_activ_gama,
-                       f_activ_alpha,
-                       f_activ_beta);
-            }
+        if(bias_mode != 0)
+        {
+            kernel(x,
+                   w,
+                   convBias,
+                   y,
+                   as_float(padding_val),
+                   estimatedMean,
+                   estimatedVariance,
+                   bnScale,
+                   bnBias,
+                   epsilon,
+                   f_activ_gama,
+                   f_activ_alpha,
+                   f_activ_beta);
+        }
+        else
+        {
+            kernel(x,
+                   w,
+                   y,
+                   as_float(padding_val),
+                   estimatedMean,
+                   estimatedVariance,
+                   bnScale,
+                   bnBias,
+                   epsilon,
+                   f_activ_gama,
+                   f_activ_alpha,
+                   f_activ_beta);
         }
     });
 
