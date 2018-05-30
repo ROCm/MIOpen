@@ -55,7 +55,7 @@ miopen::MultiFileDb mlo_construct_direct2D::GetDb() const
     return {db_path(), _search_params.GetUserPerfDbPath()};
 }
 
-void mlo_construct_direct2D::FindAllSolutions(std::vector<miopen::solver::ConvSolution>& ss)
+std::vector<miopen::solver::ConvSolution> mlo_construct_direct2D::FindAllSolutions()
 {
     // clang-format off
     return miopen::solver::SearchForAllSolutions<
@@ -69,7 +69,7 @@ void mlo_construct_direct2D::FindAllSolutions(std::vector<miopen::solver::ConvSo
         miopen::solver::ConvOclDirectFwd3x3,
         miopen::solver::ConvOclDirectFwd1x1,
         miopen::solver::ConvOclDirectFwd
-    >(_search_params, this->GetDb(), ss);
+    >(_search_params, this->GetDb());
     // clang-format on
 }
 
@@ -83,16 +83,16 @@ miopen::solver::ConvSolution mlo_construct_winograd::FindSolution()
     // clang-format on
 }
 
-void mlo_construct_BwdWrW2D::FindAllSolutions(std::vector<miopen::solver::ConvSolution>& ss)
+std::vector<miopen::solver::ConvSolution> mlo_construct_BwdWrW2D::FindAllSolutions()
 {
     // clang-format off
-    miopen::solver::SearchForAllSolutions<
+    return miopen::solver::SearchForAllSolutions<
         miopen::solver::ConvAsmBwdWrW1x1,
         miopen::solver::ConvAsmBwdWrW3x3,
         miopen::solver::ConvOclBwdWrW2,
         miopen::solver::ConvOclBwdWrW53,
         miopen::solver::ConvOclBwdWrW1x1
-    >(_search_params, this->GetDb(), ss);
+    >(_search_params, this->GetDb());
     // clang-format on
 }
 

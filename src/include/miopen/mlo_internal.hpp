@@ -310,11 +310,11 @@ auto FindFirstSolution(T& x) -> decltype(x.FindSolution())
 }
 
 template <class T>
-void FindAllSolutions(T& x, std::vector<miopen::solver::ConvSolution>& ss)
+auto FindAllSolutions(T& x) -> decltype(x.FindAllSolutions())
 {
     x.setupRocm();
     x.setupFloats();
-    x.FindAllSolutions(ss);
+    return x.FindAllSolutions();
 }
 
 /// \todo Move this into respective Solution objects. --atamazov
@@ -396,7 +396,7 @@ struct mlo_construct_direct2D
     */
 
     miopen::solver::ConvSolution FindSolution();
-    void FindAllSolutions(std::vector<miopen::solver::ConvSolution>& ss);
+    std::vector<miopen::solver::ConvSolution> FindAllSolutions();
     miopen::MultiFileDb GetDb() const;
 
     /*
@@ -872,7 +872,7 @@ struct mlo_construct_BwdWrW2D : mlo_construct_direct2D
         _search_params.direction.SetBackwardWrW();
     }
 
-    void FindAllSolutions(std::vector<miopen::solver::ConvSolution>& ss);
+    std::vector<miopen::solver::ConvSolution> FindAllSolutions();
 };
 
 /*

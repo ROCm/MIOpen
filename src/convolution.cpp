@@ -599,9 +599,8 @@ size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
 
     try
     {
-        std::vector<miopen::solver::ConvSolution> ss;
-        FindAllSolutions(construct_params, ss);
-        size_t sz = 0;
+        const auto ss = FindAllSolutions(construct_params);
+        size_t sz     = 0;
         for(const auto& solution : ss)
         {
             if(sz < solution.workspce_sz)
@@ -635,9 +634,8 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
 
     try
     {
-        std::vector<miopen::solver::ConvSolution> ss;
-        FindAllSolutions(construct_params, ss);
-        size_t sz = 0;
+        const auto ss = FindAllSolutions(construct_params);
+        size_t sz     = 0;
         for(const auto& solution : ss)
         {
             if(sz < solution.workspce_sz)

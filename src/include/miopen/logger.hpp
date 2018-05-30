@@ -241,25 +241,20 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
 #define MIOPEN_LOG_FUNCTION(...)
 #endif
 
-#define MIOPEN_LOG(level, ...)                                                                 \
-    do                                                                                         \
-    {                                                                                          \
-        if(miopen::IsLogging(level))                                                           \
-        {                                                                                      \
-            std::string miopen_log_func{__func__}; /* NOLINT */                                \
-            if(miopen_log_func == "operator()")    /* lambda */                                \
-            {                                                                                  \
-                const std::string pretty_function{__PRETTY_FUNCTION__};                        \
-                const std::string pretty_function_tail{                                        \
-                    pretty_function.substr(0, pretty_function.find_first_of('('))};            \
-                miopen_log_func =                                                              \
-                    pretty_function_tail.substr(1 + pretty_function_tail.find_last_of(':'));   \
-            }                                                                                  \
-            std::stringstream miopen_log_ss; /* long name to avoid "shadowing name" warning */ \
-            miopen_log_ss << miopen::PlatformName() << ": " << LoggingLevelToCString(level)    \
-                          << " [" << miopen_log_func << "] " << __VA_ARGS__ << std::endl;      \
-            std::cerr << miopen_log_ss.str();                                                  \
-        }                                                                                      \
+std::string LoggingParseFunction(const char* func, const char* pretty_func);
+
+#define MIOPEN_LOG(level, ...)                                                              \
+    do                                                                                      \
+    {                                                                                       \
+        if(miopen::IsLogging(level))                                                        \
+        {                                                                                   \
+            std::stringstream miopen_log_ss;                                                \
+            miopen_log_ss << miopen::PlatformName() << ": " << LoggingLevelToCString(level) \
+                          << " [" << miopen::LoggingParseFunction(                          \
+                                         __func__, __PRETTY_FUNCTION__) /* NOLINT */        \
+                          << "] " << __VA_ARGS__ << std::endl;                              \
+            std::cerr << miopen_log_ss.str();                                               \
+        }                                                                                   \
     } while(false)
 
 #define MIOPEN_LOG_E(...) MIOPEN_LOG(miopen::LoggingLevel::Error, __VA_ARGS__)
