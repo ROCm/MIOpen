@@ -84,6 +84,8 @@ set( MIOpen_Source
     include/miopen/find_controls.hpp
     include/miopen/batch_norm.hpp
     include/miopen/batch_norm_activ.hpp
+    include/miopen/conv_batch_norm_activ.hpp
+    include/miopen/direct_conv_ocl.hpp
     include/miopen/check_numerics.hpp
     include/miopen/common.hpp
     include/miopen/convolution.hpp
