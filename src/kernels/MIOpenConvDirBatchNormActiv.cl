@@ -1520,7 +1520,11 @@ MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
                                        + conv_bias[o_map + o]
 #endif
                                 ;
-                            bn_res = mad(pscale, (conv_res - pmean) * pinvVariance, pbias);
+#ifdef NO_BN
+                            bn_res = conv_res;
+#else
+                                bn_res = mad(pscale, (conv_res - pmean) * pinvVariance, pbias);
+#endif
                             ActivationFunction(
                                 1, &actv_res, (const _FLOAT*)&bn_res, gamma, beta, alpha);
                             out[out_off2 + i] = actv_res;
