@@ -246,8 +246,8 @@ std::ostream& LogParam(std::ostream& os, std::string name, const T& x)
     {                                                                                          \
         if(miopen::IsLogging(level))                                                           \
         {                                                                                      \
-            std::string miopen_log_func{__func__};                                             \
-            if(miopen_log_func == "operator()") /* lambda*/                                    \
+            std::string miopen_log_func{__func__}; /* NOLINT */                                \
+            if(miopen_log_func == "operator()")    /* lambda */                                \
             {                                                                                  \
                 const std::string pretty_function{__PRETTY_FUNCTION__};                        \
                 const std::string pretty_function_tail{                                        \
