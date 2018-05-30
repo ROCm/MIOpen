@@ -47,6 +47,7 @@
 
 #include <miopen/conv_batch_norm_activ.hpp>
 #include <miopen/batch_norm_activ.hpp>
+#include <miopen/direct_conv_ocl.hpp>
 
 #define MIO_BN_DEBUG 0
 #define MIO_BN_MAX_DEBUGLOOP 65536
@@ -111,6 +112,10 @@ class CBAInferFusionDriver : public Driver
 
     int RunBackwardGPU();
     int RunBackwardCPU();
+
+    void runGPUConvBNActivInference();
+
+    void runGPUBatchNormActivInference();
 
     void runGPUBNFwdInference();
     void runCPUBNFwdInference();
@@ -598,6 +603,80 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 }
 
 template <typename Tgpu, typename Tref>
+void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
+{
+    double activ_alpha, activ_beta, activ_gamma;
+    miopenActivationMode_t activ_mode;
+    miopenGetActivationDescriptor(activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
+
+    Tref epsilon = static_cast<Tref>(EPSILON);
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
+
+    miopen::BatchNormActivInference(miopen::deref(GetHandle()),
+                                    bn_mode,
+                                    &alpha,
+                                    &beta,
+                                    miopen::deref(outputTensor),
+                                    conv_res_dev->GetMem(),
+                                    miopen::deref(outputTensor),
+                                    out_dev->GetMem(),
+                                    miopen::deref(biasScaleTensor),
+                                    scale_dev->GetMem(),
+                                    bias_dev->GetMem(),
+                                    runningMean_dev->GetMem(),
+                                    runningVariance_dev->GetMem(),
+                                    epsilon,
+                                    activ_mode,
+                                    activ_alpha,
+                                    activ_beta,
+                                    activ_gamma);
+}
+
+template <typename Tgpu, typename Tref>
+void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBNActivInference()
+{
+    double activ_alpha, activ_beta, activ_gamma;
+    miopenActivationMode_t activ_mode;
+    miopenGetActivationDescriptor(activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
+
+    Tref epsilon = static_cast<Tref>(EPSILON);
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
+
+    int u, v, pad_h, pad_w, dilation_h, dilation_w;
+    miopenConvolutionMode_t mode;
+    miopenGetConvolutionDescriptor(
+        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+
+    miopen::DirectConvBNActivInference(miopen::deref(GetHandle()),
+                                       &alpha,
+                                       miopen::deref(inputTensor),
+                                       in_dev->GetMem(),
+                                       miopen::deref(weightTensor),
+                                       wei_dev->GetMem(),
+                                       &beta,
+                                       miopen::deref(outputTensor),
+                                       out_dev->GetMem(),
+                                       pad_h,
+                                       pad_w,
+                                       u,
+                                       v,
+                                       dilation_h,
+                                       dilation_w,
+                                       bias_mode,
+                                       bias_mode != 0 ? b_dev->GetMem() : nullptr,
+                                       bn_mode,
+                                       scale_dev->GetMem(),
+                                       bias_dev->GetMem(),
+                                       runningMean_dev->GetMem(),
+                                       runningVariance_dev->GetMem(),
+                                       epsilon,
+                                       activ_mode,
+                                       activ_alpha,
+                                       activ_beta,
+                                       activ_gamma);
+}
+
+template <typename Tgpu, typename Tref>
 void CBAInferFusionDriver<Tgpu, Tref>::runGPUBNFwdInference()
 {
     double epsilon = static_cast<double>(EPSILON);
@@ -618,7 +697,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBNFwdInference()
                                              runningVariance_dev->GetMem(),
                                              epsilon);
 
-    bn_res_dev->FromGPU(GetStream(), bn_res.data());
+    // bn_res_dev->FromGPU(GetStream(), bn_res.data());
 
     return;
 }
@@ -754,7 +833,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
                              (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetSize() : 0);
 #endif
 
-    conv_res_dev->FromGPU(GetStream(), conv_res.data());
+    // conv_res_dev->FromGPU(GetStream(), conv_res.data());
 
     return;
 }
@@ -778,49 +857,9 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
     float time = 0.0, kl_time = 0.0;
     for(int i = 0; i < iters; i++)
     {
-        double activ_alpha, activ_beta, activ_gamma;
-        miopenActivationMode_t activ_mode;
-        miopenGetActivationDescriptor(
-            activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
-
         START_TIME;
 #if 0
-        Tref epsilon = static_cast<Tref>(EPSILON);
-        float alpha = static_cast<float>(1), beta = static_cast<float>(0);
-
-        int u, v, pad_h, pad_w, dilation_h, dilation_w;
-        miopenConvolutionMode_t mode;
-        miopenGetConvolutionDescriptor(
-            convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
-
-        miopen::DirectConvBNActivInference(miopen::deref(GetHandle()),
-                                           &alpha,
-                                           miopen::deref(inputTensor),
-                                           in_dev->GetMem(),
-                                           miopen::deref(weightTensor),
-                                           wei_dev->GetMem(),
-                                           &beta,
-                                           miopen::deref(outputTensor),
-                                           out_dev->GetMem(),
-                                           pad_h,
-                                           pad_w,
-                                           u,
-                                           v,
-                                           dilation_h,
-                                           dilation_w,
-                                           bias_mode,
-                                           bias_mode != 0 ? b_dev->GetMem() : nullptr,
-                                           bn_mode,
-                                           scale_dev->GetMem(),
-                                           bias_dev->GetMem(),
-                                           runningMean_dev->GetMem(),
-                                           runningVariance_dev->GetMem(),
-                                           epsilon,
-                                           activ_mode,
-                                           activ_alpha,
-                                           activ_beta,
-                                           activ_gamma);
-
+        runGPUConvBNActivInference();
         miopenGetKernelTime(GetHandle(), &time);
         kl_time += time;
 #else
@@ -832,13 +871,17 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
         miopenGetKernelTime(GetHandle(), &time);
         kl_time += time;
 
-        runGPUBNFwdInference();
+        runGPUBatchNormActivInference();
         miopenGetKernelTime(GetHandle(), &time);
         kl_time += time;
 
-        runGPUActivFwdInference();
-        miopenGetKernelTime(GetHandle(), &time);
-        kl_time += time;
+// runGPUBNFwdInference();
+// miopenGetKernelTime(GetHandle(), &time);
+// kl_time += time;
+
+// runGPUActivFwdInference();
+// miopenGetKernelTime(GetHandle(), &time);
+// kl_time += time;
 #endif
 
         miopen::deref(GetHandle()).Finish();
