@@ -1118,14 +1118,14 @@ __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __k
 MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
                             const __global _FLOAT* __restrict weights,
 #if MLO_CONV_BIAS
-                            const __global _FLOAT* __restrict bias,
+                            const __global _FLOAT* __restrict conv_bias,
 #endif
                             __global _FLOAT* __restrict out,
                             UNUSED _FLOAT padding_val,
                             const __global _FLOAT* __restrict estimatedMean,
                             const __global _FLOAT* __restrict estimatedVariance,
                             const __global _FLOAT* __restrict scale,
-                            const __global _FLOAT* __restrict bias,
+                            const __global _FLOAT* __restrict bn_bias,
                             double epsilon,
                             const _FLOAT gamma,
                             const _FLOAT beta,
@@ -1475,7 +1475,7 @@ MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
             _FLOAT pmean        = estimatedMean[c_i];
             _FLOAT pvar         = estimatedVariance[c_i];
             _FLOAT pscale       = scale[c_i];
-            _FLOAT pbias        = bias[c_i];
+            _FLOAT pbias        = bn_bias[c_i];
             _FLOAT pinvVariance = rsqrt(fabs(pvar + epsilon));
 #endif
 
@@ -1510,14 +1510,14 @@ MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
                                 _FLOAT pmean        = estimatedMean[chw_i];
                                 _FLOAT pvar         = estimatedVariance[chw_i];
                                 _FLOAT pscale       = scale[chw_i];
-                                _FLOAT pbias        = bias[chw_i];
+                                _FLOAT pbias        = bn_bias[chw_i];
                                 _FLOAT pinvVariance = rsqrt(fabs(pvar + epsilon));
 #endif
 
 #endif
                             conv_res = pvt_accum[o * MLO_OUT_TILE_SZ + j * MLO_OUT_TILE0 + i]
 #if MLO_CONV_BIAS
-                                       + bias[o_map + o]
+                                       + conv_bias[o_map + o]
 #endif
                                 ;
                             bn_res = mad(pscale, (conv_res - pmean) * pinvVariance, pbias);

@@ -183,8 +183,7 @@ KernelInfo GetSolution(const ConvolutionContext& params)
         std::to_string(static_cast<long long>(
             result.n_in_data_tiles)) // total # of blocks of different inputs in LDS
         + std::string(" -DMLO_N_READ_PROCS=") +
-        std::to_string(static_cast<long long>(n_read_procs)) + std::string(" -DMLO_CONV_BIAS=") +
-        std::to_string(static_cast<long long>(params.bias)) + std::string(" -DMLO_ALU_VTILE0=") +
+        std::to_string(static_cast<long long>(n_read_procs)) + std::string(" -DMLO_ALU_VTILE0=") +
         std::to_string(static_cast<long long>(alu_tile0)) + std::string(" -DMLO_ALU_VTILE1=") +
         std::to_string(static_cast<long long>(alu_tile1)) + params.general_compile_options;
 
@@ -311,6 +310,8 @@ void DirectConvBNActivInference(Handle& handle,
                                 int v,
                                 int dilation_h,
                                 int dilation_w,
+                                int bias_mode,
+                                ConstData_t convBias,
                                 miopenBatchNormMode_t bn_mode,
                                 ConstData_t bnScale,
                                 ConstData_t bnBias,
@@ -369,6 +370,8 @@ void DirectConvBNActivInference(Handle& handle,
     construct_params.mloCopyTo(params);
     params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
     params.general_compile_options += " -DMIOPEN_NRN_OP_ID=" + std::to_string(activ_mode);
+    params.general_compile_options += " -DMLO_CONV_BIAS=" + std::to_string(bias_mode);
+
     if(bn_mode == miopenBNSpatial)
         params.general_compile_options += " -DSPATIAL_BN";
     else
@@ -383,7 +386,8 @@ void DirectConvBNActivInference(Handle& handle,
 
     std::string network_config;
     construct_params.mloBuildConf_Key(network_config);
-    network_config += std::to_string(activ_mode);
+    network_config +=
+        std::to_string(activ_mode) + std::to_string(bias_mode) + std::to_string(bn_mode);
 
     std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
     float padding_val          = 0;
@@ -397,18 +401,37 @@ void DirectConvBNActivInference(Handle& handle,
             auto f_activ_beta  = as_float(activ_beta);
             auto f_activ_gama  = as_float(activ_gama);
 
-            kernel(x,
-                   w,
-                   y,
-                   as_float(padding_val),
-                   estimatedMean,
-                   estimatedVariance,
-                   bnScale,
-                   bnBias,
-                   epsilon,
-                   f_activ_gama,
-                   f_activ_alpha,
-                   f_activ_beta);
+            if(bias_mode != 0)
+            {
+                kernel(x,
+                       w,
+                       convBias,
+                       y,
+                       as_float(padding_val),
+                       estimatedMean,
+                       estimatedVariance,
+                       bnScale,
+                       bnBias,
+                       epsilon,
+                       f_activ_gama,
+                       f_activ_alpha,
+                       f_activ_beta);
+            }
+            else
+            {
+                kernel(x,
+                       w,
+                       y,
+                       as_float(padding_val),
+                       estimatedMean,
+                       estimatedVariance,
+                       bnScale,
+                       bnBias,
+                       epsilon,
+                       f_activ_gama,
+                       f_activ_alpha,
+                       f_activ_beta);
+            }
         }
     });
 
