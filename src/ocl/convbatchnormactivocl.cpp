@@ -405,7 +405,7 @@ void DirectConvBNActivInference(Handle& handle,
     network_config +=
         std::to_string(activ_mode) + std::to_string(bias_mode) + std::to_string(bn_mode);
 
-    std::string algorithm_name = "miopenDirConvBNActivAlgo";
+    std::string algorithm_name = "miopenDirConvBatchNormActivAlgo";
 
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
 
@@ -425,10 +425,13 @@ void DirectConvBNActivInference(Handle& handle,
 
         if(bn_mode == miopenBNSpatial)
             params.general_compile_options += " -DSPATIAL_BN";
-        else
+        else if(bn_mode == miopenBNPerActivation)
             params.general_compile_options += " -DPERACT_BN";
+        else
+            params.general_compile_options += " -DNO_BN";
 
-        auto kernel_info               = solver::CBAFusionGetSolution(params);
+        auto kernel_info = solver::CBAFusionGetSolution(params);
+
         std::string program_name       = kernel_info.kernel_file;
         std::string kernel_name        = kernel_info.kernel_name;
         const std::string parms        = kernel_info.comp_options;
