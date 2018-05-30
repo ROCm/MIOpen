@@ -37,7 +37,7 @@ namespace miopen {
 
 namespace solver {
 
-KernelInfo GetSolution(const ConvolutionContext& params)
+KernelInfo CBAFusionGetSolution(const ConvolutionContext& params)
 {
     ConvOclDirectFwdLegacyExhaustiveSearch ConvOclDirectSearch;
     LegacyPerformanceConfig searched_params = ConvOclDirectSearch.GetPerformanceConfig(params);
@@ -406,7 +406,7 @@ void DirectConvBNActivInference(Handle& handle,
         else
             params.general_compile_options += " -DPERACT_BN";
 
-        auto kernel_info               = solver::GetSolution(params);
+        auto kernel_info               = solver::CBAFusionGetSolution(params);
         std::string program_name       = kernel_info.kernel_file;
         std::string kernel_name        = kernel_info.kernel_name;
         const std::string parms        = kernel_info.comp_options;
