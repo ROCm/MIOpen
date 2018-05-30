@@ -269,10 +269,10 @@ static inline bool IsPureOpenCLSolution(const Solution& s)
 }
 
 // Search for all applicable solutions among many solvers
-template <class... Solvers, class Context, class Db, class Solution>
-void SearchForAllSolutions(const Context& search_params, Db db, std::vector<Solution>& ss)
+template <class... Solvers, class Context, class Db, class Solution = miopen::solver::ConvSolution>
+std::vector<Solution> SearchForAllSolutions(const Context& search_params, Db db)
 {
-    assert(ss.empty());
+    std::vector<Solution> ss;
 
 // Using const here causes gcc to ICE
 #if(!defined(__GNUC__) || defined(__clang__))
@@ -282,56 +282,60 @@ void SearchForAllSolutions(const Context& search_params, Db db, std::vector<Solu
             miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{}) ||
             !miopen::IsEnabled(MIOPEN_DEBUG_FIND_FIRST_CONV{});
 
-    // clang-format off
     bool skip_the_rest = false;
-    miopen::each_args([&](auto solver)
-    {   // cppcheck-suppress knownConditionTrueFalse
-        if(!skip_the_rest 
-            && solver.IsApplicable(search_params)
-            && (no_perf_filtering || solver.IsFast(search_params)))
-        {
-            const Solution s = FindSolution(solver, search_params, db);
-            if(s.Succeeded())
+    miopen::each_args(
+        [&](auto solver) { // cppcheck-suppress knownConditionTrueFalse
+            if(!skip_the_rest && solver.IsApplicable(search_params) &&
+               (no_perf_filtering || solver.IsFast(search_params)))
             {
-                ss.push_back(s);
-                MIOPEN_LOG_I2(SolverDbId(solver) << ": Success.");
+                const Solution s = FindSolution(solver, search_params, db);
+                if(s.Succeeded())
+                {
+                    ss.push_back(s);
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Success.");
 
-                if (miopen::IsEnabled(MIOPEN_DEBUG_FIND_FIRST_CONV{}))
-                {
-                    skip_the_rest= true;
-                }
-                else if(IsPureOpenCLSolution(s))
-                {
-                    /// \todo (algorithm == Direct) is not checked here.
-                    /// This is ok so far, as SearchForAllSolutions() is used only for direct convolutions (for now).
-                    if ((search_params.direction.IsForward()
-                         && !miopen::IsDisabled(MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_FWD{}))
-                     || (search_params.direction.IsBackwardData()
-                         && !miopen::IsDisabled(MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_BWD{}))
-                     || (search_params.direction.IsBackwardWrW()
-                         && !miopen::IsDisabled(MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_WRW{})))
+                    if(miopen::IsEnabled(MIOPEN_DEBUG_FIND_FIRST_CONV{}))
                     {
                         skip_the_rest = true;
                     }
+                    else if(IsPureOpenCLSolution(s))
+                    {
+                        /// \todo (algorithm == Direct) is not checked here.
+                        /// This is ok so far, as SearchForAllSolutions() is used only for direct
+                        /// convolutions (for now).
+                        if((search_params.direction.IsForward() &&
+                            !miopen::IsDisabled(
+                                MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_FWD{})) ||
+                           (search_params.direction.IsBackwardData() &&
+                            !miopen::IsDisabled(
+                                MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_BWD{})) ||
+                           (search_params.direction.IsBackwardWrW() &&
+                            !miopen::IsDisabled(
+                                MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_WRW{})))
+                        {
+                            skip_the_rest = true;
+                        }
+                    }
+                }
+                else
+                {
+                    /// \todo If Solver is applicable it must provide an appropriate Solution.
+                    /// This is not the case for some 20x5 convolutions (and possibly others).
+                    /// Normally we should not get here and message level should be Error.
+                    /// For now, let's use Info (not Warning) level to avoid
+                    /// flooding the console.
+                    MIOPEN_LOG_I(SolverDbId(solver)
+                                 << ": [Warning] Applicable Solver not succeeded.");
                 }
             }
             else
             {
-                /// \todo If Solver is applicable it must provide an appropriate Solution.
-                /// This is not the case for some 20x5 convolutions (and possibly others).
-                /// Normally we should not get here and message level should be Error.
-                /// For now, let's use Info (not Warning) level to avoid
-                /// flooding the console.
-                MIOPEN_LOG_I(SolverDbId(solver) << ": [Warning] Applicable Solver not succeeded.");
+                MIOPEN_LOG_I2(SolverDbId(solver) << ": "
+                                                 << (skip_the_rest ? "Skipped" : "Not applicable"));
             }
-        }
-        else
-        {
-            MIOPEN_LOG_I2(SolverDbId(solver) << ": " << (skip_the_rest ? "Skipped" : "Not applicable"));
-        }
-    },
-    Solvers{}...);
-    // clang-format on
+        },
+        Solvers{}...);
+    return ss;
 }
 
 /// Base class for problem solvers.

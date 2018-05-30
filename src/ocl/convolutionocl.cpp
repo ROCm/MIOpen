@@ -284,7 +284,7 @@ int ConvolutionDescriptor::FindDataDirectSolutions(
         construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
         extraArgs = std::make_tuple(N, C, H, W, K, n_groups, out_H, out_W);
         construct_params.mloBuildConf_Key(network_config);
-        FindAllSolutions(construct_params, solutions);
+        solutions = FindAllSolutions(construct_params);
         return 0;
     }
     catch(miopen::Exception&)
@@ -2205,9 +2205,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 const std::string algorithm_name = "miopenConvolutionBwdWeightsAlgoDirect";
 
                 miopen::solver::ConvSolution selected{miopenStatusUnknownError};
-                float best = std::numeric_limits<float>::max();
-                std::vector<miopen::solver::ConvSolution> all;
-                FindAllSolutions(construct_params, all);
+                float best     = std::numeric_limits<float>::max();
+                const auto all = FindAllSolutions(construct_params);
 
                 visit_float(dyDesc.GetType(), [&](auto as_float) {
                     for(const auto& sol : all)
