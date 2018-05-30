@@ -222,7 +222,9 @@ void DirectConvInference(Handle& handle,
                          int u,
                          int v,
                          int dilation_h,
-                         int dilation_w)
+                         int dilation_w,
+                         int bias_mode,
+                         ConstData_t convBias)
 {
     if(x == nullptr || w == nullptr || y == nullptr)
     {
@@ -269,8 +271,9 @@ void DirectConvInference(Handle& handle,
 
     std::string network_config;
     construct_params.mloBuildConf_Key(network_config);
+    network_config += std::to_string(bias_mode);
 
-    std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
+    std::string algorithm_name = "miopenConvolutionAlgoDirectUni";
 
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
 
@@ -282,12 +285,28 @@ void DirectConvInference(Handle& handle,
     }
     else
     {
+#if 0
         mloConstruct(construct_params);
         std::string program_name       = construct_params.getKernelFile();
         std::string kernel_name        = construct_params.getKernelName();
         const std::string& parms       = construct_params.getCompilerOptions();
         const std::vector<size_t>& vld = construct_params.getLocalWkSize();
         const std::vector<size_t>& vgd = construct_params.getGlobalWkSize();
+#else
+        ConvolutionContext params;
+        construct_params.mloCopyTo(params);
+        params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
+        params.general_compile_options += " -DMLO_CONV_BIAS=" + std::to_string(bias_mode);
+
+        auto kernel_info         = solver::CBAFusionGetSolution(params);
+        std::string program_name = "MIOpenConvDirUni.cl";
+        // std::string program_name       = kernel_info.kernel_file;
+        std::string kernel_name = "MIOpenConvUni";
+        // std::string kernel_name        = kernel_info.kernel_name;
+        const std::string parms        = kernel_info.comp_options;
+        const std::vector<size_t>& vld = kernel_info.l_wk;
+        const std::vector<size_t>& vgd = kernel_info.g_wk;
+#endif
 
         kernel = handle.AddKernel(
             algorithm_name, network_config, program_name, kernel_name, vld, vgd, parms);
@@ -297,7 +316,10 @@ void DirectConvInference(Handle& handle,
 
     visit_float(xDesc.GetType(), [&](auto as_float) {
         {
-            kernel(x, w, y, as_float(padding_val));
+            if(bias_mode != 0)
+                kernel(x, w, convBias, y, as_float(padding_val));
+            else
+                kernel(x, w, y, as_float(padding_val));
         }
     });
 
