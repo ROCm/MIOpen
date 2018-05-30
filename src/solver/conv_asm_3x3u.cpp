@@ -81,14 +81,14 @@ bool PerformanceConfigConvAsm3x3U::IsValidValue() const
         && (1 <= output_lines_per_wave && output_lines_per_wave <= 8); // clang-format on
 }
 
-bool PerformanceConfigConvAsm3x3U::IsValid(const ConvolutionContext& params) const
+bool PerformanceConfigConvAsm3x3U::IsValid(const ConvolutionContext& config) const
 {
     if(!IsValidValue())
         return false;
 
     // Count the number of VGPRs required.
-    const auto& img_width  = params.in_width;
-    const auto& img_height = params.in_height;
+    const auto& img_width  = config.in_width;
+    const auto& img_height = config.in_height;
     int n                  = 0;
 
     const bool enable_zero_line_padding_on_read = (img_height != output_lines_per_wave);
