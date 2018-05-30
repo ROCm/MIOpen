@@ -51,9 +51,7 @@ void DirectConvInference(Handle& handle,
                          int dilation_h,
                          int dilation_w,
                          int bias_mode,
-                         ConstData_t convBias
-                         );
-
+                         ConstData_t convBias);
 }
 
 #endif
