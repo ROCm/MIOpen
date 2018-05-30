@@ -113,7 +113,7 @@ class CBAInferFusionDriver : public Driver
     int RunBackwardGPU();
     int RunBackwardCPU();
 
-    void runGPUConvBNActivInference();
+    void runGPUConvBatchNormActivInference();
 
     void runGPUBatchNormActivInference();
 
@@ -633,7 +633,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
 }
 
 template <typename Tgpu, typename Tref>
-void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBNActivInference()
+void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
 {
     double activ_alpha, activ_beta, activ_gamma;
     miopenActivationMode_t activ_mode;
@@ -809,7 +809,9 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
                                 u,
                                 v,
                                 dilation_h,
-                                dilation_w);
+                                dilation_w,
+                                bias_mode,
+                                bias_mode != 0 ? b_dev->GetMem() : nullptr);
 
 #else
     int ret_algo_count;
@@ -859,7 +861,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
     {
         START_TIME;
 #if 0
-        runGPUConvBNActivInference();
+        runGPUConvBatchNormActivInference();
         miopenGetKernelTime(GetHandle(), &time);
         kl_time += time;
 #else
@@ -867,21 +869,24 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
         miopenGetKernelTime(GetHandle(), &time);
         kl_time += time;
 
-        runGPUConvBiasInference();
-        miopenGetKernelTime(GetHandle(), &time);
-        kl_time += time;
+// runGPUConvBiasInference();
+// miopenGetKernelTime(GetHandle(), &time);
+// kl_time += time;
 
+#if 1
         runGPUBatchNormActivInference();
         miopenGetKernelTime(GetHandle(), &time);
         kl_time += time;
+#else
+        runGPUBNFwdInference();
+        miopenGetKernelTime(GetHandle(), &time);
+        kl_time += time;
 
-// runGPUBNFwdInference();
-// miopenGetKernelTime(GetHandle(), &time);
-// kl_time += time;
+        runGPUActivFwdInference();
+        miopenGetKernelTime(GetHandle(), &time);
+        kl_time += time;
+#endif
 
-// runGPUActivFwdInference();
-// miopenGetKernelTime(GetHandle(), &time);
-// kl_time += time;
 #endif
 
         miopen::deref(GetHandle()).Finish();
