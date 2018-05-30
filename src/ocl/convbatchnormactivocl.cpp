@@ -297,30 +297,30 @@ void DirectConvInference(Handle& handle,
 }
 
 void DirectConvBNActivInference(Handle& handle,
-                         const void* alpha,
-                         const TensorDescriptor& xDesc,
-                         ConstData_t x,
-                         const TensorDescriptor& wDesc,
-                         ConstData_t w,
-                         const void* beta,
-                         const TensorDescriptor& yDesc,
-                         Data_t y,
-                         int pad_h,
-                         int pad_w,
-                         int u,
-                         int v,
-                         int dilation_h,
-                         int dilation_w,
-                         ConstData_t bnScale,
-                         ConstData_t bnBias,
-                         ConstData_t estimatedMean,
-                         ConstData_t estimatedVariance,
-                         double epsilon,
-                         miopenActivationMode_t activ_mode,
-                         double activ_alpha,
-                         double activ_beta,
-                         double activ_gama
-                         )
+                                const void* alpha,
+                                const TensorDescriptor& xDesc,
+                                ConstData_t x,
+                                const TensorDescriptor& wDesc,
+                                ConstData_t w,
+                                const void* beta,
+                                const TensorDescriptor& yDesc,
+                                Data_t y,
+                                int pad_h,
+                                int pad_w,
+                                int u,
+                                int v,
+                                int dilation_h,
+                                int dilation_w,
+                                miopenBatchNormMode_t bn_mode,
+                                ConstData_t bnScale,
+                                ConstData_t bnBias,
+                                ConstData_t estimatedMean,
+                                ConstData_t estimatedVariance,
+                                double epsilon,
+                                miopenActivationMode_t activ_mode,
+                                double activ_alpha,
+                                double activ_beta,
+                                double activ_gama)
 {
     if(x == nullptr || w == nullptr || y == nullptr)
     {
@@ -369,6 +369,11 @@ void DirectConvBNActivInference(Handle& handle,
     construct_params.mloCopyTo(params);
     params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
     params.general_compile_options += " -DMIOPEN_NRN_OP_ID=" + std::to_string(activ_mode);
+    if(bn_mode == miopenBNSpatial)
+        params.general_compile_options += " -DSPATIAL_BN";
+    else
+        params.general_compile_options += " -DPERACT_BN";
+
     auto kernel_info               = solver::GetSolution(params);
     std::string program_name       = kernel_info.kernel_file;
     std::string kernel_name        = kernel_info.kernel_name;
@@ -388,21 +393,22 @@ void DirectConvBNActivInference(Handle& handle,
 
     visit_float(xDesc.GetType(), [&](auto as_float) {
         {
-        auto f_activ_alpha = as_float(activ_alpha);
-        auto f_activ_beta  = as_float(activ_beta);
-        auto f_activ_gama  = as_float(activ_gama);
+            auto f_activ_alpha = as_float(activ_alpha);
+            auto f_activ_beta  = as_float(activ_beta);
+            auto f_activ_gama  = as_float(activ_gama);
 
-
-        kernel(x, w, y, as_float(padding_val),
-                estimatedMean,
-                estimatedVariance,
-                bnScale,
-                bnBias,
-                epsilon,
-                f_activ_gama,
-                f_activ_alpha,
-                f_activ_beta
-                );
+            kernel(x,
+                   w,
+                   y,
+                   as_float(padding_val),
+                   estimatedMean,
+                   estimatedVariance,
+                   bnScale,
+                   bnBias,
+                   epsilon,
+                   f_activ_gama,
+                   f_activ_alpha,
+                   f_activ_beta);
         }
     });
 
@@ -411,5 +417,4 @@ void DirectConvBNActivInference(Handle& handle,
         miopen::checkNumericsOutput(handle, yDesc, y);
     }
 }
-
 }
