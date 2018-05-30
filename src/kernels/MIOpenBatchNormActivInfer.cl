@@ -560,12 +560,12 @@ __attribute__((always_inline)) void ActivationFunction_Diff(const uint n,
 #endif
 
 __attribute__((always_inline)) void BatchNormFunctionSpatial(const uint n,
-                                                      _FLOAT* out,
-                                                      const _FLOAT* in,
-                                                      const _FLOAT mean,
-                                                      const _FLOAT invVariance,
-                                                      const _FLOAT scale,
-                                                      const _FLOAT bias)
+                                                             _FLOAT* out,
+                                                             const _FLOAT* in,
+                                                             const _FLOAT mean,
+                                                             const _FLOAT invVariance,
+                                                             const _FLOAT scale,
+                                                             const _FLOAT bias)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -575,15 +575,15 @@ __attribute__((always_inline)) void BatchNormFunctionSpatial(const uint n,
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormActivInferSpatialEst(const __global _FLOAT* __restrict in, /* x input */
-                                       __global _FLOAT* __restrict out,      /* y output */
-                                       const __global _FLOAT* __restrict estimatedMean,
-                                       const __global _FLOAT* __restrict estimatedVariance,
-                                       const __global _FLOAT* __restrict scale,
-                                       const __global _FLOAT* __restrict bias,
-                                       double epsilon,
-                                       const _FLOAT gamma,
-                                       const _FLOAT beta,
-                                       const _FLOAT alpha)
+                                    __global _FLOAT* __restrict out,      /* y output */
+                                    const __global _FLOAT* __restrict estimatedMean,
+                                    const __global _FLOAT* __restrict estimatedVariance,
+                                    const __global _FLOAT* __restrict scale,
+                                    const __global _FLOAT* __restrict bias,
+                                    double epsilon,
+                                    const _FLOAT gamma,
+                                    const _FLOAT beta,
+                                    const _FLOAT alpha)
 {
     int gid0 = get_global_id(0);
     int gid1 = get_global_id(1);
@@ -631,12 +631,12 @@ MIOpenBatchNormActivInferSpatialEst(const __global _FLOAT* __restrict in, /* x i
 } // end spatial norm
 
 __attribute__((always_inline)) void BatchNormFunctionPerAct(const uint n,
-                                                      _FLOAT* out,
-                                                      const _FLOAT* in,
-                                                      const _FLOAT* mean,
-                                                      const _FLOAT* invVariance,
-                                                      const _FLOAT* scale,
-                                                      const _FLOAT* bias)
+                                                            _FLOAT* out,
+                                                            const _FLOAT* in,
+                                                            const _FLOAT* mean,
+                                                            const _FLOAT* invVariance,
+                                                            const _FLOAT* scale,
+                                                            const _FLOAT* bias)
 {
     for(uint i = 0; i < n; ++i)
     {
