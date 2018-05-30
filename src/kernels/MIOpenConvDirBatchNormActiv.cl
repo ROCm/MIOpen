@@ -477,8 +477,6 @@ static inline void Conv(uint o_map_base,
       // MLO_IN_LCL_PERSTACK_SZ)
 }
 
-
-
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __kernel void
 MIOpenConvUni(const __global _FLOAT* __restrict in,
               const __global _FLOAT* __restrict weights,
@@ -802,7 +800,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #if MLO_FILTER_STRIDE1 == 1
     uint y_out_grp = y_grp;
 #else
-    uint y_out_grp = y_tile_blk * MLO_IN_TILE1;
+    uint y_out_grp   = y_tile_blk * MLO_IN_TILE1;
 #endif
 #else
     uint x_out_grp        = x_grp * MLO_FILTER_STRIDE0;
@@ -858,7 +856,6 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
         }
     }
 }
-
 
 #if MIOPEN_USE_FP16 == 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
@@ -1119,21 +1116,20 @@ __attribute__((always_inline)) void ActivationFunction(const uint n,
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __kernel void
 MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
-              const __global _FLOAT* __restrict weights,
+                            const __global _FLOAT* __restrict weights,
 #if MLO_CONV_BIAS
-              const __global _FLOAT* __restrict bias,
+                            const __global _FLOAT* __restrict bias,
 #endif
-              __global _FLOAT* __restrict out,
-              UNUSED _FLOAT padding_val,
-              const __global _FLOAT* __restrict estimatedMean,
-              const __global _FLOAT* __restrict estimatedVariance,
-              const __global _FLOAT* __restrict scale,
-              const __global _FLOAT* __restrict bias,
-              double epsilon,
-              const _FLOAT gamma,
-              const _FLOAT beta,
-              const _FLOAT alpha
-              )
+                            __global _FLOAT* __restrict out,
+                            UNUSED _FLOAT padding_val,
+                            const __global _FLOAT* __restrict estimatedMean,
+                            const __global _FLOAT* __restrict estimatedVariance,
+                            const __global _FLOAT* __restrict scale,
+                            const __global _FLOAT* __restrict bias,
+                            double epsilon,
+                            const _FLOAT gamma,
+                            const _FLOAT beta,
+                            const _FLOAT alpha)
 {
     __local _FLOAT lcl_indata[MLO_IN_LCL_SZ];
     __local _FLOAT lcl_wei[MLO_WEIGHTS_SZ];
@@ -1461,7 +1457,6 @@ MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
     uint out_off = (b_index + stack) * MLO_OUT_BATCH_STRIDE + o_map * MLO_OUT_CHANNEL_STRIDE +
                    (y_out_grp + y_out_lcl) * MLO_OUT_STRIDE + x_out_grp + x_out_lcl;
 
-    
     _FLOAT conv_res;
     _FLOAT bn_res;
     _FLOAT actv_res;
@@ -1475,14 +1470,14 @@ MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
         uint out_off1 = out_off;
         for(uint o = 0; o < MLO_N_OUT_TILES; ++o, out_off1 += MLO_OUT_CHANNEL_STRIDE)
         {
-            uint c_i = o_map + o;
-            _FLOAT pmean  = estimatedMean[c_i];
-            _FLOAT pvar   = estimatedVariance[c_i];
-            _FLOAT pscale = scale[c_i];
-            _FLOAT pbias  = bias[c_i];
-
+#ifdef SPATIAL_BN
+            uint c_i            = o_map + o;
+            _FLOAT pmean        = estimatedMean[c_i];
+            _FLOAT pvar         = estimatedVariance[c_i];
+            _FLOAT pscale       = scale[c_i];
+            _FLOAT pbias        = bias[c_i];
             _FLOAT pinvVariance = rsqrt(fabs(pvar + epsilon));
-
+#endif
 
 #if MLO_OUTPUTS_ALIGNED == 0
             if(o_map + o < MLO_N_OUTPUTS)
@@ -1499,8 +1494,8 @@ MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
                         out_off2 + i < MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ;
                         ++i)
                     {
-                            if(1)
-                            {
+                        if(1)
+                        {
 #else
                 for(uint j = 0; j < MLO_OUT_TILE1; ++j, out_off2 += MLO_OUT_STRIDE)
                 {
@@ -1510,18 +1505,26 @@ MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
                             if(x_out_grp + x_out_lcl + i < MLO_OUT_WIDTH &&
                                out_off2 + i < MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
                             {
+#ifdef PERACT_BN
+                                uint chw_i          = (out_off2 + i) % (MLO_OUT_BATCH_STRIDE);
+                                _FLOAT pmean        = estimatedMean[chw_i];
+                                _FLOAT pvar         = estimatedVariance[chw_i];
+                                _FLOAT pscale       = scale[chw_i];
+                                _FLOAT pbias        = bias[chw_i];
+                                _FLOAT pinvVariance = rsqrt(fabs(pvar + epsilon));
 #endif
-                                conv_res = pvt_accum[o * MLO_OUT_TILE_SZ + j * MLO_OUT_TILE0 + i]
-#if MLO_CONV_BIAS
-                                            + bias[o_map + o]
-#endif
-                            ;
-                                //out[out_off2 + i] = mad(pscale, (conv_res - pmean) * pinvVariance, pbias);
-                                bn_res = mad(pscale, (conv_res - pmean) * pinvVariance, pbias);
-                                ActivationFunction(1, &actv_res, (const _FLOAT*)&bn_res, gamma, beta, alpha);
-                                out[out_off2 + i] = actv_res;
-                            }
 
+#endif
+                            conv_res = pvt_accum[o * MLO_OUT_TILE_SZ + j * MLO_OUT_TILE0 + i]
+#if MLO_CONV_BIAS
+                                       + bias[o_map + o]
+#endif
+                                ;
+                            bn_res = mad(pscale, (conv_res - pmean) * pinvVariance, pbias);
+                            ActivationFunction(
+                                1, &actv_res, (const _FLOAT*)&bn_res, gamma, beta, alpha);
+                            out[out_off2 + i] = actv_res;
+                        }
                     }
                 }
             }

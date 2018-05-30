@@ -341,7 +341,7 @@ std::vector<int> CBAInferFusionDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdL
     int in_h = inflags.GetValueInt("in_h");
     int in_w = inflags.GetValueInt("in_w");
 
-    std::cerr << "inTensor = " << in_n << "," << in_c << "," << in_h << "," << in_w << std::endl;
+    // std::cerr << "inTensor = " << in_n << "," << in_c << "," << in_h << "," << in_w << std::endl;
 
     return std::vector<int>({in_n, in_c, in_h, in_w});
 }
@@ -411,8 +411,9 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
         exit(0);
     }
 
-    std::cerr << "convDesc = " << wei_h << "," << wei_w << "," << pad_h << "," << pad_w << "," << u
-              << "," << v << "," << dilation_h << "," << dilation_w << std::endl;
+    // std::cerr << "convDesc = " << wei_h << "," << wei_w << "," << pad_h << "," << pad_w << "," <<
+    // u
+    //<< "," << v << "," << dilation_h << "," << dilation_w << std::endl;
 
     miopen::deref(convDesc) =
         miopen::ConvolutionDescriptor(mode, pmode, pad_h, pad_w, u, v, dilation_h, dilation_w);
@@ -426,7 +427,7 @@ std::vector<int> CBAInferFusionDriver<Tgpu, Tref>::GetOutputTensorLengths()
 
     miopenGetConvolutionForwardOutputDim(convDesc, inputTensor, weightTensor, &n, &c, &h, &w);
 
-    std::cerr << "outTensor = " << n << "," << c << "," << h << "," << w << std::endl;
+    // std::cerr << "outTensor = " << n << "," << c << "," << h << "," << w << std::endl;
 
     return std::vector<int>({n, c, h, w});
 }
@@ -777,18 +778,16 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
     // float lowtime   = 100000000.0;
     // float avgtime   = 0.;
 
+    float time = 0.0, kl_time = 0.0;
     for(int i = 0; i < iters; i++)
     {
-
-        START_TIME;
-
         double activ_alpha, activ_beta, activ_gamma;
         miopenActivationMode_t activ_mode;
         miopenGetActivationDescriptor(
             activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
 
-#if 1
-        float time0 = 0.0, time1 = 0.0, time2 = 0.0;
+        START_TIME;
+#if 0
         Tref epsilon = static_cast<Tref>(EPSILON);
         float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
@@ -812,6 +811,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
                 v,
                 dilation_h,
                 dilation_w,
+                bn_mode,
                 scale_dev->GetMem(),
                 bias_dev->GetMem(),
                 runningMean_dev->GetMem(),
@@ -822,14 +822,20 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
                 activ_beta,
                 activ_gamma);
 
-        miopenGetKernelTime(GetHandle(), &time0);
+        miopenGetKernelTime(GetHandle(), &time);
+        kl_time += time;
 #else
         runGPUConvFwdInference();
-        // miopenGetKernelTime(GetHandle(), &time0);
+        miopenGetKernelTime(GetHandle(), &time);
+        kl_time += time;
+
         runGPUBNFwdInference();
-        // miopenGetKernelTime(GetHandle(), &time1);
+        miopenGetKernelTime(GetHandle(), &time);
+        kl_time += time;
+
         runGPUActivFwdInference();
-// miopenGetKernelTime(GetHandle(), &time2);
+        miopenGetKernelTime(GetHandle(), &time);
+        kl_time += time;
 #endif
 
         miopen::deref(GetHandle()).Finish();
@@ -852,15 +858,13 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
                (iters > 1) ? iters - 1 : 1);
     }
 
-    // if(inflags.GetValueStr("time") == "1")
-    //{
-    // printf("GPU Kernel Min Time Forward Batch Normalization Elapsed: %f ms\n", lowtime);
-    // if(iters > 1)
-    // printf("GPU Kernel Avg Time Forward Batch Normalization Elapsed: %f ms, for %d "
-    //"iterations.\n",
-    // avgtime / (iters - 1),
-    // iters - 1);
-    //}
+    if(inflags.GetValueStr("time") == "1")
+    {
+        printf("GPU Kernel Avg Time Forward Batch Normalization Elapsed: %f ms, for %d "
+               "iterations.\n",
+               kl_time / (iters),
+               iters);
+    }
 
     out_dev->FromGPU(GetStream(), out.data());
 
@@ -930,9 +934,10 @@ int CBAInferFusionDriver<Tgpu, Tref>::VerifyForward()
 
     int match = 1;
 
-    //match &= miopenInferVerify(conv_res.size(), conv_res_host.data(), conv_res.data(), allowedEps);
+    // match &= miopenInferVerify(conv_res.size(), conv_res_host.data(), conv_res.data(),
+    // allowedEps);
 
-    //match &= miopenInferVerify(bn_res.size(), bn_res_host.data(), bn_res.data(), allowedEps);
+    // match &= miopenInferVerify(bn_res.size(), bn_res_host.data(), bn_res.data(), allowedEps);
 
     match &= miopenInferVerify(out.size(), out_host.data(), out.data(), allowedEps);
 
