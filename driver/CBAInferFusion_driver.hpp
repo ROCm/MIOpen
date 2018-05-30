@@ -809,7 +809,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
                                            dilation_h,
                                            dilation_w,
                                            bias_mode,
-                                           b_dev->GetMem(),
+                                           bias_mode != 0 ? b_dev->GetMem() : nullptr,
                                            bn_mode,
                                            scale_dev->GetMem(),
                                            bias_dev->GetMem(),
