@@ -23,33 +23,30 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include <miopen/solver.hpp>
-#include <miopen/stringutils.hpp>
-#include <boost/range/adaptor/transformed.hpp>
-#include <ostream>
+#include <cassert>
+#include <miopen/fusion.hpp>
+#include <miopen/logger.hpp>
 
 namespace miopen {
-namespace solver {
 
-std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
+FusionPlanDescriptor::FusionPlanDescriptor() {}
+
+std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor&) // x )
 {
-    os << k.kernel_file << ", " << k.kernel_name << " g_wk={ ";
-    for(const auto& size : k.g_wk)
-        os << size << ' ';
-    os << "}, l_wk={ ";
-    for(const auto& size : k.l_wk)
-        os << size << ' ';
-    return os << "} '" << k.comp_options << '\'';
+    /*    MIOPEN_LOG_ENUM(stream,
+                        x.mode,
+                        miopenActivationPASTHRU,
+                        miopenActivationLOGISTIC,
+                        miopenActivationTANH,
+                        miopenActivationRELU,
+                        miopenActivationSOFTRELU,
+                        miopenActivationABS,
+                        miopenActivationPOWER,
+                        miopenActivationCLIPPEDRELU,
+                        miopenActivationLEAKYRELU,
+                        miopenActivationELU)*/
+    // LogRange(stream, x.parms, ", ") << ", ";
+    return stream;
 }
 
-std::ostream& operator<<(std::ostream& os, const ConvSolution& s)
-{
-    auto strings =
-        s.construction_params | boost::adaptors::transformed([](auto k) { return k.kernel_name; });
-    os << JoinStrings(strings, "/");
-    return os;
-}
-
-} // namespace solver
 } // namespace miopen

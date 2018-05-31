@@ -95,12 +95,13 @@ __kernel void OpTensorFwdBias(global MIOPEN_TYPE* a,
     global MIOPEN_TYPE* c_off = c + Coffset;
 
     int gid = get_group_id(0);
-    int lid = get_local_id(0);
 
     // num_wg: the number of workgroups should be launched
     // MAX_NUM_WG: the maximum number of workgroups actually launched
     for(; gid < num_wg; gid += MAX_NUM_WG)
     {
+
+        int lid = get_local_id(0);
 
 #if INCR_WG == 1
         int o_n             = gid / b_c;

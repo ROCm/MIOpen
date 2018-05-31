@@ -26,9 +26,14 @@ def rocmtestnode(variant, name, body) {
         stage("image ${variant}") {
             try {
                 docker.build("${image}", "--build-arg PREFIX=/usr/local .")
+                withDockerContainer(image: image, args: '--device=/dev/kfd --device=/dev/dri --group-add video') {
+                    sh 'PATH="/opt/rocm/opencl/bin/x86_64/:$PATH" clinfo'
+                }
             } catch(Exception ex) {
                 docker.build("${image}", "--build-arg PREFIX=/usr/local --no-cache .")
-
+                withDockerContainer(image: image, args: '--device=/dev/kfd --device=/dev/dri --group-add video') {
+                    sh 'PATH="/opt/rocm/opencl/bin/x86_64/:$PATH" clinfo'
+                }
             }
         }
         withDockerContainer(image: image, args: '--device=/dev/kfd --device=/dev/dri --group-add video') {
