@@ -153,12 +153,6 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
         return {GetType(), {1}, {1}};
 
     // start flattening tensor
-    std::vector<std::size_t> full_lengths(non1_ndim);
-
-    full_lengths[0] = 0; // the 0-th dimension full-length doesn't matter
-    for(std::size_t i   = 1; i < non1_ndim; ++i)
-        full_lengths[i] = non1_strides[i - 1] / non1_strides[i];
-
     std::vector<std::size_t> flat_lengths;
     std::vector<std::size_t> flat_strides;
 
@@ -166,7 +160,7 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
     for(std::size_t i = 1; i < non1_ndim; ++i)
     {
         std::size_t len      = non1_lengths[i];
-        std::size_t full_len = full_lengths[i];
+        std::size_t full_len = non1_strides[i - 1] / non1_strides[i];
 
         if(len == full_len)
         {
@@ -182,7 +176,7 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
     flat_lengths.push_back(flat_len);
     flat_strides.push_back(non1_strides[non1_ndim - 1]);
 
-    return {GetType(), flat_lengths, flat_strides};
+    return {GetType(), std::move(flat_lengths), std::move(flat_strides)};
 }
 
 bool TensorDescriptor::operator==(const TensorDescriptor& rhs) const
