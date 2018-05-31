@@ -164,8 +164,23 @@ struct ProblemDescription
     int kernel_dilation0 = 0;
     int kernel_dilation1 = 0;
     int bias             = 0;
-    // TODO: Serialize this field
-    int float_size = 32;
+    std::string in_layout;
+    std::string in_data_type;
+    std::string weights_layout;
+    std::string out_data_type;
+    std::string out_layout;
+    int float_size         = 32;
+    size_t bot_sz          = 0;
+    size_t top_sz          = 0;
+    size_t weights_sz      = 0;
+    size_t bias_sz         = 0;
+    int deconvolution      = 0;
+    int in_stride          = 0;
+    int out_stride         = 0;
+    int in_channel_stride  = 0;
+    int in_batch_stride    = 0;
+    int out_channel_stride = 0;
+    int out_batch_stride   = 0;
     struct Direction
     {
         enum class Value
@@ -193,8 +208,6 @@ struct ProblemDescription
         void Set(T) = delete;
         void SetBackwardWrW() { v = Value::BackwardWrW; }
     } direction;
-    std::string in_layout;
-    std::string in_data_type;
     int GetBackwardPad0() const { return kernel_size0 - pad0 - 1; }
     int GetBackwardPad1() const { return kernel_size1 - pad1 - 1; }
 
@@ -233,29 +246,14 @@ struct ProblemDescription
 /// TODO: These three entities should be made separate.
 struct ConvolutionContext : ProblemDescription
 {
-    bool n_passes = false;
-
-    bool do_search       = false;
-    bool save_srch_req   = false;
-    bool use_asm_kernels = false;
-    bool use_binaries    = true;
-    std::string weights_layout;
-    std::string out_data_type;
-    std::string out_layout;
-    size_t bot_sz          = 0;
-    size_t top_sz          = 0;
-    size_t weights_sz      = 0;
-    size_t bias_sz         = 0;
-    int deconvolution      = 0;
-    int in_stride          = 0;
-    int out_stride         = 0;
-    int in_channel_stride  = 0;
-    int in_batch_stride    = 0;
-    int out_channel_stride = 0;
-    int out_batch_stride   = 0;
-    int n_timer_iter       = 0;
-    rocm_meta_version rmv  = rocm_meta_version::Default;
+    // Solution-specific
     std::string general_compile_options;
+    // Operation modes & environment
+    bool do_search                         = false;
+    bool save_srch_req                     = false;
+    bool use_asm_kernels                   = false;
+    bool use_binaries                      = true;
+    rocm_meta_version rmv                  = rocm_meta_version::Default;
     bool workaround_disable_search_enforce = false;
 
     inline Handle& GetStream() const { return *_stream; }
@@ -297,56 +295,67 @@ struct ConvSolution;
 } // namespace miopen
 
 template <class T>
-void mloConstructImpl(miopen::rank<0>, T& x)
-{
-    x.setupRocm();
-    x.setupFloats();
-    x.mloUseSolution(x.FindSolution());
-}
-
-template <class T>
-auto mloConstructImpl(miopen::rank<1>, T& x) -> decltype(x.mloConstruct(), void())
+auto mloConstruct(T& x) -> decltype(x.mloConstruct(), void())
 {
     x.setupFloats();
     x.mloConstruct();
 }
 
 template <class T>
-void mloConstruct(T& x)
+auto FindFirstSolution(T& x) -> decltype(x.FindSolution())
 {
-    mloConstructImpl(miopen::rank<1>{}, x);
+    x.setupRocm();
+    x.setupFloats();
+    return x.FindSolution();
 }
+
+/// \todo Move this into respective Solution objects. --atamazov
+struct mlo_construct_activ_lrn_pooling_common
+{
+    std::string _comp_options;
+    std::string _kernel_file;
+    std::string _kernel_name;
+    std::vector<size_t> _l_wk;
+    std::vector<size_t> _g_wk;
+
+    /*
+    * returns kernel file name without location
+    */
+    inline std::string getKernelFile() const { return (_kernel_file); }
+    /*
+    * retuns kerner/shader name
+    */
+    inline std::string getKernelName() const { return (_kernel_name); }
+    /*
+    * return set of compile options
+    */
+    inline const std::string& getCompilerOptions() const { return (_comp_options); }
+    /*
+    *  return a local working configuration
+    */
+    inline const std::vector<size_t>& getLocalWkSize() const { return (_l_wk); }
+    /*
+    * return a global working configuration
+    */
+    inline const std::vector<size_t>& getGlobalWkSize() const { return (_g_wk); }
+
+    int _grp_tile0      = 8; // total number ALUs per group
+    int _grp_tile1      = 8; // total number ALUs per group
+    int _out_pix_tile0  = 2; // # of generated pixels per output per wk-item  (ALU)
+    int _out_pix_tile1  = 4; // # of generated pixels per output per wk-item  (ALU)
+    size_t _workspce_sz = 0;
+
+    /*
+    * get workspace size
+    */
+    inline size_t getWorkSpaceSzBytes() const { return (_workspce_sz); }
+};
 
 struct mlo_construct_direct2D
 {
-    void mloUseSolution(const miopen::solver::ConvSolution& s);
-
     mlo_construct_direct2D(int dir, bool do_bias = false)
     {
         _search_params.direction.Set(dir);
-
-        //#if !(defined(__APPLE__) || defined(__MACOSX))
-        //	_gen_comp_options = std::string(" -cl-std=CL2.0 ");
-        //#endif
-        _in_tile0 = (_search_params.in_width < 12) ? 8 : 16; //(_in_width < 12) ? 8 : (_in_width <
-                                                             // 24 || (_in_width > 32 && _in_width <
-        // 48)) ? 16 : 32; // size of input data
-        // per ALU plane
-        _in_tile1 = (_search_params.in_height < 12) ? 8 : 16; // (_in_height < 12) ? 8 : (_in_height
-                                                              // < 24 || (_in_height > 32 &&
-                                                              // _in_height < 48)) ? 16 : 32; //
-                                                              // size of input data per ALU plane
-
-        _grp_tile0 = _in_tile0;
-        _grp_tile1 = _in_tile1;
-
-        _out_pix_tile0 = 2; // size of ouptput tile per wk-item (ALU))
-        _out_pix_tile1 = 4; //
-
-        _n_out_pix_tiles = 2; // # output pixel tiles per wk-item (ALU)
-        _n_in_data_tiles = 4; // # of blocks of different inputs in LDS
-
-        _n_stacks                       = 1; // # of diff stacks (part of batch).
         _search_params.bias             = (do_bias) ? 1 : 0;
         _search_params.pad0             = 1;
         _search_params.pad1             = 1;
@@ -361,14 +370,6 @@ struct mlo_construct_direct2D
         _search_params.top_sz           = 0; // bytes
         _search_params.weights_sz       = 0; // bytes
         _search_params.bias_sz          = 0; // bytes
-
-        _workspce_sz = 0;
-
-        _small         = true;
-        _copy_input    = false;
-        _new_in_width  = 0;
-        _new_in_height = 0;
-        _new_in_sz     = 0;
     }
 
     void setupRocm();
@@ -393,8 +394,12 @@ struct mlo_construct_direct2D
     * returns parameter values that are compiled in legacy kernels for kernels using them as
     * arguments.
     */
-    inline void getCompiledInParameters(
-        int* const N, int* const C, int* const H, int* const W, int* const K, int* const n_groups)
+    inline void getCompiledInParameters(int* const N,
+                                        int* const C,
+                                        int* const H,
+                                        int* const W,
+                                        int* const K,
+                                        int* const n_groups) const
     {
         assert(N && C && H && W && K && n_groups);
         *N        = _search_params.batch_sz;
@@ -412,16 +417,29 @@ struct mlo_construct_direct2D
                                         int* const K,
                                         int* const n_groups,
                                         int* const out_H,
+                                        int* const out_W) const
+    {
+        getCompiledInParameters(N, C, H, W, K, n_groups);
+        assert(out_H && out_W);
+        *out_H = _search_params.out_height;
+        *out_W = _search_params.out_width;
+    }
+
+    inline void getCompiledInParameters(int* const N,
+                                        int* const C,
+                                        int* const H,
+                                        int* const W,
+                                        int* const K,
+                                        int* const n_groups,
+                                        int* const out_H,
                                         int* const out_W,
                                         int* const R,
                                         int* const S,
                                         int* const pad_H,
-                                        int* const pad_W)
+                                        int* const pad_W) const
     {
-        getCompiledInParameters(N, C, H, W, K, n_groups);
-        assert(out_H && out_W && R && S && pad_H && pad_W);
-        *out_H = _search_params.out_height;
-        *out_W = _search_params.out_width;
+        getCompiledInParameters(N, C, H, W, K, n_groups, out_H, out_W);
+        assert(R && S && pad_H && pad_W);
         *R     = _search_params.kernel_size1;
         *S     = _search_params.kernel_size0;
         *pad_H = _search_params.direction.IsForward() ? _search_params.pad1
@@ -431,47 +449,11 @@ struct mlo_construct_direct2D
     }
 
     /*
-    * returns kernel file name without location
-    */
-    inline std::string getKernelFile() const { return (_kernel_file); }
-    /*
-    * retuns kerner/shader name
-    */
-    inline std::string getKernelName() const { return (_kernel_name); }
-    /*
-    * return set of compile options
-    */
-
-    inline const std::string& getCompilerOptions() const { return (_comp_options); }
-    /*
-    *  return a local working configuration
-    */
-    inline const std::vector<size_t>& getLocalWkSize() const { return (_l_wk); }
-    /*
-    * return a global working configuration
-    */
-    inline const std::vector<size_t>& getGlobalWkSize() const { return (_g_wk); }
-
-    /*
     * get common compiler options
     */
     inline const std::string& getGeneralCompOptions() const
     {
         return (_search_params.general_compile_options);
-    }
-
-    /*
-    * get info for all kernels of the layer
-    * std::string _kernel_name;
-    * std::string _kernel_file;
-    * std::string _comp_options;
-    * std::vector<size_t> _g_wk;
-    * std::vector<size_t> _l_wk;
-    */
-
-    inline const std::vector<mlo_kernel_info>& getKernelsInfo() const
-    {
-        return (_mlo_kernels_info);
     }
 
     /*
@@ -485,30 +467,14 @@ struct mlo_construct_direct2D
     }
 
     /*
-    * get workspace size
-    */
-    inline size_t getWorkSpaceSzBytes() const { return (_workspce_sz); }
-    /*
     *  is bias incuded
     */
-
     inline bool doBias() const { return (_search_params.bias == 1); }
-
-    /*
-    * set a number of iteration for thwe wall clock performance meaturement
-    */
-
-    inline void setTimerIter(int n_timer_iter) { _search_params.n_timer_iter = n_timer_iter; }
 
     /*
     * set library stream
     */
     inline void setStream(miopen::Handle* stream) { _search_params.SetStream(stream); }
-
-    /*
-    * set ocl Kernels path
-    */
-    inline void setKernelPath(const std::string& kernel_path) { _kernel_path = kernel_path; }
 
     /*
     * set convolutional parameters
@@ -684,7 +650,7 @@ struct mlo_construct_direct2D
         _search_params.out_layout         = layout;
         _search_params.out_data_type      = data_type;
         _search_params.bias_sz =
-            (_search_params.bias) != 0 ? _search_params.n_outputs * data_len : 0;
+            (_search_params.bias != 0) ? (_search_params.n_outputs * data_len) : 0;
     }
 
     /*
@@ -798,11 +764,7 @@ struct mlo_construct_direct2D
     /*
     *  allow the search for the best possible solution
     */
-    inline void doSearch(bool do_search) { _search_params.do_search = do_search; }
-    /*
-    * is search set?
-    */
-    inline bool doSearch() const { return (_search_params.do_search); }
+    inline void setDoSearch(const bool do_search) { _search_params.do_search = do_search; }
 
     /*
     * allow to save the missing configuraion in the search request file for an offline search
@@ -823,8 +785,6 @@ struct mlo_construct_direct2D
 
     // MD: Hack to get the key outside of mlo_internal
     int mloBuildConf_Key(std::string& conf_key) const;
-
-    inline bool doCopyInput() const { return (_copy_input); }
 
     // MD: Where is this being used?
     void getNewInputDescr(std::string& layout,
@@ -850,11 +810,6 @@ struct mlo_construct_direct2D
 
     bool mloIsFastBinaryWinograd3x3U() const;
 
-    inline void mloCopyTo(miopen::ConvolutionContext& params) const /// TODO: get rid of this
-    {
-        params = _search_params;
-    }
-
     std::string db_path() const
     {
         return _db_path != nullptr ? _db_path : _search_params.GetPerfDbPath();
@@ -866,6 +821,7 @@ struct mlo_construct_direct2D
     protected:
     miopen::ConvolutionContext _search_params;
 
+    /// \todo <begin> Move these into respective Contexts (norm, pooling, neuron...) --atamazov
     int _in_df_width          = 0;
     int _in_df_height         = 0;
     int _in_df_batch_stride   = 0;
@@ -882,59 +838,17 @@ struct mlo_construct_direct2D
     std::string _out_df_layout;
     std::string _out_df_data_type;
 
-    // SP
-
-    bool _small;
-    bool _copy_input;
-    int _new_in_height;
-    int _new_in_width;
-    int _new_in_batch_stride   = 0;
-    int _new_in_channel_stride = 0;
-    int _new_in_stride         = 0;
-    size_t _new_in_sz;
     bool _do_backward = false;
 
-    // FIX IT
-    //	int _weights_height;
-    //	int _weights_stride;
-    std::string _weight_data_type;
-    //
-    //	std::string _tens_layout;
-    //	std::string _tens_data_format;
-
-    int _in_tile0        = 0; // size of in-tile in local memory
-    int _in_tile1        = 0; // size of in-tile in local memory
-    int _grp_tile0       = 0; // total number ALUs per group
-    int _grp_tile1       = 0; // total number ALUs per group
-    int _out_pix_tile0   = 0; // # of generated pixels per output per wk-item  (ALU)
-    int _out_pix_tile1   = 0; // # of generated pixels per output per wk-item  (ALU)
-    int _n_out_pix_tiles = 0; // # output pixel tiles per wk-item (ALU)
-    int _n_in_data_tiles = 0; // # of blocks of different inputs in LDS
-    int _n_stacks        = 0; // # of diff stacks (part of batch).
-    std::string _comp_options;
-    std::string _kernel_file;
-    std::string _kernel_name;
-    std::vector<size_t> _l_wk;
-    std::vector<size_t> _g_wk;
-
-    // more than 1 kerenls per stage
-    std::vector<mlo_kernel_info> _mlo_kernels_info;
-
-    bool _gen  = false; // genral case
-    int _quiet = 0;
-    std::string _kernel_path;
     // local memory size per group
-    size_t _dev_local_mem_sz = 0;
+    size_t _dev_local_mem_sz = 0; /// \todo Written but not read - remove?
     // wave size
     int _hw_wave_sz = 0;
     // cl_queue
-    size_t _bot_df_sz = 0; // bytes
-    size_t _top_df_sz = 0; // bytes
+    size_t _bot_df_sz = 0; /// \todo Written but not read - remove?
+    size_t _top_df_sz = 0; /// \todo Written but not read - remove?
+    /// \todo <end>
 
-    size_t _workspce_sz;
-
-    unsigned int _n_groups{};
-    // For testing
     const char* _db_path = nullptr;
 };
 
@@ -950,8 +864,6 @@ struct mlo_construct_BwdWrW2D : mlo_construct_direct2D
     }
 
     miopen::solver::ConvSolution FindSolution();
-
-    int mloMultiStep();
 };
 
 /*
@@ -969,7 +881,7 @@ struct mlo_construct_winograd : mlo_construct_direct2D
 #define MLO_POOLING_OP_MAX 1
 #define MLO_POOLING_OP_STC 2
 
-struct mlo_construct_pooling2D : mlo_construct_direct2D
+struct mlo_construct_pooling2D : mlo_construct_direct2D, mlo_construct_activ_lrn_pooling_common
 {
     mlo_construct_pooling2D(int dir) : mlo_construct_direct2D(dir)
     {
@@ -1027,7 +939,7 @@ struct mlo_construct_pooling2D : mlo_construct_direct2D
 #define MLO_LRN_WITHIN_CHANNEL 0
 #define MLO_LRN_ACROSS_CHANNELS 1
 
-struct mlo_construct_norm : mlo_construct_direct2D
+struct mlo_construct_norm : mlo_construct_direct2D, mlo_construct_activ_lrn_pooling_common
 {
     mlo_construct_norm(int dir) : mlo_construct_direct2D(dir) {}
 
@@ -1070,7 +982,7 @@ struct mlo_construct_norm : mlo_construct_direct2D
     double _normK     = 0.0;
 };
 
-struct mlo_construct_neuron : mlo_construct_direct2D
+struct mlo_construct_neuron : mlo_construct_direct2D, mlo_construct_activ_lrn_pooling_common
 {
     mlo_construct_neuron(int dir) : mlo_construct_direct2D(dir)
     {
