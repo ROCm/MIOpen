@@ -183,18 +183,18 @@ void miopenBNActiveNeuronFwdInferHost(int neuron_type,
     case MIOPEN_NEURON_RELU: //	max(0, x)
         f = [=](Tref x) { return (x > 0) ? x : 0; };
         break;
-    case MIOPEN_NEURON_SOFTRELU: //	log(1 + e^x)   // bonomial normal log likelihood
-        f = [=](Tref x) { return std::log1p(std::exp(x)); };
-        break;
+    // case MIOPEN_NEURON_SOFTRELU: //	log(1 + e^x)   // bonomial normal log likelihood
+    // f = [=](Tref x) { return std::log1p(std::exp(x)); };
+    // break;
     case MIOPEN_NEURON_ABS: //	abs(x)
         f = [=](Tref x) { return std::abs(x); };
         break;
-    case MIOPEN_NEURON_POWER: // (alpha + beta * x) ^ gamma
-        f = [=](Tref x) {
-            Tref v = alpha + beta * x;
-            return v <= std::numeric_limits<Tref>::epsilon() ? 0 : pow(v, gamma);
-        };
-        break;
+    // case MIOPEN_NEURON_POWER: // (alpha + beta * x) ^ gamma
+    // f = [=](Tref x) {
+    // Tref v = alpha + beta * x;
+    // return v <= std::numeric_limits<Tref>::epsilon() ? 0 : pow(v, gamma);
+    //};
+    // break;
     case MIOPEN_NEURON_CLIPPED_RELU: // min(alpha, max(0, x))
         f = [=](Tref x) { return std::min(alpha, std::max(Tref(0), x)); };
         break;
@@ -214,6 +214,8 @@ void miopenBNActiveNeuronFwdInferHost(int neuron_type,
     {
         delete[] data;
     }
+
+    (void)gamma;
 }
 
 template <typename Tgpu /* the data type used in GPU computations (usually half) */,
