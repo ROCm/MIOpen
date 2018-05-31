@@ -174,10 +174,10 @@ regLDSreduce(_FLOAT* value, __local _FLOAT* data, unsigned int localID, _FLOAT s
 
 #ifdef __AMDGCN__
 
-
 static inline void dpp_reduction(_FLOAT* temp_sum)
 {
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0\n"
+    __asm__ volatile("s_nop 4\n"
+                     "v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0\n"
                      "s_nop 1\n"
                      "v_add_f32 %0 %0 %0 row_shr:2 bound_ctrl:0\n"
                      "s_nop 1\n"
@@ -195,7 +195,8 @@ static inline void dpp_reduction(_FLOAT* temp_sum)
 
 static inline void dpp_interleaved_reduction(_FLOAT* temp_sum1, _FLOAT* temp_sum2)
 {
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0\n"
+    __asm__ volatile("s_nop 4\n"
+                     "v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0\n"
                      "v_add_f32 %1 %1 %1 row_shr:1 bound_ctrl:0\n"
                      "s_nop 0\n"
                      "v_add_f32 %0 %0 %0 row_shr:2 bound_ctrl:0\n"
@@ -212,11 +213,10 @@ static inline void dpp_interleaved_reduction(_FLOAT* temp_sum1, _FLOAT* temp_sum
                      "s_nop 0\n"
                      "v_add_f32 %0 %0 %0 row_bcast:31 row_mask:0xc\n"
                      "v_add_f32 %1 %1 %1 row_bcast:31 row_mask:0xc\n"
-                     "s_nop 0"
+                     "s_nop 1"
                      : "=v"(*temp_sum1), "=v"(*temp_sum2) 
                      : "0"(*temp_sum1), "1"(*temp_sum2));
 }
-
 
 #endif
 
@@ -388,7 +388,8 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #if(MIO_BN_USESAVED == 1)
         batchvalues[MIO_BN_NLOOPM] =
-            (((index < MIO_BN_NCHW) ? *(x_in + index) : (_FLOAT)0.) - mean) * invVariance;
+            ((index < MIO_BN_NCHW) ? ((*(x_in + index) - mean) * invVariance)) : (_FLOAT)0.;
+
 #else
         batchvalues[MIO_BN_NLOOPM] = (batchvalues[MIO_BN_NLOOPM] - mean) * invVariance;
 #endif
