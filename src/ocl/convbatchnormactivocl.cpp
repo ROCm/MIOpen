@@ -33,6 +33,19 @@
 #include "miopen/solver.hpp"
 #include <chrono>
 
+struct mlo_construct_direct2D_fusion : mlo_construct_direct2D
+{
+    mlo_construct_direct2D_fusion(int dir, bool do_bias = false)
+        : mlo_construct_direct2D(dir, do_bias)
+    {
+    }
+
+    inline void mloCopyTo(miopen::ConvolutionContext& params) const /// TODO: get rid of this
+    {
+        params = _search_params;
+    }
+};
+
 namespace miopen {
 
 namespace solver {
@@ -261,7 +274,7 @@ void DirectConvInference(Handle& handle,
     }
 
     // TODO(paul): Replicating code for now.
-    mlo_construct_direct2D construct_params(1); // forward
+    mlo_construct_direct2D_fusion construct_params(1); // forward
 
     construct_params.setOutputDescFromMLDesc(yDesc);
     construct_params.setInputDescFromMLDesc(xDesc);
@@ -392,7 +405,7 @@ void DirectConvBNActivInference(Handle& handle,
     }
 
     // TODO(paul): Replicating code for now.
-    mlo_construct_direct2D construct_params(1); // forward
+    mlo_construct_direct2D_fusion construct_params(1); // forward
 
     construct_params.setOutputDescFromMLDesc(yDesc);
     construct_params.setInputDescFromMLDesc(xDesc);
