@@ -395,21 +395,59 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         // TODO add support for fp16
         if(xDesc.GetType() == miopenFloat)
         {
-            float local_alpha = 1.0, local_beta = 0.0;
-
             // 1x1_stride=1 with GEMM and zero workspace
             if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
                dilation_w == 1 && dilation_h == 1)
             {
+                float local_alpha = 1.0, local_beta = 0.0;
+
+                bool isColMajor, transA, transB;
+                int m, n, k, lda, ldb, ldc;
+                long long int strideA, strideB, strideC;
+                int batch_count;
+
                 std::cout << __func__ << ": 1x1" << std::endl;
 
-                GemmDescriptor gemm_desc = CreateGemmDescriptorConv1x1Fwd(xDesc, wDesc, yDesc);
+                std::tie(isColMajor,
+                         transA,
+                         transB,
+                         m,
+                         n,
+                         k,
+                         lda,
+                         ldb,
+                         ldc,
+                         strideA,
+                         strideB,
+                         strideC,
+                         batch_count) =
+                    CreateGemmStridedBatchedDescriptionConv1x1Fwd(xDesc, wDesc, yDesc);
 
-                CallGemmStridedBatched(
-                    handle, gemm_desc, &local_alpha, w, 0, x, 0, &local_beta, tmp_y.get(), 0);
+                // y = w * x
+                CallGemmStridedBatched(handle,
+                                       isColMajor,
+                                       transA,
+                                       transB,
+                                       m,
+                                       n,
+                                       k,
+                                       &local_alpha,
+                                       w,
+                                       0,
+                                       lda,
+                                       strideA,
+                                       x,
+                                       0,
+                                       ldb,
+                                       strideB,
+                                       &local_beta,
+                                       tmp_y.get(),
+                                       0,
+                                       ldc,
+                                       strideC,
+                                       batch_count);
 
-                // float time_gemm = handle.GetKernelTime();
-                float time_gemm = 0; // TODO: remove this
+                float time_gemm = handle.GetKernelTime();
 
                 perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, 0});
             }
@@ -878,18 +916,57 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             // TODO add support for fp16
             if(xDesc.GetType() == miopenFloat)
             {
-                float local_alpha = 1.0, local_beta = 0.0;
-
                 // 1x1_stride=1 with GEMM and zero workspace
                 if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
                    dilation_w == 1 && dilation_h == 1)
                 {
+                    float local_alpha = 1.0, local_beta = 0.0;
+
+                    bool isColMajor, transA, transB;
+                    int m, n, k, lda, ldb, ldc;
+                    long long int strideA, strideB, strideC;
+                    int batch_count;
+
                     std::cout << __func__ << ": 1x1" << std::endl;
 
-                    GemmDescriptor gemm_desc = CreateGemmDescriptorConv1x1Fwd(xDesc, wDesc, yDesc);
+                    std::tie(isColMajor,
+                             transA,
+                             transB,
+                             m,
+                             n,
+                             k,
+                             lda,
+                             ldb,
+                             ldc,
+                             strideA,
+                             strideB,
+                             strideC,
+                             batch_count) =
+                        CreateGemmStridedBatchedDescriptionConv1x1Fwd(xDesc, wDesc, yDesc);
 
-                    CallGemmStridedBatched(
-                        handle, gemm_desc, &local_alpha, w, 0, x, 0, &local_beta, y, 0);
+                    // y = w * x
+                    CallGemmStridedBatched(handle,
+                                           isColMajor,
+                                           transA,
+                                           transB,
+                                           m,
+                                           n,
+                                           k,
+                                           &local_alpha,
+                                           w,
+                                           0,
+                                           lda,
+                                           strideA,
+                                           x,
+                                           0,
+                                           ldb,
+                                           strideB,
+                                           &local_beta,
+                                           y,
+                                           0,
+                                           ldc,
+                                           strideC,
+                                           batch_count);
                 }
             }
 #elif MIOPEN_USE_MIOPENGEMM
@@ -1421,22 +1498,58 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         // TODO add support for fp16
         if(dyDesc.GetType() == miopenFloat)
         {
-            float local_alpha = 1.0, local_beta = 0.0;
-
             // 1x1_stride=1 with GEMM and zero workspace
             if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
                dilation_w == 1 && dilation_h == 1)
             {
+                float local_alpha = 1.0, local_beta = 0.0;
+
+                bool isColMajor, transA, transB;
+                int m, n, k, lda, ldb, ldc;
+                long long int strideA, strideB, strideC;
+                int batch_count;
+
                 std::cout << __func__ << ": 1x1" << std::endl;
 
-                GemmDescriptor gemm_desc =
-                    CreateGemmDescriptorConv1x1BwdData(dyDesc, wDesc, dxDesc);
+                std::tie(isColMajor,
+                         transA,
+                         transB,
+                         m,
+                         n,
+                         k,
+                         lda,
+                         ldb,
+                         ldc,
+                         strideA,
+                         strideB,
+                         strideC,
+                         batch_count) =
+                    CreateGemmStridedBatchedDescriptionConv1x1BwdData(dyDesc, wDesc, dxDesc);
 
-                CallGemmStridedBatched(
-                    handle, gemm_desc, &local_alpha, w, 0, dy, 0, &local_beta, tmp_dx.get(), 0);
+                CallGemmStridedBatched(handle,
+                                       isColMajor,
+                                       transA,
+                                       transB,
+                                       m,
+                                       n,
+                                       k,
+                                       &local_alpha,
+                                       w,
+                                       0,
+                                       lda,
+                                       strideA,
+                                       dy,
+                                       0,
+                                       ldb,
+                                       strideB,
+                                       &local_beta,
+                                       tmp_dx.get(),
+                                       0,
+                                       ldc,
+                                       strideC,
+                                       batch_count);
 
-                // float time_gemm = handle.GetKernelTime();
-                float time_gemm = 0; // TODO: remove this
+                float time_gemm = handle.GetKernelTime();
 
                 perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoGEMM", time_gemm, 0});
             }
@@ -1780,13 +1893,50 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             {
                 float local_alpha = 1.0, local_beta = 0.0;
 
+                bool isColMajor, transA, transB;
+                int m, n, k, lda, ldb, ldc;
+                long long int strideA, strideB, strideC;
+                int batch_count;
+
                 std::cout << __func__ << ": 1x1" << std::endl;
 
-                GemmDescriptor gemm_desc =
-                    CreateGemmDescriptorConv1x1BwdData(dyDesc, wDesc, dxDesc);
+                std::tie(isColMajor,
+                         transA,
+                         transB,
+                         m,
+                         n,
+                         k,
+                         lda,
+                         ldb,
+                         ldc,
+                         strideA,
+                         strideB,
+                         strideC,
+                         batch_count) =
+                    CreateGemmStridedBatchedDescriptionConv1x1BwdData(dyDesc, wDesc, dxDesc);
 
-                CallGemmStridedBatched(
-                    handle, gemm_desc, &local_alpha, w, 0, dy, 0, &local_beta, dx, 0);
+                CallGemmStridedBatched(handle,
+                                       isColMajor,
+                                       transA,
+                                       transB,
+                                       m,
+                                       n,
+                                       k,
+                                       &local_alpha,
+                                       w,
+                                       0,
+                                       lda,
+                                       strideA,
+                                       dy,
+                                       0,
+                                       ldb,
+                                       strideB,
+                                       &local_beta,
+                                       dx,
+                                       0,
+                                       ldc,
+                                       strideC,
+                                       batch_count);
             }
 #elif MIOPEN_USE_MIOPENGEMM
             if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&

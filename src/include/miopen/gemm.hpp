@@ -31,41 +31,94 @@
 
 namespace miopen {
 
-struct GemmDescriptor
-{
-    // GEMM operation: C = alpha * op(A) * op(B) + beta * C.
-    // op() can be either transpose or no-operation for A or B.
-    // The shape (nRow x nCol) of op(A), op(B), C are:
-    //   m x n,
-    //   n x k,
-    //   m x n.
-    // A, B, C are what are actually being saved in memory,
-    //   they can either be all column-major or all row-major.
-    // lda, ldb, ldc are leading dimension strides of memory for A, B, C,
-    //   and leading dimension stride is:
-    //     cross-column memory stride for column-major A, B, C,
-    //     cross-row    memory stride for row   -major A, B, C.
+// GEMM operation: C = alpha * op(A) * op(B) + beta * C.
+// op() can be either transpose or no-operation for A or B.
+// The shape (nRow x nCol) of op(A), op(B), C are:
+//   m x n,
+//   n x k,
+//   m x n.
+// A, B, C are what are actually being saved in memory,
+//   they can either be all column-major or all row-major.
+// lda, ldb, ldc are leading dimension strides of memory for A, B, C,
+//   and leading dimension stride is:
+//     cross-column memory stride for column-major A, B, C,
+//     cross-row    memory stride for row   -major A, B, C.
+// strideA, strideB, strideC are the strides of the matrices
+void CallGemm(Handle& handle,
+              bool isColMajor,
+              bool transA,
+              bool transB,
+              int m,
+              int n,
+              int k,
+              const void* alpha,
+              const void* A,
+              int a_offset,
+              int lda,
+              const void* B,
+              int b_offset,
+              int ldb,
+              const void* beta,
+              void* C,
+              int c_offset,
+              int ldc);
 
-    bool isColMajor;
-    bool transA;
-    bool transB;
-    int m;
-    int n;
-    int k;
+void CallGemmStridedBatched(Handle& handle,
+                            bool isColMajor,
+                            bool transA,
+                            bool transB,
+                            int m,
+                            int n,
+                            int k,
+                            const void* alpha,
+                            const void* A,
+                            int a_offset,
+                            int lda,
+                            long long int strideA,
+                            const void* B,
+                            int b_offset,
+                            int ldb,
+                            long long int strideB,
+                            const void* beta,
+                            void* C,
+                            int c_offset,
+                            int ldc,
+                            long long int strideC,
+                            int batch_count);
 
-    // leading dimension stride
-    int lda;
-    int ldb;
-    int ldc;
+std::tuple<bool,
+           bool,
+           bool,
+           int,
+           int,
+           int,
+           int,
+           int,
+           int,
+           long long int,
+           long long int,
+           long long int,
+           int>
+CreateGemmStridedBatchedDescriptionConv1x1Fwd(const TensorDescriptor& xDesc,
+                                              const TensorDescriptor& wDesc,
+                                              const TensorDescriptor& yDesc);
 
-    // for strided batched GEMM
-    int strideA;
-    int strideB;
-    int strideC;
-    int batch_count;
-};
-
-std::ostream& operator<<(std::ostream& os, const GemmDescriptor& gemm_desc);
+std::tuple<bool,
+           bool,
+           bool,
+           int,
+           int,
+           int,
+           int,
+           int,
+           int,
+           long long int,
+           long long int,
+           long long int,
+           int>
+CreateGemmStridedBatchedDescriptionConv1x1BwdData(const TensorDescriptor& dyDesc,
+                                                  const TensorDescriptor& wDesc,
+                                                  const TensorDescriptor& dxDesc);
 
 } // namespace miopen
 
@@ -177,36 +230,6 @@ GemmGeometry CreateMIOpenGemmGeometry(int M,
                                       float alpha,
                                       float beta);
 
-void CallGemm(Handle& handle,
-              GemmDescriptor gemm_desc,
-              const void* alpha,
-              const void* A,
-              int a_offset,
-              const void* B,
-              int b_offset,
-              const void* beta,
-              void* C,
-              int c_offset,
-              int find);
-
-void CallGemmStridedBatched(Handle& handle,
-                            GemmDescriptor gemm_desc,
-                            const void* alpha,
-                            const void* A,
-                            int a_offset,
-                            const void* B,
-                            int b_offset,
-                            const void* beta,
-                            void* C,
-                            int c_offset);
-
-GemmDescriptor CreateGemmDescriptorConv1x1Fwd(const TensorDescriptor& xDesc,
-                                              const TensorDescriptor& wDesc,
-                                              const TensorDescriptor& yDesc);
-
-GemmDescriptor CreateGemmDescriptorConv1x1BwdData(const TensorDescriptor& dyDesc,
-                                                  const TensorDescriptor& wDesc,
-                                                  const TensorDescriptor& dxDesc);
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_GEMM_HPP_

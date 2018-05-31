@@ -41,30 +41,35 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& vs)
 #endif
 
 void CallGemm(Handle& handle,
-              GemmDescriptor gemm_desc,
+              bool isColMajor,
+              bool transA,
+              bool transB,
+              int m,
+              int n,
+              int k,
               const void* alpha,
               const void* A,
               int a_offset,
+              int lda,
               const void* B,
               int b_offset,
+              int ldb,
               const void* beta,
               void* C,
               int c_offset,
-              int find)
+              int ldc)
 {
 #if MIOPEN_USE_ROCBLAS
     std::cout << std::endl << __func__ << ": going to call rocblas" << std::endl;
 
-    (void)find;
-
-    if(!gemm_desc.isColMajor)
+    if(!isColMajor)
     {
-        gemm_desc.isColMajor = true;
+        isColMajor = true;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
-        std::swap(gemm_desc.transA, gemm_desc.transB);
-        std::swap(gemm_desc.m, gemm_desc.n);
-        std::swap(gemm_desc.lda, gemm_desc.ldb);
+        std::swap(transA, transB);
+        std::swap(m, n);
+        std::swap(lda, ldb);
     }
 
     hipEvent_t start, stop;
@@ -75,19 +80,19 @@ void CallGemm(Handle& handle,
     hipEventRecord(start, nullptr);
 
     rocblas_sgemm(handle.rhandle.get(),
-                  gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
-                  gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
-                  gemm_desc.m,
-                  gemm_desc.n,
-                  gemm_desc.k,
+                  transA ? rocblas_operation_transpose : rocblas_operation_none,
+                  transB ? rocblas_operation_transpose : rocblas_operation_none,
+                  m,
+                  n,
+                  k,
                   &alpha_local,
                   static_cast<const float*>(A) + a_offset,
-                  gemm_desc.lda,
+                  lda,
                   static_cast<const float*>(B) + b_offset,
-                  gemm_desc.ldb,
+                  ldb,
                   &beta_local,
                   static_cast<float*>(C) + c_offset,
-                  gemm_desc.ldc);
+                  ldc);
 
     hipEventRecord(stop, nullptr);
     hipDeviceSynchronize();
@@ -97,25 +102,26 @@ void CallGemm(Handle& handle,
     handle.AccumKernelTime(mS);
 
 #elif MIOPEN_USE_MIOPENGEMM
-    if(!gemm_desc.isColMajor)
+    if(!isColMajor)
     {
+        isColMajor = true;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
-        std::swap(gemm_desc.transA, gemm_desc.transB);
-        std::swap(gemm_desc.m, gemm_desc.n);
-        std::swap(gemm_desc.lda, gemm_desc.ldb);
+        std::swap(transA, transB);
+        std::swap(m, n);
+        std::swap(lda, ldb);
     }
 
     return miopen::try_([&] {
         miopen::GemmGeometry gg =
-            miopen::CreateMIOpenGemmGeometry(gemm_desc.m,
-                                             gemm_desc.n,
-                                             gemm_desc.k,
-                                             gemm_desc.lda,
-                                             gemm_desc.ldb,
-                                             gemm_desc.ldc,
-                                             gemm_desc.transA,
-                                             gemm_desc.transB,
+            miopen::CreateMIOpenGemmGeometry(m,
+                                             n,
+                                             k,
+                                             lda,
+                                             ldb,
+                                             ldc,
+                                             transA,
+                                             transB,
                                              true,
                                              *(static_cast<const float*>(alpha)),
                                              *(static_cast<const float*>(beta)));
@@ -156,38 +162,72 @@ void CallGemm(Handle& handle,
 }
 
 void CallGemmStridedBatched(Handle& handle,
-                            GemmDescriptor gemm_desc,
+                            bool isColMajor,
+                            bool transA,
+                            bool transB,
+                            int m,
+                            int n,
+                            int k,
                             const void* alpha,
                             const void* A,
                             int a_offset,
+                            int lda,
+                            long long int strideA,
                             const void* B,
                             int b_offset,
+                            int ldb,
+                            long long int strideB,
                             const void* beta,
                             void* C,
-                            int c_offset)
+                            int c_offset,
+                            int ldc,
+                            long long int strideC,
+                            int batch_count)
 {
 #if MIOPEN_USE_ROCBLAS
     std::cout << std::endl << __func__ << ": going to call rocblas" << std::endl;
 
-    std::cout << __func__ << ": gemm_desc before swap" << gemm_desc << std::endl;
-
-#if 1
-    const float* A_old           = static_cast<const float*>(A);
-    const float* B_old           = static_cast<const float*>(B);
-    int a_offset_old             = a_offset;
-    int b_offset_old             = b_offset;
-    GemmDescriptor gemm_desc_old = gemm_desc;
+#if 1 // debug: output GEMM description
+    {
+        std::cout << __func__ << ": gemm desc before swap" << std::endl;
+        std::cout << "{ "
+                  << "isColMajor " << isColMajor << ", "
+                  << "transA " << transA << ", "
+                  << "transB " << transB << ", "
+                  << "m " << m << ", "
+                  << "n " << n << ", "
+                  << "k " << k << ", "
+                  << "lda " << lda << ", "
+                  << "ldb " << ldb << ", "
+                  << "ldc " << ldc << ", "
+                  << "strideA " << strideA << ", "
+                  << "strideB " << strideB << ", "
+                  << "strideC " << strideC << ", "
+                  << "batch_count " << batch_count << " }" << std::endl;
+    }
 #endif
 
-    if(!gemm_desc.isColMajor)
+#if 1
+    const float* A_old = static_cast<const float*>(A);
+    const float* B_old = static_cast<const float*>(B);
+    int a_offset_old   = a_offset;
+    int b_offset_old   = b_offset;
+    int m_old          = m;
+    int n_old          = n;
+    int k_old          = k;
+    int strideA_old    = strideA;
+    int strideB_old    = strideB;
+#endif
+
+    if(!isColMajor)
     {
-        gemm_desc.isColMajor = true;
+        isColMajor = true;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
-        std::swap(gemm_desc.transA, gemm_desc.transB);
-        std::swap(gemm_desc.m, gemm_desc.n);
-        std::swap(gemm_desc.lda, gemm_desc.ldb);
-        std::swap(gemm_desc.strideA, gemm_desc.strideB);
+        std::swap(transA, transB);
+        std::swap(m, n);
+        std::swap(lda, ldb);
+        std::swap(strideA, strideB);
     }
 
     hipEvent_t start, stop;
@@ -199,16 +239,31 @@ void CallGemmStridedBatched(Handle& handle,
     std::cout << __func__ << ": alpha_local " << alpha_local << ", beta_local " << beta_local
               << std::endl;
 
-    std::cout << __func__ << ": gemm_desc after swap" << gemm_desc << std::endl;
+#if 1 // debug: output GEMM description
+    {
+        std::cout << __func__ << ": gemm desc after swap" << std::endl;
+        std::cout << "{ "
+                  << "isColMajor " << isColMajor << ", "
+                  << "transA " << transA << ", "
+                  << "transB " << transB << ", "
+                  << "m " << m << ", "
+                  << "n " << n << ", "
+                  << "k " << k << ", "
+                  << "lda " << lda << ", "
+                  << "ldb " << ldb << ", "
+                  << "ldc " << ldc << ", "
+                  << "strideA " << strideA << ", "
+                  << "strideB " << strideB << ", "
+                  << "strideC " << strideC << ", "
+                  << "batch_count " << batch_count << " }" << std::endl;
+    }
+#endif
 
 #if 1 // debug: output A, B, C
     {
-        std::size_t a_sz = a_offset_old + gemm_desc_old.m * gemm_desc_old.k +
-                           (gemm_desc_old.batch_count - 1) * gemm_desc_old.strideA;
-        std::size_t b_sz = b_offset_old + gemm_desc_old.k * gemm_desc_old.n +
-                           (gemm_desc_old.batch_count - 1) * gemm_desc_old.strideB;
-        std::size_t c_sz = c_offset + gemm_desc_old.m * gemm_desc_old.n +
-                           (gemm_desc_old.batch_count - 1) * gemm_desc_old.strideC;
+        std::size_t a_sz = a_offset_old + m_old * k_old + (batch_count - 1) * strideA_old;
+        std::size_t b_sz = b_offset_old + k_old * n_old + (batch_count - 1) * strideB_old;
+        std::size_t c_sz = c_offset + m_old * n_old + (batch_count - 1) * strideC;
 
         std::vector<float> tmp_a(a_sz, 0.);
         std::vector<float> tmp_b(b_sz, 0.);
@@ -229,25 +284,24 @@ void CallGemmStridedBatched(Handle& handle,
 #endif // debug: output A, B, C
 
     hipEventRecord(start, nullptr);
-    rocblas_sgemm_strided_batched(
-        handle.rhandle.get(),
-        gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
-        gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
-        gemm_desc.m,
-        gemm_desc.n,
-        gemm_desc.k,
-        &alpha_local,
-        static_cast<const float*>(A) + a_offset,
-        gemm_desc.lda,
-        gemm_desc.strideA,
-        static_cast<const float*>(B) + b_offset,
-        gemm_desc.ldb,
-        gemm_desc.strideB,
-        &beta_local,
-        static_cast<float*>(C) + c_offset,
-        gemm_desc.ldc,
-        gemm_desc.strideC,
-        gemm_desc.batch_count);
+    rocblas_sgemm_strided_batched(handle.rhandle.get(),
+                                  transA ? rocblas_operation_transpose : rocblas_operation_none,
+                                  transB ? rocblas_operation_transpose : rocblas_operation_none,
+                                  m,
+                                  n,
+                                  k,
+                                  &alpha_local,
+                                  static_cast<const float*>(A) + a_offset,
+                                  lda,
+                                  strideA,
+                                  static_cast<const float*>(B) + b_offset,
+                                  ldb,
+                                  strideB,
+                                  &beta_local,
+                                  static_cast<float*>(C) + c_offset,
+                                  ldc,
+                                  strideC,
+                                  batch_count);
     hipEventRecord(stop, nullptr);
     hipDeviceSynchronize();
     float mS = 0;
@@ -257,12 +311,9 @@ void CallGemmStridedBatched(Handle& handle,
 
 #if 1 // debug: output A, B, C
     {
-        std::size_t a_sz = a_offset_old + gemm_desc_old.m * gemm_desc_old.k +
-                           (gemm_desc_old.batch_count - 1) * gemm_desc_old.strideA;
-        std::size_t b_sz = b_offset_old + gemm_desc_old.k * gemm_desc_old.n +
-                           (gemm_desc_old.batch_count - 1) * gemm_desc_old.strideB;
-        std::size_t c_sz = c_offset + gemm_desc_old.m * gemm_desc_old.n +
-                           (gemm_desc_old.batch_count - 1) * gemm_desc_old.strideC;
+        std::size_t a_sz = a_offset_old + m_old * k_old + (batch_count - 1) * strideA_old;
+        std::size_t b_sz = b_offset_old + k_old * n_old + (batch_count - 1) * strideB_old;
+        std::size_t c_sz = c_offset + m_old * n_old + (batch_count - 1) * strideC;
 
         std::vector<float> tmp_a(a_sz, 0.);
         std::vector<float> tmp_b(b_sz, 0.);
@@ -273,31 +324,48 @@ void CallGemmStridedBatched(Handle& handle,
         hipMemcpy(tmp_c.data(), C, c_sz * sizeof(float), hipMemcpyHostToDevice);
 
         std::cout << std::endl;
-        // std::cout << __func__ << ": A after call rocblas: " << tmp_a << std::endl;
-        // std::cout << __func__ << ": B after call rocblas: " << tmp_b << std::endl;
-        // std::cout << __func__ << ": C after call rocblas: " << tmp_c << std::endl;
+        // std::cout << __func__ << ": A before call rocblas: " << tmp_a << std::endl;
+        // std::cout << __func__ << ": B before call rocblas: " << tmp_b << std::endl;
+        // std::cout << __func__ << ": C before call rocblas: " << tmp_c << std::endl;
 
         float sum_c = std::accumulate(tmp_c.begin(), tmp_c.end(), float(0), std::plus<float>());
         std::cout << __func__ << ": sum_c after call rocblas" << sum_c << std::endl;
     }
 #endif // debug: output A, B, C
+
 #else
     MIOPEN_THROW("No GEMM backend");
 #endif
 }
 
-GemmDescriptor CreateGemmDescriptorConv1x1Fwd(const TensorDescriptor& xDesc,
+// y[ibatch] = w * x[ibatch]
+std::tuple<bool,
+           bool,
+           bool,
+           int,
+           int,
+           int,
+           int,
+           int,
+           int,
+           long long int,
+           long long int,
+           long long int,
+           int>
+CreateGemmStridedBatchedDescriptionConv1x1Fwd(const TensorDescriptor& xDesc,
                                               const TensorDescriptor& wDesc,
                                               const TensorDescriptor& yDesc)
 {
-    // [y] = [w] * [x]
+    bool isColMajor, transA, transB;
+    int m, n, k, lda, ldb, ldc;
+    long long int strideA, strideB, strideC;
+    int batch_count;
+
     std::cout << std::endl << __func__ << std::endl;
 
     std::cout << __func__ << ": xDesc: " << xDesc << std::endl;
     std::cout << __func__ << ": wDesc: " << wDesc << std::endl;
     std::cout << __func__ << ": yDesc: " << yDesc << std::endl;
-
-    GemmDescriptor gemm_desc;
 
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
@@ -305,35 +373,52 @@ GemmDescriptor CreateGemmDescriptorConv1x1Fwd(const TensorDescriptor& xDesc,
     int wei_n;
     std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
 
-    gemm_desc.isColMajor  = false;
-    gemm_desc.transA      = false;
-    gemm_desc.transB      = false;
-    gemm_desc.m           = wei_n;
-    gemm_desc.n           = in_h * in_w;
-    gemm_desc.k           = in_c;
-    gemm_desc.lda         = gemm_desc.k;
-    gemm_desc.ldb         = gemm_desc.n;
-    gemm_desc.ldc         = gemm_desc.n;
-    gemm_desc.strideA     = 0;
-    gemm_desc.strideB     = gemm_desc.k * gemm_desc.n;
-    gemm_desc.strideC     = gemm_desc.m * gemm_desc.n;
-    gemm_desc.batch_count = in_n;
+    isColMajor  = false;
+    transA      = false;
+    transB      = false;
+    m           = wei_n;
+    n           = in_h * in_w;
+    k           = in_c;
+    lda         = k;
+    ldb         = n;
+    ldc         = n;
+    strideA     = 0;
+    strideB     = k * n;
+    strideC     = m * n;
+    batch_count = in_n;
 
-    return gemm_desc;
+    return std::make_tuple(
+        isColMajor, transA, transB, m, n, k, lda, ldb, ldc, strideA, strideB, strideC, batch_count);
 }
 
-GemmDescriptor CreateGemmDescriptorConv1x1BwdData(const TensorDescriptor& dyDesc,
+// dx[ibatch] = transpose(w) * dy[ibatch]
+std::tuple<bool,
+           bool,
+           bool,
+           int,
+           int,
+           int,
+           int,
+           int,
+           int,
+           long long int,
+           long long int,
+           long long int,
+           int>
+CreateGemmStridedBatchedDescriptionConv1x1BwdData(const TensorDescriptor& dyDesc,
                                                   const TensorDescriptor& wDesc,
                                                   const TensorDescriptor& dxDesc)
 {
-    // [dx] = transpose([w]) * [dy]
+    bool isColMajor, transA, transB;
+    int m, n, k, lda, ldb, ldc;
+    long long int strideA, strideB, strideC;
+    int batch_count;
+
     std::cout << std::endl << __func__ << std::endl;
 
     std::cout << __func__ << ": dxDesc: " << dxDesc << std::endl;
     std::cout << __func__ << ": wDesc: " << wDesc << std::endl;
     std::cout << __func__ << ": dyDesc: " << dyDesc << std::endl;
-
-    GemmDescriptor gemm_desc;
 
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
@@ -341,40 +426,22 @@ GemmDescriptor CreateGemmDescriptorConv1x1BwdData(const TensorDescriptor& dyDesc
     int wei_n;
     std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
 
-    gemm_desc.isColMajor  = false;
-    gemm_desc.transA      = true;
-    gemm_desc.transB      = false;
-    gemm_desc.m           = in_c;
-    gemm_desc.n           = in_h * in_w;
-    gemm_desc.k           = wei_n;
-    gemm_desc.lda         = gemm_desc.m;
-    gemm_desc.ldb         = gemm_desc.n;
-    gemm_desc.ldc         = gemm_desc.n;
-    gemm_desc.strideA     = 0;
-    gemm_desc.strideB     = gemm_desc.k * gemm_desc.n;
-    gemm_desc.strideC     = gemm_desc.m * gemm_desc.n;
-    gemm_desc.batch_count = in_n;
+    isColMajor  = false;
+    transA      = true;
+    transB      = false;
+    m           = in_c;
+    n           = in_h * in_w;
+    k           = wei_n;
+    lda         = m;
+    ldb         = n;
+    ldc         = n;
+    strideA     = 0;
+    strideB     = k * n;
+    strideC     = m * n;
+    batch_count = in_n;
 
-    return gemm_desc;
-}
-
-std::ostream& operator<<(std::ostream& os, const GemmDescriptor& gemm_desc)
-{
-    os << "{ ";
-    os << "isColMajor " << gemm_desc.isColMajor << ", ";
-    os << "transA " << gemm_desc.transA << ", ";
-    os << "transB " << gemm_desc.transB << ", ";
-    os << "m " << gemm_desc.m << ", ";
-    os << "n " << gemm_desc.n << ", ";
-    os << "k " << gemm_desc.k << ", ";
-    os << "lda " << gemm_desc.lda << ", ";
-    os << "ldb " << gemm_desc.ldb << ", ";
-    os << "ldc " << gemm_desc.ldc << ", ";
-    os << "strideA " << gemm_desc.strideA << ", ";
-    os << "strideB " << gemm_desc.strideB << ", ";
-    os << "strideC " << gemm_desc.strideC << ", ";
-    os << "batch_count " << gemm_desc.batch_count << " }";
-    return os;
+    return std::make_tuple(
+        isColMajor, transA, transB, m, n, k, lda, ldb, ldc, strideA, strideB, strideC, batch_count);
 }
 
 } // namespace miopen
