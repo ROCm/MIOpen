@@ -171,66 +171,47 @@ regLDSreduce(_FLOAT* value, __local _FLOAT* data, unsigned int localID, _FLOAT s
 
 #ifdef __AMDGCN__
 
+
 static inline void dpp_reduction(_FLOAT* temp_sum)
 {
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0\ns_nop 1"
-                     : "=v"(*temp_sum)
-                     : "0"(*temp_sum));
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:2 bound_ctrl:0\ns_nop 1"
-                     : "=v"(*temp_sum)
-                     : "0"(*temp_sum));
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:4 bank_mask:0xe\ns_nop 1"
-                     : "=v"(*temp_sum)
-                     : "0"(*temp_sum));
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:8 bank_mask:0xc\ns_nop 1"
-                     : "=v"(*temp_sum)
-                     : "0"(*temp_sum));
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_bcast:15 row_mask:0xa\ns_nop 1"
-                     : "=v"(*temp_sum)
-                     : "0"(*temp_sum));
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_bcast:31 row_mask:0xc\ns_nop 1"
-                     : "=v"(*temp_sum)
-                     : "0"(*temp_sum));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0\n"
+                     "s_nop 1\n"
+                     "v_add_f32 %0 %0 %0 row_shr:2 bound_ctrl:0\n"
+                     "s_nop 1\n"
+                     "v_add_f32 %0 %0 %0 row_shr:4 bank_mask:0xe\n"
+                     "s_nop 1\n"
+                     "v_add_f32 %0 %0 %0 row_shr:8 bank_mask:0xc\n"
+                     "s_nop 1\n"
+                     "v_add_f32 %0 %0 %0 row_bcast:15 row_mask:0xa\n"
+                     "s_nop 1\n"
+                     "v_add_f32 %0 %0 %0 row_bcast:31 row_mask:0xc\n"
+                     "s_nop 1\n"
+                     : "=v"(*temp_sum) : "0"(*temp_sum));
 }
+
 
 static inline void dpp_interleaved_reduction(_FLOAT* temp_sum1, _FLOAT* temp_sum2)
 {
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0"
-                     : "=v"(*temp_sum1)
-                     : "0"(*temp_sum1));
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0\ns_nop 0"
-                     : "=v"(*temp_sum2)
-                     : "0"(*temp_sum2));
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:2 bound_ctrl:0"
-                     : "=v"(*temp_sum1)
-                     : "0"(*temp_sum1));
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:2 bound_ctrl:0\ns_nop 0"
-                     : "=v"(*temp_sum2)
-                     : "0"(*temp_sum2));
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:4 bank_mask:0xe"
-                     : "=v"(*temp_sum1)
-                     : "0"(*temp_sum1));
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:4 bank_mask:0xe\ns_nop 0"
-                     : "=v"(*temp_sum2)
-                     : "0"(*temp_sum2));
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:8 bank_mask:0xc\n"
-                     : "=v"(*temp_sum1)
-                     : "0"(*temp_sum1));
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:8 bank_mask:0xc\ns_nop 0"
-                     : "=v"(*temp_sum2)
-                     : "0"(*temp_sum2));
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_bcast:15 row_mask:0xa\n"
-                     : "=v"(*temp_sum1)
-                     : "0"(*temp_sum1));
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_bcast:15 row_mask:0xa\ns_nop 0"
-                     : "=v"(*temp_sum2)
-                     : "0"(*temp_sum2));
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_bcast:31 row_mask:0xc"
-                     : "=v"(*temp_sum1)
-                     : "0"(*temp_sum1));
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_bcast:31 row_mask:0xc\ns_nop 0"
-                     : "=v"(*temp_sum2)
-                     : "0"(*temp_sum2));
+    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0\n"
+                     "v_add_f32 %1 %1 %1 row_shr:1 bound_ctrl:0\n"
+                     "s_nop 0\n"
+                     "v_add_f32 %0 %0 %0 row_shr:2 bound_ctrl:0\n"
+                     "v_add_f32 %1 %1 %1 row_shr:2 bound_ctrl:0\n"
+                     "s_nop 0\n"
+                     "v_add_f32 %0 %0 %0 row_shr:4 bank_mask:0xe\n"
+                     "v_add_f32 %1 %1 %1 row_shr:4 bank_mask:0xe\n"
+                     "s_nop 0\n"
+                     "v_add_f32 %0 %0 %0 row_shr:8 bank_mask:0xc\n"
+                     "v_add_f32 %1 %1 %1 row_shr:8 bank_mask:0xc\n"
+                     "s_nop 0\n"
+                     "v_add_f32 %0 %0 %0 row_bcast:15 row_mask:0xa\n"
+                     "v_add_f32 %1 %1 %1 row_bcast:15 row_mask:0xa\n"
+                     "s_nop 0\n"
+                     "v_add_f32 %0 %0 %0 row_bcast:31 row_mask:0xc\n"
+                     "v_add_f32 %1 %1 %1 row_bcast:31 row_mask:0xc\n"
+                     "s_nop 0"
+                     : "=v"(*temp_sum1), "=v"(*temp_sum2) 
+                     : "0"(*temp_sum1), "1"(*temp_sum2));
 }
 
 #endif
@@ -345,11 +326,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         lcl_mean[ldsidx]     = mean;
         lcl_variance[ldsidx] = variance;
     }
-    else
-    {
-        lcl_mean[ldsidx]     = 0.;
-        lcl_variance[ldsidx] = 0.;
-    }
+
     barrier(CLK_LOCAL_MEM_FENCE);
     mean = variance = 0.;
     __attribute__((opencl_unroll_hint(2))) for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
@@ -1080,11 +1057,6 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     {
         lcl_mean[ldsidx]     = mean;
         lcl_variance[ldsidx] = variance;
-    }
-    else
-    {
-        lcl_mean[ldsidx]     = 0.;
-        lcl_variance[ldsidx] = 0.;
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     mean = variance = 0.;
