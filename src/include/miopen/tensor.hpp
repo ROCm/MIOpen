@@ -163,7 +163,7 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
     if(NTensor == 0)
         MIOPEN_THROW(miopenStatusBadParm, "NTensor == 0.");
 
-    // check input tensor descriptors
+    // check input tensor descriptors consistency
     auto& real_desc_0_lens = real_descriptors[0]->GetLengths();
 
     for(std::size_t itensor = 1; itensor < NTensor; ++itensor)
