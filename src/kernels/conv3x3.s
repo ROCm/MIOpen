@@ -321,7 +321,7 @@ acc_y_blocks = output_lines_per_wave
 
 // compute how many lines can we load or store using immediate 12-bit instruction offset
 // for all other lines we need additional sgpr to hold offset
-input_lines_per_sgpr = 1 + (0x1000-1) / input_line_stride
+input_lines_per_sgpr = 1 + (0x1000-1-4*mbufs_per_line) / input_line_stride
 .if input_lines_per_sgpr == 1
     additional_input_sgprs = input_lines_per_wave - 1
 .else
@@ -338,7 +338,7 @@ input_lines_per_sgpr = 1 + (0x1000-1) / input_line_stride
     .endif
 .endif
 
-output_lines_per_sgpr = 1 + (0x1000-1) / output_line_stride
+output_lines_per_sgpr = 1 + (0x1000-1-4*mbufs_per_line) / output_line_stride
 .if output_lines_per_sgpr == 1
     additional_output_sgprs = output_lines_per_wave
 .else

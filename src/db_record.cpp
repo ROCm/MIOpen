@@ -60,7 +60,10 @@ bool DbRecord::GetValues(const std::string& id, std::string& values) const
     const auto it = map.find(id);
 
     if(it == map.end())
+    {
+        MIOPEN_LOG_I2("Values for " << id << " not found.");
         return false;
+    }
 
     values = it->second;
     MIOPEN_LOG_I("Read record " << key << '=' << id << ':' << values);

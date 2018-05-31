@@ -302,11 +302,6 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
 
-    if(params.n_passes)
-    {
-        return false;
-    }
-
     if(!(params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
     {
         return false;

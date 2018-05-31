@@ -182,12 +182,6 @@ ConvSolution ConvOclDirectFwd11x11::GetSolution(const ConvolutionContext& params
     int lcl_bwd_sz = lcl_wei_sz;
 #endif
 
-    if(params.n_passes)
-    {
-        result.passes = (second_pass && is_forward) ? 2 : 1;
-        return result;
-    }
-
     // it's backward - inputs are outputs and vs versa
     const auto comp_options =
         std::string(" -DMLO_DIR_FORWARD=") + (is_forward ? "1" : "0") +

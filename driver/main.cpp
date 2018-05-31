@@ -37,6 +37,7 @@
 #include "softmax_driver.hpp"
 #include "rnn_driver.hpp"
 #include "miopen/config.h"
+#include "fused_driver.hpp"
 
 int main(int argc, char* argv[])
 {
