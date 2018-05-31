@@ -37,18 +37,46 @@
 #include <numeric>
 #include <vector>
 
-template <typename T>
-void cpuGemmStridedBatched(miopen::GemmDescriptor gemm_desc,
-                           const void* alpha,
-                           const void* A,
-                           int a_offset,
-                           const void* B,
-                           int b_offset,
-                           const void* beta,
-                           void* C,
-                           int c_offset)
+struct GemmDescriptor
 {
+    bool isColMajor;
+    bool transA;
+    bool transB;
+    int m;
+    int n;
+    int k;
+    int lda;
+    long long int strideA;
+    int ldb;
+    long long int strideB;
+    int ldc;
+    long long int strideC;
+    int batch_count;
+};
 
+template <typename T>
+void callCpuGemmStridedBatched(bool isColMajor,
+                               bool transA,
+                               bool transB,
+                               int m,
+                               int n,
+                               int k,
+                               const void* alpha,
+                               const void* A,
+                               int a_offset,
+                               int lda,
+                               long long int strideA,
+                               const void* B,
+                               int b_offset,
+                               int ldb,
+                               long long int strideB,
+                               const void* beta,
+                               void* C,
+                               int c_offset,
+                               int ldc,
+                               long long int strideC,
+                               int batch_count)
+{
     const T* a_ptr = static_cast<const T*>(A);
     const T* b_ptr = static_cast<const T*>(B);
     T* c_ptr       = static_cast<T*>(C);
@@ -57,35 +85,33 @@ void cpuGemmStridedBatched(miopen::GemmDescriptor gemm_desc,
     const T beta_local  = *static_cast<const T*>(beta);
 
     // our cpu GEMM logic is row-major
-    if(gemm_desc.isColMajor)
+    if(isColMajor)
     {
-        gemm_desc.isColMajor = false;
+        isColMajor = false;
         std::swap(a_ptr, b_ptr);
         std::swap(a_offset, b_offset);
-        std::swap(gemm_desc.transA, gemm_desc.transB);
-        std::swap(gemm_desc.m, gemm_desc.n);
-        std::swap(gemm_desc.lda, gemm_desc.ldb);
-        std::swap(gemm_desc.strideA, gemm_desc.strideB);
+        std::swap(transA, transB);
+        std::swap(m, n);
+        std::swap(lda, ldb);
+        std::swap(strideA, strideB);
     }
 
-    for(int bi = 0; bi < gemm_desc.batch_count; ++bi)
+    for(int bi = 0; bi < batch_count; ++bi)
     {
-        for(int mi = 0; mi < gemm_desc.m; ++mi)
+        for(int mi = 0; mi < m; ++mi)
         {
-            for(int ni = 0; ni < gemm_desc.n; ++ni)
+            for(int ni = 0; ni < n; ++ni)
             {
                 double y = 0;
-                for(int ki = 0; ki < gemm_desc.k; ++ki)
+                for(int ki = 0; ki < k; ++ki)
                 {
-                    int aindex = gemm_desc.transA
-                                     ? a_offset + gemm_desc.strideA * bi + gemm_desc.lda * ki + mi
-                                     : a_offset + gemm_desc.strideA * bi + gemm_desc.lda * mi + ki;
-                    int bindex = gemm_desc.transB
-                                     ? b_offset + gemm_desc.strideB * bi + gemm_desc.ldb * ni + ki
-                                     : b_offset + gemm_desc.strideB * bi + gemm_desc.ldb * ki + ni;
+                    int aindex = transA ? a_offset + strideA * bi + lda * ki + mi
+                                        : a_offset + strideA * bi + lda * mi + ki;
+                    int bindex = transB ? b_offset + strideB * bi + ldb * ni + ki
+                                        : b_offset + strideB * bi + ldb * ki + ni;
                     y += a_ptr[aindex] * b_ptr[bindex];
                 }
-                int cindex    = c_offset + gemm_desc.strideC * bi + gemm_desc.ldc * mi + ni;
+                int cindex    = c_offset + strideC * bi + ldc * mi + ni;
                 c_ptr[cindex] = alpha_local * y + beta_local * c_ptr[cindex];
             }
         }
@@ -131,7 +157,7 @@ class GemmDriver : public Driver
 
     T alpha, beta;
 
-    miopen::GemmDescriptor desc;
+    GemmDescriptor desc;
 };
 
 template <typename T>
@@ -269,39 +295,70 @@ int GemmDriver<T>::RunForwardGPU()
         }
 
         CallGemmStridedBatched(miopen::deref(GetHandle()),
-                               desc,
+                               desc.isColMajor,
+                               desc.transA,
+                               desc.transB,
+                               desc.m,
+                               desc.n,
+                               desc.k,
                                &alpha,
                                a_dev->GetMem(),
                                0,
+                               desc.lda,
+                               desc.strideA,
                                b_dev->GetMem(),
                                0,
+                               desc.ldb,
+                               desc.strideB,
                                &beta,
                                c_dev->GetMem(),
-                               0);
+                               0,
+                               desc.ldc,
+                               desc.strideC,
+                               desc.batch_count);
 #if 0
         if(desc.batch_count > 1)
-            CallGemmBatched(miopen::deref(GetHandle()),
-                            desc,
-                            &alpha,
-                            a_dev->GetMem(),
-                            0,
-                            b_dev->GetMem(),
-                            0,
-                            &beta,
-                            c_dev->GetMem(),
-                            0);
+            CallGemmStridedBatched(miopen::deref(GetHandle()),
+                                   desc.isColMajor,
+                                   desc.transA,
+                                   desc.transB,
+                                   desc.m,
+                                   desc.n,
+                                   desc.k,
+                                   &alpha,
+                                   a_dev->GetMem(),
+                                   0,
+                                   desc.lda,
+                                   desc.strideA,
+                                   b_dev->GetMem(),
+                                   0,
+                                   desc.ldb,
+                                   desc.strideB,
+                                   &beta,
+                                   c_dev->GetMem(),
+                                   0,
+                                   desc.ldc,
+                                   desc.strideC,
+                                   desc.batch_count);
         else
             CallGemm(miopen::deref(GetHandle()),
-                     desc,
+                     desc.isColMajor,
+                     desc.transA,
+                     desc.transB,
+                     desc.m,
+                     desc.n,
+                     desc.k,
                      &alpha,
                      a_dev->GetMem(),
                      0,
+                     desc.lda,
                      b_dev->GetMem(),
                      0,
+                     desc.ldb,
                      &beta,
                      c_dev->GetMem(),
                      0,
-                     1); // find needs to be on to compile the kernel
+                     desc.ldc);
 #endif
         // debug
         {
@@ -335,7 +392,27 @@ int GemmDriver<T>::RunForwardGPU()
 template <typename T>
 int GemmDriver<T>::RunForwardCPU()
 {
-    cpuGemmStridedBatched<T>(desc, &alpha, a.data(), 0, b.data(), 0, &beta, chost.data(), 0);
+    callCpuGemmStridedBatched<T>(desc.isColMajor,
+                                 desc.transA,
+                                 desc.transB,
+                                 desc.m,
+                                 desc.n,
+                                 desc.k,
+                                 &alpha,
+                                 a.data(),
+                                 0,
+                                 desc.lda,
+                                 desc.strideA,
+                                 b.data(),
+                                 0,
+                                 desc.ldb,
+                                 desc.strideB,
+                                 &beta,
+                                 chost.data(),
+                                 0,
+                                 desc.ldc,
+                                 desc.strideC,
+                                 desc.batch_count);
 
     return 0;
 }
