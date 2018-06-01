@@ -159,6 +159,7 @@ void BatchNormForwardTraining(Handle& handle,
             ldsgcn       = ylocalsize / 64;
             ldsnogcn     = ylocalsize;
         }
+        printf("VARIANT: %d\n", variant);
         std::string algo_name = "miopenBatchNormForwardTrainingSpatial";
         std::string network_config =
             std::to_string(variant) + std::to_string(xgridsize) + std::to_string(ldsgcn) +
