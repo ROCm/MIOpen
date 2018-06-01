@@ -189,9 +189,9 @@ static inline void dpp_reduction(_FLOAT* temp_sum)
                      "s_nop 1\n"
                      "v_add_f32 %0 %0 %0 row_bcast:31 row_mask:0xc\n"
                      "s_nop 1\n"
-                     : "=v"(*temp_sum) : "0"(*temp_sum));
+                     : "=v"(*temp_sum)
+                     : "0"(*temp_sum));
 }
-
 
 static inline void dpp_interleaved_reduction(_FLOAT* temp_sum1, _FLOAT* temp_sum2)
 {
@@ -214,7 +214,7 @@ static inline void dpp_interleaved_reduction(_FLOAT* temp_sum1, _FLOAT* temp_sum
                      "v_add_f32 %0 %0 %0 row_bcast:31 row_mask:0xc\n"
                      "v_add_f32 %1 %1 %1 row_bcast:31 row_mask:0xc\n"
                      "s_nop 1"
-                     : "=v"(*temp_sum1), "=v"(*temp_sum2) 
+                     : "=v"(*temp_sum1), "=v"(*temp_sum2)
                      : "0"(*temp_sum1), "1"(*temp_sum2));
 }
 
