@@ -388,7 +388,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #if(MIO_BN_USESAVED == 1)
         batchvalues[MIO_BN_NLOOPM] =
-            ((index < MIO_BN_NCHW) ? ((*(x_in + index) - mean) * invVariance)) : (_FLOAT)0.;
+            (index < MIO_BN_NCHW) ? ((*(x_in + index) - mean) * invVariance) : (_FLOAT)0.;
 
 #else
         batchvalues[MIO_BN_NLOOPM] = (batchvalues[MIO_BN_NLOOPM] - mean) * invVariance;
