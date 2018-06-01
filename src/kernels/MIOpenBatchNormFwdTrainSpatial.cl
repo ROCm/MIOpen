@@ -173,7 +173,8 @@ regLDSreduce(_FLOAT* value, __local _FLOAT* data, unsigned int localID, _FLOAT s
 
 static inline void dpp_reduction(_FLOAT* temp_sum)
 {
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0\n"
+    __asm__ volatile("s_nop 4\n"
+                     "v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0\n"
                      "s_nop 1\n"
                      "v_add_f32 %0 %0 %0 row_shr:2 bound_ctrl:0\n"
                      "s_nop 1\n"
@@ -191,7 +192,8 @@ static inline void dpp_reduction(_FLOAT* temp_sum)
 
 static inline void dpp_interleaved_reduction(_FLOAT* temp_sum1, _FLOAT* temp_sum2)
 {
-    __asm__ volatile("v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0\n"
+    __asm__ volatile("s_nop 4\n"
+                     "v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0\n"
                      "v_add_f32 %1 %1 %1 row_shr:1 bound_ctrl:0\n"
                      "s_nop 0\n"
                      "v_add_f32 %0 %0 %0 row_shr:2 bound_ctrl:0\n"
