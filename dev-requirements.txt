@@ -1,6 +1,5 @@
-RadeonOpenCompute/rocm-cmake@12670acbf58839c9c1a5768cf71286b1710062e8
-ROCmSoftwarePlatform/MIOpenGEMM@0eb1257cfaef83ea155aabd67af4437c0028db48
-# RadeonOpenCompute/clang-ocl@2f118b5b6b05f0b17467ef07a8bd3b8e5d8b3aac
-libressl
-boost@1.58 -DCMAKE_POSITION_INDEPENDENT_CODE=On
-half,https://downloads.sourceforge.net/project/half/half/1.12.0/half-1.12.0.zip -X header -H sha256:cdd70d3bf3fe091b688e7ab3f48471c881a197d2c186c95cca8bf156961fb41c
+pfultz2/rocm-recipes
+-f requirements.txt
+danmar/cppcheck@fe1b1d537ecaa0e573000f7d073a0e661e3256f2
+ROCm-Developer-Tools/HIP@5d4e14011fa80e44298ffa36ff36400cab82da69
+RadeonOpenCompute/clang-ocl@a180592885ecae5b8beadf667c633c246cec82b6

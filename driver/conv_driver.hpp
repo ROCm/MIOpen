@@ -1659,11 +1659,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyForward()
         ((sizeof(Tgpu) == 4) ? static_cast<Tref>(1e-6) : static_cast<Tref>(7e-2));
     if(!(error < tolerance))
     {
-        std::cout << std::string("Forward Convolution Failed: ") << error << "\n";
+        std::cout << "Forward Convolution Failed: " << error << std::endl;
     }
     else
     {
-        printf("Forward Convolution Verifies on CPU and GPU (err=%f)\n", error);
+        std::cout << "Forward Convolution Verifies on CPU and GPU (" << error << ')' << std::endl;
     }
 
     return 0;
@@ -1684,12 +1684,12 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyBackward()
 
     if(!(error_data < tolerance))
     {
-        std::cout << std::string("Backward Convolution Data Failed: ") << error_data
-                  << std::string("\n");
+        std::cout << "Backward Convolution Data Failed: " << error_data << std::endl;
     }
     else
     {
-        printf("Backward Convolution Data Verifies on CPU and GPU (err=%f)\n", error_data);
+        std::cout << "Backward Convolution Data Verifies on CPU and GPU (" << error_data << ')'
+                  << std::endl;
     }
 
     if(!TryReadVerificationCache("bwd_wei", weightTensor, dwei_host.data()))
@@ -1700,12 +1700,12 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyBackward()
     auto error_weights = miopen::rms_range(dwei_host, dwei);
     if(!(error_weights < tolerance))
     {
-        std::cout << std::string("Backward Convolution Weights Failed: ") << error_weights
-                  << std::string("\n");
+        std::cout << "Backward Convolution Weights Failed: " << error_weights << std::endl;
     }
     else
     {
-        printf("Backward Convolution Weights Verifies on CPU and GPU (err=%f)\n", error_weights);
+        std::cout << "Backward Convolution Weights Verifies on CPU and GPU (" << error_weights
+                  << ')' << std::endl;
     }
 
     if(inflags.GetValueInt("bias") != 0)
@@ -1718,12 +1718,12 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyBackward()
         auto error_bias = miopen::rms_range(db_host, db);
         if(!(error_bias < tolerance))
         {
-            std::cout << std::string("Backward Convolution Bias Failed: ") << error_bias
-                      << std::string("\n");
+            std::cout << "Backward Convolution Bias Failed: " << error_bias << std::endl;
         }
         else
         {
-            printf("Backward Convolution Bias Verifies on CPU and GPU (err=%f)\n", error_bias);
+            std::cout << "Backward Convolution Bias Verifies on CPU and GPU (" << error_bias << ')'
+                      << std::endl;
         }
     }
 
