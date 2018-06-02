@@ -274,65 +274,62 @@ void GemmGeometry::FindSolutionTmp(
     std::vector<size_t> vld{local_work_size, 1, 1};
     std::vector<size_t> vgd{global_work_size, 1, 1};
 
-    if(handle.GetKernels(algorithm_name, network_config).empty())
+    std::cout << __func__ << ": alpha " << alpha << ", beta " << beta << std::endl;
+
+    // chao : this could be kernel for
+    //   kernel_0: c = alpha * a * b + c, (if beta == 1) or
+    //   kernel_1: c = alpha * a * b + beta * c, (if beta != 1) or
+    //   kernel_2: c = beta * c (needs to work together with kernel_0)
+    handle.AddKernel(
+        algorithm_name, network_config, kernel_clstring, kernel_name, vld, vgd, "", 0);
+
+    //
     {
-        std::cout << __func__ << ": alpha " << alpha << ", beta " << beta << std::endl;
+        std::cout << __func__ << ": after added 1st kernel: " << kernel_name << std::endl;
 
-        // chao : this could be kernel for
-        //   kernel_0: c = alpha * a * b + c, (if beta == 1) or
-        //   kernel_1: c = alpha * a * b + beta * c, (if beta != 1) or
-        //   kernel_2: c = beta * c (needs to work together with kernel_0)
-        handle.AddKernel(
-            algorithm_name, network_config, kernel_clstring, kernel_name, vld, vgd, "");
+        const auto& kernels = handle.GetKernels(algorithm_name, network_config);
 
-        //
+        for(const auto& k : kernels)
         {
-            std::cout << __func__ << ": after added 1st kernel: " << kernel_name << std::endl;
+            std::cout << __func__ << ": kernel name: " << k.GetName() << std::endl;
+        }
+    }
+
+    // jn : case where the beta kernel is part of the solution
+    if(soln.v_tgks.size() == 2 && !miopen::float_equal(beta, 1))
+    {
+        std::string beta_program_name = soln.v_tgks[0].kernstr;
+        tempfix::set_offsets_to_uint(beta_program_name);
+
+        std::string beta_kernel_name = soln.v_tgks[0].fname;
+        local_work_size              = soln.v_tgks[0].local_work_size;
+        global_work_size             = soln.v_tgks[0].global_work_size;
+
+        vld[0] = local_work_size;
+        vgd[0] = global_work_size;
+
+        // chao : this is the kernel for
+        //   kernel_0: c = alpha * a * b + c (needs to work with kernel_2)
+        handle.AddKernel(
+            algorithm_name,
+            network_config, // jn : different network_configs require different beta kernels
+            beta_program_name,
+            beta_kernel_name,
+            vld,
+            vgd,
+            "",
+            1);
+
+        //debug
+        {
+            std::cout << __func__ << ": after added 2nd kernel: " << beta_kernel_name
+                      << std::endl;
 
             const auto& kernels = handle.GetKernels(algorithm_name, network_config);
 
             for(const auto& k : kernels)
             {
                 std::cout << __func__ << ": kernel name: " << k.GetName() << std::endl;
-            }
-        }
-
-        // jn : case where the beta kernel is part of the solution
-        if(soln.v_tgks.size() == 2 && !miopen::float_equal(beta, 1))
-        {
-            std::string beta_program_name = soln.v_tgks[0].kernstr;
-            tempfix::set_offsets_to_uint(beta_program_name);
-
-            std::string beta_kernel_name = soln.v_tgks[0].fname;
-            local_work_size              = soln.v_tgks[0].local_work_size;
-            global_work_size             = soln.v_tgks[0].global_work_size;
-
-            vld[0] = local_work_size;
-            vgd[0] = global_work_size;
-
-            // chao : this is the kernel for
-            //   kernel_0: c = alpha * a * b + c (needs to work with kernel_2)
-            handle.AddKernel(
-                algorithm_name,
-                network_config, // jn : different network_configs require different beta kernels
-                beta_program_name,
-                beta_kernel_name,
-                vld,
-                vgd,
-                "",
-                1);
-
-            //debug
-            {
-                std::cout << __func__ << ": after added 2nd kernel: " << beta_kernel_name
-                          << std::endl;
-
-                const auto& kernels = handle.GetKernels(algorithm_name, network_config);
-
-                for(const auto& k : kernels)
-                {
-                    std::cout << __func__ << ": kernel name: " << k.GetName() << std::endl;
-                }
             }
         }
     }
