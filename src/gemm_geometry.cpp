@@ -101,7 +101,7 @@ void GemmGeometry::FindSolution(
 
     handle.AddKernel(algorithm_name, network_config, kernel_clstring, kernel_name, vld, vgd, "");
 
-    //debug
+    // debug
     std::cout << __func__ << ": 1st kernel: " << kernel_name << std::endl;
 
     if(soln.v_tgks.size() == 2)
@@ -133,9 +133,8 @@ void GemmGeometry::FindSolution(
             vgd,
             "");
 
-        //debug
+        // debug
         std::cout << __func__ << ": 2nd kernel: " << beta_kernel_name << std::endl;
-
     }
     handle.geo_map[std::make_pair(algorithm_name, network_config)] =
         std::make_unique<GemmGeometry>(*this);
@@ -161,7 +160,7 @@ void GemmGeometry::RunGemm(Handle& handle,
 
         // debug
         {
-            const auto & kernel = handle.GetKernel(algorithm_name + "_beta", network_config);
+            const auto& kernel = handle.GetKernel(algorithm_name + "_beta", network_config);
             std::cout << __func__ << ": 1st kernel: " << kernel.GetName() << std::endl;
         }
         {
@@ -196,13 +195,44 @@ void GemmGeometry::RunGemm(Handle& handle,
 
 } // namespace miopen
 
-
 namespace miopen {
+
+void GemmGeometry::RunGemmSimple(Handle& handle,
+                                 ConstData_t a,
+                                 ConstData_t b,
+                                 Data_t c,
+                                 int a_offset,
+                                 int b_offset,
+                                 int c_offset)
+{
+    std::string network_config = tgg.get_networkconfig_string();
+
+#if 1 // debug
+    {
+        std::cout << __func__ << ": alpha " << alpha << ", beta " << beta << std::endl;
+
+        auto const & kernels = handle.GetKernels(algorithm_name, network_config);
+
+        for(const auto& k : kernels)
+        {
+            std::cout << __func__ << ": kernel name: " << k.GetName() << std::endl;
+        }
+    }
+#endif
+
+    if(handle.GetKernels(algorithm_name, network_config).empty())
+    {
+        // TODO: a_offset, b_offse, c_offset are not passed in to FindSolution, may result in memory
+        // out-of-bound
+        FindSolutionTmp(.003, handle, a, b, c, false);
+    }
+
+    RunGemmTmp(handle, a, b, c, a_offset, b_offset, c_offset);
+}
 
 void GemmGeometry::FindSolutionTmp(
     float time, Handle& handle, ConstData_t a, ConstData_t b, Data_t c, bool enforce_determinism)
 {
-
 #if MIOPEN_BACKEND_OPENCL
     // jn : print search results to terminal
     bool miopengemm_verbose = false;
@@ -252,15 +282,16 @@ void GemmGeometry::FindSolutionTmp(
         //   kernel_0: c = alpha * a * b + c, (if beta == 1) or
         //   kernel_1: c = alpha * a * b + beta * c, (if beta != 1) or
         //   kernel_2: c = beta * c (needs to work together with kernel_0)
-        handle.AddKernel(algorithm_name, network_config, kernel_clstring, kernel_name, vld, vgd, "");
+        handle.AddKernel(
+            algorithm_name, network_config, kernel_clstring, kernel_name, vld, vgd, "");
 
         //
         {
             std::cout << __func__ << ": after added 1st kernel: " << kernel_name << std::endl;
 
-            const auto & kernels = handle.GetKernels(algorithm_name, network_config);
+            const auto& kernels = handle.GetKernels(algorithm_name, network_config);
 
-            for(const auto & k : kernels)
+            for(const auto& k : kernels)
             {
                 std::cout << __func__ << ": kernel name: " << k.GetName() << std::endl;
             }
@@ -291,40 +322,39 @@ void GemmGeometry::FindSolutionTmp(
                 "",
                 1);
 
-                //
-                {
-                std::cout << __func__ << ": after added 2nd kernel: " << beta_kernel_name << std::endl;
+            //debug
+            {
+                std::cout << __func__ << ": after added 2nd kernel: " << beta_kernel_name
+                          << std::endl;
 
-                const auto & kernels = handle.GetKernels(algorithm_name, network_config);
+                const auto& kernels = handle.GetKernels(algorithm_name, network_config);
 
-                for(const auto & k : kernels)
+                for(const auto& k : kernels)
                 {
                     std::cout << __func__ << ": kernel name: " << k.GetName() << std::endl;
                 }
             }
         }
     }
-
-
 }
 
 void GemmGeometry::RunGemmTmp(Handle& handle,
-                           ConstData_t a,
-                           ConstData_t b,
-                           Data_t c,
-                           int a_offset,
-                           int b_offset,
-                           int c_offset)
+                              ConstData_t a,
+                              ConstData_t b,
+                              Data_t c,
+                              int a_offset,
+                              int b_offset,
+                              int c_offset)
 {
     std::string network_config = tgg.get_networkconfig_string();
 
-    const auto & kernels = handle.GetKernels(algorithm_name, network_config);
+    const auto& kernels = handle.GetKernels(algorithm_name, network_config);
 
 #if 1 // debug
     {
         std::cout << __func__ << ": alpha " << alpha << ", beta " << beta << std::endl;
 
-        for(const auto & k : kernels)
+        for(const auto& k : kernels)
         {
             std::cout << __func__ << ": kernel name: " << k.GetName() << std::endl;
         }
@@ -333,12 +363,13 @@ void GemmGeometry::RunGemmTmp(Handle& handle,
 
     if(kernels.size() == 2)
     {
-        // c = beta * c 
+        // c = beta * c
         std::cout << __func__ << ": " << kernels[1].GetName() << ": c = beta * c" << std::endl;
         kernels[1](c, c_offset, beta);
 
         // c = alpha * a * b + c
-        std::cout << __func__ << ": " << kernels[0].GetName() << ": c = alpha* a * b + c" << std::endl;
+        std::cout << __func__ << ": " << kernels[0].GetName() << ": c = alpha* a * b + c"
+                  << std::endl;
         kernels[0](a, a_offset, b, b_offset, c, c_offset, alpha);
     }
     else if(kernels.size() == 1)
@@ -347,13 +378,15 @@ void GemmGeometry::RunGemmTmp(Handle& handle,
         if(kernel_name == "miog_alphaab")
         {
             // c = alpha * a * b + c
-            std::cout << __func__ << ": " << kernels[0].GetName() << ": c = alpha* a * b + c" << std::endl;
+            std::cout << __func__ << ": " << kernels[0].GetName() << ": c = alpha* a * b + c"
+                      << std::endl;
             kernels[0](a, a_offset, b, b_offset, c, c_offset, alpha);
         }
         else if(kernel_name == "miog_betac_alphaab")
         {
             // c = alpha * a * b + beta * c
-            std::cout << __func__ << ": " << kernels[0].GetName() << ": c = alpha* a * b + beta * c" << std::endl;
+            std::cout << __func__ << ": " << kernels[0].GetName() << ": c = alpha* a * b + beta * c"
+                      << std::endl;
             kernels[0](a, a_offset, b, b_offset, c, c_offset, alpha, beta);
         }
         else
@@ -368,6 +401,5 @@ void GemmGeometry::RunGemmTmp(Handle& handle,
 }
 
 } // namespace miopen
-
 
 #endif // MIOPEN_USE_MIOPENGEMM
