@@ -80,6 +80,21 @@ struct GemmGeometry
                  int a_offset,
                  int b_offset,
                  int c_offset);
+
+    void FindSolutionTmp(float time,
+                      Handle& handle,
+                      ConstData_t a,
+                      ConstData_t b,
+                      Data_t c,
+                      bool enforce_determinism);
+
+    void RunGemmTmp(Handle& handle,
+                 ConstData_t a,
+                 ConstData_t b,
+                 Data_t c,
+                 int a_offset,
+                 int b_offset,
+                 int c_offset);
 };
 
 } // namespace miopen

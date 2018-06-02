@@ -101,6 +101,9 @@ void GemmGeometry::FindSolution(
 
     handle.AddKernel(algorithm_name, network_config, kernel_clstring, kernel_name, vld, vgd, "");
 
+    //debug
+    std::cout << __func__ << ": 1st kernel: " << kernel_name << std::endl;
+
     if(soln.v_tgks.size() == 2)
     {
         beta_kern_returned = true;
@@ -129,6 +132,10 @@ void GemmGeometry::FindSolution(
             vld,
             vgd,
             "");
+
+        //debug
+        std::cout << __func__ << ": 2nd kernel: " << beta_kernel_name << std::endl;
+
     }
     handle.geo_map[std::make_pair(algorithm_name, network_config)] =
         std::make_unique<GemmGeometry>(*this);
@@ -142,6 +149,8 @@ void GemmGeometry::RunGemm(Handle& handle,
                            int b_offset,
                            int c_offset)
 {
+    std::cout << __func__ << ": alpha " << alpha << ", beta " << beta << std::endl;
+
     std::string network_config = tgg.get_networkconfig_string();
 
     if(beta_kern_req)
@@ -149,6 +158,16 @@ void GemmGeometry::RunGemm(Handle& handle,
         handle.GetKernel(algorithm_name + "_beta", network_config)(c, c_offset, beta);
         handle.GetKernel(algorithm_name,
                          network_config)(a, a_offset, b, b_offset, c, c_offset, alpha);
+
+        // debug
+        {
+            const auto & kernel = handle.GetKernel(algorithm_name + "_beta", network_config);
+            std::cout << __func__ << ": 1st kernel: " << kernel.GetName() << std::endl;
+        }
+        {
+            const auto kernel = handle.GetKernel(algorithm_name, network_config);
+            std::cout << __func__ << ": 2nd kernel: " << kernel.GetName() << std::endl;
+        }
     }
     else
     {
@@ -166,8 +185,189 @@ void GemmGeometry::RunGemm(Handle& handle,
             handle.GetKernel(algorithm_name,
                              network_config)(a, a_offset, b, b_offset, c, c_offset, alpha, beta);
         }
+
+        // debug
+        {
+            const auto kernel = handle.GetKernel(algorithm_name, network_config);
+            std::cout << __func__ << ": 1st kernel: " << kernel.GetName() << std::endl;
+        }
     }
 }
 
 } // namespace miopen
+
+
+namespace miopen {
+
+void GemmGeometry::FindSolutionTmp(
+    float time, Handle& handle, ConstData_t a, ConstData_t b, Data_t c, bool enforce_determinism)
+{
+
+#if MIOPEN_BACKEND_OPENCL
+    // jn : print search results to terminal
+    bool miopengemm_verbose = false;
+
+    // jn : print warning messages when the returned kernel(s) might be sub-optimal
+    bool miopengemm_warnings = false;
+
+    // jn : find with no workspace
+    MIOpenGEMM::Solution soln = MIOpenGEMM::find(time,
+                                                 handle.GetStream(),
+                                                 a,
+                                                 b,
+                                                 c,
+                                                 enforce_determinism,
+                                                 tgg,
+                                                 miopengemm_verbose,
+                                                 miopengemm_warnings);
+#else
+    (void)time;
+    (void)a;
+    (void)b;
+    (void)c;
+    (void)enforce_determinism;
+    (void)tgg;
+    (void)alpha;
+    (void)beta;
+    MIOpenGEMM::Solution soln = MIOpenGEMM::get_default(tgg);
+#endif
+
+    // jn : the main kernel is at the back of the solution vector
+    std::string kernel_clstring = soln.v_tgks.back().kernstr;
+    tempfix::set_offsets_to_uint(kernel_clstring);
+
+    std::string kernel_name    = soln.v_tgks.back().fname;
+    std::string network_config = tgg.get_networkconfig_string();
+    size_t local_work_size     = soln.v_tgks.back().local_work_size;
+    size_t global_work_size    = soln.v_tgks.back().global_work_size;
+
+    std::vector<size_t> vld{local_work_size, 1, 1};
+    std::vector<size_t> vgd{global_work_size, 1, 1};
+
+    if(handle.GetKernels(algorithm_name, network_config).empty())
+    {
+        std::cout << __func__ << ": alpha " << alpha << ", beta " << beta << std::endl;
+
+        // chao : this could be kernel for
+        //   kernel_0: c = alpha * a * b + c, (if beta == 1) or
+        //   kernel_1: c = alpha * a * b + beta * c, (if beta != 1) or
+        //   kernel_2: c = beta * c (needs to work together with kernel_0)
+        handle.AddKernel(algorithm_name, network_config, kernel_clstring, kernel_name, vld, vgd, "");
+
+        //
+        {
+            std::cout << __func__ << ": after added 1st kernel: " << kernel_name << std::endl;
+
+            const auto & kernels = handle.GetKernels(algorithm_name, network_config);
+
+            for(const auto & k : kernels)
+            {
+                std::cout << __func__ << ": kernel name: " << k.GetName() << std::endl;
+            }
+        }
+
+        // jn : case where the beta kernel is part of the solution
+        if(soln.v_tgks.size() == 2 && !miopen::float_equal(beta, 1))
+        {
+            std::string beta_program_name = soln.v_tgks[0].kernstr;
+            tempfix::set_offsets_to_uint(beta_program_name);
+
+            std::string beta_kernel_name = soln.v_tgks[0].fname;
+            local_work_size              = soln.v_tgks[0].local_work_size;
+            global_work_size             = soln.v_tgks[0].global_work_size;
+
+            vld[0] = local_work_size;
+            vgd[0] = global_work_size;
+
+            // chao : this is the kernel for
+            //   kernel_0: c = alpha * a * b + c (needs to work with kernel_2)
+            handle.AddKernel(
+                algorithm_name,
+                network_config, // jn : different network_configs require different beta kernels
+                beta_program_name,
+                beta_kernel_name,
+                vld,
+                vgd,
+                "",
+                1);
+
+                //
+                {
+                std::cout << __func__ << ": after added 2nd kernel: " << beta_kernel_name << std::endl;
+
+                const auto & kernels = handle.GetKernels(algorithm_name, network_config);
+
+                for(const auto & k : kernels)
+                {
+                    std::cout << __func__ << ": kernel name: " << k.GetName() << std::endl;
+                }
+            }
+        }
+    }
+
+
+}
+
+void GemmGeometry::RunGemmTmp(Handle& handle,
+                           ConstData_t a,
+                           ConstData_t b,
+                           Data_t c,
+                           int a_offset,
+                           int b_offset,
+                           int c_offset)
+{
+    std::string network_config = tgg.get_networkconfig_string();
+
+    const auto & kernels = handle.GetKernels(algorithm_name, network_config);
+
+#if 1 // debug
+    {
+        std::cout << __func__ << ": alpha " << alpha << ", beta " << beta << std::endl;
+
+        for(const auto & k : kernels)
+        {
+            std::cout << __func__ << ": kernel name: " << k.GetName() << std::endl;
+        }
+    }
+#endif
+
+    if(kernels.size() == 2)
+    {
+        // c = beta * c 
+        std::cout << __func__ << ": " << kernels[1].GetName() << ": c = beta * c" << std::endl;
+        kernels[1](c, c_offset, beta);
+
+        // c = alpha * a * b + c
+        std::cout << __func__ << ": " << kernels[0].GetName() << ": c = alpha* a * b + c" << std::endl;
+        kernels[0](a, a_offset, b, b_offset, c, c_offset, alpha);
+    }
+    else if(kernels.size() == 1)
+    {
+        std::string kernel_name = kernels[0].GetName();
+        if(kernel_name == "miog_alphaab")
+        {
+            // c = alpha * a * b + c
+            std::cout << __func__ << ": " << kernels[0].GetName() << ": c = alpha* a * b + c" << std::endl;
+            kernels[0](a, a_offset, b, b_offset, c, c_offset, alpha);
+        }
+        else if(kernel_name == "miog_betac_alphaab")
+        {
+            // c = alpha * a * b + beta * c
+            std::cout << __func__ << ": " << kernels[0].GetName() << ": c = alpha* a * b + beta * c" << std::endl;
+            kernels[0](a, a_offset, b, b_offset, c, c_offset, alpha, beta);
+        }
+        else
+        {
+            MIOPEN_THROW("wrong MIOpenGEMM kernel");
+        }
+    }
+    else
+    {
+        MIOPEN_THROW("unable to get correct MIOpenGEMM kenerls");
+    }
+}
+
+} // namespace miopen
+
+
 #endif // MIOPEN_USE_MIOPENGEMM

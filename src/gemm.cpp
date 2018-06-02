@@ -102,6 +102,7 @@ void CallGemm(Handle& handle,
     handle.AccumKernelTime(mS);
 
 #elif MIOPEN_USE_MIOPENGEMM
+#if 0
     if(!isColMajor)
     {
         isColMajor = true;
@@ -156,6 +157,7 @@ void CallGemm(Handle& handle,
                        c_offset);
         }
     });
+#endif
 #else
     MIOPEN_THROW("No GEMM backend");
 #endif
