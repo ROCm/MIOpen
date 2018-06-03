@@ -101,6 +101,27 @@ void CallGemmStridedBatched(Handle& handle,
                             long long int strideC,
                             int batch_count);
 
+// GEMM description for Convolution Fwd (non-batched)
+// y = w * Im2Col(x)
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConvFwd(const TensorDescriptor& wDesc,
+                             const TensorDescriptor& xDesc,
+                             const TensorDescriptor& yDesc);
+
+// GEMM description for Convolution Bwd (non-batched)
+// dx = Col2Im(transpose(w) * dy)
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConvBwdData(const TensorDescriptor& wDesc,
+                                 const TensorDescriptor& dyDesc,
+                                 const TensorDescriptor& dxDesc);
+
+// GEMM description for Convolution Bwd-Weight (non-batched)
+// dw = dy * transpose(Im2Col(x))
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConvBwdWeight(const TensorDescriptor& dyDesc,
+                                   const TensorDescriptor& xDesc,
+                                   const TensorDescriptor& dwDesc);
+
 // GEMM description for 1x1 Convolution Fwd (non-batched)
 // y = w * x
 std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>

@@ -350,6 +350,126 @@ void CallGemmStridedBatched(Handle& handle,
 #endif
 }
 
+// y = w * Im2Col(x)
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConvFwd(const TensorDescriptor& wDesc,
+                             const TensorDescriptor& xDesc,
+                             const TensorDescriptor& yDesc)
+{
+    bool isColMajor, transA, transB;
+    int m, n, k, lda, ldb, ldc;
+    float alpha, beta;
+
+    std::cout << std::endl << __func__ << std::endl;
+
+    std::cout << __func__ << ": wDesc: " << wDesc << std::endl;
+    std::cout << __func__ << ": xDesc: " << xDesc << std::endl;
+    std::cout << __func__ << ": yDesc: " << yDesc << std::endl;
+
+    int in_c;
+    std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+
+    int wei_n, wei_h, wei_w;
+    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
+
+    isColMajor = false;
+    transA     = false;
+    transB     = false;
+    m          = wei_n;
+    n          = out_h * out_w;
+    k          = in_c * wei_h * wei_w;
+    lda        = k;
+    ldb        = n;
+    ldc        = n;
+    alpha      = 1.;
+    beta       = 0.;
+
+    return std::make_tuple(isColMajor, transA, transB, m, n, k, lda, ldb, ldc, alpha, beta);
+}
+
+// dx = Col2Im(transpose(w) * dy)
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConvBwdData(const TensorDescriptor& wDesc,
+                                 const TensorDescriptor& dyDesc,
+                                 const TensorDescriptor& dxDesc)
+{
+    bool isColMajor, transA, transB;
+    int m, n, k, lda, ldb, ldc;
+    float alpha, beta;
+
+    std::cout << std::endl << __func__ << std::endl;
+
+    std::cout << __func__ << ":  wDesc: " << wDesc << std::endl;
+    std::cout << __func__ << ": dxDesc: " << dxDesc << std::endl;
+    std::cout << __func__ << ": dyDesc: " << dyDesc << std::endl;
+
+    int in_c;
+    std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
+
+    int wei_n, wei_h, wei_w;
+    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
+
+    isColMajor = false;
+    transA     = true;
+    transB     = false;
+    m          = in_c * wei_h * wei_w;
+    n          = out_h * out_w;
+    k          = wei_n;
+    lda        = m;
+    ldb        = n;
+    ldc        = n;
+    alpha      = 1.;
+    beta       = 0.;
+
+    return std::make_tuple(isColMajor, transA, transB, m, n, k, lda, ldb, ldc, alpha, beta);
+}
+
+// dw = dy * transpose(Im2Col(x))
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConvBwdWeight(const TensorDescriptor& dyDesc,
+                                   const TensorDescriptor& xDesc,
+                                   const TensorDescriptor& dwDesc)
+{
+    bool isColMajor, transA, transB;
+    int m, n, k, lda, ldb, ldc;
+    float alpha, beta;
+
+    std::cout << std::endl << __func__ << std::endl;
+
+    std::cout << __func__ << ": dwDesc: " << dwDesc << std::endl;
+    std::cout << __func__ << ":  xDesc: " << xDesc << std::endl;
+    std::cout << __func__ << ": dyDesc: " << dyDesc << std::endl;
+
+    int in_c;
+    std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+
+    int wei_n, wei_h, wei_w;
+    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
+
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
+
+    isColMajor = false;
+    transA     = false;
+    transB     = true;
+    m          = wei_n;
+    n          = in_c * wei_h * wei_w;
+    k          = out_h * out_w;
+    lda        = k;
+    ldb        = k;
+    ldc        = n;
+    alpha      = 1.;
+    beta       = 1.;
+
+    return std::make_tuple(isColMajor, transA, transB, m, n, k, lda, ldb, ldc, alpha, beta);
+}
+
 // y = w * x
 std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
 CreateGemmDescriptionConv1x1Fwd(const TensorDescriptor& wDesc,
