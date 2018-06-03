@@ -1058,24 +1058,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
                 float time_0 = 0;
 
-#if 0  // unified GEMM call
-                GemmGeometry gg =
-                    CreateGemmGeometryConvFwd(xDesc, wDesc, yDesc, false, network_config);
-
-                for(int i = 0; i < in_n; i++)
-                {
-                    int out_offset = i * wei_n * out_h * out_w;
-                    int in_offset  = i * in_c * in_h * in_w;
-                    gg.RunGemmSimple(handle, x, w, y, in_offset, 0, out_offset);
-
-                    if(handle.IsProfilingEnabled())
-                    {
-                        if(i == in_n - 1)
-                            handle.AccumKernelTime(time_0);
-                        time_0 += handle.GetKernelTime();
-                    }
-                }
-#else  // unified GEMM call
                 bool isColMajor, transA, transB;
                 int m, n, k, lda, ldb, ldc;
                 float gemm_alpha, gemm_beta;
@@ -1117,7 +1099,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                         time_0 += handle.GetKernelTime();
                     }
                 }
-#endif // unified GEMM call
             }
             else
             {
@@ -1699,13 +1680,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             {
                 std::cout << __func__ << ": convolution, miopengemm, 1x1" << std::endl;
 
-#if 0 // unified GEMM call
-                GemmGeometry gg =
-                    CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, true, network_config);
-
-                gg.RunGemmSimple(handle, w, dy, tmp_dx.get(), 0, 0, 0);
-
-#else  // unified GEMM call
                 bool isColMajor, transA, transB;
                 int m, n, k, lda, ldb, ldc;
                 float gemm_alpha, gemm_beta;
@@ -1734,7 +1708,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                          tmp_dx.get(),
                          0,
                          ldc);
-#endif // unifed GEMM call
+
                 float time_gemm = in_n * handle.GetKernelTime();
 
                 perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoGEMM", time_gemm, 0});
@@ -2123,26 +2097,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             {
                 std::cout << __func__ << ": convolution, miopengemm, 1x1" << std::endl;
 
-#if 0
-                GemmGeometry gg =
-                    CreateGemmGeometryConvBwdData(dyDesc, wDesc, dxDesc, true, network_config);
-
-                float time_0 = 0;
-                for(int i = 0; i < in_n; i++)
-                {
-                    int out_offset   = i * wei_n * out_h * out_w;
-                    size_t in_offset = i * in_c * in_h * in_w;
-
-                    gg.RunGemmSimple(handle, w, dy, dx, 0, out_offset, in_offset);
-
-                    if(handle.IsProfilingEnabled())
-                    {
-                        if(i == in_n - 1)
-                            handle.AccumKernelTime(time_0);
-                        time_0 += handle.GetKernelTime();
-                    }
-                }
-#else
                 bool isColMajor, transA, transB;
                 int m, n, k, lda, ldb, ldc;
                 float gemm_alpha, gemm_beta;
@@ -2185,7 +2139,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                         time_0 += handle.GetKernelTime();
                     }
                 }
-#endif
             }
             // if not 1x1
             else
@@ -2495,9 +2448,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             {
                 std::cout << __func__ << ": convolution, miopengemm, 1x1" << std::endl;
 
-#if 0  // unified GEMM call
-                gg.RunGemmSimple(handle, x, dy, tmp_dw.get(), 0, 0, 0);
-#else  // unified GEMM call
                 bool isColMajor, transA, transB;
                 int m, n, k, lda, ldb, ldc;
                 float gemm_alpha, gemm_beta;
@@ -2526,7 +2476,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                          tmp_dw.get(),
                          0,
                          ldc);
-#endif // unified GEMM call
 
                 time_gemm = in_n * handle.GetKernelTime();
                 perf_db.push_back(PerfField{"miopenConvolutionBwdWeightsAlgoGEMM", time_gemm, 0});
@@ -2905,9 +2854,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     std::cout << __func__ << ": convolution, miopengemm, 1x1" << std::endl;
 
                     int in_offset = i * in_c * in_h * in_w;
-#if 0  // unified GEMM call
-                    gg.RunGemmSimple(handle, x, dy, dw, in_offset, out_offset, 0);
-#else  // unified GEMM call
+
                     bool isColMajor, transA, transB;
                     int m, n, k, lda, ldb, ldc;
                     float gemm_alpha, gemm_beta;
@@ -2936,7 +2883,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                              dw,
                              0,
                              ldc);
-#endif // unified GEMM call
 
                     if(handle.IsProfilingEnabled())
                     {
