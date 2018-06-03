@@ -40,24 +40,63 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& vs)
 }
 #endif
 
-int CallGemm(Handle& handle,
-             bool isColMajor,
-             bool transA,
-             bool transB,
-             int m,
-             int n,
-             int k,
-             const void* alpha,
-             ConstData_t A,
-             int a_offset,
-             int lda,
-             ConstData_t B,
-             int b_offset,
-             int ldb,
-             const void* beta,
-             Data_t C,
-             int c_offset,
-             int ldc)
+#if MIOPEN_USE_MIOPENGEMM
+GemmGeometry CreateMIOpenGemmGeometry(bool isColMajor,
+                                      bool transA,
+                                      bool transB,
+                                      int m,
+                                      int n,
+                                      int k,
+                                      int lda,
+                                      int ldb,
+                                      int ldc,
+                                      float alpha,
+                                      float beta)
+{
+    MIOpenGEMM::Geometry tgg{};
+
+    // Assuming we are using miopengemm as only col major
+    // Therefore, if the user provides data in col. major
+    // then no transformations are requrired and vice versa
+    if(isColMajor)
+    {
+        tgg = MIOpenGEMM::Geometry(
+            true, transA, transB, false, lda, ldb, ldc, m, n, k, 0, 'f'); // jn : added 0 for no
+                                                                          // workspace,
+                                                                          // 'f' for single prec.
+
+        return GemmGeometry{"miopenGEMM", alpha, beta, tgg};
+    }
+    else
+    {
+        tgg = MIOpenGEMM::Geometry(
+            true, transB, transA, false, ldb, lda, ldc, n, m, k, 0, 'f'); // jn : added 0 for no
+                                                                          // workspace,
+                                                                          // 'f' for single prec.
+
+        return GemmGeometry{"miopenGEMM", alpha, beta, tgg};
+    }
+}
+#endif
+
+void CallGemm(Handle& handle,
+              bool isColMajor,
+              bool transA,
+              bool transB,
+              int m,
+              int n,
+              int k,
+              const void* alpha,
+              ConstData_t A,
+              int a_offset,
+              int lda,
+              ConstData_t B,
+              int b_offset,
+              int ldb,
+              const void* beta,
+              Data_t C,
+              int c_offset,
+              int ldc)
 {
 #if MIOPEN_USE_ROCBLAS
     std::cout << std::endl << __func__ << ": going to call rocblas" << std::endl;
@@ -101,10 +140,9 @@ int CallGemm(Handle& handle,
     handle.ResetKernelTime();
     handle.AccumKernelTime(mS);
 
-    return 0;
-
 #elif MIOPEN_USE_MIOPENGEMM
-#if 1
+    std::cout << __func__ << ": going to call miopengemm" << std::endl;
+
     // do row-to-column major conversion here,
     //   so CreateMIOpenGemmGeometry would not need to do it
     if(!isColMajor)
@@ -117,20 +155,19 @@ int CallGemm(Handle& handle,
         std::swap(lda, ldb);
     }
 
-    GemmGeometry gg = CreateMIOpenGemmGeometry(m,
+    GemmGeometry gg = CreateMIOpenGemmGeometry(true,
+                                               transA,
+                                               transB,
+                                               m,
                                                n,
                                                k,
                                                lda,
                                                ldb,
                                                ldc,
-                                               transA,
-                                               transB,
-                                               true,
                                                *(static_cast<const float*>(alpha)),
                                                *(static_cast<const float*>(beta)));
 
     gg.RunGemmSimple(handle, A, B, C, a_offset, b_offset, c_offset);
-#endif
 #else
     MIOPEN_THROW("No GEMM backend");
 #endif
@@ -144,16 +181,16 @@ void CallGemmStridedBatched(Handle& handle,
                             int n,
                             int k,
                             const void* alpha,
-                            const void* A,
+                            ConstData_t A,
                             int a_offset,
                             int lda,
                             long long int strideA,
-                            const void* B,
+                            ConstData_t B,
                             int b_offset,
                             int ldb,
                             long long int strideB,
                             const void* beta,
-                            void* C,
+                            Data_t C,
                             int c_offset,
                             int ldc,
                             long long int strideC,
@@ -314,16 +351,19 @@ void CallGemmStridedBatched(Handle& handle,
 }
 
 // y = w * x
-std::tuple<bool, bool, bool, int, int, int, int, int, int> CreateGemmDescriptionConv1x1Fwd(
-    const TensorDescriptor& xDesc, const TensorDescriptor& wDesc, const TensorDescriptor& yDesc)
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConv1x1Fwd(const TensorDescriptor& wDesc,
+                                const TensorDescriptor& xDesc,
+                                const TensorDescriptor& yDesc)
 {
     bool isColMajor, transA, transB;
     int m, n, k, lda, ldb, ldc;
+    float alpha, beta;
 
     std::cout << std::endl << __func__ << std::endl;
 
-    std::cout << __func__ << ": xDesc: " << xDesc << std::endl;
     std::cout << __func__ << ": wDesc: " << wDesc << std::endl;
+    std::cout << __func__ << ": xDesc: " << xDesc << std::endl;
     std::cout << __func__ << ": yDesc: " << yDesc << std::endl;
 
     int in_c, in_h, in_w;
@@ -341,11 +381,87 @@ std::tuple<bool, bool, bool, int, int, int, int, int, int> CreateGemmDescription
     lda        = k;
     ldb        = n;
     ldc        = n;
+    alpha      = 1.;
+    beta       = 0.;
 
-    return std::make_tuple(isColMajor, transA, transB, m, n, k, lda, ldb, ldc);
+    return std::make_tuple(isColMajor, transA, transB, m, n, k, lda, ldb, ldc, alpha, beta);
 }
 
-// y[ibatch] = w * x[ibatch]
+// dx = transpose(w) * dy
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConv1x1BwdData(const TensorDescriptor& wDesc,
+                                    const TensorDescriptor& dyDesc,
+                                    const TensorDescriptor& dxDesc)
+{
+    bool isColMajor, transA, transB;
+    int m, n, k, lda, ldb, ldc;
+    float alpha, beta;
+
+    std::cout << std::endl << __func__ << std::endl;
+
+    std::cout << __func__ << ": wDesc: " << wDesc << std::endl;
+    std::cout << __func__ << ": dxDesc: " << dxDesc << std::endl;
+    std::cout << __func__ << ": dyDesc: " << dyDesc << std::endl;
+
+    int in_c, in_h, in_w;
+    std::tie(std::ignore, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
+
+    int wei_n;
+    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
+
+    isColMajor = false;
+    transA     = true;
+    transB     = false;
+    m          = in_c;
+    n          = in_h * in_w;
+    k          = wei_n;
+    lda        = m;
+    ldb        = n;
+    ldc        = n;
+    alpha      = 1.;
+    beta       = 0.;
+
+    return std::make_tuple(isColMajor, transA, transB, m, n, k, lda, ldb, ldc, alpha, beta);
+}
+
+// dw = dy * transpose(x)
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConv1x1BwdWeight(const TensorDescriptor& dyDesc,
+                                      const TensorDescriptor& xDesc,
+                                      const TensorDescriptor& dwDesc)
+{
+    bool isColMajor, transA, transB;
+    int m, n, k, lda, ldb, ldc;
+    float alpha, beta;
+
+    std::cout << std::endl << __func__ << std::endl;
+
+    std::cout << __func__ << ": dwDesc: " << dwDesc << std::endl;
+    std::cout << __func__ << ":  xDesc: " << xDesc << std::endl;
+    std::cout << __func__ << ": dyDesc: " << dyDesc << std::endl;
+
+    int in_c, in_h, in_w;
+    std::tie(std::ignore, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
+
+    int wei_n;
+    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(dwDesc.GetLengths());
+
+    isColMajor = false;
+    transA     = false;
+    transB     = true;
+    m          = wei_n;
+    n          = in_c;
+    k          = in_h * in_w;
+    lda        = k;
+    ldb        = k;
+    ldc        = n;
+    alpha      = 1.;
+    beta       = 1.;
+
+    return std::make_tuple(isColMajor, transA, transB, m, n, k, lda, ldb, ldc, alpha, beta);
+}
+
+// y = w * x
 std::tuple<bool,
            bool,
            bool,
@@ -358,20 +474,23 @@ std::tuple<bool,
            long long int,
            long long int,
            long long int,
-           int>
-CreateGemmStridedBatchedDescriptionConv1x1Fwd(const TensorDescriptor& xDesc,
-                                              const TensorDescriptor& wDesc,
+           int,
+           float,
+           float>
+CreateGemmStridedBatchedDescriptionConv1x1Fwd(const TensorDescriptor& wDesc,
+                                              const TensorDescriptor& xDesc,
                                               const TensorDescriptor& yDesc)
 {
     bool isColMajor, transA, transB;
     int m, n, k, lda, ldb, ldc;
     long long int strideA, strideB, strideC;
     int batch_count;
+    float alpha, beta;
 
     std::cout << std::endl << __func__ << std::endl;
 
-    std::cout << __func__ << ": xDesc: " << xDesc << std::endl;
     std::cout << __func__ << ": wDesc: " << wDesc << std::endl;
+    std::cout << __func__ << ": xDesc: " << xDesc << std::endl;
     std::cout << __func__ << ": yDesc: " << yDesc << std::endl;
 
     int in_n, in_c, in_h, in_w;
@@ -393,12 +512,27 @@ CreateGemmStridedBatchedDescriptionConv1x1Fwd(const TensorDescriptor& xDesc,
     strideB     = k * n;
     strideC     = m * n;
     batch_count = in_n;
+    alpha       = 1.;
+    beta        = 0.;
 
-    return std::make_tuple(
-        isColMajor, transA, transB, m, n, k, lda, ldb, ldc, strideA, strideB, strideC, batch_count);
+    return std::make_tuple(isColMajor,
+                           transA,
+                           transB,
+                           m,
+                           n,
+                           k,
+                           lda,
+                           ldb,
+                           ldc,
+                           strideA,
+                           strideB,
+                           strideC,
+                           batch_count,
+                           alpha,
+                           beta);
 }
 
-// dx[ibatch] = transpose(w) * dy[ibatch]
+// dx = transpose(w) * dy
 std::tuple<bool,
            bool,
            bool,
@@ -411,20 +545,23 @@ std::tuple<bool,
            long long int,
            long long int,
            long long int,
-           int>
-CreateGemmStridedBatchedDescriptionConv1x1BwdData(const TensorDescriptor& dyDesc,
-                                                  const TensorDescriptor& wDesc,
+           int,
+           float,
+           float>
+CreateGemmStridedBatchedDescriptionConv1x1BwdData(const TensorDescriptor& wDesc,
+                                                  const TensorDescriptor& dyDesc,
                                                   const TensorDescriptor& dxDesc)
 {
     bool isColMajor, transA, transB;
     int m, n, k, lda, ldb, ldc;
     long long int strideA, strideB, strideC;
     int batch_count;
+    float alpha, beta;
 
     std::cout << std::endl << __func__ << std::endl;
 
-    std::cout << __func__ << ": dxDesc: " << dxDesc << std::endl;
     std::cout << __func__ << ": wDesc: " << wDesc << std::endl;
+    std::cout << __func__ << ": dxDesc: " << dxDesc << std::endl;
     std::cout << __func__ << ": dyDesc: " << dyDesc << std::endl;
 
     int in_n, in_c, in_h, in_w;
@@ -446,9 +583,24 @@ CreateGemmStridedBatchedDescriptionConv1x1BwdData(const TensorDescriptor& dyDesc
     strideB     = k * n;
     strideC     = m * n;
     batch_count = in_n;
+    alpha       = 1.;
+    beta        = 0;
 
-    return std::make_tuple(
-        isColMajor, transA, transB, m, n, k, lda, ldb, ldc, strideA, strideB, strideC, batch_count);
+    return std::make_tuple(isColMajor,
+                           transA,
+                           transB,
+                           m,
+                           n,
+                           k,
+                           lda,
+                           ldb,
+                           ldc,
+                           strideA,
+                           strideB,
+                           strideC,
+                           batch_count,
+                           alpha,
+                           beta);
 }
 
 } // namespace miopen
@@ -718,41 +870,6 @@ GemmGeometry CreateGemmGeometryConvFwdCNHW(const TensorDescriptor& xDesc,
     }
     network_config = tgg.get_networkconfig_string();
     return gg;
-}
-
-GemmGeometry CreateMIOpenGemmGeometry(int M,
-                                      int N,
-                                      int K,
-                                      int lda,
-                                      int ldb,
-                                      int ldc,
-                                      bool tA,
-                                      bool tB,
-                                      bool isDataColMajor,
-                                      float alpha,
-                                      float beta)
-{
-    MIOpenGEMM::Geometry tgg{};
-
-    // Assuming we are using miopengemm as only col major
-    // Therefore, if the user provides data in col. major
-    // then no transformations are requrired and vice versa
-    if(isDataColMajor)
-    {
-        tgg = MIOpenGEMM::Geometry(
-            true, tA, tB, false, lda, ldb, ldc, M, N, K, 0, 'f'); // jn : added 0 for no workspace,
-                                                                  // 'f' for single prec.
-
-        return GemmGeometry{"miopenGEMM", alpha, beta, tgg};
-    }
-    else
-    {
-        tgg = MIOpenGEMM::Geometry(
-            true, tB, tA, false, ldb, lda, ldc, N, M, K, 0, 'f'); // jn : added 0 for no workspace,
-                                                                  // 'f' for single prec.
-
-        return GemmGeometry{"miopenGEMM", alpha, beta, tgg};
-    }
 }
 
 GemmGeometry GetGemmGeometry(Handle& handle, std::string algorithm_name, std::string network_config)

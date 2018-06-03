@@ -31,6 +31,21 @@
 
 namespace miopen {
 
+#if MIOPEN_USE_MIOPENGEMM
+// get rid of this
+GemmGeometry CreateMIOpenGemmGeometry(bool isColMajor,
+                                      bool transA,
+                                      bool transB,
+                                      int m,
+                                      int n,
+                                      int k,
+                                      int lda,
+                                      int ldb,
+                                      int ldc,
+                                      float alpha,
+                                      float beta);
+#endif
+
 // GEMM operation: C = alpha * op(A) * op(B) + beta * C.
 // op() can be either transpose or no-operation for A or B.
 // The shape (nRow x nCol) of op(A), op(B), C are:
@@ -52,14 +67,14 @@ void CallGemm(Handle& handle,
               int n,
               int k,
               const void* alpha,
-              const void* A,
+              ConstData_t A,
               int a_offset,
               int lda,
-              const void* B,
+              ConstData_t B,
               int b_offset,
               int ldb,
               const void* beta,
-              void* C,
+              Data_t C,
               int c_offset,
               int ldc);
 
@@ -71,21 +86,44 @@ void CallGemmStridedBatched(Handle& handle,
                             int n,
                             int k,
                             const void* alpha,
-                            const void* A,
+                            ConstData_t A,
                             int a_offset,
                             int lda,
                             long long int strideA,
-                            const void* B,
+                            ConstData_t B,
                             int b_offset,
                             int ldb,
                             long long int strideB,
                             const void* beta,
-                            void* C,
+                            Data_t C,
                             int c_offset,
                             int ldc,
                             long long int strideC,
                             int batch_count);
 
+// GEMM description for 1x1 Convolution Fwd (non-batched)
+// y = w * x
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConv1x1Fwd(const TensorDescriptor& wDesc,
+                                const TensorDescriptor& xDesc,
+                                const TensorDescriptor& yDesc);
+
+// GEMM description for 1x1 Convolution Bwd-Data (non-batched)
+// dx = transpose(w) * dy
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConv1x1BwdData(const TensorDescriptor& wDesc,
+                                    const TensorDescriptor& dyDesc,
+                                    const TensorDescriptor& dxDesc);
+
+// GEMM description for 1x1 Convolution Bwd-Weight (non-batched)
+// dw = dy * transpose(x)
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConv1x1BwdWeight(const TensorDescriptor& dyDesc,
+                                      const TensorDescriptor& xDesc,
+                                      const TensorDescriptor& dwDesc);
+
+// GEMM description for 1x1 Convolution Fwd (batched)
+// y = w * x
 std::tuple<bool,
            bool,
            bool,
@@ -98,11 +136,15 @@ std::tuple<bool,
            long long int,
            long long int,
            long long int,
-           int>
-CreateGemmStridedBatchedDescriptionConv1x1Fwd(const TensorDescriptor& xDesc,
-                                              const TensorDescriptor& wDesc,
+           int,
+           float,
+           float>
+CreateGemmStridedBatchedDescriptionConv1x1Fwd(const TensorDescriptor& wDesc,
+                                              const TensorDescriptor& xDesc,
                                               const TensorDescriptor& yDesc);
 
+// GEMM description for 1x1 Convolution Bwd-Data (batched)
+// dx = transpose(w) * dy
 std::tuple<bool,
            bool,
            bool,
@@ -115,9 +157,11 @@ std::tuple<bool,
            long long int,
            long long int,
            long long int,
-           int>
-CreateGemmStridedBatchedDescriptionConv1x1BwdData(const TensorDescriptor& dyDesc,
-                                                  const TensorDescriptor& wDesc,
+           int,
+           float,
+           float>
+CreateGemmStridedBatchedDescriptionConv1x1BwdData(const TensorDescriptor& wDesc,
+                                                  const TensorDescriptor& dyDesc,
                                                   const TensorDescriptor& dxDesc);
 
 } // namespace miopen
@@ -217,19 +261,6 @@ void RunGemmGeometryRNN(Handle& handle,
                         bool isDataColMajor,
                         std::string& network_config,
                         float timeout);
-
-GemmGeometry CreateMIOpenGemmGeometry(int M,
-                                      int N,
-                                      int K,
-                                      int lda,
-                                      int ldb,
-                                      int ldc,
-                                      bool tA,
-                                      bool tB,
-                                      bool isDataColMajor,
-                                      float alpha,
-                                      float beta);
-
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_GEMM_HPP_
