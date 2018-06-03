@@ -203,7 +203,7 @@ void GemmGeometry::RunGemmSimple(Handle& handle,
                                  Data_t c,
                                  int a_offset,
                                  int b_offset,
-                                 int c_offset)
+                                 int c_offset) const
 {
     std::string network_config = tgg.get_networkconfig_string();
 
@@ -211,7 +211,7 @@ void GemmGeometry::RunGemmSimple(Handle& handle,
     {
         std::cout << __func__ << ": alpha " << alpha << ", beta " << beta << std::endl;
 
-        auto const & kernels = handle.GetKernels(algorithm_name, network_config);
+        auto const& kernels = handle.GetKernels(algorithm_name, network_config);
 
         for(const auto& k : kernels)
         {
@@ -230,8 +230,12 @@ void GemmGeometry::RunGemmSimple(Handle& handle,
     RunGemmTmp(handle, a, b, c, a_offset, b_offset, c_offset);
 }
 
-void GemmGeometry::FindSolutionTmp(
-    float time, Handle& handle, ConstData_t a, ConstData_t b, Data_t c, bool enforce_determinism)
+void GemmGeometry::FindSolutionTmp(float time,
+                                   Handle& handle,
+                                   ConstData_t a,
+                                   ConstData_t b,
+                                   Data_t c,
+                                   bool enforce_determinism) const
 {
 #if MIOPEN_BACKEND_OPENCL
     // jn : print search results to terminal
@@ -280,8 +284,7 @@ void GemmGeometry::FindSolutionTmp(
     //   kernel_0: c = alpha * a * b + c, (if beta == 1) or
     //   kernel_1: c = alpha * a * b + beta * c, (if beta != 1) or
     //   kernel_2: c = beta * c (needs to work together with kernel_0)
-    handle.AddKernel(
-        algorithm_name, network_config, kernel_clstring, kernel_name, vld, vgd, "", 0);
+    handle.AddKernel(algorithm_name, network_config, kernel_clstring, kernel_name, vld, vgd, "", 0);
 
     //
     {
@@ -320,10 +323,9 @@ void GemmGeometry::FindSolutionTmp(
             "",
             1);
 
-        //debug
+        // debug
         {
-            std::cout << __func__ << ": after added 2nd kernel: " << beta_kernel_name
-                      << std::endl;
+            std::cout << __func__ << ": after added 2nd kernel: " << beta_kernel_name << std::endl;
 
             const auto& kernels = handle.GetKernels(algorithm_name, network_config);
 
@@ -341,7 +343,7 @@ void GemmGeometry::RunGemmTmp(Handle& handle,
                               Data_t c,
                               int a_offset,
                               int b_offset,
-                              int c_offset)
+                              int c_offset) const
 {
     std::string network_config = tgg.get_networkconfig_string();
 
