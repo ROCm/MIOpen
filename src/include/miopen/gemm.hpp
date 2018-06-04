@@ -143,6 +143,20 @@ CreateGemmDescriptionConv1x1BwdWeight(const TensorDescriptor& dyDesc,
                                       const TensorDescriptor& xDesc,
                                       const TensorDescriptor& dwDesc);
 
+// GEMM description for 1x1 Convolution (using CNHW) Fwd (non-batched)
+// y = CNHW2NCHW(w * NCHW2CNHW(x))
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConvCNHWFwd(const TensorDescriptor& wDesc,
+                                 const TensorDescriptor& xDesc,
+                                 const TensorDescriptor& yDesc);
+
+// GEMM description for 1x1 Convolution (using CNHW) Bwd-Data (non-batched)
+// dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConvCNHWBwdData(const TensorDescriptor& wDesc,
+                                     const TensorDescriptor& dyDesc,
+                                     const TensorDescriptor& dxDesc);
+
 // GEMM description for 1x1 Convolution Fwd (batched)
 // y = w * x
 std::tuple<bool,
