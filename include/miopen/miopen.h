@@ -1763,7 +1763,7 @@ MIOPEN_EXPORT miopenStatus_t miopenIsFusionPlanValid(miopenFusionPlanDescriptor_
 */
 MIOPEN_EXPORT miopenStatus_t miopenDestroyOperator(miopenOperatorDescriptor_t miopenOp);
 
-// Convolution create op ---
+// Convolution create op with known algorithm---
 /*! @brief Creates forward convolution operator.
 *
 * @param fusePlanDesc   A fusion plan descriptor (input)
@@ -1773,7 +1773,7 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyOperator(miopenOperatorDescriptor_t mi
 * @param wDesc          Descriptor for the weights tensor (input)
 * @return               miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+MIOPEN_EXPORT miopenStatus_t miopenCreateOpConvForwardAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
                                                        miopenOperatorDescriptor_t* convOp,
                                                        miopenConvolutionDescriptor_t convDesc,
                                                        miopenConvFwdAlgorithm_t fwdAlgo,
@@ -1789,7 +1789,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescripto
 * @return               miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
-miopenCreateOpConvBackwardData(miopenFusionPlanDescriptor_t fusePlanDesc,
+miopenCreateOpConvBackwardDataAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
                                miopenOperatorDescriptor_t* convOp,
                                miopenConvolutionDescriptor_t convDesc,
                                miopenConvBwdDataAlgorithm_t bwdDataAlgo,
@@ -1811,6 +1811,53 @@ miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
                                   miopenConvBwdWeightsAlgorithm_t bwdWeightsAlgo,
                                   const miopenTensorDescriptor_t wDesc);
 //---
+
+
+
+// Convolution create op for unknown algorithm ---
+/*! @brief Creates forward convolution operator.
+*
+* @param fusePlanDesc   A fusion plan descriptor (input)
+* @param convOp         Pointer to an operator type (output)
+* @param convDesc       Convolution layer descriptor (input)
+* @param wDesc          Descriptor for the weights tensor (input)
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                       miopenOperatorDescriptor_t* convOp,
+                                                       miopenConvolutionDescriptor_t convDesc,
+                                                       const miopenTensorDescriptor_t wDesc);
+
+/*! @brief Creates backwards data convolution operator.
+*
+* @param fusePlanDesc   A fusion plan descriptor (input)
+* @param convOp         Pointer to an operator type (output)
+* @param convDesc       Convolution layer descriptor (input)
+* @param wDesc          Descriptor for the weights tensor (input)
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateOpConvBackwardData(miopenFusionPlanDescriptor_t fusePlanDesc,
+                               miopenOperatorDescriptor_t* convOp,
+                               miopenConvolutionDescriptor_t convDesc,
+                               const miopenTensorDescriptor_t wDesc);
+
+/*! @brief Creates backwards weights convolution operator.
+*
+* @param fusePlanDesc    A fusion plan descriptor (input)
+* @param convOp          Pointer to an operator type (output)
+* @param convDesc        Convolution layer descriptor (input)
+* @param wDesc           Descriptor for the weights tensor (input)
+* @return                miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                  miopenOperatorDescriptor_t* convOp,
+                                  miopenConvolutionDescriptor_t convDesc,
+                                  const miopenTensorDescriptor_t wDesc);
+//---
+
+
 
 // Activation create ops ---
 /*! @brief Creates a foward activation operator.
