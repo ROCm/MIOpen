@@ -581,6 +581,86 @@ CreateGemmDescriptionConv1x1BwdWeight(const TensorDescriptor& dyDesc,
     return std::make_tuple(isColMajor, transA, transB, m, n, k, lda, ldb, ldc, alpha, beta);
 }
 
+// y = CNHW2NCHW(w * NCHW2CNHW(x))
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConvCNHWFwd(const TensorDescriptor& wDesc,
+                                 const TensorDescriptor& xDesc,
+                                 const TensorDescriptor& yDesc)
+{
+    bool isColMajor, transA, transB;
+    int m, n, k, lda, ldb, ldc;
+    float alpha, beta;
+
+    std::cout << std::endl << __func__ << std::endl;
+
+    std::cout << __func__ << ": wDesc: " << wDesc << std::endl;
+    std::cout << __func__ << ": xDesc: " << xDesc << std::endl;
+    std::cout << __func__ << ": yDesc: " << yDesc << std::endl;
+
+    int in_n, in_c;
+    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+
+    int wei_n;
+    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
+
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
+
+    isColMajor = false;
+    transA     = false;
+    transB     = false;
+    m          = wei_n;
+    n          = in_n * out_h * out_w;
+    k          = in_c;
+    lda        = k;
+    ldb        = n;
+    ldc        = n;
+    alpha      = 1.;
+    beta       = 0.;
+
+    return std::make_tuple(isColMajor, transA, transB, m, n, k, lda, ldb, ldc, alpha, beta);
+}
+
+// dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConvCNHWBwdData(const TensorDescriptor& wDesc,
+                                     const TensorDescriptor& dyDesc,
+                                     const TensorDescriptor& dxDesc)
+{
+    bool isColMajor, transA, transB;
+    int m, n, k, lda, ldb, ldc;
+    float alpha, beta;
+
+    std::cout << std::endl << __func__ << std::endl;
+
+    std::cout << __func__ << ":  wDesc: " << wDesc << std::endl;
+    std::cout << __func__ << ": dxDesc: " << dxDesc << std::endl;
+    std::cout << __func__ << ": dyDesc: " << dyDesc << std::endl;
+
+    int in_n, in_c;
+    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
+
+    int wei_n;
+    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
+
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
+
+    isColMajor = false;
+    transA     = true;
+    transB     = false;
+    m          = in_c;
+    n          = in_n * out_h * out_w;
+    k          = wei_n;
+    lda        = m;
+    ldb        = n;
+    ldc        = n;
+    alpha      = 1.;
+    beta       = 0.;
+
+    return std::make_tuple(isColMajor, transA, transB, m, n, k, lda, ldb, ldc, alpha, beta);
+}
+
 // y = w * x
 std::tuple<bool,
            bool,
