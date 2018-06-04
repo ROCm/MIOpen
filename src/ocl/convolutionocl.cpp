@@ -471,10 +471,12 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 {
                     std::cout << __func__ << ": convolution, miopengemm: 1x1, 14x14" << std::endl;
 
-#if 0
-                    GemmGeometry gg =
-                        CreateGemmGeometryConvFwdCNHW(xDesc, wDesc, yDesc, false, network_config);
-#else
+                    transpose_NCHW2CNHW(
+                        handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
+                    time_gemm = handle.GetKernelTime();
+
+                    size_t x_t_size = in_n * in_c * out_h * out_w;
+
                     bool isColMajor, transA, transB;
                     int m, n, k, lda, ldb, ldc;
                     float gemm_alpha, gemm_beta;
@@ -483,17 +485,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                     std::tie(
                         isColMajor, transA, transB, m, n, k, lda, ldb, ldc, gemm_alpha, gemm_beta) =
                         CreateGemmDescriptionConvCNHWFwd(wDesc, xDesc, yDesc);
-#endif
 
-                    transpose_NCHW2CNHW(
-                        handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
-                    time_gemm = handle.GetKernelTime();
-
-                    size_t x_t_size = in_n * in_c * out_h * out_w;
-
-#if 0
-                    gg.RunGemmSimple(handle, workSpace, w, tmp_y.get(), 0, 0, 0);
-#else
                     // y = CNHW2NCHW(w * NCHW2CNHW(x))
                     CallGemm(handle,
                              isColMajor,
@@ -513,7 +505,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                              tmp_y.get(),
                              0,
                              ldc);
-#endif
 
                     time_gemm += handle.GetKernelTime();
 
@@ -1075,10 +1066,14 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 assert(workSpace != nullptr &&
                        workSpaceSize >= ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc));
 
-#if 0
-                GemmGeometry gg =
-                    CreateGemmGeometryConvFwdCNHW(xDesc, wDesc, yDesc, false, network_config);
-#else
+                float t1 = 0;
+                transpose_NCHW2CNHW(
+                    handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
+                if(handle.IsProfilingEnabled())
+                    t1 = handle.GetKernelTime();
+
+                size_t x_t_size = in_n * in_c * out_h * out_w;
+
                 bool isColMajor, transA, transB;
                 int m, n, k, lda, ldb, ldc;
                 float gemm_alpha, gemm_beta;
@@ -1087,18 +1082,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 std::tie(
                     isColMajor, transA, transB, m, n, k, lda, ldb, ldc, gemm_alpha, gemm_beta) =
                     CreateGemmDescriptionConvCNHWFwd(wDesc, xDesc, yDesc);
-#endif
 
-                float t1 = 0;
-                transpose_NCHW2CNHW(
-                    handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
-                if(handle.IsProfilingEnabled())
-                    t1 = handle.GetKernelTime();
-
-                size_t x_t_size = in_n * in_c * out_h * out_w;
-#if 0
-                gg.RunGemmSimple(handle, workSpace, w, workSpace, 0, 0, x_t_size);
-#else
                 // y = CNHW2NCHW(w * NCHW2CNHW(x))
                 CallGemm(handle,
                          isColMajor,
@@ -1118,7 +1102,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                          workSpace,
                          x_t_size,
                          ldc);
-#endif
 
                 if(handle.IsProfilingEnabled())
                     t1 += handle.GetKernelTime();
@@ -1762,10 +1745,10 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 SetTensor(handle, dxDesc, tmp_dx.get(), &zero);
                 time_gemm = handle.GetKernelTime();
 
-#if 0
-                GemmGeometry gg =
-                    CreateGemmGeometryConvBwdDataCNHW(dyDesc, wDesc, dxDesc, true, network_config);
-#else
+                transpose_NCHW2CNHW(
+                    handle, in_n, wei_n, out_h, out_w, out_h, out_w, dy, workSpace, 0, 0, 1, 1);
+                time_gemm += handle.GetKernelTime();
+
                 bool isColMajor, transA, transB;
                 int m, n, k, lda, ldb, ldc;
                 float gemm_alpha, gemm_beta;
@@ -1774,15 +1757,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 std::tie(
                     isColMajor, transA, transB, m, n, k, lda, ldb, ldc, gemm_alpha, gemm_beta) =
                     CreateGemmDescriptionConvCNHWBwdData(wDesc, dyDesc, dxDesc);
-#endif
 
-                transpose_NCHW2CNHW(
-                    handle, in_n, wei_n, out_h, out_w, out_h, out_w, dy, workSpace, 0, 0, 1, 1);
-                time_gemm += handle.GetKernelTime();
-
-#if 0
-                gg.RunGemmSimple(handle, w, dy, tmp_dx.get(), 0, 0, 0);
-#else
                 // dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
                 CallGemm(handle,
                          isColMajor,
@@ -1802,7 +1777,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                          tmp_dx.get(),
                          0,
                          ldc);
-#endif
 
                 time_gemm += handle.GetKernelTime();
 
@@ -2231,10 +2205,11 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 assert(workSpace != nullptr &&
                        workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc));
 
-#if 0
-                GemmGeometry gg =
-                    CreateGemmGeometryConvBwdDataCNHW(dyDesc, wDesc, dxDesc, true, network_config);
-#else
+                transpose_NCHW2CNHW(
+                    handle, in_n, wei_n, out_h, out_w, out_h, out_w, dy, workSpace, 0, 0, 1, 1);
+                if(handle.IsProfilingEnabled())
+                    t1 += handle.GetKernelTime();
+
                 bool isColMajor, transA, transB;
                 int m, n, k, lda, ldb, ldc;
                 float gemm_alpha, gemm_beta;
@@ -2243,16 +2218,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 std::tie(
                     isColMajor, transA, transB, m, n, k, lda, ldb, ldc, gemm_alpha, gemm_beta) =
                     CreateGemmDescriptionConvCNHWBwdData(wDesc, dyDesc, dxDesc);
-#endif
 
-                transpose_NCHW2CNHW(
-                    handle, in_n, wei_n, out_h, out_w, out_h, out_w, dy, workSpace, 0, 0, 1, 1);
-                if(handle.IsProfilingEnabled())
-                    t1 += handle.GetKernelTime();
-
-#if 0
-                gg.RunGemmSimple(handle, w, workSpace, workSpace, 0, 0, dyDesc.GetElementSize());
-#else
                 // dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
                 CallGemm(handle,
                          isColMajor,
@@ -2272,7 +2238,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                          workSpace,
                          dyDesc.GetElementSize(),
                          ldc);
-#endif
 
                 if(handle.IsProfilingEnabled())
                     t1 += handle.GetKernelTime();
