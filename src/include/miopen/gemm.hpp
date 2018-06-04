@@ -58,7 +58,6 @@ GemmGeometry CreateMIOpenGemmGeometry(bool isColMajor,
 //   and leading dimension stride is:
 //     cross-column memory stride for column-major A, B, C,
 //     cross-row    memory stride for row   -major A, B, C.
-// strideA, strideB, strideC are the strides of the matrices
 void CallGemm(Handle& handle,
               bool isColMajor,
               bool transA,
@@ -78,6 +77,8 @@ void CallGemm(Handle& handle,
               int c_offset,
               int ldc);
 
+// strided batched GEMM
+//   strideA, strideB, strideC are the strides of the matrices
 void CallGemmStridedBatched(Handle& handle,
                             bool isColMajor,
                             bool transA,
@@ -101,63 +102,63 @@ void CallGemmStridedBatched(Handle& handle,
                             long long int strideC,
                             int batch_count);
 
-// GEMM description for Convolution Fwd (non-batched)
+// GEMM description for Convolution (using Im2Col) Fwd
 // y = w * Im2Col(x)
 std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
 CreateGemmDescriptionConvFwd(const TensorDescriptor& wDesc,
                              const TensorDescriptor& xDesc,
                              const TensorDescriptor& yDesc);
 
-// GEMM description for Convolution Bwd (non-batched)
+// GEMM description for Convolution (using Im2Col) Bwd-Data
 // dx = Col2Im(transpose(w) * dy)
 std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
 CreateGemmDescriptionConvBwdData(const TensorDescriptor& wDesc,
                                  const TensorDescriptor& dyDesc,
                                  const TensorDescriptor& dxDesc);
 
-// GEMM description for Convolution Bwd-Weight (non-batched)
+// GEMM description for Convolution (using Im2Col) Bwd-Weight
 // dw = dy * transpose(Im2Col(x))
 std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
 CreateGemmDescriptionConvBwdWeight(const TensorDescriptor& dyDesc,
                                    const TensorDescriptor& xDesc,
                                    const TensorDescriptor& dwDesc);
 
-// GEMM description for 1x1 Convolution Fwd (non-batched)
+// GEMM description for 1x1 Convolution Fwd
 // y = w * x
 std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
 CreateGemmDescriptionConv1x1Fwd(const TensorDescriptor& wDesc,
                                 const TensorDescriptor& xDesc,
                                 const TensorDescriptor& yDesc);
 
-// GEMM description for 1x1 Convolution Bwd-Data (non-batched)
+// GEMM description for 1x1 Convolution Bwd-Data
 // dx = transpose(w) * dy
 std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
 CreateGemmDescriptionConv1x1BwdData(const TensorDescriptor& wDesc,
                                     const TensorDescriptor& dyDesc,
                                     const TensorDescriptor& dxDesc);
 
-// GEMM description for 1x1 Convolution Bwd-Weight (non-batched)
+// GEMM description for 1x1 Convolution Bwd-Weight
 // dw = dy * transpose(x)
 std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
 CreateGemmDescriptionConv1x1BwdWeight(const TensorDescriptor& dyDesc,
                                       const TensorDescriptor& xDesc,
                                       const TensorDescriptor& dwDesc);
 
-// GEMM description for 1x1 Convolution (using CNHW) Fwd (non-batched)
+// GEMM description for 1x1 Convolution (using CNHW) Fwd
 // y = CNHW2NCHW(w * NCHW2CNHW(x))
 std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
 CreateGemmDescriptionConvCNHWFwd(const TensorDescriptor& wDesc,
                                  const TensorDescriptor& xDesc,
                                  const TensorDescriptor& yDesc);
 
-// GEMM description for 1x1 Convolution (using CNHW) Bwd-Data (non-batched)
+// GEMM description for 1x1 Convolution (using CNHW) Bwd-Data
 // dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
 std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
 CreateGemmDescriptionConvCNHWBwdData(const TensorDescriptor& wDesc,
                                      const TensorDescriptor& dyDesc,
                                      const TensorDescriptor& dxDesc);
 
-// GEMM description for 1x1 Convolution Fwd (batched)
+// batched GEMM description for 1x1 Convolution Fwd
 // y = w * x
 std::tuple<bool,
            bool,
@@ -178,7 +179,7 @@ CreateGemmStridedBatchedDescriptionConv1x1Fwd(const TensorDescriptor& wDesc,
                                               const TensorDescriptor& xDesc,
                                               const TensorDescriptor& yDesc);
 
-// GEMM description for 1x1 Convolution Bwd-Data (batched)
+// batched GEMM description for 1x1 Convolution Bwd-Data
 // dx = transpose(w) * dy
 std::tuple<bool,
            bool,
