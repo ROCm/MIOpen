@@ -63,8 +63,8 @@ extern "C" miopenStatus_t miopenIsFusionPlanValid(miopenFusionPlanDescriptor_t f
     return (miopenStatusSuccess);
 }
 
-// Create convolution ops
-extern "C" miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+// Create convolution ops with known algorithm
+extern "C" miopenStatus_t miopenCreateOpConvForwardAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
                                                     miopenOperatorDescriptor_t* convOp,
                                                     miopenConvolutionDescriptor_t convDesc,
                                                     miopenConvFwdAlgorithm_t fwdAlgo,
@@ -74,7 +74,9 @@ extern "C" miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t
     return (miopenStatusSuccess);
 }
 
-extern "C" miopenStatus_t miopenCreateOpConvBackwardData(miopenFusionPlanDescriptor_t fusePlanDesc,
+
+
+extern "C" miopenStatus_t miopenCreateOpConvBackwardDataAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
                                                          miopenOperatorDescriptor_t* convOp,
                                                          miopenConvolutionDescriptor_t convDesc,
                                                          miopenConvBwdDataAlgorithm_t bwdDataAlgo,
@@ -85,7 +87,7 @@ extern "C" miopenStatus_t miopenCreateOpConvBackwardData(miopenFusionPlanDescrip
 }
 
 extern "C" miopenStatus_t
-miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
+miopenCreateOpConvBackwardWeightsAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
                                   miopenOperatorDescriptor_t* convOp,
                                   miopenConvolutionDescriptor_t convDesc,
                                   miopenConvBwdWeightsAlgorithm_t bwdWeightsAlgo,
@@ -94,6 +96,39 @@ miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
     MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, bwdWeightsAlgo, wDesc);
     return (miopenStatusSuccess);
 }
+
+
+// Create convolution ops with unknown algorithms
+extern "C" miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                    miopenOperatorDescriptor_t* convOp,
+                                                    miopenConvolutionDescriptor_t convDesc,
+                                                    const miopenTensorDescriptor_t wDesc)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, wDesc);
+    return (miopenStatusSuccess);
+}
+
+
+extern "C" miopenStatus_t miopenCreateOpConvBackwardData(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                         miopenOperatorDescriptor_t* convOp,
+                                                         miopenConvolutionDescriptor_t convDesc,
+                                                         const miopenTensorDescriptor_t wDesc)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, wDesc);
+    return (miopenStatusSuccess);
+}
+
+extern "C" miopenStatus_t
+miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                  miopenOperatorDescriptor_t* convOp,
+                                  miopenConvolutionDescriptor_t convDesc,
+                                  const miopenTensorDescriptor_t wDesc)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, wDesc);
+    return (miopenStatusSuccess);
+}
+
+
 //---
 
 // Activation create ops
