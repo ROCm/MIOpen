@@ -424,7 +424,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                          batch_count,
                          gemm_alpha,
                          gemm_beta) =
-                    CreateGemmStridedBatchedDescriptionConv1x1Fwd(wDesc, xDesc, yDesc);
+                    CreateGemmStridedBatchedDescriptionConvFwd(wDesc, xDesc, yDesc);
 
                 // y = w * x
                 CallGemmStridedBatched(handle,
@@ -540,7 +540,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 // y = w * x
                 std::tie(
                     isColMajor, transA, transB, m, n, k, lda, ldb, ldc, gemm_alpha, gemm_beta) =
-                    CreateGemmDescriptionConv1x1Fwd(wDesc, xDesc, yDesc);
+                    CreateGemmDescriptionConvFwd(wDesc, xDesc, yDesc);
 
                 // y = w * x
                 CallGemm(handle,
@@ -1027,7 +1027,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                              batch_count,
                              gemm_alpha,
                              gemm_beta) =
-                        CreateGemmStridedBatchedDescriptionConv1x1Fwd(wDesc, xDesc, yDesc);
+                        CreateGemmStridedBatchedDescriptionConvFwd(wDesc, xDesc, yDesc);
 
                     // y = w * x
                     CallGemmStridedBatched(handle,
@@ -1142,7 +1142,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 // y = w * x
                 std::tie(
                     isColMajor, transA, transB, m, n, k, lda, ldb, ldc, gemm_alpha, gemm_beta) =
-                    CreateGemmDescriptionConv1x1Fwd(wDesc, xDesc, yDesc);
+                    CreateGemmDescriptionConvFwd(wDesc, xDesc, yDesc);
 
                 for(int i = 0; i < in_n; i++)
                 {
@@ -1697,7 +1697,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                          batch_count,
                          gemm_alpha,
                          gemm_beta) =
-                    CreateGemmStridedBatchedDescriptionConv1x1BwdData(wDesc, dyDesc, dxDesc);
+                    CreateGemmStridedBatchedDescriptionConvBwdData(wDesc, dyDesc, dxDesc);
 
                 // dx = transpose(w) * dy
                 CallGemmStridedBatched(handle,
@@ -1812,7 +1812,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 // dx = transpose(w) * dy
                 std::tie(
                     isColMajor, transA, transB, m, n, k, lda, ldb, ldc, gemm_alpha, gemm_beta) =
-                    CreateGemmDescriptionConv1x1BwdData(wDesc, dyDesc, dxDesc);
+                    CreateGemmDescriptionConvBwdData(wDesc, dyDesc, dxDesc);
 
                 // dx = transpose(w) * dy
                 CallGemm(handle,
@@ -2163,7 +2163,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                          batch_count,
                          gemm_alpha,
                          gemm_beta) =
-                    CreateGemmStridedBatchedDescriptionConv1x1BwdData(wDesc, dyDesc, dxDesc);
+                    CreateGemmStridedBatchedDescriptionConvBwdData(wDesc, dyDesc, dxDesc);
 
                 // dx = transpose(w) * dy
                 CallGemmStridedBatched(handle,
@@ -2277,7 +2277,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 // dx = transpose(w) * dy
                 std::tie(
                     isColMajor, transA, transB, m, n, k, lda, ldb, ldc, gemm_alpha, gemm_beta) =
-                    CreateGemmDescriptionConv1x1BwdData(wDesc, dyDesc, dxDesc);
+                    CreateGemmDescriptionConvBwdData(wDesc, dyDesc, dxDesc);
 
                 float time_0 = 0;
                 for(int i = 0; i < in_n; i++)
