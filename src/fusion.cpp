@@ -80,7 +80,9 @@ TensorDescriptor FusionPlanDescriptor::DeriveOutputDescriptor()
     return o_desc;
 }
 
-miopenStatus_t FusionPlanDescriptor::GetWorkspaceSize(Handle& handle, size_t& workSpaceSize)
+miopenStatus_t FusionPlanDescriptor::GetWorkspaceSizeImmed(Handle& handle,
+                                                           size_t& workSpaceSize,
+                                                           miopenConvFwdAlgorithm_t algo)
 {
     workSpaceSize = 0;
     // iterate over all the conv ops in the plan and return the max amount of
@@ -92,9 +94,10 @@ miopenStatus_t FusionPlanDescriptor::GetWorkspaceSize(Handle& handle, size_t& wo
             auto ptr = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(op.second);
             TensorDescriptor opd;
             ptr->GetOutputDesc(opd);
-            size_t tmp_sz = ptr->base_desc.ForwardGetWorkSpaceSize(
-                handle, ptr->filter_desc, ptr->input_desc, opd);
-            if(tmp_sz > workSpaceSize)
+            bool supported = false;
+            size_t tmp_sz  = ptr->base_desc.ForwardGetWorkSpaceSizeImmed(
+                handle, ptr->filter_desc, ptr->input_desc, opd, algo, supported);
+            if(supported && (tmp_sz > workSpaceSize))
                 workSpaceSize = tmp_sz;
         }
     }
