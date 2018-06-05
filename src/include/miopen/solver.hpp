@@ -212,19 +212,19 @@ auto SearchForSolution(const Context& search_params, Db db) ->
 #endif
         auto no_perf_filtering = miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{});
 
-    // clang-format off
-    MIOPEN_STATIC_FOR_EACH(solver, Solvers{}, {
-        if(!solution.Succeeded() && solver.IsApplicable(search_params) &&
-           (no_perf_filtering || solver.IsFast(search_params)))
-        {
-            solution = FindSolution(solver, search_params, db);
-            if(solution.Succeeded() && solution.construction_params.empty())
+    miopen::each_args(
+        [&](auto solver) {
+            if(!solution.Succeeded() && solver.IsApplicable(search_params) &&
+               (no_perf_filtering || solver.IsFast(search_params)))
             {
-                MIOPEN_THROW(std::string("Internal error in solver: ") + SolverDbId(solver));
+                solution = FindSolution(solver, search_params, db);
+                if(solution.Succeeded() && solution.construction_params.empty())
+                {
+                    MIOPEN_THROW(std::string("Internal error in solver: ") + SolverDbId(solver));
+                }
             }
-        }
-    });
-    // clang-format on
+        },
+        Solvers{}...);
 
     return solution;
 }

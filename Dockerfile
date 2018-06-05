@@ -76,18 +76,10 @@ RUN ln -s $PREFIX /opt/rocm/hcc
 # Build using hcc
 RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
 
-# Install cppcheck
-RUN cget -p $PREFIX install danmar/cppcheck@fe1b1d537ecaa0e573000f7d073a0e661e3256f2
-
-# Install hip
-RUN cget -p $PREFIX install ROCm-Developer-Tools/HIP@5d4e14011fa80e44298ffa36ff36400cab82da69
-
-RUN cget -p $PREFIX install pfultz2/rocm-recipes
-
 # Install dependencies
 ADD dev-requirements.txt /dev-requirements.txt
+ADD requirements.txt /requirements.txt
 RUN CXXFLAGS='-isystem $PREFIX/include' cget -p $PREFIX install -f /dev-requirements.txt
-RUN cget -p $PREFIX install RadeonOpenCompute/clang-ocl@a180592885ecae5b8beadf667c633c246cec82b6
 
 # Install doc requirements
 ADD doc/requirements.txt /doc-requirements.txt
@@ -102,7 +94,7 @@ RUN cget -p $PREFIX/x86_64-w64-mingw32/opencl init -t $PREFIX/x86_64-w64-mingw32
 RUN cget -p $PREFIX/x86_64-w64-mingw32 install pfultz2/rocm-recipes
 RUN cget -p $PREFIX/x86_64-w64-mingw32 install -X header meganz/mingw-std-threads@dad05201ad4e096c5d1b2043081f412aeb8f5efb
 RUN ln -s $PREFIX/x86_64-w64-mingw32/include/mingw.thread.h $PREFIX/x86_64-w64-mingw32/include/thread 
-# RUN CXXFLAGS='-I $PREFIX/x86_64-w64-mingw32/include' AMDAPPSDKROOT=$PREFIX/x86_64-w64-mingw32/opencl cget -p $PREFIX/x86_64-w64-mingw32 install -f /dev-requirements.txt
+# RUN CXXFLAGS='-I $PREFIX/x86_64-w64-mingw32/include' AMDAPPSDKROOT=$PREFIX/x86_64-w64-mingw32/opencl cget -p $PREFIX/x86_64-w64-mingw32 install -f /requirements.txt
 
 # Setup wine
 RUN mkdir -p /jenkins
