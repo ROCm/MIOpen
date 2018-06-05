@@ -31,21 +31,6 @@
 
 namespace miopen {
 
-#if MIOPEN_USE_MIOPENGEMM
-// get rid of this
-GemmGeometry CreateMIOpenGemmGeometry(bool isColMajor,
-                                      bool transA,
-                                      bool transB,
-                                      int m,
-                                      int n,
-                                      int k,
-                                      int lda,
-                                      int ldb,
-                                      int ldc,
-                                      float alpha,
-                                      float beta);
-#endif
-
 // GEMM operation: C = alpha * op(A) * op(B) + beta * C.
 // op() can be either transpose or no-operation for A or B.
 // The shape (nRow x nCol) of op(A), op(B), C are:
@@ -158,7 +143,7 @@ CreateGemmDescriptionConvBwdWeight(const TensorDescriptor& dyDesc,
                                    const TensorDescriptor& xDesc,
                                    const TensorDescriptor& dwDesc);
 
-// batched GEMM description for 1x1 Convolution Fwd
+// strided batched GEMM description for 1x1 Convolution Fwd
 // y = w * x
 std::tuple<bool,
            bool,
@@ -179,7 +164,7 @@ CreateGemmStridedBatchedDescriptionConv1x1Fwd(const TensorDescriptor& wDesc,
                                               const TensorDescriptor& xDesc,
                                               const TensorDescriptor& yDesc);
 
-// batched GEMM description for 1x1 Convolution Bwd-Data
+// strided batched GEMM description for 1x1 Convolution Bwd-Data
 // dx = transpose(w) * dy
 std::tuple<bool,
            bool,
