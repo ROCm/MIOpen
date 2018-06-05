@@ -86,15 +86,14 @@ extern "C" miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t
     return res;
 }
 
-extern "C" miopenStatus_t
-miopenConvOpForwardGetWorkSpaceSize(miopenHandle_t handle, miopenFusionPlanDescriptor_t fusePlanDesc,
-                                    size_t* workSpaceSize)
+extern "C" miopenStatus_t miopenConvOpForwardGetWorkSpaceSize(
+    miopenHandle_t handle, miopenFusionPlanDescriptor_t fusePlanDesc, size_t* workSpaceSize)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, workSpaceSize);
     miopenStatus_t res;
     miopen::try_([&] {
         size_t sz;
-        res                          = miopen::deref(fusePlanDesc).GetWorkspaceSize(miopen::deref(handle), sz);
+        res = miopen::deref(fusePlanDesc).GetWorkspaceSize(miopen::deref(handle), sz);
         miopen::deref(workSpaceSize) = sz;
     });
     return res;
