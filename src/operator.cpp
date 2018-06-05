@@ -28,10 +28,7 @@
 #include <miopen/logger.hpp>
 
 namespace miopen {
-
-OperatorDescriptor::OperatorDescriptor() {}
-
-std::ostream& operator<<(std::ostream& stream, const OperatorDescriptor&) // x )
+std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor&) // x )
 {
     /*    MIOPEN_LOG_ENUM(stream,
                         x.mode,
