@@ -34,6 +34,7 @@
 #include <memory>
 #include <miopen/miopen.h>
 #include <miopen/gemm.hpp>
+#include <miopen/gemm_v2.hpp>
 #include <numeric>
 #include <vector>
 

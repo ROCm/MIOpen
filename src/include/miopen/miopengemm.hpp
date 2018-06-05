@@ -23,5 +23,36 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/errors.hpp>
-#include <miopen/gemm.hpp>
+#ifndef GUARD_MIOPEN_MIOPENGEMM_HPP_
+#define GUARD_MIOPEN_MIOPENGEMM_HPP_
+
+#include <miopen/config.h>
+
+#if MIOPEN_USE_MIOPENGEMM
+#include <miopengemm/miogemm.hpp>
+
+namespace miopen {
+
+void FindMiopengemmSolution(Handle& handle,
+                            const MIOpenGEMM::Geometry& mgg,
+                            ConstData_t A,
+                            ConstData_t B,
+                            Data_t C,
+                            float time,
+                            bool enforce_determinism);
+
+void RunMiopengemmSolution(Handle& handle,
+                           const MIOpenGEMM::Geometry& mgg,
+                           float alpha,
+                           ConstData_t A,
+                           int a_offset,
+                           ConstData_t B,
+                           int b_offset,
+                           float beta,
+                           Data_t C,
+                           int c_offset);
+
+} // namespace miopen
+#endif // MIOPEN_USE_MIOPENGEMM
+
+#endif // GUARD_MIOPEN_MIOPENGEMM_HPP_
