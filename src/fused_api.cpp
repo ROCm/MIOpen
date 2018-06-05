@@ -46,8 +46,10 @@ extern "C" miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* f
                                                  const miopenTensorDescriptor_t inputDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, fuseDirection, inputDesc);
-    return miopen::try_([&] { 
-            miopen::deref(fusePlanDesc) = new miopen::FusionPlanDescriptor(fuseDirection, miopen::deref(inputDesc));});
+    return miopen::try_([&] {
+        miopen::deref(fusePlanDesc) =
+            new miopen::FusionPlanDescriptor(fuseDirection, miopen::deref(inputDesc));
+    });
 }
 
 extern "C" miopenStatus_t
@@ -55,14 +57,14 @@ miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc)
 {
 
     MIOPEN_LOG_FUNCTION(fusePlanDesc)
-    return miopen::try_( [&] {miopen_destroy_object(fusePlanDesc);});
+    return miopen::try_([&] { miopen_destroy_object(fusePlanDesc); });
 }
 
 // Return an error code that is "NotImplemented", if it exists then return success
 extern "C" miopenStatus_t miopenIsFusionPlanValid(miopenFusionPlanDescriptor_t fusePlanDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc);
-    return miopen::try_( [&] {miopen::deref(fusePlanDesc).isValid();});
+    return miopen::try_([&] { miopen::deref(fusePlanDesc).isValid(); });
 }
 
 // Create convolution ops
@@ -75,24 +77,26 @@ extern "C" miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t
     MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, fwdAlgo, wDesc);
     miopenStatus_t res;
     miopen::try_([&] {
-      auto fod =  new miopen::ConvForwardOpDescriptor(miopen::deref(convDesc), 
-              miopen::deref(wDesc), fwdAlgo);
-      miopen::deref(convOp) = fod;
-      res = miopen::deref(fusePlanDesc).AddOp(std::shared_ptr<miopen::ConvForwardOpDescriptor>(fod));
-            });
+        auto fod = new miopen::ConvForwardOpDescriptor(
+            miopen::deref(convDesc), miopen::deref(wDesc), fwdAlgo);
+        miopen::deref(convOp) = fod;
+        res                   = miopen::deref(fusePlanDesc)
+                  .AddOp(std::shared_ptr<miopen::ConvForwardOpDescriptor>(fod));
+    });
     return res;
 }
 
-extern "C" miopenStatus_t miopenConvOpForwardGetWorkSpaceSize(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                    size_t* workSpaceSize)
+extern "C" miopenStatus_t
+miopenConvOpForwardGetWorkSpaceSize(miopenHandle_t handle, miopenFusionPlanDescriptor_t fusePlanDesc,
+                                    size_t* workSpaceSize)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, workSpaceSize);
     miopenStatus_t res;
     miopen::try_([&] {
-            size_t sz;
-      res = miopen::deref(fusePlanDesc).GetWorkspaceSize(sz);
-      miopen::deref(workSpaceSize) = sz;
-            });
+        size_t sz;
+        res                          = miopen::deref(fusePlanDesc).GetWorkspaceSize(miopen::deref(handle), sz);
+        miopen::deref(workSpaceSize) = sz;
+    });
     return res;
 }
 
@@ -127,10 +131,12 @@ miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
     // The fusion plan creates the op and makes a note of it in the map
     MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, activDesc);
     miopenStatus_t res;
-    miopen::try_( [&] { 
-            miopen::ActivFusionOpDescriptor* fod = new miopen::ActivFusionOpDescriptor(miopen::deref(activDesc));
-            miopen::deref(activOp) =  fod;
-            res = miopen::deref(fusePlanDesc).AddOp(std::shared_ptr<miopen::ActivFusionOpDescriptor>(fod));
+    miopen::try_([&] {
+        miopen::ActivFusionOpDescriptor* fod =
+            new miopen::ActivFusionOpDescriptor(miopen::deref(activDesc));
+        miopen::deref(activOp) = fod;
+        res                    = miopen::deref(fusePlanDesc)
+                  .AddOp(std::shared_ptr<miopen::ActivFusionOpDescriptor>(fod));
     });
     return res;
 }
@@ -203,15 +209,13 @@ extern "C" miopenStatus_t miopenCreateOpPoolingBackward(miopenFusionPlanDescript
 extern "C" miopenStatus_t miopenCreateOperatorArgs(miopenOperatorArgs_t* args)
 {
     MIOPEN_LOG_FUNCTION(args);
-    return miopen::try_( [&] {
-            miopen::deref(args) = new miopen::OperatorArgs();
-            });
+    return miopen::try_([&] { miopen::deref(args) = new miopen::OperatorArgs(); });
 }
 
 extern "C" miopenStatus_t miopenDestroyOperatorArgs(miopenOperatorArgs_t args)
 {
     MIOPEN_LOG_FUNCTION(args);
-    return miopen::try_([&] { miopen_destroy_object(args);});
+    return miopen::try_([&] { miopen_destroy_object(args); });
 }
 
 // Fusion op args for Convolution
@@ -222,7 +226,8 @@ extern "C" miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
                                                      const void* w)
 {
     MIOPEN_LOG_FUNCTION(args, alpha, beta, convOp, w);
-    miopen::ConvForwardOpDescriptor& op = dynamic_cast<miopen::ConvForwardOpDescriptor&>(miopen::deref(convOp));
+    miopen::ConvForwardOpDescriptor& op =
+        dynamic_cast<miopen::ConvForwardOpDescriptor&>(miopen::deref(convOp));
     return op.SetArgs(miopen::deref(args), alpha, beta, DataCast(w));
 }
 

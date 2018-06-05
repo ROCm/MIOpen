@@ -43,10 +43,10 @@
 namespace miopen {
 
 typedef enum {
-    miopenFusionOpConv = 0,
-    miopenFusionOpActiv = 1,
+    miopenFusionOpConv      = 0,
+    miopenFusionOpActiv     = 1,
     miopenFusionOpBatchNorm = 2,
-    miopenFusionOpPool = 3,
+    miopenFusionOpPool      = 3,
 } miopenFusionOp_t;
 
 /*! @struct miopenEdge_t
@@ -87,58 +87,62 @@ struct OperatorArgs : miopenOperatorArgs
 struct FusionOpDescriptor : miopenFusionOpDescriptor
 {
     virtual ~FusionOpDescriptor() = 0;
-    void SetIdx(int _id){plan_idx = _id;};
-    int GetIdx() {return plan_idx;};
-    virtual miopenStatus_t GetOutputDesc(const TensorDescriptor& input_desc, TensorDescriptor& output_desc);
+    void SetIdx(int _id) { plan_idx = _id; };
+    int GetIdx() { return plan_idx; };
+    virtual miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) = 0;
     friend std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x);
     virtual miopenFusionOp_t name() = 0;
-
+    void SetInputDesc(TensorDescriptor i_desc) {input_desc = i_desc;};
+    
+    TensorDescriptor input_desc;
+    
     private:
-    int plan_idx = 0;
-    std::shared_ptr<OperatorArgs> args=nullptr;
+    int plan_idx                       = 0;
+    std::shared_ptr<OperatorArgs> args = nullptr;
 };
 
-struct ActivFusionOpDescriptor: FusionOpDescriptor
+struct ActivFusionOpDescriptor : FusionOpDescriptor
 {
-    ActivFusionOpDescriptor(ActivationDescriptor& desc):base_desc(desc){} ;
-    miopenStatus_t GetOutputDesc(const TensorDescriptor& input_desc, TensorDescriptor& output_desc);
-    miopenFusionOp_t name() {return miopenFusionOpActiv;};
+    ActivFusionOpDescriptor(ActivationDescriptor& desc) : base_desc(desc){};
+    miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc);
+    miopenFusionOp_t name() { return miopenFusionOpActiv; };
 
     ActivationDescriptor& base_desc;
 };
 
-struct ConvForwardOpDescriptor: FusionOpDescriptor
+struct ConvForwardOpDescriptor : FusionOpDescriptor
 {
-    ConvForwardOpDescriptor(ConvolutionDescriptor& conv_descriptor, 
-            TensorDescriptor& filter_descriptor, miopenConvFwdAlgorithm_t fwd_algo):base_desc(conv_descriptor), filter_desc(filter_descriptor), algo(fwd_algo) {};
-    miopenStatus_t GetOutputDesc(const TensorDescriptor& i_desc, TensorDescriptor& output_desc);
+    ConvForwardOpDescriptor(ConvolutionDescriptor& conv_descriptor,
+                            TensorDescriptor& filter_descriptor,
+                            miopenConvFwdAlgorithm_t fwd_algo)
+        : base_desc(conv_descriptor), filter_desc(filter_descriptor), algo(fwd_algo){};
+    miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc);
     miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, const Data_t w);
-    miopenFusionOp_t name() {return miopenFusionOpConv;};
+    miopenFusionOp_t name() { return miopenFusionOpConv; };
 
     ConvolutionDescriptor& base_desc;
     TensorDescriptor& filter_desc;
-    TensorDescriptor input_desc;
     miopenConvFwdAlgorithm_t algo;
 };
 
 struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 {
-    FusionPlanDescriptor(const miopenFusionDirection_t dir, const TensorDescriptor& inDesc);
+    FusionPlanDescriptor(const miopenFusionDirection_t dir, const TensorDescriptor& inDesc): fusion_dir(dir), input_desc(inDesc) {};
     ~FusionPlanDescriptor();
-    bool isValid() const;
+    bool isValid();
     miopenStatus_t AddOp(std::shared_ptr<FusionOpDescriptor> desc);
     miopenStatus_t RemoveOp(FusionOpDescriptor& desc);
     TensorDescriptor DeriveOutputDescriptor();
-    miopenStatus_t GetWorkspaceSize(size_t& workSpaceSize);
-
+    miopenStatus_t GetWorkspaceSize(Handle& handle, size_t& workSpaceSize);
+    miopenStatus_t Execute();
     friend std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& x);
 
     private:
-    Handle handle;
     miopenFusionDirection_t fusion_dir;
     TensorDescriptor input_desc;
+    TensorDescriptor output_desc;
     int op_count = 0;
-    std::unordered_map< int, std::shared_ptr<FusionOpDescriptor> > op_map;
+    std::unordered_map<int, std::shared_ptr<FusionOpDescriptor>> op_map;
     std::vector<int> ins_order;
 };
 

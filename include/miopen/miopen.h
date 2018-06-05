@@ -1787,8 +1787,8 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescripto
 * @param workSpaceSize  Pointer to memory to return size in bytes (output)
 * @return               miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenConvOpForwardGetWorkSpaceSize(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                       size_t* workSpaceSize);
+MIOPEN_EXPORT miopenStatus_t miopenConvOpForwardGetWorkSpaceSize(miopenHandle_t handle,
+    miopenFusionPlanDescriptor_t fusePlanDesc, size_t* workSpaceSize);
 
 /*! @brief Creates backwards data convolution operator.
 *
@@ -1933,9 +1933,8 @@ miopenCreateOpPoolingBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
 * @return             miopenStatus_t
 */
 
-MIOPEN_EXPORT miopenStatus_t 
-miopenDestroyFusionOpDescriptor( miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                            miopenFusionOpDescriptor_t op);
+MIOPEN_EXPORT miopenStatus_t miopenDestroyFusionOpDescriptor(
+    miopenFusionPlanDescriptor_t fusePlanDesc, miopenFusionOpDescriptor_t op);
 /*! @brief Creates an operator argument object
 *
 * @param args        Pointer to an operator argument type (output)
