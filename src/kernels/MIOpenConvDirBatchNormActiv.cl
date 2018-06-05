@@ -1122,11 +1122,13 @@ MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
 #endif
                             __global _FLOAT* __restrict out,
                             UNUSED _FLOAT padding_val,
+#ifndef NO_BN
                             const __global _FLOAT* __restrict estimatedMean,
                             const __global _FLOAT* __restrict estimatedVariance,
                             const __global _FLOAT* __restrict scale,
                             const __global _FLOAT* __restrict bn_bias,
                             double epsilon,
+#endif
                             const _FLOAT gamma,
                             const _FLOAT beta,
                             const _FLOAT alpha)
@@ -1470,6 +1472,7 @@ MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
         uint out_off1 = out_off;
         for(uint o = 0; o < MLO_N_OUT_TILES; ++o, out_off1 += MLO_OUT_CHANNEL_STRIDE)
         {
+#ifndef NO_BN
 #ifdef SPATIAL_BN
             uint c_i            = o_map + o;
             _FLOAT pmean        = estimatedMean[c_i];
@@ -1477,6 +1480,7 @@ MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
             _FLOAT pscale       = scale[c_i];
             _FLOAT pbias        = bn_bias[c_i];
             _FLOAT pinvVariance = rsqrt(fabs(pvar + epsilon));
+#endif
 #endif
 
 #if MLO_OUTPUTS_ALIGNED == 0
@@ -1505,6 +1509,7 @@ MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
                             if(x_out_grp + x_out_lcl + i < MLO_OUT_WIDTH &&
                                out_off2 + i < MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
                             {
+#ifndef NO_BN
 #ifdef PERACT_BN
                                 uint chw_i          = (out_off2 + i) % (MLO_OUT_BATCH_STRIDE);
                                 _FLOAT pmean        = estimatedMean[chw_i];
@@ -1512,6 +1517,7 @@ MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
                                 _FLOAT pscale       = scale[chw_i];
                                 _FLOAT pbias        = bn_bias[chw_i];
                                 _FLOAT pinvVariance = rsqrt(fabs(pvar + epsilon));
+#endif
 #endif
 
 #endif
