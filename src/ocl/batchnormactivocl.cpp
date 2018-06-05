@@ -34,24 +34,24 @@
 namespace miopen {
 
 //============ BEGIN FORWARD INFERENCE ===============
-void BatchNormActivForwardInference(Handle& handle,
-                                    miopenBatchNormMode_t bn_mode,
-                                    const void* alpha,
-                                    const void* beta,
-                                    const TensorDescriptor& xDesc,
-                                    ConstData_t x,
-                                    const TensorDescriptor& yDesc,
-                                    Data_t y,
-                                    const TensorDescriptor& bnScaleBiasMeanVarDesc,
-                                    ConstData_t bnScale,
-                                    ConstData_t bnBias,
-                                    ConstData_t estimatedMean,
-                                    ConstData_t estimatedVariance,
-                                    double epsilon,
-                                    miopenActivationMode_t activ_mode,
-                                    double activ_alpha,
-                                    double activ_beta,
-                                    double activ_gama)
+void BatchNormActivInference(Handle& handle,
+                             miopenBatchNormMode_t bn_mode,
+                             const void* alpha,
+                             const void* beta,
+                             const TensorDescriptor& xDesc,
+                             ConstData_t x,
+                             const TensorDescriptor& yDesc,
+                             Data_t y,
+                             const TensorDescriptor& bnScaleBiasMeanVarDesc,
+                             ConstData_t bnScale,
+                             ConstData_t bnBias,
+                             ConstData_t estimatedMean,
+                             ConstData_t estimatedVariance,
+                             double epsilon,
+                             miopenActivationMode_t activ_mode,
+                             double activ_alpha,
+                             double activ_beta,
+                             double activ_gama)
 {
 
     if(miopen::CheckNumericsEnabled() != 0)
@@ -116,8 +116,8 @@ void BatchNormActivForwardInference(Handle& handle,
     }
     else
     {
-        std::string program_name = "MIOpenBatchNormActivFwdInfer"; // build this up
-        std::string kernel_name  = "MIOpenBatchNormActivFwdInfer";
+        std::string program_name = "MIOpenBatchNormActivInfer.cl"; // build this up
+        std::string kernel_name  = "MIOpenBatchNormActivInfer";
 
         size_t xlocalsize = 256;
         size_t ylocalsize = 1;
@@ -125,12 +125,10 @@ void BatchNormActivForwardInference(Handle& handle,
 
         if(bn_mode == miopenBNSpatial)
         { // SPATIAL kernels
-            program_name += "Spatial.cl";
             kernel_name += "SpatialEst";
         }
         else
         { // PER ACTIVATION
-            program_name += "PerAct.cl";
             kernel_name += "PerActEst";
         }
 
