@@ -401,4 +401,181 @@ void GemmGeometry::RunGemmTmp(Handle& handle,
 
 } // namespace miopen
 
+namespace miopen {
+
+// TODO: doesn't support offset to A, B, C yet
+void FindMiopengemmSolution(Handle& handle,
+                            const MIOpenGEMM::Geometry& mgg,
+                            ConstData_t A,
+                            ConstData_t B,
+                            Data_t C,
+                            float time,
+                            bool enforce_determinism)
+{
+#if MIOPEN_BACKEND_OPENCL
+    // jn : print search results to terminal
+    bool miopengemm_verbose = false;
+
+    // jn : print warning messages when the returned kernel(s) might be sub-optimal
+    bool miopengemm_warnings = false;
+
+    // jn : find with no workspace
+    MIOpenGEMM::Solution soln = MIOpenGEMM::find(time,
+                                                 handle.GetStream(),
+                                                 A,
+                                                 B,
+                                                 C,
+                                                 enforce_determinism,
+                                                 mgg,
+                                                 miopengemm_verbose,
+                                                 miopengemm_warnings);
+#else
+    (void)A;
+    (void)B;
+    (void)C;
+    (void)time;
+    (void)enforce_determinism;
+    MIOpenGEMM::Solution soln = MIOpenGEMM::get_default(mgg);
+#endif
+    // jn : the main kernel is at the back of the solution vector
+    std::string kernel_clstring = soln.v_tgks.back().kernstr;
+    tempfix::set_offsets_to_uint(kernel_clstring);
+
+    std::string kernel_name = soln.v_tgks.back().fname;
+    size_t local_work_size  = soln.v_tgks.back().local_work_size;
+    size_t global_work_size = soln.v_tgks.back().global_work_size;
+
+    std::vector<size_t> vld{local_work_size, 1, 1};
+    std::vector<size_t> vgd{global_work_size, 1, 1};
+
+    //
+    const std::string algorithm_name = "MIOpenGEMM";
+    const std::string network_config = mgg.get_networkconfig_string();
+
+    // chao : there are 2 possible kernel paths for C = alpha * A * B + beta * C in MIOpenGEMM
+    // library
+    //   1) kernel_0 : C = alpha * A * B + beta * C
+    //   2) kernel_1 : C *= beta
+    //      kernel_2 : C += alpha * A * B
+
+    // this kernel could be kernel_0, kernel_1
+    handle.AddKernel(algorithm_name, network_config, kernel_clstring, kernel_name, vld, vgd, "", 0);
+
+#if 0
+    {
+        std::cout << __func__ << ": after added 1st kernel: " << kernel_name << std::endl;
+
+        const auto& kernels = handle.GetKernels(algorithm_name, network_config);
+
+        for(const auto& k : kernels)
+        {
+            std::cout << __func__ << ": kernel name: " << k.GetName() << std::endl;
+        }
+    }
+#endif
+
+    if(soln.v_tgks.size() == 2)
+    // if(soln.v_tgks.size() == 2 && !miopen::float_equal(beta, 1))
+    {
+        std::string beta_program_name = soln.v_tgks[0].kernstr;
+        tempfix::set_offsets_to_uint(beta_program_name);
+
+        std::string beta_kernel_name = soln.v_tgks[0].fname;
+        local_work_size              = soln.v_tgks[0].local_work_size;
+        global_work_size             = soln.v_tgks[0].global_work_size;
+
+        vld[0] = local_work_size;
+        vgd[0] = global_work_size;
+
+        // chao : this is kernel_2: C += alpha * A * B (needs to work with kernel_1)
+        handle.AddKernel(
+            algorithm_name, network_config, beta_program_name, beta_kernel_name, vld, vgd, "", 1);
+
+#if 0
+        {
+            std::cout << __func__ << ": after added 2nd kernel: " << beta_kernel_name << std::endl;
+
+            const auto& kernels = handle.GetKernels(algorithm_name, network_config);
+
+            for(const auto& k : kernels)
+            {
+                std::cout << __func__ << ": kernel name: " << k.GetName() << std::endl;
+            }
+        }
+#endif
+    }
+
+#if 1
+    {
+        const auto& kernels = handle.GetKernels(algorithm_name, network_config);
+
+        if(kernels.size() == 2)
+        {
+            // C *= beta
+            assert(kernels[1].GetName() == "miog_betac");
+
+            // C += alpha * A * B
+            assert(kernels[0].GetName() == "miog_alphaab");
+        }
+        else if(kernels.size() == 1)
+        {
+            // C = alpha * A * B + beta * C
+            assert(kernels[0].GetName() == "miog_betac_alphaab");
+        }
+        else
+        {
+            MIOPEN_THROW("unable to get correct MIOpenGEMM kenerls");
+        }
+    }
+#endif
+}
+
+void RunMiopengemmSolution(Handle& handle,
+                           const MIOpenGEMM::Geometry& mgg,
+                           float alpha,
+                           ConstData_t A,
+                           int a_offset,
+                           ConstData_t B,
+                           int b_offset,
+                           float beta,
+                           Data_t C,
+                           int c_offset)
+{
+    const std::string algorithm_name = "MIOpenGEMM";
+    const std::string network_config = mgg.get_networkconfig_string();
+
+    const auto& kernels = handle.GetKernels(algorithm_name, network_config);
+
+#if 0
+    {
+        for(const auto& k : kernels)
+        {
+            std::cout << __func__ << ": kernel name: " << k.GetName() << std::endl;
+        }
+    }
+#endif
+
+    if(kernels.size() == 2)
+    {
+        // C *= beta
+        assert(kernels[1].GetName() == "miog_betac");
+        kernels[1](C, c_offset, beta);
+
+        // C += alpha * A * B
+        assert(kernels[0].GetName() == "miog_alphaab");
+        kernels[0](A, a_offset, B, b_offset, C, c_offset, alpha);
+    }
+    else if(kernels.size() == 1)
+    {
+        // C = alpha * A * B + beta * C
+        assert(kernels[0].GetName() == "miog_betac_alphaab");
+        kernels[0](A, a_offset, B, b_offset, C, c_offset, alpha, beta);
+    }
+    else
+    {
+        MIOPEN_THROW("unable to get correct MIOpenGEMM kenerls");
+    }
+}
+
+} // namespae miopen
 #endif // MIOPEN_USE_MIOPENGEMM

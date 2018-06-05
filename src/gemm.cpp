@@ -40,45 +40,6 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& vs)
 }
 #endif
 
-#if MIOPEN_USE_MIOPENGEMM
-GemmGeometry CreateMIOpenGemmGeometry(bool isColMajor,
-                                      bool transA,
-                                      bool transB,
-                                      int m,
-                                      int n,
-                                      int k,
-                                      int lda,
-                                      int ldb,
-                                      int ldc,
-                                      float alpha,
-                                      float beta)
-{
-    MIOpenGEMM::Geometry tgg{};
-
-    // Assuming we are using miopengemm as only col major
-    // Therefore, if the user provides data in col. major
-    // then no transformations are requrired and vice versa
-    if(isColMajor)
-    {
-        tgg = MIOpenGEMM::Geometry(
-            true, transA, transB, false, lda, ldb, ldc, m, n, k, 0, 'f'); // jn : added 0 for no
-                                                                          // workspace,
-                                                                          // 'f' for single prec.
-
-        return GemmGeometry{"miopenGEMM", alpha, beta, tgg};
-    }
-    else
-    {
-        tgg = MIOpenGEMM::Geometry(
-            true, transB, transA, false, ldb, lda, ldc, n, m, k, 0, 'f'); // jn : added 0 for no
-                                                                          // workspace,
-                                                                          // 'f' for single prec.
-
-        return GemmGeometry{"miopenGEMM", alpha, beta, tgg};
-    }
-}
-#endif
-
 void CallGemm(Handle& handle,
               bool isColMajor,
               bool transA,
@@ -99,7 +60,7 @@ void CallGemm(Handle& handle,
               int ldc)
 {
 #if MIOPEN_USE_ROCBLAS
-    std::cout << std::endl << __func__ << ": going to call rocblas" << std::endl;
+    std::cout << std::endl << __func__ << ": going to call rocBLAS library" << std::endl;
 
     if(!isColMajor)
     {
@@ -141,10 +102,9 @@ void CallGemm(Handle& handle,
     handle.AccumKernelTime(mS);
 
 #elif MIOPEN_USE_MIOPENGEMM
-    std::cout << __func__ << ": going to call miopengemm" << std::endl;
+    std::cout << __func__ << ": going to call MIOpenGEMM library" << std::endl;
 
-    // do row-to-column major conversion here,
-    //   so CreateMIOpenGemmGeometry would not need to do it
+    // do row-to-column major conversion here
     if(!isColMajor)
     {
         isColMajor = true;
@@ -155,19 +115,24 @@ void CallGemm(Handle& handle,
         std::swap(lda, ldb);
     }
 
-    GemmGeometry gg = CreateMIOpenGemmGeometry(true,
-                                               transA,
-                                               transB,
-                                               m,
-                                               n,
-                                               k,
-                                               lda,
-                                               ldb,
-                                               ldc,
-                                               *(static_cast<const float*>(alpha)),
-                                               *(static_cast<const float*>(beta)));
+    // TODO: save a map for MIOpenGENN::Geometry in miopenHandle,
+    //  so we don't need to construct a new geometry every time
+    MIOpenGEMM::Geometry mgg(true, transA, transB, false, lda, ldb, ldc, m, n, k, 0, 'f');
 
-    gg.RunGemmSimple(handle, A, B, C, a_offset, b_offset, c_offset);
+    const std::string algorithm_name = "MIOpenGEMM";
+    const std::string network_config = mgg.get_networkconfig_string();
+
+    if(handle.GetKernels(algorithm_name, network_config).empty())
+    {
+        FindMiopengemmSolution(handle, mgg, A, B, C, 0.003, false);
+    }
+
+    float alpha_local = *static_cast<const float*>(alpha);
+    float beta_local  = *static_cast<const float*>(beta);
+
+    RunMiopengemmSolution(
+        handle, mgg, alpha_local, A, a_offset, B, b_offset, beta_local, C, c_offset);
+
 #else
     MIOPEN_THROW("No GEMM backend");
 #endif
@@ -360,11 +325,12 @@ CreateGemmDescriptionConvFwd(const TensorDescriptor& wDesc,
     int m, n, k, lda, ldb, ldc;
     float alpha, beta;
 
+#if 0
     std::cout << std::endl << __func__ << std::endl;
-
     std::cout << __func__ << ": wDesc: " << wDesc << std::endl;
     std::cout << __func__ << ": xDesc: " << xDesc << std::endl;
     std::cout << __func__ << ": yDesc: " << yDesc << std::endl;
+#endif
 
     int in_c;
     std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
@@ -400,11 +366,12 @@ CreateGemmDescriptionConvBwdData(const TensorDescriptor& wDesc,
     int m, n, k, lda, ldb, ldc;
     float alpha, beta;
 
+#if 0
     std::cout << std::endl << __func__ << std::endl;
-
-    std::cout << __func__ << ":  wDesc: " << wDesc << std::endl;
+    std::cout << __func__ << ":  wDesc: " <<  wDesc << std::endl;
     std::cout << __func__ << ": dxDesc: " << dxDesc << std::endl;
     std::cout << __func__ << ": dyDesc: " << dyDesc << std::endl;
+#endif
 
     int in_c;
     std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
@@ -440,11 +407,12 @@ CreateGemmDescriptionConvBwdWeight(const TensorDescriptor& dyDesc,
     int m, n, k, lda, ldb, ldc;
     float alpha, beta;
 
+#if 0
     std::cout << std::endl << __func__ << std::endl;
-
     std::cout << __func__ << ": dwDesc: " << dwDesc << std::endl;
     std::cout << __func__ << ":  xDesc: " << xDesc << std::endl;
     std::cout << __func__ << ": dyDesc: " << dyDesc << std::endl;
+#endif
 
     int in_c;
     std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
@@ -480,11 +448,12 @@ CreateGemmDescriptionConvCNHWFwd(const TensorDescriptor& wDesc,
     int m, n, k, lda, ldb, ldc;
     float alpha, beta;
 
+#if 0
     std::cout << std::endl << __func__ << std::endl;
-
     std::cout << __func__ << ": wDesc: " << wDesc << std::endl;
     std::cout << __func__ << ": xDesc: " << xDesc << std::endl;
     std::cout << __func__ << ": yDesc: " << yDesc << std::endl;
+#endif
 
     int in_n, in_c;
     std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
@@ -520,11 +489,12 @@ CreateGemmDescriptionConvCNHWBwdData(const TensorDescriptor& wDesc,
     int m, n, k, lda, ldb, ldc;
     float alpha, beta;
 
+#if 0
     std::cout << std::endl << __func__ << std::endl;
-
     std::cout << __func__ << ":  wDesc: " << wDesc << std::endl;
     std::cout << __func__ << ": dxDesc: " << dxDesc << std::endl;
     std::cout << __func__ << ": dyDesc: " << dyDesc << std::endl;
+#endif
 
     int in_n, in_c;
     std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
@@ -576,11 +546,12 @@ CreateGemmStridedBatchedDescriptionConv1x1Fwd(const TensorDescriptor& wDesc,
     int batch_count;
     float alpha, beta;
 
+#if 0
     std::cout << std::endl << __func__ << std::endl;
-
     std::cout << __func__ << ": wDesc: " << wDesc << std::endl;
     std::cout << __func__ << ": xDesc: " << xDesc << std::endl;
     std::cout << __func__ << ": yDesc: " << yDesc << std::endl;
+#endif
 
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
@@ -647,11 +618,12 @@ CreateGemmStridedBatchedDescriptionConv1x1BwdData(const TensorDescriptor& wDesc,
     int batch_count;
     float alpha, beta;
 
+#if 0
     std::cout << std::endl << __func__ << std::endl;
-
     std::cout << __func__ << ": wDesc: " << wDesc << std::endl;
     std::cout << __func__ << ": dxDesc: " << dxDesc << std::endl;
     std::cout << __func__ << ": dyDesc: " << dyDesc << std::endl;
+#endif
 
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
