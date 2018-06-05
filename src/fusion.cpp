@@ -39,7 +39,7 @@ FusionPlanDescriptor::~FusionPlanDescriptor()
 bool FusionPlanDescriptor::isValid()
 {
     TensorDescriptor o_desc = this->DeriveOutputDescriptor();
-    return true; 
+    return true;
 }
 
 miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> desc)

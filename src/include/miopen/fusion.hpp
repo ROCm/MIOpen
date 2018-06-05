@@ -92,10 +92,10 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     virtual miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) = 0;
     friend std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x);
     virtual miopenFusionOp_t name() = 0;
-    void SetInputDesc(TensorDescriptor i_desc) {input_desc = i_desc;};
-    
+    void SetInputDesc(TensorDescriptor i_desc) { input_desc = i_desc; };
+
     TensorDescriptor input_desc;
-    
+
     private:
     int plan_idx                       = 0;
     std::shared_ptr<OperatorArgs> args = nullptr;
@@ -127,7 +127,8 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
 
 struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 {
-    FusionPlanDescriptor(const miopenFusionDirection_t dir, const TensorDescriptor& inDesc): fusion_dir(dir), input_desc(inDesc) {};
+    FusionPlanDescriptor(const miopenFusionDirection_t dir, const TensorDescriptor& inDesc)
+        : fusion_dir(dir), input_desc(inDesc){};
     ~FusionPlanDescriptor();
     bool isValid();
     miopenStatus_t AddOp(std::shared_ptr<FusionOpDescriptor> desc);
