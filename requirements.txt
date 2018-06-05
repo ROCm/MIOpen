@@ -1,0 +1,5 @@
+RadeonOpenCompute/rocm-cmake@3f43e2d493f24abbab4dc189a9ab12cc3ad33baf --build
+ROCmSoftwarePlatform/MIOpenGEMM@0eb1257cfaef83ea155aabd67af4437c0028db48
+libressl
+boost@1.58 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build
+half,https://downloads.sourceforge.net/project/half/half/1.12.0/half-1.12.0.zip -X header -H sha256:cdd70d3bf3fe091b688e7ab3f48471c881a197d2c186c95cca8bf156961fb41c --build

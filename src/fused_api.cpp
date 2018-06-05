@@ -67,12 +67,12 @@ extern "C" miopenStatus_t miopenIsFusionPlanValid(miopenFusionPlanDescriptor_t f
     return miopen::try_([&] { miopen::deref(fusePlanDesc).isValid(); });
 }
 
-// Create convolution ops
-extern "C" miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                    miopenFusionOpDescriptor_t* convOp,
-                                                    miopenConvolutionDescriptor_t convDesc,
-                                                    miopenConvFwdAlgorithm_t fwdAlgo,
-                                                    const miopenTensorDescriptor_t wDesc)
+// Create convolution ops with known algorithm
+extern "C" miopenStatus_t miopenCreateOpConvForwardAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                        miopenFusionOpDescriptor_t* convOp,
+                                                        miopenConvolutionDescriptor_t convDesc,
+                                                        miopenConvFwdAlgorithm_t fwdAlgo,
+                                                        const miopenTensorDescriptor_t wDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, fwdAlgo, wDesc);
     miopenStatus_t res;
@@ -102,13 +102,44 @@ miopenFusionPlanGetWorkSpaceSize(miopenHandle_t handle,
     return res;
 }
 
+extern "C" miopenStatus_t
+miopenCreateOpConvBackwardDataAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                   miopenFusionOpDescriptor_t* convOp,
+                                   miopenConvolutionDescriptor_t convDesc,
+                                   miopenConvBwdDataAlgorithm_t bwdDataAlgo,
+                                   const miopenTensorDescriptor_t wDesc)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, bwdDataAlgo, wDesc);
+    return (miopenStatusSuccess);
+}
+
+extern "C" miopenStatus_t
+miopenCreateOpConvBackwardWeightsAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                      miopenFusionOpDescriptor_t* convOp,
+                                      miopenConvolutionDescriptor_t convDesc,
+                                      miopenConvBwdWeightsAlgorithm_t bwdWeightsAlgo,
+                                      const miopenTensorDescriptor_t wDesc)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, bwdWeightsAlgo, wDesc);
+    return (miopenStatusSuccess);
+}
+
+// Create convolution ops with unknown algorithms
+extern "C" miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                    miopenFusionOpDescriptor_t* convOp,
+                                                    miopenConvolutionDescriptor_t convDesc,
+                                                    const miopenTensorDescriptor_t wDesc)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, wDesc);
+    return (miopenStatusSuccess);
+}
+
 extern "C" miopenStatus_t miopenCreateOpConvBackwardData(miopenFusionPlanDescriptor_t fusePlanDesc,
                                                          miopenFusionOpDescriptor_t* convOp,
                                                          miopenConvolutionDescriptor_t convDesc,
-                                                         miopenConvBwdDataAlgorithm_t bwdDataAlgo,
                                                          const miopenTensorDescriptor_t wDesc)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, bwdDataAlgo, wDesc);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, wDesc);
     return (miopenStatusSuccess);
 }
 
@@ -116,12 +147,12 @@ extern "C" miopenStatus_t
 miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
                                   miopenFusionOpDescriptor_t* convOp,
                                   miopenConvolutionDescriptor_t convDesc,
-                                  miopenConvBwdWeightsAlgorithm_t bwdWeightsAlgo,
                                   const miopenTensorDescriptor_t wDesc)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, bwdWeightsAlgo, wDesc);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, wDesc);
     return (miopenStatusSuccess);
 }
+
 //---
 
 // Activation create ops
@@ -130,7 +161,6 @@ miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                 miopenFusionOpDescriptor_t* activOp,
                                 const miopenActivationDescriptor_t activDesc)
 {
-    // The fusion plan creates the op and makes a note of it in the map
     MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, activDesc);
     miopenStatus_t res;
     miopen::try_([&] {

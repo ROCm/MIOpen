@@ -61,6 +61,18 @@
 //#define MIOPEN_NEURON_SQR 11         // sqr(x)
 #define MIOPEN_NEURON_TOTAL 10
 
+__attribute__((always_inline)) uint iDiv(uint v, uint d)
+{
+    uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
+    return (r);
+}
+
+__attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
+{
+    uint r = v - mul24(u, d);
+    return (r);
+}
+
 static __constant _FLOAT kBNLL_THRESHOLD = (_FLOAT)50.;
 
 __attribute__((always_inline)) void ActivationFunction_PassThru(const uint n,
@@ -481,6 +493,7 @@ __attribute__((always_inline)) void ActivationFunction_Diff(const uint n,
                                                             const _FLOAT beta,
                                                             const _FLOAT alpha)
 {
+
 #if MIOPEN_NRN_OP_ID == MIOPEN_NEURON_PASTHRU
     {
         ActivationFunction_PassThru_Diff(
@@ -546,13 +559,84 @@ __attribute__((always_inline)) void ActivationFunction_Diff(const uint n,
 #pragma clang diagnostic ignored "-Wsometimes-uninitialized"
 #endif
 
-__attribute__((always_inline)) void BatchNormFunction(const uint n,
-                                                      _FLOAT* out,
-                                                      const _FLOAT* in,
-                                                      const _FLOAT* mean,
-                                                      const _FLOAT* invVariance,
-                                                      const _FLOAT* scale,
-                                                      const _FLOAT* bias)
+__attribute__((always_inline)) void BatchNormFunctionSpatial(const uint n,
+                                                             _FLOAT* out,
+                                                             const _FLOAT* in,
+                                                             const _FLOAT mean,
+                                                             const _FLOAT invVariance,
+                                                             const _FLOAT scale,
+                                                             const _FLOAT bias)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        out[i] = mad(scale, (in[i] - mean) * invVariance, bias);
+    }
+}
+
+__attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
+MIOpenBatchNormActivInferSpatialEst(const __global _FLOAT* __restrict in, /* x input */
+                                    __global _FLOAT* __restrict out,      /* y output */
+                                    const __global _FLOAT* __restrict estimatedMean,
+                                    const __global _FLOAT* __restrict estimatedVariance,
+                                    const __global _FLOAT* __restrict scale,
+                                    const __global _FLOAT* __restrict bias,
+                                    double epsilon,
+                                    const _FLOAT gamma,
+                                    const _FLOAT beta,
+                                    const _FLOAT alpha)
+{
+    int gid0 = get_global_id(0);
+    int gid1 = get_global_id(1);
+
+    __local _FLOAT lmean;
+    __local _FLOAT lvar;
+    __local _FLOAT lscale;
+    __local _FLOAT lbias;
+
+    int c_i = gid1;
+    // int n_i  = iDiv(gid0, MIO_BN_HW_RD);
+    // int hw_i = iMod(gid0, n_i, MIO_BN_HW_RD);
+    int hw_i = gid0;
+
+    unsigned int c_offset = c_i * MIO_BN_HW;
+
+    if(get_local_id(0) == 0)
+    {
+        lmean  = *(estimatedMean + c_i);
+        lvar   = *(estimatedVariance + c_i);
+        lscale = *(scale + c_i); // dims 1xCx1x1
+        lbias  = *(bias + c_i);
+    }
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    _FLOAT pmean  = lmean;
+    _FLOAT pvar   = lvar;
+    _FLOAT pscale = lscale;
+    _FLOAT pbias  = lbias;
+
+    _FLOAT data[MIOPEN_READ_UNIT];
+    _FLOAT response[MIOPEN_READ_UNIT];
+    _FLOAT invVariance = rsqrt(fabs(pvar + epsilon));
+
+    int n_i = 0;
+    __attribute__((opencl_unroll_hint(2))) for(n_i = 0; n_i < MIO_BN_N; n_i++)
+    {
+        int index                  = n_i * MIO_BN_CHW + c_offset + hw_i * MIOPEN_READ_UNIT;
+        *((MIOPEN_READ_TYPE*)data) = *((const __global MIOPEN_READ_TYPE*)(in + index));
+        BatchNormFunctionSpatial(
+            MIOPEN_READ_UNIT, response, (const _FLOAT*)data, pmean, invVariance, pscale, pbias);
+        ActivationFunction(MIOPEN_READ_UNIT, data, (const _FLOAT*)response, gamma, beta, alpha);
+        *((__global MIOPEN_READ_TYPE*)(out + index)) = *((MIOPEN_READ_TYPE*)data);
+    }
+} // end spatial norm
+
+__attribute__((always_inline)) void BatchNormFunctionPerAct(const uint n,
+                                                            _FLOAT* out,
+                                                            const _FLOAT* in,
+                                                            const _FLOAT* mean,
+                                                            const _FLOAT* invVariance,
+                                                            const _FLOAT* scale,
+                                                            const _FLOAT* bias)
 {
     for(uint i = 0; i < n; ++i)
     {
@@ -561,7 +645,7 @@ __attribute__((always_inline)) void BatchNormFunction(const uint n,
 }
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-MIOpenBatchNormActivFwdInferPerActEst(
+MIOpenBatchNormActivInferPerActEst(
     const __global _FLOAT* in,                       /* x input */
     __global _FLOAT* __restrict out,                 /* y output */
     const __global _FLOAT* __restrict estimatedMean, /*input and output, same descriptor as bias*/
@@ -605,7 +689,7 @@ MIOpenBatchNormActivFwdInferPerActEst(
     {
         int index                  = n_i * MIO_BN_CHW + chw_i;
         *((MIOPEN_READ_TYPE*)data) = *((const __global MIOPEN_READ_TYPE*)(in + index));
-        BatchNormFunction(
+        BatchNormFunctionPerAct(
             MIOPEN_READ_UNIT, response, (const _FLOAT*)data, pmean, pinvVariance, pscale, pbias);
         ActivationFunction(MIOPEN_READ_UNIT, data, (const _FLOAT*)response, gamma, beta, alpha);
         *((__global MIOPEN_READ_TYPE*)(out + index)) = *((MIOPEN_READ_TYPE*)data);

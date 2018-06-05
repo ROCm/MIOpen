@@ -1765,7 +1765,14 @@ miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc);
 */
 MIOPEN_EXPORT miopenStatus_t miopenIsFusionPlanValid(miopenFusionPlanDescriptor_t fusePlanDesc);
 
-// Convolution create op ---
+/*! @brief Destroy MIOpen operator object
+*
+* @param miopenOp  operator (input)
+* @return          miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenDestroyOperator(miopenFusionOpDescriptor_t miopenOp);
+
+// Convolution create op with known algorithm---
 /*! @brief Creates forward convolution operator.
 *
 * @param fusePlanDesc   A fusion plan descriptor (input)
@@ -1775,11 +1782,12 @@ MIOPEN_EXPORT miopenStatus_t miopenIsFusionPlanValid(miopenFusionPlanDescriptor_
 * @param wDesc          Descriptor for the weights tensor (input)
 * @return               miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                       miopenFusionOpDescriptor_t* convOp,
-                                                       miopenConvolutionDescriptor_t convDesc,
-                                                       miopenConvFwdAlgorithm_t fwdAlgo,
-                                                       const miopenTensorDescriptor_t wDesc);
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateOpConvForwardAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
+                              miopenFusionOpDescriptor_t* convOp,
+                              miopenConvolutionDescriptor_t convDesc,
+                              miopenConvFwdAlgorithm_t fwdAlgo,
+                              const miopenTensorDescriptor_t wDesc);
 
 /*! @brief Query the workspace size required for the fusion plan
  *
@@ -1803,11 +1811,11 @@ miopenFusionPlanGetWorkSpaceSize(miopenHandle_t handle,
 * @return               miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
-miopenCreateOpConvBackwardData(miopenFusionPlanDescriptor_t fusePlanDesc,
-                               miopenFusionOpDescriptor_t* convOp,
-                               miopenConvolutionDescriptor_t convDesc,
-                               miopenConvBwdDataAlgorithm_t bwdDataAlgo,
-                               const miopenTensorDescriptor_t wDesc);
+miopenCreateOpConvBackwardDataAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                   miopenFusionOpDescriptor_t* convOp,
+                                   miopenConvolutionDescriptor_t convDesc,
+                                   miopenConvBwdDataAlgorithm_t bwdDataAlgo,
+                                   const miopenTensorDescriptor_t wDesc);
 
 /*! @brief Creates backwards weights convolution operator.
 *
@@ -1819,10 +1827,53 @@ miopenCreateOpConvBackwardData(miopenFusionPlanDescriptor_t fusePlanDesc,
 * @return                miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
+miopenCreateOpConvBackwardWeightsAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                      miopenFusionOpDescriptor_t* convOp,
+                                      miopenConvolutionDescriptor_t convDesc,
+                                      miopenConvBwdWeightsAlgorithm_t bwdWeightsAlgo,
+                                      const miopenTensorDescriptor_t wDesc);
+//---
+
+// Convolution create op for unknown algorithm ---
+/*! @brief Creates forward convolution operator.
+*
+* @param fusePlanDesc   A fusion plan descriptor (input)
+* @param convOp         Pointer to an operator type (output)
+* @param convDesc       Convolution layer descriptor (input)
+* @param wDesc          Descriptor for the weights tensor (input)
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                       miopenFusionOpDescriptor_t* convOp,
+                                                       miopenConvolutionDescriptor_t convDesc,
+                                                       const miopenTensorDescriptor_t wDesc);
+
+/*! @brief Creates backwards data convolution operator.
+*
+* @param fusePlanDesc   A fusion plan descriptor (input)
+* @param convOp         Pointer to an operator type (output)
+* @param convDesc       Convolution layer descriptor (input)
+* @param wDesc          Descriptor for the weights tensor (input)
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateOpConvBackwardData(miopenFusionPlanDescriptor_t fusePlanDesc,
+                               miopenFusionOpDescriptor_t* convOp,
+                               miopenConvolutionDescriptor_t convDesc,
+                               const miopenTensorDescriptor_t wDesc);
+
+/*! @brief Creates backwards weights convolution operator.
+*
+* @param fusePlanDesc    A fusion plan descriptor (input)
+* @param convOp          Pointer to an operator type (output)
+* @param convDesc        Convolution layer descriptor (input)
+* @param wDesc           Descriptor for the weights tensor (input)
+* @return                miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
 miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
                                   miopenFusionOpDescriptor_t* convOp,
                                   miopenConvolutionDescriptor_t convDesc,
-                                  miopenConvBwdWeightsAlgorithm_t bwdWeightsAlgo,
                                   const miopenTensorDescriptor_t wDesc);
 //---
 
@@ -1929,15 +1980,6 @@ miopenCreateOpPoolingBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
                               miopenFusionOpDescriptor_t* poolOp,
                               const miopenPoolingDescriptor_t poolDesc);
 //---
-/*! @brief Destroys a Fusion Operator Descriptor
-*
-* @param fusePlanDesc Pointer to the fusion plan descriptor associated with the operator (input)
-* @param op           Fusion operator descriptor to destroy (input)
-* @return             miopenStatus_t
-*/
-
-MIOPEN_EXPORT miopenStatus_t miopenDestroyFusionOpDescriptor(
-    miopenFusionPlanDescriptor_t fusePlanDesc, miopenFusionOpDescriptor_t op);
 /*! @brief Creates an operator argument object
 *
 * @param args        Pointer to an operator argument type (output)
