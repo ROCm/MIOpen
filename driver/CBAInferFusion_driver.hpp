@@ -42,6 +42,7 @@
 #include <miopen/tensor.hpp>
 #include <numeric>
 #include <vector>
+#include <cassert>
 #include "random.hpp"
 #include "mloNeuronHost.hpp"
 
@@ -114,7 +115,7 @@ class CBAInferFusionDriver : public Driver
     int RunBackwardCPU();
 
     void runGPUConvBatchNormActivInference();
-
+    void runGPUConvActivInference();
     void runGPUBatchNormActivInference();
 
     void runGPUBNFwdInference();
@@ -146,7 +147,8 @@ class CBAInferFusionDriver : public Driver
 
     private:
     miopenBatchNormMode_t bn_mode;
-    int bias_mode = 0;
+    int bias_mode   = 0;
+    int fusion_mode = 0;
     bool estimatedMeanVar;
 
     unsigned char back;
@@ -223,6 +225,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     {
         miopenEnableProfiling(GetHandle(), true);
     }
+
+    fusion_mode = inflags.GetValueInt("fusion_mode");
 
     return miopenStatusSuccess;
 }
@@ -317,7 +321,10 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("alpha", 'A', "1.0", "Alpha (Default=1.0)", "float");
     inflags.AddInputFlag("beta", 'B', "0.", "Beta (Default=0.)", "float");
     inflags.AddInputFlag("gamma", 'G', "1", "Activation gamma (Default=1)", "double");
-    inflags.AddInputFlag("conv_bias", 'b', "", "Use Bias for Conv (Default=0)", "int");
+
+    // DLOWELL forcing bias mode to go through the fusion variants
+    // inflags.AddInputFlag("conv_bias", 'b', "", "Use Bias for Conv (Default=0)", "int");
+
     inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -337,6 +344,13 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
 
     inflags.AddInputFlag(
         "pad_mode", 'z', "conv", "Padding Mode (same, valid, default) (Default=default)", "str");
+
+    inflags.AddInputFlag(
+        "fusion_mode",
+        'F',
+        "0",
+        "Fusion mode (cbbna = 0, cbna = 1, bna = 2, cba = 3, ca = 4, cb = 5) (Default=cbbna)",
+        "int");
 
     return miopenStatusSuccess;
 }
@@ -413,8 +427,12 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
         pad_w = 0;
     }
 
-    if(inflags.GetValueInt("conv_bias") == 1)
+    //(cbbna = 0, cbna = 1, bna = 2, cba = 3, ca = 4, cb = 5)
+    //    if(inflags.GetValueInt("conv_bias") == 1)
+    if(fusion_mode < 2 || fusion_mode == 3 || fusion_mode == 5)
         bias_mode = 1;
+    else
+        bias_mode = 0;
 
     if(wei_h != wei_w)
     {
@@ -422,9 +440,9 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
         exit(0);
     }
 
-    // std::cerr << "convDesc = " << wei_h << "," << wei_w << "," << pad_h << "," << pad_w << "," <<
-    // u
-    //<< "," << v << "," << dilation_h << "," << dilation_w << std::endl;
+    // std::cerr << "convDesc = " << wei_h << "," << wei_w << "," << pad_h <<
+    // "," << pad_w << "," << u << "," << v << "," << dilation_h <<
+    // "," << dilation_w << std::endl;
 
     miopen::deref(convDesc) =
         miopen::ConvolutionDescriptor(mode, pmode, pad_h, pad_w, u, v, dilation_h, dilation_w);
@@ -474,26 +492,36 @@ int CBAInferFusionDriver<Tgpu, Tref>::createRunningBuffers()
     uint32_t ctx = 0;
 #endif
     size_t sb_sz = GetTensorSize(biasScaleTensor);
-
-    // GPU allocation
-    runningMean_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
-    runningVariance_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
-
-    // GPU host allocation
-    runningMean     = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-    runningVariance = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-
-    // Populate
-    for(int i = 0; i < sb_sz; i++)
+    if(fusion_mode < 3)
     {
-        runningMean[i]     = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-        runningVariance[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        // GPU allocation
+        runningMean_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
+        runningVariance_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
+
+        // GPU host allocation
+        runningMean     = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+        runningVariance = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+
+        // Populate
+        for(int i = 0; i < sb_sz; i++)
+        {
+            runningMean[i]     = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            runningVariance[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        }
+
+        // GPU data transfer
+        status |= runningMean_dev->ToGPU(q, runningMean.data());
+        status |= runningVariance_dev->ToGPU(q, runningVariance.data());
     }
+    else
+    {
+        runningMean_dev     = nullptr;
+        runningVariance_dev = nullptr;
 
-    // GPU data transfer
-    status |= runningMean_dev->ToGPU(q, runningMean.data());
-    status |= runningVariance_dev->ToGPU(q, runningVariance.data());
-
+        // GPU host allocation
+        /*runningMean     = nullptr;
+        runningVariance = nullptr;*/
+    }
     if(status != CL_SUCCESS)
         printf("Error copying data to GPU\n");
 
@@ -515,7 +543,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     size_t in_sz  = GetTensorSize(inputTensor);
     size_t wei_sz = GetTensorSize(weightTensor);
-    size_t sb_sz  = GetTensorSize(biasScaleTensor);
+    size_t sb_sz  = 0;
+    if(fusion_mode < 3)
+    {
+        sb_sz = GetTensorSize(biasScaleTensor);
+    }
 
     size_t out_sz = GetTensorSize(outputTensor);
 
@@ -557,25 +589,37 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     // GPU allocation
     in_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
     conv_res_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-    bn_res_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
     wei_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tgpu)));
-    scale_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
-    bias_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
     out_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
-    // GPU host allocation
-    in    = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    wei   = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
-    out   = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    scale = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-    bias  = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+    if(fusion_mode < 3)
+    {
+        scale       = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+        bias        = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+        bn_res      = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+        bn_res_host = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
+        bn_res_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+        scale_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
+        bias_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
+        // Using random beta and gamma
+        for(int i = 0; i < sb_sz; i++)
+        {
+            scale[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            bias[i]  = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        }
+        status |= scale_dev->ToGPU(q, scale.data());
+        status |= bias_dev->ToGPU(q, bias.data());
+    }
+
+    // GPU host allocation
+    in       = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+    wei      = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
+    out      = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
     conv_res = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    bn_res   = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
 
     // CPU allocation
     conv_res_host = std::vector<Tref>(out_sz, static_cast<Tref>(0));
-    bn_res_host   = std::vector<Tref>(out_sz, static_cast<Tref>(0));
     out_host      = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
     // Data initialization
@@ -584,16 +628,9 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         in[i] = std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0)));
     }
 
-    // Using random beta and gamma
-    for(int i = 0; i < sb_sz; i++)
-    {
-        scale[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-        bias[i]  = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-    }
     status |= in_dev->ToGPU(q, in.data());
     status |= wei_dev->ToGPU(q, wei.data());
-    status |= scale_dev->ToGPU(q, scale.data());
-    status |= bias_dev->ToGPU(q, bias.data());
+
     status |= createRunningBuffers();
 
     if(status != CL_SUCCESS)
@@ -665,15 +702,51 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
                                        bias_mode,
                                        bias_mode != 0 ? b_dev->GetMem() : nullptr,
                                        bn_mode,
-                                       scale_dev->GetMem(),
-                                       bias_dev->GetMem(),
-                                       runningMean_dev->GetMem(),
-                                       runningVariance_dev->GetMem(),
+                                       fusion_mode < 3 ? scale_dev->GetMem() : nullptr,
+                                       fusion_mode < 3 ? bias_dev->GetMem() : nullptr,
+                                       fusion_mode < 3 ? runningMean_dev->GetMem() : nullptr,
+                                       fusion_mode < 3 ? runningVariance_dev->GetMem() : nullptr,
                                        epsilon,
                                        activ_mode,
                                        activ_alpha,
                                        activ_beta,
                                        activ_gamma);
+}
+
+template <typename Tgpu, typename Tref>
+void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
+{
+    double activ_alpha, activ_beta, activ_gamma;
+    miopenActivationMode_t activ_mode;
+    miopenGetActivationDescriptor(activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
+    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
+
+    int u, v, pad_h, pad_w, dilation_h, dilation_w;
+    miopenConvolutionMode_t mode;
+    miopenGetConvolutionDescriptor(
+        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
+
+    miopen::DirectConvActivInference(miopen::deref(GetHandle()),
+                                     &alpha,
+                                     miopen::deref(inputTensor),
+                                     in_dev->GetMem(),
+                                     miopen::deref(weightTensor),
+                                     wei_dev->GetMem(),
+                                     &beta,
+                                     miopen::deref(outputTensor),
+                                     out_dev->GetMem(),
+                                     pad_h,
+                                     pad_w,
+                                     u,
+                                     v,
+                                     dilation_h,
+                                     dilation_w,
+                                     bias_mode,
+                                     bias_mode != 0 ? b_dev->GetMem() : nullptr,
+                                     activ_mode,
+                                     activ_alpha,
+                                     activ_beta,
+                                     activ_gamma);
 }
 
 template <typename Tgpu, typename Tref>
@@ -714,7 +787,8 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUActivFwdInference()
                                                  activ_beta,
                                                  activ_alpha,
                                                  out.size(),
-                                                 bn_res_host.data(),
+                                                 (fusion_mode > 2) ? conv_res_host.data()
+                                                                   : bn_res_host.data(),
                                                  out_host.data());
 
     return;
@@ -776,6 +850,140 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBiasInference()
                                      conv_res_dev->GetMem());
     }
 #endif
+}
+
+template <typename Tgpu, typename Tref>
+int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
+{
+    Timer t;
+    double fulltime = 0.;
+    auto iters      = inflags.GetValueInt("iter");
+
+    //(cbbna = 0, cbna = 1, bna = 2, cba = 3, ca = 4, cb = 5)
+    assert(fusion_mode < 6 && fusion_mode >= 0);
+
+    float time = 0.0, kl_time = 0.0;
+    for(int i = 0; i < iters; i++)
+    {
+        START_TIME;
+
+        switch(fusion_mode)
+        {
+        case 0:
+        case 1: runGPUConvBatchNormActivInference(); break;
+        case 3:
+        case 4: runGPUConvActivInference(); break;
+        case 2: runGPUBatchNormActivInference(); break;
+        case 5: runGPUConvBiasInference(); break;
+        }
+        miopenGetKernelTime(GetHandle(), &time);
+        kl_time += time;
+
+        /*        runGPUConvBatchNormActivInference();
+                miopenGetKernelTime(GetHandle(), &time);
+                kl_time += time;
+        */
+
+        /*        runGPUConvBatchNormActivInference();
+                miopenGetKernelTime(GetHandle(), &time);
+                kl_time += time;*/
+
+        /*        runGPUConvFwdInference();
+                miopenGetKernelTime(GetHandle(), &time);
+                kl_time += time;*/
+
+        /*        runGPUConvBiasInference();
+                miopenGetKernelTime(GetHandle(), &time);
+                kl_time += time;*/
+
+        /*        runGPUBatchNormActivInference();
+                miopenGetKernelTime(GetHandle(), &time);
+                kl_time += time;*/
+
+        /*        runGPUBNFwdInference();
+                miopenGetKernelTime(GetHandle(), &time);
+                kl_time += time;*/
+
+        /*        runGPUActivFwdInference();
+                miopenGetKernelTime(GetHandle(), &time);
+                kl_time += time;*/
+
+        miopen::deref(GetHandle()).Finish();
+        STOP_TIME;
+
+        if(WALL_CLOCK)
+        {
+            if(iters > 1 && i > 0)
+                fulltime += t.gettime_ms();
+            else if(iters == 1)
+                fulltime = t.gettime_ms();
+            // else do nothing, drop the first iteration
+        }
+    }
+
+    if(WALL_CLOCK)
+    {
+        printf("Wall-clock Time Elapsed: %f ms, for %d iterations.\n",
+               (iters == 1) ? t.gettime_ms() : (fulltime / float(iters - 1)),
+               (iters > 1) ? iters - 1 : 1);
+    }
+
+    if(inflags.GetValueStr("time") == "1")
+    {
+        printf("GPU Kernel Time Elapsed: %f ms, for %d "
+               "iterations.\n",
+               kl_time / (iters),
+               iters);
+    }
+
+    out_dev->FromGPU(GetStream(), out.data());
+
+    return miopenStatusSuccess;
+}
+
+template <typename Tgpu, typename Tref>
+void CBAInferFusionDriver<Tgpu, Tref>::runCPUConvFwdInference()
+{
+    ConvForwardCPU<Tgpu, Tref>(
+        in, conv_res_host, wei, b, bias_mode, convDesc, inputTensor, weightTensor, outputTensor);
+
+    return;
+}
+
+template <typename Tgpu, typename Tref>
+void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
+{
+    Tref epsilon = static_cast<Tref>(EPSILON);
+
+    if(bn_mode == miopenBNPerActivation)
+    { // 1xCxHxW
+        miopenBNActiveBNPerActivFwdInferHost(outputTensor,
+                                             conv_res_host.data(),
+                                             bn_res_host.data(),
+                                             scale.data(),
+                                             bias.data(),
+                                             epsilon,
+                                             runningMean.data(),
+                                             runningVariance.data());
+    }
+    else if(bn_mode == miopenBNSpatial)
+    { // 1xCx1x1
+        miopenBNActiveBNSpatialFwdInferHost(outputTensor,
+                                            conv_res_host.data(),
+                                            bn_res_host.data(),
+                                            scale.data(),
+                                            bias.data(),
+                                            epsilon,
+                                            runningMean.data(),
+                                            runningVariance.data());
+    }
+    else
+    {
+        printf("Something went wrong.\nBad batch normalization mode in host kernel "
+               "selection.\nExiting...\n\n");
+        exit(EXIT_FAILURE);
+    }
+    return;
 }
 
 template <typename Tgpu, typename Tref>
@@ -841,129 +1049,13 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
 }
 
 template <typename Tgpu, typename Tref>
-void CBAInferFusionDriver<Tgpu, Tref>::runCPUConvFwdInference()
-{
-    ConvForwardCPU<Tgpu, Tref>(
-        in, conv_res_host, wei, b, bias_mode, convDesc, inputTensor, weightTensor, outputTensor);
-
-    return;
-}
-
-template <typename Tgpu, typename Tref>
-int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
-{
-    Timer t;
-    double fulltime = 0.;
-    auto iters      = inflags.GetValueInt("iter");
-
-    float time = 0.0, kl_time = 0.0;
-    for(int i = 0; i < iters; i++)
-    {
-        START_TIME;
-#if 0
-        runGPUConvBatchNormActivInference();
-        miopenGetKernelTime(GetHandle(), &time);
-        kl_time += time;
-#else
-        runGPUConvFwdInference();
-        miopenGetKernelTime(GetHandle(), &time);
-        kl_time += time;
-
-// runGPUConvBiasInference();
-// miopenGetKernelTime(GetHandle(), &time);
-// kl_time += time;
-
-#if 1
-        runGPUBatchNormActivInference();
-        miopenGetKernelTime(GetHandle(), &time);
-        kl_time += time;
-#else
-        runGPUBNFwdInference();
-        miopenGetKernelTime(GetHandle(), &time);
-        kl_time += time;
-
-        runGPUActivFwdInference();
-        miopenGetKernelTime(GetHandle(), &time);
-        kl_time += time;
-#endif
-
-#endif
-
-        miopen::deref(GetHandle()).Finish();
-        STOP_TIME;
-
-        if(WALL_CLOCK)
-        {
-            if(iters > 1 && i > 0)
-                fulltime += t.gettime_ms();
-            else if(iters == 1)
-                fulltime = t.gettime_ms();
-            // else do nothing, drop the first iteration
-        }
-    }
-
-    if(WALL_CLOCK)
-    {
-        printf("Wall-clock Time Elapsed: %f ms, for %d iterations.\n",
-               (iters == 1) ? t.gettime_ms() : (fulltime / float(iters - 1)),
-               (iters > 1) ? iters - 1 : 1);
-    }
-
-    if(inflags.GetValueStr("time") == "1")
-    {
-        printf("GPU Kernel Time Elapsed: %f ms, for %d "
-               "iterations.\n",
-               kl_time / (iters),
-               iters);
-    }
-
-    out_dev->FromGPU(GetStream(), out.data());
-
-    return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
-{
-    Tref epsilon = static_cast<Tref>(EPSILON);
-
-    if(bn_mode == miopenBNPerActivation)
-    { // 1xCxHxW
-        miopenBNActiveBNPerActivFwdInferHost(outputTensor,
-                                             conv_res_host.data(),
-                                             bn_res_host.data(),
-                                             scale.data(),
-                                             bias.data(),
-                                             epsilon,
-                                             runningMean.data(),
-                                             runningVariance.data());
-    }
-    else if(bn_mode == miopenBNSpatial)
-    { // 1xCx1x1
-        miopenBNActiveBNSpatialFwdInferHost(outputTensor,
-                                            conv_res_host.data(),
-                                            bn_res_host.data(),
-                                            scale.data(),
-                                            bias.data(),
-                                            epsilon,
-                                            runningMean.data(),
-                                            runningVariance.data());
-    }
-    else
-    {
-        printf("Something went wrong.\nBad batch normalization mode in host kernel "
-               "selection.\nExiting...\n\n");
-        exit(EXIT_FAILURE);
-    }
-    return;
-}
-
-template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
 {
     runCPUConvFwdInference();
-    runCPUBNFwdInference();
-    runCPUActivFwdInference();
+    if(fusion_mode < 3)
+        runCPUBNFwdInference();
+    if(fusion_mode != 5)
+        runCPUActivFwdInference();
 
     return miopenStatusSuccess;
 }

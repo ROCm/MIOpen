@@ -1773,11 +1773,12 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyOperator(miopenOperatorDescriptor_t mi
 * @param wDesc          Descriptor for the weights tensor (input)
 * @return               miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenCreateOpConvForwardAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                       miopenOperatorDescriptor_t* convOp,
-                                                       miopenConvolutionDescriptor_t convDesc,
-                                                       miopenConvFwdAlgorithm_t fwdAlgo,
-                                                       const miopenTensorDescriptor_t wDesc);
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateOpConvForwardAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
+                              miopenOperatorDescriptor_t* convOp,
+                              miopenConvolutionDescriptor_t convDesc,
+                              miopenConvFwdAlgorithm_t fwdAlgo,
+                              const miopenTensorDescriptor_t wDesc);
 
 /*! @brief Creates backwards data convolution operator.
 *
@@ -1790,10 +1791,10 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateOpConvForwardAlgo(miopenFusionPlanDescr
 */
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateOpConvBackwardDataAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
-                               miopenOperatorDescriptor_t* convOp,
-                               miopenConvolutionDescriptor_t convDesc,
-                               miopenConvBwdDataAlgorithm_t bwdDataAlgo,
-                               const miopenTensorDescriptor_t wDesc);
+                                   miopenOperatorDescriptor_t* convOp,
+                                   miopenConvolutionDescriptor_t convDesc,
+                                   miopenConvBwdDataAlgorithm_t bwdDataAlgo,
+                                   const miopenTensorDescriptor_t wDesc);
 
 /*! @brief Creates backwards weights convolution operator.
 *
@@ -1805,14 +1806,12 @@ miopenCreateOpConvBackwardDataAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
 * @return                miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
-miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                  miopenOperatorDescriptor_t* convOp,
-                                  miopenConvolutionDescriptor_t convDesc,
-                                  miopenConvBwdWeightsAlgorithm_t bwdWeightsAlgo,
-                                  const miopenTensorDescriptor_t wDesc);
+miopenCreateOpConvBackwardWeightsAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                      miopenOperatorDescriptor_t* convOp,
+                                      miopenConvolutionDescriptor_t convDesc,
+                                      miopenConvBwdWeightsAlgorithm_t bwdWeightsAlgo,
+                                      const miopenTensorDescriptor_t wDesc);
 //---
-
-
 
 // Convolution create op for unknown algorithm ---
 /*! @brief Creates forward convolution operator.
@@ -1856,8 +1855,6 @@ miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
                                   miopenConvolutionDescriptor_t convDesc,
                                   const miopenTensorDescriptor_t wDesc);
 //---
-
-
 
 // Activation create ops ---
 /*! @brief Creates a foward activation operator.
