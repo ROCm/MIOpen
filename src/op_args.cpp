@@ -32,10 +32,7 @@ namespace miopen {
 // operator args
 OperatorArgs::OperatorArgs() {}
 
-void OperatorArgs::append_arg(boost::spirit::hold_any&& v)
-{
-    args.push_back(v);
-}
+void OperatorArgs::append_arg(boost::spirit::hold_any&& v) { args.push_back(v); }
 
 std::ostream& operator<<(std::ostream& stream, const OperatorArgs&) // x )
 {
