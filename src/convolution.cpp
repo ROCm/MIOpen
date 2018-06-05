@@ -179,6 +179,41 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
     //	);
 }
 
+size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeImmed(Handle& handle,
+                                                           const TensorDescriptor& wDesc,
+                                                           const TensorDescriptor& xDesc,
+                                                           const TensorDescriptor& yDesc,
+                                                           const miopenConvFwdAlgorithm_t algo,
+                                                           bool& supported) const
+{
+    supported = true;
+    if(mode == miopenTranspose)
+    {
+        supported = false;
+        return BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc);
+    }
+    else
+    {
+        switch(algo)
+        {
+        case miopenConvolutionFwdAlgoGEMM: return ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
+        case miopenConvolutionFwdAlgoDirect:
+            return ForwardBackwardDataGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc, 1);
+        case miopenConvolutionFwdAlgoFFT: return ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
+        case miopenConvolutionFwdAlgoWinograd:
+            if(IsWinograd3x3Supported(handle, true, wDesc, xDesc))
+            {
+                return 0;
+            }
+            else
+            {
+                supported = false;
+                return 0;
+            }
+        }
+    }
+}
+
 size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(Handle& handle,
                                                           const TensorDescriptor& wDesc,
                                                           const TensorDescriptor& yDesc) const

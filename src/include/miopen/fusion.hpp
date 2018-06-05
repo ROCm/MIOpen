@@ -134,7 +134,8 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     miopenStatus_t AddOp(std::shared_ptr<FusionOpDescriptor> desc);
     miopenStatus_t RemoveOp(FusionOpDescriptor& desc);
     TensorDescriptor DeriveOutputDescriptor();
-    miopenStatus_t GetWorkspaceSize(Handle& handle, size_t& workSpaceSize);
+    miopenStatus_t
+    GetWorkspaceSizeImmed(Handle& handle, size_t& workSpaceSize, miopenConvFwdAlgorithm_t algo);
     miopenStatus_t Execute();
     friend std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& x);
 
