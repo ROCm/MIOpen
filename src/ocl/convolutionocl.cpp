@@ -35,6 +35,7 @@
 
 #if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
 #include <miopen/gemm.hpp>
+#include <miopen/gemm_v2.hpp>
 #endif
 
 namespace miopen {
