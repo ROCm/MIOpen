@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <array>
 #include <initializer_list>
+#include <memory>
 #include <miopen/pooling.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/convolution.hpp>
@@ -41,11 +42,12 @@
 //		set up the place descriptor with expected input and ouput edges.
 // 		Set up the internal datastructures for the fused kernel.
 extern "C" miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* fusePlanDesc,
-                                                 miopenFusionDirection_t fuseDirection,
+                                                 const miopenFusionDirection_t fuseDirection,
                                                  const miopenTensorDescriptor_t inputDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, fuseDirection, inputDesc);
-    return (miopenStatusSuccess);
+    return miopen::try_([&] { 
+            miopen::deref(fusePlanDesc) = new miopen::FusionPlanDescriptor(fuseDirection, miopen::deref(inputDesc));});
 }
 
 extern "C" miopenStatus_t
@@ -53,29 +55,49 @@ miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc)
 {
 
     MIOPEN_LOG_FUNCTION(fusePlanDesc)
-    return (miopenStatusSuccess);
+    return miopen::try_( [&] {miopen_destroy_object(fusePlanDesc);});
 }
 
 // Return an error code that is "NotImplemented", if it exists then return success
 extern "C" miopenStatus_t miopenIsFusionPlanValid(miopenFusionPlanDescriptor_t fusePlanDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc);
-    return (miopenStatusSuccess);
+    return miopen::try_( [&] {miopen::deref(fusePlanDesc).isValid();});
 }
 
 // Create convolution ops
 extern "C" miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                    miopenOperatorDescriptor_t* convOp,
+                                                    miopenFusionOpDescriptor_t* convOp,
                                                     miopenConvolutionDescriptor_t convDesc,
                                                     miopenConvFwdAlgorithm_t fwdAlgo,
                                                     const miopenTensorDescriptor_t wDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, fwdAlgo, wDesc);
-    return (miopenStatusSuccess);
+    miopenStatus_t res;
+    miopen::try_([&] {
+      auto fod =  new miopen::ConvForwardOpDescriptor(miopen::deref(convDesc), 
+              miopen::deref(wDesc), fwdAlgo);
+      miopen::deref(convOp) = fod;
+      res = miopen::deref(fusePlanDesc).AddOp(std::shared_ptr<miopen::ConvForwardOpDescriptor>(fod));
+            });
+    return res;
+}
+
+extern "C" miopenStatus_t miopenConvOpForwardGetWorkSpaceSize(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                    size_t* workSpaceSize)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, workSpaceSize);
+    miopenStatus_t res;
+    miopen::try_([&] {
+            size_t sz;
+      res = miopen::deref(fusePlanDesc).GetWorkspaceSize(sz);
+      miopen::deref(workSpaceSize) = sz;
+            });
+    return res;
 }
 
 extern "C" miopenStatus_t miopenCreateOpConvBackwardData(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                         miopenOperatorDescriptor_t* convOp,
+                                                         miopenFusionOpDescriptor_t* convOp,
                                                          miopenConvolutionDescriptor_t convDesc,
                                                          miopenConvBwdDataAlgorithm_t bwdDataAlgo,
                                                          const miopenTensorDescriptor_t wDesc)
@@ -86,7 +108,7 @@ extern "C" miopenStatus_t miopenCreateOpConvBackwardData(miopenFusionPlanDescrip
 
 extern "C" miopenStatus_t
 miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                  miopenOperatorDescriptor_t* convOp,
+                                  miopenFusionOpDescriptor_t* convOp,
                                   miopenConvolutionDescriptor_t convDesc,
                                   miopenConvBwdWeightsAlgorithm_t bwdWeightsAlgo,
                                   const miopenTensorDescriptor_t wDesc)
@@ -99,16 +121,23 @@ miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
 // Activation create ops
 extern "C" miopenStatus_t
 miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                miopenOperatorDescriptor_t* activOp,
+                                miopenFusionOpDescriptor_t* activOp,
                                 const miopenActivationDescriptor_t activDesc)
 {
+    // The fusion plan creates the op and makes a note of it in the map
     MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, activDesc);
-    return (miopenStatusSuccess);
+    miopenStatus_t res;
+    miopen::try_( [&] { 
+            miopen::ActivFusionOpDescriptor* fod = new miopen::ActivFusionOpDescriptor(miopen::deref(activDesc));
+            miopen::deref(activOp) =  fod;
+            res = miopen::deref(fusePlanDesc).AddOp(std::shared_ptr<miopen::ActivFusionOpDescriptor>(fod));
+    });
+    return res;
 }
 
 extern "C" miopenStatus_t
 miopenCreateOpActivationBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                 miopenOperatorDescriptor_t* activOp,
+                                 miopenFusionOpDescriptor_t* activOp,
                                  const miopenActivationDescriptor_t activDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, activDesc);
@@ -119,7 +148,7 @@ miopenCreateOpActivationBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
 // Batch normalization create op
 extern "C" miopenStatus_t
 miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                 miopenOperatorDescriptor_t* bnOp,
+                                 miopenFusionOpDescriptor_t* bnOp,
                                  const miopenBatchNormMode_t bn_mode)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode);
@@ -127,7 +156,7 @@ miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
 }
 
 extern "C" miopenStatus_t miopenCreateOpBatchNormForward(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                         miopenOperatorDescriptor_t* bnOp,
+                                                         miopenFusionOpDescriptor_t* bnOp,
                                                          const miopenBatchNormMode_t bn_mode)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode);
@@ -135,7 +164,7 @@ extern "C" miopenStatus_t miopenCreateOpBatchNormForward(miopenFusionPlanDescrip
 }
 
 extern "C" miopenStatus_t miopenCreateOpBatchNormBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                          miopenOperatorDescriptor_t* bnOp,
+                                                          miopenFusionOpDescriptor_t* bnOp,
                                                           const miopenBatchNormMode_t bn_mode)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode);
@@ -145,7 +174,7 @@ extern "C" miopenStatus_t miopenCreateOpBatchNormBackward(miopenFusionPlanDescri
 
 // Create TensorOps op
 extern "C" miopenStatus_t miopenCreateOpTensorOp(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                 miopenOperatorDescriptor_t* tOp,
+                                                 miopenFusionOpDescriptor_t* tOp,
                                                  miopenTensorOp_t tensorOp,
                                                  const miopenTensorDescriptor_t bDesc)
 {
@@ -156,7 +185,7 @@ extern "C" miopenStatus_t miopenCreateOpTensorOp(miopenFusionPlanDescriptor_t fu
 
 // Create pooling ops
 extern "C" miopenStatus_t miopenCreateOpPoolingForward(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                       miopenOperatorDescriptor_t* poolOp,
+                                                       miopenFusionOpDescriptor_t* poolOp,
                                                        const miopenPoolingDescriptor_t poolDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, poolOp, poolDesc);
@@ -164,40 +193,41 @@ extern "C" miopenStatus_t miopenCreateOpPoolingForward(miopenFusionPlanDescripto
 }
 
 extern "C" miopenStatus_t miopenCreateOpPoolingBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                        miopenOperatorDescriptor_t* poolOp,
+                                                        miopenFusionOpDescriptor_t* poolOp,
                                                         const miopenPoolingDescriptor_t poolDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, poolOp, poolDesc);
     return (miopenStatusSuccess);
 }
-//---
 
 extern "C" miopenStatus_t miopenCreateOperatorArgs(miopenOperatorArgs_t* args)
 {
     MIOPEN_LOG_FUNCTION(args);
-    return (miopenStatusSuccess);
+    return miopen::try_( [&] {
+            miopen::deref(args) = new miopen::OperatorArgs();
+            });
 }
 
 extern "C" miopenStatus_t miopenDestroyOperatorArgs(miopenOperatorArgs_t args)
 {
-
     MIOPEN_LOG_FUNCTION(args);
-    return (miopenStatusSuccess);
+    return miopen::try_([&] { miopen_destroy_object(args);});
 }
 
 // Fusion op args for Convolution
 extern "C" miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
-                                                     const miopenOperatorDescriptor_t convOp,
+                                                     const miopenFusionOpDescriptor_t convOp,
                                                      const void* alpha,
                                                      const void* beta,
                                                      const void* w)
 {
     MIOPEN_LOG_FUNCTION(args, alpha, beta, convOp, w);
-    return (miopenStatusSuccess);
+    miopen::ConvForwardOpDescriptor& op = dynamic_cast<miopen::ConvForwardOpDescriptor&>(miopen::deref(convOp));
+    return op.SetArgs(miopen::deref(args), alpha, beta, DataCast(w));
 }
 
 extern "C" miopenStatus_t miopenSetOpArgsConvBackwardData(miopenOperatorArgs_t args,
-                                                          const miopenOperatorDescriptor_t convOp,
+                                                          const miopenFusionOpDescriptor_t convOp,
                                                           const void* alpha,
                                                           const void* beta,
                                                           const void* w,
@@ -210,7 +240,7 @@ extern "C" miopenStatus_t miopenSetOpArgsConvBackwardData(miopenOperatorArgs_t a
 
 extern "C" miopenStatus_t
 miopenSetOpArgsConvBackwardWeights(miopenOperatorArgs_t args,
-                                   const miopenOperatorDescriptor_t convOp,
+                                   const miopenFusionOpDescriptor_t convOp,
                                    const void* alpha,
                                    const void* beta,
                                    const void* x,
@@ -225,7 +255,7 @@ miopenSetOpArgsConvBackwardWeights(miopenOperatorArgs_t args,
 
 // Fusion op args for Batch Normalization
 extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t args,
-                                                            const miopenOperatorDescriptor_t bnOp,
+                                                            const miopenFusionOpDescriptor_t bnOp,
                                                             const void* alpha,
                                                             const void* beta,
                                                             const void* bnScale,
@@ -240,7 +270,7 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t
 }
 
 extern "C" miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_t args,
-                                                          const miopenOperatorDescriptor_t bnOp,
+                                                          const miopenFusionOpDescriptor_t bnOp,
                                                           const void* alpha,
                                                           const void* beta,
                                                           const void* bnScale,
@@ -266,7 +296,7 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_t a
 }
 
 extern "C" miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs_t args,
-                                                           const miopenOperatorDescriptor_t bnOp,
+                                                           const miopenFusionOpDescriptor_t bnOp,
                                                            const void* alpha,
                                                            const void* beta,
                                                            const void* x,
@@ -292,7 +322,7 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs_t 
 
 // Pooling arg ops
 extern "C" miopenStatus_t miopenSetOpArgsPoolingForward(miopenOperatorArgs_t args,
-                                                        const miopenOperatorDescriptor_t poolingOp,
+                                                        const miopenFusionOpDescriptor_t poolingOp,
                                                         const void* alpha,
                                                         const void* beta,
                                                         bool do_backward,
@@ -305,7 +335,7 @@ extern "C" miopenStatus_t miopenSetOpArgsPoolingForward(miopenOperatorArgs_t arg
 }
 
 extern "C" miopenStatus_t miopenSetOpArgsPoolingBackward(miopenOperatorArgs_t args,
-                                                         const miopenOperatorDescriptor_t poolingOp,
+                                                         const miopenFusionOpDescriptor_t poolingOp,
                                                          const void* alpha,
                                                          const void* beta,
                                                          const void* y,
@@ -320,7 +350,7 @@ extern "C" miopenStatus_t miopenSetOpArgsPoolingBackward(miopenOperatorArgs_t ar
 //----
 
 extern "C" miopenStatus_t miopenSetOpArgsTensorOp(miopenOperatorArgs_t args,
-                                                  const miopenOperatorDescriptor_t tOp,
+                                                  const miopenFusionOpDescriptor_t tOp,
                                                   const void* alpha1,
                                                   const void* alpha2,
                                                   const void* B,
@@ -340,6 +370,13 @@ extern "C" miopenStatus_t miopenExecuteFusionPlan(miopenHandle_t handle,
                                                   miopenOperatorArgs_t args)
 {
     // MIOPEN_LOG_FUNCTION(handle, fusePlanDesc, inputDesc, input, outputDesc, output, args);
+    (void)(handle);
+    (void)(fusePlanDesc);
+    (void)(inputDesc);
+    (void)(input);
+    (void)(outputDesc);
+    (void)(output);
+    (void)(args);
     return (miopenStatusSuccess);
 }
 
@@ -348,6 +385,9 @@ extern "C" miopenStatus_t miopenGetFusionPlanCostEstimate(
     miopenOpCost_t* opCost, miopenHandle_t handle, const miopenFusionPlanDescriptor_t fusePlanDesc)
 {
     // MIOPEN_LOG_FUNCTION(opCost, handle, fusePlanDesc);
+    (void)(opCost);
+    (void)(handle);
+    (void)(fusePlanDesc);
     return (miopenStatusSuccess);
 }
 
@@ -361,5 +401,11 @@ miopenGetFusionPlanCostEmpirical(miopenOpCost_t* opCost,
                                  miopenOperatorArgs_t args)
 {
     // MIOPEN_LOG_FUNCTION(opCost, handle, fusePlanDesc, inputDesc, input, args);
+    (void)(handle);
+    (void)(fusePlanDesc);
+    (void)(inputDesc);
+    (void)(input);
+    (void)(args);
+    (void)(opCost);
     return (miopenStatusSuccess);
 }

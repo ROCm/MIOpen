@@ -26,13 +26,82 @@
 #include <cassert>
 #include <miopen/fusion.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/handle.hpp>
 
-namespace miopen {
+namespace miopen { 
 
-FusionPlanDescriptor::FusionPlanDescriptor() {}
-
-std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor&) // x )
+FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir, const TensorDescriptor& inDesc )
 {
+    fusion_dir = dir;
+    input_desc = inDesc;
+}
+
+FusionPlanDescriptor::~FusionPlanDescriptor()
+{
+    for( auto el : op_map)
+        delete el.second.get();
+}
+
+bool FusionPlanDescriptor::isValid() const
+{
+    return true;
+}
+ 
+miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> desc)
+{
+    desc->SetIdx(op_count);
+    ins_order.push_back(op_count);
+    op_map[op_count] = desc;
+    op_count++;
+    return miopenStatusSuccess;
+}
+
+TensorDescriptor FusionPlanDescriptor::DeriveOutputDescriptor()
+{
+    TensorDescriptor i_desc = input_desc;
+    TensorDescriptor o_desc;
+    if( fusion_dir == miopenVertical)
+    {
+        for(auto op : ins_order)
+        {
+            auto fod = op_map[op];
+            fod->GetOutputDesc(i_desc, o_desc);
+            i_desc = o_desc;
+        }
+    }
+    else
+    {
+        // TODO: All the ops should have the same output descriptor otherwise 
+        // fusion would not be feasible, thus we need to call GetOutputDesc on all
+        // the ops and make sure it returns the same value
+        MIOPEN_THROW("Unsupported fusion direction");
+    }
+    return o_desc;
+}
+
+miopenStatus_t FusionPlanDescriptor::GetWorkspaceSize(size_t& workSpaceSize)
+{
+    workSpaceSize = 0;
+    // iterate over all the conv ops in the plan and return the max amount of 
+    // ws required
+    for( auto op : op_map)
+    {
+        if(op.second->name() == miopenFusionOpConv)
+        {
+            auto ptr = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(op.second);
+            TensorDescriptor opd;
+            ptr->GetOutputDesc(ptr->input_desc, opd);
+            size_t tmp_sz = ptr->base_desc.ForwardGetWorkSpaceSize(handle, ptr->filter_desc, ptr->input_desc, opd);
+            if(tmp_sz > workSpaceSize)
+                workSpaceSize = tmp_sz;
+        }
+    }
+    return miopenStatusSuccess;
+}
+
+std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& fpd)
+{
+    (void)(fpd);
     /*    MIOPEN_LOG_ENUM(stream,
                         x.mode,
                         miopenActivationPASTHRU,
@@ -47,6 +116,38 @@ std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor&) // x
                         miopenActivationELU)*/
     // LogRange(stream, x.parms, ", ") << ", ";
     return stream;
+}
+
+
+// Fusion operator descriptors
+// Conv Forward
+miopenStatus_t ConvForwardOpDescriptor::GetOutputDesc(const TensorDescriptor& i_desc, 
+        TensorDescriptor& output_desc)
+{
+    std::size_t n, c, h, w;
+    std::tie(n, c, h, w) = base_desc.GetForwardOutputDim(i_desc, filter_desc);
+    TensorDescriptor desc(i_desc.GetType(), {n, c, h, w});
+    output_desc = desc;
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args, const void* alpha, const void* beta, const Data_t w)
+{
+    //args.append_arg(*(static_cast<const float*>(alpha)));
+    const float* f_alpha = static_cast<const float*>(alpha);
+    args.append_arg(boost::spirit::hold_any(*f_alpha));
+    args.append_arg(boost::spirit::hold_any(*(static_cast<const float*>(beta))));
+    args.append_arg(boost::spirit::hold_any(static_cast<void*>(w)));
+    return miopenStatusSuccess;
+}
+
+
+// Activ Forward
+miopenStatus_t ActivFusionOpDescriptor::GetOutputDesc(const TensorDescriptor& input_desc, TensorDescriptor& output_desc)
+{
+    // activation does not change the size
+    output_desc = input_desc;
+    return miopenStatusSuccess;
 }
 
 } // namespace miopen
