@@ -123,27 +123,6 @@ CreateGemmDescriptionConvBwdWeight(const TensorDescriptor& dyDesc,
                                    const TensorDescriptor& xDesc,
                                    const TensorDescriptor& dwDesc);
 
-// GEMM description for 1x1 Convolution Fwd
-// y = w * x
-std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
-CreateGemmDescriptionConv1x1Fwd(const TensorDescriptor& wDesc,
-                                const TensorDescriptor& xDesc,
-                                const TensorDescriptor& yDesc);
-
-// GEMM description for 1x1 Convolution Bwd-Data
-// dx = transpose(w) * dy
-std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
-CreateGemmDescriptionConv1x1BwdData(const TensorDescriptor& wDesc,
-                                    const TensorDescriptor& dyDesc,
-                                    const TensorDescriptor& dxDesc);
-
-// GEMM description for 1x1 Convolution Bwd-Weight
-// dw = dy * transpose(x)
-std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
-CreateGemmDescriptionConv1x1BwdWeight(const TensorDescriptor& dyDesc,
-                                      const TensorDescriptor& xDesc,
-                                      const TensorDescriptor& dwDesc);
-
 // GEMM description for 1x1 Convolution (using CNHW) Fwd
 // y = CNHW2NCHW(w * NCHW2CNHW(x))
 std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
@@ -157,6 +136,27 @@ std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
 CreateGemmDescriptionConvCNHWBwdData(const TensorDescriptor& wDesc,
                                      const TensorDescriptor& dyDesc,
                                      const TensorDescriptor& dxDesc);
+
+// GEMM description for Transpose Convolution (using Im2Col) Fwd
+// x = Col2Im(transpose(w) * y)
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConvFwd(const TensorDescriptor& wDesc,
+                             const TensorDescriptor& xDesc,
+                             const TensorDescriptor& yDesc);
+
+// GEMM description for Convolution (using Im2Col) Bwd-Data
+// dx = Col2Im(transpose(w) * dy)
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConvBwdData(const TensorDescriptor& wDesc,
+                                 const TensorDescriptor& dyDesc,
+                                 const TensorDescriptor& dxDesc);
+
+// GEMM description for Convolution (using Im2Col) Bwd-Weight
+// dw = dy * transpose(Im2Col(x))
+std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
+CreateGemmDescriptionConvBwdWeight(const TensorDescriptor& dyDesc,
+                                   const TensorDescriptor& xDesc,
+                                   const TensorDescriptor& dwDesc);
 
 // batched GEMM description for 1x1 Convolution Fwd
 // y = w * x
