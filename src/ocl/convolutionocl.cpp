@@ -708,8 +708,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             const
 #endif
                 auto num_kernels = kernels.size();
-            const auto p_kernel  = std::begin(kernels);
-            auto kernel          = *p_kernel;
+            auto kernel          = kernels[0];
 
             visit_float(xDesc.GetType(), [&](auto as_float) {
                 // Miminum checks. Only check what is required to select
@@ -722,8 +721,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
 
-                    kernel = *(p_kernel + 1);
-                    kernel(x, w, y, as_float(padding_val));
+                    kernels[1](x, w, y, as_float(padding_val));
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
                 }
@@ -734,25 +732,24 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
 
-                    kernel = *(p_kernel + 1);
-                    assert(kernel.GetName() == "gcnAsmConv1x1U");
+                    assert(kernels[1].GetName() == "gcnAsmConv1x1U");
                     int unused       = 0;
                     int* return_addr = nullptr;
                     int N, C, H, W, K, n_groups, out_H, out_W;
                     construct_params.getCompiledInParameters(
                         &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
-                    kernel(N,
-                           C,
-                           out_H,
-                           out_W,
-                           K,
-                           n_groups,
-                           unused,
-                           unused,
-                           workSpace,
-                           w,
-                           y,
-                           return_addr);
+                    kernels[1](N,
+                               C,
+                               out_H,
+                               out_W,
+                               K,
+                               n_groups,
+                               unused,
+                               unused,
+                               workSpace,
+                               w,
+                               y,
+                               return_addr);
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
                 }
@@ -1556,13 +1553,11 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
             auto&& kernels =
                 handle.GetKernels("miopenConvolutionBwdDataAlgoDirect", network_config);
-            const auto p_kernel = std::begin(kernels);
-            auto kernel         = *p_kernel;
             assert(1 <= kernels.size() && kernels.size() <= 2);
 
             visit_float(dyDesc.GetType(), [&](auto as_float) {
                 float t1 = 0;
-                if(kernel.GetName() == "gcnAsmConv1x1U")
+                if(kernels[0].GetName() == "gcnAsmConv1x1U")
                 {
                     int unused       = 0;
                     int* return_addr = nullptr;
@@ -1570,25 +1565,24 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                     int N, C, H, W, K, n_groups;
                     construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
 
-                    kernel(N,
-                           C,
-                           H,
-                           W,
-                           K,
-                           n_groups,
-                           unused,
-                           unused,
-                           dy,
-                           w,
-                           (kernels.size() == 2) ? workSpace : dx,
-                           return_addr);
+                    kernels[0](N,
+                               C,
+                               H,
+                               W,
+                               K,
+                               n_groups,
+                               unused,
+                               unused,
+                               dy,
+                               w,
+                               (kernels.size() == 2) ? workSpace : dx,
+                               return_addr);
                     if(handle.IsProfilingEnabled())
                         t1 += handle.GetKernelTime();
 
                     if(kernels.size() == 2)
                     {
-                        kernel = *(p_kernel + 1);
-                        assert(kernel.GetName() == "UpSample");
+                        assert(kernels[1].GetName() == "UpSample");
 
                         /// \todo Initialization is required for upsampling. This leads to small
                         /// perf drop.
@@ -1599,7 +1593,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                         if(handle.IsProfilingEnabled())
                             t1 += handle.GetKernelTime();
 
-                        kernel(workSpace, dx);
+                        kernels[1](workSpace, dx);
                         if(handle.IsProfilingEnabled())
                             t1 += handle.GetKernelTime();
                     }
@@ -1607,7 +1601,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 else
                 {
                     float padding_val = 0;
-                    kernel(dy, w, dx, as_float(padding_val));
+                    kernels[0](dy, w, dx, as_float(padding_val));
                     if(handle.IsProfilingEnabled())
                         t1 += handle.GetKernelTime();
                 }
@@ -2411,7 +2405,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                         handle.GetKernels("miopenConvolutionBwdWeightsAlgoDirect", network_config);
                     if(kernels.empty())
                         MIOPEN_THROW("No kernels found");
-                    auto kernel = kernels.front();
+                    auto kernel = kernels[0];
 
                     handle.ResetKernelTime();
 
@@ -2432,7 +2426,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     }
                     else
                     {
-                        assert(kernels.size() > 1);
+                        assert(kernels.size() == 2);
                         // this pointer needed here as a workaround in gcc 5
                         assert(workSpace != nullptr &&
                                workSpaceSize >= this->BackwardWeightsGetWorkSpaceSizeDirect(
@@ -2445,8 +2439,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                             float time0 = handle.GetKernelTime();
 
                             // wrw  kernel
-                            auto kernel2 = kernels[1];
-                            if(kernel2.GetName() == "gcnAsmConv1x1WrW")
+                            if(kernels[1].GetName() == "gcnAsmConv1x1WrW")
                             {
                                 int unused       = 0;
                                 int* return_addr = nullptr;
@@ -2455,23 +2448,23 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                                     &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
                                 // out_H/W are used instead of H/W; see comment in AsmImgHeight(),
                                 // conv_asm_dir_BwdWrW1x1.cpp.
-                                kernel2(N,
-                                        C,
-                                        out_H,
-                                        out_W,
-                                        K,
-                                        n_groups,
-                                        unused,
-                                        unused,
-                                        workSpace,
-                                        dw,
-                                        dy,
-                                        return_addr);
+                                kernels[1](N,
+                                           C,
+                                           out_H,
+                                           out_W,
+                                           K,
+                                           n_groups,
+                                           unused,
+                                           unused,
+                                           workSpace,
+                                           dw,
+                                           dy,
+                                           return_addr);
                             }
                             else
                             {
                                 float padding_val = 0;
-                                kernel2(dy, workSpace, dw, as_float(padding_val));
+                                kernels[1](dy, workSpace, dw, as_float(padding_val));
                             }
 
                             handle.AccumKernelTime(time0);
@@ -2482,10 +2475,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                             kernel(dy, x, workSpace, as_float(padding_val));
 
                             float time0 = handle.GetKernelTime();
-                            // second kernel has
-                            auto kernel2 = kernels[1];
-                            // reduction  kernel
-                            kernel2(workSpace, dw);
+                            // second kernel - reduction
+                            kernels[1](workSpace, dw);
 
                             handle.AccumKernelTime(time0);
                         }
