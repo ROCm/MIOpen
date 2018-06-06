@@ -1878,7 +1878,7 @@ miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
 //---
 
 // Activation create ops ---
-/*! @brief Creates a foward activation operator.
+/*! @brief Creates a forward activation operator.
 *
 * @param fusePlanDesc    A fusion plan descriptor (input)
 * @param activOp         Pointer to an operator type (output)
@@ -1903,35 +1903,29 @@ miopenCreateOpActivationBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                  const miopenActivationDescriptor_t activDesc);
 //---
 
-
-// Fusion create ops ---
-/*! @brief Creates a foward activation operator.
+// Bias create ops ---
+/*! @brief Creates a forward bias operator.
 *
-* @param fusePlanDesc    A fusion plan descriptor (input)
+* @param fusePlanDesc   A fusion plan descriptor (input)
 * @param biasOp         Pointer to an operator type (output)
-* @param bDesc       Activation layer descriptor (input)
-* @return                miopenStatus_t
+* @param bDesc          bias tensor descriptor (input)
+* @return               miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t
-miopenCreateOpBiasFoward(miopenFusionPlanDescriptor_t fusePlanDesc,
-                          miopenFusionOpDescriptor_t* biasOp,
-                          const miopenTensorDescriptor_t bDesc);
+MIOPEN_EXPORT miopenStatus_t miopenCreateOpBiasForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                       miopenFusionOpDescriptor_t* biasOp,
+                                                       const miopenTensorDescriptor_t bDesc);
 
-/*! @brief Creates a foward activation operator.
+/*! @brief Creates a backward bias operator.
 *
-* @param fusePlanDesc    A fusion plan descriptor (input)
+* @param fusePlanDesc   A fusion plan descriptor (input)
 * @param biasOp         Pointer to an operator type (output)
-* @param bDesc       Activation layer descriptor (input)
-* @return                miopenStatus_t
+* @param dbDesc         Delta bias tensor descriptor (input)
+* @return               miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t
-miopenCreateOpBiasBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
-                          miopenFusionOpDescriptor_t* biasOp,
-                          const miopenTensorDescriptor_t bDesc);
+MIOPEN_EXPORT miopenStatus_t miopenCreateOpBiasBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                        miopenFusionOpDescriptor_t* biasOp,
+                                                        const miopenTensorDescriptor_t dbDesc);
 //---
-
-
-
 
 // Batch normalization create ops ---
 /*! @brief Creates a forward inference batch normalization operator.
