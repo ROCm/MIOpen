@@ -401,9 +401,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
                     dilation_w == 1 && dilation_h == 1)
             {
-#if MIOPEN_USE_ROCBLAS
-                // std::cout << __func__ << ": convolution, 1x1" << std::endl;
+// std::cout << __func__ << ": convolution, 1x1" << std::endl;
 
+#if MIOPEN_USE_ROCBLAS
                 bool isColMajor, transA, transB;
                 int m, n, k, lda, ldb, ldc;
                 long long int strideA, strideB, strideC;
@@ -457,8 +457,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, 0});
 
 #else
-                // std::cout << __func__ << ": convolution, 1x1" << std::endl;
-
                 bool isColMajor, transA, transB;
                 int m, n, k, lda, ldb, ldc;
                 float gemm_alpha, gemm_beta;
