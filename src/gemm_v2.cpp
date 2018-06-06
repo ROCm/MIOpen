@@ -106,6 +106,8 @@ void CallGemm(Handle& handle,
     hipDeviceSynchronize();
     float mS = 0;
     hipEventElapsedTime(&mS, start, stop);
+    hipEventDestroy(start);
+    hipEventDestroy(stop);
     handle.ResetKernelTime();
     handle.AccumKernelTime(mS);
 
@@ -173,7 +175,9 @@ void CallGemmStridedBatched(Handle& handle,
 #if MIOPEN_USE_ROCBLAS
 #if 0
     std::cout << std::endl << __func__ << ": rocBLAS" << std::endl;
+#endif
 
+#if GEMM_V2_CPP_DEBUG
     {
         std::cout << __func__ << ": gemm desc before swap" << std::endl;
         std::cout << "{ "
@@ -286,6 +290,8 @@ void CallGemmStridedBatched(Handle& handle,
     hipDeviceSynchronize();
     float mS = 0;
     hipEventElapsedTime(&mS, start, stop);
+    hipEventDestroy(start);
+    hipEventDestroy(stop);
     handle.ResetKernelTime();
     handle.AccumKernelTime(mS);
 

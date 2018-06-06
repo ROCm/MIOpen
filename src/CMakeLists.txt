@@ -320,7 +320,7 @@ endif()
 
 if(rocblas_FOUND)
     # This shouldn't be public
-    target_link_libraries( MIOpen PUBLIC roc::rocblas )
+    target_link_libraries( MIOpen PRIVATE roc::rocblas )
 endif()
 
 if(WIN32 AND NOT MSVC)

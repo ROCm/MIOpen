@@ -86,7 +86,7 @@ void CallGemmStridedBatched(Handle& handle,
                             int ldc,
                             long long int strideC,
                             int batch_count)
-#if MIOPEN_USE_MIOPENGEMM
+#if not MIOPEN_USE_ROCBLAS
     __attribute__((noreturn))
 #endif
     ;

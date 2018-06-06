@@ -38,6 +38,8 @@
 #include <numeric>
 #include <vector>
 
+#define GEMM_DRIVER_DEBUG 0
+
 struct GemmDescriptor
 {
     bool isColMajor;
@@ -243,20 +245,29 @@ int GemmDriver<T>::AllocateBuffersAndCopy()
 
     a = std::vector<T>(a_sz);
     b = std::vector<T>(b_sz);
-    // c     = std::vector<T>(c_sz, 0.);
-    c     = std::vector<T>(c_sz, 1.); // debug
+#if GEMM_DRIVER_DEBUG
+    c     = std::vector<T>(c_sz, 1.);
+#else
+    c     = std::vector<T>(c_sz, 0.);
+#endif
     chost = c;
 
     for(int i = 0; i < a_sz; i++)
     {
+#if GEMM_DRIVER_DEBUG
         a[i] = static_cast<double>(rand()) * (1.0 / RAND_MAX);
-        a[i] = static_cast<double>(i); // for debug
+#else
+        a[i] = static_cast<double>(i);
+#endif
     }
 
     for(int i = 0; i < b_sz; i++)
     {
+#if GEMM_DRIVER_DEBUG
         b[i] = static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5) * 0.001;
-        b[i] = static_cast<double>(i); // debug
+#else
+        b[i] = static_cast<double>(i);
+#endif
     }
 #if MIOPEN_BACKEND_OPENCL
     cl_int status;
@@ -278,7 +289,7 @@ int GemmDriver<T>::RunForwardGPU()
 {
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        // debug
+#if GEMM_DRIVER_DEBUG
         {
             std::cout << std::endl;
 
@@ -294,7 +305,9 @@ int GemmDriver<T>::RunForwardGPU()
             c_dev->FromGPU(GetStream(), c_tmp.data());
             std::cout << __func__ << "before GEMM, c_tmp: " << c_tmp << std::endl;
         }
+#endif
 
+#if 0
         CallGemmStridedBatched(miopen::deref(GetHandle()),
                                desc.isColMajor,
                                desc.transA,
@@ -317,7 +330,7 @@ int GemmDriver<T>::RunForwardGPU()
                                desc.ldc,
                                desc.strideC,
                                desc.batch_count);
-#if 0
+#else
         if(desc.batch_count > 1)
             CallGemmStridedBatched(miopen::deref(GetHandle()),
                                    desc.isColMajor,
@@ -361,7 +374,8 @@ int GemmDriver<T>::RunForwardGPU()
                      0,
                      desc.ldc);
 #endif
-        // debug
+
+#if GEMM_DRIVER_DEBUG
         {
             std::cout << std::endl;
 
@@ -377,6 +391,7 @@ int GemmDriver<T>::RunForwardGPU()
             c_dev->FromGPU(GetStream(), c_tmp.data());
             std::cout << __func__ << ": after_GEMM, c_tmp: " << c_tmp << std::endl;
         }
+#endif
     }
 
     if(inflags.GetValueInt("time") == 1)
@@ -431,10 +446,14 @@ int GemmDriver<T>::VerifyForward()
 
     c_dev->FromGPU(GetStream(), c.data());
 
-    float sum_c = std::accumulate(c.begin(), c.end(), float(0), std::plus<float>());
-    std::cout << __func__ << ": chost: " << chost << std::endl;
-    std::cout << __func__ << ": c    : " << c << std::endl;
-    std::cout << __func__ << ": sum_c " << sum_c << std::endl;
+#if GEMM_DRIVER_DEBUG
+    {
+        float sum_c = std::accumulate(c.begin(), c.end(), float(0), std::plus<float>());
+        std::cout << __func__ << ": chost: " << chost << std::endl;
+        std::cout << __func__ << ": c    : " << c << std::endl;
+        std::cout << __func__ << ": sum_c " << sum_c << std::endl;
+    }
+#endif
 
     auto error = miopen::rms_range(chost, c);
     const double tolerance =
