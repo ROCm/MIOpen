@@ -393,70 +393,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     {
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
-#if MIOPEN_USE_ROCBLAS
-        // TODO add support for fp16
-        if(xDesc.GetType() == miopenFloat)
-        {
-            // 1x1_stride=1 with GEMM and zero workspace
-            if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
-               dilation_w == 1 && dilation_h == 1)
-            {
-                std::cout << __func__ << ": convolution, rocblas, 1x1" << std::endl;
-
-                bool isColMajor, transA, transB;
-                int m, n, k, lda, ldb, ldc;
-                long long int strideA, strideB, strideC;
-                int batch_count;
-                float gemm_alpha, gemm_beta;
-
-                // y = w * x
-                std::tie(isColMajor,
-                         transA,
-                         transB,
-                         m,
-                         n,
-                         k,
-                         lda,
-                         ldb,
-                         ldc,
-                         strideA,
-                         strideB,
-                         strideC,
-                         batch_count,
-                         gemm_alpha,
-                         gemm_beta) =
-                    CreateGemmStridedBatchedDescriptionConvFwd(wDesc, xDesc, yDesc);
-
-                // y = w * x
-                CallGemmStridedBatched(handle,
-                                       isColMajor,
-                                       transA,
-                                       transB,
-                                       m,
-                                       n,
-                                       k,
-                                       &gemm_alpha,
-                                       w,
-                                       0,
-                                       lda,
-                                       strideA,
-                                       x,
-                                       0,
-                                       ldb,
-                                       strideB,
-                                       &gemm_beta,
-                                       tmp_y.get(),
-                                       0,
-                                       ldc,
-                                       strideC,
-                                       batch_count);
-
-                float time_gemm = handle.GetKernelTime();
-
-                perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, 0});
-            }
-        }
-#elif MIOPEN_USE_MIOPENGEMM
+#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
         if(xDesc.GetType() == miopenFloat)
         {
             float time_gemm = 0;
@@ -470,7 +407,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 size_t workspace_req = ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
                 if(workSpace != nullptr && workSpaceSize >= workspace_req)
                 {
-                    std::cout << __func__ << ": convolution, miopengemm: 1x1, 14x14" << std::endl;
+                    std::cout << __func__ << ": convolution, 1x1, 14x14" << std::endl;
 
                     transpose_NCHW2CNHW(
                         handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
@@ -532,7 +469,63 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
                     dilation_w == 1 && dilation_h == 1)
             {
-                std::cout << __func__ << ": convolution, miopengemm: 1x1" << std::endl;
+#if MIOPEN_USE_ROCBLAS
+                std::cout << __func__ << ": convolution, 1x1" << std::endl;
+
+                bool isColMajor, transA, transB;
+                int m, n, k, lda, ldb, ldc;
+                long long int strideA, strideB, strideC;
+                int batch_count;
+                float gemm_alpha, gemm_beta;
+
+                // y = w * x
+                std::tie(isColMajor,
+                         transA,
+                         transB,
+                         m,
+                         n,
+                         k,
+                         lda,
+                         ldb,
+                         ldc,
+                         strideA,
+                         strideB,
+                         strideC,
+                         batch_count,
+                         gemm_alpha,
+                         gemm_beta) =
+                    CreateGemmStridedBatchedDescriptionConvFwd(wDesc, xDesc, yDesc);
+
+                // y = w * x
+                CallGemmStridedBatched(handle,
+                                       isColMajor,
+                                       transA,
+                                       transB,
+                                       m,
+                                       n,
+                                       k,
+                                       &gemm_alpha,
+                                       w,
+                                       0,
+                                       lda,
+                                       strideA,
+                                       x,
+                                       0,
+                                       ldb,
+                                       strideB,
+                                       &gemm_beta,
+                                       tmp_y.get(),
+                                       0,
+                                       ldc,
+                                       strideC,
+                                       batch_count);
+
+                float time_gemm = handle.GetKernelTime();
+
+                perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, 0});
+
+#else
+                std::cout << __func__ << ": convolution, 1x1" << std::endl;
 
                 bool isColMajor, transA, transB;
                 int m, n, k, lda, ldb, ldc;
@@ -566,12 +559,13 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 float time_gemm = in_n * handle.GetKernelTime();
 
                 perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, 0});
+#endif
             }
             // if not 1x1
             else if(workSpace != nullptr &&
                     workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc))
             {
-                std::cout << __func__ << ": convolution, miopengemm: non 1x1" << std::endl;
+                std::cout << __func__ << ": convolution, non 1x1" << std::endl;
 
                 bool isColMajor, transA, transB;
                 int m, n, k, lda, ldb, ldc;
@@ -996,73 +990,15 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
 
             std::string network_config;
-#if MIOPEN_USE_ROCBLAS
-            // TODO add support for fp16
-            if(xDesc.GetType() == miopenFloat)
-            {
-                // 1x1_stride=1 with GEMM and zero workspace
-                if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
-                   dilation_w == 1 && dilation_h == 1)
-                {
-                    std::cout << __func__ << "convolution, rocblas: 1x1" << std::endl;
 
-                    bool isColMajor, transA, transB;
-                    int m, n, k, lda, ldb, ldc;
-                    long long int strideA, strideB, strideC;
-                    int batch_count;
-                    float gemm_alpha, gemm_beta;
-
-                    // y = w * x
-                    std::tie(isColMajor,
-                             transA,
-                             transB,
-                             m,
-                             n,
-                             k,
-                             lda,
-                             ldb,
-                             ldc,
-                             strideA,
-                             strideB,
-                             strideC,
-                             batch_count,
-                             gemm_alpha,
-                             gemm_beta) =
-                        CreateGemmStridedBatchedDescriptionConvFwd(wDesc, xDesc, yDesc);
-
-                    // y = w * x
-                    CallGemmStridedBatched(handle,
-                                           isColMajor,
-                                           transA,
-                                           transB,
-                                           m,
-                                           n,
-                                           k,
-                                           &gemm_alpha,
-                                           w,
-                                           0,
-                                           lda,
-                                           strideA,
-                                           x,
-                                           0,
-                                           ldb,
-                                           strideB,
-                                           &gemm_beta,
-                                           y,
-                                           0,
-                                           ldc,
-                                           strideC,
-                                           batch_count);
-                }
-            }
-#elif MIOPEN_USE_MIOPENGEMM
+#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
             // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
             // 1x1_stride=2
             if((wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && dilation_h == 1 &&
                 dilation_w == 1) &&
                ((in_h <= 14 && in_w <= 14 && u == 1 && v == 1) || (u == 2 && v == 2)))
             {
-                std::cout << __func__ << ": convolution, miopengemm: 1x1, 14x14" << std::endl;
+                std::cout << __func__ << ": convolution, 1x1, 14x14" << std::endl;
 
                 assert(workSpace != nullptr &&
                        workSpaceSize >= ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc));
@@ -1132,8 +1068,57 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
                     dilation_w == 1 && dilation_h == 1)
             {
-                std::cout << __func__ << ": convolution, miopengemm: 1x1" << std::endl;
+                std::cout << __func__ << "convolution, 1x1" << std::endl;
 
+#if MIOPEN_USE_ROCBLAS
+                bool isColMajor, transA, transB;
+                int m, n, k, lda, ldb, ldc;
+                long long int strideA, strideB, strideC;
+                int batch_count;
+                float gemm_alpha, gemm_beta;
+
+                // y = w * x
+                std::tie(isColMajor,
+                         transA,
+                         transB,
+                         m,
+                         n,
+                         k,
+                         lda,
+                         ldb,
+                         ldc,
+                         strideA,
+                         strideB,
+                         strideC,
+                         batch_count,
+                         gemm_alpha,
+                         gemm_beta) =
+                    CreateGemmStridedBatchedDescriptionConvFwd(wDesc, xDesc, yDesc);
+
+                // y = w * x
+                CallGemmStridedBatched(handle,
+                                       isColMajor,
+                                       transA,
+                                       transB,
+                                       m,
+                                       n,
+                                       k,
+                                       &gemm_alpha,
+                                       w,
+                                       0,
+                                       lda,
+                                       strideA,
+                                       x,
+                                       0,
+                                       ldb,
+                                       strideB,
+                                       &gemm_beta,
+                                       y,
+                                       0,
+                                       ldc,
+                                       strideC,
+                                       batch_count);
+#else
                 float time_0 = 0;
 
                 bool isColMajor, transA, transB;
@@ -1177,10 +1162,11 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                         time_0 += handle.GetKernelTime();
                     }
                 }
+#endif
             }
             else
             {
-                std::cout << __func__ << ": convolution, miopengemm: non 1x1" << std::endl;
+                std::cout << __func__ << ": convolution, non 1x1" << std::endl;
 
                 assert(workSpace != nullptr &&
                        workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc));
@@ -1666,70 +1652,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         // GEMM based
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
-#if MIOPEN_USE_ROCBLAS
-        // TODO add support for fp16
-        if(dyDesc.GetType() == miopenFloat)
-        {
-            // 1x1_stride=1 with GEMM and zero workspace
-            if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
-               dilation_w == 1 && dilation_h == 1)
-            {
-                std::cout << __func__ << ": convolution, rocblas, 1x1" << std::endl;
-
-                bool isColMajor, transA, transB;
-                int m, n, k, lda, ldb, ldc;
-                long long int strideA, strideB, strideC;
-                int batch_count;
-                float gemm_alpha, gemm_beta;
-
-                // dx = transpose(w) * dy
-                std::tie(isColMajor,
-                         transA,
-                         transB,
-                         m,
-                         n,
-                         k,
-                         lda,
-                         ldb,
-                         ldc,
-                         strideA,
-                         strideB,
-                         strideC,
-                         batch_count,
-                         gemm_alpha,
-                         gemm_beta) =
-                    CreateGemmStridedBatchedDescriptionConvBwdData(wDesc, dyDesc, dxDesc);
-
-                // dx = transpose(w) * dy
-                CallGemmStridedBatched(handle,
-                                       isColMajor,
-                                       transA,
-                                       transB,
-                                       m,
-                                       n,
-                                       k,
-                                       &gemm_alpha,
-                                       w,
-                                       0,
-                                       lda,
-                                       strideA,
-                                       dy,
-                                       0,
-                                       ldb,
-                                       strideB,
-                                       &gemm_beta,
-                                       tmp_dx.get(),
-                                       0,
-                                       ldc,
-                                       strideC,
-                                       batch_count);
-
-                float time_gemm = handle.GetKernelTime();
-
-                perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoGEMM", time_gemm, 0});
-            }
-        }
-#elif MIOPEN_USE_MIOPENGEMM
+#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
         if(dyDesc.GetType() == miopenFloat)
         {
             // 1x1 does not require col2im or workspace
@@ -1737,7 +1660,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                dilation_w == 1 && dilation_h == 1 && workSpace != nullptr &&
                workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc))
             {
-                std::cout << __func__ << ": convolution, miopengemm, 1x1 u2xv2" << std::endl;
+                std::cout << __func__ << ": convolution, 1x1 u2xv2" << std::endl;
 
                 float time_gemm = 0;
 
@@ -1804,8 +1727,61 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
                     dilation_w == 1 && dilation_h == 1)
             {
-                std::cout << __func__ << ": convolution, miopengemm, 1x1" << std::endl;
+                std::cout << __func__ << ": convolution, 1x1" << std::endl;
 
+#if MIOPEN_USE_ROCBLAS
+                bool isColMajor, transA, transB;
+                int m, n, k, lda, ldb, ldc;
+                long long int strideA, strideB, strideC;
+                int batch_count;
+                float gemm_alpha, gemm_beta;
+
+                // dx = transpose(w) * dy
+                std::tie(isColMajor,
+                         transA,
+                         transB,
+                         m,
+                         n,
+                         k,
+                         lda,
+                         ldb,
+                         ldc,
+                         strideA,
+                         strideB,
+                         strideC,
+                         batch_count,
+                         gemm_alpha,
+                         gemm_beta) =
+                    CreateGemmStridedBatchedDescriptionConvBwdData(wDesc, dyDesc, dxDesc);
+
+                // dx = transpose(w) * dy
+                CallGemmStridedBatched(handle,
+                                       isColMajor,
+                                       transA,
+                                       transB,
+                                       m,
+                                       n,
+                                       k,
+                                       &gemm_alpha,
+                                       w,
+                                       0,
+                                       lda,
+                                       strideA,
+                                       dy,
+                                       0,
+                                       ldb,
+                                       strideB,
+                                       &gemm_beta,
+                                       tmp_dx.get(),
+                                       0,
+                                       ldc,
+                                       strideC,
+                                       batch_count);
+
+                float time_gemm = handle.GetKernelTime();
+
+                perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoGEMM", time_gemm, 0});
+#else
                 bool isColMajor, transA, transB;
                 int m, n, k, lda, ldb, ldc;
                 float gemm_alpha, gemm_beta;
@@ -1838,12 +1814,13 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 float time_gemm = in_n * handle.GetKernelTime();
 
                 perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoGEMM", time_gemm, 0});
+#endif
             }
             // if not 1x1
             else if(workSpace != nullptr &&
                     workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc))
             {
-                std::cout << __func__ << ": convolution, miopengemm, non 1x1" << std::endl;
+                std::cout << __func__ << ": convolution, non 1x1" << std::endl;
 
                 bool isColMajor, transA, transB;
                 int m, n, k, lda, ldb, ldc;
@@ -2135,62 +2112,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
             std::string network_config;
-#if MIOPEN_USE_ROCBLAS
-            // 1x1_stride=1 with GEMM and zero workspace
-            if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
-               dilation_w == 1 && dilation_h == 1)
-            {
-                std::cout << __func__ << ": convolution, rocblas, 1x1" << std::endl;
 
-                bool isColMajor, transA, transB;
-                int m, n, k, lda, ldb, ldc;
-                long long int strideA, strideB, strideC;
-                int batch_count;
-                float gemm_alpha, gemm_beta;
-
-                // dx = transpose(w) * dy
-                std::tie(isColMajor,
-                         transA,
-                         transB,
-                         m,
-                         n,
-                         k,
-                         lda,
-                         ldb,
-                         ldc,
-                         strideA,
-                         strideB,
-                         strideC,
-                         batch_count,
-                         gemm_alpha,
-                         gemm_beta) =
-                    CreateGemmStridedBatchedDescriptionConvBwdData(wDesc, dyDesc, dxDesc);
-
-                // dx = transpose(w) * dy
-                CallGemmStridedBatched(handle,
-                                       isColMajor,
-                                       transA,
-                                       transB,
-                                       m,
-                                       n,
-                                       k,
-                                       &gemm_alpha,
-                                       w,
-                                       0,
-                                       lda,
-                                       strideA,
-                                       dy,
-                                       0,
-                                       ldb,
-                                       strideB,
-                                       &gemm_beta,
-                                       dx,
-                                       0,
-                                       ldc,
-                                       strideC,
-                                       batch_count);
-            }
-#elif MIOPEN_USE_MIOPENGEMM
+#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
             if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
                dilation_w == 1 && dilation_h == 1)
             {
@@ -2271,6 +2194,55 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             {
                 std::cout << __func__ << ": convolution, miopengemm, 1x1" << std::endl;
 
+#if MIOPEN_USE_ROCBLAS
+                bool isColMajor, transA, transB;
+                int m, n, k, lda, ldb, ldc;
+                long long int strideA, strideB, strideC;
+                int batch_count;
+                float gemm_alpha, gemm_beta;
+
+                // dx = transpose(w) * dy
+                std::tie(isColMajor,
+                         transA,
+                         transB,
+                         m,
+                         n,
+                         k,
+                         lda,
+                         ldb,
+                         ldc,
+                         strideA,
+                         strideB,
+                         strideC,
+                         batch_count,
+                         gemm_alpha,
+                         gemm_beta) =
+                    CreateGemmStridedBatchedDescriptionConvBwdData(wDesc, dyDesc, dxDesc);
+
+                // dx = transpose(w) * dy
+                CallGemmStridedBatched(handle,
+                                       isColMajor,
+                                       transA,
+                                       transB,
+                                       m,
+                                       n,
+                                       k,
+                                       &gemm_alpha,
+                                       w,
+                                       0,
+                                       lda,
+                                       strideA,
+                                       dy,
+                                       0,
+                                       ldb,
+                                       strideB,
+                                       &gemm_beta,
+                                       dx,
+                                       0,
+                                       ldc,
+                                       strideC,
+                                       batch_count);
+#else
                 bool isColMajor, transA, transB;
                 int m, n, k, lda, ldb, ldc;
                 float gemm_alpha, gemm_beta;
@@ -2313,6 +2285,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                         time_0 += handle.GetKernelTime();
                     }
                 }
+#endif
             }
             // if not 1x1
             else
@@ -2400,7 +2373,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             MIOPEN_THROW("GEMM is not supported");
 #endif
         }
-#if MIOPEN_USE_MIOPENGEMM
+#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
         break;
 #endif
 
@@ -2633,7 +2606,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     {
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
 
-#if MIOPEN_USE_MIOPENGEMM
+#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
         if(dyDesc.GetType() == miopenFloat)
         {
             bool isColMajor, transA, transB;
@@ -2650,7 +2623,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             // 1x1 does not require im2col or workspace
             if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
             {
-                std::cout << __func__ << ": convolution, miopengemm, 1x1" << std::endl;
+                std::cout << __func__ << ": convolution, 1x1" << std::endl;
 
                 // dw = dy * transpose(x)
                 CallGemm(handle,
@@ -2678,7 +2651,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             // if not 1x1
             else if(workSpace != nullptr && workSpaceSize >= workspace_req)
             {
-                std::cout << __func__ << ": convolution, miopengemm, non 1x1" << std::endl;
+                std::cout << __func__ << ": convolution, non 1x1" << std::endl;
 
                 float time_im2col = 0;
                 size_t in_offset  = 0;
@@ -3001,7 +2974,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         {
         case miopenConvolutionBwdWeightsAlgoGEMM: {
 
-#if MIOPEN_USE_MIOPENGEMM
+#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
             // Zeroing out the output buffer
             float zero = 0.0f;
             SetTensor(handle, dwDesc, dw, &zero);
@@ -3032,7 +3005,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 int out_offset = i * wei_n * out_h * out_w;
                 if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
                 {
-                    std::cout << __func__ << ": convolution, miopengemm, non 1x1" << std::endl;
+                    std::cout << __func__ << ": convolution, non 1x1" << std::endl;
 
                     size_t in_offset = i * in_c * in_h * in_w;
                     Im2ColGPU(handle,
@@ -3088,7 +3061,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 }
                 else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
                 {
-                    std::cout << __func__ << ": convolution, miopengemm, 1x1" << std::endl;
+                    std::cout << __func__ << ": convolution, 1x1" << std::endl;
 
                     int in_offset = i * in_c * in_h * in_w;
 
@@ -3124,7 +3097,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             MIOPEN_THROW("GEMM is not supported");
 #endif
         }
-#if MIOPEN_USE_MIOPENGEMM
+#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
         break;
 #endif
 
