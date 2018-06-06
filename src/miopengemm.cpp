@@ -205,5 +205,5 @@ void RunMiopengemmSolution(Handle& handle,
     }
 }
 
-} // namespae miopen
+} // namespace miopen
 #endif // MIOPEN_USE_MIOPENGEMM

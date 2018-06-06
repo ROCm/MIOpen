@@ -105,6 +105,7 @@ endif()
 
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
+    list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/hip /opt/rocm/hcc)
     set(MIOPEN_BACKEND_HIP 1)
     find_program(HIP_OC_COMPILER clang-ocl
         PATH_SUFFIXES bin
@@ -116,8 +117,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     else()
         message(FATAL_ERROR "clang-ocl not found")
     endif()
-
-    find_package(hip REQUIRED PATHS /opt/rocm)
+    find_package(hip REQUIRED)
     link_libraries(stdc++)
     # A hack to make this work without the device enumerator
     link_libraries(-amdgpu-target=gfx803 -amdgpu-target=gfx900 -Wno-unused-command-line-argument)

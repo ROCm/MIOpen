@@ -41,7 +41,19 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
 
     return params.kernel_stride0 == params.kernel_stride1
         && params.pad0 == params.pad1
-        && !(params.direction.IsBackwardData() && (params.kernel_stride0 > 2 || params.kernel_stride1 > 2));
+        && !(params.kernel_size0 == 1 && params.kernel_size1 == 1)
+        && !(params.direction.IsBackwardData() && (params.kernel_stride0 > 2 || params.kernel_stride1 > 2))
+        /// \todo Workaround to avoid LDS overallocation issue:
+        && !(params.direction.IsForward()
+            && params.kernel_size0 == 11
+            && params.kernel_size1 == 11
+            && params.kernel_stride0 == 4)
+        /// \todo Workaround to avoid FP16 precision issue:
+        /// While MIOpenConvUni is up to 4x faster than MIOpenCDFGen (even not auto-tuned),
+        /// it seems that is has 4x..20x worse precision, and some "test_conv --half" tests fail.
+        && !(params.direction.IsForward()
+            && params.float_size == 16
+            && params.kernel_stride0 == 2);
     // clang-format on
 }
 
@@ -70,15 +82,18 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
     result.n_out_pix_tiles = std::min(params.n_outputs, searched_params.n_out_pix_tiles);
 
     // hacky fix of the incorrect kernel local memory address calculation for data
-    result.out_pix_tile1 =
-        (static_cast<int>(params.direction.IsForward()) == 0 && params.kernel_stride1 > 1)
-            ? params.kernel_stride1
-            : searched_params.out_pix_tile1;
-    result.out_pix_tile0 =
-        (static_cast<int>(params.direction.IsForward()) == 0 && params.kernel_stride0 > 1)
-            ? params.kernel_stride0
-            : searched_params.out_pix_tile0;
+    result.out_pix_tile1 = (!params.direction.IsForward() && params.kernel_stride1 > 1)
+                               ? params.kernel_stride1
+                               : searched_params.out_pix_tile1;
+    result.out_pix_tile0 = (!params.direction.IsForward() && params.kernel_stride0 > 1)
+                               ? params.kernel_stride0
+                               : searched_params.out_pix_tile0;
 
+    if(result.out_pix_tile1 == 0 || result.out_pix_tile0 == 0 /* DIV/0 */)
+    {
+        MIOPEN_LOG_E("result.out_pix_tile1 == 0 || result.out_pix_tile0 == 0");
+        return ConvSolution(miopenStatusInternalError);
+    }
     result.grp_tile0 = std::max(8, (result.in_tile0 / result.out_pix_tile0));
     result.grp_tile1 = std::max(8, (result.in_tile1 / result.out_pix_tile1));
     result.in_tile0  = result.grp_tile0 * result.out_pix_tile0;
@@ -87,10 +102,10 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
     int alu_tile0    = (result.in_tile0 + result.out_pix_tile0 - 1) / result.out_pix_tile0;
     int alu_tile1    = (result.in_tile1 + result.out_pix_tile1 - 1) / result.out_pix_tile1;
     int alu_tiles_sz = (alu_tile0 * alu_tile1);
-    if(alu_tiles_sz > 256)
+    if(alu_tiles_sz > 256 || alu_tiles_sz == 0 /* DIV/0 */)
     {
-        //			std::cout << "ERROR: need out pix size ajustments\n";
-        return ConvSolution(static_cast<miopenStatus_t>(-1));
+        MIOPEN_LOG_E("need out pix size ajustments (alu_tiles_sz > 256 || alu_tiles_sz == 0)");
+        return ConvSolution(miopenStatusInternalError);
     }
 
     int n_alus_total = (result.grp_tile0 * result.grp_tile1);
@@ -98,6 +113,11 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
     result.n_stacks = std::min(result.n_stacks, (n_alus_total + alu_tiles_sz - 1) / alu_tiles_sz);
     result.n_stacks = std::min(params.batch_sz, result.n_stacks);
 
+    if(result.n_stacks == 0 /* DIV/0 */)
+    {
+        MIOPEN_LOG_E("result.n_stacks == 0");
+        return ConvSolution(miopenStatusInternalError);
+    }
     int n_alus_perstack = (n_alus_total + result.n_stacks - 1) / result.n_stacks;
 
     int n_read_procs;
@@ -196,6 +216,11 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
 
     size_t gbl_wk0 = n_out_tile_blocks0 * n_out_tile_blocks1;
 
+    if(n_out_tiles_perstack == 0 /* DIV/0 */)
+    {
+        MIOPEN_LOG_E("n_out_tiles_perstack == 0");
+        return ConvSolution(miopenStatusInternalError);
+    }
     size_t gbl_wk1 = (params.n_outputs + n_out_tiles_perstack - 1) / n_out_tiles_perstack;
     size_t gbl_wk2 = (params.batch_sz + result.n_stacks - 1) / result.n_stacks;
 
