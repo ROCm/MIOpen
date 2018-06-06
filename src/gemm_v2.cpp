@@ -318,6 +318,29 @@ void CallGemmStridedBatched(Handle& handle,
 #endif // debug: output A, B, C
 
 #else
+    (void)handle;
+    (void)isColMajor;
+    (void)transA;
+    (void)transB;
+    (void)m;
+    (void)n;
+    (void)k;
+    (void)alpha;
+    (void)A;
+    (void)a_offset;
+    (void)lda;
+    (void)strideA;
+    (void)B;
+    (void)b_offset;
+    (void)ldb;
+    (void)strideB;
+    (void)beta;
+    (void)C;
+    (void)c_offset;
+    (void)ldc;
+    (void)strideC;
+    (void)batch_count;
+
     MIOPEN_THROW("No GEMM backend");
 #endif
 }
@@ -547,6 +570,8 @@ CreateGemmStridedBatchedDescriptionConv1x1Fwd(const TensorDescriptor& wDesc,
                                               const TensorDescriptor& xDesc,
                                               const TensorDescriptor& yDesc)
 {
+    (void)yDesc;
+
     bool isColMajor, transA, transB;
     int m, n, k, lda, ldb, ldc;
     long long int strideA, strideB, strideC;
@@ -619,6 +644,8 @@ CreateGemmStridedBatchedDescriptionConv1x1BwdData(const TensorDescriptor& wDesc,
                                                   const TensorDescriptor& dyDesc,
                                                   const TensorDescriptor& dxDesc)
 {
+    (void)dyDesc;
+
     bool isColMajor, transA, transB;
     int m, n, k, lda, ldb, ldc;
     long long int strideA, strideB, strideC;
