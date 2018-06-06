@@ -342,7 +342,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             // 1x1 does not require im2col or workspace
             if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
             {
-                std::cout << __func__ << ": transpose, miopengemm, 1x1" << std::endl;
+                // std::cout << __func__ << ": transpose, miopengemm, 1x1" << std::endl;
 
                 gg.RunGemmSimple(handle, w, x, tmp_y.get(), 0, 0, 0);
                 time_gemm = in_n * handle.GetKernelTime();
@@ -352,7 +352,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             // if not 1x1
             else if(workSpace != nullptr && workSpaceSize >= workspace_req)
             {
-                std::cout << __func__ << ": transpose, miopengemm, non 1x1" << std::endl;
+                // std::cout << __func__ << ": transpose, miopengemm, non 1x1" << std::endl;
 
                 float time_col2im = 0;
                 size_t out_offset = 0;
@@ -405,7 +405,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 size_t workspace_req = ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
                 if(workSpace != nullptr && workSpaceSize >= workspace_req)
                 {
-                    std::cout << __func__ << ": convolution, 1x1, 14x14" << std::endl;
+                    // std::cout << __func__ << ": convolution, 1x1, 14x14" << std::endl;
 
                     float time_gemm = 0;
 
@@ -470,7 +470,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                     dilation_w == 1 && dilation_h == 1)
             {
 #if MIOPEN_USE_ROCBLAS
-                std::cout << __func__ << ": convolution, 1x1" << std::endl;
+                // std::cout << __func__ << ": convolution, 1x1" << std::endl;
 
                 bool isColMajor, transA, transB;
                 int m, n, k, lda, ldb, ldc;
@@ -525,7 +525,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, 0});
 
 #else
-                std::cout << __func__ << ": convolution, 1x1" << std::endl;
+                // std::cout << __func__ << ": convolution, 1x1" << std::endl;
 
                 bool isColMajor, transA, transB;
                 int m, n, k, lda, ldb, ldc;
@@ -565,7 +565,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             else if(workSpace != nullptr &&
                     workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc))
             {
-                std::cout << __func__ << ": convolution, non 1x1" << std::endl;
+                // std::cout << __func__ << ": convolution, non 1x1" << std::endl;
 
                 bool isColMajor, transA, transB;
                 int m, n, k, lda, ldb, ldc;
@@ -998,7 +998,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 dilation_w == 1) &&
                ((in_h <= 14 && in_w <= 14 && u == 1 && v == 1) || (u == 2 && v == 2)))
             {
-                std::cout << __func__ << ": convolution, 1x1, 14x14" << std::endl;
+                // std::cout << __func__ << ": convolution, 1x1, 14x14" << std::endl;
 
                 assert(workSpace != nullptr &&
                        workSpaceSize >= ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc));
@@ -1068,7 +1068,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
                     dilation_w == 1 && dilation_h == 1)
             {
-                std::cout << __func__ << "convolution, 1x1" << std::endl;
+// std::cout << __func__ << "convolution, 1x1" << std::endl;
 
 #if MIOPEN_USE_ROCBLAS
                 bool isColMajor, transA, transB;
@@ -1166,7 +1166,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else
             {
-                std::cout << __func__ << ": convolution, non 1x1" << std::endl;
+                // std::cout << __func__ << ": convolution, non 1x1" << std::endl;
 
                 assert(workSpace != nullptr &&
                        workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc));
@@ -1303,7 +1303,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             int out_offset = i * wei_n * out_h * out_w;
             if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
             {
-                std::cout << __func__ << ": transpose, miopengemm, non 1x1" << std::endl;
+                // std::cout << __func__ << ": transpose, miopengemm, non 1x1" << std::endl;
 
                 size_t in_offset = i * in_c * in_h * in_w;
 
@@ -1342,7 +1342,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
             {
-                std::cout << __func__ << ": transpose, miopengemm, 1x1" << std::endl;
+                // std::cout << __func__ << ": transpose, miopengemm, 1x1" << std::endl;
 
                 int in_offset = i * in_c * in_h * in_w;
 
@@ -1429,7 +1429,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             // 1x1 does not require im2col or workspace
             if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
             {
-                std::cout << __func__ << ": transpose, miopengemm, 1x1" << std::endl;
+                // std::cout << __func__ << ": transpose, miopengemm, 1x1" << std::endl;
 
                 gg.RunGemmSimple(handle, w, dy, tmp_dx.get(), 0, 0, 0);
 
@@ -1440,7 +1440,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             // if not 1x1
             else if(workSpace != nullptr && workSpaceSize >= workspace_req)
             {
-                std::cout << __func__ << ": transpose, miopengemm, non 1x1" << std::endl;
+                // std::cout << __func__ << ": transpose, miopengemm, non 1x1" << std::endl;
 
                 float time_im2col = 0;
                 size_t out_offset = 0;
@@ -1660,7 +1660,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                dilation_w == 1 && dilation_h == 1 && workSpace != nullptr &&
                workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc))
             {
-                std::cout << __func__ << ": convolution, 1x1 u2xv2" << std::endl;
+                // std::cout << __func__ << ": convolution, 1x1 u2xv2" << std::endl;
 
                 float time_gemm = 0;
 
@@ -1727,7 +1727,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
                     dilation_w == 1 && dilation_h == 1)
             {
-                std::cout << __func__ << ": convolution, 1x1" << std::endl;
+// std::cout << __func__ << ": convolution, 1x1" << std::endl;
 
 #if MIOPEN_USE_ROCBLAS
                 bool isColMajor, transA, transB;
@@ -1820,7 +1820,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             else if(workSpace != nullptr &&
                     workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc))
             {
-                std::cout << __func__ << ": convolution, non 1x1" << std::endl;
+                // std::cout << __func__ << ": convolution, non 1x1" << std::endl;
 
                 bool isColMajor, transA, transB;
                 int m, n, k, lda, ldb, ldc;
@@ -2117,7 +2117,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
                dilation_w == 1 && dilation_h == 1)
             {
-                std::cout << __func__ << ": convolution, 1x1 u2xv2" << std::endl;
+                // std::cout << __func__ << ": convolution, 1x1 u2xv2" << std::endl;
 
                 float t1 = 0;
                 // Initialization required for upsampling in bwd direction
@@ -2192,7 +2192,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
                     dilation_w == 1 && dilation_h == 1)
             {
-                std::cout << __func__ << ": convolution, 1x1" << std::endl;
+// std::cout << __func__ << ": convolution, 1x1" << std::endl;
 
 #if MIOPEN_USE_ROCBLAS
                 bool isColMajor, transA, transB;
@@ -2312,7 +2312,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
                     if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
                     {
-                        std::cout << __func__ << ": convolution, non 1x1" << std::endl;
+                        // std::cout << __func__ << ": convolution, non 1x1" << std::endl;
 
                         size_t in_offset = i * in_c * in_h * in_w;
 
@@ -2432,7 +2432,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             int in_offset = i * in_c * in_h * in_w;
             if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
             {
-                std::cout << __func__ << ": transpose, miopengemm, non 1x1" << std::endl;
+                // std::cout << __func__ << ": transpose, miopengemm, non 1x1" << std::endl;
 
                 size_t out_offset = i * wei_n * out_h * out_w;
                 Im2ColGPU(handle,
@@ -2470,7 +2470,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             }
             else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
             {
-                std::cout << __func__ << ": transpose, miopengemm, 1x1" << std::endl;
+                // std::cout << __func__ << ": transpose, miopengemm, 1x1" << std::endl;
 
                 int out_offset = i * wei_n * out_h * out_w;
 
@@ -2557,7 +2557,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             // 1x1 does not require im2col or workspace
             if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
             {
-                std::cout << __func__ << ": transpose, miopengemm, 1x1" << std::endl;
+                // std::cout << __func__ << ": transpose, miopengemm, 1x1" << std::endl;
 
                 gg.RunGemmSimple(handle, dy, x, tmp_dw.get(), 0, 0, 0);
 
@@ -2567,7 +2567,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             // if not 1x1
             else if(workSpace != nullptr && workSpaceSize >= workspace_req)
             {
-                std::cout << __func__ << ": transpose, miopengemm, non 1x1" << std::endl;
+                // std::cout << __func__ << ": transpose, miopengemm, non 1x1" << std::endl;
 
                 float time_im2col = 0;
                 size_t out_offset = 0;
@@ -2623,7 +2623,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             // 1x1 does not require im2col or workspace
             if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
             {
-                std::cout << __func__ << ": convolution, 1x1" << std::endl;
+                // std::cout << __func__ << ": convolution, 1x1" << std::endl;
 
                 // dw = dy * transpose(x)
                 CallGemm(handle,
@@ -2651,7 +2651,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             // if not 1x1
             else if(workSpace != nullptr && workSpaceSize >= workspace_req)
             {
-                std::cout << __func__ << ": convolution, non 1x1" << std::endl;
+                // std::cout << __func__ << ": convolution, non 1x1" << std::endl;
 
                 float time_im2col = 0;
                 size_t in_offset  = 0;
@@ -3005,7 +3005,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 int out_offset = i * wei_n * out_h * out_w;
                 if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
                 {
-                    std::cout << __func__ << ": convolution, non 1x1" << std::endl;
+                    // std::cout << __func__ << ": convolution, non 1x1" << std::endl;
 
                     size_t in_offset = i * in_c * in_h * in_w;
                     Im2ColGPU(handle,
@@ -3061,7 +3061,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 }
                 else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
                 {
-                    std::cout << __func__ << ": convolution, 1x1" << std::endl;
+                    // std::cout << __func__ << ": convolution, 1x1" << std::endl;
 
                     int in_offset = i * in_c * in_h * in_w;
 
@@ -3231,7 +3231,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             int in_offset = i * in_c * in_h * in_w;
             if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
             {
-                std::cout << __func__ << ": transpose, miopengemm, non 1x1" << std::endl;
+                // std::cout << __func__ << ": transpose, miopengemm, non 1x1" << std::endl;
 
                 size_t out_offset = i * wei_n * out_h * out_w;
                 Im2ColGPU(handle,
@@ -3270,7 +3270,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             }
             else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
             {
-                std::cout << __func__ << ": transpose, miopengemm, 1x1" << std::endl;
+                // std::cout << __func__ << ": transpose, miopengemm, 1x1" << std::endl;
 
                 int out_offset = i * wei_n * out_h * out_w;
                 gg.RunGemmSimple(handle, dy, x, dw, out_offset, in_offset, 0);
