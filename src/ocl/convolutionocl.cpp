@@ -396,8 +396,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 #if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
         if(xDesc.GetType() == miopenFloat)
         {
-            float time_gemm = 0;
-
             // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
             // 1x1_stride=2
             if((wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && dilation_h == 1 &&
@@ -408,6 +406,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 if(workSpace != nullptr && workSpaceSize >= workspace_req)
                 {
                     std::cout << __func__ << ": convolution, 1x1, 14x14" << std::endl;
+
+                    float time_gemm = 0;
 
                     transpose_NCHW2CNHW(
                         handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
@@ -494,7 +494,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                          batch_count,
                          gemm_alpha,
                          gemm_beta) =
-                    CreateGemmStridedBatchedDescriptionConvFwd(wDesc, xDesc, yDesc);
+                    CreateGemmStridedBatchedDescriptionConv1x1Fwd(wDesc, xDesc, yDesc);
 
                 // y = w * x
                 CallGemmStridedBatched(handle,
@@ -617,7 +617,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                          0,
                          ldc);
 
-                time_gemm = in_n * (time_im2col + handle.GetKernelTime());
+                float time_gemm = in_n * (time_im2col + handle.GetKernelTime());
                 perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM",
                                             time_gemm,
                                             ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc)});
@@ -1093,7 +1093,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                          batch_count,
                          gemm_alpha,
                          gemm_beta) =
-                    CreateGemmStridedBatchedDescriptionConvFwd(wDesc, xDesc, yDesc);
+                    CreateGemmStridedBatchedDescriptionConv1x1Fwd(wDesc, xDesc, yDesc);
 
                 // y = w * x
                 CallGemmStridedBatched(handle,
@@ -1752,7 +1752,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                          batch_count,
                          gemm_alpha,
                          gemm_beta) =
-                    CreateGemmStridedBatchedDescriptionConvBwdData(wDesc, dyDesc, dxDesc);
+                    CreateGemmStridedBatchedDescriptionConv1x1BwdData(wDesc, dyDesc, dxDesc);
 
                 // dx = transpose(w) * dy
                 CallGemmStridedBatched(handle,
@@ -2217,7 +2217,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                          batch_count,
                          gemm_alpha,
                          gemm_beta) =
-                    CreateGemmStridedBatchedDescriptionConvBwdData(wDesc, dyDesc, dxDesc);
+                    CreateGemmStridedBatchedDescriptionConv1x1BwdData(wDesc, dyDesc, dxDesc);
 
                 // dx = transpose(w) * dy
                 CallGemmStridedBatched(handle,
