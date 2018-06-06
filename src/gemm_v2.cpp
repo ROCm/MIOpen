@@ -31,9 +31,10 @@
 #include <miopen/miopengemm.hpp>
 #endif
 
+#define GEMM_V2_CPP_DEBUG 0
+
 namespace miopen {
-// for debugging
-#if 1
+#if GEMM_V2_CPP_DEBUG
 template <typename T>
 std::ostream& operator<<(std::ostream& os, const std::vector<T>& vs)
 {
@@ -65,7 +66,9 @@ void CallGemm(Handle& handle,
               int ldc)
 {
 #if MIOPEN_USE_ROCBLAS
+#if GEMM_V2_CPP_DEBUG
     std::cout << std::endl << __func__ << ": rocBLAS" << std::endl;
+#endif
 
     if(!isColMajor)
     {
@@ -107,8 +110,9 @@ void CallGemm(Handle& handle,
     handle.AccumKernelTime(mS);
 
 #elif MIOPEN_USE_MIOPENGEMM
+#if GEMM_V2_CPP_DEBUG
     std::cout << __func__ << ": MIOpenGEMM" << std::endl;
-
+#endif
     // do row-to-column major conversion here
     if(!isColMajor)
     {
@@ -167,9 +171,9 @@ void CallGemmStridedBatched(Handle& handle,
                             int batch_count)
 {
 #if MIOPEN_USE_ROCBLAS
+#if GEMM_V2_CPP_DEBUG
     std::cout << std::endl << __func__ << ": rocBLAS" << std::endl;
 
-#if 0 // debug: output GEMM description
     {
         std::cout << __func__ << ": gemm desc before swap" << std::endl;
         std::cout << "{ "
@@ -187,9 +191,7 @@ void CallGemmStridedBatched(Handle& handle,
                   << "strideC " << strideC << ", "
                   << "batch_count " << batch_count << " }" << std::endl;
     }
-#endif
 
-#if 0
     const float* A_old = static_cast<const float*>(A);
     const float* B_old = static_cast<const float*>(B);
     int a_offset_old   = a_offset;
@@ -218,13 +220,11 @@ void CallGemmStridedBatched(Handle& handle,
     float alpha_local = *static_cast<const float*>(alpha);
     float beta_local  = *static_cast<const float*>(beta);
 
-#if 0
-    std::cout << __func__ << ": alpha_local " << alpha_local << ", beta_local " << beta_local
-              << std::endl;
-#endif
-
-#if 0 // debug: output GEMM description
+#if GEMM_V2_CPP_DEBUG
     {
+        std::cout << __func__ << ": alpha_local " << alpha_local << ", beta_local " << beta_local
+                  << std::endl;
+
         std::cout << __func__ << ": gemm desc after swap" << std::endl;
         std::cout << "{ "
                   << "isColMajor " << isColMajor << ", "
@@ -240,11 +240,7 @@ void CallGemmStridedBatched(Handle& handle,
                   << "strideB " << strideB << ", "
                   << "strideC " << strideC << ", "
                   << "batch_count " << batch_count << " }" << std::endl;
-    }
-#endif
 
-#if 0  // debug: output A, B, C
-    {
         std::size_t a_sz = a_offset_old + m_old * k_old + (batch_count - 1) * strideA_old;
         std::size_t b_sz = b_offset_old + k_old * n_old + (batch_count - 1) * strideB_old;
         std::size_t c_sz = c_offset + m_old * n_old + (batch_count - 1) * strideC;
@@ -258,14 +254,14 @@ void CallGemmStridedBatched(Handle& handle,
         hipMemcpy(tmp_c.data(), C, c_sz * sizeof(float), hipMemcpyHostToDevice);
 
         std::cout << std::endl;
-        // std::cout << __func__ << ": A before call rocblas: " << tmp_a << std::endl;
-        // std::cout << __func__ << ": B before call rocblas: " << tmp_b << std::endl;
-        // std::cout << __func__ << ": C before call rocblas: " << tmp_c << std::endl;
+        std::cout << __func__ << ": A before call rocblas: " << tmp_a << std::endl;
+        std::cout << __func__ << ": B before call rocblas: " << tmp_b << std::endl;
+        std::cout << __func__ << ": C before call rocblas: " << tmp_c << std::endl;
 
         float sum_c = std::accumulate(tmp_c.begin(), tmp_c.end(), float(0), std::plus<float>());
         std::cout << __func__ << ": sum_c before call rocblas" << sum_c << std::endl;
     }
-#endif // debug: output A, B, C
+#endif
 
     hipEventRecord(start, nullptr);
     rocblas_sgemm_strided_batched(handle.rhandle.get(),
@@ -293,7 +289,7 @@ void CallGemmStridedBatched(Handle& handle,
     handle.ResetKernelTime();
     handle.AccumKernelTime(mS);
 
-#if 0  // debug: output A, B, C
+#if GEMM_V2_CPP_DEBUG
     {
         std::size_t a_sz = a_offset_old + m_old * k_old + (batch_count - 1) * strideA_old;
         std::size_t b_sz = b_offset_old + k_old * n_old + (batch_count - 1) * strideB_old;
@@ -308,14 +304,14 @@ void CallGemmStridedBatched(Handle& handle,
         hipMemcpy(tmp_c.data(), C, c_sz * sizeof(float), hipMemcpyHostToDevice);
 
         std::cout << std::endl;
-        // std::cout << __func__ << ": A before call rocblas: " << tmp_a << std::endl;
-        // std::cout << __func__ << ": B before call rocblas: " << tmp_b << std::endl;
-        // std::cout << __func__ << ": C before call rocblas: " << tmp_c << std::endl;
+        std::cout << __func__ << ": A before call rocblas: " << tmp_a << std::endl;
+        std::cout << __func__ << ": B before call rocblas: " << tmp_b << std::endl;
+        std::cout << __func__ << ": C before call rocblas: " << tmp_c << std::endl;
 
         float sum_c = std::accumulate(tmp_c.begin(), tmp_c.end(), float(0), std::plus<float>());
         std::cout << __func__ << ": sum_c after call rocblas" << sum_c << std::endl;
     }
-#endif // debug: output A, B, C
+#endif
 
 #else
     (void)handle;
