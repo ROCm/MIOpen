@@ -66,7 +66,7 @@ void CallGemm(Handle& handle,
               int ldc)
 {
 #if MIOPEN_USE_ROCBLAS
-#if 1
+#if 0
     std::cout << std::endl << __func__ << ": rocBLAS" << std::endl;
 #endif
 
@@ -110,7 +110,7 @@ void CallGemm(Handle& handle,
     handle.AccumKernelTime(mS);
 
 #elif MIOPEN_USE_MIOPENGEMM
-#if 1
+#if 0
     std::cout << __func__ << ": MIOpenGEMM" << std::endl;
 #endif
     // do row-to-column major conversion here
@@ -171,7 +171,7 @@ void CallGemmStridedBatched(Handle& handle,
                             int batch_count)
 {
 #if MIOPEN_USE_ROCBLAS
-#if 1
+#if 0
     std::cout << std::endl << __func__ << ": rocBLAS" << std::endl;
 
     {
