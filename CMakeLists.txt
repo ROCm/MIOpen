@@ -124,7 +124,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
 
     # rocblas
     find_package(rocblas PATHS /opt/rocm)
-    if(rocblas_FOUND)
+    if(rocblas_FOUND AND CMAKE_USE_ROCBLAS)
         message(STATUS "Build with rocblas")
         set(MIOPEN_USE_ROCBLAS 1)
     else()
