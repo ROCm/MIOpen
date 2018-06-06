@@ -2117,7 +2117,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
                dilation_w == 1 && dilation_h == 1)
             {
-                std::cout << __func__ << ": convolution, miopengemm, 1x1 u2xv2" << std::endl;
+                std::cout << __func__ << ": convolution, 1x1 u2xv2" << std::endl;
 
                 float t1 = 0;
                 // Initialization required for upsampling in bwd direction
@@ -2192,7 +2192,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
                     dilation_w == 1 && dilation_h == 1)
             {
-                std::cout << __func__ << ": convolution, miopengemm, 1x1" << std::endl;
+                std::cout << __func__ << ": convolution, 1x1" << std::endl;
 
 #if MIOPEN_USE_ROCBLAS
                 bool isColMajor, transA, transB;
@@ -2312,7 +2312,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
                     if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
                     {
-                        std::cout << __func__ << ": convolution, miopengemm, non 1x1" << std::endl;
+                        std::cout << __func__ << ": convolution, non 1x1" << std::endl;
 
                         size_t in_offset = i * in_c * in_h * in_w;
 

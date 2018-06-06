@@ -85,7 +85,11 @@ void CallGemmStridedBatched(Handle& handle,
                             int c_offset,
                             int ldc,
                             long long int strideC,
-                            int batch_count);
+                            int batch_count)
+#if MIOPEN_USE_MIOPENGEMM
+    __attribute__((noreturn))
+#endif
+    ;
 
 // GEMM description for Convolution (using Im2Col) Fwd
 // y = w * Im2Col(x)
