@@ -247,20 +247,19 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
     }
 }
 
-int ConvolutionDescriptor::FindDataDirectSolutions(
-    Handle& handle,
-    const TensorDescriptor& xDesc,
-    const TensorDescriptor& wDesc,
-    const TensorDescriptor& yDesc,
-    bool exhaustiveSearch,
-    bool isForward,
-    std::vector<miopen::solver::ConvSolution>& solutions,
-    std::string& network_config,
-    ExtraKernelArgs& extraArgs) const
+std::vector<miopen::solver::ConvSolution>
+ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
+                                               const TensorDescriptor& xDesc,
+                                               const TensorDescriptor& wDesc,
+                                               const TensorDescriptor& yDesc,
+                                               bool exhaustiveSearch,
+                                               bool isForward,
+                                               std::string& network_config,
+                                               ExtraKernelArgs& extraArgs) const
 {
 
     if(!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
-        return -1;
+        return {};
 
     mlo_construct_direct2D construct_params(isForward ? 1 : 0);
     construct_params.setDoSearch(exhaustiveSearch);
@@ -274,9 +273,7 @@ int ConvolutionDescriptor::FindDataDirectSolutions(
 
     if((IsWinograd3x3Supported(handle, isForward, wDesc, (isForward ? xDesc : yDesc)) &&
         construct_params.mloIsFastBinaryWinograd3x3U()))
-    {
-        return -1;
-    }
+        return {};
 
     try
     {
@@ -284,12 +281,11 @@ int ConvolutionDescriptor::FindDataDirectSolutions(
         construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
         extraArgs = std::make_tuple(N, C, H, W, K, n_groups, out_H, out_W);
         construct_params.mloBuildConf_Key(network_config);
-        solutions = FindAllSolutions(construct_params);
-        return 0;
+        return FindAllSolutions(construct_params);
     }
     catch(miopen::Exception&)
     {
-        return -1;
+        return {};
     }
 }
 
@@ -548,23 +544,14 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoWinograd", time_wino, 0});
             }
 
-            // Direct algo
-            ExtraKernelArgs eka;
-            std::vector<miopen::solver::ConvSolution> directAll;
-            if(FindDataDirectSolutions(handle,
-                                       xDesc,
-                                       wDesc,
-                                       yDesc,
-                                       exhaustiveSearch,
-                                       true,
-                                       directAll,
-                                       network_config,
-                                       eka) == 0)
-            {
+            { // Direct algo
+                ExtraKernelArgs eka;
+                const auto all = FindDataDirectSolutions(
+                    handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, network_config, eka);
                 miopen::solver::ConvSolution selected{miopenStatusUnknownError};
                 float best = std::numeric_limits<float>::max();
                 visit_float(xDesc.GetType(), [&](auto as_float) {
-                    for(const auto& sol : directAll)
+                    for(const auto& sol : all)
                     {
                         float elapsed = 0.0f;
                         const int rc  = EvaluateDataDirectSolution(handle,
@@ -1295,23 +1282,14 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoWinograd", time_wino, 0});
             }
 
-            // Direct algo
-            ExtraKernelArgs eka;
-            std::vector<miopen::solver::ConvSolution> directAll;
-            if(FindDataDirectSolutions(handle,
-                                       dxDesc,
-                                       wDesc,
-                                       dyDesc,
-                                       exhaustiveSearch,
-                                       false,
-                                       directAll,
-                                       network_config,
-                                       eka) == 0)
-            {
+            { // Direct algo
+                ExtraKernelArgs eka;
+                const auto all = FindDataDirectSolutions(
+                    handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, network_config, eka);
                 miopen::solver::ConvSolution selected{miopenStatusUnknownError};
                 float best = std::numeric_limits<float>::max();
                 visit_float(dyDesc.GetType(), [&](auto as_float) {
-                    for(const auto& sol : directAll)
+                    for(const auto& sol : all)
                     {
                         float elapsed = 0.0f;
                         const int rc  = EvaluateDataDirectSolution(handle,

@@ -186,15 +186,15 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               size_t workSpaceSize,
                               bool timed = false) const;
 
-    int FindDataDirectSolutions(Handle& handle,
-                                const TensorDescriptor& xDesc,
-                                const TensorDescriptor& wDesc,
-                                const TensorDescriptor& yDesc,
-                                bool exhaustiveSearch,
-                                bool isForward,
-                                std::vector<miopen::solver::ConvSolution>& solutions,
-                                std::string& network_config,
-                                ExtraKernelArgs& extraArgs) const;
+    std::vector<miopen::solver::ConvSolution>
+    FindDataDirectSolutions(Handle& handle,
+                            const TensorDescriptor& xDesc,
+                            const TensorDescriptor& wDesc,
+                            const TensorDescriptor& yDesc,
+                            bool exhaustiveSearch,
+                            bool isForward,
+                            std::string& network_config,
+                            ExtraKernelArgs& extraArgs) const;
 
     void ConvolutionForward(Handle& handle,
                             const void* alpha,
