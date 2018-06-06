@@ -72,7 +72,7 @@ void CallGemm(Handle& handle,
 
     if(!isColMajor)
     {
-        isColMajor = true;
+        // isColMajor = true;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
         std::swap(transA, transB);
@@ -116,7 +116,7 @@ void CallGemm(Handle& handle,
     // do row-to-column major conversion here
     if(!isColMajor)
     {
-        isColMajor = true;
+        // isColMajor = true;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
         std::swap(transA, transB);
@@ -205,7 +205,7 @@ void CallGemmStridedBatched(Handle& handle,
 
     if(!isColMajor)
     {
-        isColMajor = true;
+        // isColMajor = true;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
         std::swap(transA, transB);
