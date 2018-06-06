@@ -183,6 +183,22 @@ miopenCreateOpActivationBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
 }
 //---
 
+extern "C" miopenStatus_t miopenCreateOpBiasForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                    miopenFusionOpDescriptor_t* biasOp,
+                                                    const miopenTensorDescriptor_t bDesc)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, biasOp, bDesc);
+    return (miopenStatusSuccess);
+}
+
+extern "C" miopenStatus_t miopenCreateOpBiasBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                     miopenFusionOpDescriptor_t* biasOp,
+                                                     const miopenTensorDescriptor_t dbDesc)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, biasOp, dbDesc);
+    return (miopenStatusSuccess);
+}
+
 // Batch normalization create op
 extern "C" miopenStatus_t
 miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
