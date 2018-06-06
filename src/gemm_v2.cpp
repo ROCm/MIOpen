@@ -65,7 +65,7 @@ void CallGemm(Handle& handle,
               int ldc)
 {
 #if MIOPEN_USE_ROCBLAS
-    std::cout << std::endl << __func__ << ": going to call rocBLAS library" << std::endl;
+    std::cout << std::endl << __func__ << ": rocBLAS" << std::endl;
 
     if(!isColMajor)
     {
@@ -107,7 +107,7 @@ void CallGemm(Handle& handle,
     handle.AccumKernelTime(mS);
 
 #elif MIOPEN_USE_MIOPENGEMM
-    std::cout << __func__ << ": going to call MIOpenGEMM library" << std::endl;
+    std::cout << __func__ << ": MIOpenGEMM" << std::endl;
 
     // do row-to-column major conversion here
     if(!isColMajor)
@@ -167,9 +167,9 @@ void CallGemmStridedBatched(Handle& handle,
                             int batch_count)
 {
 #if MIOPEN_USE_ROCBLAS
-    std::cout << std::endl << __func__ << ": going to call rocblas" << std::endl;
+    std::cout << std::endl << __func__ << ": rocBLAS" << std::endl;
 
-#if 1 // debug: output GEMM description
+#if 0 // debug: output GEMM description
     {
         std::cout << __func__ << ": gemm desc before swap" << std::endl;
         std::cout << "{ "
@@ -189,7 +189,7 @@ void CallGemmStridedBatched(Handle& handle,
     }
 #endif
 
-#if 1
+#if 0
     const float* A_old = static_cast<const float*>(A);
     const float* B_old = static_cast<const float*>(B);
     int a_offset_old   = a_offset;
@@ -218,10 +218,12 @@ void CallGemmStridedBatched(Handle& handle,
     float alpha_local = *static_cast<const float*>(alpha);
     float beta_local  = *static_cast<const float*>(beta);
 
+#if 0
     std::cout << __func__ << ": alpha_local " << alpha_local << ", beta_local " << beta_local
               << std::endl;
+#endif
 
-#if 1 // debug: output GEMM description
+#if 0 // debug: output GEMM description
     {
         std::cout << __func__ << ": gemm desc after swap" << std::endl;
         std::cout << "{ "
@@ -241,7 +243,7 @@ void CallGemmStridedBatched(Handle& handle,
     }
 #endif
 
-#if 1 // debug: output A, B, C
+#if 0  // debug: output A, B, C
     {
         std::size_t a_sz = a_offset_old + m_old * k_old + (batch_count - 1) * strideA_old;
         std::size_t b_sz = b_offset_old + k_old * n_old + (batch_count - 1) * strideB_old;
@@ -291,7 +293,7 @@ void CallGemmStridedBatched(Handle& handle,
     handle.ResetKernelTime();
     handle.AccumKernelTime(mS);
 
-#if 1 // debug: output A, B, C
+#if 0  // debug: output A, B, C
     {
         std::size_t a_sz = a_offset_old + m_old * k_old + (batch_count - 1) * strideA_old;
         std::size_t b_sz = b_offset_old + k_old * n_old + (batch_count - 1) * strideB_old;
