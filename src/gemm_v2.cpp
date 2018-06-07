@@ -578,8 +578,8 @@ GemmParam CreateGemmParamConvCNHWBwdData(const TensorDescriptor& wDesc,
 
 // y = w * x
 GemmParam CreateGemmStridedBatchedParamConv1x1Fwd(const TensorDescriptor& wDesc,
-                                                        const TensorDescriptor& xDesc,
-                                                        const TensorDescriptor& yDesc)
+                                                  const TensorDescriptor& xDesc,
+                                                  const TensorDescriptor& yDesc)
 {
     (void)yDesc;
 #if 0
@@ -630,8 +630,8 @@ GemmParam CreateGemmStridedBatchedParamConv1x1Fwd(const TensorDescriptor& wDesc,
 
 // dx = transpose(w) * dy
 GemmParam CreateGemmStridedBatchedParamConv1x1BwdData(const TensorDescriptor& wDesc,
-                                                            const TensorDescriptor& dyDesc,
-                                                            const TensorDescriptor& dxDesc)
+                                                      const TensorDescriptor& dyDesc,
+                                                      const TensorDescriptor& dxDesc)
 {
     (void)dyDesc;
 #if 0

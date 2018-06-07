@@ -382,8 +382,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
 #if MIOPEN_USE_ROCBLAS
                 // y = w * x
-                GemmParam gemm_param =
-                    CreateGemmStridedBatchedParamConv1x1Fwd(wDesc, xDesc, yDesc);
+                GemmParam gemm_param = CreateGemmStridedBatchedParamConv1x1Fwd(wDesc, xDesc, yDesc);
 
                 // y = w * x
                 CallGemmStridedBatched(handle, gemm_param, w, 0, x, 0, tmp_y.get(), 0);
@@ -858,8 +857,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
 #if MIOPEN_USE_ROCBLAS
                 // y = w * x
-                GemmParam gemm_param =
-                    CreateGemmStridedBatchedParamConv1x1Fwd(wDesc, xDesc, yDesc);
+                GemmParam gemm_param = CreateGemmStridedBatchedParamConv1x1Fwd(wDesc, xDesc, yDesc);
 
                 // y = w * x
                 CallGemmStridedBatched(handle, gemm_param, w, 0, x, 0, y, 0);
