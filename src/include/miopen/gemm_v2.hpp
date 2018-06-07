@@ -42,131 +42,83 @@ namespace miopen {
 // lda, ldb, ldc are leading dimension strides of memory for A, B, C,
 //   and leading dimension stride is:
 //     cross-column memory stride for column-major A, B, C,
-//     cross-row    memory stride for row   -major A, B, C.
+//     cross-row    memory stride for row   -major A, B, C
+// for strided batched GEMM
+//   strideA, strideB, strideC are the strides of the matrices
+struct GemmParam
+{
+    bool isColMajor;
+    bool transA, transB;
+    int m, n, k;
+    int lda, ldb, ldc;
+    int batch_count;
+    long long int strideA, strideB, strideC;
+    float alpha, beta;
+};
+
 void CallGemm(Handle& handle,
-              bool isColMajor,
-              bool transA,
-              bool transB,
-              int m,
-              int n,
-              int k,
-              const void* alpha,
+              GemmParam gemm_param,
               ConstData_t A,
               int a_offset,
-              int lda,
               ConstData_t B,
               int b_offset,
-              int ldb,
-              const void* beta,
               Data_t C,
-              int c_offset,
-              int ldc);
+              int c_offset);
 
-// strided batched GEMM
-//   strideA, strideB, strideC are the strides of the matrices
 void CallGemmStridedBatched(Handle& handle,
-                            bool isColMajor,
-                            bool transA,
-                            bool transB,
-                            int m,
-                            int n,
-                            int k,
-                            const void* alpha,
+                            GemmParam gemm_param,
                             ConstData_t A,
                             int a_offset,
-                            int lda,
-                            long long int strideA,
                             ConstData_t B,
                             int b_offset,
-                            int ldb,
-                            long long int strideB,
-                            const void* beta,
                             Data_t C,
-                            int c_offset,
-                            int ldc,
-                            long long int strideC,
-                            int batch_count)
+                            int c_offset)
 #if not MIOPEN_USE_ROCBLAS
     __attribute__((noreturn))
 #endif
     ;
 
-// GEMM description for Convolution (using Im2Col) Fwd
+// GEMM parameters for Convolution (using Im2Col) Fwd
 // y = w * Im2Col(x)
-std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
-CreateGemmDescriptionConvFwd(const TensorDescriptor& wDesc,
-                             const TensorDescriptor& xDesc,
-                             const TensorDescriptor& yDesc);
-
-// GEMM description for Convolution (using Im2Col) Bwd-Data
-// dx = Col2Im(transpose(w) * dy)
-std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
-CreateGemmDescriptionConvBwdData(const TensorDescriptor& wDesc,
-                                 const TensorDescriptor& dyDesc,
-                                 const TensorDescriptor& dxDesc);
-
-// GEMM description for Convolution (using Im2Col) Bwd-Weight
-// dw = dy * transpose(Im2Col(x))
-std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
-CreateGemmDescriptionConvBwdWeight(const TensorDescriptor& dyDesc,
-                                   const TensorDescriptor& xDesc,
-                                   const TensorDescriptor& dwDesc);
-
-// GEMM description for 1x1 Convolution (using CNHW) Fwd
-// y = CNHW2NCHW(w * NCHW2CNHW(x))
-std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
-CreateGemmDescriptionConvCNHWFwd(const TensorDescriptor& wDesc,
+GemmParam CreateGemmParamConvFwd(const TensorDescriptor& wDesc,
                                  const TensorDescriptor& xDesc,
                                  const TensorDescriptor& yDesc);
 
-// GEMM description for 1x1 Convolution (using CNHW) Bwd-Data
-// dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
-std::tuple<bool, bool, bool, int, int, int, int, int, int, float, float>
-CreateGemmDescriptionConvCNHWBwdData(const TensorDescriptor& wDesc,
+// GEMM parameters for Convolution (using Im2Col) Bwd-Data
+// dx = Col2Im(transpose(w) * dy)
+GemmParam CreateGemmParamConvBwdData(const TensorDescriptor& wDesc,
                                      const TensorDescriptor& dyDesc,
                                      const TensorDescriptor& dxDesc);
 
-// strided batched GEMM description for 1x1 Convolution Fwd
-// y = w * x
-std::tuple<bool,
-           bool,
-           bool,
-           int,
-           int,
-           int,
-           int,
-           int,
-           int,
-           long long int,
-           long long int,
-           long long int,
-           int,
-           float,
-           float>
-CreateGemmStridedBatchedDescriptionConv1x1Fwd(const TensorDescriptor& wDesc,
-                                              const TensorDescriptor& xDesc,
-                                              const TensorDescriptor& yDesc);
+// GEMM parameters for Convolution (using Im2Col) Bwd-Weight
+// dw = dy * transpose(Im2Col(x))
+GemmParam CreateGemmParamConvBwdWeight(const TensorDescriptor& dyDesc,
+                                       const TensorDescriptor& xDesc,
+                                       const TensorDescriptor& dwDesc);
 
-// strided batched GEMM description for 1x1 Convolution Bwd-Data
+// GEMM parameters for 1x1 Convolution (using CNHW) Fwd
+// y = CNHW2NCHW(w * NCHW2CNHW(x))
+GemmParam CreateGemmParamConvCNHWFwd(const TensorDescriptor& wDesc,
+                                     const TensorDescriptor& xDesc,
+                                     const TensorDescriptor& yDesc);
+
+// GEMM parameters for 1x1 Convolution (using CNHW) Bwd-Data
+// dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
+GemmParam CreateGemmParamConvCNHWBwdData(const TensorDescriptor& wDesc,
+                                         const TensorDescriptor& dyDesc,
+                                         const TensorDescriptor& dxDesc);
+
+// strided batched GEMM parameters for 1x1 Convolution Fwd
+// y = w * x
+GemmParam CreateGemmStridedBatchedParamConv1x1Fwd(const TensorDescriptor& wDesc,
+                                                  const TensorDescriptor& xDesc,
+                                                  const TensorDescriptor& yDesc);
+
+// strided batched GEMM parameters for 1x1 Convolution Bwd-Data
 // dx = transpose(w) * dy
-std::tuple<bool,
-           bool,
-           bool,
-           int,
-           int,
-           int,
-           int,
-           int,
-           int,
-           long long int,
-           long long int,
-           long long int,
-           int,
-           float,
-           float>
-CreateGemmStridedBatchedDescriptionConv1x1BwdData(const TensorDescriptor& wDesc,
-                                                  const TensorDescriptor& dyDesc,
-                                                  const TensorDescriptor& dxDesc);
+GemmParam CreateGemmStridedBatchedParamConv1x1BwdData(const TensorDescriptor& wDesc,
+                                                      const TensorDescriptor& dyDesc,
+                                                      const TensorDescriptor& dxDesc);
 
 } // namespace miopen
 
