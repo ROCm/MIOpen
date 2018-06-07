@@ -44,8 +44,7 @@ std::string GetDbPath()
         return p;
 }
 
-namespace
-{
+namespace {
 std::string PrepareUserDbPath()
 {
     auto p = GetStringEnv(MIOPEN_USER_DB_PATH{});
