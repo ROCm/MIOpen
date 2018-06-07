@@ -33,7 +33,7 @@
 #include <miopen/visit_float.hpp>
 #include <miopen/check_numerics.hpp>
 
-#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
+#if MIOPEN_USE_GEMM
 #include <miopen/gemm.hpp>
 #include <miopen/gemm_v2.hpp>
 #endif
@@ -325,7 +325,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     {
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
-#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
+#if MIOPEN_USE_GEMM
         if(xDesc.GetType() == miopenFloat)
         {
             // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
@@ -799,7 +799,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
             std::string network_config;
 
-#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
+#if MIOPEN_USE_GEMM
             // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
             // 1x1_stride=2
             if((wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && dilation_h == 1 &&
@@ -942,7 +942,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             MIOPEN_THROW("GEMM is not supported");
 #endif
         }
-#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
+#if MIOPEN_USE_GEMM
         break;
 #endif
         case miopenConvolutionFwdAlgoFFT:
@@ -1349,7 +1349,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         // GEMM based
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
-#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
+#if MIOPEN_USE_GEMM
         if(dyDesc.GetType() == miopenFloat)
         {
             // 1x1 does not require col2im or workspace
@@ -1698,7 +1698,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
             std::string network_config;
 
-#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
+#if MIOPEN_USE_GEMM
             if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
                dilation_w == 1 && dilation_h == 1)
             {
@@ -1849,7 +1849,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             MIOPEN_THROW("GEMM is not supported");
 #endif
         }
-#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
+#if MIOPEN_USE_GEMM
         break;
 #endif
 
@@ -2083,7 +2083,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     {
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
 
-#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
+#if MIOPEN_USE_GEMM
         if(dyDesc.GetType() == miopenFloat)
         {
             // dw = dy * transpose(Im2Col(x))
@@ -2402,7 +2402,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         {
         case miopenConvolutionBwdWeightsAlgoGEMM: {
 
-#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
+#if MIOPEN_USE_GEMM
             // Zeroing out the output buffer
             float zero = 0.0f;
             SetTensor(handle, dwDesc, dw, &zero);
@@ -2486,7 +2486,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             MIOPEN_THROW("GEMM is not supported");
 #endif
         }
-#if MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS
+#if MIOPEN_USE_GEMM
         break;
 #endif
 
