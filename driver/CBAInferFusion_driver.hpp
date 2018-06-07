@@ -82,6 +82,8 @@ class CBAInferFusionDriver : public Driver
         miopenCreateConvolutionDescriptor(&convDesc);
         miopenCreateActivationDescriptor(&activDesc);
 
+        miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputTensor);
+
         workspace_fwd_dev = nullptr;
 
         data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
@@ -171,13 +173,11 @@ class CBAInferFusionDriver : public Driver
     std::unique_ptr<GPUMem> out_dev;
     std::unique_ptr<GPUMem> scale_dev;
     std::unique_ptr<GPUMem> bias_dev;
-
     std::unique_ptr<GPUMem> workspace_fwd_dev;
     std::unique_ptr<GPUMem> runningMean_dev;
     std::unique_ptr<GPUMem> runningVariance_dev;
     std::unique_ptr<GPUMem> saveMean_dev;
     std::unique_ptr<GPUMem> saveInvVariance_dev;
-
     std::unique_ptr<GPUMem> b_dev;
     std::vector<Tgpu> b;
 
@@ -186,33 +186,18 @@ class CBAInferFusionDriver : public Driver
     std::vector<Tgpu> wei;
     std::vector<Tgpu> conv_res;
     std::vector<Tgpu> bn_res;
-
     std::vector<Tref> conv_res_host;
     std::vector<Tref> bn_res_host;
     std::vector<Tref> out_host;
-
-    // std::vector<Tgpu> workspace_fwd;
-
     std::vector<Tgpu> scale;
-    // std::vector<Tgpu> scale_host;
     std::vector<Tgpu> bias;
-    // std::vector<Tgpu> bias_host;
-
     std::vector<Tgpu> runningMean;
     std::vector<Tgpu> runningVariance;
-    // std::vector<Tref> runningMean_host;
-    // std::vector<Tref> runningVariance_host;
-
-    // std::vector<Tgpu> saveMean;
-    // std::vector<Tgpu> saveInvVariance;
-
-    // std::vector<Tref> saveMean_host;
-    // std::vector<Tref> saveInvVariance_host;
-
-    // std::vector<Tref> workspace_fwd_host;
 
     int createSaveBuffers();
     int createRunningBuffers();
+
+    miopenFusionPlanDescriptor_t fusePlanDesc;
     // Tref maxval;
 };
 
@@ -321,10 +306,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("alpha", 'A', "1.0", "Alpha (Default=1.0)", "float");
     inflags.AddInputFlag("beta", 'B', "0.", "Beta (Default=0.)", "float");
     inflags.AddInputFlag("gamma", 'G', "1", "Activation gamma (Default=1)", "double");
-
-    // DLOWELL forcing bias mode to go through the fusion variants
-    // inflags.AddInputFlag("conv_bias", 'b', "", "Use Bias for Conv (Default=0)", "int");
-
     inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -428,7 +409,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
     }
 
     //(cbbna = 0, cbna = 1, bna = 2, cba = 3, ca = 4, cb = 5)
-    //    if(inflags.GetValueInt("conv_bias") == 1)
     if(fusion_mode < 2 || fusion_mode == 3 || fusion_mode == 5)
         bias_mode = 1;
     else
@@ -517,10 +497,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::createRunningBuffers()
     {
         runningMean_dev     = nullptr;
         runningVariance_dev = nullptr;
-
-        // GPU host allocation
-        /*runningMean     = nullptr;
-        runningVariance = nullptr;*/
     }
     if(status != CL_SUCCESS)
         printf("Error copying data to GPU\n");
@@ -642,12 +618,24 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 template <typename Tgpu, typename Tref>
 void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
 {
+
+
+
+
     double activ_alpha, activ_beta, activ_gamma;
     miopenActivationMode_t activ_mode;
     miopenGetActivationDescriptor(activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
 
     Tref epsilon = static_cast<Tref>(EPSILON);
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
+    
+    
+
+
+    miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                 miopenFusionOpDescriptor_t* bnOp,
+                                 const miopenBatchNormMode_t bn_mode);
+
 
     miopen::BatchNormActivInference(miopen::deref(GetHandle()),
                                     bn_mode,
