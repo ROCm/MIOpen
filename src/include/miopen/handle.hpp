@@ -155,6 +155,10 @@ struct Handle : miopenHandle
         return result;
     }
 
+#if MIOPEN_USE_ROCBLAS
+    rocblas_handle_ptr CreateRocblasHandle() const;
+#endif
+
     std::unique_ptr<HandleImpl> impl;
 #if MIOPEN_USE_MIOPENGEMM
     std::unordered_map<GemmKey, std::unique_ptr<GemmGeometry>, SimpleHash> geo_map;

@@ -27,6 +27,8 @@
 #include <miopen/handle.hpp>
 #include <miopen/miopengemm.hpp>
 
+#define MIOPENGEMM_CPP_DEBUG 0
+
 #if MIOPEN_USE_MIOPENGEMM
 namespace miopen {
 
@@ -126,16 +128,12 @@ void FindMiopengemmSolution(Handle& handle,
             algorithm_name, network_config, beta_program_name, beta_kernel_name, vld, vgd, "", 1);
     }
 
-#if 1
+#if MIOPENGEMM_CPP_DEBUG
     {
         const auto& kernels = handle.GetKernels(algorithm_name, network_config);
 
-#if 0
         for(const auto& k : kernels)
-        {
             std::cout << __func__ << ": kernel name: " << k.GetName() << std::endl;
-        }
-#endif
 
         if(kernels.size() == 2)
         {
@@ -174,29 +172,33 @@ void RunMiopengemmSolution(Handle& handle,
 
     const auto& kernels = handle.GetKernels(algorithm_name, network_config);
 
-#if 0
+#if MIOPENGEMM_CPP_DEBUG
     {
         for(const auto& k : kernels)
-        {
             std::cout << __func__ << ": kernel name: " << k.GetName() << std::endl;
-        }
     }
 #endif
 
     if(kernels.size() == 2)
     {
-        // C *= beta
+// C *= beta
+#if MIOPENGEMM_CPP_DEBUG
         assert(kernels[1].GetName() == "miog_betac");
+#endif
         kernels[1](C, c_offset, beta);
 
-        // C += alpha * A * B
+// C += alpha * A * B
+#if MIOPENGEMM_CPP_DEBUG
         assert(kernels[0].GetName() == "miog_alphaab");
+#endif
         kernels[0](A, a_offset, B, b_offset, C, c_offset, alpha);
     }
     else if(kernels.size() == 1)
     {
-        // C = alpha * A * B + beta * C
+// C = alpha * A * B + beta * C
+#if MIOPENGEMM_CPP_DEBUG
         assert(kernels[0].GetName() == "miog_betac_alphaab");
+#endif
         kernels[0](A, a_offset, B, b_offset, C, c_offset, alpha, beta);
     }
     else
