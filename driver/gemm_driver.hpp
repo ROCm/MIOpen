@@ -40,23 +40,6 @@
 
 #define GEMM_DRIVER_DEBUG 0
 
-struct GemmDescriptor
-{
-    bool isColMajor;
-    bool transA;
-    bool transB;
-    int m;
-    int n;
-    int k;
-    int lda;
-    long long int strideA;
-    int ldb;
-    long long int strideB;
-    int ldc;
-    long long int strideC;
-    int batch_count;
-};
-
 template <typename T>
 void callCpuGemmStridedBatched(bool isColMajor,
                                bool transA,
@@ -64,7 +47,7 @@ void callCpuGemmStridedBatched(bool isColMajor,
                                int m,
                                int n,
                                int k,
-                               const void* alpha,
+                               T alpha,
                                const void* A,
                                int a_offset,
                                int lda,
@@ -73,7 +56,7 @@ void callCpuGemmStridedBatched(bool isColMajor,
                                int b_offset,
                                int ldb,
                                long long int strideB,
-                               const void* beta,
+                               T beta,
                                void* C,
                                int c_offset,
                                int ldc,
@@ -83,9 +66,6 @@ void callCpuGemmStridedBatched(bool isColMajor,
     const T* a_ptr = static_cast<const T*>(A);
     const T* b_ptr = static_cast<const T*>(B);
     T* c_ptr       = static_cast<T*>(C);
-
-    const T alpha_local = *static_cast<const T*>(alpha);
-    const T beta_local  = *static_cast<const T*>(beta);
 
     // our cpu GEMM logic is row-major
     if(isColMajor)
@@ -115,7 +95,7 @@ void callCpuGemmStridedBatched(bool isColMajor,
                     y += a_ptr[aindex] * b_ptr[bindex];
                 }
                 int cindex    = c_offset + strideC * bi + ldc * mi + ni;
-                c_ptr[cindex] = alpha_local * y + beta_local * c_ptr[cindex];
+                c_ptr[cindex] = alpha * y + beta * c_ptr[cindex];
             }
         }
     }
@@ -160,7 +140,7 @@ class GemmDriver : public Driver
 
     T alpha, beta;
 
-    GemmDescriptor desc;
+    miopen::GemmParam gemm_param;
 };
 
 template <typename T>
@@ -199,29 +179,32 @@ int GemmDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename T>
 int GemmDriver<T>::GetandSetData()
 {
-    desc.isColMajor = inflags.GetValueInt("isColMajor");
-    desc.m          = inflags.GetValueInt("a_h");
-    desc.k          = inflags.GetValueInt("a_w");
-    desc.n          = inflags.GetValueInt("b_w");
+    gemm_param.isColMajor = inflags.GetValueInt("isColMajor");
+    gemm_param.m          = inflags.GetValueInt("a_h");
+    gemm_param.k          = inflags.GetValueInt("a_w");
+    gemm_param.n          = inflags.GetValueInt("b_w");
 
-    desc.transA = inflags.GetValueInt("transA");
-    desc.transB = inflags.GetValueInt("transB");
+    gemm_param.transA = inflags.GetValueInt("transA");
+    gemm_param.transB = inflags.GetValueInt("transB");
 
-    alpha = inflags.GetValueDouble("alpha");
-    beta  = inflags.GetValueDouble("beta");
+    gemm_param.alpha = inflags.GetValueDouble("alpha");
+    gemm_param.beta  = inflags.GetValueDouble("beta");
 
     // we are assuming: row-major, each matrix is saved in continuous memory, no empty memory
     // between batches of matrices
-    desc.lda = desc.transA == 0 ? desc.k : desc.m;
-    desc.ldb = desc.transB == 0 ? desc.n : desc.k;
-    desc.ldc = desc.n; // C is never transposed
+    gemm_param.lda = gemm_param.transA == 0 ? gemm_param.k : gemm_param.m;
+    gemm_param.ldb = gemm_param.transB == 0 ? gemm_param.n : gemm_param.k;
+    gemm_param.ldc = gemm_param.n; // C is never transposed
 
-    desc.batch_count = inflags.GetValueInt("batch_count");
+    gemm_param.batch_count = inflags.GetValueInt("batch_count");
 
-    desc.strideA = desc.m * desc.k;
-    // desc.strideA = 0; // debug
-    desc.strideB = desc.k * desc.n;
-    desc.strideC = desc.m * desc.n;
+#if GEMM_DRIVER_DEBUG
+    gemm_param.strideA = 0;
+#else
+    gemm_param.strideA = gemm_param.m * gemm_param.k;
+#endif
+    gemm_param.strideB = gemm_param.k * gemm_param.n;
+    gemm_param.strideC = gemm_param.m * gemm_param.n;
 
     return (0);
 }
@@ -229,15 +212,15 @@ int GemmDriver<T>::GetandSetData()
 template <typename T>
 int GemmDriver<T>::AllocateBuffersAndCopy()
 {
-    size_t a_sz = desc.m * desc.k + (desc.batch_count - 1) * desc.strideA;
-    size_t b_sz = desc.k * desc.n + (desc.batch_count - 1) * desc.strideB;
-    size_t c_sz = desc.m * desc.n + (desc.batch_count - 1) * desc.strideC;
+    size_t a_sz = gemm_param.m * gemm_param.k + (gemm_param.batch_count - 1) * gemm_param.strideA;
+    size_t b_sz = gemm_param.k * gemm_param.n + (gemm_param.batch_count - 1) * gemm_param.strideB;
+    size_t c_sz = gemm_param.m * gemm_param.n + (gemm_param.batch_count - 1) * gemm_param.strideC;
 #if MIOPEN_BACKEND_OPENCL
     cl_context ctx;
 
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
-    uint32_t ctx = 0;
+    uint32_t ctx       = 0;
 #endif
     a_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, a_sz, sizeof(T)));
     b_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, b_sz, sizeof(T)));
@@ -246,27 +229,27 @@ int GemmDriver<T>::AllocateBuffersAndCopy()
     a = std::vector<T>(a_sz);
     b = std::vector<T>(b_sz);
 #if GEMM_DRIVER_DEBUG
-    c     = std::vector<T>(c_sz, 1.);
+    c = std::vector<T>(c_sz, 1.);
 #else
-    c     = std::vector<T>(c_sz, 0.);
+    c                  = std::vector<T>(c_sz, 0.);
 #endif
     chost = c;
 
     for(int i = 0; i < a_sz; i++)
     {
 #if GEMM_DRIVER_DEBUG
-        a[i] = static_cast<double>(rand()) * (1.0 / RAND_MAX);
-#else
         a[i] = static_cast<double>(i);
+#else
+        a[i]           = static_cast<double>(rand()) * (1.0 / RAND_MAX);
 #endif
     }
 
     for(int i = 0; i < b_sz; i++)
     {
 #if GEMM_DRIVER_DEBUG
-        b[i] = static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5) * 0.001;
-#else
         b[i] = static_cast<double>(i);
+#else
+        b[i]           = static_cast<double>((rand()) * (1.0 / RAND_MAX) - 0.5) * 0.001;
 #endif
     }
 #if MIOPEN_BACKEND_OPENCL
@@ -309,70 +292,32 @@ int GemmDriver<T>::RunForwardGPU()
 
 #if 0
         CallGemmStridedBatched(miopen::deref(GetHandle()),
-                               desc.isColMajor,
-                               desc.transA,
-                               desc.transB,
-                               desc.m,
-                               desc.n,
-                               desc.k,
-                               &alpha,
+                               gemm_param,
                                a_dev->GetMem(),
                                0,
-                               desc.lda,
-                               desc.strideA,
                                b_dev->GetMem(),
                                0,
-                               desc.ldb,
-                               desc.strideB,
-                               &beta,
                                c_dev->GetMem(),
-                               0,
-                               desc.ldc,
-                               desc.strideC,
-                               desc.batch_count);
+                               0);
 #else
-        if(desc.batch_count > 1)
+        if(gemm_param.batch_count > 1)
             CallGemmStridedBatched(miopen::deref(GetHandle()),
-                                   desc.isColMajor,
-                                   desc.transA,
-                                   desc.transB,
-                                   desc.m,
-                                   desc.n,
-                                   desc.k,
-                                   &alpha,
+                                   gemm_param,
                                    a_dev->GetMem(),
                                    0,
-                                   desc.lda,
-                                   desc.strideA,
                                    b_dev->GetMem(),
                                    0,
-                                   desc.ldb,
-                                   desc.strideB,
-                                   &beta,
                                    c_dev->GetMem(),
-                                   0,
-                                   desc.ldc,
-                                   desc.strideC,
-                                   desc.batch_count);
+                                   0);
         else
             CallGemm(miopen::deref(GetHandle()),
-                     desc.isColMajor,
-                     desc.transA,
-                     desc.transB,
-                     desc.m,
-                     desc.n,
-                     desc.k,
-                     &alpha,
+                     gemm_param,
                      a_dev->GetMem(),
                      0,
-                     desc.lda,
                      b_dev->GetMem(),
                      0,
-                     desc.ldb,
-                     &beta,
                      c_dev->GetMem(),
-                     0,
-                     desc.ldc);
+                     0);
 #endif
 
 #if GEMM_DRIVER_DEBUG
@@ -408,27 +353,27 @@ int GemmDriver<T>::RunForwardGPU()
 template <typename T>
 int GemmDriver<T>::RunForwardCPU()
 {
-    callCpuGemmStridedBatched<T>(desc.isColMajor,
-                                 desc.transA,
-                                 desc.transB,
-                                 desc.m,
-                                 desc.n,
-                                 desc.k,
-                                 &alpha,
+    callCpuGemmStridedBatched<T>(gemm_param.isColMajor,
+                                 gemm_param.transA,
+                                 gemm_param.transB,
+                                 gemm_param.m,
+                                 gemm_param.n,
+                                 gemm_param.k,
+                                 static_cast<T>(gemm_param.alpha),
                                  a.data(),
                                  0,
-                                 desc.lda,
-                                 desc.strideA,
+                                 gemm_param.lda,
+                                 gemm_param.strideA,
                                  b.data(),
                                  0,
-                                 desc.ldb,
-                                 desc.strideB,
-                                 &beta,
+                                 gemm_param.ldb,
+                                 gemm_param.strideB,
+                                 static_cast<T>(gemm_param.beta),
                                  chost.data(),
                                  0,
-                                 desc.ldc,
-                                 desc.strideC,
-                                 desc.batch_count);
+                                 gemm_param.ldc,
+                                 gemm_param.strideC,
+                                 gemm_param.batch_count);
 
     return 0;
 }
