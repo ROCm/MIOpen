@@ -48,7 +48,7 @@ boost::filesystem::path ComputeCachePath()
                           std::to_string(MIOPEN_VERSION_MINOR) + "." +
                           std::to_string(MIOPEN_VERSION_PATCH);
     auto p =
-        boost::filesystem::path{miopen::ReplaceString(cache_dir, "~", getenv("HOME"))} / version;
+        boost::filesystem::path{miopen::ReplaceString(cache_dir, "~", GetStringEnv(HOME{}))} / version;
     if(!boost::filesystem::exists(p))
         boost::filesystem::create_directories(p);
     return p;
