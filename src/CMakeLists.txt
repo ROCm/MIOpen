@@ -319,7 +319,6 @@ if(miopengemm_FOUND)
 endif()
 
 if(rocblas_FOUND)
-    # This shouldn't be public
     target_link_libraries( MIOpen PRIVATE roc::rocblas )
 endif()
 
