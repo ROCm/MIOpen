@@ -343,7 +343,7 @@ int GemmDriver<T>::RunForwardGPU()
     {
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
-        printf("GPU Kernel Time Gemm Elapsed: %f ms\n", time / inflags.GetValueInt("iter"));
+        printf("GPU Kernel Time Gemm Elapsed: %f ms\n", time);
     }
 
     c_dev->FromGPU(GetStream(), c.data());

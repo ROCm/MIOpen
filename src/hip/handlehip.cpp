@@ -118,17 +118,6 @@ int set_default_device()
     return (pid % n);
 }
 
-#if MIOPEN_USE_ROCBLAS
-rocblas_handle_ptr create_rocblas_handle_ptr(Handle& h)
-{
-    rocblas_handle x = nullptr;
-    rocblas_create_handle(&x);
-    auto result = rocblas_handle_ptr{x};
-    rocblas_set_stream(result.get(), h.GetStream());
-    return result;
-}
-#endif
-
 struct HandleImpl
 {
     // typedef MIOPEN_MANAGE_PTR(hipStream_t, hipStreamDestroy) StreamPtr;
@@ -190,7 +179,7 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
     this->SetAllocator(nullptr, nullptr, nullptr);
 
 #if MIOPEN_USE_ROCBLAS
-    rhandle = create_rocblas_handle_ptr(miopen::deref(this));
+    rhandle = CreateRocblasHandle();
 #endif
 }
 
@@ -208,7 +197,7 @@ Handle::Handle() : impl(new HandleImpl())
     this->SetAllocator(nullptr, nullptr, nullptr);
 
 #if MIOPEN_USE_ROCBLAS
-    rhandle = create_rocblas_handle_ptr(miopen::deref(this));
+    rhandle = CreateRocblasHandle();
 #endif
 }
 
@@ -400,4 +389,15 @@ shared<ConstData_t> Handle::CreateSubBuffer(ConstData_t data, std::size_t offset
     auto cdata = reinterpret_cast<const char*>(data);
     return {cdata + offset, null_deleter{}};
 }
+
+#if MIOPEN_USE_ROCBLAS
+rocblas_handle_ptr Handle::CreateRocblasHandle() const
+{
+    rocblas_handle x = nullptr;
+    rocblas_create_handle(&x);
+    auto result = rocblas_handle_ptr{x};
+    rocblas_set_stream(result.get(), GetStream());
+    return result;
+}
+#endif
 } // namespace miopen
