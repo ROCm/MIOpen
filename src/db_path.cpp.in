@@ -27,9 +27,7 @@
 #include <miopen/db_path.hpp>
 
 #include <miopen/env.hpp>
-#include <miopen/stringutils.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(HOME)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DB_PATH)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_USER_DB_PATH)
 
@@ -37,11 +35,8 @@ namespace miopen {
 
 std::string GetDbPath()
 {
-    auto p =
-        miopen::ReplaceString(GetStringEnv(MIOPEN_DB_PATH{}),
-                              "~",
-                              GetStringEnv(HOME{}));
-    if(p.empty())
+    auto p = GetStringEnv(MIOPEN_DB_PATH{});
+    if(p == nullptr)
         return "${MIOPEN_DB_PATH}";
     else
         return p;
@@ -49,11 +44,8 @@ std::string GetDbPath()
 
 std::string GetUserDbPath()
 {
-    auto p =
-        miopen::ReplaceString(GetStringEnv(MIOPEN_USER_DB_PATH{}),
-                              "~",
-                              GetStringEnv(HOME{}));
-    if(p.empty())
+    auto p = GetStringEnv(MIOPEN_USER_DB_PATH{});
+    if(p == nullptr)
         return "${MIOPEN_USER_DB_PATH}";
     else
         return p;
