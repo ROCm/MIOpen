@@ -81,7 +81,7 @@ Db::Db(const std::string& filename_, bool is_system)
         auto directory = file.remove_filename();
 
         if(!(boost::filesystem::exists(directory)) &&
-           !boost::filesystem::create_directory(directory))
+           !boost::filesystem::create_directories(directory))
             MIOPEN_LOG_W("Unable to create a directory: " << directory);
     }
 }
