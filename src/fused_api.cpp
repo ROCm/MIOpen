@@ -306,6 +306,49 @@ miopenSetOpArgsConvBackwardWeights(miopenOperatorArgs_t args,
 }
 //----
 
+// Fusion op args for bias
+extern "C" miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
+                                                     const miopenFusionOpDescriptor_t biasOp,
+                                                     const void* alpha,
+                                                     const void* beta,
+                                                     const void* bias)
+{
+
+    MIOPEN_LOG_FUNCTION(args, biasOp, alpha, beta, bias);
+    return (miopenStatusSuccess);
+}
+
+extern "C" miopenStatus_t miopenSetOpArgsBiasBackward(miopenOperatorArgs_t args,
+                                                      const miopenFusionOpDescriptor_t dbiasOp,
+                                                      const void* alpha,
+                                                      const void* beta,
+                                                      const void* dbias)
+{
+
+    MIOPEN_LOG_FUNCTION(args, dbiasOp, alpha, beta, dbias);
+    return (miopenStatusSuccess);
+}
+//---
+
+extern "C" miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
+                                                      const miopenFusionOpDescriptor_t activOp,
+                                                      const void* alpha,
+                                                      const void* beta)
+{
+
+    MIOPEN_LOG_FUNCTION(args, activOp, alpha, beta);
+    return (miopenStatusSuccess);
+}
+
+extern "C" miopenStatus_t miopenSetOpArgsActivBackward(miopenOperatorArgs_t args,
+                                                       const miopenFusionOpDescriptor_t activOp,
+                                                       const void* alpha,
+                                                       const void* beta)
+{
+    MIOPEN_LOG_FUNCTION(args, activOp, alpha, beta);
+    return (miopenStatusSuccess);
+}
+
 // Fusion op args for Batch Normalization
 extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t args,
                                                             const miopenFusionOpDescriptor_t bnOp,
