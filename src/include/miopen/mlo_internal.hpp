@@ -309,6 +309,14 @@ auto FindFirstSolution(T& x) -> decltype(x.FindSolution())
     return x.FindSolution();
 }
 
+template <class T>
+auto FindAllSolutions(T& x) -> decltype(x.FindAllSolutions())
+{
+    x.setupRocm();
+    x.setupFloats();
+    return x.FindAllSolutions();
+}
+
 /// \todo Move this into respective Solution objects. --atamazov
 struct mlo_construct_activ_lrn_pooling_common
 {
@@ -388,6 +396,7 @@ struct mlo_construct_direct2D
     */
 
     miopen::solver::ConvSolution FindSolution();
+    std::vector<miopen::solver::ConvSolution> FindAllSolutions();
     miopen::MultiFileDb GetDb() const;
 
     /*
@@ -863,7 +872,7 @@ struct mlo_construct_BwdWrW2D : mlo_construct_direct2D
         _search_params.direction.SetBackwardWrW();
     }
 
-    miopen::solver::ConvSolution FindSolution();
+    std::vector<miopen::solver::ConvSolution> FindAllSolutions();
 };
 
 /*

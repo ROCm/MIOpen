@@ -42,10 +42,38 @@
 #include <miopen/env.hpp>
 #include <miopen/type_name.hpp>
 #include <miopen/miopen.h>
+#include <miopen/stringutils.hpp> // for IsPureOpenCLSolution()
 
 namespace miopen {
 
+/// Enables "Find first convolution only" mode. This mode is intended for
+/// triaging problems which may reveal after PR #781. Globally disables
+/// lookup for _all_ suitable convolutions (introduced in PR #781),
+/// so lookup is stopped as soon as the first applicable Solution found.
+/// Also enables performance filtering heuristics.
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_FIND_FIRST_CONV)
+
+/// Allows to explicitly disable performance filtering heuristics
+/// in "Find first convolution only" mode.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
+
+/// \todo Remove MIOPEN_DEBUG_FIND_FIRST_CONV together with
+/// MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING and all related code
+/// as soon as "find all" mode is stable so backward compatibility mode
+/// is not needed (for triaging etc) anymore.
+
+/// It seems that legacy OpenCL solvers imply that only the 1st one
+/// applicable solution shall be used. The rest of OpenCL
+/// solutions, in spite of that their IsApplicabe() return TRUE,
+/// may fail (1) during exhaustive search, (2) during compilation,
+/// (3) on execution (like LDS overallocation) or (4) may reveal precision
+/// problems. These problems impedes finding and using the really fastest OpenCL solution.
+MIOPEN_DECLARE_ENV_VAR(
+    MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_FWD) /// \todo Fix & remove the workaround.
+MIOPEN_DECLARE_ENV_VAR(
+    MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_BWD) /// \todo Fix & remove the workaround.
+MIOPEN_DECLARE_ENV_VAR(
+    MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_WRW) /// \todo Fix & remove the workaround.
 
 namespace solver {
 /// \todo Move wave_size into abstraction wich represent GPU information
@@ -227,6 +255,87 @@ auto SearchForSolution(const Context& search_params, Db db) ->
         Solvers{}...);
 
     return solution;
+}
+
+template <class Solution>
+static inline bool IsPureOpenCLSolution(const Solution& s)
+{
+    for(auto& k : s.construction_params)
+    {
+        if(!miopen::EndsWith(k.kernel_file, ".cl"))
+            return false;
+    }
+    return true;
+}
+
+// Search for all applicable solutions among many solvers
+template <class... Solvers, class Context, class Db, class Solution = miopen::solver::ConvSolution>
+std::vector<Solution> SearchForAllSolutions(const Context& search_params, Db db)
+{
+    std::vector<Solution> ss;
+
+// Using const here causes gcc to ICE
+#if(!defined(__GNUC__) || defined(__clang__))
+    const
+#endif
+        auto no_perf_filtering =
+            miopen::IsDisabled(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING{}) ||
+            !miopen::IsEnabled(MIOPEN_DEBUG_FIND_FIRST_CONV{});
+
+    bool skip_the_rest = false;
+    miopen::each_args(
+        [&](auto solver) { // cppcheck-suppress knownConditionTrueFalse
+            if(!skip_the_rest && solver.IsApplicable(search_params) &&
+               (no_perf_filtering || solver.IsFast(search_params)))
+            {
+                const Solution s = FindSolution(solver, search_params, db);
+                if(s.Succeeded())
+                {
+                    ss.push_back(s);
+                    MIOPEN_LOG_I2(SolverDbId(solver) << ": Success.");
+
+                    if(miopen::IsEnabled(MIOPEN_DEBUG_FIND_FIRST_CONV{}))
+                    {
+                        skip_the_rest = true;
+                    }
+                    else if(IsPureOpenCLSolution(s))
+                    {
+                        /// \todo (algorithm == Direct) is not checked here.
+                        /// This is ok so far, as SearchForAllSolutions() is used only for direct
+                        /// convolutions (for now).
+                        if((search_params.direction.IsForward() &&
+                            !miopen::IsDisabled(
+                                MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_FWD{})) ||
+                           (search_params.direction.IsBackwardData() &&
+                            !miopen::IsDisabled(
+                                MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_BWD{})) ||
+                           (search_params.direction.IsBackwardWrW() &&
+                            !miopen::IsDisabled(
+                                MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_WRW{})))
+                        {
+                            skip_the_rest = true;
+                        }
+                    }
+                }
+                else
+                {
+                    /// \todo If Solver is applicable it must provide an appropriate Solution.
+                    /// This is not the case for some 20x5 convolutions (and possibly others).
+                    /// Normally we should not get here and message level should be Error.
+                    /// For now, let's use Info (not Warning) level to avoid
+                    /// flooding the console.
+                    MIOPEN_LOG_I(SolverDbId(solver)
+                                 << ": [Warning] Applicable Solver not succeeded.");
+                }
+            }
+            else
+            {
+                MIOPEN_LOG_I2(SolverDbId(solver) << ": "
+                                                 << (skip_the_rest ? "Skipped" : "Not applicable"));
+            }
+        },
+        Solvers{}...);
+    return ss;
 }
 
 /// Base class for problem solvers.
