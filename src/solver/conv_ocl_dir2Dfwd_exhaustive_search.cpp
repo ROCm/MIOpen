@@ -227,6 +227,42 @@ static int MeasureLoop(Handle* profile_h,
     return 0;
 }
 
+/// Copied from ConvOclDirectFwd::GetSolution().
+/// \todo Get rid the duplication of code.
+static bool ExpectedErrorInGetSolution(const ConvolutionContext& params,
+                                       const LegacyPerformanceConfig& searched_params)
+{
+    ConvSolution result;
+    searched_params.CopyTo(result);
+
+    // hacky fix of the incorrect kernel local memory address calculation for data
+    result.out_pix_tile1 = (!params.direction.IsForward() && params.kernel_stride1 > 1)
+                               ? params.kernel_stride1
+                               : searched_params.out_pix_tile1;
+    result.out_pix_tile0 = (!params.direction.IsForward() && params.kernel_stride0 > 1)
+                               ? params.kernel_stride0
+                               : searched_params.out_pix_tile0;
+
+    if(result.out_pix_tile1 == 0 || result.out_pix_tile0 == 0 /* DIV/0 */)
+    {
+        return true;
+    }
+
+    result.grp_tile0 = std::max(8, (result.in_tile0 / result.out_pix_tile0));
+    result.grp_tile1 = std::max(8, (result.in_tile1 / result.out_pix_tile1));
+    result.in_tile0  = result.grp_tile0 * result.out_pix_tile0;
+    result.in_tile1  = result.grp_tile1 * result.out_pix_tile1;
+
+    int alu_tile0    = (result.in_tile0 + result.out_pix_tile0 - 1) / result.out_pix_tile0;
+    int alu_tile1    = (result.in_tile1 + result.out_pix_tile1 - 1) / result.out_pix_tile1;
+    int alu_tiles_sz = (alu_tile0 * alu_tile1);
+    if(alu_tiles_sz > 256 || alu_tiles_sz == 0 /* DIV/0 */)
+    {
+        return true;
+    }
+    return false;
+}
+
 LegacyPerformanceConfig
 ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params) const
 {
@@ -618,6 +654,16 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
                                     if(result.out_pix_tile1 * result.out_pix_tile0 *
                                            result.n_out_pix_tiles * result.n_stacks >=
                                        128)
+                                    {
+                                        runs_left--;
+                                        runs_left = (runs_left < 0) ? 0 : runs_left;
+                                        continue;
+                                    }
+
+                                    /// This prevents errors in ConvOclDirectFwd::GetSolution().
+                                    /// Reproduces logic from that function. The cases which
+                                    /// lead to errors are skipped (omitted from the search).
+                                    if(ExpectedErrorInGetSolution(params, result))
                                     {
                                         runs_left--;
                                         runs_left = (runs_left < 0) ? 0 : runs_left;
