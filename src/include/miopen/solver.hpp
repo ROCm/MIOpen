@@ -68,8 +68,9 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 /// may fail (1) during exhaustive search, (2) during compilation,
 /// (3) on execution (like LDS overallocation) or (4) may reveal precision
 /// problems. These problems impedes finding and using the really fastest OpenCL solution.
-MIOPEN_DECLARE_ENV_VAR(
-    MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_FWD) /// \todo Fix & remove the workaround.
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_FWD) /// \todo Remove env.var
+                                                                          /// (workaround is OFF by
+                                                                          /// default)
 MIOPEN_DECLARE_ENV_VAR(
     MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_BWD) /// \todo Fix & remove the workaround.
 MIOPEN_DECLARE_ENV_VAR(
@@ -304,7 +305,7 @@ std::vector<Solution> SearchForAllSolutions(const Context& search_params, Db db)
                         /// This is ok so far, as SearchForAllSolutions() is used only for direct
                         /// convolutions (for now).
                         if((search_params.direction.IsForward() &&
-                            !miopen::IsDisabled(
+                            miopen::IsEnabled(
                                 MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_FWD{})) ||
                            (search_params.direction.IsBackwardData() &&
                             !miopen::IsDisabled(
