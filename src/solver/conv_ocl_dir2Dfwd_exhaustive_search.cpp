@@ -363,7 +363,7 @@ static bool ExpectErrorInConvOclDirectFwd(const ConvolutionContext& params,
     }
     else
     {
-        assert(mlo_filter_stride0 !=0 && mlo_filter_stride1 != 0);
+        assert(mlo_filter_stride0 != 0 && mlo_filter_stride1 != 0);
         mlo_in_lcl_width =
             ((mlo_in_tile0 + mlo_filter_size0 - 1 + mlo_filter_stride0 - 1) / mlo_filter_stride0);
         mlo_in_lcl_height =
