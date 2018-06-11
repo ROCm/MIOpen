@@ -1021,7 +1021,6 @@ int BatchNormDriver<Tgpu, Tref>::RunBackwardGPU()
                                              epsilon,
                                              saveMean_dev->GetMem(),
                                              saveInvVariance_dev->GetMem());
-
         }
         else
         {
