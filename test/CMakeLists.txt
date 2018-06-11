@@ -309,6 +309,97 @@ COMMAND $<TARGET_FILE:test_conv> --verbose --input 32 64 27 27 --weights 192 64 
 )
 
 
+add_custom_test(test_conv_trans ALL
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 256 14 14 --weights 256 256 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 256 14 14 --weights 256 256 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 256 14 14 --weights 256 256 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 256 14 14 --weights 256 256 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 256 14 14 --weights 256 256 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 256 14 14 --weights 256 256 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 256 28 28 --weights 256 256 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 256 28 28 --weights 256 256 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 256 28 28 --weights 256 256 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 256 28 28 --weights 256 256 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 256 28 28 --weights 256 256 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 256 28 28 --weights 256 256 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 512 7 7 --weights 512 512 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 512 7 7 --weights 512 512 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 512 7 7 --weights 512 512 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 512 7 7 --weights 512 512 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 512 7 7 --weights 512 512 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 512 7 7 --weights 512 512 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 64 56 56 --weights 64 64 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 64 56 56 --weights 64 64 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 64 56 56 --weights 64 64 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 64 56 56 --weights 64 64 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 64 56 56 --weights 64 64 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 4 64 56 56 --weights 64 64 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 14 14 --weights 128 128 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 14 14 --weights 128 128 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 14 14 --weights 128 128 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 14 14 --weights 128 128 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 14 14 --weights 128 128 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 14 14 --weights 128 128 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 28 28 --weights 128 128 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 28 28 --weights 128 128 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 28 28 --weights 128 128 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 28 28 --weights 128 128 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 28 28 --weights 128 128 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 28 28 --weights 128 128 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 256 28 28 --weights 256 256 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 256 28 28 --weights 256 256 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 256 28 28 --weights 256 256 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 256 28 28 --weights 256 256 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 256 28 28 --weights 256 256 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 256 28 28 --weights 256 256 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 14 14 --weights 32 32 5 5 --filter 0 0 1 1 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 14 14 --weights 32 32 5 5 --filter 0 0 1 1 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 14 14 --weights 32 32 5 5 --filter 0 0 2 2 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 14 14 --weights 32 32 5 5 --filter 0 0 2 2 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 14 14 --weights 32 32 5 5 --filter 1 1 2 2 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 14 14 --weights 32 32 5 5 --filter 2 2 1 1 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 28 28 --weights 32 32 5 5 --filter 0 0 1 1 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 28 28 --weights 32 32 5 5 --filter 0 0 1 1 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 28 28 --weights 32 32 5 5 --filter 0 0 2 2 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 28 28 --weights 32 32 5 5 --filter 0 0 2 2 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 28 28 --weights 32 32 5 5 --filter 1 1 2 2 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 28 28 --weights 32 32 5 5 --filter 2 2 1 1 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 7 7 --weights 32 32 5 5 --filter 0 0 1 1 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 7 7 --weights 32 32 5 5 --filter 0 0 1 1 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 7 7 --weights 32 32 5 5 --filter 0 0 2 2 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 32 7 7 --weights 32 32 5 5 --filter 0 0 2 2 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 14 14 --weights 512 512 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 14 14 --weights 512 512 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 14 14 --weights 512 512 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 14 14 --weights 512 512 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 14 14 --weights 512 512 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 14 14 --weights 512 512 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 4 4 --weights 512 512 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 4 4 --weights 512 512 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 4 4 --weights 512 512 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 4 4 --weights 512 512 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 4 4 --weights 512 512 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 4 4 --weights 512 512 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 14 14 --weights 64 64 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 14 14 --weights 64 64 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 14 14 --weights 64 64 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 14 14 --weights 64 64 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 14 14 --weights 64 64 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 14 14 --weights 64 64 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 28 28 --weights 64 64 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 28 28 --weights 64 64 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 28 28 --weights 64 64 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 28 28 --weights 64 64 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 28 28 --weights 64 64 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 28 28 --weights 64 64 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 56 56 --weights 64 64 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 56 56 --weights 64 64 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 56 56 --weights 64 64 1 1 --filter 0 0 1 1 1 1  --cmode trans --pmode valid
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 56 56 --weights 64 64 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode default
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 56 56 --weights 64 64 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode same
+COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 56 56 --weights 64 64 1 1 --filter 0 0 2 2 1 1  --cmode trans --pmode valid
+)
+
 
 if(MIOPEN_TEST_DEEPBENCH)
     add_custom_test(test_deepbench_conv
