@@ -200,50 +200,6 @@ std::string FusionPlanDescriptor::GetKernelName(Handle& handle)
         MIOPEN_THROW("Unsupported starting op in Fusion Plan");
     }
 }
-#if 0
-std::string FusionPlanDescriptor::GetProgramName()
-{
-    auto conv_op = op_map[ins_order[0]];
-    if(conv_op->name() == miopenFusionOpConv)
-    {
-        auto ki = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(conv_op)->GetKernelInfo(handle);
-        return ki.kernel_file;
-    }
-    else
-    {
-        MIOPEN_THROW("Unsupported starting op in Fusion Plan");
-    }
-}
-
-auto FusionPlanDescriptor::GetLocalWGSz()
-{
-    auto path = lu.GetPaths();
-    if(path[0] == miopenFusionOpConv)
-    {
-        auto conv_op = op_map[ins_order[0]];
-        auto ki = conv_op->GetKernelInfo(handle);
-        return ki.l_wk;
-    }
-    else
-    {
-        MIOPEN_THROW("Unsupported starting op in Fusion Plan");
-    }
-}
-
-auto FusionPlanDescriptor::GetGlobalWGSz()
-{
-    auto conv_op = op_map[ins_order[0]];
-    if(conv_op->name() == miopenFusionOpConv)
-    {
-        auto ki = conv_op->GetKernelInfo(handle);
-        return ki.g_wk;
-    }
-    else
-    {
-        MIOPEN_THROW("Unsupported starting op in Fusion Plan");
-    }
-}
-#endif
 // not clear where to put this
 
 template <typename Ret, typename... Args>
@@ -299,11 +255,28 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle, OperatorArgs& op_ar
     }
     else
     {
+        std::string compile_config;
+        for(auto nd : ins_order)
+        {
+            auto op = op_map[nd];
+            op->GetCompileParms(compile_config, handle);
+        }
         auto ops_head = op_map[ins_order[0]];
         if(ops_head->name() == miopenFusionOpConv)
         {
+            auto ki =
+                std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head)->GetKernelInfo(handle);
+            auto program_name = ki.kernel_file;
+            auto kernel_name  = ki.kernel_name;
+            const auto parms  = ki.comp_options + compile_config;
+            const auto& vld   = ki.l_wk;
+            const auto& vgd   = ki.g_wk;
+
+            kernel = handle.AddKernel(
+                algorithm_name, network_config, program_name, kernel_name, vld, vgd, parms);
         }
     }
+    // TODO: The order of the arguments needs to match
     kernel(op_args.args_vec);
     return miopenStatusSuccess;
 }
