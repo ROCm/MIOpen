@@ -994,7 +994,6 @@ int BatchNormDriver<Tgpu, Tref>::RunBackwardGPU()
     auto iters      = inflags.GetValueInt("iter");
     float lowtime   = 100000000.0;
     float avgtime   = 0.;
-    miopenStatus_t errorcode;
 
     for(int i = 0; i < iters; i++)
     {
