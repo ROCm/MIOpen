@@ -37,7 +37,7 @@
 #include <sstream>
 #include <utility>
 #include <vector>
-
+#include <boost/spirit/home/support/detail/hold_any.hpp>
 #include <miopen/clhelper.hpp>
 #include <miopen/each_args.hpp>
 #include <miopen/errors.hpp>
@@ -90,6 +90,33 @@ struct OCLKernelInvoke
     std::array<size_t, 3> global_work_dim    = {};
     std::array<size_t, 3> local_work_dim     = {};
     std::function<void(cl_event&)> callback;
+
+    void operator()(std::vector<boost::spirit::hold_any> args) const
+    {
+        for(size_t idx = 0; idx < args.size(); idx++)
+        {
+            auto arg = args[idx];
+            if(arg.type() == typeid(float))
+            {
+                auto orig_arg = boost::spirit::any_cast<float>(arg);
+                std::bind(OCLSetKernelArg{}, kernel.get(), idx, orig_arg);
+            }
+            else if(arg.type() == typeid(int))
+            {
+                auto orig_arg = boost::spirit::any_cast<int>(arg);
+                std::bind(OCLSetKernelArg{}, kernel.get(), idx, orig_arg);
+            }
+            else if(arg.type() == typeid(void*))
+            {
+                LocalMemArg orig_arg = boost::spirit::any_cast<LocalMemArg>(arg);
+                std::bind(OCLSetKernelArg{}, kernel.get(), idx, orig_arg);
+            }
+            else
+            {
+                MIOPEN_THROW("Unsupported type in kernel argument");
+            }
+        }
+    }
 
     template <class... Ts>
     void operator()(const Ts&... xs) const

@@ -36,12 +36,6 @@ FusionPlanDescriptor::~FusionPlanDescriptor()
         delete el.second.get();
 }
 
-bool FusionPlanDescriptor::isValid()
-{
-    TensorDescriptor o_desc = this->DeriveOutputDescriptor();
-    return true;
-}
-
 miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> desc)
 {
     desc->SetIdx(op_count);
@@ -53,6 +47,7 @@ miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> d
     ins_order.push_back(op_count);
     op_map[op_count] = desc;
     op_count++;
+    lu.Advance(desc->name());
     return miopenStatusSuccess;
 }
 
@@ -139,11 +134,10 @@ miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
                                                 const void* beta,
                                                 const Data_t w)
 {
-    // args.append_arg(*(static_cast<const float*>(alpha)));
     const float* f_alpha = static_cast<const float*>(alpha);
-    args.append_arg(boost::spirit::hold_any(*f_alpha));
-    args.append_arg(boost::spirit::hold_any(*(static_cast<const float*>(beta))));
-    args.append_arg(boost::spirit::hold_any(static_cast<void*>(w)));
+    args.ins_arg("alpha", boost::spirit::hold_any(*f_alpha));
+    args.ins_arg("beta", boost::spirit::hold_any(*(static_cast<const float*>(beta))));
+    args.ins_arg("weigths", boost::spirit::hold_any(static_cast<void*>(w)));
     return miopenStatusSuccess;
 }
 
@@ -152,6 +146,165 @@ miopenStatus_t ActivFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_d
 {
     // activation does not change the size
     output_desc = input_desc;
+    return miopenStatusSuccess;
+}
+
+// Bias forward
+miopenStatus_t BiasFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
+{
+    output_desc = input_desc;
+    return miopenStatusSuccess;
+}
+
+// Op LUT
+miopenStatus_t FusionOpLU::Advance(miopenFusionOp_t op)
+{
+    size_t cur_idx_tmp = cur_idx;
+    for(size_t idx = cur_idx; idx < lut.size(); idx++)
+    {
+        if(lut[idx] == op)
+        {
+            cur_idx = idx;
+            lut_hit.push_back(1);
+            return miopenStatusSuccess;
+        }
+        else
+            lut_hit.push_back(0);
+    }
+    lut_hit.resize(cur_idx_tmp);
+    return miopenStatusInvalidValue;
+}
+
+auto FusionOpLU::GetPaths()
+{
+    std::vector<miopenFusionOp_t> vec;
+    for(size_t idx = 0; lut_hit.size(); idx++)
+    {
+        if(lut_hit[idx] == 1)
+            vec.push_back(lut[idx]);
+    }
+    return vec;
+}
+
+std::string FusionPlanDescriptor::GetKernelName(Handle& handle)
+{
+    auto conv_op = op_map[ins_order[0]];
+    if(conv_op->name() == miopenFusionOpConv)
+    {
+        auto ki =
+            std::dynamic_pointer_cast<ConvForwardOpDescriptor>(conv_op)->GetKernelInfo(handle);
+        return ki.kernel_name;
+    }
+    else
+    {
+        MIOPEN_THROW("Unsupported starting op in Fusion Plan");
+    }
+}
+#if 0
+std::string FusionPlanDescriptor::GetProgramName()
+{
+    auto conv_op = op_map[ins_order[0]];
+    if(conv_op->name() == miopenFusionOpConv)
+    {
+        auto ki = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(conv_op)->GetKernelInfo(handle);
+        return ki.kernel_file;
+    }
+    else
+    {
+        MIOPEN_THROW("Unsupported starting op in Fusion Plan");
+    }
+}
+
+auto FusionPlanDescriptor::GetLocalWGSz()
+{
+    auto path = lu.GetPaths();
+    if(path[0] == miopenFusionOpConv)
+    {
+        auto conv_op = op_map[ins_order[0]];
+        auto ki = conv_op->GetKernelInfo(handle);
+        return ki.l_wk;
+    }
+    else
+    {
+        MIOPEN_THROW("Unsupported starting op in Fusion Plan");
+    }
+}
+
+auto FusionPlanDescriptor::GetGlobalWGSz()
+{
+    auto conv_op = op_map[ins_order[0]];
+    if(conv_op->name() == miopenFusionOpConv)
+    {
+        auto ki = conv_op->GetKernelInfo(handle);
+        return ki.g_wk;
+    }
+    else
+    {
+        MIOPEN_THROW("Unsupported starting op in Fusion Plan");
+    }
+}
+#endif
+// not clear where to put this
+
+template <typename Ret, typename... Args>
+Ret callfunc(std::function<Ret(Args...)> func, std::vector<boost::spirit::hold_any> anyargs);
+
+template <typename Ret>
+Ret callfunc(std::function<Ret()> func, std::vector<boost::spirit::hold_any> anyargs)
+{
+    if(anyargs.size() > 0)
+        throw std::runtime_error("oops, argument list too long");
+    return func();
+}
+
+template <typename Ret, typename Arg0, typename... Args>
+Ret callfunc(std::function<Ret(Arg0, Args...)> func, std::vector<boost::spirit::hold_any> anyargs)
+{
+    if(anyargs.size() == 0)
+        throw std::runtime_error("oops, argument list too short");
+    Arg0 arg0 = boost::spirit::any_cast<Arg0>(anyargs[0]);
+    anyargs.erase(anyargs.begin());
+    std::function<Ret(Args... args)> lambda =
+        ([=](Args... args) -> Ret { return func(arg0, args...); });
+    return callfunc(lambda, anyargs);
+}
+
+template <typename Ret, typename... Args>
+std::function<boost::spirit::hold_any(std::vector<boost::spirit::hold_any>)>
+    adaptfunc(Ret (*func)(Args...))
+{
+    std::function<Ret(Args...)> stdfunc = func;
+    std::function<boost::spirit::hold_any(std::vector<boost::spirit::hold_any>)> result =
+        ([=](std::vector<boost::spirit::hold_any> anyargs) -> boost::spirit::hold_any {
+            return boost::spirit::hold_any(callfunc(stdfunc, anyargs));
+        });
+    return result;
+}
+
+miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle, OperatorArgs& op_args)
+{
+    std::string network_config;
+    std::string algorithm_name = "miopenDirConvBatchNormActivAlgo";
+    for(auto nd : ins_order)
+    {
+        auto op = op_map[nd];
+        op->GetNetworkConfig(network_config, handle);
+    }
+
+    auto&& kernels = handle.GetKernels(algorithm_name, network_config);
+    KernelInvoke kernel;
+    if(!kernels.empty())
+    {
+        kernel = kernels.front();
+    }
+    else
+    {
+        auto ops_head = op_map[ins_order[0]];
+        if(ops_head->name() == miopenFusionOpConv)
+        {
+        }
+    }
+    kernel(op_args.args_vec);
     return miopenStatusSuccess;
 }
 
