@@ -55,7 +55,7 @@ TensorDescriptor FusionPlanDescriptor::DeriveOutputDescriptor()
 {
     TensorDescriptor i_desc = input_desc;
     TensorDescriptor o_desc;
-    if(fusion_dir == miopenVertical)
+    if(fusion_dir == miopenVerticalFusion)
     {
         for(auto op_id : ins_order)
         {

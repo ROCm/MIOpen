@@ -56,30 +56,27 @@ typedef enum {
     miopenFusionOpBias      = 4,
 } miopenFusionOp_t;
 
-/*! @struct miopenEdge_t
-* @brief Defines an operation edge
-*/
+/*
 typedef struct miopen_edge
 {
-    const char* name;                    /*!< edge name */
-    double alpha;                        /*!< scale */
-    bool immutable;                      /*!< immutable data */
-    const miopenTensorDescriptor_t data; /*!< data */
+    const char* name;
+    double alpha;
+    bool immutable;
+    const miopenTensorDescriptor_t data;
 } miopenEdge_t;
 
-/*! @struct miopenOp_t
-* @brief common part of op definition
-*/
+
 typedef struct miopen_op
 {
-    const char* name;                /*!< opration instance name if applicable */
-    int n_inputEdges;                /*!< number of input edges */
-    const miopenEdge_t* inputEdges;  /*!< input edges definitions */
-    int n_outputEdges;               /*!< number of output edges */
-    const miopenEdge_t* outputEdges; /*!< output edges definitions */
-    int n_internEdges;               /*!< number of internal edges */
-    const miopenEdge_t* internEdges; /*!< internal edges definitions (weights) */
+    const char* name;
+    int n_inputEdges;
+    const miopenEdge_t* inputEdges;
+    int n_outputEdges;
+    const miopenEdge_t* outputEdges;
+    int n_internEdges;
+    const miopenEdge_t* internEdges;
 } miopenOp_t;
+*/
 
 struct OperatorArgs : miopenOperatorArgs
 {
