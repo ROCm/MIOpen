@@ -27,6 +27,50 @@
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 
+// Suspend warning
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcovered-switch-default"
+#endif
+extern "C" const char * miopenGetErrorString(miopenStatus_t error)
+{
+    switch (error) {
+        case miopenStatusSuccess:
+            return "miopenStatusSuccess";
+
+        case miopenStatusNotInitialized:
+            return "miopenStatusNotInitialized";
+
+        case miopenStatusInvalidValue:
+            return "miopenStatusInvalidValue";
+
+        case miopenStatusBadParm:
+            return "miopenStatusBadParm";
+
+        case miopenStatusAllocFailed:
+            return "miopenStatusAllocFailed";
+
+        case miopenStatusInternalError:
+            return "miopenStatusInternalError";
+
+        case miopenStatusNotImplemented:
+            return "miopenStatusNotImplemented";
+
+        case miopenStatusUnknownError:
+            return "miopenStatusUnknownError";
+
+        default:
+            return "Unrecognized Status Code";
+    } 
+}
+// Restore warning
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+
+
+
 extern "C" miopenStatus_t miopenCreate(miopenHandle_t* handle)
 {
 
