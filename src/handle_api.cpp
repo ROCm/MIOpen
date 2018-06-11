@@ -32,44 +32,33 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcovered-switch-default"
 #endif
-extern "C" const char * miopenGetErrorString(miopenStatus_t error)
+extern "C" const char* miopenGetErrorString(miopenStatus_t error)
 {
-    switch (error) {
-        case miopenStatusSuccess:
-            return "miopenStatusSuccess";
+    switch(error)
+    {
+    case miopenStatusSuccess: return "miopenStatusSuccess";
 
-        case miopenStatusNotInitialized:
-            return "miopenStatusNotInitialized";
+    case miopenStatusNotInitialized: return "miopenStatusNotInitialized";
 
-        case miopenStatusInvalidValue:
-            return "miopenStatusInvalidValue";
+    case miopenStatusInvalidValue: return "miopenStatusInvalidValue";
 
-        case miopenStatusBadParm:
-            return "miopenStatusBadParm";
+    case miopenStatusBadParm: return "miopenStatusBadParm";
 
-        case miopenStatusAllocFailed:
-            return "miopenStatusAllocFailed";
+    case miopenStatusAllocFailed: return "miopenStatusAllocFailed";
 
-        case miopenStatusInternalError:
-            return "miopenStatusInternalError";
+    case miopenStatusInternalError: return "miopenStatusInternalError";
 
-        case miopenStatusNotImplemented:
-            return "miopenStatusNotImplemented";
+    case miopenStatusNotImplemented: return "miopenStatusNotImplemented";
 
-        case miopenStatusUnknownError:
-            return "miopenStatusUnknownError";
+    case miopenStatusUnknownError: return "miopenStatusUnknownError";
 
-        default:
-            return "Unrecognized Status Code";
-    } 
+    default: return "Unrecognized Status Code";
+    }
 }
 // Restore warning
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-
-
-
 
 extern "C" miopenStatus_t miopenCreate(miopenHandle_t* handle)
 {

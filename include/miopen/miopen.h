@@ -101,8 +101,6 @@ typedef enum {
     miopenStatusUnknownError   = 7, /*!< Unknown error occurred. */
 } miopenStatus_t;
 
-
-
 /*! @brief Get character string for an error code.
  *
  * A function which returns a NULL terminated character string of the error code.
@@ -110,8 +108,7 @@ typedef enum {
  * @param error  miopenStatus_t type error status (input)
  * @return       errorString
 */
-MIOPEN_EXPORT const char * miopenGetErrorString(miopenStatus_t error);
-
+MIOPEN_EXPORT const char* miopenGetErrorString(miopenStatus_t error);
 
 /*! @brief Custom allocator function
  *
