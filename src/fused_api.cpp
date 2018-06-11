@@ -75,7 +75,7 @@ extern "C" miopenStatus_t miopenCreateOpConvForwardAlgo(miopenFusionPlanDescript
                                                         const miopenTensorDescriptor_t wDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, fwdAlgo, wDesc);
-    miopenStatus_t res;
+    miopenStatus_t res = miopenStatusSuccess;
     miopen::try_([&] {
         auto fod = new miopen::ConvForwardOpDescriptor(
             miopen::deref(convDesc), miopen::deref(wDesc), fwdAlgo);
@@ -93,7 +93,7 @@ miopenFusionPlanGetWorkSpaceSize(miopenHandle_t handle,
                                  miopenConvFwdAlgorithm_t algo)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, workSpaceSize);
-    miopenStatus_t res;
+    miopenStatus_t res = miopenStatusSuccess;
     miopen::try_([&] {
         size_t sz;
         res = miopen::deref(fusePlanDesc).GetWorkspaceSizeImmed(miopen::deref(handle), sz, algo);
@@ -162,7 +162,7 @@ miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                 const miopenActivationDescriptor_t activDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, activDesc);
-    miopenStatus_t res;
+    miopenStatus_t res = miopenStatusSuccess;
     miopen::try_([&] {
         miopen::ActivFusionOpDescriptor* fod =
             new miopen::ActivFusionOpDescriptor(miopen::deref(activDesc));
