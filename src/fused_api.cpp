@@ -183,6 +183,22 @@ miopenCreateOpActivationBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
 }
 //---
 
+extern "C" miopenStatus_t miopenCreateOpBiasForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                    miopenFusionOpDescriptor_t* biasOp,
+                                                    const miopenTensorDescriptor_t bDesc)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, biasOp, bDesc);
+    return (miopenStatusSuccess);
+}
+
+extern "C" miopenStatus_t miopenCreateOpBiasBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                     miopenFusionOpDescriptor_t* biasOp,
+                                                     const miopenTensorDescriptor_t dbDesc)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, biasOp, dbDesc);
+    return (miopenStatusSuccess);
+}
+
 // Batch normalization create op
 extern "C" miopenStatus_t
 miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
@@ -289,6 +305,49 @@ miopenSetOpArgsConvBackwardWeights(miopenOperatorArgs_t args,
     return (miopenStatusSuccess);
 }
 //----
+
+// Fusion op args for bias
+extern "C" miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
+                                                     const miopenFusionOpDescriptor_t biasOp,
+                                                     const void* alpha,
+                                                     const void* beta,
+                                                     const void* bias)
+{
+
+    MIOPEN_LOG_FUNCTION(args, biasOp, alpha, beta, bias);
+    return (miopenStatusSuccess);
+}
+
+extern "C" miopenStatus_t miopenSetOpArgsBiasBackward(miopenOperatorArgs_t args,
+                                                      const miopenFusionOpDescriptor_t dbiasOp,
+                                                      const void* alpha,
+                                                      const void* beta,
+                                                      const void* dbias)
+{
+
+    MIOPEN_LOG_FUNCTION(args, dbiasOp, alpha, beta, dbias);
+    return (miopenStatusSuccess);
+}
+//---
+
+extern "C" miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
+                                                      const miopenFusionOpDescriptor_t activOp,
+                                                      const void* alpha,
+                                                      const void* beta)
+{
+
+    MIOPEN_LOG_FUNCTION(args, activOp, alpha, beta);
+    return (miopenStatusSuccess);
+}
+
+extern "C" miopenStatus_t miopenSetOpArgsActivBackward(miopenOperatorArgs_t args,
+                                                       const miopenFusionOpDescriptor_t activOp,
+                                                       const void* alpha,
+                                                       const void* beta)
+{
+    MIOPEN_LOG_FUNCTION(args, activOp, alpha, beta);
+    return (miopenStatusSuccess);
+}
 
 // Fusion op args for Batch Normalization
 extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t args,

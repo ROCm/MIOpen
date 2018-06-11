@@ -1725,8 +1725,8 @@ MIOPEN_DECLARE_OBJECT(miopenOperatorArgs);
 * @brief Kernel fusion direction in the network
 */
 typedef enum {
-    miopenVertical   = 0, /*!< forward inference */
-    miopenHorizontal = 1, /*!< forward training */
+    miopenVerticalFusion   = 0, /*!< forward inference */
+    miopenHorizontalFusion = 1, /*!< forward training */
 } miopenFusionDirection_t;
 
 /*! @struct miopenOpCost_t
@@ -1878,7 +1878,7 @@ miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
 //---
 
 // Activation create ops ---
-/*! @brief Creates a foward activation operator.
+/*! @brief Creates a forward activation operator.
 *
 * @param fusePlanDesc    A fusion plan descriptor (input)
 * @param activOp         Pointer to an operator type (output)
@@ -1901,6 +1901,30 @@ MIOPEN_EXPORT miopenStatus_t
 miopenCreateOpActivationBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                  miopenFusionOpDescriptor_t* activOp,
                                  const miopenActivationDescriptor_t activDesc);
+//---
+
+// Bias create ops ---
+/*! @brief Creates a forward bias operator.
+*
+* @param fusePlanDesc   A fusion plan descriptor (input)
+* @param biasOp         Pointer to an operator type (output)
+* @param bDesc          bias tensor descriptor (input)
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCreateOpBiasForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                       miopenFusionOpDescriptor_t* biasOp,
+                                                       const miopenTensorDescriptor_t bDesc);
+
+/*! @brief Creates a backward bias operator.
+*
+* @param fusePlanDesc   A fusion plan descriptor (input)
+* @param dbiasOp         Pointer to an operator type (output)
+* @param dbDesc         Delta bias tensor descriptor (input)
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCreateOpBiasBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                        miopenFusionOpDescriptor_t* dbiasOp,
+                                                        const miopenTensorDescriptor_t dbDesc);
 //---
 
 // Batch normalization create ops ---
@@ -2053,6 +2077,31 @@ miopenSetOpArgsConvBackwardWeights(miopenOperatorArgs_t args,
                                    size_t workSpaceSize);
 //----
 
+// Activation set arguments ---
+/*! @brief Sets the arguments for forward activation op
+*
+* @param args    An arguments object type (output)
+* @param alpha   Floating point scaling factor, allocated on the host (input)
+* @param beta    Floating point shift factor, allocated on the host (input)
+* @return        miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
+                                                         const miopenFusionOpDescriptor_t activOp,
+                                                         const void* alpha,
+                                                         const void* beta);
+
+/*! @brief Sets the arguments for backward activation op
+*
+* @param args    An arguments object type (output)
+* @param alpha   Floating point scaling factor, allocated on the host (input)
+* @param beta    Floating point shift factor, allocated on the host (input)
+* @return        miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsActivBackward(miopenOperatorArgs_t args,
+                                                          const miopenFusionOpDescriptor_t activOp,
+                                                          const void* alpha,
+                                                          const void* beta);
+
 // Batch Normalization set arguments ---
 /*! @brief Sets the arguments for inference batch normalization op
 *
@@ -2174,6 +2223,39 @@ miopenSetOpArgsPoolingBackward(miopenOperatorArgs_t args,
                                const void* workSpace,
                                size_t workSpaceSize);
 //----
+
+// Bias forward set arguments ---
+/*! @brief Sets the arguments for forward bias op
+*
+* @param args           An arguments object type (output)
+* @param biasOp         Forward bias operator (input)
+* @param alpha          Floating point scaling factor, allocated on the host (input)
+* @param beta           Floating point shift factor, allocated on the host (input)
+* @param bias           Pointer to the forward bias input tensor memory  (input)
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
+                                                        const miopenFusionOpDescriptor_t biasOp,
+                                                        const void* alpha,
+                                                        const void* beta,
+                                                        const void* bias);
+
+// Bias backward propagation set arguments ---
+/*! @brief Sets the arguments for back propagation bias op
+*
+* @param args           An arguments object type (output)
+* @param dbiasOp         Forward bias operator (input)
+* @param alpha          Floating point scaling factor, allocated on the host (input)
+* @param beta           Floating point shift factor, allocated on the host (input)
+* @param dbias           Pointer to the forward bias input tensor memory  (input)
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBiasBackward(miopenOperatorArgs_t args,
+                                                         const miopenFusionOpDescriptor_t dbiasOp,
+                                                         const void* alpha,
+                                                         const void* beta,
+                                                         const void* dbias);
+//---
 
 // Tensor operations set arguments ---
 /*! @brief Sets the arguments for the op tensor op
