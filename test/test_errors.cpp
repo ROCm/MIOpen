@@ -1,5 +1,6 @@
 
 #include <miopen/errors.hpp>
+#include <cstring>
 #include "test.hpp"
 
 void test_ocl_error()
@@ -35,10 +36,31 @@ void test_try()
     EXPECT(miopen::try_([] { throw ""; }) == miopenStatusUnknownError); // NOLINT
 }
 
+void test_error_string()
+{
+    miopenStatus_t error = miopenStatusSuccess;
+    EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusSuccess") == 0);
+    error = miopenStatusNotInitialized;
+    EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusNotInitialized") == 0);
+    error = miopenStatusInvalidValue;
+    EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusInvalidValue") == 0);
+    error = miopenStatusBadParm;
+    EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusBadParm") == 0);
+    error = miopenStatusAllocFailed;
+    EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusAllocFailed") == 0);
+    error = miopenStatusInternalError;
+    EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusInternalError") == 0);
+    error = miopenStatusNotImplemented;
+    EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusNotImplemented") == 0);
+    error = miopenStatusUnknownError;
+    EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusUnknownError") == 0);
+}
+
 int main()
 {
     test_ocl_error();
     test_throw_cl_status();
     test_invalid_ocl_error();
     test_try();
+    test_error_string();
 }
