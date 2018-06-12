@@ -27,6 +27,8 @@
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 
+
+
 // Suspend warning
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -59,6 +61,7 @@ extern "C" const char* miopenGetErrorString(miopenStatus_t error)
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
+
 
 extern "C" miopenStatus_t miopenCreate(miopenHandle_t* handle)
 {
