@@ -29,6 +29,8 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
 #include <string>
+#include <boost/iterator/zip_iterator.hpp>
+#include <boost/iterator/filter_iterator.hpp>
 
 namespace miopen {
 
@@ -132,36 +134,41 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
     if(IsPacked())
         return {GetType(), {GetElementSize()}, {1}};
 
-    // ignore dimensions, where length is 1
-    std::size_t non1_ndim = 0;
-    std::vector<std::size_t> non1_lengths;
-    std::vector<std::size_t> non1_strides;
-
-    for(std::size_t i = 0; i < GetSize(); ++i)
-    {
-        std::size_t len = GetLengths()[i];
-        if(len > 1)
-        {
-            ++non1_ndim;
-            non1_lengths.push_back(len);
-            non1_strides.push_back(GetStrides()[i]);
-        }
-    }
-
     // is a scalar
-    if(non1_ndim == 0)
+    if(std::all_of(
+           GetLengths().begin(), GetLengths().end(), [](const std::size_t& v) { return v <= 1; }))
         return {GetType(), {1}, {1}};
 
     // start flattening tensor
     std::vector<std::size_t> flat_lengths;
     std::vector<std::size_t> flat_strides;
 
-#if 0
-    std::size_t flat_len = non1_lengths[0];
-    for(std::size_t i = 1; i < non1_ndim; ++i)
+    using ZipIterator = decltype(
+        boost::make_zip_iterator(boost::make_tuple(GetLengths().begin(), GetStrides().begin())));
+    struct is_non1_length_t
     {
-        std::size_t len      = non1_lengths[i];
-        std::size_t full_len = non1_strides[i - 1] / non1_strides[i];
+        bool operator()(ZipIterator::reference v) { return v.get<0>() > 1; }
+    };
+    using FilterZipIterator = boost::filter_iterator<is_non1_length_t, ZipIterator>;
+
+    ZipIterator i_begin =
+        boost::make_zip_iterator(boost::make_tuple(GetLengths().begin(), GetStrides().begin()));
+    ZipIterator i_end =
+        boost::make_zip_iterator(boost::make_tuple(GetLengths().end(), GetStrides().end()));
+
+    FilterZipIterator i_non1     = boost::make_filter_iterator(is_non1_length_t{}, i_begin, i_end);
+    FilterZipIterator i_non1_end = boost::make_filter_iterator(is_non1_length_t{}, i_end, i_end);
+
+    std::size_t flat_len = i_non1->get<0>();
+
+    FilterZipIterator i_non1_previous = i_non1++;
+
+    for(; i_non1 != i_non1_end; i_non1++)
+    {
+        std::size_t len             = i_non1->get<0>();
+        std::size_t stride          = i_non1->get<1>();
+        std::size_t previous_stride = i_non1_previous->get<1>();
+        std::size_t full_len        = previous_stride / stride;
 
         if(len == full_len)
         {
@@ -170,71 +177,13 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
         else
         {
             flat_lengths.push_back(flat_len);
-            flat_strides.push_back(non1_strides[i - 1]);
-            flat_len = non1_lengths[i];
+            flat_strides.push_back(previous_stride);
+            flat_len = len;
         }
+        i_non1_previous = i_non1;
     }
     flat_lengths.push_back(flat_len);
-    flat_strides.push_back(non1_strides[non1_ndim - 1]);
-#elif 0
-    auto i_len = non1_lengths.begin();
-    auto i_stride = non1_strides.begin();
-
-    std::size_t flat_len = *i_len;
-
-    auto i_previous_len = i_len++;
-    auto i_previous_stride = i_stride++;
-
-    while(i_len != non1_lengths.end())
-    {
-        std::size_t len = *i_len;
-        std::size_t full_len = (*i_previous_stride) / (*i_stride);
-
-        if(len == full_len)
-        {
-            flat_len *= len;
-        }
-        else
-        {
-            flat_lengths.push_back(flat_len);
-            flat_strides.push_back(*i_previous_stride);
-            flat_len = len;
-        }
-        i_previous_len = i_len++;
-        i_previous_stride = i_stride++;
-    };
-    flat_lengths.push_back(flat_len);
-    flat_strides.push_back(*i_previous_stride);
-#else
-    auto i_len = non1_lengths.begin();
-    auto i_stride = non1_strides.begin();
-
-    std::size_t flat_len = *i_len;
-
-    auto i_previous_len = i_len++;
-    auto i_previous_stride = i_stride++;
-
-    while(i_len != non1_lengths.end())
-    {
-        std::size_t len = *i_len;
-        std::size_t full_len = (*i_previous_stride) / (*i_stride);
-
-        if(len == full_len)
-        {
-            flat_len *= len;
-        }
-        else
-        {
-            flat_lengths.push_back(flat_len);
-            flat_strides.push_back(*i_previous_stride);
-            flat_len = len;
-        }
-        i_previous_len = i_len++;
-        i_previous_stride = i_stride++;
-    };
-    flat_lengths.push_back(flat_len);
-    flat_strides.push_back(*i_previous_stride);
-#endif
+    flat_strides.push_back(i_non1_previous->get<1>());
 
     return {GetType(), std::move(flat_lengths), std::move(flat_strides)};
 }
