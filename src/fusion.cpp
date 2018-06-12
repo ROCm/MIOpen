@@ -47,7 +47,10 @@ miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> d
     ins_order.push_back(op_count);
     op_map[op_count] = desc;
     op_count++;
-    lu.Advance(desc->name());
+    if(lu.Advance(desc->name()) == miopenStatusSuccess)
+        is_valid = true;
+    else
+        is_valid = false;
     return miopenStatusSuccess;
 }
 
@@ -135,13 +138,23 @@ miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
                                                 const Data_t w)
 {
     const float* f_alpha = static_cast<const float*>(alpha);
-    args.ins_arg("alpha", boost::spirit::hold_any(*f_alpha));
-    args.ins_arg("beta", boost::spirit::hold_any(*(static_cast<const float*>(beta))));
-    args.ins_arg("weigths", boost::spirit::hold_any(static_cast<void*>(w)));
+    auto id              = std::to_string(GetIdx());
+    args.ins_arg("alpha" + id, boost::spirit::hold_any(*f_alpha));
+    args.ins_arg("beta" + id, boost::spirit::hold_any(*(static_cast<const float*>(beta))));
+    args.ins_arg("weigths" + id, boost::spirit::hold_any(static_cast<void*>(w)));
     return miopenStatusSuccess;
 }
 
 // Activ Forward
+miopenStatus_t
+ActivFusionOpDescriptor::SetArgs(OperatorArgs& args, const void* alpha, const void* beta)
+{
+    auto id = std::to_string(GetIdx());
+    args.ins_arg("alpha" + id, boost::spirit::hold_any(*(static_cast<const float*>(alpha))));
+    args.ins_arg("beta" + id, boost::spirit::hold_any(*(static_cast<const float*>(beta))));
+    return miopenStatusSuccess;
+}
+
 miopenStatus_t ActivFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
 {
     // activation does not change the size
@@ -156,6 +169,18 @@ miopenStatus_t BiasFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_de
     return miopenStatusSuccess;
 }
 
+miopenStatus_t BiasFusionOpDescriptor::SetArgs(OperatorArgs& args,
+                                               const void* alpha,
+                                               const void* beta,
+                                               const Data_t bdata)
+{
+    auto id = std::to_string(GetIdx());
+    args.ins_arg("alpha" + id, boost::spirit::hold_any(*static_cast<const float*>(alpha)));
+    args.ins_arg("beta" + id, boost::spirit::hold_any(*static_cast<const float*>(beta)));
+    args.ins_arg("bias" + id, boost::spirit::hold_any(static_cast<void*>(bdata)));
+
+    return miopenStatusSuccess;
+}
 // Op LUT
 miopenStatus_t FusionOpLU::Advance(miopenFusionOp_t op)
 {
@@ -164,7 +189,7 @@ miopenStatus_t FusionOpLU::Advance(miopenFusionOp_t op)
     {
         if(lut[idx] == op)
         {
-            cur_idx = idx;
+            cur_idx = idx + 1;
             lut_hit.push_back(1);
             return miopenStatusSuccess;
         }
@@ -237,10 +262,23 @@ std::function<boost::spirit::hold_any(std::vector<boost::spirit::hold_any>)>
     return result;
 }
 
-miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle, OperatorArgs& op_args)
+miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
+                                             TensorDescriptor& inputDesc,
+                                             Data_t input,
+                                             TensorDescriptor& outputDesc,
+                                             Data_t output,
+                                             OperatorArgs& op_args)
 {
     std::string network_config;
     std::string algorithm_name = "miopenDirConvBatchNormActivAlgo";
+    if(output_desc != outputDesc)
+    {
+        MIOPEN_THROW("The output descriptors dont match");
+    }
+    if(input_desc != inputDesc)
+    {
+        MIOPEN_THROW("The input descriptors dont match");
+    }
     for(auto nd : ins_order)
     {
         auto op = op_map[nd];
@@ -277,6 +315,10 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle, OperatorArgs& op_ar
         }
     }
     // TODO: The order of the arguments needs to match
+    op_args.args_vec.insert(op_args.args_vec.begin(),
+                            boost::spirit::hold_any(static_cast<void*>(output)));
+    op_args.args_vec.insert(op_args.args_vec.begin(),
+                            boost::spirit::hold_any(static_cast<void*>(input)));
     kernel(op_args.args_vec);
     return miopenStatusSuccess;
 }
