@@ -114,6 +114,8 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc);
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
     miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
+    miopenStatus_t
+    SetArgs(OperatorArgs& args, const void* alpha, const void* beta, const Data_t dbias);
     miopenFusionOp_t name() { return miopenFusionOpBias; };
     TensorDescriptor& base_desc;
 };
@@ -124,6 +126,7 @@ struct ActivFusionOpDescriptor : FusionOpDescriptor
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc);
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
     miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
+    miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta);
     miopenFusionOp_t name() { return miopenFusionOpActiv; };
     ActivationDescriptor& base_desc;
 };
@@ -182,7 +185,12 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     TensorDescriptor DeriveOutputDescriptor();
     miopenStatus_t
     GetWorkspaceSizeImmed(Handle& handle, size_t& workSpaceSize, miopenConvFwdAlgorithm_t algo);
-    miopenStatus_t Execute(Handle& handle, OperatorArgs& op_args);
+    miopenStatus_t Execute(Handle& handle,
+                           TensorDescriptor& inputDesc,
+                           Data_t input,
+                           TensorDescriptor& outputDesc,
+                           Data_t output,
+                           OperatorArgs& op_args);
     friend std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& x);
 
     protected:
@@ -193,7 +201,7 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 
     private:
     miopenFusionDirection_t fusion_dir;
-    TensorDescriptor input_desc;
+    const TensorDescriptor& input_desc;
     TensorDescriptor output_desc;
     int op_count = 0;
     std::unordered_map<int, std::shared_ptr<FusionOpDescriptor>> op_map;
