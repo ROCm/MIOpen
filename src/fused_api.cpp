@@ -188,7 +188,15 @@ extern "C" miopenStatus_t miopenCreateOpBiasForward(miopenFusionPlanDescriptor_t
                                                     const miopenTensorDescriptor_t bDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, biasOp, bDesc);
-    return (miopenStatusSuccess);
+    miopenStatus_t res = miopenStatusSuccess;
+    miopen::try_([&] {
+        miopen::BiasFusionOpDescriptor* bod =
+            new miopen::BiasFusionOpDescriptor(miopen::deref(bDesc));
+        miopen::deref(biasOp) = bod;
+        res =
+            miopen::deref(fusePlanDesc).AddOp(std::shared_ptr<miopen::BiasFusionOpDescriptor>(bod));
+    });
+    return res;
 }
 
 extern "C" miopenStatus_t miopenCreateOpBiasBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
@@ -276,7 +284,7 @@ extern "C" miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
     MIOPEN_LOG_FUNCTION(args, alpha, beta, convOp, w);
     miopen::ConvForwardOpDescriptor& op =
         dynamic_cast<miopen::ConvForwardOpDescriptor&>(miopen::deref(convOp));
-    return op.SetArgs(miopen::deref(args), alpha, beta, DataCast(w));
+    return miopen::try_([&] { op.SetArgs(miopen::deref(args), alpha, beta, DataCast(w)); });
 }
 
 extern "C" miopenStatus_t miopenSetOpArgsConvBackwardData(miopenOperatorArgs_t args,
@@ -315,7 +323,11 @@ extern "C" miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
 {
 
     MIOPEN_LOG_FUNCTION(args, biasOp, alpha, beta, bias);
-    return (miopenStatusSuccess);
+    return miopen::try_([&] {
+        miopen::BiasFusionOpDescriptor& op =
+            dynamic_cast<miopen::BiasFusionOpDescriptor&>(miopen::deref(biasOp));
+        op.SetArgs(miopen::deref(args), alpha, beta, DataCast(bias));
+    });
 }
 
 extern "C" miopenStatus_t miopenSetOpArgsBiasBackward(miopenOperatorArgs_t args,
@@ -466,14 +478,15 @@ extern "C" miopenStatus_t miopenExecuteFusionPlan(miopenHandle_t handle,
                                                   miopenOperatorArgs_t args)
 {
     // MIOPEN_LOG_FUNCTION(handle, fusePlanDesc, inputDesc, input, outputDesc, output, args);
-    (void)(handle);
-    (void)(fusePlanDesc);
-    (void)(inputDesc);
-    (void)(input);
-    (void)(outputDesc);
-    (void)(output);
-    (void)(args);
-    return (miopenStatusSuccess);
+    return miopen::try_([&] {
+        miopen::deref(fusePlanDesc)
+            .Execute(miopen::deref(handle),
+                     miopen::deref(inputDesc),
+                     DataCast(input),
+                     miopen::deref(outputDesc),
+                     DataCast(output),
+                     miopen::deref(args));
+    });
 }
 
 // Heurtistic based benchmarking.
