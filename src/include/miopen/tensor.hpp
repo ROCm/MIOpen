@@ -201,36 +201,22 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
         return to_tuple(std::move(flat_descriptors)); // early return for all-scalar tensors
     }
 
-    // start flattening tensors
-    using ZipIterator = decltype(
-        boost::make_zip_iterator(boost::make_tuple(real_lengths.begin(), (real_descriptor_pack.GetStrides().begin())...)));
-    struct is_non1_length_t
-    {
-        bool operator()(ZipIterator::reference v) { return v.get<0>() > 1; }
-    };
-    using FilterZipIterator = boost::filter_iterator<is_non1_length_t, ZipIterator>;
-
-    ZipIterator i_begin =
-        boost::make_zip_iterator(boost::make_tuple(real_lengths.begin(), (real_descriptor_pack.tStrides().begin())...));
-    ZipIterator i_end =
-        boost::make_zip_iterator(boost::make_tuple(real_lengths.end(), (real_descriptor_pack.GetStrides().end())...));
-
-    FilterZipIterator i_non1     = boost::make_filter_iterator(is_non1_length_t{}, i_begin, i_end);
-    FilterZipIterator i_non1_end = boost::make_filter_iterator(is_non1_length_t{}, i_end, i_end);
-
+#if 0
     for(std::size_t idim = 1; idim < non1_ndim; ++idim)
-    // the 0-th dimension full-length doesn't matter
     {
         for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
             array_of_full_lengths[itensor][idim] =
                 array_of_non1_strides[itensor][idim - 1] / array_of_non1_strides[itensor][idim];
     }
+#endif
 
+    // start flattening tensors
     std::vector<std::size_t> flat_lengths;
     std::array<std::vector<std::size_t>, NTensor> array_of_flat_strides;
 
-    std::size_t flat_len = non1_lengths[0];
-    for(std::size_t idim = 1; idim < non1_ndim; ++idim)
+#if 0
+    for(; i_non1 != i_non1_end; i_non1++)
+    // the 0-th dimension full-length doesn't matter
     {
         std::size_t len = non1_lengths[idim];
 
@@ -257,6 +243,61 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
     flat_lengths.push_back(flat_len);
     for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
         array_of_flat_strides[itensor].push_back(array_of_non1_strides[itensor][non1_ndim - 1]);
+#else
+    using ZipIterator = decltype(
+        boost::make_zip_iterator(boost::make_tuple(real_lengths.begin(), (real_descriptor_pack.GetStrides().begin())...)));
+    struct is_non1_length_t
+    {
+        bool operator()(ZipIterator::reference v) { return v.get<0>() > 1; }
+    };
+    using FilterZipIterator = boost::filter_iterator<is_non1_length_t, ZipIterator>;
+
+    ZipIterator i_begin =
+        boost::make_zip_iterator(boost::make_tuple(real_lengths.begin(), (real_descriptor_pack.GetStrides().begin())...));
+    ZipIterator i_end =
+        boost::make_zip_iterator(boost::make_tuple(real_lengths.end(), (real_descriptor_pack.GetStrides().end())...));
+
+    FilterZipIterator i_non1     = boost::make_filter_iterator(is_non1_length_t{}, i_begin, i_end);
+    FilterZipIterator i_non1_end = boost::make_filter_iterator(is_non1_length_t{}, i_end, i_end);
+
+    std::size_t flat_len = i_non1->get<0>();
+
+    FilterZipIterator i_non1_previous = i_non1++;
+
+    for(; i_non1 != i_non1_end; i_non1++)
+    // the 0-th dimension full-length doesn't matter
+    {
+        std::size_t len = i_non1->get<0>();
+
+        bool is_all_full_length = true;
+        call_n_time([&](std::size_t itensor) {  
+                std::size_t full_len == i_non1_previous->get<itensor+1>() / i_non1->get<itensor+1>();
+                if(len == full_len)
+                    is_all_full_length = false;
+                    },
+                NTensor);
+
+        if(is_all_full_length)
+        {
+            flat_lent *= len;
+        }
+        else
+        {
+            flat_lengths.push_back(flat_len);
+            call_n_time([&](std::size_t itensor) {
+                    array_of_flat_strides[itensor].push_back(i_non1_previous->get<itensor+1>());
+                    },
+                    );
+            flat_len *= len;
+        }
+        flat_lenghts.push_back(flat_len);
+        call_n_time([&](std::size_t itensor) {
+                array_of_flat_strides[itensor].push_back(i_non1_previous->get<itensor+1>());
+                },
+                );
+    }
+
+#endif
 
     for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
     {
