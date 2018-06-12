@@ -152,11 +152,11 @@ struct TensorDescriptor : miopenTensorDescriptor
 
 template <typename... TDescriptors>
 std::tuple<TDescriptors...>
-get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descriptor_elements)
+get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descriptor_pack)
 {
     constexpr std::size_t NTensor = sizeof...(TDescriptors);
 
-    std::array<const TensorDescriptor*, NTensor> real_descriptors{{(&real_descriptor_elements)...}};
+    std::array<const TensorDescriptor*, NTensor> real_descriptors{{(&real_descriptor_pack)...}};
     std::array<TensorDescriptor, NTensor> flat_descriptors;
 
 #if 1
@@ -164,7 +164,7 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
         MIOPEN_THROW(miopenStatusBadParm, "NTensor == 0.");
 
     // check input tensor descriptors consistency
-    auto& real_desc_0_lens = real_descriptors[0]->GetLengths();
+    const auto& real_desc_0_lens = real_descriptors[0]->GetLengths();
 
     for(std::size_t itensor = 1; itensor < NTensor; ++itensor)
     {
@@ -175,10 +175,8 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
     }
 #endif
 
-    // check if is all packed
-    auto f_is_packed = [&](const TensorDescriptor* desc) -> bool { return desc->IsPacked(); };
-
-    if(std::all_of(real_descriptors.begin(), real_descriptors.end(), f_is_packed))
+    // is all packed
+    if(std::all_of(real_descriptors.begin(), real_descriptors.end(), [](const TensorDescriptor* desc) { return desc->IsPacked(); }))
     {
         std::size_t element_size = real_descriptors[0]->GetElementSize();
 
@@ -189,30 +187,12 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
         return to_tuple(std::move(flat_descriptors)); // early return for all-packed tensors
     }
 
-    // ignore dimensions, where lengths of all tensors are 1
-    const std::size_t real_ndim                  = real_descriptors[0]->GetSize();
+    //
     const std::vector<std::size_t>& real_lengths = real_descriptors[0]->GetLengths();
 
-    std::size_t non1_ndim = 0;
-    std::vector<std::size_t> non1_lengths;
-    std::array<std::vector<std::size_t>, NTensor> array_of_non1_strides;
-
-    for(std::size_t idim = 0; idim < real_ndim; ++idim)
-    {
-        std::size_t len = real_lengths[idim];
-        if(len > 1)
-        {
-            ++non1_ndim;
-            non1_lengths.push_back(len);
-
-            for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
-                array_of_non1_strides[itensor].push_back(
-                    real_descriptors[itensor]->GetStrides()[idim]);
-        }
-    } // now, non1_ndim, non1_lengths, array_of_non1_strides contains non-1-length dimensions
-
     // is scalar
-    if(non1_ndim == 0)
+    if(std::all_of(
+           real_lengths.begin(), real_lengths.end(), [](const std::size_t v) { return v <= 1; }))
     {
         for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
             flat_descriptors[itensor] =
@@ -222,10 +202,21 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
     }
 
     // start flattening tensors
-    std::array<std::vector<std::size_t>, NTensor> array_of_full_lengths;
+    using ZipIterator = decltype(
+        boost::make_zip_iterator(boost::make_tuple(real_lengths.begin(), (real_descriptor_pack.GetStrides().begin())...)));
+    struct is_non1_length_t
+    {
+        bool operator()(ZipIterator::reference v) { return v.get<0>() > 1; }
+    };
+    using FilterZipIterator = boost::filter_iterator<is_non1_length_t, ZipIterator>;
 
-    for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
-        array_of_full_lengths[itensor].reserve(non1_ndim);
+    ZipIterator i_begin =
+        boost::make_zip_iterator(boost::make_tuple(real_lengths.begin(), (real_descriptor_pack.tStrides().begin())...));
+    ZipIterator i_end =
+        boost::make_zip_iterator(boost::make_tuple(real_lengths.end(), (real_descriptor_pack.GetStrides().end())...));
+
+    FilterZipIterator i_non1     = boost::make_filter_iterator(is_non1_length_t{}, i_begin, i_end);
+    FilterZipIterator i_non1_end = boost::make_filter_iterator(is_non1_length_t{}, i_end, i_end);
 
     for(std::size_t idim = 1; idim < non1_ndim; ++idim)
     // the 0-th dimension full-length doesn't matter
