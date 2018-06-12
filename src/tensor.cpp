@@ -156,6 +156,7 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
     std::vector<std::size_t> flat_lengths;
     std::vector<std::size_t> flat_strides;
 
+#if 0
     std::size_t flat_len = non1_lengths[0];
     for(std::size_t i = 1; i < non1_ndim; ++i)
     {
@@ -175,6 +176,65 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
     }
     flat_lengths.push_back(flat_len);
     flat_strides.push_back(non1_strides[non1_ndim - 1]);
+#elif 0
+    auto i_len = non1_lengths.begin();
+    auto i_stride = non1_strides.begin();
+
+    std::size_t flat_len = *i_len;
+
+    auto i_previous_len = i_len++;
+    auto i_previous_stride = i_stride++;
+
+    while(i_len != non1_lengths.end())
+    {
+        std::size_t len = *i_len;
+        std::size_t full_len = (*i_previous_stride) / (*i_stride);
+
+        if(len == full_len)
+        {
+            flat_len *= len;
+        }
+        else
+        {
+            flat_lengths.push_back(flat_len);
+            flat_strides.push_back(*i_previous_stride);
+            flat_len = len;
+        }
+        i_previous_len = i_len++;
+        i_previous_stride = i_stride++;
+    };
+    flat_lengths.push_back(flat_len);
+    flat_strides.push_back(*i_previous_stride);
+#else
+    auto i_len = non1_lengths.begin();
+    auto i_stride = non1_strides.begin();
+
+    std::size_t flat_len = *i_len;
+
+    auto i_previous_len = i_len++;
+    auto i_previous_stride = i_stride++;
+
+    while(i_len != non1_lengths.end())
+    {
+        std::size_t len = *i_len;
+        std::size_t full_len = (*i_previous_stride) / (*i_stride);
+
+        if(len == full_len)
+        {
+            flat_len *= len;
+        }
+        else
+        {
+            flat_lengths.push_back(flat_len);
+            flat_strides.push_back(*i_previous_stride);
+            flat_len = len;
+        }
+        i_previous_len = i_len++;
+        i_previous_stride = i_stride++;
+    };
+    flat_lengths.push_back(flat_len);
+    flat_strides.push_back(*i_previous_stride);
+#endif
 
     return {GetType(), std::move(flat_lengths), std::move(flat_strides)};
 }
