@@ -136,7 +136,7 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
 
     // is a scalar
     if(std::all_of(
-           GetLengths().begin(), GetLengths().end(), [](const std::size_t& v) { return v <= 1; }))
+           GetLengths().begin(), GetLengths().end(), [](const std::size_t v) { return v <= 1; }))
         return {GetType(), {1}, {1}};
 
     // start flattening tensor
@@ -164,6 +164,7 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
     FilterZipIterator i_non1_previous = i_non1++;
 
     for(; i_non1 != i_non1_end; i_non1++)
+    // the 0-th dimension full-length doesn't matter
     {
         std::size_t len             = i_non1->get<0>();
         std::size_t stride          = i_non1->get<1>();
