@@ -137,22 +137,43 @@ miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
                                                 const void* beta,
                                                 const Data_t w)
 {
-    const float* f_alpha = static_cast<const float*>(alpha);
-    auto id              = std::to_string(GetIdx());
-    args.ins_arg("alpha" + id, boost::spirit::hold_any(*f_alpha));
-    args.ins_arg("beta" + id, boost::spirit::hold_any(*(static_cast<const float*>(beta))));
-    args.ins_arg("weigths" + id, boost::spirit::hold_any(static_cast<void*>(w)));
+    (void)(alpha);
+    (void)(beta);
+    // const float* f_alpha = static_cast<const float*>(alpha);
+    auto id = std::to_string(GetIdx());
+    // args.ins_arg("alpha" + id, boost::spirit::hold_any(*f_alpha));
+    // args.ins_arg("beta" + id, boost::spirit::hold_any(*(static_cast<const float*>(beta))));
+    auto w_any = boost::spirit::hold_any(static_cast<void*>(w));
+    args.ins_arg("weights" + id, w_any);
     return miopenStatusSuccess;
+}
+
+std::vector<std::string> ConvForwardOpDescriptor::GetArgs() const
+{
+    std::vector<std::string> keys;
+    keys.push_back("weights" + std::to_string(GetIdx()));
+    return keys;
 }
 
 // Activ Forward
 miopenStatus_t
 ActivFusionOpDescriptor::SetArgs(OperatorArgs& args, const void* alpha, const void* beta)
 {
-    auto id = std::to_string(GetIdx());
-    args.ins_arg("alpha" + id, boost::spirit::hold_any(*(static_cast<const float*>(alpha))));
-    args.ins_arg("beta" + id, boost::spirit::hold_any(*(static_cast<const float*>(beta))));
+    auto id        = std::to_string(GetIdx());
+    auto alpha_any = boost::spirit::hold_any(*(static_cast<const float*>(alpha)));
+    auto beta_any  = boost::spirit::hold_any(*(static_cast<const float*>(beta)));
+    args.ins_arg("alpha" + id, alpha_any);
+    args.ins_arg("beta" + id, beta_any);
     return miopenStatusSuccess;
+}
+
+std::vector<std::string> ActivFusionOpDescriptor::GetArgs() const
+{
+    std::vector<std::string> keys;
+    auto id = std::to_string(GetIdx());
+    keys.push_back("alpha" + id);
+    keys.push_back("beta" + id);
+    return keys;
 }
 
 miopenStatus_t ActivFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
@@ -175,11 +196,21 @@ miopenStatus_t BiasFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                const Data_t bdata)
 {
     auto id = std::to_string(GetIdx());
-    args.ins_arg("alpha" + id, boost::spirit::hold_any(*static_cast<const float*>(alpha)));
-    args.ins_arg("beta" + id, boost::spirit::hold_any(*static_cast<const float*>(beta)));
-    args.ins_arg("bias" + id, boost::spirit::hold_any(static_cast<void*>(bdata)));
+    (void)(alpha);
+    (void)(beta);
+    //    args.ins_arg("alpha" + id, boost::spirit::hold_any(*static_cast<const float*>(alpha)));
+    //    args.ins_arg("beta" + id, boost::spirit::hold_any(*static_cast<const float*>(beta)));
+    auto bdata_any = boost::spirit::hold_any(static_cast<void*>(bdata));
+    args.ins_arg("bias" + id, bdata_any);
 
     return miopenStatusSuccess;
+}
+
+std::vector<std::string> BiasFusionOpDescriptor::GetArgs() const
+{
+    std::vector<std::string> keys;
+    keys.push_back("bias" + std::to_string(GetIdx()));
+    return keys;
 }
 // Op LUT
 miopenStatus_t FusionOpLU::Advance(miopenFusionOp_t op)
@@ -267,9 +298,10 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                                              Data_t input,
                                              TensorDescriptor& outputDesc,
                                              Data_t output,
-                                             OperatorArgs& op_args)
+                                             const OperatorArgs& op_args)
 {
     std::string network_config;
+    // TODO: move the hard coded algo name to the LUT
     std::string algorithm_name = "miopenDirConvBatchNormActivAlgo";
     if(output_desc != outputDesc)
     {
@@ -279,6 +311,10 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     {
         MIOPEN_THROW("The input descriptors dont match");
     }
+    if(!isValid())
+        MIOPEN_THROW("The execution plan is not valid");
+    // TODO: The fusion plan is keeping track of the insertion order,
+    // should we move this to the Graph ?
     for(auto nd : ins_order)
     {
         auto op = op_map[nd];
@@ -300,6 +336,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             op->GetCompileParms(compile_config, handle);
         }
         auto ops_head = op_map[ins_order[0]];
+        // TODO: If the first op is Conv
         if(ops_head->name() == miopenFusionOpConv)
         {
             auto ki =
@@ -313,13 +350,31 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             kernel = handle.AddKernel(
                 algorithm_name, network_config, program_name, kernel_name, vld, vgd, parms);
         }
+        // TODO: If the first op is batch norm!
+        // else
+        // {
+        // }
     }
-    // TODO: The order of the arguments needs to match
-    op_args.args_vec.insert(op_args.args_vec.begin(),
-                            boost::spirit::hold_any(static_cast<void*>(output)));
-    op_args.args_vec.insert(op_args.args_vec.begin(),
-                            boost::spirit::hold_any(static_cast<void*>(input)));
-    kernel(op_args.args_vec);
+    // Construct the kernel args
+    std::vector<boost::spirit::hold_any> args;
+    args.push_back(boost::spirit::hold_any(static_cast<void*>(input)));
+    args.push_back(boost::spirit::hold_any(static_cast<void*>(output)));
+    for(auto nd : ins_order)
+    {
+        auto op   = op_map[nd];
+        auto keys = op->GetArgs();
+        for(auto key : keys)
+        {
+            boost::spirit::hold_any arg;
+            auto it = op_args.args_map.find(key);
+            if(it != op_args.args_map.end())
+                arg = it->second;
+            else
+                MIOPEN_THROW("Arg not found in Map");
+            args.push_back(arg);
+        }
+    }
+    kernel(args);
     return miopenStatusSuccess;
 }
 
