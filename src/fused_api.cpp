@@ -222,7 +222,7 @@ extern "C" miopenStatus_t
 miopenCreateOpBatchNormForward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                miopenFusionOpDescriptor_t* bnOp,
                                const miopenBatchNormMode_t bn_mode,
-                               const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc, )
+                               const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode, bnScaleBiasMeanVarDesc);
     return (miopenStatusSuccess);
