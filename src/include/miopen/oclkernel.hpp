@@ -99,23 +99,24 @@ struct OCLKernelInvoke
             if(arg.type() == typeid(float))
             {
                 auto orig_arg = boost::spirit::any_cast<float>(arg);
-                std::bind(OCLSetKernelArg{}, kernel.get(), idx, orig_arg);
+                OCLSetKernelArg()(kernel.get(), idx, orig_arg);
             }
             else if(arg.type() == typeid(int))
             {
                 auto orig_arg = boost::spirit::any_cast<int>(arg);
-                std::bind(OCLSetKernelArg{}, kernel.get(), idx, orig_arg);
+                OCLSetKernelArg()(kernel.get(), idx, orig_arg);
             }
             else if(arg.type() == typeid(void*))
             {
-                LocalMemArg orig_arg = boost::spirit::any_cast<LocalMemArg>(arg);
-                std::bind(OCLSetKernelArg{}, kernel.get(), idx, orig_arg);
+                auto orig_arg = boost::spirit::any_cast<void*>(arg);
+                OCLSetKernelArg()(kernel.get(), idx, static_cast<cl_mem>(orig_arg));
             }
             else
             {
                 MIOPEN_THROW("Unsupported type in kernel argument");
             }
         }
+        run();
     }
 
     template <class... Ts>

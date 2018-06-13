@@ -282,9 +282,11 @@ extern "C" miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
                                                      const void* w)
 {
     MIOPEN_LOG_FUNCTION(args, alpha, beta, convOp, w);
-    miopen::ConvForwardOpDescriptor& op =
-        dynamic_cast<miopen::ConvForwardOpDescriptor&>(miopen::deref(convOp));
-    return miopen::try_([&] { op.SetArgs(miopen::deref(args), alpha, beta, DataCast(w)); });
+    return miopen::try_([&] {
+        miopen::ConvForwardOpDescriptor& op =
+            dynamic_cast<miopen::ConvForwardOpDescriptor&>(miopen::deref(convOp));
+        op.SetArgs(miopen::deref(args), alpha, beta, DataCast(w));
+    });
 }
 
 extern "C" miopenStatus_t miopenSetOpArgsConvBackwardData(miopenOperatorArgs_t args,
@@ -349,7 +351,11 @@ extern "C" miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
 {
 
     MIOPEN_LOG_FUNCTION(args, activOp, alpha, beta);
-    return (miopenStatusSuccess);
+    return miopen::try_([&] {
+        miopen::ActivFusionOpDescriptor& op =
+            dynamic_cast<miopen::ActivFusionOpDescriptor&>(miopen::deref(activOp));
+        op.SetArgs(miopen::deref(args), alpha, beta);
+    });
 }
 
 extern "C" miopenStatus_t miopenSetOpArgsActivBackward(miopenOperatorArgs_t args,
