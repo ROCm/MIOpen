@@ -136,9 +136,15 @@ static int MeasureLoop(Handle* profile_h,
 
     miopen::each_args(
         [&](auto s) {
-            if(!kernel_search_result.Succeeded() && s.IsApplicable(params))
+            if(!kernel_search_result.Succeeded()) // once
             {
-                kernel_search_result = s.GetSolution(params, result);
+                if(s.IsApplicable(params))
+                {
+                    if(s.IsValidPerformanceConfig(params, result))
+                    {
+                        kernel_search_result = s.GetSolution(params, result);
+                    }
+                }
             }
         },
         Solvers{}...);
