@@ -81,11 +81,9 @@ typedef struct miopen_op
 struct OperatorArgs : miopenOperatorArgs
 {
     OperatorArgs();
-    void ins_arg(std::string name, boost::spirit::hold_any&& v);
+    void ins_arg(std::string name, boost::spirit::hold_any v);
     friend std::ostream& operator<<(std::ostream& stream, const OperatorArgs& x);
     std::vector<boost::spirit::hold_any> args_vec;
-
-    private:
     std::unordered_map<std::string, boost::spirit::hold_any> args_map;
 };
 
@@ -93,12 +91,13 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
 {
     virtual ~FusionOpDescriptor(){};
     void SetIdx(int _id) { plan_idx = _id; };
-    int GetIdx() { return plan_idx; };
+    int GetIdx() const { return plan_idx; };
     virtual miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) = 0;
     virtual miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
     virtual miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
     friend std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x);
-    virtual miopenFusionOp_t name() = 0;
+    virtual miopenFusionOp_t name()                  = 0;
+    virtual std::vector<std::string> GetArgs() const = 0;
     void SetInputDesc(TensorDescriptor i_desc) { input_desc = i_desc; };
 
     TensorDescriptor input_desc;
@@ -116,6 +115,7 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
     miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
     miopenStatus_t
     SetArgs(OperatorArgs& args, const void* alpha, const void* beta, const Data_t dbias);
+    std::vector<std::string> GetArgs() const;
     miopenFusionOp_t name() { return miopenFusionOpBias; };
     TensorDescriptor& base_desc;
 };
@@ -127,6 +127,7 @@ struct ActivFusionOpDescriptor : FusionOpDescriptor
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
     miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
     miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta);
+    std::vector<std::string> GetArgs() const;
     miopenFusionOp_t name() { return miopenFusionOpActiv; };
     ActivationDescriptor& base_desc;
 };
@@ -142,6 +143,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
           kernel_info_valid(false){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc);
     miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, const Data_t w);
+    std::vector<std::string> GetArgs() const;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
     miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
     solver::KernelInfo& GetKernelInfo(Handle& handle);
@@ -190,7 +192,7 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
                            Data_t input,
                            TensorDescriptor& outputDesc,
                            Data_t output,
-                           OperatorArgs& op_args);
+                           const OperatorArgs& op_args);
     friend std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& x);
 
     protected:

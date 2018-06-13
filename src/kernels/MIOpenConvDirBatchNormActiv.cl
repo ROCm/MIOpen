@@ -1114,14 +1114,17 @@ __attribute__((always_inline)) void ActivationFunction(const uint n,
 #endif
 }
 
+#if !defined SPATIAL_BN && !defined PERACT_BN
+#define NO_BN
+#endif
+
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __kernel void
 MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
+                            __global _FLOAT* __restrict out,
                             const __global _FLOAT* __restrict weights,
 #if MLO_CONV_BIAS
                             const __global _FLOAT* __restrict conv_bias,
 #endif
-                            __global _FLOAT* __restrict out,
-                            UNUSED _FLOAT padding_val,
 #ifndef NO_BN
                             const __global _FLOAT* __restrict estimatedMean,
                             const __global _FLOAT* __restrict estimatedVariance,
@@ -1129,9 +1132,8 @@ MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
                             const __global _FLOAT* __restrict bn_bias,
                             double epsilon,
 #endif
-                            const _FLOAT gamma,
-                            const _FLOAT beta,
-                            const _FLOAT alpha)
+                            const _FLOAT alpha,
+                            const _FLOAT beta)
 {
     __local _FLOAT lcl_indata[MLO_IN_LCL_SZ];
     __local _FLOAT lcl_wei[MLO_WEIGHTS_SZ];
@@ -1531,6 +1533,7 @@ MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
 #else
                                 bn_res = mad(pscale, (conv_res - pmean) * pinvVariance, pbias);
 #endif
+                            const _FLOAT gamma = 1.0;
                             ActivationFunction(
                                 1, &actv_res, (const _FLOAT*)&bn_res, gamma, beta, alpha);
                             out[out_off2 + i] = actv_res;
