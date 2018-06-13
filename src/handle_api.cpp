@@ -47,6 +47,7 @@ extern "C" const char* miopenGetErrorString(miopenStatus_t error)
 
     case miopenStatusUnknownError: return "miopenStatusUnknownError";
     }
+    return "Unknown error status";
 }
 
 extern "C" miopenStatus_t miopenCreate(miopenHandle_t* handle)
