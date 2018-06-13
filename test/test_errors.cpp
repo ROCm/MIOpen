@@ -39,22 +39,21 @@ void test_try()
 void test_error_string()
 {
     miopenStatus_t error = miopenStatusSuccess;
-    // EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusSuccess") == 0);
     EXPECT_EQUAL(std::string(miopenGetErrorString(error)), "miopenStatusSuccess");
     error = miopenStatusNotInitialized;
-    EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusNotInitialized") == 0);
+    EXPECT_EQUAL(std::string(miopenGetErrorString(error)), "miopenStatusNotInitialized");
     error = miopenStatusInvalidValue;
-    EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusInvalidValue") == 0);
+    EXPECT_EQUAL(std::string(miopenGetErrorString(error)), "miopenStatusInvalidValue");
     error = miopenStatusBadParm;
-    EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusBadParm") == 0);
+    EXPECT_EQUAL(std::string(miopenGetErrorString(error)), "miopenStatusBadParm");
     error = miopenStatusAllocFailed;
-    EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusAllocFailed") == 0);
+    EXPECT_EQUAL(std::string(miopenGetErrorString(error)), "miopenStatusAllocFailed");
     error = miopenStatusInternalError;
-    EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusInternalError") == 0);
+    EXPECT_EQUAL(std::string(miopenGetErrorString(error)), "miopenStatusInternalError");
     error = miopenStatusNotImplemented;
-    EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusNotImplemented") == 0);
+    EXPECT_EQUAL(std::string(miopenGetErrorString(error)), "miopenStatusNotImplemented");
     error = miopenStatusUnknownError;
-    EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusUnknownError") == 0);
+    EXPECT_EQUAL(std::string(miopenGetErrorString(error)), "miopenStatusUnknownError");
 }
 
 int main()
