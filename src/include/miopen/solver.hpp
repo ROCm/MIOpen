@@ -559,10 +559,6 @@ struct ConvOclDirectFwd3x3 : SolverBase<ConvolutionContext>
 struct ConvOclDirectFwdLegacyExhaustiveSearch : SolverBase<ConvolutionContext>
 {
     LegacyPerformanceConfig GetPerformanceConfig(const ConvolutionContext&) const;
-    bool IsValidPerformanceConfig(const ConvolutionContext&, const LegacyPerformanceConfig&) const
-    {
-        return true; // Do not check by default.
-    }
     LegacyPerformanceConfig Search(const ConvolutionContext&) const;
 };
 
@@ -580,6 +576,10 @@ struct ConvOclDirectFwd1x1 : ConvOclDirectFwdLegacyExhaustiveSearch
     bool IsApplicable(const ConvolutionContext& params) const;
     ConvSolution GetSolution(const ConvolutionContext& params,
                              const LegacyPerformanceConfig& searched_params) const;
+    bool IsValidPerformanceConfig(const ConvolutionContext&, const LegacyPerformanceConfig&) const
+    {
+        return true;
+    }
 };
 
 struct ConvBinWinograd3x3U : SolverBase<ConvolutionContext>
