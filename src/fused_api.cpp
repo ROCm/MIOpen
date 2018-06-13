@@ -211,25 +211,28 @@ extern "C" miopenStatus_t miopenCreateOpBiasBackward(miopenFusionPlanDescriptor_
 extern "C" miopenStatus_t
 miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
                                  miopenFusionOpDescriptor_t* bnOp,
-                                 const miopenBatchNormMode_t bn_mode)
+                                 const miopenBatchNormMode_t bn_mode,
+                                 const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode, bnScaleBiasMeanVarDesc);
     return (miopenStatusSuccess);
 }
 
 extern "C" miopenStatus_t miopenCreateOpBatchNormForward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                                          miopenFusionOpDescriptor_t* bnOp,
-                                                         const miopenBatchNormMode_t bn_mode)
+                                                         const miopenBatchNormMode_t bn_mode,
+                                                         const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc,)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode, bnScaleBiasMeanVarDesc);
     return (miopenStatusSuccess);
 }
 
 extern "C" miopenStatus_t miopenCreateOpBatchNormBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                                           miopenFusionOpDescriptor_t* bnOp,
-                                                          const miopenBatchNormMode_t bn_mode)
+                                                          const miopenBatchNormMode_t bn_mode,
+                                                          const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode, bnScaleBiasMeanVarDesc);
     return (miopenStatusSuccess);
 }
 //---
