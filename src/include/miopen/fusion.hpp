@@ -132,6 +132,18 @@ struct ActivFusionOpDescriptor : FusionOpDescriptor
     ActivationDescriptor& base_desc;
 };
 
+struct BatchNormFusionOpDescriptor : FusionOpDescriptor
+{
+    BatchNormFusionOpDescriptor(TensorDescriptor& desc) : base_desc(desc){};
+    miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc);
+    miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
+    miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
+    // miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta);
+    std::vector<std::string> GetArgs() const;
+    miopenFusionOp_t name() { return miopenFusionOpActiv; };
+    TensorDescriptor& base_desc;
+};
+
 struct ConvForwardOpDescriptor : FusionOpDescriptor
 {
     ConvForwardOpDescriptor(ConvolutionDescriptor& conv_descriptor,
