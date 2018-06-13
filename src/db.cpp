@@ -70,11 +70,20 @@ std::string LockFilePath(const boost::filesystem::path& filename_)
     return file.string();
 }
 
-Db::Db(const std::string& filename_, bool warn_if_unreadable_)
+Db::Db(const std::string& filename_, bool is_system)
     : filename(filename_),
       lock_file(LockFile::Get(LockFilePath(filename_).c_str())),
-      warn_if_unreadable(warn_if_unreadable_)
+      warn_if_unreadable(is_system)
 {
+    if(!is_system)
+    {
+        auto file      = boost::filesystem::path(filename_);
+        auto directory = file.remove_filename();
+
+        if(!(boost::filesystem::exists(directory)) &&
+           !boost::filesystem::create_directories(directory))
+            MIOPEN_LOG_W("Unable to create a directory: " << directory);
+    }
 }
 
 #define MIOPEN_VALIDATE_LOCK(lock)                       \
