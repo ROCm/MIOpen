@@ -39,7 +39,7 @@ void test_try()
 void test_error_string()
 {
     miopenStatus_t error = miopenStatusSuccess;
-    //EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusSuccess") == 0);
+    // EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusSuccess") == 0);
     EXPECT_EQUAL(std::string(miopenGetErrorString(error)), "miopenStatusSuccess");
     error = miopenStatusNotInitialized;
     EXPECT(strcmp(miopenGetErrorString(error), "miopenStatusNotInitialized") == 0);
