@@ -462,9 +462,9 @@ int CBAInferFusionDriver<Tgpu, Tref>::createRunningBuffers()
     int status   = 0;
     uint32_t ctx = 0;
 #endif
-    size_t sb_sz = GetTensorSize(biasScaleTensor);
     if(fusion_mode < 3)
     {
+        size_t sb_sz = GetTensorSize(biasScaleTensor);
         // GPU allocation
         runningMean_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
         runningVariance_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
