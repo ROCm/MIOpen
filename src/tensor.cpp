@@ -131,9 +131,6 @@ bool TensorDescriptor::IsPacked() const { return this->packed; }
 
 TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
 {
-    // for debugging
-  //return *this;
-
     // is packed
     if(IsPacked())
         return {GetType(), {GetElementSize()}, {1}};
@@ -147,7 +144,6 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
     std::vector<std::size_t> flat_lengths;
     std::vector<std::size_t> flat_strides;
 
-#if 1
     struct is_not_length_1_t
     {
         using reference_t = decltype(*(boost::combine(GetLengths(),GetStrides()).begin()));
@@ -156,11 +152,10 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
 
     auto non1_length_strides = boost::combine(GetLengths(),GetStrides()) | boost::adaptors::filtered(is_not_length_1_t());
     auto i = non1_length_strides.begin();
-
     std::size_t flat_len = i -> get<0>();
-
     auto i_previous = i++;
-    for(; i != non1_length_strides.end(); i++)
+
+    for(; i != non1_length_strides.end(); ++i)
     // the 0-th dimension full-length doesn't matter
     {
         std::size_t len             = i->get<0>();
@@ -182,51 +177,7 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
     }
     flat_lengths.push_back(flat_len);
     flat_strides.push_back(i_previous->get<1>());
-#else
-    using ZipIterator = decltype(
-        boost::make_zip_iterator(boost::make_tuple(GetLengths().begin(), GetStrides().begin())));
-    struct is_non1_length_t
-    {
-        bool operator()(ZipIterator::reference v) { return v.get<0>() > 1; }
-    };
-    using FilterZipIterator = boost::filter_iterator<is_non1_length_t, ZipIterator>;
 
-    ZipIterator i_begin =
-        boost::make_zip_iterator(boost::make_tuple(GetLengths().begin(), GetStrides().begin()));
-    ZipIterator i_end =
-        boost::make_zip_iterator(boost::make_tuple(GetLengths().end(), GetStrides().end()));
-
-    FilterZipIterator i_non1     = boost::make_filter_iterator(is_non1_length_t{}, i_begin, i_end);
-    FilterZipIterator i_non1_end = boost::make_filter_iterator(is_non1_length_t{}, i_end, i_end);
-
-    std::size_t flat_len = i_non1->get<0>();
-
-    FilterZipIterator i_non1_previous = i_non1++;
-
-    for(; i_non1 != i_non1_end; i_non1++)
-    // the 0-th dimension full-length doesn't matter
-    {
-        std::size_t len             = i_non1->get<0>();
-        std::size_t stride          = i_non1->get<1>();
-        std::size_t previous_stride = i_non1_previous->get<1>();
-        std::size_t full_len        = previous_stride / stride;
-
-        if(len == full_len)
-        {
-            flat_len *= len;
-        }
-        else
-        {
-            flat_lengths.push_back(flat_len);
-            flat_strides.push_back(previous_stride);
-            flat_len = len;
-        }
-        i_non1_previous = i_non1;
-    }
-    flat_lengths.push_back(flat_len);
-    flat_strides.push_back(i_non1_previous->get<1>());
-
-#endif
     return {GetType(), std::move(flat_lengths), std::move(flat_strides)};
 }
 
