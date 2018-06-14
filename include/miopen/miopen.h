@@ -1932,39 +1932,45 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateOpBiasBackward(miopenFusionPlanDescript
 // Batch normalization create ops ---
 /*! @brief Creates a forward inference batch normalization operator.
 *
-* @param fusePlanDesc  A fusion plan descriptor (input)
-* @param bnOp          Pointer to an operator type (output)
-* @param bn_mode       Batch normalization layer mode (input)
-* @return              miopenStatus_t
+* @param fusePlanDesc           A fusion plan descriptor (input)
+* @param bnOp                   Pointer to an operator type (output)
+* @param bn_mode                Batch normalization layer mode (input)
+* @param bnScaleBiasMeanVarDesc Gamma, beta, mean, variance tensor descriptor (input)
+* @return                       miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
                                  miopenFusionOpDescriptor_t* bnOp,
-                                 const miopenBatchNormMode_t bn_mode);
+                                 const miopenBatchNormMode_t bn_mode,
+                                 const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc);
 
 /*! @brief Creates a forward training batch normalization operator.
 *
-* @param fusePlanDesc  A fusion plan descriptor (input)
-* @param bnOp          Pointer to an operator type (output)
-* @param bn_mode       Batch normalization layer mode (input)
-* @return              miopenStatus_t
+* @param fusePlanDesc           A fusion plan descriptor (input)
+* @param bnOp                   Pointer to an operator type (output)
+* @param bn_mode                Batch normalization layer mode (input)
+* @param bnScaleBiasMeanVarDesc Gamma, beta, mean, variance tensor descriptor (input)
+* @return                       miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateOpBatchNormForward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                miopenFusionOpDescriptor_t* bnOp,
-                               const miopenBatchNormMode_t bn_mode);
+                               const miopenBatchNormMode_t bn_mode,
+                               const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc);
 
 /*! @brief Creates a back propagation batch normalization operator.
 *
-* @param fusePlanDesc  A fusion plan descriptor (input)
-* @param bnOp          Pointer to an operator type (output)
-* @param bn_mode       Batch normalization layer mode (input)
-* @return              miopenStatus_t
+* @param fusePlanDesc           A fusion plan descriptor (input)
+* @param bnOp                   Pointer to an operator type (output)
+* @param bn_mode                Batch normalization layer mode (input)
+* @param bnScaleBiasMeanVarDesc Gamma, beta, mean, variance tensor descriptor (input)
+* @return                       miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateOpBatchNormBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                 miopenFusionOpDescriptor_t* bnOp,
-                                const miopenBatchNormMode_t bn_mode);
+                                const miopenBatchNormMode_t bn_mode,
+                                const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc);
 //---
 
 // Tensor operation create op ---
