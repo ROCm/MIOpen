@@ -78,7 +78,6 @@ class CBAInferFusionDriver : public Driver
         miopenCreateTensorDescriptor(&outputTensor);
         miopenCreateTensorDescriptor(&biasTensor);
         miopenCreateTensorDescriptor(&biasScaleTensor);
-
         miopenCreateConvolutionDescriptor(&convDesc);
         miopenCreateActivationDescriptor(&activDesc);
 
@@ -272,23 +271,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
 
     std::vector<int> sb_len;
 
-    if(bn_mode == miopenBNPerActivation)
-    { // 1xCxHxW
-        sb_len.push_back(1);
-        sb_len.push_back(out_len[1]);
-        sb_len.push_back(out_len[2]);
-        sb_len.push_back(out_len[3]);
-    }
-    else if(bn_mode == miopenBNSpatial)
-    { // 1xCx1x1
-        sb_len.push_back(1);
-        sb_len.push_back(out_len[1]);
-        sb_len.push_back(1);
-        sb_len.push_back(1);
-    }
-
-    SetTensor4d(biasScaleTensor, sb_len, data_type);
-
     if(bias_mode != 0)
     {
         std::vector<int> b_len{1, out_len[1], 1, 1};
@@ -433,10 +415,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
         exit(0);
     }
 
-    // std::cerr << "convDesc = " << wei_h << "," << wei_w << "," << pad_h <<
-    // "," << pad_w << "," << u << "," << v << "," << dilation_h <<
-    // "," << dilation_w << std::endl;
-
     miopen::deref(convDesc) =
         miopen::ConvolutionDescriptor(mode, pmode, pad_h, pad_w, u, v, dilation_h, dilation_w);
     return miopenStatusSuccess;
@@ -535,6 +513,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     size_t sb_sz  = 0;
     if(fusion_mode < 3)
     {
+        miopenDeriveBNTensorDescriptor(biasScaleTensor, inputTensor, bn_mode);
         sb_sz = GetTensorSize(biasScaleTensor);
     }
 
@@ -651,7 +630,8 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
     double epsilon = static_cast<double>(EPSILON);
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
-    miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bn_mode);
+    miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bn_mode, biasScaleTensor);
+
     miopenCreateOpActivationForward(fusePlanDesc, &activOp, activDesc);
     miopenSetOpArgsBatchNormInference(fusionArgs,
                                       bNormOp,
@@ -724,7 +704,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
     {
         miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasTensor);
     }
-    miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bn_mode);
+    miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bn_mode, biasScaleTensor);
     miopenCreateOpActivationForward(fusePlanDesc, &activOp, activDesc);
     miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());
 
