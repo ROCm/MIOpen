@@ -154,6 +154,10 @@ template <typename... TDescriptors>
 std::tuple<TDescriptors...>
 get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descriptor_pack)
 {
+
+    return std::make_tuple(real_descriptor_pack...);
+
+#if 0
     constexpr std::size_t NTensor = sizeof...(TDescriptors);
 
     std::array<const TensorDescriptor*, NTensor> real_descriptors{{(&real_descriptor_pack)...}};
@@ -201,7 +205,7 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
         return to_tuple(std::move(flat_descriptors)); // early return for all-scalar tensors
     }
 
-#if 0
+#if 1
     for(std::size_t idim = 1; idim < non1_ndim; ++idim)
     {
         for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
@@ -214,8 +218,9 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
     std::vector<std::size_t> flat_lengths;
     std::array<std::vector<std::size_t>, NTensor> array_of_flat_strides;
 
-#if 0
-    for(; i_non1 != i_non1_end; i_non1++)
+#if 1
+    std::size_t flat_len = non1_lengths[0];
+    for(std::size_t idim = 1; idim < non1_ndim; ++idim)
     // the 0-th dimension full-length doesn't matter
     {
         std::size_t len = non1_lengths[idim];
@@ -306,6 +311,7 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
     }
 
     return to_tuple(std::move(flat_descriptors));
+#endif
 }
 
 } // namespace miopen
