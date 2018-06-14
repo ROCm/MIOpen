@@ -184,14 +184,15 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
 
     struct is_not_length_1_t
     {
-        using reference_t = decltype(*(boost::combine(
-            real_descriptors[0]->GetLengths(), real_descriptor_pack.GetStrides().begin()...)));
+        using reference_t = decltype(*(
+            boost::combine(real_descriptors[0]->GetLengths(), real_descriptor_pack.GetStrides()...)
+                .begin()));
         bool operator()(reference_t v) { return v.get<0>() > 1; }
     };
 
-    auto non1_length_strides = boost::combine(real_descriptors[0]->GetLengths(),
-                                              real_descriptor_pack.GetStrides().begin()...) |
-                               boost::adaptors::filtered(is_not_length_1_t());
+    auto non1_length_strides =
+        boost::combine(real_descriptors[0]->GetLengths(), real_descriptor_pack.GetStrides()...) |
+        boost::adaptors::filtered(is_not_length_1_t());
     auto i               = non1_length_strides.begin();
     std::size_t flat_len = i->get<0>();
     auto i_previous      = i++;
