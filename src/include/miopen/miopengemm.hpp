@@ -33,16 +33,19 @@
 
 namespace miopen {
 
-void FindMiopengemmSolution(Handle& handle,
-                            const MIOpenGEMM::Geometry& mgg,
-                            ConstData_t A,
-                            ConstData_t B,
-                            Data_t C,
-                            float time,
-                            bool enforce_determinism);
+void AddMiopengemmSolution(Handle& handle,
+                           const std::string& algorithm_name,
+                           const std::string& network_config,
+                           const MIOpenGEMM::Geometry& mgg,
+                           ConstData_t A,
+                           ConstData_t B,
+                           Data_t C,
+                           float time,
+                           bool enforce_determinism);
 
 void RunMiopengemmSolution(Handle& handle,
-                           const MIOpenGEMM::Geometry& mgg,
+                           const std::string& algorithm_name,
+                           const std::string& network_config,
                            float alpha,
                            ConstData_t A,
                            int a_offset,
