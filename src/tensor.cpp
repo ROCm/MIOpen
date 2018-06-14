@@ -29,9 +29,6 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
 #include <string>
-#include <boost/range/reference.hpp>
-#include <boost/range/combine.hpp>
-#include <boost/range/adaptor/filtered.hpp>
 
 namespace miopen {
 
@@ -135,25 +132,21 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
     if(IsPacked())
         return {GetType(), {GetElementSize()}, {1}};
 
-    // is a scalar
-    if(std::all_of(
-           GetLengths().begin(), GetLengths().end(), [](const std::size_t v) { return v <= 1; }))
-        return {GetType(), {1}, {1}};
-
     // start flattening tensor
     std::vector<std::size_t> flat_lengths;
     std::vector<std::size_t> flat_strides;
 
     struct is_not_length_1_t
     {
-        using reference_t = decltype(*(boost::combine(GetLengths(),GetStrides()).begin()));
+        using reference_t = decltype(*(boost::combine(GetLengths(), GetStrides()).begin()));
         bool operator()(reference_t v) { return v.get<0>() > 1; }
     };
 
-    auto non1_length_strides = boost::combine(GetLengths(),GetStrides()) | boost::adaptors::filtered(is_not_length_1_t());
-    auto i = non1_length_strides.begin();
-    std::size_t flat_len = i -> get<0>();
-    auto i_previous = i++;
+    auto non1_length_strides =
+        boost::combine(GetLengths(), GetStrides()) | boost::adaptors::filtered(is_not_length_1_t());
+    auto i               = non1_length_strides.begin();
+    std::size_t flat_len = i->get<0>();
+    auto i_previous      = i++;
 
     for(; i != non1_length_strides.end(); ++i)
     // the 0-th dimension full-length doesn't matter
