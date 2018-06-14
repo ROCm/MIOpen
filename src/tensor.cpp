@@ -29,8 +29,9 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
 #include <string>
-#include <boost/iterator/zip_iterator.hpp>
-#include <boost/iterator/filter_iterator.hpp>
+#include <boost/range/reference.hpp>
+#include <boost/range/combine.hpp>
+#include <boost/range/adaptor/filtered.hpp>
 
 namespace miopen {
 
@@ -130,6 +131,9 @@ bool TensorDescriptor::IsPacked() const { return this->packed; }
 
 TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
 {
+    // for debugging
+  //return *this;
+
     // is packed
     if(IsPacked())
         return {GetType(), {GetElementSize()}, {1}};
@@ -143,6 +147,42 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
     std::vector<std::size_t> flat_lengths;
     std::vector<std::size_t> flat_strides;
 
+#if 1
+    struct is_not_length_1_t
+    {
+        using reference_t = decltype(*(boost::combine(GetLengths(),GetStrides()).begin()));
+        bool operator()(reference_t v) { return v.get<0>() > 1; }
+    };
+
+    auto non1_length_strides = boost::combine(GetLengths(),GetStrides()) | boost::adaptors::filtered(is_not_length_1_t());
+    auto i = non1_length_strides.begin();
+
+    std::size_t flat_len = i -> get<0>();
+
+    auto i_previous = i++;
+    for(; i != non1_length_strides.end(); i++)
+    // the 0-th dimension full-length doesn't matter
+    {
+        std::size_t len             = i->get<0>();
+        std::size_t stride          = i->get<1>();
+        std::size_t previous_stride = i_previous->get<1>();
+        std::size_t full_len        = previous_stride / stride;
+
+        if(len == full_len)
+        {
+            flat_len *= len;
+        }
+        else
+        {
+            flat_lengths.push_back(flat_len);
+            flat_strides.push_back(previous_stride);
+            flat_len = len;
+        }
+        i_previous = i;
+    }
+    flat_lengths.push_back(flat_len);
+    flat_strides.push_back(i_previous->get<1>());
+#else
     using ZipIterator = decltype(
         boost::make_zip_iterator(boost::make_tuple(GetLengths().begin(), GetStrides().begin())));
     struct is_non1_length_t
@@ -186,6 +226,7 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
     flat_lengths.push_back(flat_len);
     flat_strides.push_back(i_non1_previous->get<1>());
 
+#endif
     return {GetType(), std::move(flat_lengths), std::move(flat_strides)};
 }
 
