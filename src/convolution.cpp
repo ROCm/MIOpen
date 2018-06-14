@@ -213,7 +213,6 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeImmed(Handle& handle,
         }
     }
     MIOPEN_THROW("Unsupported convolution mode");
-    return -1;
 }
 
 size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(Handle& handle,

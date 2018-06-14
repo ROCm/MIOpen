@@ -285,7 +285,8 @@ extern "C" miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
     return miopen::try_([&] {
         miopen::ConvForwardOpDescriptor& op =
             dynamic_cast<miopen::ConvForwardOpDescriptor&>(miopen::deref(convOp));
-        op.SetArgs(miopen::deref(args), alpha, beta, DataCast(w));
+        auto tmp = DataCast(w);
+        op.SetArgs(miopen::deref(args), alpha, beta, tmp);
     });
 }
 
