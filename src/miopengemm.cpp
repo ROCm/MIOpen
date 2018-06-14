@@ -55,13 +55,15 @@ void set_offsets_to_uint(std::string& clstr)
 } // namespace tempfix_v2
 
 // TODO: doesn't support offset to A, B, C yet
-void FindMiopengemmSolution(Handle& handle,
-                            const MIOpenGEMM::Geometry& mgg,
-                            ConstData_t A,
-                            ConstData_t B,
-                            Data_t C,
-                            float time,
-                            bool enforce_determinism)
+void AddMiopengemmSolution(Handle& handle,
+                           const std::string& algorithm_name,
+                           const std::string& network_config,
+                           const MIOpenGEMM::Geometry& mgg,
+                           ConstData_t A,
+                           ConstData_t B,
+                           Data_t C,
+                           float time,
+                           bool enforce_determinism)
 {
 #if MIOPEN_BACKEND_OPENCL
     // jn : print search results to terminal
@@ -98,9 +100,6 @@ void FindMiopengemmSolution(Handle& handle,
 
     std::vector<size_t> vld{local_work_size, 1, 1};
     std::vector<size_t> vgd{global_work_size, 1, 1};
-
-    const std::string algorithm_name = "MIOpenGEMM";
-    const std::string network_config = mgg.get_networkconfig_string();
 
     // chao : there are 2 possible kernel paths for C = alpha * A * B + beta * C in MIOpenGEMM
     // library
@@ -157,7 +156,8 @@ void FindMiopengemmSolution(Handle& handle,
 }
 
 void RunMiopengemmSolution(Handle& handle,
-                           const MIOpenGEMM::Geometry& mgg,
+                           const std::string& algorithm_name,
+                           const std::string& network_config,
                            float alpha,
                            ConstData_t A,
                            int a_offset,
@@ -167,9 +167,6 @@ void RunMiopengemmSolution(Handle& handle,
                            Data_t C,
                            int c_offset)
 {
-    const std::string algorithm_name = "MIOpenGEMM";
-    const std::string network_config = mgg.get_networkconfig_string();
-
     const auto& kernels = handle.GetKernels(algorithm_name, network_config);
 
 #if MIOPENGEMM_CPP_DEBUG

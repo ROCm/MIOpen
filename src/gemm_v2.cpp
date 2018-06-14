@@ -135,31 +135,52 @@ void CallGemm(Handle& handle,
         std::swap(gemm_param.lda, gemm_param.ldb);
     }
 
-    // TODO: save a map for MIOpenGENN::Geometry in miopenHandle,
-    //  so we don't need to construct a new geometry every time
-    MIOpenGEMM::Geometry mgg(true,
-                             gemm_param.transA,
-                             gemm_param.transB,
-                             false,
-                             gemm_param.lda,
-                             gemm_param.ldb,
-                             gemm_param.ldc,
-                             gemm_param.m,
-                             gemm_param.n,
-                             gemm_param.k,
-                             0,
-                             'f');
+    // making network configs for MIOpenGEMM kernel(s),
+    //   using necessary and minimal info,
+    //   based on info that's always true:
+    //      column-major,
+    //      C is not transposed,
+    //      workSpace is 0,
+    //      fp32
+    auto gemm_param_to_string = [&gemm_param]() {
+        return std::to_string(gemm_param.transA) + "_" + std::to_string(gemm_param.transB) + "_" +
+               std::to_string(gemm_param.lda) + "_" + std::to_string(gemm_param.ldb) + "_" +
+               std::to_string(gemm_param.ldc) + "_" + std::to_string(gemm_param.m) + "_" +
+               std::to_string(gemm_param.n) + "_" + std::to_string(gemm_param.k);
+    };
 
     const std::string algorithm_name = "MIOpenGEMM";
-    const std::string network_config = mgg.get_networkconfig_string();
+    const std::string network_config = gemm_param_to_string();
 
     if(handle.GetKernels(algorithm_name, network_config).empty())
     {
-        FindMiopengemmSolution(handle, mgg, A, B, C, 0.003, false);
+        MIOpenGEMM::Geometry mgg(true,
+                                 gemm_param.transA,
+                                 gemm_param.transB,
+                                 false,
+                                 gemm_param.lda,
+                                 gemm_param.ldb,
+                                 gemm_param.ldc,
+                                 gemm_param.m,
+                                 gemm_param.n,
+                                 gemm_param.k,
+                                 0,
+                                 'f');
+
+        AddMiopengemmSolution(handle, algorithm_name, network_config, mgg, A, B, C, 0.003, false);
     }
 
-    RunMiopengemmSolution(
-        handle, mgg, gemm_param.alpha, A, a_offset, B, b_offset, gemm_param.beta, C, c_offset);
+    RunMiopengemmSolution(handle,
+                          algorithm_name,
+                          network_config,
+                          gemm_param.alpha,
+                          A,
+                          a_offset,
+                          B,
+                          b_offset,
+                          gemm_param.beta,
+                          C,
+                          c_offset);
 
 #else
     MIOPEN_THROW("No GEMM backend");
