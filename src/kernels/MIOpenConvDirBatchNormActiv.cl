@@ -477,6 +477,10 @@ static inline void Conv(uint o_map_base,
       // MLO_IN_LCL_PERSTACK_SZ)
 }
 
+#ifndef MLO_CONV_BIAS
+#define MLO_CONV_BIAS 0
+#endif
+
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __kernel void
 MIOpenConvUni(const __global _FLOAT* __restrict in,
               const __global _FLOAT* __restrict weights,
@@ -881,7 +885,11 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 //#define MIOPEN_NEURON_SQR 11         // sqr(x)
 #define MIOPEN_NEURON_TOTAL 10
 
-static __constant _FLOAT kBNLL_THRESHOLD = (_FLOAT)50.;
+// if the BN / Bias ops are not used define appropriate symbols
+
+#if !defined SPATIAL_BN && !defined PERACT_BN
+#define NO_BN
+#endif
 
 __attribute__((always_inline)) void ActivationFunction_PassThru(const uint n,
                                                                 _FLOAT* res,
@@ -1113,10 +1121,6 @@ __attribute__((always_inline)) void ActivationFunction(const uint n,
     }
 #endif
 }
-
-#if !defined SPATIAL_BN && !defined PERACT_BN
-#define NO_BN
-#endif
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __kernel void
 MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,

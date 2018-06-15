@@ -182,7 +182,6 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                 {
                     vgd.push_back(1);
                     vgd.push_back(1);
-
                     handle.AddKernel("miopenActivationForward",
                                      network_config,
                                      program_name,

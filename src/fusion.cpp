@@ -135,7 +135,7 @@ miopenStatus_t ConvForwardOpDescriptor::GetOutputDesc(TensorDescriptor& output_d
 miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
                                                 const void* alpha,
                                                 const void* beta,
-                                                const Data_t w)
+                                                ConstData_t w)
 {
     (void)(alpha);
     (void)(beta);
@@ -143,7 +143,7 @@ miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
     auto id = std::to_string(GetIdx());
     // args.ins_arg("alpha" + id, boost::spirit::hold_any(*f_alpha));
     // args.ins_arg("beta" + id, boost::spirit::hold_any(*(static_cast<const float*>(beta))));
-    auto w_any = boost::spirit::hold_any(static_cast<void*>(w));
+    auto w_any = boost::spirit::hold_any(const_cast<void*>(w));
     args.ins_arg("weights" + id, w_any);
     return miopenStatusSuccess;
 }
@@ -193,14 +193,14 @@ miopenStatus_t BiasFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_de
 miopenStatus_t BiasFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                const void* alpha,
                                                const void* beta,
-                                               const Data_t bdata)
+                                               ConstData_t bdata)
 {
     auto id = std::to_string(GetIdx());
     (void)(alpha);
     (void)(beta);
     //    args.ins_arg("alpha" + id, boost::spirit::hold_any(*static_cast<const float*>(alpha)));
     //    args.ins_arg("beta" + id, boost::spirit::hold_any(*static_cast<const float*>(beta)));
-    auto bdata_any = boost::spirit::hold_any(static_cast<void*>(bdata));
+    auto bdata_any = boost::spirit::hold_any(const_cast<void*>(bdata));
     args.ins_arg("bias" + id, bdata_any);
 
     return miopenStatusSuccess;
@@ -295,7 +295,7 @@ std::function<boost::spirit::hold_any(std::vector<boost::spirit::hold_any>)>
 
 miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                                              TensorDescriptor& inputDesc,
-                                             Data_t input,
+                                             ConstData_t input,
                                              TensorDescriptor& outputDesc,
                                              Data_t output,
                                              const OperatorArgs& op_args)
@@ -357,7 +357,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     }
     // Construct the kernel args
     std::vector<boost::spirit::hold_any> args;
-    args.push_back(boost::spirit::hold_any(static_cast<void*>(input)));
+    args.push_back(boost::spirit::hold_any(const_cast<void*>(input)));
     args.push_back(boost::spirit::hold_any(static_cast<void*>(output)));
     for(auto nd : ins_order)
     {
