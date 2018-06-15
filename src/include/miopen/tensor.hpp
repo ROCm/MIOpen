@@ -152,20 +152,28 @@ struct TensorDescriptor : miopenTensorDescriptor
     miopenDataType_t type = miopenFloat;
 };
 
+namespace flatten_tensor_descriptor {
+struct f_length_is_not_1_t
+{
+    template <typename T>
+    bool operator()(T&& v)
+    {
+        return boost::get<0>(v) > 1;
+    }
+};
+}
+
 template <typename... TDescriptors>
 std::tuple<TDescriptors...>
 get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descriptor_pack)
 {
-
-    return std::make_tuple(real_descriptor_pack...);
-
-#if 1
     constexpr std::size_t NTensor = sizeof...(TDescriptors);
+    std::integral_constant<std::size_t, NTensor> NTensorConstant;
 
     std::array<const TensorDescriptor*, NTensor> real_descriptors{{(&real_descriptor_pack)...}};
     std::array<TensorDescriptor, NTensor> flat_descriptors;
 
-#if 1
+#if 0
     // check input tensor descriptors consistency
     const auto& real_desc_0_lens = real_descriptors[0]->GetLengths();
 
@@ -182,36 +190,29 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
     std::array<std::vector<std::size_t>, NTensor> array_of_flat_lengths;
     std::array<std::vector<std::size_t>, NTensor> array_of_flat_strides;
 
-    struct is_not_length_1_t
-    {
-        using reference_t = decltype(*(
-            boost::combine(real_descriptors[0]->GetLengths(), real_descriptor_pack.GetStrides()...)
-                .begin()));
-        bool operator()(reference_t v) { return v.get<0>() > 1; }
-    };
-
     auto non1_length_strides =
         boost::combine(real_descriptors[0]->GetLengths(), real_descriptor_pack.GetStrides()...) |
-        boost::adaptors::filtered(is_not_length_1_t());
+        boost::adaptors::filtered(flatten_tensor_descriptor::f_length_is_not_1_t());
+
     auto i               = non1_length_strides.begin();
-    std::size_t flat_len = i->get<0>();
+    std::size_t flat_len = boost::get<0>(*i);
     auto i_previous      = i++;
 
-#if 0
     for(; i != non1_length_strides.end(); ++i)
     // the 0-th dimension full-length doesn't matter
     {
-        std::size_t len = i->get<0>();
+        std::size_t len = boost::get<0>(*i);
 
         bool is_all_full_length = true;
-        call_n_time([&](std::size_t itensor) { 
-                std::size_t stride          = i->get<itensor+1>();
-                std::size_t previous_stride = i_previous->get<itensor+1>();
+        call_n_time(
+            [&](auto itensor) {
+                std::size_t stride          = boost::get<itensor + 1>(*i);
+                std::size_t previous_stride = boost::get<itensor + 1>(*i_previous);
                 std::size_t full_len        = previous_stride / stride;
                 if(len != full_len)
                     is_all_full_length = false;
-                    },
-                NTensor);
+            },
+            NTensorConstant);
 
         if(is_all_full_length)
         {
@@ -219,22 +220,29 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
         }
         else
         {
-            call_n_time([&](std::size_t itensor) {
-                    std::size_t previous_stride = i_previous->get<itensor+1>();
-                    array_of_flat_lengths[itensor].push_back(flat_len);
+            array_of_flat_lengths[0].push_back(flat_len);
+
+            call_n_time(
+                [&](auto itensor) {
+                    std::size_t previous_stride = boost::get<itensor + 1>(*i_previous);
                     array_of_flat_strides[itensor].push_back(previous_stride);
-                    },
-                    );
-            flat_len *= len;
-        }
-        call_n_time([&](std::size_t itensor) {
-                std::size_t previous_stride = i_previous->get<itensor+1>();
-                array_of_flat_lengths[itensor].push_back(flat_len);
-                array_of_flat_strides[itensor].push_back(previous_stride);
                 },
-                );
+                NTensorConstant);
+            flat_len = len;
+        }
+        i_previous = i;
     }
-#endif
+    array_of_flat_lengths[0].push_back(flat_len);
+
+    call_n_time(
+        [&](auto itensor) {
+            std::size_t previous_stride = boost::get<itensor + 1>(*i_previous);
+            array_of_flat_strides[itensor].push_back(previous_stride);
+        },
+        NTensorConstant);
+
+    for(std::size_t itensor            = 1; itensor < NTensor; ++itensor)
+        array_of_flat_lengths[itensor] = array_of_flat_lengths[0];
 
     for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
     {
@@ -243,8 +251,21 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
                                                      std::move(array_of_flat_strides[itensor])};
     }
 
-    return to_tuple(std::move(flat_descriptors));
+#if 0
+    std::cout << __func__ << ": real " << std::endl;
+    for(int itensor = 0; itensor < NTensor; ++itensor)
+    {
+        std::cout << *real_descriptors[itensor] << std::endl;
+    }
+
+    std::cout << __func__ << ": flat" << std::endl;
+    for(int itensor = 0; itensor < NTensor; ++itensor)
+    {
+        std::cout << flat_descriptors[itensor] << std::endl;
+    }
 #endif
+
+    return to_tuple(std::move(flat_descriptors));
 }
 
 } // namespace miopen

@@ -136,14 +136,10 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
     std::vector<std::size_t> flat_lengths;
     std::vector<std::size_t> flat_strides;
 
-    struct is_not_length_1_t
-    {
-        using reference_t = decltype(*(boost::combine(GetLengths(), GetStrides()).begin()));
-        bool operator()(reference_t v) { return v.get<0>() > 1; }
-    };
-
     auto non1_length_strides =
-        boost::combine(GetLengths(), GetStrides()) | boost::adaptors::filtered(is_not_length_1_t());
+        boost::combine(GetLengths(), GetStrides()) |
+        boost::adaptors::filtered(flatten_tensor_descriptor::f_length_is_not_1_t());
+
     auto i               = non1_length_strides.begin();
     std::size_t flat_len = i->get<0>();
     auto i_previous      = i++;
