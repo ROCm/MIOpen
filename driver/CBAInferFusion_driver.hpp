@@ -1009,7 +1009,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
         case 3:
         case 4: runGPUConvActivInference(); break;
         case 2: runGPUBatchNormActivInference(); break;
-        case 5: runGPUConvBiasInference(); break;
+        case 5: runGPUFusedConvBiasInference(); break;
         }
         // miopenGetKernelTime(GetHandle(), &time);
         // kl_time += time;
