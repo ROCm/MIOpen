@@ -159,13 +159,13 @@ miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
 extern "C" miopenStatus_t
 miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                 miopenFusionOpDescriptor_t* activOp,
-                                const miopenActivationDescriptor_t activDesc)
+                                miopenActivationMode_t mode)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, activDesc);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, mode);
     miopenStatus_t res = miopenStatusSuccess;
     miopen::try_([&] {
         miopen::ActivFusionOpDescriptor* fod =
-            new miopen::ActivFusionOpDescriptor(miopen::deref(activDesc));
+            new miopen::ActivFusionOpDescriptor(mode);
         miopen::deref(activOp) = fod;
         res                    = miopen::deref(fusePlanDesc)
                   .AddOp(std::shared_ptr<miopen::ActivFusionOpDescriptor>(fod));
@@ -176,9 +176,9 @@ miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
 extern "C" miopenStatus_t
 miopenCreateOpActivationBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                  miopenFusionOpDescriptor_t* activOp,
-                                 const miopenActivationDescriptor_t activDesc)
+                                 miopenActivationMode_t mode)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, activDesc);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, mode);
     return (miopenStatusSuccess);
 }
 //---
@@ -353,23 +353,29 @@ extern "C" miopenStatus_t miopenSetOpArgsBiasBackward(miopenOperatorArgs_t args,
 extern "C" miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
                                                       const miopenFusionOpDescriptor_t activOp,
                                                       const void* alpha,
-                                                      const void* beta)
+                                                      const void* beta,
+                                                      double activAlpha,
+                                                      double activBeta,
+                                                      double activGamma)
 {
 
-    MIOPEN_LOG_FUNCTION(args, activOp, alpha, beta);
+    MIOPEN_LOG_FUNCTION(args, activOp, alpha, beta, activAlpha, activBeta, activGamma);
     return miopen::try_([&] {
         miopen::ActivFusionOpDescriptor& op =
             dynamic_cast<miopen::ActivFusionOpDescriptor&>(miopen::deref(activOp));
-        op.SetArgs(miopen::deref(args), alpha, beta);
+        op.SetArgs(miopen::deref(args), alpha, beta, activAlpha, activBeta, activGamma);
     });
 }
 
 extern "C" miopenStatus_t miopenSetOpArgsActivBackward(miopenOperatorArgs_t args,
                                                        const miopenFusionOpDescriptor_t activOp,
                                                        const void* alpha,
-                                                       const void* beta)
+                                                       const void* beta,
+                                                       double activAlpha,
+                                                       double activBeta,
+                                                       double activGamma)
 {
-    MIOPEN_LOG_FUNCTION(args, activOp, alpha, beta);
+    MIOPEN_LOG_FUNCTION(args, activOp, alpha, beta, activAlpha, activBeta, activGamma);
     return (miopenStatusSuccess);
 }
 
