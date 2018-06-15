@@ -632,7 +632,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
 
     miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bn_mode, biasScaleTensor);
 
-    miopenCreateOpActivationForward(fusePlanDesc, &activOp, activDesc);
+    miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
     miopenSetOpArgsBatchNormInference(fusionArgs,
                                       bNormOp,
                                       &alpha,
@@ -642,7 +642,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
                                       runningMean_dev->GetMem(),
                                       runningVariance_dev->GetMem(),
                                       epsilon);
-    miopenSetOpArgsActivForward(fusionArgs, activOp, &alpha, &beta);
+    miopenSetOpArgsActivForward(fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
     miopenError = miopenIsFusionPlanValid(fusePlanDesc);
     if(miopenError != miopenStatusSuccess)
     {
@@ -705,7 +705,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
         miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasTensor);
     }
     miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bn_mode, biasScaleTensor);
-    miopenCreateOpActivationForward(fusePlanDesc, &activOp, activDesc);
+    miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
     miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());
 
     if(bias_mode)
@@ -713,7 +713,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
         miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev->GetMem());
     }
 
-    miopenSetOpArgsActivForward(fusionArgs, activOp, &alpha, &beta);
+    miopenSetOpArgsActivForward(fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
     miopenSetOpArgsBatchNormInference(fusionArgs,
                                       bNormOp,
                                       &alpha,
@@ -796,10 +796,10 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
         miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasTensor);
     }
 
-    miopenCreateOpActivationForward(fusePlanDesc, &activOp, activDesc);
+    miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
     miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());
 
-    miopenSetOpArgsActivForward(fusionArgs, activOp, &alpha, &beta);
+    miopenSetOpArgsActivForward(fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
 
     if(bias_mode)
     {
