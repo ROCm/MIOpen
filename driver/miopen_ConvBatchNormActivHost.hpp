@@ -32,12 +32,6 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 
-#define MIO_HEIRARCH_SEL 0
-
-#if(MIO_HEIRARCH_SEL == 1)
-#define MIO_BN_DIST 32
-#endif
-
 template <typename Tgpu, typename Tref>
 int miopenBNActiveBNSpatialFwdInferHost(miopenTensorDescriptor_t& inputTensor,
                                         const Tref* in_ptr,
