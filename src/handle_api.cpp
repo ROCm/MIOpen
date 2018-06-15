@@ -27,6 +27,29 @@
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 
+extern "C" const char* miopenGetErrorString(miopenStatus_t error)
+{
+    switch(error)
+    {
+    case miopenStatusSuccess: return "miopenStatusSuccess";
+
+    case miopenStatusNotInitialized: return "miopenStatusNotInitialized";
+
+    case miopenStatusInvalidValue: return "miopenStatusInvalidValue";
+
+    case miopenStatusBadParm: return "miopenStatusBadParm";
+
+    case miopenStatusAllocFailed: return "miopenStatusAllocFailed";
+
+    case miopenStatusInternalError: return "miopenStatusInternalError";
+
+    case miopenStatusNotImplemented: return "miopenStatusNotImplemented";
+
+    case miopenStatusUnknownError: return "miopenStatusUnknownError";
+    }
+    return "Unknown error status";
+}
+
 extern "C" miopenStatus_t miopenCreate(miopenHandle_t* handle)
 {
 

@@ -50,7 +50,7 @@ std::string LockFilePath(const boost::filesystem::path& filename_);
 class Db
 {
     public:
-    Db(const std::string& filename_, bool warn_if_unreadable_ = true);
+    Db(const std::string& filename_, bool is_system = true);
 
     /// Searches db for provided key and returns found record or none if key not found in database
     boost::optional<DbRecord> FindRecord(const std::string& key);
