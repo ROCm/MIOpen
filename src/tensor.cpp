@@ -138,7 +138,7 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
 
     auto non1_length_strides =
         boost::combine(GetLengths(), GetStrides()) |
-        boost::adaptors::filtered(flatten_tensor_descriptor::f_length_is_not_1_t());
+        boost::adaptors::filtered(f_length_is_not_1_t());
 
     auto i               = non1_length_strides.begin();
     std::size_t flat_len = i->get<0>();
