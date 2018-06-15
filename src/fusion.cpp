@@ -156,16 +156,19 @@ std::vector<std::string> ConvForwardOpDescriptor::GetArgs() const
 }
 
 // Activ Forward
-miopenStatus_t
-ActivFusionOpDescriptor::SetArgs(OperatorArgs& args, const void* alpha, const void* beta, 
-                                 double activAlpha, double activBeta, double activGamma)
+miopenStatus_t ActivFusionOpDescriptor::SetArgs(OperatorArgs& args,
+                                                const void* alpha,
+                                                const void* beta,
+                                                double activAlpha,
+                                                double activBeta,
+                                                double activGamma)
 {
-    auto id        = std::to_string(GetIdx());
-    auto alpha_any = boost::spirit::hold_any(*(static_cast<const float*>(alpha)));
-    auto beta_any  = boost::spirit::hold_any(*(static_cast<const float*>(beta)));
+    auto id             = std::to_string(GetIdx());
+    auto alpha_any      = boost::spirit::hold_any(*(static_cast<const float*>(alpha)));
+    auto beta_any       = boost::spirit::hold_any(*(static_cast<const float*>(beta)));
     auto activAlpha_any = boost::spirit::hold_any(activAlpha);
     auto activBeta_any  = boost::spirit::hold_any(activBeta);
-    auto activGamma_any  = boost::spirit::hold_any(activGamma);
+    auto activGamma_any = boost::spirit::hold_any(activGamma);
     args.ins_arg("alpha" + id, alpha_any);
     args.ins_arg("beta" + id, beta_any);
     args.ins_arg("activAlpha" + id, activAlpha_any);
@@ -211,7 +214,7 @@ miopenStatus_t BiasFusionOpDescriptor::SetArgs(OperatorArgs& args,
     //    args.ins_arg("alpha" + id, boost::spirit::hold_any(*static_cast<const float*>(alpha)));
     //    args.ins_arg("beta" + id, boost::spirit::hold_any(*static_cast<const float*>(beta)));
     auto bdata_any = boost::spirit::hold_any(reinterpret_cast<void*>(bdata));
-    
+
     args.ins_arg("bias" + id, bdata_any);
 
     return miopenStatusSuccess;

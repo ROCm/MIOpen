@@ -156,18 +156,16 @@ miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
 //---
 
 // Activation create ops
-extern "C" miopenStatus_t
-miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                miopenFusionOpDescriptor_t* activOp,
-                                miopenActivationMode_t mode)
+extern "C" miopenStatus_t miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                          miopenFusionOpDescriptor_t* activOp,
+                                                          miopenActivationMode_t mode)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, mode);
     miopenStatus_t res = miopenStatusSuccess;
     miopen::try_([&] {
-        miopen::ActivFusionOpDescriptor* fod =
-            new miopen::ActivFusionOpDescriptor(mode);
-        miopen::deref(activOp) = fod;
-        res                    = miopen::deref(fusePlanDesc)
+        miopen::ActivFusionOpDescriptor* fod = new miopen::ActivFusionOpDescriptor(mode);
+        miopen::deref(activOp)               = fod;
+        res                                  = miopen::deref(fusePlanDesc)
                   .AddOp(std::shared_ptr<miopen::ActivFusionOpDescriptor>(fod));
     });
     return res;
