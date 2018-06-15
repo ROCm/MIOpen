@@ -143,7 +143,7 @@ miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
     auto id = std::to_string(GetIdx());
     // args.ins_arg("alpha" + id, boost::spirit::hold_any(*f_alpha));
     // args.ins_arg("beta" + id, boost::spirit::hold_any(*(static_cast<const float*>(beta))));
-    auto w_any = boost::spirit::hold_any(reinterpret_cast<void*>(w));
+    auto w_any = boost::spirit::hold_any(const_cast<void*>(w));
     args.ins_arg("weights" + id, w_any);
     return miopenStatusSuccess;
 }
@@ -213,7 +213,7 @@ miopenStatus_t BiasFusionOpDescriptor::SetArgs(OperatorArgs& args,
     (void)(beta);
     //    args.ins_arg("alpha" + id, boost::spirit::hold_any(*static_cast<const float*>(alpha)));
     //    args.ins_arg("beta" + id, boost::spirit::hold_any(*static_cast<const float*>(beta)));
-    auto bdata_any = boost::spirit::hold_any(reinterpret_cast<void*>(bdata));
+    auto bdata_any = boost::spirit::hold_any(const_cast<void*>(bdata));
 
     args.ins_arg("bias" + id, bdata_any);
 
@@ -371,7 +371,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     }
     // Construct the kernel args
     std::vector<boost::spirit::hold_any> args;
-    args.push_back(boost::spirit::hold_any(reinterpret_cast<void*>(input)));
+    args.push_back(boost::spirit::hold_any(const_cast<void*>(input)));
     args.push_back(boost::spirit::hold_any(static_cast<void*>(output)));
     for(auto nd : ins_order)
     {
