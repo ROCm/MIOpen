@@ -32,6 +32,7 @@
 #endif
 
 #define GEMM_V2_CPP_DEBUG 0
+#define GEMM_V2_CPP_PROFILE 0
 
 namespace miopen {
 #if GEMM_V2_CPP_DEBUG
@@ -121,9 +122,15 @@ void CallGemm(Handle& handle,
     handle.AccumKernelTime(mS);
 
 #elif MIOPEN_USE_MIOPENGEMM
-#if 0
+
+#if GEMM_V2_CPP_DEBUG
     std::cout << __func__ << ": MIOpenGEMM" << std::endl;
 #endif
+
+#if GEMM_V2_CPP_PROFILE
+    auto t_start = std::chrono::high_resolution_clock::now();
+#endif
+
     // do row-to-column major conversion here
     if(!gemm_param.isColMajor)
     {
@@ -181,6 +188,13 @@ void CallGemm(Handle& handle,
                           gemm_param.beta,
                           C,
                           c_offset);
+
+#if GEMM_V2_CPP_PROFILE
+    auto t_end = std::chrono::high_resolution_clock::now();
+
+    std::cout << __func__ << ": time: " << std::chrono::duration<double>(t_end - t_start).count()
+              << " seconds." << std::endl;
+#endif
 
 #else
     MIOPEN_THROW("No GEMM backend");
