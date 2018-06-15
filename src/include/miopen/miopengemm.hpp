@@ -44,8 +44,7 @@ void AddMiopengemmSolution(Handle& handle,
                            bool enforce_determinism);
 
 void RunMiopengemmSolution(Handle& handle,
-                           const std::string& algorithm_name,
-                           const std::string& network_config,
+                           decltype(handle.GetKernels("_", "_"))& kernels,
                            float alpha,
                            ConstData_t A,
                            int a_offset,

@@ -130,9 +130,9 @@ void AddMiopengemmSolution(Handle& handle,
 
 #if MIOPENGEMM_CPP_DEBUG
     {
-        const auto& kernels = handle.GetKernels(algorithm_name, network_config);
+        auto&& kernels = handle.GetKernels(algorithm_name, network_config);
 
-        for(const auto& k : kernels)
+        for(auto&& k : kernels)
             std::cout << __func__ << ": kernel name: " << k.GetName() << std::endl;
 
         if(kernels.size() == 2)
@@ -157,8 +157,7 @@ void AddMiopengemmSolution(Handle& handle,
 }
 
 void RunMiopengemmSolution(Handle& handle,
-                           const std::string& algorithm_name,
-                           const std::string& network_config,
+                           decltype(handle.GetKernels("_", "_"))& kernels,
                            float alpha,
                            ConstData_t A,
                            int a_offset,
@@ -168,11 +167,11 @@ void RunMiopengemmSolution(Handle& handle,
                            Data_t C,
                            int c_offset)
 {
-    const auto& kernels = handle.GetKernels(algorithm_name, network_config);
+//  auto&& kernels = handle.GetKernels(algorithm_name, network_config);
 
 #if MIOPENGEMM_CPP_DEBUG
     {
-        for(const auto& k : kernels)
+        for(auto&& k : kernels)
             std::cout << __func__ << ": kernel name: " << k.GetName() << std::endl;
     }
 #endif
