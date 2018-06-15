@@ -114,7 +114,7 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
     miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
     miopenStatus_t
-    SetArgs(OperatorArgs& args, const void* alpha, const void* beta, const Data_t dbias);
+    SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t dbias);
     std::vector<std::string> GetArgs() const;
     miopenFusionOp_t name() { return miopenFusionOpBias; };
     TensorDescriptor& base_desc;
@@ -154,7 +154,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
           algo(fwd_algo),
           kernel_info_valid(false){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc);
-    miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, const Data_t w);
+    miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t w);
     std::vector<std::string> GetArgs() const;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
     miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
@@ -201,7 +201,7 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     GetWorkspaceSizeImmed(Handle& handle, size_t& workSpaceSize, miopenConvFwdAlgorithm_t algo);
     miopenStatus_t Execute(Handle& handle,
                            TensorDescriptor& inputDesc,
-                           Data_t input,
+                           ConstData_t input,
                            TensorDescriptor& outputDesc,
                            Data_t output,
                            const OperatorArgs& op_args);
