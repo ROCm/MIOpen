@@ -159,7 +159,9 @@ void CallGemm(Handle& handle,
     const std::string algorithm_name = "MIOpenGEMM";
     const std::string network_config = gemm_param_to_string();
 
-    if(handle.GetKernels(algorithm_name, network_config).empty())
+    auto&& kernels = handle.GetKernels(algorithm_name, network_config);
+
+    if(kernels.empty())
     {
         MIOpenGEMM::Geometry mgg(true,
                                  gemm_param.transA,
@@ -175,19 +177,33 @@ void CallGemm(Handle& handle,
                                  'f');
 
         AddMiopengemmSolution(handle, algorithm_name, network_config, mgg, A, B, C, 0.003, false);
-    }
 
-    RunMiopengemmSolution(handle,
-                          algorithm_name,
-                          network_config,
-                          gemm_param.alpha,
-                          A,
-                          a_offset,
-                          B,
-                          b_offset,
-                          gemm_param.beta,
-                          C,
-                          c_offset);
+        auto&& new_kernels = handle.GetKernels(algorithm_name, network_config);
+
+        RunMiopengemmSolution(handle,
+                              new_kernels,
+                              gemm_param.alpha,
+                              A,
+                              a_offset,
+                              B,
+                              b_offset,
+                              gemm_param.beta,
+                              C,
+                              c_offset);
+    }
+    else
+    {
+        RunMiopengemmSolution(handle,
+                              kernels,
+                              gemm_param.alpha,
+                              A,
+                              a_offset,
+                              B,
+                              b_offset,
+                              gemm_param.beta,
+                              C,
+                              c_offset);
+    }
 
 #if GEMM_V2_CPP_PROFILE
     auto t_end = std::chrono::high_resolution_clock::now();
