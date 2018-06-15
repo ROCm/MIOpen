@@ -126,8 +126,12 @@ struct ActivFusionOpDescriptor : FusionOpDescriptor
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc);
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
     miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
-    miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, 
-                            double activAlpha, double activBeta, double activGamm);
+    miopenStatus_t SetArgs(OperatorArgs& args,
+                           const void* alpha,
+                           const void* beta,
+                           double activAlpha,
+                           double activBeta,
+                           double activGamm);
     std::vector<std::string> GetArgs() const;
     miopenFusionOp_t name() { return miopenFusionOpActiv; };
     miopenActivationMode_t activMode;
