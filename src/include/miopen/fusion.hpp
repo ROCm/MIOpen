@@ -122,14 +122,15 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
 
 struct ActivFusionOpDescriptor : FusionOpDescriptor
 {
-    ActivFusionOpDescriptor(ActivationDescriptor& desc) : base_desc(desc){};
+    ActivFusionOpDescriptor(miopenActivationMode_t mode) : activMode(mode){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc);
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
     miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
-    miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta);
+    miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, 
+                            double activAlpha, double activBeta, double activGamm);
     std::vector<std::string> GetArgs() const;
     miopenFusionOp_t name() { return miopenFusionOpActiv; };
-    ActivationDescriptor& base_desc;
+    miopenActivationMode_t activMode;
 };
 
 struct BatchNormFusionOpDescriptor : FusionOpDescriptor
