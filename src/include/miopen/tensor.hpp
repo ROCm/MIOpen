@@ -152,7 +152,6 @@ struct TensorDescriptor : miopenTensorDescriptor
     miopenDataType_t type = miopenFloat;
 };
 
-namespace flatten_tensor_descriptor {
 struct f_length_is_not_1_t
 {
     template <typename T>
@@ -161,7 +160,6 @@ struct f_length_is_not_1_t
         return boost::get<0>(v) > 1;
     }
 };
-}
 
 template <typename... TDescriptors>
 std::tuple<TDescriptors...>
@@ -192,7 +190,7 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
 
     auto non1_length_strides =
         boost::combine(real_descriptors[0]->GetLengths(), real_descriptor_pack.GetStrides()...) |
-        boost::adaptors::filtered(flatten_tensor_descriptor::f_length_is_not_1_t());
+        boost::adaptors::filtered(f_length_is_not_1_t());
 
     auto i               = non1_length_strides.begin();
     std::size_t flat_len = boost::get<0>(*i);
