@@ -32,6 +32,7 @@
 #include <miopen/hipoc_program.hpp>
 #include <miopen/stringutils.hpp>
 #include <vector>
+#include <boost/spirit/home/support/detail/hold_any.hpp>
 
 namespace miopen {
 
@@ -76,7 +77,10 @@ template <class T, class U, class... Ts>
 struct KernelArgsPack<T, U, Ts...>
 {
     using data_t = KernelArgsPack<KernelArgsPair<T, U>, Ts...>;
-    KernelArgsPack(T x, U y, Ts... xs) : data(KernelArgsPair<T, U>(x, y), xs...) {}
+    KernelArgsPack(T x, U y, Ts... xs) : data(KernelArgsPair<T, U>(x, y), xs...)
+    {
+        std::cout << "T: " << typeid(T).name() << " U: " << typeid(U).name() << "\n";
+    }
     data_t data;
 };
 
@@ -137,6 +141,79 @@ struct HIPOCKernelInvoke
                       std::function<void(hipEvent_t, hipEvent_t)> pcallback)
         : stream(pstream), fun(pfun), ldims(pldims), gdims(pgdims), name(pname), callback(pcallback)
     {
+    }
+
+    auto sizeof_any(boost::spirit::hold_any& a) const
+    {
+        if(a.type() == typeid(float))
+            return sizeof(float);
+        else if(a.type() == typeid(int))
+            return sizeof(int);
+        else if(a.type() == typeid(char))
+            return sizeof(char);
+        else if(a.type() == typeid(long long))
+            return sizeof(long long);
+        else if(a.type() == typeid(double))
+            return sizeof(double);
+        else if(a.type() == typeid(void*))
+            return sizeof(void*);
+        else
+            MIOPEN_THROW("Unknown type in any container");
+    }
+
+    void copy_arg(boost::spirit::hold_any& arg, char* buf, size_t offset) const
+    {
+        if(arg.type() == typeid(float))
+        {
+            auto orig_arg = boost::spirit::any_cast<float>(arg);
+            memcpy(buf + offset, &orig_arg, sizeof(float));
+        }
+        else if(arg.type() == typeid(int))
+        {
+            auto orig_arg = boost::spirit::any_cast<int>(arg);
+            memcpy(buf + offset, &orig_arg, sizeof(int));
+        }
+        else if(arg.type() == typeid(char))
+        {
+            auto orig_arg = boost::spirit::any_cast<char>(arg);
+            memcpy(buf + offset, &orig_arg, sizeof(char));
+        }
+        else if(arg.type() == typeid(long long))
+        {
+            auto orig_arg = boost::spirit::any_cast<long long>(arg);
+            memcpy(buf + offset, &orig_arg, sizeof(long long));
+        }
+        else if(arg.type() == typeid(double))
+        {
+            auto orig_arg = boost::spirit::any_cast<double>(arg);
+            memcpy(buf + offset, &orig_arg, sizeof(double));
+        }
+        else if(arg.type() == typeid(void*))
+        {
+            auto orig_arg = boost::spirit::any_cast<void*>(arg);
+            memcpy(buf + offset, &orig_arg, sizeof(void*));
+        }
+        else
+            MIOPEN_THROW("");
+    }
+
+    void operator()(std::vector<boost::spirit::hold_any>& any_args) const
+    {
+        char hip_args[256] = {0};
+        auto sz_left       = sizeof_any(any_args[0]);
+        int alignment, padding, second_index;
+        copy_arg(any_args[0], hip_args, 0);
+
+        for(auto idx = 1; idx < any_args.size(); idx++)
+        {
+            auto any_arg = any_args[idx];
+            alignment    = sizeof_any(any_arg);
+            padding      = (alignment - (sz_left % alignment)) % alignment;
+            second_index = sz_left + padding;
+            copy_arg(any_arg, hip_args, second_index);
+            sz_left = second_index + alignment;
+        }
+        run(hip_args, sz_left);
     }
 
     template <class... Ts>
