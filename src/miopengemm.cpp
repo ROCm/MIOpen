@@ -26,6 +26,7 @@
 #include <regex>
 #include <miopen/handle.hpp>
 #include <miopen/miopengemm.hpp>
+#include <miopen/float_equal.hpp>
 
 #define MIOPENGEMM_CPP_DEBUG 0
 
@@ -182,7 +183,8 @@ void RunMiopengemmSolution(Handle& handle,
 #if MIOPENGEMM_CPP_DEBUG
         assert(kernels[1].GetName() == "miog_betac");
 #endif
-        kernels[1](C, c_offset, beta);
+        if(!miopen::float_equal(beta, 1))
+            kernels[1](C, c_offset, beta);
 
 // C += alpha * A * B
 #if MIOPENGEMM_CPP_DEBUG
