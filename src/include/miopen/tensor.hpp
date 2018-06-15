@@ -251,20 +251,6 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
                                                      std::move(array_of_flat_strides[itensor])};
     }
 
-#if 0
-    std::cout << __func__ << ": real " << std::endl;
-    for(int itensor = 0; itensor < NTensor; ++itensor)
-    {
-        std::cout << *real_descriptors[itensor] << std::endl;
-    }
-
-    std::cout << __func__ << ": flat" << std::endl;
-    for(int itensor = 0; itensor < NTensor; ++itensor)
-    {
-        std::cout << flat_descriptors[itensor] << std::endl;
-    }
-#endif
-
     return to_tuple(std::move(flat_descriptors));
 }
 
