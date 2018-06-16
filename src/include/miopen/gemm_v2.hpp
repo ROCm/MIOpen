@@ -72,11 +72,20 @@ void CallGemmStridedBatched(Handle& handle,
                             ConstData_t B,
                             int b_offset,
                             Data_t C,
-                            int c_offset)
-#if not MIOPEN_USE_ROCBLAS
-    __attribute__((noreturn))
-#endif
-    ;
+                            int c_offset);
+//#if not MIOPEN_USE_ROCBLAS
+//    __attribute__((noreturn))
+//#endif
+//    ;
+
+void CallGemmStridedBatchedSequential(Handle& handle,
+                                      GemmParam gemm_param,
+                                      ConstData_t A,
+                                      int a_offset,
+                                      ConstData_t B,
+                                      int b_offset,
+                                      Data_t C,
+                                      int c_offset);
 
 // GEMM parameters for Convolution (using Im2Col) Fwd
 // y = w * Im2Col(x)
@@ -120,6 +129,11 @@ GemmParam CreateGemmStridedBatchedParamConv1x1BwdData(const TensorDescriptor& wD
                                                       const TensorDescriptor& dyDesc,
                                                       const TensorDescriptor& dxDesc);
 
+// strided batched GEMM parameters for 1x1 Convolution Bwd-Weight
+// dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
+GemmParam CreateGemmStridedBatchedParamConv1x1BwdWeight(const TensorDescriptor& dyDesc,
+                                                        const TensorDescriptor& xDesc,
+                                                        const TensorDescriptor& dwDesc);
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_GEMM_V2_HPP_
