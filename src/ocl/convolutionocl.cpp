@@ -38,7 +38,7 @@
 #include <miopen/gemm_v2.hpp>
 #endif
 
-#define DEBUG 0
+#define CONV_GEMM_DEBUG 0
 
 namespace miopen {
 
@@ -351,7 +351,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             // 1x1 does not require im2col or workspace
             if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": transpose, miopengemm, 1x1" << std::endl;
 #endif
                 gg.RunGemmSimple(handle, w, x, tmp_y.get(), 0, 0, 0);
@@ -362,7 +362,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             // if not 1x1
             else if(workSpace != nullptr && workSpaceSize >= workspace_req)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": transpose, miopengemm, non 1x1" << std::endl;
 #endif
 
@@ -417,7 +417,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 size_t workspace_req = ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
                 if(workSpace != nullptr && workSpaceSize >= workspace_req)
                 {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                     std::cout << __func__ << ": convolution, 1x1, 14x14" << std::endl;
 #endif
 
@@ -460,11 +460,10 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
             else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
                     dilation_w == 1 && dilation_h == 1)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": convolution, 1x1" << std::endl;
 #endif
 
-#if MIOPEN_USE_ROCBLAS
                 // y = w * x
                 GemmParam gemm_param = CreateGemmStridedBatchedParamConv1x1Fwd(wDesc, xDesc, yDesc);
 
@@ -474,24 +473,12 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 float time_gemm = handle.GetKernelTime();
 
                 perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, 0});
-
-#else
-                // y = w * x
-                GemmParam gemm_param = CreateGemmParamConvFwd(wDesc, xDesc, yDesc);
-
-                // y = w * x
-                CallGemm(handle, gemm_param, w, 0, x, 0, tmp_y.get(), 0);
-
-                float time_gemm = in_n * handle.GetKernelTime();
-
-                perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, 0});
-#endif
             }
             // if not 1x1
             else if(workSpace != nullptr &&
                     workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc))
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": convolution, non 1x1" << std::endl;
 #endif
 
@@ -894,7 +881,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 dilation_w == 1) &&
                ((in_h <= 14 && in_w <= 14 && u == 1 && v == 1) || (u == 2 && v == 2)))
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": convolution, 1x1, 14x14" << std::endl;
 #endif
 
@@ -943,42 +930,19 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
                     dilation_w == 1 && dilation_h == 1)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << "convolution, 1x1" << std::endl;
 #endif
 
-#if MIOPEN_USE_ROCBLAS
                 // y = w * x
                 GemmParam gemm_param = CreateGemmStridedBatchedParamConv1x1Fwd(wDesc, xDesc, yDesc);
 
                 // y = w * x
                 CallGemmStridedBatched(handle, gemm_param, w, 0, x, 0, y, 0);
-#else
-                float time_0 = 0;
-
-                // y = w * x
-                GemmParam gemm_param = CreateGemmParamConvFwd(wDesc, xDesc, yDesc);
-
-                for(int i = 0; i < in_n; i++)
-                {
-                    int out_offset = i * wei_n * out_h * out_w;
-                    int in_offset  = i * in_c * in_h * in_w;
-
-                    // y = w * x
-                    CallGemm(handle, gemm_param, w, 0, x, in_offset, y, out_offset);
-
-                    if(handle.IsProfilingEnabled())
-                    {
-                        if(i == in_n - 1)
-                            handle.AccumKernelTime(time_0);
-                        time_0 += handle.GetKernelTime();
-                    }
-                }
-#endif
             }
             else
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": convolution, non 1x1" << std::endl;
 #endif
 
@@ -1094,7 +1058,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             int out_offset = i * wei_n * out_h * out_w;
             if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": transpose, miopengemm, non 1x1" << std::endl;
 #endif
 
@@ -1135,7 +1099,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             }
             else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": transpose, miopengemm, 1x1" << std::endl;
 #endif
 
@@ -1224,7 +1188,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             // 1x1 does not require im2col or workspace
             if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": transpose, miopengemm, 1x1" << std::endl;
 #endif
                 gg.RunGemmSimple(handle, w, dy, tmp_dx.get(), 0, 0, 0);
@@ -1236,7 +1200,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             // if not 1x1
             else if(workSpace != nullptr && workSpaceSize >= workspace_req)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": transpose, miopengemm, non 1x1" << std::endl;
 #endif
 
@@ -1437,7 +1401,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                dilation_w == 1 && dilation_h == 1 && workSpace != nullptr &&
                workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc))
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": convolution, 1x1 u2xv2" << std::endl;
 #endif
 
@@ -1483,11 +1447,10 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
                     dilation_w == 1 && dilation_h == 1)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": convolution, 1x1" << std::endl;
 #endif
 
-#if MIOPEN_USE_ROCBLAS
                 // dx = transpose(w) * dy
                 GemmParam gemm_param =
                     CreateGemmStridedBatchedParamConv1x1BwdData(wDesc, dyDesc, dxDesc);
@@ -1498,23 +1461,12 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 float time_gemm = handle.GetKernelTime();
 
                 perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoGEMM", time_gemm, 0});
-#else
-                // dx = transpose(w) * dy
-                GemmParam gemm_param = CreateGemmParamConvBwdData(wDesc, dyDesc, dxDesc);
-
-                // dx = transpose(w) * dy
-                CallGemm(handle, gemm_param, w, 0, dy, 0, tmp_dx.get(), 0);
-
-                float time_gemm = in_n * handle.GetKernelTime();
-
-                perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoGEMM", time_gemm, 0});
-#endif
             }
             // if not 1x1
             else if(workSpace != nullptr &&
                     workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc))
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": convolution, non 1x1" << std::endl;
 #endif
 
@@ -1786,7 +1738,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
                dilation_w == 1 && dilation_h == 1)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": convolution, 1x1 u2xv2" << std::endl;
 #endif
 
@@ -1841,38 +1793,16 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
                     dilation_w == 1 && dilation_h == 1)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": convolution, 1x1" << std::endl;
 #endif
 
-#if MIOPEN_USE_ROCBLAS
                 // dx = transpose(w) * dy
                 GemmParam gemm_param =
                     CreateGemmStridedBatchedParamConv1x1BwdData(wDesc, dyDesc, dxDesc);
 
                 // dx = transpose(w) * dy
                 CallGemmStridedBatched(handle, gemm_param, w, 0, dy, 0, dx, 0);
-#else
-                // dx = transpose(w) * dy
-                GemmParam gemm_param = CreateGemmParamConvBwdData(wDesc, dyDesc, dxDesc);
-
-                float time_0 = 0;
-                for(int i = 0; i < in_n; i++)
-                {
-                    int out_offset   = i * wei_n * out_h * out_w;
-                    size_t in_offset = i * in_c * in_h * in_w;
-
-                    // dx = transpose(w) * dy
-                    CallGemm(handle, gemm_param, w, 0, dy, out_offset, dx, in_offset);
-
-                    if(handle.IsProfilingEnabled())
-                    {
-                        if(i == in_n - 1)
-                            handle.AccumKernelTime(time_0);
-                        time_0 += handle.GetKernelTime();
-                    }
-                }
-#endif
             }
             // if not 1x1
             else
@@ -1893,7 +1823,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
                     if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
                     {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                         std::cout << __func__ << ": convolution, non 1x1" << std::endl;
 #endif
 
@@ -1998,7 +1928,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             int in_offset = i * in_c * in_h * in_w;
             if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": transpose, miopengemm, non 1x1" << std::endl;
 #endif
 
@@ -2038,7 +1968,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             }
             else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": transpose, miopengemm, 1x1" << std::endl;
 #endif
 
@@ -2196,7 +2126,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             // 1x1 does not require im2col or workspace
             if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": transpose, miopengemm, 1x1" << std::endl;
 #endif
 
@@ -2208,7 +2138,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             // if not 1x1
             else if(workSpace != nullptr && workSpaceSize >= workspace_req)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": transpose, miopengemm, non 1x1" << std::endl;
 #endif
 
@@ -2253,29 +2183,32 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 #if MIOPEN_USE_GEMM
         if(dyDesc.GetType() == miopenFloat)
         {
-            // dw = dy * transpose(Im2Col(x))
-            //   for 1x1 convolution, Im2Col(x) is the same as x
-            GemmParam gemm_param = CreateGemmParamConvBwdWeight(dyDesc, xDesc, dwDesc);
-
             // 1x1 does not require im2col or workspace
             if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": convolution, 1x1" << std::endl;
 #endif
 
-                // dw = dy * transpose(x)
-                CallGemm(handle, gemm_param, dy, 0, x, 0, tmp_dw.get(), 0);
+                // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
+                GemmParam gemm_param =
+                    CreateGemmStridedBatchedParamConv1x1BwdWeight(dyDesc, xDesc, dwDesc);
 
-                float time_gemm = in_n * handle.GetKernelTime();
+                // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
+                CallGemmStridedBatchedSequential(handle, gemm_param, dy, 0, x, 0, tmp_dw.get(), 0);
+
+                float time_gemm = handle.GetKernelTime();
                 perf_db.push_back(PerfField{"miopenConvolutionBwdWeightsAlgoGEMM", time_gemm, 0});
             }
             // if not 1x1
             else if(workSpace != nullptr && workSpaceSize >= workspace_req)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": convolution, non 1x1" << std::endl;
 #endif
+
+                // dw = dy * transpose(Im2Col(x))
+                GemmParam gemm_param = CreateGemmParamConvBwdWeight(dyDesc, xDesc, dwDesc);
 
                 float time_im2col = 0;
                 size_t in_offset  = 0;
@@ -2457,29 +2390,23 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             float zero = 0.0f;
             SetTensor(handle, dwDesc, dw, &zero);
 
-            std::string network_config;
+            handle.ResetKernelTime();
+            float time_0 = 0;
+            float t1     = 0;
 
             if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
             {
                 assert(workSpace != nullptr &&
                        workSpaceSize >=
                            BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc));
-            }
 
-            // dw = dy * transpose(Im2Col(x))
-            //   for 1x1 convolution, Im2Col(x) is the same as x
-            GemmParam gemm_param = CreateGemmParamConvBwdWeight(dyDesc, xDesc, dwDesc);
+                // dw = dy * transpose(Im2Col(x))
+                GemmParam gemm_param = CreateGemmParamConvBwdWeight(dyDesc, xDesc, dwDesc);
 
-            handle.ResetKernelTime();
-            float time_0 = 0;
-            float t1     = 0;
-
-            for(int i = 0; i < in_n; i++)
-            {
-                int out_offset = i * wei_n * out_h * out_w;
-                if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
+                for(int i = 0; i < in_n; i++)
                 {
-#if DEBUG
+                    int out_offset = i * wei_n * out_h * out_w;
+#if CONV_GEMM_DEBUG
                     std::cout << __func__ << ": convolution, non 1x1" << std::endl;
 #endif
 
@@ -2502,6 +2429,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                               dilation_h,
                               dilation_w,
                               workSpace);
+
                     if(handle.IsProfilingEnabled())
                         t1 = handle.GetKernelTime();
 
@@ -2518,24 +2446,19 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                         time_0 += handle.GetKernelTime();
                     }
                 }
-                else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
-                {
-#if DEBUG
-                    std::cout << __func__ << ": convolution, 1x1" << std::endl;
+            }
+            else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
+            {
+#if CONV_GEMM_DEBUG
+                std::cout << __func__ << ": convolution, 1x1" << std::endl;
 #endif
 
-                    int in_offset = i * in_c * in_h * in_w;
+                // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
+                GemmParam gemm_param =
+                    CreateGemmStridedBatchedParamConv1x1BwdWeight(dyDesc, xDesc, dwDesc);
 
-                    // dw = dy * transpose(x)
-                    CallGemm(handle, gemm_param, dy, out_offset, x, in_offset, dw, 0);
-
-                    if(handle.IsProfilingEnabled())
-                    {
-                        if(i == in_n - 1)
-                            handle.AccumKernelTime(time_0);
-                        time_0 += handle.GetKernelTime();
-                    }
-                }
+                // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
+                CallGemmStridedBatchedSequential(handle, gemm_param, dy, 0, x, 0, dw, 0);
             }
 #else
             MIOPEN_THROW("GEMM is not supported");
@@ -2671,7 +2594,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             int in_offset = i * in_c * in_h * in_w;
             if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": transpose, miopengemm, non 1x1" << std::endl;
 #endif
 
@@ -2712,7 +2635,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             }
             else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
             {
-#if DEBUG
+#if CONV_GEMM_DEBUG
                 std::cout << __func__ << ": transpose, miopengemm, 1x1" << std::endl;
 #endif
 

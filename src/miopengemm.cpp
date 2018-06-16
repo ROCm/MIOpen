@@ -167,36 +167,45 @@ void RunMiopengemmSolution(Handle& handle,
                            Data_t C,
                            int c_offset)
 {
-//  auto&& kernels = handle.GetKernels(algorithm_name, network_config);
-
 #if MIOPENGEMM_CPP_DEBUG
+    // 2 kernels
+    if(kernels.size() == 2)
     {
-        for(auto&& k : kernels)
-            std::cout << __func__ << ": kernel name: " << k.GetName() << std::endl;
+        assert(kernels[1].GetName() == "miog_betac");
+        assert(kernels[0].GetName() == "miog_alphaab");
+    }
+    else if(kernels.size() == 1)
+    {
+        assert(kernels[0].GetName() == "miog_betac_alphaab");
+    }
+    else
+    {
+        MIOPEN_THROW("unable to get correct MIOpenGEMM kenerls");
     }
 #endif
 
     if(kernels.size() == 2)
     {
-// C *= beta
-#if MIOPENGEMM_CPP_DEBUG
-        assert(kernels[1].GetName() == "miog_betac");
-#endif
+        float time_0 = 0;
+
         if(!miopen::float_equal(beta, 1))
+        {
+            // C *= beta
             kernels[1](C, c_offset, beta);
 
-// C += alpha * A * B
-#if MIOPENGEMM_CPP_DEBUG
-        assert(kernels[0].GetName() == "miog_alphaab");
-#endif
+            if(handle.IsProfilingEnabled())
+                time_0 += handle.GetKernelTime();
+        }
+
+        // C += alpha * A * B
         kernels[0](A, a_offset, B, b_offset, C, c_offset, alpha);
+
+        if(handle.IsProfilingEnabled())
+            handle.AccumKernelTime(time_0);
     }
     else if(kernels.size() == 1)
     {
-// C = alpha * A * B + beta * C
-#if MIOPENGEMM_CPP_DEBUG
-        assert(kernels[0].GetName() == "miog_betac_alphaab");
-#endif
+        // C = alpha * A * B + beta * C
         kernels[0](A, a_offset, B, b_offset, C, c_offset, alpha, beta);
     }
     else
