@@ -43,6 +43,10 @@
 #include <cstdio>
 
 namespace miopen {
+extern bool debug_tensor_descriptor;
+} // namespace miopen
+
+namespace miopen {
 
 template <class T, std::size_t... Ns>
 auto tie_impl(T&& x, detail::seq<Ns...>) -> decltype(std::tie(x[Ns]...))
@@ -88,12 +92,30 @@ inline std::size_t GetTypeSize(miopenDataType_t d)
 struct TensorDescriptor : miopenTensorDescriptor
 {
     TensorDescriptor();
+    TensorDescriptor(TensorDescriptor&& other)
+        : lens(std::move(other.lens)), strides(std::move(other.strides)), type(other.type)
+    {
+        if(debug_tensor_descriptor)
+            std::cout << __func__ << ": TD move constructor" << std::endl;
+
+        packed = (this->GetElementSize() == this->GetElementSpace());
+    }
+    TensorDescriptor(const TensorDescriptor& other)
+        : lens(other.lens), strides(other.strides), type(other.type)
+    {
+        if(debug_tensor_descriptor)
+            std::cout << __func__ << ": TD copy constructor" << std::endl;
+        packed = (this->GetElementSize() == this->GetElementSpace());
+    }
     TensorDescriptor(miopenDataType_t t, std::initializer_list<std::size_t> plens);
     TensorDescriptor(miopenDataType_t t,
                      std::initializer_list<std::size_t> plens,
                      std::initializer_list<std::size_t> pstrides);
     TensorDescriptor(miopenDataType_t t, const int* plens, int size);
     TensorDescriptor(miopenDataType_t t, const int* plens, const int* pstrides, int size);
+
+    TensorDescriptor(miopenDataType_t t, std::vector<std::size_t>&& lens_in, std::vector<std::size_t>&& strides_in);
+
     template <class Range>
     TensorDescriptor(miopenDataType_t t, const Range& plens)
         : lens(plens.begin(), plens.end()), packed(true), type(t)
@@ -105,7 +127,31 @@ struct TensorDescriptor : miopenTensorDescriptor
     TensorDescriptor(miopenDataType_t t, const Range1& plens, const Range2& pstrides)
         : lens(plens.begin(), plens.end()), strides(pstrides.begin(), pstrides.end()), type(t)
     {
+        if(debug_tensor_descriptor)
+            std::cout << __func__ << ": TD custom constructor (range)" << std::endl;
         packed = (this->GetElementSize() == this->GetElementSpace());
+    }
+
+    TensorDescriptor& operator= (const TensorDescriptor& other)
+    {
+        if(debug_tensor_descriptor)
+            std::cout << __func__ << ": TD copy reference assignment" << std::endl;
+        lens = other.lens;
+        strides = other.strides;
+        type = other.type;
+        packed = (this->GetElementSize() == this->GetElementSpace());
+        return *this;
+    }
+    TensorDescriptor& operator= (TensorDescriptor&& other)
+    {
+        if(debug_tensor_descriptor)
+            std::cout << __func__ << ": TD move assignment" << std::endl;
+
+        lens = std::move(other.lens);
+        strides = std::move(other.strides);
+        type = other.type;
+        packed = (this->GetElementSize() == this->GetElementSpace());
+        return *this;
     }
 
     void CalculateStrides();
@@ -165,11 +211,12 @@ template <typename... TDescriptors>
 std::tuple<TDescriptors...>
 get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descriptor_pack)
 {
+    std::tuple<TDescriptors...> flat_descriptors;
+
     constexpr std::size_t NTensor = sizeof...(TDescriptors);
     std::integral_constant<std::size_t, NTensor> NTensorConstant;
 
     std::array<const TensorDescriptor*, NTensor> real_descriptors{{(&real_descriptor_pack)...}};
-    std::array<TensorDescriptor, NTensor> flat_descriptors;
 
 #if 0
     // check input tensor descriptors consistency
@@ -242,14 +289,15 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
     for(std::size_t itensor            = 1; itensor < NTensor; ++itensor)
         array_of_flat_lengths[itensor] = array_of_flat_lengths[0];
 
-    for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
-    {
-        flat_descriptors[itensor] = TensorDescriptor{real_descriptors[itensor]->GetType(),
-                                                     std::move(array_of_flat_lengths[itensor]),
-                                                     std::move(array_of_flat_strides[itensor])};
-    }
+    call_n_time(
+        [&](auto itensor) {
+            std::get<itensor>(flat_descriptors) = TensorDescriptor{real_descriptors[itensor]->GetType(),
+                                                  std::move(array_of_flat_lengths[itensor]),
+                                                  std::move(array_of_flat_strides[itensor])};
+        },
+        NTensorConstant);
 
-    return to_tuple(std::move(flat_descriptors));
+    return flat_descriptors;
 }
 
 } // namespace miopen
