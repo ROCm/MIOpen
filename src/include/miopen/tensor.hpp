@@ -43,10 +43,6 @@
 #include <cstdio>
 
 namespace miopen {
-extern bool debug_tensor_descriptor;
-} // namespace miopen
-
-namespace miopen {
 
 template <class T, std::size_t... Ns>
 auto tie_impl(T&& x, detail::seq<Ns...>) -> decltype(std::tie(x[Ns]...))
@@ -68,16 +64,17 @@ template <std::size_t N, class T, class U>
 auto tien(T&& x, U y)
     MIOPEN_RETURNS(tie_impl(std::forward<T>(x), y, typename detail::gens<N>::type{}));
 
-template <typename T, std::size_t... Ns>
-auto to_tuple_impl(T&& x, detail::seq<Ns...>)
+template <typename F, std::size_t... Ns>
+auto create_tuple_impl(F f, detail::seq<Ns...>)
 {
-    return std::make_tuple(std::move(x[Ns])...);
+    return std::make_tuple(std::forward<decltype(f(Ns))>(f(Ns))...);
 }
 
-template <typename T>
-auto to_tuple(T&& x)
-    MIOPEN_RETURNS(to_tuple_impl(std::forward<T>(x),
-                                 typename detail::gens<std::tuple_size<T>::value>::type{}));
+template <std::size_t N, typename F>
+auto create_tuple(F f)
+{
+    return create_tuple_impl(f, typename detail::gens<N>::type{});
+}
 
 inline std::size_t GetTypeSize(miopenDataType_t d)
 {
@@ -92,21 +89,8 @@ inline std::size_t GetTypeSize(miopenDataType_t d)
 struct TensorDescriptor : miopenTensorDescriptor
 {
     TensorDescriptor();
-    TensorDescriptor(TensorDescriptor&& other)
-        : lens(std::move(other.lens)), strides(std::move(other.strides)), type(other.type)
-    {
-        if(debug_tensor_descriptor)
-            std::cout << __func__ << ": TD move constructor" << std::endl;
-
-        packed = (this->GetElementSize() == this->GetElementSpace());
-    }
-    TensorDescriptor(const TensorDescriptor& other)
-        : lens(other.lens), strides(other.strides), type(other.type)
-    {
-        if(debug_tensor_descriptor)
-            std::cout << __func__ << ": TD copy constructor" << std::endl;
-        packed = (this->GetElementSize() == this->GetElementSpace());
-    }
+    TensorDescriptor(const TensorDescriptor&) = default;
+    TensorDescriptor(TensorDescriptor&&)      = default;
     TensorDescriptor(miopenDataType_t t, std::initializer_list<std::size_t> plens);
     TensorDescriptor(miopenDataType_t t,
                      std::initializer_list<std::size_t> plens,
@@ -114,7 +98,9 @@ struct TensorDescriptor : miopenTensorDescriptor
     TensorDescriptor(miopenDataType_t t, const int* plens, int size);
     TensorDescriptor(miopenDataType_t t, const int* plens, const int* pstrides, int size);
 
-    TensorDescriptor(miopenDataType_t t, std::vector<std::size_t>&& lens_in, std::vector<std::size_t>&& strides_in);
+    TensorDescriptor(miopenDataType_t t,
+                     std::vector<std::size_t>&& lens_in,
+                     std::vector<std::size_t>&& strides_in);
 
     template <class Range>
     TensorDescriptor(miopenDataType_t t, const Range& plens)
@@ -127,32 +113,11 @@ struct TensorDescriptor : miopenTensorDescriptor
     TensorDescriptor(miopenDataType_t t, const Range1& plens, const Range2& pstrides)
         : lens(plens.begin(), plens.end()), strides(pstrides.begin(), pstrides.end()), type(t)
     {
-        if(debug_tensor_descriptor)
-            std::cout << __func__ << ": TD custom constructor (range)" << std::endl;
         packed = (this->GetElementSize() == this->GetElementSpace());
     }
 
-    TensorDescriptor& operator= (const TensorDescriptor& other)
-    {
-        if(debug_tensor_descriptor)
-            std::cout << __func__ << ": TD copy reference assignment" << std::endl;
-        lens = other.lens;
-        strides = other.strides;
-        type = other.type;
-        packed = (this->GetElementSize() == this->GetElementSpace());
-        return *this;
-    }
-    TensorDescriptor& operator= (TensorDescriptor&& other)
-    {
-        if(debug_tensor_descriptor)
-            std::cout << __func__ << ": TD move assignment" << std::endl;
-
-        lens = std::move(other.lens);
-        strides = std::move(other.strides);
-        type = other.type;
-        packed = (this->GetElementSize() == this->GetElementSpace());
-        return *this;
-    }
+    TensorDescriptor& operator=(const TensorDescriptor&) = default;
+    TensorDescriptor& operator=(TensorDescriptor&&) = default;
 
     void CalculateStrides();
 
@@ -211,8 +176,6 @@ template <typename... TDescriptors>
 std::tuple<TDescriptors...>
 get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descriptor_pack)
 {
-    std::tuple<TDescriptors...> flat_descriptors;
-
     constexpr std::size_t NTensor = sizeof...(TDescriptors);
     std::integral_constant<std::size_t, NTensor> NTensorConstant;
 
@@ -277,8 +240,10 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
         }
         i_previous = i;
     }
+    // lengths of all flattend tensors are the same
     array_of_flat_lengths[0].push_back(flat_len);
 
+    // strides of all flattend tensors are different
     call_n_time(
         [&](auto itensor) {
             std::size_t previous_stride = boost::get<itensor + 1>(*i_previous);
@@ -289,15 +254,11 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
     for(std::size_t itensor            = 1; itensor < NTensor; ++itensor)
         array_of_flat_lengths[itensor] = array_of_flat_lengths[0];
 
-    call_n_time(
-        [&](auto itensor) {
-            std::get<itensor>(flat_descriptors) = TensorDescriptor{real_descriptors[itensor]->GetType(),
-                                                  std::move(array_of_flat_lengths[itensor]),
-                                                  std::move(array_of_flat_strides[itensor])};
-        },
-        NTensorConstant);
-
-    return flat_descriptors;
+    return create_tuple<NTensor>([&](auto itensor) {
+        return TensorDescriptor{real_descriptors[itensor]->GetType(),
+                                std::move(array_of_flat_lengths[itensor]),
+                                std::move(array_of_flat_strides[itensor])};
+    });
 }
 
 } // namespace miopen
