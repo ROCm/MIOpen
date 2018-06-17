@@ -1352,9 +1352,7 @@ void SetTensor(
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    debug_tensor_descriptor = true;
     const TensorDescriptor yDesc_flat = yDesc.GetFlattenedTensorDescriptor();
-    debug_tensor_descriptor = false;
 
     const std::size_t yDim_flat = yDesc_flat.GetSize();
 
@@ -1695,13 +1693,9 @@ void CopyTensor(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
     }
 
-
-    debug_tensor_descriptor = true;
     auto flat_descriptors = get_consistent_flattened_tensor_descriptors(srcDesc, dstDesc);
-
     const TensorDescriptor& srcDesc_flat = std::get<0>(flat_descriptors);
     const TensorDescriptor& dstDesc_flat = std::get<1>(flat_descriptors);
-    debug_tensor_descriptor = false;
 
 #if 0
     if(srcDesc.GetSize() != srcDesc_flat.GetSize())
