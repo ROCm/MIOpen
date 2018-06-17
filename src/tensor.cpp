@@ -31,15 +31,8 @@
 #include <string>
 
 namespace miopen {
-bool debug_tensor_descriptor = false;
-} // namespace miopen
 
-namespace miopen {
-
-TensorDescriptor::TensorDescriptor() : packed(true) {
-        if(debug_tensor_descriptor)
-            std::cout << __func__ << ": TD default constructor" << std::endl;
-}
+TensorDescriptor::TensorDescriptor() : packed(true) {}
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t, std::initializer_list<std::size_t> plens)
     : lens(plens), packed(true), type(t)
@@ -52,7 +45,6 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    std::initializer_list<std::size_t> pstrides)
     : lens(plens), strides(pstrides), type(t)
 {
-    std::cout << __func__ << ": TD custom ini list" << std::endl;
     packed = (this->GetElementSize() == this->GetElementSpace());
 }
 
@@ -76,12 +68,11 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
     packed = (this->GetElementSize() == this->GetElementSpace());
 }
 
-TensorDescriptor::TensorDescriptor(miopenDataType_t t, std::vector<std::size_t>&& lens_in, std::vector<std::size_t>&& strides_in)
+TensorDescriptor::TensorDescriptor(miopenDataType_t t,
+                                   std::vector<std::size_t>&& lens_in,
+                                   std::vector<std::size_t>&& strides_in)
     : lens(std::move(lens_in)), strides(std::move(strides_in)), type(t)
 {
-    if(debug_tensor_descriptor)
-        std::cout << __func__ << ": TD custom constructor (move vector)" << std::endl;
-
     packed = (this->GetElementSize() == this->GetElementSpace());
 }
 
@@ -153,20 +144,19 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
     std::vector<std::size_t> flat_lengths;
     std::vector<std::size_t> flat_strides;
 
-    auto non1_length_strides =
-        boost::combine(GetLengths(), GetStrides()) |
-        boost::adaptors::filtered(f_length_is_not_1_t());
+    auto non1_length_strides = boost::combine(GetLengths(), GetStrides()) |
+                               boost::adaptors::filtered(f_length_is_not_1_t());
 
     auto i               = non1_length_strides.begin();
-    std::size_t flat_len = i->get<0>();
+    std::size_t flat_len = boost::get<0>(*i);
     auto i_previous      = i++;
 
-    for(; i != non1_length_strides.end(); ++i)
     // the 0-th dimension full-length doesn't matter
+    for(; i != non1_length_strides.end(); ++i)
     {
-        std::size_t len             = i->get<0>();
-        std::size_t stride          = i->get<1>();
-        std::size_t previous_stride = i_previous->get<1>();
+        std::size_t len             = boost::get<0>(*i);
+        std::size_t stride          = boost::get<1>(*i);
+        std::size_t previous_stride = boost::get<1>(*i_previous);
         std::size_t full_len        = previous_stride / stride;
 
         if(len == full_len)
@@ -182,9 +172,8 @@ TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
         i_previous = i;
     }
     flat_lengths.push_back(flat_len);
-    flat_strides.push_back(i_previous->get<1>());
+    flat_strides.push_back(boost::get<1>(*i_previous));
 
-    std::cout << __func__ << ": going to construct TD" << std::endl;
     return {GetType(), std::move(flat_lengths), std::move(flat_strides)};
 }
 
