@@ -157,7 +157,7 @@ void AddMiopengemmSolution(Handle& handle,
 }
 
 void RunMiopengemmSolution(Handle& handle,
-                           decltype(handle.GetKernels("_", "_"))& kernels,
+                           const decltype(handle.GetKernels("_", "_"))& kernels,
                            float alpha,
                            ConstData_t A,
                            int a_offset,
@@ -167,16 +167,17 @@ void RunMiopengemmSolution(Handle& handle,
                            Data_t C,
                            int c_offset)
 {
+    const std::size_t kernel_size = kernels.size();
+
 #if MIOPENGEMM_CPP_DEBUG
-    // 2 kernels
-    if(kernels.size() == 2)
+    if(kernel_size == 1)
+    {
+        assert(kernels[0].GetName() == "miog_betac_alphaab");
+    }
+    else if(kernel_size == 2)
     {
         assert(kernels[1].GetName() == "miog_betac");
         assert(kernels[0].GetName() == "miog_alphaab");
-    }
-    else if(kernels.size() == 1)
-    {
-        assert(kernels[0].GetName() == "miog_betac_alphaab");
     }
     else
     {
@@ -184,29 +185,34 @@ void RunMiopengemmSolution(Handle& handle,
     }
 #endif
 
-    if(kernels.size() == 2)
+    if(kernel_size == 1)
     {
+        // C = alpha * A * B + beta * C
+        kernels[0](A, a_offset, B, b_offset, C, c_offset, alpha, beta);
+    }
+    else if(kernel_size == 2)
+    {
+#if 0
         float time_0 = 0;
-
+#endif
         if(!miopen::float_equal(beta, 1))
         {
             // C *= beta
             kernels[1](C, c_offset, beta);
 
+# if 0
             if(handle.IsProfilingEnabled())
-                time_0 += handle.GetKernelTime();
+                time_0 = handle.GetKernelTime();
+#endif
         }
 
         // C += alpha * A * B
         kernels[0](A, a_offset, B, b_offset, C, c_offset, alpha);
 
+#if 0
         if(handle.IsProfilingEnabled())
             handle.AccumKernelTime(time_0);
-    }
-    else if(kernels.size() == 1)
-    {
-        // C = alpha * A * B + beta * C
-        kernels[0](A, a_offset, B, b_offset, C, c_offset, alpha, beta);
+#endif
     }
     else
     {
