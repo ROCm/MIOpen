@@ -493,7 +493,7 @@ extern "C" miopenStatus_t miopenExecuteFusionPlan(miopenHandle_t handle,
                                                   void* output,
                                                   miopenOperatorArgs_t args)
 {
-    //MIOPEN_LOG_FUNCTION(handle, fusePlanDesc, inputDesc, input, outputDesc, output, args);
+    // MIOPEN_LOG_FUNCTION(handle, fusePlanDesc, inputDesc, input, outputDesc, output, args);
     return miopen::try_([&] {
         miopen::deref(fusePlanDesc)
             .Execute(miopen::deref(handle),
@@ -509,7 +509,7 @@ extern "C" miopenStatus_t miopenExecuteFusionPlan(miopenHandle_t handle,
 extern "C" miopenStatus_t miopenGetFusionPlanCostEstimate(
     miopenOpCost_t* opCost, miopenHandle_t handle, const miopenFusionPlanDescriptor_t fusePlanDesc)
 {
-    //MIOPEN_LOG_FUNCTION(opCost, handle, fusePlanDesc);
+    // MIOPEN_LOG_FUNCTION(opCost, handle, fusePlanDesc);
     (void)(opCost);
     (void)(handle);
     (void)(fusePlanDesc);
@@ -525,7 +525,7 @@ miopenGetFusionPlanCostEmpirical(miopenOpCost_t* opCost,
                                  const void* input,
                                  miopenOperatorArgs_t args)
 {
-    //MIOPEN_LOG_FUNCTION(opCost, handle, fusePlanDesc, inputDesc, input, args);
+    // MIOPEN_LOG_FUNCTION(opCost, handle, fusePlanDesc, inputDesc, input, args);
     (void)(handle);
     (void)(fusePlanDesc);
     (void)(inputDesc);

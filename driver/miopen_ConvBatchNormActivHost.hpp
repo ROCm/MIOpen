@@ -223,7 +223,7 @@ int miopenInferVerify(size_t size, const Tref* c_res, const Tgpu* top_ptr, Tref 
         Tref g_val     = static_cast<Tref>(top_ptr[i]);
         double err     = std::abs(c_val - g_val);
         double err_rel = calculate_relative_error(c_val, g_val);
-        //if(err > 1e-6) printf("i: %d, cval: %f, gval: %f\n", i, c_val, g_val );
+        // if(err > 1e-6) printf("i: %d, cval: %f, gval: %f\n", i, c_val, g_val );
         if((err > allowedEps && err_rel > allowedEps) || std::isnan(c_val) || std::isnan(g_val) ||
            !std::isfinite(c_val) || !std::isfinite(g_val))
         {
@@ -359,7 +359,6 @@ int ConvForwardCPU(const std::vector<Tgpu>& in,
                     }
                     acc = bias != 0 ? acc + static_cast<Tgpu>(b[w]) : acc;
                     outhost[o * out_nstride + w * out_cstride + i * out_hstride + j] = acc;
-
                 }
             }
         }
