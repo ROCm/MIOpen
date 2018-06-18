@@ -1095,8 +1095,15 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 void CBAInferFusionDriver<Tgpu, Tref>::runCPUConvFwdInference()
 {
-    ConvForwardCPU<Tgpu, Tref>(
-        in, conv_res_host, wei, b, bias_mode, convDesc, inputTensor, weightTensor, outputTensor);
+    ConvForwardCPU<Tgpu, Tref>(in_host,
+                               fusion_mode != 5 ? conv_res_host : out_host,
+                               wei,
+                               b,
+                               bias_mode,
+                               convDesc,
+                               inputTensor,
+                               weightTensor,
+                               outputTensor);
 
     return;
 }
@@ -1109,8 +1116,10 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
     if(bn_mode == miopenBNPerActivation)
     { // 1xCxHxW
         miopenBNActiveBNPerActivFwdInferHost(
-            inputTensor,    // outputTensor, // DLOWELL use output for splice test
-            in_host.data(), // conv_res_host.data(), //DLOWELL use conv for splice test
+            inputTensor, // outputTensor, // DLOWELL use output for splice test
+            fusion_mode != 2
+                ? conv_res_host.data()
+                : in_host.data(), // conv_res_host.data(), //DLOWELL use conv for splice test
             bn_res_host.data(),
             scale.data(),
             bias.data(),
@@ -1121,8 +1130,10 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
         miopenBNActiveBNSpatialFwdInferHost(
-            inputTensor,    // outputTensor, // DLOWELL use output for splice test
-            in_host.data(), // conv_res_host.data(), //DLOWELL use conv for splice test
+            inputTensor, // outputTensor, // DLOWELL use output for splice test
+            fusion_mode != 2
+                ? conv_res_host.data()
+                : in_host.data(), // conv_res_host.data(), //DLOWELL use conv for splice test
             bn_res_host.data(),
             scale.data(),
             bias.data(),
@@ -1205,8 +1216,10 @@ template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
 {
     runCPUConvFwdInference();
+
     if(fusion_mode < 3)
         runCPUBNFwdInference();
+
     if(fusion_mode != 5)
         runCPUActivFwdInference();
 
@@ -1227,11 +1240,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::VerifyForward()
     double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
 
     int match = 1;
-
-    // match &= miopenInferVerify(conv_res.size(), conv_res_host.data(), conv_res.data(),
-    // allowedEps);
-
-    // match &= miopenInferVerify(bn_res.size(), bn_res_host.data(), bn_res.data(), allowedEps);
 
     match &= miopenInferVerify(out.size(), out_host.data(), out.data(), allowedEps);
 
