@@ -80,6 +80,7 @@ CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/r
 CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/hcc;/opt/rocm/hip" ..
 ```
 
+#### Setting up locations
 
 By default the install location is set to '/opt/rocm', this can be set by using `CMAKE_INSTALL_PREFIX`:
 
@@ -87,11 +88,15 @@ By default the install location is set to '/opt/rocm', this can be set by using 
 cmake -DMIOPEN_BACKEND=OpenCL -DCMAKE_INSTALL_PREFIX=<miopen-installed-path> ..
 ```
 
-Also, the path to database for network configs can be set using the `MIOPEN_DB_PATH` variable. By default it is set to where the database files would be installed. For development purposes, setting `BUILD_DEV` will set the path to the database files stored in the source directory:
+The default path to the System PerfDb is `miopen/share/miopen/db/` within install location. The default path to the User PerfDb is `~/.config/miopen/`. For development purposes, setting `BUILD_DEV` will change default path to both database files to the source directory:
 
 ```
 cmake -DMIOPEN_BACKEND=OpenCL -DBUILD_DEV=On ..
 ```
+
+Database paths can be explicitly customized by means of `MIOPEN_DB_PATH` (System PerfDb) and `MIOPEN_USER_DB_PATH` (User PerfDb) cmake variables.
+
+#### Changing the cmake configuration
 
 The configuration can be changed after running cmake by using `ccmake`:
 
