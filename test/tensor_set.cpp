@@ -29,7 +29,6 @@
 #include <iterator>
 #include <limits>
 #include <memory>
-#include <sys/time.h>
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
@@ -87,22 +86,23 @@ struct verify_tensor_set
         auto&& handle  = get_handle();
         auto super_dev = handle.Write(superGpu.data);
 
-        // timeval start{};
-        // timeval end{};
-        // gettimeofday(&start, nullptr);
-        miopen::SetTensor(handle, subDesc, super_dev.get(), &alpha, offset);
-        // gettimeofday(&end, nullptr);
+        // auto t_start = std::chrono::high_resolution_clock::now();
 
-        // long w_time =
-        //    ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec));
+        miopen::SetTensor(handle, subDesc, super_dev.get(), &alpha, offset);
+
+        // auto w_time =
+        //    std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t_start)
+        //        .count();
 
         // std::size_t nbyte = sizeof(T{}) * std::accumulate(subDesc.GetLengths().begin(),
         //                                                  subDesc.GetLengths().end(),
         //                                                  std::size_t{1},
         //                                                  std::multiplies<std::size_t>());
 
-        // std::cout << "wall time: " << w_time / 1000.0 << " ms" << std::endl;
+        // std::cout << "wall time: " << w_time * 1000.0 << " ms" << std::endl;
         // std::cout << "kernel time: " << handle.GetKernelTime() << " ms" << std::endl;
+        // std::cout << "API time: " << w_time * 1000.0 - handle.GetKernelTime() << " ms" <<
+        // std::endl;
         // std::cout << "bandwidth: "
         //          << (static_cast<float>(nbyte) /
         //              (static_cast<float>(std::size_t(1) << 30) * handle.GetKernelTime() /
