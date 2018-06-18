@@ -325,7 +325,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
         "fusion_mode",
         'F',
         "0",
-        "Fusion mode (cbbna = 0, cbna = 1, bna = 2, cba = 3, ca = 4, cb = 5) (Default=cbbna)",
+        "Fusion mode (cbna = 0, cna = 1, na = 2, cba = 3, ca = 4, cb = 5) (Default=cbna)",
         "int");
 
     return miopenStatusSuccess;
@@ -462,7 +462,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::createRunningBuffers()
     int status   = 0;
     uint32_t ctx = 0;
 #endif
-
+    
     if(fusion_mode < 3)
     {
         size_t sb_sz = GetTensorSize(biasScaleTensor);
@@ -644,8 +644,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
                                       runningMean_dev->GetMem(),
                                       runningVariance_dev->GetMem(),
                                       epsilon);
-    miopenSetOpArgsActivForward(
-        fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
+    miopenSetOpArgsActivForward(fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
     miopenError = miopenIsFusionPlanValid(fusePlanDesc);
     if(miopenError != miopenStatusSuccess)
     {
@@ -716,8 +715,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
         miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev->GetMem());
     }
 
-    miopenSetOpArgsActivForward(
-        fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
+    miopenSetOpArgsActivForward(fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
     miopenSetOpArgsBatchNormInference(fusionArgs,
                                       bNormOp,
                                       &alpha,
@@ -803,8 +801,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
     miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
     miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());
 
-    miopenSetOpArgsActivForward(
-        fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
+    miopenSetOpArgsActivForward(fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
 
     if(bias_mode)
     {
