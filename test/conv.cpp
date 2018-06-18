@@ -94,27 +94,59 @@ struct verify_forward_conv : conv_base<T>
     {
         auto rout = get_output_tensor(filter, input, weights);
 
-        int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
+        if(filter.mode == miopenTranspose)
+        {
+            std::fill(rout.begin(), rout.end(), 0);
 
-        int wei_c, wei_h, wei_w;
-        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
+            int out_h, out_w;
+            std::tie(std::ignore, std::ignore, out_h, out_w) =
+                miopen::tien<4>(rout.desc.GetLengths());
 
-        rout.par_for_each([&](int o, int w, int i, int j) {
-            const int start_x = i * filter.u - filter.pad_h;
-            const int start_y = j * filter.v - filter.pad_w;
+            int wei_c, wei_h, wei_w;
+            std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
 
-            double acc = bias;
-            ford(wei_c, wei_h, wei_w)([&](int k, int x, int y) {
-                const int in_x = start_x + x;
-                const int in_y = start_y + y;
-                if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
-                {
-                    acc += input(o, k, in_x, in_y) * weights(w, k, x, y);
-                }
+            int in_n, in_c, in_h, in_w;
+            std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
+
+            par_ford(in_n, wei_c)([&](int o, int k) {
+                ford(in_c, in_h, in_w, wei_h, wei_w)([&](int w, int i, int j, int x, int y) {
+                    const int start_x = i * filter.u - filter.pad_h;
+                    const int start_y = j * filter.v - filter.pad_w;
+                    const int out_x   = start_x + x;
+                    const int out_y   = start_y + y;
+                    if(out_x >= 0 && out_x < out_h && out_y >= 0 && out_y < out_w)
+                    {
+                        rout(o, k, out_x, out_y) += input(o, w, i, j) * weights(w, k, x, y);
+                    }
+                });
             });
-            rout(o, w, i, j) = acc;
-        });
+        }
+        else
+        {
+            int in_h, in_w;
+            std::tie(std::ignore, std::ignore, in_h, in_w) =
+                miopen::tien<4>(input.desc.GetLengths());
+
+            int wei_c, wei_h, wei_w;
+            std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
+
+            rout.par_for_each([&](int o, int w, int i, int j) {
+                const int start_x = i * filter.u - filter.pad_h;
+                const int start_y = j * filter.v - filter.pad_w;
+
+                double acc = bias;
+                ford(wei_c, wei_h, wei_w)([&](int k, int x, int y) {
+                    const int in_x = start_x + x;
+                    const int in_y = start_y + y;
+                    if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
+                    {
+                        acc += input(o, k, in_x, in_y) * weights(w, k, x, y);
+                    }
+                });
+                rout(o, w, i, j) = acc;
+            });
+        }
+
         return rout;
     }
 
@@ -166,6 +198,7 @@ struct verify_forward_conv : conv_base<T>
                                   workspace_size);
 
         rout.data = handle.Read<T>(out_dev, rout.data.size());
+
         return rout;
     }
 
@@ -206,27 +239,56 @@ struct verify_backward_conv : conv_base<T>
         auto rinput = input;
         std::fill(rinput.begin(), rinput.end(), 0);
 
-        int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(rinput.desc.GetLengths());
+        if(filter.mode == miopenTranspose)
+        {
+            int out_h, out_w;
+            std::tie(std::ignore, std::ignore, out_h, out_w) =
+                miopen::tien<4>(out.desc.GetLengths());
 
-        int wei_c, wei_h, wei_w;
-        std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
+            int wei_c, wei_h, wei_w;
+            std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
 
-        int out_n, out_c, out_h, out_w;
-        std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(out.desc.GetLengths());
-
-        par_ford(out_n, wei_c)([&](int o, int k) {
-            ford(out_c, out_h, out_w, wei_h, wei_w)([&](int w, int i, int j, int x, int y) {
+            rinput.par_for_each([&](int o, int w, int i, int j) {
                 const int start_x = i * filter.u - filter.pad_h;
                 const int start_y = j * filter.v - filter.pad_w;
-                const int in_x    = start_x + x;
-                const int in_y    = start_y + y;
-                if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
-                {
-                    rinput(o, k, in_x, in_y) += out(o, w, i, j) * weights(w, k, x, y);
-                }
+
+                double acc = 0.0;
+                ford(wei_c, wei_h, wei_w)([&](int k, int x, int y) {
+                    const int in_x = start_x + x;
+                    const int in_y = start_y + y;
+                    if(in_x >= 0 && in_x < out_h && in_y >= 0 && in_y < out_w)
+                    {
+                        acc += out(o, k, in_x, in_y) * weights(w, k, x, y);
+                    }
+                });
+                rinput(o, w, i, j) = acc;
             });
-        });
+        }
+        else
+        {
+            int in_h, in_w;
+            std::tie(std::ignore, std::ignore, in_h, in_w) =
+                miopen::tien<4>(rinput.desc.GetLengths());
+
+            int wei_c, wei_h, wei_w;
+            std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
+
+            int out_n, out_c, out_h, out_w;
+            std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(out.desc.GetLengths());
+
+            par_ford(out_n, wei_c)([&](int o, int k) {
+                ford(out_c, out_h, out_w, wei_h, wei_w)([&](int w, int i, int j, int x, int y) {
+                    const int start_x = i * filter.u - filter.pad_h;
+                    const int start_y = j * filter.v - filter.pad_w;
+                    const int in_x    = start_x + x;
+                    const int in_y    = start_y + y;
+                    if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
+                    {
+                        rinput(o, k, in_x, in_y) += out(o, w, i, j) * weights(w, k, x, y);
+                    }
+                });
+            });
+        }
         return rinput;
     }
 
@@ -320,13 +382,15 @@ struct verify_backward_weights_conv : conv_base<T>
         std::fill(rweights.begin(), rweights.end(), 0);
 
         int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
+        std::tie(std::ignore, std::ignore, in_h, in_w) = miopen::tien<4>(
+            filter.mode == miopenTranspose ? out.desc.GetLengths() : input.desc.GetLengths());
 
         int wei_c, wei_h, wei_w;
         std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(rweights.desc.GetLengths());
 
         int out_n, out_c, out_h, out_w;
-        std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(out.desc.GetLengths());
+        std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(
+            filter.mode == miopenTranspose ? input.desc.GetLengths() : out.desc.GetLengths());
 
         par_ford(out_c, wei_c, wei_h, wei_w)([&](int w, int k, int x, int y) {
             double acc = 0.0;
@@ -337,7 +401,9 @@ struct verify_backward_weights_conv : conv_base<T>
                 const int in_y    = start_y + y;
                 if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
                 {
-                    acc += input(o, k, in_x, in_y) * out(o, w, i, j);
+                    acc += (filter.mode == miopenTranspose
+                                ? out(o, k, in_x, in_y) * input(o, w, i, j)
+                                : input(o, k, in_x, in_y) * out(o, w, i, j));
                 }
             });
             rweights(w, k, x, y) = acc;
