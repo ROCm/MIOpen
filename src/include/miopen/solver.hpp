@@ -68,13 +68,13 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 /// may fail (1) during exhaustive search, (2) during compilation,
 /// (3) on execution (like LDS overallocation) or (4) may reveal precision
 /// problems. These problems impedes finding and using the really fastest OpenCL solution.
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_FWD) /// \todo Remove env.var
-                                                                          /// (workaround is OFF by
-                                                                          /// default)
-MIOPEN_DECLARE_ENV_VAR(
-    MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_BWD) /// \todo Fix & remove the workaround.
-MIOPEN_DECLARE_ENV_VAR(
-    MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_WRW) /// \todo Fix & remove the workaround.
+
+/// \todo Remove env.var (workaround is OFF by default):
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_FWD)
+/// \todo Remove env.var (workaround is OFF by default):
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_BWD)
+/// \todo Fix & remove the workaround:
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_WRW)
 
 namespace solver {
 /// \todo Move wave_size into abstraction wich represent GPU information
@@ -308,7 +308,7 @@ std::vector<Solution> SearchForAllSolutions(const Context& search_params, Db db)
                             miopen::IsEnabled(
                                 MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_FWD{})) ||
                            (search_params.direction.IsBackwardData() &&
-                            !miopen::IsDisabled(
+                            miopen::IsEnabled(
                                 MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_BWD{})) ||
                            (search_params.direction.IsBackwardWrW() &&
                             !miopen::IsDisabled(
