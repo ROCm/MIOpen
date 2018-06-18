@@ -1767,7 +1767,6 @@ miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc);
 */
 MIOPEN_EXPORT miopenStatus_t miopenIsFusionPlanValid(miopenFusionPlanDescriptor_t fusePlanDesc);
 
-
 // Convolution create op with known algorithm---
 /*! @brief Creates forward convolution operator.
 *
