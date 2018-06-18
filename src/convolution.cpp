@@ -51,13 +51,6 @@ ConvolutionDescriptor::ConvolutionDescriptor(
                      ">= 0, stride >= 1, dilation >= 1 and the same dilation "
                      "factor for horizontal and vertical direction");
     }
-
-    if((wei_h == 1 && wei_w == 1) && (pad_h > 0 || pad_w > 0))
-    {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "Invalid parameters, check usage. MIOPEN expects padding "
-                     "== 0 when filter size == 1");
-    }
 }
 
 ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t c_mode,
@@ -84,13 +77,6 @@ ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t c_mode,
                      "Invalid parameters, check usage. MIOPEN expects padding "
                      ">= 0, stride >= 1, dilation >= 1 and the same dilation "
                      "factor for horizontal and vertical direction");
-    }
-
-    if((wei_h == 1 && wei_w == 1) && (pad_h > 0 || pad_w > 0))
-    {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "Invalid parameters, check usage. MIOPEN expects padding "
-                     "== 0 when filter size == 1");
     }
 
     if(!(mode == miopenConvolution || mode == miopenTranspose))
