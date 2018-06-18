@@ -64,7 +64,7 @@ RUN cget -p $PREFIX/x86_64-w64-mingw32 init -t $PREFIX/x86_64-w64-mingw32/cmake/
 # Build hcc
 RUN git clone https://github.com/RadeonOpenCompute/hcc.git -b clang_tot_upgrade /hcc && \
     cd hcc && \
-    git reset --hard 6e93604c7ba45047855c5b1f710d27ad3c88c610 && \
+    git reset --hard 5a607e6e3c04c23c83d5c78d9eae5aaa4b8c2998 && \
     git submodule init && \
     git submodule update --recursive && \
     cget -p $PREFIX install hcc,. && cd .. && rm -rf /hcc
