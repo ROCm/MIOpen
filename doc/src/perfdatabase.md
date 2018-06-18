@@ -1,17 +1,17 @@
 Performance Database
 ====================
 
-Many of MIOpen kernels have parameters which affect their performance. Setting these parameters to optimal values allows reaching the best possible throughput. These optimal values depend on many things, including network configuration, GPU type, clock frequencies, ROCm version etc. Because of these dependencies and also due to enormous number of possible network configurations, it is virtually impossible to supply all values that users may need together with the library. Instead, MIOpen provides a set of pre-tuned values for the _most applicable_ network configurations, **and** also means for expanding the set of optimized values. That is what the performance database is involved in. 
+Many of MIOpen kernels have parameters which affect their performance. Setting these parameters to optimal values allows reaching the best possible throughput. These optimal values depend on many things, including network configuration, GPU type, clock frequencies, ROCm version etc. Because of these dependencies and also due to enormous number of possible network configurations, it is virtually impossible to supply all values that users may need together with the library. Instead, MIOpen provides a set of pre-tuned values for the _most applicable_ network configurations, **and** also means for expanding the set of optimized values. MIOpen's performance database contains these pre-tuned parameter values as well as optimized parameters tuned by users.
 
 The performance database consists of two parts:
 - **System Performance Database**, a system-wide storage which holds the pre-tuned values for the most applicable configurations,
 - **User Performance Database**, a per-user storage which is intended to hold optimized values for arbitrary configurations.
 
+User PerfDb **always takes precedence** over System PerfDb.
+
 MIOpen also has the so-called "auto-tune" functionality, which is able to find optimized values. The auto-tune process may take substantial time. Once optimized values found, these are stored in User PerfDb. Then, the library automatically reads and uses these values when needed.
 
-By default, System PerfDb resides within MIOpen install location, while User PerfDb resides in the user's home directory. See [Setting up locations](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/README.md#setting-up-locations) for more information.
-
-User PerfDb always takes precedence over System PerfDb.
+By default, System PerfDb resides within MIOpen's install location, while User PerfDb resides in the user's home directory. See [Setting up locations](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/README.md#setting-up-locations) for more information.
 
 The System PerfDb is not modified upon installation of MIOpen.
 
@@ -37,11 +37,11 @@ These variables may also be used for _removing_ values from User PerfDb, see bel
 
 ### MIOPEN_FIND_ENFORCE
 
-Both symbolic and numeric values are supported.
+Both symbolic (case-insensitive) and numeric values are supported.
 
 **NONE (1)**
 
-No changes w.r.t default behavior.
+Setting the value to "NONE", or "1" will have no change in the default behavior.
 
 **DB_UPDATE (2)**
 
@@ -61,11 +61,11 @@ A combination of SEARCH and DB_UPDATE. MIOpen performs auto-tune (and updates Us
 
 **DB_CLEAN (5)**
 
-Use with care. MIOpen **removes** optimized values related to given _problem configuration_ from the User PerfDb. Auto-tune is blocked, even is explicitly requested. System PerfDb left intact. 
+Use with care. MIOpen **removes** optimized values related to given _problem configuration_ from the User PerfDb. Auto-tune is blocked, even if it is explicitly requested. System PerfDb left intact. 
 
 ### MIOPEN_FIND_ENFORCE_SCOPE
 
-This variable allows for limiting the scope of `MIOPEN_FIND_ENFORCE`, so that only forward, backward data or backward weights convolutions will be affected. Both symbolic and numeric values are supported, as shown below.
+This variable allows for limiting the scope of `MIOPEN_FIND_ENFORCE`, so that only forward, backward data or backward weights convolutions will be affected. Both symbolic (case-insensitive) and numeric values are supported, as shown below.
 
 **ALL (1)** `MIOPEN_FIND_ENFORCE` affects all convolutions. This is the default.
 		
