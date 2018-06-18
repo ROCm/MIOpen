@@ -300,12 +300,12 @@ struct test_driver
 
     generate_tensor_t<std::vector<int>> get_input_tensor()
     {
-        return lazy_generate_tensor([=] { return get_inputs(batch_factor); }, {16, 32, 8, 8});
+        return lazy_generate_tensor([=] { return get_inputs(batch_factor); }, {2, 4, 5, 5}/*{16, 32, 8, 8}*/);
     }
 
     generate_tensor_t<std::vector<int>> get_weights_tensor()
     {
-        return lazy_generate_tensor([=] { return get_weights(batch_factor); }, {64, 32, 5, 5});
+        return lazy_generate_tensor([=] { return get_weights(batch_factor); }, {2, 4, 5, 5}/*{64, 32, 5, 5}*/);
     }
 
     template <class X>
