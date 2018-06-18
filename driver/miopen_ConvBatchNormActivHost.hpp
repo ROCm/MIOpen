@@ -238,7 +238,7 @@ int miopenInferVerify(size_t size, const Tref* c_res, const Tgpu* top_ptr, Tref 
 }
 
 template <typename Tgpu, typename Tref>
-int ConvForwardCPU(const std::vector<Tgpu>& in,
+int ConvForwardCPU(const std::vector<Tref>& in,
                    std::vector<Tref>& outhost,
                    const std::vector<Tgpu>& wei,
                    const std::vector<Tgpu>& b,
