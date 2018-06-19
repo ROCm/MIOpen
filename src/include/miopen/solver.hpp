@@ -73,7 +73,7 @@ MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_FWD)
 /// \todo Remove env.var (workaround is OFF by default):
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_BWD)
-/// \todo Fix & remove the workaround:
+/// \todo Remove env.var (workaround is OFF by default):
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_WRW)
 
 namespace solver {
@@ -311,8 +311,7 @@ std::vector<Solution> SearchForAllSolutions(const Context& search_params, Db db)
                             miopen::IsEnabled(
                                 MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_BWD{})) ||
                            (search_params.direction.IsBackwardWrW() &&
-                            !miopen::IsDisabled(
-                                MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_WRW{})))
+                            miopen::IsEnabled(MIOPEN_OPENCL_WORKAROUND_FIND_ALL_CONV_DIRECT_WRW{})))
                         {
                             skip_the_rest = true;
                         }
