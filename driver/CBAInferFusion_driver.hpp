@@ -462,9 +462,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::createRunningBuffers()
     int status   = 0;
     uint32_t ctx = 0;
 #endif
+
     if(fusion_mode < 3)
     {
         size_t sb_sz = GetTensorSize(biasScaleTensor);
+
         // GPU allocation
         runningMean_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
         runningVariance_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
@@ -632,7 +634,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
 
     miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bn_mode, biasScaleTensor);
 
-    miopenCreateOpActivationForward(fusePlanDesc, &activOp, activDesc);
+    miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
     miopenSetOpArgsBatchNormInference(fusionArgs,
                                       bNormOp,
                                       &alpha,
@@ -642,7 +644,8 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
                                       runningMean_dev->GetMem(),
                                       runningVariance_dev->GetMem(),
                                       epsilon);
-    miopenSetOpArgsActivForward(fusionArgs, activOp, &alpha, &beta);
+    miopenSetOpArgsActivForward(
+        fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
     miopenError = miopenIsFusionPlanValid(fusePlanDesc);
     if(miopenError != miopenStatusSuccess)
     {
@@ -705,7 +708,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
         miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasTensor);
     }
     miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bn_mode, biasScaleTensor);
-    miopenCreateOpActivationForward(fusePlanDesc, &activOp, activDesc);
+    miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
     miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());
 
     if(bias_mode)
@@ -713,7 +716,8 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
         miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev->GetMem());
     }
 
-    miopenSetOpArgsActivForward(fusionArgs, activOp, &alpha, &beta);
+    miopenSetOpArgsActivForward(
+        fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
     miopenSetOpArgsBatchNormInference(fusionArgs,
                                       bNormOp,
                                       &alpha,
@@ -796,10 +800,11 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
         miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasTensor);
     }
 
-    miopenCreateOpActivationForward(fusePlanDesc, &activOp, activDesc);
+    miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
     miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());
 
-    miopenSetOpArgsActivForward(fusionArgs, activOp, &alpha, &beta);
+    miopenSetOpArgsActivForward(
+        fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
 
     if(bias_mode)
     {
@@ -1009,7 +1014,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
         case 3:
         case 4: runGPUConvActivInference(); break;
         case 2: runGPUBatchNormActivInference(); break;
-        case 5: runGPUConvBiasInference(); break;
+        case 5: runGPUFusedConvBiasInference(); break;
         }
         // miopenGetKernelTime(GetHandle(), &time);
         // kl_time += time;
@@ -1090,8 +1095,15 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 void CBAInferFusionDriver<Tgpu, Tref>::runCPUConvFwdInference()
 {
-    ConvForwardCPU<Tgpu, Tref>(
-        in, conv_res_host, wei, b, bias_mode, convDesc, inputTensor, weightTensor, outputTensor);
+    ConvForwardCPU<Tgpu, Tref>(in_host,
+                               fusion_mode != 5 ? conv_res_host : out_host,
+                               wei,
+                               b,
+                               bias_mode,
+                               convDesc,
+                               inputTensor,
+                               weightTensor,
+                               outputTensor);
 
     return;
 }
@@ -1104,8 +1116,10 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
     if(bn_mode == miopenBNPerActivation)
     { // 1xCxHxW
         miopenBNActiveBNPerActivFwdInferHost(
-            inputTensor,    // outputTensor, // DLOWELL use output for splice test
-            in_host.data(), // conv_res_host.data(), //DLOWELL use conv for splice test
+            inputTensor, // outputTensor, // DLOWELL use output for splice test
+            fusion_mode != 2
+                ? conv_res_host.data()
+                : in_host.data(), // conv_res_host.data(), //DLOWELL use conv for splice test
             bn_res_host.data(),
             scale.data(),
             bias.data(),
@@ -1116,8 +1130,10 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
         miopenBNActiveBNSpatialFwdInferHost(
-            inputTensor,    // outputTensor, // DLOWELL use output for splice test
-            in_host.data(), // conv_res_host.data(), //DLOWELL use conv for splice test
+            inputTensor, // outputTensor, // DLOWELL use output for splice test
+            fusion_mode != 2
+                ? conv_res_host.data()
+                : in_host.data(), // conv_res_host.data(), //DLOWELL use conv for splice test
             bn_res_host.data(),
             scale.data(),
             bias.data(),
@@ -1200,8 +1216,10 @@ template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
 {
     runCPUConvFwdInference();
+
     if(fusion_mode < 3)
         runCPUBNFwdInference();
+
     if(fusion_mode != 5)
         runCPUActivFwdInference();
 
@@ -1222,11 +1240,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::VerifyForward()
     double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
 
     int match = 1;
-
-    // match &= miopenInferVerify(conv_res.size(), conv_res_host.data(), conv_res.data(),
-    // allowedEps);
-
-    // match &= miopenInferVerify(bn_res.size(), bn_res_host.data(), bn_res.data(), allowedEps);
 
     match &= miopenInferVerify(out.size(), out_host.data(), out.data(), allowedEps);
 

@@ -1137,7 +1137,8 @@ MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
                             double epsilon,
 #endif
                             const _FLOAT alpha,
-                            const _FLOAT beta)
+                            const _FLOAT beta,
+                            const _FLOAT gamma)
 {
     __local _FLOAT lcl_indata[MLO_IN_LCL_SZ];
     __local _FLOAT lcl_wei[MLO_WEIGHTS_SZ];
@@ -1535,12 +1536,15 @@ MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
 #ifdef NO_BN
                             bn_res = conv_res;
 #else
-                                bn_res = mad(pscale, (conv_res - pmean) * pinvVariance, pbias);
+                                bn_res              = mad(pscale, (conv_res - pmean) * pinvVariance, pbias);
 #endif
-                            const _FLOAT gamma = 1.0;
+#ifdef MIOPEN_NRN_OP_ID
                             ActivationFunction(
                                 1, &actv_res, (const _FLOAT*)&bn_res, gamma, beta, alpha);
                             out[out_off2 + i] = actv_res;
+#else
+                                out[out_off2 + i]   = bn_res;
+#endif
                         }
                     }
                 }
