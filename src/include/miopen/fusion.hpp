@@ -34,8 +34,7 @@
 #include <miopen/activ.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/solver.hpp>
-
-#include <boost/spirit/home/support/detail/hold_any.hpp>
+#include <miopen/op_kernel_args.hpp>
 
 #include <set>
 #include <vector>
@@ -56,35 +55,14 @@ typedef enum {
     miopenFusionOpBias      = 4,
 } miopenFusionOp_t;
 
-/*
-typedef struct miopen_edge
-{
-    const char* name;
-    double alpha;
-    bool immutable;
-    const miopenTensorDescriptor_t data;
-} miopenEdge_t;
-
-
-typedef struct miopen_op
-{
-    const char* name;
-    int n_inputEdges;
-    const miopenEdge_t* inputEdges;
-    int n_outputEdges;
-    const miopenEdge_t* outputEdges;
-    int n_internEdges;
-    const miopenEdge_t* internEdges;
-} miopenOp_t;
-*/
-
+using any_t = OpKernelArg;
 struct OperatorArgs : miopenOperatorArgs
 {
     OperatorArgs();
-    void ins_arg(std::string name, boost::spirit::hold_any v);
+    void ins_arg(std::string name, any_t v);
     friend std::ostream& operator<<(std::ostream& stream, const OperatorArgs& x);
-    std::vector<boost::spirit::hold_any> args_vec;
-    std::unordered_map<std::string, boost::spirit::hold_any> args_map;
+    std::vector<any_t> args_vec;
+    std::unordered_map<std::string, any_t> args_map;
 };
 
 struct FusionOpDescriptor : miopenFusionOpDescriptor
