@@ -192,27 +192,22 @@ void RunMiopengemmSolution(Handle& handle,
     }
     else if(kernel_size == 2)
     {
-#if 0
         float time_0 = 0;
-#endif
+
         if(!miopen::float_equal(beta, 1))
         {
             // C *= beta
             kernels[1](C, c_offset, beta);
 
-# if 0
             if(handle.IsProfilingEnabled())
                 time_0 = handle.GetKernelTime();
-#endif
         }
 
         // C += alpha * A * B
         kernels[0](A, a_offset, B, b_offset, C, c_offset, alpha);
 
-#if 0
         if(handle.IsProfilingEnabled())
             handle.AccumKernelTime(time_0);
-#endif
     }
     else
     {
