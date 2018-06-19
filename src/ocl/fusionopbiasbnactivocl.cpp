@@ -8,10 +8,12 @@ miopenStatus_t FusionOpDescriptor::GetNetworkConfig(std::string& network_config,
     return miopenStatusSuccess;
 }
 
-miopenStatus_t FusionOpDescriptor::GetCompileParms(std::string& compile_config, Handle& handle)
+miopenStatus_t
+FusionOpDescriptor::GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm)
 {
     (void)(compile_config);
     (void)(handle);
+    (void)(is_asm);
     return miopenStatusSuccess;
 }
 
@@ -22,10 +24,18 @@ miopenStatus_t BiasFusionOpDescriptor::GetNetworkConfig(std::string& network_con
     return miopenStatusSuccess;
 }
 
-miopenStatus_t BiasFusionOpDescriptor::GetCompileParms(std::string& compile_config, Handle& handle)
+miopenStatus_t
+BiasFusionOpDescriptor::GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm)
 {
     (void)(handle); // only convolution uses handle
-    compile_config += " -DMLO_CONV_BIAS=" + std::to_string(1);
+    if(is_asm)
+    {
+        compile_config += " -Wa,-defsym,bias_mode=" + std::to_string(1);
+    }
+    else
+    {
+        compile_config += " -DMLO_CONV_BIAS=" + std::to_string(1);
+    }
     return miopenStatusSuccess;
 }
 
@@ -37,10 +47,18 @@ miopenStatus_t ActivFusionOpDescriptor::GetNetworkConfig(std::string& network_co
     return miopenStatusSuccess;
 }
 
-miopenStatus_t ActivFusionOpDescriptor::GetCompileParms(std::string& compile_config, Handle& handle)
+miopenStatus_t
+ActivFusionOpDescriptor::GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm)
 {
     (void)(handle);
-    compile_config += " -DMIOPEN_NRN_OP_ID=" + std::to_string(activMode);
+    if(is_asm)
+    {
+        compile_config += " -Wa,-defsym,activ_mode=" + std::to_string(activMode);
+    }
+    else
+    {
+        compile_config += " -DMIOPEN_NRN_OP_ID=" + std::to_string(activMode);
+    }
     return miopenStatusSuccess;
 }
 } // namespace miopen

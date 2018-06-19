@@ -301,6 +301,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("alpha", 'A', "1.0", "Alpha (Default=1.0)", "float");
     inflags.AddInputFlag("beta", 'B', "0.", "Beta (Default=0.)", "float");
     inflags.AddInputFlag("gamma", 'G', "1", "Activation gamma (Default=1)", "double");
+    inflags.AddInputFlag("conv_bias", 'b', "", "Use Bias for Conv (Default=0)", "int");
     inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -403,8 +404,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
         pad_w = 0;
     }
 
-    //(cbbna = 0, cbna = 1, bna = 2, cba = 3, ca = 4, cb = 5)
-    if(fusion_mode < 2 || fusion_mode == 3 || fusion_mode == 5)
+    if(inflags.GetValueInt("conv_bias") == 1)
         bias_mode = 1;
     else
         bias_mode = 0;
