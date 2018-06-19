@@ -308,17 +308,17 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     else
     {
         std::string compile_config;
-        for(auto nd : ins_order)
-        {
-            auto op = op_map[nd];
-            op->GetCompileParms(compile_config, handle);
-        }
         auto ops_head = op_map[ins_order[0]];
         // TODO: If the first op is Conv
         if(ops_head->name() == miopenFusionOpConv)
         {
-            auto ki =
-                std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head)->GetKernelInfo(handle);
+            auto ops_conv = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head);
+            for(auto nd : ins_order)
+            {
+                auto op = op_map[nd];
+                op->GetCompileParms(compile_config, handle, ops_conv->isASMApplicable());
+            }
+            auto ki           = ops_conv->GetKernelInfo(handle);
             auto program_name = ki.kernel_file;
             auto kernel_name  = ki.kernel_name;
             const auto parms  = ki.comp_options + compile_config;
