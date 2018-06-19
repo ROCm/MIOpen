@@ -37,10 +37,10 @@
 #include <sstream>
 #include <utility>
 #include <vector>
-#include <boost/spirit/home/support/detail/hold_any.hpp>
 #include <miopen/clhelper.hpp>
 #include <miopen/each_args.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/op_kernel_args.hpp>
 
 namespace miopen {
 
@@ -91,29 +91,18 @@ struct OCLKernelInvoke
     std::array<size_t, 3> local_work_dim     = {};
     std::function<void(cl_event&)> callback;
 
-    void operator()(std::vector<boost::spirit::hold_any> args) const
+    void operator()(std::vector<OpKernelArg> args) const
     {
         for(size_t idx = 0; idx < args.size(); idx++)
         {
-            auto arg = args[idx];
-            if(arg.type() == typeid(float))
+            auto arg      = args[idx];
+            cl_int status = clSetKernelArg(
+                kernel.get(), idx, arg.size(), reinterpret_cast<const void*>(&arg.buffer[0]));
+            if(status != CL_SUCCESS)
             {
-                auto orig_arg = boost::spirit::any_cast<float>(arg);
-                OCLSetKernelArg()(kernel.get(), idx, orig_arg);
-            }
-            else if(arg.type() == typeid(int))
-            {
-                auto orig_arg = boost::spirit::any_cast<int>(arg);
-                OCLSetKernelArg()(kernel.get(), idx, orig_arg);
-            }
-            else if(arg.type() == typeid(void*))
-            {
-                auto orig_arg = boost::spirit::any_cast<void*>(arg);
-                OCLSetKernelArg()(kernel.get(), idx, static_cast<cl_mem>(orig_arg));
-            }
-            else
-            {
-                MIOPEN_THROW("Unsupported type in kernel argument");
+                MIOPEN_THROW("Error setting argument #" + std::to_string(idx) +
+                             " to kernel (size = " + std::to_string(arg.size()) + "): " +
+                             OpenCLErrorMessage(status));
             }
         }
         run();

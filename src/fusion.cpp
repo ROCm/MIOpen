@@ -141,9 +141,9 @@ miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
     (void)(beta);
     // const float* f_alpha = static_cast<const float*>(alpha);
     auto id = std::to_string(GetIdx());
-    // args.ins_arg("alpha" + id, boost::spirit::hold_any(*f_alpha));
-    // args.ins_arg("beta" + id, boost::spirit::hold_any(*(static_cast<const float*>(beta))));
-    auto w_any = boost::spirit::hold_any(const_cast<void*>(w));
+    // args.ins_arg("alpha" + id, any_t(*f_alpha));
+    // args.ins_arg("beta" + id, any_t(*(static_cast<const float*>(beta))));
+    auto w_any = any_t(w);
     args.ins_arg("weights" + id, w_any);
     return miopenStatusSuccess;
 }
@@ -160,8 +160,8 @@ miopenStatus_t
 ActivFusionOpDescriptor::SetArgs(OperatorArgs& args, const void* alpha, const void* beta)
 {
     auto id        = std::to_string(GetIdx());
-    auto alpha_any = boost::spirit::hold_any(*(static_cast<const float*>(alpha)));
-    auto beta_any  = boost::spirit::hold_any(*(static_cast<const float*>(beta)));
+    auto alpha_any = any_t(*(static_cast<const float*>(alpha)));
+    auto beta_any  = any_t(*(static_cast<const float*>(beta)));
     args.ins_arg("alpha" + id, alpha_any);
     args.ins_arg("beta" + id, beta_any);
     return miopenStatusSuccess;
@@ -198,9 +198,9 @@ miopenStatus_t BiasFusionOpDescriptor::SetArgs(OperatorArgs& args,
     auto id = std::to_string(GetIdx());
     (void)(alpha);
     (void)(beta);
-    //    args.ins_arg("alpha" + id, boost::spirit::hold_any(*static_cast<const float*>(alpha)));
-    //    args.ins_arg("beta" + id, boost::spirit::hold_any(*static_cast<const float*>(beta)));
-    auto bdata_any = boost::spirit::hold_any(const_cast<void*>(bdata));
+    //    args.ins_arg("alpha" + id, any_t(*static_cast<const float*>(alpha)));
+    //    args.ins_arg("beta" + id, any_t(*static_cast<const float*>(beta)));
+    auto bdata_any = any_t(bdata);
     args.ins_arg("bias" + id, bdata_any);
 
     return miopenStatusSuccess;
@@ -255,42 +255,6 @@ std::string FusionPlanDescriptor::GetKernelName(Handle& handle)
     {
         MIOPEN_THROW("Unsupported starting op in Fusion Plan");
     }
-}
-// not clear where to put this
-
-template <typename Ret, typename... Args>
-Ret callfunc(std::function<Ret(Args...)> func, std::vector<boost::spirit::hold_any> anyargs);
-
-template <typename Ret>
-Ret callfunc(std::function<Ret()> func, std::vector<boost::spirit::hold_any> anyargs)
-{
-    if(anyargs.size() > 0)
-        throw std::runtime_error("oops, argument list too long");
-    return func();
-}
-
-template <typename Ret, typename Arg0, typename... Args>
-Ret callfunc(std::function<Ret(Arg0, Args...)> func, std::vector<boost::spirit::hold_any> anyargs)
-{
-    if(anyargs.size() == 0)
-        throw std::runtime_error("oops, argument list too short");
-    Arg0 arg0 = boost::spirit::any_cast<Arg0>(anyargs[0]);
-    anyargs.erase(anyargs.begin());
-    std::function<Ret(Args... args)> lambda =
-        ([=](Args... args) -> Ret { return func(arg0, args...); });
-    return callfunc(lambda, anyargs);
-}
-
-template <typename Ret, typename... Args>
-std::function<boost::spirit::hold_any(std::vector<boost::spirit::hold_any>)>
-    adaptfunc(Ret (*func)(Args...))
-{
-    std::function<Ret(Args...)> stdfunc = func;
-    std::function<boost::spirit::hold_any(std::vector<boost::spirit::hold_any>)> result =
-        ([=](std::vector<boost::spirit::hold_any> anyargs) -> boost::spirit::hold_any {
-            return boost::spirit::hold_any(callfunc(stdfunc, anyargs));
-        });
-    return result;
 }
 
 miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
@@ -356,22 +320,20 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         // }
     }
     // Construct the kernel args
-    std::vector<boost::spirit::hold_any> args;
-    args.push_back(boost::spirit::hold_any(const_cast<void*>(input)));
-    args.push_back(boost::spirit::hold_any(static_cast<void*>(output)));
+    std::vector<any_t> args;
+    args.push_back(any_t(input));
+    args.push_back(any_t(output));
     for(auto nd : ins_order)
     {
         auto op   = op_map[nd];
         auto keys = op->GetArgs();
         for(auto key : keys)
         {
-            boost::spirit::hold_any arg;
             auto it = op_args.args_map.find(key);
             if(it != op_args.args_map.end())
-                arg = it->second;
+                args.push_back(any_t(it->second));
             else
                 MIOPEN_THROW("Arg not found in Map");
-            args.push_back(arg);
         }
     }
     kernel(args);
