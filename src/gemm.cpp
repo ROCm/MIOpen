@@ -77,7 +77,8 @@ GemmGeometry CreateGemmGeometryConvBwdData(const TensorDescriptor& dyDesc,
                                            const TensorDescriptor& wDesc,
                                            const TensorDescriptor& dxDesc,
                                            bool isDataColMajor,
-                                           std::string& network_config)
+                                           std::string& network_config,
+	int groupCount)
 {
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
@@ -89,9 +90,9 @@ GemmGeometry CreateGemmGeometryConvBwdData(const TensorDescriptor& dyDesc,
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
     // GEMM
-    int K       = wei_n;
+    int K       = wei_n / groupCount;
     int N       = out_h * out_w;
-    int M       = in_c * wei_h * wei_w;
+    int M       = (in_c / groupCount) * wei_h * wei_w;
     float alpha = 1.0;
     float beta  = 0.0;
     bool tA     = true;
@@ -121,7 +122,8 @@ GemmGeometry CreateGemmGeometryConvBwdDataCNHW(const TensorDescriptor& dyDesc,
                                                const TensorDescriptor& wDesc,
                                                const TensorDescriptor& dxDesc,
                                                bool isDataColMajor,
-                                               std::string& network_config)
+                                               std::string& network_config,
+	int groupCount)
 {
     int in_n, in_c;
     std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
@@ -133,9 +135,9 @@ GemmGeometry CreateGemmGeometryConvBwdDataCNHW(const TensorDescriptor& dyDesc,
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
     // GEMM
-    int K       = wei_n;
+    int K       = wei_n / groupCount;
     int N       = in_n * out_h * out_w;
-    int M       = in_c;
+    int M       = in_c / groupCount;
     float alpha = 1.0;
     float beta  = 0.0;
     bool tA     = true;
@@ -165,7 +167,8 @@ GemmGeometry CreateGemmGeometryConvBwdWeights(const TensorDescriptor& dyDesc,
                                               const TensorDescriptor& xDesc,
                                               const TensorDescriptor& dwDesc,
                                               bool isDataColMajor,
-                                              std::string& network_config)
+                                              std::string& network_config,
+	int groupCount)
 {
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
@@ -177,8 +180,8 @@ GemmGeometry CreateGemmGeometryConvBwdWeights(const TensorDescriptor& dyDesc,
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
     // GEMM
-    int N       = in_c * wei_h * wei_w;
-    int M       = wei_n;
+    int N       = (in_c / groupCount) * wei_h * wei_w;
+    int M       = wei_n / groupCount;
     int K       = out_h * out_w;
     bool tA     = false;
     bool tB     = true;
@@ -209,7 +212,8 @@ GemmGeometry CreateGemmGeometryConvFwd(const TensorDescriptor& xDesc,
                                        const TensorDescriptor& wDesc,
                                        const TensorDescriptor& yDesc,
                                        bool isDataColMajor,
-                                       std::string& network_config)
+                                       std::string& network_config,
+	int groupCount)
 {
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
@@ -221,8 +225,8 @@ GemmGeometry CreateGemmGeometryConvFwd(const TensorDescriptor& xDesc,
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
 
     // GEMM
-    int K       = in_c * wei_h * wei_w;
-    int M       = wei_n;
+    int K       = (in_c / groupCount) * wei_h * wei_w;
+    int M       = wei_n / groupCount;
     int N       = out_h * out_w;
     float alpha = 1.0;
     float beta  = 0.0;
@@ -253,7 +257,8 @@ GemmGeometry CreateGemmGeometryConvFwdCNHW(const TensorDescriptor& xDesc,
                                            const TensorDescriptor& wDesc,
                                            const TensorDescriptor& yDesc,
                                            bool isDataColMajor,
-                                           std::string& network_config)
+                                           std::string& network_config,
+	int groupCount)
 {
     int in_n, in_c;
     std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
@@ -265,8 +270,8 @@ GemmGeometry CreateGemmGeometryConvFwdCNHW(const TensorDescriptor& xDesc,
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
 
     // GEMM
-    int K       = in_c;
-    int M       = wei_n;
+    int K       = in_c / groupCount;
+    int M       = wei_n / groupCount;
     int N       = in_n * out_h * out_w;
     float alpha = 1.0;
     float beta  = 0.0;
