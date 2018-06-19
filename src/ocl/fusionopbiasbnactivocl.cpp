@@ -33,14 +33,14 @@ miopenStatus_t ActivFusionOpDescriptor::GetNetworkConfig(std::string& network_co
                                                          Handle& handle)
 {
     (void)(handle);
-    network_config += std::to_string(base_desc.GetMode());
+    network_config += std::to_string(activMode);
     return miopenStatusSuccess;
 }
 
 miopenStatus_t ActivFusionOpDescriptor::GetCompileParms(std::string& compile_config, Handle& handle)
 {
     (void)(handle);
-    compile_config += " -DMIOPEN_NRN_OP_ID=" + std::to_string(base_desc.GetMode());
+    compile_config += " -DMIOPEN_NRN_OP_ID=" + std::to_string(activMode);
     return miopenStatusSuccess;
 }
 } // namespace miopen

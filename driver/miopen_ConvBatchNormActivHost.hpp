@@ -32,12 +32,6 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 
-#define MIO_HEIRARCH_SEL 0
-
-#if(MIO_HEIRARCH_SEL == 1)
-#define MIO_BN_DIST 32
-#endif
-
 template <typename Tgpu, typename Tref>
 int miopenBNActiveBNSpatialFwdInferHost(miopenTensorDescriptor_t& inputTensor,
                                         const Tref* in_ptr,
@@ -229,7 +223,7 @@ int miopenInferVerify(size_t size, const Tref* c_res, const Tgpu* top_ptr, Tref 
         Tref g_val     = static_cast<Tref>(top_ptr[i]);
         double err     = std::abs(c_val - g_val);
         double err_rel = calculate_relative_error(c_val, g_val);
-
+        // if(err > 1e-6) printf("i: %d, cval: %f, gval: %f\n", i, c_val, g_val );
         if((err > allowedEps && err_rel > allowedEps) || std::isnan(c_val) || std::isnan(g_val) ||
            !std::isfinite(c_val) || !std::isfinite(g_val))
         {
@@ -244,7 +238,7 @@ int miopenInferVerify(size_t size, const Tref* c_res, const Tgpu* top_ptr, Tref 
 }
 
 template <typename Tgpu, typename Tref>
-int ConvForwardCPU(const std::vector<Tgpu>& in,
+int ConvForwardCPU(const std::vector<Tref>& in,
                    std::vector<Tref>& outhost,
                    const std::vector<Tgpu>& wei,
                    const std::vector<Tgpu>& b,
