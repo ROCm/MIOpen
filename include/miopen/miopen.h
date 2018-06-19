@@ -1767,13 +1767,6 @@ miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc);
 */
 MIOPEN_EXPORT miopenStatus_t miopenIsFusionPlanValid(miopenFusionPlanDescriptor_t fusePlanDesc);
 
-/*! @brief Destroy MIOpen operator object
-*
-* @param miopenOp  operator (input)
-* @return          miopenStatus_t
-*/
-MIOPEN_EXPORT miopenStatus_t miopenDestroyOperator(miopenFusionOpDescriptor_t miopenOp);
-
 // Convolution create op with known algorithm---
 /*! @brief Creates forward convolution operator.
 *
@@ -1884,25 +1877,25 @@ miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
 *
 * @param fusePlanDesc    A fusion plan descriptor (input)
 * @param activOp         Pointer to an operator type (output)
-* @param activDesc       Activation layer descriptor (input)
+* @param mode            Activation version (input)
 * @return                miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                 miopenFusionOpDescriptor_t* activOp,
-                                const miopenActivationDescriptor_t activDesc);
+                                miopenActivationMode_t mode);
 
 /*! @brief Creates a backward activation operator.
 *
 * @param fusePlanDesc    A fusion plan descriptor (input)
 * @param activOp         Pointer to an operator type (output)
-* @param activDesc       Activation layer descriptor (input)
+* @param mode            Activation version (input)
 * @return                miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
 miopenCreateOpActivationBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                  miopenFusionOpDescriptor_t* activOp,
-                                 const miopenActivationDescriptor_t activDesc);
+                                 miopenActivationMode_t mode);
 //---
 
 // Bias create ops ---
@@ -2091,24 +2084,36 @@ miopenSetOpArgsConvBackwardWeights(miopenOperatorArgs_t args,
 * @param args    An arguments object type (output)
 * @param alpha   Floating point scaling factor, allocated on the host (input)
 * @param beta    Floating point shift factor, allocated on the host (input)
+* @param activAlpha  Double precision activation parameter which depends on activation mode (input)
+* @param activBeta   Double precision activation parameter which depends on activation mode (input)
+* @param activGamma  Double precision activation parameter which depends on activation mode (input)
 * @return        miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
                                                          const miopenFusionOpDescriptor_t activOp,
                                                          const void* alpha,
-                                                         const void* beta);
+                                                         const void* beta,
+                                                         double activAlpha,
+                                                         double activBeta,
+                                                         double activGamma);
 
 /*! @brief Sets the arguments for backward activation op
 *
 * @param args    An arguments object type (output)
 * @param alpha   Floating point scaling factor, allocated on the host (input)
 * @param beta    Floating point shift factor, allocated on the host (input)
+* @param activAlpha  Double precision activation parameter which depends on activation mode (input)
+* @param activBeta   Double precision activation parameter which depends on activation mode (input)
+* @param activGamma  Double precision activation parameter which depends on activation mode (input)
 * @return        miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsActivBackward(miopenOperatorArgs_t args,
                                                           const miopenFusionOpDescriptor_t activOp,
                                                           const void* alpha,
-                                                          const void* beta);
+                                                          const void* beta,
+                                                          double activAlpha,
+                                                          double activBeta,
+                                                          double activGamma);
 
 // Batch Normalization set arguments ---
 /*! @brief Sets the arguments for inference batch normalization op

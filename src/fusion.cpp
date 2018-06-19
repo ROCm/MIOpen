@@ -27,6 +27,7 @@
 #include <miopen/fusion.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/visit_float.hpp>
 
 namespace miopen {
 
@@ -156,14 +157,24 @@ std::vector<std::string> ConvForwardOpDescriptor::GetArgs() const
 }
 
 // Activ Forward
-miopenStatus_t
-ActivFusionOpDescriptor::SetArgs(OperatorArgs& args, const void* alpha, const void* beta)
+miopenStatus_t ActivFusionOpDescriptor::SetArgs(OperatorArgs& args,
+                                                const void* alpha,
+                                                const void* beta,
+                                                double activAlpha,
+                                                double activBeta,
+                                                double activGamma)
 {
-    auto id        = std::to_string(GetIdx());
-    auto alpha_any = any_t(*(static_cast<const float*>(alpha)));
-    auto beta_any  = any_t(*(static_cast<const float*>(beta)));
-    args.ins_arg("alpha" + id, alpha_any);
-    args.ins_arg("beta" + id, beta_any);
+    auto id             = std::to_string(GetIdx());
+    auto alpha_any      = any_t(*(static_cast<const float*>(alpha)));
+    auto beta_any       = any_t(*(static_cast<const float*>(beta)));
+    auto activAlpha_any = any_t(static_cast<float>(activAlpha));
+    auto activBeta_any  = any_t(static_cast<float>(activBeta));
+    auto activGamma_any = any_t(static_cast<float>(activGamma));
+    // args.ins_arg("alpha" + id, alpha_any);
+    // args.ins_arg("beta" + id, beta_any);
+    args.ins_arg("activAlpha" + id, activAlpha_any);
+    args.ins_arg("activBeta" + id, activBeta_any);
+    args.ins_arg("activGamma" + id, activGamma_any);
     return miopenStatusSuccess;
 }
 
@@ -171,8 +182,11 @@ std::vector<std::string> ActivFusionOpDescriptor::GetArgs() const
 {
     std::vector<std::string> keys;
     auto id = std::to_string(GetIdx());
-    keys.push_back("alpha" + id);
-    keys.push_back("beta" + id);
+    // keys.push_back("alpha" + id);
+    // keys.push_back("beta" + id);
+    keys.push_back("activAlpha" + id);
+    keys.push_back("activBeta" + id);
+    keys.push_back("activGamma" + id);
     return keys;
 }
 
