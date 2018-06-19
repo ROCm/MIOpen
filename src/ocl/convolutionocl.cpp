@@ -940,6 +940,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 // y = w * x
                 CallGemmStridedBatched(handle, gemm_param, w, 0, x, 0, y, 0);
             }
+            // if not 1x1
             else
             {
 #if CONV_GEMM_DEBUG
@@ -957,42 +958,39 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 for(int i = 0; i < in_n; i++)
                 {
                     int out_offset = i * wei_n * out_h * out_w;
-                    if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
+                    size_t in_offset = i * in_c * in_h * in_w;
+                    Im2ColGPU(handle,
+                              xDesc.GetElementSize(),
+                              x,
+                              in_offset,
+                              in_c,
+                              in_h,
+                              in_w,
+                              wei_h,
+                              wei_w,
+                              out_h,
+                              out_w,
+                              pad_h,
+                              pad_w,
+                              u,
+                              v,
+                              dilation_h,
+                              dilation_w,
+                              workSpace);
+                    if(handle.IsProfilingEnabled())
+                        t1 = handle.GetKernelTime();
+
+                    // y = w * Im2Col(x)
+                    CallGemm(handle, gemm_param, w, 0, workSpace, 0, y, out_offset);
+
+                    // Update times for both the kernels
+                    if(handle.IsProfilingEnabled())
                     {
-                        size_t in_offset = i * in_c * in_h * in_w;
-                        Im2ColGPU(handle,
-                                  xDesc.GetElementSize(),
-                                  x,
-                                  in_offset,
-                                  in_c,
-                                  in_h,
-                                  in_w,
-                                  wei_h,
-                                  wei_w,
-                                  out_h,
-                                  out_w,
-                                  pad_h,
-                                  pad_w,
-                                  u,
-                                  v,
-                                  dilation_h,
-                                  dilation_w,
-                                  workSpace);
-                        if(handle.IsProfilingEnabled())
-                            t1 = handle.GetKernelTime();
-
-                        // y = w * Im2Col(x)
-                        CallGemm(handle, gemm_param, w, 0, workSpace, 0, y, out_offset);
-
-                        // Update times for both the kernels
-                        if(handle.IsProfilingEnabled())
-                        {
-                            if(i == in_n - 1)
-                                handle.AccumKernelTime(t1 + time_0);
-                            else
-                                handle.AccumKernelTime(t1);
-                            time_0 += handle.GetKernelTime();
-                        }
+                        if(i == in_n - 1)
+                            handle.AccumKernelTime(t1 + time_0);
+                        else
+                            handle.AccumKernelTime(t1);
+                        time_0 += handle.GetKernelTime();
                     }
                 }
             }
@@ -1396,7 +1394,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 #if MIOPEN_USE_GEMM
         if(dyDesc.GetType() == miopenFloat)
         {
-            // 1x1 does not require col2im or workspace
+            // 1x1 does not require col2im
             if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
                dilation_w == 1 && dilation_h == 1 && workSpace != nullptr &&
                workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc))
@@ -1807,6 +1805,10 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             // if not 1x1
             else
             {
+#if CONV_GEMM_DEBUG
+                std::cout << __func__ << ": convolution, non 1x1" << std::endl;
+#endif
+
                 assert(workSpace != nullptr &&
                        workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc));
 
@@ -1820,48 +1822,40 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 for(int i = 0; i < in_n; i++)
                 {
                     int out_offset = i * wei_n * out_h * out_w;
+                    size_t in_offset = i * in_c * in_h * in_w;
 
-                    if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
+                    // dx = transpose(w) * dy
+                    CallGemm(handle, gemm_param, w, 0, dy, out_offset, workSpace, 0);
+
+                    if(handle.IsProfilingEnabled())
+                        t1 = handle.GetKernelTime();
+
+                    Col2ImGPU(handle,
+                              workSpace,
+                              out_h,
+                              out_w,
+                              wei_h,
+                              wei_w,
+                              pad_h,
+                              pad_w,
+                              u,
+                              v,
+                              dilation_h,
+                              dilation_w,
+                              in_c,
+                              in_h,
+                              in_w,
+                              dx,
+                              in_offset);
+
+                    // Update times for both the kernels
+                    if(handle.IsProfilingEnabled())
                     {
-#if CONV_GEMM_DEBUG
-                        std::cout << __func__ << ": convolution, non 1x1" << std::endl;
-#endif
-
-                        size_t in_offset = i * in_c * in_h * in_w;
-
-                        // dx = transpose(w) * dy
-                        CallGemm(handle, gemm_param, w, 0, dy, out_offset, workSpace, 0);
-
-                        if(handle.IsProfilingEnabled())
-                            t1 = handle.GetKernelTime();
-
-                        Col2ImGPU(handle,
-                                  workSpace,
-                                  out_h,
-                                  out_w,
-                                  wei_h,
-                                  wei_w,
-                                  pad_h,
-                                  pad_w,
-                                  u,
-                                  v,
-                                  dilation_h,
-                                  dilation_w,
-                                  in_c,
-                                  in_h,
-                                  in_w,
-                                  dx,
-                                  in_offset);
-
-                        // Update times for both the kernels
-                        if(handle.IsProfilingEnabled())
-                        {
-                            if(i == in_n - 1)
-                                handle.AccumKernelTime(t1 + time_0);
-                            else
-                                handle.AccumKernelTime(t1);
-                            time_0 += handle.GetKernelTime();
-                        }
+                        if(i == in_n - 1)
+                            handle.AccumKernelTime(t1 + time_0);
+                        else
+                            handle.AccumKernelTime(t1);
+                        time_0 += handle.GetKernelTime();
                     }
                 }
             }
@@ -2396,6 +2390,10 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
             if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
             {
+#if CONV_GEMM_DEBUG
+                std::cout << __func__ << ": convolution, non 1x1" << std::endl;
+#endif
+
                 assert(workSpace != nullptr &&
                        workSpaceSize >=
                            BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc));
@@ -2406,10 +2404,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 for(int i = 0; i < in_n; i++)
                 {
                     int out_offset = i * wei_n * out_h * out_w;
-#if CONV_GEMM_DEBUG
-                    std::cout << __func__ << ": convolution, non 1x1" << std::endl;
-#endif
-
                     size_t in_offset = i * in_c * in_h * in_w;
                     Im2ColGPU(handle,
                               xDesc.GetElementSize(),
