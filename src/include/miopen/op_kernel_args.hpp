@@ -6,8 +6,7 @@
 #include <boost/container/small_vector.hpp>
 struct OpKernelArg
 {
-//    OpKernelArg(){};
-    template< typename T>
+    template <typename T>
     OpKernelArg(T arg)
     {
         assert(std::is_fundamental<T>::value);
@@ -17,8 +16,8 @@ struct OpKernelArg
             buffer.push_back(*(chptr + idx));
         }
     }
-    template< typename T>
-    OpKernelArg(T * arg) 
+    template <typename T>
+    OpKernelArg(T* arg)
     {
         auto intptr = reinterpret_cast<std::uintptr_t>(arg);
         char* chptr = reinterpret_cast<char*>(&intptr);
@@ -27,8 +26,7 @@ struct OpKernelArg
             buffer.push_back(*(chptr + idx));
         }
     }
-    // TODO:JD a move might actually suffice!
-    OpKernelArg(const OpKernelArg& other):buffer(other.buffer) {};
-    std::size_t size() {return buffer.size();};
+    OpKernelArg(const OpKernelArg& other) : buffer(other.buffer){};
+    std::size_t size() { return buffer.size(); };
     boost::container::small_vector<char, 8> buffer;
 };
