@@ -207,7 +207,7 @@ template <class Solver, class Context, class Db>
 auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&)
     -> decltype(s.GetSolution(context))
 {
-    MIOPEN_LOG_I("Not searchable: " << SolverDbId(s));
+    MIOPEN_LOG_I(SolverDbId(s) << " (not searchable)");
     return s.GetSolution(context);
 }
 
