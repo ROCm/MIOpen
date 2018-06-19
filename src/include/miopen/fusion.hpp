@@ -72,7 +72,8 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     int GetIdx() const { return plan_idx; };
     virtual miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) = 0;
     virtual miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
-    virtual miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
+    virtual miopenStatus_t
+    GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm = false);
     friend std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x);
     virtual miopenFusionOp_t name()                  = 0;
     virtual std::vector<std::string> GetArgs() const = 0;
@@ -90,7 +91,8 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
     BiasFusionOpDescriptor(TensorDescriptor& desc) : base_desc(desc){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc);
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
-    miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
+    miopenStatus_t
+    GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm = false);
     miopenStatus_t
     SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t dbias);
     std::vector<std::string> GetArgs() const;
@@ -103,7 +105,8 @@ struct ActivFusionOpDescriptor : FusionOpDescriptor
     ActivFusionOpDescriptor(miopenActivationMode_t mode) : activMode(mode){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc);
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
-    miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
+    miopenStatus_t
+    GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm = false);
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
@@ -120,7 +123,8 @@ struct BatchNormFusionOpDescriptor : FusionOpDescriptor
     BatchNormFusionOpDescriptor(TensorDescriptor& desc) : base_desc(desc){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc);
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
-    miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
+    miopenStatus_t
+    GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm = false);
     // miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta);
     std::vector<std::string> GetArgs() const;
     miopenFusionOp_t name() { return miopenFusionOpActiv; };
@@ -140,7 +144,9 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t w);
     std::vector<std::string> GetArgs() const;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
-    miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
+    miopenStatus_t
+    GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm = false);
+    bool isASMApplicable();
     solver::KernelInfo& GetKernelInfo(Handle& handle);
     miopenFusionOp_t name() { return miopenFusionOpConv; };
     ConvolutionDescriptor& base_desc;
