@@ -78,7 +78,7 @@ ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t c_mode,
                      ">= 0, stride >= 1, dilation >= 1 and the same dilation "
                      "factor for horizontal and vertical direction");
     }
-    if(!(mode == miopenConvolution || mode == miopenTranspose))
+    if(!(mode == miopenConvolution || mode == miopenTranspose || mode == miopenGroupConv || mode == miopenDepthwise))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Convolution mode not supported");
     }
@@ -130,6 +130,20 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
             MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
         }
     }
+	else if (mode == miopenGroupConv)
+	{
+		if (input_c % filter_c != 0)
+		{
+			MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
+		}
+	}
+	else if (mode == miopenDepthwise)
+	{
+		if (filter_c != 1 || filter_k % input_c != 0)
+		{
+			MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
+		}
+	}
 
     std::ptrdiff_t output_c;
     std::ptrdiff_t output_h;
@@ -145,7 +159,7 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
             output_w = std::max<std::ptrdiff_t>(
                 1, v * (input_w - 1) + 1 + dilation_w * (filter_w - 1.0) - 2 * pad_w);
         }
-        else if(mode == miopenConvolution)
+        else
         {
             output_c = filter_k;
             output_h = std::max<std::ptrdiff_t>(
