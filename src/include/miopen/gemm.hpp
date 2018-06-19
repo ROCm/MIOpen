@@ -44,31 +44,36 @@ GemmGeometry CreateGemmGeometryConvBwdWeights(const TensorDescriptor& dyDesc,
                                               const TensorDescriptor& xDesc,
                                               const TensorDescriptor& dwDesc,
                                               bool isDataColMajor,
-                                              std::string& network_config);
+                                              std::string& network_config,
+	int groupCount = 1);
 
 GemmGeometry CreateGemmGeometryConvBwdData(const TensorDescriptor& dyDesc,
                                            const TensorDescriptor& wDesc,
                                            const TensorDescriptor& dxDesc,
                                            bool isDataColMajor,
-                                           std::string& network_config);
+                                           std::string& network_config,
+	int groupCount = 1);
 
 GemmGeometry CreateGemmGeometryConvBwdDataCNHW(const TensorDescriptor& dyDesc,
                                                const TensorDescriptor& wDesc,
                                                const TensorDescriptor& dxDesc,
                                                bool isDataColMajor,
-                                               std::string& network_config);
+                                               std::string& network_config,
+	int groupCount = 1);
 
 GemmGeometry CreateGemmGeometryConvFwd(const TensorDescriptor& xDesc,
                                        const TensorDescriptor& wDesc,
                                        const TensorDescriptor& yDesc,
                                        bool isDataColMajor,
-                                       std::string& network_config);
+                                       std::string& network_config,
+	int groupCount = 1);
 
 GemmGeometry CreateGemmGeometryConvFwdCNHW(const TensorDescriptor& xDesc,
                                            const TensorDescriptor& wDesc,
                                            const TensorDescriptor& yDesc,
                                            bool isDataColMajor,
-                                           std::string& network_config);
+                                           std::string& network_config,
+	int groupCount = 1);
 
 GemmGeometry CreateGemmGeometryRNN(int M,
                                    int N,
