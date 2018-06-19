@@ -32,9 +32,10 @@ namespace miopen {
 // operator args
 OperatorArgs::OperatorArgs() {}
 
-void OperatorArgs::ins_arg(std::string name, boost::spirit::hold_any v)
+void OperatorArgs::ins_arg(std::string name, any_t v)
 {
-    args_map[name] = v;
+    args_map.emplace(std::make_pair(name, v));
+    //    args_map[name] = std::move(v);
     args_vec.push_back(v);
 }
 
