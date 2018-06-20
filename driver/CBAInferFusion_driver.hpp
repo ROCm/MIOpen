@@ -266,7 +266,15 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
     SetTensor4d(inputTensor, in_len, data_type);
     SetTensor4d(weightTensor, wei_len, data_type);
 
-    std::vector<int> out_len = GetOutputTensorLengths();
+    std::vector<int> out_len{};
+    if(fusion_mode != 2)
+    {
+        out_len = GetOutputTensorLengths();    
+    }
+    else
+    {
+        out_len = in_len;
+    }
     SetTensor4d(outputTensor, out_len, data_type);
 
     std::vector<int> sb_len;
@@ -519,12 +527,16 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         sb_sz = GetTensorSize(biasScaleTensor);
     }
 
-    size_t out_sz = GetTensorSize(outputTensor);
+    size_t out_sz = 0;
+    if(fusion_mode != 2) GetTensorSize(outputTensor);
+    else out_sz = in_sz;
 
     size_t workSpaceSize_fwd = 0;
-    miopenConvolutionForwardGetWorkSpaceSize(
-        GetHandle(), weightTensor, inputTensor, convDesc, outputTensor, &workSpaceSize_fwd);
-
+    if(fusion_mode != 2)
+    {
+        miopenConvolutionForwardGetWorkSpaceSize(GetHandle(), weightTensor, inputTensor, 
+                                                 convDesc, outputTensor, &workSpaceSize_fwd);
+    }
     // Workaround: Pad buffers allocations to be a multiple of 2M
     if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
     {
