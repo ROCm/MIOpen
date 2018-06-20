@@ -54,14 +54,18 @@ extern "C" miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDescr
     });
 }
 
-extern "C" miopenStatus_t miopenSetConvolutionGroupCount(miopenConvolutionDescriptor_t    convDesc,
-	int                             groupCount)
+extern "C" miopenStatus_t miopenSetConvolutionGroupCount(miopenConvolutionDescriptor_t convDesc,
+                                                         int groupCount)
 {
 
-	MIOPEN_LOG_FUNCTION(convDesc, groupCount);
-	return miopen::try_([&] {
-		miopen::deref(convDesc).group_count = groupCount;
-	});
+    MIOPEN_LOG_FUNCTION(convDesc, groupCount);
+    return miopen::try_([&] {
+        miopen::deref(convDesc).group_count = groupCount;
+        if(groupCount > 1 &&
+           !(miopen::deref(convDesc).mode == miopenTranspose ||
+             miopen::deref(convDesc).mode == miopenDepthwise))
+            miopen::deref(convDesc).mode = miopenGroupConv;
+    });
 }
 
 extern "C" miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDescriptor_t convDesc,
