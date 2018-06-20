@@ -78,7 +78,7 @@ GemmGeometry CreateGemmGeometryConvBwdData(const TensorDescriptor& dyDesc,
                                            const TensorDescriptor& dxDesc,
                                            bool isDataColMajor,
                                            std::string& network_config,
-	int groupCount)
+                                           int groupCount)
 {
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
@@ -123,7 +123,7 @@ GemmGeometry CreateGemmGeometryConvBwdDataCNHW(const TensorDescriptor& dyDesc,
                                                const TensorDescriptor& dxDesc,
                                                bool isDataColMajor,
                                                std::string& network_config,
-	int groupCount)
+                                               int groupCount)
 {
     int in_n, in_c;
     std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
@@ -168,7 +168,7 @@ GemmGeometry CreateGemmGeometryConvBwdWeights(const TensorDescriptor& dyDesc,
                                               const TensorDescriptor& dwDesc,
                                               bool isDataColMajor,
                                               std::string& network_config,
-	int groupCount)
+                                              int groupCount)
 {
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
@@ -213,7 +213,7 @@ GemmGeometry CreateGemmGeometryConvFwd(const TensorDescriptor& xDesc,
                                        const TensorDescriptor& yDesc,
                                        bool isDataColMajor,
                                        std::string& network_config,
-	int groupCount)
+                                       int groupCount)
 {
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
@@ -258,7 +258,7 @@ GemmGeometry CreateGemmGeometryConvFwdCNHW(const TensorDescriptor& xDesc,
                                            const TensorDescriptor& yDesc,
                                            bool isDataColMajor,
                                            std::string& network_config,
-	int groupCount)
+                                           int groupCount)
 {
     int in_n, in_c;
     std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
