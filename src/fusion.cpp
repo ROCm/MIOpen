@@ -268,15 +268,16 @@ std::vector<std::string> BiasFusionOpDescriptor::GetArgs() const
     return keys;
 }
 // Op LUT
-bool FusionOpLU::Advance(std::vector<std::shared_ptr<FusionOpDescriptor>> op_map)
+bool FusionOpLU::Advance(std::vector<std::shared_ptr<miopen::FusionOpDescriptor>> op_map)
 {
 
+    auto valid = false;
     for(auto supportedOps : lut)
     {
-        auto valid = std::equal(supportedOps.begin(),
-                                supportedOps.end(),
+        valid = std::equal(supportedOps.begin(),
+                                supportedOps.begin()+op_map.size() - 1,
                                 op_map.begin(),
-                                [](miopenFusionOp_t x, std::shared_ptr<FusionOpDescriptor> y) {
+                                [&](miopenFusionOp_t x, std::shared_ptr<miopen::FusionOpDescriptor> y) {
                                     return x == y->kind();
                                 });
         if(valid)
@@ -340,11 +341,11 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     std::string algorithm_name = "miopenDirConvBatchNormActivAlgo";
     if(output_desc != outputDesc)
     {
-        MIOPEN_THROW("The output descriptors dont match");
+        MIOPEN_THROW("The output descriptors dont match.");
     }
     if(input_desc != inputDesc)
     {
-        MIOPEN_THROW("The input descriptors dont match");
+        MIOPEN_THROW("The input descriptors dont match.");
     }
     if(!isValid())
         MIOPEN_THROW("The execution plan is not valid.");
