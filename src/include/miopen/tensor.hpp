@@ -172,6 +172,7 @@ struct f_length_is_not_1_t
     }
 };
 
+// user should guarantee that all input TensorDescritpors have the same GetLengths()
 template <typename... TDescriptors>
 std::tuple<TDescriptors...>
 get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descriptor_pack)
@@ -180,19 +181,6 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
     std::integral_constant<std::size_t, NTensor> NTensorConstant;
 
     std::array<const TensorDescriptor*, NTensor> real_descriptors{{(&real_descriptor_pack)...}};
-
-#if 0
-    // check input tensor descriptors consistency
-    const auto& real_desc_0_lens = real_descriptors[0]->GetLengths();
-
-    for(std::size_t itensor = 1; itensor < NTensor; ++itensor)
-    {
-        auto& real_desc_lens = real_descriptors[itensor]->GetLengths();
-
-        if(real_desc_0_lens != real_desc_lens)
-            MIOPEN_THROW(miopenStatusBadParm, "Lengths of Tensors are different.");
-    }
-#endif
 
     // start flattening tensors
     std::array<std::vector<std::size_t>, NTensor> array_of_flat_lengths;
@@ -206,8 +194,8 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
     std::size_t flat_len = boost::get<0>(*i);
     auto i_previous      = i++;
 
-    for(; i != non1_length_strides.end(); ++i)
     // the 0-th dimension full-length doesn't matter
+    for(; i != non1_length_strides.end(); ++i)
     {
         std::size_t len = boost::get<0>(*i);
 
