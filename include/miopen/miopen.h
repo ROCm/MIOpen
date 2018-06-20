@@ -303,8 +303,8 @@ typedef enum {
 typedef enum {
     miopenConvolution = 0, /*!< Cross-Correlation convolution */
     miopenTranspose   = 1, /*!< Transpose convolutions -- deconvolution */
-	miopenGroupConv = 2, /*!< Group convolution */
-	miopenDepthwise = 3, /*!< Depthwise convolution */
+    miopenGroupConv   = 2, /*!< Group convolution */
+    miopenDepthwise   = 3, /*!< Depthwise convolution */
 } miopenConvolutionMode_t;
 
 /*! @ingroup padding
@@ -599,11 +599,12 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDes
 /*! @brief Specify the number of groups to be used in the associated convolution
 *
 * @param convDesc   Convolution layer descriptor (output)
-* @param groupCount      number of groups, in depthwise conv using filter_number/channel_multiplier (input)
+* @param groupCount      number of groups, in depthwise conv using filter_number/channel_multiplier
+* (input)
 * @return           miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t miopenSetConvolutionGroupCount(miopenConvolutionDescriptor_t    convDesc,
-	int                             groupCount);
+MIOPEN_EXPORT miopenStatus_t miopenSetConvolutionGroupCount(miopenConvolutionDescriptor_t convDesc,
+                                                            int groupCount);
 
 /*! @brief Get the shape of a resulting 4-D tensor from a 2-D convolution
  *

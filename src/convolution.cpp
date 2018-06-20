@@ -78,7 +78,8 @@ ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t c_mode,
                      ">= 0, stride >= 1, dilation >= 1 and the same dilation "
                      "factor for horizontal and vertical direction");
     }
-    if(!(mode == miopenConvolution || mode == miopenTranspose || mode == miopenGroupConv || mode == miopenDepthwise))
+    if(!(mode == miopenConvolution || mode == miopenTranspose || mode == miopenGroupConv ||
+         mode == miopenDepthwise))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Convolution mode not supported");
     }
@@ -130,20 +131,20 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
             MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
         }
     }
-	else if (mode == miopenGroupConv)
-	{
-		if (input_c % filter_c != 0)
-		{
-			MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
-		}
-	}
-	else if (mode == miopenDepthwise)
-	{
-		if (filter_c != 1 || filter_k % input_c != 0)
-		{
-			MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
-		}
-	}
+    else if(mode == miopenGroupConv)
+    {
+        if(input_c % filter_c != 0 || filter_k % (input_c / filter_c) != 0)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
+        }
+    }
+    else if(mode == miopenDepthwise)
+    {
+        if(filter_c != 1 || filter_k % input_c != 0)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
+        }
+    }
 
     std::ptrdiff_t output_c;
     std::ptrdiff_t output_h;
@@ -365,7 +366,8 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         // If Winograd is present, there is no advantage in letting
         // the user run another algorithm as those both slower and
         // use more workspace.
-        if(IsWinograd3x3Supported(handle, true, wDesc, xDesc))
+        if(IsWinograd3x3Supported(handle, true, wDesc, xDesc) &&
+           !(mode == miopenGroupConv || mode == miopenDepthwise))
         {
             return 0;
         }
@@ -409,7 +411,8 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         // If Winograd is present, there is no advantage in letting
         // the user run another algorithm as those both slower and
         // use more workspace.
-        if(IsWinograd3x3Supported(handle, false, wDesc, dyDesc))
+        if(IsWinograd3x3Supported(handle, false, wDesc, dyDesc) &&
+           !(mode == miopenGroupConv || mode == miopenDepthwise))
         {
             return 0;
         }
