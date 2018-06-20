@@ -42,6 +42,8 @@
 // TODO(paul): remove this include later
 #include <cstdio>
 
+#define TENSOR_HPP_DEBUG 0
+
 namespace miopen {
 
 template <class T, std::size_t... Ns>
@@ -172,7 +174,6 @@ struct f_length_is_not_1_t
     }
 };
 
-// user should guarantee that all input TensorDescritpors have the same GetLengths()
 template <typename... TDescriptors>
 std::tuple<TDescriptors...>
 get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descriptor_pack)
@@ -181,6 +182,17 @@ get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descript
     std::integral_constant<std::size_t, NTensor> NTensorConstant;
 
     std::array<const TensorDescriptor*, NTensor> real_descriptors{{(&real_descriptor_pack)...}};
+
+#if TENSOR_HPP_DEBUG
+    // sanity check: all input TensorDescriptors should have the same GetLengths()
+    const auto& real_desc_0_lens = real_descriptors[0]->GetLengths();
+
+    for(std::size_t itensor = 1; itensor < NTensor; ++itensor)
+    {
+        if(real_desc_0_lens != real_descriptors[itensor]->GetLengths())
+            MIOPEN_THROW(miopenStatusBadParm, "Lengths of Tensors are different.");
+    }
+#endif
 
     // start flattening tensors
     std::array<std::vector<std::size_t>, NTensor> array_of_flat_lengths;
