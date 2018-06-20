@@ -92,10 +92,12 @@ void CallGemm(Handle& handle,
         std::swap(gemm_param.lda, gemm_param.ldb);
     }
 
+#if GEMM_V2_CPP_PROFILE
     hipEvent_t start, stop;
     hipEventCreate(&start);
     hipEventCreate(&stop);
     hipEventRecord(start, nullptr);
+#endif
 
     rocblas_sgemm(handle.rhandle.get(),
                   gemm_param.transA ? rocblas_operation_transpose : rocblas_operation_none,
@@ -112,6 +114,7 @@ void CallGemm(Handle& handle,
                   static_cast<float*>(C) + c_offset,
                   gemm_param.ldc);
 
+#if GEMM_V2_CPP_PROFILE
     hipEventRecord(stop, nullptr);
     hipDeviceSynchronize();
     float mS = 0;
@@ -120,6 +123,7 @@ void CallGemm(Handle& handle,
     hipEventDestroy(stop);
     handle.ResetKernelTime();
     handle.AccumKernelTime(mS);
+#endif
 
 #elif MIOPEN_USE_MIOPENGEMM
 #if GEMM_V2_CPP_DEBUG
@@ -241,10 +245,13 @@ void CallGemmStridedBatched(Handle& handle,
         std::swap(gemm_param.strideA, gemm_param.strideB);
     }
 
+#if GEMM_V2_CPP_PROFILE
     hipEvent_t start, stop;
     hipEventCreate(&start);
     hipEventCreate(&stop);
     hipEventRecord(start, nullptr);
+#endif
+
     rocblas_sgemm_strided_batched(
         handle.rhandle.get(),
         gemm_param.transA ? rocblas_operation_transpose : rocblas_operation_none,
@@ -264,6 +271,8 @@ void CallGemmStridedBatched(Handle& handle,
         gemm_param.ldc,
         gemm_param.strideC,
         gemm_param.batch_count);
+
+#if GEMM_V2_CPP_PROFILE
     hipEventRecord(stop, nullptr);
     hipDeviceSynchronize();
     float mS = 0;
@@ -272,6 +281,8 @@ void CallGemmStridedBatched(Handle& handle,
     hipEventDestroy(stop);
     handle.ResetKernelTime();
     handle.AccumKernelTime(mS);
+#endif
+
 #elif MIOPEN_USE_MIOPENGEMM
 
     CallGemmStridedBatchedSequential(handle, gemm_param, A, a_offset, B, b_offset, C, c_offset);
@@ -298,7 +309,59 @@ void CallGemmStridedBatchedSequential(Handle& handle,
                                       Data_t C,
                                       int c_offset)
 {
-#if MIOPEN_USE_MIOPENGEMM
+#if MIOPEN_USE_ROCBLAS
+#if GEMM_V2_CPP_DEBUG
+    std::cout << std::endl << __func__ << ": rocBLAS" << std::endl;
+#endif
+
+    if(!gemm_param.isColMajor)
+    {
+        // gemm_param.isColMajor = true;
+        std::swap(A, B);
+        std::swap(a_offset, b_offset);
+        std::swap(gemm_param.transA, gemm_param.transB);
+        std::swap(gemm_param.m, gemm_param.n);
+        std::swap(gemm_param.lda, gemm_param.ldb);
+        std::swap(gemm_param.strideA, gemm_param.strideB);
+    }
+
+#if GEMM_V2_CPP_PROFILE
+    hipEvent_t start, stop;
+    hipEventCreate(&start);
+    hipEventCreate(&stop);
+    hipEventRecord(start, nullptr);
+#endif
+
+    for(int i = 0; i < gemm_param.batch_count; ++i)
+    {
+        rocblas_sgemm(handle.rhandle.get(),
+                      gemm_param.transA ? rocblas_operation_transpose : rocblas_operation_none,
+                      gemm_param.transB ? rocblas_operation_transpose : rocblas_operation_none,
+                      gemm_param.m,
+                      gemm_param.n,
+                      gemm_param.k,
+                      &gemm_param.alpha,
+                      static_cast<const float*>(A) + a_offset + i * gemm_param.strideA,
+                      gemm_param.lda,
+                      static_cast<const float*>(B) + b_offset + i * gemm_param.strideB,
+                      gemm_param.ldb,
+                      &gemm_param.beta,
+                      static_cast<float*>(C) + c_offset + i * gemm_param.strideC,
+                      gemm_param.ldc);
+    }
+
+#if GEMM_V2_CPP_PROFILE
+    hipEventRecord(stop, nullptr);
+    hipDeviceSynchronize();
+    float mS = 0;
+    hipEventElapsedTime(&mS, start, stop);
+    hipEventDestroy(start);
+    hipEventDestroy(stop);
+    handle.ResetKernelTime();
+    handle.AccumKernelTime(mS);
+#endif
+
+#elif MIOPEN_USE_MIOPENGEMM
 
 #if GEMM_V2_CPP_DEBUG
     std::cout << __func__ << ": MIOpenGEMM" << std::endl;
@@ -422,13 +485,6 @@ GemmParam CreateGemmParamConvFwd(const TensorDescriptor& wDesc,
                                  const TensorDescriptor& xDesc,
                                  const TensorDescriptor& yDesc)
 {
-#if 0
-    std::cout << std::endl << __func__ << std::endl;
-    std::cout << __func__ << ": wDesc: " << wDesc << std::endl;
-    std::cout << __func__ << ": xDesc: " << xDesc << std::endl;
-    std::cout << __func__ << ": yDesc: " << yDesc << std::endl;
-#endif
-
     int in_c;
     std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
 
@@ -476,13 +532,6 @@ GemmParam CreateGemmParamConvBwdData(const TensorDescriptor& wDesc,
                                      const TensorDescriptor& dyDesc,
                                      const TensorDescriptor& dxDesc)
 {
-#if 0
-    std::cout << std::endl << __func__ << std::endl;
-    std::cout << __func__ << ":  wDesc: " <<  wDesc << std::endl;
-    std::cout << __func__ << ": dxDesc: " << dxDesc << std::endl;
-    std::cout << __func__ << ": dyDesc: " << dyDesc << std::endl;
-#endif
-
     int in_c;
     std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
 
@@ -530,13 +579,6 @@ GemmParam CreateGemmParamConvBwdWeight(const TensorDescriptor& dyDesc,
                                        const TensorDescriptor& xDesc,
                                        const TensorDescriptor& dwDesc)
 {
-#if 0
-    std::cout << std::endl << __func__ << std::endl;
-    std::cout << __func__ << ": dwDesc: " << dwDesc << std::endl;
-    std::cout << __func__ << ":  xDesc: " << xDesc << std::endl;
-    std::cout << __func__ << ": dyDesc: " << dyDesc << std::endl;
-#endif
-
     int in_c;
     std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
 
@@ -584,13 +626,6 @@ GemmParam CreateGemmParamConvCNHWFwd(const TensorDescriptor& wDesc,
                                      const TensorDescriptor& xDesc,
                                      const TensorDescriptor& yDesc)
 {
-#if 0
-    std::cout << std::endl << __func__ << std::endl;
-    std::cout << __func__ << ": wDesc: " << wDesc << std::endl;
-    std::cout << __func__ << ": xDesc: " << xDesc << std::endl;
-    std::cout << __func__ << ": yDesc: " << yDesc << std::endl;
-#endif
-
     int in_n, in_c;
     std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
 
@@ -638,13 +673,6 @@ GemmParam CreateGemmParamConvCNHWBwdData(const TensorDescriptor& wDesc,
                                          const TensorDescriptor& dyDesc,
                                          const TensorDescriptor& dxDesc)
 {
-#if 0
-    std::cout << std::endl << __func__ << std::endl;
-    std::cout << __func__ << ":  wDesc: " << wDesc << std::endl;
-    std::cout << __func__ << ": dxDesc: " << dxDesc << std::endl;
-    std::cout << __func__ << ": dyDesc: " << dyDesc << std::endl;
-#endif
-
     int in_n, in_c;
     std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
 
@@ -693,12 +721,6 @@ GemmParam CreateGemmStridedBatchedParamConv1x1Fwd(const TensorDescriptor& wDesc,
                                                   const TensorDescriptor& yDesc)
 {
     (void)yDesc;
-#if 0
-    std::cout << std::endl << __func__ << std::endl;
-    std::cout << __func__ << ": wDesc: " << wDesc << std::endl;
-    std::cout << __func__ << ": xDesc: " << xDesc << std::endl;
-    std::cout << __func__ << ": yDesc: " << yDesc << std::endl;
-#endif
 
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
@@ -745,12 +767,6 @@ GemmParam CreateGemmStridedBatchedParamConv1x1BwdData(const TensorDescriptor& wD
                                                       const TensorDescriptor& dxDesc)
 {
     (void)dyDesc;
-#if 0
-    std::cout << std::endl << __func__ << std::endl;
-    std::cout << __func__ << ": wDesc: " << wDesc << std::endl;
-    std::cout << __func__ << ": dxDesc: " << dxDesc << std::endl;
-    std::cout << __func__ << ": dyDesc: " << dyDesc << std::endl;
-#endif
 
     int in_n, in_c, in_h, in_w;
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
@@ -796,13 +812,6 @@ GemmParam CreateGemmStridedBatchedParamConv1x1BwdWeight(const TensorDescriptor& 
                                                         const TensorDescriptor& xDesc,
                                                         const TensorDescriptor& dwDesc)
 {
-#if 0
-    std::cout << std::endl << __func__ << std::endl;
-    std::cout << __func__ << ": dwDesc: " << dwDesc << std::endl;
-    std::cout << __func__ << ":  xDesc: " << xDesc << std::endl;
-    std::cout << __func__ << ": dyDesc: " << dyDesc << std::endl;
-#endif
-
     (void)dyDesc;
 
     int in_n, in_c, in_h, in_w;
