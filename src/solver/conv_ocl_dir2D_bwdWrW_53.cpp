@@ -34,11 +34,14 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
     // Cases when dy has negative padding are not supported (issue 918)
     if(params.GetBackwardPad0() < 0 || params.GetBackwardPad1() < 0)
         return false;
-    /// \todo Workaround (heuristic) FIXME explain
+    /// \todo Workaround for some issues. Excludes some configs which covered by
+    /// the ConvOclBwdWrW2 solver. Found experimentally. Technically, this is a hack.
+    /// The kernel needs to be well understood and fixed.
     if((params.kernel_size0 > 5) || (params.kernel_size0 == 5 && params.in_width >= 64))
         return false;
-    /// \todo Workaround for issue 791
-    if((params.kernel_size0 == 3 && params.pad0 == 0 && params.out_width > 40))
+    /// \todo Workaround for issue #791. Found experimentally. Technically, this is a hack.
+    /// The kernel needs to be well understood and fixed.
+    if((params.kernel_size0 == 3 && params.pad0 == 0 && params.out_width >= 32))
         return false;
     return ((params.kernel_size0 >= 2 || params.kernel_size1 >= 2) &&
             (params.kernel_stride1 == 1 && params.kernel_stride0 == 1));
