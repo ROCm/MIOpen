@@ -73,10 +73,6 @@ void CallGemmStridedBatched(Handle& handle,
                             int b_offset,
                             Data_t C,
                             int c_offset);
-//#if not MIOPEN_USE_ROCBLAS
-//    __attribute__((noreturn))
-//#endif
-//    ;
 
 void CallGemmStridedBatchedSequential(Handle& handle,
                                       GemmParam gemm_param,
@@ -118,13 +114,13 @@ GemmParam CreateGemmParamConvCNHWBwdData(const TensorDescriptor& wDesc,
                                          const TensorDescriptor& dxDesc);
 
 // strided batched GEMM parameters for 1x1 Convolution Fwd
-// y = w * x
+// y[i] = w * x[i], i is batch id
 GemmParam CreateGemmStridedBatchedParamConv1x1Fwd(const TensorDescriptor& wDesc,
                                                   const TensorDescriptor& xDesc,
                                                   const TensorDescriptor& yDesc);
 
 // strided batched GEMM parameters for 1x1 Convolution Bwd-Data
-// dx = transpose(w) * dy
+// dx[i] = transpose(w) * dy[i], i is batch id
 GemmParam CreateGemmStridedBatchedParamConv1x1BwdData(const TensorDescriptor& wDesc,
                                                       const TensorDescriptor& dyDesc,
                                                       const TensorDescriptor& dxDesc);
