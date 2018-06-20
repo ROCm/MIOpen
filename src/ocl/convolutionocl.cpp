@@ -960,7 +960,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 float t1     = 0;
                 for(int i = 0; i < in_n; i++)
                 {
-                    int out_offset = i * wei_n * out_h * out_w;
+                    int out_offset   = i * wei_n * out_h * out_w;
                     size_t in_offset = i * in_c * in_h * in_w;
                     Im2ColGPU(handle,
                               xDesc.GetElementSize(),
@@ -1825,7 +1825,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 float t1     = 0;
                 for(int i = 0; i < in_n; i++)
                 {
-                    int out_offset = i * wei_n * out_h * out_w;
+                    int out_offset   = i * wei_n * out_h * out_w;
                     size_t in_offset = i * in_c * in_h * in_w;
 
                     // dx = transpose(w) * dy
@@ -2406,7 +2406,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
                 for(int i = 0; i < in_n; i++)
                 {
-                    int out_offset = i * wei_n * out_h * out_w;
+                    int out_offset   = i * wei_n * out_h * out_w;
                     size_t in_offset = i * in_c * in_h * in_w;
                     Im2ColGPU(handle,
                               xDesc.GetElementSize(),
