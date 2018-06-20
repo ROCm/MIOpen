@@ -198,24 +198,23 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetOutputDesc(TensorDescrip
     return miopenStatusSuccess;
 }
 
-
 miopenStatus_t BatchNormInferenceFusionOpDescriptor::SetArgs(OperatorArgs& args,
-                                               const void* alpha,
-                                               const void* beta,
-                                               ConstData_t bnScale,
-                                               ConstData_t bnBias,
-                                               ConstData_t estimatedMean,
-                                               ConstData_t estimatedVariance,
-                                               double epsilon)
+                                                             const void* alpha,
+                                                             const void* beta,
+                                                             ConstData_t bnScale,
+                                                             ConstData_t bnBias,
+                                                             ConstData_t estimatedMean,
+                                                             ConstData_t estimatedVariance,
+                                                             double epsilon)
 {
-    auto id             = std::to_string(GetIdx());
-    auto alpha_any      = any_t(*(static_cast<const float*>(alpha)));
-    auto beta_any       = any_t(*(static_cast<const float*>(beta)));
-    auto bnScale_any = any_t(bnScale);
-    auto bnBias_any = any_t(bnBias);
-    auto estimatedMean_any = any_t(estimatedMean);
+    auto id                    = std::to_string(GetIdx());
+    auto alpha_any             = any_t(*(static_cast<const float*>(alpha)));
+    auto beta_any              = any_t(*(static_cast<const float*>(beta)));
+    auto bnScale_any           = any_t(bnScale);
+    auto bnBias_any            = any_t(bnBias);
+    auto estimatedMean_any     = any_t(estimatedMean);
     auto estimatedVariance_any = any_t(estimatedVariance);
-    auto epsilon_any = any_t(static_cast<double>(epsilon));
+    auto epsilon_any           = any_t(static_cast<double>(epsilon));
     args.ins_arg("bnScale" + id, bnScale_any);
     args.ins_arg("bnBias" + id, bnBias_any);
     args.ins_arg("estimatedMean" + id, estimatedMean_any);
@@ -224,7 +223,6 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::SetArgs(OperatorArgs& args,
 
     return miopenStatusSuccess;
 }
-
 
 std::vector<std::string> BatchNormInferenceFusionOpDescriptor::GetArgs() const
 {
@@ -239,10 +237,6 @@ std::vector<std::string> BatchNormInferenceFusionOpDescriptor::GetArgs() const
     keys.push_back("epsilon" + id);
     return keys;
 }
-
-
-
-
 
 // Bias forward
 miopenStatus_t BiasFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
@@ -277,24 +271,27 @@ std::vector<std::string> BiasFusionOpDescriptor::GetArgs() const
 bool FusionOpLU::Advance(std::vector<std::shared_ptr<FusionOpDescriptor>> op_map)
 {
 
-    for(auto supportedOps : lut )
+    for(auto supportedOps : lut)
     {
-        auto valid = std::equal(supportedOps.begin(), supportedOps.end(), 
-                                op_map.begin(), 
-                                [] (miopenFusionOp_t x, std::shared_ptr<FusionOpDescriptor> y)
-                                { return x == y->kind();});
-        if(valid) return valid;
+        auto valid = std::equal(supportedOps.begin(),
+                                supportedOps.end(),
+                                op_map.begin(),
+                                [](miopenFusionOp_t x, std::shared_ptr<FusionOpDescriptor> y) {
+                                    return x == y->kind();
+                                });
+        if(valid)
+            return valid;
     }
-/*    if(valid)
-    {
-        cur_idx = idx + 1;
-        lut_hit.push_back(1);
-        return valid;
-    }
-    else
-        lut_hit.push_back(0);
-    
-    lut_hit.resize(cur_idx_tmp);*/
+    /*    if(valid)
+        {
+            cur_idx = idx + 1;
+            lut_hit.push_back(1);
+            return valid;
+        }
+        else
+            lut_hit.push_back(0);
+
+        lut_hit.resize(cur_idx_tmp);*/
     return false;
 }
 
@@ -320,9 +317,9 @@ std::string FusionPlanDescriptor::GetKernelName(Handle& handle)
     }
     else if(starting_op->kind() == miopenFusionOpBatchNormInference)
     {
-/*        auto ki =
-            std::dynamic_pointer_cast<BatchNormInferenceFusionOpDescriptor>(starting_op)->GetKernelInfo(handle);
-        return ki.kernel_name;*/
+        /*        auto ki =
+                    std::dynamic_pointer_cast<BatchNormInferenceFusionOpDescriptor>(starting_op)->GetKernelInfo(handle);
+                return ki.kernel_name;*/
         return "";
     }
     else
@@ -371,7 +368,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         {
             op->GetCompileParms(compile_config, handle);
         }
-        auto ops_head = op_map[0];//ins_order[0]];
+        auto ops_head = op_map[0]; // ins_order[0]];
         // TODO: If the first op is Conv
         if(ops_head->kind() == miopenFusionOpConvForward)
         {
@@ -383,8 +380,8 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             const auto& vld   = ki.l_wk;
             const auto& vgd   = ki.g_wk;
 
-        kernel = handle.AddKernel(
-            algorithm_name, network_config, program_name, kernel_name, vld, vgd, parms);
+            kernel = handle.AddKernel(
+                algorithm_name, network_config, program_name, kernel_name, vld, vgd, parms);
         }
         else if(ops_head->kind() == miopenFusionOpBatchNormInference)
         {
@@ -392,12 +389,10 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                 std::dynamic_pointer_cast<BatchNormInferenceFusionOpDescriptor>(ops_head)->GetKernelInfo(handle);
 */        }
 
-
-
-        // TODO: If the first op is batch norm!
-        // else
-        // {
-        // }
+// TODO: If the first op is batch norm!
+// else
+// {
+// }
     }
     // Construct the kernel args
     std::vector<any_t> args;
