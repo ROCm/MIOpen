@@ -193,7 +193,7 @@ struct FusionOpLU
         cur_idx = 0;
     }
     void Reset() { cur_idx = 0; };
-    bool Advance(std::vector<std::shared_ptr<FusionOpDescriptor>> op_map);
+    bool Advance(std::vector<std::shared_ptr<miopen::FusionOpDescriptor>> op_map);
     // auto GetPaths();
 
     protected:
