@@ -213,7 +213,15 @@ miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
                                  const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode, bnScaleBiasMeanVarDesc);
-    return (miopenStatusSuccess);
+    miopenStatus_t res = miopenStatusSuccess;
+    miopen::try_([&] {
+        miopen::BatchNormInferenceFusionOpDescriptor* bod =
+            new miopen::BatchNormInferenceFusionOpDescriptor(bn_mode, miopen::deref(bnScaleBiasMeanVarDesc));
+        miopen::deref(bnOp) = bod;
+        res =
+            miopen::deref(fusePlanDesc).AddOp(std::shared_ptr<miopen::BatchNormInferenceFusionOpDescriptor>(bod));
+    });
+    return res;
 }
 
 extern "C" miopenStatus_t
@@ -390,7 +398,12 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t
 {
     MIOPEN_LOG_FUNCTION(
         args, bnOp, alpha, beta, bnScale, bnBias, estimatedMean, estimatedVariance, epsilon);
-    return (miopenStatusSuccess);
+    return miopen::try_([&] {
+        miopen::BatchNormInferenceFusionOpDescriptor& op =
+            dynamic_cast<miopen::BatchNormInferenceFusionOpDescriptor&>(miopen::deref(bnOp));
+        op.SetArgs(miopen::deref(args), alpha, beta, DataCast(bnScale), DataCast(bnBias), 
+                                  DataCast(estimatedMean), DataCast(estimatedVariance), epsilon);
+    });
 }
 
 extern "C" miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_t args,

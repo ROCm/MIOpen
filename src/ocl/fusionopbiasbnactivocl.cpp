@@ -43,4 +43,21 @@ miopenStatus_t ActivFusionOpDescriptor::GetCompileParms(std::string& compile_con
     compile_config += " -DMIOPEN_NRN_OP_ID=" + std::to_string(activMode);
     return miopenStatusSuccess;
 }
+
+
+
+miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetNetworkConfig(std::string& network_config, Handle& handle)
+{
+    (void)(handle);
+    network_config += std::to_string(mode);
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(std::string& compile_config, Handle& handle)
+{
+    (void)(handle); // only convolution uses handle
+    compile_config += ""; // No opt parameters for forward inference.
+    return miopenStatusSuccess;
+}
+
 } // namespace miopen
