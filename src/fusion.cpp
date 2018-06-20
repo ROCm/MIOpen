@@ -275,11 +275,11 @@ bool FusionOpLU::Advance(std::vector<std::shared_ptr<miopen::FusionOpDescriptor>
     for(auto supportedOps : lut)
     {
         valid = std::equal(supportedOps.begin(),
-                                supportedOps.begin()+op_map.size() - 1,
-                                op_map.begin(),
-                                [&](miopenFusionOp_t x, std::shared_ptr<miopen::FusionOpDescriptor> y) {
-                                    return x == y->kind();
-                                });
+                           supportedOps.begin() + op_map.size() - 1,
+                           op_map.begin(),
+                           [&](miopenFusionOp_t x, std::shared_ptr<miopen::FusionOpDescriptor> y) {
+                               return x == y->kind();
+                           });
         if(valid)
             return valid;
     }
