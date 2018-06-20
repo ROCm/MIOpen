@@ -40,7 +40,7 @@
 #include <vector>
 #include <unordered_map>
 
-// Supported operators, note this will be 
+// Supported operators, note this will be
 // superceded by a graph traversal
 /*#define MIOPEN_FUSION_CONV_FWD  1
 #define MIOPEN_FUSION_ACTIV     2
@@ -55,14 +55,11 @@ KernelInfo CBAFusionGetSolution(const ConvolutionContext& params);
 }
 
 typedef enum {
-    miopenFusionOpConvForward      = 0,
-    miopenFusionOpActivForward     = 1,
+    miopenFusionOpConvForward        = 0,
+    miopenFusionOpActivForward       = 1,
     miopenFusionOpBatchNormInference = 2,
-    miopenFusionOpBiasForward      = 3,
+    miopenFusionOpBiasForward        = 3,
 } miopenFusionOp_t;
-
-
-
 
 using any_t = OpKernelArg;
 struct OperatorArgs : miopenOperatorArgs
@@ -126,18 +123,19 @@ struct ActivFusionOpDescriptor : FusionOpDescriptor
 
 struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
 {
-    BatchNormInferenceFusionOpDescriptor(miopenBatchNormMode_t bn_mode, 
-                                         TensorDescriptor& desc) 
-                                         : mode(bn_mode),
-                                           base_desc(desc) {};
+    BatchNormInferenceFusionOpDescriptor(miopenBatchNormMode_t bn_mode, TensorDescriptor& desc)
+        : mode(bn_mode), base_desc(desc){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc);
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
     miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
-    miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, 
-                            ConstData_t bnScale, ConstData_t bnBias,
-                            ConstData_t estimatedMean,
-                            ConstData_t estimatedVariance, 
-                            double epsilon);
+    miopenStatus_t SetArgs(OperatorArgs& args,
+                           const void* alpha,
+                           const void* beta,
+                           ConstData_t bnScale,
+                           ConstData_t bnBias,
+                           ConstData_t estimatedMean,
+                           ConstData_t estimatedVariance,
+                           double epsilon);
     std::vector<std::string> GetArgs() const;
     miopenFusionOp_t kind() { return miopenFusionOpBatchNormInference; };
     miopenBatchNormMode_t mode;
@@ -175,19 +173,28 @@ struct FusionOpLU
     FusionOpLU()
     {
         lut = {
-            {miopenFusionOpConvForward,  miopenFusionOpBiasForward, miopenFusionOpBatchNormInference, miopenFusionOpActivForward},//cbna
-            {miopenFusionOpConvForward,  miopenFusionOpBiasForward, miopenFusionOpActivForward},//cba
-            {miopenFusionOpConvForward,  miopenFusionOpBiasForward, miopenFusionOpBatchNormInference},//cbn
-            {miopenFusionOpConvForward,  miopenFusionOpBatchNormInference, miopenFusionOpActivForward},//cna
-            {miopenFusionOpConvForward,  miopenFusionOpActivForward},//ca
-            {miopenFusionOpConvForward,  miopenFusionOpBatchNormInference},//cn
-            {miopenFusionOpBatchNormInference, miopenFusionOpActivForward}//ba
-            };
+            {miopenFusionOpConvForward,
+             miopenFusionOpBiasForward,
+             miopenFusionOpBatchNormInference,
+             miopenFusionOpActivForward}, // cbna
+            {miopenFusionOpConvForward,
+             miopenFusionOpBiasForward,
+             miopenFusionOpActivForward}, // cba
+            {miopenFusionOpConvForward,
+             miopenFusionOpBiasForward,
+             miopenFusionOpBatchNormInference}, // cbn
+            {miopenFusionOpConvForward,
+             miopenFusionOpBatchNormInference,
+             miopenFusionOpActivForward},                                  // cna
+            {miopenFusionOpConvForward, miopenFusionOpActivForward},       // ca
+            {miopenFusionOpConvForward, miopenFusionOpBatchNormInference}, // cn
+            {miopenFusionOpBatchNormInference, miopenFusionOpActivForward} // ba
+        };
         cur_idx = 0;
     }
     void Reset() { cur_idx = 0; };
     bool Advance(std::vector<std::shared_ptr<FusionOpDescriptor>> op_map);
-    //auto GetPaths();
+    // auto GetPaths();
 
     protected:
     std::vector<std::vector<miopenFusionOp_t>> lut;
@@ -225,9 +232,9 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     const TensorDescriptor& input_desc;
     TensorDescriptor output_desc;
     int op_count = 0;
-//   std::unordered_map<int, std::shared_ptr<FusionOpDescriptor>> op_map;
+    //   std::unordered_map<int, std::shared_ptr<FusionOpDescriptor>> op_map;
     std::vector<std::shared_ptr<FusionOpDescriptor>> op_map;
-//    std::vector<int> ins_order;
+    //    std::vector<int> ins_order;
     FusionOpLU lu;
     bool is_valid;
 };
