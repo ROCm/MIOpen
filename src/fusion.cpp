@@ -341,7 +341,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     std::string kernel_name{};
 
     // TODO: move the hard coded algo name to the LUT
-    std::string algorithm_name{};// = "miopenDirConvBatchNormActivAlgo";
+    std::string algorithm_name{}; // = "miopenDirConvBatchNormActivAlgo";
     if(output_desc != outputDesc)
     {
         MIOPEN_THROW("The output descriptors dont match.");
@@ -361,24 +361,23 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     auto ops_head = op_map.at(0);
 
     if(ops_head->kind() == miopenFusionOpConvForward)
-    {   
-        algorithm_name = "miopenDirConvBatchNormActivAlgo";
-
-    }
-/*    else if(ops_head->kind() == miopenFusionOpBatchNormInference)
     {
-        algorithm_name = "miopenBatchNormActivInferAlgo";
-        if(ops_head.mode == miopenBNSpatial)
+        algorithm_name = "miopenDirConvBatchNormActivAlgo";
+    }
+    /*    else if(ops_head->kind() == miopenFusionOpBatchNormInference)
         {
-            kernel_name = 
-         
-        }
-        else
-        {
+            algorithm_name = "miopenBatchNormActivInferAlgo";
+            if(ops_head.mode == miopenBNSpatial)
+            {
+                kernel_name =
 
+            }
+            else
+            {
+
+            }
         }
-    }         
-*/
+    */
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
     KernelInvoke kernel;
     if(!kernels.empty())
@@ -390,36 +389,36 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         std::string compile_config;
         for(auto op : op_map)
         {
-            op->GetCompileParms(compile_config, handle); // DLOWELL: TODO is this implemented every op, finished?
+            op->GetCompileParms(compile_config,
+                                handle); // DLOWELL: TODO is this implemented every op, finished?
         }
-        
+
         // TODO: If the first op is Conv
         if(ops_head->kind() == miopenFusionOpConvForward)
         {
 
             auto ki =
                 std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head)->GetKernelInfo(handle);
-            program_name = ki.kernel_file;
-            kernel_name  = ki.kernel_name;
-            const auto parms  = ki.comp_options + compile_config;
-            const auto& vld   = ki.l_wk;
-            const auto& vgd   = ki.g_wk;
+            program_name     = ki.kernel_file;
+            kernel_name      = ki.kernel_name;
+            const auto parms = ki.comp_options + compile_config;
+            const auto& vld  = ki.l_wk;
+            const auto& vgd  = ki.g_wk;
 
             kernel = handle.AddKernel(
                 algorithm_name, network_config, program_name, kernel_name, vld, vgd, parms);
         }
         else if(ops_head->kind() == miopenFusionOpBatchNormInference)
         {
-/*            auto ki =
-                std::dynamic_pointer_cast<BatchNormInferenceFusionOpDescriptor>(ops_head)->GetKernelInfo(handle);
-*/
-
+            /*            auto ki =
+                            std::dynamic_pointer_cast<BatchNormInferenceFusionOpDescriptor>(ops_head)->GetKernelInfo(handle);
+            */
         }
 
-// TODO: If the first op is batch norm!
-// else
-// {
-// }
+        // TODO: If the first op is batch norm!
+        // else
+        // {
+        // }
     }
     // Construct the kernel args
     std::vector<any_t> args;
