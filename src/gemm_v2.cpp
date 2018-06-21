@@ -153,7 +153,8 @@ void CallGemm(Handle& handle,
     //      workSpace is 0,
     //      fp32
     auto gemm_param_to_string = [&gemm_param]() {
-        return std::to_string(gemm_param.transA) + "_" + std::to_string(gemm_param.transB) + "_" +
+        return std::to_string(static_cast<int>(gemm_param.transA)) + "_" +
+               std::to_string(static_cast<int>(gemm_param.transB)) + "_" +
                std::to_string(gemm_param.lda) + "_" + std::to_string(gemm_param.ldb) + "_" +
                std::to_string(gemm_param.ldc) + "_" + std::to_string(gemm_param.m) + "_" +
                std::to_string(gemm_param.n) + "_" + std::to_string(gemm_param.k);
@@ -386,7 +387,8 @@ void CallGemmStridedBatchedSequential(Handle& handle,
     //      workSpace is 0,
     //      fp32
     auto gemm_param_to_string = [&gemm_param]() {
-        return std::to_string(gemm_param.transA) + "_" + std::to_string(gemm_param.transB) + "_" +
+        return std::to_string(static_cast<int>(gemm_param.transA)) + "_" +
+               std::to_string(static_cast<int>(gemm_param.transB)) + "_" +
                std::to_string(gemm_param.lda) + "_" + std::to_string(gemm_param.ldb) + "_" +
                std::to_string(gemm_param.ldc) + "_" + std::to_string(gemm_param.m) + "_" +
                std::to_string(gemm_param.n) + "_" + std::to_string(gemm_param.k);
