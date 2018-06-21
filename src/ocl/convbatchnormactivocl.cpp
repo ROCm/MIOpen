@@ -54,7 +54,6 @@ void DirectConvInference(Handle& handle,
                          int bias_mode,
                          ConstData_t convBias)
 {
-    printf("HERE! : %s", __func__);
     if(x == nullptr || w == nullptr || y == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -186,7 +185,6 @@ void DirectConvBNActivInference(Handle& handle,
                                 double activ_beta,
                                 double activ_gama)
 {
-    printf("HERE! : %s", __func__);
     if(x == nullptr || w == nullptr || y == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -340,8 +338,6 @@ void DirectConvActivInference(Handle& handle,
                               double activ_beta,
                               double activ_gama)
 {
-
-    printf("HERE! : %s", __func__);
     if(x == nullptr || w == nullptr || y == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
