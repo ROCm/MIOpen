@@ -71,9 +71,11 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetNetworkConfig(std::strin
 }
 
 miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(std::string& compile_config,
-                                                                     Handle& handle)
+                                                                     Handle& handle,
+                                                                     bool is_asm)
 {
-    (void)(handle);       // only convolution uses handle
+    (void)(handle); // only convolution uses handle
+    (void)(is_asm);
     compile_config += ""; // No opt parameters for forward inference.
     return miopenStatusSuccess;
 }
