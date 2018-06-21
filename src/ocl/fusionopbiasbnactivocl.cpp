@@ -20,7 +20,7 @@ FusionOpDescriptor::GetCompileParms(std::string& compile_config, Handle& handle,
 miopenStatus_t BiasFusionOpDescriptor::GetNetworkConfig(std::string& network_config, Handle& handle)
 {
     (void)(handle);
-    network_config += "1"; // for bias
+    network_config += "Bias1"; // for bias
     return miopenStatusSuccess;
 }
 
@@ -57,7 +57,7 @@ ActivFusionOpDescriptor::GetCompileParms(std::string& compile_config, Handle& ha
     }
     else
     {
-        compile_config += " -DMIOPEN_NRN_OP_ID=" + std::to_string(activMode);
+        compile_config += " -DMIOPEN_YES_ACTIV -DMIOPEN_NRN_OP_ID=" + std::to_string(activMode);
     }
     return miopenStatusSuccess;
 }
