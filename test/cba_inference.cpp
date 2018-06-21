@@ -93,7 +93,7 @@ void convHostForward(const tensor<T>& input,
 
     if(out_h <= 0 || out_w <= 0)
         MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
-    
+
     for(int o = 0; o < out_n; o++)
     { // mini-batch size
         for(int w = 0; w < out_c; w++)
@@ -532,8 +532,8 @@ struct cbna_fusion_driver : test_driver
         add(beta, "beta", generate_data({/*0. , */ 0.5}));
         add(gamma, "gamma", generate_data({/*1. ,*/ 0.5}));
         add(bias_mode, "bmode", generate_data({true, false}));
-        // \todo dlowell: fusion can't handle trans right now. 
-        //       add(conv_mode, "cmode", generate_data({"conv"}/*, "trans"}*/)); 
+        // \todo dlowell: fusion can't handle trans right now.
+        //       add(conv_mode, "cmode", generate_data({"conv"}/*, "trans"}*/));
         add(pad_mode, "pmode", generate_data({"default" /*, "same", "valid"*/}));
         add(tactiv, "test_activ", generate_data({false, true}));
         add(amode, "amode", generate_data({0, 3, 8, 1}));
