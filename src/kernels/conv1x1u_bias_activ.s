@@ -64,20 +64,31 @@ MIOPEN_NEURON_ELU = 9          // alpha * (e^x - 1) | x <= 0; x | x > 0
 
 
 // kernarg layout:
-// dwords 0:4 - n, c, H, W, k
-// dwords 5:7 - not used
-// dwords 8:9 - input buffer pointer
-// dwords 10:11 - weights pointer
-// dwords 12:13 - output buffer pointer
-.set alpha_off, 0x14
-.set beta_off, 0x18
-.set gamm_off, 0x1c
-.set in_ptr_off, 0x20
-.set wei_ptr_off, 0x28
-.set out_ptr_off, 0x30
-.set bias_ptr_off, 0x38
+// dwords 0:0 - alpha_off 
+// dwords 1:1 - beta_off 
+// dwords 2:2 - beta_off 
+// dwords 3:3 - unused 
+// dwords 4:5 - input buffer pointer
+// dwords 6:7 - weights pointer
+// dwords 8:9 - output buffer pointer
+.set alpha_off, 0x0
+.set beta_off, 0x4
+.set gamm_off, 0x8
+#.set unsed, 0xc
+.set in_ptr_off, 0x10
+.set out_ptr_off, 0x18
+.set wei_ptr_off, 0x20
+.set bias_ptr_off, 0x28
 
 .include "conv_sizes.inc"
+
+.ifndef activ_mode
+    activ_mode = MIOPEN_NEURON_PASTHRU
+.endif
+
+.ifndef bias_mode
+    bias_mode = 0
+.endif
 
 static_assert ((.option.machine_version_major == 8) || (.option.machine_version_major == 9))
 maxU24 = 1 << 24
@@ -183,7 +194,9 @@ bias_buffer_size = output_channels * 4
     .SGPR_ALLOC desc_in, 4 // input buffer descriptor
     .SGPR_ALLOC desc_out, 4    // weights buffer descriptor
     .SGPR_ALLOC desc_wei, 4    // output buffer descriptor
+.if bias_mode
     .SGPR_ALLOC desc_bias, 4 // bias buffer descriptor 
+.endif
     .SGPR_ALLOC filtersA, weights_per_filter * k_mult, 1
     .if .SGPR_NEXT_FREE % 4
         .SGPR_ALLOC_ONCE wave_id // wave_id in group
@@ -231,7 +244,7 @@ gcnAsmConv1x1U:
      granulated_wavefront_sgpr_count = .AUTO_SGPR_GRANULATED_COUNT
      enable_vgpr_workitem_id = 1
      user_sgpr_count = 2
-     kernarg_segment_byte_size = 64
+     kernarg_segment_byte_size = 40
      wavefront_sgpr_count = .AUTO_SGPR_COUNT
      workitem_vgpr_count = .AUTO_VGPR_COUNT
      float_mode = 192
@@ -245,7 +258,9 @@ gcnAsmConv1x1U:
     s_load_dwordx2 s[desc_in:desc_in+1], s[kernarg:kernarg+1], 0x0 + in_ptr_off
     s_load_dwordx2 s[desc_wei:desc_wei+1], s[kernarg:kernarg+1], 0x0 + wei_ptr_off
     s_load_dwordx2 s[desc_out:desc_out+1], s[kernarg:kernarg+1], 0x0 + out_ptr_off
+.if bias_mode
     s_load_dwordx2 s[desc_bias:desc_bias+1], s[kernarg:kernarg+1], 0x0 + bias_ptr_off
+.endif
 
     // mask off unused lanes
     s_mov_b32 exec_lo, active_mask_lo
@@ -259,8 +274,10 @@ gcnAsmConv1x1U:
     s_mov_b32 s[desc_wei+3], 0x00027000
     s_mov_b32 s[desc_out+2], output_buffer_size
     s_mov_b32 s[desc_out+3], 0x00027000
+.if bias_mode
     s_mov_b32 s[desc_bias+2], bias_buffer_size 
     s_mov_b32 s[desc_bias+3], 0x00027000
+.endif
 
     v_lshrrev_b32 v[vtmp], 6, v[tid]
     v_readfirstlane_b32 s[wave_id], v[vtmp]
@@ -590,7 +607,7 @@ last_wave:
         .endif
     .endm
 
-    .if bias_mode == 1
+    .if bias_mode
         load_bias current_k
         s_waitcnt 0
     .endif
@@ -652,17 +669,12 @@ s_endpgm
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             Args:
-            - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: H       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: W       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: K       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: alpha   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
             - { Name: beta    , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
             - { Name: gamma   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
             - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
             - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
+            - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
             - { Name: bias    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
           }
     }
@@ -676,19 +688,15 @@ s_endpgm
             Attrs:
               { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
             CodeProps:
-              { KernargSegmentSize: 64, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
+              { KernargSegmentSize: 40, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
             Args:
-            - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: H       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: W       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
-            - { Name: K       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
             - { Name: alpha   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
-            - { Name: beta   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
+            - { Name: beta    , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
             - { Name: gamma   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
+            - { Name: unused  , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
             - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
-            - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
             - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
+            - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
             - { Name: bias    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
           }
     }

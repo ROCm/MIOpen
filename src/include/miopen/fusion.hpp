@@ -126,7 +126,6 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
     miopenStatus_t
     GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm = false);
     // miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta);
-    miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
