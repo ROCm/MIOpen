@@ -1127,17 +1127,20 @@ MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
                             __global _FLOAT* __restrict out,
                             const __global _FLOAT* __restrict weights
 #if MLO_CONV_BIAS
-                            , const __global _FLOAT* __restrict conv_bias
+                            ,
+                            const __global _FLOAT* __restrict conv_bias
 #endif
 #ifndef NO_BN
-                            , const __global _FLOAT* __restrict estimatedMean,
+                            ,
+                            const __global _FLOAT* __restrict estimatedMean,
                             const __global _FLOAT* __restrict estimatedVariance,
                             const __global _FLOAT* __restrict scale,
                             const __global _FLOAT* __restrict bn_bias,
                             double epsilon
 #endif
 #ifdef MIOPEN_YES_ACTIV
-                            , const _FLOAT alpha,
+                            ,
+                            const _FLOAT alpha,
                             const _FLOAT beta,
                             const _FLOAT gamma
 #endif
