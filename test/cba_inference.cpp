@@ -284,8 +284,7 @@ struct verify_forward_conv_bias
     miopenTensorDescriptor_t biasDesc{};
     // tensor<T> output;
     // miopen::ConvolutionDescriptor filter;
-    int bias_mode;
-
+  
     // using conv_base<T>::search; //DLOWELL not needed right now
     verify_forward_conv_bias(/*miopenHandle_t phandle,*/ tensor<T>& pinput,
                              tensor<T>& pweights,
@@ -319,25 +318,13 @@ struct verify_forward_conv_bias
         auto b_dev    = handle.Write(bias.data);
         auto out_dev  = handle.Write(rout.data);
 
-        // DLOWELL: All of this search logic is shelved until we have more fused algos to implement
-        /*        size_t workspace_size =
-                    filter.ForwardGetWorkSpaceSize(handle, weights.desc, input.desc, rout.desc);
-
-                std::vector<char> workspace(workspace_size);
-                auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
-
-                int ret_algo_count;
-                miopenConvAlgoPerf_t perf;
-        */
         miopenStatus_t miopenError = miopenStatusSuccess;
         miopenFusionPlanDescriptor_t fusePlanDesc;
-        // miopenFusionOpDescriptor_t bNormOp;
         miopenFusionOpDescriptor_t convoOp;
         miopenFusionOpDescriptor_t biasOp;
-        // miopenFusionOpDescriptor_t activOp;
         miopenOperatorArgs_t fusionArgs;
 
-        float alpha = static_cast<float>(1), beta = static_cast<float>(0);
+        double alpha = 1., beta = 0.;
         miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
         miopenCreateOperatorArgs(&fusionArgs);
         miopenCreateOpConvForwardAlgo(
@@ -382,7 +369,7 @@ struct verify_forward_conv_bias_activ
     tensor<T> input;
     tensor<T> weights;
     miopenConvolutionDescriptor_t filter;
-    tensor<T> bias;
+    tensor<T> bias{};
     miopenTensorDescriptor_t inputDesc{};
     miopenTensorDescriptor_t weightsDesc{};
     miopenTensorDescriptor_t outputDesc{};
@@ -391,7 +378,7 @@ struct verify_forward_conv_bias_activ
     // miopenHandle_t handle;
     // tensor<T> output;
     // miopen::ConvolutionDescriptor filter;
-    int bias_mode;
+    int bias_mode = 0;
 
     // using conv_base<T>::search; //DLOWELL not needed right now
     verify_forward_conv_bias_activ(/*miopenHandle_t phandle,*/ tensor<T>& pinput,
@@ -443,9 +430,9 @@ struct verify_forward_conv_bias_activ
         miopenStatus_t miopenError = miopenStatusSuccess;
         miopenFusionPlanDescriptor_t fusePlanDesc;
         // miopenFusionOpDescriptor_t bNormOp;
-        miopenFusionOpDescriptor_t convoOp;
-        miopenFusionOpDescriptor_t biasOp;
-        miopenFusionOpDescriptor_t activOp;
+        miopenFusionOpDescriptor_t convoOp = nullptr;
+        miopenFusionOpDescriptor_t biasOp = nullptr;
+        miopenFusionOpDescriptor_t activOp = nullptr;
         miopenOperatorArgs_t fusionArgs;
 
         double activ_alpha, activ_beta, activ_gamma;
@@ -453,7 +440,7 @@ struct verify_forward_conv_bias_activ
         miopenGetActivationDescriptor(
             activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
 
-        float alpha = static_cast<float>(1), beta = static_cast<float>(0);
+        double alpha = 1., beta = 0.;
         miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
         miopenCreateOperatorArgs(&fusionArgs);
         miopenCreateOpConvForwardAlgo(
@@ -463,10 +450,15 @@ struct verify_forward_conv_bias_activ
             // DLOWELL Hardcoded. This assumes immediate mode. Needs GetAlgo.
             miopenConvolutionFwdAlgoDirect,
             weightsDesc);
-        miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
+        
+        if(bias_mode)
+            miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
+        
         miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
         miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev.get());
-        miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev.get());
+        
+        if(bias_mode)
+            miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev.get());
 
         miopenSetOpArgsActivForward(
             fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
@@ -474,7 +466,10 @@ struct verify_forward_conv_bias_activ
         miopenError = miopenIsFusionPlanValid(fusePlanDesc);
         if(miopenError != miopenStatusSuccess)
         {
-            std::cerr << "Conv+Bias+Activation Inference plan not supported." << std::endl;
+            if(bias_mode)
+                std::cerr << "Conv+Bias+Activation Inference plan not supported." << std::endl;
+            else
+                std::cerr << "Conv+Activation Inference plan not supported." << std::endl;
         }
         else
         {
@@ -496,6 +491,10 @@ struct verify_forward_conv_bias_activ
         std::cout << "Forward convolution+bias+activation: " << std::endl;
     }
 };
+
+
+
+
 
 template <class T>
 struct cbna_fusion_driver : test_driver

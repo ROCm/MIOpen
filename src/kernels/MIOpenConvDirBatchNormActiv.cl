@@ -1125,20 +1125,23 @@ __attribute__((always_inline)) void ActivationFunction(const uint n,
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __kernel void
 MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
                             __global _FLOAT* __restrict out,
-                            const __global _FLOAT* __restrict weights,
+                            const __global _FLOAT* __restrict weights
 #if MLO_CONV_BIAS
-                            const __global _FLOAT* __restrict conv_bias,
+                            , const __global _FLOAT* __restrict conv_bias
 #endif
 #ifndef NO_BN
-                            const __global _FLOAT* __restrict estimatedMean,
+                            , const __global _FLOAT* __restrict estimatedMean,
                             const __global _FLOAT* __restrict estimatedVariance,
                             const __global _FLOAT* __restrict scale,
                             const __global _FLOAT* __restrict bn_bias,
-                            double epsilon,
+                            double epsilon
 #endif
-                            const _FLOAT alpha,
+#ifdef MIOPEN_YES_ACTIV
+                            , const _FLOAT alpha,
                             const _FLOAT beta,
-                            const _FLOAT gamma)
+                            const _FLOAT gamma
+#endif
+                            )
 {
     __local _FLOAT lcl_indata[MLO_IN_LCL_SZ];
     __local _FLOAT lcl_wei[MLO_WEIGHTS_SZ];
@@ -1539,9 +1542,11 @@ MIOpenConvUniBatchNormActiv(const __global _FLOAT* __restrict in,
                                 bn_res              = mad(pscale, (conv_res - pmean) * pinvVariance, pbias);
 #endif
 #ifdef MIOPEN_NRN_OP_ID
+#ifdef MIOPEN_YES_ACTIV
                             ActivationFunction(
                                 1, &actv_res, (const _FLOAT*)&bn_res, gamma, beta, alpha);
                             out[out_off2 + i] = actv_res;
+#endif
 #else
                                 out[out_off2 + i]   = bn_res;
 #endif
