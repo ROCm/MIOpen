@@ -242,7 +242,8 @@ void activationHostInfererence(miopenActivationMode_t activMode,
     case miopenActivationPOWER: // (alpha + beta * x) ^ gamma
         f = [=](T x) {
             T v = static_cast<T>(alpha + beta * x);
-            return (v <= std::numeric_limits<T>::epsilon()) ? static_cast<T>(0.) : static_cast<T>(pow(v, gamma));
+            return (v <= std::numeric_limits<T>::epsilon()) ? static_cast<T>(0.)
+                                                            : static_cast<T>(pow(v, gamma));
         };
         break;
     case miopenActivationCLIPPEDRELU: // min(alpha, max(0, x))
@@ -412,11 +413,11 @@ struct verify_forward_conv_bias_activ
             activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
         convHostForward(input, rout, weights, 1, bias, filter);
         activationHostInfererence(activ_mode,
-                               static_cast<T>(activ_gamma),
-                               static_cast<T>(activ_beta),
-                               static_cast<T>(activ_alpha),
-                               rout,
-                               aout);
+                                  static_cast<T>(activ_gamma),
+                                  static_cast<T>(activ_beta),
+                                  static_cast<T>(activ_alpha),
+                                  rout,
+                                  aout);
         return aout;
     }
 
@@ -536,8 +537,8 @@ struct cbna_fusion_driver : test_driver
         add(input, "input", get_input_tensor());
         add(weights, "weights", get_weights_tensor());
         add(filter, "filter", generate_data(get_filters()));
-        add(alpha, "alpha", generate_data({/*1. , */0.5}));
-        add(beta, "beta", generate_data({/*0. , */0.5}));
+        add(alpha, "alpha", generate_data({/*1. , */ 0.5}));
+        add(beta, "beta", generate_data({/*0. , */ 0.5}));
         add(gamma, "gamma", generate_data({/*1. ,*/ 0.5}));
         /*        add(enable_backward_weights, "enable-backward-weights", flag());
                 add(do_backward_data, "disable-backward-data", set_value(false));
@@ -547,7 +548,7 @@ struct cbna_fusion_driver : test_driver
         //       handle trans right now
         add(pad_mode, "pmode", generate_data({"default" /*, "same", "valid"*/}));
         add(tactiv, "test_activ", generate_data({false, true}));
-        add(amode, "amode", generate_data({0,3,8,1}));
+        add(amode, "amode", generate_data({0, 3, 8, 1}));
     }
 
     std::vector<miopen::ConvolutionDescriptor> get_filters()
