@@ -284,7 +284,7 @@ struct verify_forward_conv_bias
     miopenTensorDescriptor_t biasDesc{};
     // tensor<T> output;
     // miopen::ConvolutionDescriptor filter;
-  
+
     // using conv_base<T>::search; //DLOWELL not needed right now
     verify_forward_conv_bias(/*miopenHandle_t phandle,*/ tensor<T>& pinput,
                              tensor<T>& pweights,
@@ -431,7 +431,7 @@ struct verify_forward_conv_bias_activ
         miopenFusionPlanDescriptor_t fusePlanDesc;
         // miopenFusionOpDescriptor_t bNormOp;
         miopenFusionOpDescriptor_t convoOp = nullptr;
-        miopenFusionOpDescriptor_t biasOp = nullptr;
+        miopenFusionOpDescriptor_t biasOp  = nullptr;
         miopenFusionOpDescriptor_t activOp = nullptr;
         miopenOperatorArgs_t fusionArgs;
 
@@ -450,13 +450,13 @@ struct verify_forward_conv_bias_activ
             // DLOWELL Hardcoded. This assumes immediate mode. Needs GetAlgo.
             miopenConvolutionFwdAlgoDirect,
             weightsDesc);
-        
+
         if(bias_mode)
             miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
-        
+
         miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
         miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev.get());
-        
+
         if(bias_mode)
             miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev.get());
 
@@ -491,10 +491,6 @@ struct verify_forward_conv_bias_activ
         std::cout << "Forward convolution+bias+activation: " << std::endl;
     }
 };
-
-
-
-
 
 template <class T>
 struct cbna_fusion_driver : test_driver
