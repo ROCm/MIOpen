@@ -397,7 +397,7 @@ struct verify_forward_conv_bias_activ
     verify_forward_conv_bias_activ(/*miopenHandle_t phandle,*/ tensor<T>& pinput,
                                    tensor<T>& pweights,
                                    miopen::ConvolutionDescriptor& pfilter,
-                                   int pbias_mode, 
+                                   int pbias_mode,
                                    tensor<T>& pbias,
                                    miopenActivationDescriptor_t& pactivDesc /*, int psearch = 0 */)
     {
@@ -637,7 +637,7 @@ struct cbna_fusion_driver : test_driver
                 if(bias_mode)
                 { // here we handle cb, cba, cbbna
                     auto bias =
-                        tensor<T>{1, output.desc.GetLengths()[1], 1, 1}.generate(rand_gen{});                    
+                        tensor<T>{1, output.desc.GetLengths()[1], 1, 1}.generate(rand_gen{});
                     // create activation descriptor here
                     if(tactiv)
                     {
@@ -650,7 +650,6 @@ struct cbna_fusion_driver : test_driver
 
                         // auto out_p =
                         verify(verify_forward_conv_bias<T>{input, weights, filter, bias});
-
                     }
                 }
                 else
