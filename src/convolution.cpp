@@ -78,7 +78,6 @@ ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t c_mode,
                      ">= 0, stride >= 1, dilation >= 1 and the same dilation "
                      "factor for horizontal and vertical direction");
     }
-
     if(!(mode == miopenConvolution || mode == miopenTranspose))
     {
         MIOPEN_THROW(miopenStatusBadParm, "Convolution mode not supported");

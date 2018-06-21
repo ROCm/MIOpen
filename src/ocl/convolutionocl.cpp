@@ -330,6 +330,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
+    /// \todo add support for non-zero padding in 1x1conv
     if((wei_h == 1 && wei_w == 1) && (pad_h > 0 || pad_w > 0))
     {
         MIOPEN_THROW(miopenStatusBadParm,
@@ -1144,6 +1145,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
     std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
+    /// \todo add support for non-zero padding in 1x1conv
     if((wei_h == 1 && wei_w == 1) && (pad_h > 0 || pad_w > 0))
     {
         MIOPEN_THROW(miopenStatusBadParm,
@@ -2062,6 +2064,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
     std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
 
+    /// \todo add support for non-zero padding in 1x1conv
     if((wei_h == 1 && wei_w == 1) && (pad_h > 0 || pad_w > 0))
     {
         MIOPEN_THROW(miopenStatusBadParm,
