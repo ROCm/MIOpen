@@ -80,33 +80,9 @@ struct GemmGeometry
                  int a_offset,
                  int b_offset,
                  int c_offset);
-
-    void RunGemmSimple(Handle& handle,
-                       ConstData_t a,
-                       ConstData_t b,
-                       Data_t c,
-                       int a_offset,
-                       int b_offset,
-                       int c_offset) const;
-
-    void FindSolutionTmp(float time,
-                         Handle& handle,
-                         ConstData_t a,
-                         ConstData_t b,
-                         Data_t c,
-                         bool enforce_determinism) const;
-
-    void RunGemmTmp(Handle& handle,
-                    ConstData_t a,
-                    ConstData_t b,
-                    Data_t c,
-                    int a_offset,
-                    int b_offset,
-                    int c_offset) const;
 };
 
 } // namespace miopen
-
 #endif // MIOPEN_USE_MIOPENGEMM
 
 #endif // GUARD_MIOPEN_GEMM_GEOMETRY_HPP_
