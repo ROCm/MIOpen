@@ -3,5 +3,5 @@ pfultz2/rocm-recipes
 danmar/cppcheck@fe1b1d537ecaa0e573000f7d073a0e661e3256f2
 ROCm-Developer-Tools/HIP@3a41f286203968421c557338d6fb39c36f3c717c
 RadeonOpenCompute/clang-ocl@a180592885ecae5b8beadf667c633c246cec82b6
-ROCmSoftwarePlatform/rocBLAS@cd61c32b63e106cbe2ae95b9b4da5f4835f0c149
+ROCmSoftwarePlatform/rocBLAS@v14.0.1
 
