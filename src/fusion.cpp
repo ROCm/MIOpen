@@ -360,9 +360,12 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     }
     auto ops_head = op_map.at(0);
 
+
     if(ops_head->kind() == miopenFusionOpConvForward)
     {
+
         algorithm_name = "miopenDirConvBatchNormActivAlgo";
+
     }
     /*    else if(ops_head->kind() == miopenFusionOpBatchNormInference)
         {
@@ -402,9 +405,10 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             program_name     = ki.kernel_file;
             kernel_name      = ki.kernel_name;
             const auto parms = ki.comp_options + compile_config;
+            std::cout << parms << std::endl;
             const auto& vld  = ki.l_wk;
             const auto& vgd  = ki.g_wk;
-            kernel = handle.AddKernel(
+            kernel           = handle.AddKernel(
                 algorithm_name, network_config, program_name, kernel_name, vld, vgd, parms);
         }
         else if(ops_head->kind() == miopenFusionOpBatchNormInference)
