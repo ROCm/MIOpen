@@ -162,9 +162,9 @@ miopenStatus_t ActivFusionOpDescriptor::SetArgs(OperatorArgs& args,
     auto id             = std::to_string(GetIdx());
     auto alpha_any      = any_t(*(static_cast<const float*>(alpha)));
     auto beta_any       = any_t(*(static_cast<const float*>(beta)));
-    auto activAlpha_any = any_t(static_cast<double>(activAlpha));
-    auto activBeta_any  = any_t(static_cast<double>(activBeta));
-    auto activGamma_any = any_t(static_cast<double>(activGamma));
+    auto activAlpha_any = any_t(static_cast<float>(activAlpha));
+    auto activBeta_any  = any_t(static_cast<float>(activBeta));
+    auto activGamma_any = any_t(static_cast<float>(activGamma));
     // args.ins_arg("alpha" + id, alpha_any);
     // args.ins_arg("beta" + id, beta_any);
     args.ins_arg("activAlpha" + id, activAlpha_any);
@@ -404,7 +404,6 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             const auto parms = ki.comp_options + compile_config;
             const auto& vld  = ki.l_wk;
             const auto& vgd  = ki.g_wk;
-
             kernel = handle.AddKernel(
                 algorithm_name, network_config, program_name, kernel_name, vld, vgd, parms);
         }

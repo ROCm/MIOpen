@@ -529,7 +529,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     size_t out_sz = 0;
     if(fusion_mode != 2)
-        GetTensorSize(outputTensor);
+        out_sz = GetTensorSize(outputTensor);
     else
         out_sz = in_sz;
 
