@@ -225,34 +225,34 @@ void activationHostInfererence(miopenActivationMode_t activMode,
         f = [=](T x) { return x; };
         break;
     case miopenActivationLOGISTIC: // 1 / (1 + e^-x)  //Sigmoid
-        f = [=](T x) { return 1 / (1 + std::exp(-x)); };
+        f = [=](T x) { return static_cast<T>(1. / (1. + std::exp(-x))); };
         break;
     case miopenActivationTANH: // beta * tanh(alpha * x)
-        f = [=](T x) { return beta * std::tanh(alpha * x); };
+        f = [=](T x) { return static_cast<T>(beta * std::tanh(alpha * x)); };
         break;
     case miopenActivationRELU: // max(0, x)
-        f = [=](T x) { return (x > 0) ? x : 0; };
+        f = [=](T x) { return static_cast<T>((x > 0.) ? x : 0.); };
         break;
     case miopenActivationSOFTRELU: //  log(1 + e^x)   // bonomial normal log likelihood
-        f = [=](T x) { return std::log1p(std::exp(x)); };
+        f = [=](T x) { return static_cast<T>(std::log1p(std::exp(x))); };
         break;
     case miopenActivationABS: //  abs(x)
-        f = [=](T x) { return std::abs(x); };
+        f = [=](T x) { return static_cast<T>(std::abs(x)); };
         break;
     case miopenActivationPOWER: // (alpha + beta * x) ^ gamma
         f = [=](T x) {
-            T v = alpha + beta * x;
-            return v <= std::numeric_limits<T>::epsilon() ? 0 : pow(v, gamma);
+            T v = static_cast<T>(alpha + beta * x);
+            return (v <= std::numeric_limits<T>::epsilon()) ? static_cast<T>(0.) : static_cast<T>(pow(v, gamma));
         };
         break;
     case miopenActivationCLIPPEDRELU: // min(alpha, max(0, x))
-        f = [=](T x) { return std::min(alpha, std::max(T(0), x)); };
+        f = [=](T x) { return static_cast<T>(std::min(alpha, std::max(T(0.), x))); };
         break;
     case miopenActivationLEAKYRELU: // alpha * x | x<=0; x | x>0
-        f = [=](T x) { return (x > 0) ? x : x * alpha; };
+        f = [=](T x) { return static_cast<T>((x > 0.) ? x : x * alpha); };
         break;
     case miopenActivationELU: // alpah * (exp(x)-1) | x<=0; x | x>0
-        f = [=](T x) { return (x > 0) ? x : alpha * std::expm1(x); };
+        f = [=](T x) { return static_cast<T>((x > 0.) ? x : alpha * std::expm1(x)); };
         break;
         // default: printf("ERROR: unknown neuron type: %d\n", activMode); break;
     }
@@ -404,8 +404,20 @@ struct verify_forward_conv_bias_activ
     {
         // If we are using convolutions as the base, we can calculate the
         auto rout = get_output_tensor(miopen::deref(filter), input, weights);
+        auto aout = rout;
+        std::fill(aout.begin(), aout.end(), 0.);
+        double activ_alpha, activ_beta, activ_gamma;
+        miopenActivationMode_t activ_mode;
+        miopenGetActivationDescriptor(
+            activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
         convHostForward(input, rout, weights, 1, bias, filter);
-        return rout;
+        activationHostInfererence(activ_mode,
+                               static_cast<T>(activ_gamma),
+                               static_cast<T>(activ_beta),
+                               static_cast<T>(activ_alpha),
+                               rout,
+                               aout);
+        return aout;
     }
 
     tensor<T> gpu() const
@@ -524,9 +536,9 @@ struct cbna_fusion_driver : test_driver
         add(input, "input", get_input_tensor());
         add(weights, "weights", get_weights_tensor());
         add(filter, "filter", generate_data(get_filters()));
-        add(alpha, "alpha", generate_data({1. /*, 0.1*/}));
-        add(beta, "beta", generate_data({0. /*, 0.5*/}));
-        add(gamma, "gamma", generate_data({1. /*, 0.1*/}));
+        add(alpha, "alpha", generate_data({/*1. , */0.5}));
+        add(beta, "beta", generate_data({/*0. , */0.5}));
+        add(gamma, "gamma", generate_data({/*1. ,*/ 0.5}));
         /*        add(enable_backward_weights, "enable-backward-weights", flag());
                 add(do_backward_data, "disable-backward-data", set_value(false));
                 add(search, "search", set_value(1));*/
@@ -535,7 +547,7 @@ struct cbna_fusion_driver : test_driver
         //       handle trans right now
         add(pad_mode, "pmode", generate_data({"default" /*, "same", "valid"*/}));
         add(tactiv, "test_activ", generate_data({false, true}));
-        add(amode, "amode", generate_data({0 /*3,4,5,6,7,8,9,0,1,2*/}));
+        add(amode, "amode", generate_data({0,3,8,1}));
     }
 
     std::vector<miopen::ConvolutionDescriptor> get_filters()
