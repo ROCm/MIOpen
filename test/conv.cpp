@@ -121,6 +121,33 @@ struct verify_forward_conv : conv_base<T>
                 });
             });
         }
+        else if(filter.mode == miopenGroupConv || filter.mode == miopenDepthwise)
+        {
+            int in_h, in_w;
+            std::tie(std::ignore, std::ignore, in_h, in_w) =
+                miopen::tien<4>(input.desc.GetLengths());
+
+            int wei_n, wei_c, wei_h, wei_w;
+            std::tie(wei_n, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
+
+            rout.par_for_each([&](int o, int w, int i, int j) {
+                const int start_x  = i * filter.u - filter.pad_h;
+                const int start_y  = j * filter.v - filter.pad_w;
+                const int group_id = w / (wei_n / filter.group_count);
+
+                double acc = bias;
+                ford(wei_c, wei_h, wei_w)([&](int k, int x, int y) {
+                    const int in_x  = start_x + x;
+                    const int in_y  = start_y + y;
+                    const int in_ch = group_id * wei_c + k;
+                    if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
+                    {
+                        acc += input(o, in_ch, in_x, in_y) * weights(w, k, x, y);
+                    }
+                });
+                rout(o, w, i, j) = acc;
+            });
+        }
         else
         {
             int in_h, in_w;
@@ -264,6 +291,35 @@ struct verify_backward_conv : conv_base<T>
                 rinput(o, w, i, j) = acc;
             });
         }
+        else if(filter.mode == miopenGroupConv || filter.mode == miopenDepthwise)
+        {
+            int in_c, in_h, in_w;
+            std::tie(std::ignore, in_c, in_h, in_w) = miopen::tien<4>(rinput.desc.GetLengths());
+
+            int wei_c, wei_h, wei_w;
+            std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
+
+            int out_n, out_c, out_h, out_w;
+            std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(out.desc.GetLengths());
+
+            par_ford(out_n, in_c)([&](int o, int k) {
+                const int group_id = k / wei_c;
+                ford(out_c / filter.group_count, out_h, out_w, wei_h, wei_w)(
+                    [&](int w, int i, int j, int x, int y) {
+                        const int start_x = i * filter.u - filter.pad_h;
+                        const int start_y = j * filter.v - filter.pad_w;
+                        const int in_x    = start_x + x;
+                        const int in_y    = start_y + y;
+                        const int out_ch  = group_id * (out_c / filter.group_count) + w;
+                        const int wei_ch  = k % wei_c;
+                        if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
+                        {
+                            rinput(o, k, in_x, in_y) +=
+                                out(o, out_ch, i, j) * weights(out_ch, wei_ch, x, y);
+                        }
+                    });
+            });
+        }
         else
         {
             int in_h, in_w;
@@ -392,8 +448,14 @@ struct verify_backward_weights_conv : conv_base<T>
         std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(
             filter.mode == miopenTranspose ? input.desc.GetLengths() : out.desc.GetLengths());
 
+        int groups = 1;
+        if(filter.mode == miopenGroupConv || filter.mode == miopenDepthwise)
+            groups = filter.group_count;
+
         par_ford(out_c, wei_c, wei_h, wei_w)([&](int w, int k, int x, int y) {
-            double acc = 0.0;
+            double acc         = 0.0;
+            const int group_id = w / (out_c / groups);
+            const int in_ch    = group_id * wei_c + k;
             ford(out_n, out_h, out_w)([&](int o, int i, int j) {
                 const int start_x = i * filter.u - filter.pad_h;
                 const int start_y = j * filter.v - filter.pad_w;
@@ -403,7 +465,7 @@ struct verify_backward_weights_conv : conv_base<T>
                 {
                     acc += (filter.mode == miopenTranspose
                                 ? out(o, k, in_x, in_y) * input(o, w, i, j)
-                                : input(o, k, in_x, in_y) * out(o, w, i, j));
+                                : input(o, in_ch, in_x, in_y) * out(o, w, i, j));
                 }
             });
             rweights(w, k, x, y) = acc;
@@ -481,9 +543,13 @@ struct conv_driver : test_driver
     bool do_backward_data        = true;
     int search                   = 0;
     unsigned long max_value      = miopen_type<T>{} == miopenHalf ? 5 : 17;
+    int groupCount{};
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
-        {"CONV", miopenConvolution}, {"TRANS", miopenTranspose}};
+        {"CONV", miopenConvolution},
+        {"TRANS", miopenTranspose},
+        {"GROUP", miopenGroupConv},
+        {"DW", miopenDepthwise}};
 
     std::unordered_map<std::string, miopenPaddingMode_t> pmode_lookup = {
         {"SAME", miopenPaddingSame},
@@ -498,8 +564,9 @@ struct conv_driver : test_driver
         add(enable_backward_weights, "enable-backward-weights", flag());
         add(do_backward_data, "disable-backward-data", set_value(false));
         add(search, "search", set_value(1));
-        add(conv_mode, "cmode", generate_data({"conv", "trans"}));
+        add(conv_mode, "cmode", generate_data({"conv", "trans", "group", "dw"}));
         add(pad_mode, "pmode", generate_data({"default", "same", "valid"}));
+        add(groupCount, "group-count", generate_data({1}));
     }
 
     std::vector<miopen::ConvolutionDescriptor> get_filters()
@@ -520,9 +587,16 @@ struct conv_driver : test_driver
 
         filter.mode        = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode = pmode_lookup[miopen::ToUpper(pad_mode)];
+        filter.group_count =
+            filter.mode == miopenDepthwise ? input_c : std::max(static_cast<int>(groupCount), 1);
+        if(filter.group_count > 1 &&
+           !(filter.mode == miopenDepthwise || filter.mode == miopenTranspose))
+            filter.mode = miopenGroupConv;
 
         if(((filter.mode == miopenTranspose) && (input_c == wei_k)) ||
-           ((filter.mode == miopenConvolution) && (input_c == wei_c)))
+           ((filter.mode == miopenConvolution) && (input_c == wei_c)) ||
+           ((filter.mode == miopenGroupConv) && (input_c % wei_c == 0)) ||
+           ((filter.mode == miopenDepthwise) && (wei_c == 1)))
         {
             if(filter.paddingMode == miopenPaddingSame)
             {
@@ -558,7 +632,13 @@ struct conv_driver : test_driver
                     return;
             }
 
-            if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
+            if(((filter.mode == miopenConvolution &&
+                 input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1)) ||
+                (filter.mode == miopenTranspose &&
+                 input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(0)) ||
+                (filter.mode == miopenGroupConv &&
+                 (input.desc.GetLengths().at(1) % weights.desc.GetLengths().at(1) == 0)) ||
+                (filter.mode == miopenDepthwise && weights.desc.GetLengths().at(1) == 1)) &&
                wei_h > 2 * filter.pad_h && wei_w > 2 * filter.pad_w &&
                input_h >= (2 * filter.pad_h + wei_h) && input_w >= (2 * filter.pad_w + wei_w))
             {
