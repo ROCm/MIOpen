@@ -52,7 +52,7 @@ namespace miopen {
 // Some utils
 namespace solver {
 KernelInfo CBAFusionGetSolution(const ConvolutionContext& params);
-} // solver
+} // namespace solver
 
 using miopenFusionOp_t = enum {
     miopenFusionOpConvForward        = 0,
