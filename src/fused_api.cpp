@@ -77,7 +77,8 @@ extern "C" miopenStatus_t miopenCreateOpConvForwardAlgo(miopenFusionPlanDescript
     MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, fwdAlgo, wDesc);
     miopenStatus_t res = miopenStatusSuccess;
     miopen::try_([&] {
-        auto fod = std::make_shared<miopen::ConvForwardOpDescriptor>(miopen::deref(convDesc), miopen::deref(wDesc), fwdAlgo);
+        auto fod = std::make_shared<miopen::ConvForwardOpDescriptor>(
+            miopen::deref(convDesc), miopen::deref(wDesc), fwdAlgo);
         miopen::deref(convOp) = fod.get();
         res                   = miopen::deref(fusePlanDesc).AddOp(fod);
     });
@@ -161,7 +162,7 @@ extern "C" miopenStatus_t miopenCreateOpActivationForward(miopenFusionPlanDescri
     MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, mode);
     miopenStatus_t res = miopenStatusSuccess;
     miopen::try_([&] {
-        auto fod = std::make_shared<miopen::ActivFusionOpDescriptor>(mode);
+        auto fod               = std::make_shared<miopen::ActivFusionOpDescriptor>(mode);
         miopen::deref(activOp) = fod.get();
         res                    = miopen::deref(fusePlanDesc).AddOp(fod);
     });
@@ -210,7 +211,8 @@ miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
     MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode, bnScaleBiasMeanVarDesc);
     miopenStatus_t res = miopenStatusSuccess;
     miopen::try_([&] {
-        auto bod = std::make_shared<miopen::BatchNormInferenceFusionOpDescriptor>(bn_mode, miopen::deref(bnScaleBiasMeanVarDesc));
+        auto bod = std::make_shared<miopen::BatchNormInferenceFusionOpDescriptor>(
+            bn_mode, miopen::deref(bnScaleBiasMeanVarDesc));
         miopen::deref(bnOp) = bod.get();
         res                 = miopen::deref(fusePlanDesc).AddOp(bod);
     });
