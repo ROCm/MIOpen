@@ -33,8 +33,7 @@ namespace miopen {
 
 FusionPlanDescriptor::~FusionPlanDescriptor()
 {
-    for(auto el : op_map)
-        el.reset();
+    op_map.clear();
 }
 
 miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> desc)
@@ -45,7 +44,7 @@ miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> d
     else
         desc->SetInputDesc(output_desc);
     desc->GetOutputDesc(output_desc);
-    op_map.push_back(desc);
+    op_map.emplace_back(desc);
     op_count++;
     is_valid = lu.Advance(op_map);
     return miopenStatusSuccess;
