@@ -52,14 +52,14 @@ namespace miopen {
 // Some utils
 namespace solver {
 KernelInfo CBAFusionGetSolution(const ConvolutionContext& params);
-}
+} // solver
 
-typedef enum {
+using miopenFusionOp_t = enum {
     miopenFusionOpConvForward        = 0,
     miopenFusionOpActivForward       = 1,
     miopenFusionOpBatchNormInference = 2,
     miopenFusionOpBiasForward        = 3,
-} miopenFusionOp_t;
+};// miopenFusionOp_t;
 
 using any_t = OpKernelArg;
 struct OperatorArgs : miopenOperatorArgs
@@ -94,30 +94,30 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
 struct BiasFusionOpDescriptor : FusionOpDescriptor
 {
     BiasFusionOpDescriptor(TensorDescriptor& desc) : base_desc(desc){};
-    miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc);
-    miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
-    miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
+    miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
+    miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
+    miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle) override;
     miopenStatus_t
     SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t dbias);
-    std::vector<std::string> GetArgs() const;
-    miopenFusionOp_t kind() { return miopenFusionOpBiasForward; };
+    std::vector<std::string> GetArgs() const override;
+    miopenFusionOp_t kind() override { return miopenFusionOpBiasForward; };
     TensorDescriptor& base_desc;
 };
 
 struct ActivFusionOpDescriptor : FusionOpDescriptor
 {
     ActivFusionOpDescriptor(miopenActivationMode_t mode) : activMode(mode){};
-    miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc);
-    miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
-    miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
+    miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
+    miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
+    miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle) override;
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
                            double activAlpha,
                            double activBeta,
                            double activGamm);
-    std::vector<std::string> GetArgs() const;
-    miopenFusionOp_t kind() { return miopenFusionOpActivForward; };
+    std::vector<std::string> GetArgs() const override;
+    miopenFusionOp_t kind() override { return miopenFusionOpActivForward; };
     miopenActivationMode_t activMode;
 };
 
@@ -125,9 +125,9 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
 {
     BatchNormInferenceFusionOpDescriptor(miopenBatchNormMode_t bn_mode, TensorDescriptor& desc)
         : mode(bn_mode), base_desc(desc){};
-    miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc);
-    miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
-    miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
+    miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
+    miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
+    miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle) override;
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
@@ -136,8 +136,8 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
                            ConstData_t estimatedMean,
                            ConstData_t estimatedVariance,
                            double epsilon);
-    std::vector<std::string> GetArgs() const;
-    miopenFusionOp_t kind() { return miopenFusionOpBatchNormInference; };
+    std::vector<std::string> GetArgs() const override;
+    miopenFusionOp_t kind() override { return miopenFusionOpBatchNormInference; };
     miopenBatchNormMode_t mode;
     TensorDescriptor& base_desc;
 };
@@ -151,13 +151,13 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
           filter_desc(filter_descriptor),
           algo(fwd_algo),
           kernel_info_valid(false){};
-    miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc);
+    miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
     miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t w);
-    std::vector<std::string> GetArgs() const;
-    miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
-    miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
+    std::vector<std::string> GetArgs() const override;
+    miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
+    miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle) override;
     solver::KernelInfo& GetKernelInfo(Handle& handle);
-    miopenFusionOp_t kind() { return miopenFusionOpConvForward; };
+    miopenFusionOp_t kind() override { return miopenFusionOpConvForward; };
     ConvolutionDescriptor& base_desc;
     TensorDescriptor& filter_desc;
     miopenConvFwdAlgorithm_t algo;
@@ -194,7 +194,6 @@ struct FusionOpLU
     }
     void Reset() { cur_idx = 0; };
     bool Advance(std::vector<std::shared_ptr<miopen::FusionOpDescriptor>> op_map);
-    // auto GetPaths();
 
     protected:
     std::vector<std::vector<miopenFusionOp_t>> lut;
@@ -232,9 +231,7 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     const TensorDescriptor& input_desc;
     TensorDescriptor output_desc;
     int op_count = 0;
-    //   std::unordered_map<int, std::shared_ptr<FusionOpDescriptor>> op_map;
     std::vector<std::shared_ptr<FusionOpDescriptor>> op_map;
-    //    std::vector<int> ins_order;
     FusionOpLU lu;
     bool is_valid;
 };

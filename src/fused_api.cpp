@@ -77,11 +77,11 @@ extern "C" miopenStatus_t miopenCreateOpConvForwardAlgo(miopenFusionPlanDescript
     MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, fwdAlgo, wDesc);
     miopenStatus_t res = miopenStatusSuccess;
     miopen::try_([&] {
-        auto fod = new miopen::ConvForwardOpDescriptor(
-            miopen::deref(convDesc), miopen::deref(wDesc), fwdAlgo);
-        miopen::deref(convOp) = fod;
-        res                   = miopen::deref(fusePlanDesc)
-                  .AddOp(std::shared_ptr<miopen::ConvForwardOpDescriptor>(fod));
+        std::shared_ptr<miopen::ConvForwardOpDescriptor> fod (new miopen::ConvForwardOpDescriptor(
+            miopen::deref(convDesc), miopen::deref(wDesc), fwdAlgo));
+        miopen::deref(convOp) = fod.get();
+        res                   = miopen::deref(fusePlanDesc).AddOp(fod);
+         //.AddOp(std::shared_ptr<miopen::ConvForwardOpDescriptor>(fod));
     });
     return res;
 }
@@ -163,10 +163,9 @@ extern "C" miopenStatus_t miopenCreateOpActivationForward(miopenFusionPlanDescri
     MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, mode);
     miopenStatus_t res = miopenStatusSuccess;
     miopen::try_([&] {
-        miopen::ActivFusionOpDescriptor* fod = new miopen::ActivFusionOpDescriptor(mode);
-        miopen::deref(activOp)               = fod;
-        res                                  = miopen::deref(fusePlanDesc)
-                  .AddOp(std::shared_ptr<miopen::ActivFusionOpDescriptor>(fod));
+        std::shared_ptr<miopen::ActivFusionOpDescriptor> fod (new miopen::ActivFusionOpDescriptor(mode));
+        miopen::deref(activOp)               = fod.get();
+        res                                  = miopen::deref(fusePlanDesc).AddOp(fod);
     });
     return res;
 }
@@ -188,11 +187,9 @@ extern "C" miopenStatus_t miopenCreateOpBiasForward(miopenFusionPlanDescriptor_t
     MIOPEN_LOG_FUNCTION(fusePlanDesc, biasOp, bDesc);
     miopenStatus_t res = miopenStatusSuccess;
     miopen::try_([&] {
-        miopen::BiasFusionOpDescriptor* bod =
-            new miopen::BiasFusionOpDescriptor(miopen::deref(bDesc));
-        miopen::deref(biasOp) = bod;
-        res =
-            miopen::deref(fusePlanDesc).AddOp(std::shared_ptr<miopen::BiasFusionOpDescriptor>(bod));
+        std::shared_ptr<miopen::BiasFusionOpDescriptor> bod (new miopen::BiasFusionOpDescriptor(miopen::deref(bDesc)));
+        miopen::deref(biasOp) = bod.get();
+        res = miopen::deref(fusePlanDesc).AddOp(bod);
     });
     return res;
 }
@@ -215,12 +212,10 @@ miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
     MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode, bnScaleBiasMeanVarDesc);
     miopenStatus_t res = miopenStatusSuccess;
     miopen::try_([&] {
-        miopen::BatchNormInferenceFusionOpDescriptor* bod =
-            new miopen::BatchNormInferenceFusionOpDescriptor(bn_mode,
-                                                             miopen::deref(bnScaleBiasMeanVarDesc));
-        miopen::deref(bnOp) = bod;
-        res                 = miopen::deref(fusePlanDesc)
-                  .AddOp(std::shared_ptr<miopen::BatchNormInferenceFusionOpDescriptor>(bod));
+        std::shared_ptr<miopen::BatchNormInferenceFusionOpDescriptor> bod (new miopen::BatchNormInferenceFusionOpDescriptor(bn_mode,
+                                                             miopen::deref(bnScaleBiasMeanVarDesc)));
+        miopen::deref(bnOp) = bod.get();
+        res                 = miopen::deref(fusePlanDesc).AddOp(bod);
     });
     return res;
 }
@@ -295,8 +290,7 @@ extern "C" miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
 {
     MIOPEN_LOG_FUNCTION(args, alpha, beta, convOp, w);
     return miopen::try_([&] {
-        miopen::ConvForwardOpDescriptor& op =
-            dynamic_cast<miopen::ConvForwardOpDescriptor&>(miopen::deref(convOp));
+        auto op = dynamic_cast<miopen::ConvForwardOpDescriptor&>(miopen::deref(convOp));
         auto tmp = DataCast(w);
         op.SetArgs(miopen::deref(args), alpha, beta, tmp);
     });
@@ -339,8 +333,7 @@ extern "C" miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
 
     MIOPEN_LOG_FUNCTION(args, biasOp, alpha, beta, bias);
     return miopen::try_([&] {
-        miopen::BiasFusionOpDescriptor& op =
-            dynamic_cast<miopen::BiasFusionOpDescriptor&>(miopen::deref(biasOp));
+        auto op = dynamic_cast<miopen::BiasFusionOpDescriptor&>(miopen::deref(biasOp));
         op.SetArgs(miopen::deref(args), alpha, beta, DataCast(bias));
     });
 }
@@ -368,8 +361,7 @@ extern "C" miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
 
     MIOPEN_LOG_FUNCTION(args, activOp, alpha, beta, activAlpha, activBeta, activGamma);
     return miopen::try_([&] {
-        miopen::ActivFusionOpDescriptor& op =
-            dynamic_cast<miopen::ActivFusionOpDescriptor&>(miopen::deref(activOp));
+        auto op = dynamic_cast<miopen::ActivFusionOpDescriptor&>(miopen::deref(activOp));
         op.SetArgs(miopen::deref(args), alpha, beta, activAlpha, activBeta, activGamma);
     });
 }
@@ -400,8 +392,7 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t
     MIOPEN_LOG_FUNCTION(
         args, bnOp, alpha, beta, bnScale, bnBias, estimatedMean, estimatedVariance, epsilon);
     return miopen::try_([&] {
-        miopen::BatchNormInferenceFusionOpDescriptor& op =
-            dynamic_cast<miopen::BatchNormInferenceFusionOpDescriptor&>(miopen::deref(bnOp));
+        auto op = dynamic_cast<miopen::BatchNormInferenceFusionOpDescriptor&>(miopen::deref(bnOp));
         op.SetArgs(miopen::deref(args),
                    alpha,
                    beta,
@@ -515,6 +506,7 @@ extern "C" miopenStatus_t miopenExecuteFusionPlan(miopenHandle_t handle,
 {
     // MIOPEN_LOG_FUNCTION(handle, fusePlanDesc, inputDesc, input, outputDesc, output, args);
     return miopen::try_([&] {
+
         miopen::deref(fusePlanDesc)
             .Execute(miopen::deref(handle),
                      miopen::deref(inputDesc),

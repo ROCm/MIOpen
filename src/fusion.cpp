@@ -34,7 +34,7 @@ namespace miopen {
 FusionPlanDescriptor::~FusionPlanDescriptor()
 {
     for(auto el : op_map)
-        delete el.get();
+        /*delete*/ el.reset();//get();
 }
 
 miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> desc)
@@ -57,7 +57,7 @@ TensorDescriptor FusionPlanDescriptor::DeriveOutputDescriptor()
     TensorDescriptor o_desc;
     if(fusion_dir == miopenVerticalFusion)
     {
-        for(auto op : op_map)
+        for(auto&& op : op_map)
         {
             op->SetInputDesc(i_desc);
             op->GetOutputDesc(o_desc);
@@ -81,7 +81,7 @@ miopenStatus_t FusionPlanDescriptor::GetWorkspaceSizeImmed(Handle& handle,
     workSpaceSize = 0;
     // iterate over all the conv ops in the plan and return the max amount of
     // ws required
-    for(auto op : op_map)
+    for(auto&& op : op_map)
     {
         if(op->kind() == miopenFusionOpConvForward)
         {
@@ -336,6 +336,9 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                                              Data_t output,
                                              const OperatorArgs& op_args)
 {
+    if(!isValid()) {
+        MIOPEN_THROW("Attempting to execute an invalid fusion plan.");
+    }
     std::string network_config{};
     std::string program_name{};
     std::string kernel_name{};
@@ -350,11 +353,9 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     {
         MIOPEN_THROW("The input descriptors dont match.");
     }
-    if(!isValid())
-        MIOPEN_THROW("The execution plan is not valid.");
     // TODO: The fusion plan is keeping track of the insertion order,
     // should we move this to the Graph ?
-    for(auto op : op_map)
+    for(auto&& op : op_map)
     {
         op->GetNetworkConfig(network_config, handle);
     }
@@ -388,7 +389,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     else
     {
         std::string compile_config;
-        for(auto op : op_map)
+        for(auto&& op : op_map)
         {
             op->GetCompileParms(compile_config,
                                 handle); // DLOWELL: TODO is this implemented every op, finished?
@@ -423,16 +424,16 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     }
     // Construct the kernel args
     std::vector<any_t> args;
-    args.push_back(any_t(input));
-    args.push_back(any_t(output));
-    for(auto op : op_map)
+    args.emplace_back(any_t(input));
+    args.emplace_back(any_t(output));
+    for(auto&& op : op_map)
     {
         auto keys = op->GetArgs();
         for(auto key : keys)
         {
             auto it = op_args.args_map.find(key);
             if(it != op_args.args_map.end())
-                args.push_back(any_t(it->second));
+                args.emplace_back(any_t(it->second));
             else
                 MIOPEN_THROW("Arg not found in Map");
         }

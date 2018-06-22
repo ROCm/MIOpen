@@ -126,7 +126,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                         const TensorDescriptor& wDesc,
                                         const TensorDescriptor& xDesc,
                                         const TensorDescriptor& yDesc,
-                                        const miopenConvFwdAlgorithm_t algo,
+                                        miopenConvFwdAlgorithm_t algo,
                                         bool& supported) const;
 
     size_t ForwardGetWorkSpaceSize(Handle& handle,
