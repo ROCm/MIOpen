@@ -445,4 +445,4 @@ void DirectConvActivInference(Handle& handle,
         miopen::checkNumericsOutput(handle, yDesc, y);
     }
 }
-} // miopen
+} // namespace miopen
