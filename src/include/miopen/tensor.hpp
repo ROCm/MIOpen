@@ -32,11 +32,9 @@
 #include <miopen/miopen.h>
 #include <miopen/object.hpp>
 #include <miopen/each_args.hpp>
-#include <miopen/functional.hpp>
 #include <miopen/returns.hpp>
 #include <miopen/errors.hpp>
 #include <vector>
-#include <algorithm>
 // TODO(paul): remove this include later
 #include <cstdio>
 

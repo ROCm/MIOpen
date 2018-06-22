@@ -109,29 +109,8 @@ struct verify_tensor_copy
         auto dstSuper_dev = handle.Write(dstSuperGpu.data);
         auto srcSuper_dev = handle.Write(srcSuper.data);
 
-        // auto t_start = std::chrono::high_resolution_clock::now();
-
         miopen::CopyTensor(
             handle, srcDesc, srcSuper_dev.get(), dstDesc, dstSuper_dev.get(), srcOffset, dstOffset);
-
-        // auto w_time =
-        //    std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - t_start)
-        //        .count();
-
-        // std::size_t nbyte = sizeof(T{}) * std::accumulate(srcDesc.GetLengths().begin(),
-        //                                                  srcDesc.GetLengths().end(),
-        //                                                  std::size_t{1},
-        //                                                  std::multiplies<std::size_t>());
-
-        // std::cout << "wall time: " << w_time * 1000.0 << " ms" << std::endl;
-        // std::cout << "kernel time: " << handle.GetKernelTime() << " ms" << std::endl;
-        // std::cout << "API time: " << w_time * 1000.0 - handle.GetKernelTime() << " ms" <<
-        // std::endl;
-        // std::cout << "bandwidth: "
-        //          << 2.0 * (static_cast<float>(nbyte) / (static_cast<float>(std::size_t(1) << 30)
-        //          *
-        //                                                 handle.GetKernelTime() / 1000.0))
-        //          << "GB/s" << std::endl;
 
         dstSuperGpu.data = handle.Read<T>(dstSuper_dev, dstSuperGpu.data.size());
 
