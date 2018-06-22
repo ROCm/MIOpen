@@ -328,6 +328,16 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     int wei_n, wei_c, wei_h, wei_w;
 
+    std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+
+    /// \todo add support for non-zero padding in 1x1conv
+    if((wei_h == 1 && wei_w == 1) && (pad_h > 0 || pad_w > 0))
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "Invalid config. MIOPEN expects padding "
+                     "== 0 when filter size == 1");
+    }
+
     int out_h, out_w;
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
 
@@ -1397,6 +1407,16 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(dxDesc.GetLengths());
 
     int wei_n, wei_c, wei_h, wei_w;
+
+    std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+
+    /// \todo add support for non-zero padding in 1x1conv
+    if((wei_h == 1 && wei_w == 1) && (pad_h > 0 || pad_w > 0))
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "Invalid config. MIOPEN expects padding "
+                     "== 0 when filter size == 1");
+    }
 
     int out_h, out_w;
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
@@ -2602,6 +2622,16 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     std::tie(in_n, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
 
     int wei_n, wei_c, wei_h, wei_w;
+
+    std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
+
+    /// \todo add support for non-zero padding in 1x1conv
+    if((wei_h == 1 && wei_w == 1) && (pad_h > 0 || pad_w > 0))
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "Invalid config. MIOPEN expects padding "
+                     "== 0 when filter size == 1");
+    }
 
     int out_h, out_w;
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
