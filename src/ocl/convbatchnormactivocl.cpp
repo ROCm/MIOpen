@@ -173,7 +173,7 @@ void DirectConvBNActivInference(Handle& handle,
                                 int dilation_h,
                                 int dilation_w,
                                 int bias_mode,
-                                ConstData_t convBias,
+                                ConstData_t bias,
                                 miopenBatchNormMode_t bn_mode,
                                 ConstData_t bnScale,
                                 ConstData_t bnBias,
@@ -281,7 +281,7 @@ void DirectConvBNActivInference(Handle& handle,
         {
             kernel(x,
                    w,
-                   convBias,
+                   bias,
                    y,
                    as_float(padding_val),
                    estimatedMean,
@@ -445,4 +445,4 @@ void DirectConvActivInference(Handle& handle,
         miopen::checkNumericsOutput(handle, yDesc, y);
     }
 }
-}
+} // namespace miopen

@@ -88,6 +88,8 @@ class CBAInferFusionDriver : public Driver
         workspace_fwd_dev = nullptr;
 
         data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
+        initTiming();
+        iters = 0;
     }
 
     int AddCmdLineArgs();
@@ -136,6 +138,53 @@ class CBAInferFusionDriver : public Driver
 
     int VerifyBackward();
     int VerifyForward();
+
+    Timer t;
+    double fulltime;
+    float lowtime;
+    float avgtime;
+    float time;
+    int iters;
+
+    void initTiming()
+    {
+        fulltime = 0.;
+        lowtime  = 100000000.0;
+        avgtime  = 0.;
+        time     = 0.0;
+        return;
+    }
+
+    void startTiming()
+    {
+        START_TIME;
+        return;
+    }
+
+    void finishTiming(int i)
+    {
+        if(inflags.GetValueStr("time") == "1")
+        {
+            time = 0.0;
+            miopenGetKernelTime(GetHandle(), &time);
+            lowtime = (time < lowtime) ? time : lowtime;
+            if(iters > 1 && i > 0)
+                avgtime += time;
+        }
+
+        miopen::deref(GetHandle()).Finish();
+        STOP_TIME;
+
+        if(WALL_CLOCK)
+        {
+            if(iters > 1 && i > 0)
+                fulltime += t.gettime_ms();
+            else if(iters == 1)
+                fulltime = t.gettime_ms();
+            // else do nothing, drop the first iteration
+        }
+        return;
+    }
 
     ~CBAInferFusionDriver()
     {
@@ -649,31 +698,37 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
     miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bn_mode, biasScaleTensor);
 
     miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
-    miopenSetOpArgsBatchNormInference(fusionArgs,
-                                      bNormOp,
-                                      &alpha,
-                                      &beta,
-                                      scale_dev->GetMem(),
-                                      bias_dev->GetMem(),
-                                      runningMean_dev->GetMem(),
-                                      runningVariance_dev->GetMem(),
-                                      epsilon);
-    miopenSetOpArgsActivForward(
-        fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
-    miopenError = miopenIsFusionPlanValid(fusePlanDesc);
-    if(miopenError != miopenStatusSuccess)
+
+    for(int it = 0; it < iters; it++)
     {
-        std::cerr << "BatchNormActivInference plan not supported." << std::endl;
+        startTiming();
+        miopenSetOpArgsBatchNormInference(fusionArgs,
+                                          bNormOp,
+                                          &alpha,
+                                          &beta,
+                                          scale_dev->GetMem(),
+                                          bias_dev->GetMem(),
+                                          runningMean_dev->GetMem(),
+                                          runningVariance_dev->GetMem(),
+                                          epsilon);
+        miopenSetOpArgsActivForward(
+            fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
+        miopenError = miopenIsFusionPlanValid(fusePlanDesc);
+        if(miopenError != miopenStatusSuccess)
+        {
+            std::cerr << "BatchNormActivInference plan not supported." << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        miopenExecuteFusionPlan(GetHandle(),
+                                fusePlanDesc,
+                                inputTensor,
+                                in_dev->GetMem(),
+                                outputTensor,
+                                out_dev->GetMem(),
+                                fusionArgs);
+        finishTiming(it);
     }
-
-    miopenExecuteFusionPlan(GetHandle(),
-                            fusePlanDesc,
-                            inputTensor,
-                            in_dev->GetMem(),
-                            outputTensor,
-                            out_dev->GetMem(),
-                            fusionArgs);
-
     /*miopen::BatchNormActivInference(miopen::deref(GetHandle()),
                                     bn_mode,
                                     &alpha,
@@ -723,41 +778,47 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
     }
     miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bn_mode, biasScaleTensor);
     miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
-    miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());
 
-    if(bias_mode)
+    for(int it = 0; it < iters; it++)
     {
-        miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev->GetMem());
-    }
+        startTiming();
+        miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());
 
-    miopenSetOpArgsActivForward(
-        fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
-    miopenSetOpArgsBatchNormInference(fusionArgs,
-                                      bNormOp,
-                                      &alpha,
-                                      &beta,
-                                      scale_dev->GetMem(),
-                                      bias_dev->GetMem(),
-                                      runningMean_dev->GetMem(),
-                                      runningVariance_dev->GetMem(),
-                                      epsilon);
-    miopenError = miopenIsFusionPlanValid(fusePlanDesc);
-    if(miopenError != miopenStatusSuccess)
-    {
         if(bias_mode)
-            std::cerr << "ConvBiasBatchNormActivInference plan not supported." << std::endl;
-        else
-            std::cerr << "ConvBatchNormActivInference plan not supported." << std::endl;
+        {
+            miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev->GetMem());
+        }
+
+        miopenSetOpArgsActivForward(
+            fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
+        miopenSetOpArgsBatchNormInference(fusionArgs,
+                                          bNormOp,
+                                          &alpha,
+                                          &beta,
+                                          scale_dev->GetMem(),
+                                          bias_dev->GetMem(),
+                                          runningMean_dev->GetMem(),
+                                          runningVariance_dev->GetMem(),
+                                          epsilon);
+        miopenError = miopenIsFusionPlanValid(fusePlanDesc);
+        if(miopenError != miopenStatusSuccess)
+        {
+            if(bias_mode)
+                std::cerr << "ConvBiasBatchNormActivInference plan not supported." << std::endl;
+            else
+                std::cerr << "ConvBatchNormActivInference plan not supported." << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        miopenExecuteFusionPlan(GetHandle(),
+                                fusePlanDesc,
+                                inputTensor,
+                                in_dev->GetMem(),
+                                outputTensor,
+                                out_dev->GetMem(),
+                                fusionArgs);
+        finishTiming(it);
     }
-
-    miopenExecuteFusionPlan(GetHandle(),
-                            fusePlanDesc,
-                            inputTensor,
-                            in_dev->GetMem(),
-                            outputTensor,
-                            out_dev->GetMem(),
-                            fusionArgs);
-
     /*    miopen::DirectConvBNActivInference(miopen::deref(GetHandle()),
                                            &alpha,
                                            miopen::deref(inputTensor),
@@ -815,33 +876,38 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
     }
 
     miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
-    miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());
-
-    miopenSetOpArgsActivForward(
-        fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
-
-    if(bias_mode)
+    for(int it = 0; it < iters; it++)
     {
-        miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev->GetMem());
-    }
+        startTiming();
+        miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());
 
-    miopenError = miopenIsFusionPlanValid(fusePlanDesc);
-    if(miopenError != miopenStatusSuccess)
-    {
+        miopenSetOpArgsActivForward(
+            fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
+
         if(bias_mode)
-            std::cerr << "ConvBiasActivInference plan not supported." << std::endl;
-        else
-            std::cerr << "ConvActivInference plan not supported." << std::endl;
+        {
+            miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev->GetMem());
+        }
+
+        miopenError = miopenIsFusionPlanValid(fusePlanDesc);
+        if(miopenError != miopenStatusSuccess)
+        {
+            if(bias_mode)
+                std::cerr << "ConvBiasActivInference plan not supported." << std::endl;
+            else
+                std::cerr << "ConvActivInference plan not supported." << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        miopenExecuteFusionPlan(GetHandle(),
+                                fusePlanDesc,
+                                inputTensor,
+                                in_dev->GetMem(),
+                                outputTensor,
+                                out_dev->GetMem(),
+                                fusionArgs);
+        finishTiming(it);
     }
-
-    miopenExecuteFusionPlan(GetHandle(),
-                            fusePlanDesc,
-                            inputTensor,
-                            in_dev->GetMem(),
-                            outputTensor,
-                            out_dev->GetMem(),
-                            fusionArgs);
-
     /*    miopen::DirectConvActivInference(miopen::deref(GetHandle()),
                                          &alpha,
                                          miopen::deref(inputTensor),
@@ -986,103 +1052,74 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUFusedConvBiasInference()
 
     miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasTensor);
 
-    miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());
-
-    miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev->GetMem());
-
-    miopenError = miopenIsFusionPlanValid(fusePlanDesc);
-    if(miopenError != miopenStatusSuccess)
+    for(int it = 0; it < iters; it++)
     {
-        std::cerr << "ConvBiasInference plan not supported." << std::endl;
+        startTiming();
+        miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());
+
+        miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev->GetMem());
+
+        miopenError = miopenIsFusionPlanValid(fusePlanDesc);
+        if(miopenError != miopenStatusSuccess)
+        {
+            std::cerr << "ConvBiasInference plan not supported." << std::endl;
+        }
+        miopenExecuteFusionPlan(GetHandle(),
+                                fusePlanDesc,
+                                inputTensor,
+                                in_dev->GetMem(),
+                                outputTensor,
+                                out_dev->GetMem(),
+                                fusionArgs);
+        finishTiming(it);
     }
-    miopenExecuteFusionPlan(GetHandle(),
-                            fusePlanDesc,
-                            inputTensor,
-                            in_dev->GetMem(),
-                            outputTensor,
-                            out_dev->GetMem(),
-                            fusionArgs);
 }
 
 template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
 {
-    Timer t;
-    double fulltime = 0.;
-    auto iters      = inflags.GetValueInt("iter");
-    float lowtime   = 100000000.0;
-    float avgtime   = 0.;
 
-    //(cbbna = 0, cbna = 1, bna = 2, cba = 3, ca = 4, cb = 5)
     assert(fusion_mode < 6 && fusion_mode >= 0);
-
-    float time = 0.0;
-    for(int i = 0; i < iters; i++)
+    iters = inflags.GetValueInt("iter");
+    initTiming();
+    switch(fusion_mode)
     {
-        START_TIME;
-
-        switch(fusion_mode)
-        {
-        case 0:
-        case 1: runGPUConvBatchNormActivInference(); break;
-        case 3:
-        case 4: runGPUConvActivInference(); break;
-        case 2: runGPUBatchNormActivInference(); break;
-        case 5: runGPUFusedConvBiasInference(); break;
-        }
-        // miopenGetKernelTime(GetHandle(), &time);
-        // kl_time += time;
-
-        if(inflags.GetValueStr("time") == "1")
-        {
-            time = 0.0;
-            miopenGetKernelTime(GetHandle(), &time);
-            lowtime = (time < lowtime) ? time : lowtime;
-            if(iters > 1 && i > 0)
-                avgtime += time;
-        }
-
-        /*        runGPUConvBatchNormActivInference();
-                miopenGetKernelTime(GetHandle(), &time);
-                kl_time += time;
-        */
-
-        /*        runGPUConvBatchNormActivInference();
-                miopenGetKernelTime(GetHandle(), &time);
-                kl_time += time;*/
-
-        /*        runGPUConvFwdInference();
-                miopenGetKernelTime(GetHandle(), &time);
-                kl_time += time;*/
-
-        /*        runGPUConvBiasInference();
-                miopenGetKernelTime(GetHandle(), &time);
-                kl_time += time;*/
-
-        /*        runGPUBatchNormActivInference();
-                miopenGetKernelTime(GetHandle(), &time);
-                kl_time += time;*/
-
-        /*        runGPUBNFwdInference();
-                miopenGetKernelTime(GetHandle(), &time);
-                kl_time += time;*/
-
-        /*        runGPUActivFwdInference();
-                miopenGetKernelTime(GetHandle(), &time);
-                kl_time += time;*/
-
-        miopen::deref(GetHandle()).Finish();
-        STOP_TIME;
-
-        if(WALL_CLOCK)
-        {
-            if(iters > 1 && i > 0)
-                fulltime += t.gettime_ms();
-            else if(iters == 1)
-                fulltime = t.gettime_ms();
-            // else do nothing, drop the first iteration
-        }
+    case 0:
+    case 1: runGPUConvBatchNormActivInference(); break;
+    case 3:
+    case 4: runGPUConvActivInference(); break;
+    case 2: runGPUBatchNormActivInference(); break;
+    case 5: runGPUFusedConvBiasInference(); break;
     }
+
+    /*        runGPUConvBatchNormActivInference();
+            miopenGetKernelTime(GetHandle(), &time);
+            kl_time += time;
+    */
+
+    /*        runGPUConvBatchNormActivInference();
+            miopenGetKernelTime(GetHandle(), &time);
+            kl_time += time;*/
+
+    /*        runGPUConvFwdInference();
+            miopenGetKernelTime(GetHandle(), &time);
+            kl_time += time;*/
+
+    /*        runGPUConvBiasInference();
+            miopenGetKernelTime(GetHandle(), &time);
+            kl_time += time;*/
+
+    /*        runGPUBatchNormActivInference();
+            miopenGetKernelTime(GetHandle(), &time);
+            kl_time += time;*/
+
+    /*        runGPUBNFwdInference();
+            miopenGetKernelTime(GetHandle(), &time);
+            kl_time += time;*/
+
+    /*        runGPUActivFwdInference();
+            miopenGetKernelTime(GetHandle(), &time);
+            kl_time += time;*/
 
     if(WALL_CLOCK)
     {
@@ -1169,9 +1206,6 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
 {
 
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
-
-    Timer t;
-    START_TIME;
 
     int pad_h      = inflags.GetValueInt("pad_h");
     int pad_w      = inflags.GetValueInt("pad_w");

@@ -89,6 +89,6 @@ void DirectConvActivInference(Handle& handle,
                               double activ_alpha,
                               double activ_beta,
                               double activ_gama);
-}
+} // namespace miopen
 
 #endif // GUARD_MIOPEN_BATCHNORMALIZATION_HPP_

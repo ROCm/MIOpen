@@ -56,6 +56,8 @@ void test_warnings()
     auto&& h = get_handle();
 #if MIOPEN_BUILD_DEV
     EXPECT(throws([&] { h.AddKernel("GEMM", "", WriteNop(), "write", {1, 1, 1}, {1, 1, 1}, ""); }));
+#else
+    (void)h; // To silence warnings.
 #endif
 }
 

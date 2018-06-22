@@ -103,6 +103,7 @@ macro(enable_cppcheck)
             ${CPPCHECK_UNDEFINES}
             ${CPPCHECK_INCLUDES}
             --enable=${CPPCHECK_CHECKS}
+            --inline-suppr
             --suppressions-list=${CMAKE_BINARY_DIR}/cppcheck-supressions
             ${SOURCES} \${GSRCS}
         )

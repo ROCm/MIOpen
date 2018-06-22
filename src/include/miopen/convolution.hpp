@@ -33,6 +33,7 @@
 #include <miopen/miopen.h>
 #include <miopen/perf_field.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/solver.hpp>
 
 namespace miopen {
 
@@ -126,7 +127,7 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                         const TensorDescriptor& wDesc,
                                         const TensorDescriptor& xDesc,
                                         const TensorDescriptor& yDesc,
-                                        const miopenConvFwdAlgorithm_t algo,
+                                        miopenConvFwdAlgorithm_t algo,
                                         bool& supported) const;
 
     size_t ForwardGetWorkSpaceSize(Handle& handle,
@@ -192,14 +193,15 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                               size_t workSpaceSize,
                               bool timed = false) const;
 
-    int FindDirectKernel(Handle& handle,
-                         const TensorDescriptor& xDesc,
-                         const TensorDescriptor& wDesc,
-                         const TensorDescriptor& yDesc,
-                         ExtraKernelArgs& extraArgs,
-                         std::vector<KernelInvoke>& kernels,
-                         bool exhaustiveSearch,
-                         int direction) const;
+    std::vector<miopen::solver::ConvSolution>
+    FindDataDirectSolutions(Handle& handle,
+                            const TensorDescriptor& xDesc,
+                            const TensorDescriptor& wDesc,
+                            const TensorDescriptor& yDesc,
+                            bool exhaustiveSearch,
+                            bool isForward,
+                            std::string& network_config,
+                            ExtraKernelArgs& extraArgs) const;
 
     void ConvolutionForward(Handle& handle,
                             const void* alpha,

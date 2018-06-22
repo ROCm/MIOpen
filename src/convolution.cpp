@@ -635,8 +635,17 @@ size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
 
     try
     {
-        const auto solution = FindFirstSolution(construct_params);
-        return solution.Succeeded() ? solution.workspce_sz : 0;
+        const auto ss = FindAllSolutions(construct_params);
+        size_t sz     = 0;
+        for(const auto& solution : ss)
+        {
+            if(sz < solution.workspce_sz)
+            {
+                MIOPEN_LOG_I2(sz << " < " << solution.workspce_sz);
+                sz = solution.workspce_sz;
+            }
+        }
+        return sz;
     }
     catch(const miopen::Exception&)
     {
@@ -661,8 +670,17 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
 
     try
     {
-        const auto solution = FindFirstSolution(construct_params);
-        return solution.Succeeded() ? solution.workspce_sz : 0;
+        const auto ss = FindAllSolutions(construct_params);
+        size_t sz     = 0;
+        for(const auto& solution : ss)
+        {
+            if(sz < solution.workspce_sz)
+            {
+                MIOPEN_LOG_I2(sz << " < " << solution.workspce_sz);
+                sz = solution.workspce_sz;
+            }
+        }
+        return sz;
     }
     catch(const miopen::Exception&)
     {

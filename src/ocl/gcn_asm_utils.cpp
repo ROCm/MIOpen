@@ -254,7 +254,8 @@ static void AmdgcnAssemble4BugDetection(std::string& source, const std::string& 
     std::stringstream clang_stdout_unused;
     const auto clang_path = GetGcnAssemblerPath();
     const auto args       = " -x assembler -target amdgcn--amdhsa " + params + " " + source +
-                      " 2>&1"; // Keep console clean from error messages.
+                      " -o /dev/null" + // We do not need output file
+                      " 2>&1";          // Keep console clean from error messages.
     MIOPEN_LOG_I2(clang_path << " " << args);
     const int clang_rc =
         ExecuteGcnAssembler(clang_path + " " + args, nullptr, &clang_stdout_unused);

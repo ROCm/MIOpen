@@ -94,10 +94,6 @@ void convHostForward(const tensor<T>& input,
     if(out_h <= 0 || out_w <= 0)
         MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
 
-    /*    printf("CPU Conv input NCHW: %d, %d, %d, %d\n", in_n, in_c, in_h, in_w);
-        printf("CPU Conv output NCHW: %d, %d, %d, %d\n", out_n, out_c, out_h, out_w);
-        printf("CPU weights NCHW: %d, %d, %d, %d\n", wei_n, wei_c, wei_h, out_w);*/
-
     for(int o = 0; o < out_n; o++)
     { // mini-batch size
         for(int w = 0; w < out_c; w++)
@@ -107,7 +103,7 @@ void convHostForward(const tensor<T>& input,
                 int in_off_h = i * u;
                 for(int j = 0; j < out_w; j++)
                 { // output_width (from getforwardoutputdim())
-                    T acc        = static_cast<T>(0);
+                    auto acc     = static_cast<T>(0.);
                     int in_off_w = j * v;
                     for(int k = 0; k < in_c; k++)
                     { // in_channels (RGB)
@@ -136,8 +132,6 @@ void convHostForward(const tensor<T>& input,
             }
         }
     }
-
-    return;
 }
 
 template <class T>
@@ -171,7 +165,6 @@ void batchNormSpatialHostInference(const tensor<T>& input,
             }
         }
     });
-    return;
 }
 
 template <class T>
@@ -205,7 +198,6 @@ void batchNormPerActivHostInference(const tensor<T>& input,
             }
         }
     });
-    return;
 }
 
 template <class T>
@@ -225,40 +217,40 @@ void activationHostInfererence(miopenActivationMode_t activMode,
         f = [=](T x) { return x; };
         break;
     case miopenActivationLOGISTIC: // 1 / (1 + e^-x)  //Sigmoid
-        f = [=](T x) { return 1 / (1 + std::exp(-x)); };
+        f = [=](T x) { return static_cast<T>(1. / (1. + std::exp(-x))); };
         break;
     case miopenActivationTANH: // beta * tanh(alpha * x)
-        f = [=](T x) { return beta * std::tanh(alpha * x); };
+        f = [=](T x) { return static_cast<T>(beta * std::tanh(alpha * x)); };
         break;
     case miopenActivationRELU: // max(0, x)
-        f = [=](T x) { return (x > 0) ? x : 0; };
+        f = [=](T x) { return static_cast<T>((x > 0.) ? x : 0.); };
         break;
     case miopenActivationSOFTRELU: //  log(1 + e^x)   // bonomial normal log likelihood
-        f = [=](T x) { return std::log1p(std::exp(x)); };
+        f = [=](T x) { return static_cast<T>(std::log1p(std::exp(x))); };
         break;
     case miopenActivationABS: //  abs(x)
-        f = [=](T x) { return std::abs(x); };
+        f = [=](T x) { return static_cast<T>(std::abs(x)); };
         break;
     case miopenActivationPOWER: // (alpha + beta * x) ^ gamma
         f = [=](T x) {
-            T v = alpha + beta * x;
-            return v <= std::numeric_limits<T>::epsilon() ? 0 : pow(v, gamma);
+            auto v = static_cast<T>(alpha + beta * x);
+            return (v <= std::numeric_limits<T>::epsilon()) ? static_cast<T>(0.)
+                                                            : static_cast<T>(pow(v, gamma));
         };
         break;
     case miopenActivationCLIPPEDRELU: // min(alpha, max(0, x))
-        f = [=](T x) { return std::min(alpha, std::max(T(0), x)); };
+        f = [=](T x) { return static_cast<T>(std::min(alpha, std::max(T(0.), x))); };
         break;
     case miopenActivationLEAKYRELU: // alpha * x | x<=0; x | x>0
-        f = [=](T x) { return (x > 0) ? x : x * alpha; };
+        f = [=](T x) { return static_cast<T>((x > 0.) ? x : x * alpha); };
         break;
     case miopenActivationELU: // alpah * (exp(x)-1) | x<=0; x | x>0
-        f = [=](T x) { return (x > 0) ? x : alpha * std::expm1(x); };
+        f = [=](T x) { return static_cast<T>((x > 0.) ? x : alpha * std::expm1(x)); };
         break;
         // default: printf("ERROR: unknown neuron type: %d\n", activMode); break;
     }
 
     par_for(input.desc.GetElementSize(), 1, [&](int index) { output[index] = f(input[index]); });
-    return;
 }
 
 template <class T>
@@ -282,8 +274,6 @@ struct verify_forward_conv_bias
     miopenTensorDescriptor_t weightsDesc{};
     miopenTensorDescriptor_t outputDesc{};
     miopenTensorDescriptor_t biasDesc{};
-    // tensor<T> output;
-    // miopen::ConvolutionDescriptor filter;
 
     // using conv_base<T>::search; //DLOWELL not needed right now
     verify_forward_conv_bias(/*miopenHandle_t phandle,*/ tensor<T>& pinput,
@@ -331,7 +321,7 @@ struct verify_forward_conv_bias
             fusePlanDesc,
             &convoOp,
             filter,
-            // DLOWELL Hardcoded. This assumes immediate mode. Needs GetAlgo.
+            // \todo : DLOWELL Hardcoded. This assumes immediate mode. Needs GetAlgo.
             miopenConvolutionFwdAlgoDirect,
             weightsDesc);
 
@@ -375,13 +365,10 @@ struct verify_forward_conv_bias_activ
     miopenTensorDescriptor_t outputDesc{};
     miopenTensorDescriptor_t biasDesc{};
     miopenActivationDescriptor_t activDesc{};
-    // miopenHandle_t handle;
-    // tensor<T> output;
-    // miopen::ConvolutionDescriptor filter;
     int bias_mode = 0;
 
     // using conv_base<T>::search; //DLOWELL not needed right now
-    verify_forward_conv_bias_activ(/*miopenHandle_t phandle,*/ tensor<T>& pinput,
+    verify_forward_conv_bias_activ(tensor<T>& pinput,
                                    tensor<T>& pweights,
                                    miopen::ConvolutionDescriptor& pfilter,
                                    int pbias_mode,
@@ -404,8 +391,20 @@ struct verify_forward_conv_bias_activ
     {
         // If we are using convolutions as the base, we can calculate the
         auto rout = get_output_tensor(miopen::deref(filter), input, weights);
+        auto aout = rout;
+        std::fill(aout.begin(), aout.end(), 0.);
+        double activ_alpha, activ_beta, activ_gamma;
+        miopenActivationMode_t activ_mode;
+        miopenGetActivationDescriptor(
+            activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
         convHostForward(input, rout, weights, 1, bias, filter);
-        return rout;
+        activationHostInfererence(activ_mode,
+                                  static_cast<T>(activ_gamma),
+                                  static_cast<T>(activ_beta),
+                                  static_cast<T>(activ_alpha),
+                                  rout,
+                                  aout);
+        return aout;
     }
 
     tensor<T> gpu() const
@@ -447,7 +446,7 @@ struct verify_forward_conv_bias_activ
             fusePlanDesc,
             &convoOp,
             filter,
-            // DLOWELL Hardcoded. This assumes immediate mode. Needs GetAlgo.
+            // \todo dlowell: Hardcoded right now. This assumes immediate mode. Needs GetAlgo.
             miopenConvolutionFwdAlgoDirect,
             weightsDesc);
 
@@ -498,7 +497,7 @@ struct cbna_fusion_driver : test_driver
     tensor<T> input;
     tensor<T> weights;
     miopen::ConvolutionDescriptor filter;
-    miopenActivationDescriptor_t activDesc;
+    miopenActivationDescriptor_t activDesc{};
     miopenActivationMode_t activ_mode = miopenActivationRELU;
     int amode                         = 0;
     bool tactiv{};
@@ -509,7 +508,7 @@ struct cbna_fusion_driver : test_driver
     bool do_backward_data        = true;
     int search                   = 0;
     unsigned long max_value      = miopen_type<T>{} == miopenHalf ? 5 : 17;
-    double alpha, beta, gamma;
+    double alpha = 0., beta = 0., gamma = 0.;
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
         {"CONV", miopenConvolution}}; //, {"TRANS", miopenTranspose}};
@@ -524,18 +523,15 @@ struct cbna_fusion_driver : test_driver
         add(input, "input", get_input_tensor());
         add(weights, "weights", get_weights_tensor());
         add(filter, "filter", generate_data(get_filters()));
-        add(alpha, "alpha", generate_data({1. /*, 0.1*/}));
-        add(beta, "beta", generate_data({0. /*, 0.5*/}));
-        add(gamma, "gamma", generate_data({1. /*, 0.1*/}));
-        /*        add(enable_backward_weights, "enable-backward-weights", flag());
-                add(do_backward_data, "disable-backward-data", set_value(false));
-                add(search, "search", set_value(1));*/
+        add(alpha, "alpha", generate_data({/*1. , */ 0.5}));
+        add(beta, "beta", generate_data({/*0. , */ 0.5}));
+        add(gamma, "gamma", generate_data({/*1. ,*/ 0.5}));
         add(bias_mode, "bmode", generate_data({true, false}));
-        //       add(conv_mode, "cmode", generate_data({"conv"}/*, "trans"}*/)); //fusion can't
-        //       handle trans right now
+        // \todo dlowell: fusion can't handle trans right now.
+        //       add(conv_mode, "cmode", generate_data({"conv"}/*, "trans"}*/));
         add(pad_mode, "pmode", generate_data({"default" /*, "same", "valid"*/}));
         add(tactiv, "test_activ", generate_data({false, true}));
-        add(amode, "amode", generate_data({0 /*3,4,5,6,7,8,9,0,1,2*/}));
+        add(amode, "amode", generate_data({0, 3, 8, 1}));
     }
 
     std::vector<miopen::ConvolutionDescriptor> get_filters()
@@ -626,7 +622,6 @@ struct cbna_fusion_driver : test_driver
                wei_h > 2 * fpad_h && wei_w > 2 * fpad_w && input_h >= (2 * fpad_h + wei_h) &&
                input_w >= (2 * fpad_w + wei_w))
             {
-                // printf("HERE!\n" );
                 auto output = get_output_tensor(filter, input, weights);
                 // std::cout << "bias_mode: " << bias_mode << std::endl;
                 if(bias_mode)
@@ -636,14 +631,11 @@ struct cbna_fusion_driver : test_driver
                     // create activation descriptor here
                     if(tactiv)
                     {
-                        //  printf("Running CBA.\n");
                         verify(verify_forward_conv_bias_activ<T>{
                             input, weights, filter, bias_mode, bias, activDesc});
                     }
                     else
                     {
-
-                        // auto out_p =
                         verify(verify_forward_conv_bias<T>{input, weights, filter, bias});
                     }
                 }
@@ -651,21 +643,11 @@ struct cbna_fusion_driver : test_driver
                 {
                     if(tactiv)
                     {
-                        //  printf("Running CBA.\n");
                         auto bias = tensor<T>{1, 1, 1, 1};
                         verify(verify_forward_conv_bias_activ<T>{
                             input, weights, filter, bias_mode, bias, activDesc});
                     }
                 }
-                /*for(auto& x : out_p.first)
-                    x = (long(x + 19) * 2) % max_value; // Clamp big numbers
-                if(do_backward_data)
-                    verify(verify_backward_conv<T>{input, weights, out_p.first, filter, 0, search});
-                if(enable_backward_weights or (MIOPEN_USE_MIOPENGEMM and sizeof(T) > 2))
-                {
-                    verify(verify_backward_weights_conv<T>{
-                        input, weights, out_p.first, filter, 0, search});
-                }*/
             }
         }
         if(tactiv)
