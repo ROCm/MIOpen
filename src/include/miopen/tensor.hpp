@@ -37,12 +37,8 @@
 #include <miopen/errors.hpp>
 #include <vector>
 #include <algorithm>
-#include <boost/range/combine.hpp>
-#include <boost/range/adaptor/filtered.hpp>
 // TODO(paul): remove this include later
 #include <cstdio>
-
-#define TENSOR_HPP_DEBUG 0
 
 namespace miopen {
 
@@ -91,8 +87,6 @@ inline std::size_t GetTypeSize(miopenDataType_t d)
 struct TensorDescriptor : miopenTensorDescriptor
 {
     TensorDescriptor();
-    TensorDescriptor(const TensorDescriptor&) = default;
-    TensorDescriptor(TensorDescriptor&&)      = default;
     TensorDescriptor(miopenDataType_t t, std::initializer_list<std::size_t> plens);
     TensorDescriptor(miopenDataType_t t,
                      std::initializer_list<std::size_t> plens,
@@ -101,8 +95,8 @@ struct TensorDescriptor : miopenTensorDescriptor
     TensorDescriptor(miopenDataType_t t, const int* plens, const int* pstrides, int size);
 
     TensorDescriptor(miopenDataType_t t,
-                     std::vector<std::size_t>&& lens_in,
-                     std::vector<std::size_t>&& strides_in);
+                     std::vector<std::size_t> lens_in,
+                     std::vector<std::size_t> strides_in);
 
     template <class Range>
     TensorDescriptor(miopenDataType_t t, const Range& plens)
@@ -117,9 +111,6 @@ struct TensorDescriptor : miopenTensorDescriptor
     {
         packed = (this->GetElementSize() == this->GetElementSpace());
     }
-
-    TensorDescriptor& operator=(const TensorDescriptor&) = default;
-    TensorDescriptor& operator=(TensorDescriptor&&) = default;
 
     void CalculateStrides();
 
@@ -145,8 +136,6 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     bool IsPacked() const;
 
-    TensorDescriptor GetFlattenedTensorDescriptor() const;
-
     bool operator==(const TensorDescriptor& rhs) const;
     bool operator!=(const TensorDescriptor& rhs) const;
     bool operator<(const TensorDescriptor& rhs) const;
@@ -164,102 +153,6 @@ struct TensorDescriptor : miopenTensorDescriptor
 
     miopenDataType_t type = miopenFloat;
 };
-
-struct f_length_is_not_1_t
-{
-    template <typename T>
-    bool operator()(T&& v)
-    {
-        return boost::get<0>(v) > 1;
-    }
-};
-
-template <typename... TDescriptors>
-std::tuple<TDescriptors...>
-get_consistent_flattened_tensor_descriptors(const TDescriptors&... real_descriptor_pack)
-{
-    constexpr std::size_t NTensor = sizeof...(TDescriptors);
-    std::integral_constant<std::size_t, NTensor> NTensorConstant;
-
-    std::array<const TensorDescriptor*, NTensor> real_descriptors{{(&real_descriptor_pack)...}};
-
-#if TENSOR_HPP_DEBUG
-    // sanity check: all input TensorDescriptors should have the same GetLengths()
-    const auto& real_desc_0_lens = real_descriptors[0]->GetLengths();
-
-    for(std::size_t itensor = 1; itensor < NTensor; ++itensor)
-    {
-        if(real_desc_0_lens != real_descriptors[itensor]->GetLengths())
-            MIOPEN_THROW(miopenStatusBadParm, "Lengths of Tensors are different.");
-    }
-#endif
-
-    // start flattening tensors
-    std::array<std::vector<std::size_t>, NTensor> array_of_flat_lengths;
-    std::array<std::vector<std::size_t>, NTensor> array_of_flat_strides;
-
-    auto non1_length_strides =
-        boost::combine(real_descriptors[0]->GetLengths(), real_descriptor_pack.GetStrides()...) |
-        boost::adaptors::filtered(f_length_is_not_1_t());
-
-    auto i               = non1_length_strides.begin();
-    std::size_t flat_len = boost::get<0>(*i);
-    auto i_previous      = i++;
-
-    // the 0-th dimension full-length doesn't matter
-    for(; i != non1_length_strides.end(); ++i)
-    {
-        std::size_t len = boost::get<0>(*i);
-
-        bool is_all_full_length = true;
-        call_n_time(
-            [&](auto itensor) {
-                std::size_t stride          = boost::get<itensor + 1>(*i);
-                std::size_t previous_stride = boost::get<itensor + 1>(*i_previous);
-                std::size_t full_len        = previous_stride / stride;
-                if(len != full_len)
-                    is_all_full_length = false;
-            },
-            NTensorConstant);
-
-        if(is_all_full_length)
-        {
-            flat_len *= len;
-        }
-        else
-        {
-            array_of_flat_lengths[0].push_back(flat_len);
-
-            call_n_time(
-                [&](auto itensor) {
-                    std::size_t previous_stride = boost::get<itensor + 1>(*i_previous);
-                    array_of_flat_strides[itensor].push_back(previous_stride);
-                },
-                NTensorConstant);
-            flat_len = len;
-        }
-        i_previous = i;
-    }
-    // lengths of all flattend tensors are the same
-    array_of_flat_lengths[0].push_back(flat_len);
-
-    // strides of all flattend tensors are different
-    call_n_time(
-        [&](auto itensor) {
-            std::size_t previous_stride = boost::get<itensor + 1>(*i_previous);
-            array_of_flat_strides[itensor].push_back(previous_stride);
-        },
-        NTensorConstant);
-
-    for(std::size_t itensor            = 1; itensor < NTensor; ++itensor)
-        array_of_flat_lengths[itensor] = array_of_flat_lengths[0];
-
-    return create_tuple<NTensor>([&](auto itensor) {
-        return TensorDescriptor{real_descriptors[itensor]->GetType(),
-                                std::move(array_of_flat_lengths[itensor]),
-                                std::move(array_of_flat_strides[itensor])};
-    });
-}
 
 } // namespace miopen
 
