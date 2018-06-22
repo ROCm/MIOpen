@@ -31,10 +31,7 @@
 
 namespace miopen {
 
-FusionPlanDescriptor::~FusionPlanDescriptor()
-{
-    op_map.clear();
-}
+FusionPlanDescriptor::~FusionPlanDescriptor() { op_map.clear(); }
 
 miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> desc)
 {
