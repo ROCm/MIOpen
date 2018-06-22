@@ -1052,22 +1052,27 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUFusedConvBiasInference()
 
     miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasTensor);
 
-    miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());
-
-    miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev->GetMem());
-
-    miopenError = miopenIsFusionPlanValid(fusePlanDesc);
-    if(miopenError != miopenStatusSuccess)
+    for(int it = 0; it < iters; it++)
     {
-        std::cerr << "ConvBiasInference plan not supported." << std::endl;
+        startTiming();
+        miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());
+
+        miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev->GetMem());
+
+        miopenError = miopenIsFusionPlanValid(fusePlanDesc);
+        if(miopenError != miopenStatusSuccess)
+        {
+            std::cerr << "ConvBiasInference plan not supported." << std::endl;
+        }
+        miopenExecuteFusionPlan(GetHandle(),
+                                fusePlanDesc,
+                                inputTensor,
+                                in_dev->GetMem(),
+                                outputTensor,
+                                out_dev->GetMem(),
+                                fusionArgs);
+        finishTiming(it);
     }
-    miopenExecuteFusionPlan(GetHandle(),
-                            fusePlanDesc,
-                            inputTensor,
-                            in_dev->GetMem(),
-                            outputTensor,
-                            out_dev->GetMem(),
-                            fusionArgs);
 }
 
 template <typename Tgpu, typename Tref>
