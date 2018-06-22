@@ -344,10 +344,12 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
     {
         int wei_h, wei_w;
         std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
-        int in_h, in_w;
-        std::tie(std::ignore, std::ignore, in_h, in_w) = tien<4>(xDesc.GetLengths());
+        int in_c, in_h, in_w;
+        std::tie(std::ignore, in_c, in_h, in_w) = tien<4>(xDesc.GetLengths());
         int groups = 1;
-        if(mode == miopenGroupConv || mode == miopenDepthwise)
+        if(mode == miopenDepthwise)
+            groups = in_c;
+        else if(mode == miopenGroupConv)
             groups = group_count;
 
         const size_t direct_workspace =
@@ -398,7 +400,9 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         int wei_h, wei_w;
         std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
         int groups = 1;
-        if(mode == miopenGroupConv || mode == miopenDepthwise)
+        if(mode == miopenDepthwise)
+            std::tie(std::ignore, groups, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
+        else if(mode == miopenGroupConv)
             groups = group_count;
 
         const size_t direct_workspace =
@@ -465,12 +469,17 @@ ConvolutionDescriptor::GetBackwardsWeightsDim(const TensorDescriptor& inputTenso
     std::tie(output_n, output_c, output_h, output_w) =
         miopen::tien<4>(outputTensorDesc.GetLengths());
 
+    int groups = 1;
+    if(mode == miopenDepthwise)
+        groups = input_c;
+    else if(mode == miopenGroupConv)
+        groups = group_count;
     // if(input_c != filter_c) {
     // 	MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
     // }
 
     return std::make_tuple(output_c,
-                           input_c,
+                           input_c / groups,
                            2 * pad_h + input_h - u * (output_h - 1),
                            2 * pad_w + input_w - v * (output_w - 1));
 }
@@ -502,13 +511,17 @@ ConvolutionDescriptor::GetBackwardOutputDim(const TensorDescriptor& outputTensor
 
     std::tie(filter_k, filter_c, filter_h, filter_w) = miopen::tien<4>(filterDesc.GetLengths());
 
+    int groups = 1;
+    if(mode == miopenDepthwise || mode == miopenGroupConv)
+        groups = group_count;
+
     if(output_c != filter_k)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Channels do not match for the filter");
     }
 
     return std::make_tuple(output_n,
-                           filter_c,
+                           filter_c * groups,
                            u * (output_h - 1) - 2 * pad_h + filter_h,
                            v * (output_w - 1) - 2 * pad_w + filter_w);
 }
@@ -685,7 +698,9 @@ size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
 {
     MIOPEN_LOG_I2("");
     int groups = 1;
-    if(mode == miopenGroupConv || mode == miopenDepthwise)
+    if(mode == miopenDepthwise)
+        std::tie(std::ignore, groups, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+    else if(mode == miopenGroupConv)
         groups = group_count;
     if(mode == miopenTranspose)
         return BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc);
