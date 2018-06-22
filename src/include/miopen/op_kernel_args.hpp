@@ -27,6 +27,15 @@ struct OpKernelArg
         }
     }
     OpKernelArg(const OpKernelArg& other) : buffer(other.buffer){};
+    OpKernelArg& operator=(const OpKernelArg& other)
+    { 
+        if(buffer.size() < other.buffer.size())
+        {
+            buffer.resize(other.buffer.size());
+        }
+        std::copy(other.buffer.begin(), other.buffer.end(), buffer.begin());
+        return *this;
+    }
     std::size_t size() { return buffer.size(); };
     boost::container::small_vector<char, 8> buffer;
 };
