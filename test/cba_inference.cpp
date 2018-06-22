@@ -103,7 +103,7 @@ void convHostForward(const tensor<T>& input,
                 int in_off_h = i * u;
                 for(int j = 0; j < out_w; j++)
                 { // output_width (from getforwardoutputdim())
-                    T acc        = static_cast<T>(0);
+                    auto acc        = static_cast<T>(0.);
                     int in_off_w = j * v;
                     for(int k = 0; k < in_c; k++)
                     { // in_channels (RGB)
@@ -132,8 +132,6 @@ void convHostForward(const tensor<T>& input,
             }
         }
     }
-
-    return;
 }
 
 template <class T>
@@ -167,7 +165,6 @@ void batchNormSpatialHostInference(const tensor<T>& input,
             }
         }
     });
-    return;
 }
 
 template <class T>
@@ -201,7 +198,6 @@ void batchNormPerActivHostInference(const tensor<T>& input,
             }
         }
     });
-    return;
 }
 
 template <class T>
@@ -237,7 +233,7 @@ void activationHostInfererence(miopenActivationMode_t activMode,
         break;
     case miopenActivationPOWER: // (alpha + beta * x) ^ gamma
         f = [=](T x) {
-            T v = static_cast<T>(alpha + beta * x);
+            auto v = static_cast<T>(alpha + beta * x);
             return (v <= std::numeric_limits<T>::epsilon()) ? static_cast<T>(0.)
                                                             : static_cast<T>(pow(v, gamma));
         };
@@ -255,7 +251,6 @@ void activationHostInfererence(miopenActivationMode_t activMode,
     }
 
     par_for(input.desc.GetElementSize(), 1, [&](int index) { output[index] = f(input[index]); });
-    return;
 }
 
 template <class T>
@@ -502,7 +497,7 @@ struct cbna_fusion_driver : test_driver
     tensor<T> input;
     tensor<T> weights;
     miopen::ConvolutionDescriptor filter;
-    miopenActivationDescriptor_t activDesc;
+    miopenActivationDescriptor_t activDesc{};
     miopenActivationMode_t activ_mode = miopenActivationRELU;
     int amode                         = 0;
     bool tactiv{};
@@ -513,7 +508,7 @@ struct cbna_fusion_driver : test_driver
     bool do_backward_data        = true;
     int search                   = 0;
     unsigned long max_value      = miopen_type<T>{} == miopenHalf ? 5 : 17;
-    double alpha, beta, gamma;
+    double alpha = 0., beta = 0., gamma = 0.;
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
         {"CONV", miopenConvolution}}; //, {"TRANS", miopenTranspose}};
