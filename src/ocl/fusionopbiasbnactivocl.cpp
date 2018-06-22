@@ -55,7 +55,7 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetNetworkConfig(std::strin
 miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(std::string& compile_config,
                                                                      Handle& handle)
 {
-    (void)(handle);       // only convolution uses handle
+    (void)(handle); // only convolution uses handle
     if(mode == miopenBNSpatial)
         compile_config += " -DSPATIAL_BN";
     else if(mode == miopenBNPerActivation)
