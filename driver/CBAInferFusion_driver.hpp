@@ -460,8 +460,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
         pad_w = 0;
     }
 
-    //(cbbna = 0, cbna = 1, bna = 2, cba = 3, ca = 4, cb = 5)
-    if(fusion_mode < 2 || fusion_mode == 3 || fusion_mode == 5)
+    //(cbna = 0, cna = 1, na = 2, cba = 3, ca = 4, cb = 5)
+    if(fusion_mode == 0 || fusion_mode == 3 || fusion_mode == 5)
         bias_mode = 1;
     else
         bias_mode = 0;
@@ -819,34 +819,6 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
                                 fusionArgs);
         finishTiming(it);
     }
-    /*    miopen::DirectConvBNActivInference(miopen::deref(GetHandle()),
-                                           &alpha,
-                                           miopen::deref(inputTensor),
-                                           in_dev->GetMem(),
-                                           miopen::deref(weightTensor),
-                                           wei_dev->GetMem(),
-                                           &beta,
-                                           miopen::deref(outputTensor),
-                                           out_dev->GetMem(),
-                                           pad_h,
-                                           pad_w,
-                                           u,
-                                           v,
-                                           dilation_h,
-                                           dilation_w,
-                                           bias_mode,
-                                           bias_mode != 0 ? b_dev->GetMem() : nullptr,
-                                           bn_mode,
-                                           fusion_mode < 3 ? scale_dev->GetMem() : nullptr,
-                                           fusion_mode < 3 ? bias_dev->GetMem() : nullptr,
-                                           fusion_mode < 3 ? runningMean_dev->GetMem() : nullptr,
-                                           fusion_mode < 3 ? runningVariance_dev->GetMem() :
-       nullptr,
-                                           epsilon,
-                                           activ_mode,
-                                           activ_alpha,
-                                           activ_beta,
-                                           activ_gamma);*/
 }
 
 template <typename Tgpu, typename Tref>
