@@ -205,10 +205,10 @@ struct HIPOCKernelInvoke
 
         for(auto idx = 1; idx < any_args.size(); idx++)
         {
-            auto& any_arg = any_args[idx];
-            int alignment     = any_arg.size();
-            int padding       = (alignment - (sz_left % alignment)) % alignment;
-            int second_index  = sz_left + padding;
+            auto& any_arg    = any_args[idx];
+            int alignment    = any_arg.size();
+            int padding      = (alignment - (sz_left % alignment)) % alignment;
+            int second_index = sz_left + padding;
             memcpy(hip_args + second_index, &(any_arg.buffer[0]), any_arg.size());
             // copy_arg(any_arg, hip_args, second_index);
             sz_left = second_index + alignment;
