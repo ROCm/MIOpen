@@ -103,7 +103,7 @@ void convHostForward(const tensor<T>& input,
                 int in_off_h = i * u;
                 for(int j = 0; j < out_w; j++)
                 { // output_width (from getforwardoutputdim())
-                    auto acc        = static_cast<T>(0.);
+                    auto acc     = static_cast<T>(0.);
                     int in_off_w = j * v;
                     for(int k = 0; k < in_c; k++)
                     { // in_channels (RGB)
