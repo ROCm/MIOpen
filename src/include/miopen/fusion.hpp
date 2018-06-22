@@ -40,13 +40,6 @@
 #include <vector>
 #include <unordered_map>
 
-// Supported operators, note this will be
-// superceded by a graph traversal
-/*#define MIOPEN_FUSION_CONV_FWD  1
-#define MIOPEN_FUSION_ACTIV     2
-#define MIOPEN_FUSION_BN_INFER  4
-#define MIOPEN_FUSION_BIAS_FWD  8*/
-
 namespace miopen {
 
 // Some utils
@@ -54,13 +47,16 @@ namespace solver {
 KernelInfo CBAFusionGetSolution(const ConvolutionContext& params);
 } // namespace solver
 
+
+// Supported operators, note this will be
+// superceded by a graph traversal
 enum miopenFusionOp_t
 {
     miopenFusionOpConvForward        = 0,
     miopenFusionOpActivForward       = 1,
     miopenFusionOpBatchNormInference = 2,
     miopenFusionOpBiasForward        = 3,
-}; // miopenFusionOp_t;
+}; 
 
 using any_t = OpKernelArg;
 struct OperatorArgs : miopenOperatorArgs
@@ -75,8 +71,8 @@ struct OperatorArgs : miopenOperatorArgs
 struct FusionOpDescriptor : miopenFusionOpDescriptor
 {
     virtual ~FusionOpDescriptor(){};
-    // FusionOpDescriptor(const FusionOpDescriptor&) = delete;
-    FusionOpDescriptor(){}; // = delete;*/
+    FusionOpDescriptor(const FusionOpDescriptor&) = default;
+    FusionOpDescriptor() = default; 
     void SetIdx(int _id) { plan_idx = _id; };
     int GetIdx() const { return plan_idx; };
     virtual miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) = 0;

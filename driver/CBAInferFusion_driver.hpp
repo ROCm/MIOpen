@@ -1085,8 +1085,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
     switch(fusion_mode)
     {
     case 0:
-    case 1: runGPUConvBatchNormActivInference(); break;
-    case 3:
+    case 1: 
+    case 3: runGPUConvBatchNormActivInference(); break;
     case 4: runGPUConvActivInference(); break;
     case 2: runGPUBatchNormActivInference(); break;
     case 5: runGPUFusedConvBiasInference(); break;
