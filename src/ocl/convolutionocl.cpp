@@ -2388,8 +2388,6 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             SetTensor(handle, dwDesc, dw, &zero);
 
             handle.ResetKernelTime();
-            float time_0 = 0;
-            float t1     = 0;
 
             if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
             {
@@ -2403,6 +2401,9 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
                 // dw = dy * transpose(Im2Col(x))
                 GemmParam gemm_param = CreateGemmParamConvBwdWeight(dyDesc, xDesc, dwDesc);
+
+                float time_0 = 0;
+                float t1     = 0;
 
                 for(int i = 0; i < in_n; i++)
                 {
