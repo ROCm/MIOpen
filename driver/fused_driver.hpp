@@ -270,29 +270,30 @@ int ConvDriver<Tgpu, Tref, Tfile>::GetandSetData()
 template <typename Tgpu, typename Tref, typename Tfile>
 int ConvDriver<Tgpu, Tref, Tfile>::AddCmdLineArgs()
 {
-//    inflags.AddInputFlag("forw", 'F', "0", "Run only Forward Convolution (Default=0)", "int");
-//    inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
-//    inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
-//    inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
-//    inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
-//    inflags.AddInputFlag(
-//        "out_channels", 'k', "32", "Number of Output Channels (Default=32)", "int");
- //   inflags.AddInputFlag("fil_h", 'y', "3", "Filter Height (Default=3)", "int");
- //   inflags.AddInputFlag("fil_w", 'x', "3", "Filter Width (Default=3)", "int");
-//    inflags.AddInputFlag(
- //       "conv_stride_0", 'u', "1", "Convolution Stride Vertical (Default=1)", "int");
- //   inflags.AddInputFlag(
-  //      "conv_stride_1", 'v', "1", "Convolution Stride Horizontal (Default=1)", "int");
-  //  inflags.AddInputFlag("pad_h", 'p', "0", "Zero Padding Height (Default=0)", "int");
-  //  inflags.AddInputFlag("pad_w", 'q', "0", "Zero Padding Width (Default=0)", "int");
-  //  inflags.AddInputFlag("pad_val", 'r', "0", "Padding Value (Default=0)", "int");
+    //    inflags.AddInputFlag("forw", 'F', "0", "Run only Forward Convolution (Default=0)", "int");
+    //    inflags.AddInputFlag("batchsize", 'n', "100", "Mini-batch size (Default=100)", "int");
+    //    inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)",
+    //    "int");
+    //    inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
+    //    inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
+    //    inflags.AddInputFlag(
+    //        "out_channels", 'k', "32", "Number of Output Channels (Default=32)", "int");
+    //   inflags.AddInputFlag("fil_h", 'y', "3", "Filter Height (Default=3)", "int");
+    //   inflags.AddInputFlag("fil_w", 'x', "3", "Filter Width (Default=3)", "int");
+    //    inflags.AddInputFlag(
+    //       "conv_stride_0", 'u', "1", "Convolution Stride Vertical (Default=1)", "int");
+    //   inflags.AddInputFlag(
+    //      "conv_stride_1", 'v', "1", "Convolution Stride Horizontal (Default=1)", "int");
+    //  inflags.AddInputFlag("pad_h", 'p', "0", "Zero Padding Height (Default=0)", "int");
+    //  inflags.AddInputFlag("pad_w", 'q', "0", "Zero Padding Width (Default=0)", "int");
+    //  inflags.AddInputFlag("pad_val", 'r', "0", "Padding Value (Default=0)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
-	inflags.AddInputFlag("fusion_script",
-		'S',
-		"",
-		"Input fusion script filename (Default=..\driver\fusion_script.txt)",
-		"string");
+    inflags.AddInputFlag("fusion_script",
+                         'S',
+                         "",
+                         "Input fusion script filename (Default=..\driver\fusion_script.txt)",
+                         "string");
 
     inflags.AddInputFlag("verification_cache",
                          'C',
@@ -307,23 +308,21 @@ int ConvDriver<Tgpu, Tref, Tfile>::AddCmdLineArgs()
     inflags.AddInputFlag("dump_output", 'o', "0", "Dumps the output buffers (Default=0)", "int");
     inflags.AddInputFlag("in_data", 'd', "", "Input data filename (Default=)", "string");
     inflags.AddInputFlag("weights", 'e', "", "Input weights filename (Default=)", "string");
-//    inflags.AddInputFlag("bias", 'b', "", "Use Bias (Default=0)", "int");
- //   inflags.AddInputFlag(
-  //      "mode", 'm', "conv", "Convolution Mode (conv, trans) (Default=conv)", "str");
+    //    inflags.AddInputFlag("bias", 'b', "", "Use Bias (Default=0)", "int");
+    //   inflags.AddInputFlag(
+    //      "mode", 'm', "conv", "Convolution Mode (conv, trans) (Default=conv)", "str");
 
- //   inflags.AddInputFlag(
- //       "pad_mode", 'z', "conv", "Padding Mode (same, valid, default) (Default=default)", "str");
+    //   inflags.AddInputFlag(
+    //       "pad_mode", 'z', "conv", "Padding Mode (same, valid, default) (Default=default)",
+    //       "str");
 
- //   inflags.AddInputFlag("dilation_h", 'l', "1", "Dilation of Filter Height (Default=1)", "int");
-  //  inflags.AddInputFlag("dilation_w", 'j', "1", "Dilation of Filter Width (Default=1)", "int");
-  //  inflags.AddInputFlag("in_bias", 'a', "", "Input bias filename (Default=)", "string");
+    //   inflags.AddInputFlag("dilation_h", 'l', "1", "Dilation of Filter Height (Default=1)",
+    //   "int");
+    //  inflags.AddInputFlag("dilation_w", 'j', "1", "Dilation of Filter Width (Default=1)", "int");
+    //  inflags.AddInputFlag("in_bias", 'a', "", "Input bias filename (Default=)", "string");
 
     return 0;
 }
-
-
-
-
 
 #if 0
 
