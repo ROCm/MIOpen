@@ -34,7 +34,7 @@ namespace miopen {
 FusionPlanDescriptor::~FusionPlanDescriptor()
 {
     for(auto el : op_map)
-        /*delete*/ el.reset();//get();
+        /*delete*/ el.reset(); // get();
 }
 
 miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> desc)
@@ -336,7 +336,8 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                                              Data_t output,
                                              const OperatorArgs& op_args)
 {
-    if(!isValid()) {
+    if(!isValid())
+    {
         MIOPEN_THROW("Attempting to execute an invalid fusion plan.");
     }
     std::string network_config{};

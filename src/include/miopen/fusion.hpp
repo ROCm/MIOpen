@@ -59,7 +59,7 @@ using miopenFusionOp_t = enum {
     miopenFusionOpActivForward       = 1,
     miopenFusionOpBatchNormInference = 2,
     miopenFusionOpBiasForward        = 3,
-};// miopenFusionOp_t;
+}; // miopenFusionOp_t;
 
 using any_t = OpKernelArg;
 struct OperatorArgs : miopenOperatorArgs
