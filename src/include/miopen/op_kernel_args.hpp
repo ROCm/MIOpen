@@ -10,7 +10,7 @@ struct OpKernelArg
     OpKernelArg(T arg)
     {
         assert(std::is_fundamental<T>::value);
-        char* chptr = reinterpret_cast<char*>(&arg);
+        auto chptr = reinterpret_cast<char*>(&arg);
         for(size_t idx = 0; idx < sizeof(T); idx++)
         {
             buffer.push_back(*(chptr + idx));
@@ -20,7 +20,7 @@ struct OpKernelArg
     OpKernelArg(T* arg)
     {
         auto intptr = reinterpret_cast<std::uintptr_t>(arg);
-        char* chptr = reinterpret_cast<char*>(&intptr);
+        auto chptr = reinterpret_cast<char*>(&intptr);
         for(size_t idx = 0; idx < sizeof(std::uintptr_t); idx++)
         {
             buffer.push_back(*(chptr + idx));
