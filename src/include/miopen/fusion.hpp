@@ -54,7 +54,8 @@ namespace solver {
 KernelInfo CBAFusionGetSolution(const ConvolutionContext& params);
 } // namespace solver
 
-enum miopenFusionOp_t {
+enum miopenFusionOp_t
+{
     miopenFusionOpConvForward        = 0,
     miopenFusionOpActivForward       = 1,
     miopenFusionOpBatchNormInference = 2,
