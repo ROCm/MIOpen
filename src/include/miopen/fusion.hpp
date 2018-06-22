@@ -74,6 +74,8 @@ struct OperatorArgs : miopenOperatorArgs
 struct FusionOpDescriptor : miopenFusionOpDescriptor
 {
     virtual ~FusionOpDescriptor(){};
+    //FusionOpDescriptor(const FusionOpDescriptor&) = delete;
+    FusionOpDescriptor(){};// = delete;*/
     void SetIdx(int _id) { plan_idx = _id; };
     int GetIdx() const { return plan_idx; };
     virtual miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) = 0;
