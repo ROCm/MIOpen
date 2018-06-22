@@ -346,12 +346,16 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
         int in_h, in_w;
         std::tie(std::ignore, std::ignore, in_h, in_w) = tien<4>(xDesc.GetLengths());
+        int groups = 1;
+        if(mode == miopenGroupConv || mode == miopenDepthwise)
+            groups = group_count;
 
         const size_t direct_workspace =
             ForwardBackwardDataGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc, 1);
 
         if(dilation_w > 1 || dilation_h > 1)
-            return std::max(ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc), direct_workspace);
+            return std::max((groups * ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc)),
+                            direct_workspace);
 
         // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
         // 1x1_stride=2
@@ -373,7 +377,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         }
         else
         {
-            size_t workspace_size_gemm = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
+            size_t workspace_size_gemm = groups * ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc);
             size_t workspace_size_fft  = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
 
             return std::max(std::max(workspace_size_fft, workspace_size_gemm), direct_workspace);
@@ -393,12 +397,15 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
     {
         int wei_h, wei_w;
         std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+        int groups = 1;
+        if(mode == miopenGroupConv || mode == miopenDepthwise)
+            groups = group_count;
 
         const size_t direct_workspace =
             ForwardBackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc, 0);
 
         if(dilation_w > 1 || dilation_h > 1)
-            return std::max(BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc),
+            return std::max((groups * BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc)),
                             direct_workspace);
 
         if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
@@ -418,8 +425,9 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         }
         else
         {
-            size_t workspace_size_gemm = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
-            size_t workspace_size_fft  = BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc);
+            size_t workspace_size_gemm =
+                groups * BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc);
+            size_t workspace_size_fft = BackwardGetWorkSpaceSizeFFT(wDesc, dyDesc, dxDesc);
 
             return std::max(std::max(workspace_size_fft, workspace_size_gemm), direct_workspace);
         }
@@ -676,11 +684,14 @@ size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
     const TensorDescriptor& dwDesc) const
 {
     MIOPEN_LOG_I2("");
+    int groups = 1;
+    if(mode == miopenGroupConv || mode == miopenDepthwise)
+        groups = group_count;
     if(mode == miopenTranspose)
         return BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc);
 
     return std::max(BackwardWeightsGetWorkSpaceSizeDirect(handle, dyDesc, xDesc, dwDesc),
-                    BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc));
+                    (groups * BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc)));
 }
 
 std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c)
