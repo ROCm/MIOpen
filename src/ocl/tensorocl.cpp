@@ -1708,7 +1708,7 @@ void CopyTensor(Handle& handle,
     const TensorDescriptor& srcDesc_flat = std::get<0>(flat_descriptors);
     const TensorDescriptor& dstDesc_flat = std::get<1>(flat_descriptors);
 
-#if NDEBUG
+#ifndef NDEBUG
     if(srcDesc.GetSize() != srcDesc_flat.GetSize())
     {
         std::cout << __func__ << std::endl
