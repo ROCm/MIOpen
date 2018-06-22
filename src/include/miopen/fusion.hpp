@@ -81,7 +81,7 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     virtual miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) = 0;
     virtual miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
     virtual miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle);
-    friend std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x);
+    friend std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& fpd);
     virtual miopenFusionOp_t kind()                  = 0;
     virtual std::vector<std::string> GetArgs() const = 0;
     void SetInputDesc(TensorDescriptor i_desc) { input_desc = i_desc; };
@@ -100,7 +100,7 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
     miopenStatus_t GetCompileParms(std::string& compile_config, Handle& handle) override;
     miopenStatus_t
-    SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t dbias);
+    SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t bdata);
     std::vector<std::string> GetArgs() const override;
     miopenFusionOp_t kind() override { return miopenFusionOpBiasForward; };
     TensorDescriptor& base_desc;
@@ -117,7 +117,7 @@ struct ActivFusionOpDescriptor : FusionOpDescriptor
                            const void* beta,
                            double activAlpha,
                            double activBeta,
-                           double activGamm);
+                           double activGamma);
     std::vector<std::string> GetArgs() const override;
     miopenFusionOp_t kind() override { return miopenFusionOpActivForward; };
     miopenActivationMode_t activMode;
