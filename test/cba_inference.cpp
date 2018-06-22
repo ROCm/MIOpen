@@ -308,7 +308,6 @@ struct verify_forward_conv_bias
         auto b_dev    = handle.Write(bias.data);
         auto out_dev  = handle.Write(rout.data);
 
-        miopenStatus_t miopenError = miopenStatusSuccess;
         miopenFusionPlanDescriptor_t fusePlanDesc;
         miopenFusionOpDescriptor_t convoOp;
         miopenFusionOpDescriptor_t biasOp;
