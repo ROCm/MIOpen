@@ -329,7 +329,7 @@ struct verify_forward_conv_bias
         miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev.get());
         miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev.get());
 
-        miopenError = miopenIsFusionPlanValid(fusePlanDesc);
+        miopenStatus_t miopenError = miopenIsFusionPlanValid(fusePlanDesc);
         if(miopenError != miopenStatusSuccess)
         {
             std::cerr << "ConvBiasInference plan not supported." << std::endl;

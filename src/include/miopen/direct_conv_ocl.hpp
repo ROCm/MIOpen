@@ -52,6 +52,6 @@ void DirectConvInference(Handle& handle,
                          int dilation_w,
                          int bias_mode,
                          ConstData_t convBias);
-}
+} // namespace miopen
 
 #endif
