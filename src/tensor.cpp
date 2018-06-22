@@ -69,8 +69,8 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
-                                   std::vector<std::size_t>&& lens_in,
-                                   std::vector<std::size_t>&& strides_in)
+                                   std::vector<std::size_t> lens_in,
+                                   std::vector<std::size_t> strides_in)
     : lens(std::move(lens_in)), strides(std::move(strides_in)), type(t)
 {
     packed = (this->GetElementSize() == this->GetElementSpace());
@@ -133,49 +133,6 @@ std::size_t TensorDescriptor::GetNumBytes() const
 }
 
 bool TensorDescriptor::IsPacked() const { return this->packed; }
-
-TensorDescriptor TensorDescriptor::GetFlattenedTensorDescriptor() const
-{
-    // is packed
-    if(IsPacked())
-        return {GetType(), {GetElementSize()}, {1}};
-
-    // start flattening tensor
-    std::vector<std::size_t> flat_lengths;
-    std::vector<std::size_t> flat_strides;
-
-    auto non1_length_strides = boost::combine(GetLengths(), GetStrides()) |
-                               boost::adaptors::filtered(f_length_is_not_1_t());
-
-    auto i               = non1_length_strides.begin();
-    std::size_t flat_len = boost::get<0>(*i);
-    auto i_previous      = i++;
-
-    // the 0-th dimension full-length doesn't matter
-    for(; i != non1_length_strides.end(); ++i)
-    {
-        std::size_t len             = boost::get<0>(*i);
-        std::size_t stride          = boost::get<1>(*i);
-        std::size_t previous_stride = boost::get<1>(*i_previous);
-        std::size_t full_len        = previous_stride / stride;
-
-        if(len == full_len)
-        {
-            flat_len *= len;
-        }
-        else
-        {
-            flat_lengths.push_back(flat_len);
-            flat_strides.push_back(previous_stride);
-            flat_len = len;
-        }
-        i_previous = i;
-    }
-    flat_lengths.push_back(flat_len);
-    flat_strides.push_back(boost::get<1>(*i_previous));
-
-    return {GetType(), std::move(flat_lengths), std::move(flat_strides)};
-}
 
 bool TensorDescriptor::operator==(const TensorDescriptor& rhs) const
 {

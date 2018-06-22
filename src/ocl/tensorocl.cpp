@@ -36,6 +36,49 @@
 
 namespace miopen {
 
+TensorDescriptor GetFlattenedTensorDescriptor(const TensorDescriptor& desc)
+{
+    // is packed
+    if(desc.IsPacked())
+        return {desc.GetType(), {desc.GetElementSize()}, {1}};
+
+    // start flattening tensor
+    std::vector<std::size_t> flat_lengths;
+    std::vector<std::size_t> flat_strides;
+
+    auto non1_length_strides = boost::combine(desc.GetLengths(), desc.GetStrides()) |
+                               boost::adaptors::filtered(f_length_is_not_1_t());
+
+    auto i               = non1_length_strides.begin();
+    std::size_t flat_len = boost::get<0>(*i);
+    auto i_previous      = i++;
+
+    // the 0-th dimension full-length doesn't matter
+    for(; i != non1_length_strides.end(); ++i)
+    {
+        std::size_t len             = boost::get<0>(*i);
+        std::size_t stride          = boost::get<1>(*i);
+        std::size_t previous_stride = boost::get<1>(*i_previous);
+        std::size_t full_len        = previous_stride / stride;
+
+        if(len == full_len)
+        {
+            flat_len *= len;
+        }
+        else
+        {
+            flat_lengths.push_back(flat_len);
+            flat_strides.push_back(previous_stride);
+            flat_len = len;
+        }
+        i_previous = i;
+    }
+    flat_lengths.push_back(flat_len);
+    flat_strides.push_back(boost::get<1>(*i_previous));
+
+    return {desc.GetType(), std::move(flat_lengths), std::move(flat_strides)};
+}
+
 // Free Tensor Functions
 static void CreateBitmapAndGrid(unsigned int& bitmap,
                                 std::vector<std::size_t>& a_lens,
@@ -1324,26 +1367,6 @@ static std::vector<std::size_t> get_worker_sizes(const std::vector<std::size_t>&
     return worker_sizes;
 }
 
-template <typename T>
-std::ostream& operator<<(std::ostream& os, const std::vector<T>& vs)
-{
-    os << "{ ";
-    for(auto& v : vs)
-        os << v << " ";
-    os << "}";
-    return os;
-}
-
-template <typename T, std::size_t N>
-std::ostream& operator<<(std::ostream& os, const std::array<T, N>& vs)
-{
-    os << "{ ";
-    for(auto& v : vs)
-        os << v << " ";
-    os << "}";
-    return os;
-}
-
 void SetTensor(
     Handle& handle, const TensorDescriptor& yDesc, Data_t y, const void* alpha, const int offset)
 {
@@ -1352,7 +1375,16 @@ void SetTensor(
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    const TensorDescriptor yDesc_flat = yDesc.GetFlattenedTensorDescriptor();
+    const TensorDescriptor yDesc_flat = GetFlattenedTensorDescriptor(yDesc);
+
+#ifndef NDEBUG
+    if(yDesc.GetSize() != yDesc_flat.GetSize())
+    {
+        std::cout << __func__ << std::endl
+                  << "real descritor: " << yDesc << std::endl
+                  << "flat descritor: " << yDesc_flat << std::endl;
+    }
+#endif
 
     const std::size_t yDim_flat = yDesc_flat.GetSize();
 
@@ -1403,25 +1435,13 @@ void SetTensor(
                                   {wld, 1, 1},
                                   {wgd, 1, 1},
                                   parms);
-#if 0
-        if(yDesc.GetSize() != yDesc_flat.GetSize())
-        {
-            std::cout << __func__ << std::endl
-                      << "real lengths: " << yDesc.GetLengths() << std::endl
-                      << "real strides: " << yDesc.GetStrides() << std::endl
-                      << "flattened lengths(): " << yDesc_flat.GetLengths() << std::endl
-                      << "flattened strides(): " << yDesc_flat.GetStrides() << std::endl
-                      << "worker_sizes: " << worker_sizes << std::endl
-                      << "wgd: " << wgd << ", wld: " << wld << std::endl;
-        }
-#endif
     }
 
     switch(yDim_flat)
     {
     case 1:
     {
-        visit_float((dataType), [&](auto as_float) {
+        visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
                    offset,
@@ -1511,7 +1531,16 @@ void ScaleTensor(
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    const TensorDescriptor yDesc_flat = yDesc.GetFlattenedTensorDescriptor();
+    const TensorDescriptor yDesc_flat = GetFlattenedTensorDescriptor(yDesc);
+
+#ifndef NDEBUG
+    if(yDesc.GetSize() != yDesc_flat.GetSize())
+    {
+        std::cout << __func__ << std::endl
+                  << "real descritor: " << yDesc << std::endl
+                  << "flat descritor: " << yDesc_flat << std::endl;
+    }
+#endif
 
     const std::size_t yDim_flat = yDesc_flat.GetSize();
 
@@ -1564,19 +1593,6 @@ void ScaleTensor(
                                   {wld, 1, 1},
                                   {wgd, 1, 1},
                                   parms);
-
-#if 0
-        if(yDesc.GetSize() != yDesc_flat.GetSize())
-        {
-            std::cout << __func__ << std::endl
-                      << "real lengths: " << yDesc.GetLengths() << std::endl
-                      << "real strides: " << yDesc.GetStrides() << std::endl
-                      << "flattened lengths(): " << yDesc_flat.GetLengths() << std::endl
-                      << "flattened strides(): " << yDesc_flat.GetStrides() << std::endl
-                      << "worker_sizes: " << worker_sizes << std::endl
-                      << "wgd: " << wgd << ", wld: " << wld << std::endl;
-        }
-#endif
     }
 
     switch(yDim_flat)
@@ -1678,11 +1694,6 @@ void CopyTensor(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
     }
 
-    if(srcDesc.GetElementSize() != dstDesc.GetElementSize())
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "Tensor data sizes do not match.");
-    }
-
     if(srcDesc.GetType() != dstDesc.GetType())
     {
         MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
@@ -1693,22 +1704,18 @@ void CopyTensor(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
     }
 
-    auto flat_descriptors = get_consistent_flattened_tensor_descriptors(srcDesc, dstDesc);
+    auto flat_descriptors = GetConsistentFlattenedTensorDescriptors(srcDesc, dstDesc);
     const TensorDescriptor& srcDesc_flat = std::get<0>(flat_descriptors);
     const TensorDescriptor& dstDesc_flat = std::get<1>(flat_descriptors);
 
-#if 0
+#if NDEBUG
     if(srcDesc.GetSize() != srcDesc_flat.GetSize())
     {
         std::cout << __func__ << std::endl
-                  << "src real lengths: " << srcDesc.GetLengths() << std::endl
-                  << "src real strides: " << srcDesc.GetStrides() << std::endl
-                  << "src flat lengths: " << srcDesc_flat.GetLengths() << std::endl
-                  << "src flat strides: " << srcDesc_flat.GetStrides() << std::endl
-                  << "dst real lengths: " << dstDesc.GetLengths() << std::endl
-                  << "dst real strides: " << dstDesc.GetStrides() << std::endl
-                  << "dst flat lengths: " << dstDesc_flat.GetLengths() << std::endl
-                  << "dst flat strides: " << dstDesc_flat.GetStrides() << std::endl;
+                  << "src real descriptor: " << srcDesc << std::endl
+                  << "src flat descriptor: " << srcDesc_flat << std::endl
+                  << "dst real descriptor: " << dstDesc << std::endl
+                  << "dst flat descriptor: " << dstDesc_flat << std::endl;
     }
 #endif
 
@@ -1767,15 +1774,6 @@ void CopyTensor(Handle& handle,
                                       {wld, 1, 1},
                                       {wgd, 1, 1},
                                       parms);
-
-#if 0
-            if(srcDesc.GetSize() != srcDesc_flat.GetSize())
-            {
-                std::cout << __func__ << std::endl
-                          << "worker_sizes: " << worker_sizes << std::endl
-                          << "wgd: " << wgd << ", wld: " << wld << std::endl;
-            }
-#endif
         }
 
         switch(srcDim_flat)
