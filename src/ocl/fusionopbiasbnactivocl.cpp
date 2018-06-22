@@ -48,7 +48,7 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetNetworkConfig(std::strin
                                                                       Handle& handle)
 {
     (void)(handle);
-    network_config += std::to_string(mode);
+    network_config += "bn" + std::to_string(mode);
     return miopenStatusSuccess;
 }
 
@@ -56,7 +56,10 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(std::string
                                                                      Handle& handle)
 {
     (void)(handle);       // only convolution uses handle
-    compile_config += ""; // No opt parameters for forward inference.
+    if(mode == miopenBNSpatial)
+        compile_config += " -DSPATIAL_BN";
+    else if(mode == miopenBNPerActivation)
+        compile_config += " -DPERACT_BN";
     return miopenStatusSuccess;
 }
 
