@@ -47,7 +47,6 @@ namespace solver {
 KernelInfo CBAFusionGetSolution(const ConvolutionContext& params);
 } // namespace solver
 
-
 // Supported operators, note this will be
 // superceded by a graph traversal
 enum miopenFusionOp_t
@@ -56,7 +55,7 @@ enum miopenFusionOp_t
     miopenFusionOpActivForward       = 1,
     miopenFusionOpBatchNormInference = 2,
     miopenFusionOpBiasForward        = 3,
-}; 
+};
 
 using any_t = OpKernelArg;
 struct OperatorArgs : miopenOperatorArgs
@@ -72,7 +71,7 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
 {
     virtual ~FusionOpDescriptor(){};
     FusionOpDescriptor(const FusionOpDescriptor&) = default;
-    FusionOpDescriptor() = default; 
+    FusionOpDescriptor()                          = default;
     void SetIdx(int _id) { plan_idx = _id; };
     int GetIdx() const { return plan_idx; };
     virtual miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) = 0;
