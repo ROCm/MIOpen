@@ -28,7 +28,7 @@ struct OpKernelArg
     }
     OpKernelArg(const OpKernelArg& other) : buffer(other.buffer){};
     OpKernelArg& operator=(const OpKernelArg& other)
-    { 
+    {
         if(buffer.size() < other.buffer.size())
         {
             buffer.resize(other.buffer.size());
