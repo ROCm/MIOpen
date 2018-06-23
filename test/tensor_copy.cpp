@@ -29,6 +29,7 @@
 #include <iterator>
 #include <limits>
 #include <memory>
+#include <sys/time.h>
 #include <miopen/convolution.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
@@ -40,101 +41,87 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 
-#define MIO_TENSORCOPY_DEBUG 0
-
 template <class T>
 struct verify_tensor_copy
 {
     miopen::TensorDescriptor srcDesc;
     miopen::TensorDescriptor dstDesc;
-    tensor<T> asuper;
-    tensor<T> csuper;
+    tensor<T> srcSuper;
+    tensor<T> dstSuper;
     int srcOffset;
     int dstOffset;
 
-    verify_tensor_copy(const tensor<T>& pasuper,
-                       const tensor<T>& pcsuper,
+    verify_tensor_copy(const tensor<T>& psrc_super,
+                       const tensor<T>& pdst_super,
                        const miopen::TensorDescriptor& psd,
                        const miopen::TensorDescriptor& pdd,
                        std::vector<int> offsets)
     {
         srcDesc   = psd;
         dstDesc   = pdd;
-        asuper    = pasuper;
-        csuper    = pcsuper;
+        srcSuper  = psrc_super;
+        dstSuper  = pdst_super;
         srcOffset = offsets[0];
         dstOffset = offsets[1];
     }
 
-    void
-    tensor_copy_for_loop(tensor<T>& csuperCpu, int aoffsetIndex, int coffsetIndex, int dim) const
+    void tensor_copy_for_loop(tensor<T>& dstSuperCpu,
+                              int src_offset_index,
+                              int dst_offset_index,
+                              int dim) const
     {
-        auto astride = srcDesc.GetStrides()[dim];
-        auto cstride = dstDesc.GetStrides()[dim];
+        auto src_stride = srcDesc.GetStrides()[dim];
+        auto dst_stride = dstDesc.GetStrides()[dim];
 
         for(int idx = 0; idx < srcDesc.GetLengths()[dim]; idx++)
         {
-            size_t aindex = ((dim == 0) ? srcOffset : 0) + aoffsetIndex + astride * idx;
-            size_t cindex = ((dim == 0) ? dstOffset : 0) + coffsetIndex + cstride * idx;
+            std::size_t src_super_index =
+                ((dim == 0) ? srcOffset : 0) + src_offset_index + src_stride * idx;
+            std::size_t dst_super_index =
+                ((dim == 0) ? dstOffset : 0) + dst_offset_index + dst_stride * idx;
 
             if(dim < (srcDesc.GetLengths().size() - 1))
             {
-                tensor_copy_for_loop(csuperCpu, aindex, cindex, dim + 1);
+                tensor_copy_for_loop(dstSuperCpu, src_super_index, dst_super_index, dim + 1);
             }
-            if(cindex < csuperCpu.desc.GetElementSpace() && aindex < asuper.desc.GetElementSpace())
+            if(dst_super_index < dstSuperCpu.desc.GetElementSpace() &&
+               src_super_index < srcSuper.desc.GetElementSpace())
             {
-                csuperCpu[cindex] = asuper[aindex];
+                dstSuperCpu[dst_super_index] = srcSuper[src_super_index];
             }
         }
     }
 
     tensor<T> cpu() const
     {
+        tensor<T> dstSuperCpu = dstSuper;
 
-#if(MIO_TENSORCOPY_DEBUG == 1)
-        printf("CPU test start...");
-        fflush(nullptr);
-#endif
-        tensor<T> csuperCpu = csuper;
+        tensor_copy_for_loop(dstSuperCpu, 0, 0, 0);
 
-        tensor_copy_for_loop(csuperCpu, 0, 0, 0);
-
-#if(MIO_TENSORCOPY_DEBUG == 1)
-        printf("done\n");
-        fflush(nullptr);
-#endif
-        return csuperCpu;
+        return dstSuperCpu;
     }
 
     tensor<T> gpu() const
     {
+        tensor<T> dstSuperGpu = dstSuper;
 
-#if(MIO_TENSORCOPY_DEBUG == 1)
-        printf("GPU test start...");
-        fflush(nullptr);
-#endif
+        auto&& handle     = get_handle();
+        auto dstSuper_dev = handle.Write(dstSuperGpu.data);
+        auto srcSuper_dev = handle.Write(srcSuper.data);
 
-        tensor<T> csuperGpu = csuper;
-
-        auto&& handle   = get_handle();
-        auto csuper_dev = handle.Write(csuperGpu.data);
-        auto asuper_dev = handle.Write(asuper.data);
         miopen::CopyTensor(
-            handle, srcDesc, asuper_dev.get(), dstDesc, csuper_dev.get(), srcOffset, dstOffset);
-        csuperGpu.data = handle.Read<T>(csuper_dev, csuperGpu.data.size());
+            handle, srcDesc, srcSuper_dev.get(), dstDesc, dstSuper_dev.get(), srcOffset, dstOffset);
 
-#if(MIO_TENSORCOPY_DEBUG == 1)
-        printf("done.\n");
-        fflush(nullptr);
-#endif
-        return csuperGpu;
+        dstSuperGpu.data = handle.Read<T>(dstSuper_dev, dstSuperGpu.data.size());
+
+        return dstSuperGpu;
     }
 
     void fail(float = 0)
     {
         std::cout << "Tensor Copy: " << std::endl;
-        std::cout << "a input super-tensor:  " << asuper.desc.ToString() << std::endl;
-        std::cout << "c output super-tensor: " << csuper.desc.ToString() << std::endl;
+        std::cout << "src super-tensor: " << srcSuper.desc.ToString() << std::endl;
+        std::cout << "dst super-tensor: " << dstSuper.desc.ToString() << std::endl;
         std::cout << "src sub-tensor: " << srcDesc.ToString() << std::endl;
         std::cout << "dst sub-tensor: " << dstDesc.ToString() << std::endl;
     }
@@ -143,72 +130,51 @@ struct verify_tensor_copy
 template <class T>
 struct tensor_copy_driver : test_driver
 {
-    tensor<T> a;
-    tensor<T> c;
-    tensor<T> aSuper;
-    tensor<T> cSuper;
+    tensor<T> srcSuper;
+    tensor<T> dstSuper;
+    std::vector<int> srcSuperLens;
+    std::vector<int> dstSuperLens;
+
     miopen::TensorDescriptor srcDesc;
     miopen::TensorDescriptor dstDesc;
-    std::vector<int> copylens;
+    std::vector<int> copyLens;
     std::vector<int> offsets;
 
     tensor_copy_driver()
     {
+        std::vector<int> src_lens = {32, 16, 32, 16, 16};
+        std::vector<int> dst_lens = {32, 32, 16, 16, 16};
 
-#if(MIO_TENSORCOPY_DEBUG == 1)
-        printf("Generating super tensors...");
-        fflush(nullptr);
-#endif
-        std::vector<int> alens = {{32, 16, 32, 16, 16}};
-        std::vector<int> clens = {{32, 32, 16, 16, 16}};
-        aSuper                 = tensor<T>{alens}.generate(rand_gen{});
-        cSuper                 = tensor<T>{clens}.generate(rand_gen{});
-
-#if(MIO_TENSORCOPY_DEBUG == 1)
-        printf("done.\n");
-        fflush(nullptr);
-        printf("Generating sub-tensors lengths...");
-        fflush(nullptr);
-#endif
-
-        add(copylens, "copy-lens", generate_data(get_sub_tensor(), {32, 8, 10}));
+        add(srcSuperLens, "srcSuperLens", generate_data({src_lens}, src_lens));
+        add(dstSuperLens, "dstSuperLens", generate_data({dst_lens}, dst_lens));
+        add(copyLens, "copyLens", generate_data(get_sub_tensor(), {32, 8, 10}));
         add(offsets, "offsets", generate_data(get_tensor_offsets(), {7, 11}));
-
-#if(MIO_TENSORCOPY_DEBUG == 1)
-        printf("done.\n");
-        fflush(nullptr);
-#endif
     }
 
     void run()
     {
-        std::vector<size_t> aSuperStrides = aSuper.desc.GetStrides();
-        std::vector<size_t> cSuperStrides = cSuper.desc.GetStrides();
-        std::vector<int> astrides(aSuperStrides.begin() + (5 - copylens.size()),
-                                  aSuperStrides.end());
-        std::vector<int> cstrides(cSuperStrides.begin() + (5 - copylens.size()),
-                                  cSuperStrides.end());
+        srcSuper = tensor<T>{srcSuperLens}.generate(rand_gen{});
+        dstSuper = tensor<T>{dstSuperLens}.generate(rand_gen{});
 
-        srcDesc =
-            miopen::TensorDescriptor(this->type, copylens.data(), astrides.data(), copylens.size());
-        dstDesc =
-            miopen::TensorDescriptor(this->type, copylens.data(), cstrides.data(), copylens.size());
+        std::vector<size_t> srcSuperStrides = srcSuper.desc.GetStrides();
+        std::vector<size_t> dstSuperStrides = dstSuper.desc.GetStrides();
+        std::vector<int> src_super_strides(srcSuperStrides.begin() +
+                                               (srcSuper.desc.GetSize() - copyLens.size()),
+                                           srcSuperStrides.end());
+        std::vector<int> dst_super_strides(dstSuperStrides.begin() +
+                                               (dstSuper.desc.GetSize() - copyLens.size()),
+                                           dstSuperStrides.end());
+
+        srcDesc = miopen::TensorDescriptor(
+            this->type, copyLens.data(), src_super_strides.data(), copyLens.size());
+        dstDesc = miopen::TensorDescriptor(
+            this->type, copyLens.data(), dst_super_strides.data(), copyLens.size());
 
         if(srcDesc.GetLengths().size() == dstDesc.GetLengths().size())
         {
-#if(MIO_TENSORCOPY_DEBUG == 1)
-            printf("offsets {src, dst}: %d, %d\n", offsets[0], offsets[1]);
-#endif
-            verify_equals(verify_tensor_copy<T>{aSuper, cSuper, srcDesc, dstDesc, offsets});
+            verify_equals(verify_tensor_copy<T>{srcSuper, dstSuper, srcDesc, dstDesc, offsets});
         }
     }
 };
 
-int main(int argc, const char* argv[])
-{
-
-#if(MIO_TENSORCOPY_DEBUG == 1)
-    printf("Starting.\n");
-#endif
-    test_drive<tensor_copy_driver>(argc, argv);
-}
+int main(int argc, const char* argv[]) { test_drive<tensor_copy_driver>(argc, argv); }
