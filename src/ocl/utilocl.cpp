@@ -55,61 +55,95 @@ float Im2ColGPU(Handle& handle,
     std::string program_name = "MIOpenUtilKernels.cl";
     std::string kernel_name  = "Im2Col";
 
-    std::string params;
-    int num_ch_per_wg;
-    if((out_h <= 8 && out_w <= 8) && (stride_h == 1 && stride_w == 1) && (c % 4 == 0))
-        num_ch_per_wg = 4;
+    std::string network_config = std::to_string(c) + std::to_string(h) + std::to_string(w) +
+                                 std::to_string(wei_h) + std::to_string(wei_w) +
+                                 std::to_string(pad_h) + std::to_string(pad_w) +
+                                 std::to_string(stride_h) + std::to_string(stride_w) +
+                                 std::to_string(dilation_h) + std::to_string(dilation_w);
+
+    auto&& kernels = handle.GetKernels("miopenIm2Col", network_config);
+
+    if(!kernels.empty())
+    {
+        int data_size_off = data_size - im_offset;
+        auto kernel       = kernels.front();
+        kernel(data_size_off,
+               im,
+               im_offset,
+               h,
+               w,
+               wei_h,
+               wei_w,
+               out_h,
+               out_w,
+               pad_h,
+               pad_w,
+               stride_h,
+               stride_w,
+               dilation_h,
+               dilation_w,
+               col);
+    }
     else
-        num_ch_per_wg = 1;
+    {
+        std::string params;
+        int num_ch_per_wg;
+        if((out_h <= 8 && out_w <= 8) && (stride_h == 1 && stride_w == 1) && (c % 4 == 0))
+            num_ch_per_wg = 4;
+        else
+            num_ch_per_wg = 1;
 
-    int tile_sz_x  = 32;
-    int tile_sz_y  = 8;
-    int num_blks_x = std::ceil(static_cast<float>(out_w) / tile_sz_x);
-    int num_blks   = num_blks_x * std::ceil(static_cast<float>(out_h) / tile_sz_y);
-    int local_mem_sz;
-    if(num_ch_per_wg == 1)
-        local_mem_sz = ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
-                       ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1);
-    else
-        local_mem_sz = std::max(
-            num_ch_per_wg *
-                ((std::ceil(static_cast<float>(tile_sz_x) / num_ch_per_wg) - 1) * stride_w +
-                 (wei_w - 1) * dilation_w + 1) *
-                ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1),
-            num_ch_per_wg * ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
-                ((std::ceil(static_cast<float>(tile_sz_y) / num_ch_per_wg) - 1) * stride_h +
-                 (wei_h - 1) * dilation_h + 1));
-    int data_size_off = data_size - im_offset;
+        int tile_sz_x  = 32;
+        int tile_sz_y  = 8;
+        int num_blks_x = std::ceil(static_cast<float>(out_w) / tile_sz_x);
+        int num_blks   = num_blks_x * std::ceil(static_cast<float>(out_h) / tile_sz_y);
+        int local_mem_sz;
+        if(num_ch_per_wg == 1)
+            local_mem_sz = ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
+                           ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1);
+        else
+            local_mem_sz = std::max(
+                num_ch_per_wg *
+                    ((std::ceil(static_cast<float>(tile_sz_x) / num_ch_per_wg) - 1) * stride_w +
+                     (wei_w - 1) * dilation_w + 1) *
+                    ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1),
+                num_ch_per_wg * ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
+                    ((std::ceil(static_cast<float>(tile_sz_y) / num_ch_per_wg) - 1) * stride_h +
+                     (wei_h - 1) * dilation_h + 1));
+        int data_size_off = data_size - im_offset;
 
-    params += " -DNUM_CH_PER_WG=" + std::to_string(num_ch_per_wg);
-    params += " -DNUM_IM_BLKS_X=" + std::to_string(num_blks_x);
-    params += " -DNUM_IM_BLKS=" + std::to_string(num_blks);
-    params += " -DLOCAL_MEM_SIZE=" + std::to_string(local_mem_sz);
-    params += " -DSTRIDE_GT_1=" + std::to_string(static_cast<int>(stride_h * stride_w > 1));
-    params += " -DTILE_SZ_X=" + std::to_string(tile_sz_x);
-    params += " -DTILE_SZ_Y=" + std::to_string(tile_sz_y);
-    params += " -DUSE_IM_OFF_GUARD=1 -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+        params += " -DNUM_CH_PER_WG=" + std::to_string(num_ch_per_wg);
+        params += " -DNUM_IM_BLKS_X=" + std::to_string(num_blks_x);
+        params += " -DNUM_IM_BLKS=" + std::to_string(num_blks);
+        params += " -DLOCAL_MEM_SIZE=" + std::to_string(local_mem_sz);
+        params += " -DSTRIDE_GT_1=" + std::to_string(static_cast<int>(stride_h * stride_w > 1));
+        params += " -DTILE_SZ_X=" + std::to_string(tile_sz_x);
+        params += " -DTILE_SZ_Y=" + std::to_string(tile_sz_y);
+        params += " -DUSE_IM_OFF_GUARD=1 -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
 
-    const std::vector<size_t> vld{256, 1, 1};
-    size_t global_threads = 256 * std::max(1, (c / num_ch_per_wg)) * num_blks;
-    const std::vector<size_t> vgd{global_threads, 1, 1};
+        const std::vector<size_t> vld{256, 1, 1};
+        size_t global_threads = 256 * std::max(1, (c / num_ch_per_wg)) * num_blks;
+        const std::vector<size_t> vgd{global_threads, 1, 1};
 
-    handle.AddKernel("miopenIm2Col", "", program_name, kernel_name, vld, vgd, params)(data_size_off,
-                                                                                      im,
-                                                                                      im_offset,
-                                                                                      h,
-                                                                                      w,
-                                                                                      wei_h,
-                                                                                      wei_w,
-                                                                                      out_h,
-                                                                                      out_w,
-                                                                                      pad_h,
-                                                                                      pad_w,
-                                                                                      stride_h,
-                                                                                      stride_w,
-                                                                                      dilation_h,
-                                                                                      dilation_w,
-                                                                                      col);
+        handle.AddKernel(
+            "miopenIm2Col", network_config, program_name, kernel_name, vld, vgd, params)(
+            data_size_off,
+            im,
+            im_offset,
+            h,
+            w,
+            wei_h,
+            wei_w,
+            out_h,
+            out_w,
+            pad_h,
+            pad_w,
+            stride_h,
+            stride_w,
+            dilation_h,
+            dilation_w,
+            col);
+    }
 
     return handle.GetKernelTime();
 }
@@ -135,27 +169,57 @@ float Col2ImGPU(Handle& handle,
     std::string program_name = "MIOpenUtilKernels2.cl";
     std::string kernel_name  = "Col2Im";
 
-    std::string params = "-DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
-    const std::vector<size_t> vld{256, 1, 1};
-    size_t global_threads = c * h * w;
-    const std::vector<size_t> vgd{global_threads, 1, 1};
+    std::string network_config =
+        std::to_string(col_h) + std::to_string(col_w) + std::to_string(wei_h) +
+        std::to_string(wei_w) + std::to_string(pad_h) + std::to_string(pad_w) +
+        std::to_string(stride_h) + std::to_string(stride_w) + std::to_string(dilation_h) +
+        std::to_string(dilation_w) + std::to_string(c) + std::to_string(h) + std::to_string(w);
 
-    handle.AddKernel("miopenCol2Im", "", program_name, kernel_name, vld, vgd, params)(col,
-                                                                                      col_h,
-                                                                                      col_w,
-                                                                                      wei_h,
-                                                                                      wei_w,
-                                                                                      pad_h,
-                                                                                      pad_w,
-                                                                                      stride_h,
-                                                                                      stride_w,
-                                                                                      dilation_h,
-                                                                                      dilation_w,
-                                                                                      h,
-                                                                                      w,
-                                                                                      im,
-                                                                                      im_offset);
+    auto&& kernels = handle.GetKernels("miopenCol2Im", network_config);
 
+    if(!kernels.empty())
+    {
+        auto kernel = kernels.front();
+        kernel(col,
+               col_h,
+               col_w,
+               wei_h,
+               wei_w,
+               pad_h,
+               pad_w,
+               stride_h,
+               stride_w,
+               dilation_h,
+               dilation_w,
+               h,
+               w,
+               im,
+               im_offset);
+    }
+    else
+    {
+        std::string params = "-DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+        const std::vector<size_t> vld{256, 1, 1};
+        size_t global_threads = c * h * w;
+        const std::vector<size_t> vgd{global_threads, 1, 1};
+
+        handle.AddKernel(
+            "miopenCol2Im", network_config, program_name, kernel_name, vld, vgd, params)(col,
+                                                                                         col_h,
+                                                                                         col_w,
+                                                                                         wei_h,
+                                                                                         wei_w,
+                                                                                         pad_h,
+                                                                                         pad_w,
+                                                                                         stride_h,
+                                                                                         stride_w,
+                                                                                         dilation_h,
+                                                                                         dilation_w,
+                                                                                         h,
+                                                                                         w,
+                                                                                         im,
+                                                                                         im_offset);
+    }
     return handle.GetKernelTime();
 }
 
