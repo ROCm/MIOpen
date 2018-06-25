@@ -46,30 +46,30 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& vs)
     return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const GemmParam& gemm_param)
+std::ostream& operator<<(std::ostream& os, const GemmDescriptor& gemm_desc)
 {
     os << "{ "
-       << "isColMajor " << gemm_param.isColMajor << ", "
-       << "transA " << gemm_param.transA << ", "
-       << "transB " << gemm_param.transB << ", "
-       << "m " << gemm_param.m << ", "
-       << "n " << gemm_param.n << ", "
-       << "k " << gemm_param.k << ", "
-       << "lda " << gemm_param.lda << ", "
-       << "ldb " << gemm_param.ldb << ", "
-       << "ldc " << gemm_param.ldc << ", "
-       << "batch_count " << gemm_param.batch_count << ", "
-       << "strideA " << gemm_param.strideA << ", "
-       << "strideB " << gemm_param.strideB << ", "
-       << "strideC " << gemm_param.strideC << ", "
-       << "alpha" << gemm_param.alpha << ", "
-       << "beta" << gemm_param.beta << " }";
+       << "isColMajor " << gemm_desc.isColMajor << ", "
+       << "transA " << gemm_desc.transA << ", "
+       << "transB " << gemm_desc.transB << ", "
+       << "m " << gemm_desc.m << ", "
+       << "n " << gemm_desc.n << ", "
+       << "k " << gemm_desc.k << ", "
+       << "lda " << gemm_desc.lda << ", "
+       << "ldb " << gemm_desc.ldb << ", "
+       << "ldc " << gemm_desc.ldc << ", "
+       << "batch_count " << gemm_desc.batch_count << ", "
+       << "strideA " << gemm_desc.strideA << ", "
+       << "strideB " << gemm_desc.strideB << ", "
+       << "strideC " << gemm_desc.strideC << ", "
+       << "alpha" << gemm_desc.alpha << ", "
+       << "beta" << gemm_desc.beta << " }";
     return os;
 }
 #endif
 
 void CallGemm(Handle& handle,
-              GemmParam gemm_param,
+              GemmDescriptor gemm_desc,
               ConstData_t A,
               int a_offset,
               ConstData_t B,
@@ -82,14 +82,14 @@ void CallGemm(Handle& handle,
     std::cout << std::endl << __func__ << ": rocBLAS" << std::endl;
 #endif
 
-    if(!gemm_param.isColMajor)
+    if(!gemm_desc.isColMajor)
     {
-        // gemm_param.isColMajor = true;
+        // gemm_desc.isColMajor = true;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
-        std::swap(gemm_param.transA, gemm_param.transB);
-        std::swap(gemm_param.m, gemm_param.n);
-        std::swap(gemm_param.lda, gemm_param.ldb);
+        std::swap(gemm_desc.transA, gemm_desc.transB);
+        std::swap(gemm_desc.m, gemm_desc.n);
+        std::swap(gemm_desc.lda, gemm_desc.ldb);
     }
 
 #if GEMM_V2_CPP_PROFILE
@@ -100,19 +100,19 @@ void CallGemm(Handle& handle,
 #endif
 
     rocblas_sgemm(handle.rhandle.get(),
-                  gemm_param.transA ? rocblas_operation_transpose : rocblas_operation_none,
-                  gemm_param.transB ? rocblas_operation_transpose : rocblas_operation_none,
-                  gemm_param.m,
-                  gemm_param.n,
-                  gemm_param.k,
-                  &gemm_param.alpha,
+                  gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
+                  gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
+                  gemm_desc.m,
+                  gemm_desc.n,
+                  gemm_desc.k,
+                  &gemm_desc.alpha,
                   static_cast<const float*>(A) + a_offset,
-                  gemm_param.lda,
+                  gemm_desc.lda,
                   static_cast<const float*>(B) + b_offset,
-                  gemm_param.ldb,
-                  &gemm_param.beta,
+                  gemm_desc.ldb,
+                  &gemm_desc.beta,
                   static_cast<float*>(C) + c_offset,
-                  gemm_param.ldc);
+                  gemm_desc.ldc);
 
 #if GEMM_V2_CPP_PROFILE
     hipEventRecord(stop, nullptr);
@@ -135,14 +135,14 @@ void CallGemm(Handle& handle,
 #endif
 
     // do row-to-column major conversion here
-    if(!gemm_param.isColMajor)
+    if(!gemm_desc.isColMajor)
     {
         // isColMajor = true;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
-        std::swap(gemm_param.transA, gemm_param.transB);
-        std::swap(gemm_param.m, gemm_param.n);
-        std::swap(gemm_param.lda, gemm_param.ldb);
+        std::swap(gemm_desc.transA, gemm_desc.transB);
+        std::swap(gemm_desc.m, gemm_desc.n);
+        std::swap(gemm_desc.lda, gemm_desc.ldb);
     }
 
     // making network configs for MIOpenGEMM kernel(s),
@@ -152,31 +152,31 @@ void CallGemm(Handle& handle,
     //      C is not transposed,
     //      workSpace is 0,
     //      fp32
-    auto gemm_param_to_string = [&gemm_param]() {
-        return std::to_string(static_cast<int>(gemm_param.transA)) + "_" +
-               std::to_string(static_cast<int>(gemm_param.transB)) + "_" +
-               std::to_string(gemm_param.lda) + "_" + std::to_string(gemm_param.ldb) + "_" +
-               std::to_string(gemm_param.ldc) + "_" + std::to_string(gemm_param.m) + "_" +
-               std::to_string(gemm_param.n) + "_" + std::to_string(gemm_param.k);
+    auto gemm_desc_to_string = [&gemm_desc]() {
+        return std::to_string(static_cast<int>(gemm_desc.transA)) + "_" +
+               std::to_string(static_cast<int>(gemm_desc.transB)) + "_" +
+               std::to_string(gemm_desc.lda) + "_" + std::to_string(gemm_desc.ldb) + "_" +
+               std::to_string(gemm_desc.ldc) + "_" + std::to_string(gemm_desc.m) + "_" +
+               std::to_string(gemm_desc.n) + "_" + std::to_string(gemm_desc.k);
     };
 
     const std::string algorithm_name = "MIOpenGEMM";
-    const std::string network_config = gemm_param_to_string();
+    const std::string network_config = gemm_desc_to_string();
 
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
 
     if(kernels.empty())
     {
         MIOpenGEMM::Geometry mgg(true,
-                                 gemm_param.transA,
-                                 gemm_param.transB,
+                                 gemm_desc.transA,
+                                 gemm_desc.transB,
                                  false,
-                                 gemm_param.lda,
-                                 gemm_param.ldb,
-                                 gemm_param.ldc,
-                                 gemm_param.m,
-                                 gemm_param.n,
-                                 gemm_param.k,
+                                 gemm_desc.lda,
+                                 gemm_desc.ldb,
+                                 gemm_desc.ldc,
+                                 gemm_desc.m,
+                                 gemm_desc.n,
+                                 gemm_desc.k,
                                  0,
                                  'f');
 
@@ -186,12 +186,12 @@ void CallGemm(Handle& handle,
 
         RunMiopengemmSolution(handle,
                               new_kernels,
-                              gemm_param.alpha,
+                              gemm_desc.alpha,
                               A,
                               a_offset,
                               B,
                               b_offset,
-                              gemm_param.beta,
+                              gemm_desc.beta,
                               C,
                               c_offset);
     }
@@ -199,12 +199,12 @@ void CallGemm(Handle& handle,
     {
         RunMiopengemmSolution(handle,
                               kernels,
-                              gemm_param.alpha,
+                              gemm_desc.alpha,
                               A,
                               a_offset,
                               B,
                               b_offset,
-                              gemm_param.beta,
+                              gemm_desc.beta,
                               C,
                               c_offset);
     }
@@ -222,7 +222,7 @@ void CallGemm(Handle& handle,
 }
 
 void CallGemmStridedBatched(Handle& handle,
-                            GemmParam gemm_param,
+                            GemmDescriptor gemm_desc,
                             ConstData_t A,
                             int a_offset,
                             ConstData_t B,
@@ -235,15 +235,15 @@ void CallGemmStridedBatched(Handle& handle,
     std::cout << std::endl << __func__ << ": rocBLAS" << std::endl;
 #endif
 
-    if(!gemm_param.isColMajor)
+    if(!gemm_desc.isColMajor)
     {
-        // gemm_param.isColMajor = true;
+        // gemm_desc.isColMajor = true;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
-        std::swap(gemm_param.transA, gemm_param.transB);
-        std::swap(gemm_param.m, gemm_param.n);
-        std::swap(gemm_param.lda, gemm_param.ldb);
-        std::swap(gemm_param.strideA, gemm_param.strideB);
+        std::swap(gemm_desc.transA, gemm_desc.transB);
+        std::swap(gemm_desc.m, gemm_desc.n);
+        std::swap(gemm_desc.lda, gemm_desc.ldb);
+        std::swap(gemm_desc.strideA, gemm_desc.strideB);
     }
 
 #if GEMM_V2_CPP_PROFILE
@@ -255,23 +255,23 @@ void CallGemmStridedBatched(Handle& handle,
 
     rocblas_sgemm_strided_batched(
         handle.rhandle.get(),
-        gemm_param.transA ? rocblas_operation_transpose : rocblas_operation_none,
-        gemm_param.transB ? rocblas_operation_transpose : rocblas_operation_none,
-        gemm_param.m,
-        gemm_param.n,
-        gemm_param.k,
-        &gemm_param.alpha,
+        gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
+        gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
+        gemm_desc.m,
+        gemm_desc.n,
+        gemm_desc.k,
+        &gemm_desc.alpha,
         static_cast<const float*>(A) + a_offset,
-        gemm_param.lda,
-        gemm_param.strideA,
+        gemm_desc.lda,
+        gemm_desc.strideA,
         static_cast<const float*>(B) + b_offset,
-        gemm_param.ldb,
-        gemm_param.strideB,
-        &gemm_param.beta,
+        gemm_desc.ldb,
+        gemm_desc.strideB,
+        &gemm_desc.beta,
         static_cast<float*>(C) + c_offset,
-        gemm_param.ldc,
-        gemm_param.strideC,
-        gemm_param.batch_count);
+        gemm_desc.ldc,
+        gemm_desc.strideC,
+        gemm_desc.batch_count);
 
 #if GEMM_V2_CPP_PROFILE
     hipEventRecord(stop, nullptr);
@@ -286,10 +286,10 @@ void CallGemmStridedBatched(Handle& handle,
 
 #elif MIOPEN_USE_MIOPENGEMM
 
-    CallGemmStridedBatchedSequential(handle, gemm_param, A, a_offset, B, b_offset, C, c_offset);
+    CallGemmStridedBatchedSequential(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
 #else
     (void)handle;
-    (void)gemm_param;
+    (void)gemm_desc;
     (void)A;
     (void)a_offset;
     (void)B;
@@ -302,7 +302,7 @@ void CallGemmStridedBatched(Handle& handle,
 }
 
 void CallGemmStridedBatchedSequential(Handle& handle,
-                                      GemmParam gemm_param,
+                                      GemmDescriptor gemm_desc,
                                       ConstData_t A,
                                       int a_offset,
                                       ConstData_t B,
@@ -315,15 +315,15 @@ void CallGemmStridedBatchedSequential(Handle& handle,
     std::cout << std::endl << __func__ << ": rocBLAS" << std::endl;
 #endif
 
-    if(!gemm_param.isColMajor)
+    if(!gemm_desc.isColMajor)
     {
-        // gemm_param.isColMajor = true;
+        // gemm_desc.isColMajor = true;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
-        std::swap(gemm_param.transA, gemm_param.transB);
-        std::swap(gemm_param.m, gemm_param.n);
-        std::swap(gemm_param.lda, gemm_param.ldb);
-        std::swap(gemm_param.strideA, gemm_param.strideB);
+        std::swap(gemm_desc.transA, gemm_desc.transB);
+        std::swap(gemm_desc.m, gemm_desc.n);
+        std::swap(gemm_desc.lda, gemm_desc.ldb);
+        std::swap(gemm_desc.strideA, gemm_desc.strideB);
     }
 
 #if GEMM_V2_CPP_PROFILE
@@ -333,22 +333,22 @@ void CallGemmStridedBatchedSequential(Handle& handle,
     hipEventRecord(start, nullptr);
 #endif
 
-    for(int i = 0; i < gemm_param.batch_count; ++i)
+    for(int i = 0; i < gemm_desc.batch_count; ++i)
     {
         rocblas_sgemm(handle.rhandle.get(),
-                      gemm_param.transA ? rocblas_operation_transpose : rocblas_operation_none,
-                      gemm_param.transB ? rocblas_operation_transpose : rocblas_operation_none,
-                      gemm_param.m,
-                      gemm_param.n,
-                      gemm_param.k,
-                      &gemm_param.alpha,
-                      static_cast<const float*>(A) + a_offset + i * gemm_param.strideA,
-                      gemm_param.lda,
-                      static_cast<const float*>(B) + b_offset + i * gemm_param.strideB,
-                      gemm_param.ldb,
-                      &gemm_param.beta,
-                      static_cast<float*>(C) + c_offset + i * gemm_param.strideC,
-                      gemm_param.ldc);
+                      gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
+                      gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
+                      gemm_desc.m,
+                      gemm_desc.n,
+                      gemm_desc.k,
+                      &gemm_desc.alpha,
+                      static_cast<const float*>(A) + a_offset + i * gemm_desc.strideA,
+                      gemm_desc.lda,
+                      static_cast<const float*>(B) + b_offset + i * gemm_desc.strideB,
+                      gemm_desc.ldb,
+                      &gemm_desc.beta,
+                      static_cast<float*>(C) + c_offset + i * gemm_desc.strideC,
+                      gemm_desc.ldc);
     }
 
 #if GEMM_V2_CPP_PROFILE
@@ -368,15 +368,15 @@ void CallGemmStridedBatchedSequential(Handle& handle,
     std::cout << __func__ << ": MIOpenGEMM" << std::endl;
 #endif
 
-    if(!gemm_param.isColMajor)
+    if(!gemm_desc.isColMajor)
     {
-        // gemm_param.isColMajor = true;
+        // gemm_desc.isColMajor = true;
         std::swap(A, B);
         std::swap(a_offset, b_offset);
-        std::swap(gemm_param.transA, gemm_param.transB);
-        std::swap(gemm_param.m, gemm_param.n);
-        std::swap(gemm_param.lda, gemm_param.ldb);
-        std::swap(gemm_param.strideA, gemm_param.strideB);
+        std::swap(gemm_desc.transA, gemm_desc.transB);
+        std::swap(gemm_desc.m, gemm_desc.n);
+        std::swap(gemm_desc.lda, gemm_desc.ldb);
+        std::swap(gemm_desc.strideA, gemm_desc.strideB);
     }
 
     // making network configs for MIOpenGEMM kernel(s),
@@ -386,31 +386,31 @@ void CallGemmStridedBatchedSequential(Handle& handle,
     //      C is not transposed,
     //      workSpace is 0,
     //      fp32
-    auto gemm_param_to_string = [&gemm_param]() {
-        return std::to_string(static_cast<int>(gemm_param.transA)) + "_" +
-               std::to_string(static_cast<int>(gemm_param.transB)) + "_" +
-               std::to_string(gemm_param.lda) + "_" + std::to_string(gemm_param.ldb) + "_" +
-               std::to_string(gemm_param.ldc) + "_" + std::to_string(gemm_param.m) + "_" +
-               std::to_string(gemm_param.n) + "_" + std::to_string(gemm_param.k);
+    auto gemm_desc_to_string = [&gemm_desc]() {
+        return std::to_string(static_cast<int>(gemm_desc.transA)) + "_" +
+               std::to_string(static_cast<int>(gemm_desc.transB)) + "_" +
+               std::to_string(gemm_desc.lda) + "_" + std::to_string(gemm_desc.ldb) + "_" +
+               std::to_string(gemm_desc.ldc) + "_" + std::to_string(gemm_desc.m) + "_" +
+               std::to_string(gemm_desc.n) + "_" + std::to_string(gemm_desc.k);
     };
 
     const std::string algorithm_name = "MIOpenGEMM";
-    const std::string network_config = gemm_param_to_string();
+    const std::string network_config = gemm_desc_to_string();
 
     auto&& old_kernels = handle.GetKernels(algorithm_name, network_config);
 
     if(old_kernels.empty())
     {
         MIOpenGEMM::Geometry mgg(true,
-                                 gemm_param.transA,
-                                 gemm_param.transB,
+                                 gemm_desc.transA,
+                                 gemm_desc.transB,
                                  false,
-                                 gemm_param.lda,
-                                 gemm_param.ldb,
-                                 gemm_param.ldc,
-                                 gemm_param.m,
-                                 gemm_param.n,
-                                 gemm_param.k,
+                                 gemm_desc.lda,
+                                 gemm_desc.ldb,
+                                 gemm_desc.ldc,
+                                 gemm_desc.m,
+                                 gemm_desc.n,
+                                 gemm_desc.k,
                                  0,
                                  'f');
 
@@ -420,22 +420,22 @@ void CallGemmStridedBatchedSequential(Handle& handle,
 
         float gemm_time = 0;
 
-        for(int i = 0; i < gemm_param.batch_count; ++i)
+        for(int i = 0; i < gemm_desc.batch_count; ++i)
         {
             RunMiopengemmSolution(handle,
                                   new_kernels,
-                                  gemm_param.alpha,
+                                  gemm_desc.alpha,
                                   A,
-                                  a_offset + i * gemm_param.strideA,
+                                  a_offset + i * gemm_desc.strideA,
                                   B,
-                                  b_offset + i * gemm_param.strideB,
-                                  gemm_param.beta,
+                                  b_offset + i * gemm_desc.strideB,
+                                  gemm_desc.beta,
                                   C,
-                                  c_offset + i * gemm_param.strideC);
+                                  c_offset + i * gemm_desc.strideC);
 
             if(handle.IsProfilingEnabled())
             {
-                if(i == gemm_param.batch_count - 1)
+                if(i == gemm_desc.batch_count - 1)
                     handle.AccumKernelTime(gemm_time);
                 else
                     gemm_time += handle.GetKernelTime();
@@ -446,22 +446,22 @@ void CallGemmStridedBatchedSequential(Handle& handle,
     {
         float gemm_time = 0;
 
-        for(int i = 0; i < gemm_param.batch_count; ++i)
+        for(int i = 0; i < gemm_desc.batch_count; ++i)
         {
             RunMiopengemmSolution(handle,
                                   old_kernels,
-                                  gemm_param.alpha,
+                                  gemm_desc.alpha,
                                   A,
-                                  a_offset + i * gemm_param.strideA,
+                                  a_offset + i * gemm_desc.strideA,
                                   B,
-                                  b_offset + i * gemm_param.strideB,
-                                  gemm_param.beta,
+                                  b_offset + i * gemm_desc.strideB,
+                                  gemm_desc.beta,
                                   C,
-                                  c_offset + i * gemm_param.strideC);
+                                  c_offset + i * gemm_desc.strideC);
 
             if(handle.IsProfilingEnabled())
             {
-                if(i == gemm_param.batch_count - 1)
+                if(i == gemm_desc.batch_count - 1)
                     handle.AccumKernelTime(gemm_time);
                 else
                     gemm_time += handle.GetKernelTime();
@@ -470,7 +470,7 @@ void CallGemmStridedBatchedSequential(Handle& handle,
     }
 #else
     (void)handle;
-    (void)gemm_param;
+    (void)gemm_desc;
     (void)A;
     (void)a_offset;
     (void)B;
@@ -483,9 +483,9 @@ void CallGemmStridedBatchedSequential(Handle& handle,
 }
 
 // y = w * Im2Col(x)
-GemmParam CreateGemmParamConvFwd(const TensorDescriptor& wDesc,
-                                 const TensorDescriptor& xDesc,
-                                 const TensorDescriptor& yDesc)
+GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
+                                           const TensorDescriptor& xDesc,
+                                           const TensorDescriptor& yDesc)
 {
     int in_c;
     std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
@@ -512,27 +512,27 @@ GemmParam CreateGemmParamConvFwd(const TensorDescriptor& wDesc,
     float alpha           = 1.;
     float beta            = 0.;
 
-    return GemmParam{isColMajor,
-                     transA,
-                     transB,
-                     m,
-                     n,
-                     k,
-                     lda,
-                     ldb,
-                     ldc,
-                     batch_count,
-                     strideA,
-                     strideB,
-                     strideC,
-                     alpha,
-                     beta};
+    return GemmDescriptor{isColMajor,
+                          transA,
+                          transB,
+                          m,
+                          n,
+                          k,
+                          lda,
+                          ldb,
+                          ldc,
+                          batch_count,
+                          strideA,
+                          strideB,
+                          strideC,
+                          alpha,
+                          beta};
 }
 
 // dx = Col2Im(transpose(w) * dy)
-GemmParam CreateGemmParamConvBwdData(const TensorDescriptor& wDesc,
-                                     const TensorDescriptor& dyDesc,
-                                     const TensorDescriptor& dxDesc)
+GemmDescriptor CreateGemmDescriptorConvBwdData(const TensorDescriptor& wDesc,
+                                               const TensorDescriptor& dyDesc,
+                                               const TensorDescriptor& dxDesc)
 {
     int in_c;
     std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
@@ -559,27 +559,27 @@ GemmParam CreateGemmParamConvBwdData(const TensorDescriptor& wDesc,
     float alpha           = 1.;
     float beta            = 0.;
 
-    return GemmParam{isColMajor,
-                     transA,
-                     transB,
-                     m,
-                     n,
-                     k,
-                     lda,
-                     ldb,
-                     ldc,
-                     batch_count,
-                     strideA,
-                     strideB,
-                     strideC,
-                     alpha,
-                     beta};
+    return GemmDescriptor{isColMajor,
+                          transA,
+                          transB,
+                          m,
+                          n,
+                          k,
+                          lda,
+                          ldb,
+                          ldc,
+                          batch_count,
+                          strideA,
+                          strideB,
+                          strideC,
+                          alpha,
+                          beta};
 }
 
 // dw = dy * transpose(Im2Col(x))
-GemmParam CreateGemmParamConvBwdWeight(const TensorDescriptor& dyDesc,
-                                       const TensorDescriptor& xDesc,
-                                       const TensorDescriptor& dwDesc)
+GemmDescriptor CreateGemmDescriptorConvBwdWeight(const TensorDescriptor& dyDesc,
+                                                 const TensorDescriptor& xDesc,
+                                                 const TensorDescriptor& dwDesc)
 {
     int in_c;
     std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
@@ -606,27 +606,27 @@ GemmParam CreateGemmParamConvBwdWeight(const TensorDescriptor& dyDesc,
     float alpha           = 1.;
     float beta            = 1.;
 
-    return GemmParam{isColMajor,
-                     transA,
-                     transB,
-                     m,
-                     n,
-                     k,
-                     lda,
-                     ldb,
-                     ldc,
-                     batch_count,
-                     strideA,
-                     strideB,
-                     strideC,
-                     alpha,
-                     beta};
+    return GemmDescriptor{isColMajor,
+                          transA,
+                          transB,
+                          m,
+                          n,
+                          k,
+                          lda,
+                          ldb,
+                          ldc,
+                          batch_count,
+                          strideA,
+                          strideB,
+                          strideC,
+                          alpha,
+                          beta};
 }
 
 // y = CNHW2NCHW(w * NCHW2CNHW(x))
-GemmParam CreateGemmParamConvCNHWFwd(const TensorDescriptor& wDesc,
-                                     const TensorDescriptor& xDesc,
-                                     const TensorDescriptor& yDesc)
+GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
+                                               const TensorDescriptor& xDesc,
+                                               const TensorDescriptor& yDesc)
 {
     int in_n, in_c;
     std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
@@ -653,27 +653,27 @@ GemmParam CreateGemmParamConvCNHWFwd(const TensorDescriptor& wDesc,
     float alpha           = 1.;
     float beta            = 0.;
 
-    return GemmParam{isColMajor,
-                     transA,
-                     transB,
-                     m,
-                     n,
-                     k,
-                     lda,
-                     ldb,
-                     ldc,
-                     batch_count,
-                     strideA,
-                     strideB,
-                     strideC,
-                     alpha,
-                     beta};
+    return GemmDescriptor{isColMajor,
+                          transA,
+                          transB,
+                          m,
+                          n,
+                          k,
+                          lda,
+                          ldb,
+                          ldc,
+                          batch_count,
+                          strideA,
+                          strideB,
+                          strideC,
+                          alpha,
+                          beta};
 }
 
 // dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
-GemmParam CreateGemmParamConvCNHWBwdData(const TensorDescriptor& wDesc,
-                                         const TensorDescriptor& dyDesc,
-                                         const TensorDescriptor& dxDesc)
+GemmDescriptor CreateGemmDescriptorConvCNHWBwdData(const TensorDescriptor& wDesc,
+                                                   const TensorDescriptor& dyDesc,
+                                                   const TensorDescriptor& dxDesc)
 {
     int in_n, in_c;
     std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
@@ -700,27 +700,27 @@ GemmParam CreateGemmParamConvCNHWBwdData(const TensorDescriptor& wDesc,
     float alpha           = 1.;
     float beta            = 0.;
 
-    return GemmParam{isColMajor,
-                     transA,
-                     transB,
-                     m,
-                     n,
-                     k,
-                     lda,
-                     ldb,
-                     ldc,
-                     batch_count,
-                     strideA,
-                     strideB,
-                     strideC,
-                     alpha,
-                     beta};
+    return GemmDescriptor{isColMajor,
+                          transA,
+                          transB,
+                          m,
+                          n,
+                          k,
+                          lda,
+                          ldb,
+                          ldc,
+                          batch_count,
+                          strideA,
+                          strideB,
+                          strideC,
+                          alpha,
+                          beta};
 }
 
 // y[i] = w * x[i], i is batch id
-GemmParam CreateGemmStridedBatchedParamConv1x1Fwd(const TensorDescriptor& wDesc,
-                                                  const TensorDescriptor& xDesc,
-                                                  const TensorDescriptor& yDesc)
+GemmDescriptor CreateGemmStridedBatchedParamConv1x1Fwd(const TensorDescriptor& wDesc,
+                                                       const TensorDescriptor& xDesc,
+                                                       const TensorDescriptor& yDesc)
 {
     (void)yDesc;
 
@@ -746,27 +746,27 @@ GemmParam CreateGemmStridedBatchedParamConv1x1Fwd(const TensorDescriptor& wDesc,
     float alpha           = 1.;
     float beta            = 0.;
 
-    return GemmParam{isColMajor,
-                     transA,
-                     transB,
-                     m,
-                     n,
-                     k,
-                     lda,
-                     ldb,
-                     ldc,
-                     batch_count,
-                     strideA,
-                     strideB,
-                     strideC,
-                     alpha,
-                     beta};
+    return GemmDescriptor{isColMajor,
+                          transA,
+                          transB,
+                          m,
+                          n,
+                          k,
+                          lda,
+                          ldb,
+                          ldc,
+                          batch_count,
+                          strideA,
+                          strideB,
+                          strideC,
+                          alpha,
+                          beta};
 }
 
 // dx[i] = transpose(w) * dy[i], i is batch id
-GemmParam CreateGemmStridedBatchedParamConv1x1BwdData(const TensorDescriptor& wDesc,
-                                                      const TensorDescriptor& dyDesc,
-                                                      const TensorDescriptor& dxDesc)
+GemmDescriptor CreateGemmStridedBatchedParamConv1x1BwdData(const TensorDescriptor& wDesc,
+                                                           const TensorDescriptor& dyDesc,
+                                                           const TensorDescriptor& dxDesc)
 {
     (void)dyDesc;
 
@@ -792,27 +792,27 @@ GemmParam CreateGemmStridedBatchedParamConv1x1BwdData(const TensorDescriptor& wD
     float alpha           = 1.;
     float beta            = 0;
 
-    return GemmParam{isColMajor,
-                     transA,
-                     transB,
-                     m,
-                     n,
-                     k,
-                     lda,
-                     ldb,
-                     ldc,
-                     batch_count,
-                     strideA,
-                     strideB,
-                     strideC,
-                     alpha,
-                     beta};
+    return GemmDescriptor{isColMajor,
+                          transA,
+                          transB,
+                          m,
+                          n,
+                          k,
+                          lda,
+                          ldb,
+                          ldc,
+                          batch_count,
+                          strideA,
+                          strideB,
+                          strideC,
+                          alpha,
+                          beta};
 }
 
 // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
-GemmParam CreateGemmStridedBatchedParamConv1x1BwdWeight(const TensorDescriptor& dyDesc,
-                                                        const TensorDescriptor& xDesc,
-                                                        const TensorDescriptor& dwDesc)
+GemmDescriptor CreateGemmStridedBatchedParamConv1x1BwdWeight(const TensorDescriptor& dyDesc,
+                                                             const TensorDescriptor& xDesc,
+                                                             const TensorDescriptor& dwDesc)
 {
     (void)dyDesc;
 
@@ -838,21 +838,21 @@ GemmParam CreateGemmStridedBatchedParamConv1x1BwdWeight(const TensorDescriptor& 
     float alpha           = 1.;
     float beta            = 1.;
 
-    return GemmParam{isColMajor,
-                     transA,
-                     transB,
-                     m,
-                     n,
-                     k,
-                     lda,
-                     ldb,
-                     ldc,
-                     batch_count,
-                     strideA,
-                     strideB,
-                     strideC,
-                     alpha,
-                     beta};
+    return GemmDescriptor{isColMajor,
+                          transA,
+                          transB,
+                          m,
+                          n,
+                          k,
+                          lda,
+                          ldb,
+                          ldc,
+                          batch_count,
+                          strideA,
+                          strideB,
+                          strideC,
+                          alpha,
+                          beta};
 }
 
 } // namespace miopen
