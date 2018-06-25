@@ -356,11 +356,14 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     {
         op->GetNetworkConfig(network_config, handle);
     }
-    auto ops_head = op_map.at(0);
-
+    // Check if the kernel is assembly or OpenCL
+    bool is_asm_kernel = false;
+    // TODO: The Metadata graph should return this info
+    auto ops_head = op_map[0]; // ins_order[0]];
     if(ops_head->kind() == miopenFusionOpConvForward)
     {
-
+        auto ops_conv  = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head);
+        is_asm_kernel  = ops_conv->isASMApplicable();
         algorithm_name = "miopenDirConvBatchNormActivAlgo";
     }
     /*    else if(ops_head->kind() == miopenFusionOpBatchNormInference)
@@ -388,11 +391,9 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         std::string compile_config;
         for(auto&& op : op_map)
         {
-            op->GetCompileParms(compile_config,
-                                handle); // DLOWELL: TODO is this implemented every op, finished?
+            op->GetCompileParms(compile_config, handle, is_asm_kernel);
         }
 
-        // TODO: If the first op is Conv
         if(ops_head->kind() == miopenFusionOpConvForward)
         {
 
@@ -400,11 +401,11 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                 std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head)->GetKernelInfo(handle);
             program_name     = ki.kernel_file;
             kernel_name      = ki.kernel_name;
-            const auto parms = ki.comp_options + compile_config;
-            std::cout << parms << std::endl;
-            const auto& vld = ki.l_wk;
-            const auto& vgd = ki.g_wk;
-            kernel          = handle.AddKernel(
+            const auto parms = compile_config;
+            const auto& vld  = ki.l_wk;
+            const auto& vgd  = ki.g_wk;
+
+            kernel = handle.AddKernel(
                 algorithm_name, network_config, program_name, kernel_name, vld, vgd, parms);
         }
         else if(ops_head->kind() == miopenFusionOpBatchNormInference)
@@ -420,22 +421,90 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         // }
     }
     // Construct the kernel args
-    std::vector<any_t> args;
-    args.emplace_back(any_t(input));
-    args.emplace_back(any_t(output));
-    for(auto&& op : op_map)
+    std::set<size_t> arg_sizes;
+    std::map<std::pair<size_t, size_t>, std::vector<std::string>> size_map;
+    std::map<size_t, std::vector<std::string>> ptr_map;
+
+    for(auto idx = 0; idx < op_map.size(); idx++)
     {
+        auto op   = op_map[idx];
         auto keys = op->GetArgs();
         for(auto&& key : keys)
         {
             auto it = op_args.args_map.find(key);
             if(it != op_args.args_map.end())
-                args.emplace_back(any_t(it->second));
+            {
+                if(!it->second.is_ptr)
+                {
+                    arg_sizes.insert(it->second.size());
+                    size_map[std::pair<size_t, size_t>(idx, it->second.size())].push_back(key);
+                }
+                else
+                {
+                    ptr_map[idx].push_back(key);
+                }
+            }
             else
                 MIOPEN_THROW("Arg not found in Map");
         }
     }
-    kernel(args);
+
+    std::vector<any_t> args;
+    for(auto sz : arg_sizes)
+    {
+        for(auto idx = 0; idx < op_map.size(); idx++)
+        {
+            auto op   = op_map[idx];
+            auto keys = size_map[std::pair<size_t, size_t>(idx, sz)];
+            std::sort(keys.begin(), keys.end());
+            for(auto key : keys)
+            {
+                auto it = op_args.args_map.find(key);
+                if(it != op_args.args_map.end())
+                {
+                    args.push_back(it->second);
+                }
+            }
+        }
+    }
+    // insert input / output pointer
+    args.emplace_back(any_t(input));
+    args.emplace_back(any_t(output));
+    // add other pointers in op-order
+    for(auto idx = 0; idx < op_map.size(); idx++)
+    {
+        auto op   = op_map[idx];
+        auto keys = ptr_map[idx];
+        std::sort(keys.begin(), keys.end());
+        for(auto key : keys)
+        {
+            auto it = op_args.args_map.find(key);
+            if(it != op_args.args_map.end())
+                args.push_back(it->second);
+        }
+    }
+    std::vector<any_t> padded_args;
+    if(is_asm_kernel)
+    {
+        size_t running_sz = args[0].size();
+        padded_args.push_back(std::move(args[0]));
+        for(auto idx = 1; idx < args.size(); idx++)
+        {
+            if(args[idx - 1].size() != args[idx].size())
+            {
+                auto padding = running_sz % args[idx].size();
+                if(padding != 0)
+                {
+                    any_t tmp(0, padding);
+                    padded_args.push_back(tmp);
+                    running_sz += padding;
+                }
+            }
+            padded_args.push_back(std::move(args[idx]));
+            running_sz += args[idx].size();
+        }
+    }
+    kernel(padded_args);
     return miopenStatusSuccess;
 }
 
