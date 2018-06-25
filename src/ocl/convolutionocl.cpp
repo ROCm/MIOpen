@@ -965,6 +965,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                               dilation_h,
                               dilation_w,
                               workSpace);
+
                     if(handle.IsProfilingEnabled())
                         t1 = handle.GetKernelTime();
 
@@ -2139,24 +2140,10 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 #if MIOPEN_USE_GEMM
         if(dyDesc.GetType() == miopenFloat)
         {
-            // 1x1 does not require im2col or workspace
-            if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
-            {
-                MIOPEN_LOG_FUNCTION("convolution, 1x1");
-
-                // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
-                GemmDescriptor gemm_desc =
-                    CreateGemmStridedBatchedParamConv1x1BwdWeight(dyDesc, xDesc, dwDesc);
-
-                // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
-                CallGemmStridedBatchedSequential(handle, gemm_desc, dy, 0, x, 0, tmp_dw.get(), 0);
-
-                float time_gemm = handle.GetKernelTime();
-                perf_db.push_back(PerfField{"miopenConvolutionBwdWeightsAlgoGEMM", time_gemm, 0});
-            }
             // if not 1x1
-            else if(workSpace != nullptr &&
-                    workSpaceSize >= BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc))
+            if((wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0) &&
+               (workSpace != nullptr &&
+                workSpaceSize >= BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc)))
             {
                 MIOPEN_LOG_FUNCTION("convolution, non 1x1");
 
@@ -2192,6 +2179,22 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                     PerfField{"miopenConvolutionBwdWeightsAlgoGEMM",
                               time_gemm,
                               BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc)});
+            }
+            // 1x1 does not require im2col or workspace
+            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
+                    dilation_w == 1 && dilation_h == 1)
+            {
+                MIOPEN_LOG_FUNCTION("convolution, 1x1");
+
+                // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
+                GemmDescriptor gemm_desc =
+                    CreateGemmStridedBatchedParamConv1x1BwdWeight(dyDesc, xDesc, dwDesc);
+
+                // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
+                CallGemmStridedBatchedSequential(handle, gemm_desc, dy, 0, x, 0, tmp_dw.get(), 0);
+
+                float time_gemm = handle.GetKernelTime();
+                perf_db.push_back(PerfField{"miopenConvolutionBwdWeightsAlgoGEMM", time_gemm, 0});
             }
         }
 #endif
@@ -2347,7 +2350,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
             handle.ResetKernelTime();
 
-            if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
+            if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
             {
                 MIOPEN_LOG_FUNCTION("convolution, non 1x1");
 
@@ -2401,7 +2404,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     }
                 }
             }
-            else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
+            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
+                    dilation_w == 1 && dilation_h == 1)
             {
                 MIOPEN_LOG_FUNCTION("convolution, 1x1");
 
