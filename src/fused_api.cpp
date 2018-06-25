@@ -61,10 +61,11 @@ miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc)
 }
 
 // Return an error code that is "NotImplemented", if it exists then return success
-extern "C" miopenStatus_t miopenIsFusionPlanValid(miopenFusionPlanDescriptor_t fusePlanDesc)
+extern "C" miopenStatus_t miopenCompileFusionPlan(miopenHandle_t handle,
+                                                  miopenFusionPlanDescriptor_t fusePlanDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc);
-    return miopen::try_([&] { miopen::deref(fusePlanDesc).isValid(); });
+    return miopen::try_([&] { miopen::deref(fusePlanDesc).Compile(miopen::deref(handle)); });
 }
 
 // Create convolution ops with known algorithm
@@ -495,8 +496,7 @@ extern "C" miopenStatus_t miopenSetOpArgsTensorOp(miopenOperatorArgs_t args,
 }
 
 // Return an error code that is "NotImplemented", if it exists then return success
-extern "C" miopenStatus_t miopenExecuteFusionPlan(miopenHandle_t handle,
-                                                  const miopenFusionPlanDescriptor_t fusePlanDesc,
+extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenFusionPlanDescriptor_t fusePlanDesc,
                                                   const miopenTensorDescriptor_t inputDesc,
                                                   const void* input,
                                                   const miopenTensorDescriptor_t outputDesc,
@@ -507,8 +507,7 @@ extern "C" miopenStatus_t miopenExecuteFusionPlan(miopenHandle_t handle,
     return miopen::try_([&] {
 
         miopen::deref(fusePlanDesc)
-            .Execute(miopen::deref(handle),
-                     miopen::deref(inputDesc),
+            .Execute(miopen::deref(inputDesc),
                      DataCast(input),
                      miopen::deref(outputDesc),
                      DataCast(output),
