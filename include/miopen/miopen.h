@@ -2303,6 +2303,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsTensorOp(miopenOperatorArgs_t args,
 /*! @brief Executes the fusion plan
 *
 *
+* @param handle           MIOpen handle (input)
 * @param fusePlanDesc     fused plan descriptor (input)
 * @param inputDesc        Descriptor of the input tensor (input)
 * @param input            Source data tensor  (input)
@@ -2312,7 +2313,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsTensorOp(miopenOperatorArgs_t args,
 * @return           miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
-miopenExecuteFusionPlan(const miopenFusionPlanDescriptor_t fusePlanDesc,
+miopenExecuteFusionPlan(const miopenHandle_t handle,
+                        const miopenFusionPlanDescriptor_t fusePlanDesc,
                         const miopenTensorDescriptor_t inputDesc,
                         const void* input,
                         const miopenTensorDescriptor_t outputDesc,

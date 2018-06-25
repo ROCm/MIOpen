@@ -70,8 +70,9 @@ struct OperatorArgs : miopenOperatorArgs
 struct FusionOpDescriptor : miopenFusionOpDescriptor
 {
     virtual ~FusionOpDescriptor(){};
-    FusionOpDescriptor(const FusionOpDescriptor&) = default;
+    FusionOpDescriptor(const FusionOpDescriptor&) = delete;
     FusionOpDescriptor()                          = default;
+    FusionOpDescriptor& operator=(const FusionOpDescriptor&) = delete;
     void SetIdx(int _id) { plan_idx = _id; };
     int GetIdx() const { return plan_idx; };
     virtual miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) = 0;
@@ -82,11 +83,7 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     virtual miopenFusionOp_t kind()                  = 0;
     virtual std::vector<std::string> GetArgs() const = 0;
     void SetInputDesc(TensorDescriptor i_desc) { input_desc = i_desc; };
-    bool isArgSet() const { return args_set; };
     TensorDescriptor input_desc;
-
-    protected:
-    bool args_set = false;
 
     private:
     int plan_idx                       = 0;
@@ -155,7 +152,11 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
         : base_desc(conv_descriptor),
           filter_desc(filter_descriptor),
           algo(fwd_algo),
-          kernel_info_valid(false){};
+          kernel_info_valid(false)
+    {
+        if(base_desc.u != 1 || base_desc.v != 1)
+            MIOPEN_THROW("Only stride 1 is supported for convolution operator");
+    };
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
     miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t w);
     std::vector<std::string> GetArgs() const override;
@@ -211,7 +212,7 @@ struct FusionOpLU
 struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 {
     FusionPlanDescriptor(const miopenFusionDirection_t dir, const TensorDescriptor& inDesc)
-        : fusion_dir(dir), input_desc(inDesc), is_valid(false), is_compiled(false){};
+        : fusion_dir(dir), input_desc(inDesc), is_valid(false){};
     ~FusionPlanDescriptor();
     bool isValid() { return is_valid; };
     miopenStatus_t AddOp(std::shared_ptr<FusionOpDescriptor> desc);
@@ -219,7 +220,8 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     TensorDescriptor DeriveOutputDescriptor();
     miopenStatus_t
     GetWorkspaceSizeImmed(Handle& handle, size_t& workSpaceSize, miopenConvFwdAlgorithm_t algo);
-    miopenStatus_t Execute(TensorDescriptor& inputDesc,
+    miopenStatus_t Execute(Handle& handle,
+                           TensorDescriptor& inputDesc,
                            ConstData_t input,
                            TensorDescriptor& outputDesc,
                            Data_t output,
@@ -240,9 +242,7 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     int op_count = 0;
     std::vector<std::shared_ptr<FusionOpDescriptor>> op_map;
     FusionOpLU lu;
-    KernelInvoke fused_kernel;
     bool is_valid;
-    bool is_compiled = false;
 };
 
 } // namespace miopen
