@@ -720,7 +720,8 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
             exit(EXIT_FAILURE);
         }
 
-        miopenExecuteFusionPlan(fusePlanDesc,
+        miopenExecuteFusionPlan(GetHandle(),
+                                fusePlanDesc,
                                 inputTensor,
                                 in_dev->GetMem(),
                                 outputTensor,
@@ -809,7 +810,8 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
             exit(EXIT_FAILURE);
         }
 
-        miopenExecuteFusionPlan(fusePlanDesc,
+        miopenExecuteFusionPlan(GetHandle(),
+                                fusePlanDesc,
                                 inputTensor,
                                 in_dev->GetMem(),
                                 outputTensor,
@@ -869,7 +871,8 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
             exit(EXIT_FAILURE);
         }
 
-        miopenExecuteFusionPlan(fusePlanDesc,
+        miopenExecuteFusionPlan(GetHandle(),
+                                fusePlanDesc,
                                 inputTensor,
                                 in_dev->GetMem(),
                                 outputTensor,
@@ -1033,7 +1036,8 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUFusedConvBiasInference()
         {
             std::cerr << "ConvBiasInference plan not supported." << std::endl;
         }
-        miopenExecuteFusionPlan(fusePlanDesc,
+        miopenExecuteFusionPlan(GetHandle(),
+                                fusePlanDesc,
                                 inputTensor,
                                 in_dev->GetMem(),
                                 outputTensor,

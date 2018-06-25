@@ -206,10 +206,7 @@ miopenStatus_t ConvForwardOpDescriptor::GetNetworkConfig(std::string& network_co
 }
 bool ConvForwardOpDescriptor::isASMApplicable()
 {
-    if(base_desc.u == 1 && base_desc.v == 1 && base_desc.pad_h == 0 && base_desc.pad_w == 0)
-        return true;
-    else
-        return false;
+    return (base_desc.u == 1 && base_desc.v == 1 && base_desc.pad_h == 0 && base_desc.pad_w == 0);
 }
 
 solver::KernelInfo& ConvForwardOpDescriptor::GetKernelInfo(Handle& handle)
