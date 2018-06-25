@@ -60,6 +60,18 @@ template <std::size_t N, class T, class U>
 auto tien(T&& x, U y)
     MIOPEN_RETURNS(tie_impl(std::forward<T>(x), y, typename detail::gens<N>::type{}));
 
+template <typename F, std::size_t... Ns>
+auto create_tuple_impl(F f, detail::seq<Ns...>)
+{
+    return std::make_tuple(std::forward<decltype(f(Ns))>(f(Ns))...);
+}
+
+template <std::size_t N, typename F>
+auto create_tuple(F f)
+{
+    return create_tuple_impl(f, typename detail::gens<N>::type{});
+}
+
 inline std::size_t GetTypeSize(miopenDataType_t d)
 {
     switch(d)
@@ -79,6 +91,11 @@ struct TensorDescriptor : miopenTensorDescriptor
                      std::initializer_list<std::size_t> pstrides);
     TensorDescriptor(miopenDataType_t t, const int* plens, int size);
     TensorDescriptor(miopenDataType_t t, const int* plens, const int* pstrides, int size);
+
+    TensorDescriptor(miopenDataType_t t,
+                     std::vector<std::size_t> lens_in,
+                     std::vector<std::size_t> strides_in);
+
     template <class Range>
     TensorDescriptor(miopenDataType_t t, const Range& plens)
         : lens(plens.begin(), plens.end()), packed(true), type(t)

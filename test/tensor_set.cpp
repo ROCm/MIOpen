@@ -41,8 +41,6 @@
 #include "verify.hpp"
 #include "tensor_util.hpp"
 
-#define MIO_TENSORSET_DEBUG 0
-
 template <typename T>
 struct set_data_t
 {
@@ -72,43 +70,26 @@ struct verify_tensor_set
 
     tensor<T> cpu() const
     {
-
-#if(MIO_TENSORSET_DEBUG == 1)
-        printf("CPU test start...");
-        fflush(nullptr);
-#endif
         tensor<T> superCpu = super;
 
         const set_data_t<T> data_operator = {alpha};
 
         operate_over_subtensor(data_operator, superCpu, subDesc, offset);
 
-#if(MIO_TENSORSET_DEBUG == 1)
-        printf("done\n");
-        fflush(nullptr);
-#endif
         return superCpu;
     }
 
     tensor<T> gpu() const
     {
-
-#if(MIO_TENSORSET_DEBUG == 1)
-        printf("GPU test start...");
-        fflush(nullptr);
-#endif
-
         tensor<T> superGpu = super;
 
         auto&& handle  = get_handle();
         auto super_dev = handle.Write(superGpu.data);
+
         miopen::SetTensor(handle, subDesc, super_dev.get(), &alpha, offset);
+
         superGpu.data = handle.Read<T>(super_dev, superGpu.data.size());
 
-#if(MIO_TENSORSET_DEBUG == 1)
-        printf("done.\n");
-        fflush(nullptr);
-#endif
         return superGpu;
     }
 
@@ -124,57 +105,33 @@ template <class T>
 struct tensor_set_driver : test_driver
 {
     tensor<T> super;
+    std::vector<int> superLens;
     miopen::TensorDescriptor subDesc;
     std::vector<int> subLens;
     int offset = 0;
 
     tensor_set_driver()
     {
+        std::vector<int> lens = {32, 32, 16, 16, 16};
 
-#if(MIO_TENSORSET_DEBUG == 1)
-        printf("Generating super tensors...");
-        fflush(nullptr);
-#endif
-        std::vector<int> lens = {{32, 32, 16, 16, 16}};
-        super                 = tensor<T>{lens}.generate(rand_gen{});
-
-#if(MIO_TENSORSET_DEBUG == 1)
-        printf("done.\n");
-        fflush(nullptr);
-        printf("Generating sub-tensors lengths...");
-        fflush(nullptr);
-#endif
-
+        add(superLens, "superLens", generate_data({lens}, lens));
         add(subLens, "subLens", generate_data(get_sub_tensor(), {32, 8, 10}));
         add(offset, "offset", generate_data(get_tensor_offset(), 7));
-
-#if(MIO_TENSORSET_DEBUG == 1)
-        printf("done.\n");
-        fflush(nullptr);
-#endif
     }
 
     void run()
     {
+        super = tensor<T>{superLens}.generate(rand_gen{});
+
         std::vector<size_t> superStrides = super.desc.GetStrides();
-        std::vector<int> subStrides(superStrides.begin() + (5 - subLens.size()),
+        std::vector<int> subStrides(superStrides.begin() + (super.desc.GetSize() - subLens.size()),
                                     superStrides.end());
 
         subDesc =
             miopen::TensorDescriptor(this->type, subLens.data(), subStrides.data(), subLens.size());
 
-#if(MIO_TENSORSET_DEBUG == 1)
-        printf("offset: %d\n", offset);
-#endif
         verify_equals(verify_tensor_set<T>{super, subDesc, offset, T(1.111)});
     }
 };
 
-int main(int argc, const char* argv[])
-{
-
-#if(MIO_TENSORSET_DEBUG == 1)
-    printf("Starting.\n");
-#endif
-    test_drive<tensor_set_driver>(argc, argv);
-}
+int main(int argc, const char* argv[]) { test_drive<tensor_set_driver>(argc, argv); }
