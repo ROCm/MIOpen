@@ -82,8 +82,11 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     virtual miopenFusionOp_t kind()                  = 0;
     virtual std::vector<std::string> GetArgs() const = 0;
     void SetInputDesc(TensorDescriptor i_desc) { input_desc = i_desc; };
-
+    bool isArgSet() const { return args_set; };
     TensorDescriptor input_desc;
+
+    protected:
+    bool args_set = false;
 
     private:
     int plan_idx                       = 0;
@@ -208,7 +211,7 @@ struct FusionOpLU
 struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 {
     FusionPlanDescriptor(const miopenFusionDirection_t dir, const TensorDescriptor& inDesc)
-        : fusion_dir(dir), input_desc(inDesc), is_valid(false){};
+        : fusion_dir(dir), input_desc(inDesc), is_valid(false), is_compiled(false){};
     ~FusionPlanDescriptor();
     bool isValid() { return is_valid; };
     miopenStatus_t AddOp(std::shared_ptr<FusionOpDescriptor> desc);
@@ -216,12 +219,12 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     TensorDescriptor DeriveOutputDescriptor();
     miopenStatus_t
     GetWorkspaceSizeImmed(Handle& handle, size_t& workSpaceSize, miopenConvFwdAlgorithm_t algo);
-    miopenStatus_t Execute(Handle& handle,
-                           TensorDescriptor& inputDesc,
+    miopenStatus_t Execute(TensorDescriptor& inputDesc,
                            ConstData_t input,
                            TensorDescriptor& outputDesc,
                            Data_t output,
                            const OperatorArgs& op_args);
+    miopenStatus_t Compile(Handle& handle);
     friend std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& x);
 
     protected:
@@ -237,7 +240,9 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     int op_count = 0;
     std::vector<std::shared_ptr<FusionOpDescriptor>> op_map;
     FusionOpLU lu;
+    KernelInvoke fused_kernel;
     bool is_valid;
+    bool is_compiled = false;
 };
 
 } // namespace miopen

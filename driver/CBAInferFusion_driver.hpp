@@ -713,15 +713,14 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
                                           epsilon);
         miopenSetOpArgsActivForward(
             fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
-        miopenError = miopenIsFusionPlanValid(fusePlanDesc);
+        miopenError = miopenCompileFusionPlan(GetHandle(), fusePlanDesc);
         if(miopenError != miopenStatusSuccess)
         {
             std::cerr << "BatchNormActivInference plan not supported." << std::endl;
             exit(EXIT_FAILURE);
         }
 
-        miopenExecuteFusionPlan(GetHandle(),
-                                fusePlanDesc,
+        miopenExecuteFusionPlan(fusePlanDesc,
                                 inputTensor,
                                 in_dev->GetMem(),
                                 outputTensor,
@@ -800,7 +799,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
                                           runningMean_dev->GetMem(),
                                           runningVariance_dev->GetMem(),
                                           epsilon);
-        miopenError = miopenIsFusionPlanValid(fusePlanDesc);
+        miopenError = miopenCompileFusionPlan(GetHandle(), fusePlanDesc);
         if(miopenError != miopenStatusSuccess)
         {
             if(bias_mode)
@@ -810,8 +809,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
             exit(EXIT_FAILURE);
         }
 
-        miopenExecuteFusionPlan(GetHandle(),
-                                fusePlanDesc,
+        miopenExecuteFusionPlan(fusePlanDesc,
                                 inputTensor,
                                 in_dev->GetMem(),
                                 outputTensor,
@@ -861,7 +859,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
             miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev->GetMem());
         }
 
-        miopenError = miopenIsFusionPlanValid(fusePlanDesc);
+        miopenError = miopenCompileFusionPlan(GetHandle(), fusePlanDesc);
         if(miopenError != miopenStatusSuccess)
         {
             if(bias_mode)
@@ -871,8 +869,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
             exit(EXIT_FAILURE);
         }
 
-        miopenExecuteFusionPlan(GetHandle(),
-                                fusePlanDesc,
+        miopenExecuteFusionPlan(fusePlanDesc,
                                 inputTensor,
                                 in_dev->GetMem(),
                                 outputTensor,
@@ -1031,13 +1028,12 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUFusedConvBiasInference()
 
         miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev->GetMem());
 
-        miopenError = miopenIsFusionPlanValid(fusePlanDesc);
+        miopenError = miopenCompileFusionPlan(GetHandle(), fusePlanDesc);
         if(miopenError != miopenStatusSuccess)
         {
             std::cerr << "ConvBiasInference plan not supported." << std::endl;
         }
-        miopenExecuteFusionPlan(GetHandle(),
-                                fusePlanDesc,
+        miopenExecuteFusionPlan(fusePlanDesc,
                                 inputTensor,
                                 in_dev->GetMem(),
                                 outputTensor,
