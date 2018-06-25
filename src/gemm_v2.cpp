@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <miopen/gemm_v2.hpp>
+#include <miopen/logger.hpp>
 
 #if MIOPEN_USE_ROCBLAS
 #include <rocblas.h>
@@ -31,42 +32,7 @@
 #include <miopen/miopengemm.hpp>
 #endif
 
-#define GEMM_V2_CPP_DEBUG 0
-#define GEMM_V2_CPP_PROFILE 0
-
 namespace miopen {
-#if GEMM_V2_CPP_DEBUG
-template <typename T>
-std::ostream& operator<<(std::ostream& os, const std::vector<T>& vs)
-{
-    os << "{ size: " << vs.size() << ", entries: ";
-    for(auto& v : vs)
-        os << v << " ";
-    os << "}";
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const GemmDescriptor& gemm_desc)
-{
-    os << "{ "
-       << "isColMajor " << gemm_desc.isColMajor << ", "
-       << "transA " << gemm_desc.transA << ", "
-       << "transB " << gemm_desc.transB << ", "
-       << "m " << gemm_desc.m << ", "
-       << "n " << gemm_desc.n << ", "
-       << "k " << gemm_desc.k << ", "
-       << "lda " << gemm_desc.lda << ", "
-       << "ldb " << gemm_desc.ldb << ", "
-       << "ldc " << gemm_desc.ldc << ", "
-       << "batch_count " << gemm_desc.batch_count << ", "
-       << "strideA " << gemm_desc.strideA << ", "
-       << "strideB " << gemm_desc.strideB << ", "
-       << "strideC " << gemm_desc.strideC << ", "
-       << "alpha" << gemm_desc.alpha << ", "
-       << "beta" << gemm_desc.beta << " }";
-    return os;
-}
-#endif
 
 void CallGemm(Handle& handle,
               GemmDescriptor gemm_desc,
@@ -78,9 +44,7 @@ void CallGemm(Handle& handle,
               int c_offset)
 {
 #if MIOPEN_USE_ROCBLAS
-#if GEMM_V2_CPP_DEBUG
-    std::cout << std::endl << __func__ << ": rocBLAS" << std::endl;
-#endif
+    MIOPEN_LOG_FUNTION("rocBLAS");
 
     if(!gemm_desc.isColMajor)
     {
@@ -92,12 +56,13 @@ void CallGemm(Handle& handle,
         std::swap(gemm_desc.lda, gemm_desc.ldb);
     }
 
-#if GEMM_V2_CPP_PROFILE
     hipEvent_t start, stop;
-    hipEventCreate(&start);
-    hipEventCreate(&stop);
-    hipEventRecord(start, nullptr);
-#endif
+    if(handle.IsProfilingEnabled())
+    {
+        hipEventCreate(&start);
+        hipEventCreate(&stop);
+        hipEventRecord(start, nullptr);
+    }
 
     rocblas_sgemm(handle.rhandle.get(),
                   gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
@@ -114,25 +79,20 @@ void CallGemm(Handle& handle,
                   static_cast<float*>(C) + c_offset,
                   gemm_desc.ldc);
 
-#if GEMM_V2_CPP_PROFILE
-    hipEventRecord(stop, nullptr);
-    hipDeviceSynchronize();
-    float mS = 0;
-    hipEventElapsedTime(&mS, start, stop);
-    hipEventDestroy(start);
-    hipEventDestroy(stop);
-    handle.ResetKernelTime();
-    handle.AccumKernelTime(mS);
-#endif
+    if(handle.IsProfilingEnabled())
+    {
+        hipEventRecord(stop, nullptr);
+        hipDeviceSynchronize();
+        float mS = 0;
+        hipEventElapsedTime(&mS, start, stop);
+        hipEventDestroy(start);
+        hipEventDestroy(stop);
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(mS);
+    }
 
 #elif MIOPEN_USE_MIOPENGEMM
-#if GEMM_V2_CPP_DEBUG
-    std::cout << __func__ << ": MIOpenGEMM" << std::endl;
-#endif
-
-#if GEMM_V2_CPP_PROFILE
-    auto t_start = std::chrono::high_resolution_clock::now();
-#endif
+    MIOPEN_LOG_FUNCTION("MIOpenGEMM");
 
     // do row-to-column major conversion here
     if(!gemm_desc.isColMajor)
@@ -209,13 +169,6 @@ void CallGemm(Handle& handle,
                               c_offset);
     }
 
-#if GEMM_V2_CPP_PROFILE
-    auto t_end = std::chrono::high_resolution_clock::now();
-
-    std::cout << __func__ << ": time: " << std::chrono::duration<double>(t_end - t_start).count()
-              << " seconds." << std::endl;
-#endif
-
 #else
     MIOPEN_THROW("No GEMM backend");
 #endif
@@ -231,9 +184,7 @@ void CallGemmStridedBatched(Handle& handle,
                             int c_offset)
 {
 #if MIOPEN_USE_ROCBLAS
-#if GEMM_V2_CPP_DEBUG
-    std::cout << std::endl << __func__ << ": rocBLAS" << std::endl;
-#endif
+    MIOPEN_LOG_FUNCTION("rocBLAS");
 
     if(!gemm_desc.isColMajor)
     {
@@ -246,12 +197,13 @@ void CallGemmStridedBatched(Handle& handle,
         std::swap(gemm_desc.strideA, gemm_desc.strideB);
     }
 
-#if GEMM_V2_CPP_PROFILE
     hipEvent_t start, stop;
-    hipEventCreate(&start);
-    hipEventCreate(&stop);
-    hipEventRecord(start, nullptr);
-#endif
+    if(handle.IsProfilingEnabled())
+    {
+        hipEventCreate(&start);
+        hipEventCreate(&stop);
+        hipEventRecord(start, nullptr);
+    }
 
     rocblas_sgemm_strided_batched(
         handle.rhandle.get(),
@@ -273,16 +225,17 @@ void CallGemmStridedBatched(Handle& handle,
         gemm_desc.strideC,
         gemm_desc.batch_count);
 
-#if GEMM_V2_CPP_PROFILE
-    hipEventRecord(stop, nullptr);
-    hipDeviceSynchronize();
-    float mS = 0;
-    hipEventElapsedTime(&mS, start, stop);
-    hipEventDestroy(start);
-    hipEventDestroy(stop);
-    handle.ResetKernelTime();
-    handle.AccumKernelTime(mS);
-#endif
+    if(handle.IsProfilingEnabled())
+    {
+        hipEventRecord(stop, nullptr);
+        hipDeviceSynchronize();
+        float mS = 0;
+        hipEventElapsedTime(&mS, start, stop);
+        hipEventDestroy(start);
+        hipEventDestroy(stop);
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(mS);
+    }
 
 #elif MIOPEN_USE_MIOPENGEMM
 
@@ -311,9 +264,7 @@ void CallGemmStridedBatchedSequential(Handle& handle,
                                       int c_offset)
 {
 #if MIOPEN_USE_ROCBLAS
-#if GEMM_V2_CPP_DEBUG
-    std::cout << std::endl << __func__ << ": rocBLAS" << std::endl;
-#endif
+    MIOPEN_LOG_FUNCTION("rocBLAS");
 
     if(!gemm_desc.isColMajor)
     {
@@ -326,12 +277,13 @@ void CallGemmStridedBatchedSequential(Handle& handle,
         std::swap(gemm_desc.strideA, gemm_desc.strideB);
     }
 
-#if GEMM_V2_CPP_PROFILE
     hipEvent_t start, stop;
-    hipEventCreate(&start);
-    hipEventCreate(&stop);
-    hipEventRecord(start, nullptr);
-#endif
+    if(handle.IsProfilingEnabled())
+    {
+        hipEventCreate(&start);
+        hipEventCreate(&stop);
+        hipEventRecord(start, nullptr);
+    }
 
     for(int i = 0; i < gemm_desc.batch_count; ++i)
     {
@@ -351,22 +303,20 @@ void CallGemmStridedBatchedSequential(Handle& handle,
                       gemm_desc.ldc);
     }
 
-#if GEMM_V2_CPP_PROFILE
-    hipEventRecord(stop, nullptr);
-    hipDeviceSynchronize();
-    float mS = 0;
-    hipEventElapsedTime(&mS, start, stop);
-    hipEventDestroy(start);
-    hipEventDestroy(stop);
-    handle.ResetKernelTime();
-    handle.AccumKernelTime(mS);
-#endif
+    if(handle.IsProflingEnabled())
+    {
+        hipEventRecord(stop, nullptr);
+        hipDeviceSynchronize();
+        float mS = 0;
+        hipEventElapsedTime(&mS, start, stop);
+        hipEventDestroy(start);
+        hipEventDestroy(stop);
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(mS);
+    }
 
 #elif MIOPEN_USE_MIOPENGEMM
-
-#if GEMM_V2_CPP_DEBUG
-    std::cout << __func__ << ": MIOpenGEMM" << std::endl;
-#endif
+    MIOPEN_LOG_FUNCTION("MIOpenGEMM");
 
     if(!gemm_desc.isColMajor)
     {
