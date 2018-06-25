@@ -207,7 +207,7 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSizeGEMM(Handle& handle,
     size_t workspace_size = wei_c * wei_h * wei_w * out_h * out_w * GetTypeSize(yDesc.GetType());
 
     // No workspace is needed for 1x1_stride=1 convolutions
-    if(wei_h == 1 && wei_w == 1 && u == 1 && v == 1)
+    if(wei_h == 1 && wei_w == 1 && u == 1 && v == 1 && pad_h == 0 && pad_w == 0)
     {
         return 0;
     }
@@ -567,7 +567,7 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSizeGEMM(Handle& handle,
     size_t gemm_size = wei_c * wei_h * wei_w * out_h * out_w * GetTypeSize(dyDesc.GetType());
 
     // No workspace is needed for 1x1_stride=1 convolutions
-    if(wei_h == 1 && wei_w == 1 && u == 1 && v == 1)
+    if(wei_h == 1 && wei_w == 1 && u == 1 && v == 1 && pad_h == 0 && pad_w == 0)
     {
         return 0;
     }
