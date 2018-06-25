@@ -2069,7 +2069,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
     std::string network_config;
-    size_t workspace_req = 0;
 
     if(mode == miopenTranspose)
     {
@@ -2080,7 +2079,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         {
             GemmGeometry gg =
                 CreateGemmGeometryConvBwdWeights(xDesc, dyDesc, dwDesc, false, network_config);
-            workspace_req   = BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc);
+            std::size_t workspace_req = BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc);
+
             float time_gemm = 0;
 
             // 1x1 does not require im2col or workspace
