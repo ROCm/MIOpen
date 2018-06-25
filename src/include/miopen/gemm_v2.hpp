@@ -45,7 +45,7 @@ namespace miopen {
 //     cross-row    memory stride for row   -major A, B, C
 // for strided batched GEMM
 //   strideA, strideB, strideC are the strides of the matrices
-struct GemmParam
+struct GemmDescriptor
 {
     bool isColMajor;
     bool transA, transB;
@@ -57,7 +57,7 @@ struct GemmParam
 };
 
 void CallGemm(Handle& handle,
-              GemmParam gemm_param,
+              GemmDescriptor gemm_desc,
               ConstData_t A,
               int a_offset,
               ConstData_t B,
@@ -66,7 +66,7 @@ void CallGemm(Handle& handle,
               int c_offset);
 
 void CallGemmStridedBatched(Handle& handle,
-                            GemmParam gemm_param,
+                            GemmDescriptor gemm_desc,
                             ConstData_t A,
                             int a_offset,
                             ConstData_t B,
@@ -75,7 +75,7 @@ void CallGemmStridedBatched(Handle& handle,
                             int c_offset);
 
 void CallGemmStridedBatchedSequential(Handle& handle,
-                                      GemmParam gemm_param,
+                                      GemmDescriptor gemm_desc,
                                       ConstData_t A,
                                       int a_offset,
                                       ConstData_t B,
@@ -85,51 +85,51 @@ void CallGemmStridedBatchedSequential(Handle& handle,
 
 // GEMM parameters for Convolution (using Im2Col) Fwd
 // y = w * Im2Col(x)
-GemmParam CreateGemmParamConvFwd(const TensorDescriptor& wDesc,
-                                 const TensorDescriptor& xDesc,
-                                 const TensorDescriptor& yDesc);
+GemmDescriptor CreateGemmDescriptorConvFwd(const TensorDescriptor& wDesc,
+                                           const TensorDescriptor& xDesc,
+                                           const TensorDescriptor& yDesc);
 
 // GEMM parameters for Convolution (using Im2Col) Bwd-Data
 // dx = Col2Im(transpose(w) * dy)
-GemmParam CreateGemmParamConvBwdData(const TensorDescriptor& wDesc,
-                                     const TensorDescriptor& dyDesc,
-                                     const TensorDescriptor& dxDesc);
+GemmDescriptor CreateGemmDescriptorConvBwdData(const TensorDescriptor& wDesc,
+                                               const TensorDescriptor& dyDesc,
+                                               const TensorDescriptor& dxDesc);
 
 // GEMM parameters for Convolution (using Im2Col) Bwd-Weight
 // dw = dy * transpose(Im2Col(x))
-GemmParam CreateGemmParamConvBwdWeight(const TensorDescriptor& dyDesc,
-                                       const TensorDescriptor& xDesc,
-                                       const TensorDescriptor& dwDesc);
+GemmDescriptor CreateGemmDescriptorConvBwdWeight(const TensorDescriptor& dyDesc,
+                                                 const TensorDescriptor& xDesc,
+                                                 const TensorDescriptor& dwDesc);
 
 // GEMM parameters for 1x1 Convolution (using CNHW) Fwd
 // y = CNHW2NCHW(w * NCHW2CNHW(x))
-GemmParam CreateGemmParamConvCNHWFwd(const TensorDescriptor& wDesc,
-                                     const TensorDescriptor& xDesc,
-                                     const TensorDescriptor& yDesc);
+GemmDescriptor CreateGemmDescriptorConvCNHWFwd(const TensorDescriptor& wDesc,
+                                               const TensorDescriptor& xDesc,
+                                               const TensorDescriptor& yDesc);
 
 // GEMM parameters for 1x1 Convolution (using CNHW) Bwd-Data
 // dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
-GemmParam CreateGemmParamConvCNHWBwdData(const TensorDescriptor& wDesc,
-                                         const TensorDescriptor& dyDesc,
-                                         const TensorDescriptor& dxDesc);
+GemmDescriptor CreateGemmDescriptorConvCNHWBwdData(const TensorDescriptor& wDesc,
+                                                   const TensorDescriptor& dyDesc,
+                                                   const TensorDescriptor& dxDesc);
 
 // strided batched GEMM parameters for 1x1 Convolution Fwd
 // y[i] = w * x[i], i is batch id
-GemmParam CreateGemmStridedBatchedParamConv1x1Fwd(const TensorDescriptor& wDesc,
-                                                  const TensorDescriptor& xDesc,
-                                                  const TensorDescriptor& yDesc);
+GemmDescriptor CreateGemmStridedBatchedParamConv1x1Fwd(const TensorDescriptor& wDesc,
+                                                       const TensorDescriptor& xDesc,
+                                                       const TensorDescriptor& yDesc);
 
 // strided batched GEMM parameters for 1x1 Convolution Bwd-Data
 // dx[i] = transpose(w) * dy[i], i is batch id
-GemmParam CreateGemmStridedBatchedParamConv1x1BwdData(const TensorDescriptor& wDesc,
-                                                      const TensorDescriptor& dyDesc,
-                                                      const TensorDescriptor& dxDesc);
+GemmDescriptor CreateGemmStridedBatchedParamConv1x1BwdData(const TensorDescriptor& wDesc,
+                                                           const TensorDescriptor& dyDesc,
+                                                           const TensorDescriptor& dxDesc);
 
 // strided batched GEMM parameters for 1x1 Convolution Bwd-Weight
 // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
-GemmParam CreateGemmStridedBatchedParamConv1x1BwdWeight(const TensorDescriptor& dyDesc,
-                                                        const TensorDescriptor& xDesc,
-                                                        const TensorDescriptor& dwDesc);
+GemmDescriptor CreateGemmStridedBatchedParamConv1x1BwdWeight(const TensorDescriptor& dyDesc,
+                                                             const TensorDescriptor& xDesc,
+                                                             const TensorDescriptor& dwDesc);
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_GEMM_V2_HPP_
