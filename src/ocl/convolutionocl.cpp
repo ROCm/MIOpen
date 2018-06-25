@@ -1156,10 +1156,10 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
     if(mode == miopenTranspose)
     {
+#if MIOPEN_USE_MIOPENGEMM
         // GEMM based
         std::tie(std::ignore, wei_n, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
-#if MIOPEN_USE_MIOPENGEMM
         if(dyDesc.GetType() == miopenFloat)
         {
             size_t workspace_req = ForwardGetWorkSpaceSizeGEMM(handle, wDesc, dxDesc);
@@ -1370,10 +1370,10 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
             }
         }
 
+#if MIOPEN_USE_GEMM
         // GEMM based
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
-#if MIOPEN_USE_GEMM
         if(dyDesc.GetType() == miopenFloat)
         {
             // 1x1 does not require col2im
@@ -2072,9 +2072,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
     if(mode == miopenTranspose)
     {
+#if MIOPEN_USE_MIOPENGEMM
         std::tie(std::ignore, wei_n, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
 
-#if MIOPEN_USE_MIOPENGEMM
         if(dyDesc.GetType() == miopenFloat)
         {
             GemmGeometry gg =
@@ -2155,7 +2155,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 perf_db.push_back(PerfField{"miopenConvolutionBwdWeightsAlgoGEMM", time_gemm, 0});
             }
             // if not 1x1
-            else if(workSpace != nullptr && workSpaceSize >= workspace_req)
+            else if(workSpace != nullptr &&
+                    workSpaceSize >= BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc))
             {
                 MIOPEN_LOG_FUNCTION("convolution, non 1x1");
 
@@ -2188,7 +2189,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
                 float time_gemm = in_n * (time_im2col + handle.GetKernelTime());
                 perf_db.push_back(
-                    PerfField{"miopenConvolutionBwdWeightsAlgoGEMM", time_gemm, workspace_req});
+                    PerfField{"miopenConvolutionBwdWeightsAlgoGEMM",
+                              time_gemm,
+                              BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc)});
             }
         }
 #endif
