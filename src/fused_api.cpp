@@ -290,8 +290,8 @@ extern "C" miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
 {
     MIOPEN_LOG_FUNCTION(args, alpha, beta, convOp, w);
     return miopen::try_([&] {
-        auto op  = dynamic_cast<miopen::ConvForwardOpDescriptor&>(miopen::deref(convOp));
-        auto tmp = DataCast(w);
+        auto&& op = dynamic_cast<miopen::ConvForwardOpDescriptor&>(miopen::deref(convOp));
+        auto tmp  = DataCast(w);
         op.SetArgs(miopen::deref(args), alpha, beta, tmp);
     });
 }
@@ -333,7 +333,7 @@ extern "C" miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
 
     MIOPEN_LOG_FUNCTION(args, biasOp, alpha, beta, bias);
     return miopen::try_([&] {
-        auto op = dynamic_cast<miopen::BiasFusionOpDescriptor&>(miopen::deref(biasOp));
+        auto&& op = dynamic_cast<miopen::BiasFusionOpDescriptor&>(miopen::deref(biasOp));
         op.SetArgs(miopen::deref(args), alpha, beta, DataCast(bias));
     });
 }
@@ -361,7 +361,7 @@ extern "C" miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
 
     MIOPEN_LOG_FUNCTION(args, activOp, alpha, beta, activAlpha, activBeta, activGamma);
     return miopen::try_([&] {
-        auto op = dynamic_cast<miopen::ActivFusionOpDescriptor&>(miopen::deref(activOp));
+        auto&& op = dynamic_cast<miopen::ActivFusionOpDescriptor&>(miopen::deref(activOp));
         op.SetArgs(miopen::deref(args), alpha, beta, activAlpha, activBeta, activGamma);
     });
 }
@@ -392,7 +392,8 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t
     MIOPEN_LOG_FUNCTION(
         args, bnOp, alpha, beta, bnScale, bnBias, estimatedMean, estimatedVariance, epsilon);
     return miopen::try_([&] {
-        auto op = dynamic_cast<miopen::BatchNormInferenceFusionOpDescriptor&>(miopen::deref(bnOp));
+        auto&& op =
+            dynamic_cast<miopen::BatchNormInferenceFusionOpDescriptor&>(miopen::deref(bnOp));
         op.SetArgs(miopen::deref(args),
                    alpha,
                    beta,
@@ -496,7 +497,8 @@ extern "C" miopenStatus_t miopenSetOpArgsTensorOp(miopenOperatorArgs_t args,
 }
 
 // Return an error code that is "NotImplemented", if it exists then return success
-extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenFusionPlanDescriptor_t fusePlanDesc,
+extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
+                                                  const miopenFusionPlanDescriptor_t fusePlanDesc,
                                                   const miopenTensorDescriptor_t inputDesc,
                                                   const void* input,
                                                   const miopenTensorDescriptor_t outputDesc,
@@ -507,7 +509,8 @@ extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenFusionPlanDescript
     return miopen::try_([&] {
 
         miopen::deref(fusePlanDesc)
-            .Execute(miopen::deref(inputDesc),
+            .Execute(miopen::deref(handle),
+                     miopen::deref(inputDesc),
                      DataCast(input),
                      miopen::deref(outputDesc),
                      DataCast(output),

@@ -35,7 +35,6 @@ FusionPlanDescriptor::~FusionPlanDescriptor() { op_map.clear(); }
 
 miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> desc)
 {
-    is_compiled = false;
     desc->SetIdx(op_count);
     if(op_map.empty())
         desc->SetInputDesc(input_desc);
@@ -138,7 +137,7 @@ miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
     // args.ins_arg("beta" + id, any_t(*(static_cast<const float*>(beta))));
     auto w_any = any_t(w);
     args.ins_arg("weights" + id, w_any);
-    args_set = true;
+
     return miopenStatusSuccess;
 }
 
@@ -168,7 +167,6 @@ miopenStatus_t ActivFusionOpDescriptor::SetArgs(OperatorArgs& args,
     args.ins_arg("activAlpha" + id, activAlpha_any);
     args.ins_arg("activBeta" + id, activBeta_any);
     args.ins_arg("activGamma" + id, activGamma_any);
-    args_set = true;
     return miopenStatusSuccess;
 }
 
@@ -219,7 +217,6 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::SetArgs(OperatorArgs& args,
     args.ins_arg("estimatedMean" + id, estimatedMean_any);
     args.ins_arg("estimatedVariance" + id, estimatedVariance_any);
     args.ins_arg("epsilon" + id, epsilon_any);
-    args_set = true;
     return miopenStatusSuccess;
 }
 
@@ -256,7 +253,6 @@ miopenStatus_t BiasFusionOpDescriptor::SetArgs(OperatorArgs& args,
     //    args.ins_arg("beta" + id, any_t(*static_cast<const float*>(beta)));
     auto bdata_any = any_t(bdata);
     args.ins_arg("bias" + id, bdata_any);
-    args_set = true;
     return miopenStatusSuccess;
 }
 
@@ -331,6 +327,10 @@ std::string FusionPlanDescriptor::GetKernelName(Handle& handle)
 miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
     miopenStatus_t status = miopenStatusUnknownError;
+    if(!isValid())
+    {
+        MIOPEN_THROW("Trying to compile and invalid FusionPlan");
+    }
     std::string network_config{};
     std::string program_name{};
     std::string kernel_name{};
@@ -369,8 +369,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
     if(!kernels.empty())
     {
-        fused_kernel = kernels.front();
-        status       = miopenStatusSuccess;
+        status = miopenStatusSuccess;
     }
     else
     {
@@ -391,7 +390,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             const auto& vld  = ki.l_wk;
             const auto& vgd  = ki.g_wk;
 
-            fused_kernel = handle.AddKernel(
+            handle.AddKernel(
                 algorithm_name, network_config, program_name, kernel_name, vld, vgd, parms);
             status = miopenStatusSuccess;
         }
@@ -407,33 +406,21 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         // {
         // }
     }
-    if(status == miopenStatusSuccess)
-        is_compiled = true;
     return status;
 }
 
-miopenStatus_t FusionPlanDescriptor::Execute(TensorDescriptor& inputDesc,
+miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
+                                             TensorDescriptor& inputDesc,
                                              ConstData_t input,
                                              TensorDescriptor& outputDesc,
                                              Data_t output,
                                              const OperatorArgs& op_args)
 {
-    if(!is_compiled)
-    {
-        MIOPEN_THROW("Fusion Plan is not compiled");
-    }
     if(!isValid())
     {
         MIOPEN_THROW("Attempting to execute an invalid fusion plan.");
     }
 
-    for(auto&& op : op_map)
-    {
-        if(!op->isArgSet())
-        {
-            MIOPEN_THROW("Arguments for Op:" + std::to_string(op->kind()) + " were not set");
-        }
-    }
     if(output_desc != outputDesc)
     {
         MIOPEN_THROW("The output descriptors dont match.");
@@ -446,11 +433,26 @@ miopenStatus_t FusionPlanDescriptor::Execute(TensorDescriptor& inputDesc,
     bool is_asm_kernel = false;
     // TODO: The Metadata graph should return this info
     auto ops_head = op_map[0]; // ins_order[0]];
+    std::string network_config{};
+    std::string algorithm_name{};
     if(ops_head->kind() == miopenFusionOpConvForward)
     {
-        auto ops_conv = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head);
-        is_asm_kernel = ops_conv->isASMApplicable();
+        auto ops_conv  = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head);
+        is_asm_kernel  = ops_conv->isASMApplicable();
+        algorithm_name = "miopenDirConvBatchNormActivAlgo";
     }
+
+    for(auto&& op : op_map)
+    {
+        op->GetNetworkConfig(network_config, handle);
+    }
+    auto&& kernels = handle.GetKernels(algorithm_name, network_config);
+    if(kernels.empty())
+    {
+        MIOPEN_THROW("The FusionPlan was not compiled for execution");
+    }
+    KernelInvoke kernel = kernels.front();
+
     // Construct the kernel args
     std::set<size_t> arg_sizes;
     std::map<std::pair<size_t, size_t>, std::vector<std::string>> size_map;
@@ -476,7 +478,8 @@ miopenStatus_t FusionPlanDescriptor::Execute(TensorDescriptor& inputDesc,
                 }
             }
             else
-                MIOPEN_THROW("Arg not found in Map");
+                MIOPEN_THROW("Arg " + key + " was not set for Operator: " +
+                             std::to_string(op->kind()));
         }
     }
 
@@ -535,7 +538,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(TensorDescriptor& inputDesc,
             running_sz += args[idx].size();
         }
     }
-    fused_kernel(padded_args);
+    kernel(padded_args);
     return miopenStatusSuccess;
 }
 
