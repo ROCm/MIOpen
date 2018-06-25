@@ -330,14 +330,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
-    /// \todo add support for non-zero padding in 1x1conv
-    if((wei_h == 1 && wei_w == 1) && (pad_h > 0 || pad_w > 0))
-    {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "Invalid config. MIOPEN expects padding "
-                     "== 0 when filter size == 1");
-    }
-
     int out_h, out_w;
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
 
@@ -1050,7 +1042,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 for(int i = 0; i < in_n; i++)
                 {
                     int out_offset = i * wei_n * out_h * out_w;
-                    if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
+                    if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
                     {
                         size_t in_offset = i * in_c * in_h * in_w;
                         Im2ColGPU(handle,
@@ -1409,14 +1401,6 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
     int wei_n, wei_c, wei_h, wei_w;
 
     std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
-
-    /// \todo add support for non-zero padding in 1x1conv
-    if((wei_h == 1 && wei_w == 1) && (pad_h > 0 || pad_w > 0))
-    {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "Invalid config. MIOPEN expects padding "
-                     "== 0 when filter size == 1");
-    }
 
     int out_h, out_w;
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
@@ -2176,7 +2160,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 {
                     int out_offset = i * wei_n * out_h * out_w;
 
-                    if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
+                    if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
                     {
                         size_t in_offset = i * in_c * in_h * in_w;
 
@@ -2625,14 +2609,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
     std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
 
-    /// \todo add support for non-zero padding in 1x1conv
-    if((wei_h == 1 && wei_w == 1) && (pad_h > 0 || pad_w > 0))
-    {
-        MIOPEN_THROW(miopenStatusBadParm,
-                     "Invalid config. MIOPEN expects padding "
-                     "== 0 when filter size == 1");
-    }
-
     int out_h, out_w;
     std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
@@ -2963,7 +2939,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
             std::string network_config;
 
-            if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
+            if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
             {
                 assert(workSpace != nullptr &&
                        workSpaceSize >=
@@ -2980,7 +2956,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             for(int i = 0; i < in_n; i++)
             {
                 int out_offset = i * wei_n * out_h * out_w;
-                if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
+                if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
                 {
                     size_t in_offset = i * in_c * in_h * in_w;
                     Im2ColGPU(handle,
