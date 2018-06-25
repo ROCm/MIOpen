@@ -60,6 +60,131 @@ struct AutoEnableProfiling
     bool prev_state;
 };
 
+static inline void AddKernels(Handle& handle,
+                              const std::string& algorithm_name,
+                              const std::string& network_config,
+                              const miopen::solver::ConvSolution& s,
+                              std::vector<KernelInvoke>* const kernels)
+{
+    if(!algorithm_name.empty() && !network_config.empty())
+    {
+        handle.ClearKernels(algorithm_name, network_config);
+    }
+    else
+    {
+        assert(algorithm_name.empty() && network_config.empty());
+    }
+    int i = 0;
+    for(auto& k : s.construction_params)
+    {
+        MIOPEN_LOG_I2(k.kernel_name);
+        auto kernel = handle.AddKernel(algorithm_name,
+                                       network_config,
+                                       k.kernel_file,
+                                       k.kernel_name,
+                                       k.l_wk,
+                                       k.g_wk,
+                                       k.comp_options,
+                                       i);
+        if(kernels != nullptr)
+        {
+            kernels->push_back(kernel);
+        }
+        ++i;
+    }
+}
+
+template <typename T>
+inline int EvaluateDataDirectSolution(Handle& handle,
+                                      const miopen::solver::ConvSolution& solution,
+                                      const ExtraKernelArgs& extraArgs,
+                                      ConstData_t in, // Fwd: x, Bwd: dy
+                                      ConstData_t weights,
+                                      Data_t out, // Fwd: y, Bwd: dx
+                                      const TensorDescriptor& outDesc,
+                                      Data_t workSpace,
+                                      const size_t workSpaceSize,
+                                      T padding_val,
+                                      float& elapsed)
+{
+    // Fail if required workspace is not provided.
+    if(solution.workspce_sz != 0)
+    {
+        if(workSpace == nullptr || workSpaceSize < solution.workspce_sz)
+            return -1;
+    }
+    std::vector<KernelInvoke> kernels;
+    AddKernels(handle, "", "", solution, &kernels);
+    if(kernels.size() > 2)
+        return -2;
+
+    bool with_subsample = false;
+    bool with_upsample  = false;
+    for(auto& k : kernels)
+    {
+        if(k.GetName() == "SubSample")
+            with_subsample = true;
+        else if(k.GetName() == "UpSample")
+            with_upsample = true;
+    }
+    assert(!(with_subsample && with_upsample));
+    if(with_subsample && with_upsample)
+        return -3;
+
+    // Note implicit conversion: Data_t to ConstData_t (workSpace).
+    ConstData_t conv_in = with_subsample ? workSpace : in;
+    Data_t conv_out     = with_upsample ? workSpace : out;
+
+    elapsed = 0.0f;
+    for(auto& k : kernels)
+    {
+
+        if(k.GetName() == "SubSample")
+        {
+            k(in, workSpace);
+        }
+        else if(k.GetName() == "UpSample")
+        {
+            {
+                /// \todo Initialization is required for upsampling. This leads to small perf drop.
+                /// 1: Add kernel (from SetTensor) to the Solution in the Solver.
+                /// 2: Fix UpSample kernel, probably by means of conditional compilation.
+                float zero = 0.f;
+                SetTensor(handle, outDesc, out, &zero);
+                elapsed += handle.GetKernelTime();
+            }
+            k(workSpace, out);
+        }
+        else if(k.GetName() == "gcnAsmConv1x1U")
+        {
+            int unused       = 0;
+            int* return_addr = nullptr;
+            int N, C, H, W, K, n_groups, out_H, out_W;
+            std::tie(N, C, H, W, K, n_groups, out_H, out_W) = extraArgs;
+            int conv_H = (with_subsample ? out_H : H); // Trick; see respective Solver.
+            int conv_W = (with_subsample ? out_W : W);
+            k(N,
+              C,
+              conv_H,
+              conv_W,
+              K,
+              n_groups,
+              unused,
+              unused,
+              conv_in,
+              weights,
+              conv_out,
+              return_addr);
+        }
+        else
+        {
+            k(conv_in, weights, conv_out, padding_val);
+        }
+        elapsed += handle.GetKernelTime();
+    }
+    return 0;
+}
+
 int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
                                               const TensorDescriptor& xDesc,
                                               const TensorDescriptor& wDesc,
@@ -122,95 +247,45 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
     }
 }
 
-int ConvolutionDescriptor::FindDirectKernel(Handle& handle,
-                                            const TensorDescriptor& xDesc,
-                                            const TensorDescriptor& wDesc,
-                                            const TensorDescriptor& yDesc,
-                                            ExtraKernelArgs& extraArgs,
-                                            std::vector<KernelInvoke>& kernels,
-                                            bool exhaustiveSearch,
-                                            int direction) const
+std::vector<miopen::solver::ConvSolution>
+ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
+                                               const TensorDescriptor& xDesc,
+                                               const TensorDescriptor& wDesc,
+                                               const TensorDescriptor& yDesc,
+                                               bool exhaustiveSearch,
+                                               bool isForward,
+                                               std::string& network_config,
+                                               ExtraKernelArgs& extraArgs) const
 {
 
     if(!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
-        return -1;
+        return {};
 
-    mlo_construct_direct2D construct_params(direction);
+    mlo_construct_direct2D construct_params(isForward ? 1 : 0);
     construct_params.setDoSearch(exhaustiveSearch);
     construct_params.saveSearchRequest(true);
-
     construct_params.setGeneralCompOptions("");
-
     construct_params.setStream(&handle);
-
     construct_params.setOutputDescFromMLDesc(yDesc);
     construct_params.setInputDescFromMLDesc(xDesc);
     construct_params.setWeightDescFromMLDesc(wDesc);
-
     construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-    if((IsWinograd3x3Supported(handle, direction != 0, wDesc, (direction != 0 ? xDesc : yDesc)) &&
+    if((IsWinograd3x3Supported(handle, isForward, wDesc, (isForward ? xDesc : yDesc)) &&
         construct_params.mloIsFastBinaryWinograd3x3U()))
-    {
-        return -1;
-    }
+        return {};
 
     try
     {
-        const auto solution = FindFirstSolution(construct_params);
-        if(!solution.Succeeded())
-            return -1;
-
-        std::string program_name = solution.construction_params[0].kernel_file;
-        std::string kernel_name  = solution.construction_params[0].kernel_name;
-        const std::string& parms = solution.construction_params[0].comp_options;
-
-        std::string network_config;
+        int N, C, H, W, K, n_groups, out_H, out_W;
+        construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
+        extraArgs = std::make_tuple(N, C, H, W, K, n_groups, out_H, out_W);
         construct_params.mloBuildConf_Key(network_config);
-
-        const std::vector<size_t>& vld = solution.construction_params[0].l_wk;
-        const std::vector<size_t>& vgd = solution.construction_params[0].g_wk;
-
-        std::string algorithm = (direction == 1) ? "miopenConvolutionFwdAlgoDirect"
-                                                 : "miopenConvolutionBwdDataAlgoDirect";
-
-        {
-            int N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W;
-            construct_params.getCompiledInParameters(
-                &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
-
-            extraArgs = std::make_tuple(N, C, H, W, K, n_groups, out_H, out_W);
-        }
-
-        handle.ClearKernels(algorithm, network_config);
-        if(solution.construction_params.size() == 2)
-        {
-            auto k1 = handle.AddKernel(
-                algorithm, network_config, program_name, kernel_name, vld, vgd, parms, 0);
-            kernels.push_back(k1);
-
-            auto& k2_info = solution.construction_params[1];
-            auto k2       = handle.AddKernel(algorithm,
-                                       network_config,
-                                       k2_info.kernel_file,
-                                       k2_info.kernel_name,
-                                       k2_info.l_wk,
-                                       k2_info.g_wk,
-                                       k2_info.comp_options,
-                                       1);
-            kernels.push_back(k2);
-        }
-        else
-        {
-            auto k = handle.AddKernel(
-                algorithm, network_config, program_name, kernel_name, vld, vgd, parms);
-            kernels.push_back(k);
-        }
-        return 0;
+        return FindAllSolutions(construct_params);
     }
     catch(miopen::Exception&)
     {
-        return -1;
+        return {};
     }
 }
 
@@ -469,56 +544,51 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoWinograd", time_wino, 0});
             }
 
-            // Direct algo
-            ExtraKernelArgs eka;
-            std::vector<KernelInvoke> kernel_direct;
-            if(FindDirectKernel(
-                   handle, xDesc, wDesc, yDesc, eka, kernel_direct, exhaustiveSearch, 1) == 0)
-            { // Forward
-                size_t workspace_req =
-                    this->ForwardBackwardDataGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc, 1);
-
-                // Execute the direct kernel
-                float time_direct = 0;
-                float padding_val = 0;
+            { // Direct algo
+                ExtraKernelArgs eka;
+                const auto all = FindDataDirectSolutions(
+                    handle, xDesc, wDesc, yDesc, exhaustiveSearch, true, network_config, eka);
+                miopen::solver::ConvSolution selected{miopenStatusUnknownError};
+                float best = std::numeric_limits<float>::max();
                 visit_float(xDesc.GetType(), [&](auto as_float) {
-                    int n_kernels = 0;
-                    for(auto& k : kernel_direct)
+                    for(const auto& sol : all)
                     {
-                        if(k.GetName() == "SubSample")
+                        float elapsed = 0.0f;
+                        const int rc  = EvaluateDataDirectSolution(handle,
+                                                                  sol,
+                                                                  eka,
+                                                                  x,
+                                                                  w,
+                                                                  tmp_y.get(),
+                                                                  yDesc,
+                                                                  workSpace,
+                                                                  workSpaceSize,
+                                                                  as_float(0.0f),
+                                                                  elapsed);
+                        if(rc != 0)
                         {
-                            k(x, workSpace);
-                        }
-                        else if(k.GetName() == "gcnAsmConv1x1U")
-                        {
-                            int unused       = 0;
-                            int* return_addr = nullptr;
-                            int N, C, H, W, K, n_groups, out_H, out_W;
-                            std::tie(N, C, H, W, K, n_groups, out_H, out_W) = eka;
-                            k(N,
-                              C,
-                              n_kernels == 1 ? out_H : H,
-                              n_kernels == 1 ? out_W : W,
-                              K,
-                              n_groups,
-                              unused,
-                              unused,
-                              n_kernels == 1 ? workSpace : x,
-                              w,
-                              tmp_y.get(),
-                              return_addr);
+                            MIOPEN_LOG_E(sol << " returns " << rc);
                         }
                         else
                         {
-                            k(x, w, tmp_y.get(), as_float(padding_val));
+                            MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
+                                             << best);
+                            if(elapsed < best)
+                            {
+                                best     = elapsed;
+                                selected = sol;
+                            }
                         }
-                        time_direct += handle.GetKernelTime();
-                        n_kernels++;
                     }
                 });
-
-                perf_db.push_back(
-                    PerfField{"miopenConvolutionFwdAlgoDirect", time_direct, workspace_req});
+                if(selected.Succeeded())
+                {
+                    const std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
+                    AddKernels(handle, algorithm_name, network_config, selected, nullptr);
+                    MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
+                                              << selected.workspce_sz);
+                    perf_db.push_back(PerfField{algorithm_name, best, selected.workspce_sz});
+                }
             }
 
             // FFT algo
@@ -633,42 +703,57 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             std::string network_config;
             construct_params.mloBuildConf_Key(network_config);
 
-            std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
-            float padding_val          = 0;
-            auto kernel                = handle.GetKernel(algorithm_name, network_config);
+            auto&& kernels = handle.GetKernels("miopenConvolutionFwdAlgoDirect", network_config);
+#if(!defined(__GNUC__) || defined(__clang__)) // w/a for segfault in gcc 5.4.0
+            const
+#endif
+                auto num_kernels = kernels.size();
+            auto kernel          = kernels[0];
 
             visit_float(xDesc.GetType(), [&](auto as_float) {
-                if((kernel.GetName() == "SubSample"))
+                // Miminum checks. Only check what is required to select
+                // proper invocation procedure & workspace sanity.
+                float padding_val = 0;
+                float elapsed     = 0;
+                if((kernel.GetName() == "MIOpenCvFwd11x11") && num_kernels == 2)
                 {
-                    auto kernels = handle.GetKernels(algorithm_name, network_config);
+                    kernel(x, w, y, as_float(padding_val));
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
 
-                    assert(kernels.size() == 2 && kernels[1].GetName() == "gcnAsmConv1x1U");
-
+                    kernels[1](x, w, y, as_float(padding_val));
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
+                }
+                else if(num_kernels == 2 && workSpace != nullptr && workSpaceSize != 0)
+                {
+                    assert(kernel.GetName() == "SubSample");
                     kernel(x, workSpace);
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
 
-                    auto kernel2 = kernels[1];
-
+                    assert(kernels[1].GetName() == "gcnAsmConv1x1U");
                     int unused       = 0;
                     int* return_addr = nullptr;
-                    int N, C, H, W, K, n_groups, out_H, out_W, R, S, pad_H, pad_W;
+                    int N, C, H, W, K, n_groups, out_H, out_W;
                     construct_params.getCompiledInParameters(
-                        &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W, &R, &S, &pad_H, &pad_W);
-
-                    kernel2(N,
-                            C,
-                            out_H,
-                            out_W,
-                            K,
-                            n_groups,
-                            unused,
-                            unused,
-                            workSpace,
-                            w,
-                            y,
-                            return_addr);
+                        &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
+                    kernels[1](N,
+                               C,
+                               out_H,
+                               out_W,
+                               K,
+                               n_groups,
+                               unused,
+                               unused,
+                               workSpace,
+                               w,
+                               y,
+                               return_addr);
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
                 }
-                // if not 11x11
-                else if((kernel.GetName() != "MIOpenCvFwd11x11"))
+                else if(num_kernels == 1)
                 {
                     if(kernel.GetName() == "gcnAsmConv1x1U")
                     {
@@ -682,25 +767,17 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     {
                         kernel(x, w, y, as_float(padding_val));
                     }
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
                 }
                 else
                 {
-                    /// \todo Rework this.
-                    auto kernels = handle.GetKernels(algorithm_name, network_config);
-                    if(kernels.size() == 1)
-                    {
-                        kernel(x, w, y, as_float(padding_val));
-                    }
-                    else
-                    {
-                        handle.ResetKernelTime();
-                        kernel(x, w, y, as_float(padding_val));
-                        float time0 = handle.GetKernelTime();
-
-                        auto kernel2 = kernels[1];
-                        kernel2(x, w, y, as_float(padding_val));
-                        handle.AccumKernelTime(time0);
-                    }
+                    MIOPEN_THROW("Error running Direct Forward convolution (none workspace?)");
+                }
+                if(handle.IsProfilingEnabled())
+                {
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed);
                 }
             });
         }
@@ -1202,72 +1279,51 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 perf_db.push_back(PerfField{"miopenConvolutionBwdDataAlgoWinograd", time_wino, 0});
             }
 
-            // Direct algo
-            ExtraKernelArgs eka;
-            std::vector<KernelInvoke> kernel_direct;
-            if(FindDirectKernel(
-                   handle, dxDesc, wDesc, dyDesc, eka, kernel_direct, exhaustiveSearch, 0) == 0)
-            { // Backward
-
-                size_t workspace_req = this->ForwardBackwardDataGetWorkSpaceSizeDirect(
-                    handle, dxDesc, dyDesc, wDesc, 0);
-
-                float time_direct = 0;
-                float padding_val = 0;
-
+            { // Direct algo
+                ExtraKernelArgs eka;
+                const auto all = FindDataDirectSolutions(
+                    handle, dxDesc, wDesc, dyDesc, exhaustiveSearch, false, network_config, eka);
+                miopen::solver::ConvSolution selected{miopenStatusUnknownError};
+                float best = std::numeric_limits<float>::max();
                 visit_float(dyDesc.GetType(), [&](auto as_float) {
-
-                    for(auto& k : kernel_direct)
+                    for(const auto& sol : all)
                     {
-                        if(k.GetName() == "UpSample")
+                        float elapsed = 0.0f;
+                        const int rc  = EvaluateDataDirectSolution(handle,
+                                                                  sol,
+                                                                  eka,
+                                                                  dy,
+                                                                  w,
+                                                                  tmp_dx.get(),
+                                                                  dxDesc,
+                                                                  workSpace,
+                                                                  workSpaceSize,
+                                                                  as_float(0.0f),
+                                                                  elapsed);
+                        if(rc != 0)
                         {
-                            assert(workSpace != nullptr && workSpaceSize >= workspace_req);
-
-                            // Initialization required for upsampling in bwd direction
-                            // TODO: we'll need to do something with this in the future.
-                            // Possibilities:
-                            // 1: Add kernel (from SetTensor) to the Solution in the Solver.
-                            // 2: Fix UpSample kernel, probably by means of conditional compilation.
-                            float zero = 0.f;
-                            SetTensor(handle, dxDesc, tmp_dx.get(), &zero);
-                            time_direct += handle.GetKernelTime();
-                            k(workSpace, tmp_dx.get());
-                            time_direct += handle.GetKernelTime();
-                        }
-                        else if(k.GetName() == "gcnAsmConv1x1U")
-                        {
-                            assert(kernel_direct.size() == 1 ||
-                                   (workSpace != nullptr && workSpaceSize >= workspace_req));
-
-                            int unused       = 0;
-                            int* return_addr = nullptr;
-                            int N, C, H, W, K, n_groups;
-                            std::tie(N, C, H, W, K, n_groups, std::ignore, std::ignore) = eka;
-                            k(N,
-                              C,
-                              H,
-                              W,
-                              K,
-                              n_groups,
-                              unused,
-                              unused,
-                              dy,
-                              w,
-                              (kernel_direct.size() == 2) ? workSpace : tmp_dx.get(),
-                              return_addr);
-
-                            time_direct += handle.GetKernelTime();
+                            MIOPEN_LOG_E(sol << " returns " << rc);
                         }
                         else
                         {
-                            k(dy, w, tmp_dx.get(), as_float(padding_val));
-                            time_direct += handle.GetKernelTime();
+                            MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
+                                             << best);
+                            if(elapsed < best)
+                            {
+                                best     = elapsed;
+                                selected = sol;
+                            }
                         }
                     }
                 });
-
-                perf_db.push_back(
-                    PerfField{"miopenConvolutionBwdDataAlgoDirect", time_direct, workspace_req});
+                if(selected.Succeeded())
+                {
+                    const std::string algorithm_name = "miopenConvolutionBwdDataAlgoDirect";
+                    AddKernels(handle, algorithm_name, network_config, selected, nullptr);
+                    MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
+                                              << selected.workspce_sz);
+                    perf_db.push_back(PerfField{algorithm_name, best, selected.workspce_sz});
+                }
             }
 
             // FFT algo
@@ -1495,12 +1551,13 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
             std::string network_config;
             construct_params.mloBuildConf_Key(network_config);
 
-            std::string algorithm_name = "miopenConvolutionBwdDataAlgoDirect";
-            auto kernel                = handle.GetKernel(algorithm_name, network_config);
+            auto&& kernels =
+                handle.GetKernels("miopenConvolutionBwdDataAlgoDirect", network_config);
+            assert(1 <= kernels.size() && kernels.size() <= 2);
 
             visit_float(dyDesc.GetType(), [&](auto as_float) {
                 float t1 = 0;
-                if(kernel.GetName() == "gcnAsmConv1x1U")
+                if(kernels[0].GetName() == "gcnAsmConv1x1U")
                 {
                     int unused       = 0;
                     int* return_addr = nullptr;
@@ -1508,38 +1565,35 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                     int N, C, H, W, K, n_groups;
                     construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
 
-                    auto&& kernels = handle.GetKernels(algorithm_name, network_config);
-
-                    kernel(N,
-                           C,
-                           H,
-                           W,
-                           K,
-                           n_groups,
-                           unused,
-                           unused,
-                           dy,
-                           w,
-                           (kernels.size() == 2) ? workSpace : dx,
-                           return_addr);
+                    kernels[0](N,
+                               C,
+                               H,
+                               W,
+                               K,
+                               n_groups,
+                               unused,
+                               unused,
+                               dy,
+                               w,
+                               (kernels.size() == 2) ? workSpace : dx,
+                               return_addr);
                     if(handle.IsProfilingEnabled())
                         t1 += handle.GetKernelTime();
 
                     if(kernels.size() == 2)
                     {
-                        auto kernel2 = kernels[1];
-                        assert(kernel2.GetName() == "UpSample");
+                        assert(kernels[1].GetName() == "UpSample");
 
-                        // Initialization required for upsampling in bwd direction
-                        // TODO: we'll need to do something with this in the future. Possibilities:
-                        // 1: Add kernel (from SetTensor) to the Solution in the Solver.
-                        // 2: Fix UpSample kernel, probably by means of conditional compilation.
+                        /// \todo Initialization is required for upsampling. This leads to small
+                        /// perf drop.
+                        /// 1: Add kernel (from SetTensor) to the Solution in the Solver.
+                        /// 2: Fix UpSample kernel, probably by means of conditional compilation.
                         float zero = 0.f;
                         SetTensor(handle, dxDesc, dx, &zero);
                         if(handle.IsProfilingEnabled())
                             t1 += handle.GetKernelTime();
 
-                        kernel2(workSpace, dx);
+                        kernels[1](workSpace, dx);
                         if(handle.IsProfilingEnabled())
                             t1 += handle.GetKernelTime();
                     }
@@ -1547,7 +1601,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 else
                 {
                     float padding_val = 0;
-                    kernel(dy, w, dx, as_float(padding_val));
+                    kernels[0](dy, w, dx, as_float(padding_val));
                     if(handle.IsProfilingEnabled())
                         t1 += handle.GetKernelTime();
                 }
@@ -1877,6 +1931,75 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
     }
 }
 
+template <typename T>
+inline float EvaluateWrWDirectSolution(Handle& handle,
+                                       const mlo_construct_BwdWrW2D& construct_params,
+                                       const miopen::solver::ConvSolution& s,
+                                       ConstData_t dy,
+                                       ConstData_t x,
+                                       Data_t dw,
+                                       Data_t workSpace,
+                                       const size_t workSpaceSize,
+                                       T padding_val)
+{
+    float elapsed            = 0;
+    const auto& kernels_info = s.construction_params;
+    assert((s.workspce_sz != 0 && kernels_info.size() == 2) ||
+           (s.workspce_sz == 0 && kernels_info.size() == 1));
+    std::vector<KernelInvoke> kernels;
+    AddKernels(handle, "", "", s, &kernels);
+    const auto& k_info = kernels_info[0];
+    if(kernels_info.size() == 1)
+    {
+        if(k_info.kernel_name == "gcnAsmConv3x3WrW" || k_info.kernel_name == "gcnAsmConv1x1WrW")
+        {
+            int unused       = 0;
+            int* return_addr = nullptr;
+            int N, C, H, W, K, n_groups;
+            construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+            kernels[0](N, C, H, W, K, n_groups, unused, unused, x, dw, dy, return_addr);
+        }
+        else
+        {
+            kernels[0](dy, x, dw, padding_val);
+        }
+        elapsed = handle.GetKernelTime();
+    }
+    else
+    {
+        if(workSpace != nullptr && workSpaceSize >= s.workspce_sz)
+        {
+            if(k_info.kernel_name == "SubSample") // bwd stride 2
+            {
+                kernels[0](x, workSpace);
+                elapsed = handle.GetKernelTime();
+                if(kernels_info[1].kernel_name == "gcnAsmConv1x1WrW")
+                {
+                    int unused       = 0;
+                    int* return_addr = nullptr;
+                    int N, C, H, W, K, n_groups;
+                    construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+                    kernels[1](
+                        N, C, H, W, K, n_groups, unused, unused, workSpace, dw, dy, return_addr);
+                }
+                else
+                {
+                    kernels[1](dy, workSpace, dw, padding_val);
+                }
+                elapsed += handle.GetKernelTime();
+            }
+            else
+            {
+                kernels[0](dy, x, workSpace, padding_val);
+                elapsed = handle.GetKernelTime();
+                kernels[1](workSpace, dw); // reduction
+                elapsed += handle.GetKernelTime();
+            }
+        }
+    }
+    return elapsed;
+}
+
 // ConvolutionBackwardWeightsGetWorkSpaceSize
 // FindBackwardWeightsAlgorithm()
 //
@@ -2050,164 +2173,43 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 construct_params.setWeightDescFromMLDesc(dwDesc);
                 construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-                miopen::solver::ConvSolution solution;
-                if((try_([&] { solution = FindFirstSolution(construct_params); }, false) ==
-                    miopenStatusSuccess) &&
-                   solution.Succeeded())
+                construct_params.mloBuildConf_Key(network_config);
+                const std::string algorithm_name = "miopenConvolutionBwdWeightsAlgoDirect";
+
+                miopen::solver::ConvSolution selected{miopenStatusUnknownError};
+                float best     = std::numeric_limits<float>::max();
+                const auto all = FindAllSolutions(construct_params);
+
+                visit_float(dyDesc.GetType(), [&](auto as_float) {
+                    for(const auto& sol : all)
+                    {
+                        /// \todo If there is only one solution available,
+                        /// we can avoid wasting time for building kernels with empty
+                        /// algorithm_name and network_config.
+                        float elapsed = EvaluateWrWDirectSolution(handle,
+                                                                  construct_params,
+                                                                  sol,
+                                                                  dy,
+                                                                  x,
+                                                                  tmp_dw.get(),
+                                                                  workSpace,
+                                                                  workSpaceSize,
+                                                                  as_float(0.0f));
+                        MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ")
+                                         << best);
+                        if(elapsed < best)
+                        {
+                            best     = elapsed;
+                            selected = sol;
+                        }
+                    }
+                });
+                if(selected.Succeeded())
                 {
-                    construct_params.mloBuildConf_Key(network_config);
-                    handle.ClearKernels("miopenConvolutionBwdWeightsAlgoDirect_Main",
-                                        network_config);
-
-                    visit_float(dyDesc.GetType(), [&](auto as_float) {
-
-                        const auto& k_info = solution.construction_params[0];
-
-                        float time_direct = 0;
-                        if(solution.construction_params.size() == 1)
-                        {
-                            auto kernel =
-                                handle.AddKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
-                                                 network_config,
-                                                 k_info.kernel_file,
-                                                 k_info.kernel_name,
-                                                 k_info.l_wk,
-                                                 k_info.g_wk,
-                                                 k_info.comp_options);
-
-                            if((k_info.kernel_name == "gcnAsmConv3x3WrW") ||
-                               (k_info.kernel_name == "gcnAsmConv1x1WrW"))
-                            {
-                                int unused       = 0;
-                                int* return_addr = nullptr;
-                                int N, C, H, W, K, n_groups;
-                                construct_params.getCompiledInParameters(
-                                    &N, &C, &H, &W, &K, &n_groups);
-                                kernel(N,
-                                       C,
-                                       H,
-                                       W,
-                                       K,
-                                       n_groups,
-                                       unused,
-                                       unused,
-                                       x,
-                                       tmp_dw.get(),
-                                       dy,
-                                       return_addr);
-                            }
-                            else
-                            {
-                                float padding_val = 0;
-                                kernel(dy, x, tmp_dw.get(), as_float(padding_val));
-                            }
-                            time_direct = handle.GetKernelTime();
-                            perf_db.push_back(
-                                PerfField{"miopenConvolutionBwdWeightsAlgoDirect", time_direct, 0});
-                        }
-                        else
-                        {
-                            // this pointer needed here as a workaround in gcc 5
-                            workspace_req = this->BackwardWeightsGetWorkSpaceSizeDirect(
-                                handle, dyDesc, xDesc, dwDesc);
-
-                            const auto& k2_info = solution.construction_params[1];
-
-                            if(workSpace != nullptr && workSpaceSize >= workspace_req)
-                            {
-                                // bwd stride 2
-                                if(k_info.kernel_name == "SubSample")
-                                {
-                                    // subsampling
-                                    handle.AddKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
-                                                     network_config,
-                                                     k_info.kernel_file,
-                                                     k_info.kernel_name,
-                                                     k_info.l_wk,
-                                                     k_info.g_wk,
-                                                     k_info.comp_options)(x, workSpace);
-                                    time_direct += handle.GetKernelTime();
-
-                                    // second kernel: wrw  kernel
-                                    if(k2_info.kernel_name == "gcnAsmConv1x1WrW")
-                                    {
-                                        auto kernel = handle.AddKernel(
-                                            "miopenConvolutionBwdWeightsAlgoDirect_Main",
-                                            network_config,
-                                            k2_info.kernel_file,
-                                            k2_info.kernel_name,
-                                            k2_info.l_wk,
-                                            k2_info.g_wk,
-                                            k2_info.comp_options,
-                                            1);
-
-                                        int unused       = 0;
-                                        int* return_addr = nullptr;
-                                        int N, C, H, W, K, n_groups;
-                                        construct_params.getCompiledInParameters(
-                                            &N, &C, &H, &W, &K, &n_groups);
-                                        kernel(N,
-                                               C,
-                                               H,
-                                               W,
-                                               K,
-                                               n_groups,
-                                               unused,
-                                               unused,
-                                               workSpace,
-                                               tmp_dw.get(),
-                                               dy,
-                                               return_addr);
-                                    }
-                                    else
-                                    {
-                                        float padding_val = 0;
-
-                                        handle.AddKernel(
-                                            "miopenConvolutionBwdWeightsAlgoDirect_Main",
-                                            network_config,
-                                            k2_info.kernel_file,
-                                            k2_info.kernel_name,
-                                            k2_info.l_wk,
-                                            k2_info.g_wk,
-                                            k2_info.comp_options,
-                                            1)(dy, workSpace, tmp_dw.get(), as_float(padding_val));
-                                    }
-                                    time_direct += handle.GetKernelTime();
-                                }
-                                else
-                                {
-                                    float padding_val = 0;
-
-                                    handle.AddKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
-                                                     network_config,
-                                                     k_info.kernel_file,
-                                                     k_info.kernel_name,
-                                                     k_info.l_wk,
-                                                     k_info.g_wk,
-                                                     k_info.comp_options)(
-                                        dy, x, workSpace, as_float(padding_val));
-
-                                    time_direct += handle.GetKernelTime();
-
-                                    // second kernel: reduction  kernel
-                                    handle.AddKernel("miopenConvolutionBwdWeightsAlgoDirect_Main",
-                                                     network_config,
-                                                     k2_info.kernel_file,
-                                                     k2_info.kernel_name,
-                                                     k2_info.l_wk,
-                                                     k2_info.g_wk,
-                                                     k2_info.comp_options,
-                                                     1)(workSpace, tmp_dw.get());
-
-                                    time_direct += handle.GetKernelTime();
-                                }
-                                perf_db.push_back(PerfField{"miopenConvolutionBwdWeightsAlgoDirect",
-                                                            time_direct,
-                                                            workspace_req});
-                            }
-                        }
-                    });
+                    AddKernels(handle, algorithm_name, network_config, selected, nullptr);
+                    MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
+                                              << selected.workspce_sz);
+                    perf_db.push_back(PerfField{algorithm_name, best, selected.workspce_sz});
                 }
             }
         }
@@ -2399,11 +2401,11 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     std::string network_config;
                     construct_params.mloBuildConf_Key(network_config);
 
-                    auto&& kernels = handle.GetKernels("miopenConvolutionBwdWeightsAlgoDirect_Main",
-                                                       network_config);
+                    auto&& kernels =
+                        handle.GetKernels("miopenConvolutionBwdWeightsAlgoDirect", network_config);
                     if(kernels.empty())
                         MIOPEN_THROW("No kernels found");
-                    auto kernel = kernels.front();
+                    auto kernel = kernels[0];
 
                     handle.ResetKernelTime();
 
@@ -2424,7 +2426,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     }
                     else
                     {
-                        assert(kernels.size() > 1);
+                        assert(kernels.size() == 2);
                         // this pointer needed here as a workaround in gcc 5
                         assert(workSpace != nullptr &&
                                workSpaceSize >= this->BackwardWeightsGetWorkSpaceSizeDirect(
@@ -2437,8 +2439,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                             float time0 = handle.GetKernelTime();
 
                             // wrw  kernel
-                            auto kernel2 = kernels[1];
-                            if(kernel2.GetName() == "gcnAsmConv1x1WrW")
+                            if(kernels[1].GetName() == "gcnAsmConv1x1WrW")
                             {
                                 int unused       = 0;
                                 int* return_addr = nullptr;
@@ -2447,23 +2448,23 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                                     &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
                                 // out_H/W are used instead of H/W; see comment in AsmImgHeight(),
                                 // conv_asm_dir_BwdWrW1x1.cpp.
-                                kernel2(N,
-                                        C,
-                                        out_H,
-                                        out_W,
-                                        K,
-                                        n_groups,
-                                        unused,
-                                        unused,
-                                        workSpace,
-                                        dw,
-                                        dy,
-                                        return_addr);
+                                kernels[1](N,
+                                           C,
+                                           out_H,
+                                           out_W,
+                                           K,
+                                           n_groups,
+                                           unused,
+                                           unused,
+                                           workSpace,
+                                           dw,
+                                           dy,
+                                           return_addr);
                             }
                             else
                             {
                                 float padding_val = 0;
-                                kernel2(dy, workSpace, dw, as_float(padding_val));
+                                kernels[1](dy, workSpace, dw, as_float(padding_val));
                             }
 
                             handle.AccumKernelTime(time0);
@@ -2474,10 +2475,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                             kernel(dy, x, workSpace, as_float(padding_val));
 
                             float time0 = handle.GetKernelTime();
-                            // second kernel has
-                            auto kernel2 = kernels[1];
-                            // reduction  kernel
-                            kernel2(workSpace, dw);
+                            // second kernel - reduction
+                            kernels[1](workSpace, dw);
 
                             handle.AccumKernelTime(time0);
                         }
