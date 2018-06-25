@@ -28,7 +28,6 @@
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
-#include <numeric>
 #include <string>
 
 namespace miopen {
@@ -66,6 +65,14 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
         MIOPEN_THROW("Invalid length. Length must be greater than 0.");
     if(!std::all_of(pstrides, pstrides + size, [](int x) { return x >= 0; }))
         MIOPEN_THROW("Invalid strides. Strides must be greater than 0.");
+    packed = (this->GetElementSize() == this->GetElementSpace());
+}
+
+TensorDescriptor::TensorDescriptor(miopenDataType_t t,
+                                   std::vector<std::size_t> lens_in,
+                                   std::vector<std::size_t> strides_in)
+    : lens(std::move(lens_in)), strides(std::move(strides_in)), type(t)
+{
     packed = (this->GetElementSize() == this->GetElementSpace());
 }
 
