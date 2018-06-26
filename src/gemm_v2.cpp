@@ -62,7 +62,7 @@ void CallGemm(Handle& handle,
     if(handle.IsProfilingEnabled())
     {
         start = make_hip_event();
-        stop = make_hip_event();
+        stop  = make_hip_event();
         hipEventRecord(start.get(), nullptr);
     }
 
@@ -197,10 +197,12 @@ void CallGemmStridedBatched(Handle& handle,
         std::swap(gemm_desc.strideA, gemm_desc.strideB);
     }
 
-    HipEventPtr start = nullptr; HipEventPtr stop  = nullptr;
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
     if(handle.IsProfilingEnabled())
     {
-        start = make_hip_event(); stop  = make_hip_event();
+        start = make_hip_event();
+        stop  = make_hip_event();
         hipEventRecord(start.get(), nullptr);
     }
 
@@ -274,10 +276,12 @@ void CallGemmStridedBatchedSequential(Handle& handle,
         std::swap(gemm_desc.strideA, gemm_desc.strideB);
     }
 
-    HipEventPtr start = nullptr; HipEventPtr stop  = nullptr;
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
     if(handle.IsProfilingEnabled())
     {
-        start = make_hip_event(); stop  = make_hip_event();
+        start = make_hip_event();
+        stop  = make_hip_event();
         hipEventRecord(start.get(), nullptr);
     }
 
