@@ -28,6 +28,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
+#include <numeric>
 #include <string>
 
 namespace miopen {
