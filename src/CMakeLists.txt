@@ -319,6 +319,7 @@ if(miopengemm_FOUND)
 endif()
 
 if(rocblas_FOUND)
+    target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:roc::rocblas> )
     target_link_libraries( MIOpen PRIVATE roc::rocblas )
 endif()
 
