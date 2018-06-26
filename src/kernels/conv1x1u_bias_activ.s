@@ -50,7 +50,6 @@ gid_hw = gid_x
 gid_k = gid_y
 gid_n = gid_z
 
-
 MIOPEN_NEURON_PASTHRU = 0      // x
 MIOPEN_NEURON_LOGISTIC = 1     // 1 / (1 + e^-x)	//Sigmoid
 MIOPEN_NEURON_TANH = 2         // beta * tanh(alpha * x)
@@ -62,8 +61,14 @@ MIOPEN_NEURON_CLIPPED_RELU = 7 // min(alpha, max(0, x))
 MIOPEN_NEURON_LEAKY_RELU = 8   // alpha * x | x <= 0; x | x > 0
 MIOPEN_NEURON_ELU = 9          // alpha * (e^x - 1) | x <= 0; x | x > 0
 
+default activ_mode, MIOPEN_NEURON_PASTHRU
+default bias_mode, 0
+default fusion_mode, 0
+
+static_assert(fusion_mode || (bias_mode == 0 && activ_mode == MIOPEN_NEURON_PASTHRU))
 
 // kernarg layout:
+.if fusion_mode 
 // dwords 0:0 - alpha_off 
 // dwords 1:1 - beta_off 
 // dwords 2:2 - beta_off 
@@ -74,21 +79,25 @@ MIOPEN_NEURON_ELU = 9          // alpha * (e^x - 1) | x <= 0; x | x > 0
 .set alpha_off, 0x0
 .set beta_off, 0x4
 .set gamm_off, 0x8
-#.set unsed, 0xc
 .set in_ptr_off, 0x10
 .set out_ptr_off, 0x18
 .set wei_ptr_off, 0x20
 .set bias_ptr_off, 0x28
+.else
+// dwords 0:4 - n, c, H, W, k
+// dwords 5:7 - not used
+// dwords 8:9 - input buffer pointer
+// dwords 10:11 - weights pointer
+// dwords 12:13 - output buffer pointer
+.set in_ptr_off, 0x20
+.set wei_ptr_off, 0x28
+.set out_ptr_off, 0x30
+.set dbg_ptr_off, 0x38
+.endif
+
+
 
 .include "conv_sizes.inc"
-
-.ifndef activ_mode
-    activ_mode = MIOPEN_NEURON_PASTHRU
-.endif
-
-.ifndef bias_mode
-    bias_mode = 0
-.endif
 
 static_assert ((.option.machine_version_major == 8) || (.option.machine_version_major == 9))
 maxU24 = 1 << 24
@@ -194,7 +203,7 @@ bias_buffer_size = output_channels * 4
     .SGPR_ALLOC desc_in, 4 // input buffer descriptor
     .SGPR_ALLOC desc_out, 4    // weights buffer descriptor
     .SGPR_ALLOC desc_wei, 4    // output buffer descriptor
-.if bias_mode
+.if fusion_mode && bias_mode
     .SGPR_ALLOC desc_bias, 4 // bias buffer descriptor 
 .endif
     .SGPR_ALLOC filtersA, weights_per_filter * k_mult, 1
@@ -211,9 +220,11 @@ bias_buffer_size = output_channels * 4
     .SGPR_ALLOC_ONCE wave_id // wave_id in group
     .SGPR_ALLOC_ONCE loop_cnt
     .SGPR_ALLOC_ONCE current_c
+.if fusion_mode && activ_mode
     .SGPR_ALLOC_ONCE alpha
     .SGPR_ALLOC_ONCE beta
     .SGPR_ALLOC_ONCE gamma
+.endif
     .SGPR_ALLOC_ONCE stmp
     .SGPR_RESERVE_XNACK
 
@@ -244,21 +255,24 @@ gcnAsmConv1x1U:
      granulated_wavefront_sgpr_count = .AUTO_SGPR_GRANULATED_COUNT
      enable_vgpr_workitem_id = 1
      user_sgpr_count = 2
-     kernarg_segment_byte_size = 40
+     // kernarg_segment_byte_size = 64
      wavefront_sgpr_count = .AUTO_SGPR_COUNT
      workitem_vgpr_count = .AUTO_VGPR_COUNT
      float_mode = 192
      workgroup_group_segment_byte_size = .AUTO_LDS_BYTE_SIZE
     .end_amd_kernel_code_t
 
+.if fusion_mode && activ_mode
     s_load_dword s[alpha], s[kernarg:kernarg+1], 0x0 + alpha_off 
     s_load_dword s[beta], s[kernarg:kernarg+1], 0x0 + beta_off 
     s_load_dword s[gamma], s[kernarg:kernarg+1], 0x0 + gamm_off 
+.endif
 
     s_load_dwordx2 s[desc_in:desc_in+1], s[kernarg:kernarg+1], 0x0 + in_ptr_off
     s_load_dwordx2 s[desc_wei:desc_wei+1], s[kernarg:kernarg+1], 0x0 + wei_ptr_off
     s_load_dwordx2 s[desc_out:desc_out+1], s[kernarg:kernarg+1], 0x0 + out_ptr_off
-.if bias_mode
+
+.if fusion_mode && bias_mode
     s_load_dwordx2 s[desc_bias:desc_bias+1], s[kernarg:kernarg+1], 0x0 + bias_ptr_off
 .endif
 
@@ -274,10 +288,12 @@ gcnAsmConv1x1U:
     s_mov_b32 s[desc_wei+3], 0x00027000
     s_mov_b32 s[desc_out+2], output_buffer_size
     s_mov_b32 s[desc_out+3], 0x00027000
-.if bias_mode
+.if fusion_mode && bias_mode
     s_mov_b32 s[desc_bias+2], bias_buffer_size 
     s_mov_b32 s[desc_bias+3], 0x00027000
 .endif
+
+
 
     v_lshrrev_b32 v[vtmp], 6, v[tid]
     v_readfirstlane_b32 s[wave_id], v[vtmp]
@@ -289,8 +305,8 @@ gcnAsmConv1x1U:
     v_mul_u32_u24 v[voffset_out], 0 + output_stack_size, v[vtmp]
     v_and_b32 v[vtmp], 0 + chunk_size - 1, v[tid] // vtmp = lane in wave part
     v_mul_u32_u24 v[vtmp], 4 * chunks_per_wave, v[vtmp]
-   _v_add_co_u32 v[voffset_in], vcc, v[voffset_in], v[vtmp]
-   _v_add_co_u32 v[voffset_out], vcc, v[voffset_out], v[vtmp]
+   _v_add_nc_u32 v[voffset_in], v[voffset_in], v[vtmp]
+   _v_add_nc_u32 v[voffset_out], v[voffset_out], v[vtmp]
     s_mul_i32 s[soffset_in], s[gid_n], 0 + input_stack_size * active_n_per_wave
     s_mul_i32 s[soffset_out], s[gid_n], 0 + output_stack_size * active_n_per_wave
     s_mul_i32 s[stmp], s[gid_hw], 0 + active_hw_per_wave * 4
@@ -342,11 +358,11 @@ gcnAsmConv1x1U:
             x1_chunks = rest
             imm_off = 0
             fbase = \base
-            xsload fbase, x16_chunks, 16, desc, soffset_wei
-            xsload fbase, x8_chunks,  8,  desc, soffset_wei
-            xsload fbase, x4_chunks,  4,  desc, soffset_wei
-            xsload fbase, x2_chunks,  2,  desc, soffset_wei
-            xsload fbase, x1_chunks,  1,  desc, soffset_wei
+            xsload fbase, x16_chunks, 16, desc_wei, soffset_wei
+            xsload fbase, x8_chunks,  8,  desc_wei, soffset_wei
+            xsload fbase, x4_chunks,  4,  desc_wei, soffset_wei
+            xsload fbase, x2_chunks,  2,  desc_wei, soffset_wei
+            xsload fbase, x1_chunks,  1,  desc_wei, soffset_wei
             s_add_u32 s[soffset_wei], s[soffset_wei], 0 + filter_c_stride - 4*k_mult
         .endif
     .endm
@@ -395,6 +411,7 @@ gcnAsmConv1x1U:
             s_cmov_b32 s[desc_in+2], 0
         .endif
     .endm
+
     .macro conv ibase, fbase
         k = 0
         .rept k_mult
@@ -453,11 +470,8 @@ loop_end:
         s_cbranch_scc1 last_wave
 
         s_mul_i32 s[stmp], s[wave_id], 4 * .WAVE_SIZE * lds_gprs_per_loop
-        //v_lshlrev_b32 v[lds_off], 4, v[stmp]
-        //_v_add_co_u32 v[lds_off], vcc, s[stmp], v[lds_off]
-        //.ds_write_all
         v_lshlrev_b32 v[lds_off], 2, v[tid]
-       _v_add_co_u32 v[lds_off], vcc, s[stmp], v[lds_off]
+       _v_add_nc_u32 v[lds_off], s[stmp], v[lds_off]
         acc_id = 0
         sync_loop = 0
         .rept sync_loops
@@ -508,7 +522,7 @@ last_wave:
     v_and_b32 v[current_hw], 0 + chunk_size - 1, v[tid]
     v_mul_u32_u24 v[current_hw], 0 + chunks_per_wave, v[current_hw]
     s_mul_i32 s[stmp], s[gid_hw], 0 + active_hw_per_wave
-   _v_add_co_u32 v[current_hw], vcc, s[stmp], v[current_hw]
+   _v_add_nc_u32 v[current_hw], s[stmp], v[current_hw]
 
     .GPR_REUSE filtersA, bias
 
@@ -537,34 +551,32 @@ last_wave:
         xsload fbase, x1_chunks, 1, desc, soffset
     .endm
 
-    .macro exp_f base
-        v_mov_b32 v[vtmp], 1.44269504089
-        v_mul_f32 v[\base], v[\base], v[vtmp] 
+    .macro exp_f base, sign //ln(x) = 2^(x * log2e)
+    .if \sign < 0
+        v_mov_b32 v[vtmp], -1.44269504089 //-log2e
+    .else
+        v_mov_b32 v[vtmp], 1.44269504089 //log2e
+    .endif
+        v_mul_f32 v[\base], v[\base], v[vtmp]
         v_exp_f32 v[\base], v[\base]
     .endm
 
-    .macro exp1_f base
-        v_mov_b32 v[vtmp], 1.44269504089
-        v_mul_f32 v[\base], -v[\base], v[vtmp] 
-        v_exp_f32 v[\base], v[\base]
-    .endm
-
-    .macro log_f base
+    .macro log_f base // ln(x) = log2x * 1 / (log2e)
         v_log_f32 v[\base], v[\base]
-        v_mov_b32 v[vtmp], 0.69314718056 
+        v_mov_b32 v[vtmp], 0.69314718056 // 1/(log2e) 
         v_mul_f32 v[\base], v[\base], v[vtmp] 
     .endm
 
 
     .macro activ_f base, activ_mode
         .if     \activ_mode == MIOPEN_NEURON_LOGISTIC //1 / (1 + e^-x) 
-            exp1_f \base
+            exp_f \base, -1
             v_add_f32 v[\base], 1.0, v[\base]
             v_rcp_f32 v[\base], v[\base]
-        .elseif \activ_mode == MIOPEN_NEURON_TANH 
+        .elseif \activ_mode == MIOPEN_NEURON_TANH // beta * tanh(alpha * x) 
             v_mul_f32 v[\base], s[alpha], v[\base]
             v_mul_f32 v[\base], 2.0, v[\base]
-            exp_f \base
+            exp_f \base, 1
             v_add_f32 v[\base], 1.0, v[\base]
             v_rcp_f32 v[\base], v[\base]
             v_mul_f32 v[\base], 2.0, v[\base]
@@ -595,26 +607,22 @@ last_wave:
         .elseif \activ_mode == MIOPEN_NEURON_ELU //alpha * (e^x - 1) | x <= 0; x | x > 0 
             v_cmp_lt_f32 vcc, 0, v[\base]
             v_mov_b32 v[vtmp2], v[\base]
-			exp_f \base //r = exp
-		    v_add_f32 v[\base], -1.0, v[\base] //r = r – 1.0
-			v_mul_f32 v[\base], s[alpha], v[\base] // alpha * r 
+			exp_f \base 
+		    v_add_f32 v[\base], -1.0, v[\base] 
+			v_mul_f32 v[\base], s[alpha], v[\base] 
             v_cndmask_b32 v[\base], v[\base], v[vtmp2], vcc
-            #v_cmp_gt_f32 vcc, 0, v[\base]
-            #s_and_saveexec_b64 s[exec:exec+1], vcc
-		    #s_cbranch_execz label //Branch if all lanes fail
-            #label:
-		    #s_mov_b64 exec, s[exec:exec+1] //Restore exec mask
         .endif
     .endm
 
-    .if bias_mode
+    .if fusion_mode && bias_mode
         load_bias current_k
         s_waitcnt 0
     .endif
 
+
     k = 0
+    n = 0
     acc = accums
-    n = 0 
     .GPR_REUSE lds_off, vtmp2
     .rept k_mult
         nb = 0
@@ -624,10 +632,10 @@ last_wave:
             chunk = 0
             .rept chunks_per_wave
                 v_cmpx_gt_i32 vcc, 0 + img_hw - chunk, v[current_hw]
-                .if bias_mode
+                .if fusion_mode && bias_mode
                     bias_f acc, n
                 .endif
-                .if activ_mode > MIOPEN_NEURON_PASTHRU
+                .if fusion_mode && activ_mode > MIOPEN_NEURON_PASTHRU
                     activ_f acc, activ_mode
                 .endif
                 buffer_store_dword v[acc], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0+4*chunk
@@ -649,7 +657,6 @@ last_wave:
         n = n + 1
     .endr
 
-
 s_endpgm
 
 .Lfunc_end0:
@@ -660,7 +667,60 @@ s_endpgm
 .end
 .endif
 
-.macro metadata wg_x
+.macro metadata_conv wg_x
+  .if ROCM_METADATA_VERSION == 3
+    .amdgpu_code_object_metadata
+    { Version: [ 3, 0 ],
+        Kernels:
+        - { Name: gcnAsmConv1x1U, Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+            Attrs:
+              { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
+            Args:
+            - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+            - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+            - { Name: H       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+            - { Name: W       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+            - { Name: K       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+            - { Name: n_groups, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+            - { Name: unused_0, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+            - { Name: unused_1, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+            - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+            - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+            - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
+            - { Name: ret_addr, Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: I32, TypeName: 'int*'  , AddrSpaceQual: Global, AccQual: Default }
+          }
+    }
+    .end_amdgpu_code_object_metadata
+  .endif
+  .if ROCM_METADATA_VERSION == 4
+    .amd_amdgpu_hsa_metadata
+    { Version: [ 1, 0 ],
+        Kernels:
+        - { Name: gcnAsmConv1x1U, SymbolName: 'gcnAsmConv1x1U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+            Attrs:
+              { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
+            CodeProps:
+              { KernargSegmentSize: 64, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
+            Args:
+            - { Name: N       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+            - { Name: C       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+            - { Name: H       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+            - { Name: W       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+            - { Name: K       , Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+            - { Name: n_groups, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+            - { Name: unused_0, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+            - { Name: unused_1, Size: 4, Align: 4, ValueKind: ByValue, ValueType: I32, TypeName: 'int', AccQual: Default, IsConst: true }
+            - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+            - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+            - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
+            - { Name: ret_addr, Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: I32, TypeName: 'int*'  , AddrSpaceQual: Global, AccQual: Default }
+          }
+    }
+    .end_amd_amdgpu_hsa_metadata
+  .endif
+.endm
+
+.macro metadata_conv_bias_activ wg_x
   .if ROCM_METADATA_VERSION == 3
     .amdgpu_code_object_metadata
     { Version: [ 3, 0 ],
@@ -672,10 +732,55 @@ s_endpgm
             - { Name: alpha   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
             - { Name: beta    , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
             - { Name: gamma   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
+            - { Name: unused  , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
             - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
             - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
             - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
             - { Name: bias    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+          }
+    }
+    .end_amdgpu_code_object_metadata
+  .endif
+  .if ROCM_METADATA_VERSION == 4
+    .amd_amdgpu_hsa_metadata
+    { Version: [ 1, 0 ],
+        Kernels:
+        - { Name: gcnAsmConv1x1U, SymbolName: 'gcnAsmConv1x1U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+            Attrs:
+              { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
+            CodeProps:
+              { KernargSegmentSize: 48, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
+            Args:
+            - { Name: alpha   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
+            - { Name: beta    , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
+            - { Name: gamma   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
+            - { Name: unused  , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
+            - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+            - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
+            - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+            - { Name: bias    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+          }
+    }
+    .end_amd_amdgpu_hsa_metadata
+  .endif
+.endm
+
+.macro metadata_conv_activ wg_x
+  .if ROCM_METADATA_VERSION == 3
+    .amdgpu_code_object_metadata
+    { Version: [ 3, 0 ],
+        Kernels:
+        - { Name: gcnAsmConv1x1U, Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+            Attrs:
+              { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
+            Args:
+            - { Name: alpha   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
+            - { Name: beta    , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
+            - { Name: gamma   , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
+            - { Name: unused  , Size: 4, Align: 4, ValueKind: ByValue, ValueType: F32, TypeName: 'float', AccQual: Default, IsConst: true }
+            - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+            - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
+            - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
           }
     }
     .end_amdgpu_code_object_metadata
@@ -697,10 +802,62 @@ s_endpgm
             - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
             - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
             - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+          }
+    }
+    .end_amd_amdgpu_hsa_metadata
+  .endif
+.endm
+
+.macro metadata_conv_bias wg_x
+  .if ROCM_METADATA_VERSION == 3
+    .amdgpu_code_object_metadata
+    { Version: [ 3, 0 ],
+        Kernels:
+        - { Name: gcnAsmConv1x1U, Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+            Attrs:
+              { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
+            Args:
+            - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+            - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
+            - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+            - { Name: bias    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+          }
+    }
+    .end_amdgpu_code_object_metadata
+  .endif
+  .if ROCM_METADATA_VERSION == 4
+    .amd_amdgpu_hsa_metadata
+    { Version: [ 1, 0 ],
+        Kernels:
+        - { Name: gcnAsmConv1x1U, SymbolName: 'gcnAsmConv1x1U@kd', Language: OpenCL C, LanguageVersion: [ 1, 2 ],
+            Attrs:
+              { ReqdWorkGroupSize: [ \wg_x, 1, 1 ] }
+            CodeProps:
+              { KernargSegmentSize: 32, GroupSegmentFixedSize: 0, PrivateSegmentFixedSize: 0, KernargSegmentAlign: 8, WavefrontSize: 64, MaxFlatWorkGroupSize: 512 }
+            Args:
+            - { Name: x       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
+            - { Name: y       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default }
+            - { Name: w       , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
             - { Name: bias    , Size: 8, Align: 8, ValueKind: GlobalBuffer, ValueType: F32, TypeName: 'float*', AddrSpaceQual: Global, AccQual: Default, IsConst: true }
           }
     }
     .end_amd_amdgpu_hsa_metadata
+  .endif
+.endm
+
+.macro metadata wg_x
+  .if fusion_mode
+    .if bias_mode && activ_mode
+        metadata_conv_bias_activ \wg_x
+    .elseif bias_mode
+        metadata_conv_bias \wg_x
+    .elseif activ_mode
+        metadata_conv_activ \wg_x
+    .else
+        metadata_conv \wg_x
+    .endif
+  .else
+    metadata_conv \wg_x
   .endif
 .endm
 
