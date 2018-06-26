@@ -28,6 +28,7 @@
 
 #if MIOPEN_USE_ROCBLAS
 #include <rocblas.h>
+#include <miopen/hipoc_kernel.hpp>
 #elif MIOPEN_USE_MIOPENGEMM
 #include <miopen/miopengemm.hpp>
 #endif
@@ -44,7 +45,7 @@ void CallGemm(Handle& handle,
               int c_offset)
 {
 #if MIOPEN_USE_ROCBLAS
-    MIOPEN_LOG_FUNTION("rocBLAS");
+    MIOPEN_LOG_FUNCTION("rocBLAS");
 
     if(!gemm_desc.isColMajor)
     {
@@ -56,12 +57,13 @@ void CallGemm(Handle& handle,
         std::swap(gemm_desc.lda, gemm_desc.ldb);
     }
 
-    hipEvent_t start, stop;
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
     if(handle.IsProfilingEnabled())
     {
-        hipEventCreate(&start);
-        hipEventCreate(&stop);
-        hipEventRecord(start, nullptr);
+        start = make_hip_event();
+        stop = make_hip_event();
+        hipEventRecord(start.get(), nullptr);
     }
 
     rocblas_sgemm(handle.rhandle.get(),
@@ -81,12 +83,10 @@ void CallGemm(Handle& handle,
 
     if(handle.IsProfilingEnabled())
     {
-        hipEventRecord(stop, nullptr);
-        hipDeviceSynchronize();
+        hipEventRecord(stop.get(), nullptr);
+        hipEventSynchronize(stop.get());
         float mS = 0;
-        hipEventElapsedTime(&mS, start, stop);
-        hipEventDestroy(start);
-        hipEventDestroy(stop);
+        hipEventElapsedTime(&mS, start.get(), stop.get());
         handle.ResetKernelTime();
         handle.AccumKernelTime(mS);
     }
@@ -197,12 +197,11 @@ void CallGemmStridedBatched(Handle& handle,
         std::swap(gemm_desc.strideA, gemm_desc.strideB);
     }
 
-    hipEvent_t start, stop;
+    HipEventPtr start = nullptr; HipEventPtr stop  = nullptr;
     if(handle.IsProfilingEnabled())
     {
-        hipEventCreate(&start);
-        hipEventCreate(&stop);
-        hipEventRecord(start, nullptr);
+        start = make_hip_event(); stop  = make_hip_event();
+        hipEventRecord(start.get(), nullptr);
     }
 
     rocblas_sgemm_strided_batched(
@@ -227,12 +226,10 @@ void CallGemmStridedBatched(Handle& handle,
 
     if(handle.IsProfilingEnabled())
     {
-        hipEventRecord(stop, nullptr);
-        hipDeviceSynchronize();
+        hipEventRecord(stop.get(), nullptr);
+        hipEventSynchronize(stop.get());
         float mS = 0;
-        hipEventElapsedTime(&mS, start, stop);
-        hipEventDestroy(start);
-        hipEventDestroy(stop);
+        hipEventElapsedTime(&mS, start.get(), stop.get());
         handle.ResetKernelTime();
         handle.AccumKernelTime(mS);
     }
@@ -277,12 +274,11 @@ void CallGemmStridedBatchedSequential(Handle& handle,
         std::swap(gemm_desc.strideA, gemm_desc.strideB);
     }
 
-    hipEvent_t start, stop;
+    HipEventPtr start = nullptr; HipEventPtr stop  = nullptr;
     if(handle.IsProfilingEnabled())
     {
-        hipEventCreate(&start);
-        hipEventCreate(&stop);
-        hipEventRecord(start, nullptr);
+        start = make_hip_event(); stop  = make_hip_event();
+        hipEventRecord(start.get(), nullptr);
     }
 
     for(int i = 0; i < gemm_desc.batch_count; ++i)
@@ -303,14 +299,12 @@ void CallGemmStridedBatchedSequential(Handle& handle,
                       gemm_desc.ldc);
     }
 
-    if(handle.IsProflingEnabled())
+    if(handle.IsProfilingEnabled())
     {
-        hipEventRecord(stop, nullptr);
-        hipDeviceSynchronize();
+        hipEventRecord(stop.get(), nullptr);
+        hipEventSynchronize(stop.get());
         float mS = 0;
-        hipEventElapsedTime(&mS, start, stop);
-        hipEventDestroy(start);
-        hipEventDestroy(stop);
+        hipEventElapsedTime(&mS, start.get(), stop.get());
         handle.ResetKernelTime();
         handle.AccumKernelTime(mS);
     }
