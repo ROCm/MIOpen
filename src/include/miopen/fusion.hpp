@@ -163,7 +163,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
     miopenStatus_t
     GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm = false) override;
-    bool isASMApplicable();
+    bool isASMApplicable(Handle& handle);
     solver::KernelInfo& GetKernelInfo(Handle& handle);
     miopenFusionOp_t kind() override { return miopenFusionOpConvForward; };
     ConvolutionDescriptor& base_desc;
