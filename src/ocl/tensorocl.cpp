@@ -36,6 +36,49 @@
 
 namespace miopen {
 
+TensorDescriptor GetFlattenedTensorDescriptor(const TensorDescriptor& desc)
+{
+    // is packed
+    if(desc.IsPacked())
+        return {desc.GetType(), {desc.GetElementSize()}, {1}};
+
+    // start flattening tensor
+    std::vector<std::size_t> flat_lengths;
+    std::vector<std::size_t> flat_strides;
+
+    auto non1_length_strides = boost::combine(desc.GetLengths(), desc.GetStrides()) |
+                               boost::adaptors::filtered(f_length_is_not_1_t());
+
+    auto i               = non1_length_strides.begin();
+    std::size_t flat_len = boost::get<0>(*i);
+    auto i_previous      = i++;
+
+    // the 0-th dimension full-length doesn't matter
+    for(; i != non1_length_strides.end(); ++i)
+    {
+        std::size_t len             = boost::get<0>(*i);
+        std::size_t stride          = boost::get<1>(*i);
+        std::size_t previous_stride = boost::get<1>(*i_previous);
+        std::size_t full_len        = previous_stride / stride;
+
+        if(len == full_len)
+        {
+            flat_len *= len;
+        }
+        else
+        {
+            flat_lengths.push_back(flat_len);
+            flat_strides.push_back(previous_stride);
+            flat_len = len;
+        }
+        i_previous = i;
+    }
+    flat_lengths.push_back(flat_len);
+    flat_strides.push_back(boost::get<1>(*i_previous));
+
+    return {desc.GetType(), std::move(flat_lengths), std::move(flat_strides)};
+}
+
 // Free Tensor Functions
 static void CreateBitmapAndGrid(unsigned int& bitmap,
                                 std::vector<std::size_t>& a_lens,
@@ -1332,16 +1375,27 @@ void SetTensor(
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    auto ydim = yDesc.GetLengths().size();
+    const TensorDescriptor yDesc_flat = GetFlattenedTensorDescriptor(yDesc);
 
-    assert(ydim > 0 && ydim <= 5);
+#ifndef NDEBUG
+    if(yDesc.GetSize() != yDesc_flat.GetSize())
+    {
+        std::cout << __func__ << std::endl
+                  << "real descritor: " << yDesc << std::endl
+                  << "flat descritor: " << yDesc_flat << std::endl;
+    }
+#endif
 
-    std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(ydim) + "d";
+    const std::size_t yDim_flat = yDesc_flat.GetSize();
 
-    const std::vector<std::size_t>& lens = yDesc.GetLengths();
+    assert(yDim_flat > 0 && yDim_flat <= 5);
 
-    std::string network_config = "set " + std::to_string(yDesc.GetType());
-    for(auto& len : lens)
+    std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(yDim_flat) + "d";
+
+    const miopenDataType_t dataType = yDesc_flat.GetType();
+
+    std::string network_config = "set " + std::to_string(dataType);
+    for(auto& len : yDesc_flat.GetLengths())
     {
         network_config += " " + std::to_string(len);
     }
@@ -1358,7 +1412,7 @@ void SetTensor(
     {
         std::string program_name = "MIOpenSubTensorOpWithScalarKernel.cl";
 
-        std::vector<std::size_t> worker_sizes = get_worker_sizes(lens);
+        std::vector<std::size_t> worker_sizes = get_worker_sizes(yDesc_flat.GetLengths());
 
         std::size_t wgd = std::accumulate(worker_sizes.begin(),
                                           worker_sizes.end(),
@@ -1368,8 +1422,8 @@ void SetTensor(
         std::size_t wld = 256 < wgd ? 256 : wgd;
 
         std::string parms = "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_SET" +
-                            parms_half_or_float(yDesc.GetType());
-        for(int i = 0; i < ydim; ++i)
+                            parms_half_or_float(dataType);
+        for(int i = 0; i < yDim_flat; ++i)
         {
             parms += " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
         }
@@ -1383,84 +1437,84 @@ void SetTensor(
                                   parms);
     }
 
-    switch(ydim)
+    switch(yDim_flat)
     {
     case 1:
     {
-        visit_float(yDesc.GetType(), [&](auto as_float) {
+        visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc.GetStrides()[0]),
-                   int(yDesc.GetLengths()[0]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetLengths()[0]));
         });
 
         break;
     }
     case 2:
     {
-        visit_float(yDesc.GetType(), [&](auto as_float) {
+        visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc.GetStrides()[0]),
-                   int(yDesc.GetStrides()[1]),
-                   int(yDesc.GetLengths()[0]),
-                   int(yDesc.GetLengths()[1]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetStrides()[1]),
+                   int(yDesc_flat.GetLengths()[0]),
+                   int(yDesc_flat.GetLengths()[1]));
         });
 
         break;
     }
     case 3:
     {
-        visit_float(yDesc.GetType(), [&](auto as_float) {
+        visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc.GetStrides()[0]),
-                   int(yDesc.GetStrides()[1]),
-                   int(yDesc.GetStrides()[2]),
-                   int(yDesc.GetLengths()[0]),
-                   int(yDesc.GetLengths()[1]),
-                   int(yDesc.GetLengths()[2]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetStrides()[1]),
+                   int(yDesc_flat.GetStrides()[2]),
+                   int(yDesc_flat.GetLengths()[0]),
+                   int(yDesc_flat.GetLengths()[1]),
+                   int(yDesc_flat.GetLengths()[2]));
         });
 
         break;
     }
     case 4:
     {
-        visit_float(yDesc.GetType(), [&](auto as_float) {
+        visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc.GetStrides()[0]),
-                   int(yDesc.GetStrides()[1]),
-                   int(yDesc.GetStrides()[2]),
-                   int(yDesc.GetStrides()[3]),
-                   int(yDesc.GetLengths()[0]),
-                   int(yDesc.GetLengths()[1]),
-                   int(yDesc.GetLengths()[2]),
-                   int(yDesc.GetLengths()[3]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetStrides()[1]),
+                   int(yDesc_flat.GetStrides()[2]),
+                   int(yDesc_flat.GetStrides()[3]),
+                   int(yDesc_flat.GetLengths()[0]),
+                   int(yDesc_flat.GetLengths()[1]),
+                   int(yDesc_flat.GetLengths()[2]),
+                   int(yDesc_flat.GetLengths()[3]));
         });
 
         break;
     }
     case 5:
     {
-        visit_float(yDesc.GetType(), [&](auto as_float) {
+        visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc.GetStrides()[0]),
-                   int(yDesc.GetStrides()[1]),
-                   int(yDesc.GetStrides()[2]),
-                   int(yDesc.GetStrides()[3]),
-                   int(yDesc.GetStrides()[4]),
-                   int(yDesc.GetLengths()[0]),
-                   int(yDesc.GetLengths()[1]),
-                   int(yDesc.GetLengths()[2]),
-                   int(yDesc.GetLengths()[3]),
-                   int(yDesc.GetLengths()[4]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetStrides()[1]),
+                   int(yDesc_flat.GetStrides()[2]),
+                   int(yDesc_flat.GetStrides()[3]),
+                   int(yDesc_flat.GetStrides()[4]),
+                   int(yDesc_flat.GetLengths()[0]),
+                   int(yDesc_flat.GetLengths()[1]),
+                   int(yDesc_flat.GetLengths()[2]),
+                   int(yDesc_flat.GetLengths()[3]),
+                   int(yDesc_flat.GetLengths()[4]));
         });
 
         break;
@@ -1477,15 +1531,28 @@ void ScaleTensor(
         MIOPEN_THROW(miopenStatusBadParm);
     }
 
-    auto ydim = yDesc.GetLengths().size();
+    const TensorDescriptor yDesc_flat = GetFlattenedTensorDescriptor(yDesc);
 
-    assert(ydim > 0 && ydim <= 5);
+#ifndef NDEBUG
+    if(yDesc.GetSize() != yDesc_flat.GetSize())
+    {
+        std::cout << __func__ << std::endl
+                  << "real descritor: " << yDesc << std::endl
+                  << "flat descritor: " << yDesc_flat << std::endl;
+    }
+#endif
 
-    std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(ydim) + "d";
+    const std::size_t yDim_flat = yDesc_flat.GetSize();
 
-    const std::vector<std::size_t>& lens = yDesc.GetLengths();
+    assert(yDim_flat > 0 && yDim_flat <= 5);
 
-    std::string network_config = "scale " + std::to_string(yDesc.GetType());
+    const miopenDataType_t dataType = yDesc_flat.GetType();
+
+    std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(yDim_flat) + "d";
+
+    const std::vector<std::size_t>& lens = yDesc_flat.GetLengths();
+
+    std::string network_config = "scale " + std::to_string(yDesc_flat.GetType());
     for(auto& len : lens)
     {
         network_config += " " + std::to_string(len);
@@ -1513,8 +1580,8 @@ void ScaleTensor(
         std::size_t wld = 256 < wgd ? 256 : wgd;
 
         std::string parms = "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_MULTIPLY" +
-                            parms_half_or_float(yDesc.GetType());
-        for(int i = 0; i < ydim; ++i)
+                            parms_half_or_float(dataType);
+        for(int i = 0; i < yDim_flat; ++i)
         {
             parms += " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
         }
@@ -1528,84 +1595,84 @@ void ScaleTensor(
                                   parms);
     }
 
-    switch(ydim)
+    switch(yDim_flat)
     {
     case 1:
     {
-        visit_float(yDesc.GetType(), [&](auto as_float) {
+        visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc.GetStrides()[0]),
-                   int(yDesc.GetLengths()[0]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetLengths()[0]));
         });
 
         break;
     }
     case 2:
     {
-        visit_float(yDesc.GetType(), [&](auto as_float) {
+        visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc.GetStrides()[0]),
-                   int(yDesc.GetStrides()[1]),
-                   int(yDesc.GetLengths()[0]),
-                   int(yDesc.GetLengths()[1]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetStrides()[1]),
+                   int(yDesc_flat.GetLengths()[0]),
+                   int(yDesc_flat.GetLengths()[1]));
         });
 
         break;
     }
     case 3:
     {
-        visit_float(yDesc.GetType(), [&](auto as_float) {
+        visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc.GetStrides()[0]),
-                   int(yDesc.GetStrides()[1]),
-                   int(yDesc.GetStrides()[2]),
-                   int(yDesc.GetLengths()[0]),
-                   int(yDesc.GetLengths()[1]),
-                   int(yDesc.GetLengths()[2]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetStrides()[1]),
+                   int(yDesc_flat.GetStrides()[2]),
+                   int(yDesc_flat.GetLengths()[0]),
+                   int(yDesc_flat.GetLengths()[1]),
+                   int(yDesc_flat.GetLengths()[2]));
         });
 
         break;
     }
     case 4:
     {
-        visit_float(yDesc.GetType(), [&](auto as_float) {
+        visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc.GetStrides()[0]),
-                   int(yDesc.GetStrides()[1]),
-                   int(yDesc.GetStrides()[2]),
-                   int(yDesc.GetStrides()[3]),
-                   int(yDesc.GetLengths()[0]),
-                   int(yDesc.GetLengths()[1]),
-                   int(yDesc.GetLengths()[2]),
-                   int(yDesc.GetLengths()[3]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetStrides()[1]),
+                   int(yDesc_flat.GetStrides()[2]),
+                   int(yDesc_flat.GetStrides()[3]),
+                   int(yDesc_flat.GetLengths()[0]),
+                   int(yDesc_flat.GetLengths()[1]),
+                   int(yDesc_flat.GetLengths()[2]),
+                   int(yDesc_flat.GetLengths()[3]));
         });
 
         break;
     }
     case 5:
     {
-        visit_float(yDesc.GetType(), [&](auto as_float) {
+        visit_float(dataType, [&](auto as_float) {
             kernel(y,
                    *as_float(alpha),
                    offset,
-                   int(yDesc.GetStrides()[0]),
-                   int(yDesc.GetStrides()[1]),
-                   int(yDesc.GetStrides()[2]),
-                   int(yDesc.GetStrides()[3]),
-                   int(yDesc.GetStrides()[4]),
-                   int(yDesc.GetLengths()[0]),
-                   int(yDesc.GetLengths()[1]),
-                   int(yDesc.GetLengths()[2]),
-                   int(yDesc.GetLengths()[3]),
-                   int(yDesc.GetLengths()[4]));
+                   int(yDesc_flat.GetStrides()[0]),
+                   int(yDesc_flat.GetStrides()[1]),
+                   int(yDesc_flat.GetStrides()[2]),
+                   int(yDesc_flat.GetStrides()[3]),
+                   int(yDesc_flat.GetStrides()[4]),
+                   int(yDesc_flat.GetLengths()[0]),
+                   int(yDesc_flat.GetLengths()[1]),
+                   int(yDesc_flat.GetLengths()[2]),
+                   int(yDesc_flat.GetLengths()[3]),
+                   int(yDesc_flat.GetLengths()[4]));
         });
 
         break;
@@ -1626,39 +1693,46 @@ void CopyTensor(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
     }
-    if(srcDesc.GetElementSize() != dstDesc.GetElementSize())
-    {
-        MIOPEN_THROW(miopenStatusBadParm, "Tensor data sizes do not match.");
-    }
 
     if(srcDesc.GetType() != dstDesc.GetType())
     {
         MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
     }
 
-    if(srcDesc.GetLengths().size() != dstDesc.GetLengths().size())
+    if(srcDesc.GetLengths() != dstDesc.GetLengths())
     {
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
     }
 
-    if(srcDesc.GetLengths().size() > 5 || dstDesc.GetLengths().size() > 5)
+    auto flat_descriptors = GetConsistentFlattenedTensorDescriptors(srcDesc, dstDesc);
+    const TensorDescriptor& srcDesc_flat = std::get<0>(flat_descriptors);
+    const TensorDescriptor& dstDesc_flat = std::get<1>(flat_descriptors);
+
+#ifndef NDEBUG
+    if(srcDesc.GetSize() != srcDesc_flat.GetSize())
+    {
+        std::cout << __func__ << std::endl
+                  << "src real descriptor: " << srcDesc << std::endl
+                  << "src flat descriptor: " << srcDesc_flat << std::endl
+                  << "dst real descriptor: " << dstDesc << std::endl
+                  << "dst flat descriptor: " << dstDesc_flat << std::endl;
+    }
+#endif
+
+    std::size_t srcDim_flat = srcDesc_flat.GetSize();
+
+    if(srcDim_flat < 1 || srcDim_flat > 5)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension sizes unsupported.");
     }
 
-    if(srcOffset > 0 || dstOffset > 0 || srcDesc != dstDesc ||
-       (srcDesc.GetElementSpace() != srcDesc.GetElementSize() ||
-        dstDesc.GetElementSpace() != dstDesc.GetElementSize()))
+    if(srcOffset > 0 || dstOffset > 0 || (!(srcDesc_flat.IsPacked() && dstDesc_flat.IsPacked())))
     {
-        auto srcDim = srcDesc.GetLengths().size();
+        std::string kernel_name = "SubTensorOpWithSubTensor" + std::to_string(srcDim_flat) + "d";
 
-        assert(srcDim > 0 && srcDim <= 5);
+        const std::vector<std::size_t>& lens = srcDesc_flat.GetLengths();
 
-        std::string kernel_name = "SubTensorOpWithSubTensor" + std::to_string(srcDim) + "d";
-
-        const std::vector<std::size_t>& lens = srcDesc.GetLengths();
-
-        std::string network_config = "copy " + std::to_string(srcDesc.GetType());
+        std::string network_config = "copy " + std::to_string(srcDesc_flat.GetType());
         for(auto& len : lens)
         {
             network_config += " " + std::to_string(len);
@@ -1686,8 +1760,8 @@ void CopyTensor(Handle& handle,
             std::size_t wld = 256 < wgd ? 256 : wgd;
 
             std::string parms = "-DSUBTENSOR_OP_WITH_SUBTENSOR=SUBTENSOR_OP_WITH_SUBTENSOR_COPY" +
-                                parms_half_or_float(srcDesc.GetType());
-            for(int i = 0; i < srcDim; ++i)
+                                parms_half_or_float(srcDesc_flat.GetType());
+            for(int i = 0; i < srcDim_flat; ++i)
             {
                 parms +=
                     " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
@@ -1702,17 +1776,17 @@ void CopyTensor(Handle& handle,
                                       parms);
         }
 
-        switch(srcDim)
+        switch(srcDim_flat)
         {
         case 1:
         {
             kernel(src,
                    srcOffset,
-                   int(srcDesc.GetStrides()[0]),
-                   int(srcDesc.GetLengths()[0]),
+                   int(srcDesc_flat.GetStrides()[0]),
+                   int(srcDesc_flat.GetLengths()[0]),
                    dst,
                    dstOffset,
-                   int(dstDesc.GetStrides()[0]));
+                   int(dstDesc_flat.GetStrides()[0]));
 
             break;
         }
@@ -1720,14 +1794,14 @@ void CopyTensor(Handle& handle,
         {
             kernel(src,
                    srcOffset,
-                   int(srcDesc.GetStrides()[0]),
-                   int(srcDesc.GetStrides()[1]),
-                   int(srcDesc.GetLengths()[0]),
-                   int(srcDesc.GetLengths()[1]),
+                   int(srcDesc_flat.GetStrides()[0]),
+                   int(srcDesc_flat.GetStrides()[1]),
+                   int(srcDesc_flat.GetLengths()[0]),
+                   int(srcDesc_flat.GetLengths()[1]),
                    dst,
                    dstOffset,
-                   int(dstDesc.GetStrides()[0]),
-                   int(dstDesc.GetStrides()[1]));
+                   int(dstDesc_flat.GetStrides()[0]),
+                   int(dstDesc_flat.GetStrides()[1]));
 
             break;
         }
@@ -1735,17 +1809,17 @@ void CopyTensor(Handle& handle,
         {
             kernel(src,
                    srcOffset,
-                   int(srcDesc.GetStrides()[0]),
-                   int(srcDesc.GetStrides()[1]),
-                   int(srcDesc.GetStrides()[2]),
-                   int(srcDesc.GetLengths()[0]),
-                   int(srcDesc.GetLengths()[1]),
-                   int(srcDesc.GetLengths()[2]),
+                   int(srcDesc_flat.GetStrides()[0]),
+                   int(srcDesc_flat.GetStrides()[1]),
+                   int(srcDesc_flat.GetStrides()[2]),
+                   int(srcDesc_flat.GetLengths()[0]),
+                   int(srcDesc_flat.GetLengths()[1]),
+                   int(srcDesc_flat.GetLengths()[2]),
                    dst,
                    dstOffset,
-                   int(dstDesc.GetStrides()[0]),
-                   int(dstDesc.GetStrides()[1]),
-                   int(dstDesc.GetStrides()[2]));
+                   int(dstDesc_flat.GetStrides()[0]),
+                   int(dstDesc_flat.GetStrides()[1]),
+                   int(dstDesc_flat.GetStrides()[2]));
 
             break;
         }
@@ -1753,20 +1827,20 @@ void CopyTensor(Handle& handle,
         {
             kernel(src,
                    srcOffset,
-                   int(srcDesc.GetStrides()[0]),
-                   int(srcDesc.GetStrides()[1]),
-                   int(srcDesc.GetStrides()[2]),
-                   int(srcDesc.GetStrides()[3]),
-                   int(srcDesc.GetLengths()[0]),
-                   int(srcDesc.GetLengths()[1]),
-                   int(srcDesc.GetLengths()[2]),
-                   int(srcDesc.GetLengths()[3]),
+                   int(srcDesc_flat.GetStrides()[0]),
+                   int(srcDesc_flat.GetStrides()[1]),
+                   int(srcDesc_flat.GetStrides()[2]),
+                   int(srcDesc_flat.GetStrides()[3]),
+                   int(srcDesc_flat.GetLengths()[0]),
+                   int(srcDesc_flat.GetLengths()[1]),
+                   int(srcDesc_flat.GetLengths()[2]),
+                   int(srcDesc_flat.GetLengths()[3]),
                    dst,
                    dstOffset,
-                   int(dstDesc.GetStrides()[0]),
-                   int(dstDesc.GetStrides()[1]),
-                   int(dstDesc.GetStrides()[2]),
-                   int(dstDesc.GetStrides()[3]));
+                   int(dstDesc_flat.GetStrides()[0]),
+                   int(dstDesc_flat.GetStrides()[1]),
+                   int(dstDesc_flat.GetStrides()[2]),
+                   int(dstDesc_flat.GetStrides()[3]));
 
             break;
         }
@@ -1774,23 +1848,23 @@ void CopyTensor(Handle& handle,
         {
             kernel(src,
                    srcOffset,
-                   int(srcDesc.GetStrides()[0]),
-                   int(srcDesc.GetStrides()[1]),
-                   int(srcDesc.GetStrides()[2]),
-                   int(srcDesc.GetStrides()[3]),
-                   int(srcDesc.GetStrides()[4]),
-                   int(srcDesc.GetLengths()[0]),
-                   int(srcDesc.GetLengths()[1]),
-                   int(srcDesc.GetLengths()[2]),
-                   int(srcDesc.GetLengths()[3]),
-                   int(srcDesc.GetLengths()[4]),
+                   int(srcDesc_flat.GetStrides()[0]),
+                   int(srcDesc_flat.GetStrides()[1]),
+                   int(srcDesc_flat.GetStrides()[2]),
+                   int(srcDesc_flat.GetStrides()[3]),
+                   int(srcDesc_flat.GetStrides()[4]),
+                   int(srcDesc_flat.GetLengths()[0]),
+                   int(srcDesc_flat.GetLengths()[1]),
+                   int(srcDesc_flat.GetLengths()[2]),
+                   int(srcDesc_flat.GetLengths()[3]),
+                   int(srcDesc_flat.GetLengths()[4]),
                    dst,
                    dstOffset,
-                   int(dstDesc.GetStrides()[0]),
-                   int(dstDesc.GetStrides()[1]),
-                   int(dstDesc.GetStrides()[2]),
-                   int(dstDesc.GetStrides()[3]),
-                   int(dstDesc.GetStrides()[4]));
+                   int(dstDesc_flat.GetStrides()[0]),
+                   int(dstDesc_flat.GetStrides()[1]),
+                   int(dstDesc_flat.GetStrides()[2]),
+                   int(dstDesc_flat.GetStrides()[3]),
+                   int(dstDesc_flat.GetStrides()[4]));
 
             break;
         }
@@ -1799,7 +1873,7 @@ void CopyTensor(Handle& handle,
     }
     else
     {
-        handle.Copy(src, dst, srcDesc.GetElementSize() * GetTypeSize(srcDesc.GetType()));
+        handle.Copy(src, dst, srcDesc_flat.GetElementSize() * GetTypeSize(srcDesc_flat.GetType()));
     }
 }
 
