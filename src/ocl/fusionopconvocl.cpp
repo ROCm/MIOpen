@@ -204,9 +204,10 @@ miopenStatus_t ConvForwardOpDescriptor::GetNetworkConfig(std::string& network_co
     network_config += conv_config;
     return miopenStatusSuccess;
 }
-bool ConvForwardOpDescriptor::isASMApplicable()
+bool ConvForwardOpDescriptor::isASMApplicable(Handle& handle)
 {
-    return (base_desc.u == 1 && base_desc.v == 1 && base_desc.pad_h == 0 && base_desc.pad_w == 0);
+    auto ki = GetKernelInfo(handle);
+    return ki.kernel_file[ki.kernel_file.length() - 1] == 's';
 }
 
 solver::KernelInfo& ConvForwardOpDescriptor::GetKernelInfo(Handle& handle)
@@ -217,17 +218,19 @@ solver::KernelInfo& ConvForwardOpDescriptor::GetKernelInfo(Handle& handle)
         mlo_construct_direct2D_fusion construct_params = ConstructParams(handle);
         ConvolutionContext params;
         construct_params.mloCopyTo(params);
+        const auto solution = FindFirstSolution(construct_params);
+        auto k_file         = solution.construction_params[0].kernel_file;
         // TODO: There is redundant code hidden in both the branches below
-        if(isASMApplicable())
+        if(k_file[k_file.length() - 1] == 's') // is an asm kernel
         {
-            const auto solution = FindFirstSolution(construct_params);
             solver::KernelInfo ki;
-            ki.comp_options = solution.construction_params[0].comp_options;
-            ki.l_wk         = solution.construction_params[0].l_wk;
-            ki.g_wk         = solution.construction_params[0].g_wk;
-            ki.kernel_file  = "conv1x1u_bias_activ.s";
-            ki.kernel_name  = "gcnAsmConv1x1U";
-            kernel_info     = ki;
+            ki.comp_options =
+                solution.construction_params[0].comp_options + " -Wa,-defsym,fusion_mode=1";
+            ki.l_wk        = solution.construction_params[0].l_wk;
+            ki.g_wk        = solution.construction_params[0].g_wk;
+            ki.kernel_file = "conv1x1u_bias_activ.s";
+            ki.kernel_name = "gcnAsmConv1x1U";
+            kernel_info    = ki;
         }
         else
         {

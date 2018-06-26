@@ -348,9 +348,16 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     auto ops_head = op_map[0]; // ins_order[0]];
     if(ops_head->kind() == miopenFusionOpConvForward)
     {
-        auto ops_conv  = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head);
-        is_asm_kernel  = ops_conv->isASMApplicable();
-        algorithm_name = "miopenDirConvBatchNormActivAlgo";
+        auto ops_conv = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head);
+        is_asm_kernel = ops_conv->isASMApplicable(handle);
+        if(is_asm_kernel)
+        {
+            algorithm_name = "miopenConvolutionDirectBiasActivAsm";
+        }
+        else
+        {
+            algorithm_name = "miopenConvolutionDirectBiasActiv";
+        }
     }
     /*    else if(ops_head->kind() == miopenFusionOpBatchNormInference)
         {
@@ -437,9 +444,16 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     std::string algorithm_name{};
     if(ops_head->kind() == miopenFusionOpConvForward)
     {
-        auto ops_conv  = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head);
-        is_asm_kernel  = ops_conv->isASMApplicable();
-        algorithm_name = "miopenDirConvBatchNormActivAlgo";
+        auto ops_conv = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head);
+        is_asm_kernel = ops_conv->isASMApplicable(handle);
+        if(is_asm_kernel)
+        {
+            algorithm_name = "miopenConvolutionDirectBiasActivAsm";
+        }
+        else
+        {
+            algorithm_name = "miopenConvolutionDirectBiasActiv";
+        }
     }
 
     for(auto&& op : op_map)
@@ -517,9 +531,9 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                 args.push_back(it->second);
         }
     }
-    std::vector<any_t> padded_args;
     if(is_asm_kernel)
     {
+        std::vector<any_t> padded_args;
         size_t running_sz = args[0].size();
         padded_args.push_back(std::move(args[0]));
         for(auto idx = 1; idx < args.size(); idx++)
@@ -537,8 +551,12 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             padded_args.push_back(std::move(args[idx]));
             running_sz += args[idx].size();
         }
+        kernel(padded_args);
     }
-    kernel(padded_args);
+    else
+    {
+        kernel(args);
+    }
     return miopenStatusSuccess;
 }
 
