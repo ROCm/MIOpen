@@ -76,7 +76,6 @@ struct verify_forward_conv : conv_base<T>
     using conv_base<T>::filter;
     using conv_base<T>::bias;
     using conv_base<T>::search;
-    miopenConvFwdAlgorithm_t algo;
 
     verify_forward_conv(const tensor<T>& pinput,
                         const tensor<T>& pweights,
@@ -89,7 +88,6 @@ struct verify_forward_conv : conv_base<T>
         filter  = pfilter;
         bias    = pbias;
         search  = psearch;
-        algo    = miopenConvolutionFwdAlgoGEMM;
     }
 
     tensor<T> cpu() const
@@ -152,7 +150,7 @@ struct verify_forward_conv : conv_base<T>
         return rout;
     }
 
-    tensor<T> gpu() // const
+    tensor<T> gpu() const
     {
         auto&& handle = get_handle();
         auto rout     = get_output_tensor(filter, input, weights);
@@ -199,7 +197,6 @@ struct verify_forward_conv : conv_base<T>
                                   workspace_dev.get(),
                                   workspace_size);
 
-        algo      = perf.fwd_algo;
         rout.data = handle.Read<T>(out_dev, rout.data.size());
 
         return rout;
@@ -208,7 +205,6 @@ struct verify_forward_conv : conv_base<T>
     void fail(float = 0) const
     {
         std::cout << "Forward convolution: " << std::endl;
-        std::cout << "Algo: " << std::to_string(algo) << std::endl;
         this->conv_base<T>::fail();
     }
 };
