@@ -205,6 +205,7 @@ struct verify_forward_conv : conv_base<T>
     void fail(float = 0) const
     {
         std::cout << "Forward convolution: " << std::endl;
+        std::cout << "Algo: " << std::to_string(perf.fwd_algo) << std::endl;
         this->conv_base<T>::fail();
     }
 };
@@ -347,6 +348,7 @@ struct verify_backward_conv : conv_base<T>
     void fail(float) const
     {
         std::cout << "Backward convolution: " << std::endl;
+        std::cout << "Algo: " << std::to_string(perf.fwd_algo) << std::endl;
         this->conv_base<T>::fail();
     }
 };
@@ -465,6 +467,7 @@ struct verify_backward_weights_conv : conv_base<T>
     void fail(float) const
     {
         std::cout << "Backward weights convolution: " << std::endl;
+        std::cout << "Algo: " << std::to_string(perf.fwd_algo) << std::endl;
         this->conv_base<T>::fail();
     }
 };
