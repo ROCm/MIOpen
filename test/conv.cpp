@@ -152,7 +152,7 @@ struct verify_forward_conv : conv_base<T>
         return rout;
     }
 
-    tensor<T> gpu() //const
+    tensor<T> gpu() // const
     {
         auto&& handle = get_handle();
         auto rout     = get_output_tensor(filter, input, weights);
@@ -199,7 +199,7 @@ struct verify_forward_conv : conv_base<T>
                                   workspace_dev.get(),
                                   workspace_size);
 
-        algo = perf.fwd_algo;
+        algo      = perf.fwd_algo;
         rout.data = handle.Read<T>(out_dev, rout.data.size());
 
         return rout;
