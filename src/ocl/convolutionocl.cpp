@@ -2125,7 +2125,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             float time_gemm = 0;
 
             // 1x1 does not require im2col or workspace
-            if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
+            if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1 && pad_h == 0 && pad_w == 0)
             {
                 gg.FindSolution(.003, handle, x, dy, tmp_dw.get(), false);
                 gg.RunGemm(handle, x, dy, tmp_dw.get(), 0, 0, 0);
