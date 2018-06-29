@@ -359,20 +359,23 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             algorithm_name = "miopenConvolutionDirectBiasActiv";
         }
     }
-    /*    else if(ops_head->kind() == miopenFusionOpBatchNormInference)
+    else if(ops_head->kind() == miopenFusionOpBatchNormInference)
+    {
+        algorithm_name = "miopenBatchNormActivInferAlgo";
+        if(ops_head.mode == miopenBNSpatial)
         {
-            algorithm_name = "miopenBatchNormActivInferAlgo";
-            if(ops_head.mode == miopenBNSpatial)
-            {
-                kernel_name =
-
-            }
-            else
-            {
-
-            }
+            kernel_name = "MIOpenBatchNormActivInferSpatialEst";
         }
-    */
+        else
+        {
+            kernel_name = "MIOpenBatchNormActivInferPerActEst";
+        }
+    }
+    else
+    {
+        status = miopenStatusNotImplemented;
+    }
+    
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
     if(!kernels.empty())
     {
@@ -393,25 +396,27 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
                 std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head)->GetKernelInfo(handle);
             program_name     = ki.kernel_file;
             kernel_name      = ki.kernel_name;
-            const auto parms = compile_config;
+            //const auto parms = compile_config;
             const auto& vld  = ki.l_wk;
             const auto& vgd  = ki.g_wk;
 
             handle.AddKernel(
-                algorithm_name, network_config, program_name, kernel_name, vld, vgd, parms);
+                algorithm_name, network_config, program_name, kernel_name, vld, vgd, compile_config);
             status = miopenStatusSuccess;
         }
         else if(ops_head->kind() == miopenFusionOpBatchNormInference)
         {
-            /*            auto ki =
-                            std::dynamic_pointer_cast<BatchNormInferenceFusionOpDescriptor>(ops_head)->GetKernelInfo(handle);
-            */
+            auto ki =
+                std::dynamic_pointer_cast<BatchNormInferenceFusionOpDescriptor>(ops_head)->GetKernelInfo(handle);
+            handle.AddKernel(
+                algorithm_name, network_config, program_name, kernel_name, vld, vgd, compile_config);
+            status = miopenStatusSuccess;
+        }
+        else
+        {
+            status = miopenStatusNotImplemented;
         }
 
-        // TODO: If the first op is batch norm!
-        // else
-        // {
-        // }
     }
     return status;
 }
