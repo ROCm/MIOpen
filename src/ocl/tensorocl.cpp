@@ -403,6 +403,10 @@ void OpTensor4d(Handle& handle,
     // accounted for in the bitmap
     CreateBitmapAndGrid(bitmap, blens, clens, num_wg, work_per_wg, (d - 2));
 
+    // quick fix for btensor = <1, 1, 1, 1>
+    if(bTensorDesc.GetElementSize() == 1)
+        bitmap = 4;
+
 #if(MIO_TENSOROCL_DEBUG == 1)
     printf("bitmap: %u\n", bitmap);
     printf("work_per_wg: %d, num_wg: %d\n", work_per_wg, num_wg);
