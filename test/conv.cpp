@@ -518,8 +518,10 @@ struct conv_driver : test_driver
         std::tie(wei_k, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
         std::tie(std::ignore, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());
 
+        /// \todo add support of c = 1 with type half into conv
         if(input_c == 1 && (input.desc.GetType() == miopenHalf))
         { // Invalid config for conv
+            std::cout << "Unsupported config: c == 1 and type == half" << std::endl;
             return;
         }
 
