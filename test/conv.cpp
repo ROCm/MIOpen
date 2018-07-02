@@ -523,8 +523,9 @@ struct conv_driver : test_driver
 
         /// lack of support of 2x2 filter and transposeConv for half type
         /// \todo enhance support of half type into conv/transConv
-        if(!((input.desc.GetType() == miopenHalf) && (filter.mode == miopenConvolution) &&
-             filter.IsDirectSupported(weights.desc)))
+        if((input.desc.GetType() == miopenHalf) &&
+           (((filter.mode == miopenConvolution) && filter.IsDirectSupported(weights.desc)) ||
+            (filter.mode == miopenTranspose)))
         {
             // Unsupported config for conv with half type
             return;
