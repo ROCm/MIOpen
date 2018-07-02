@@ -126,12 +126,6 @@ The driver can be built using the `MIOpenDriver` target:
 
 Documentation on how to run the driver is [here](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/driver/README.md). 
 
-
-If building for HIP and `boost` was installed via `apt-get` in Ubuntu v16, add the following to the cmake line [above](#configure-with-cmake):
-```
--DMIOPEN_MAKE_BOOST_PUBLIC=ON
-```
-
 ## Running the tests
 
 The tests can be run by using the 'check' target:
