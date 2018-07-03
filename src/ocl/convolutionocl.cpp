@@ -2141,7 +2141,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         if(dyDesc.GetType() == miopenFloat)
         {
             // if not 1x1
-            if((wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0) &&
+            if((wei_h != 1 || wei_w != 1 || pad_h != 0 || pad_w != 0 || u != 1 || v != 1 ||
+                dilation_w != 1 || dilation_h != 1) &&
                (workSpace != nullptr &&
                 workSpaceSize >= BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc)))
             {
@@ -2350,7 +2351,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
             handle.ResetKernelTime();
 
-            if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
+            if(wei_h != 1 || wei_w != 1 || pad_h != 0 || pad_w != 0 || u != 1 || v != 1 ||
+               dilation_w != 1 || dilation_h != 1)
             {
                 MIOPEN_LOG_FUNCTION("convolution, non 1x1");
 
