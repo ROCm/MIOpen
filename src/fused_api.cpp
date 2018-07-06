@@ -32,6 +32,7 @@
 #include <miopen/batch_norm.hpp>
 #include <miopen/activ.hpp>
 #include <miopen/fusion.hpp>
+#include <miopen/fusion_plan.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>

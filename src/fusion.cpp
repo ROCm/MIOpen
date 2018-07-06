@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <cassert>
 #include <miopen/fusion.hpp>
+#include <miopen/fusion_plan.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/visit_float.hpp>
@@ -148,6 +149,26 @@ std::vector<std::string> ConvForwardOpDescriptor::GetArgs() const
     return keys;
 }
 
+std::string ConvForwardOpDescriptor::MDGraphKey() const
+{
+    auto vec = {static_cast<int>(base_desc.mode),
+                static_cast<int>(base_desc.paddingMode),
+                base_desc.pad_h,
+                base_desc.pad_w,
+                base_desc.u,
+                base_desc.v,
+                base_desc.dilation_h,
+                base_desc.dilation_w};
+    std::string result;
+
+    for(auto n : vec)
+    {
+        result += std::to_string(n) + ",";
+    }
+    result += filter_desc.ToString() + "," + std::to_string(algo);
+    return result;
+}
+
 // Activ Forward
 miopenStatus_t ActivFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                 const void* alpha,
@@ -188,6 +209,8 @@ miopenStatus_t ActivFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_d
     output_desc = input_desc;
     return miopenStatusSuccess;
 }
+
+std::string ActivFusionOpDescriptor::MDGraphKey() const { return std::to_string(activMode); }
 
 miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
 {
@@ -262,6 +285,8 @@ std::vector<std::string> BiasFusionOpDescriptor::GetArgs() const
     keys.push_back("bias" + std::to_string(GetIdx()));
     return keys;
 }
+
+std::string BiasFusionOpDescriptor::MDGraphKey() const { return base_desc.ToString(); }
 // Op LUT
 bool FusionOpLU::Advance(std::vector<std::shared_ptr<miopen::FusionOpDescriptor>> op_map)
 {

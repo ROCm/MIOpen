@@ -109,6 +109,8 @@ set( MIOpen_Source
     include/miopen/activ.hpp
     include/miopen/softmax.hpp
     include/miopen/rnn.hpp
+    include/miopen/md_graph.hpp
+    md_graph.cpp
     tensor.cpp
     tensor_api.cpp
     solver.cpp
