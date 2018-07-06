@@ -1,6 +1,44 @@
 
 ## MIOpen Release notes
 
+
+### 07/06/2018 [ 1.4.0 ]
+
+Notes:
+
+- This release includes a number of performance improvements and bug fixes
+- New features have been added to convolutions for auto-tuning kernels
+- Activations now have new modes available
+- Documentation has been updated and corrected
+
+Changes:
+
+- Fixed documentation errors
+- Fixed bug in activations with pass-through mode
+- Fixed performance database locking issues
+- Fixed Winograd kernel behavior for stride 2 backwards data
+- Fixed a bug in OpTensor layer
+- Fixed a timing issue with batch normalization inline assembly 
+- Fixed issue with an unnecessary binary creation in assembly bug detection
+- Fixed issue with disk program cache directory not being created
+- Fixed a bug with convolution+bias
+- Added to performance database functionality
+- Added leaky-ReLU, clipped, and exponential-ReLU modes to activation
+- Added documentation for performance database usage
+- Added support for 1x1 convolutions with non-zero padding
+- Added API for printing status codes as strings
+- Added auto-tuning feature for convolutions
+- Improved LSTM and GRU backwards pass performance
+- Improved debug and error reporting information
+- Improved performance of batch normalization spatial mode
+- Improved find stage for convolutions
+- Improved readability for user database file
+
+Known Issues:
+
+- RNNs do not support fp16
+- Training with CNNs does not support fp16
+
 ### 03/30/2018 [ 1.3.0 ]
 
 Notes: 
