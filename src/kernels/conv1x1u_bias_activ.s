@@ -68,7 +68,7 @@ default fusion_mode, 0
 static_assert(fusion_mode || (bias_mode == 0 && activ_mode == MIOPEN_NEURON_PASTHRU))
 
 // kernarg layout:
-.if fusion_mode 
+.if fusion_mode && activ_mode && bias_mode 
 // dwords 0:0 - alpha_off 
 // dwords 1:1 - beta_off 
 // dwords 2:2 - beta_off 
@@ -83,6 +83,18 @@ static_assert(fusion_mode || (bias_mode == 0 && activ_mode == MIOPEN_NEURON_PAST
 .set out_ptr_off, 0x18
 .set wei_ptr_off, 0x20
 .set bias_ptr_off, 0x28
+.elseif fusion_mode && activ_mode
+.set alpha_off, 0x0
+.set beta_off, 0x4
+.set gamm_off, 0x8
+.set in_ptr_off, 0x10
+.set out_ptr_off, 0x18
+.set wei_ptr_off, 0x20
+.elseif fusion_mode && bias_mode
+.set in_ptr_off, 0x0
+.set out_ptr_off, 0x8
+.set wei_ptr_off, 0x10
+.set bias_ptr_off, 0x18
 .else
 // dwords 0:4 - n, c, H, W, k
 // dwords 5:7 - not used
