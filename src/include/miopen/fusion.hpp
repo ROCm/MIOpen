@@ -47,8 +47,7 @@ namespace solver {
 KernelInfo CBAFusionGetSolution(const ConvolutionContext& params);
 } // namespace solver
 
-// Supported operators, note this will be
-// superceded by a graph traversal
+// Supported operators
 enum miopenFusionOp_t
 {
     miopenFusionOpConvForward        = 0,
@@ -75,6 +74,7 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     FusionOpDescriptor& operator=(const FusionOpDescriptor&) = delete;
     void SetIdx(int _id) { plan_idx = _id; };
     int GetIdx() const { return plan_idx; };
+    virtual std::string MDGraphKey() const { return ""; };
     virtual miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) = 0;
     virtual miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
     virtual miopenStatus_t
@@ -101,6 +101,7 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
     SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t bdata);
     std::vector<std::string> GetArgs() const override;
     miopenFusionOp_t kind() override { return miopenFusionOpBiasForward; };
+    std::string MDGraphKey() const override;
     TensorDescriptor& base_desc;
 };
 
@@ -119,6 +120,7 @@ struct ActivFusionOpDescriptor : FusionOpDescriptor
                            double activGamma);
     std::vector<std::string> GetArgs() const override;
     miopenFusionOp_t kind() override { return miopenFusionOpActivForward; };
+    std::string MDGraphKey() const override;
     miopenActivationMode_t activMode;
 };
 
@@ -166,6 +168,8 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     bool isASMApplicable(Handle& handle);
     solver::KernelInfo& GetKernelInfo(Handle& handle);
     miopenFusionOp_t kind() override { return miopenFusionOpConvForward; };
+    std::string MDGraphKey() const override;
+
     ConvolutionDescriptor& base_desc;
     TensorDescriptor& filter_desc;
     miopenConvFwdAlgorithm_t algo;
@@ -209,45 +213,8 @@ struct FusionOpLU
     size_t cur_idx;
 };
 
-struct FusionPlanDescriptor : miopenFusionPlanDescriptor
-{
-    FusionPlanDescriptor(const miopenFusionDirection_t dir, const TensorDescriptor& inDesc)
-        : fusion_dir(dir), input_desc(inDesc), is_valid(false){};
-    ~FusionPlanDescriptor();
-    bool isValid() { return is_valid; };
-    miopenStatus_t AddOp(std::shared_ptr<FusionOpDescriptor> desc);
-    miopenStatus_t RemoveOp(FusionOpDescriptor& desc);
-    TensorDescriptor DeriveOutputDescriptor();
-    miopenStatus_t
-    GetWorkspaceSizeImmed(Handle& handle, size_t& workSpaceSize, miopenConvFwdAlgorithm_t algo);
-    miopenStatus_t Execute(Handle& handle,
-                           TensorDescriptor& inputDesc,
-                           ConstData_t input,
-                           TensorDescriptor& outputDesc,
-                           Data_t output,
-                           const OperatorArgs& op_args);
-    miopenStatus_t Compile(Handle& handle);
-    friend std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& x);
-
-    protected:
-    std::string GetKernelName(Handle& handle);
-    std::string GetProgramName();
-    auto GetLocalWGSz();
-    auto GetGlobalWGSz();
-
-    private:
-    miopenFusionDirection_t fusion_dir;
-    const TensorDescriptor& input_desc;
-    TensorDescriptor output_desc;
-    int op_count = 0;
-    std::vector<std::shared_ptr<FusionOpDescriptor>> op_map;
-    FusionOpLU lu;
-    bool is_valid;
-};
-
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenFusionOpDescriptor, miopen::FusionOpDescriptor);
-MIOPEN_DEFINE_OBJECT(miopenFusionPlanDescriptor, miopen::FusionPlanDescriptor);
 MIOPEN_DEFINE_OBJECT(miopenOperatorArgs, miopen::OperatorArgs);
 
 #endif // _MIOPEN_FUSION_HPP_
