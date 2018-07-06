@@ -585,6 +585,11 @@ struct conv_driver : test_driver
         std::tie(wei_k, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
         std::tie(std::ignore, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());
 
+        if(input_c == 1 && (input.desc.GetType() == miopenHalf))
+        { // Invalid config for conv
+            return;
+        }
+
         filter.mode        = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode = pmode_lookup[miopen::ToUpper(pad_mode)];
         filter.group_count =
