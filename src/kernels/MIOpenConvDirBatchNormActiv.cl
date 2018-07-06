@@ -1124,17 +1124,13 @@ __attribute__((always_inline)) void ActivationFunction(const uint n,
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __kernel void
 MIOpenConvUniBatchNormActiv(
-#ifndef NO_BN
-    const __global _FLOAT* __restrict estimatedMean,
-    const __global _FLOAT* __restrict estimatedVariance,
-    const __global _FLOAT* __restrict scale,
-    const __global _FLOAT* __restrict bn_bias,
-    double epsilon,
-#endif
 #ifdef MIOPEN_YES_ACTIV
     const _FLOAT alpha,
     const _FLOAT beta,
     const _FLOAT gamma,
+#endif
+#ifndef NO_BN
+    double epsilon,
 #endif
     const __global _FLOAT* __restrict in,
     __global _FLOAT* __restrict out,
@@ -1143,6 +1139,12 @@ MIOpenConvUniBatchNormActiv(
     ,
     const __global _FLOAT* __restrict conv_bias
 #endif
+#ifndef NO_BN
+    , const __global _FLOAT* __restrict bn_bias,
+    const __global _FLOAT* __restrict scale,
+    const __global _FLOAT* __restrict estimatedMean,
+    const __global _FLOAT* __restrict estimatedVariance
+#endif    
     )
 {
     __local _FLOAT lcl_indata[MLO_IN_LCL_SZ];
