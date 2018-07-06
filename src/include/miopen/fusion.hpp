@@ -165,6 +165,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm = false) override;
     bool isASMApplicable(Handle& handle);
     solver::KernelInfo& GetKernelInfo(Handle& handle);
+    solver::KernelInfo& GetKernelInfo(Handle& handle, std::string algorithm_name, std::string compile_config);
     miopenFusionOp_t kind() override { return miopenFusionOpConvForward; };
     ConvolutionDescriptor& base_desc;
     TensorDescriptor& filter_desc;
@@ -212,8 +213,9 @@ struct FusionOpLU
 struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 {
     FusionPlanDescriptor(const miopenFusionDirection_t dir, const TensorDescriptor& inDesc)
-        : fusion_dir(dir), input_desc(inDesc), is_valid(false){};
-    ~FusionPlanDescriptor();
+        : fusion_dir(dir), input_desc(inDesc), 
+        is_valid(false), is_asm_kernel(false), algorithm_name(""), network_config(""){};
+    ~FusionPlanDescriptor(){};
     bool isValid() { return is_valid; };
     miopenStatus_t AddOp(std::shared_ptr<FusionOpDescriptor> desc);
     miopenStatus_t RemoveOp(FusionOpDescriptor& desc);
@@ -231,7 +233,7 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 
     protected:
     std::string GetKernelName(Handle& handle);
-    std::string GetProgramName();
+    std::string GetProgramName(Handle& handle);
     auto GetLocalWGSz();
     auto GetGlobalWGSz();
 
@@ -243,6 +245,9 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     std::vector<std::shared_ptr<FusionOpDescriptor>> op_map;
     FusionOpLU lu;
     bool is_valid;
+    bool is_asm_kernel;
+    std::string algorithm_name;
+    std::string network_config;
 };
 
 } // namespace miopen
