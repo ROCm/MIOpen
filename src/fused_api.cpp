@@ -64,7 +64,7 @@ miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc)
 extern "C" miopenStatus_t miopenCompileFusionPlan(miopenHandle_t handle,
                                                   miopenFusionPlanDescriptor_t fusePlanDesc)
 {
-    MIOPEN_LOG_FUNCTION(handle, fusePlanDesc);
+    MIOPEN_LOG_FUNCTION(/*handle,*/ fusePlanDesc);
     return miopen::try_([&] { miopen::deref(fusePlanDesc).Compile(miopen::deref(handle)); });
 }
 

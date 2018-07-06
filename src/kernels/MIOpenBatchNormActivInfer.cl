@@ -574,16 +574,18 @@ __attribute__((always_inline)) void BatchNormFunctionSpatial(const uint n,
 }
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-MIOpenBatchNormActivInferSpatialEst(const __global _FLOAT* __restrict in, /* x input */
-                                    __global _FLOAT* __restrict out,      /* y output */
-                                    const __global _FLOAT* __restrict estimatedMean,
-                                    const __global _FLOAT* __restrict estimatedVariance,
-                                    const __global _FLOAT* __restrict scale,
-                                    const __global _FLOAT* __restrict bias,
-                                    double epsilon,
-                                    const _FLOAT gamma,
+MIOpenBatchNormActivInferSpatialEst(
+                                    const _FLOAT alpha,
                                     const _FLOAT beta,
-                                    const _FLOAT alpha)
+                                    const _FLOAT gamma,
+                                    double epsilon,
+                                    const __global _FLOAT* __restrict in, /* x input */
+                                    __global _FLOAT* __restrict out,      /* y output */
+                                    const __global _FLOAT* __restrict bias,
+                                    const __global _FLOAT* __restrict scale,
+                                    const __global _FLOAT* __restrict estimatedMean,
+                                    const __global _FLOAT* __restrict estimatedVariance
+                                    )
 {
     int gid0 = get_global_id(0);
     int gid1 = get_global_id(1);
@@ -646,16 +648,16 @@ __attribute__((always_inline)) void BatchNormFunctionPerAct(const uint n,
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormActivInferPerActEst(
+    const _FLOAT alpha,
+    const _FLOAT beta,
+    const _FLOAT gamma,
+    double epsilon,
     const __global _FLOAT* in,                       /* x input */
     __global _FLOAT* __restrict out,                 /* y output */
-    const __global _FLOAT* __restrict estimatedMean, /*input and output, same descriptor as bias*/
-    const __global _FLOAT* __restrict estimatedVariance, /*input and output*/
-    const __global _FLOAT* __restrict scale,             /* gamma 1xCxHxW */
     const __global _FLOAT* __restrict bias,              /* beta 1xCxHxW */
-    double epsilon,
-    const _FLOAT gamma,
-    const _FLOAT beta,
-    const _FLOAT alpha)
+    const __global _FLOAT* __restrict scale,             /* gamma 1xCxHxW */
+    const __global _FLOAT* __restrict estimatedMean, /*input and output, same descriptor as bias*/
+    const __global _FLOAT* __restrict estimatedVariance /*input and output*/)
 {
     int gid0 = get_global_id(0);
     int gid1 = get_global_id(1);

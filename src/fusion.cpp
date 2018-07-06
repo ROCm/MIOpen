@@ -31,8 +31,6 @@
 
 namespace miopen {
 
-FusionPlanDescriptor::~FusionPlanDescriptor() { op_map.clear(); }
-
 miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> desc)
 {
     desc->SetIdx(op_count);
@@ -212,11 +210,11 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::SetArgs(OperatorArgs& args,
     auto estimatedMean_any     = any_t(estimatedMean);
     auto estimatedVariance_any = any_t(estimatedVariance);
     auto epsilon_any           = any_t(static_cast<double>(epsilon));
+    args.ins_arg("epsilon" + id, epsilon_any);
     args.ins_arg("bnScale" + id, bnScale_any);
     args.ins_arg("bnBias" + id, bnBias_any);
     args.ins_arg("estimatedMean" + id, estimatedMean_any);
     args.ins_arg("estimatedVariance" + id, estimatedVariance_any);
-    args.ins_arg("epsilon" + id, epsilon_any);
     return miopenStatusSuccess;
 }
 
@@ -226,11 +224,11 @@ std::vector<std::string> BatchNormInferenceFusionOpDescriptor::GetArgs() const
     auto id = std::to_string(GetIdx());
     // keys.push_back("alpha" + id);
     // keys.push_back("beta" + id);
+    keys.push_back("epsilon" + id);
     keys.push_back("bnScale" + id);
     keys.push_back("bnBias" + id);
     keys.push_back("estimatedMean" + id);
     keys.push_back("estimatedVariance" + id);
-    keys.push_back("epsilon" + id);
     return keys;
 }
 
@@ -302,21 +300,58 @@ bool FusionOpLU::Advance(std::vector<std::shared_ptr<miopen::FusionOpDescriptor>
     return vec;
 }
 */
-std::string FusionPlanDescriptor::GetKernelName(Handle& handle)
+
+std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
 {
+
     auto starting_op = op_map.at(0);
     if(starting_op->kind() == miopenFusionOpConvForward)
     {
         auto ki =
             std::dynamic_pointer_cast<ConvForwardOpDescriptor>(starting_op)->GetKernelInfo(handle);
-        return ki.kernel_name;
+        return ki.kernel_file;
     }
     else if(starting_op->kind() == miopenFusionOpBatchNormInference)
     {
-        /*        auto ki =
-                    std::dynamic_pointer_cast<BatchNormInferenceFusionOpDescriptor>(starting_op)->GetKernelInfo(handle);
-                return ki.kernel_name;*/
-        return "";
+        // This is hardcoded to assume that batch norm is first AND that 
+        // activations is the next fusion. Currently no other fusion exists
+        // where BN is the op_head.
+        return "MIOpenBatchNormActivInfer.cl";
+    }
+    else
+    {
+        MIOPEN_THROW("Unsupported starting op in Fusion Plan");
+    }
+
+}
+
+
+
+std::string FusionPlanDescriptor::GetKernelName(Handle& handle)
+{
+    auto ops_head = op_map.at(0);
+    if(ops_head->kind() == miopenFusionOpConvForward)
+    {
+        auto ki =
+            std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head)->GetKernelInfo(handle);
+        return ki.kernel_name;
+    }
+    else if(ops_head->kind() == miopenFusionOpBatchNormInference)
+    {
+        // This is hardcoded to assume that batch norm is first AND that 
+        // activations is the next fusion. Currently no other fusion exists
+        // where BN is the op_head.
+        auto bnOp = std::dynamic_pointer_cast<miopen::BatchNormInferenceFusionOpDescriptor>(ops_head);
+        auto bn_mode = bnOp->mode;
+        if(bn_mode == miopenBNSpatial)
+        {
+            return "MIOpenBatchNormActivInferSpatialEst";
+            
+        }
+        else
+        {
+            return "MIOpenBatchNormActivInferPerActEst";
+        }
     }
     else
     {
@@ -331,11 +366,12 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     {
         MIOPEN_THROW("Trying to compile and invalid FusionPlan");
     }
-    std::string network_config{};
+    //std::string network_config{};
+    network_config = "";
     std::string program_name{};
     std::string kernel_name{};
     // TODO: move the hard coded algo name to the LUT
-    std::string algorithm_name{}; // = "miopenDirConvBatchNormActivAlgo";
+    //std::string algorithm_name{}; // = "miopenDirConvBatchNormActivAlgo";
     // TODO: The fusion plan is keeping track of the insertion order,
     // should we move this to the Graph ?
     for(auto&& op : op_map)
@@ -343,33 +379,42 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         op->GetNetworkConfig(network_config, handle);
     }
     // Check if the kernel is assembly or OpenCL
-    bool is_asm_kernel = false;
+    is_asm_kernel = false;
+    bool fp_contains_bn   = false;
     // TODO: The Metadata graph should return this info
     auto ops_head = op_map[0]; // ins_order[0]];
+    for(auto&& op : op_map)
+    { // This needs to go away with the meta graph. 
+        if(op->kind() == miopenFusionOpBatchNormInference) {
+            printf("Fusion plan contains batch norm.\n");
+            fp_contains_bn = true;
+            break;
+        }
+    }
     if(ops_head->kind() == miopenFusionOpConvForward)
     {
         auto ops_conv = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head);
-        is_asm_kernel = ops_conv->isASMApplicable(handle);
-        if(is_asm_kernel)
-        {
-            algorithm_name = "miopenConvolutionDirectBiasActivAsm";
+
+        if(!fp_contains_bn){ //If we get BN asm code then we can do this....
+            is_asm_kernel = ops_conv->isASMApplicable(handle);
+            if(is_asm_kernel)
+            {
+                algorithm_name = "miopenConvolutionDirectBiasActivAsm";
+            }
+            else
+            {
+                algorithm_name = "miopenConvolutionDirectBiasActiv";
+            }
         }
         else
         {
-            algorithm_name = "miopenConvolutionDirectBiasActiv";
+            std::cout << "Is this an assembly kernel? " << is_asm_kernel << std::endl;
+            algorithm_name = "miopenConvDirectBatchNormBiasActiv";
         }
     }
     else if(ops_head->kind() == miopenFusionOpBatchNormInference)
     {
         algorithm_name = "miopenBatchNormActivInferAlgo";
-        if(ops_head.mode == miopenBNSpatial)
-        {
-            kernel_name = "MIOpenBatchNormActivInferSpatialEst";
-        }
-        else
-        {
-            kernel_name = "MIOpenBatchNormActivInferPerActEst";
-        }
     }
     else
     {
@@ -387,36 +432,96 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         for(auto&& op : op_map)
         {
             op->GetCompileParms(compile_config, handle, is_asm_kernel);
+
+        }
+        auto dType = input_desc.GetType();
+        if(dType == miopenFloat)
+        {
+            compile_config += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+        }
+        else
+        {
+            compile_config += " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
         }
 
         if(ops_head->kind() == miopenFusionOpConvForward)
         {
 
+            // DLOWELL: This is a hack to prevent ASM kernels from being called
             auto ki =
-                std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head)->GetKernelInfo(handle);
-            program_name = ki.kernel_file;
-            kernel_name  = ki.kernel_name;
+                std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head)->GetKernelInfo(handle, algorithm_name, compile_config);
+            // We should use GetKernelName() and GetProgram name at this point.
+            /*program_name = ki.kernel_file; 
+            kernel_name  = ki.kernel_name;*/
             // const auto parms = compile_config;
             const auto& vld = ki.l_wk;
             const auto& vgd = ki.g_wk;
-
+            printf("Add Kerne Compiler options: %s\n", compile_config.c_str());
             handle.AddKernel(algorithm_name,
                              network_config,
-                             program_name,
-                             kernel_name,
+                             GetProgramName(handle),
+                             GetKernelName(handle),
                              vld,
                              vgd,
                              compile_config);
             status = miopenStatusSuccess;
         }
         else if(ops_head->kind() == miopenFusionOpBatchNormInference)
-        {
-            auto ki = std::dynamic_pointer_cast<BatchNormInferenceFusionOpDescriptor>(ops_head)
-                          ->GetKernelInfo(handle);
+        { 
+
+            std::vector<size_t> vld{256, 1, 1};
+            // This is hardcoded to assume that batch norm is first AND that 
+            // activations is the next fusion. Currently no other fusion exists
+            // where BN is the op_head.
+            // \todo this needs to be dynamic and based on information for a single source.
+
+            int n, c, h, w;
+
+            // The output_desc should be fully formed by this stage.
+            std::tie(n, c, h, w) = tien<4>(output_desc.GetLengths());
+            printf("n: %d, c: %d, h: %d, w: %d\n",n,c,h,w);
+            auto bnOp = std::dynamic_pointer_cast<miopen::BatchNormInferenceFusionOpDescriptor>(ops_head);
+            auto bn_mode = bnOp->mode;
+            size_t read_unit = 0;
+            size_t read_len  = (bn_mode == miopenBNSpatial) ? h * w : c * h * w;
+
+            if(bn_mode /*ops_head->mode*/ == miopenBNSpatial)
+            {
+                read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
+            }
+            else
+            {
+                read_unit = 1;
+            }
+            compile_config += " -DMIO_BN_CHW=" + std::to_string(c*h*w)
+                            + " -DMIO_BN_HW=" + std::to_string(h*w)
+                            + " -DMIO_BN_N=" + std::to_string(n)
+                            + " -DMIO_BN_GRP0=" + std::to_string(vld.at(0))
+                            + " -DMIO_BN_GRP1=" + std::to_string(1)
+                            + " -DMIO_BN_GRP2=" + std::to_string(1);
+
+
+            printf("read_len: %d, read_unit: %d\n",read_len,read_unit);
+            size_t xgridsize = read_len / read_unit;
+            size_t ygridsize = (bn_mode == miopenBNSpatial) ? size_t(c) : 1;
+            size_t zgridsize = 1;
+
+            std::vector<size_t> vgd{};
+            vgd.push_back(xgridsize);
+            vgd.push_back(ygridsize);
+            vgd.push_back(zgridsize);
+
+            std::cout << "vld: " << vld.at(0) << ", " << vld.at(1) << ", " << vld.at(2) << std::endl;
+            std::cout << "vgd: " << vgd.at(0) << ", " << vgd.at(1) << ", " << vgd.at(2) << std::endl;
+
+            std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
+            compile_config += " -DMIOPEN_READ_UNIT=" + std::to_string(read_unit);
+            compile_config += " -DMIOPEN_READ_TYPE=" + READ_TYPE;
+            std::cout << "Compiler parameters: " << compile_config << std::endl;
             handle.AddKernel(algorithm_name,
                              network_config,
-                             program_name,
-                             kernel_name,
+                             GetProgramName(handle),
+                             GetKernelName(handle),
                              vld,
                              vgd,
                              compile_config);
@@ -450,30 +555,10 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     {
         MIOPEN_THROW("The input descriptors dont match.");
     }
-    // TODO: repeated code to check if the kernel is an ASM kernel
-    bool is_asm_kernel = false;
-    // TODO: The Metadata graph should return this info
-    auto ops_head = op_map[0]; // ins_order[0]];
-    std::string network_config{};
-    std::string algorithm_name{};
-    if(ops_head->kind() == miopenFusionOpConvForward)
-    {
-        auto ops_conv = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head);
-        is_asm_kernel = ops_conv->isASMApplicable(handle);
-        if(is_asm_kernel)
-        {
-            algorithm_name = "miopenConvolutionDirectBiasActivAsm";
-        }
-        else
-        {
-            algorithm_name = "miopenConvolutionDirectBiasActiv";
-        }
-    }
 
-    for(auto&& op : op_map)
-    {
-        op->GetNetworkConfig(network_config, handle);
-    }
+    // TODO: The Metadata graph should return this info
+    auto ops_head = op_map[0]; 
+
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
     if(kernels.empty())
     {
@@ -482,8 +567,10 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     KernelInvoke kernel = kernels.front();
 
     // Construct the kernel args
-    std::set<size_t> arg_sizes;
-    std::map<std::pair<size_t, size_t>, std::vector<std::string>> size_map;
+    std::set<size_t> arg_sizes; //a set of argument sizes
+    // A map between argument sizes and argument names
+    std::map<std::pair<size_t, size_t>, std::vector<std::string>> size_map; 
+    // A map between argument pointers (buffers) and argument names
     std::map<size_t, std::vector<std::string>> ptr_map;
 
     for(auto idx = 0; idx < op_map.size(); idx++)
@@ -512,7 +599,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     }
 
     std::vector<any_t> args;
-    for(auto sz : arg_sizes)
+    for(auto sz : arg_sizes) //Populate args for scalars
     {
         for(auto idx = 0; idx < op_map.size(); idx++)
         {
@@ -521,6 +608,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             std::sort(keys.begin(), keys.end());
             for(auto key : keys)
             {
+                std::cout << "Populate scalar args, key: " << key << std::endl;
                 auto it = op_args.args_map.find(key);
                 if(it != op_args.args_map.end())
                 {
@@ -534,19 +622,20 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     args.emplace_back(any_t(output));
     // add other pointers in op-order
     for(auto idx = 0; idx < op_map.size(); idx++)
-    {
+    { // Populate args for pointers based operator order
         auto op   = op_map[idx];
         auto keys = ptr_map[idx];
         std::sort(keys.begin(), keys.end());
         for(auto key : keys)
         {
+            std::cout << "Populate arg pointers, key: " << key << std::endl;
             auto it = op_args.args_map.find(key);
             if(it != op_args.args_map.end())
                 args.push_back(it->second);
         }
     }
     if(is_asm_kernel)
-    {
+    { // Padded arguments 
         std::vector<any_t> padded_args;
         size_t running_sz = args[0].size();
         padded_args.push_back(std::move(args[0]));
@@ -557,6 +646,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                 auto padding = running_sz % args[idx].size();
                 if(padding != 0)
                 {
+                    printf("*************  Adding padding: %d\n", padding);
                     any_t tmp(0, padding);
                     padded_args.push_back(tmp);
                     running_sz += padding;
