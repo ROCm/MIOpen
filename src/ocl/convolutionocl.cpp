@@ -453,8 +453,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 }
             }
             // 1x1_stride=1 with GEMM and zero workspace
-            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
-                    dilation_w == 1 && dilation_h == 1)
+            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1))
             {
                 MIOPEN_LOG_FUNCTION("convolution, 1x1");
 
@@ -918,8 +917,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     handle.AccumKernelTime(t1);
                 }
             }
-            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
-                    dilation_w == 1 && dilation_h == 1)
+            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1))
             {
                 MIOPEN_LOG_FUNCTION("convolution, 1x1");
 
@@ -1424,8 +1422,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                               BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc)});
             }
             // 1x1_stride=1 convolutions use GEMM and zero workspace
-            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
-                    dilation_w == 1 && dilation_h == 1)
+            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1))
             {
                 MIOPEN_LOG_FUNCTION("convolution, 1x1");
 
@@ -1764,8 +1761,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 }
             }
             // 1x1_stride=1 convolutions use GEMM and zero workspace
-            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
-                    dilation_w == 1 && dilation_h == 1)
+            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1))
             {
                 MIOPEN_LOG_FUNCTION("convolution, 1x1");
 
@@ -2141,8 +2137,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         if(dyDesc.GetType() == miopenFloat)
         {
             // if not 1x1
-            if((wei_h != 1 || wei_w != 1 || pad_h != 0 || pad_w != 0 || u != 1 || v != 1 ||
-                dilation_w != 1 || dilation_h != 1) &&
+            if((wei_h != 1 || wei_w != 1 || pad_h != 0 || pad_w != 0 || u != 1 || v != 1) &&
                (workSpace != nullptr &&
                 workSpaceSize >= BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc)))
             {
@@ -2182,8 +2177,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                               BackwardWeightsGetWorkSpaceSizeGEMM(handle, dyDesc, dwDesc)});
             }
             // 1x1 does not require im2col or workspace
-            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
-                    dilation_w == 1 && dilation_h == 1)
+            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1))
             {
                 MIOPEN_LOG_FUNCTION("convolution, 1x1");
 
@@ -2351,8 +2345,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
             handle.ResetKernelTime();
 
-            if(wei_h != 1 || wei_w != 1 || pad_h != 0 || pad_w != 0 || u != 1 || v != 1 ||
-               dilation_w != 1 || dilation_h != 1)
+            if(wei_h != 1 || wei_w != 1 || pad_h != 0 || pad_w != 0 || u != 1 || v != 1)
             {
                 MIOPEN_LOG_FUNCTION("convolution, non 1x1");
 
@@ -2406,8 +2399,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     }
                 }
             }
-            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1) &&
-                    dilation_w == 1 && dilation_h == 1)
+            else if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 1 && v == 1))
             {
                 MIOPEN_LOG_FUNCTION("convolution, 1x1");
 
