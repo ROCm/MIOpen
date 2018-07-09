@@ -231,7 +231,8 @@ endif()
 if(miopengemm_FOUND)
     list(APPEND MIOpen_Source
         gemm.cpp
-        gemm_api.cpp
+        gemm_v2.cpp
+        miopengemm.cpp
         gemm_geometry.cpp
     )
 endif()
@@ -331,6 +332,11 @@ endif()
 if(miopengemm_FOUND)
     list(APPEND PACKAGE_DEPENDS PACKAGE miopengemm)
     target_internal_library(MIOpen miopengemm)
+endif()
+
+if(rocblas_FOUND)
+    target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:roc::rocblas> )
+    target_link_libraries( MIOpen PRIVATE roc::rocblas )
 endif()
 
 if(WIN32 AND NOT MSVC)

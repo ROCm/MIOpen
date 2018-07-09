@@ -177,6 +177,10 @@ Handle::Handle(miopenAcceleratorQueue_t stream) : impl(new HandleImpl())
         this->impl->stream = HandleImpl::reference_stream(stream);
 
     this->SetAllocator(nullptr, nullptr, nullptr);
+
+#if MIOPEN_USE_ROCBLAS
+    rhandle = CreateRocblasHandle();
+#endif
 }
 
 Handle::Handle() : impl(new HandleImpl())
@@ -191,6 +195,10 @@ Handle::Handle() : impl(new HandleImpl())
     this->impl->stream = HandleImpl::reference_stream(nullptr);
 #endif
     this->SetAllocator(nullptr, nullptr, nullptr);
+
+#if MIOPEN_USE_ROCBLAS
+    rhandle = CreateRocblasHandle();
+#endif
 }
 
 Handle::~Handle() {}
@@ -381,4 +389,15 @@ shared<ConstData_t> Handle::CreateSubBuffer(ConstData_t data, std::size_t offset
     auto cdata = reinterpret_cast<const char*>(data);
     return {cdata + offset, null_deleter{}};
 }
+
+#if MIOPEN_USE_ROCBLAS
+rocblas_handle_ptr Handle::CreateRocblasHandle() const
+{
+    rocblas_handle x = nullptr;
+    rocblas_create_handle(&x);
+    auto result = rocblas_handle_ptr{x};
+    rocblas_set_stream(result.get(), GetStream());
+    return result;
+}
+#endif
 } // namespace miopen
