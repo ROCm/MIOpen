@@ -140,7 +140,9 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue()
             break;
         if(!NextTwoPower<1, 64>(chunk_size))
             break;
-        if(!NextLinear<1, 8>(n_blocks_per_wave))
+        if(!NextLinear<1, 8>(n_mult))
+            break;
+        if(!NextTwoPower<1, 32>(c_mult))
             break;
         if(!NextLinear<1, 8>(waves_in_group))
             break;
@@ -154,14 +156,16 @@ PerformanceConfigConvAsm1x1U::PerformanceConfigConvAsm1x1U(int read_size_,
                                                            int k_mult_,
                                                            int chunks_per_wave_,
                                                            int chunk_size_,
-                                                           int n_blocks_per_wave_,
+                                                           int n_mult_,
+                                                           int c_mult_,
                                                            int waves_in_group_,
                                                            bool use_spare_set_)
     : read_size(read_size_),
       k_mult(k_mult_),
       chunks_per_wave(chunks_per_wave_),
       chunk_size(chunk_size_),
-      n_blocks_per_wave(n_blocks_per_wave_),
+      n_mult(n_mult_),
+      c_mult(c_mult_),
       waves_in_group(waves_in_group_),
       use_spare_set(use_spare_set_)
 {
@@ -175,7 +179,8 @@ operator==(const PerformanceConfigConvAsm1x1U& other) const
         && k_mult == other.k_mult
         && chunks_per_wave == other.chunks_per_wave
         && chunk_size == other.chunk_size
-        && n_blocks_per_wave == other.n_blocks_per_wave
+        && n_mult == other.n_mult
+        && c_mult == other.c_mult
         && waves_in_group == other.waves_in_group
         && use_spare_set == other.use_spare_set; // clang-format on
 }
@@ -187,7 +192,8 @@ bool PerformanceConfigConvAsm1x1U::IsValidValue() const
         && Is_1_4_8_12__32(k_mult)
         && IsLinear<1,16>(chunks_per_wave)
         && IsTwoPower<1,64>(chunk_size)
-        && IsLinear<1,8>(n_blocks_per_wave)
+        && IsLinear<1,8>(n_mult)
+        && IsTwoPower<1,32>(c_mult)
         && IsLinear<1,8>(waves_in_group); // clang-format on
 }
 
@@ -201,25 +207,31 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
         return false;
     if(!(k_mult <= config.n_outputs))
         return false;
-    const int in_gprs  = chunks_per_wave * n_blocks_per_wave;
+    const int in_gprs  = chunks_per_wave * n_mult;
     const int acc_gprs = in_gprs * k_mult;
-    const int vgprs    = 4 + 2 * in_gprs + acc_gprs;
+    const int vgprs    = 4 + 2 * in_gprs * c_mult + acc_gprs;
     if(!(vgprs < 256))
         return false;
     const int max_waves_per_CU = (256 / vgprs) * 4;
     if(!(max_waves_per_CU >= waves_in_group))
         return false;
-    const int sgprs = 24 + 2 * k_mult;
+    const int sgprs = 24 + 2 * k_mult * c_mult;
     if(!(sgprs < 102)) /// \todo This is valid for Gfx8 and Gfx9. Check for newer parts.
         return false;
     const int total_n_blocks = (config.batch_sz + GetNPerGpr() - 1) / GetNPerGpr();
-    if(!(n_blocks_per_wave <= total_n_blocks))
+    if(!(n_mult <= total_n_blocks))
         return false;
     const int img_hw       = config.out_height * config.out_width;
     const int total_chunks = (img_hw + chunk_size - 1) / chunk_size;
     if(!(chunks_per_wave <= total_chunks))
         return false;
+    int c_per_wave      = (config.n_inputs + waves_in_group - 1) / waves_in_group;
+    int c_per_last_wave = config.n_inputs - (c_per_wave * (waves_in_group - 1));
+
     if(config.direction.IsBackwardData() && !(config.n_outputs % k_mult == 0))
+        return false;
+    if(config.direction.IsForward() &&
+       !((c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0)))
         return false;
     return true;
 }
@@ -233,8 +245,9 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
         // Narrow search space in optimized mode.
         if (! ((use_spare_set ? Is_1_4(k_mult) : IsTwoPower<16,32>(k_mult))
             && IsLinear<1,8>(chunks_per_wave)
-            && (use_spare_set ? Is_1_4(chunk_size) : IsTwoPower<16,64>(chunk_size))
-            && IsLinear<1,4>(n_blocks_per_wave)
+            && (use_spare_set ? Is_1_4(chunk_size) : IsTwoPower<8,64>(chunk_size))
+            && IsLinear<1,4>(n_mult)
+            && IsTwoPower<1,2>(c_mult)
             && IsLinear<1,4>(waves_in_group)))
             return false;
     } // clang-format on
@@ -243,22 +256,24 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
 
 void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config)
 {
-    read_size         = 4;
-    k_mult            = 16;
-    chunks_per_wave   = 1;
-    chunk_size        = 16;
-    n_blocks_per_wave = 1;
-    waves_in_group    = 1;
+    read_size       = 4;
+    k_mult          = 16;
+    chunks_per_wave = 1;
+    chunk_size      = 16;
+    n_mult          = 1;
+    c_mult          = 1;
+    waves_in_group  = 1;
 
     if(!IsValidForProblem(config))
     {
         MIOPEN_LOG_I("!IsValidForProblem(): " << ToString() << ". Conservative re-init...");
-        read_size         = 1;
-        k_mult            = 1;
-        chunks_per_wave   = 1;
-        chunk_size        = 1;
-        n_blocks_per_wave = 1;
-        waves_in_group    = 1;
+        read_size       = 1;
+        k_mult          = 1;
+        chunks_per_wave = 1;
+        chunk_size      = 1;
+        n_mult          = 1;
+        c_mult          = 1;
+        waves_in_group  = 1;
         assert(IsValidForProblem(config));
     }
     MIOPEN_LOG_I(ToString());
@@ -483,7 +498,8 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "k_mult", pcfg->GetKMult());
     GenerateClangDefsym(options, "chunks_per_wave", pcfg->GetChunksPerWave());
     GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
-    GenerateClangDefsym(options, "n_blocks_per_wave", pcfg->GetNBlocksPerWave());
+    GenerateClangDefsym(options, "n_mult", pcfg->GetNMult());
+    GenerateClangDefsym(options, "c_mult", pcfg->GetCMult());
     GenerateClangDefsym(options, "waves_in_group", pcfg->GetWavesInGroup());
 
     KernelInfo kinfo;
@@ -502,7 +518,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         divide_round_plus_inf(AsmImgHeight(params) * AsmImgWidth(params), hw_per_wave));
 
     kinfo.g_wk.push_back(divide_round_plus_inf(params.n_outputs, pcfg->GetKMult()));
-    const int n_images_per_wave = pcfg->GetNBlocksPerWave() * pcfg->GetNPerGpr();
+    const int n_images_per_wave = pcfg->GetNMult() * pcfg->GetNPerGpr();
     kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_images_per_wave));
 
     kinfo.kernel_file = "conv1x1u.s";
