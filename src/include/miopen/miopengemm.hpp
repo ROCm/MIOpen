@@ -23,21 +23,38 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CONFIG_H_IN
-#define GUARD_CONFIG_H_IN
+#ifndef GUARD_MIOPEN_MIOPENGEMM_HPP_
+#define GUARD_MIOPEN_MIOPENGEMM_HPP_
 
-#cmakedefine01 MIOPEN_BACKEND_OPENCL
-#cmakedefine01 MIOPEN_BACKEND_HCC
-#cmakedefine01 MIOPEN_BACKEND_HIP
-#cmakedefine01 MIOPEN_USE_MIOPENGEMM
-#cmakedefine01 MIOPEN_USE_ROCBLAS
-#cmakedefine01 MIOPEN_BUILD_DEV
-#cmakedefine01 MIOPEN_GPU_SYNC
+#include <miopen/config.h>
 
-#cmakedefine MIOPEN_AMDGCN_ASSEMBLER "@MIOPEN_AMDGCN_ASSEMBLER@"
-#cmakedefine HIP_OC_COMPILER "@HIP_OC_COMPILER@"
-#cmakedefine MIOPEN_CACHE_DIR "@MIOPEN_CACHE_DIR@"
+#if MIOPEN_USE_MIOPENGEMM
+#include <miopengemm/miogemm.hpp>
 
-#define MIOPEN_USE_GEMM (MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS)
+namespace miopen {
 
-#endif
+void AddMiopengemmSolution(Handle& handle,
+                           const std::string& algorithm_name,
+                           const std::string& network_config,
+                           const MIOpenGEMM::Geometry& mgg,
+                           ConstData_t A,
+                           ConstData_t B,
+                           Data_t C,
+                           float time,
+                           bool enforce_determinism);
+
+void RunMiopengemmSolution(Handle& handle,
+                           const decltype(handle.GetKernels("_", "_"))& kernels,
+                           float alpha,
+                           ConstData_t A,
+                           int a_offset,
+                           ConstData_t B,
+                           int b_offset,
+                           float beta,
+                           Data_t C,
+                           int c_offset);
+
+} // namespace miopen
+#endif // MIOPEN_USE_MIOPENGEMM
+
+#endif // GUARD_MIOPEN_MIOPENGEMM_HPP_
