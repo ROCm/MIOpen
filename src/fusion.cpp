@@ -500,8 +500,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
                             + " -DMIO_BN_GRP1=" + std::to_string(1)
                             + " -DMIO_BN_GRP2=" + std::to_string(1);
 
-
-            printf("read_len: %d, read_unit: %d\n",read_len,read_unit);
+            std::cout << "read_len: " << read_len << ", read_unit: " << read_unit << std::endl;
             size_t xgridsize = read_len / read_unit;
             size_t ygridsize = (bn_mode == miopenBNSpatial) ? size_t(c) : 1;
             size_t zgridsize = 1;
@@ -646,7 +645,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                 auto padding = running_sz % args[idx].size();
                 if(padding != 0)
                 {
-                    printf("*************  Adding padding: %d\n", padding);
+                    std::cout << "*************  Adding padding: " << padding << std::endl;
                     any_t tmp(0, padding);
                     padded_args.push_back(tmp);
                     running_sz += padding;
