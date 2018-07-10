@@ -33,7 +33,6 @@
 .type gcnAsmConv1x1U,@function
 .amdgpu_hsa_kernel gcnAsmConv1x1U
 
-
 .include "gpr_alloc.inc"
 .include "common.inc"
 .include "inst_wrappers.inc"
@@ -189,8 +188,8 @@ output_buffer_size = output_n_stride * batch_size
     .SGPR_ALLOC soffset_out
     .SGPR_ALLOC soffset_wei
     .SGPR_ALLOC desc_in, 4 // input buffer descriptor
-    .SGPR_ALLOC desc_out, 4	// weights buffer descriptor
-    .SGPR_ALLOC desc_wei, 4	// output buffer descriptor
+    .SGPR_ALLOC desc_out, 4 // weights buffer descriptor
+    .SGPR_ALLOC desc_wei, 4 // output buffer descriptor
     .SGPR_ALLOC filtersA, k_mult * c_mult, 1
     .if .SGPR_NEXT_FREE % 4
         .SGPR_ALLOC_ONCE wave_id // wave_id in group
