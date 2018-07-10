@@ -245,7 +245,7 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
         // Narrow search space in optimized mode.
         if (! ((use_spare_set ? Is_1_4(k_mult) : IsTwoPower<16,32>(k_mult))
             && IsLinear<1,8>(chunks_per_wave)
-            && (use_spare_set ? Is_1_4(chunk_size) : IsTwoPower<8,64>(chunk_size))
+            && (use_spare_set ? Is_1_4(chunk_size) : IsTwoPower<16,64>(chunk_size))
             && IsLinear<1,4>(n_mult)
             && IsTwoPower<1,2>(c_mult)
             && IsLinear<1,4>(waves_in_group)))
