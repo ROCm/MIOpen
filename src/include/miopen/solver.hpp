@@ -450,15 +450,15 @@ struct ConvAsm3x3U : SolverBase<ConvolutionContext>
 
 struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
 {
-    // ------------------- // Full set          Optimized       Spare
+    // ----------------- // Full set          Optimized       Spare
     // ----------------------------------------------------------------------------
-    int read_size;         // [1..4]            <same>          <same>
-    int k_mult;            // 1,[4,8,12..32]    16,32           1,4
-    int chunks_per_wave;   // [1..16]           [1..8]          <same>
-    int chunk_size;        // 2^n[1..64]        2^n[16..64]     1,4
-    int n_mult;            // [1..8]            [1..4]          <same>
-    int c_mult;            // 2^n[1..32]        2^n[1,2]        <same>
-    int waves_in_group;    // [1..8]            [1..4]          <same>
+    int read_size;       // [1..4]            <same>          <same>
+    int k_mult;          // 1,[4,8,12..32]    16,32           1,4
+    int chunks_per_wave; // [1..16]           [1..8]          <same>
+    int chunk_size;      // 2^n[1..64]        2^n[16..64]     1,4
+    int n_mult;          // [1..8]            [1..4]          <same>
+    int c_mult;          // 2^n[1..32]        2^n[1,2]        <same>
+    int waves_in_group;  // [1..8]            [1..4]          <same>
     bool use_spare_set;
 
     PerformanceConfigConvAsm1x1U(int, int, int, int, int, int, int, bool);
