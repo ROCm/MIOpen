@@ -207,9 +207,9 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
         return false;
     if(!(k_mult <= config.n_outputs))
         return false;
-    const int in_gprs  = chunks_per_wave * n_mult;
-    const int acc_gprs = in_gprs * k_mult;
-    const int vgprs    = 4 + 2 * in_gprs * c_mult + acc_gprs;
+    const int in_gprs  = chunks_per_wave * n_mult * c_mult;
+    const int acc_gprs = chunks_per_wave * n_mult * k_mult;
+    const int vgprs    = 4 + 2 * in_gprs + acc_gprs;
     if(!(vgprs < 256))
         return false;
     const int max_waves_per_CU = (256 / vgprs) * 4;
