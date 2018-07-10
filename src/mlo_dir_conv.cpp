@@ -281,21 +281,21 @@ n of input blocks
 n batchs (stacks) processed by the group
 */
 
-int mlo_construct_direct2D::mloBuildConf_Key(std::string& conf_key) const
+int miopen::ProblemDescription::mloBuildConf_Key(std::string& conf_key) const
 {
 
     conf_key =
-        std::to_string(static_cast<long long>(_search_params.n_inputs)) + std::string("x") +
-        std::to_string(static_cast<long long>(_search_params.in_height)) + std::string("x") +
-        std::to_string(static_cast<long long>(_search_params.in_width)) + std::string("x") +
-        std::to_string(static_cast<long long>(_search_params.kernel_size1)) + std::string("x") +
-        std::to_string(static_cast<long long>(_search_params.kernel_size0)) + std::string("x") +
-        std::to_string(static_cast<long long>(_search_params.n_outputs)) + std::string("x") +
-        std::to_string(static_cast<long long>(_search_params.out_height)) + std::string("x") +
-        std::to_string(static_cast<long long>(_search_params.out_width)) + std::string("x") +
-        std::to_string(static_cast<long long>(_search_params.batch_sz)) + std::string("x") +
-        _search_params.in_layout + std::string("x") + _search_params.in_data_type +
-        std::string("x") + (_search_params.direction.IsForward()
+        std::to_string(static_cast<long long>(n_inputs)) + std::string("x") +
+        std::to_string(static_cast<long long>(in_height)) + std::string("x") +
+        std::to_string(static_cast<long long>(in_width)) + std::string("x") +
+        std::to_string(static_cast<long long>(kernel_size1)) + std::string("x") +
+        std::to_string(static_cast<long long>(kernel_size0)) + std::string("x") +
+        std::to_string(static_cast<long long>(n_outputs)) + std::string("x") +
+        std::to_string(static_cast<long long>(out_height)) + std::string("x") +
+        std::to_string(static_cast<long long>(out_width)) + std::string("x") +
+        std::to_string(static_cast<long long>(batch_sz)) + std::string("x") +
+        in_layout + std::string("x") + in_data_type +
+        std::string("x") + (direction.IsForward()
                                 ? "1"
                                 : "0"); /// \todo Shall we separate keys for WrW convolutions?
     return (0);
@@ -304,7 +304,7 @@ int mlo_construct_direct2D::mloBuildConf_Key(std::string& conf_key) const
 // Tensor Helper APIs
 
 size_t
-mlo_construct_direct2D::setWeightDescFromMLDesc(const miopen::TensorDescriptor& weight_tensor)
+miopen::ProblemDescription::setWeightDescFromMLDesc(const miopen::TensorDescriptor& weight_tensor)
 {
 
     int nWei;
@@ -329,7 +329,7 @@ mlo_construct_direct2D::setWeightDescFromMLDesc(const miopen::TensorDescriptor& 
 }
 
 size_t
-mlo_construct_direct2D::setOutputDescFromMLDesc(const miopen::TensorDescriptor& output_tensor)
+miopen::ProblemDescription::setOutputDescFromMLDesc(const miopen::TensorDescriptor& output_tensor)
 {
 
     int nOut;
@@ -352,7 +352,7 @@ mlo_construct_direct2D::setOutputDescFromMLDesc(const miopen::TensorDescriptor& 
     return output_tensor.GetElementSpace();
 }
 
-size_t mlo_construct_direct2D::setInputDescFromMLDesc(const miopen::TensorDescriptor& input_tensor)
+size_t miopen::ProblemDescription::setInputDescFromMLDesc(const miopen::TensorDescriptor& input_tensor)
 {
 
     int nIn;
@@ -376,7 +376,7 @@ size_t mlo_construct_direct2D::setInputDescFromMLDesc(const miopen::TensorDescri
     return input_tensor.GetElementSpace();
 }
 
-size_t mlo_construct_direct2D::setTopDescFromMLDesc(const miopen::TensorDescriptor& tensor)
+size_t miopen::ProblemDescription::setTopDescFromMLDesc(const miopen::TensorDescriptor& tensor)
 {
     int nIn;
     int cIn;
@@ -396,7 +396,7 @@ size_t mlo_construct_direct2D::setTopDescFromMLDesc(const miopen::TensorDescript
 
     return tensor.GetElementSpace();
 }
-size_t mlo_construct_direct2D::setBotDescFromMLDesc(const miopen::TensorDescriptor& tensor)
+size_t miopen::ProblemDescription::setBotDescFromMLDesc(const miopen::TensorDescriptor& tensor)
 {
     int nIn;
     int cIn;
@@ -417,7 +417,7 @@ size_t mlo_construct_direct2D::setBotDescFromMLDesc(const miopen::TensorDescript
     return tensor.GetElementSpace();
 }
 
-size_t mlo_construct_direct2D::setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
+size_t miopen::ProblemDescription::setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
 {
     int nIn;
     int cIn;
@@ -438,7 +438,7 @@ size_t mlo_construct_direct2D::setTopDfDescFromMLDesc(const miopen::TensorDescri
 
     return tensor.GetElementSpace();
 }
-size_t mlo_construct_direct2D::setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
+size_t miopen::ProblemDescription::setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
 {
     int nIn;
     int cIn;

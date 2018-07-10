@@ -80,6 +80,8 @@ struct Handle : miopenHandle
                            const std::string& params,
                            std::size_t cache_index = 0);
 
+    bool HasKernel(const std::string& algorithm, const std::string& network_config) const;
+
     void ClearKernels(const std::string& algorithm, const std::string& network_config);
 
     auto GetKernels(const std::string& algorithm, const std::string& network_config)

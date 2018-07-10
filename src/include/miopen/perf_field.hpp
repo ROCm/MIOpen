@@ -26,6 +26,8 @@
 #ifndef GUARD_MIOPEN_PERF_FIELD_HPP_
 #define GUARD_MIOPEN_PERF_FIELD_HPP_
 
+#include <miopen/serializable.hpp>
+
 #include <string>
 
 namespace miopen {
@@ -37,6 +39,27 @@ struct PerfField
     std::size_t workspace;
 
     bool operator<(const PerfField& p) const { return (time < p.time); }
+};
+
+struct FindDbData : solver::Serializable<FindDbData>
+{
+    std::string solver_id;
+    float time;
+    std::size_t workspace;
+    
+    FindDbData() = default;
+    FindDbData(const std::string& solver_id_, float time_, std::size_t workspace_)
+        : solver_id(solver_id_), time(time_), workspace(workspace_)
+    {
+    }
+
+    template <class Self, class F>
+    static void Visit(Self&& self, F f)
+    {
+        f(self.solver_id, "solver_id");
+        f(self.time, "time");
+        f(self.workspace, "workspace");
+    }
 };
 
 } // namespace miopen
