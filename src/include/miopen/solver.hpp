@@ -102,6 +102,7 @@ struct ConvSolution
     /// \todo Use better name than construction_params.
     std::vector<KernelInfo> construction_params; // impl may consist of multiple kernels.
     miopenStatus_t status;
+    std::string solver_id;
 
     size_t workspce_sz;
     int grp_tile1;       // total number ALUs per group
@@ -116,6 +117,7 @@ struct ConvSolution
 
     ConvSolution(miopenStatus_t status_ = miopenStatusSuccess)
         : status(status_),
+          solver_id(""),
           workspce_sz(0),
           grp_tile1(-1),
           grp_tile0(-1),
@@ -178,7 +180,9 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
                 MIOPEN_LOG_I("Perf Db: record loaded: " << SolverDbId(s));
                 if(s.IsValidPerformanceConfig(context, config))
                 {
-                    return s.GetSolution(context, config);
+                    auto solution = s.GetSolution(context, config);
+                    solution.solver_id = SolverDbId(s);
+                    return solution;
                 }
                 MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverDbId(s) << ": "
                                                                     << config);
@@ -192,7 +196,9 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
             {
                 auto c = s.Search(context);
                 db.Update(context, SolverDbId(s), c);
-                return s.GetSolution(context, c);
+                auto solution     = s.GetSolution(context, c);
+                solution.solver_id = SolverDbId(s);
+                return solution;
             }
             catch(const miopen::Exception& ex)
             {
@@ -200,7 +206,10 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
             }
         }
     }
-    return s.GetSolution(context, s.GetPerformanceConfig(context));
+
+    auto solution     = s.GetSolution(context, s.GetPerformanceConfig(context));
+    solution.solver_id = SolverDbId(s);
+    return solution;
 }
 
 template <class Solver, class Context, class Db>
@@ -208,7 +217,9 @@ auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&)
     -> decltype(s.GetSolution(context))
 {
     MIOPEN_LOG_I(SolverDbId(s) << " (not searchable)");
-    return s.GetSolution(context);
+    auto solution     = s.GetSolution(context);
+    solution.solver_id = SolverDbId(s);
+    return solution;
 }
 
 /// Finds optimized Solution. Generic method.

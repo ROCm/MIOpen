@@ -484,6 +484,11 @@ KernelInvoke Handle::AddKernel(const std::string& algorithm,
     return this->Run(obj);
 }
 
+bool Handle::HasKernel(const std::string& algorithm, const std::string& network_config) const
+{
+    return this->impl->cache.HasKernels(algorithm, network_config);
+}
+
 void Handle::ClearKernels(const std::string& algorithm, const std::string& network_config)
 {
 

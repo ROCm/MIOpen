@@ -276,6 +276,11 @@ const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
     return this->impl->cache.GetKernels(algorithm, network_config);
 }
 
+bool Handle::HasKernel(const std::string& algorithm, const std::string& network_config) const
+{
+    return this->impl->cache.HasKernels(algorithm, network_config);
+}
+
 KernelInvoke Handle::Run(Kernel k)
 {
     this->impl->set_ctx();
