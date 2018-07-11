@@ -152,7 +152,8 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
         : base_desc(conv_descriptor),
           filter_desc(filter_descriptor),
           algo(fwd_algo),
-          kernel_info_valid(false)
+          kernel_info_valid(false),
+          conv_compiler_options("")
     {
         if(base_desc.u != 1 || base_desc.v != 1)
             MIOPEN_THROW("Only stride 1 is supported for convolution operator");
@@ -165,13 +166,15 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm = false) override;
     bool isASMApplicable(Handle& handle);
     solver::KernelInfo& GetKernelInfo(Handle& handle);
-    solver::KernelInfo& GetKernelInfo(Handle& handle, std::string algorithm_name, std::string compile_config);
+    solver::KernelInfo&
+    GetKernelInfo(Handle& handle, std::string algorithm_name);
     miopenFusionOp_t kind() override { return miopenFusionOpConvForward; };
     ConvolutionDescriptor& base_desc;
     TensorDescriptor& filter_desc;
     miopenConvFwdAlgorithm_t algo;
     solver::KernelInfo kernel_info;
     bool kernel_info_valid;
+    std::string conv_compiler_options;
 
     private:
     mlo_construct_direct2D_fusion ConstructParams(Handle& handle);
@@ -213,8 +216,15 @@ struct FusionOpLU
 struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 {
     FusionPlanDescriptor(const miopenFusionDirection_t dir, const TensorDescriptor& inDesc)
-        : fusion_dir(dir), input_desc(inDesc), 
-        is_valid(false), is_asm_kernel(false), algorithm_name(""), network_config(""){};
+        : fusion_dir(dir),
+          input_desc(inDesc),
+          is_valid(false),
+          is_asm_kernel(false),
+          fp_contains_bn(false),
+          program_name(""),
+          kernel_name(""),
+          algorithm_name(""),
+          network_config(""){};
     ~FusionPlanDescriptor(){};
     bool isValid() { return is_valid; };
     miopenStatus_t AddOp(std::shared_ptr<FusionOpDescriptor> desc);
@@ -246,6 +256,9 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     FusionOpLU lu;
     bool is_valid;
     bool is_asm_kernel;
+    bool fp_contains_bn;
+    std::string program_name;
+    std::string kernel_name;
     std::string algorithm_name;
     std::string network_config;
 };

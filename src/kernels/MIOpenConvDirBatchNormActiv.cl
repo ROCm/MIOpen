@@ -1140,11 +1140,12 @@ MIOpenConvUniBatchNormActiv(
     const __global _FLOAT* __restrict conv_bias
 #endif
 #ifndef NO_BN
-    , const __global _FLOAT* __restrict bn_bias,
+    ,
+    const __global _FLOAT* __restrict bn_bias,
     const __global _FLOAT* __restrict scale,
     const __global _FLOAT* __restrict estimatedMean,
     const __global _FLOAT* __restrict estimatedVariance
-#endif    
+#endif
     )
 {
     __local _FLOAT lcl_indata[MLO_IN_LCL_SZ];
@@ -1514,6 +1515,17 @@ MIOpenConvUniBatchNormActiv(
                     {
                         if(1)
                         {
+
+                            #ifndef NO_BN
+#ifdef PERACT_BN
+                                uint chw_i          = (out_off2 + i) % (MLO_OUT_BATCH_STRIDE);
+                                _FLOAT pmean        = estimatedMean[chw_i];
+                                _FLOAT pvar         = estimatedVariance[chw_i];
+                                _FLOAT pscale       = scale[chw_i];
+                                _FLOAT pbias        = bn_bias[chw_i];
+                                _FLOAT pinvVariance = rsqrt(fabs(pvar + epsilon));
+#endif
+#endif
 #else
                 for(uint j = 0; j < MLO_OUT_TILE1; ++j, out_off2 += MLO_OUT_STRIDE)
                 {
@@ -1543,7 +1555,8 @@ MIOpenConvUniBatchNormActiv(
 #ifdef NO_BN
                             bn_res = conv_res;
 #else
-                                bn_res              = mad(pscale, (conv_res - pmean) * pinvVariance, pbias);
+                            bn_res = pscale * (conv_res - pmean) *pinvVariance + pbias;
+                            //bn_res  = mad(pscale, (conv_res - pmean) * pinvVariance, pbias);
 #endif
 #ifdef MIOPEN_NRN_OP_ID
 #ifdef MIOPEN_YES_ACTIV
