@@ -172,7 +172,9 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     solver::KernelInfo& GetKernelInfo(Handle& handle);
     miopenFusionOp_t kind() override { return miopenFusionOpConvForward; };
     std::string MDGraphKey() const override;
-    static std::string MDGraphKey(std::map<std::string, int> d, std::vector<size_t> filter_lens, miopenConvFwdAlgorithm_t algorithm);
+    static std::string MDGraphKey(std::map<std::string, int> d,
+                                  std::vector<size_t> filter_lens,
+                                  miopenConvFwdAlgorithm_t algorithm);
 
     ConvolutionDescriptor& base_desc;
     TensorDescriptor& filter_desc;

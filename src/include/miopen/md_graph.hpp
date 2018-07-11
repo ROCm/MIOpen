@@ -11,7 +11,11 @@ using FusionMDGraph_Edge_Map = std::unordered_map<std::string, std::vector<std::
 struct MDGraph_vertex
 {
     static int running_id;
-    MDGraph_vertex(miopenFusionOp_t o, std::string program_name = "", std::string kernel_name = "", std::string algo_name = "", bool _is_leaf = false);
+    MDGraph_vertex(miopenFusionOp_t o,
+                   std::string program_name = "",
+                   std::string kernel_name  = "",
+                   std::string algo_name    = "",
+                   bool _is_leaf            = false);
     miopenFusionOp_t op;
     bool is_leaf = false;
     std::map<std::string, std::string> vertex_data;
