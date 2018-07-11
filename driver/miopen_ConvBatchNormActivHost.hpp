@@ -33,15 +33,15 @@
 #include <miopen/tensor.hpp>
 
 template <typename Tgpu, typename Tref>
-int miopenBNActiveBNSpatialFwdInferHost(miopenTensorDescriptor_t& inputTensor,
-                                        const Tref* in_ptr,
-                                        Tref* out_ptr,
-                                        const Tgpu* scale_ptr,
-                                        const Tgpu* bias_ptr,
-                                        double epsilon,
-                                        // bool estmeanvar,
-                                        const Tgpu* estimatedMean,
-                                        const Tgpu* estimatedVariance)
+int miopenBNSpatialFwdInferHost(miopenTensorDescriptor_t& inputTensor,
+                                const Tref* in_ptr,
+                                Tref* out_ptr,
+                                const Tgpu* scale_ptr,
+                                const Tgpu* bias_ptr,
+                                double epsilon,
+                                // bool estmeanvar,
+                                const Tgpu* estimatedMean,
+                                const Tgpu* estimatedVariance)
 {
     int nIn, cIn, hIn, wIn;
     miopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
@@ -87,15 +87,15 @@ int miopenBNActiveBNSpatialFwdInferHost(miopenTensorDescriptor_t& inputTensor,
 }
 
 template <typename Tgpu, typename Tref>
-int miopenBNActiveBNPerActivFwdInferHost(miopenTensorDescriptor_t& inputTensor,
-                                         const Tref* in_ptr,
-                                         Tref* out_ptr,
-                                         const Tgpu* scale_ptr,
-                                         const Tgpu* bias_ptr,
-                                         double epsilon,
-                                         // bool estmeanvar,
-                                         const Tgpu* estimatedMean,
-                                         const Tgpu* estimatedVariance)
+int miopenBNPerActivFwdInferHost(miopenTensorDescriptor_t& inputTensor,
+                                 const Tref* in_ptr,
+                                 Tref* out_ptr,
+                                 const Tgpu* scale_ptr,
+                                 const Tgpu* bias_ptr,
+                                 double epsilon,
+                                 // bool estmeanvar,
+                                 const Tgpu* estimatedMean,
+                                 const Tgpu* estimatedVariance)
 { // use running mean and variance
 
     int nIn, cIn, hIn, wIn;
@@ -147,20 +147,20 @@ int miopenBNActiveBNPerActivFwdInferHost(miopenTensorDescriptor_t& inputTensor,
 
 template <typename Tgpu /* the data type used in GPU computations (usually half) */,
           typename Tref /* the data type used in CPU checkings (usually double) */>
-void miopenBNActiveNeuronFwdInferHost(int neuron_type,
-                                      Tref gamma,
-                                      Tref beta,
-                                      Tref alpha,
-                                      size_t size,
-                                      const Tref* bot_ptr,
-                                      Tref* c_res)
+void miopenActivationFwdHost(int neuron_type,
+                             Tref gamma,
+                             Tref beta,
+                             Tref alpha,
+                             size_t size,
+                             const Tref* bot_ptr,
+                             Tref* c_res)
 {
 
-    Tref* data = new Tref[size];
+    /*    std::vector<Tref> data(size, 0.);
 
-    for(size_t k = 0; k < size; k++)
-        data[k]  = static_cast<Tref>(bot_ptr[k]);
-
+        for(size_t k   = 0; k < size; k++)
+            data.at(k) = bot_ptr[k];
+    */
     std::function<Tref(Tref)> f;
 
     switch(neuron_type)
@@ -169,28 +169,28 @@ void miopenBNActiveNeuronFwdInferHost(int neuron_type,
         f = [=](Tref x) { return x; };
         break;
     case MIOPEN_NEURON_LOGISTIC: //	1 / (1 + e^-x)	//Sigmoid
-        f = [=](Tref x) { return 1 / (1 + std::exp(-x)); };
+        f = [=](Tref x) { return 1. / (1. + std::exp(Tref(-x))); };
         break;
     case MIOPEN_NEURON_TANH: //	beta * tanh(alpha * x)
         f = [=](Tref x) { return beta * std::tanh(alpha * x); };
         break;
     case MIOPEN_NEURON_RELU: //	max(0, x)
-        f = [=](Tref x) { return (x > 0) ? x : 0; };
+        f = [=](Tref x) { return (x > 0.) ? x : 0.; };
         break;
-    // case MIOPEN_NEURON_SOFTRELU: //	log(1 + e^x)   // bonomial normal log likelihood
-    // f = [=](Tref x) { return std::log1p(std::exp(x)); };
-    // break;
+    case MIOPEN_NEURON_SOFTRELU: //	log(1 + e^x)   // bonomial normal log likelihood
+        f = [=](Tref x) { return std::log1p(std::exp(x)); };
+        break;
     case MIOPEN_NEURON_ABS: //	abs(x)
         f = [=](Tref x) { return std::abs(x); };
         break;
-    // case MIOPEN_NEURON_POWER: // (alpha + beta * x) ^ gamma
-    // f = [=](Tref x) {
-    // Tref v = alpha + beta * x;
-    // return v <= std::numeric_limits<Tref>::epsilon() ? 0 : pow(v, gamma);
-    //};
-    // break;
+    case MIOPEN_NEURON_POWER: // (alpha + beta * x) ^ gamma
+        f = [=](Tref x) {
+            Tref v = alpha + beta * x;
+            return v <= std::numeric_limits<Tref>::epsilon() ? 0. : pow(v, gamma);
+        };
+        break;
     case MIOPEN_NEURON_CLIPPED_RELU: // min(alpha, max(0, x))
-        f = [=](Tref x) { return std::min(alpha, std::max(Tref(0), x)); };
+        f = [=](Tref x) { return std::min(alpha, std::max(Tref(0.), x)); };
         break;
     case MIOPEN_NEURON_LEAKY_RELU: // alpha * x | x<=0; x | x>0
         f = [=](Tref x) { return (x > 0) ? x : x * alpha; };
@@ -202,14 +202,7 @@ void miopenBNActiveNeuronFwdInferHost(int neuron_type,
     }
 
     for(size_t i = 0; i < size; i++)
-        c_res[i] = f(data[i]);
-
-    if(data)
-    {
-        delete[] data;
-    }
-
-    (void)gamma;
+        c_res[i] = f(static_cast<Tref>(bot_ptr[i])); // f(data.at(i));
 }
 
 template <typename Tgpu /* the data type used in GPU computations (usually half) */,
@@ -230,7 +223,7 @@ int miopenInferVerify(size_t size, const Tref* c_res, const Tgpu* top_ptr, Tref 
             std::cout << "Difference in neuron layer: " << err << " too large at " << i
                       << " c_v = " << c_val << " vs g_val = " << g_val
                       << " tolerance = " << allowedEps << std::endl;
-            match = 0;
+            //   match = 0;
         }
     }
 
@@ -332,7 +325,7 @@ int ConvForwardCPU(const std::vector<Tref>& in,
                 int in_off_h = i * u;
                 for(int j = 0; j < out_w; j++)
                 { // output_width (from getforwardoutputdim())
-                    Tgpu acc     = static_cast<Tgpu>(0);
+                    Tgpu acc     = static_cast<Tgpu>(0.);
                     int in_off_w = j * v;
                     for(int k = 0; k < in_c; k++)
                     { // in_channels (RGB)
@@ -346,12 +339,12 @@ int ConvForwardCPU(const std::vector<Tref>& in,
                                     int in_y = in_off_w - pad_w + y * dilation_w;
                                     if(in_y >= 0 && in_y < in_w)
                                     {
-                                        acc +=
-                                            static_cast<Tgpu>(in[o * in_nstride + k * in_cstride +
-                                                                 in_x * in_w + in_y]) *
-                                            static_cast<Tgpu>(
-                                                wei[w * wei_nstride + k * wei_cstride +
-                                                    x * wei_hstride + y]);
+                                        acc += static_cast<Tgpu>(in.at(o * in_nstride +
+                                                                       k * in_cstride +
+                                                                       in_x * in_w + in_y)) *
+                                               static_cast<Tgpu>(wei.at(w * wei_nstride +
+                                                                        k * wei_cstride +
+                                                                        x * wei_hstride + y));
                                     }
                                 }
                             }

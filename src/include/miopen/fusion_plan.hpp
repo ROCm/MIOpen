@@ -43,6 +43,12 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     FusionMDGraph lu;
     // FusionOpLU lu;
     bool is_valid;
+    bool is_asm_kernel;
+    bool fp_contains_bn;
+    std::string program_name;
+    std::string kernel_name;
+    std::string algorithm_name;
+    std::string network_config;
 };
 
 } // namespace miopen
