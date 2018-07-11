@@ -2,6 +2,12 @@
 ## MIOpen Release notes
 
 
+### 07/12/2018 [ 1.4.1 ]
+
+Notes: 
+- This release includes a bug fix for 3x3 convolutions
+- Updated README file configuration instructions
+
 ### 07/06/2018 [ 1.4.0 ]
 
 Notes:
