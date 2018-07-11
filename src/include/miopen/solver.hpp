@@ -53,6 +53,8 @@ namespace miopen {
 /// Also enables performance filtering heuristics.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_FIND_FIRST_CONV)
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_WORKAROUND_ISSUE_1007)
+
 /// Allows to explicitly disable performance filtering heuristics
 /// in "Find first convolution only" mode.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
@@ -102,6 +104,7 @@ struct ConvSolution
     /// \todo Use better name than construction_params.
     std::vector<KernelInfo> construction_params; // impl may consist of multiple kernels.
     miopenStatus_t status;
+    std::string solver_id;
 
     size_t workspce_sz;
     int grp_tile1;       // total number ALUs per group
@@ -116,6 +119,7 @@ struct ConvSolution
 
     ConvSolution(miopenStatus_t status_ = miopenStatusSuccess)
         : status(status_),
+          solver_id("<unknown>"),
           workspce_sz(0),
           grp_tile1(-1),
           grp_tile0(-1),
@@ -223,7 +227,9 @@ ConvSolution FindSolution(Solver s, const Context& context, Db& db)
     static_assert(std::is_empty<Solver>{} && std::is_trivially_constructible<Solver>{},
                   "Solver must be stateless");
     // TODO: This assumes all solutions are ConvSolution
-    return FindSolutionImpl(rank<1>{}, s, context, db);
+    auto solution      = FindSolutionImpl(rank<1>{}, s, context, db);
+    solution.solver_id = SolverDbId(s);
+    return solution;
 }
 
 // Search for the 1st applicable solution among many solvers
@@ -284,11 +290,17 @@ std::vector<Solution> SearchForAllSolutions(const Context& search_params, Db db)
             !miopen::IsEnabled(MIOPEN_DEBUG_FIND_FIRST_CONV{});
 
     bool skip_the_rest = false;
-    miopen::each_args(
+    miopen::each_args( // clang-format off
         [&](auto solver) { // cppcheck-suppress knownConditionTrueFalse
-            if(!skip_the_rest && solver.IsApplicable(search_params) &&
-               (no_perf_filtering || solver.IsFast(search_params)))
-            {
+            if(!skip_the_rest
+               && solver.IsApplicable(search_params)
+               && (no_perf_filtering || solver.IsFast(search_params))
+               && !(!miopen::IsDisabled(MIOPEN_WORKAROUND_ISSUE_1007{})
+                    && !ss.empty() // Only if we have one solution at least.
+                    && search_params.direction.IsBackwardWrW()
+                    && SolverDbId(solver) == "ConvOclBwdWrW53"
+                    && search_params.kernel_size0 == 3))
+            { // clang-format on
                 const Solution s = FindSolution(solver, search_params, db);
                 if(s.Succeeded())
                 {
