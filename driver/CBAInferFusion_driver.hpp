@@ -53,7 +53,8 @@
 #define MIO_BN_DEBUG 0
 #define MIO_BN_MAX_DEBUGLOOP 65536
 
-#define EPSILON 1e-3
+#undef EPSILON
+#define EPSILON 1e-6
 
 #define ERRTOL 1e-4
 #define RMSTOL_FP32 1e-4
@@ -64,6 +65,8 @@
 #define CL_SUCCESS 0
 #endif
 #endif
+
+#define CBA_DEBUG_VALUES 0
 
 //#define BN_RUNFOR_PROFILER
 
@@ -116,8 +119,8 @@ class CBAInferFusionDriver : public Driver
     int RunForwardGPU();
     int RunForwardCPU();
 
-    int RunBackwardGPU();
-    int RunBackwardCPU();
+    int RunBackwardGPU(){ return 0;};
+    int RunBackwardCPU(){ return 0;};
 
     void runGPUConvBatchNormActivInference();
     void runGPUConvActivInference();
@@ -136,7 +139,7 @@ class CBAInferFusionDriver : public Driver
     void runGPUFusedConvBiasInference();
     void runCPUConvBiasInference();
 
-    int VerifyBackward();
+    int VerifyBackward(){ return 0;};
     int VerifyForward();
 
     Timer t;
@@ -196,6 +199,7 @@ class CBAInferFusionDriver : public Driver
 
         miopenDestroyActivationDescriptor(activDesc);
         miopenDestroyConvolutionDescriptor(convDesc);
+        
         miopenDestroyFusionPlanDescriptor(fusePlanDesc);
         miopenDestroyOperatorArgs(fusionArgs);
     }
@@ -534,8 +538,13 @@ int CBAInferFusionDriver<Tgpu, Tref>::createRunningBuffers()
         // Populate
         for(int i = 0; i < sb_sz; i++)
         {
+            #if (CBA_DEBUG_VALUES == 1)
+            runningMean[i]     = 0.;
+            runningVariance[i] = 1.;
+            #else
             runningMean[i]     = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
             runningVariance[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            #endif
         }
 
         // GPU data transfer
@@ -579,20 +588,22 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     if(fusion_mode != 2)
         out_sz = GetTensorSize(outputTensor);
     else
-        out_sz = in_sz;
+        out_sz = in_sz; // This is for N+A so the output is the same as the input size
 
     size_t workSpaceSize_fwd = 0;
     if(fusion_mode != 2)
     {
-        miopenConvolutionForwardGetWorkSpaceSize(
-            GetHandle(), weightTensor, inputTensor, convDesc, outputTensor, &workSpaceSize_fwd);
+        workSpaceSize_fwd = 0; // DLOWELL assigning this to zerosince we are only dealing with 
+        // direct convolutions for now. Another solution to this is needed.
+        /*miopenConvolutionForwardGetWorkSpaceSize(
+            GetHandle(), weightTensor, inputTensor, convDesc, outputTensor, &workSpaceSize_fwd);*/
     }
     // Workaround: Pad buffers allocations to be a multiple of 2M
     if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
     {
         // PadBufferSize(in_sz, sizeof(Tgpu));
         PadBufferSize(wei_sz, sizeof(Tgpu));
-        PadBufferSize(out_sz, sizeof(Tgpu));
+        //PadBufferSize(out_sz, sizeof(Tgpu));
     }
 
 // size_t workSpaceNbVal_fwd = workSpaceSize_fwd / sizeof(Tgpu);
@@ -604,19 +615,18 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
 // std::cerr << "workSpaceNbVal_fwd = " << workSpaceNbVal_fwd << std::endl;
 
-#if 1
-    if(bias_mode != 0)
+    if(bias_mode)
     {
         size_t b_sz = GetTensorSize(biasTensor);
         b_dev       = std::make_unique<GPUMem>(ctx, b_sz, sizeof(Tgpu));
         b           = std::vector<Tgpu>(b_sz, static_cast<Tgpu>(0));
         for(int i = 0; i < b_sz; i++)
         {
-            b[i] = static_cast<Tgpu>(i % 8);
+            b[i] = std::fabs(RAN_GEN<float>(static_cast<float>(0.0), static_cast<float>(1.0)));
         }
         status |= b_dev->ToGPU(q, b.data());
     }
-#endif
+
 
     // GPU allocation
     in_dev       = std::make_unique<GPUMem>(ctx, in_sz, sizeof(Tgpu));
@@ -637,8 +647,13 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         // Using random beta and gamma
         for(int i = 0; i < sb_sz; i++)
         {
+            #if (CBA_DEBUG_VALUES == 1)
+            scale[i] = std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0)));//1.0;
+            bias[i]  = 0.;
+            #else
             scale[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
             bias[i]  = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            #endif
         }
         status |= scale_dev->ToGPU(q, scale.data());
         status |= bias_dev->ToGPU(q, bias.data());
@@ -657,9 +672,15 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     // Data initialization
     for(int i = 0; i < in_sz; i++)
     {
-        auto rval  = std::fabs(RAN_GEN<float>(static_cast<float>(0.0), static_cast<float>(1.0)));
+        #if (CBA_DEBUG_VALUES == 1)
+        auto rval  = std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0)));//1.0;
         in_host[i] = static_cast<double>(rval);
         in[i]      = rval;
+        #else
+            auto rval  = std::fabs(RAN_GEN<float>(static_cast<float>(0.0), static_cast<float>(1.0)));
+        in_host[i] = static_cast<double>(rval);
+        in[i]      = rval;
+        #endif
     }
 
     if(fusion_mode != 2)
@@ -667,7 +688,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         wei = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
         for(int i = 0; i < wei_sz; i++)
         {
+            #if (CBA_DEBUG_VALUES == 1)
+            wei[i] = std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0)));//1.;
+            #else
             wei[i] = std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0)));
+            #endif
         }
         status |= wei_dev->ToGPU(q, wei.data());
     }
@@ -944,13 +969,13 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUActivFwdInference()
     miopenGetActivationDescriptor(activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
 
     miopenActivationFwdHost<Tgpu, Tref>(activ_mode,
-                                                 activ_gamma,
-                                                 activ_beta,
-                                                 activ_alpha,
-                                                 out.size(),
-                                                 (fusion_mode != 2) ? conv_res_host.data()
-                                                                   : bn_res_host.data(),
-                                                 out_host.data());
+                                        activ_gamma,
+                                        activ_beta,
+                                        activ_alpha,
+                                        out.size(),
+                                        (fusion_mode != 2) ? conv_res_host.data()
+                                                           : bn_res_host.data(),
+                                        out_host.data());
 
     return;
 }
@@ -1066,9 +1091,9 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
     case 0:
     case 1:
     case 3:
-    case 4: 
+    case 4:
         std::cout << "Running Conv+Batch_norm+Active path." << std::endl;
-        runGPUConvBatchNormActivInference(); 
+        runGPUConvBatchNormActivInference();
         break;
     case 5: runGPUConvActivInference(); break;
     case 2: runGPUBatchNormActivInference(); break;
@@ -1130,7 +1155,7 @@ template <typename Tgpu, typename Tref>
 void CBAInferFusionDriver<Tgpu, Tref>::runCPUConvFwdInference()
 {
     ConvForwardCPU<Tgpu, Tref>(in_host,
-                               fusion_mode != 6 ? conv_res_host : out_host,//dlowell 6 or 5???
+                               fusion_mode != 6 ? conv_res_host : out_host, // dlowell 6 or 5???
                                wei,
                                b,
                                bias_mode,
@@ -1149,11 +1174,10 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
 
     if(bn_mode == miopenBNPerActivation)
     { // 1xCxHxW
+        std::cout << "Running CPU per activation BN." << std::endl;
         miopenBNPerActivFwdInferHost(
-            inputTensor, // outputTensor, // DLOWELL use output for splice test
-            fusion_mode != 2
-                ? conv_res_host.data()
-                : in_host.data(), // conv_res_host.data(), //DLOWELL use conv for splice test
+            fusion_mode != 2 ? outputTensor : inputTensor, // DLOWELL use output for splice test
+            fusion_mode != 2 ? conv_res_host.data() : in_host.data(), // conv_res_host.data(), //DLOWELL use conv for splice test
             bn_res_host.data(),
             scale.data(),
             bias.data(),
@@ -1163,8 +1187,9 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
     }
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
+        std::cout << "Running CPU spatial BN." << std::endl;
         miopenBNSpatialFwdInferHost(
-            inputTensor, // outputTensor, // DLOWELL use output for splice test
+            fusion_mode != 2 ? outputTensor : inputTensor, // DLOWELL use output for splice test
             fusion_mode != 2
                 ? conv_res_host.data()
                 : in_host.data(), // conv_res_host.data(), //DLOWELL use conv for splice test
@@ -1181,6 +1206,9 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
                "selection.\nExiting...\n\n");
         exit(EXIT_FAILURE);
     }
+    // C+N mode so we are done
+    if(fusion_mode == 3) out_host = bn_res_host; //DLOWELL if we add C+B+N the is to be modified
+
     return;
 }
 
@@ -1216,6 +1244,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
                                 bias_mode,
                                 bias_mode != 0 ? b_dev->GetMem() : nullptr);
 
+// No other algos implemented
 #else
     int ret_algo_count;
     int request_algo_count = 2;
@@ -1254,12 +1283,14 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
         runCPUConvFwdInference();
     }
 
-    if(fusion_mode < 4){
-        std::cout << "Running CPU fwd batch normalization." << std::endl;
+    if(fusion_mode < 4)
+    {
+        //std::cout << "Running CPU fwd batch normalization." << std::endl;
         runCPUBNFwdInference();
     }
 
-    if(fusion_mode != 6 && fusion_mode != 3){
+    if(fusion_mode != 6 && fusion_mode != 3)
+    {
         std::cout << "Running CPU fwd activation." << std::endl;
         runCPUActivFwdInference();
     }
@@ -1267,11 +1298,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int CBAInferFusionDriver<Tgpu, Tref>::RunBackwardGPU()
-{
-    return miopenStatusSuccess;
-}
 
 template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::VerifyForward()
@@ -1287,18 +1313,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::VerifyForward()
     if(match)
         printf("Forward Activation Verifies on CPU and GPU\n");
 
-    return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-int CBAInferFusionDriver<Tgpu, Tref>::RunBackwardCPU()
-{
-    return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-int CBAInferFusionDriver<Tgpu, Tref>::VerifyBackward()
-{
     return miopenStatusSuccess;
 }
 
