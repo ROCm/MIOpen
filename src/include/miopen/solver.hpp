@@ -299,7 +299,8 @@ std::vector<Solution> SearchForAllSolutions(const Context& search_params, Db db)
                     && !ss.empty() // Only if we have one solution at least.
                     && search_params.direction.IsBackwardWrW()
                     && SolverDbId(solver) == "ConvOclBwdWrW53"
-                    && search_params.kernel_size0 == 3))
+                    && search_params.kernel_size0 == 3
+                    && search_params.n_outputs > 32))
             { // clang-format on
                 const Solution s = FindSolution(solver, search_params, db);
                 if(s.Succeeded())
