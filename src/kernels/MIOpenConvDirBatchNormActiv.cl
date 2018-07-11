@@ -1124,17 +1124,13 @@ __attribute__((always_inline)) void ActivationFunction(const uint n,
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __kernel void
 MIOpenConvUniBatchNormActiv(
-#ifndef NO_BN
-    const __global _FLOAT* __restrict estimatedMean,
-    const __global _FLOAT* __restrict estimatedVariance,
-    const __global _FLOAT* __restrict scale,
-    const __global _FLOAT* __restrict bn_bias,
-    double epsilon,
-#endif
 #ifdef MIOPEN_YES_ACTIV
     const _FLOAT alpha,
     const _FLOAT beta,
     const _FLOAT gamma,
+#endif
+#ifndef NO_BN
+    double epsilon,
 #endif
     const __global _FLOAT* __restrict in,
     __global _FLOAT* __restrict out,
@@ -1142,6 +1138,13 @@ MIOpenConvUniBatchNormActiv(
 #if MLO_CONV_BIAS
     ,
     const __global _FLOAT* __restrict conv_bias
+#endif
+#ifndef NO_BN
+    ,
+    const __global _FLOAT* __restrict bn_bias,
+    const __global _FLOAT* __restrict scale,
+    const __global _FLOAT* __restrict estimatedMean,
+    const __global _FLOAT* __restrict estimatedVariance
 #endif
     )
 {
@@ -1512,6 +1515,17 @@ MIOpenConvUniBatchNormActiv(
                     {
                         if(1)
                         {
+
+#ifndef NO_BN
+#ifdef PERACT_BN
+                            uint chw_i          = (out_off2 + i) % (MLO_OUT_BATCH_STRIDE);
+                            _FLOAT pmean        = estimatedMean[chw_i];
+                            _FLOAT pvar         = estimatedVariance[chw_i];
+                            _FLOAT pscale       = scale[chw_i];
+                            _FLOAT pbias        = bn_bias[chw_i];
+                            _FLOAT pinvVariance = rsqrt(fabs(pvar + epsilon));
+#endif
+#endif
 #else
                 for(uint j = 0; j < MLO_OUT_TILE1; ++j, out_off2 += MLO_OUT_STRIDE)
                 {
@@ -1541,7 +1555,8 @@ MIOpenConvUniBatchNormActiv(
 #ifdef NO_BN
                             bn_res = conv_res;
 #else
-                                bn_res              = mad(pscale, (conv_res - pmean) * pinvVariance, pbias);
+                                bn_res = pscale * (conv_res - pmean) * pinvVariance + pbias;
+// bn_res  = mad(pscale, (conv_res - pmean) * pinvVariance, pbias);
 #endif
 #ifdef MIOPEN_NRN_OP_ID
 #ifdef MIOPEN_YES_ACTIV
@@ -1550,7 +1565,7 @@ MIOpenConvUniBatchNormActiv(
                             out[out_off2 + i] = actv_res;
 #endif
 #else
-                                out[out_off2 + i]   = bn_res;
+                                out[out_off2 + i] = bn_res;
 #endif
                         }
                     }
