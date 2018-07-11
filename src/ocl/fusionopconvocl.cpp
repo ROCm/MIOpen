@@ -242,7 +242,6 @@ solver::KernelInfo& ConvForwardOpDescriptor::GetKernelInfo(Handle& handle)
     return kernel_info;
 }
 
-
 // DLOWELL: This implementation is a hack since we are hardcoding in a way to get around ASM
 solver::KernelInfo& ConvForwardOpDescriptor::GetKernelInfo(Handle& handle,
                                                            std::string algorithm_name)
@@ -293,14 +292,15 @@ solver::KernelInfo& ConvForwardOpDescriptor::GetKernelInfo(Handle& handle,
     return kernel_info;
 }
 
-miopenStatus_t
-ConvForwardOpDescriptor::GetCompileParms(std::string& compile_config, Handle& /*handle*/, bool /*is_asm*/)
+miopenStatus_t ConvForwardOpDescriptor::GetCompileParms(std::string& compile_config,
+                                                        Handle& /*handle*/,
+                                                        bool /*is_asm*/)
 {
-/*    (void)(is_asm);
-    (void)(handle);*/
-   // GetKernelInfo(handle);
-   // compile_config += kernel_info.comp_options;
-    //DLOWELL: Kernel info needs to be called first for this to have any value
+    /*    (void)(is_asm);
+        (void)(handle);*/
+    // GetKernelInfo(handle);
+    // compile_config += kernel_info.comp_options;
+    // DLOWELL: Kernel info needs to be called first for this to have any value
     compile_config += conv_compiler_options;
     return miopenStatusSuccess;
 }
