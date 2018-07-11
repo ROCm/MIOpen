@@ -157,7 +157,8 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
         : base_desc(conv_descriptor),
           filter_desc(filter_descriptor),
           algo(fwd_algo),
-          kernel_info_valid(false)
+          kernel_info_valid(false),
+          conv_compiler_options("")
     {
         if(base_desc.u != 1 || base_desc.v != 1)
             MIOPEN_THROW("Only stride 1 is supported for convolution operator");
@@ -170,6 +171,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm = false) override;
     bool isASMApplicable(Handle& handle);
     solver::KernelInfo& GetKernelInfo(Handle& handle);
+    solver::KernelInfo& GetKernelInfo(Handle& handle, std::string algorithm_name);
     miopenFusionOp_t kind() override { return miopenFusionOpConvForward; };
     std::string MDGraphKey() const override;
     static std::string MDGraphKey(std::map<std::string, int> d,
@@ -181,6 +183,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     miopenConvFwdAlgorithm_t algo;
     solver::KernelInfo kernel_info;
     bool kernel_info_valid;
+    std::string conv_compiler_options;
 
     private:
     mlo_construct_direct2D_fusion ConstructParams(Handle& handle);
@@ -218,7 +221,6 @@ struct FusionOpLU
     std::vector<int> lut_hit;
     size_t cur_idx;
 };
-
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenFusionOpDescriptor, miopen::FusionOpDescriptor);
 MIOPEN_DEFINE_OBJECT(miopenOperatorArgs, miopen::OperatorArgs);

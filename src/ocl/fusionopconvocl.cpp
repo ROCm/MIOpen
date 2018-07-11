@@ -242,12 +242,66 @@ solver::KernelInfo& ConvForwardOpDescriptor::GetKernelInfo(Handle& handle)
     return kernel_info;
 }
 
-miopenStatus_t
-ConvForwardOpDescriptor::GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm)
+// DLOWELL: This implementation is a hack since we are hardcoding in a way to get around ASM
+solver::KernelInfo& ConvForwardOpDescriptor::GetKernelInfo(Handle& handle,
+                                                           std::string algorithm_name)
 {
-    (void)(is_asm);
-    GetKernelInfo(handle);
-    compile_config += kernel_info.comp_options;
+
+    if(algorithm_name == "miopenConvDirectBatchNormBiasActiv")
+    { // May need an extra check of FP16 versus FP32
+        mlo_construct_direct2D_fusion construct_params = ConstructParams(handle);
+        ConvolutionContext params;
+        params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
+        construct_params.mloCopyTo(params);
+        // params.general_compile_options += compile_config;
+        kernel_info = solver::CBAFusionGetSolution(params);
+        // printf("Compiler options: %s\n", kernel_info.comp_options.c_str());
+        // kernel_info = solver::CBAFusionGetSolution(compile_config);
+    }
+    else
+    { // DLOWELL: Is this valid if there is dType is FP16?
+        if(!kernel_info_valid)
+        {
+            // In the absence of the config tree
+            mlo_construct_direct2D_fusion construct_params = ConstructParams(handle);
+            ConvolutionContext params;
+            construct_params.mloCopyTo(params);
+            const auto solution = FindFirstSolution(construct_params);
+            auto k_file         = solution.construction_params[0].kernel_file;
+            // TODO: There is redundant code hidden in both the branches below
+            if(k_file[k_file.length() - 1] == 's') // is an asm kernel
+            {
+                solver::KernelInfo ki;
+                ki.comp_options =
+                    solution.construction_params[0].comp_options + " -Wa,-defsym,fusion_mode=1";
+                ki.l_wk        = solution.construction_params[0].l_wk;
+                ki.g_wk        = solution.construction_params[0].g_wk;
+                ki.kernel_file = "conv1x1u_bias_activ.s";
+                ki.kernel_name = "gcnAsmConv1x1U";
+                kernel_info    = ki;
+            }
+            else
+            { // May need an extra check of FP16 versus FP32
+                params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
+                kernel_info = solver::CBAFusionGetSolution(params);
+            }
+            kernel_info_valid = true;
+        }
+    }
+    conv_compiler_options += kernel_info.comp_options;
+    return kernel_info;
+}
+
+miopenStatus_t ConvForwardOpDescriptor::GetCompileParms(std::string& compile_config,
+                                                        Handle& /*handle*/,
+                                                        bool /*is_asm*/)
+{
+    /*    (void)(is_asm);
+        (void)(handle);*/
+    // GetKernelInfo(handle);
+    // compile_config += kernel_info.comp_options;
+    // DLOWELL: Kernel info needs to be called first for this to have any value
+    compile_config += conv_compiler_options;
     return miopenStatusSuccess;
 }
 } // namespace miopen
