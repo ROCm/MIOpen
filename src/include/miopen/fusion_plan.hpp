@@ -8,8 +8,7 @@ namespace miopen {
 
 struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 {
-    FusionPlanDescriptor(const miopenFusionDirection_t dir, const TensorDescriptor& inDesc)
-        : fusion_dir(dir), input_desc(inDesc), is_valid(false){};
+    FusionPlanDescriptor(const miopenFusionDirection_t dir, const TensorDescriptor& inDesc);
     ~FusionPlanDescriptor();
     bool isValid() { return is_valid; };
     miopenStatus_t AddOp(std::shared_ptr<FusionOpDescriptor> desc);
@@ -25,6 +24,9 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
                            const OperatorArgs& op_args);
     miopenStatus_t Compile(Handle& handle);
     friend std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& x);
+
+    void InitMDGraphs();
+    void InitConvMDGraph(FusionMDGraph& g);
 
     protected:
     std::string GetKernelName(Handle& handle);

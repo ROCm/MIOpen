@@ -32,10 +32,21 @@
 
 namespace miopen {
 
+FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir, const TensorDescriptor& inDesc)
+    : fusion_dir(dir), input_desc(inDesc), is_valid(false)
+{
+}
+
+
 FusionPlanDescriptor::~FusionPlanDescriptor() { op_map.clear(); }
 
 miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> desc)
 {
+    // load the md graph for the first op
+    if(op_count == 0)
+    {
+        MDGraph::Init(lu, desc->kind());
+    }
     desc->SetIdx(op_count);
     if(op_map.empty())
         desc->SetInputDesc(input_desc);
@@ -149,24 +160,42 @@ std::vector<std::string> ConvForwardOpDescriptor::GetArgs() const
     return keys;
 }
 
-std::string ConvForwardOpDescriptor::MDGraphKey() const
+//std::string ConvForwardOpDescriptor::MDGraphKey(miopenConvolutionMode_t mode, miopenPaddingMode_t paddingMode, 
+//   int pad_h, int pad_w, int u, int v, int dilation_h, int dilation_w)
+std::string ConvForwardOpDescriptor::MDGraphKey(std::map<std::string, int> d, std::vector<size_t> filter_lens, miopenConvFwdAlgorithm_t algorithm)
 {
-    auto vec = {static_cast<int>(base_desc.mode),
-                static_cast<int>(base_desc.paddingMode),
-                base_desc.pad_h,
-                base_desc.pad_w,
-                base_desc.u,
-                base_desc.v,
-                base_desc.dilation_h,
-                base_desc.dilation_w};
+    int k, c, _kernel_size0, _kernel_size1;
+    std::tie(k, c, _kernel_size0, _kernel_size1) = tien<4>(filter_lens);
+    std::vector<int> vec = {d["mode"],
+                d["paddingMode"],
+                d["pad_h"],
+                d["pad_w"],
+                d["u"],
+                d["v"],
+                d["dilation_h"],
+                d["dilation_w"],
+                _kernel_size0, _kernel_size1};
     std::string result;
 
     for(auto n : vec)
     {
         result += std::to_string(n) + ",";
     }
-    result += filter_desc.ToString() + "," + std::to_string(algo);
+    result += std::to_string(algorithm);
     return result;
+}
+
+std::string ConvForwardOpDescriptor::MDGraphKey() const
+{
+    std::map<std::string, int> m = {
+        {"mode", static_cast<int>(base_desc.mode)}, 
+        {"paddingMode", static_cast<int>(base_desc.paddingMode)},
+        {"pad_h", base_desc.pad_h}, {"pad_w", base_desc.pad_w},
+        {"u", base_desc.u}, {"v", base_desc.v}, {"dilation_h", base_desc.dilation_h}, 
+        {"dilation_w", base_desc.dilation_w}};
+    auto lens = filter_desc.GetLengths();
+
+    return ConvForwardOpDescriptor::MDGraphKey(m, lens, algo);
 }
 
 // Activ Forward
@@ -255,6 +284,17 @@ std::vector<std::string> BatchNormInferenceFusionOpDescriptor::GetArgs() const
     keys.push_back("estimatedVariance" + id);
     keys.push_back("epsilon" + id);
     return keys;
+}
+
+std::string BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBatchNormMode_t bn_mode)
+{
+    return std::to_string(bn_mode);
+}
+
+
+std::string BatchNormInferenceFusionOpDescriptor::MDGraphKey() const
+{
+    return BatchNormInferenceFusionOpDescriptor::MDGraphKey(mode);
 }
 
 // Bias forward
