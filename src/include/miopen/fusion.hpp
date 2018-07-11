@@ -142,6 +142,9 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
                            double epsilon);
     std::vector<std::string> GetArgs() const override;
     miopenFusionOp_t kind() override { return miopenFusionOpBatchNormInference; };
+    std::string MDGraphKey() const override;
+    static std::string MDGraphKey(miopenBatchNormMode_t bn_mode);
+
     miopenBatchNormMode_t mode;
     TensorDescriptor& base_desc;
 };
@@ -169,6 +172,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     solver::KernelInfo& GetKernelInfo(Handle& handle);
     miopenFusionOp_t kind() override { return miopenFusionOpConvForward; };
     std::string MDGraphKey() const override;
+    static std::string MDGraphKey(std::map<std::string, int> d, std::vector<size_t> filter_lens, miopenConvFwdAlgorithm_t algorithm);
 
     ConvolutionDescriptor& base_desc;
     TensorDescriptor& filter_desc;
