@@ -41,8 +41,10 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
         return false;
     /// \todo Workaround for issue #791. Found experimentally. Technically, this is a hack.
     /// The kernel needs to be well understood and fixed.
+#if 0
     if((params.kernel_size0 == 3 && params.pad0 == 0 && params.out_width >= 32))
         return false;
+#endif
     return ((params.kernel_size0 >= 2 || params.kernel_size1 >= 2) &&
             (params.kernel_stride1 == 1 && params.kernel_stride0 == 1));
 }
