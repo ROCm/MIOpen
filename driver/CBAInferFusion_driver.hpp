@@ -673,7 +673,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     for(int i = 0; i < in_sz; i++)
     {
 #if(CBA_DEBUG_VALUES == 1)
-        auto rval = std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0))); // 1.0;
+        auto rval =
+            std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0))); // 1.0;
         in_host[i] = static_cast<double>(rval);
         in[i]      = rval;
 #else
@@ -689,7 +690,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         for(int i = 0; i < wei_sz; i++)
         {
 #if(CBA_DEBUG_VALUES == 1)
-            wei[i] = std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0))); // 1.;
+            wei[i] =
+                std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0))); // 1.;
 #else
             wei[i] = std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0)));
 #endif
