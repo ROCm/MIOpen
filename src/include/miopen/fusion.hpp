@@ -166,8 +166,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm = false) override;
     bool isASMApplicable(Handle& handle);
     solver::KernelInfo& GetKernelInfo(Handle& handle);
-    solver::KernelInfo&
-    GetKernelInfo(Handle& handle, std::string algorithm_name);
+    solver::KernelInfo& GetKernelInfo(Handle& handle, std::string algorithm_name);
     miopenFusionOp_t kind() override { return miopenFusionOpConvForward; };
     ConvolutionDescriptor& base_desc;
     TensorDescriptor& filter_desc;

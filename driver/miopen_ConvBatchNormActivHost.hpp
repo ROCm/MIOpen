@@ -156,11 +156,11 @@ void miopenActivationFwdHost(int neuron_type,
                              Tref* c_res)
 {
 
-/*    std::vector<Tref> data(size, 0.);
+    /*    std::vector<Tref> data(size, 0.);
 
-    for(size_t k   = 0; k < size; k++)
-        data.at(k) = bot_ptr[k];
-*/
+        for(size_t k   = 0; k < size; k++)
+            data.at(k) = bot_ptr[k];
+    */
     std::function<Tref(Tref)> f;
 
     switch(neuron_type)
@@ -202,7 +202,7 @@ void miopenActivationFwdHost(int neuron_type,
     }
 
     for(size_t i = 0; i < size; i++)
-        c_res[i] = f(static_cast<Tref>(bot_ptr[i]));//f(data.at(i));
+        c_res[i] = f(static_cast<Tref>(bot_ptr[i])); // f(data.at(i));
 }
 
 template <typename Tgpu /* the data type used in GPU computations (usually half) */,
@@ -223,7 +223,7 @@ int miopenInferVerify(size_t size, const Tref* c_res, const Tgpu* top_ptr, Tref 
             std::cout << "Difference in neuron layer: " << err << " too large at " << i
                       << " c_v = " << c_val << " vs g_val = " << g_val
                       << " tolerance = " << allowedEps << std::endl;
-         //   match = 0;
+            //   match = 0;
         }
     }
 

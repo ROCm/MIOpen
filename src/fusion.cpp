@@ -314,10 +314,9 @@ std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
         }
         else
         {
-            auto ki =
-                std::dynamic_pointer_cast<ConvForwardOpDescriptor>(starting_op)->GetKernelInfo(handle);
+            auto ki = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(starting_op)
+                          ->GetKernelInfo(handle);
             program_name = ki.kernel_file;
-
         }
         return program_name;
     }
@@ -350,7 +349,7 @@ std::string FusionPlanDescriptor::GetKernelName(Handle& handle)
                 std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head)->GetKernelInfo(handle);
             kernel_name = ki.kernel_name;
         }
-        
+
         return kernel_name;
     }
     else if(ops_head->kind() == miopenFusionOpBatchNormInference)
@@ -364,7 +363,6 @@ std::string FusionPlanDescriptor::GetKernelName(Handle& handle)
         if(bn_mode == miopenBNSpatial)
         {
             kernel_name = "MIOpenBatchNormActivInferSpatialEst";
-            
         }
         else
         {
@@ -387,10 +385,10 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     }
     // std::string network_config{};
     network_config = "";
-    program_name = "";
-    kernel_name = "";
-/*    std::string program_name{};
-    std::string kernel_name{};*/
+    program_name   = "";
+    kernel_name    = "";
+    /*    std::string program_name{};
+        std::string kernel_name{};*/
     // TODO: move the hard coded algo name to the LUT
     // std::string algorithm_name{}; // = "miopenDirConvBatchNormActivAlgo";
     // TODO: The fusion plan is keeping track of the insertion order,
@@ -400,7 +398,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         op->GetNetworkConfig(network_config, handle);
     }
     // Check if the kernel is assembly or OpenCL
-    is_asm_kernel       = false;
+    is_asm_kernel  = false;
     fp_contains_bn = false;
     // TODO: The Metadata graph should return this info
     auto ops_head = op_map[0]; // ins_order[0]];
@@ -481,7 +479,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             }
             std::cout << "Add Kernel Compiler options: " << compile_config << std::endl;
             std::cout << "Program name: " << GetProgramName(handle) << std::endl;
-            std::cout << "Kernel name: " <<  GetKernelName(handle) << std::endl;
+            std::cout << "Kernel name: " << GetKernelName(handle) << std::endl;
             handle.AddKernel(algorithm_name,
                              network_config,
                              program_name,
