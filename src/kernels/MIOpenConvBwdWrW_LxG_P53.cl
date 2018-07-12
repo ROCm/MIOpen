@@ -184,8 +184,12 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
             {
                 for(uint i = 0; i < MLO_IN_N_PIXS_OFF; ++i)
                 {
-
+#if 1
                     in_rd_data[i] = bot_p[i];
+#else
+                    in_rd_data[i] = bot[0];
+#endif
+
 #if DBG_OUT_OF_RNGE
                     if(bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
                     {
@@ -205,7 +209,13 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
 
                 for(uint i = 0; i < MLO_READ_UNIT; ++i)
                 {
+#if 0
+// fail case 2
                     in_rd_data[i] = bot_p[i];
+#else
+                    in_rd_data[i] = bot[0];
+#endif
+
 #if DBG_OUT_OF_RNGE
                     if(bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
                     {
@@ -220,7 +230,11 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
             {
                 int lcl_in_off = c * MLO_IN_LCL_SZ + c_scan * MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 +
                                  c_pix4 * MLO_READ_UNIT + i;
+#if 1
                 lcl_bot[lcl_in_off] = in_rd_data[i];
+#else
+                lcl_bot[0] = in_rd_data[i];
+#endif
             }
         }
 
@@ -254,7 +268,11 @@ __attribute__((always_inline)) void Processing(UNUSED uint sc,
                 for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
                 {
                     int bot_off    = sc_lcl_off + c * MLO_IN_LCL_SZ + n + m;
+#if 1
                     _FLOAT bot_val = lcl_bot[bot_off];
+#else
+                    _FLOAT bot_val = lcl_bot[0];
+#endif
                     for(uint k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
                     {
                         uint pvt_top_off =
@@ -269,7 +287,7 @@ __attribute__((always_inline)) void Processing(UNUSED uint sc,
                             // each wk-it process an input
                             += bot_val * top_val;
 #if 0
-						if (/*bot_val * top_val != 0 && */l == 0 && n == 1 && get_local_id(0) == 0 && get_local_id(1) == 0 && get_local_id(2) == 0 && k == 0)
+					        if (/*bot_val * top_val != 0 && */l == 0 && n == 1 && get_local_id(0) == 0 && get_local_id(1) == 0 && get_local_id(2) == 0 && k == 0)
 						{
 							printf("K: %d %d %d %f %f %f %f\n",
 								sc,
@@ -306,8 +324,6 @@ __attribute__((always_inline)) void moveOutputUp(__private _FLOAT* __restrict to
     }
 }
 
-__attribute__((always_inline))
-
 __attribute__((always_inline)) void
 spanReadingOutput(int spn,
                   int k,
@@ -325,7 +341,11 @@ spanReadingOutput(int spn,
         uint i = 0;
         for(; i < MLO_OUT_N_PIXS_OFF; ++i)
         {
+#if 1
             top_dat[pvt_off + i] = top_df_p[i] * mask;
+#else
+            top_dat[pvt_off + i] = top_df[0] * mask;
+#endif
 
 #if DBG_OUT_OF_RNGE
             if(top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
@@ -346,7 +366,13 @@ spanReadingOutput(int spn,
     {
         for(uint i = 0; i < MLO_IN_TILE0; ++i)
         {
+#if 0
+// fail case 1
             top_dat[pvt_off + i] = top_df_p[i] * mask;
+#else
+            top_dat[pvt_off + i] = top_df[0] * mask;
+#endif
+
 #if DBG_OUT_OF_RNGE
             if(top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
             {
@@ -451,7 +477,11 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     // zero out LDS
     for(uint i = lcl_id; i < (MLO_LCL_SZ); i += MLO_GRP_SZ)
     {
+#if 1
         lcl[i] = 0;
+#else
+        lcl[0] = 0;
+#endif
     }
 
     // over all batches
@@ -592,7 +622,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             readInput(lcl_id, gbl_in_scan_off, MLO_LAST_VERT_READS, bot, lcl_bot);
 
             // point to the start of the local buffer
-
             sc_lcl_off = lcl_bot_off;
 
 #pragma unroll 3
@@ -660,7 +689,11 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                     uint pvt_off =
                         (k * MLO_N_LCL_IN_MAPS + c) * MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0 +
                         l * MLO_FILTER_SIZE0 + n;
+#if 1
                     lcl[lcl_id * MLO_FILTER_SIZE0 + n] = pvt_accum[pvt_off];
+#else
+                    lcl[0] = pvt_accum[pvt_off];
+#endif
                 }
 
                 barrier(CLK_LOCAL_MEM_FENCE);
@@ -675,7 +708,11 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                             uint pvt_off =
                                 (k * MLO_N_LCL_IN_MAPS + c) * MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0 +
                                 l * MLO_FILTER_SIZE0 + n;
+#if 1
                             pvt_accum[pvt_off] += lcl[(lcl_id + s + 1) * MLO_FILTER_SIZE0 + n];
+#else
+                            pvt_accum[pvt_off] += lcl[0];
+#endif
                         }
                     }
                 }
@@ -699,11 +736,13 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             {
                 for(uint i = 0; i < (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0); ++i)
                 {
+#if 1
                     weights_df[wei_df_off + k * MLO_OUT_STACKS * MLO_WEI_BATCH_STRIDE +
                                c * MLO_WEI_CHANNEL_STRIDE + i] =
                         pvt_accum[(k * MLO_N_LCL_IN_MAPS + c) * MLO_FILTER_SIZE1 *
                                       MLO_FILTER_SIZE0 +
                                   i];
+#endif
                 }
             }
         }
