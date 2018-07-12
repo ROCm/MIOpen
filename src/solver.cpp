@@ -47,7 +47,7 @@ std::ostream& operator<<(std::ostream& os, const ConvSolution& s)
 {
     auto strings =
         s.construction_params | boost::adaptors::transformed([](auto k) { return k.kernel_name; });
-    os << JoinStrings(strings, "/");
+    os << s.solver_id << ": " << JoinStrings(strings, "/");
     return os;
 }
 
