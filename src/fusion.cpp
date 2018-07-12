@@ -433,8 +433,6 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     }
     // std::string network_config{};
     network_config = "";
-    program_name   = "";
-    kernel_name    = "";
     /*    std::string program_name{};
         std::string kernel_name{};*/
     // TODO: move the hard coded algo name to the LUT
@@ -451,6 +449,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     // TODO: The Metadata graph should return this info
     auto ops_head  = op_map[0]; // ins_order[0]];
     algorithm_name = lu.GetAlgoName();
+    program_name   = GetProgramName(handle);
+    kernel_name    = GetKernelName(handle);
 #if 0
     for(auto&& op : op_map)
     { // This needs to go away with the meta graph.
@@ -512,7 +512,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         {
             compile_config += " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
         }
-
+        // TODO: This true for inference but might not be true in general
+        // This is sill an open question
         const auto& vld = ops_head->GetLocalWGSz(handle, algorithm_name);
         const auto& vgd = ops_head->GetGlobalWGSz(handle, algorithm_name);
         for(auto&& op : op_map)
@@ -520,8 +521,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             op->GetCompileParms(compile_config, handle, is_asm_kernel);
         }
         std::cout << "Add Kernel Compiler options: " << compile_config << std::endl;
-        std::cout << "Program name: " << GetProgramName(handle) << std::endl;
-        std::cout << "Kernel name: " << GetKernelName(handle) << std::endl;
+        std::cout << "Program name: " << program_name << std::endl;
+        std::cout << "Kernel name: " << kernel_name << std::endl;
         handle.AddKernel(
             algorithm_name, network_config, program_name, kernel_name, vld, vgd, compile_config);
         status = miopenStatusSuccess;
