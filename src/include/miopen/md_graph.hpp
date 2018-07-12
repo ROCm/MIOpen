@@ -45,9 +45,13 @@ struct FusionMDGraph
 
     template <class T, class U>
     bool CmpOpKey(T&& edge_val, U&& op_val) const;
+    MDGraph_vertex_ptr GetCurVertex();
+    std::string GetProgramName();
+    std::string GetKernelName();
+    std::string GetAlgoName();
 
     protected:
-    MDGraph_vertex_ptr cur_vertex = nullptr;
+    std::vector<std::pair<MDGraph_vertex_ptr, int>> cur_vertex = {{nullptr, 0}};
     std::unordered_map<MDGraph_vertex_ptr,
                        std::unordered_map<MDGraph_vertex_ptr, FusionMDGraph_Edge_Map>>
         edge_list;

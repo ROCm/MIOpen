@@ -82,6 +82,8 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     friend std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x);
     virtual miopenFusionOp_t kind()                  = 0;
     virtual std::vector<std::string> GetArgs() const = 0;
+    virtual std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name);
+    virtual std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name);
     void SetInputDesc(TensorDescriptor i_desc) { input_desc = i_desc; };
     TensorDescriptor input_desc;
 
@@ -102,6 +104,8 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
     std::vector<std::string> GetArgs() const override;
     miopenFusionOp_t kind() override { return miopenFusionOpBiasForward; };
     std::string MDGraphKey() const override;
+    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
+    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
     TensorDescriptor& base_desc;
 };
 
@@ -121,6 +125,8 @@ struct ActivFusionOpDescriptor : FusionOpDescriptor
     std::vector<std::string> GetArgs() const override;
     miopenFusionOp_t kind() override { return miopenFusionOpActivForward; };
     std::string MDGraphKey() const override;
+    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
+    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
     miopenActivationMode_t activMode;
 };
 
@@ -144,6 +150,8 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
     miopenFusionOp_t kind() override { return miopenFusionOpBatchNormInference; };
     std::string MDGraphKey() const override;
     static std::string MDGraphKey(miopenBatchNormMode_t bn_mode);
+    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
+    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
 
     miopenBatchNormMode_t mode;
     TensorDescriptor& base_desc;
@@ -177,6 +185,8 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     static std::string MDGraphKey(std::map<std::string, int> d,
                                   std::vector<size_t> filter_lens,
                                   miopenConvFwdAlgorithm_t algorithm);
+    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
+    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
 
     ConvolutionDescriptor& base_desc;
     TensorDescriptor& filter_desc;
@@ -188,7 +198,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     private:
     mlo_construct_direct2D_fusion ConstructParams(Handle& handle);
 };
-
+#if 0
 struct FusionOpLU
 {
     FusionOpLU()
@@ -221,6 +231,7 @@ struct FusionOpLU
     std::vector<int> lut_hit;
     size_t cur_idx;
 };
+#endif
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenFusionOpDescriptor, miopen::FusionOpDescriptor);
 MIOPEN_DEFINE_OBJECT(miopenOperatorArgs, miopen::OperatorArgs);
