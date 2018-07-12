@@ -17,6 +17,63 @@ MDGraph_vertex::MDGraph_vertex(miopenFusionOp_t o,
     vertex_data["algorithm"] = algo_name;
 }
 
+MDGraph_vertex_ptr FusionMDGraph::GetCurVertex()
+{
+    int weight              = cur_vertex[0].second;
+    MDGraph_vertex_ptr& ptr = cur_vertex[0].first;
+
+    for(auto& cur : cur_vertex)
+    {
+        if(cur.second > weight)
+        {
+            weight = cur.second;
+            ptr    = cur.first;
+        }
+    }
+
+    return ptr;
+}
+
+std::string FusionMDGraph::GetProgramName()
+{
+    auto ptr = GetCurVertex();
+
+    if(ptr != nullptr)
+    {
+        return ptr->vertex_data["program"];
+    }
+    else
+    {
+        MIOPEN_THROW("Invalid FusionPlan");
+    }
+}
+
+std::string FusionMDGraph::GetKernelName()
+{
+    auto ptr = GetCurVertex();
+    if(ptr != nullptr)
+    {
+        return ptr->vertex_data["kernel"];
+    }
+    else
+    {
+        MIOPEN_THROW("Invalid FusionPlan");
+    }
+}
+
+std::string FusionMDGraph::GetAlgoName()
+{
+    auto ptr = GetCurVertex();
+    if(ptr != nullptr)
+    {
+        return ptr->vertex_data["algorithm"];
+    }
+    else
+    {
+        MIOPEN_THROW("Invalid FusionPlan");
+    }
+}
+
 void FusionMDGraph::Init(FusionMDGraph& g, miopenFusionOp_t op)
 {
     switch(op)
@@ -250,35 +307,46 @@ bool FusionMDGraph::Advance(std::vector<std::shared_ptr<FusionOpDescriptor>> ops
     }
 #endif
 
+    std::vector<std::pair<MDGraph_vertex_ptr, int>> new_list;
+
     for(auto idx = start_idx; idx < ops.size(); idx++)
     {
         auto op = ops[idx];
         // get the children of the cur_vertex
-        auto& ch = edge_list[cur_vertex];
-        // if op is in the children and the edge key satisfies update cur_vertex
-        for(auto ch_it = ch.begin(); ch_it != ch.end(); ch_it++)
+        for(auto idx_cur = 0; idx_cur < cur_vertex.size(); idx_cur++)
         {
-            if(ch_it->first->op == op->kind())
+            MDGraph_vertex_ptr& cur_vertex_ptr = cur_vertex[idx_cur].first;
+            int& weight                        = cur_vertex[idx_cur].second;
+
+            auto& ch = edge_list[cur_vertex_ptr];
+            // if op is in the children and the edge key satisfies update cur_vertex
+            for(auto ch_it = ch.begin(); ch_it != ch.end(); ch_it++)
             {
-                if(CmpOpKey(ch_it->second["key"], op->MDGraphKey()))
+                if(ch_it->first->op == op->kind())
                 {
-                    cur_vertex = ch_it->first;
+                    if(CmpOpKey(ch_it->second["key"], op->MDGraphKey()))
+                    {
+                        weight += std::stoi(ch_it->second["weight"][0]);
+                        new_list.push_back(
+                            std::pair<MDGraph_vertex_ptr, int>(ch_it->first, weight));
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
                 else
                 {
-                    // MIOPEN_THROW("Operator Config not supported");
-                    return false;
+                    MIOPEN_THROW("Unsupported Operator");
                 }
             }
-            else
-            {
-                MIOPEN_THROW("Unsupported Operator");
-            }
         }
+        cur_vertex = new_list;
     }
+
     return true;
 }
 
-void FusionMDGraph::Reset() { cur_vertex = nullptr; }
+void FusionMDGraph::Reset() { cur_vertex = {{nullptr, 0}}; }
 
 } // namespace miopen
