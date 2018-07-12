@@ -211,6 +211,20 @@ std::string ConvForwardOpDescriptor::MDGraphKey() const
     return ConvForwardOpDescriptor::MDGraphKey(m, lens, algo);
 }
 
+std::vector<size_t> ConvForwardOpDescriptor::GetLocalWGSz(Handle& handle,
+                                                          std::string algorithm_name)
+{
+    auto ki = GetKernelInfo(handle, algorithm_name);
+    return ki.l_wk;
+}
+
+std::vector<size_t> ConvForwardOpDescriptor::GetGlobalWGSz(Handle& handle,
+                                                           std::string algorithm_name)
+{
+    auto ki = GetKernelInfo(handle, algorithm_name);
+    return ki.g_wk;
+}
+
 // Activ Forward
 miopenStatus_t ActivFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                 const void* alpha,
@@ -339,6 +353,7 @@ std::vector<std::string> BiasFusionOpDescriptor::GetArgs() const
 }
 
 std::string BiasFusionOpDescriptor::MDGraphKey() const { return base_desc.ToString(); }
+#if 0
 // Op LUT
 bool FusionOpLU::Advance(std::vector<std::shared_ptr<miopen::FusionOpDescriptor>> op_map)
 {
@@ -379,32 +394,14 @@ bool FusionOpLU::Advance(std::vector<std::shared_ptr<miopen::FusionOpDescriptor>
     return vec;
 }
 */
+#endif
 
 std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
 {
-
-    auto starting_op = op_map.at(0);
-
-    if(starting_op->kind() == miopenFusionOpConvForward)
+    (void)handle;
+    if(op_map.size() != 0)
     {
-        if(fp_contains_bn)
-        {
-            program_name = "MIOpenConvDirBatchNormActiv.cl";
-        }
-        else
-        {
-            auto ki = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(starting_op)
-                          ->GetKernelInfo(handle);
-            program_name = ki.kernel_file;
-        }
-        return program_name;
-    }
-    else if(starting_op->kind() == miopenFusionOpBatchNormInference)
-    {
-        // This is hardcoded to assume that batch norm is first AND that
-        // activations is the next fusion. Currently no other fusion exists
-        // where BN is the op_head.
-        program_name = "MIOpenBatchNormActivInfer.cl";
+        program_name = lu.GetProgramName();
         return program_name;
     }
     else
@@ -415,38 +412,10 @@ std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
 
 std::string FusionPlanDescriptor::GetKernelName(Handle& handle)
 {
-    auto ops_head = op_map.at(0);
-    if(ops_head->kind() == miopenFusionOpConvForward)
+    (void)handle;
+    if(op_map.size() != 0)
     {
-        if(fp_contains_bn)
-        {
-            kernel_name = "MIOpenConvUniBatchNormActiv";
-        }
-        else
-        {
-            auto ki =
-                std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head)->GetKernelInfo(handle);
-            kernel_name = ki.kernel_name;
-        }
-
-        return kernel_name;
-    }
-    else if(ops_head->kind() == miopenFusionOpBatchNormInference)
-    {
-        // This is hardcoded to assume that batch norm is first AND that
-        // activations is the next fusion. Currently no other fusion exists
-        // where BN is the op_head.
-        auto bnOp =
-            std::dynamic_pointer_cast<miopen::BatchNormInferenceFusionOpDescriptor>(ops_head);
-        auto bn_mode = bnOp->mode;
-        if(bn_mode == miopenBNSpatial)
-        {
-            kernel_name = "MIOpenBatchNormActivInferSpatialEst";
-        }
-        else
-        {
-            kernel_name = "MIOpenBatchNormActivInferPerActEst";
-        }
+        kernel_name = lu.GetKernelName();
         return kernel_name;
     }
     else
@@ -477,10 +446,12 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         op->GetNetworkConfig(network_config, handle);
     }
     // Check if the kernel is assembly or OpenCL
-    is_asm_kernel  = false;
+    is_asm_kernel  = (program_name[-1] == 's');
     fp_contains_bn = false;
     // TODO: The Metadata graph should return this info
-    auto ops_head = op_map[0]; // ins_order[0]];
+    auto ops_head  = op_map[0]; // ins_order[0]];
+    algorithm_name = lu.GetAlgoName();
+#if 0
     for(auto&& op : op_map)
     { // This needs to go away with the meta graph.
         if(op->kind() == miopenFusionOpBatchNormInference)
@@ -490,6 +461,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             break;
         }
     }
+
     if(ops_head->kind() == miopenFusionOpConvForward)
     {
         auto ops_conv = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head);
@@ -521,6 +493,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     {
         status = miopenStatusNotImplemented;
     }
+#endif
 
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
     if(!kernels.empty())
@@ -540,104 +513,18 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             compile_config += " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
         }
 
-        if(ops_head->kind() == miopenFusionOpConvForward)
+        const auto& vld = ops_head->GetLocalWGSz(handle, algorithm_name);
+        const auto& vgd = ops_head->GetGlobalWGSz(handle, algorithm_name);
+        for(auto&& op : op_map)
         {
-
-            // DLOWELL: This is a hack to prevent ASM kernels from being called
-            auto ki = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head)->GetKernelInfo(
-                handle, algorithm_name);
-            // We should use GetKernelName() and GetProgram name at this point.
-            /*program_name = ki.kernel_file;
-            kernel_name  = ki.kernel_name;*/
-            // const auto parms = compile_config;
-            const auto& vld = ki.l_wk;
-            const auto& vgd = ki.g_wk;
-            for(auto&& op : op_map)
-            {
-                op->GetCompileParms(compile_config, handle, is_asm_kernel);
-            }
-            std::cout << "Add Kernel Compiler options: " << compile_config << std::endl;
-            std::cout << "Program name: " << GetProgramName(handle) << std::endl;
-            std::cout << "Kernel name: " << GetKernelName(handle) << std::endl;
-            handle.AddKernel(algorithm_name,
-                             network_config,
-                             program_name,
-                             kernel_name,
-                             vld,
-                             vgd,
-                             compile_config);
-            status = miopenStatusSuccess;
+            op->GetCompileParms(compile_config, handle, is_asm_kernel);
         }
-        else if(ops_head->kind() == miopenFusionOpBatchNormInference)
-        {
-
-            std::vector<size_t> vld{256, 1, 1};
-            // This is hardcoded to assume that batch norm is first AND that
-            // activations is the next fusion. Currently no other fusion exists
-            // where BN is the op_head.
-            // \todo this needs to be dynamic and based on information for a single source.
-
-            int n, c, h, w;
-
-            // The output_desc should be fully formed by this stage.
-            std::tie(n, c, h, w) = tien<4>(output_desc.GetLengths());
-            printf("n: %d, c: %d, h: %d, w: %d\n", n, c, h, w);
-            auto bnOp =
-                std::dynamic_pointer_cast<miopen::BatchNormInferenceFusionOpDescriptor>(ops_head);
-            auto bn_mode     = bnOp->mode;
-            size_t read_unit = 0;
-            size_t read_len  = (bn_mode == miopenBNSpatial) ? h * w : c * h * w;
-
-            if(bn_mode /*ops_head->mode*/ == miopenBNSpatial)
-            {
-                read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
-            }
-            else
-            {
-                read_unit = 1;
-            }
-            compile_config += " -DMIO_BN_CHW=" + std::to_string(c * h * w) + " -DMIO_BN_HW=" +
-                              std::to_string(h * w) + " -DMIO_BN_N=" + std::to_string(n) +
-                              " -DMIO_BN_GRP0=" + std::to_string(vld.at(0)) + " -DMIO_BN_GRP1=" +
-                              std::to_string(1) + " -DMIO_BN_GRP2=" + std::to_string(1);
-
-            std::cout << "read_len: " << read_len << ", read_unit: " << read_unit << std::endl;
-            size_t xgridsize = read_len / read_unit;
-            size_t ygridsize = (bn_mode == miopenBNSpatial) ? size_t(c) : 1;
-            size_t zgridsize = 1;
-
-            std::vector<size_t> vgd{};
-            vgd.push_back(xgridsize);
-            vgd.push_back(ygridsize);
-            vgd.push_back(zgridsize);
-
-            std::cout << "vld: " << vld.at(0) << ", " << vld.at(1) << ", " << vld.at(2)
-                      << std::endl;
-            std::cout << "vgd: " << vgd.at(0) << ", " << vgd.at(1) << ", " << vgd.at(2)
-                      << std::endl;
-
-            std::string READ_TYPE =
-                (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
-            compile_config += " -DMIOPEN_READ_UNIT=" + std::to_string(read_unit);
-            compile_config += " -DMIOPEN_READ_TYPE=" + READ_TYPE;
-            for(auto&& op : op_map)
-            {
-                op->GetCompileParms(compile_config, handle, is_asm_kernel);
-            }
-            std::cout << "Compiler parameters: " << compile_config << std::endl;
-            handle.AddKernel(algorithm_name,
-                             network_config,
-                             GetProgramName(handle),
-                             GetKernelName(handle),
-                             vld,
-                             vgd,
-                             compile_config);
-            status = miopenStatusSuccess;
-        }
-        else
-        {
-            status = miopenStatusNotImplemented;
-        }
+        std::cout << "Add Kernel Compiler options: " << compile_config << std::endl;
+        std::cout << "Program name: " << GetProgramName(handle) << std::endl;
+        std::cout << "Kernel name: " << GetKernelName(handle) << std::endl;
+        handle.AddKernel(
+            algorithm_name, network_config, program_name, kernel_name, vld, vgd, compile_config);
+        status = miopenStatusSuccess;
     }
     return status;
 }
