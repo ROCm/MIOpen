@@ -53,8 +53,6 @@ namespace miopen {
 /// Also enables performance filtering heuristics.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_FIND_FIRST_CONV)
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_WORKAROUND_ISSUE_1007)
-
 /// Allows to explicitly disable performance filtering heuristics
 /// in "Find first convolution only" mode.
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
@@ -294,19 +292,7 @@ std::vector<Solution> SearchForAllSolutions(const Context& search_params, Db db)
         [&](auto solver) { // cppcheck-suppress knownConditionTrueFalse
             if(!skip_the_rest
                && solver.IsApplicable(search_params)
-               && (no_perf_filtering || solver.IsFast(search_params))
-               // Workaround for issue 1007:
-               && !(!miopen::IsDisabled(MIOPEN_WORKAROUND_ISSUE_1007{})
-                    && !ss.empty() // Only if we have one solution at least.
-                    && search_params.direction.IsBackwardWrW()
-                    && SolverDbId(solver) == "ConvOclBwdWrW53"
-                    && search_params.kernel_size0 == 3
-                    // W*H*C*N*K limit (heurustics):
-                    && (static_cast<double>(search_params.batch_sz)
-                        * search_params.out_height
-                        * search_params.out_width
-                        * search_params.n_outputs
-                        * search_params.n_inputs) > 700000000))
+               && (no_perf_filtering || solver.IsFast(search_params)))
             { // clang-format on
                 const Solution s = FindSolution(solver, search_params, db);
                 if(s.Succeeded())
