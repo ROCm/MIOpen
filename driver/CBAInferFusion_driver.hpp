@@ -647,7 +647,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         for(int i = 0; i < sb_sz; i++)
         {
 #if(CBA_DEBUG_VALUES == 1)
-            scale[i] = 1.;//std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0))); // 1.0;
+            scale[i] = 1.; // std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0),
+                           // static_cast<Tgpu>(1.0))); // 1.0;
             bias[i] = 10.;
 #else
             scale[i]           = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
@@ -672,7 +673,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     for(int i = 0; i < in_sz; i++)
     {
 #if(CBA_DEBUG_VALUES == 1)
-        auto rval = 1.;//std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0))); // 1.0;
+        auto rval =
+            1.; // std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0))); // 1.0;
         in_host[i] = static_cast<double>(rval);
         in[i]      = rval;
 #else
@@ -688,7 +690,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         for(int i = 0; i < wei_sz; i++)
         {
 #if(CBA_DEBUG_VALUES == 1)
-            wei[i] = 1.;// std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0))); // 1.;
+            wei[i] = 1.; // std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0),
+                         // static_cast<Tgpu>(1.0))); // 1.;
 #else
             wei[i] = std::fabs(RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0)));
 #endif
@@ -966,22 +969,22 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUActivFwdInference()
     double activ_alpha, activ_beta, activ_gamma;
     miopenActivationMode_t activ_mode;
     miopenGetActivationDescriptor(activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
-/*if(activ_mode != miopenActivationPASTHRU)
-{*/
+    /*if(activ_mode != miopenActivationPASTHRU)
+    {*/
     miopenActivationFwdHost<Tgpu, Tref>(activ_mode,
                                         activ_gamma,
                                         activ_beta,
                                         activ_alpha,
                                         out.size(),
                                         (fusion_mode > 3) ? conv_res_host.data()
-                                                           : bn_res_host.data(),
+                                                          : bn_res_host.data(),
                                         out_host.data());
-/*}
-else
-{
-    out_host = (fusion_mode > 3) ? conv_res_host: bn_res_host;
-               
-}*/
+    /*}
+    else
+    {
+        out_host = (fusion_mode > 3) ? conv_res_host: bn_res_host;
+
+    }*/
     return;
 }
 
@@ -1093,27 +1096,13 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
     std::cout << "Running fusion: ";
     switch(fusion_mode)
     {
-    case 0:
-        std::cout << "Convolution+Bias+BatchNorm+Activation" << std::endl;
-        break;
-    case 1:
-        std::cout << "Convolution+BatchNorm+Activation" << std::endl;
-        break;
-    case 2:
-        std::cout << "BatchNorm+Activation" << std::endl;
-        break;
-    case 3:
-        std::cout << "Convolution+BatchNorm" << std::endl;
-        break;
-    case 4:
-        std::cout << "Convolution+Bias+Activation" << std::endl;
-        break;
-    case 5:
-        std::cout << "Convolution+Activation" << std::endl;
-        break;
-    case 6:
-        std::cout << "Convolution+Bias" << std::endl;
-        break;
+    case 0: std::cout << "Convolution+Bias+BatchNorm+Activation" << std::endl; break;
+    case 1: std::cout << "Convolution+BatchNorm+Activation" << std::endl; break;
+    case 2: std::cout << "BatchNorm+Activation" << std::endl; break;
+    case 3: std::cout << "Convolution+BatchNorm" << std::endl; break;
+    case 4: std::cout << "Convolution+Bias+Activation" << std::endl; break;
+    case 5: std::cout << "Convolution+Activation" << std::endl; break;
+    case 6: std::cout << "Convolution+Bias" << std::endl; break;
     }
     initTiming();
     switch(fusion_mode)
@@ -1121,9 +1110,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
     case 0:
     case 1:
     case 3:
-    case 4:
-        runGPUConvBatchNormActivInference();
-        break;
+    case 4: runGPUConvBatchNormActivInference(); break;
     case 5: runGPUConvActivInference(); break;
     case 2: runGPUBatchNormActivInference(); break;
     case 6: runGPUFusedConvBiasInference(); break;
