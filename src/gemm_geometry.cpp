@@ -39,10 +39,11 @@ void set_offsets_to_uint(std::string& clstr)
     for(char x : {'a', 'b', 'c'})
     {
         std::string replacement = "const unsigned " + std::string(1, x) + "_offset,";
-        size_t pos = 0;
+        size_t pos              = 0;
         for(auto inttype : {"size_t", "ulong"})
         {
-            std::string cmpstr = "const " + std::string(inttype) + ' ' + std::string(1, x) + "_offset,";
+            std::string cmpstr =
+                "const " + std::string(inttype) + ' ' + std::string(1, x) + "_offset,";
             pos = clstr.find(cmpstr);
             if(pos != std::string::npos)
             {
