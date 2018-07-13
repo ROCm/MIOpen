@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <regex>
+#include <boost/regex.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/miopengemm.hpp>
 #include <miopen/float_equal.hpp>
@@ -41,7 +41,7 @@ void set_offsets_to_uint(std::string& clstr)
     auto get_target = [](std::string inttype, char x) {
         std::stringstream ss;
         ss << "const " << inttype << ' ' << std::string(1, x) << "_offset";
-        return std::regex(ss.str());
+        return boost::regex(ss.str());
     };
 
     for(char x : {'a', 'b', 'c'})
@@ -49,7 +49,7 @@ void set_offsets_to_uint(std::string& clstr)
         std::string replacement = "const unsigned " + std::string(1, x) + "_offset";
         for(auto inttype : {"size_t", "ulong"})
         {
-            clstr = std::regex_replace(clstr, get_target(inttype, x), replacement);
+            clstr = boost::regex_replace(clstr, get_target(inttype, x), replacement);
         }
     }
 }

@@ -349,8 +349,10 @@ endif()
 target_link_libraries(MIOpen PRIVATE OpenSSL::Crypto)
 target_include_directories(MIOpen PUBLIC $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>)
 target_internal_library(MIOpen
+    optimized ${Boost_REGEX_LIBRARY_RELEASE}
     optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE}
     optimized ${Boost_SYSTEM_LIBRARY_RELEASE}
+    debug ${Boost_REGEX_LIBRARY_DEBUG}
     debug ${Boost_FILESYSTEM_LIBRARY_DEBUG}
     debug ${Boost_SYSTEM_LIBRARY_DEBUG}
 )
