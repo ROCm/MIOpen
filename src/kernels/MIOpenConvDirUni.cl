@@ -50,6 +50,10 @@
 #endif
 #endif
 
+/// \todo Fix issue 1014 and remove this guard.
+/// Fails with 512, works with 1024, let's have x4 spare
+#define MLO_PRIVATE_BUF_GUARD (1024 / SIZEOF_FLOAT)
+
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
 #define _FLOAT4 PPCAT(_FLOAT, FOUR)
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
@@ -496,9 +500,9 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #endif
     __local _FLOAT lcl_indata[MLO_IN_LCL_SZ];
     __local _FLOAT lcl_wei[MLO_WEIGHTS_SZ];
-    __private _FLOAT pvt_accum[MLO_PVT_ACCUM_DATA_SZ];
-    __private _FLOAT pvt_in_stage[MLO_PVT_IN_HEIGHT * MLO_PVT_IN_WIDTH];
-    __private _FLOAT pvt_wei_stage[MLO_FILTER_SIZE0];
+    __private _FLOAT pvt_accum[MLO_PVT_ACCUM_DATA_SZ + MLO_PRIVATE_BUF_GUARD];
+    __private _FLOAT pvt_in_stage[MLO_PVT_IN_HEIGHT * MLO_PVT_IN_WIDTH + MLO_PRIVATE_BUF_GUARD];
+    __private _FLOAT pvt_wei_stage[MLO_FILTER_SIZE0 + MLO_PRIVATE_BUF_GUARD];
 
     uint grp_id0 = get_group_id(0);
 #if MLO_N_OUT_TILE_BLOCKS0 & (MLO_N_OUT_TILE_BLOCKS0 - 1)
