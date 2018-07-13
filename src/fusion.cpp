@@ -62,7 +62,7 @@ miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> d
     desc->GetOutputDesc(output_desc);
     op_map.emplace_back(desc);
     op_count++;
-    is_valid = lu.Advance(op_map);
+    is_valid = lu.Advance(desc);
     return miopenStatusSuccess;
 }
 

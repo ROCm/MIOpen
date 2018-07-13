@@ -132,10 +132,10 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                            {"paddingMode", miopenPaddingDefault},
                                            {"pad_h", 0},
                                            {"pad_w", 0},
-                                           {"u", 0},
-                                           {"v", 0},
-                                           {"dilation_h", 0},
-                                           {"dilation_w", 0}};
+                                           {"u", 1},
+                                           {"v", 1},
+                                           {"dilation_h", 1},
+                                           {"dilation_w", 1}};
     FusionMDGraph_Edge_Map empty_map = {{"key", {""}}, {"weight", {"0"}}};
     // first path (asm kernel)
     { // Conv -> Bias -> Activ
@@ -200,7 +200,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                 auto bn_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormInference,
                                                              "MIOpenConvDirBatchNormActiv.cl",
                                                              "MIOpenConvUniBatchNormActiv",
-                                                             "MIOpenConvUniBatchNormActiv");
+                                                             "miopenConvDirectBatchNormBiasActiv");
                 FusionMDGraph_Edge_Map edg_activ = {
                     {"key",
                      {BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNPerActivation)}},
@@ -215,7 +215,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                 auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
                                                                 "MIOpenConvDirBatchNormActiv.cl",
                                                                 "MIOpenConvUniBatchNormActiv",
-                                                                "MIOpenConvUniBatchNormActiv");
+                                                                "miopenConvDirectBatchNormBiasActiv");
                 g.AddEdge(bn_v, activ_v, empty_map);
             }
         }
@@ -224,7 +224,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
             auto bn_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormInference,
                                                          "MIOpenConvDirBatchNormActiv.cl",
                                                          "MIOpenConvUniBatchNormActiv",
-                                                         "MIOpenConvUniBatchNormActiv");
+                                                         "miopenConvDirectBatchNormBiasActiv");
             FusionMDGraph_Edge_Map edg_activ = {
                 {"key", {BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNPerActivation)}},
                 {"weight", {"0"}}};
@@ -237,7 +237,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
             auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
                                                             "MIOpenConvDirBatchNormActiv.cl",
                                                             "MIOpenConvUniBatchNormActiv",
-                                                            "MIOpenConvUniBatchNormActiv");
+                                                            "miopenConvDirectBatchNormBiasActiv");
             g.AddEdge(bn_v, activ_v, empty_map);
         }
     }
@@ -289,9 +289,8 @@ bool FusionMDGraph::CmpOpKey(T&& edge_val, U&& op_val) const
     }
 }
 
-bool FusionMDGraph::Advance(std::vector<std::shared_ptr<FusionOpDescriptor>> ops)
+bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
 {
-    size_t start_idx = 0;
 #if 0
     if(cur_vertex == nullptr)
     {
@@ -308,43 +307,33 @@ bool FusionMDGraph::Advance(std::vector<std::shared_ptr<FusionOpDescriptor>> ops
 #endif
 
     std::vector<std::pair<MDGraph_vertex_ptr, int>> new_list;
-
-    for(auto idx = start_idx; idx < ops.size(); idx++)
+    // get the children of the cur_vertex
+    for(auto idx_cur = 0; idx_cur < cur_vertex.size(); idx_cur++)
     {
-        auto op = ops[idx];
-        // get the children of the cur_vertex
-        for(auto idx_cur = 0; idx_cur < cur_vertex.size(); idx_cur++)
-        {
-            MDGraph_vertex_ptr& cur_vertex_ptr = cur_vertex[idx_cur].first;
-            int& weight                        = cur_vertex[idx_cur].second;
+        MDGraph_vertex_ptr& cur_vertex_ptr = cur_vertex[idx_cur].first;
+        int& weight                        = cur_vertex[idx_cur].second;
 
-            auto& ch = edge_list[cur_vertex_ptr];
-            // if op is in the children and the edge key satisfies update cur_vertex
-            for(auto ch_it = ch.begin(); ch_it != ch.end(); ch_it++)
+        auto& ch = edge_list[cur_vertex_ptr];
+        // if op is in the children and the edge key satisfies update cur_vertex
+        for(auto ch_it = ch.begin(); ch_it != ch.end(); ch_it++)
+        {
+            if(ch_it->first->op == op->kind())
             {
-                if(ch_it->first->op == op->kind())
+                if(CmpOpKey(ch_it->second["key"], op->MDGraphKey()))
                 {
-                    if(CmpOpKey(ch_it->second["key"], op->MDGraphKey()))
-                    {
-                        weight += std::stoi(ch_it->second["weight"][0]);
-                        new_list.push_back(
-                            std::pair<MDGraph_vertex_ptr, int>(ch_it->first, weight));
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                }
-                else
-                {
-                    MIOPEN_THROW("Unsupported Operator");
+                    weight += std::stoi(ch_it->second["weight"][0]);
+                    new_list.push_back(
+                        std::pair<MDGraph_vertex_ptr, int>(ch_it->first, weight));
                 }
             }
         }
-        cur_vertex = new_list;
     }
+    cur_vertex = new_list;
 
-    return true;
+    if(cur_vertex.size() == 0)
+        return false;
+    else
+        return true;
 }
 
 void FusionMDGraph::Reset() { cur_vertex = {{nullptr, 0}}; }

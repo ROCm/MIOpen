@@ -39,7 +39,7 @@ struct FusionMDGraph
     static void InitConv(FusionMDGraph& g);
     static void InitBN(FusionMDGraph& g);
     void Reset();
-    bool Advance(std::vector<std::shared_ptr<FusionOpDescriptor>> ops);
+    bool Advance(std::shared_ptr<FusionOpDescriptor> op);
     void AddVeretx(MDGraph_vertex& vertex);
     void AddEdge(MDGraph_vertex_ptr src, MDGraph_vertex_ptr dst, FusionMDGraph_Edge_Map& map);
 
