@@ -52,7 +52,7 @@
 
 /// \todo Fix issue 1014 and remove this guard.
 /// Fails with 512, works with 1024, let's have x4 spare
-#define MLO_PRIVATE_BUF_GUARD (1024 / SIZEOF_FLOAT)
+#define MLO_PRIVATE_BUF_GUARD (4096 / SIZEOF_FLOAT)
 
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
 #define _FLOAT4 PPCAT(_FLOAT, FOUR)
