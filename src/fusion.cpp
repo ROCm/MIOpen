@@ -443,9 +443,6 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         status = miopenStatusNotImplemented;
     }
 
-
-
-
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
     if(!kernels.empty())
     {
