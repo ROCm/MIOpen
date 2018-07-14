@@ -603,13 +603,13 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #if MLO_LARGE_MAP == 0
     for(uint i = lcl_id; i < MLO_IN_LCL_SZ; i += MLO_GRP_SZ)
     {
-        lcl_indata[i] = 0;
+        lcl_indata[i] = 0.f;
     }
 #endif
 
     for(uint i = 0; i < MLO_PVT_ACCUM_DATA_SZ; ++i)
     {
-        pvt_accum[i] = 0;
+        pvt_accum[i] = 0.f;
     }
 
     for(uint ic = 0; ic < MLO_N_INPUTS; ic += MLO_N_IN_TILES_PERSTACK,
