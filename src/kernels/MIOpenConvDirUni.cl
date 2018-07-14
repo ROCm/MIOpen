@@ -500,7 +500,12 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #endif
     __local _FLOAT lcl_indata[MLO_IN_LCL_SZ];
     __local _FLOAT lcl_wei[MLO_WEIGHTS_SZ];
-    __private _FLOAT pvt_accum[MLO_PVT_ACCUM_DATA_SZ + MLO_PRIVATE_BUF_GUARD];
+    __private _FLOAT pvt_accum[MLO_PVT_ACCUM_DATA_SZ
+#if MLO_FILTER_SIZE0 == 5 && MLO_FILTER_SIZE1 == 5
+                               +
+                               MLO_PRIVATE_BUF_GUARD
+#endif
+    ];
     __private _FLOAT pvt_in_stage[MLO_PVT_IN_HEIGHT * MLO_PVT_IN_WIDTH];
     __private _FLOAT pvt_wei_stage[MLO_FILTER_SIZE0];
 
