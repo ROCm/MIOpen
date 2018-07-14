@@ -152,7 +152,7 @@
 
 #define MLO_WEIGHTS_SZ (MLO_N_OUT_TILES_PERSTACK * MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ)
 
-#define MLO_PVT_ACCUM_DATA_SZ (MLO_N_OUT_TILES * MLO_OUT_TILE_SZ)
+#define MLO_PVT_ACCUM_DATA_SZ MLO_N_OUT_TILES* MLO_OUT_TILE_SZ
 #if MLO_DIR_FORWARD == 1
 #define MLO_PVT_IN_WIDTH ((MLO_OUT_TILE0 - 1) * MLO_FILTER_STRIDE0 + MLO_FILTER_SIZE0)
 #define MLO_PVT_IN_HEIGHT ((MLO_OUT_TILE1 - 1) * MLO_FILTER_STRIDE1 + 1)
@@ -501,8 +501,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
     __local _FLOAT lcl_indata[MLO_IN_LCL_SZ];
     __local _FLOAT lcl_wei[MLO_WEIGHTS_SZ];
     __private _FLOAT pvt_accum[MLO_PVT_ACCUM_DATA_SZ + MLO_PRIVATE_BUF_GUARD];
-    __private _FLOAT pvt_in_stage[MLO_PVT_IN_HEIGHT * MLO_PVT_IN_WIDTH + MLO_PRIVATE_BUF_GUARD];
-    __private _FLOAT pvt_wei_stage[MLO_FILTER_SIZE0 + MLO_PRIVATE_BUF_GUARD];
+    __private _FLOAT pvt_in_stage[MLO_PVT_IN_HEIGHT * MLO_PVT_IN_WIDTH];
+    __private _FLOAT pvt_wei_stage[MLO_FILTER_SIZE0];
 
     uint grp_id0 = get_group_id(0);
 #if MLO_N_OUT_TILE_BLOCKS0 & (MLO_N_OUT_TILE_BLOCKS0 - 1)
