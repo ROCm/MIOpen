@@ -117,7 +117,7 @@ struct ConvSolution
 
     ConvSolution(miopenStatus_t status_ = miopenStatusSuccess)
         : status(status_),
-          solver_id(""),
+          solver_id("<unknown>"),
           workspce_sz(0),
           grp_tile1(-1),
           grp_tile0(-1),
@@ -180,9 +180,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
                 MIOPEN_LOG_I("Perf Db: record loaded: " << SolverDbId(s));
                 if(s.IsValidPerformanceConfig(context, config))
                 {
-                    auto solution = s.GetSolution(context, config);
-                    solution.solver_id = SolverDbId(s);
-                    return solution;
+                    return s.GetSolution(context, config);
                 }
                 MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverDbId(s) << ": "
                                                                     << config);
@@ -196,9 +194,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
             {
                 auto c = s.Search(context);
                 db.Update(context, SolverDbId(s), c);
-                auto solution     = s.GetSolution(context, c);
-                solution.solver_id = SolverDbId(s);
-                return solution;
+                return s.GetSolution(context, c);
             }
             catch(const miopen::Exception& ex)
             {
@@ -207,9 +203,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
         }
     }
 
-    auto solution     = s.GetSolution(context, s.GetPerformanceConfig(context));
-    solution.solver_id = SolverDbId(s);
-    return solution;
+    return s.GetSolution(context, s.GetPerformanceConfig(context));
 }
 
 template <class Solver, class Context, class Db>
@@ -217,9 +211,7 @@ auto FindSolutionImpl(rank<0>, Solver s, const Context& context, Db&)
     -> decltype(s.GetSolution(context))
 {
     MIOPEN_LOG_I(SolverDbId(s) << " (not searchable)");
-    auto solution     = s.GetSolution(context);
-    solution.solver_id = SolverDbId(s);
-    return solution;
+    return s.GetSolution(context);
 }
 
 /// Finds optimized Solution. Generic method.
@@ -234,7 +226,9 @@ ConvSolution FindSolution(Solver s, const Context& context, Db& db)
     static_assert(std::is_empty<Solver>{} && std::is_trivially_constructible<Solver>{},
                   "Solver must be stateless");
     // TODO: This assumes all solutions are ConvSolution
-    return FindSolutionImpl(rank<1>{}, s, context, db);
+    auto solution      = FindSolutionImpl(rank<1>{}, s, context, db);
+    solution.solver_id = SolverDbId(s);
+    return solution;
 }
 
 // Search for the 1st applicable solution among many solvers
