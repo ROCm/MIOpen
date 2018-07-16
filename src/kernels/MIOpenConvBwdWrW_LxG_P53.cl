@@ -219,7 +219,7 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
 #if DBG_OUT_OF_RNGE
                     if(bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
                     {
-                        printf("k:err:in-of-range\n");
+                        printf("k:err:in-of-range %d %d\n", bot_off, i);
                     }
 #endif
                 }
@@ -366,7 +366,7 @@ spanReadingOutput(int spn,
     {
         for(uint i = 0; i < MLO_IN_TILE0; ++i)
         {
-#if 0
+#if 1
 // fail case 1
             top_dat[pvt_off + i] = top_df_p[i] * mask;
 #else
@@ -484,6 +484,12 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 #endif
     }
 
+    if(get_global_id(0) == 0)
+    {
+        printf("0: MLO_IN_N_VERT_LOOPS %10d\n",MLO_IN_N_VERT_LOOPS);
+        printf("0: MLO_N_GENERIC_LOOPS %10d\n",MLO_N_GENERIC_LOOPS);
+    }
+
     // over all batches
     for(uint b = 0; b < MLO_N_BATCH_LOOPS; ++b,
              gbl_in_off += MLO_N_LCL_BATCHS * MLO_IN_BATCH_STRIDE,
@@ -494,10 +500,18 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         uint gbl_in_scan_off  = gbl_in_off;
         uint gbl_out_scan_off = gbl_out_off;
 
+        if((get_local_id(0) == 0 || get_local_id(0) == get_local_size(0) - 1) && (get_group_id(0) == 0 || get_group_id(0) == get_num_groups(0)-1))
+            printf("1: global_id %10d, gbl_in_off %10d, gbl_in_scan_off %10d, gbl_out_off %d, o %10d\n", get_global_id(0), gbl_in_off, gbl_in_scan_off, gbl_out_off, o);
+
+#if 1
         // read input map
         readInput(lcl_id, gbl_in_scan_off, MLO_IN_VERT_READS, bot, lcl_bot);
+#endif
         // move input pointer
         gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1;
+
+        if((get_local_id(0) == 0 || get_local_id(0) == get_local_size(0) - 1) && (get_group_id(0) == 0 || get_group_id(0) == get_num_groups(0)-1))
+            printf("2: global_id %10d, gbl_in_off %10d, gbl_in_scan_off %10d, gbl_out_off %d, o %10d\n", get_global_id(0), gbl_in_off, gbl_in_scan_off, gbl_out_off, o);
 
         for(uint i = 0; i < MLO_TOP_DAT_SZ; ++i)
         {
@@ -520,7 +534,9 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 mask       = (j < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
 
+#if 1
                 spanReadingOutput(spn, k, j, top_df_off, mask, top_dat, top_df);
+#endif
             }
         }
 
@@ -559,8 +575,11 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
                 mask       = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
+
+#if 1
                 spanReadingOutput(
                     spn, k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask, top_dat, top_df);
+#endif
             }
 
             // processing
@@ -576,7 +595,12 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         {
             barrier(CLK_LOCAL_MEM_FENCE);
 
+            if((get_local_id(0) == 0 || get_local_id(0) == get_local_size(0) - 1) && (get_group_id(0) == 0 || get_group_id(0) == get_num_groups(0)-1))
+                printf("3: global_id %10d, gbl_in_off %10d, gbl_in_scan_off %10d, gbl_out_off %d, o %10d\n", get_global_id(0), gbl_in_off, gbl_in_scan_off, gbl_out_off, o);
+
+#if 1
             readInput(lcl_id, gbl_in_scan_off, MLO_IN_VERT_READS, bot, lcl_bot);
+#endif
 
             // point to the start of the local buffer
 
@@ -596,8 +620,11 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                     top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
                     mask       = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
+
+#if 1
                     spanReadingOutput(
                         spn, k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask, top_dat, top_df);
+#endif
                 }
 
                 // processing
@@ -613,13 +640,18 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         for(int i_loop = 0; i_loop < (MLO_IN_N_VERT_LOOPS - MLO_N_GENERIC_LOOPS - 1);
             ++i_loop, gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1)
         {
+            if((get_local_id(0) == 0 || get_local_id(0) == get_local_size(0) - 1) && (get_group_id(0) == 0 || get_group_id(0) == get_num_groups(0)-1))
+                printf("4: global_id %10d, gbl_in_off %10d, gbl_in_scan_off %10d, gbl_out_off %d, o %10d\n", get_global_id(0), gbl_in_off, gbl_in_scan_off, gbl_out_off, o);
+
             barrier(CLK_LOCAL_MEM_FENCE);
 // read 1 scan line less
 // padding processing takes care of the bottom border.
 
 #define MLO_LAST_VERT_READS (MLO_IN_HEIGHT - MLO_IN_EXTENT1 * (MLO_IN_N_VERT_LOOPS - 1))
 
+#if 0
             readInput(lcl_id, gbl_in_scan_off, MLO_LAST_VERT_READS, bot, lcl_bot);
+#endif
 
             // point to the start of the local buffer
             sc_lcl_off = lcl_bot_off;
@@ -639,8 +671,11 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                     top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
                     mask       = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
+
+#if 1
                     spanReadingOutput(
                         spn, k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask, top_dat, top_df);
+#endif
                 }
 
                 // processing
