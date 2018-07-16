@@ -118,20 +118,24 @@ const std::vector<Kernel>& KernelCache::GetKernels(const std::string& algorithm,
     MIOPEN_LOG_I("Key: " << key.first << " \"" << key.second << '\"');
 #endif
 
-    return kernel_map[key];
+    const auto it = kernel_map.find(key);
+    if(it != kernel_map.end())
+        return it->second;
+    static const std::vector<Kernel> empty{};
+    return empty;
 }
 
 bool KernelCache::HasKernels(const std::string& algorithm, const std::string& network_config) const
 {
-    std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
+    const auto key = std::make_pair(algorithm, network_config);
 #ifndef NDEBUG
     MIOPEN_LOG_I("Key: " << key.first << " \"" << key.second << '\"');
 #endif
-    const auto found = kernel_map.find(key);
-    if (kernel_map.find(key) == kernel_map.end())
+    const auto it = kernel_map.find(key);
+    if(it == kernel_map.end())
         return false;
 
-    assert(found->second.size() > 0 && "There should be at least one kernel in kernel cache if an entry exists");
+    assert(it->second.size() > 0 && "There should be at least one kernel in kernel cache if an entry exists");
     return true;
 }
 
