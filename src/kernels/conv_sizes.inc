@@ -40,8 +40,17 @@ img_hw = img_h * img_w
 out_w = (img_w + 2 * pad_w - wei_w) / stride_w + 1;
 out_h = (img_h + 2 * pad_h - wei_h) / stride_h + 1;
 input_line_size = 4 * img_w
-input_feature_map_size = input_line_size * img_h
-input_stack_size = input_feature_map_size * input_channels
+
+input_c_stride = input_line_size * img_h
+input_feature_map_size = input_c_stride
+
+input_n_stride = input_feature_map_size * input_channels
+input_stack_size = input_n_stride
+
 output_line_size = 4 * out_w
-output_feature_map_size = output_line_size * out_h
-output_stack_size = output_feature_map_size * output_channels
+
+output_k_stride = output_line_size * out_h
+output_feature_map_size = output_k_stride
+
+output_n_stride = output_feature_map_size * output_channels
+output_stack_size = output_n_stride
