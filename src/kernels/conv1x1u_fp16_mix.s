@@ -78,11 +78,15 @@ static_assert (pad_h == 0 && pad_w == 0)
 static_assert (stride_h == 1 && stride_w == 1)
 static_assert (wei_h == 1 && wei_w == 1)
 
+static_assert (input_channels % 2 == 0)
+
 default vec_size, 2
 input_c_stride_org = input_c_stride
 input_channels_org = input_channels
+filter_c_stride_org = filter_c_stride
 input_c_stride = input_c_stride * vec_size
 input_channels = input_channels / vec_size
+filter_c_stride = filter_c_stride * vec_size
 
 // perf params
 
@@ -196,7 +200,7 @@ output_buffer_size = output_n_stride * batch_size
     .SGPR_ALLOC desc_in, 4 // input buffer descriptor
     .SGPR_ALLOC desc_out, 4 // weights buffer descriptor
     .SGPR_ALLOC desc_wei, 4 // output buffer descriptor
-    .SGPR_ALLOC filtersA, k_mult * c_mult, 1
+    .SGPR_ALLOC filtersA, k_mult * c_mult * vec_size, 1
     .if .SGPR_NEXT_FREE % 4
         .SGPR_ALLOC_ONCE wave_id // wave_id in group
     .endif
@@ -206,7 +210,7 @@ output_buffer_size = output_n_stride * batch_size
     .if .SGPR_NEXT_FREE % 4
         .SGPR_ALLOC_ONCE stmp_offset
     .endif
-    .SGPR_ALLOC filtersB, k_mult * c_mult, 1
+    .SGPR_ALLOC filtersB, k_mult * c_mult * vec_size, 1
     .SGPR_ALLOC_ONCE wave_id // wave_id in group
     .SGPR_ALLOC_ONCE loop_cnt
     .SGPR_ALLOC_ONCE stmp_offset
@@ -297,10 +301,13 @@ gcnAsmConv1x1U:
     
     .macro xsload base, xx, cnt
         .rept \xx
+            s_add_u32 s[stmp_offset], s[soffset_wei], filter_c_stride_org
             .if \cnt == 1
                 s_buffer_load_dword s[\base], s[desc_wei:desc_wei+3], s[soffset_wei]
+                s_buffer_load_dword s[\base + k_mult * c_mult], s[desc_wei:desc_wei+3], s[stmp_offset]
             .else
                 s_buffer_load_dwordx\cnt s[\base:\base+\cnt-1], s[desc_wei:desc_wei+3], s[soffset_wei]
+                s_buffer_load_dwordx\cnt s[\base + k_mult * c_mult], s[desc_wei:desc_wei+3], s[stmp_offset]
             .endif
             \base = \base + \cnt
             s_add_u32 s[soffset_wei], s[soffset_wei], 0+4*\cnt
@@ -404,8 +411,13 @@ gcnAsmConv1x1U:
                         n_gpr_inp = n * c_mult * chunks_per_wave
                         n_gpr_acc = n * chunks_per_wave
                         #v_mac_f32 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + ch_gpr + n_gpr_inp + c_gpr_inp]
+                        //swap
+                        #v_mov_b32 v[vtmp], v[\ibase + ch_gpr + n_gpr_inp + c_gpr_inp]
+                        #v_mov_b32_sdwa v[\ibase + ch_gpr + n_gpr_inp + c_gpr_inp], v[\ibase + in_gprs + ch_gpr + n_gpr_inp + c_gpr_inp] dst_sel:WORD_1 src0_sel:WORD_1
+                        #v_mov_b32_sdwa v[\ibase + in_gprs + ch_gpr + n_gpr_inp + c_gpr_inp], v[vtmp] dst_sel:WORD_1 src0_sel:WORD_1
+
                         v_pk_fma_f16 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + ch_gpr + n_gpr_inp + c_gpr_inp], v[accums + k_gpr_acc + n_gpr_acc + ch_gpr]
-                        v_pk_fma_f16 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + in_gprs  + ch_gpr + n_gpr_inp + c_gpr_inp], v[accums + k_gpr_acc + n_gpr_acc + ch_gpr]
+                        v_pk_fma_f16 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr], s[\fbase + k_mult * c_mult + k_gpr_filter + c_gpr_filter], v[\ibase + in_gprs + ch_gpr + n_gpr_inp + c_gpr_inp], v[accums + k_gpr_acc + n_gpr_acc + ch_gpr]
                         ch_gpr = ch_gpr + 1
                     .endr
                     n = n + 1
