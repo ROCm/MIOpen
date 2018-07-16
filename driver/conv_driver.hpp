@@ -519,15 +519,16 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < in_sz; i++)
         {
-            //in[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            in[i] = i % (in_len[2] * in_len[3]);
+            // in[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            in[i] = i % 8;
         }
     }
 
     for(int i = 0; i < out_sz; i++)
     {
-        //dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-        dout[i] = 0.0;;
+        // dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        dout[i] = 0.0;
+        ;
     }
 
     if(inflags.GetValueInt("bias") != 0)
@@ -569,12 +570,12 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < wei_sz; i++)
         {
-            //wei[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
+            // wei[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
             wei[i] = 1.0;
         }
     }
 
-    std::vector<Tgpu> wei_fp16  = std::vector<Tgpu>(wei_sz * 2, static_cast<Tgpu>(0));
+    std::vector<Tgpu> wei_fp16 = std::vector<Tgpu>(wei_sz * 2, static_cast<Tgpu>(0));
 
     for(int i = 0; i < wei_sz * 2; i++)
     {
@@ -1667,8 +1668,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyForward()
         RunForwardCPU();
     }
 
-    //for(int i = 0; i < outhost.size(); i++)
-    //std::cerr << "[" << i << "] CPU = " << outhost[i] << ", GPU = " << out[i] << std::endl;
+    for(int i = 0; i < outhost.size(); i++)
+        std::cerr << "[" << i << "] CPU = " << outhost[i] << ", GPU = " << out[i] << std::endl;
 
     auto error = miopen::rms_range(outhost, out);
     const Tref tolerance =

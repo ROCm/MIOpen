@@ -64,7 +64,7 @@ static inline int AsmImgHeight(const ConvolutionContext& c)
 
 static inline int AsmImgWidth(const ConvolutionContext& c)
 {
-    return (UseSubsample(c) ? c.out_width : c.in_width)/VEC_SIZE;
+    return (UseSubsample(c) ? c.out_width : c.in_width) / VEC_SIZE;
 }
 
 /// \todo move to separate header and use in other solvers.
@@ -503,7 +503,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "n_mult", pcfg->GetNMult());
     GenerateClangDefsym(options, "c_mult", pcfg->GetCMult());
     GenerateClangDefsym(options, "waves_in_group", pcfg->GetWavesInGroup());
-    
+
     std::cerr << "options = " << options.str() << std::endl;
 
     KernelInfo kinfo;
@@ -521,17 +521,19 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         kinfo.l_wk[0] *
         divide_round_plus_inf(AsmImgHeight(params) * AsmImgWidth(params), hw_per_wave));
 
-    std::cerr << "AsmImg = {" << AsmImgHeight(params) << ", " << AsmImgWidth(params) << "} hw_per_wave = " << hw_per_wave << std::endl; 
-
+    std::cerr << "AsmImg = {" << AsmImgHeight(params) << ", " << AsmImgWidth(params)
+              << "} hw_per_wave = " << hw_per_wave << std::endl;
 
     kinfo.g_wk.push_back(divide_round_plus_inf(params.n_outputs, pcfg->GetKMult()));
     const int n_images_per_wave = pcfg->GetNMult() * pcfg->GetNPerGpr();
     kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_images_per_wave));
 
-    std::cerr << "vgd = { " << kinfo.g_wk[0] << ", " << kinfo.g_wk[1] << ", " << kinfo.g_wk[2] << " }" << std::endl; 
+    std::cerr << "vgd = { " << kinfo.g_wk[0] << ", " << kinfo.g_wk[1] << ", " << kinfo.g_wk[2]
+              << " }" << std::endl;
 
-    //kinfo.kernel_file = "conv1x1u.s";
-    kinfo.kernel_file = "conv1x1u_fp16.s";
+    // kinfo.kernel_file = "conv1x1u.s";
+    // kinfo.kernel_file = "conv1x1u_fp16.s";
+    kinfo.kernel_file = "conv1x1u_fp16_mix.s";
     kinfo.kernel_name = "gcnAsmConv1x1U";
 
     if(UseSubsample(params))
