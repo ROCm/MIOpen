@@ -25,7 +25,6 @@
  *******************************************************************************/
 #include <miopen/float_equal.hpp>
 #include <miopen/gemm_geometry.hpp>
-//#include <boost/regex.hpp>
 
 #if MIOPEN_USE_MIOPENGEMM
 namespace miopen {
