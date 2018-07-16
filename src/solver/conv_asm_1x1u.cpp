@@ -38,6 +38,8 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED)
 
+#define VEC_SIZE 2
+
 namespace miopen {
 namespace solver {
 
@@ -62,7 +64,7 @@ static inline int AsmImgHeight(const ConvolutionContext& c)
 
 static inline int AsmImgWidth(const ConvolutionContext& c)
 {
-    return UseSubsample(c) ? c.out_width : c.in_width;
+    return (UseSubsample(c) ? c.out_width : c.in_width)/VEC_SIZE;
 }
 
 /// \todo move to separate header and use in other solvers.
@@ -327,7 +329,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_dilation0 == 1
         && params.kernel_dilation1 == 1
         && params.bias == 0
-        && params.float_size == 32
+        //&& params.float_size == 32
         && params.in_layout == "NCHW");
     if(!ok)
     {
@@ -501,6 +503,8 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "n_mult", pcfg->GetNMult());
     GenerateClangDefsym(options, "c_mult", pcfg->GetCMult());
     GenerateClangDefsym(options, "waves_in_group", pcfg->GetWavesInGroup());
+    
+    std::cerr << "options = " << options.str() << std::endl;
 
     KernelInfo kinfo;
     kinfo.comp_options = options.str();
@@ -517,11 +521,17 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         kinfo.l_wk[0] *
         divide_round_plus_inf(AsmImgHeight(params) * AsmImgWidth(params), hw_per_wave));
 
+    std::cerr << "AsmImg = {" << AsmImgHeight(params) << ", " << AsmImgWidth(params) << "} hw_per_wave = " << hw_per_wave << std::endl; 
+
+
     kinfo.g_wk.push_back(divide_round_plus_inf(params.n_outputs, pcfg->GetKMult()));
     const int n_images_per_wave = pcfg->GetNMult() * pcfg->GetNPerGpr();
     kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_images_per_wave));
 
-    kinfo.kernel_file = "conv1x1u.s";
+    std::cerr << "vgd = { " << kinfo.g_wk[0] << ", " << kinfo.g_wk[1] << ", " << kinfo.g_wk[2] << " }" << std::endl; 
+
+    //kinfo.kernel_file = "conv1x1u.s";
+    kinfo.kernel_file = "conv1x1u_fp16.s";
     kinfo.kernel_name = "gcnAsmConv1x1U";
 
     if(UseSubsample(params))
