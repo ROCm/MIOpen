@@ -27,7 +27,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/miopengemm.hpp>
 #include <miopen/float_equal.hpp>
-#include <miopen/stringutils.hpp>
+
 
 #define MIOPENGEMM_CPP_DEBUG 0
 
@@ -47,7 +47,12 @@ void set_offsets_to_uint(std::string& clstr)
         {
             std::string cmpstr =
                 "const " + std::string(inttype) + ' ' + std::string(1, x) + "_offset,";
-            ReplaceString(clstr, cmpstr, replacement);
+             auto pos = clstr.find(cmpstr);
+             if(pos != std::string::npos)
+             {
+                 clstr.replace(pos, cmpstr.size(), replacement);
+                 break;
+             }
         }
     }
 }
