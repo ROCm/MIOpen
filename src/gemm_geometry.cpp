@@ -25,7 +25,11 @@
  *******************************************************************************/
 #include <miopen/float_equal.hpp>
 #include <miopen/gemm_geometry.hpp>
+<<<<<<< HEAD
 #include <miopen/stringutils.hpp>
+=======
+//#include <boost/regex.hpp>
+>>>>>>> parent of 7b0bca2... Removed unneeded commented out include
 
 #if MIOPEN_USE_MIOPENGEMM
 namespace miopen {
