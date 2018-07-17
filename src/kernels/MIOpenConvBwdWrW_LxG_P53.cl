@@ -184,7 +184,7 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
             {
                 for(uint i = 0; i < MLO_IN_N_PIXS_OFF; ++i)
                 {
-#if 1
+#if 0
                     in_rd_data[i] = bot_p[i];
 #else
                     in_rd_data[i] = bot[0];
@@ -210,7 +210,6 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
                 for(uint i = 0; i < MLO_READ_UNIT; ++i)
                 {
 #if 0
-// fail case 2
                     in_rd_data[i] = bot_p[i];
 #else
                     in_rd_data[i] = bot[0];
@@ -286,20 +285,6 @@ __attribute__((always_inline)) void Processing(UNUSED uint sc,
                         pvt_accum[pvt_accum_off]
                             // each wk-it process an input
                             += bot_val * top_val;
-#if 0
-					        if (/*bot_val * top_val != 0 && */l == 0 && n == 1 && get_local_id(0) == 0 && get_local_id(1) == 0 && get_local_id(2) == 0 && k == 0)
-						{
-							printf("K: %d %d %d %f %f %f %f\n",
-								sc,
-								bot_off,
-								pvt_top_off,
-								pvt_accum[pvt_accum_off],
-								bot_val * top_val,
-								bot_val,
-								top_val
-							);
-						}
-#endif
                     }
                 }
             }
@@ -341,7 +326,7 @@ spanReadingOutput(int spn,
         uint i = 0;
         for(; i < MLO_OUT_N_PIXS_OFF; ++i)
         {
-#if 1
+#if 0
             top_dat[pvt_off + i] = top_df_p[i] * mask;
 #else
             top_dat[pvt_off + i] = top_df[0] * mask;
@@ -366,8 +351,7 @@ spanReadingOutput(int spn,
     {
         for(uint i = 0; i < MLO_IN_TILE0; ++i)
         {
-#if 1
-// fail case 1
+#if 0
             top_dat[pvt_off + i] = top_df_p[i] * mask;
 #else
             top_dat[pvt_off + i] = top_df[0] * mask;
@@ -484,12 +468,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 #endif
     }
 
-    if(get_global_id(0) == 0)
-    {
-        printf("0: MLO_IN_N_VERT_LOOPS %10d\n",MLO_IN_N_VERT_LOOPS);
-        printf("0: MLO_N_GENERIC_LOOPS %10d\n",MLO_N_GENERIC_LOOPS);
-    }
-
     // over all batches
     for(uint b = 0; b < MLO_N_BATCH_LOOPS; ++b,
              gbl_in_off += MLO_N_LCL_BATCHS * MLO_IN_BATCH_STRIDE,
@@ -500,18 +478,12 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         uint gbl_in_scan_off  = gbl_in_off;
         uint gbl_out_scan_off = gbl_out_off;
 
-        if((get_local_id(0) == 0 || get_local_id(0) == get_local_size(0) - 1) && (get_group_id(0) == 0 || get_group_id(0) == get_num_groups(0)-1))
-            printf("1: global_id %10d, gbl_in_off %10d, gbl_in_scan_off %10d, gbl_out_off %d, o %10d\n", get_global_id(0), gbl_in_off, gbl_in_scan_off, gbl_out_off, o);
-
 #if 1
         // read input map
         readInput(lcl_id, gbl_in_scan_off, MLO_IN_VERT_READS, bot, lcl_bot);
 #endif
         // move input pointer
         gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1;
-
-        if((get_local_id(0) == 0 || get_local_id(0) == get_local_size(0) - 1) && (get_group_id(0) == 0 || get_group_id(0) == get_num_groups(0)-1))
-            printf("2: global_id %10d, gbl_in_off %10d, gbl_in_scan_off %10d, gbl_out_off %d, o %10d\n", get_global_id(0), gbl_in_off, gbl_in_scan_off, gbl_out_off, o);
 
         for(uint i = 0; i < MLO_TOP_DAT_SZ; ++i)
         {
@@ -590,13 +562,10 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         }
 
         // non-border input blocks
-        for(uint i_loop = 0; i_loop < MLO_N_GENERIC_LOOPS;
+        for(uint i_loop = 0; i_loop < MLO_N_GENERIC_LOOPS - 1;
             ++i_loop, gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1)
         {
             barrier(CLK_LOCAL_MEM_FENCE);
-
-            if((get_local_id(0) == 0 || get_local_id(0) == get_local_size(0) - 1) && (get_group_id(0) == 0 || get_group_id(0) == get_num_groups(0)-1))
-                printf("3: global_id %10d, gbl_in_off %10d, gbl_in_scan_off %10d, gbl_out_off %d, o %10d\n", get_global_id(0), gbl_in_off, gbl_in_scan_off, gbl_out_off, o);
 
 #if 1
             readInput(lcl_id, gbl_in_scan_off, MLO_IN_VERT_READS, bot, lcl_bot);
@@ -640,8 +609,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         for(int i_loop = 0; i_loop < (MLO_IN_N_VERT_LOOPS - MLO_N_GENERIC_LOOPS - 1);
             ++i_loop, gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1)
         {
-            if((get_local_id(0) == 0 || get_local_id(0) == get_local_size(0) - 1) && (get_group_id(0) == 0 || get_group_id(0) == get_num_groups(0)-1))
-                printf("4: global_id %10d, gbl_in_off %10d, gbl_in_scan_off %10d, gbl_out_off %d, o %10d\n", get_global_id(0), gbl_in_off, gbl_in_scan_off, gbl_out_off, o);
 
             barrier(CLK_LOCAL_MEM_FENCE);
 // read 1 scan line less
@@ -649,7 +616,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
 #define MLO_LAST_VERT_READS (MLO_IN_HEIGHT - MLO_IN_EXTENT1 * (MLO_IN_N_VERT_LOOPS - 1))
 
-#if 0
+#if 1
             readInput(lcl_id, gbl_in_scan_off, MLO_LAST_VERT_READS, bot, lcl_bot);
 #endif
 
