@@ -1288,58 +1288,9 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 // proper invocation procedure & workspace sanity.
                 float padding_val = 0;
                 float elapsed     = 0;
-                if((kernel.GetName() == "MIOpenCvFwd11x11") && num_kernels == 2)
+                if(num_kernels == 1)
                 {
                     kernel(x, w, y, as_float(padding_val));
-                    if(handle.IsProfilingEnabled())
-                        elapsed += handle.GetKernelTime();
-
-                    kernels[1](x, w, y, as_float(padding_val));
-                    if(handle.IsProfilingEnabled())
-                        elapsed += handle.GetKernelTime();
-                }
-                else if(num_kernels == 2 && workSpace != nullptr && workSpaceSize != 0)
-                {
-                    assert(kernel.GetName() == "SubSample");
-                    kernel(x, workSpace);
-                    if(handle.IsProfilingEnabled())
-                        elapsed += handle.GetKernelTime();
-
-                    assert(kernels[1].GetName() == "gcnAsmConv1x1U");
-                    int unused       = 0;
-                    int* return_addr = nullptr;
-                    int N, C, H, W, K, n_groups, out_H, out_W;
-                    construct_params.getCompiledInParameters(
-                        &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
-                    kernels[1](N,
-                               C,
-                               out_H,
-                               out_W,
-                               K,
-                               n_groups,
-                               unused,
-                               unused,
-                               workSpace,
-                               w,
-                               y,
-                               return_addr);
-                    if(handle.IsProfilingEnabled())
-                        elapsed += handle.GetKernelTime();
-                }
-                else if(num_kernels == 1)
-                {
-                    if(kernel.GetName() == "gcnAsmConv1x1U")
-                    {
-                        int unused       = 0;
-                        int* return_addr = nullptr;
-                        int N, C, H, W, K, n_groups;
-                        construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-                        kernel(N, C, H, W, K, n_groups, unused, unused, x, w, y, return_addr);
-                    }
-                    else
-                    {
-                        kernel(x, w, y, as_float(padding_val));
-                    }
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
                 }

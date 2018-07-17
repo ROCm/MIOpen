@@ -44,7 +44,7 @@ bool ConvOclDirectFwd::IsApplicable(const ConvolutionContext& params) const
         && !(params.kernel_size0 == 1 && params.kernel_size1 == 1 &&  params.group_counts<2)
         /// Disable ConvOclDirectFwd for stride > 1 due to incorrect results 
         /// \todo need to fix the issue for stride > 1
-        && !(params.direction.IsForward() && (params.kernel_stride0 > 2 || params.kernel_stride1 > 2))
+        && !(params.direction.IsForward() && (params.kernel_stride0 > 1 || params.kernel_stride1 > 1))
         && !(params.direction.IsBackwardData() && (params.kernel_stride0 > 2 || params.kernel_stride1 > 2))
         /// \todo Workaround to avoid FP16 precision issue:
         /// While MIOpenConvUni is up to 4x faster than MIOpenCDFGen (even not auto-tuned),
