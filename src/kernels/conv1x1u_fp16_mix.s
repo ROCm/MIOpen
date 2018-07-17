@@ -226,7 +226,7 @@ output_buffer_size = output_n_stride * batch_size
     .VGPR_ALLOC voffset_out
     .VGPR_ALLOC inputA, in_gprs * vec_size
     .VGPR_ALLOC inputB, in_gprs * vec_size
-    .VGPR_ALLOC accums, accums_cnt
+    .VGPR_ALLOC accums, accums_cnt * vec_size
     .VGPR_ALLOC vtmp
     
     .LDS_ALLOC_FROM 0
@@ -412,13 +412,26 @@ gcnAsmConv1x1U:
                         n_gpr_acc = n * chunks_per_wave
                         #v_mac_f32 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + ch_gpr + n_gpr_inp + c_gpr_inp]
 
-                        //swap
-                        #v_mov_b32 v[vtmp], v[\ibase + ch_gpr + n_gpr_inp + c_gpr_inp]
-                        #v_mov_b32_sdwa v[\ibase + ch_gpr + n_gpr_inp + c_gpr_inp], v[\ibase + in_gprs + ch_gpr + n_gpr_inp + c_gpr_inp] dst_sel:WORD_1 src0_sel:WORD_0
-                        #v_mov_b32_sdwa v[\ibase + in_gprs + ch_gpr + n_gpr_inp + c_gpr_inp], v[vtmp] dst_sel:WORD_0 src0_sel:WORD_1
+                        img = \ibase + + ch_gpr + n_gpr_inp + c_gpr_inp
+                        acc = accums + k_gpr_acc + n_gpr_acc + ch_gpr * vec_size
+                        wei = \fbase + k_gpr_filter + c_gpr_filter
 
-                        v_pk_fma_f16 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + ch_gpr + n_gpr_inp + c_gpr_inp], v[accums + k_gpr_acc + n_gpr_acc + ch_gpr]
-                        v_pk_fma_f16 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + in_gprs + ch_gpr + n_gpr_inp + c_gpr_inp], v[accums + k_gpr_acc + n_gpr_acc + ch_gpr]
+                        //swap
+                        v_mov_b32 v[vtmp], v[img]
+                        v_mov_b32_sdwa v[img], v[img + in_gprs] dst_sel:WORD_1 src0_sel:WORD_0
+                        v_mov_b32_sdwa v[img + in_gprs], v[vtmp] dst_sel:WORD_0 src0_sel:WORD_1
+
+                        v_mad_mix_f32 v[acc], s[wei], v[img], v[acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
+                        v_mad_mix_f32 v[acc], s[wei], v[img], v[acc] op_sel:[1,1,0] op_sel_hi:[1,1,0]
+
+                        v_mad_mix_f32 v[acc + 1], s[wei], v[img + in_gprs], v[acc + 1] op_sel:[0,0,0] op_sel_hi:[1,1,0]
+                        v_mad_mix_f32 v[acc + 1], s[wei], v[img + in_gprs], v[acc + 1] op_sel:[1,1,0] op_sel_hi:[1,1,0]
+
+                        
+                        #v_dot2_f32_f16 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + ch_gpr + n_gpr_inp + c_gpr_inp], v[accums + k_gpr_acc + n_gpr_acc +       ch_gpr]
+                        #v_dot2_f32_f16 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr + 1], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + in_gprs + ch_gpr + n_gpr_inp + c_gpr_inp], v[accums + k_gpr_acc + n_gpr_acc +       ch_gpr + 1]
+                        #v_pk_fma_f16 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + ch_gpr + n_gpr_inp + c_gpr_inp], v[accums + k_gpr_acc + n_gpr_acc + ch_gpr]
+                        #v_pk_fma_f16 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr + 1], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + in_gprs + ch_gpr + n_gpr_inp + c_gpr_inp], v[accums + k_gpr_acc + n_gpr_acc + ch_gpr]
 
                         ch_gpr = ch_gpr + 1
                     .endr
@@ -439,7 +452,7 @@ gcnAsmConv1x1U:
     
     // zeroing accums
     i = 0
-    .rept accums_cnt
+    .rept accums_cnt * vec_size
         v_mov_b32 v[accums + i], 0
         i = i + 1
     .endr
@@ -512,8 +525,8 @@ last_wave:
                     .if acc_id < accums_cnt
                         ds_read_b32 v[vtmp], v[lds_off] offset:0+imm_off
                         s_waitcnt 0
-                        #v_add_f32 v[accums + acc_id], v[vtmp], v[accums + acc_id]
-                        v_pk_add_f16 v[accums + acc_id], v[vtmp], v[accums + acc_id]
+                        v_add_f32 v[accums + acc_id], v[vtmp], v[accums + acc_id]
+                        #v_pk_add_f16 v[accums + acc_id], v[vtmp], v[accums + acc_id]
                     .endif
                     wave = wave + 1
                 .endr

@@ -57,6 +57,8 @@
 #include <sstream>
 #include <vector>
 
+using Tgpu_out = float;
+
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 
 template <typename T, typename Tfile = T>
@@ -199,7 +201,7 @@ class ConvDriver : public Driver
     std::vector<Tgpu> din;
     std::vector<Tgpu> wei;
     std::vector<Tgpu> dwei;
-    std::vector<Tgpu> out;
+    std::vector<Tgpu_out> out;
     std::vector<Tgpu> dout;
     std::vector<Tgpu> workspace_bwd_data;
     std::vector<Tgpu> workspace_bwd_weights;
@@ -462,7 +464,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     wei_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tgpu)));
     dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tgpu)));
     dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-    out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    //out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu_out)));
     if(workSpaceSize_bwd_dt != 0)
     {
         workspace_bwd_data_dev =
@@ -490,7 +493,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     wei  = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
     dwei = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
     dout = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    out  = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    //out  = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    out  = std::vector<Tgpu_out>(out_sz, static_cast<Tgpu_out>(0));
 
     outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
@@ -718,10 +722,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
 
     out_dev->FromGPU(GetStream(), out.data());
 
-    if(inflags.GetValueInt("dump_output"))
-    {
-        dumpBufferToFile<Tgpu>("dump_fwd_out_gpu.bin", out.data(), out.size());
-    }
+    //if(inflags.GetValueInt("dump_output"))
+    //{
+        //dumpBufferToFile<Tgpu>("dump_fwd_out_gpu.bin", out.data(), out.size());
+    //}
 
     return miopenStatusSuccess;
 }
