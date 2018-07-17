@@ -25,6 +25,7 @@
  *******************************************************************************/
 #include <miopen/float_equal.hpp>
 #include <miopen/gemm_geometry.hpp>
+#include <miopen/stringutils.hpp>
 
 #if MIOPEN_USE_MIOPENGEMM
 namespace miopen {
@@ -42,12 +43,7 @@ void set_offsets_to_uint(std::string& clstr)
         {
             std::string cmpstr =
                 "const " + std::string(inttype) + ' ' + std::string(1, x) + "_offset,";
-            auto pos = clstr.find(cmpstr);
-            if(pos != std::string::npos)
-            {
-                clstr.replace(pos, cmpstr.size(), replacement);
-                break;
-            }
+            ReplaceString(clstr, cmpstr, replacement);
         }
     }
 }
