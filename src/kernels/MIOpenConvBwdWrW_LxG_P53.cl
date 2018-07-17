@@ -184,7 +184,7 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
             {
                 for(uint i = 0; i < MLO_IN_N_PIXS_OFF; ++i)
                 {
-#if 0
+#if 1
                     in_rd_data[i] = bot_p[i];
 #else
                     in_rd_data[i] = bot[0];
@@ -193,7 +193,7 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
 #if DBG_OUT_OF_RNGE
                     if(bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
                     {
-                        printf("k:err:in-of-range\n");
+                        printf("k:out-of-range: %d %d\n", bot_off, i);
                     }
 #endif
                 }
@@ -209,7 +209,7 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
 
                 for(uint i = 0; i < MLO_READ_UNIT; ++i)
                 {
-#if 0
+#if 1
                     in_rd_data[i] = bot_p[i];
 #else
                     in_rd_data[i] = bot[0];
@@ -218,7 +218,7 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
 #if DBG_OUT_OF_RNGE
                     if(bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
                     {
-                        printf("k:err:in-of-range %d %d\n", bot_off, i);
+                        printf("k:out-of-range: %d %d\n", bot_off, i);
                     }
 #endif
                 }
@@ -326,7 +326,7 @@ spanReadingOutput(int spn,
         uint i = 0;
         for(; i < MLO_OUT_N_PIXS_OFF; ++i)
         {
-#if 0
+#if 1
             top_dat[pvt_off + i] = top_df_p[i] * mask;
 #else
             top_dat[pvt_off + i] = top_df[0] * mask;
@@ -351,7 +351,7 @@ spanReadingOutput(int spn,
     {
         for(uint i = 0; i < MLO_IN_TILE0; ++i)
         {
-#if 0
+#if 1
             top_dat[pvt_off + i] = top_df_p[i] * mask;
 #else
             top_dat[pvt_off + i] = top_df[0] * mask;
@@ -469,7 +469,11 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     }
 
     // over all batches
-    for(uint b = 0; b < MLO_N_BATCH_LOOPS; ++b,
+    uint bbegin = ib;
+    uint bend   = ib + MLO_N_BATCH_LOOPS * MLO_N_LCL_BATCHS;
+    bend = bend > MLO_BATCH_SZ ? MLO_BATCH_SZ : bend;
+
+    for(uint b = bbegin; b < bend; ++b,
              gbl_in_off += MLO_N_LCL_BATCHS * MLO_IN_BATCH_STRIDE,
              gbl_out_off += MLO_N_LCL_BATCHS * MLO_OUT_BATCH_STRIDE)
     {
@@ -477,6 +481,17 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         // top border input block
         uint gbl_in_scan_off  = gbl_in_off;
         uint gbl_out_scan_off = gbl_out_off;
+
+#if DBG_OUT_OF_RNGE
+        if((get_local_id(0) == 0 || get_local_id(0) == get_local_size(0)-1))
+        {
+            printf("1: b %5d, group_id (%5d %5d %5d), local_id (%5d): gbl_in_scan_off %10d, gbl_out_scan_off %10d\n",
+                    b,
+                    get_group_id(0), get_group_id(1), get_group_id(2),
+                    get_local_id(0),
+                    gbl_in_scan_off, gbl_out_scan_off);
+        }
+#endif
 
 #if 1
         // read input map
@@ -567,6 +582,17 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         {
             barrier(CLK_LOCAL_MEM_FENCE);
 
+#if DBG_OUT_OF_RNGE
+            if((get_local_id(0) == 0 || get_local_id(0) == get_local_size(0)-1))
+            {
+                printf("2: b %5d, group_id (%5d %5d %5d), local_id (%5d): gbl_in_scan_off %10d, gbl_out_scan_off %10d\n",
+                        b,
+                        get_group_id(0), get_group_id(1), get_group_id(2),
+                        get_local_id(0),
+                        gbl_in_scan_off, gbl_out_scan_off);
+            }
+#endif
+
 #if 1
             readInput(lcl_id, gbl_in_scan_off, MLO_IN_VERT_READS, bot, lcl_bot);
 #endif
@@ -615,6 +641,17 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 // padding processing takes care of the bottom border.
 
 #define MLO_LAST_VERT_READS (MLO_IN_HEIGHT - MLO_IN_EXTENT1 * (MLO_IN_N_VERT_LOOPS - 1))
+
+#if DBG_OUT_OF_RNGE
+        if((get_local_id(0) == 0 || get_local_id(0) == get_local_size(0)-1))
+        {
+            printf("3: b %5d, group_id (%5d %5d %5d), local_id (%5d): gbl_in_scan_off %10d, gbl_out_scan_off %10d\n",
+                    b,
+                    get_group_id(0), get_group_id(1), get_group_id(2),
+                    get_local_id(0),
+                    gbl_in_scan_off, gbl_out_scan_off);
+        }
+#endif
 
 #if 1
             readInput(lcl_id, gbl_in_scan_off, MLO_LAST_VERT_READS, bot, lcl_bot);
