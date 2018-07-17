@@ -140,7 +140,7 @@ hw_per_wave = chunk_size * chunks_per_wave
 active_hw_per_wave = active_chunk_lanes * chunks_per_wave
 
 in_gprs = chunks_per_wave * n_mult * c_mult
-accums_cnt = k_mult * chunks_per_wave * n_mult
+accums_cnt = k_mult * chunks_per_wave * n_mult * vec_size
 
 // exec mask
 log2 chunk_size_log2, chunk_size
@@ -190,7 +190,9 @@ lds_per_group = 0
 
 input_buffer_size = input_n_stride * batch_size
 filter_buffer_size = filters_size
-output_buffer_size = output_n_stride * batch_size
+output_buffer_size = output_n_stride * batch_size * vec_size
+
+output_n_stride = output_n_stride * vec_size
 
 //static_assert(input_channels % (c_mult * waves_in_group) == 0) //todo: remove me
 
@@ -226,7 +228,7 @@ output_buffer_size = output_n_stride * batch_size
     .VGPR_ALLOC voffset_out
     .VGPR_ALLOC inputA, in_gprs * vec_size
     .VGPR_ALLOC inputB, in_gprs * vec_size
-    .VGPR_ALLOC accums, accums_cnt * vec_size
+    .VGPR_ALLOC accums, accums_cnt
     .VGPR_ALLOC vtmp
     
     .LDS_ALLOC_FROM 0
@@ -410,9 +412,8 @@ gcnAsmConv1x1U:
                         c_gpr_inp = c * chunks_per_wave
                         n_gpr_inp = n * c_mult * chunks_per_wave
                         n_gpr_acc = n * chunks_per_wave
-                        #v_mac_f32 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + ch_gpr + n_gpr_inp + c_gpr_inp]
 
-                        img = \ibase + + ch_gpr + n_gpr_inp + c_gpr_inp
+                        img = \ibase + ch_gpr + n_gpr_inp + c_gpr_inp
                         acc = accums + k_gpr_acc + n_gpr_acc + ch_gpr * vec_size
                         wei = \fbase + k_gpr_filter + c_gpr_filter
 
@@ -427,11 +428,8 @@ gcnAsmConv1x1U:
                         v_mad_mix_f32 v[acc + 1], s[wei], v[img + in_gprs], v[acc + 1] op_sel:[0,0,0] op_sel_hi:[1,1,0]
                         v_mad_mix_f32 v[acc + 1], s[wei], v[img + in_gprs], v[acc + 1] op_sel:[1,1,0] op_sel_hi:[1,1,0]
 
-                        
                         #v_dot2_f32_f16 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + ch_gpr + n_gpr_inp + c_gpr_inp], v[accums + k_gpr_acc + n_gpr_acc +       ch_gpr]
                         #v_dot2_f32_f16 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr + 1], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + in_gprs + ch_gpr + n_gpr_inp + c_gpr_inp], v[accums + k_gpr_acc + n_gpr_acc +       ch_gpr + 1]
-                        #v_pk_fma_f16 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + ch_gpr + n_gpr_inp + c_gpr_inp], v[accums + k_gpr_acc + n_gpr_acc + ch_gpr]
-                        #v_pk_fma_f16 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr + 1], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + in_gprs + ch_gpr + n_gpr_inp + c_gpr_inp], v[accums + k_gpr_acc + n_gpr_acc + ch_gpr]
 
                         ch_gpr = ch_gpr + 1
                     .endr
@@ -452,7 +450,7 @@ gcnAsmConv1x1U:
     
     // zeroing accums
     i = 0
-    .rept accums_cnt * vec_size
+    .rept accums_cnt
         v_mov_b32 v[accums + i], 0
         i = i + 1
     .endr
@@ -526,7 +524,6 @@ last_wave:
                         ds_read_b32 v[vtmp], v[lds_off] offset:0+imm_off
                         s_waitcnt 0
                         v_add_f32 v[accums + acc_id], v[vtmp], v[accums + acc_id]
-                        #v_pk_add_f16 v[accums + acc_id], v[vtmp], v[accums + acc_id]
                     .endif
                     wave = wave + 1
                 .endr
@@ -548,17 +545,23 @@ last_wave:
     
     k = 0
     acc = accums
+    #s_mov_b32 s[stmp], output_k_stride * k_mult * vec_size
+    #s_mul_i32 s[stmp], s[gid_k], 0 + output_k_stride * k_mult
+    s_mul_i32 s[soffset_out], 2, s[soffset_out]
+    #s_add_u32 s[soffset_out], s[stmp], s[soffset_out]
     .rept k_mult
         nb = 0
         .rept n_mult
             s_mov_b32 exec_lo, active_mask_lo
             s_mov_b32 exec_hi, active_mask_hi
             chunk = 0
+            #v_mul_u32_u24 v[voffset_out], 2, v[voffset_out]
             .rept chunks_per_wave
                 v_cmpx_gt_i32 vcc, 0 + img_hw - chunk, v[current_hw]
                 buffer_store_dword v[acc], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0+4*chunk
-                chunk = chunk + 1
-                acc = acc + 1
+                buffer_store_dword v[acc + 1], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0+4*chunk + 4
+                chunk = chunk + vec_size 
+                acc = acc + vec_size
             .endr
             nb = nb + 1
             .if nb == n_mult
