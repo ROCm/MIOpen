@@ -459,7 +459,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
 #endif
     in_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
     din_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    wei_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz * 2, sizeof(Tgpu)));
+    wei_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tgpu)));
     dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tgpu)));
     dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
     out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
@@ -575,12 +575,12 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
         }
     }
 
-    std::vector<Tgpu> wei_fp16 = std::vector<Tgpu>(wei_sz * 2, static_cast<Tgpu>(0));
+    //std::vector<Tgpu> wei_fp16 = std::vector<Tgpu>(wei_sz * 2, static_cast<Tgpu>(0));
 
-    for(int i = 0; i < wei_sz * 2; i++)
-    {
-        wei_fp16[i] = wei[i / 2];
-    }
+    //for(int i = 0; i < wei_sz * 2; i++)
+    //{
+        //wei_fp16[i] = wei[i / 2];
+    //}
 
     if(inflags.GetValueInt("dump_output"))
     {
@@ -597,7 +597,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
 #endif
     status = in_dev->ToGPU(q, in.data());
     status |= din_dev->ToGPU(q, din.data());
-    status |= wei_dev->ToGPU(q, wei_fp16.data());
+    status |= wei_dev->ToGPU(q, wei.data());
     status |= dwei_dev->ToGPU(q, dwei.data());
     status |= dout_dev->ToGPU(q, dout.data());
     status |= out_dev->ToGPU(q, out.data());
