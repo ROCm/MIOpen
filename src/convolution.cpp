@@ -640,6 +640,8 @@ size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
     construct_params.setWeightDescFromMLDesc(wDesc);
     construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
     construct_params.setWorkaroundDisableSearchEnforce(true);
+    if(mode == miopenGroupConv || mode == miopenDepthwise)
+        construct_params.setGroupConvCounts(group_count);
 
     try
     {
