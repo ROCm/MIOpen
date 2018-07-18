@@ -39,8 +39,8 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
     /// The kernel needs to be well understood and fixed.
     if((params.kernel_size0 > 5) || (params.kernel_size0 == 5 && params.in_width >= 64))
         return false;
-    /// \todo Workaround for issue #791. Found experimentally. Technically, this is a hack.
-    /// The kernel needs to be well understood and fixed.
+/// \todo Workaround for issue #791. Found experimentally. Technically, this is a hack.
+/// The kernel needs to be well understood and fixed.
 #if 0
     if((params.kernel_size0 == 3 && params.pad0 == 0 && params.out_width >= 32))
         return false;
@@ -118,9 +118,9 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     // number of input map blocks being process at once
     // param
     int out_n_vert_reads = (params.out_height > 32 && params.out_width <= 64 &&
-                           (result.out_pix_tile0 * result.out_pix_tile1) <= 16)
-                              ? (params.out_height + 1) / 2
-                              : params.out_height;
+                            (result.out_pix_tile0 * result.out_pix_tile1) <= 16)
+                               ? (params.out_height + 1) / 2
+                               : params.out_height;
     while(out_lcl_width * out_n_vert_reads * result.n_in_data_tiles >
           (dev_local_mem_sz / (2 * ((params.in_data_type == "FP32") ? 4 : 2))))
     {
