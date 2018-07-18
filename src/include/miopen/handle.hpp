@@ -157,6 +157,15 @@ struct Handle : miopenHandle
         return result;
     }
 
+    std::string GetDbPathFilename()
+    {
+        // clang-format off
+        return GetDeviceName()
+             + "_"
+             + std::to_string(GetMaxComputeUnits());
+        // clang-format on
+    }
+
 #if MIOPEN_USE_ROCBLAS
     rocblas_handle_ptr CreateRocblasHandle() const;
 #endif
