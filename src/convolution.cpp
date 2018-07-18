@@ -604,6 +604,12 @@ size_t ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeGEMM(
     std::tie(std::ignore, wei_c, wei_h, wei_w) = miopen::tien<4>(dwDesc.GetLengths());
     size_t gemm_size = wei_c * wei_h * wei_w * out_h * out_w * GetTypeSize(dyDesc.GetType());
 
+    // No workspace is needed for 1x1_stride=1 convolutions
+    if(wei_h == 1 && wei_w == 1 && u == 1 && v == 1 && pad_h == 0 && pad_w == 0)
+    {
+        return 0;
+    }
+
     // gfx803 devices have limited memory
     // TODO: be graceful, need to ensure we can execute a config on the GPU
     // what if both the algos require > (1 << 30) memory
