@@ -141,28 +141,18 @@ int main(int argc, char* argv[])
 
     if(verifyarg)
     {
-        if(base_arg != "gemm")
+        if(fargval != 2 || bnFwdInVer)
         {
-            if(fargval != 2 || bnFwdInVer)
-            {
-                drv->VerifyForward();
-            }
-        }
-        else
-        {
-            printf("GEMM verification done in the GEMM library\n");
+            drv->VerifyForward();
         }
     }
 
     if(fargval != 1)
     {
-        if(base_arg != "gemm")
+        drv->RunBackwardGPU();
+        if(verifyarg)
         {
-            drv->RunBackwardGPU();
-            if(verifyarg)
-            {
-                drv->VerifyBackward();
-            }
+            drv->VerifyBackward();
         }
     }
 

@@ -40,12 +40,21 @@
 #include <vector>
 #include <unordered_map>
 
+#if MIOPEN_USE_ROCBLAS
+#include <miopen/manage_ptr.hpp>
+#include <rocblas.h>
+#endif
+
 namespace miopen {
 
 struct HandleImpl;
 #if MIOPEN_USE_MIOPENGEMM
 struct GemmGeometry;
 using GemmKey = std::pair<std::string, std::string>;
+#endif
+
+#if MIOPEN_USE_ROCBLAS
+using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_handle);
 #endif
 
 struct Handle : miopenHandle
@@ -146,9 +155,17 @@ struct Handle : miopenHandle
         return result;
     }
 
+#if MIOPEN_USE_ROCBLAS
+    rocblas_handle_ptr CreateRocblasHandle() const;
+#endif
+
     std::unique_ptr<HandleImpl> impl;
 #if MIOPEN_USE_MIOPENGEMM
     std::unordered_map<GemmKey, std::unique_ptr<GemmGeometry>, SimpleHash> geo_map;
+#endif
+
+#if MIOPEN_USE_ROCBLAS
+    rocblas_handle_ptr rhandle;
 #endif
 };
 } // namespace miopen
