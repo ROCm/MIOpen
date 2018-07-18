@@ -82,15 +82,6 @@ static_assert (input_channels % 2 == 0)
 #static_assert (filter_k_stride % 2 == 0)
 #static_assert (filter_c_stride % 2 == 0)
 
-default vec_size, 2
-input_c_stride_org = input_c_stride
-input_channels_org = input_channels
-#filter_c_stride_org = filter_c_stride
-input_c_stride = input_c_stride * vec_size
-input_channels = input_channels / vec_size
-filter_c_stride = filter_c_stride / vec_size
-filter_k_stride = filter_k_stride / vec_size
-
 // perf params
 
 .ifnotdef do_not_use_default_perf_params
@@ -113,6 +104,16 @@ static_assert (read_size <= chunks_per_wave)
 static_assert (waves_in_group <= input_channels && waves_in_group <= 8)
 //static_assert (output_channels % k_mult == 0)
 
+default vec_size, 2
+input_c_stride_org = input_c_stride
+input_channels_org = input_channels
+input_c_stride = input_c_stride * vec_size
+input_channels = input_channels / vec_size
+filter_c_stride = filter_c_stride / vec_size
+filter_k_stride = filter_k_stride / vec_size
+
+#output_n_stride = output_n_stride * vec_size
+#output_k_stride = output_k_stride * vec_size
 
 // chunk parameters
 n_per_gpr = 64 / chunk_size
@@ -192,7 +193,6 @@ input_buffer_size = input_n_stride * batch_size
 filter_buffer_size = filters_size
 output_buffer_size = output_n_stride * batch_size * vec_size
 
-output_n_stride = output_n_stride * vec_size
 
 //static_assert(input_channels % (c_mult * waves_in_group) == 0) //todo: remove me
 
@@ -288,6 +288,7 @@ gcnAsmConv1x1U:
     v_mul_u32_u24 v[vtmp], 4 * chunks_per_wave, v[vtmp]
     _v_add_nc_u32 v[voffset_in], v[voffset_in], v[vtmp]
     _v_add_nc_u32 v[voffset_out], v[voffset_out], v[vtmp]
+    v_mul_u32_u24 v[voffset_out], 2, v[voffset_out]
     s_mul_i32 s[soffset_in], s[gid_n], 0 + input_n_stride * active_n_per_wave
     s_mul_i32 s[soffset_out], s[gid_n], 0 + output_n_stride * active_n_per_wave
     s_mul_i32 s[stmp], s[gid_hw], 0 + active_hw_per_wave * 4
@@ -297,6 +298,7 @@ gcnAsmConv1x1U:
     s_add_u32 s[soffset_in], s[soffset_in], s[stmp]
     s_mul_i32 s[stmp], s[gid_k], 0 + output_k_stride * k_mult
     s_add_u32 s[soffset_out], s[soffset_out], s[stmp]
+    s_mul_i32 s[soffset_out], 2, s[soffset_out]
     s_mul_i32 s[soffset_wei], s[gid_k], 0 + k_mult * filter_k_stride
     s_mul_i32 s[stmp], s[wave_id], 0 + c_per_wave * filter_c_stride
     s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
@@ -366,14 +368,14 @@ gcnAsmConv1x1U:
 
                 vec_id = 0
                 .rept vec_size
-                imm_off = input_c_stride_org * vec_id 
+                    imm_off = input_c_stride_org * vec_id 
                     .rept full_loads
                         m_buffer_load_dwordx read_size, ibase, voffset_in, desc_in, stmp_offset, imm_off
                         ibase = ibase + read_size
                         imm_off = imm_off + 4 * read_size
                         //TODO change step size
                     .endr
-                vec_id = vec_id + 1
+                    vec_id = vec_id + 1
                 .endr
 
                 m_buffer_load_dwordx partial_load_size, ibase, voffset_in, desc_in, stmp_offset, imm_off
@@ -545,17 +547,12 @@ last_wave:
     
     k = 0
     acc = accums
-    #s_mov_b32 s[stmp], output_k_stride * k_mult * vec_size
-    #s_mul_i32 s[stmp], s[gid_k], 0 + output_k_stride * k_mult
-    s_mul_i32 s[soffset_out], 2, s[soffset_out]
-    #s_add_u32 s[soffset_out], s[stmp], s[soffset_out]
     .rept k_mult
         nb = 0
         .rept n_mult
             s_mov_b32 exec_lo, active_mask_lo
             s_mov_b32 exec_hi, active_mask_hi
             chunk = 0
-            #v_mul_u32_u24 v[voffset_out], 2, v[voffset_out]
             .rept chunks_per_wave
                 v_cmpx_gt_i32 vcc, 0 + img_hw - chunk, v[current_hw]
                 buffer_store_dword v[acc], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0+4*chunk
