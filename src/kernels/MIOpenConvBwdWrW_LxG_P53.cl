@@ -106,6 +106,7 @@ __attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
     return (r);
 }
 
+#if 0
 __attribute__((always_inline)) void ReduceKernel(__local _FLOAT* lcl_blob,
                                                  __private _FLOAT* weights_accum,
                                                  uint lcl_id,
@@ -138,6 +139,7 @@ __attribute__((always_inline)) void ReduceKernel(__local _FLOAT* lcl_blob,
         }
     }
 }
+#endif
 
 /*
         group cooperative read
@@ -468,6 +470,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 #endif
     }
 
+
     // over all batches
     uint bbegin = ib;
     uint bend   = ib + MLO_N_BATCH_LOOPS * MLO_N_LCL_BATCHS;
@@ -478,6 +481,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
              gbl_out_off += MLO_N_LCL_BATCHS * MLO_OUT_BATCH_STRIDE)
     {
         barrier(CLK_LOCAL_MEM_FENCE);
+
         // top border input block
         uint gbl_in_scan_off  = gbl_in_off;
         uint gbl_out_scan_off = gbl_out_off;
@@ -541,6 +545,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             Processing(sc, sc_lcl_off, sc + MLO_FILTER_PAD1, 0, pvt_accum, lcl_bot, top_dat);
         }
 
+
 #ifdef __AMDGCN__
 #pragma unroll 2
 #endif
@@ -577,7 +582,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         }
 
         // non-border input blocks
-        for(uint i_loop = 0; i_loop < MLO_N_GENERIC_LOOPS - 1;
+        for(uint i_loop = 1; i_loop < MLO_N_GENERIC_LOOPS;
             ++i_loop, gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1)
         {
             barrier(CLK_LOCAL_MEM_FENCE);
@@ -601,7 +606,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
             sc_lcl_off = lcl_bot_off;
 
-            for(; sc < (i_loop + 2) * MLO_IN_EXTENT1;
+            for(; sc < (i_loop + 1) * MLO_IN_EXTENT1;
                 ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
             {
 
@@ -632,11 +637,11 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
         // bottom border block
 
-        for(int i_loop = 0; i_loop < (MLO_IN_N_VERT_LOOPS - MLO_N_GENERIC_LOOPS - 1);
+        for(int i_loop = 1; i_loop < (MLO_IN_N_VERT_LOOPS - MLO_N_GENERIC_LOOPS);
             ++i_loop, gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1)
         {
-
             barrier(CLK_LOCAL_MEM_FENCE);
+
 // read 1 scan line less
 // padding processing takes care of the bottom border.
 
@@ -721,8 +726,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
             for(uint l = 0; l < MLO_FILTER_SIZE1; ++l)
             {
-
                 barrier(CLK_LOCAL_MEM_FENCE);
+
                 for(uint n = 0; n < MLO_FILTER_SIZE0; ++n)
                 {
                     uint pvt_off =
