@@ -54,7 +54,7 @@ class DbRecordIterator
         return *this;
     }
 
-    DbRecordIterator operator++(int) { return DbRecordIterator{it++}; }
+    const DbRecordIterator operator++(int) { return DbRecordIterator{it++}; }
 
     bool operator==(const DbRecordIterator& other) const { return it == other.it; }
     bool operator!=(const DbRecordIterator& other) const { return it != other.it; }

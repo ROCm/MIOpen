@@ -146,6 +146,174 @@ class StaticContainer
     }
 };
 
+// Tensor Helper APIs
+
+template <class TTo>
+size_t setWeightDescFromMLDesc(TTo& to, const miopen::TensorDescriptor& weight_tensor)
+{
+
+    int nWei;
+    int cWei;
+    int hWei;
+    int wWei;
+    int nWeiStride;
+    int cWeiStride;
+    int hWeiStride;
+    int wWeiStride;
+
+    std::tie(nWei, cWei, hWei, wWei) = miopen::tien<4>(weight_tensor.GetLengths(), 1);
+    std::tie(nWeiStride, cWeiStride, hWeiStride, wWeiStride) =
+        miopen::tien<4>(weight_tensor.GetStrides(), 0);
+
+    std::string data_type = weight_tensor.GetType() == miopenFloat ? "FP32" : "FP16";
+
+    to.setWeightsDescr(
+        "NCHW", data_type, nWei, cWei, hWei, wWei, nWeiStride, cWeiStride, hWeiStride, wWeiStride);
+
+    return weight_tensor.GetElementSpace();
+}
+
+template <class TTo>
+size_t setOutputDescFromMLDesc(TTo& to, const miopen::TensorDescriptor& output_tensor)
+{
+
+    int nOut;
+    int cOut;
+    int hOut;
+    int wOut;
+    int nOutStride;
+    int cOutStride;
+    int hOutStride;
+    int wOutStride;
+
+    std::tie(nOut, cOut, hOut, wOut) = miopen::tien<4>(output_tensor.GetLengths(), 1);
+    std::tie(nOutStride, cOutStride, hOutStride, wOutStride) =
+        miopen::tien<4>(output_tensor.GetStrides(), 0);
+
+    std::string data_type = output_tensor.GetType() == miopenFloat ? "FP32" : "FP16";
+
+    to.setOutputDescr(
+        "NCHW", data_type, nOut, cOut, hOut, wOut, nOutStride, cOutStride, hOutStride, wOutStride);
+    return output_tensor.GetElementSpace();
+}
+
+template <class TTo>
+size_t setInputDescFromMLDesc(TTo& to, const miopen::TensorDescriptor& input_tensor)
+{
+
+    int nIn;
+    int cIn;
+    int hIn;
+    int wIn;
+    int nInStride;
+    int cInStride;
+    int hInStride;
+    int wInStride;
+
+    std::tie(nIn, cIn, hIn, wIn) = miopen::tien<4>(input_tensor.GetLengths(), 1);
+    std::tie(nInStride, cInStride, hInStride, wInStride) =
+        miopen::tien<4>(input_tensor.GetStrides(), 0);
+
+    std::string data_type = input_tensor.GetType() == miopenFloat ? "FP32" : "FP16";
+
+    to.setInputDescr(
+        "NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+
+    return input_tensor.GetElementSpace();
+}
+
+template <class TTo>
+size_t setTopDescFromMLDesc(TTo& to, const miopen::TensorDescriptor& tensor)
+{
+    int nIn;
+    int cIn;
+    int hIn;
+    int wIn;
+    int nInStride;
+    int cInStride;
+    int hInStride;
+    int wInStride;
+
+    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tien<4>(tensor.GetLengths(), 1);
+    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tien<4>(tensor.GetStrides(), 0);
+
+    std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
+
+    to.setTopDescr(
+        "NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+
+    return tensor.GetElementSpace();
+}
+
+template <class TTo>
+size_t setBotDescFromMLDesc(TTo& to, const miopen::TensorDescriptor& tensor)
+{
+    int nIn;
+    int cIn;
+    int hIn;
+    int wIn;
+    int nInStride;
+    int cInStride;
+    int hInStride;
+    int wInStride;
+
+    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tien<4>(tensor.GetLengths(), 1);
+    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tien<4>(tensor.GetStrides(), 0);
+
+    std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
+
+    to.setBotDescr(
+        "NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+
+    return tensor.GetElementSpace();
+}
+
+template <class TTo>
+size_t setTopDfDescFromMLDesc(TTo& to, const miopen::TensorDescriptor& tensor)
+{
+    int nIn;
+    int cIn;
+    int hIn;
+    int wIn;
+    int nInStride;
+    int cInStride;
+    int hInStride;
+    int wInStride;
+
+    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tien<4>(tensor.GetLengths(), 1);
+    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tien<4>(tensor.GetStrides(), 0);
+
+    std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
+
+    to.setTopDfDescr(
+        "NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+
+    return tensor.GetElementSpace();
+}
+
+template <class TTo>
+size_t setBotDfDescFromMLDesc(TTo& to, const miopen::TensorDescriptor& tensor)
+{
+    int nIn;
+    int cIn;
+    int hIn;
+    int wIn;
+    int nInStride;
+    int cInStride;
+    int hInStride;
+    int wInStride;
+
+    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tien<4>(tensor.GetLengths(), 1);
+    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tien<4>(tensor.GetStrides(), 0);
+
+    std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
+
+    to.setBotDfDescr(
+        "NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
+
+    return tensor.GetElementSpace();
+}
+
 struct ProblemDescription
 {
     int n_inputs         = 0;
@@ -488,13 +656,40 @@ struct ProblemDescription
 
     int mloBuildConf_Key(std::string& conf_key) const;
 
-    size_t setInputDescFromMLDesc(const miopen::TensorDescriptor& input_tensor);
-    size_t setOutputDescFromMLDesc(const miopen::TensorDescriptor& output_tensor);
-    size_t setWeightDescFromMLDesc(const miopen::TensorDescriptor& weight_tensor);
-    size_t setTopDescFromMLDesc(const miopen::TensorDescriptor& tensor);
-    size_t setBotDescFromMLDesc(const miopen::TensorDescriptor& tensor);
-    size_t setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor);
-    size_t setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor);
+    size_t setInputDescFromMLDesc(const miopen::TensorDescriptor& input_tensor)
+    {
+        return miopen::setInputDescFromMLDesc(*this, input_tensor);
+    }
+
+    size_t setOutputDescFromMLDesc(const miopen::TensorDescriptor& output_tensor)
+    {
+        return miopen::setOutputDescFromMLDesc(*this, output_tensor);
+    }
+
+    size_t setWeightDescFromMLDesc(const miopen::TensorDescriptor& weight_tensor)
+    {
+        return miopen::setWeightDescFromMLDesc(*this, weight_tensor);
+    }
+
+    size_t setTopDescFromMLDesc(const miopen::TensorDescriptor& tensor)
+    {
+        return miopen::setTopDescFromMLDesc(*this, tensor);
+    }
+
+    size_t setBotDescFromMLDesc(const miopen::TensorDescriptor& tensor)
+    {
+        return miopen::setBotDescFromMLDesc(*this, tensor);
+    }
+
+    size_t setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
+    {
+        return miopen::setTopDfDescFromMLDesc(*this, tensor);
+    }
+
+    size_t setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
+    {
+        return miopen::setBotDfDescFromMLDesc(*this, tensor);
+    }
 };
 
 /// A leftover of the legacy design, houses problem config,
@@ -1017,37 +1212,37 @@ struct mlo_construct_direct2D
 
     size_t setInputDescFromMLDesc(const miopen::TensorDescriptor& input_tensor)
     {
-        return _search_params.setInputDescFromMLDesc(input_tensor);
+        return miopen::setInputDescFromMLDesc(*this, input_tensor);
     }
 
     size_t setOutputDescFromMLDesc(const miopen::TensorDescriptor& output_tensor)
     {
-        return _search_params.setOutputDescFromMLDesc(output_tensor);
+        return miopen::setOutputDescFromMLDesc(*this, output_tensor);
     }
 
     size_t setWeightDescFromMLDesc(const miopen::TensorDescriptor& weight_tensor)
     {
-        return _search_params.setWeightDescFromMLDesc(weight_tensor);
+        return miopen::setWeightDescFromMLDesc(*this, weight_tensor);
     }
 
     size_t setTopDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return _search_params.setTopDescFromMLDesc(tensor);
+        return miopen::setTopDescFromMLDesc(*this, tensor);
     }
 
     size_t setBotDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return _search_params.setBotDescFromMLDesc(tensor);
+        return miopen::setBotDescFromMLDesc(*this, tensor);
     }
 
     size_t setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return _search_params.setTopDfDescFromMLDesc(tensor);
+        return miopen::setTopDfDescFromMLDesc(*this, tensor);
     }
 
     size_t setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
     {
-        return _search_params.setBotDfDescFromMLDesc(tensor);
+        return miopen::setBotDfDescFromMLDesc(*this, tensor);
     }
 
     bool mloIsFastBinaryWinograd3x3U() const;
