@@ -25,7 +25,6 @@
  *******************************************************************************/
 #include <miopen/float_equal.hpp>
 #include <miopen/gemm_geometry.hpp>
-#include <regex>
 
 #if MIOPEN_USE_MIOPENGEMM
 namespace miopen {
@@ -35,18 +34,20 @@ namespace miopen {
 namespace tempfix {
 void set_offsets_to_uint(std::string& clstr)
 {
-    auto get_target = [](std::string inttype, char x) {
-        std::stringstream ss;
-        ss << "const " << inttype << ' ' << std::string(1, x) << "_offset";
-        return std::regex(ss.str());
-    };
 
     for(char x : {'a', 'b', 'c'})
     {
-        std::string replacement = "const unsigned " + std::string(1, x) + "_offset";
+        std::string replacement = "const unsigned " + std::string(1, x) + "_offset,";
         for(auto inttype : {"size_t", "ulong"})
         {
-            clstr = std::regex_replace(clstr, get_target(inttype, x), replacement);
+            std::string cmpstr =
+                "const " + std::string(inttype) + ' ' + std::string(1, x) + "_offset,";
+            auto pos = clstr.find(cmpstr);
+            if(pos != std::string::npos)
+            {
+                clstr.replace(pos, cmpstr.size(), replacement);
+                break;
+            }
         }
     }
 }
