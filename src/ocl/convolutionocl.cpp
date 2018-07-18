@@ -661,7 +661,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     problem.setWeightDescFromMLDesc(wDesc);
     problem.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
-    const auto find_db_path = "/home/vas/.config/miopen/some-file.fdb";
+    const auto find_db_path = GetDbPath() + "/" + handle.GetDbPathFilename() + ".cd.fdb.txt";
     Db find_db{find_db_path};
     // Todo: unify FFT network config to actually use loaded data.
     auto record = boost::optional<DbRecord>{boost::none}; // find_db.FindRecord(problem);
