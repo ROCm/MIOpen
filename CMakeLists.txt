@@ -121,6 +121,15 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     link_libraries(stdc++)
     # A hack to make this work without the device enumerator
     link_libraries(-amdgpu-target=gfx803 -amdgpu-target=gfx900 -Wno-unused-command-line-argument)
+
+    # rocblas
+    set(MIOPEN_USE_ROCBLAS OFF CACHE BOOL "")
+    if(MIOPEN_USE_ROCBLAS)
+        find_package(rocblas REQUIRED PATHS /opt/rocm)
+        message(STATUS "Build with rocblas")
+    else()
+        message(STATUS "Build without rocblas")
+    endif()
 endif()
 message( STATUS "${MIOPEN_BACKEND} backend selected." )
 
