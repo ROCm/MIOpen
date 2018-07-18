@@ -596,8 +596,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithmCore(Handle& handle,
                 {
                     const std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
                     AddKernels(handle, algorithm_name, network_config, selected, nullptr);
-                    MIOPEN_LOG_I("Selected: " << selected << ": " << best
-                                              << ", workspce_sz = " << selected.workspce_sz);
+                    MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
+                                              << selected.workspce_sz);
                     record.SetValues(algorithm_name,
                                      FindDbData{selected.solver_id, best, selected.workspce_sz});
                 }
@@ -1411,8 +1411,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 {
                     const std::string algorithm_name = "miopenConvolutionBwdDataAlgoDirect";
                     AddKernels(handle, algorithm_name, network_config, selected, nullptr);
-                    MIOPEN_LOG_I("Selected: " << selected << ": " << best
-                                              << ", workspce_sz = " << selected.workspce_sz);
+                    MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
+                                              << selected.workspce_sz);
                     perf_db.push_back(PerfField{algorithm_name, best, selected.workspce_sz});
                 }
             }
@@ -2313,8 +2313,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 if(selected.Succeeded())
                 {
                     AddKernels(handle, algorithm_name, network_config, selected, nullptr);
-                    MIOPEN_LOG_I("Selected: " << selected << ": " << best
-                                              << ", workspce_sz = " << selected.workspce_sz);
+                    MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
+                                              << selected.workspce_sz);
                     perf_db.push_back(PerfField{algorithm_name, best, selected.workspce_sz});
                 }
             }
@@ -2709,8 +2709,8 @@ void ConvolutionBackwardBias(Handle& handle,
     int out_n, out_c, out_h, out_w, stride_n, stride_c, stride_h, stride_w;
     std::tie(out_n, out_c, out_h, out_w)             = tien<4>(dyDesc.GetLengths());
     std::tie(stride_n, stride_c, stride_h, stride_w) = tien<4>(dyDesc.GetStrides());
-    std::string program_name                         = "MIOpenConvBwdBias.cl";
-    std::string kernel_name                          = "MIOpenConvBwdB";
+    std::string program_name = "MIOpenConvBwdBias.cl";
+    std::string kernel_name  = "MIOpenConvBwdB";
 
     std::string params;
     size_t lcl_grp_size0 = 256;
