@@ -1472,6 +1472,12 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 #if MIOPEN_USE_MIOPENGEMM
         break;
 #endif
+        case miopenConvolutionFwdAlgoWinograd:
+            MIOPEN_THROW("Winograd is not supported for group conv");
+            break;
+        case miopenConvolutionFwdAlgoFFT:
+            MIOPEN_THROW("FFT is not supported for group conv");
+            break;
         }
     }
 
