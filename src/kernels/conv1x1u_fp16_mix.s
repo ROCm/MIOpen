@@ -400,6 +400,7 @@ gcnAsmConv1x1U:
     .endm
 
     .macro conv_dot2 acc, wei, img
+        #v_dot2_f32_f16 v[\acc], s[\wei], v[\img], v[\acc]
         v_mad_mix_f32 v[\acc], s[\wei], v[\img], v[\acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
         v_mad_mix_f32 v[\acc], s[\wei], v[\img], v[\acc] op_sel:[1,1,0] op_sel_hi:[1,1,0]
     .endm
@@ -435,9 +436,6 @@ gcnAsmConv1x1U:
 
                         conv_dot2 acc, wei, img
                         conv_dot2 acc+1, wei, img + in_gprs
-
-                        #v_dot2_f32_f16 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + ch_gpr + n_gpr_inp + c_gpr_inp], v[accums + k_gpr_acc + n_gpr_acc +       ch_gpr]
-                        #v_dot2_f32_f16 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr + 1], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + in_gprs + ch_gpr + n_gpr_inp + c_gpr_inp], v[accums + k_gpr_acc + n_gpr_acc +       ch_gpr + 1]
 
                         ch_gpr = ch_gpr + 1
                     .endr
@@ -561,8 +559,8 @@ last_wave:
             chunk = 0
             .rept chunks_per_wave
                 v_cmpx_gt_i32 vcc, 0 + img_hw - chunk, v[current_hw]
-                buffer_store_dwordx2 v[acc:acc+1], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0+4*chunk
-                chunk = chunk + vec_size 
+                buffer_store_dwordx2 v[acc:acc+1], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0+4*chunk*vec_size
+                chunk = chunk + 1 
                 acc = acc + vec_size
             .endr
             nb = nb + 1
