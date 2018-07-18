@@ -41,7 +41,8 @@ ConvolutionDescriptor::ConvolutionDescriptor(
       u(p_u),
       v(p_v),
       dilation_h(p_dilation_h),
-      dilation_w(p_dilation_w)
+      dilation_w(p_dilation_w),
+      group_count(1)
 {
     if(pad_h < 0 || pad_w < 0 || u <= 0 || v <= 0 || dilation_h <= 0 || dilation_w <= 0 ||
        (dilation_h != dilation_w))
@@ -68,7 +69,8 @@ ConvolutionDescriptor::ConvolutionDescriptor(miopenConvolutionMode_t c_mode,
       u(p_u),
       v(p_v),
       dilation_h(p_dilation_h),
-      dilation_w(p_dilation_w)
+      dilation_w(p_dilation_w),
+      group_count(1)
 {
     if(pad_h < 0 || pad_w < 0 || u <= 0 || v <= 0 || dilation_h <= 0 || dilation_w <= 0 ||
        (dilation_h != dilation_w))
