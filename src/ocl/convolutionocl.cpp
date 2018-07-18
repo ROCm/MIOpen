@@ -260,7 +260,7 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
 {
 
     if((!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{})) &&
-       group_count < 2)
+       !(mode == miopenGroupConv || mode == miopenDepthwise))
         return {};
 
     mlo_construct_direct2D construct_params(isForward ? 1 : 0);
