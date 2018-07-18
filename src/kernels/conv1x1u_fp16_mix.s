@@ -398,9 +398,20 @@ gcnAsmConv1x1U:
         .endif
 
     .endm
+
+    .macro conv_dot2 acc, wei, img
+        v_mad_mix_f32 v[\acc], s[\wei], v[\img], v[\acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
+        v_mad_mix_f32 v[\acc], s[\wei], v[\img], v[\acc] op_sel:[1,1,0] op_sel_hi:[1,1,0]
+    .endm
+
+    .macro exch_img, img_c0, img_c1
+        v_mov_b32 v[vtmp], v[\img_c0]
+        v_mov_b32_sdwa v[\img_c0], v[\img_c1] dst_sel:WORD_1 src0_sel:WORD_0
+        v_mov_b32_sdwa v[\img_c1], v[vtmp] dst_sel:WORD_0 src0_sel:WORD_1
+    .endm
     
     .macro conv ibase, fbase
-    c = 0
+        c = 0
         .rept c_mult
             k = 0
             .rept k_mult
@@ -420,15 +431,10 @@ gcnAsmConv1x1U:
                         wei = \fbase + k_gpr_filter + c_gpr_filter
 
                         //swap
-                        v_mov_b32 v[vtmp], v[img]
-                        v_mov_b32_sdwa v[img], v[img + in_gprs] dst_sel:WORD_1 src0_sel:WORD_0
-                        v_mov_b32_sdwa v[img + in_gprs], v[vtmp] dst_sel:WORD_0 src0_sel:WORD_1
+                        exch_img img, img + in_gprs
 
-                        v_mad_mix_f32 v[acc], s[wei], v[img], v[acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
-                        v_mad_mix_f32 v[acc], s[wei], v[img], v[acc] op_sel:[1,1,0] op_sel_hi:[1,1,0]
-
-                        v_mad_mix_f32 v[acc + 1], s[wei], v[img + in_gprs], v[acc + 1] op_sel:[0,0,0] op_sel_hi:[1,1,0]
-                        v_mad_mix_f32 v[acc + 1], s[wei], v[img + in_gprs], v[acc + 1] op_sel:[1,1,0] op_sel_hi:[1,1,0]
+                        conv_dot2 acc, wei, img
+                        conv_dot2 acc+1, wei, img + in_gprs
 
                         #v_dot2_f32_f16 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + ch_gpr + n_gpr_inp + c_gpr_inp], v[accums + k_gpr_acc + n_gpr_acc +       ch_gpr]
                         #v_dot2_f32_f16 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr + 1], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + in_gprs + ch_gpr + n_gpr_inp + c_gpr_inp], v[accums + k_gpr_acc + n_gpr_acc +       ch_gpr + 1]
@@ -555,8 +561,7 @@ last_wave:
             chunk = 0
             .rept chunks_per_wave
                 v_cmpx_gt_i32 vcc, 0 + img_hw - chunk, v[current_hw]
-                buffer_store_dword v[acc], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0+4*chunk
-                buffer_store_dword v[acc + 1], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0+4*chunk + 4
+                buffer_store_dwordx2 v[acc:acc+1], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0+4*chunk
                 chunk = chunk + vec_size 
                 acc = acc + vec_size
             .endr
