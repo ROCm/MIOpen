@@ -316,7 +316,7 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
     for(uint faked_off = local_Id0; faked_off < MLO_MAX_LOADS; faked_off += MLO_GRP_SZ0)
     {
 #if MLO_FILTER_PAD0 > 0 || MLO_FILTER_PAD1 > 0 || \
-    (!TWO_PASSES && (MLO_FILTER_STRIDE0 > 1 || MLO_FILTER_STRIDE1 > 1))
+    (!MLO_TWO_PASSES && (MLO_FILTER_STRIDE0 > 1 || MLO_FILTER_STRIDE1 > 1))
 
         uint batch_id = faked_off / ((MLO_OUT_PAD_WIDTH / MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT);
         uint faked_off2 =
@@ -566,7 +566,7 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
         faked_off += (MLO_GRP_SZ0 / 4))
     {
 #if MLO_FILTER_PAD0 > 0 || MLO_FILTER_PAD1 > 0 || \
-    (!TWO_PASSES && (MLO_FILTER_STRIDE0 > 1 || MLO_FILTER_STRIDE1 > 1))
+    (!MLO_TWO_PASSES && (MLO_FILTER_STRIDE0 > 1 || MLO_FILTER_STRIDE1 > 1))
 
 #if 1 // MLO_READ_UNIT == 1
         uint batch_id = faked_off / ((MLO_OUT_PAD_WIDTH / MLO_READ_UNIT) * MLO_OUT_PAD_HEIGHT);
