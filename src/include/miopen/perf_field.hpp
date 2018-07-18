@@ -46,12 +46,8 @@ struct FindDbData : solver::Serializable<FindDbData>
     std::string solver_id;
     float time;
     std::size_t workspace;
-    
-    FindDbData()
-        : solver_id("<unknown>"),
-          time(-1),
-          workspace(-1)
-    {}
+
+    FindDbData() : solver_id("<unknown>"), time(-1), workspace(-1) {}
 
     FindDbData(const std::string& solver_id_, float time_, std::size_t workspace_)
         : solver_id(solver_id_), time(time_), workspace(workspace_)

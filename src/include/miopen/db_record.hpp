@@ -183,7 +183,10 @@ class DbRecord
     bool EraseValues(const std::string& id);
 
     template <class TValue>
-    IterationHelper<TValue> As() const { return *this; }
+    IterationHelper<TValue> As() const
+    {
+        return *this;
+    }
 
     friend class Db;
 };

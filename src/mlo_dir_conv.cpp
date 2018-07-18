@@ -293,10 +293,8 @@ int miopen::ProblemDescription::mloBuildConf_Key(std::string& conf_key) const
         std::to_string(static_cast<long long>(n_outputs)) + std::string("x") +
         std::to_string(static_cast<long long>(out_height)) + std::string("x") +
         std::to_string(static_cast<long long>(out_width)) + std::string("x") +
-        std::to_string(static_cast<long long>(batch_sz)) + std::string("x") +
-        in_layout + std::string("x") + in_data_type +
-        std::string("x") + (direction.IsForward()
-                                ? "1"
-                                : "0"); /// \todo Shall we separate keys for WrW convolutions?
+        std::to_string(static_cast<long long>(batch_sz)) + std::string("x") + in_layout +
+        std::string("x") + in_data_type + std::string("x") +
+        (direction.IsForward() ? "1" : "0"); /// \todo Shall we separate keys for WrW convolutions?
     return (0);
 }
