@@ -732,10 +732,10 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
                                       runningMean_dev->GetMem(),
                                       runningVariance_dev->GetMem(),
                                       epsilon);
-    
+
     miopenSetOpArgsActivForward(
         fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
-    
+
     miopenError = miopenCompileFusionPlan(GetHandle(), fusePlanDesc);
     if(miopenError != miopenStatusSuccess)
     {
@@ -887,21 +887,21 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
     miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());
 
     miopenSetOpArgsActivForward(
-    fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
+        fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
 
     if(bias_mode)
     {
-    miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev->GetMem());
+        miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev->GetMem());
     }
 
     miopenError = miopenCompileFusionPlan(GetHandle(), fusePlanDesc);
     if(miopenError != miopenStatusSuccess)
     {
-    if(bias_mode)
-        std::cerr << "ConvBiasActivInference plan not supported." << std::endl;
-    else
-        std::cerr << "ConvActivInference plan not supported." << std::endl;
-    exit(EXIT_FAILURE);
+        if(bias_mode)
+            std::cerr << "ConvBiasActivInference plan not supported." << std::endl;
+        else
+            std::cerr << "ConvActivInference plan not supported." << std::endl;
+        exit(EXIT_FAILURE);
     }
 
     for(int it = 0; it < iters; it++)
@@ -1074,7 +1074,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUFusedConvBiasInference()
     {
         std::cerr << "ConvBiasInference plan not supported." << std::endl;
     }
-    
+
     for(int it = 0; it < iters; it++)
     {
         startTiming();
