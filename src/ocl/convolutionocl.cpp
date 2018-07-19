@@ -406,7 +406,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     {
         std::tie(wei_n, wei_c, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
         if(in_c % group_count != 0 || wei_n % group_count != 0 || group_count > in_c ||
-           group_count > wei_n || group_count <= 0 ||
+           group_count > wei_n || group_count < 1 ||
            (mode == miopenDepthwise && group_count != in_c))
             MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
         if(in_c / group_count != wei_c || (mode == miopenDepthwise && wei_c != 1))
@@ -1318,7 +1318,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
             std::tie(wei_n, wei_c, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
             if(in_c % group_count != 0 || wei_n % group_count != 0 || group_count > in_c ||
-               group_count > wei_n || group_count <= 0 ||
+               group_count > wei_n || group_count < 1 ||
                (mode == miopenDepthwise && group_count != in_c))
                 MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
             if(in_c / group_count != wei_c || (mode == miopenDepthwise && wei_c != 1))
@@ -1599,7 +1599,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         // GEMM based
         std::tie(wei_n, wei_c, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
         if(in_c % group_count != 0 || wei_n % group_count != 0 || group_count > in_c ||
-           group_count > wei_n || group_count <= 0 ||
+           group_count > wei_n || group_count < 1 ||
            (mode == miopenDepthwise && group_count != in_c))
             MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
         if(in_c / group_count != wei_c || (mode == miopenDepthwise && wei_c != 1))
@@ -2450,7 +2450,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
         std::tie(wei_n, wei_c, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
         if(in_c % group_count != 0 || wei_n % group_count != 0 || group_count > in_c ||
-           group_count > wei_n || group_count <= 0 ||
+           group_count > wei_n || group_count < 1 ||
            (mode == miopenDepthwise && group_count != in_c))
             MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
         if(in_c / group_count != wei_c || (mode == miopenDepthwise && wei_c != 1))
@@ -2798,7 +2798,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
     {
         std::tie(wei_n, wei_c, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
         if(in_c % group_count != 0 || wei_n % group_count != 0 || group_count > in_c ||
-           group_count > wei_n || group_count <= 0 ||
+           group_count > wei_n || group_count < 1 ||
            (mode == miopenDepthwise && group_count != in_c))
             MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
         if(in_c / group_count != wei_c || (mode == miopenDepthwise && wei_c != 1))
@@ -3331,7 +3331,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
     {
         std::tie(wei_n, wei_c, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
         if(in_c % group_count != 0 || wei_n % group_count != 0 || group_count > in_c ||
-           group_count > wei_n || group_count <= 0 ||
+           group_count > wei_n || group_count < 1 ||
            (mode == miopenDepthwise && group_count != in_c))
             MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
         if(in_c / group_count != wei_c || (mode == miopenDepthwise && wei_c != 1))
