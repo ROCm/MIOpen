@@ -11,6 +11,8 @@ Notes:
 
 Known Issues:
 
+- RNNs do not support fp16
+- Training with CNNs does not support fp16
 - Users may encounter a warning that their performance database is out of date. The performance database can be updated by setting the environment variable for just the initial run of an application: `MIOPEN_FIND_ENFORCE=search`
 For more information on the performance database, see: https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html#
 
