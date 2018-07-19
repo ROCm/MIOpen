@@ -50,6 +50,10 @@
 #endif
 #endif
 
+/// \todo Fix issue 1014 and remove this guard.
+/// Fails with 512, works with 1024, let's have x4 spare
+#define MLO_PRIVATE_BUF_GUARD (4096 / SIZEOF_FLOAT)
+
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
 #define _FLOAT4 PPCAT(_FLOAT, FOUR)
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
@@ -496,7 +500,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #endif
     __local _FLOAT lcl_indata[MLO_IN_LCL_SZ];
     __local _FLOAT lcl_wei[MLO_WEIGHTS_SZ];
-    __private _FLOAT pvt_accum[MLO_PVT_ACCUM_DATA_SZ];
+    __private _FLOAT pvt_accum[MLO_PVT_ACCUM_DATA_SZ + MLO_PRIVATE_BUF_GUARD];
     __private _FLOAT pvt_in_stage[MLO_PVT_IN_HEIGHT * MLO_PVT_IN_WIDTH];
     __private _FLOAT pvt_wei_stage[MLO_FILTER_SIZE0];
 
@@ -599,13 +603,13 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #if MLO_LARGE_MAP == 0
     for(uint i = lcl_id; i < MLO_IN_LCL_SZ; i += MLO_GRP_SZ)
     {
-        lcl_indata[i] = 0;
+        lcl_indata[i] = 0.f;
     }
 #endif
 
     for(uint i = 0; i < MLO_PVT_ACCUM_DATA_SZ; ++i)
     {
-        pvt_accum[i] = 0;
+        pvt_accum[i] = 0.f;
     }
 
     for(uint ic = 0; ic < MLO_N_INPUTS; ic += MLO_N_IN_TILES_PERSTACK,
