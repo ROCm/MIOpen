@@ -2,6 +2,20 @@
 ## MIOpen Release notes
 
 
+### 07/19/2018 [ 1.4.1 ]
+
+Notes: 
+
+- This release includes a bug fix for 3x3 convolutions
+- Updated README file configuration instructions
+
+Known Issues:
+
+- RNNs do not support fp16
+- Training with CNNs does not support fp16
+- Users may encounter a warning that their performance database is out of date. The performance database can be updated by setting the environment variable for just the initial run of an application: `MIOPEN_FIND_ENFORCE=search`
+For more information on the performance database, see: https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html#
+
 ### 07/06/2018 [ 1.4.0 ]
 
 Notes:
