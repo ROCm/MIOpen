@@ -1034,9 +1034,12 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
     }
     dwei_dev->FromGPU(GetStream(), dwei.data());
 
-    if(perf_results_weights[0].bwd_weights_algo == 0)
-    { // miopenConvolutionBwdWeightsAlgoGEMM
-        workspace_bwd_weights_dev->FromGPU(GetStream(), workspace_bwd_weights.data());
+    if(workspace_bwd_weights_dev != nullptr)
+    {
+        if(perf_results_weights[0].bwd_weights_algo == 0)
+        { // miopenConvolutionBwdWeightsAlgoGEMM
+            workspace_bwd_weights_dev->FromGPU(GetStream(), workspace_bwd_weights.data());
+        }
     }
 
     if(inflags.GetValueInt("dump_output"))
