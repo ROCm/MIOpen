@@ -1284,11 +1284,10 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             visit_float(xDesc.GetType(), [&](auto as_float) {
                 // Miminum checks. Only check what is required to select
                 // proper invocation procedure & workspace sanity.
-                float padding_val = 0;
-                float elapsed     = 0;
+                float elapsed = 0;
                 if(num_kernels == 1)
                 {
-                    kernel(x, w, y, as_float(padding_val));
+                    kernel(x, w, y, as_float(0.0f));
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
                 }
