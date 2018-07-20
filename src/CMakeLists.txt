@@ -25,6 +25,8 @@
 ################################################################################
 cmake_minimum_required( VERSION 2.8.12 )
 
+cmake_policy(SET CMP0057 NEW)
+
 include (GenerateExportHeader)
 
 configure_file("${PROJECT_SOURCE_DIR}/include/miopen/config.h.in" "${PROJECT_BINARY_DIR}/include/miopen/config.h")
@@ -245,7 +247,8 @@ endif()
 if(miopengemm_FOUND)
     list(APPEND MIOpen_Source
         gemm.cpp
-        gemm_api.cpp
+        gemm_v2.cpp
+        miopengemm.cpp
         gemm_geometry.cpp
     )
 endif()
@@ -295,11 +298,25 @@ set_target_properties(MIOpen PROPERTIES SOVERSION 1)
 
 clang_tidy_check(MIOpen)
 
+function(target_internal_library TARGET)
+    target_link_libraries(${TARGET} PRIVATE ${ARGN})
+    set(PASS_ARGS debug optimized)
+    set(DEPS)
+    foreach(DEP ${ARGN})
+        if(DEP IN_LIST PASS_ARGS)
+            list(APPEND DEPS ${DEP})
+        else()
+            list(APPEND DEPS $<BUILD_INTERFACE:${DEP}>)
+        endif()
+    endforeach()
+    target_link_libraries(${TARGET} INTERFACE ${DEPS})
+endfunction()
+
 target_include_directories(MIOpen PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
 )
 
-target_include_directories(MIOpen SYSTEM PRIVATE ${HALF_INCLUDE_DIR})
+target_include_directories(MIOpen SYSTEM PUBLIC $<BUILD_INTERFACE:${HALF_INCLUDE_DIR}>)
 
 generate_export_header(MIOpen
     EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/miopen/export.h
@@ -330,7 +347,12 @@ endif()
 # MIOpen depends on miopengemm
 if(miopengemm_FOUND)
     list(APPEND PACKAGE_DEPENDS PACKAGE miopengemm)
-    target_link_libraries( MIOpen PUBLIC miopengemm )
+    target_internal_library(MIOpen miopengemm)
+endif()
+
+if(rocblas_FOUND)
+    target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:roc::rocblas> )
+    target_link_libraries( MIOpen PRIVATE roc::rocblas )
 endif()
 
 if(WIN32 AND NOT MSVC)
@@ -342,13 +364,7 @@ endif()
 
 target_link_libraries(MIOpen PRIVATE OpenSSL::Crypto)
 target_include_directories(MIOpen PUBLIC $<BUILD_INTERFACE:${Boost_INCLUDE_DIRS}>)
-set(MIOPEN_MAKE_BOOST_PUBLIC Off CACHE BOOL "")
-if(MIOPEN_MAKE_BOOST_PUBLIC)
-set(MIOPEN_BOOST_LIB_VISIBILITY PUBLIC)
-else()
-set(MIOPEN_BOOST_LIB_VISIBILITY PRIVATE)
-endif()
-target_link_libraries(MIOpen ${MIOPEN_BOOST_LIB_VISIBILITY}
+target_internal_library(MIOpen
     optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE}
     optimized ${Boost_SYSTEM_LIBRARY_RELEASE}
     debug ${Boost_FILESYSTEM_LIBRARY_DEBUG}
@@ -365,12 +381,12 @@ local:
 };
 ")
     target_link_libraries(MIOpen PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_BINARY_DIR}/lib.def")
-    # if(NOT BUILD_DEV)
-    #     set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET hidden)
-    #     if(NOT APPLE)
-    #         target_link_libraries(MIOpen PRIVATE "-Wl,--exclude-libs,ALL")
-    #     endif()
-    # endif()
+    if(NOT BUILD_DEV)
+        # set_target_properties(MIOpen PROPERTIES CXX_VISIBILITY_PRESET hidden)
+        if(NOT APPLE)
+            target_link_libraries(MIOpen PRIVATE "-Wl,--exclude-libs,ALL")
+        endif()
+    endif()
 endif()
 
 ############################################################

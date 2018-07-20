@@ -39,7 +39,6 @@ int miopenBNSpatialFwdInferHost(miopenTensorDescriptor_t& inputTensor,
                                 const Tgpu* scale_ptr,
                                 const Tgpu* bias_ptr,
                                 double epsilon,
-                                // bool estmeanvar,
                                 const Tgpu* estimatedMean,
                                 const Tgpu* estimatedVariance)
 {
@@ -93,7 +92,6 @@ int miopenBNPerActivFwdInferHost(miopenTensorDescriptor_t& inputTensor,
                                  const Tgpu* scale_ptr,
                                  const Tgpu* bias_ptr,
                                  double epsilon,
-                                 // bool estmeanvar,
                                  const Tgpu* estimatedMean,
                                  const Tgpu* estimatedVariance)
 { // use running mean and variance
@@ -137,7 +135,7 @@ int miopenBNPerActivFwdInferHost(miopenTensorDescriptor_t& inputTensor,
                     double inhat = elemStd * elemInvVar;
                     // #5 Gamma and Beta adjust
                     // y_i = gamma*x_hat + beta
-                    out_ptr[index] = scale_ptr[adjIndex] * inhat + bias_ptr[adjIndex];
+                    out_ptr[index] = (scale_ptr[adjIndex] * inhat) + bias_ptr[adjIndex];
                 } // end for(n_batchs)
             }     // for (column)
         }
