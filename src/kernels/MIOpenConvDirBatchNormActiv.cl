@@ -161,6 +161,7 @@
 #define MLO_PADDING_FIX1 (MLO_FILTER_SIZE1 % MLO_OUT_TILE1)
 #define MLO_PADDING_FIX0 (MLO_FILTER_SIZE0 % MLO_OUT_TILE0)
 
+
 #if defined(__AMDGCN__)
 extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane");
 #define uniform(x) __llvm_amdgcn_readfirstlane(x)
@@ -1068,6 +1069,8 @@ __attribute__((always_inline)) void ActivationFunction_ELU(const uint n,
     }
 }
 
+
+#ifdef MIOPEN_YES_ACTIV
 __attribute__((always_inline)) void ActivationFunction(const uint n,
                                                        _FLOAT* res,
                                                        const _FLOAT* data,
@@ -1075,6 +1078,8 @@ __attribute__((always_inline)) void ActivationFunction(const uint n,
                                                        const _FLOAT beta,
                                                        const _FLOAT alpha)
 {
+
+
 #if MIOPEN_NRN_OP_ID == MIOPEN_NEURON_PASTHRU
     {
         ActivationFunction_PassThru(n, res, data, gamma, beta, alpha);
@@ -1120,7 +1125,10 @@ __attribute__((always_inline)) void ActivationFunction(const uint n,
         ActivationFunction_ELU(n, res, data, gamma, beta, alpha);
     }
 #endif
+
+
 }
+#endif
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __kernel void
 MIOpenConvUniBatchNormActiv(
@@ -1476,7 +1484,10 @@ MIOpenConvUniBatchNormActiv(
 
     _FLOAT conv_res;
     _FLOAT bn_res;
+#ifdef MIOPEN_YES_ACTIV
     _FLOAT actv_res;
+#endif
+
 // over all local stacks
 #if MLO_BATCH_ALIGNED == 0
     if(b_index + stack < MLO_BATCH_SZ)
