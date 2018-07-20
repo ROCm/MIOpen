@@ -258,14 +258,14 @@ solver::KernelInfo& ConvForwardOpDescriptor::GetKernelInfo(Handle& handle,
         params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
         construct_params.mloCopyTo(params);
         // params.general_compile_options += compile_config;
-        kernel_info = solver::CBAFusionGetSolution(params);
+        kernel_info       = solver::CBAFusionGetSolution(params);
         kernel_info_valid = true;
         // printf("Compiler options: %s\n", kernel_info.comp_options.c_str());
         // kernel_info = solver::CBAFusionGetSolution(compile_config);
     }
     else
     { // DLOWELL: Is this valid if there is dType is FP16?
-        
+
         // In the absence of the config tree
         mlo_construct_direct2D_fusion construct_params = ConstructParams(handle);
         ConvolutionContext params;
