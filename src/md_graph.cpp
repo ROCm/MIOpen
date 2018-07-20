@@ -212,10 +212,11 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                 g.AddEdge(bias_v, bn_v, edg_activ);
                 g.AddEdge(bias_v, bn_v, edg_spatial);
 
-                auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
-                                                                "MIOpenConvDirBatchNormActiv.cl",
-                                                                "MIOpenConvUniBatchNormActiv",
-                                                                "miopenConvDirectBatchNormBiasActiv");
+                auto activ_v =
+                    std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
+                                                     "MIOpenConvDirBatchNormActiv.cl",
+                                                     "MIOpenConvUniBatchNormActiv",
+                                                     "miopenConvDirectBatchNormBiasActiv");
                 g.AddEdge(bn_v, activ_v, empty_map);
             }
         }
@@ -322,8 +323,7 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
                 if(CmpOpKey(ch_it->second["key"], op->MDGraphKey()))
                 {
                     weight += std::stoi(ch_it->second["weight"][0]);
-                    new_list.push_back(
-                        std::pair<MDGraph_vertex_ptr, int>(ch_it->first, weight));
+                    new_list.push_back(std::pair<MDGraph_vertex_ptr, int>(ch_it->first, weight));
                 }
             }
         }
