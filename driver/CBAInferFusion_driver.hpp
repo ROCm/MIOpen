@@ -834,6 +834,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
                                               runningMean_dev->GetMem(),
                                               runningVariance_dev->GetMem(),
                                               epsilon);
+        // TODO: Why is this inside the loop?
         miopenError = miopenCompileFusionPlan(GetHandle(), fusePlanDesc);
         if(miopenError != miopenStatusSuccess)
         {
