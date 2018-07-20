@@ -99,14 +99,7 @@ function(add_test_executable TEST_NAME)
     add_dependencies(tests ${TEST_NAME})
     add_dependencies(check ${TEST_NAME})
     set_tests_properties(${TEST_NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
-    target_link_libraries(${TEST_NAME}
-        optimized ${Boost_FILESYSTEM_LIBRARY_RELEASE}
-        optimized ${Boost_SYSTEM_LIBRARY_RELEASE}
-        debug ${Boost_FILESYSTEM_LIBRARY_DEBUG}
-        debug ${Boost_SYSTEM_LIBRARY_DEBUG}
-    )
     target_link_libraries(${TEST_NAME} MIOpen)
-    target_include_directories(${TEST_NAME} SYSTEM PUBLIC ${HALF_INCLUDE_DIR})
 endfunction(add_test_executable)
 
 set(MIOPEN_TEST_SANITIZERS)
