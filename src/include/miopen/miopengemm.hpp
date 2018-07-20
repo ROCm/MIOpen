@@ -1,19 +1,19 @@
 /*******************************************************************************
- * 
+ *
  * MIT License
- * 
+ *
  * Copyright (c) 2017 Advanced Micro Devices, Inc.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,36 +21,40 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * 
+ *
  *******************************************************************************/
+#ifndef GUARD_MIOPEN_MIOPENGEMM_HPP_
+#define GUARD_MIOPEN_MIOPENGEMM_HPP_
 
-// weights
-weights_per_filter = wei_w * wei_h
-.if weights_layout == 0 // KCHW
-	.set filter_c_stride, 4 * weights_per_filter
-	.set filter_k_stride, 4 * weights_per_filter * input_channels
-.else // CKHW
-	.set filter_c_stride, 4 * weights_per_filter * output_channels
-	.set filter_k_stride, 4 * weights_per_filter
-.endif
-filters_size = 4 * weights_per_filter * input_channels * output_channels
+#include <miopen/config.h>
 
-// input/output
-img_hw = img_h * img_w
-out_w = (img_w + 2 * pad_w - wei_w) / stride_w + 1;
-out_h = (img_h + 2 * pad_h - wei_h) / stride_h + 1;
-input_line_size = 4 * img_w
+#if MIOPEN_USE_MIOPENGEMM
+#include <miopengemm/miogemm.hpp>
 
-input_c_stride = input_line_size * img_h
-input_feature_map_size = input_c_stride
+namespace miopen {
 
-input_n_stride = input_feature_map_size * input_channels
-input_stack_size = input_n_stride
+void AddMiopengemmSolution(Handle& handle,
+                           const std::string& algorithm_name,
+                           const std::string& network_config,
+                           const MIOpenGEMM::Geometry& mgg,
+                           ConstData_t A,
+                           ConstData_t B,
+                           Data_t C,
+                           float time,
+                           bool enforce_determinism);
 
-output_line_size = 4 * out_w
+void RunMiopengemmSolution(Handle& handle,
+                           const decltype(handle.GetKernels("_", "_"))& kernels,
+                           float alpha,
+                           ConstData_t A,
+                           int a_offset,
+                           ConstData_t B,
+                           int b_offset,
+                           float beta,
+                           Data_t C,
+                           int c_offset);
 
-output_k_stride = output_line_size * out_h
-output_feature_map_size = output_k_stride
+} // namespace miopen
+#endif // MIOPEN_USE_MIOPENGEMM
 
-output_n_stride = output_feature_map_size * output_channels
-output_stack_size = output_n_stride
+#endif // GUARD_MIOPEN_MIOPENGEMM_HPP_
