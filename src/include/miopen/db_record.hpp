@@ -28,41 +28,12 @@
 
 #include <miopen/logger.hpp>
 
+#include <cassert>
 #include <sstream>
 #include <string>
 #include <unordered_map>
 
 namespace miopen {
-
-template <class TValue>
-class DbRecordIterator
-{
-    friend class DbRecord;
-    using inner_iterator = std::unordered_map<std::string, std::string>::const_iterator;
-
-    public:
-    std::pair<const std::string&, TValue> operator*() const
-    {
-        TValue value;
-        value.Deserialize(it->second);
-        return {it->first, value};
-    }
-
-    DbRecordIterator& operator++()
-    {
-        ++it;
-        return *this;
-    }
-
-    const DbRecordIterator operator++(int) { return DbRecordIterator{it++}; }
-
-    bool operator==(const DbRecordIterator& other) const { return it == other.it; }
-    bool operator!=(const DbRecordIterator& other) const { return it != other.it; }
-
-    private:
-    DbRecordIterator(const inner_iterator it_) : it(it_) {}
-    inner_iterator it;
-};
 
 /// db consists of 0 or more records.
 /// Each record is an ASCII text line.
@@ -96,11 +67,43 @@ class DbRecord
 {
     public:
     template <class TValue>
+    class Iterator
+    {
+        friend class DbRecord;
+
+        using InnerIterator = std::unordered_map<std::string, std::string>::const_iterator;
+
+        public:
+        std::pair<const std::string&, TValue> operator*() const
+        {
+            assert(it != InnerIterator{});
+            TValue value;
+            value.Deserialize(it->second);
+            return {it->first, value};
+        }
+
+        Iterator& operator++()
+        {
+            ++it;
+            return *this;
+        }
+
+        const Iterator operator++(int) { return Iterator{it++}; }
+
+        bool operator==(const Iterator& other) const { return it == other.it; }
+        bool operator!=(const Iterator& other) const { return it != other.it; }
+
+        private:
+        Iterator(const InnerIterator it_) : it(it_) {}
+        InnerIterator it;
+    };
+
+    template <class TValue>
     class IterationHelper
     {
         public:
-        DbRecordIterator<TValue> begin() const { return {record.map.begin()}; }
-        DbRecordIterator<TValue> end() const { return {record.map.end()}; }
+        Iterator<TValue> begin() const { return {record.map.begin()}; }
+        Iterator<TValue> end() const { return {record.map.end()}; }
 
         private:
         IterationHelper(const DbRecord& record_) : record(record_) {}
