@@ -658,7 +658,7 @@ MIOpenBatchNormActivInferPerActEst(
     const __global _FLOAT* __restrict estimatedVariance /*input and output*/)
 {
     int gid0 = get_global_id(0);
-    int gid1 = get_global_id(1);
+    // int gid1 = get_global_id(1);
 
     int chw_i = gid0 * MIOPEN_READ_UNIT;
 

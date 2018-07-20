@@ -444,13 +444,13 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         op->GetNetworkConfig(network_config, handle);
     }
     // Check if the kernel is assembly or OpenCL
-    is_asm_kernel  = (program_name[-1] == 's');
-    fp_contains_bn = false;
-    // TODO: The Metadata graph should return this info
     auto ops_head  = op_map[0]; // ins_order[0]];
     algorithm_name = lu.GetAlgoName();
     program_name   = GetProgramName(handle);
     kernel_name    = GetKernelName(handle);
+    if(program_name == "")
+        MIOPEN_THROW("Invalid Fusion Plan");
+    is_asm_kernel  = (program_name.back() == 's');
 #if 0
     for(auto&& op : op_map)
     { // This needs to go away with the meta graph.
@@ -504,13 +504,15 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     {
         std::string compile_config;
         auto dType = input_desc.GetType();
-        if(dType == miopenFloat)
-        {
-            compile_config += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
-        }
-        else
-        {
-            compile_config += " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
+        if(!is_asm_kernel){
+            if(dType == miopenFloat)
+            {
+                compile_config += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
+            }
+            else
+            {
+                compile_config += " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
+            }
         }
         // TODO: This true for inference but might not be true in general
         // This is sill an open question

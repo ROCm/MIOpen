@@ -92,7 +92,7 @@ void FusionMDGraph::Init(FusionMDGraph& g, miopenFusionOp_t op)
 
 void FusionMDGraph::InitBN(FusionMDGraph& g)
 {
-    FusionMDGraph_Edge_Map empty_map = {{"key", {""}}, {"weight", {"0"}}};
+    FusionMDGraph_Edge_Map empty_map = {{"key", {}}, {"weight", {"0"}}};
 
     {
         auto bn_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormInference,
@@ -136,9 +136,9 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                            {"v", 1},
                                            {"dilation_h", 1},
                                            {"dilation_w", 1}};
-    FusionMDGraph_Edge_Map empty_map = {{"key", {""}}, {"weight", {"0"}}};
+    FusionMDGraph_Edge_Map empty_map = {{"key", {}}, {"weight", {"0"}}};
     // first path (asm kernel)
-    { // Conv -> Bias -> Activ
+    { // Conv -> Bias -> Activ // Conv -> Activ
         auto conv_v = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
                                                        "conv1x1u_bias_activ.s",
                                                        "gcnAsmConv1x1U",
@@ -160,6 +160,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         g.AddEdge(nullptr, conv_v, map_asm_conv);
         g.AddEdge(conv_v, bias_v, empty_map);
         g.AddEdge(bias_v, activ_v, empty_map);
+
+        g.AddEdge(conv_v, activ_v, empty_map);
     }
 
     // second path (ocl kernel)
@@ -187,13 +189,15 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                            "miopenConvolutionDirectBiasActiv");
 
             g.AddEdge(conv_v, bias_v, empty_map);
-            { // Conv -> Bias -> Activ
+            { // Conv -> Bias -> Activ // Conv -> Activ
                 auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
                                                                 "MIOpenConvDirBatchNormActiv.cl",
                                                                 "MIOpenConvUniBatchNormActiv",
                                                                 "miopenConvolutionDirectBiasActiv",
                                                                 true);
                 g.AddEdge(bias_v, activ_v, empty_map);
+
+                g.AddEdge(conv_v, activ_v, empty_map);
             }
 
             { // Conv -> Bias -> BatchNorm -> Activ
