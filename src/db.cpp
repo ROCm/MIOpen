@@ -84,8 +84,8 @@ Db::Db(const std::string& filename_, bool is_system)
         {
             if(!boost::filesystem::create_directories(directory))
                 MIOPEN_LOG_W("Unable to create a directory: " << directory);
-
-            boost::filesystem::permissions(directory, boost::filesystem::all_all);
+            else
+                boost::filesystem::permissions(directory, boost::filesystem::all_all);
         }
     }
 }
@@ -197,8 +197,7 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
         if(contents.empty())
         {
             MIOPEN_LOG_E("None contents under the key: " << current_key << " form file " << filename
-                                                         << "#"
-                                                         << n_line);
+                                                         << "#" << n_line);
             continue;
         }
         MIOPEN_LOG_I("Contents found: " << contents);
@@ -209,9 +208,7 @@ boost::optional<DbRecord> Db::FindRecordUnsafe(const std::string& key, RecordPos
         if(!is_parse_ok)
         {
             MIOPEN_LOG_E("Error parsing payload under the key: " << current_key << " form file "
-                                                                 << filename
-                                                                 << "#"
-                                                                 << n_line);
+                                                                 << filename << "#" << n_line);
             MIOPEN_LOG_E("Contents: " << contents);
         }
         // A record with matching key have been found.
