@@ -25,6 +25,9 @@
  *******************************************************************************/
 
 #include "miopen/solver.hpp"
+#include <miopen/env.hpp>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_WORKAROUND_ISSUE_1007)
 
 namespace miopen {
 namespace solver {
@@ -33,6 +36,11 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 {
     // Cases when dy has negative padding are not supported (issue 918)
     if(params.GetBackwardPad0() < 0 || params.GetBackwardPad1() < 0)
+        return false;
+    /// \todo Workaround for issue 1007, seems related to the next ones.
+    if(!miopen::IsDisabled(MIOPEN_WORKAROUND_ISSUE_1007{}) && params.kernel_size0 == 3 &&
+       (static_cast<double>(params.batch_sz) * params.out_height * params.out_width *
+        params.n_outputs * params.n_inputs) > 700000000)
         return false;
     /// \todo Workaround for some issues. Excludes some configs which covered by
     /// the ConvOclBwdWrW2 solver. Found experimentally. Technically, this is a hack.
