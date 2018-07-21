@@ -159,6 +159,9 @@ set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen 
 
 set(MIOPEN_GPU_SYNC Off CACHE BOOL "")
 if(BUILD_DEV)
+    # handle the clang/gdb bug
+    add_compile_options(-D_GLIBCXX_DEBUG)
+
     set(MIOPEN_BUILD_DEV 1)
     set(MIOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels" CACHE PATH "Default path to search for installed db")
     set(MIOPEN_USER_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels" CACHE PATH "Default path to search for user db")
