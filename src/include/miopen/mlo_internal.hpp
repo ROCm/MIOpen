@@ -1040,6 +1040,7 @@ struct mlo_construct_direct2D_fusion : mlo_construct_direct2D
     {
         params = _search_params;
     }
+    miopen::solver::ConvSolution FindSolution();
 };
 
 #endif
