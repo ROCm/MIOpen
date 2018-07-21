@@ -74,7 +74,7 @@ RUN ln -s $PREFIX /opt/rocm/hip
 RUN ln -s $PREFIX /opt/rocm/hcc
 
 # Build using hcc
-RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc
+RUN cget -p $PREFIX init --cxx $PREFIX/bin/hcc --std=c++14
 
 # Install dependencies
 ADD dev-requirements.txt /dev-requirements.txt
