@@ -564,7 +564,7 @@ struct conv_driver : test_driver
         add(enable_backward_weights, "enable-backward-weights", flag());
         add(do_backward_data, "disable-backward-data", set_value(false));
         add(search, "search", set_value(1));
-        add(conv_mode, "cmode", generate_data({"conv", "trans", "group", "dw"}));
+        add(conv_mode, "cmode", generate_data({"conv"}));
         add(pad_mode, "pmode", generate_data({"default", "same", "valid"}));
         add(groupCount, "group-count", generate_data({1}));
     }
