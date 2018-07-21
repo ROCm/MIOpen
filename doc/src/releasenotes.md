@@ -1,6 +1,58 @@
 
 ## MIOpen Release notes
 
+
+### 07/19/2018 [ 1.4.1 ]
+
+Notes: 
+
+- This release includes a bug fix for 3x3 convolutions
+- Updated README file configuration instructions
+
+Known Issues:
+
+- RNNs do not support fp16
+- Training with CNNs does not support fp16
+- Users may encounter a warning that their performance database is out of date. The performance database can be updated by setting the environment variable for just the initial run of an application: `MIOPEN_FIND_ENFORCE=search`
+For more information on the performance database, see: https://rocmsoftwareplatform.github.io/MIOpen/doc/html/perfdatabase.html#
+
+### 07/06/2018 [ 1.4.0 ]
+
+Notes:
+
+- This release includes a number of performance improvements and bug fixes
+- New features have been added to convolutions for auto-tuning kernels
+- Activations now have new modes available
+- Documentation has been updated and corrected
+
+Changes:
+
+- Fixed documentation errors
+- Fixed bug in activations with pass-through mode
+- Fixed performance database locking issues
+- Fixed Winograd kernel behavior for stride 2 backwards data
+- Fixed a bug in OpTensor layer
+- Fixed a timing issue with batch normalization inline assembly 
+- Fixed issue with an unnecessary binary creation in assembly bug detection
+- Fixed issue with disk program cache directory not being created
+- Fixed a bug with convolution+bias
+- Added to performance database functionality
+- Added leaky-ReLU, clipped, and exponential-ReLU modes to activation
+- Added documentation for performance database usage
+- Added support for 1x1 convolutions with non-zero padding
+- Added API for printing status codes as strings
+- Added auto-tuning feature for convolutions
+- Improved LSTM and GRU backwards pass performance
+- Improved debug and error reporting information
+- Improved performance of batch normalization spatial mode
+- Improved find stage for convolutions
+- Improved readability for user database file
+
+Known Issues:
+
+- RNNs do not support fp16
+- Training with CNNs does not support fp16
+
 ### 03/30/2018 [ 1.3.0 ]
 
 Notes: 

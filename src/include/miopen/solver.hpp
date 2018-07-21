@@ -102,6 +102,7 @@ struct ConvSolution
     /// \todo Use better name than construction_params.
     std::vector<KernelInfo> construction_params; // impl may consist of multiple kernels.
     miopenStatus_t status;
+    std::string solver_id;
 
     size_t workspce_sz;
     int grp_tile1;       // total number ALUs per group
@@ -116,6 +117,7 @@ struct ConvSolution
 
     ConvSolution(miopenStatus_t status_ = miopenStatusSuccess)
         : status(status_),
+          solver_id("<unknown>"),
           workspce_sz(0),
           grp_tile1(-1),
           grp_tile0(-1),
@@ -223,7 +225,9 @@ ConvSolution FindSolution(Solver s, const Context& context, Db& db)
     static_assert(std::is_empty<Solver>{} && std::is_trivially_constructible<Solver>{},
                   "Solver must be stateless");
     // TODO: This assumes all solutions are ConvSolution
-    return FindSolutionImpl(rank<1>{}, s, context, db);
+    auto solution      = FindSolutionImpl(rank<1>{}, s, context, db);
+    solution.solver_id = SolverDbId(s);
+    return solution;
 }
 
 // Search for the 1st applicable solution among many solvers
@@ -284,11 +288,12 @@ std::vector<Solution> SearchForAllSolutions(const Context& search_params, Db db)
             !miopen::IsEnabled(MIOPEN_DEBUG_FIND_FIRST_CONV{});
 
     bool skip_the_rest = false;
-    miopen::each_args(
+    miopen::each_args( // clang-format off
         [&](auto solver) { // cppcheck-suppress knownConditionTrueFalse
-            if(!skip_the_rest && solver.IsApplicable(search_params) &&
-               (no_perf_filtering || solver.IsFast(search_params)))
-            {
+            if(!skip_the_rest
+               && solver.IsApplicable(search_params)
+               && (no_perf_filtering || solver.IsFast(search_params)))
+            { // clang-format on
                 const Solution s = FindSolution(solver, search_params, db);
                 if(s.Succeeded())
                 {
@@ -450,19 +455,23 @@ struct ConvAsm3x3U : SolverBase<ConvolutionContext>
 
 struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
 {
-    // ------------------- // Full set          Optimized       Spare
+    // ----------------- // Full set          Optimized       Spare
     // ----------------------------------------------------------------------------
-    int read_size;         // [1..4]            <same>          <same>
-    int k_mult;            // 1,[4,8,12..32]    16,32           1,4
-    int chunks_per_wave;   // [1..16]           [1..8]          <same>
-    int chunk_size;        // 2^n[1..64]        2^n[16..64]     1,4
-    int n_blocks_per_wave; // [1..8]            [1..4]          <same>
-    int waves_in_group;    // [1..8]            [1..4]          <same>
+    int read_size;       // [1..4]            <same>          <same>
+    int k_mult;          // 1,[4,8,12..32]    16,32           1,4
+    int chunks_per_wave; // [1..16]           [1..8]          <same>
+    int chunk_size;      // 2^n[1..64]        2^n[16..64]     1,4
+    int n_mult;          // [1..8]            [1..4]          <same>
+    int c_mult;          // 2^n[1..32]        2^n[1,2]        <same>
+    int waves_in_group;  // [1..8]            [1..4]          <same>
     bool use_spare_set;
 
-    PerformanceConfigConvAsm1x1U(int, int, int, int, int, int, bool);
-    PerformanceConfigConvAsm1x1U() : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1, false) {}
-    PerformanceConfigConvAsm1x1U(bool spare) : PerformanceConfigConvAsm1x1U(1, 1, 1, 1, 1, 1, spare)
+    PerformanceConfigConvAsm1x1U(int, int, int, int, int, int, int, bool);
+    PerformanceConfigConvAsm1x1U() : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1, -1, false)
+    {
+    }
+    PerformanceConfigConvAsm1x1U(bool spare)
+        : PerformanceConfigConvAsm1x1U(1, 1, 1, 1, 1, 1, 1, spare)
     {
     }
 
@@ -473,7 +482,8 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
         f(self.k_mult, "k_mult");
         f(self.chunks_per_wave, "chunks_per_wave");
         f(self.chunk_size, "chunk_size");
-        f(self.n_blocks_per_wave, "n_blocks_per_wave");
+        f(self.n_mult, "n_mult");
+        f(self.c_mult, "c_mult");
         f(self.waves_in_group, "waves_in_group");
     }
 
@@ -482,7 +492,8 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
     int GetKMult() const { return k_mult; }
     int GetChunksPerWave() const { return chunks_per_wave; }
     int GetChunkSize() const { return chunk_size; }
-    int GetNBlocksPerWave() const { return n_blocks_per_wave; }
+    int GetNMult() const { return n_mult; }
+    int GetCMult() const { return c_mult; }
     int GetWavesInGroup() const { return waves_in_group; }
     int GetNPerGpr() const { assert(chunk_size); return 64 / chunk_size; }
     // clang-format on

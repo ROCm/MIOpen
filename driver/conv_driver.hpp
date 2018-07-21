@@ -536,8 +536,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
         db_host     = std::vector<Tref>(b_sz, static_cast<Tref>(0));
         for(int i = 0; i < b_sz; i++)
         {
-            b[i]  = static_cast<Tgpu>(i % 8);
-            db[i] = static_cast<Tgpu>(i % 8);
+            b[i] = static_cast<Tgpu>(i % 8) +
+                   RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            db[i] = static_cast<Tgpu>(i % 8) +
+                    RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
             if((inflags.GetValueStr("mode")) == "trans")
             {
                 db[i] = 0;
@@ -1032,9 +1034,12 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
     }
     dwei_dev->FromGPU(GetStream(), dwei.data());
 
-    if(perf_results_weights[0].bwd_weights_algo == 0)
-    { // miopenConvolutionBwdWeightsAlgoGEMM
-        workspace_bwd_weights_dev->FromGPU(GetStream(), workspace_bwd_weights.data());
+    if(workspace_bwd_weights_dev != nullptr)
+    {
+        if(perf_results_weights[0].bwd_weights_algo == 0)
+        { // miopenConvolutionBwdWeightsAlgoGEMM
+            workspace_bwd_weights_dev->FromGPU(GetStream(), workspace_bwd_weights.data());
+        }
     }
 
     if(inflags.GetValueInt("dump_output"))
