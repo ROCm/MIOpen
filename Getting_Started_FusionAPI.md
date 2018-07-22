@@ -1,5 +1,5 @@
-#MIOpen Fusion API
-##Introduction
+# MIOpen Fusion API
+## Introduction
 With the increase in the depth of deep learning networks and a requirement for faster kernels it is imperative that more ways be sought to improve the performance of GPU hardware. One mechansim to achieve higher efficiency is to _fuse_ separate kernels into a single kernel to reduce off-chip memory access and avoid kernel launch overhead. This document outlines the proposed addition of a Fusion API to the MIOpen library. The fusion API would allow a user to specify operators that she wants to fuse in a single kernel, compile it and then launch the kernel. While not all combinations might be supported by the library, the API is flexible enough to allow the specification of many operations in any order from a finite set of supported operators. All combinations of all the operators might not be supported, therefore the API provides a mechanism to report combinations that are not supported.
 
 Let us assume that a user wishes to fuse a convolution and activation operation together, the following list outlines the steps required 
@@ -13,11 +13,11 @@ The above steps assume that an MIOpen handle object has already been initialized
 
 The following sections further elaborate the above steps as well as give code examples to make these ideas concrete.
 
-##Intended Audience
+## Intended Audience
 The primary consumer of the fusion API is either the MIGraph Library or other high level frameworks such as TensorFlow/XLA etc.
 
  
-##Fusion Plan
+## Fusion Plan
 A **Fusion Plan** is the uber data structure which holds all the metadata about the users fusion intent as well as logic to **Compile** and **Execute** a fusion plan. As mentioned earlier, a fusion plan holds the order in which different opertions would be applied on the data, but it also specifies the _axis_ of fusion as well. Therefore, a user might wish to fuse operations in a **vertical** (sequential) directions such as the convolution/ activation fusion mentioned in the introduction. Alternatively, the API supports the specification of **horizontal** (parallel) operations fusions. While vertical fusions are more ubiquitous, horizontal fusions might be useful in networks such as inception, where different operation operate on the same data. The current version of the API only supports vertical fusions.
 
 A fusion plan is created using the API call:
@@ -57,7 +57,7 @@ The *args* parameter would be discussed in a later section. The same fusion plan
 
 While the fusion plan forms the glue for the different fused operations, the following section outlines the currently supported operations providing more detail.
 
-##Operators
+## Operators
 The fusion API introduces the notion of **operators** which represent different operations that are intended to be fused together by the API consumer. Currently, the API supports the following operators:
 
 *    Convolution Forward
@@ -81,7 +81,7 @@ miopenCreateOpConvForwardAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
 ```
 It may be noted that the fusion operator requires the regular MIOpen Convolution Descriptor (`convDesc`) as well as the MIOpen convolution algorithm (`fwdAlgo`). The only supported convolution algorithm supported is `miopenConvolutionFwdAlgoDirect`. This API call not only creates the Fusion Operator Descriptor `convOp` but also adds it to the fusion plan as mentioned above. The operator derives its input tensor geometry from its input own descriptor as well as the output tensor geometry of the preceeding operator in the fusion plan.
 
-###Operator Arguments
+### Operator Arguments
 While the underlying MIOpen descriptor of the fusion operator specifies the data geometry and parameters, the fusion plan still needs access to the data to execute a successfully compiled fusion plan. The arguments mechanism in the Fusion API provides such data before a fusion plan may be executed. For example the convolution operator requires *weights* to carry out the convolution computation, a bias operator requires the actual bias values etc. Therefore, before a fusion plan may be executed, arguments required by each fusion operator need to be specified. In our running example, the forward convolution operator requires the convolution weights argument which is supplied using the API call:
 ```cpp
 miopenStatus_t
