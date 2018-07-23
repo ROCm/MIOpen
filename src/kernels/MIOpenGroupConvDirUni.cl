@@ -654,7 +654,6 @@ MIOpenGroupConvUni(const __global _FLOAT* __restrict in,
             for(uint i_c = 0; i_c < MLO_N_IN_TILES_PERSTACK;
                 ++i_c, in_off2 += MLO_IN_CHANNEL_STRIDE, in_lcl_off2 += MLO_IN_LCL_TILE_SZ)
             {
-                vis &= (ig >= 0);
                 vis &= (ig < MLO_GROUP_COUNTS);
                 vis &= (ic + i_c < (MLO_N_INPUTS / MLO_GROUP_COUNTS) * (ig + 1));
                 vis &= (ic + i_c >= (MLO_N_INPUTS / MLO_GROUP_COUNTS) * ig);
@@ -704,7 +703,6 @@ MIOpenGroupConvUni(const __global _FLOAT* __restrict in,
             vis &= (b_index + i_b < MLO_BATCH_SZ);
 #endif
 
-            vis &= (ig >= 0);
             vis &= (ig < MLO_GROUP_COUNTS);
             vis &= (ic + i_c < (MLO_N_INPUTS / MLO_GROUP_COUNTS) * (ig + 1));
             vis &= (ic + i_c >= (MLO_N_INPUTS / MLO_GROUP_COUNTS) * ig);
@@ -770,7 +768,6 @@ MIOpenGroupConvUni(const __global _FLOAT* __restrict in,
                               (MLO_N_INPUTS / MLO_GROUP_COUNTS) * (ig + 1) * MLO_FILTER_SZ);
             within_range &= gbl_we_off >= ((MLO_N_OUTPUTS / MLO_GROUP_COUNTS) *
                                            (MLO_N_INPUTS / MLO_GROUP_COUNTS) * ig * MLO_FILTER_SZ);
-            within_range &= (ig >= 0);
             within_range &= (ig < MLO_GROUP_COUNTS);
 
             gbl_we_off = (within_range) ? gbl_we_off : 0;
@@ -803,7 +800,6 @@ MIOpenGroupConvUni(const __global _FLOAT* __restrict in,
                                               (ig + 1) * MLO_FILTER_SZ);
             within_range &= gbl_we_off >= (MLO_N_OUTPUTS * (MLO_N_INPUTS / MLO_GROUP_COUNTS) * ig *
                                            MLO_FILTER_SZ);
-            within_range &= (ig >= 0);
             within_range &= (ig < MLO_GROUP_COUNTS);
 
             gbl_we_off          = (within_range) ? gbl_we_off : 0;
@@ -846,14 +842,6 @@ MIOpenGroupConvUni(const __global _FLOAT* __restrict in,
     uint x_out_lcl = alu_tl0 * MLO_OUT_TILE0;
     uint y_out_lcl = alu_tl1 * MLO_OUT_TILE1;
 
-    uint stack_per_group = ((MLO_N_OUTPUTS / MLO_GROUP_COUNTS) + MLO_N_OUT_TILES_PERSTACK - 1) /
-                           MLO_N_OUT_TILES_PERSTACK;
-    uint lcl_stack_diff =
-        (((MLO_N_OUTPUTS / MLO_GROUP_COUNTS) * ig + MLO_N_OUT_TILES_PERSTACK - 1) /
-         MLO_N_OUT_TILES_PERSTACK) *
-            MLO_N_OUT_TILES_PERSTACK -
-        (MLO_N_OUTPUTS / MLO_GROUP_COUNTS) * ig;
-
     uint out_off = (b_index + stack) * MLO_OUT_BATCH_STRIDE + o_map * MLO_OUT_CHANNEL_STRIDE +
                    (y_out_grp + y_out_lcl) * MLO_OUT_STRIDE + x_out_grp + x_out_lcl;
 // over all local stacks
@@ -867,8 +855,7 @@ MIOpenGroupConvUni(const __global _FLOAT* __restrict in,
         for(uint o = 0; o < MLO_N_OUT_TILES; ++o, out_off1 += MLO_OUT_CHANNEL_STRIDE)
         {
             if(o_map + o < (MLO_N_OUTPUTS / MLO_GROUP_COUNTS) * (ig + 1) &&
-               o_map + o >= (MLO_N_OUTPUTS / MLO_GROUP_COUNTS) * ig && ig >= 0 &&
-               ig < MLO_GROUP_COUNTS)
+               o_map + o >= (MLO_N_OUTPUTS / MLO_GROUP_COUNTS) * ig && ig < MLO_GROUP_COUNTS)
             {
                 // over output tile
                 uint out_off2 = out_off1;
