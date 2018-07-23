@@ -102,6 +102,9 @@ __attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
 }
 
 #if 0
+// This function is for log-reduction of content in LDS,
+// it's supposed to be called by MIOpenCvBwdWrW,
+// However, it's no longer used and not tested.
 __attribute__((always_inline)) void ReduceKernel(__local _FLOAT* lcl_blob,
                                                  __private _FLOAT* weights_accum,
                                                  uint lcl_id,
@@ -596,12 +599,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                         gbl_out_scan_off + k * MLO_OUT_STACKS * MLO_OUT_CHANNEL_STRIDE;
                     _FLOAT mask = 1;
 
-#if 0 // chao: not necessary
-#if MLO_IN_HEIGHT != MLO_OUT_HEIGHT
-                    top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
-                    mask       = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
-#endif
-#endif
                     spanReadingOutput(
                         spn, k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask, top_dat, top_df);
                 }
@@ -610,9 +607,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, 0, pvt_accum, lcl_bot, top_dat);
 
                 // move up output to reduce overfetch
-                //
-                //
-                //
                 moveOutputUp(top_dat);
             }
         }
