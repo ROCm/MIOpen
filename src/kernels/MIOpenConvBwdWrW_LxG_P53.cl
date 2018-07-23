@@ -62,19 +62,14 @@
 #define MLO_OUT_N_PIXS_OFF (MLO_OUT_WIDTH - ((MLO_OUT_WIDTH / MLO_IN_TILE0) * MLO_IN_TILE0))
 #define MLO_N_OUT_VERTICAL_READS (MLO_FILTER_SIZE1)
 // won't run non-border blocks if  MLO_IN_N_VERT_LOOPS < 2
-#if MLO_FILTER_PAD1 > 0
+//
+
+#define MLO_IN_VERT_READS MLO_IN_EXTENT1
 
 #if MLO_IN_N_VERT_LOOPS >= 2
 #define MLO_N_GENERIC_LOOPS (MLO_IN_N_VERT_LOOPS - 2)
-#define MLO_IN_VERT_READS (MLO_IN_EXTENT1 + MLO_FILTER_PAD1)
 #else
 #define MLO_N_GENERIC_LOOPS 0
-#define MLO_IN_VERT_READS MLO_IN_EXTENT1
-#endif
-
-#else
-#define MLO_N_GENERIC_LOOPS (MLO_IN_N_VERT_LOOPS)
-#define MLO_IN_VERT_READS MLO_IN_EXTENT1
 #endif
 
 // there is an assumption that the scanline fits into LDS
@@ -154,17 +149,6 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
                                               const __global _FLOAT* __restrict bot,
                                               __local _FLOAT* __restrict lcl_bot)
 {
-#if 0
-    if(get_local_id(0) == 0)
-    {
-        printf("grp(%10d %10d %10d), lid(%10d), n_v_reads %d\n",
-            get_group_id(0), get_group_id(1), get_group_id(2),
-            get_local_id(0),
-            n_v_reads);
-    }
-
-#endif
-
     for(uint p4 = lcl_id; p4 < MLO_N_LCL_IN_MAPS * MLO_N_IN_HORIZ_READS * n_v_reads;
         p4 += MLO_GRP_SZ)
     {
@@ -475,7 +459,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 get_group_id(0), get_group_id(1), get_group_id(2),
                 get_local_id(0),
                 gbl_in_scan_off,
-                pvt_accum[0], pvt_accum[3], pvt_accum[6]);
+                pvt_accum[0], pvt_accum[MLO_FILTER_SIZE1], pvt_accum[2*MLO_FILTER_SIZE1]);
         }
 #endif
 
@@ -531,7 +515,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 get_group_id(0), get_group_id(1), get_group_id(2),
                 get_local_id(0),
                 gbl_in_scan_off,
-                pvt_accum[0], pvt_accum[3], pvt_accum[6]);
+                pvt_accum[0], pvt_accum[MLO_FILTER_SIZE1], pvt_accum[2*MLO_FILTER_SIZE1]);
         }
 #endif
 
@@ -575,12 +559,18 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 get_group_id(0), get_group_id(1), get_group_id(2),
                 get_local_id(0),
                 gbl_in_scan_off,
-                pvt_accum[0], pvt_accum[3], pvt_accum[6]);
+                pvt_accum[0], pvt_accum[MLO_FILTER_SIZE1], pvt_accum[2*MLO_FILTER_SIZE1]);
         }
 #endif
 
         // non-border input blocks
+#if 0
+//bug
         for(uint i_loop = 1; i_loop < MLO_N_GENERIC_LOOPS;
+#else
+//fix
+        for(uint i_loop = 1; i_loop < MLO_N_GENERIC_LOOPS+1;
+#endif
             ++i_loop, gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1)
         {
             barrier(CLK_LOCAL_MEM_FENCE);
@@ -623,7 +613,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                     get_group_id(0), get_group_id(1), get_group_id(2),
                     get_local_id(0),
                     gbl_in_scan_off,
-                    pvt_accum[0], pvt_accum[3], pvt_accum[6],
+                    pvt_accum[0], pvt_accum[MLO_FILTER_SIZE1], pvt_accum[2*MLO_FILTER_SIZE1],
                     MLO_N_GENERIC_LOOPS);
             }
 #endif
@@ -684,7 +674,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                     get_group_id(0), get_group_id(1), get_group_id(2),
                     get_local_id(0),
                     gbl_in_scan_off,
-                    pvt_accum[0], pvt_accum[3], pvt_accum[6]);
+                    pvt_accum[0], pvt_accum[MLO_FILTER_SIZE1], pvt_accum[2*MLO_FILTER_SIZE1]);
             }
 #endif
         }
@@ -722,20 +712,20 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 get_group_id(0), get_group_id(1), get_group_id(2),
                 get_local_id(0),
                 gbl_in_scan_off,
-                pvt_accum[0], pvt_accum[3], pvt_accum[6]);
+                pvt_accum[0], pvt_accum[MLO_FILTER_SIZE1], pvt_accum[2*MLO_FILTER_SIZE1]);
         }
 #endif
 
     } // 	for (int b = 0;
 
 
-#if 0
-    if(get_local_id(0) == 0 || get_local_id(0) == 1)
+#if 1
+  //if(get_local_id(0) == 0)
     {
-        printf("2: grp(%10d %10d %10d), lid(%10d), pvt_accum[0] %f\n",
+        printf("outside batch 1: grp(%10d %10d %10d), lid(%10d), pvt_accum %f %f %f\n",
             get_group_id(0), get_group_id(1), get_group_id(2),
             get_local_id(0),
-            pvt_accum[0]);
+            pvt_accum[0], pvt_accum[MLO_FILTER_SIZE1], pvt_accum[2*MLO_FILTER_SIZE1]);
     }
 #endif
 
@@ -779,16 +769,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         }
     }
 
-
-#if 0
-    if(get_local_id(0) == 0 || get_local_id(0) == 1)
-    {
-        printf("3: grp(%10d %10d %10d), lid(%10d), pvt_accum[0] %f\n",
-            get_group_id(0), get_group_id(1), get_group_id(2),
-            get_local_id(0),
-            pvt_accum[0]);
-    }
-#endif
 
     // output
     // inputs are outputs
@@ -847,18 +827,6 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* __restrict weight_df_tmp,
     {
         for(uint j = 0; j < MLO_UT_READ_UNIT; ++j)
         {
-#if 0
-            if(get_local_id(0) == 0 || get_local_id(0) == 1)
-            {
-                printf("inside batch loop: 0: grp(%10d %10d %10d), lid(%10d), batch_lopp, %10d, %f %f\n",
-                    get_group_id(0), get_group_id(1), get_group_id(2),
-                    get_local_id(0),
-                    batch_loop,
-                    pvt_accum_wei[j], weight_df_tmp[(wei_blk_idx * MLO_WEI_CHANNEL_STRIDE +
-                                               i * MLO_N_OUTPUTS * MLO_WEI_BATCH_STRIDE) +
-                                              wei_idx + j]);
-            }
-#endif
             pvt_accum_wei[j] += weight_df_tmp[(wei_blk_idx * MLO_WEI_CHANNEL_STRIDE +
                                                i * MLO_N_OUTPUTS * MLO_WEI_BATCH_STRIDE) +
                                               wei_idx + j];
