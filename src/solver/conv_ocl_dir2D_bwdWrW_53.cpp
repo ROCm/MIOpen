@@ -27,8 +27,6 @@
 #include "miopen/solver.hpp"
 #include <miopen/env.hpp>
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_WORKAROUND_ISSUE_1007)
-
 namespace miopen {
 namespace solver {
 
