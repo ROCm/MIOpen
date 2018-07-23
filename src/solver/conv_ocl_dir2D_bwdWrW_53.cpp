@@ -75,14 +75,6 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
 
     result.out_pix_tile0 = params.kernel_size0;
     result.out_pix_tile1 = params.kernel_size1;
-    result.in_tile1      = 1;
-
-    // span size
-    // param
-    result.in_tile0 = (params.in_width % 4 == 0) ? 4 : (params.in_width % 3 == 0)
-                                                           ? 3
-                                                           : (params.in_width % 2 == 0) ? 2 : 1;
-    int n_spans = (params.in_width + result.in_tile0 - 1) / result.in_tile0;
 
     // n of wavefronts per group
     // param
@@ -90,6 +82,18 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
                       ? 4
                       : (params.in_width <= 16) ? 1 : 2;
     int GRP_SZ = hw_wave_sz * n_waves;
+
+    result.in_tile1 = 1;
+    result.in_tile0 = (params.in_width % 4 == 0) ? 4 : (params.in_width % 3 == 0)
+                                                           ? 3
+                                                           : (params.in_width % 2 == 0) ? 2 : 1;
+
+    // work item in a group should cover at least 1 row of output image
+    result.in_tile0 = std::max( (params.in_width + GRP_SZ - 1) / GRP_SZ, result.in_tile0); 
+
+    // span size
+    // param
+    int n_spans = (params.in_width + result.in_tile0 - 1) / result.in_tile0;
 
     result.n_out_pix_tiles = 1;
     int n_out_stacks       = std::min(params.n_inputs, std::max(1, GRP_SZ / n_spans));

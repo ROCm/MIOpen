@@ -452,7 +452,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         uint gbl_in_scan_off  = gbl_in_off;
         uint gbl_out_scan_off = gbl_out_off;
 
-#if 1
+#if 0
         if(get_local_id(0) == 0)
         {
             printf("inside batch loop: 0: grp(%10d %10d %10d), lid(%10d), gbl_in_scan_off, %10d, pvt_accum %f %f %f\n",
@@ -508,7 +508,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             Processing(sc, sc_lcl_off, sc + MLO_FILTER_PAD1, 0, pvt_accum, lcl_bot, top_dat);
         }
 
-#if 1
+#if 0
         if(get_local_id(0) == 0)
         {
             printf("inside batch loop: 1: grp(%10d %10d %10d), lid(%10d), gbl_in_scan_off, %10d, pvt_accum %f %f %f\n",
@@ -552,7 +552,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             moveOutputUp(top_dat);
         }
 
-#if 1
+#if 0
         if(get_local_id(0) == 0)
         {
             printf("inside batch loop: 2: grp(%10d %10d %10d), lid(%10d), gbl_in_scan_off, %10d, pvt_accum %f %f %f\n",
@@ -606,7 +606,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 // move up output to reduce overfetch
                 moveOutputUp(top_dat);
             }
-#if 1
+#if 0
             if(get_local_id(0) == 0)
             {
                 printf("inside batch loop: 3: grp(%10d %10d %10d), lid(%10d), gbl_in_scan_off, %10d, pvt_accum %f %f %f, Generic %d\n",
@@ -667,7 +667,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 moveOutputUp(top_dat);
             }
 
-#if 1
+#if 0
             if(get_local_id(0) == 0)
             {
                 printf("inside batch loop: 4: grp(%10d %10d %10d), lid(%10d), gbl_in_scan_off, %10d, pvt_accum %f %f %f\n",
@@ -705,7 +705,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         } // for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 2; ++sc, gbl_out_scan_off +=
           // MLO_OUT_CHANNEL_STRIDE, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
 
-#if 1
+#if 0
         if(get_local_id(0) == 0)
         {
             printf("inside batch loop: 5: grp(%10d %10d %10d), lid(%10d), gbl_in_scan_off, %10d, pvt_accum %f %f %f\n",
@@ -719,7 +719,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     } // 	for (int b = 0;
 
 
-#if 1
+#if 0
   //if(get_local_id(0) == 0)
     {
         printf("outside batch 1: grp(%10d %10d %10d), lid(%10d), pvt_accum %f %f %f\n",
