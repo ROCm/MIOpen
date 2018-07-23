@@ -452,17 +452,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         uint gbl_in_scan_off  = gbl_in_off;
         uint gbl_out_scan_off = gbl_out_off;
 
-#if 0
-        if(get_local_id(0) == 0)
-        {
-            printf("inside batch loop: 0: grp(%10d %10d %10d), lid(%10d), gbl_in_scan_off, %10d, pvt_accum %f %f %f\n",
-                get_group_id(0), get_group_id(1), get_group_id(2),
-                get_local_id(0),
-                gbl_in_scan_off,
-                pvt_accum[0], pvt_accum[MLO_FILTER_SIZE1], pvt_accum[2*MLO_FILTER_SIZE1]);
-        }
-#endif
-
         // read input map
         readInput(lcl_id, gbl_in_scan_off, MLO_IN_VERT_READS, bot, lcl_bot);
 
@@ -498,7 +487,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         uint sc         = 0;
         uint sc_lcl_off = lcl_bot_off;
 
-
         // prolog
         // handling padding
 
@@ -507,17 +495,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         {
             Processing(sc, sc_lcl_off, sc + MLO_FILTER_PAD1, 0, pvt_accum, lcl_bot, top_dat);
         }
-
-#if 0
-        if(get_local_id(0) == 0)
-        {
-            printf("inside batch loop: 1: grp(%10d %10d %10d), lid(%10d), gbl_in_scan_off, %10d, pvt_accum %f %f %f\n",
-                get_group_id(0), get_group_id(1), get_group_id(2),
-                get_local_id(0),
-                gbl_in_scan_off,
-                pvt_accum[0], pvt_accum[MLO_FILTER_SIZE1], pvt_accum[2*MLO_FILTER_SIZE1]);
-        }
-#endif
 
 #ifdef __AMDGCN__
 #pragma unroll 2
@@ -552,25 +529,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             moveOutputUp(top_dat);
         }
 
-#if 0
-        if(get_local_id(0) == 0)
-        {
-            printf("inside batch loop: 2: grp(%10d %10d %10d), lid(%10d), gbl_in_scan_off, %10d, pvt_accum %f %f %f\n",
-                get_group_id(0), get_group_id(1), get_group_id(2),
-                get_local_id(0),
-                gbl_in_scan_off,
-                pvt_accum[0], pvt_accum[MLO_FILTER_SIZE1], pvt_accum[2*MLO_FILTER_SIZE1]);
-        }
-#endif
-
         // non-border input blocks
-#if 0
-//bug
-        for(uint i_loop = 1; i_loop < MLO_N_GENERIC_LOOPS;
-#else
-//fix
-        for(uint i_loop = 1; i_loop < MLO_N_GENERIC_LOOPS+1;
-#endif
+        for(uint i_loop = 0; i_loop < MLO_N_GENERIC_LOOPS;
             ++i_loop, gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1)
         {
             barrier(CLK_LOCAL_MEM_FENCE);
@@ -581,7 +541,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
             sc_lcl_off = lcl_bot_off;
 
-            for(; sc < (i_loop + 1) * MLO_IN_EXTENT1;
+            for(; sc < (i_loop + 2) * MLO_IN_EXTENT1;
                 ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
             {
 
@@ -606,22 +566,11 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 // move up output to reduce overfetch
                 moveOutputUp(top_dat);
             }
-#if 0
-            if(get_local_id(0) == 0)
-            {
-                printf("inside batch loop: 3: grp(%10d %10d %10d), lid(%10d), gbl_in_scan_off, %10d, pvt_accum %f %f %f, Generic %d\n",
-                    get_group_id(0), get_group_id(1), get_group_id(2),
-                    get_local_id(0),
-                    gbl_in_scan_off,
-                    pvt_accum[0], pvt_accum[MLO_FILTER_SIZE1], pvt_accum[2*MLO_FILTER_SIZE1],
-                    MLO_N_GENERIC_LOOPS);
-            }
-#endif
         }
 
         // bottom border block
 
-        for(int i_loop = 1; i_loop < (MLO_IN_N_VERT_LOOPS - MLO_N_GENERIC_LOOPS);
+        for(int i_loop = 0; i_loop < (MLO_IN_N_VERT_LOOPS - MLO_N_GENERIC_LOOPS - 1);
             ++i_loop, gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1)
         {
             barrier(CLK_LOCAL_MEM_FENCE);
@@ -666,17 +615,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 //
                 moveOutputUp(top_dat);
             }
-
-#if 0
-            if(get_local_id(0) == 0)
-            {
-                printf("inside batch loop: 4: grp(%10d %10d %10d), lid(%10d), gbl_in_scan_off, %10d, pvt_accum %f %f %f\n",
-                    get_group_id(0), get_group_id(1), get_group_id(2),
-                    get_local_id(0),
-                    gbl_in_scan_off,
-                    pvt_accum[0], pvt_accum[MLO_FILTER_SIZE1], pvt_accum[2*MLO_FILTER_SIZE1]);
-            }
-#endif
         }
 
         // epilog
@@ -689,13 +627,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             Processing(sc,
                        sc_lcl_off,
                        MLO_FILTER_SIZE1 - 1,
-#if 0
-// bug
-                       (MLO_FILTER_PAD1 + 1 - (MLO_IN_HEIGHT - sc)),
-#else
-// fix
                        MLO_FILTER_SIZE1 - (MLO_IN_HEIGHT + MLO_FILTER_PAD1 - sc),
-#endif
                        pvt_accum,
                        lcl_bot,
                        top_dat);
@@ -705,29 +637,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         } // for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 2; ++sc, gbl_out_scan_off +=
           // MLO_OUT_CHANNEL_STRIDE, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
 
-#if 0
-        if(get_local_id(0) == 0)
-        {
-            printf("inside batch loop: 5: grp(%10d %10d %10d), lid(%10d), gbl_in_scan_off, %10d, pvt_accum %f %f %f\n",
-                get_group_id(0), get_group_id(1), get_group_id(2),
-                get_local_id(0),
-                gbl_in_scan_off,
-                pvt_accum[0], pvt_accum[MLO_FILTER_SIZE1], pvt_accum[2*MLO_FILTER_SIZE1]);
-        }
-#endif
-
     } // 	for (int b = 0;
-
-
-#if 0
-  //if(get_local_id(0) == 0)
-    {
-        printf("outside batch 1: grp(%10d %10d %10d), lid(%10d), pvt_accum %f %f %f\n",
-            get_group_id(0), get_group_id(1), get_group_id(2),
-            get_local_id(0),
-            pvt_accum[0], pvt_accum[MLO_FILTER_SIZE1], pvt_accum[2*MLO_FILTER_SIZE1]);
-    }
-#endif
 
     // final summation over all output maps and each filter row
     // this coudl be done with log but it negligeble anyway
@@ -768,7 +678,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             }
         }
     }
-
 
     // output
     // inputs are outputs

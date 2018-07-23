@@ -87,11 +87,11 @@ std::vector<miopen::solver::ConvSolution> mlo_construct_BwdWrW2D::FindAllSolutio
 {
     // clang-format off
     return miopen::solver::SearchForAllSolutions<
-        // miopen::solver::ConvAsmBwdWrW1x1,
-        // miopen::solver::ConvAsmBwdWrW3x3,
-        // miopen::solver::ConvOclBwdWrW2,
-        miopen::solver::ConvOclBwdWrW53
-        // miopen::solver::ConvOclBwdWrW1x1
+        miopen::solver::ConvAsmBwdWrW1x1,
+        miopen::solver::ConvAsmBwdWrW3x3,
+        miopen::solver::ConvOclBwdWrW2,
+        miopen::solver::ConvOclBwdWrW53,
+        miopen::solver::ConvOclBwdWrW1x1
     >(_search_params, this->GetDb());
     // clang-format on
 }
