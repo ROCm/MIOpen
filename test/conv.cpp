@@ -519,13 +519,18 @@ struct conv_driver : test_driver
         std::tie(wei_k, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
         std::tie(std::ignore, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());
 
-        if(input_c == 1 && (input.desc.GetType() == miopenHalf))
-        { // Invalid config for conv
-            return;
-        }
-
         filter.mode        = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode = pmode_lookup[miopen::ToUpper(pad_mode)];
+
+        /// lack of support of 2x2 filter and transposeConv for half type
+        /// \todo enhance support of half type into conv/transConv
+        if((input.desc.GetType() == miopenHalf) &&
+           (((filter.mode == miopenConvolution) && !filter.IsDirectSupported(weights.desc)) ||
+            (filter.mode == miopenTranspose)))
+        {
+            // Unsupported config for conv with half type
+            return;
+        }
 
         if(((filter.mode == miopenTranspose) && (input_c == wei_k)) ||
            ((filter.mode == miopenConvolution) && (input_c == wei_c)))
