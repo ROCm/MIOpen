@@ -154,6 +154,17 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
                                               const __global _FLOAT* __restrict bot,
                                               __local _FLOAT* __restrict lcl_bot)
 {
+#if 0
+    if(get_local_id(0) == 0)
+    {
+        printf("grp(%10d %10d %10d), lid(%10d), n_v_reads %d\n",
+            get_group_id(0), get_group_id(1), get_group_id(2),
+            get_local_id(0),
+            n_v_reads);
+    }
+
+#endif
+
     for(uint p4 = lcl_id; p4 < MLO_N_LCL_IN_MAPS * MLO_N_IN_HORIZ_READS * n_v_reads;
         p4 += MLO_GRP_SZ)
     {
@@ -457,6 +468,17 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         uint gbl_in_scan_off  = gbl_in_off;
         uint gbl_out_scan_off = gbl_out_off;
 
+#if 1
+        if(get_local_id(0) == 0)
+        {
+            printf("inside batch loop: 0: grp(%10d %10d %10d), lid(%10d), gbl_in_scan_off, %10d, pvt_accum %f %f %f\n",
+                get_group_id(0), get_group_id(1), get_group_id(2),
+                get_local_id(0),
+                gbl_in_scan_off,
+                pvt_accum[0], pvt_accum[3], pvt_accum[6]);
+        }
+#endif
+
         // read input map
         readInput(lcl_id, gbl_in_scan_off, MLO_IN_VERT_READS, bot, lcl_bot);
 
@@ -492,6 +514,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         uint sc         = 0;
         uint sc_lcl_off = lcl_bot_off;
 
+
         // prolog
         // handling padding
 
@@ -500,6 +523,17 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         {
             Processing(sc, sc_lcl_off, sc + MLO_FILTER_PAD1, 0, pvt_accum, lcl_bot, top_dat);
         }
+
+#if 1
+        if(get_local_id(0) == 0)
+        {
+            printf("inside batch loop: 1: grp(%10d %10d %10d), lid(%10d), gbl_in_scan_off, %10d, pvt_accum %f %f %f\n",
+                get_group_id(0), get_group_id(1), get_group_id(2),
+                get_local_id(0),
+                gbl_in_scan_off,
+                pvt_accum[0], pvt_accum[3], pvt_accum[6]);
+        }
+#endif
 
 #ifdef __AMDGCN__
 #pragma unroll 2
@@ -533,6 +567,17 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             // move up output to reduce overfetch
             moveOutputUp(top_dat);
         }
+
+#if 1
+        if(get_local_id(0) == 0)
+        {
+            printf("inside batch loop: 2: grp(%10d %10d %10d), lid(%10d), gbl_in_scan_off, %10d, pvt_accum %f %f %f\n",
+                get_group_id(0), get_group_id(1), get_group_id(2),
+                get_local_id(0),
+                gbl_in_scan_off,
+                pvt_accum[0], pvt_accum[3], pvt_accum[6]);
+        }
+#endif
 
         // non-border input blocks
         for(uint i_loop = 1; i_loop < MLO_N_GENERIC_LOOPS;
@@ -571,6 +616,17 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 // move up output to reduce overfetch
                 moveOutputUp(top_dat);
             }
+#if 1
+            if(get_local_id(0) == 0)
+            {
+                printf("inside batch loop: 3: grp(%10d %10d %10d), lid(%10d), gbl_in_scan_off, %10d, pvt_accum %f %f %f, Generic %d\n",
+                    get_group_id(0), get_group_id(1), get_group_id(2),
+                    get_local_id(0),
+                    gbl_in_scan_off,
+                    pvt_accum[0], pvt_accum[3], pvt_accum[6],
+                    MLO_N_GENERIC_LOOPS);
+            }
+#endif
         }
 
         // bottom border block
@@ -601,11 +657,12 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                         gbl_out_scan_off + k * MLO_OUT_STACKS * MLO_OUT_CHANNEL_STRIDE;
                     _FLOAT mask = 1;
 
+#if 0 // chao: not necessary
 #if MLO_IN_HEIGHT != MLO_OUT_HEIGHT
                     top_df_off = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? top_df_off : 0;
                     mask       = ((sc + MLO_FILTER_PAD1) < MLO_OUT_HEIGHT) ? 1 : 0;
 #endif
-
+#endif
                     spanReadingOutput(
                         spn, k, (MLO_FILTER_SIZE1 - 1), top_df_off, mask, top_dat, top_df);
                 }
@@ -614,8 +671,22 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 Processing(sc, sc_lcl_off, MLO_FILTER_SIZE1 - 1, 0, pvt_accum, lcl_bot, top_dat);
 
                 // move up output to reduce overfetch
+                //
+                //
+                //
                 moveOutputUp(top_dat);
             }
+
+#if 1
+            if(get_local_id(0) == 0)
+            {
+                printf("inside batch loop: 4: grp(%10d %10d %10d), lid(%10d), gbl_in_scan_off, %10d, pvt_accum %f %f %f\n",
+                    get_group_id(0), get_group_id(1), get_group_id(2),
+                    get_local_id(0),
+                    gbl_in_scan_off,
+                    pvt_accum[0], pvt_accum[3], pvt_accum[6]);
+            }
+#endif
         }
 
         // epilog
@@ -628,7 +699,13 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             Processing(sc,
                        sc_lcl_off,
                        MLO_FILTER_SIZE1 - 1,
+#if 0
+// bug
                        (MLO_FILTER_PAD1 + 1 - (MLO_IN_HEIGHT - sc)),
+#else
+// fix
+                       MLO_FILTER_SIZE1 - (MLO_IN_HEIGHT + MLO_FILTER_PAD1 - sc),
+#endif
                        pvt_accum,
                        lcl_bot,
                        top_dat);
@@ -638,7 +715,29 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         } // for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 2; ++sc, gbl_out_scan_off +=
           // MLO_OUT_CHANNEL_STRIDE, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
 
+#if 1
+        if(get_local_id(0) == 0)
+        {
+            printf("inside batch loop: 5: grp(%10d %10d %10d), lid(%10d), gbl_in_scan_off, %10d, pvt_accum %f %f %f\n",
+                get_group_id(0), get_group_id(1), get_group_id(2),
+                get_local_id(0),
+                gbl_in_scan_off,
+                pvt_accum[0], pvt_accum[3], pvt_accum[6]);
+        }
+#endif
+
     } // 	for (int b = 0;
+
+
+#if 0
+    if(get_local_id(0) == 0 || get_local_id(0) == 1)
+    {
+        printf("2: grp(%10d %10d %10d), lid(%10d), pvt_accum[0] %f\n",
+            get_group_id(0), get_group_id(1), get_group_id(2),
+            get_local_id(0),
+            pvt_accum[0]);
+    }
+#endif
 
     // final summation over all output maps and each filter row
     // this coudl be done with log but it negligeble anyway
@@ -679,6 +778,17 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             }
         }
     }
+
+
+#if 0
+    if(get_local_id(0) == 0 || get_local_id(0) == 1)
+    {
+        printf("3: grp(%10d %10d %10d), lid(%10d), pvt_accum[0] %f\n",
+            get_group_id(0), get_group_id(1), get_group_id(2),
+            get_local_id(0),
+            pvt_accum[0]);
+    }
+#endif
 
     // output
     // inputs are outputs
@@ -732,10 +842,23 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* __restrict weight_df_tmp,
 
     int batch_loop = (MLO_BATCH_SZ + (MLO_N_BATCH_LOOPS * MLO_N_LCL_BATCHS) - 1) /
                      (MLO_N_BATCH_LOOPS * MLO_N_LCL_BATCHS);
+
     for(uint i = 0; i < batch_loop; ++i)
     {
         for(uint j = 0; j < MLO_UT_READ_UNIT; ++j)
         {
+#if 0
+            if(get_local_id(0) == 0 || get_local_id(0) == 1)
+            {
+                printf("inside batch loop: 0: grp(%10d %10d %10d), lid(%10d), batch_lopp, %10d, %f %f\n",
+                    get_group_id(0), get_group_id(1), get_group_id(2),
+                    get_local_id(0),
+                    batch_loop,
+                    pvt_accum_wei[j], weight_df_tmp[(wei_blk_idx * MLO_WEI_CHANNEL_STRIDE +
+                                               i * MLO_N_OUTPUTS * MLO_WEI_BATCH_STRIDE) +
+                                              wei_idx + j]);
+            }
+#endif
             pvt_accum_wei[j] += weight_df_tmp[(wei_blk_idx * MLO_WEI_CHANNEL_STRIDE +
                                                i * MLO_N_OUTPUTS * MLO_WEI_BATCH_STRIDE) +
                                               wei_idx + j];
