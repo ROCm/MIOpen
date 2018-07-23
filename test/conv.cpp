@@ -40,6 +40,43 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include <miopen/stringutils.hpp>
+
+
+template<typename T>
+void output_tensor(const tensor<T>& x, std::string filename)
+{
+    int dim = x.desc.GetSize();
+    std::vector<int> index(dim);
+
+    std::ofstream file;
+
+    file.open(filename);
+
+    for(int j = 0; j < dim; ++j)
+        file << "d" << j << ", ";
+    file << "x" << std::endl;
+
+    for(int i = 0; i < x.data.size(); ++i)
+    {
+        int is = i;
+        for(int j = 0; j < dim; ++j)
+        {
+            index[j] = is / x.desc.GetStrides()[j];
+            is -= index[j] * x.desc.GetStrides()[j];
+        }
+
+        for(int j = 0; j < dim; ++j)
+        {
+            file << index[j] << ", ";
+        }
+        file << x[i] << std::endl;
+    }
+
+    file.close();
+}
+
+
+
 template <class T>
 tensor<T> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
                             const tensor<T>& input,
@@ -574,8 +611,21 @@ struct conv_driver : test_driver
                     verify(verify_backward_conv<T>{input, weights, out_p.first, filter, 0, search});
                 if(enable_backward_weights or (MIOPEN_USE_MIOPENGEMM and sizeof(T) > 2))
                 {
-                    verify(verify_backward_weights_conv<T>{
+#if 1
+                    for(auto& x : out_p.first)
+                        x = 1;
+
+                    for(auto& x : input)
+                        x = 1;
+
+                    for(auto& x : weights)
+                        x = 1;
+#endif
+                    auto pair = verify(verify_backward_weights_conv<T>{
                         input, weights, out_p.first, filter, 0, search});
+
+                    output_tensor(pair.first, "cpu_weight.csv");
+                    output_tensor(pair.second, "gpu_weight.csv");
                 }
             }
         }

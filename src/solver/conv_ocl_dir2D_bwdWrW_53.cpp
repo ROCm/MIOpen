@@ -34,11 +34,13 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
     // Cases when dy has negative padding are not supported (issue 918)
     if(params.GetBackwardPad0() < 0 || params.GetBackwardPad1() < 0)
         return false;
+#if 0
     /// \todo Workaround for some issues. Excludes some configs which covered by
     /// the ConvOclBwdWrW2 solver. Found experimentally. Technically, this is a hack.
     /// The kernel needs to be well understood and fixed.
     if((params.kernel_size0 > 5) || (params.kernel_size0 == 5 && params.in_width >= 64))
         return false;
+#endif
     return ((params.kernel_size0 >= 2 || params.kernel_size1 >= 2) &&
             (params.kernel_stride1 == 1 && params.kernel_stride0 == 1));
 }
@@ -232,10 +234,15 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         kernel.g_wk.push_back(gbl_wk1);
         kernel.g_wk.push_back(gbl_wk2);
 
+#if 0
         kernel.kernel_file =
             (params.kernel_size0 == 5 && params.kernel_size1 == 5 && out_n_vert_read_loops == 1)
                 ? "MIOpenConvBwdWrW_LxG_5x5.cl"
                 : "MIOpenConvBwdWrW_LxG_P53.cl";
+#else
+        kernel.kernel_file = "MIOpenConvBwdWrW_LxG_P53.cl";
+#endif
+
         kernel.kernel_name  = "MIOpenCvBwdWrW";
         kernel.comp_options = comp_options;
 
@@ -248,10 +255,15 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     {
         KernelInfo kernel;
 
+#if 0
         kernel.kernel_file =
             (params.kernel_size0 == 5 && params.kernel_size1 == 5 && out_n_vert_read_loops == 1)
                 ? "MIOpenConvBwdWrW_LxG_5x5.cl"
                 : "MIOpenConvBwdWrW_LxG_P53.cl";
+#else
+        kernel.kernel_file = "MIOpenConvBwdWrW_LxG_P53.cl";
+#endif
+
         kernel.kernel_name  = "MIOpenCvBwdWrW_rdc";
         kernel.comp_options = comp_options;
 
