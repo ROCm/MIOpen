@@ -709,7 +709,7 @@ size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
     MIOPEN_LOG_I2("");
     int groups = 1;
     if(mode == miopenDepthwise)
-        std::tie(std::ignore, groups, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+        groups = xDesc.GetLengths()[1];
     else if(mode == miopenGroupConv)
         groups = group_count;
     if(mode == miopenTranspose)
