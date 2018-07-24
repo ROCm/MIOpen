@@ -612,7 +612,10 @@ MIOpenGroupConvUni(const __global _FLOAT* __restrict in,
                          MLO_N_OUT_TILES_PERSTACK) *
                     (MLO_N_INPUTS / MLO_GROUP_COUNTS) * MLO_FILTER_SZ;
 #else
-    uint wei_off0         = mul24(o_map_plane, (uint)MLO_FILTER_SZ);
+    uint wei_off0 = ((MLO_N_OUTPUTS / MLO_GROUP_COUNTS) * (MLO_N_INPUTS / MLO_GROUP_COUNTS) * ig +
+                     ((o_map % (MLO_N_OUTPUTS / MLO_GROUP_COUNTS)) / MLO_N_OUT_TILES_PERSTACK) *
+                         MLO_N_OUT_TILES_PERSTACK) *
+                    MLO_FILTER_SZ;
 #endif
 
     uint in_off0 = (MLO_N_INPUTS / MLO_GROUP_COUNTS) * ig * MLO_IN_CHANNEL_STRIDE +
@@ -625,9 +628,9 @@ MIOpenGroupConvUni(const __global _FLOAT* __restrict in,
              wei_off0 += MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ
 #if MLO_DIR_FORWARD == 0
                          *
-                         MLO_N_OUTPUTS
+                         (MLO_N_OUTPUTS / MLO_GROUP_COUNTS)
 #endif
-        )
+            )
     {
         barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -794,12 +797,14 @@ MIOpenGroupConvUni(const __global _FLOAT* __restrict in,
 
             uint lcl_we_off = mad24(
                 mad24(lcl_c, (uint)MLO_N_IN_TILES_PERSTACK, lcl_o), (uint)MLO_FILTER_SZ, lcl_i);
-            uint gbl_we_off = mad24(
-                mad24(lcl_o, (uint)MLO_N_OUTPUTS, lcl_c), (uint)MLO_FILTER_SZ, wei_off0 + lcl_i);
-            bool within_range = gbl_we_off < (MLO_N_OUTPUTS * (MLO_N_INPUTS / MLO_GROUP_COUNTS) *
-                                              (ig + 1) * MLO_FILTER_SZ);
-            within_range &= gbl_we_off >= (MLO_N_OUTPUTS * (MLO_N_INPUTS / MLO_GROUP_COUNTS) * ig *
-                                           MLO_FILTER_SZ);
+            uint gbl_we_off = mad24(mad24(lcl_o, (uint)(MLO_N_OUTPUTS / MLO_GROUP_COUNTS), lcl_c),
+                                    (uint)MLO_FILTER_SZ,
+                                    wei_off0 + lcl_i);
+            bool within_range =
+                gbl_we_off < ((MLO_N_OUTPUTS / MLO_GROUP_COUNTS) *
+                              (MLO_N_INPUTS / MLO_GROUP_COUNTS) * (ig + 1) * MLO_FILTER_SZ);
+            within_range &= gbl_we_off >= ((MLO_N_OUTPUTS / MLO_GROUP_COUNTS) *
+                                           (MLO_N_INPUTS / MLO_GROUP_COUNTS) * ig * MLO_FILTER_SZ);
             within_range &= (ig < MLO_GROUP_COUNTS);
 
             gbl_we_off          = (within_range) ? gbl_we_off : 0;
@@ -836,8 +841,8 @@ MIOpenGroupConvUni(const __global _FLOAT* __restrict in,
     uint y_out_grp = y_tile_blk * MLO_IN_TILE1;
 #endif
 #else
-    uint x_out_grp        = x_grp * MLO_FILTER_STRIDE0;
-    uint y_out_grp        = y_grp * MLO_FILTER_STRIDE1;
+    uint x_out_grp = x_grp * MLO_FILTER_STRIDE0;
+    uint y_out_grp = y_grp * MLO_FILTER_STRIDE1;
 #endif
     uint x_out_lcl = alu_tl0 * MLO_OUT_TILE0;
     uint y_out_lcl = alu_tl1 * MLO_OUT_TILE1;
