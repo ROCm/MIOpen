@@ -146,7 +146,7 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue()
             break;
         if(!NextTwoPower<1, 32>(c_mult))
             break;
-        if(!NextLinear<1, 8>(waves_in_group))
+        if(!NextLinear<1, 1>(waves_in_group))
             break;
         // All the fields of performance config have wrapped around.
         return false;
@@ -209,8 +209,8 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
         return false;
     if(!(k_mult <= config.n_outputs))
         return false;
-    const int in_gprs  = chunks_per_wave * n_mult * c_mult;
-    const int acc_gprs = chunks_per_wave * n_mult * k_mult;
+    const int in_gprs  = chunks_per_wave * n_mult * c_mult * VEC_SIZE;
+    const int acc_gprs = chunks_per_wave * n_mult * k_mult * VEC_SIZE;
     const int vgprs    = 4 + 2 * in_gprs + acc_gprs;
     if(!(vgprs < 256))
         return false;
@@ -288,11 +288,38 @@ std::string PerformanceConfigConvAsm1x1U::ToString() const
     return ss.str();
 }
 
+void PrintConfig(const PerformanceConfigConvAsm1x1U& pp, const ConvolutionContext& config)
+{
+    const int in_gprs            = pp.chunks_per_wave * pp.n_mult * pp.c_mult * VEC_SIZE;
+    const int acc_gprs           = pp.chunks_per_wave * pp.n_mult * pp.k_mult * VEC_SIZE;
+    const int vgprs              = 4 + 2 * in_gprs + acc_gprs;
+    const int max_waves_per_CU   = (256 / vgprs) * 4;
+    const int sgprs              = 24 + 2 * pp.k_mult * pp.c_mult;
+    const int total_n_blocks     = (config.batch_sz + pp.GetNPerGpr() - 1) / pp.GetNPerGpr();
+    const int img_hw             = config.out_height * config.out_width;
+    const int total_chunks       = (img_hw + pp.chunk_size - 1) / pp.chunk_size;
+    int c_per_wave               = (config.n_inputs + pp.waves_in_group - 1) / pp.waves_in_group;
+    int c_per_last_wave          = config.n_inputs - (c_per_wave * (pp.waves_in_group - 1));
+    const int active_chunk_lanes = (img_hw + total_chunks - 1) / total_chunks;
+    const int active_hw_per_wave = active_chunk_lanes * pp.chunks_per_wave;
+    const int chunk_mask         = (1 << active_chunk_lanes) - 1;
+    const int active_n_per_gpr   = (config.batch_sz + total_n_blocks - 1) / total_n_blocks;
+    const int active_n_per_wave  = pp.n_mult * active_n_per_gpr;
+    int active_mask              = chunk_mask;
+    for(int i = 0; i < active_n_per_gpr - 1; i++)
+        active_mask = (active_mask << pp.chunk_size) + chunk_mask;
+    std::cerr << " active_chunk_lanes = " << active_chunk_lanes
+              << " active_hw_per_wave = " << active_hw_per_wave << " chunk_mask = " << chunk_mask
+              << " active_mask = " << active_mask << " active_n_per_wave = " << active_n_per_wave
+              << std::endl;
+}
+
 PerformanceConfigConvAsm1x1U
 ConvAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvAsm1x1U pp;
     pp.EuristicInit(params);
+    PrintConfig(pp, params);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
@@ -521,18 +548,23 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         kinfo.l_wk[0] *
         divide_round_plus_inf(AsmImgHeight(params) * AsmImgWidth(params), hw_per_wave));
 
-    std::cerr << "AsmImg = {" << AsmImgHeight(params) << ", " << AsmImgWidth(params)
-              << "} hw_per_wave = " << hw_per_wave << std::endl;
-
     kinfo.g_wk.push_back(divide_round_plus_inf(params.n_outputs, pcfg->GetKMult()));
     const int n_images_per_wave = pcfg->GetNMult() * pcfg->GetNPerGpr();
     kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_images_per_wave));
 
+    std::cerr << "AsmImg = {" << AsmImgHeight(params) << ", " << AsmImgWidth(params)
+              << "} hw_per_wave = " << hw_per_wave << std::endl;
+
+    std::cerr << "params.batch_sz = " << params.batch_sz
+              << " n_images_per_wave = " << n_images_per_wave << std::endl;
+
+    std::cerr << "vld = { " << kinfo.l_wk[0] << ", " << kinfo.l_wk[1] << ", " << kinfo.l_wk[2]
+              << " }" << std::endl;
     std::cerr << "vgd = { " << kinfo.g_wk[0] << ", " << kinfo.g_wk[1] << ", " << kinfo.g_wk[2]
               << " }" << std::endl;
 
     // kinfo.kernel_file = "conv1x1u.s";
-    //kinfo.kernel_file = "conv1x1u_fp16.s";
+    // kinfo.kernel_file = "conv1x1u_fp16.s";
     kinfo.kernel_file = "conv1x1u_fp16_mix.s";
     kinfo.kernel_name = "gcnAsmConv1x1U";
 
