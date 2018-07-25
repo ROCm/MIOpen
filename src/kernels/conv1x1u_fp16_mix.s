@@ -78,10 +78,6 @@ static_assert (pad_h == 0 && pad_w == 0)
 static_assert (stride_h == 1 && stride_w == 1)
 static_assert (wei_h == 1 && wei_w == 1)
 
-static_assert (input_channels % 2 == 0)
-#static_assert (filter_k_stride % 2 == 0)
-#static_assert (filter_c_stride % 2 == 0)
-
 // perf params
 
 .ifnotdef do_not_use_default_perf_params
@@ -105,15 +101,18 @@ static_assert (waves_in_group <= input_channels && waves_in_group <= 8)
 //static_assert (output_channels % k_mult == 0)
 
 default vec_size, 2
+
+static_assert (input_channels % vec_size == 0)
+static_assert (filter_k_stride % vec_size == 0)
+#static_assert (filter_c_stride % vec_size == 0)
+
 input_c_stride_org = input_c_stride
 input_channels_org = input_channels
 input_c_stride = input_c_stride * vec_size
 input_channels = input_channels / vec_size
-filter_c_stride = filter_c_stride / vec_size
+filter_k_stride_org = filter_k_stride
+#filter_c_stride = filter_c_stride / vec_size
 filter_k_stride = filter_k_stride / vec_size
-
-#output_n_stride = output_n_stride * vec_size
-#output_k_stride = output_k_stride * vec_size
 
 // chunk parameters
 n_per_gpr = 64 / chunk_size
@@ -141,7 +140,7 @@ hw_per_wave = chunk_size * chunks_per_wave
 active_hw_per_wave = active_chunk_lanes * chunks_per_wave
 
 in_gprs = chunks_per_wave * n_mult * c_mult
-accums_cnt = k_mult * chunks_per_wave * n_mult * vec_size
+accums_cnt = k_mult * chunks_per_wave * n_mult
 
 // exec mask
 log2 chunk_size_log2, chunk_size
@@ -228,7 +227,7 @@ output_buffer_size = output_n_stride * batch_size * vec_size
     .VGPR_ALLOC voffset_out
     .VGPR_ALLOC inputA, in_gprs * vec_size
     .VGPR_ALLOC inputB, in_gprs * vec_size
-    .VGPR_ALLOC accums, accums_cnt
+    .VGPR_ALLOC accums, accums_cnt * vec_size
     .VGPR_ALLOC vtmp
     
     .LDS_ALLOC_FROM 0
@@ -288,7 +287,7 @@ gcnAsmConv1x1U:
     v_mul_u32_u24 v[vtmp], 4 * chunks_per_wave, v[vtmp]
     _v_add_nc_u32 v[voffset_in], v[voffset_in], v[vtmp]
     _v_add_nc_u32 v[voffset_out], v[voffset_out], v[vtmp]
-    v_mul_u32_u24 v[voffset_out], 2, v[voffset_out]
+    v_mul_u32_u24 v[voffset_out], 0 + vec_size, v[voffset_out]
     s_mul_i32 s[soffset_in], s[gid_n], 0 + input_n_stride * active_n_per_wave
     s_mul_i32 s[soffset_out], s[gid_n], 0 + output_n_stride * active_n_per_wave
     s_mul_i32 s[stmp], s[gid_hw], 0 + active_hw_per_wave * 4
@@ -298,7 +297,7 @@ gcnAsmConv1x1U:
     s_add_u32 s[soffset_in], s[soffset_in], s[stmp]
     s_mul_i32 s[stmp], s[gid_k], 0 + output_k_stride * k_mult
     s_add_u32 s[soffset_out], s[soffset_out], s[stmp]
-    s_mul_i32 s[soffset_out], 2, s[soffset_out]
+    s_mul_i32 s[soffset_out], 0 + vec_size, s[soffset_out]
     s_mul_i32 s[soffset_wei], s[gid_k], 0 + k_mult * filter_k_stride
     s_mul_i32 s[stmp], s[wave_id], 0 + c_per_wave * filter_c_stride
     s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
@@ -353,7 +352,6 @@ gcnAsmConv1x1U:
     .else
         mbufs_cnt = c_mult * n_mult * (chunks_per_wave / read_size)
     .endif
-
     .macro load_input base
         ibase = \base
         full_loads = chunks_per_wave / read_size
@@ -456,7 +454,7 @@ gcnAsmConv1x1U:
     
     // zeroing accums
     i = 0
-    .rept accums_cnt
+    .rept accums_cnt * vec_size
         v_mov_b32 v[accums + i], 0
         i = i + 1
     .endr
@@ -489,7 +487,8 @@ loop_end:
     // all waves but last store accums to LDS and dies
     // last wave survives and read LDS
     .GPR_REUSE voffset_in, lds_off
-    .if waves_in_group > 1
+    #.if waves_in_group > 1
+    .if 0
         s_mov_b32 m0, -1
         s_cmpk_eq_u32 s[wave_id], 0 + waves_in_group - 1
         s_cbranch_scc1 last_wave
@@ -559,7 +558,7 @@ last_wave:
             chunk = 0
             .rept chunks_per_wave
                 v_cmpx_gt_i32 vcc, 0 + img_hw - chunk, v[current_hw]
-                buffer_store_dwordx2 v[acc:acc+1], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0+4*chunk*vec_size
+                m_buffer_store_dwordx vec_size, acc, voffset_out, desc_out, soffset_out, 4*chunk*vec_size
                 chunk = chunk + 1 
                 acc = acc + vec_size
             .endr
