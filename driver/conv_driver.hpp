@@ -464,8 +464,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     wei_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tgpu)));
     dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tgpu)));
     dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-    //out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-    out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu_out)));
+    // out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu_out)));
     if(workSpaceSize_bwd_dt != 0)
     {
         workspace_bwd_data_dev =
@@ -493,8 +493,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     wei  = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
     dwei = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
     dout = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    //out  = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    out  = std::vector<Tgpu_out>(out_sz, static_cast<Tgpu_out>(0));
+    // out  = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+    out = std::vector<Tgpu_out>(out_sz, static_cast<Tgpu_out>(0));
 
     outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
@@ -575,15 +575,15 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
         {
             // wei[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
             wei[i] = i % 8 + 1;
-            //wei[i] = 1;
+            // wei[i] = 1;
         }
     }
 
-    //std::vector<Tgpu> wei_fp16 = std::vector<Tgpu>(wei_sz * 2, static_cast<Tgpu>(0));
+    // std::vector<Tgpu> wei_fp16 = std::vector<Tgpu>(wei_sz * 2, static_cast<Tgpu>(0));
 
-    //for(int i = 0; i < wei_sz * 2; i++)
+    // for(int i = 0; i < wei_sz * 2; i++)
     //{
-        //wei_fp16[i] = wei[i / 2];
+    // wei_fp16[i] = wei[i / 2];
     //}
 
     if(inflags.GetValueInt("dump_output"))
@@ -722,9 +722,9 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
 
     out_dev->FromGPU(GetStream(), out.data());
 
-    //if(inflags.GetValueInt("dump_output"))
+    // if(inflags.GetValueInt("dump_output"))
     //{
-        //dumpBufferToFile<Tgpu>("dump_fwd_out_gpu.bin", out.data(), out.size());
+    // dumpBufferToFile<Tgpu>("dump_fwd_out_gpu.bin", out.data(), out.size());
     //}
 
     return miopenStatusSuccess;
@@ -1672,9 +1672,9 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyForward()
         RunForwardCPU();
     }
 
-    for(int i = 0; i < outhost.size(); i++)
-        fprintf(stderr, "[%d] CPU = %f GPU = %f\n", i, outhost[i], out[i]);
-        //std::cerr << "[" << i << "] CPU = " << outhost[i] << ", GPU = " << out[i] << std::endl;
+    // for(int i = 0; i < outhost.size(); i++)
+    // fprintf(stderr, "[%d] CPU = %f GPU = %f\n", i, outhost[i], out[i]);
+    // std::cerr << "[" << i << "] CPU = " << outhost[i] << ", GPU = " << out[i] << std::endl;
 
     auto error = miopen::rms_range(outhost, out);
     const Tref tolerance =
