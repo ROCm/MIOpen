@@ -40,6 +40,7 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include <miopen/stringutils.hpp>
+
 template <class T>
 tensor<T> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
                             const tensor<T>& input,
