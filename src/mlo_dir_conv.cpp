@@ -281,181 +281,20 @@ n of input blocks
 n batchs (stacks) processed by the group
 */
 
-int mlo_construct_direct2D::mloBuildConf_Key(std::string& conf_key) const
+int miopen::ProblemDescription::mloBuildConf_Key(std::string& conf_key) const
 {
 
     conf_key =
-        std::to_string(static_cast<long long>(_search_params.n_inputs)) + std::string("x") +
-        std::to_string(static_cast<long long>(_search_params.in_height)) + std::string("x") +
-        std::to_string(static_cast<long long>(_search_params.in_width)) + std::string("x") +
-        std::to_string(static_cast<long long>(_search_params.kernel_size1)) + std::string("x") +
-        std::to_string(static_cast<long long>(_search_params.kernel_size0)) + std::string("x") +
-        std::to_string(static_cast<long long>(_search_params.n_outputs)) + std::string("x") +
-        std::to_string(static_cast<long long>(_search_params.out_height)) + std::string("x") +
-        std::to_string(static_cast<long long>(_search_params.out_width)) + std::string("x") +
-        std::to_string(static_cast<long long>(_search_params.batch_sz)) + std::string("x") +
-        _search_params.in_layout + std::string("x") + _search_params.in_data_type +
-        std::string("x") + (_search_params.direction.IsForward()
-                                ? "1"
-                                : "0"); /// \todo Shall we separate keys for WrW convolutions?
+        std::to_string(static_cast<long long>(n_inputs)) + std::string("x") +
+        std::to_string(static_cast<long long>(in_height)) + std::string("x") +
+        std::to_string(static_cast<long long>(in_width)) + std::string("x") +
+        std::to_string(static_cast<long long>(kernel_size1)) + std::string("x") +
+        std::to_string(static_cast<long long>(kernel_size0)) + std::string("x") +
+        std::to_string(static_cast<long long>(n_outputs)) + std::string("x") +
+        std::to_string(static_cast<long long>(out_height)) + std::string("x") +
+        std::to_string(static_cast<long long>(out_width)) + std::string("x") +
+        std::to_string(static_cast<long long>(batch_sz)) + std::string("x") + in_layout +
+        std::string("x") + in_data_type + std::string("x") +
+        (direction.IsForward() ? "1" : "0"); /// \todo Shall we separate keys for WrW convolutions?
     return (0);
-}
-
-// Tensor Helper APIs
-
-size_t
-mlo_construct_direct2D::setWeightDescFromMLDesc(const miopen::TensorDescriptor& weight_tensor)
-{
-
-    int nWei;
-    int cWei;
-    int hWei;
-    int wWei;
-    int nWeiStride;
-    int cWeiStride;
-    int hWeiStride;
-    int wWeiStride;
-
-    std::tie(nWei, cWei, hWei, wWei) = miopen::tien<4>(weight_tensor.GetLengths(), 1);
-    std::tie(nWeiStride, cWeiStride, hWeiStride, wWeiStride) =
-        miopen::tien<4>(weight_tensor.GetStrides(), 0);
-
-    std::string data_type = weight_tensor.GetType() == miopenFloat ? "FP32" : "FP16";
-
-    setWeightsDescr(
-        "NCHW", data_type, nWei, cWei, hWei, wWei, nWeiStride, cWeiStride, hWeiStride, wWeiStride);
-
-    return weight_tensor.GetElementSpace();
-}
-
-size_t
-mlo_construct_direct2D::setOutputDescFromMLDesc(const miopen::TensorDescriptor& output_tensor)
-{
-
-    int nOut;
-    int cOut;
-    int hOut;
-    int wOut;
-    int nOutStride;
-    int cOutStride;
-    int hOutStride;
-    int wOutStride;
-
-    std::tie(nOut, cOut, hOut, wOut) = miopen::tien<4>(output_tensor.GetLengths(), 1);
-    std::tie(nOutStride, cOutStride, hOutStride, wOutStride) =
-        miopen::tien<4>(output_tensor.GetStrides(), 0);
-
-    std::string data_type = output_tensor.GetType() == miopenFloat ? "FP32" : "FP16";
-
-    setOutputDescr(
-        "NCHW", data_type, nOut, cOut, hOut, wOut, nOutStride, cOutStride, hOutStride, wOutStride);
-    return output_tensor.GetElementSpace();
-}
-
-size_t mlo_construct_direct2D::setInputDescFromMLDesc(const miopen::TensorDescriptor& input_tensor)
-{
-
-    int nIn;
-    int cIn;
-    int hIn;
-    int wIn;
-    int nInStride;
-    int cInStride;
-    int hInStride;
-    int wInStride;
-
-    std::tie(nIn, cIn, hIn, wIn) = miopen::tien<4>(input_tensor.GetLengths(), 1);
-    std::tie(nInStride, cInStride, hInStride, wInStride) =
-        miopen::tien<4>(input_tensor.GetStrides(), 0);
-
-    std::string data_type = input_tensor.GetType() == miopenFloat ? "FP32" : "FP16";
-
-    setInputDescr(
-        "NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
-
-    return input_tensor.GetElementSpace();
-}
-
-size_t mlo_construct_direct2D::setTopDescFromMLDesc(const miopen::TensorDescriptor& tensor)
-{
-    int nIn;
-    int cIn;
-    int hIn;
-    int wIn;
-    int nInStride;
-    int cInStride;
-    int hInStride;
-    int wInStride;
-
-    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tien<4>(tensor.GetLengths(), 1);
-    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tien<4>(tensor.GetStrides(), 0);
-
-    std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
-
-    setTopDescr("NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
-
-    return tensor.GetElementSpace();
-}
-size_t mlo_construct_direct2D::setBotDescFromMLDesc(const miopen::TensorDescriptor& tensor)
-{
-    int nIn;
-    int cIn;
-    int hIn;
-    int wIn;
-    int nInStride;
-    int cInStride;
-    int hInStride;
-    int wInStride;
-
-    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tien<4>(tensor.GetLengths(), 1);
-    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tien<4>(tensor.GetStrides(), 0);
-
-    std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
-
-    setBotDescr("NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
-
-    return tensor.GetElementSpace();
-}
-
-size_t mlo_construct_direct2D::setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
-{
-    int nIn;
-    int cIn;
-    int hIn;
-    int wIn;
-    int nInStride;
-    int cInStride;
-    int hInStride;
-    int wInStride;
-
-    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tien<4>(tensor.GetLengths(), 1);
-    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tien<4>(tensor.GetStrides(), 0);
-
-    std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
-
-    setTopDfDescr(
-        "NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
-
-    return tensor.GetElementSpace();
-}
-size_t mlo_construct_direct2D::setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
-{
-    int nIn;
-    int cIn;
-    int hIn;
-    int wIn;
-    int nInStride;
-    int cInStride;
-    int hInStride;
-    int wInStride;
-
-    std::tie(nIn, cIn, hIn, wIn)                         = miopen::tien<4>(tensor.GetLengths(), 1);
-    std::tie(nInStride, cInStride, hInStride, wInStride) = miopen::tien<4>(tensor.GetStrides(), 0);
-
-    std::string data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
-
-    setBotDfDescr(
-        "NCHW", data_type, nIn, cIn, hIn, wIn, nInStride, cInStride, hInStride, wInStride);
-
-    return tensor.GetElementSpace();
 }
