@@ -78,6 +78,23 @@ static_assert (pad_h == 0 && pad_w == 0)
 static_assert (stride_h == 1 && stride_w == 1)
 static_assert (wei_h == 1 && wei_w == 1)
 
+default vec_size, 2
+
+static_assert (input_channels % vec_size == 0)
+static_assert (filter_k_stride % vec_size == 0)
+static_assert (filter_c_stride % vec_size == 0)
+
+input_c_stride_org = input_c_stride
+#input_channels_org = input_channels
+#filter_k_stride_org = filter_k_stride
+#filter_c_stride_org = filter_c_stride
+input_c_stride = input_c_stride * vec_size
+input_channels = input_channels / vec_size
+filter_c_stride = filter_c_stride / vec_size
+filter_k_stride = filter_k_stride / vec_size
+#output_n_stride = output_n_stride * vec_size
+#output_k_stride = output_k_stride * vec_size
+
 // perf params
 
 .ifnotdef do_not_use_default_perf_params
@@ -95,24 +112,9 @@ default balanced_chunk, 1
 default lds_limit, .MAX_LDS / 8
 default disable_case_opt, 1
 
-
 static_assert (read_size <= chunks_per_wave)
 static_assert (waves_in_group <= input_channels && waves_in_group <= 8)
 //static_assert (output_channels % k_mult == 0)
-
-default vec_size, 2
-
-static_assert (input_channels % vec_size == 0)
-static_assert (filter_k_stride % vec_size == 0)
-#static_assert (filter_c_stride % vec_size == 0)
-
-input_c_stride_org = input_c_stride
-input_channels_org = input_channels
-input_c_stride = input_c_stride * vec_size
-input_channels = input_channels / vec_size
-filter_k_stride_org = filter_k_stride
-#filter_c_stride = filter_c_stride / vec_size
-filter_k_stride = filter_k_stride / vec_size
 
 // chunk parameters
 n_per_gpr = 64 / chunk_size
@@ -140,7 +142,7 @@ hw_per_wave = chunk_size * chunks_per_wave
 active_hw_per_wave = active_chunk_lanes * chunks_per_wave
 
 in_gprs = chunks_per_wave * n_mult * c_mult
-accums_cnt = k_mult * chunks_per_wave * n_mult
+accums_cnt = k_mult * chunks_per_wave * n_mult * vec_size
 
 // exec mask
 log2 chunk_size_log2, chunk_size
@@ -227,7 +229,7 @@ output_buffer_size = output_n_stride * batch_size * vec_size
     .VGPR_ALLOC voffset_out
     .VGPR_ALLOC inputA, in_gprs * vec_size
     .VGPR_ALLOC inputB, in_gprs * vec_size
-    .VGPR_ALLOC accums, accums_cnt * vec_size
+    .VGPR_ALLOC accums, accums_cnt
     .VGPR_ALLOC vtmp
     
     .LDS_ALLOC_FROM 0
@@ -352,8 +354,16 @@ gcnAsmConv1x1U:
     .else
         mbufs_cnt = c_mult * n_mult * (chunks_per_wave / read_size)
     .endif
+
     .macro load_input base
         ibase = \base
+
+        //debug
+        i = 0
+        .rept in_gprs * vec_size 
+            v_mov_b32 v[ibase + i], 0
+        .endr
+
         full_loads = chunks_per_wave / read_size
         partial_load_size = chunks_per_wave % read_size
         nb = 0
@@ -363,21 +373,21 @@ gcnAsmConv1x1U:
             .rept c_mult
                 s_cmpk_le_i32 s[loop_cnt], 0 + c_it
                 s_cmov_b32 s[stmp_offset], 0 + invalid_addr_lit
-
                 vec_id = 0
                 .rept vec_size
                     imm_off = input_c_stride_org * vec_id 
                     .rept full_loads
+                        .if vec_id == 1
                         m_buffer_load_dwordx read_size, ibase, voffset_in, desc_in, stmp_offset, imm_off
+                        .endif
                         ibase = ibase + read_size
                         imm_off = imm_off + 4 * read_size
                         //TODO change step size
                     .endr
+                    m_buffer_load_dwordx partial_load_size, ibase, voffset_in, desc_in, stmp_offset, imm_off
+                    ibase = ibase + partial_load_size
                     vec_id = vec_id + 1
                 .endr
-
-                m_buffer_load_dwordx partial_load_size, ibase, voffset_in, desc_in, stmp_offset, imm_off
-                ibase = ibase + partial_load_size
                 c_it = c_it + 1
                 s_add_u32 s[stmp_offset], s[stmp_offset], input_c_stride
             .endr
@@ -426,11 +436,13 @@ gcnAsmConv1x1U:
                         n_gpr_acc = n * chunks_per_wave
 
                         img = \ibase + ch_gpr + n_gpr_inp + c_gpr_inp
-                        acc = accums + k_gpr_acc + n_gpr_acc + ch_gpr * vec_size
+                        acc = accums + (k_gpr_acc + n_gpr_acc + ch_gpr) * vec_size
                         wei = \fbase + k_gpr_filter + c_gpr_filter
 
                         //swap
-                        exch_img img, img + in_gprs
+                        .if k == 0
+                            exch_img img, img + in_gprs
+                        .endif
 
                         conv_dot2 acc, wei, img
                         conv_dot2 acc+1, wei, img + in_gprs
@@ -454,7 +466,7 @@ gcnAsmConv1x1U:
     
     // zeroing accums
     i = 0
-    .rept accums_cnt * vec_size
+    .rept accums_cnt
         v_mov_b32 v[accums + i], 0
         i = i + 1
     .endr
@@ -487,8 +499,7 @@ loop_end:
     // all waves but last store accums to LDS and dies
     // last wave survives and read LDS
     .GPR_REUSE voffset_in, lds_off
-    #.if waves_in_group > 1
-    .if 0
+    .if waves_in_group > 1
         s_mov_b32 m0, -1
         s_cmpk_eq_u32 s[wave_id], 0 + waves_in_group - 1
         s_cbranch_scc1 last_wave
@@ -564,9 +575,9 @@ last_wave:
             .endr
             nb = nb + 1
             .if nb == n_mult
-                s_add_u32 s[soffset_out], s[soffset_out], 0 + input_c_stride - (active_n_per_wave-active_n_per_gpr) * output_n_stride
+                s_add_u32 s[soffset_out], s[soffset_out], 0 + (input_c_stride - (active_n_per_wave-active_n_per_gpr) * output_n_stride)
             .else
-                s_add_u32 s[soffset_out], s[soffset_out], 0 + active_n_per_gpr* output_n_stride
+                s_add_u32 s[soffset_out], s[soffset_out], 0 + active_n_per_gpr * output_n_stride
             .endif
         .endr
         .if (disable_case_opt || output_channels % k_mult)
