@@ -258,10 +258,18 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
 
 void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config)
 {
-    read_size       = 4;
-    k_mult          = 16;
+    //read_size       = 4;
+    //k_mult          = 16;
+    //chunks_per_wave = 1;
+    //chunk_size      = 16;
+    //n_mult          = 1;
+    //c_mult          = 1;
+    //waves_in_group  = 1;
+
+    read_size       = 1;
+    k_mult          = 1;
     chunks_per_wave = 1;
-    chunk_size      = 16;
+    chunk_size      = 1;
     n_mult          = 1;
     c_mult          = 1;
     waves_in_group  = 1;
@@ -319,7 +327,6 @@ ConvAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) const
 {
     PerformanceConfigConvAsm1x1U pp;
     pp.EuristicInit(params);
-    PrintConfig(pp, params);
     MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
@@ -417,6 +424,8 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
                                       const PerformanceConfigConvAsm1x1U& config,
                                       const bool disableConfigOverrideFromEnv) const
 {
+
+    PrintConfig(config, params);
     ConvSolution result;
 
     std::ostringstream options;
@@ -531,7 +540,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "c_mult", pcfg->GetCMult());
     GenerateClangDefsym(options, "waves_in_group", pcfg->GetWavesInGroup());
 
-    std::cerr << "options = " << options.str() << std::endl;
+    std::cout << "options = " << options.str() << std::endl;
 
     KernelInfo kinfo;
     kinfo.comp_options = options.str();
