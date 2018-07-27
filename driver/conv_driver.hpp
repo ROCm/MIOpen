@@ -528,8 +528,9 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
         for(int i = 0; i < in_sz; i++)
         {
             //in[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            //in[i] = i % (in_h * in_w);
+            //in[i] = i % 199;
             //in[i] = i / (in_h * in_w);
+            //in[i] = i;
             in[i] = i;
         }
     }
