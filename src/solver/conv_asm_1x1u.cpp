@@ -146,7 +146,7 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue()
             break;
         if(!NextTwoPower<1, 32>(c_mult))
             break;
-        if(!NextLinear<1, 1>(waves_in_group))
+        if(!NextLinear<1, 8>(waves_in_group))
             break;
         // All the fields of performance config have wrapped around.
         return false;
@@ -205,7 +205,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
         return false;
     if(!(read_size <= chunks_per_wave))
         return false;
-    if(!(waves_in_group <= config.n_inputs))
+    if(!(waves_in_group <= config.n_inputs/VEC_SIZE))
         return false;
     if(!(k_mult <= config.n_outputs))
         return false;
@@ -233,7 +233,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
     if(config.direction.IsBackwardData() && !(config.n_outputs % k_mult == 0))
         return false;
     if(config.direction.IsForward() &&
-       !((c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0)))
+       !((c_per_wave % c_mult == 0) && (c_per_last_wave % (c_mult * VEC_SIZE) == 0)))
         return false;
     return true;
 }
@@ -272,7 +272,7 @@ void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config
     chunk_size      = 1;
     n_mult          = 1;
     c_mult          = 1;
-    waves_in_group  = 1;
+    waves_in_group  = 2;
 
     if(!IsValidForProblem(config))
     {
@@ -540,7 +540,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "c_mult", pcfg->GetCMult());
     GenerateClangDefsym(options, "waves_in_group", pcfg->GetWavesInGroup());
 
-    std::cout << "options = " << options.str() << std::endl;
+    std::cerr << "options = " << options.str() << std::endl;
 
     KernelInfo kinfo;
     kinfo.comp_options = options.str();

@@ -528,10 +528,10 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
         for(int i = 0; i < in_sz; i++)
         {
             //in[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            //in[i] = i % 199;
+            in[i] = i % 63;
             //in[i] = i / (in_h * in_w);
             //in[i] = i;
-            in[i] = i;
+            //in[i] = 1;
         }
     }
 
@@ -581,7 +581,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
         for(int i = 0; i < wei_sz; i++)
         {
             //wei[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
-            wei[i] = 1;
+            wei[i] = i % 7;
+            //wei[i] = i;
         }
     }
 
@@ -1679,7 +1680,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyForward()
     }
 
     for(int i = 0; i < outhost.size(); i++)
-        fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, outhost[i], out[i]);
+        if(outhost[i] != out[i])
+            fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, outhost[i], out[i]);
+        else
+            fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, outhost[i], out[i]);
+
 
     auto error = miopen::rms_range(outhost, out);
     const Tref tolerance =
