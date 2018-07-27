@@ -52,7 +52,11 @@
 
 /// \todo Fix issue 1014 and remove this guard.
 /// Fails with 512, works with 1024, let's have x4 spare
+#if 0
 #define MLO_PRIVATE_BUF_GUARD (4096 / SIZEOF_FLOAT)
+#else
+#define MLO_PRIVATE_BUF_GUARD 0
+#endif
 
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
 #define _FLOAT4 PPCAT(_FLOAT, FOUR)
@@ -179,7 +183,11 @@ extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane")
 
 static inline uint iDiv(uint v, uint d)
 {
+#if 0
     uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
+#else
+    uint r = v / d;
+#endif
     return (r);
 }
 
@@ -191,7 +199,11 @@ static inline uint iMod(uint v, uint u, uint d)
 
 static inline void calculateXYPos(uint linPos, uint width, uint* __restrict x, uint* __restrict y)
 {
+#if 0
     (*y) = (uint)((float)linPos * (1.0f / (float)width) + 0.00001f);
+#else
+    (*y) = linPos / width;
+#endif
     (*x) = linPos - mul24((*y), width);
 }
 
@@ -245,7 +257,11 @@ static inline void readDataElem(uint linPos,
     (void)gbl_height;
 #endif
     gbl_off        = (vis) ? gbl_off : 0;
+#if 1
     _FLOAT gbl_val = gbl_data[gbl_off];
+#else
+    _FLOAT gbl_val = gbl_data[0];
+#endif
     gbl_val        = (vis) ? gbl_val : 0;
 
     lcl_data[lcl_off] = gbl_val;

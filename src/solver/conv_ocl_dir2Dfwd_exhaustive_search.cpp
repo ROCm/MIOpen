@@ -633,6 +633,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
                                         continue;
                                     }
 
+#if 0 // chao: debug
                                     const auto ret =
                                         MeasureLoop<ConvOclDirectFwd>(&profile_h,
                                                                       bot_ocl_buf.get(),
@@ -642,7 +643,27 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
                                                                       processing_time,
                                                                       params,
                                                                       result);
-
+#else
+                                    int ret                = 0;
+                                    auto f_is_buggy_config = [](const auto& x) {
+                                        return x.grp_tile1 == 8 && x.grp_tile0 == 8 &&
+                                               x.in_tile1 == 32 && x.in_tile0 == 32 &&
+                                               x.out_pix_tile1 == 4 && x.out_pix_tile0 == 4 &&
+                                               x.n_out_pix_tiles == 4 && x.n_in_data_tiles == 2 &&
+                                               x.n_stacks == 1;
+                                    };
+                                    if(f_is_buggy_config(result))
+                                    {
+                                        ret = MeasureLoop<ConvOclDirectFwd>(&profile_h,
+                                                                            bot_ocl_buf.get(),
+                                                                            top_ocl_buf.get(),
+                                                                            wei_ocl_buf.get(),
+                                                                            bias_ocl_buf.get(),
+                                                                            processing_time,
+                                                                            params,
+                                                                            result);
+                                    }
+#endif
                                     runs_left--;
                                     runs_left = (runs_left < 0) ? 0 : runs_left;
 
