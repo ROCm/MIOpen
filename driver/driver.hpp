@@ -93,6 +93,7 @@ struct GPUMem
     GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz) : _ctx(ctx), sz(psz), data_sz(pdata_sz)
     {
         hipMalloc(static_cast<void**>(&buf), data_sz * sz);
+        std::cerr << " buf = " << buf << " sz = " << sz * data_sz << std::endl;
     }
 
     int ToGPU(hipStream_t q, void* p)
