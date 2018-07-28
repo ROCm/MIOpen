@@ -585,15 +585,9 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
             //wei[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
             wei[i] = i % 7;
             //wei[i] = i;
+            //wei[i] = 1;
         }
     }
-
-    // std::vector<Tgpu> wei_fp16 = std::vector<Tgpu>(wei_sz * 2, static_cast<Tgpu>(0));
-
-    // for(int i = 0; i < wei_sz * 2; i++)
-    //{
-    // wei_fp16[i] = wei[i / 2];
-    //}
 
     if(inflags.GetValueInt("dump_output"))
     {
