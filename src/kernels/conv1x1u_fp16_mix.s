@@ -80,15 +80,13 @@ static_assert (wei_h == 1 && wei_w == 1)
 
 .set vec_size, 2
 
-input_c_stride_org = input_c_stride 
-filter_c_stride_org = filter_c_stride
+#filter_c_stride_org = filter_c_stride
 
 .if vec_size == 2
     #static_assert (input_channels % vec_size == 0)
     static_assert (filter_k_stride % vec_size == 0)
     static_assert (filter_c_stride % vec_size == 0)
 
-    input_c_stride = input_c_stride * vec_size
     #input_channels = input_channels / vec_size
     filter_c_stride = filter_c_stride / vec_size
     filter_k_stride = filter_k_stride / vec_size
@@ -306,7 +304,7 @@ gcnAsmConv1x1U:
     s_mul_i32 s[stmp], s[gid_k], 0 + output_k_stride * k_mult
     s_add_u32 s[soffset_out], s[soffset_out], s[stmp]
     s_mul_i32 s[soffset_wei], s[gid_k], 0 + k_mult * filter_k_stride
-    s_mul_i32 s[stmp], s[wave_id], 0 + c_per_wave * filter_c_stride_org
+    s_mul_i32 s[stmp], s[wave_id], 0 + c_per_wave * filter_c_stride
     s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
 
     .if vec_size == 2 && output_f32
@@ -389,14 +387,14 @@ gcnAsmConv1x1U:
                     .endr
                     m_buffer_load_dwordx partial_load_size, ibase, voffset_in, desc_in, stmp_offset, imm_off
                     ibase = ibase + partial_load_size
-                    s_add_u32 s[stmp_offset], s[stmp_offset], input_c_stride_org
+                    s_add_u32 s[stmp_offset], s[stmp_offset], input_c_stride
                     vec_id = vec_id + 1
                 .endr
                 c_it = c_it + vec_size
             .endr
             nb = nb + 1
             .if nb == n_mult
-                s_add_u32 s[soffset_in], s[soffset_in], 0 + (input_c_stride * c_mult) - input_n_stride * (active_n_per_wave - active_n_per_gpr)
+                s_add_u32 s[soffset_in], s[soffset_in], 0 + (input_c_stride * c_mult * vec_size) - input_n_stride * (active_n_per_wave - active_n_per_gpr)
             .else
                 s_add_u32 s[soffset_in], s[soffset_in], 0 + input_n_stride * active_n_per_gpr
             .endif
@@ -495,7 +493,7 @@ loop_begin:
     conv inputB, filtersB
     
 loop_end:
-    s_cmpk_gt_i32 s[loop_cnt], 1 * c_mult
+    s_cmpk_gt_i32 s[loop_cnt], 1 * c_mult * vec_size
     s_cbranch_scc1 loop_begin
 
     load_input inputB
@@ -590,7 +588,7 @@ last_wave:
             .endr
             nb = nb + 1
             .if nb == n_mult
-                s_add_u32 s[soffset_out], s[soffset_out], 0 + (input_c_stride - (active_n_per_wave-active_n_per_gpr) * output_n_stride * vec_size)
+                s_add_u32 s[soffset_out], s[soffset_out], 0 + (input_c_stride - (active_n_per_wave-active_n_per_gpr) * output_n_stride) * vec_size
             .else
                 s_add_u32 s[soffset_out], s[soffset_out], 0 + active_n_per_gpr * output_n_stride * vec_size
             .endif
