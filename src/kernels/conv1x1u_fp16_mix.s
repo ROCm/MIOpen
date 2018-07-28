@@ -84,12 +84,12 @@ input_c_stride_org = input_c_stride
 filter_c_stride_org = filter_c_stride
 
 .if vec_size == 2
-    static_assert (input_channels % vec_size == 0)
+    #static_assert (input_channels % vec_size == 0)
     static_assert (filter_k_stride % vec_size == 0)
     static_assert (filter_c_stride % vec_size == 0)
 
     input_c_stride = input_c_stride * vec_size
-    input_channels = input_channels / vec_size
+    #input_channels = input_channels / vec_size
     filter_c_stride = filter_c_stride / vec_size
     filter_k_stride = filter_k_stride / vec_size
 .endif
@@ -366,6 +366,7 @@ gcnAsmConv1x1U:
     .else
         mbufs_cnt = c_mult * n_mult * (chunks_per_wave / read_size) * vec_size
     .endif
+
     .macro load_input base
         ibase = \base
         full_loads = chunks_per_wave / read_size
@@ -375,9 +376,10 @@ gcnAsmConv1x1U:
             c_it = 0
             s_mov_b32 s[stmp_offset], s[soffset_in]
             .rept c_mult
-                s_cmpk_le_i32 s[loop_cnt], 0 + c_it
-                s_cmov_b32 s[stmp_offset], 0 + invalid_addr_lit
+                vec_id = 0
                 .rept vec_size
+                    s_cmpk_le_i32 s[loop_cnt], 0 + c_it + vec_id
+                    s_cmov_b32 s[stmp_offset], 0 + invalid_addr_lit
                     imm_off = 0 
                     .rept full_loads
                         m_buffer_load_dwordx read_size, ibase, voffset_in, desc_in, stmp_offset, imm_off
@@ -388,8 +390,9 @@ gcnAsmConv1x1U:
                     m_buffer_load_dwordx partial_load_size, ibase, voffset_in, desc_in, stmp_offset, imm_off
                     ibase = ibase + partial_load_size
                     s_add_u32 s[stmp_offset], s[stmp_offset], input_c_stride_org
+                    vec_id = vec_id + 1
                 .endr
-                c_it = c_it + 1
+                c_it = c_it + vec_size
             .endr
             nb = nb + 1
             .if nb == n_mult
@@ -399,7 +402,7 @@ gcnAsmConv1x1U:
             .endif
         .endr
 
-        s_addk_i32 s[loop_cnt], 0 - (1 * c_mult)
+        s_addk_i32 s[loop_cnt], 0 - (1 * c_mult * vec_size)
         .if (disable_case_opt || c_per_wave % 4 || input_channels % c_per_wave)
             s_cmpk_le_i32 s[loop_cnt], 0
             s_cmov_b32 s[desc_in+2], 0
