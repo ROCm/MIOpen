@@ -223,7 +223,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
     const int total_n_blocks = (config.batch_sz + GetNPerGpr() - 1) / GetNPerGpr();
     if(!(n_mult <= total_n_blocks))
         return false;
-    const int img_hw       = config.out_height * config.out_width;
+    const int img_hw       = config.out_height * config.out_width / VEC_SIZE;
     const int total_chunks = (img_hw + chunk_size - 1) / chunk_size;
     if(!(chunks_per_wave <= total_chunks))
         return false;
@@ -233,7 +233,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
     if(config.direction.IsBackwardData() && !(config.n_outputs % k_mult == 0))
         return false;
     if(config.direction.IsForward() &&
-       !((c_per_wave % c_mult == 0) && (c_per_last_wave % (c_mult * VEC_SIZE) == 0)))
+            !((c_per_wave % c_mult == 0) && (c_per_last_wave % (c_mult * VEC_SIZE) == 0)))
         return false;
     return true;
 }
@@ -272,7 +272,7 @@ void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config
     chunk_size      = 1;
     n_mult          = 1;
     c_mult          = 1;
-    waves_in_group  = 2;
+    waves_in_group  = 1;
 
     if(!IsValidForProblem(config))
     {
@@ -304,7 +304,7 @@ void PrintConfig(const PerformanceConfigConvAsm1x1U& pp, const ConvolutionContex
     const int max_waves_per_CU   = (256 / vgprs) * 4;
     const int sgprs              = 24 + 2 * pp.k_mult * pp.c_mult;
     const int total_n_blocks     = (config.batch_sz + pp.GetNPerGpr() - 1) / pp.GetNPerGpr();
-    const int img_hw             = config.out_height * config.out_width;
+    const int img_hw             = config.out_height * config.out_width / VEC_SIZE;
     const int total_chunks       = (img_hw + pp.chunk_size - 1) / pp.chunk_size;
     int c_per_wave               = (config.n_inputs + pp.waves_in_group - 1) / pp.waves_in_group;
     int c_per_last_wave          = config.n_inputs - (c_per_wave * (pp.waves_in_group - 1));
@@ -313,10 +313,13 @@ void PrintConfig(const PerformanceConfigConvAsm1x1U& pp, const ConvolutionContex
     const int chunk_mask         = (1 << active_chunk_lanes) - 1;
     const int active_n_per_gpr   = (config.batch_sz + total_n_blocks - 1) / total_n_blocks;
     const int active_n_per_wave  = pp.n_mult * active_n_per_gpr;
-    int active_mask              = chunk_mask;
+    uint64_t active_mask              = chunk_mask;
     for(int i = 0; i < active_n_per_gpr - 1; i++)
         active_mask = (active_mask << pp.chunk_size) + chunk_mask;
-    std::cerr << " active_chunk_lanes = " << active_chunk_lanes
+    std::cerr << " img_hw = " << img_hw << " chunk_size = " << pp.chunk_size 
+              << " active_n_per_gpr = " << active_n_per_gpr
+              << " total_chunks = " << total_chunks
+              << " active_chunk_lanes = " << active_chunk_lanes
               << " active_hw_per_wave = " << active_hw_per_wave << " chunk_mask = " << chunk_mask
               << " active_mask = " << active_mask << " active_n_per_wave = " << active_n_per_wave
               << std::endl;
@@ -392,7 +395,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
             return false;
     }
     // Check limits:
-    auto h_w = static_cast<long>(AsmImgHeight(params)) * AsmImgWidth(params);
+    auto h_w = static_cast<long>(AsmImgHeight(params)) * AsmImgWidth(params) * VEC_SIZE;
     const auto r_s     = static_cast<long>(params.kernel_size1) * params.kernel_size0;
     const auto c_h_w   = static_cast<long>(params.n_inputs) * h_w;    // C*H*W
     const auto k_h_w   = static_cast<long>(params.n_outputs) * h_w;   // K*H*W
@@ -561,18 +564,18 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     const int n_images_per_wave = pcfg->GetNMult() * pcfg->GetNPerGpr();
     kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_images_per_wave));
 
-    std::cerr << "AsmImg = {" << AsmImgHeight(params) << ", " << AsmImgWidth(params)
-              << "} hw_per_wave = " << hw_per_wave << std::endl;
+    //std::cerr << "AsmImg = {" << AsmImgHeight(params) << ", " << AsmImgWidth(params)
+              //<< "} hw_per_wave = " << hw_per_wave << std::endl;
 
-    std::cerr << "params.batch_sz = " << params.batch_sz
-              << " n_images_per_wave = " << n_images_per_wave << std::endl;
+    //std::cerr << "params.batch_sz = " << params.batch_sz
+              //<< " n_images_per_wave = " << n_images_per_wave << std::endl;
 
-    std::cerr << "vld = { " << kinfo.l_wk[0] << ", " << kinfo.l_wk[1] << ", " << kinfo.l_wk[2]
-              << " }" << std::endl;
-    std::cerr << "vgd = { " << kinfo.g_wk[0] << ", " << kinfo.g_wk[1] << ", " << kinfo.g_wk[2]
-              << " }" << std::endl;
+    //std::cerr << "vld = { " << kinfo.l_wk[0] << ", " << kinfo.l_wk[1] << ", " << kinfo.l_wk[2]
+              //<< " }" << std::endl;
+    //std::cerr << "vgd = { " << kinfo.g_wk[0] << ", " << kinfo.g_wk[1] << ", " << kinfo.g_wk[2]
+              //<< " }" << std::endl;
 
-    // kinfo.kernel_file = "conv1x1u.s";
+    //kinfo.kernel_file = "conv1x1u.s";
     // kinfo.kernel_file = "conv1x1u_fp16.s";
     kinfo.kernel_file = "conv1x1u_fp16_mix.s";
     kinfo.kernel_name = "gcnAsmConv1x1U";

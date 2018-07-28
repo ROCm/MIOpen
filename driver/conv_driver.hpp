@@ -465,7 +465,9 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tgpu)));
     dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
     // out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-    out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu_out)));
+    out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz + 1, sizeof(Tgpu_out)));
+    std::cerr << "size of in_dev = " << in_sz * sizeof(Tgpu) << std::endl;
+    std::cerr << "size of out_dev = " << out_sz * sizeof(Tgpu_out) << std::endl;
     if(workSpaceSize_bwd_dt != 0)
     {
         workspace_bwd_data_dev =
@@ -1679,11 +1681,12 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyForward()
         RunForwardCPU();
     }
 
-    for(int i = 0; i < outhost.size(); i++)
-        if(outhost[i] != out[i])
-            fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, outhost[i], out[i]);
+    int VEC = 1;
+    for(int i = 0; i < outhost.size() / VEC; i++)
+        if(outhost[i * VEC] != out[i])
+            fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, outhost[i * VEC], out[i]);
         else
-            fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, outhost[i], out[i]);
+            fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, outhost[i * VEC], out[i]);
 
 
     auto error = miopen::rms_range(outhost, out);
