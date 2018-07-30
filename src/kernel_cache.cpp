@@ -73,18 +73,18 @@ static void AddKernelDumpKernelParams(const std::string& program_name,
                           "MLO_N_IN_CHNLS",
                           "MLO_N_OUT_CHNLS"};
     int value[sizeof(keys) / sizeof(keys[0])] = {0};
-    for(const char* p = params.c_str(); p && (p = strstr(p, "-D")) != nullptr;)
+    for(const char* p = params.c_str(); p != nullptr && (p = strstr(p, "-D")) != nullptr;)
     {
         p += (p[2] == ' ') ? 3 : 2;
         const char* q = strstr(p, "=");
-        if(!q)
+        if(q == nullptr)
             break;
         q++;
         for(int i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
         {
-            if(!strncmp(p, keys[i], strlen(keys[i])))
+            if(strncmp(p, keys[i], strlen(keys[i])) == 0)
             {
-                value[i - ((i >= 9) ? 9 : 0)] = atoi(q);
+                value[i - ((i >= 9) ? 9 : 0)] = static_cast<int>(strtol(q, nullptr, 10));
                 break;
             }
         }
@@ -196,7 +196,7 @@ void KernelCache::ClearKernels(const std::string& algorithm, const std::string& 
     assert(!network_config.empty() && !algorithm.empty());
     const std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
     auto&& v = this->kernel_map[key];
-    if(v.size() != 0)
+    if(!v.empty())
     {
         MIOPEN_LOG_I2(v.size() << " kernels for key: " << key.first << " \"" << key.second << '\"');
     }
