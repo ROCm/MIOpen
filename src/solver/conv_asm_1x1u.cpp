@@ -205,7 +205,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
         return false;
     if(!(read_size <= chunks_per_wave))
         return false;
-    if(!(waves_in_group <= config.n_inputs/VEC_SIZE))
+    if(!(waves_in_group <= config.n_inputs))
         return false;
     if(!(k_mult <= config.n_outputs))
         return false;
@@ -223,7 +223,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
     const int total_n_blocks = (config.batch_sz + GetNPerGpr() - 1) / GetNPerGpr();
     if(!(n_mult <= total_n_blocks))
         return false;
-    const int img_hw       = config.out_height * config.out_width / VEC_SIZE;
+    const int img_hw       = config.out_height * config.out_width;
     const int total_chunks = (img_hw + chunk_size - 1) / chunk_size;
     if(!(chunks_per_wave <= total_chunks))
         return false;
@@ -233,7 +233,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
     if(config.direction.IsBackwardData() && !(config.n_outputs % k_mult == 0))
         return false;
     if(config.direction.IsForward() &&
-            !((c_per_wave % c_mult == 0) && (c_per_last_wave % (c_mult * VEC_SIZE) == 0)))
+            !((c_per_wave % c_mult == 0) && (c_per_last_wave % (c_mult) == 0)))
         return false;
     return true;
 }
@@ -266,13 +266,13 @@ void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config
     //c_mult          = 1;
     //waves_in_group  = 1;
 
-    read_size       = 3;
+    read_size       = 1;
     k_mult          = 4;
-    chunks_per_wave = 3;
-    chunk_size      = 16;
-    n_mult          = 3;
+    chunks_per_wave = 1;
+    chunk_size      = 1;
+    n_mult          = 1;
     c_mult          = 2;
-    waves_in_group  = 3;
+    waves_in_group  = 1;
 
     if(!IsValidForProblem(config))
     {
@@ -428,7 +428,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
                                       const bool disableConfigOverrideFromEnv) const
 {
 
-    PrintConfig(config, params);
+    //PrintConfig(config, params);
     ConvSolution result;
 
     std::ostringstream options;
@@ -543,7 +543,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "c_mult", pcfg->GetCMult());
     GenerateClangDefsym(options, "waves_in_group", pcfg->GetWavesInGroup());
 
-    std::cerr << "options = " << options.str() << std::endl;
+    //std::cerr << "options = " << options.str() << std::endl;
 
     KernelInfo kinfo;
     kinfo.comp_options = options.str();
@@ -564,16 +564,10 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     const int n_images_per_wave = pcfg->GetNMult() * pcfg->GetNPerGpr();
     kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_images_per_wave));
 
-    //std::cerr << "AsmImg = {" << AsmImgHeight(params) << ", " << AsmImgWidth(params)
-              //<< "} hw_per_wave = " << hw_per_wave << std::endl;
-
-    //std::cerr << "params.batch_sz = " << params.batch_sz
-              //<< " n_images_per_wave = " << n_images_per_wave << std::endl;
-
     //std::cerr << "vld = { " << kinfo.l_wk[0] << ", " << kinfo.l_wk[1] << ", " << kinfo.l_wk[2]
-              //<< " }" << std::endl;
+        //<< " }" << std::endl;
     //std::cerr << "vgd = { " << kinfo.g_wk[0] << ", " << kinfo.g_wk[1] << ", " << kinfo.g_wk[2]
-              //<< " }" << std::endl;
+        //<< " }" << std::endl;
 
     //kinfo.kernel_file = "conv1x1u.s";
     // kinfo.kernel_file = "conv1x1u_fp16.s";
