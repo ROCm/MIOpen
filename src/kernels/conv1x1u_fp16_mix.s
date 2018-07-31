@@ -163,19 +163,20 @@ lds_per_group = 0
 .endif
 
 .if(weights_layout == 0)
+    filter_k_stride = filter_k_stride / vec_size
+    filter_c_stride = filter_c_stride / vec_size
     filter_c_gpr_stride = 1
     filter_k_gpr_stride = c_mult
     sequential_read_size= c_mult
     sequential_read_stride = filter_k_stride
     sequential_reads_cnt = k_mult
-    filter_k_stride = filter_k_stride / vec_size
 .else
+    filter_c_stride = filter_c_stride / vec_size
     filter_c_gpr_stride = k_mult
     filter_k_gpr_stride = 1
     sequential_read_size= k_mult
     sequential_read_stride = filter_c_stride
     sequential_reads_cnt = c_mult
-    filter_c_stride = filter_c_stride / vec_size
 .endif
 
 
@@ -391,7 +392,7 @@ gcnAsmConv1x1U:
 
     .endm
     
-    .macro conv_dot2 acc, wei, img
+    .macro conv_line acc, wei, img
         #v_dot2_f32_f16 v[\acc], s[\wei], v[\img], v[\acc]
         v_mad_mix_f32 v[\acc], s[\wei], v[\img], v[\acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
         v_mad_mix_f32 v[\acc], s[\wei], v[\img], v[\acc] op_sel:[1,1,0] op_sel_hi:[1,1,0]
@@ -401,6 +402,25 @@ gcnAsmConv1x1U:
         v_mov_b32 v[vtmp], v[\img_c0]
         v_mov_b32_sdwa v[\img_c0], v[\img_c1] dst_sel:WORD_1 src0_sel:WORD_0
         v_mov_b32_sdwa v[\img_c1], v[vtmp] dst_sel:WORD_0 src0_sel:WORD_1
+    .endm
+
+    .macro trans_input ibase
+        c = 0
+        .rept c_mult
+            n = 0
+            .rept n_mult
+                ch_gpr = 0
+                .rept chunks_per_wave
+                    c_gpr_inp = c * chunks_per_wave
+                    n_gpr_inp = n * c_mult * chunks_per_wave
+                    img = \ibase + ch_gpr + (n_gpr_inp + c_gpr_inp) * vec_size
+                    exch_img img, img + chunks_per_wave
+                    ch_gpr = ch_gpr + 1
+                .endr
+                n = n + 1
+            .endr
+            c = c + 1
+        .endr
     .endm
 
     .macro conv ibase, fbase
@@ -429,11 +449,8 @@ gcnAsmConv1x1U:
 
                         //swap
                         .if vec_size == 2
-                            .if k == 0
-                                exch_img img, img + chunks_per_wave
-                            .endif
-                            conv_dot2 acc, wei, img
-                            conv_dot2 acc+1, wei, img + chunks_per_wave
+                            conv_line acc, wei, img
+                            conv_line acc+1, wei, img + chunks_per_wave
                         .else
                             v_mac_f32 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + ch_gpr + n_gpr_inp + c_gpr_inp]
                         .endif
@@ -466,11 +483,13 @@ loop_begin:
     load_input inputB
     s_wait mbufs_cnt, 0
     load_filters filtersB, sequential_read_size, sequential_reads_cnt, sequential_read_stride
+    trans_input inputA
     conv inputA, filtersA
     
     load_input inputA
     s_wait mbufs_cnt, 0
     load_filters filtersA, sequential_read_size, sequential_reads_cnt, sequential_read_stride
+    trans_input inputB
     conv inputB, filtersB
     
 loop_end:
@@ -480,9 +499,11 @@ loop_end:
     load_input inputB
     s_wait mbufs_cnt, 0
     load_filters filtersB, sequential_read_size, sequential_reads_cnt, sequential_read_stride
+    trans_input inputA
     conv inputA, filtersA
     s_waitcnt 0
 
+    trans_input inputB
     conv inputB, filtersB
 
     // reduction across waves in group
