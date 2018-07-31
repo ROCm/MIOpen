@@ -205,6 +205,8 @@ size_t setBotDfDescFromMLDesc(TTo& to, const miopen::TensorDescriptor& tensor)
     return SetDescFromMLDesc(to, tensor, &TTo::setBotDfDescr);
 }
 
+struct ConvolutionDescriptor;
+
 struct ProblemDescription
 {
     int n_inputs         = 0;
@@ -269,6 +271,15 @@ struct ProblemDescription
     } direction;
     int GetBackwardPad0() const { return kernel_size0 - pad0 - 1; }
     int GetBackwardPad1() const { return kernel_size1 - pad1 - 1; }
+
+    ProblemDescription() = default;
+
+    ProblemDescription(const TensorDescriptor& in,
+                       const TensorDescriptor& weights,
+                       const TensorDescriptor& out,
+                       const ConvolutionDescriptor& conv,
+                       int dir,
+                       int bias_);
 
     void Serialize(std::ostream& stream) const
     {
@@ -567,6 +578,17 @@ struct ConvolutionContext : ProblemDescription
     inline Handle& GetStream() const { return *_stream; }
     inline void SetStream(Handle* stream) { _stream = stream; }
 
+    ConvolutionContext() = default;
+    ConvolutionContext(const TensorDescriptor& in,
+                       const TensorDescriptor& weights,
+                       const TensorDescriptor& out,
+                       const ConvolutionDescriptor& conv,
+                       int dir,
+                       int bias_)
+        : ProblemDescription(in, weights, out, conv, dir, bias_)
+    {
+    }
+
     std::string GetPerfDbPath() const
     {
         // clang-format off
@@ -686,6 +708,17 @@ struct mlo_construct_direct2D
         _search_params.top_sz           = 0; // bytes
         _search_params.weights_sz       = 0; // bytes
         _search_params.bias_sz          = 0; // bytes
+    }
+
+    mlo_construct_direct2D(const miopen::TensorDescriptor& in,
+                           const miopen::TensorDescriptor& weights,
+                           const miopen::TensorDescriptor& out,
+                           const miopen::ConvolutionDescriptor& conv,
+                           int dir,
+                           bool do_bias = false)
+        : _search_params(in, weights, out, conv, dir, (do_bias) ? 1 : 0)
+    {
+        _search_params.deconvolution = 0;
     }
 
     void setupRocm();

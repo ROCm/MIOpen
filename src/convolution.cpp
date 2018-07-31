@@ -594,13 +594,9 @@ size_t ConvolutionDescriptor::ForwardBackwardDataGetWorkSpaceSizeDirect(
     if(!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
         return 0;
 
-    mlo_construct_direct2D construct_params(direction);
+    mlo_construct_direct2D construct_params(xDesc, wDesc, yDesc, *this, direction);
     construct_params.setDoSearch(false);
     construct_params.setStream(&handle);
-    construct_params.setOutputDescFromMLDesc(yDesc);
-    construct_params.setInputDescFromMLDesc(xDesc);
-    construct_params.setWeightDescFromMLDesc(wDesc);
-    construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
     construct_params.setWorkaroundDisableSearchEnforce(true);
 
     try

@@ -262,15 +262,11 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
     if(!IsDirectSupported(wDesc) || miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
         return {};
 
-    mlo_construct_direct2D construct_params(isForward ? 1 : 0);
+    mlo_construct_direct2D construct_params(xDesc, wDesc, yDesc, *this, isForward ? 1 : 0);
     construct_params.setDoSearch(exhaustiveSearch);
     construct_params.saveSearchRequest(true);
     construct_params.setGeneralCompOptions("");
     construct_params.setStream(&handle);
-    construct_params.setOutputDescFromMLDesc(yDesc);
-    construct_params.setInputDescFromMLDesc(xDesc);
-    construct_params.setWeightDescFromMLDesc(wDesc);
-    construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
     if((IsWinograd3x3Supported(handle, isForward, wDesc, (isForward ? xDesc : yDesc)) &&
         construct_params.mloIsFastBinaryWinograd3x3U()))
@@ -708,11 +704,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         case miopenConvolutionFwdAlgoDirect:
         {
             // TODO(paul): Replicating code for now.
-            mlo_construct_direct2D construct_params(1); // forward
-            construct_params.setOutputDescFromMLDesc(yDesc);
-            construct_params.setInputDescFromMLDesc(xDesc);
-            construct_params.setWeightDescFromMLDesc(wDesc);
-            construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+            mlo_construct_direct2D construct_params(xDesc, wDesc, yDesc, *this, 1); // forward
             construct_params.setStream(&handle);
 
             std::string network_config;
@@ -1564,11 +1556,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         {
         case miopenConvolutionBwdDataAlgoDirect:
         {
-            mlo_construct_direct2D construct_params(0); // backward
-            construct_params.setOutputDescFromMLDesc(dyDesc);
-            construct_params.setInputDescFromMLDesc(dxDesc);
-            construct_params.setWeightDescFromMLDesc(wDesc);
-            construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+            mlo_construct_direct2D construct_params(dxDesc, wDesc, dyDesc, *this, 0); // backward
             construct_params.setStream(&handle);
 
             std::string network_config;
