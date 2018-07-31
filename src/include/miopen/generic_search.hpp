@@ -296,8 +296,8 @@ auto GenericSearch(const Solver s,
     const auto default_solution = s.GetSolution(context, s.GetPerformanceConfig(context));
 
     // Allocate buffers, init input buffers.
-    size_t top_size  = context.top_sz / sizeof(float);
-    size_t bot_size  = context.bot_sz / sizeof(float);
+    size_t top_size  = context.top_sz / sizeof(float) * 2;
+    size_t bot_size  = context.bot_sz / sizeof(float) * 2;
     size_t wei_size  = context.weights_sz / sizeof(float);
     size_t bias_size = context.bias_sz / sizeof(float);
 

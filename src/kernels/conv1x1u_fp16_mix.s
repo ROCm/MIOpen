@@ -80,18 +80,6 @@ static_assert (wei_h == 1 && wei_w == 1)
 
 .set vec_size, 2
 
-#filter_c_stride_org = filter_c_stride
-
-.if vec_size == 2
-    #static_assert (input_channels % vec_size == 0)
-    static_assert (filter_k_stride % vec_size == 0)
-    static_assert (filter_c_stride % vec_size == 0)
-
-    #input_channels = input_channels / vec_size
-    filter_c_stride = filter_c_stride / vec_size
-    filter_k_stride = filter_k_stride / vec_size
-.endif
-
 // perf params
 
 .ifnotdef do_not_use_default_perf_params
@@ -180,25 +168,20 @@ lds_per_group = 0
     sequential_read_size= c_mult
     sequential_read_stride = filter_k_stride
     sequential_reads_cnt = k_mult
+    filter_k_stride = filter_k_stride / vec_size
 .else
     filter_c_gpr_stride = k_mult
     filter_k_gpr_stride = 1
     sequential_read_size= k_mult
     sequential_read_stride = filter_c_stride
     sequential_reads_cnt = c_mult
+    filter_c_stride = filter_c_stride / vec_size
 .endif
 
 
 input_buffer_size = input_n_stride * batch_size
-filter_buffer_size = filters_size
-
-.set output_f32, 1
-
-.if output_f32
-    output_buffer_size = output_n_stride * batch_size * vec_size
-.else
-    output_buffer_size = output_n_stride * batch_size
-.endif
+filter_buffer_size = filters_size / vec_size
+output_buffer_size = output_n_stride * batch_size * vec_size
 
 //static_assert(input_channels % (c_mult * waves_in_group) == 0) //todo: remove me
 
@@ -307,13 +290,12 @@ gcnAsmConv1x1U:
     s_mul_i32 s[stmp], s[wave_id], 0 + c_per_wave * filter_c_stride
     s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
 
-    .if vec_size == 2 && output_f32
+    .if vec_size == 2
         log2 vec_size_log2, vec_size
         v_lshlrev_b32 v[voffset_out], 0 + vec_size_log2, v[voffset_out]
         s_mul_i32 s[soffset_out], 0 + vec_size, s[soffset_out]
         #s_lshl_b32 s[soffset_out], 0 + vec_size_log2, s[soffset_out] 
     .endif
-    
     
     s_waitcnt 0
     
@@ -351,6 +333,7 @@ gcnAsmConv1x1U:
             xsload fbase, x1_chunks, 1
 
             seq_it = seq_it + 1
+
             .if(weights_layout == 0 && seq_it == \seq_cnt)
                 s_add_u32 s[soffset_wei], s[soffset_wei], 0 - \seq_stride * (\seq_cnt - 1)
             .else
@@ -419,7 +402,7 @@ gcnAsmConv1x1U:
         v_mov_b32_sdwa v[\img_c0], v[\img_c1] dst_sel:WORD_1 src0_sel:WORD_0
         v_mov_b32_sdwa v[\img_c1], v[vtmp] dst_sel:WORD_0 src0_sel:WORD_1
     .endm
-    
+
     .macro conv ibase, fbase
         c = 0
         .rept c_mult
@@ -430,8 +413,8 @@ gcnAsmConv1x1U:
                     ch_gpr = 0
                     .rept chunks_per_wave
                         k_gpr_filter = k * filter_k_gpr_stride
-                        k_gpr_acc = k * n_mult * chunks_per_wave
                         c_gpr_filter = c * filter_c_gpr_stride
+                        k_gpr_acc = k * n_mult * chunks_per_wave
                         c_gpr_inp = c * chunks_per_wave
                         n_gpr_inp = n * c_mult * chunks_per_wave
                         n_gpr_acc = n * chunks_per_wave
@@ -449,13 +432,11 @@ gcnAsmConv1x1U:
                             .if k == 0
                                 exch_img img, img + chunks_per_wave
                             .endif
-
                             conv_dot2 acc, wei, img
                             conv_dot2 acc+1, wei, img + chunks_per_wave
                         .else
                             v_mac_f32 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + ch_gpr + n_gpr_inp + c_gpr_inp]
                         .endif
-
                         ch_gpr = ch_gpr + 1
                     .endr
                     n = n + 1
@@ -578,11 +559,7 @@ last_wave:
             chunk = 0
             .rept chunks_per_wave
                 v_cmpx_gt_i32 vcc, 0 + img_hw - chunk, v[current_hw]
-                .if output_f32
-                    m_buffer_store_dwordx vec_size, acc, voffset_out, desc_out, soffset_out, 4*chunk*vec_size
-                .else
-                    buffer_store_dword v[acc], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0+4*chunk
-                .endif
+                m_buffer_store_dwordx vec_size, acc, voffset_out, desc_out, soffset_out, 4*chunk*vec_size
                 chunk = chunk + 1
                 acc = acc + vec_size
             .endr
