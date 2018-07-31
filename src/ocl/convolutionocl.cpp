@@ -179,7 +179,7 @@ inline int EvaluateDataDirectSolution(Handle& handle,
         }
         else
         {
-#if 1 //debug
+#if 0 //debug
             k(conv_in, weights, conv_out, padding_val);
 #else
             std::vector<uint32_t> flag_host(64 * 8 * 1, 0);
@@ -797,7 +797,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     }
                     else
                     {
-#if 1 //debug
+#if 0 //debug
                         kernel(x, w, y, as_float(padding_val));
 #else
                         std::vector<uint32_t> flag_host(64 * 8 * 1, 0);
