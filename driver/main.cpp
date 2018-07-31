@@ -90,17 +90,17 @@ int main(int argc, char* argv[])
     {
         drv = new SoftmaxDriver<float16, double>();
     }
+#if MIOPEN_USE_GEMM
     else if(base_arg == "gemm")
     {
         drv = new GemmDriver<float>();
     }
-    // TODO half is not supported in gemm
-    //#if MIOPEN_USE_MIOPENGEMM
-    //    else if(base_arg == "gemmfp16")
-    //    {
-    //        drv = new GemmDriver<float16>();
-    //    }
-    //#endif
+// TODO half is not supported in gemm
+//    else if(base_arg == "gemmfp16")
+//    {
+//        drv = new GemmDriver<float16>();
+//    }
+#endif
     else if(base_arg == "bnorm")
     {
         drv = new BatchNormDriver<float, double>();
@@ -125,7 +125,7 @@ int main(int argc, char* argv[])
     drv->AllocateBuffersAndCopy();
 
     int fargval     = drv->GetInputFlags().GetValueInt("forw");
-    bool bnFwdInVer = (fargval == 2 && (base_arg == "bnorm"));
+    bool bnFwdInVer = (fargval == 2 && (base_arg == "bnorm" || base_arg == "bnormfp16"));
     bool verifyarg  = (drv->GetInputFlags().GetValueInt("verify") == 1);
 
     if((fargval != 2) || bnFwdInVer)
