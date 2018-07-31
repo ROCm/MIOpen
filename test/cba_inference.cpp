@@ -293,9 +293,35 @@ struct verify_forward_conv_bias
 
     tensor<T> cpu() const
     {
-        // If we are using convolutions as the base, we can calculate the
+        // Using this code section to filter out unsupported fusion plans
+        auto&& handle = get_handle();
         auto rout = get_output_tensor(miopen::deref(filter), input, weights);
-        convHostForward(input, rout, weights, 1, bias, filter);
+
+        miopenFusionPlanDescriptor_t fusePlanDesc;
+        miopenFusionOpDescriptor_t convoOp;
+        miopenFusionOpDescriptor_t biasOp;
+        miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
+        miopenCreateOpConvForwardAlgo(
+            fusePlanDesc,
+            &convoOp,
+            filter,
+            miopenConvolutionFwdAlgoDirect,
+            weightsDesc);
+
+        miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
+
+        //Compile
+        miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, fusePlanDesc);
+        if(miopenError != miopenStatusSuccess)
+        {
+            std::cerr << "ConvBiasInference plan not supported." << std::endl;
+        }
+        else
+        {
+            // If we are using convolutions as the base, we can calculate the
+            convHostForward(input, rout, weights, 1, bias, filter);
+        }
+        miopenDestroyFusionPlanDescriptor(fusePlanDesc);
         return rout;
     }
 
@@ -325,16 +351,17 @@ struct verify_forward_conv_bias
             weightsDesc);
 
         miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
-        miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev.get());
-        miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev.get());
 
-        miopenStatus_t miopenError = miopenIsFusionPlanValid(fusePlanDesc);
+        //Compile
+        miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, fusePlanDesc);
         if(miopenError != miopenStatusSuccess)
         {
             std::cerr << "ConvBiasInference plan not supported." << std::endl;
         }
         else
         {
+            miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev.get());
+            miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev.get());
             miopenExecuteFusionPlan(&handle,
                                     fusePlanDesc,
                                     inputDesc,
@@ -388,21 +415,56 @@ struct verify_forward_conv_bias_activ
 
     tensor<T> cpu() const
     {
-        // If we are using convolutions as the base, we can calculate the
-        auto rout = get_output_tensor(miopen::deref(filter), input, weights);
+
+                auto&& handle = get_handle();
+                        auto rout = get_output_tensor(miopen::deref(filter), input, weights);
         auto aout = rout;
         std::fill(aout.begin(), aout.end(), 0.);
+        miopenFusionPlanDescriptor_t fusePlanDesc;
+        // miopenFusionOpDescriptor_t bNormOp;
+        miopenFusionOpDescriptor_t convoOp = nullptr;
+        miopenFusionOpDescriptor_t biasOp  = nullptr;
+        miopenFusionOpDescriptor_t activOp = nullptr;
+
         double activ_alpha, activ_beta, activ_gamma;
         miopenActivationMode_t activ_mode;
         miopenGetActivationDescriptor(
             activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
-        convHostForward(input, rout, weights, 1, bias, filter);
-        activationHostInfererence(activ_mode,
-                                  static_cast<T>(activ_gamma),
-                                  static_cast<T>(activ_beta),
-                                  static_cast<T>(activ_alpha),
-                                  rout,
-                                  aout);
+
+        miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
+        miopenCreateOpConvForwardAlgo(
+            fusePlanDesc,
+            &convoOp,
+            filter,
+            // \todo dlowell: Hardcoded right now. This assumes immediate mode. Needs GetAlgo.
+            miopenConvolutionFwdAlgoDirect,
+            weightsDesc);
+
+        if(bias_mode)
+            miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
+
+        miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
+
+        //Compile
+        miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, fusePlanDesc);
+        if(miopenError != miopenStatusSuccess)
+        {
+            if(bias_mode)
+                std::cerr << "Conv+Bias+Activation Inference plan not supported." << std::endl;
+            else
+                std::cerr << "Conv+Activation Inference plan not supported." << std::endl;
+        }
+        else
+        {
+            // If we are using convolutions as the base, we can calculate the
+            convHostForward(input, rout, weights, 1, bias, filter);
+            activationHostInfererence(activ_mode,
+                                      static_cast<T>(activ_gamma),
+                                      static_cast<T>(activ_beta),
+                                      static_cast<T>(activ_alpha),
+                                      rout,
+                                      aout);
+        }
         return aout;
     }
 
@@ -425,7 +487,6 @@ struct verify_forward_conv_bias_activ
                 int ret_algo_count;
                 miopenConvAlgoPerf_t perf;
         */
-        miopenStatus_t miopenError = miopenStatusSuccess;
         miopenFusionPlanDescriptor_t fusePlanDesc;
         // miopenFusionOpDescriptor_t bNormOp;
         miopenFusionOpDescriptor_t convoOp = nullptr;
@@ -453,15 +514,9 @@ struct verify_forward_conv_bias_activ
             miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
 
         miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
-        miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev.get());
 
-        if(bias_mode)
-            miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev.get());
-
-        miopenSetOpArgsActivForward(
-            fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
-
-        miopenError = miopenIsFusionPlanValid(fusePlanDesc);
+        //Compile
+        miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, fusePlanDesc);
         if(miopenError != miopenStatusSuccess)
         {
             if(bias_mode)
@@ -471,6 +526,15 @@ struct verify_forward_conv_bias_activ
         }
         else
         {
+
+            miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev.get());
+
+            if(bias_mode)
+                miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev.get());
+
+            miopenSetOpArgsActivForward(
+                fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
+
             miopenExecuteFusionPlan(&handle,
                                     fusePlanDesc,
                                     inputDesc,
@@ -489,6 +553,186 @@ struct verify_forward_conv_bias_activ
         std::cout << "Forward convolution+bias+activation: " << std::endl;
     }
 };
+
+
+
+// DLOWELL I'll resuse this for all ordered combinations
+// of convolution + bias + batchnorm + activations
+template <class T>
+struct verify_forward_conv_bias_batchnorm_activ
+{
+    tensor<T> input;
+    tensor<T> weights;
+    miopenConvolutionDescriptor_t filter;
+    tensor<T> bias{};
+    miopenTensorDescriptor_t inputDesc{};
+    miopenTensorDescriptor_t weightsDesc{};
+    miopenTensorDescriptor_t outputDesc{};
+    miopenTensorDescriptor_t biasDesc{};
+    miopenActivationDescriptor_t activDesc{};
+    int bias_mode = 0;
+
+    // using conv_base<T>::search; //DLOWELL not needed right now
+    verify_forward_conv_bias_batchnorm_activ(tensor<T>& pinput,
+                                   tensor<T>& pweights,
+                                   miopen::ConvolutionDescriptor& pfilter,
+                                   int pbias_mode,
+                                   tensor<T>& pbias,
+                                   miopenActivationDescriptor_t& pactivDesc /*, int psearch = 0 */)
+    {
+        input       = pinput;
+        inputDesc   = &pinput.desc;
+        weights     = pweights;
+        weightsDesc = &pweights.desc;
+        bias        = pbias;
+        biasDesc    = &pbias.desc;
+        filter      = &pfilter;
+        activDesc   = pactivDesc;
+        bias_mode   = pbias_mode;
+        // search  = psearch;
+    }
+
+    tensor<T> cpu() const
+    {
+
+                auto&& handle = get_handle();
+                        auto rout = get_output_tensor(miopen::deref(filter), input, weights);
+        auto aout = rout;
+        std::fill(aout.begin(), aout.end(), 0.);
+        miopenFusionPlanDescriptor_t fusePlanDesc;
+        // miopenFusionOpDescriptor_t bNormOp;
+        miopenFusionOpDescriptor_t convoOp = nullptr;
+        miopenFusionOpDescriptor_t biasOp  = nullptr;
+        miopenFusionOpDescriptor_t activOp = nullptr;
+
+        double activ_alpha, activ_beta, activ_gamma;
+        miopenActivationMode_t activ_mode;
+        miopenGetActivationDescriptor(
+            activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
+
+        miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
+        miopenCreateOpConvForwardAlgo(
+            fusePlanDesc,
+            &convoOp,
+            filter,
+            // \todo dlowell: Hardcoded right now. This assumes immediate mode. Needs GetAlgo.
+            miopenConvolutionFwdAlgoDirect,
+            weightsDesc);
+
+        if(bias_mode)
+            miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
+
+        miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
+
+        //Compile
+        miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, fusePlanDesc);
+        if(miopenError != miopenStatusSuccess)
+        {
+            if(bias_mode)
+                std::cerr << "Conv+Bias+BatchNorm+Activation Inference plan not supported." << std::endl;
+            else
+                std::cerr << "Conv+BatchNorm+Activation Inference plan not supported." << std::endl;
+        }
+        else
+        {
+            // If we are using convolutions as the base, we can calculate the
+            convHostForward(input, rout, weights, 1, bias, filter);
+            activationHostInfererence(activ_mode,
+                                      static_cast<T>(activ_gamma),
+                                      static_cast<T>(activ_beta),
+                                      static_cast<T>(activ_alpha),
+                                      rout,
+                                      aout);
+        }
+        return aout;
+    }
+
+    tensor<T> gpu() const
+    {
+        auto&& handle = get_handle();
+        auto rout     = get_output_tensor(miopen::deref(filter), input, weights);
+        auto in_dev   = handle.Write(input.data);
+        auto wei_dev  = handle.Write(weights.data);
+        auto b_dev    = handle.Write(bias.data);
+        auto out_dev  = handle.Write(rout.data);
+
+        // DLOWELL: All of this search logic is shelved until we have more fused algos to implement
+        /*        size_t workspace_size =
+                    filter.ForwardGetWorkSpaceSize(handle, weights.desc, input.desc, rout.desc);
+
+                std::vector<char> workspace(workspace_size);
+                auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
+
+                int ret_algo_count;
+                miopenConvAlgoPerf_t perf;
+        */
+        miopenFusionPlanDescriptor_t fusePlanDesc;
+        // miopenFusionOpDescriptor_t bNormOp;
+        miopenFusionOpDescriptor_t convoOp = nullptr;
+        miopenFusionOpDescriptor_t biasOp  = nullptr;
+        miopenFusionOpDescriptor_t activOp = nullptr;
+        miopenOperatorArgs_t fusionArgs;
+
+        double activ_alpha, activ_beta, activ_gamma;
+        miopenActivationMode_t activ_mode;
+        miopenGetActivationDescriptor(
+            activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
+
+        double alpha = 1., beta = 0.;
+        miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
+        miopenCreateOperatorArgs(&fusionArgs);
+        miopenCreateOpConvForwardAlgo(
+            fusePlanDesc,
+            &convoOp,
+            filter,
+            // \todo dlowell: Hardcoded right now. This assumes immediate mode. Needs GetAlgo.
+            miopenConvolutionFwdAlgoDirect,
+            weightsDesc);
+
+        if(bias_mode)
+            miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
+
+        miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
+
+        //Compile
+        miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, fusePlanDesc);
+        if(miopenError != miopenStatusSuccess)
+        {
+            if(bias_mode)
+                std::cerr << "Conv+Bias+BatchNorm+Activation Inference plan not supported." << std::endl;
+            else
+                std::cerr << "Conv+BatchNorm+Activation Inference plan not supported." << std::endl;
+        }
+        else
+        {
+
+            miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev.get());
+
+            if(bias_mode)
+                miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev.get());
+
+            miopenSetOpArgsActivForward(
+                fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
+
+            miopenExecuteFusionPlan(&handle,
+                                    fusePlanDesc,
+                                    inputDesc,
+                                    in_dev.get(),
+                                    &rout.desc,
+                                    out_dev.get(),
+                                    fusionArgs);
+            rout.data = handle.Read<T>(out_dev, rout.data.size());
+        }
+
+        return rout;
+    }
+
+    void fail(float = 0) const
+    {
+        std::cout << "Forward convolution+bias+batchnorm+activation: " << std::endl;
+    }
+};
+
 
 template <class T>
 struct cbna_fusion_driver : test_driver
