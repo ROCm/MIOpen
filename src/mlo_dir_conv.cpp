@@ -27,6 +27,7 @@
 #define MIOPEN
 
 #include <miopen/config.h>
+#include <miopen/convolution.hpp>
 
 #include <cmath>
 #include <cstring>
@@ -297,4 +298,20 @@ int miopen::ProblemDescription::mloBuildConf_Key(std::string& conf_key) const
         std::string("x") + in_data_type + std::string("x") +
         (direction.IsForward() ? "1" : "0"); /// \todo Shall we separate keys for WrW convolutions?
     return (0);
+}
+
+miopen::ProblemDescription::ProblemDescription(const TensorDescriptor& in,
+                                               const TensorDescriptor& weights,
+                                               const TensorDescriptor& out,
+                                               const ConvolutionDescriptor& conv,
+                                               int dir,
+                                               int bias_)
+    : bias(bias_)
+{
+    direction.Set(dir);
+
+    SetDescFromMLDesc(*this, in, &ProblemDescription::setInputDescr);
+    SetDescFromMLDesc(*this, weights, &ProblemDescription::setWeightsDescr);
+    SetDescFromMLDesc(*this, out, &ProblemDescription::setOutputDescr);
+    setConvDescr(conv.pad_h, conv.pad_w, conv.u, conv.v, conv.dilation_h, conv.dilation_w);
 }
