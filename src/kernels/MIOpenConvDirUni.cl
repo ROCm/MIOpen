@@ -189,13 +189,8 @@ static inline uint iDiv(uint v, uint d)
 #else
     uint r = v / d;
 
-#if 1 // debug
-    {
-        uint r_f = (uint)((float)v * (1.0f / (float)d) + 0.00001f); 
-
-        if(r != r_f)
-            printf("idiv: wrong: v %u, d %u, r %u, r_f%u\n", v, d, r, r_f);
-    }
+#if 1
+    printf("iDiv");
 #endif
 #endif
     return (r);
@@ -213,19 +208,6 @@ static inline void calculateXYPos(uint linPos, uint width, uint* __restrict x, u
     (*y) = (uint)((float)linPos * (1.0f / (float)width) + 0.00001f);
 #else
     (*y) = linPos / width;
-
-#if 0
-    {
-        uint r = linPos / width;
-        uint r_f = (uint)((float)linPos * (1.0f / (float)width) + 0.00001f);
-
-        if(r != r_f)
-        {
-          //printf("calculateXYPos: wrong: linPos %u, width %u, r %u, r_f %u\n", linPos, width, r, r_f);
-            printf("calculateXYPos: wrong\n");
-        }
-    }
-#endif
 #endif
     (*x) = linPos - mul24((*y), width);
 }
@@ -251,13 +233,11 @@ static inline void readDataElem(uint linPos,
                                 uint gbl_stride,
                                 uint gbl_y,
                                 uint gbl_x,
-                                bool vis)
+                                bool vis,
+                                __global uint* flag)
                                 
 {
     (void) lcl_height;
-#if 0 // debug
-    printf("readDataElem: 0: linPos %u\n", linPos);;
-#endif
 
     uint x, y;
     calculateXYPos(linPos, lcl_width, &x, &y);
@@ -286,24 +266,6 @@ static inline void readDataElem(uint linPos,
 #endif
     gbl_off        = (vis) ? gbl_off : 0;
 
-#if 0 // debug
-    printf("readDataElem: 2: linPos %u\n", linPos);;
-
-    if(gbl_off >= MLO_BATCH_SZ * MLO_N_INPUTS * MLO_IN_HEIGHT * MLO_IN_WIDTH)
-    {
-        printf("wrong: readDataElem: 3: linPos %f %u, MLO_N_WIDTH * MLO_N_HEIGHT %f %u, over? %d, substraction %f, %u\n",
-                (_FLOAT)linPos, linPos, 
-                (_FLOAT)(MLO_IN_WIDTH * MLO_IN_HEIGHT), MLO_IN_WIDTH * MLO_IN_HEIGHT,
-                ((_FLOAT)linPos) >= ((_FLOAT)(MLO_IN_WIDTH * MLO_IN_HEIGHT)),
-                ((_FLOAT)linPos) -  ((_FLOAT)(MLO_IN_WIDTH * MLO_IN_HEIGHT)), linPos - MLO_IN_WIDTH * MLO_IN_HEIGHT);
-
-        printf("wrong: readDataElem: 4: grp(%u %u %u), linPos %f, lcl_width %f, x %f, y %f, gbl_off0 %f, gbl_off %f\n",
-                get_group_id(0), get_group_id(1), get_group_id(2),
-                (_FLOAT)linPos, (_FLOAT)lcl_width, (_FLOAT)x, (_FLOAT)y,
-                (_FLOAT)gbl_off0, (_FLOAT)gbl_off);
-    }
-#endif
-
 #if 1 // debug
     _FLOAT gbl_val = gbl_data[gbl_off];
 #else
@@ -331,20 +293,11 @@ static inline void readData(uint lcl_id,
                             uint gbl_stride,
                             uint gbl_y,
                             uint gbl_x,
-                            bool vis)
+                            bool vis,
+                            __global uint* flag)
 {
-
-#if 0 //debug
-    printf("readData 0: lcl_id %u, size %u, lcl_p_stride %u\n",
-            lcl_id, size, lcl_p_stride);
-#endif
-
     for(uint i = lcl_id; i < size; i += lcl_p_stride)
     {
-#if 0 //debug
-        printf("readData 1: i %u, lcl_id %u, size %u, lcl_p_stride %u\n",
-                i, lcl_id, size, lcl_p_stride);
-#endif
         readDataElem(i,
                      lcl_data,
                      lcl_base,
@@ -360,7 +313,8 @@ static inline void readData(uint lcl_id,
                      gbl_stride,
                      gbl_y,
                      gbl_x,
-                     vis);
+                     vis,
+                     flag);
     }
 }
 
@@ -568,7 +522,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
               const __global _FLOAT* __restrict bias,
 #endif
               __global _FLOAT* __restrict out,
-#if 1 //debug
+#if 0 //debug
               UNUSED _FLOAT padding_val)
 #else
               UNUSED _FLOAT padding_val,
@@ -754,7 +708,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
                          MLO_IN_STRIDE,
                          y_in_grp,
                          x_in_grp,
-                         vis);
+                         vis,
+                         flag);
             }
         }
 #else
@@ -792,11 +747,12 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #endif
             uint gbl_base     = in_off2;
 
-#if 0 // debug
+#if 0 //debug
             {
-                uint itmp = get_global_id(0) + get_global_id(1) * get_local_size(0) + get_global_id(2) * get_local_size(0) * get_local_size(1);
-                flag[itmp] = elem_id;
-              //flag[itmp] = itmp;
+                flag[0] = 1;
+
+              //uint itmp = get_global_id(0) + get_global_id(1) * get_local_size(0) + get_global_id(2) * get_local_size(0) * get_local_size(1);
+              //flag[itmp] = 1;
             }
 #endif
 
@@ -817,7 +773,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
                      MLO_IN_STRIDE,
                      y_grp,
                      x_grp,
-                     vis);
+                     vis,
+                     flag);
         }
 #endif
 
