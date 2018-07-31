@@ -181,12 +181,22 @@ extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane")
 #define uniform(x) (x)
 #endif
 
+
 static inline uint iDiv(uint v, uint d)
 {
-#if 0
+#if 0 //debug
     uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
 #else
     uint r = v / d;
+
+#if 1 // debug
+    {
+        uint r_f = (uint)((float)v * (1.0f / (float)d) + 0.00001f); 
+
+        if(r != r_f)
+            printf("idiv: wrong: v %u, d %u, r %u, r_f%u\n", v, d, r, r_f);
+    }
+#endif
 #endif
     return (r);
 }
@@ -199,10 +209,23 @@ static inline uint iMod(uint v, uint u, uint d)
 
 static inline void calculateXYPos(uint linPos, uint width, uint* __restrict x, uint* __restrict y)
 {
-#if 0
+#if 0 //debug
     (*y) = (uint)((float)linPos * (1.0f / (float)width) + 0.00001f);
 #else
     (*y) = linPos / width;
+
+#if 0
+    {
+        uint r = linPos / width;
+        uint r_f = (uint)((float)linPos * (1.0f / (float)width) + 0.00001f);
+
+        if(r != r_f)
+        {
+          //printf("calculateXYPos: wrong: linPos %u, width %u, r %u, r_f %u\n", linPos, width, r, r_f);
+            printf("calculateXYPos: wrong\n");
+        }
+    }
+#endif
 #endif
     (*x) = linPos - mul24((*y), width);
 }
@@ -216,7 +239,7 @@ static inline uint calculateOffset(uint stride, uint x, uint y)
 static inline void readDataElem(uint linPos,
                                 __local _FLOAT* lcl_data,
                                 uint lcl_base,
-                                UNUSED uint lcl_height,
+                                uint lcl_height,
                                 uint lcl_width,
                                 uint lcl_stride,
                                 uint lcl_y,
@@ -228,9 +251,14 @@ static inline void readDataElem(uint linPos,
                                 uint gbl_stride,
                                 uint gbl_y,
                                 uint gbl_x,
-                                bool vis,
-                                UNUSED bool debug)
+                                bool vis)
+                                
 {
+    (void) lcl_height;
+#if 0 // debug
+    printf("readDataElem: 0: linPos %u\n", linPos);;
+#endif
+
     uint x, y;
     calculateXYPos(linPos, lcl_width, &x, &y);
     uint g_x      = x + gbl_x;
@@ -257,7 +285,26 @@ static inline void readDataElem(uint linPos,
     (void)gbl_height;
 #endif
     gbl_off        = (vis) ? gbl_off : 0;
-#if 1
+
+#if 0 // debug
+    printf("readDataElem: 2: linPos %u\n", linPos);;
+
+    if(gbl_off >= MLO_BATCH_SZ * MLO_N_INPUTS * MLO_IN_HEIGHT * MLO_IN_WIDTH)
+    {
+        printf("wrong: readDataElem: 3: linPos %f %u, MLO_N_WIDTH * MLO_N_HEIGHT %f %u, over? %d, substraction %f, %u\n",
+                (_FLOAT)linPos, linPos, 
+                (_FLOAT)(MLO_IN_WIDTH * MLO_IN_HEIGHT), MLO_IN_WIDTH * MLO_IN_HEIGHT,
+                ((_FLOAT)linPos) >= ((_FLOAT)(MLO_IN_WIDTH * MLO_IN_HEIGHT)),
+                ((_FLOAT)linPos) -  ((_FLOAT)(MLO_IN_WIDTH * MLO_IN_HEIGHT)), linPos - MLO_IN_WIDTH * MLO_IN_HEIGHT);
+
+        printf("wrong: readDataElem: 4: grp(%u %u %u), linPos %f, lcl_width %f, x %f, y %f, gbl_off0 %f, gbl_off %f\n",
+                get_group_id(0), get_group_id(1), get_group_id(2),
+                (_FLOAT)linPos, (_FLOAT)lcl_width, (_FLOAT)x, (_FLOAT)y,
+                (_FLOAT)gbl_off0, (_FLOAT)gbl_off);
+    }
+#endif
+
+#if 1 // debug
     _FLOAT gbl_val = gbl_data[gbl_off];
 #else
     _FLOAT gbl_val = gbl_data[0];
@@ -284,12 +331,20 @@ static inline void readData(uint lcl_id,
                             uint gbl_stride,
                             uint gbl_y,
                             uint gbl_x,
-                            bool vis,
-                            bool debug)
+                            bool vis)
 {
+
+#if 0 //debug
+    printf("readData 0: lcl_id %u, size %u, lcl_p_stride %u\n",
+            lcl_id, size, lcl_p_stride);
+#endif
 
     for(uint i = lcl_id; i < size; i += lcl_p_stride)
     {
+#if 0 //debug
+        printf("readData 1: i %u, lcl_id %u, size %u, lcl_p_stride %u\n",
+                i, lcl_id, size, lcl_p_stride);
+#endif
         readDataElem(i,
                      lcl_data,
                      lcl_base,
@@ -305,11 +360,11 @@ static inline void readData(uint lcl_id,
                      gbl_stride,
                      gbl_y,
                      gbl_x,
-                     vis,
-                     debug);
+                     vis);
     }
 }
 
+#if 0 // not used
 static inline void loadData(uint lcl_id,
                             uint lcl_p_stride,
                             __local _FLOAT* lcl_data,
@@ -330,8 +385,7 @@ static inline void loadData(uint lcl_id,
                             uint gbl_bot_x,
                             uint buf_block_ind,
                             uint max_n_bufs,
-                            uint lcl_n_bufs,
-                            bool debug)
+                            uint lcl_n_bufs)
 {
 
     for(uint c = 0; c < lcl_n_bufs; ++c, lcl_off += lcl_size, gbl_off += gbl_size)
@@ -354,10 +408,10 @@ static inline void loadData(uint lcl_id,
                  gbl_stride,
                  gbl_bot_y,
                  gbl_bot_x,
-                 vis,
-                 (debug));
+                 vis);
     }
 }
+#endif
 
 static inline void Conv(uint o_map_base,
                         uint in_stg_off,
@@ -514,7 +568,12 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
               const __global _FLOAT* __restrict bias,
 #endif
               __global _FLOAT* __restrict out,
+#if 1 //debug
               UNUSED _FLOAT padding_val)
+#else
+              UNUSED _FLOAT padding_val,
+              __global uint* flag)
+#endif
 {
 #if((MLO_IN_LCL_SZ + MLO_WEIGHTS_SZ) * SIZEOF_FLOAT) > MLO_LDS_MAX_SIZE
 #error "Local memory size should not exceed 64k."
@@ -695,8 +754,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
                          MLO_IN_STRIDE,
                          y_in_grp,
                          x_in_grp,
-                         vis,
-                         true);
+                         vis);
             }
         }
 #else
@@ -734,6 +792,14 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #endif
             uint gbl_base     = in_off2;
 
+#if 0 // debug
+            {
+                uint itmp = get_global_id(0) + get_global_id(1) * get_local_size(0) + get_global_id(2) * get_local_size(0) * get_local_size(1);
+                flag[itmp] = elem_id;
+              //flag[itmp] = itmp;
+            }
+#endif
+
             readData(elem_id,
                      (MLO_IN_HEIGHT * MLO_IN_WIDTH),
                      lcl_p_stride,
@@ -751,8 +817,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
                      MLO_IN_STRIDE,
                      y_grp,
                      x_grp,
-                     vis,
-                     true);
+                     vis);
         }
 #endif
 
