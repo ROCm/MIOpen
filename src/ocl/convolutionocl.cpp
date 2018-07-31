@@ -164,18 +164,18 @@ inline int EvaluateDataDirectSolution(Handle& handle,
             std::tie(N, C, H, W, K, n_groups, out_H, out_W) = extraArgs;
             int conv_H = (with_subsample ? out_H : H); // Trick; see respective Solver.
             int conv_W = (with_subsample ? out_W : W);
-            k(N,
-              C,
-              conv_H,
-              conv_W,
-              K,
-              n_groups,
-              unused,
-              unused,
-              conv_in,
-              weights,
-              conv_out,
-              return_addr);
+            //k(N,
+              //C,
+              //conv_H,
+              //conv_W,
+              //K,
+              //n_groups,
+              //unused,
+              //unused,
+              //conv_in,
+              //weights,
+              //conv_out,
+              //return_addr);
         }
         else
         {
@@ -781,6 +781,9 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                         int* return_addr = nullptr;
                         int N, C, H, W, K, n_groups;
                         construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+
+                        //std::cerr << "return_addr " << std::endl;
+                        //auto return_addr = handle.Create(sizeof(int) * H * W * K * N);
                         kernel(N, C, H, W, K, n_groups, unused, unused, x, w, y, return_addr);
                     }
                     else
