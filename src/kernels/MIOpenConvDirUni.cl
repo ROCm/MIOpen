@@ -50,14 +50,6 @@
 #endif
 #endif
 
-/// \todo Fix issue 1014 and remove this guard.
-/// Fails with 512, works with 1024, let's have x4 spare
-#if 0
-#define MLO_PRIVATE_BUF_GUARD (4096 / SIZEOF_FLOAT)
-#else
-#define MLO_PRIVATE_BUF_GUARD 0
-#endif
-
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
 #define _FLOAT4 PPCAT(_FLOAT, FOUR)
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
@@ -181,17 +173,12 @@ extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane")
 #define uniform(x) (x)
 #endif
 
-
 static inline uint iDiv(uint v, uint d)
 {
-#if 0 //debug
+#if 0 // debug
     uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
 #else
-    uint r = v / d;
-
-#if 1
-    printf("iDiv");
-#endif
+    uint r       = v / d;
 #endif
     return (r);
 }
@@ -204,10 +191,10 @@ static inline uint iMod(uint v, uint u, uint d)
 
 static inline void calculateXYPos(uint linPos, uint width, uint* __restrict x, uint* __restrict y)
 {
-#if 0 //debug
+#if 0 // debug
     (*y) = (uint)((float)linPos * (1.0f / (float)width) + 0.00001f);
 #else
-    (*y) = linPos / width;
+    (*y)         = linPos / width;
 #endif
     (*x) = linPos - mul24((*y), width);
 }
@@ -221,7 +208,7 @@ static inline uint calculateOffset(uint stride, uint x, uint y)
 static inline void readDataElem(uint linPos,
                                 __local _FLOAT* lcl_data,
                                 uint lcl_base,
-                                uint lcl_height,
+                                UNUSED uint lcl_height,
                                 uint lcl_width,
                                 uint lcl_stride,
                                 uint lcl_y,
@@ -233,12 +220,8 @@ static inline void readDataElem(uint linPos,
                                 uint gbl_stride,
                                 uint gbl_y,
                                 uint gbl_x,
-                                bool vis,
-                                __global uint* flag)
-                                
+                                bool vis)
 {
-    (void) lcl_height;
-
     uint x, y;
     calculateXYPos(linPos, lcl_width, &x, &y);
     uint g_x      = x + gbl_x;
@@ -265,12 +248,7 @@ static inline void readDataElem(uint linPos,
     (void)gbl_height;
 #endif
     gbl_off        = (vis) ? gbl_off : 0;
-
-#if 1 // debug
     _FLOAT gbl_val = gbl_data[gbl_off];
-#else
-    _FLOAT gbl_val = gbl_data[0];
-#endif
     gbl_val        = (vis) ? gbl_val : 0;
 
     lcl_data[lcl_off] = gbl_val;
@@ -293,8 +271,7 @@ static inline void readData(uint lcl_id,
                             uint gbl_stride,
                             uint gbl_y,
                             uint gbl_x,
-                            bool vis,
-                            __global uint* flag)
+                            bool vis)
 {
     for(uint i = lcl_id; i < size; i += lcl_p_stride)
     {
@@ -313,59 +290,9 @@ static inline void readData(uint lcl_id,
                      gbl_stride,
                      gbl_y,
                      gbl_x,
-                     vis,
-                     flag);
+                     vis);
     }
 }
-
-#if 0 // not used
-static inline void loadData(uint lcl_id,
-                            uint lcl_p_stride,
-                            __local _FLOAT* lcl_data,
-                            uint lcl_off,
-                            uint lcl_size,
-                            uint lcl_height,
-                            uint lcl_width,
-                            uint lcl_stride,
-                            uint lcl_bot_y,
-                            uint lcl_bot_x,
-                            const __global _FLOAT* gbl_data,
-                            uint gbl_off,
-                            uint gbl_size,
-                            uint gbl_height,
-                            uint glb_width,
-                            uint gbl_stride,
-                            uint gbl_bot_y,
-                            uint gbl_bot_x,
-                            uint buf_block_ind,
-                            uint max_n_bufs,
-                            uint lcl_n_bufs)
-{
-
-    for(uint c = 0; c < lcl_n_bufs; ++c, lcl_off += lcl_size, gbl_off += gbl_size)
-    {
-        bool vis = (buf_block_ind + c < max_n_bufs);
-        readData(lcl_id,
-                 lcl_size,
-                 lcl_p_stride,
-                 lcl_data,
-                 lcl_off,
-                 lcl_height,
-                 lcl_width,
-                 lcl_stride,
-                 lcl_bot_y,
-                 lcl_bot_x,
-                 gbl_data,
-                 gbl_off,
-                 gbl_height,
-                 glb_width,
-                 gbl_stride,
-                 gbl_bot_y,
-                 gbl_bot_x,
-                 vis);
-    }
-}
-#endif
 
 static inline void Conv(uint o_map_base,
                         uint in_stg_off,
@@ -522,19 +449,14 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
               const __global _FLOAT* __restrict bias,
 #endif
               __global _FLOAT* __restrict out,
-#if 0 //debug
               UNUSED _FLOAT padding_val)
-#else
-              UNUSED _FLOAT padding_val,
-              __global uint* flag)
-#endif
 {
 #if((MLO_IN_LCL_SZ + MLO_WEIGHTS_SZ) * SIZEOF_FLOAT) > MLO_LDS_MAX_SIZE
 #error "Local memory size should not exceed 64k."
 #endif
     __local _FLOAT lcl_indata[MLO_IN_LCL_SZ];
     __local _FLOAT lcl_wei[MLO_WEIGHTS_SZ];
-    __private _FLOAT pvt_accum[MLO_PVT_ACCUM_DATA_SZ + MLO_PRIVATE_BUF_GUARD];
+    __private _FLOAT pvt_accum[MLO_PVT_ACCUM_DATA_SZ];
     __private _FLOAT pvt_in_stage[MLO_PVT_IN_HEIGHT * MLO_PVT_IN_WIDTH];
     __private _FLOAT pvt_wei_stage[MLO_FILTER_SIZE0];
 
@@ -708,8 +630,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
                          MLO_IN_STRIDE,
                          y_in_grp,
                          x_in_grp,
-                         vis,
-                         flag);
+                         vis);
             }
         }
 #else
@@ -747,15 +668,6 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #endif
             uint gbl_base     = in_off2;
 
-#if 0 //debug
-            {
-                flag[0] = 1;
-
-              //uint itmp = get_global_id(0) + get_global_id(1) * get_local_size(0) + get_global_id(2) * get_local_size(0) * get_local_size(1);
-              //flag[itmp] = 1;
-            }
-#endif
-
             readData(elem_id,
                      (MLO_IN_HEIGHT * MLO_IN_WIDTH),
                      lcl_p_stride,
@@ -773,8 +685,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
                      MLO_IN_STRIDE,
                      y_grp,
                      x_grp,
-                     vis,
-                     flag);
+                     vis);
         }
 #endif
 

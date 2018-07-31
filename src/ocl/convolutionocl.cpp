@@ -179,24 +179,7 @@ inline int EvaluateDataDirectSolution(Handle& handle,
         }
         else
         {
-#if 0 //debug
             k(conv_in, weights, conv_out, padding_val);
-#else
-            std::vector<uint32_t> flag_host(64 * 8 * 1, 0);
-            std::size_t sz = sizeof(uint32_t) * flag_host.size();
-            auto flag_dev = handle.Create(sz);
-            handle.WriteTo(flag_host.data(), flag_dev, sz);
-
-            k(conv_in, weights, conv_out, padding_val, flag_dev.get());
-
-            handle.ReadTo(flag_host.data(), flag_dev, sz);
-            std::cout << __func__ << ": flag_host " << std::endl;
-
-            for(auto v : flag_host)
-                std::cout << v << " ";
-
-            std::cout << std::endl;
-#endif
         }
         elapsed += handle.GetKernelTime();
     }
@@ -797,24 +780,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     }
                     else
                     {
-#if 0 //debug
                         kernel(x, w, y, as_float(padding_val));
-#else
-                        std::vector<uint32_t> flag_host(64 * 8 * 1, 0);
-                        std::size_t sz = sizeof(uint32_t) * flag_host.size();
-                        auto flag_dev = handle.Create(sz);
-                        handle.WriteTo(flag_host.data(), flag_dev, sz);
-
-                        kernel(x, w, y, as_float(padding_val), flag_dev.get());
-
-                        handle.ReadTo(flag_host.data(), flag_dev, sz);
-                        std::cout << __func__ << ": flag_host " << std::endl;
-
-                        for(auto v : flag_host)
-                            std::cout << v << " ";
-
-                        std::cout << std::endl;
-#endif
                     }
                     if(handle.IsProfilingEnabled())
                         elapsed += handle.GetKernelTime();
