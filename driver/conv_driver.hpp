@@ -57,8 +57,6 @@
 #include <sstream>
 #include <vector>
 
-using Tgpu_out = float;
-
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 
 template <typename T, typename Tfile = T>
@@ -198,10 +196,10 @@ class ConvDriver : public Driver
     std::unique_ptr<GPUMem> db_dev;
 
     std::vector<Tgpu> in;
-    std::vector<Tgpu_out> din;
+    std::vector<Tgpu> din;
     std::vector<Tgpu> wei;
     std::vector<Tgpu> dwei;
-    std::vector<Tgpu_out> out;
+    std::vector<Tgpu> out;
     std::vector<Tgpu> dout;
     std::vector<Tgpu> workspace_bwd_data;
     std::vector<Tgpu> workspace_bwd_weights;
@@ -460,11 +458,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     uint32_t ctx = 0;
 #endif
     in_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    din_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu_out)));
+    din_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
     wei_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tgpu)));
     dwei_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, wei_sz, sizeof(Tgpu)));
     dout_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-    out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu_out)));
+    out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
     if(workSpaceSize_bwd_dt != 0)
     {
         workspace_bwd_data_dev =
@@ -488,12 +486,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     }
 
     in   = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    din  = std::vector<Tgpu_out>(in_sz, static_cast<Tgpu_out>(0));
+    din  = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
     wei  = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
     dwei = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
     dout = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    // out  = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    out = std::vector<Tgpu_out>(out_sz, static_cast<Tgpu_out>(0));
+    out = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
 
     outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
@@ -516,30 +513,27 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
 
     Tgpu Data_scale = static_cast<Tgpu>(0.01);
 
-    std::vector<int> in_len = GetTensorLengths(inputTensor);
-
     int in_h = inflags.GetValueInt("in_h");
     int in_w = inflags.GetValueInt("in_w");
     int in_c = inflags.GetValueInt("in_channels");
-
     if(!dataRead)
     {
         for(int i = 0; i < in_sz; i++)
         {
             //in[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            in[i] = i % 127;
+            //in[i] = i % 127;
             //in[i] = i / (in_h * in_w);
             //in[i] = i;
-            //in[i] = 1;
+            in[i] = 1;
         }
     }
 
     for(int i = 0; i < out_sz; i++)
     {
         //dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-        dout[i] = i % 127;
+        //dout[i] = i % 127;
         //dout[i] = i;
-        //dout[i] = 1;
+        dout[i] = 1;
     }
 
     if(inflags.GetValueInt("bias") != 0)
@@ -582,8 +576,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
         for(int i = 0; i < wei_sz; i++)
         {
             //wei[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
-            //wei[i] = i;
-            wei[i] = i % 7;
+            wei[i] = i;
+            //wei[i] = i % 7;
             //wei[i] = 1;
         }
     }
@@ -1678,9 +1672,9 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyForward()
 
     for(int i = 0; i < outhost.size(); i++)
         if(outhost[i] != out[i])
-            fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, outhost[i], out[i]);
+            fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, outhost[i], (float)out[i]);
         else
-            fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, outhost[i], out[i]);
+            fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, outhost[i], (float)out[i]);
 
 
     auto error = miopen::rms_range(outhost, out);
@@ -1711,9 +1705,9 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyBackward()
 
     for(int i = 0; i < din_host.size(); i++)
         if(din_host[i] != din[i])
-            fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, din_host[i], din[i]);
+            fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, din_host[i], (float)din[i]);
         else
-            fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, din_host[i], din[i]);
+            fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, din_host[i], (float)din[i]);
 
     auto error_data = miopen::rms_range(din_host, din);
 
