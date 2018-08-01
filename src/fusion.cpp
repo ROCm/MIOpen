@@ -29,6 +29,9 @@
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/visit_float.hpp>
+#include <ostream>
+#include <ios>
+#include <half.hpp>
 
 namespace miopen {
 
@@ -531,6 +534,32 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     return status;
 }
 
+std::ostream& operator<<(std::ostream& s, const OpKernelArg& arg)
+{
+    union
+    {
+        unsigned long long ul;
+        double d;
+        float f;
+        half_float::half h;
+        char c[sizeof(ul)];
+    }
+    val = {0};
+    if (arg.buffer.size() > sizeof(val.ul))
+        return s << "<too long value>";
+    for(int i = 0; i < arg.buffer.size(); ++i)
+        val.c[i] = arg.buffer[i];
+    s << std::hex << "0x" << val.ul << std::dec << " = " << static_cast<long long>(val.ul);
+    switch(arg.buffer.size())
+    {
+    case 2: s << " = " << static_cast<float>(val.h) << "H"; break;
+    case 4: s << " = " << val.f << "F"; break;
+    case 8: s << " = " << val.d << "D"; break;
+    default: break;
+    }
+    return s;
+}
+
 miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                                              TensorDescriptor& inputDesc,
                                              ConstData_t input,
@@ -604,12 +633,14 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             std::sort(keys.begin(), keys.end());
             for(auto key : keys)
             {
-                MIOPEN_LOG_I2("Populate scalar args, key: " << key);
                 auto it = op_args.args_map.find(key);
                 if(it != op_args.args_map.end())
                 {
+                    MIOPEN_LOG_I2("Populate scalar args, key: " << key << " = " << it->second);
                     args.push_back(it->second);
                 }
+                else
+                    MIOPEN_LOG_E("Populate scalar args, key: " << key << " = <not found>");
             }
         }
     }
