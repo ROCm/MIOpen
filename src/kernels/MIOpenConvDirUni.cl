@@ -175,11 +175,7 @@ extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane")
 
 static inline uint iDiv(uint v, uint d)
 {
-#if 0 // debug
-    uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
-#else
-    uint r       = v / d;
-#endif
+    uint r = v / d;
     return (r);
 }
 
@@ -191,11 +187,7 @@ static inline uint iMod(uint v, uint u, uint d)
 
 static inline void calculateXYPos(uint linPos, uint width, uint* __restrict x, uint* __restrict y)
 {
-#if 0 // debug
-    (*y) = (uint)((float)linPos * (1.0f / (float)width) + 0.00001f);
-#else
-    (*y)         = linPos / width;
-#endif
+    (*y) = linPos / width;
     (*x) = linPos - mul24((*y), width);
 }
 
