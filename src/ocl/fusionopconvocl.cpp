@@ -53,8 +53,7 @@ KernelInfo CBAFusionGetSolution(const ConvolutionContext& params)
     int alu_tiles_sz = (alu_tile0 * alu_tile1);
     if(alu_tiles_sz > 256)
     {
-        std::cerr << "ERROR: need out pix size adjustments\n";
-        exit(0);
+        MIOPEN_THROW("Output tile dims too large to fit in chip");
         // return ConvSolution(static_cast<miopenStatus_t>(-1));
     }
 
