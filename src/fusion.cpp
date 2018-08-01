@@ -42,7 +42,7 @@ FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
       program_name(""),
       kernel_name(""),
       algorithm_name(""),
-      network_config("")
+      network_config(inDesc.ToString())
 {
 }
 
@@ -439,6 +439,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     // std::string algorithm_name{}; // = "miopenDirConvBatchNormActivAlgo";
     // TODO: The fusion plan is keeping track of the insertion order,
     // should we move this to the Graph ?
+    network_config += output_desc.ToString();
     for(auto&& op : op_map)
     {
         op->GetNetworkConfig(network_config, handle);
@@ -605,7 +606,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             std::sort(keys.begin(), keys.end());
             for(auto key : keys)
             {
-                std::cout << "Populate scalar args, key: " << key << std::endl;
+                MIOPEN_LOG_I("Populate scalar args, key: " + key);
                 auto it = op_args.args_map.find(key);
                 if(it != op_args.args_map.end())
                 {
@@ -625,7 +626,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         std::sort(keys.begin(), keys.end());
         for(auto key : keys)
         {
-            std::cout << "Populate arg pointers, key: " << key << std::endl;
+            MIOPEN_LOG_I("Populate arg pointers, key: " + key);
             auto it = op_args.args_map.find(key);
             if(it != op_args.args_map.end())
                 args.push_back(it->second);
@@ -643,7 +644,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                 auto padding = running_sz % args[idx].size();
                 if(padding != 0)
                 {
-                    std::cout << "*************  Adding padding: " << padding << std::endl;
+                    MIOPEN_LOG_I("*************  Adding padding: " + std::to_string(padding));
                     any_t tmp(0, padding);
                     padded_args.push_back(tmp);
                     running_sz += padding;
