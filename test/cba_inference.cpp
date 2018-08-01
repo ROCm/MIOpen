@@ -295,22 +295,18 @@ struct verify_forward_conv_bias
     {
         // Using this code section to filter out unsupported fusion plans
         auto&& handle = get_handle();
-        auto rout = get_output_tensor(miopen::deref(filter), input, weights);
+        auto rout     = get_output_tensor(miopen::deref(filter), input, weights);
 
         miopenFusionPlanDescriptor_t fusePlanDesc;
         miopenFusionOpDescriptor_t convoOp;
         miopenFusionOpDescriptor_t biasOp;
         miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
         miopenCreateOpConvForwardAlgo(
-            fusePlanDesc,
-            &convoOp,
-            filter,
-            miopenConvolutionFwdAlgoDirect,
-            weightsDesc);
+            fusePlanDesc, &convoOp, filter, miopenConvolutionFwdAlgoDirect, weightsDesc);
 
         miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
 
-        //Compile
+        // Compile
         miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, fusePlanDesc);
         if(miopenError != miopenStatusSuccess)
         {
@@ -352,7 +348,7 @@ struct verify_forward_conv_bias
 
         miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
 
-        //Compile
+        // Compile
         miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, fusePlanDesc);
         if(miopenError != miopenStatusSuccess)
         {
@@ -416,9 +412,9 @@ struct verify_forward_conv_bias_activ
     tensor<T> cpu() const
     {
 
-                auto&& handle = get_handle();
-                        auto rout = get_output_tensor(miopen::deref(filter), input, weights);
-        auto aout = rout;
+        auto&& handle = get_handle();
+        auto rout     = get_output_tensor(miopen::deref(filter), input, weights);
+        auto aout     = rout;
         std::fill(aout.begin(), aout.end(), 0.);
         miopenFusionPlanDescriptor_t fusePlanDesc;
         // miopenFusionOpDescriptor_t bNormOp;
@@ -445,7 +441,7 @@ struct verify_forward_conv_bias_activ
 
         miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
 
-        //Compile
+        // Compile
         miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, fusePlanDesc);
         if(miopenError != miopenStatusSuccess)
         {
@@ -515,7 +511,7 @@ struct verify_forward_conv_bias_activ
 
         miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
 
-        //Compile
+        // Compile
         miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, fusePlanDesc);
         if(miopenError != miopenStatusSuccess)
         {
@@ -554,8 +550,6 @@ struct verify_forward_conv_bias_activ
     }
 };
 
-
-
 // DLOWELL I'll resuse this for all ordered combinations
 // of convolution + bias + batchnorm + activations
 template <class T>
@@ -570,15 +564,19 @@ struct verify_forward_conv_bias_batchnorm_activ
     miopenTensorDescriptor_t outputDesc{};
     miopenTensorDescriptor_t biasDesc{};
     miopenActivationDescriptor_t activDesc{};
+    miopenTensorDescriptor_t biasScaleTensor{};
+
+    miopenBatchNormMode_t bn_mode;    
     int bias_mode = 0;
 
     // using conv_base<T>::search; //DLOWELL not needed right now
-    verify_forward_conv_bias_batchnorm_activ(tensor<T>& pinput,
-                                   tensor<T>& pweights,
-                                   miopen::ConvolutionDescriptor& pfilter,
-                                   int pbias_mode,
-                                   tensor<T>& pbias,
-                                   miopenActivationDescriptor_t& pactivDesc /*, int psearch = 0 */)
+    verify_forward_conv_bias_batchnorm_activ(
+        tensor<T>& pinput,
+        tensor<T>& pweights,
+        miopen::ConvolutionDescriptor& pfilter,
+        int pbias_mode,
+        tensor<T>& pbias,
+        miopenActivationDescriptor_t& pactivDesc /*, int psearch = 0 */)
     {
         input       = pinput;
         inputDesc   = &pinput.desc;
@@ -595,9 +593,9 @@ struct verify_forward_conv_bias_batchnorm_activ
     tensor<T> cpu() const
     {
 
-                auto&& handle = get_handle();
-                        auto rout = get_output_tensor(miopen::deref(filter), input, weights);
-        auto aout = rout;
+        auto&& handle = get_handle();
+        auto rout     = get_output_tensor(miopen::deref(filter), input, weights);
+        auto aout     = rout;
         std::fill(aout.begin(), aout.end(), 0.);
         miopenFusionPlanDescriptor_t fusePlanDesc;
         // miopenFusionOpDescriptor_t bNormOp;
@@ -624,12 +622,13 @@ struct verify_forward_conv_bias_batchnorm_activ
 
         miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
 
-        //Compile
+        // Compile
         miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, fusePlanDesc);
         if(miopenError != miopenStatusSuccess)
         {
             if(bias_mode)
-                std::cerr << "Conv+Bias+BatchNorm+Activation Inference plan not supported." << std::endl;
+                std::cerr << "Conv+Bias+BatchNorm+Activation Inference plan not supported."
+                          << std::endl;
             else
                 std::cerr << "Conv+BatchNorm+Activation Inference plan not supported." << std::endl;
         }
@@ -694,12 +693,13 @@ struct verify_forward_conv_bias_batchnorm_activ
 
         miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
 
-        //Compile
+        // Compile
         miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, fusePlanDesc);
         if(miopenError != miopenStatusSuccess)
         {
             if(bias_mode)
-                std::cerr << "Conv+Bias+BatchNorm+Activation Inference plan not supported." << std::endl;
+                std::cerr << "Conv+Bias+BatchNorm+Activation Inference plan not supported."
+                          << std::endl;
             else
                 std::cerr << "Conv+BatchNorm+Activation Inference plan not supported." << std::endl;
         }
@@ -732,7 +732,6 @@ struct verify_forward_conv_bias_batchnorm_activ
         std::cout << "Forward convolution+bias+batchnorm+activation: " << std::endl;
     }
 };
-
 
 template <class T>
 struct cbna_fusion_driver : test_driver
@@ -775,6 +774,7 @@ struct cbna_fusion_driver : test_driver
         add(pad_mode, "pmode", generate_data({"default" /*, "same", "valid"*/}));
         add(tactiv, "test_activ", generate_data({false, true}));
         add(amode, "amode", generate_data({0, 3, 8, 1}));
+        add(bnorm_mode, "bnorm-mode", generate_data({0, 1, 2}));
     }
 
     std::vector<miopen::ConvolutionDescriptor> get_filters()
