@@ -207,7 +207,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
         return false;
     if(!(waves_in_group <= config.n_inputs))
         return false;
-    if(!(k_mult <= config.n_outputs))
+    if(!((k_mult/VEC_SIZE) <= config.n_outputs))
         return false;
     const int in_gprs  = chunks_per_wave * n_mult * c_mult * VEC_SIZE;
     const int acc_gprs = chunks_per_wave * n_mult * k_mult * VEC_SIZE;
@@ -267,7 +267,7 @@ void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config
     //waves_in_group  = 1;
 
     read_size       = 1;
-    k_mult          = 4;
+    k_mult          = 1;
     chunks_per_wave = 1;
     chunk_size      = 1;
     n_mult          = 1;
@@ -543,7 +543,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "c_mult", pcfg->GetCMult());
     GenerateClangDefsym(options, "waves_in_group", pcfg->GetWavesInGroup());
 
-    //std::cerr << "options = " << options.str() << std::endl;
+    std::cerr << "options = " << options.str() << std::endl;
 
     KernelInfo kinfo;
     kinfo.comp_options = options.str();
@@ -564,10 +564,10 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     const int n_images_per_wave = pcfg->GetNMult() * pcfg->GetNPerGpr();
     kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_images_per_wave));
 
-    //std::cerr << "vld = { " << kinfo.l_wk[0] << ", " << kinfo.l_wk[1] << ", " << kinfo.l_wk[2]
-        //<< " }" << std::endl;
-    //std::cerr << "vgd = { " << kinfo.g_wk[0] << ", " << kinfo.g_wk[1] << ", " << kinfo.g_wk[2]
-        //<< " }" << std::endl;
+    std::cerr << "vld = { " << kinfo.l_wk[0] << ", " << kinfo.l_wk[1] << ", " << kinfo.l_wk[2]
+        << " }" << std::endl;
+    std::cerr << "vgd = { " << kinfo.g_wk[0] << ", " << kinfo.g_wk[1] << ", " << kinfo.g_wk[2]
+        << " }" << std::endl;
 
     //kinfo.kernel_file = "conv1x1u.s";
     // kinfo.kernel_file = "conv1x1u_fp16.s";
