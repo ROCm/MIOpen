@@ -522,9 +522,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         {
             op->GetCompileParms(compile_config, handle, is_asm_kernel);
         }
-        std::cout << "Add Kernel Compiler options: " << compile_config << std::endl;
-        std::cout << "Program name: " << program_name << std::endl;
-        std::cout << "Kernel name: " << kernel_name << std::endl;
+        MIOPEN_LOG_I2("Program: " << program_name << ", kernel: " << kernel_name);
+        MIOPEN_LOG_I2("Build options: " << compile_config);
         handle.AddKernel(
             algorithm_name, network_config, program_name, kernel_name, vld, vgd, compile_config);
         status = miopenStatusSuccess;
@@ -605,7 +604,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             std::sort(keys.begin(), keys.end());
             for(auto key : keys)
             {
-                std::cout << "Populate scalar args, key: " << key << std::endl;
+                MIOPEN_LOG_I2("Populate scalar args, key: " << key);
                 auto it = op_args.args_map.find(key);
                 if(it != op_args.args_map.end())
                 {
@@ -625,7 +624,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         std::sort(keys.begin(), keys.end());
         for(auto key : keys)
         {
-            std::cout << "Populate arg pointers, key: " << key << std::endl;
+            MIOPEN_LOG_I2("Populate arg pointers, key: " << key);
             auto it = op_args.args_map.find(key);
             if(it != op_args.args_map.end())
                 args.push_back(it->second);
@@ -643,7 +642,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                 auto padding = running_sz % args[idx].size();
                 if(padding != 0)
                 {
-                    std::cout << "*************  Adding padding: " << padding << std::endl;
+                    MIOPEN_LOG_I2("*************  Adding padding: " << padding);
                     any_t tmp(0, padding);
                     padded_args.push_back(tmp);
                     running_sz += padding;
