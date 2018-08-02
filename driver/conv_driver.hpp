@@ -520,20 +520,20 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < in_sz; i++)
         {
-            //in[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            //in[i] = i % 127;
+            in[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            //in[i] = i % 63;
             //in[i] = i / (in_h * in_w);
             //in[i] = i;
-            in[i] = 1;
+            //in[i] = 1;
         }
     }
 
     for(int i = 0; i < out_sz; i++)
     {
-        //dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-        //dout[i] = i % 127;
+        dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        //dout[i] = i % 63;
         //dout[i] = i;
-        dout[i] = 1;
+        //dout[i] = 1;
     }
 
     if(inflags.GetValueInt("bias") != 0)
@@ -576,8 +576,8 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
         for(int i = 0; i < wei_sz; i++)
         {
             //wei[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
-            wei[i] = i;
-            //wei[i] = i % 7;
+            //wei[i] = i;
+            wei[i] = i % 7;
             //wei[i] = 1;
         }
     }
@@ -1670,11 +1670,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyForward()
         RunForwardCPU();
     }
 
-    for(int i = 0; i < outhost.size(); i++)
-        if(outhost[i] != out[i])
-            fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, outhost[i], (float)out[i]);
-        else
-            fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, outhost[i], (float)out[i]);
+    //for(int i = 0; i < outhost.size(); i++)
+        //if(outhost[i] != out[i])
+            //fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, outhost[i], (float)out[i]);
+        //else
+            //fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, outhost[i], (float)out[i]);
 
 
     auto error = miopen::rms_range(outhost, out);
@@ -1703,11 +1703,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyBackward()
         RunBackwardDataCPU();
     }
 
-    for(int i = 0; i < din_host.size(); i++)
-        if(din_host[i] != din[i])
-            fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, din_host[i], (float)din[i]);
-        else
-            fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, din_host[i], (float)din[i]);
+    //for(int i = 0; i < din_host.size(); i++)
+        //if(din_host[i] != din[i])
+            //fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, din_host[i], (float)din[i]);
+        //else
+            //fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, din_host[i], (float)din[i]);
 
     auto error_data = miopen::rms_range(din_host, din);
 
