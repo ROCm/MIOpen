@@ -267,7 +267,7 @@ void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config
     //waves_in_group  = 1;
 
     read_size       = 1;
-    k_mult          = 1;
+    k_mult          = 4;
     chunks_per_wave = 1;
     chunk_size      = 1;
     n_mult          = 1;

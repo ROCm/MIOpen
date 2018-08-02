@@ -95,7 +95,7 @@ default balanced_n, 1
 default balanced_chunk, 1
 
 
-static_assert(c_mult % vec_size == 0)
+#static_assert(c_mult % vec_size == 0)
 #static_assert(k_mult % vec_size == 0)
 
 default lds_limit, .MAX_LDS / 8
@@ -166,23 +166,25 @@ lds_per_group = 0
     .endif
 .endif
 
+filter_k_stride = filter_k_stride / vec_size
+filter_c_stride = filter_c_stride / vec_size
+
 
 .if(weights_layout == 0)
-    filter_k_stride = filter_k_stride / vec_size
-    filter_c_stride = filter_c_stride / vec_size
     filter_c_gpr_stride = 1
-    filter_k_gpr_stride = c_mult
-    sequential_read_size= c_mult
+    filter_k_gpr_stride = c_mult //( = c_mult / vec_size * vec_size)
+    sequential_read_size= c_mult //( = c_mult / vec_size * vec_size)
     sequential_read_stride = filter_k_stride
     sequential_reads_cnt = k_mult
 .else
-    filter_k_stride = filter_k_stride / vec_size
-    filter_c_stride = filter_c_stride / vec_size
-    filter_c_gpr_stride = k_mult
+    //output_channels = c
+    //filter_c_stride = 4 * weights_per_filter * output_channels
+	//filter_k_stride = 4 * weights_per_filter
+    filter_c_gpr_stride = k_mult / vec_size //c
     filter_k_gpr_stride = 1
-    sequential_read_size= k_mult
-    sequential_read_stride = filter_c_stride
-    sequential_reads_cnt = c_mult
+    sequential_read_size= k_mult / vec_size //c
+    sequential_read_stride = filter_c_stride //c
+    sequential_reads_cnt = c_mult * vec_size//k
 .endif
 
 
@@ -334,11 +336,14 @@ gcnAsmConv1x1U:
 
             seq_it = seq_it + 1
 
-            .if(weights_layout == 0 && seq_it == \seq_cnt)
-                s_add_u32 s[soffset_wei], s[soffset_wei], 0 - \seq_stride * (\seq_cnt - 1)
-            .else
-                s_add_u32 s[soffset_wei], s[soffset_wei], 0 + \seq_stride - 4 * \seq_size
-            .endif
+            s_add_u32 s[soffset_wei], s[soffset_wei], 0 + \seq_stride - 4 * \seq_size
+
+            #.if(weights_layout == 0 && seq_it == \seq_cnt)
+                #s_add_u32 s[soffset_wei], s[soffset_wei], 0 - \seq_stride * (\seq_cnt - 1)
+            #.else
+                ##s_add_u32 s[soffset_wei], s[soffset_wei], 0 + \seq_stride - 4 * \seq_size
+                #s_add_u32 s[soffset_wei], s[soffset_wei], 0 + \seq_stride - 2 * \seq_size
+            #.endif
         .endr
     .endm
 
@@ -434,22 +439,17 @@ gcnAsmConv1x1U:
     #static_assert(k_mult % 4 == 0)
 
     .macro trans_filter fbase
-        #exch_filter \fbase + 0, \fbase + 0 + 4
-        #exch_filter \fbase + 1, \fbase + 1 + 4
-        #exch_filter \fbase + 2, \fbase + 2 + 4
-        #exch_filter \fbase + 3, \fbase + 3 + 4
-        #c = 0
-        #.rept c_mult
-            #k = 0
-            #.rept k_mult
-                #wei = \fbase + c * k_mult + k 
-                #exch_filter wei, wei + k_mult / vec_size 
-                #k = k + 1
-            #.endr
-            #c = c + vec_size
-        #.endr
+        c = 0
+        .rept c_mult
+            k = 0
+            .rept k_mult/vec_size
+                wei = \fbase + k + c * k_mult/vec_size
+                exch_filter wei, wei + k_mult/vec_size 
+                k = k + 1
+            .endr
+            c = c + vec_size 
+        .endr
     .endm
-
 
     .macro conv ibase, fbase
         c = 0
@@ -469,10 +469,15 @@ gcnAsmConv1x1U:
 
                         img = \ibase + ch_gpr + (n_gpr_inp + c_gpr_inp) * vec_size
                         acc = accums + (k_gpr_acc + n_gpr_acc + ch_gpr) * vec_size
-                        wei = \fbase + k_gpr_filter + c_gpr_filter
 
-                        #v_mov_b32 v[img], 0x3C003C00
-                        #v_mov_b32 v[img + chunks_per_wave], 0x3C003C00
+                        x = (k)/(c_mult)
+                        y = (k)%(c_mult)
+
+                        wei = \fbase + x + y * (k_mult/vec_size) + k_mult * c
+                        #wei = \fbase + k_gpr_filter + c_gpr_filter // wei[c][k] -> wei[k][c]
+
+                        #v_mov_b32 v[img], 0x3C00//0x3C003C00
+                        #v_mov_b32 v[img + chunks_per_wave], 0x3C00//0x3C003C00
                         #s_mov_b32 s[wei], 0x3C003C00
 
                         //swap
@@ -514,6 +519,12 @@ loop_begin:
     trans_input inputA
     trans_filter filtersA
     conv inputA, filtersA
+
+    #i = 0
+    #.rept accums_cnt
+        #v_mov_b32 v[accums + i], 0
+        #i = i + 1
+    #.endr
     
     load_input inputA
     s_wait mbufs_cnt, 0
@@ -521,7 +532,8 @@ loop_begin:
     trans_input inputB
     trans_filter filtersB
     conv inputB, filtersB
-    
+
+   
 loop_end:
     s_cmpk_gt_i32 s[loop_cnt], 1 * c_mult * vec_size
     s_cbranch_scc1 loop_begin
