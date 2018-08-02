@@ -625,7 +625,8 @@ ConvolutionDescriptor::BackwardWeightsGetWorkSpaceSizeDirect(Handle& handle,
                                                              const TensorDescriptor& xDesc,
                                                              const TensorDescriptor& dwDesc) const
 {
-    mlo_construct_BwdWrW2D construct_params(xDesc, dwDesc, dyDesc, *this, 0); // backward with regards to weights
+    mlo_construct_BwdWrW2D construct_params(
+        xDesc, dwDesc, dyDesc, *this, 0); // backward with regards to weights
     construct_params.setDoSearch(false);
     construct_params.setStream(&handle);
     construct_params.setWorkaroundDisableSearchEnforce(true);
