@@ -573,9 +573,9 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     //std::cerr << "vgd = { " << kinfo.g_wk[0] << ", " << kinfo.g_wk[1] << ", " << kinfo.g_wk[2]
         //<< " }" << std::endl;
 
-    //kinfo.kernel_file = "conv1x1u.s";
-    // kinfo.kernel_file = "conv1x1u_fp16.s";
-    kinfo.kernel_file = "conv1x1u_fp16_mix.s";
+    kinfo.kernel_file = "conv1x1u.s";
+    //kinfo.kernel_file = "conv1x1u_fp16.s";
+    //kinfo.kernel_file = "conv1x1u_fp16_mix.s";
     kinfo.kernel_name = "gcnAsmConv1x1U";
 
     if(UseSubsample(params))
