@@ -513,27 +513,20 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
 
     Tgpu Data_scale = static_cast<Tgpu>(0.01);
 
-    int in_h = inflags.GetValueInt("in_h");
-    int in_w = inflags.GetValueInt("in_w");
-    int in_c = inflags.GetValueInt("in_channels");
     if(!dataRead)
     {
         for(int i = 0; i < in_sz; i++)
         {
-            in[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            //in[i] = i % 63;
-            //in[i] = i / (in_h * in_w);
-            //in[i] = i;
-            //in[i] = 1;
+            //in[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            in[i] = static_cast<Tgpu>(rand() % 7);
+
         }
     }
 
     for(int i = 0; i < out_sz; i++)
     {
-        dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-        //dout[i] = i % 63;
-        //dout[i] = i;
-        //dout[i] = 1;
+        //dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        dout[i] = static_cast<Tgpu>(rand() % 7);
     }
 
     if(inflags.GetValueInt("bias") != 0)
@@ -576,9 +569,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
         for(int i = 0; i < wei_sz; i++)
         {
             //wei[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
-            //wei[i] = i;
-            wei[i] = i % 7;
-            //wei[i] = 1;
+            wei[i] = static_cast<Tgpu>(rand() % 7);
         }
     }
 
