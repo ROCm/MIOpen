@@ -1616,7 +1616,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
         case miopenConvolutionBwdDataAlgoWinograd:
         {
-            mlo_construct_winograd construct_params(dxDesc, wDesc, dyDesc, *this, 0); // backward data
+            mlo_construct_winograd construct_params(
+                dxDesc, wDesc, dyDesc, *this, 0); // backward data
 
             construct_params.setStream(&handle);
             std::string network_config;
