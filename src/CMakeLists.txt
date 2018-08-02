@@ -79,6 +79,7 @@ set( MIOpen_Source
     rnn.cpp
     rnn_api.cpp
     temp_file.cpp
+    problem_description.cpp
     include/miopen/temp_file.hpp
     include/miopen/db.hpp
     include/miopen/db_record.hpp
@@ -94,6 +95,7 @@ set( MIOpen_Source
     include/miopen/kernel_cache.hpp
     include/miopen/solver.hpp
     include/miopen/generic_search.hpp
+    include/miopen/problem_description.hpp
     include/miopen/mlo_internal.hpp
     include/miopen/mlo_utils.hpp
     include/miopen/oclkernel.hpp
