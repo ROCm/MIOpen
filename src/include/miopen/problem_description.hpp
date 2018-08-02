@@ -45,7 +45,7 @@ size_t SetDescFromMLDesc(TTo& to, const TensorDescriptor& tensor, const TFunc me
 
     std::tie(n, c, h, w)     = miopen::tien<4>(tensor.GetLengths(), 1);
     std::tie(ns, cs, hs, ws) = miopen::tien<4>(tensor.GetStrides(), 0);
-    const auto data_type     = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
+    const auto data_type = tensor.GetType() == miopenFloat ? "FP32" : "FP16";
 
     (to.*method)("NCHW", data_type, n, c, h, w, ns, cs, hs, ws);
 
