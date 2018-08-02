@@ -399,7 +399,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
             return false;
     }
     // Check limits:
-    auto h_w = static_cast<long>(AsmImgHeight(params)) * AsmImgWidth(params) * VEC_SIZE;
+    auto h_w = static_cast<long>(AsmImgHeight(params)) * AsmImgWidth(params);
     const auto r_s     = static_cast<long>(params.kernel_size1) * params.kernel_size0;
     const auto c_h_w   = static_cast<long>(params.n_inputs) * h_w;    // C*H*W
     const auto k_h_w   = static_cast<long>(params.n_outputs) * h_w;   // K*H*W
