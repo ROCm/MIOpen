@@ -80,8 +80,11 @@ static_assert (wei_h == 1 && wei_w == 1)
 
 //changes for fp16
 .set vec_size, 2
+//request c_mult and k_mult is multiple of vec_size for across channels packed
+//conv
 static_assert(c_mult % vec_size == 0)
 static_assert(k_mult % vec_size == 0)
+//adjust filter_strides for packed filter
 filter_k_stride = filter_k_stride / vec_size
 filter_c_stride = filter_c_stride / vec_size
 
@@ -140,6 +143,7 @@ hw_per_wave = chunk_size * chunks_per_wave
 active_hw_per_wave = active_chunk_lanes * chunks_per_wave
 
 in_gprs = chunks_per_wave * n_mult * c_mult
+//enlarge accums_cnt for packed conv
 accums_cnt = k_mult * chunks_per_wave * n_mult * vec_size
 
 // exec mask
@@ -175,16 +179,18 @@ lds_per_group = 0
 
 .if(weights_layout == 0)
     filter_c_gpr_stride = 1
-    //(c_mult/vec_size) * vec_size filter element is fp16, but vec_size channels once
+    //filter element is fp16, but load vec_size channels once
     filter_k_gpr_stride = c_mult 
     sequential_read_size= c_mult
     sequential_read_stride = filter_k_stride
     sequential_reads_cnt = k_mult
 .else
+    //packed filter, half k_mult for fp16
     filter_c_gpr_stride = k_mult / vec_size
     filter_k_gpr_stride = 1
     sequential_read_size= k_mult / vec_size
     sequential_read_stride = filter_c_stride
+    //vec_size * c_mult channels once
     sequential_reads_cnt = c_mult * vec_size
 .endif
 
@@ -345,6 +351,7 @@ gcnAsmConv1x1U:
         .endr
     .endm
 
+    //load vec_size times channels at time for packed conv
     .if chunks_per_wave % read_size
         mbufs_cnt = c_mult * n_mult * (1 + chunks_per_wave / read_size) * vec_size
     .else
@@ -360,6 +367,7 @@ gcnAsmConv1x1U:
             s_mov_b32 s[stmp_offset], s[soffset_in]
             .rept c_mult
                 vec_id = 0
+                //load contiguous channels for packed conv
                 .rept vec_size
                     s_cmpk_le_i32 s[loop_cnt], 0 + c_it + vec_id
                     s_cmov_b32 s[stmp_offset], 0 + invalid_addr_lit
@@ -394,26 +402,33 @@ gcnAsmConv1x1U:
 
     .endm
     
+    //perf conv on two packed img vgpr 
     .macro conv_line acc, wei, img
-        #v_dot2_f32_f16 v[\acc], s[\wei], v[\img], v[\acc]
-        v_mad_mix_f32 v[\acc], s[\wei], v[\img], v[\acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
-        v_mad_mix_f32 v[\acc], s[\wei], v[\img], v[\acc] op_sel:[1,1,0] op_sel_hi:[1,1,0]
+        .if dot_instructions_available
+            v_dot2_f32_f16 v[\acc], s[\wei], v[\img], v[\acc]
+        .else
+            v_mad_mix_f32 v[\acc], s[\wei], v[\img], v[\acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
+            v_mad_mix_f32 v[\acc], s[\wei], v[\img], v[\acc] op_sel:[1,1,0] op_sel_hi:[1,1,0]
+        .endif
         #v_fma_mix_f32 v[\acc], s[\wei], v[\img], v[\acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
         #v_fma_mix_f32 v[\acc], s[\wei], v[\img], v[\acc] op_sel:[1,1,0] op_sel_hi:[1,1,0]
     .endm
 
+    //repack filter between two vgpr
     .macro exch_img, img_c0, img_c1
         v_mov_b32 v[vtmp], v[\img_c0]
         v_mov_b32_sdwa v[\img_c0], v[\img_c1] dst_sel:WORD_1 src0_sel:WORD_0
         v_mov_b32_sdwa v[\img_c1], v[vtmp] dst_sel:WORD_0 src0_sel:WORD_1
     .endm
 
+    //repack filter between two sgpr
     .macro exch_filter, filter_c0, filter_c1
         s_mov_b32 s[stmp], s[\filter_c0]
         s_pack_ll_b32_b16 s[\filter_c0], s[\filter_c0], s[\filter_c1] 
         s_pack_hh_b32_b16 s[\filter_c1], s[stmp], s[\filter_c1]
     .endm
 
+    //repack input across channels
     .macro trans_input ibase
         c = 0
         .rept c_mult
@@ -433,17 +448,20 @@ gcnAsmConv1x1U:
         .endr
     .endm
 
+    //repack filter across channels
     .macro trans_filter fbase
-        c = 0
-        .rept c_mult
-            k = 0
-            .rept k_mult/vec_size
-                wei = \fbase + k + c * k_mult/vec_size
-                exch_filter wei, wei + k_mult/vec_size 
-                k = k + 1
+        .if(weights_layout != 0)
+            c = 0
+            .rept c_mult
+                k = 0
+                .rept k_mult/vec_size
+                    wei = \fbase + k + c * k_mult/vec_size
+                    exch_filter wei, wei + k_mult/vec_size 
+                    k = k + 1
+                .endr
+                c = c + vec_size 
             .endr
-            c = c + vec_size 
-        .endr
+        .endif
     .endm
 
     .macro conv ibase, fbase
@@ -463,14 +481,14 @@ gcnAsmConv1x1U:
                         img = \ibase + ch_gpr + (n_gpr_inp + c_gpr_inp) * vec_size
                         acc = accums + (k_gpr_acc + n_gpr_acc + ch_gpr) * vec_size
 
-                        .if(weights_layout == 0)
+                        .if(weights_layout == 0) //wei[c][k]
                             c_gpr_filter = c * filter_c_gpr_stride
                             k_gpr_filter = k * filter_k_gpr_stride
-                            wei = \fbase + k_gpr_filter + c_gpr_filter // wei[c][k]
-                        .else
+                            wei = \fbase + k_gpr_filter + c_gpr_filter
+                        .else //wei[k][c]
                             x = (k)/(c_mult)
                             y = (k)%(c_mult)
-                            wei = \fbase + x + y * (k_mult/vec_size) + k_mult * c //wei[k][c]
+                            wei = \fbase + x + y * (k_mult/vec_size) + k_mult * c
                         .endif
 
                         .if vec_size == 2
@@ -522,6 +540,7 @@ loop_begin:
 
    
 loop_end:
+    //load vec_size * c_mult channels once
     s_cmpk_gt_i32 s[loop_cnt], 1 * c_mult * vec_size
     s_cbranch_scc1 loop_begin
 
@@ -611,6 +630,7 @@ last_wave:
             chunk = 0
             .rept chunks_per_wave
                 v_cmpx_gt_i32 vcc, 0 + img_hw - chunk, v[current_hw]
+                //cvt and packed two fp32 into a fp32
                 v_cvt_pkrtz_f16_f32 v[acc], v[acc], v[acc+1]
                 buffer_store_dword v[acc], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0+4*chunk
                 chunk = chunk + 1
