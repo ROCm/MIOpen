@@ -187,7 +187,6 @@ lds_per_group = 0
     filter_k_gpr_stride = 1
     sequential_read_size= k_mult / vec_size
     sequential_read_stride = filter_c_stride
-    //vec_size * c_mult channels once
     sequential_reads_cnt = c_mult
 .endif
 
@@ -393,7 +392,7 @@ gcnAsmConv1x1U:
 
     .endm
     
-    //perf conv on two packed img vgpr 
+    //perf conv on packed img vgpr 
     .macro conv_line acc, wei, img
         .if dot_instructions_available
             v_dot2_f32_f16 v[\acc], s[\wei], v[\img], v[\acc]
@@ -405,7 +404,7 @@ gcnAsmConv1x1U:
         #v_fma_mix_f32 v[\acc], s[\wei], v[\img], v[\acc] op_sel:[1,1,0] op_sel_hi:[1,1,0]
     .endm
 
-    //repack filter between two vgpr
+    //repack imgs between two vgpr
     .macro exch_img, img_c0, img_c1
         v_mov_b32 v[vtmp], v[\img_c0]
         v_mov_b32_sdwa v[\img_c0], v[\img_c1] dst_sel:WORD_1 src0_sel:WORD_0
@@ -477,9 +476,9 @@ gcnAsmConv1x1U:
                             k_gpr_filter = k * filter_k_gpr_stride
                             wei = \fbase + k_gpr_filter + c_gpr_filter
                         .else //wei[k][c]
-                            x = (k)/(c_mult)
-                            y = (k)%(c_mult)
-                            wei = \fbase + x + y * (k_mult/vec_size) + k_mult * c
+                            x = k / c_mult
+                            y = k % c_mult
+                            wei = \fbase + x + y * filter_c_gpr_stride + k_mult * c
                         .endif
 
                         #v_mov_b32 v[img], 0x3C003C00
