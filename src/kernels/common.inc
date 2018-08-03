@@ -109,15 +109,3 @@ log2 wave_size_log2, wave_size
         buffer_load_dwordx4 v[\dst:\dst+\size-1], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
     .endif
 .endm
-
-.macro m_buffer_store_dwordx size, src, off, desc, soff, ioff=0
-    .if \size == 1
-        buffer_store_dword v[\src], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
-    .elseif \size == 2
-        buffer_store_dwordx2 v[\src:\src+\size-1], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
-    .elseif \size == 3
-        buffer_store_dwordx3 v[\src:\src+\size-1], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
-    .elseif \size == 4
-        buffer_store_dwordx4 v[\src:\src+\size-1], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
-    .endif
-.endm

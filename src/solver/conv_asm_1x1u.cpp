@@ -207,7 +207,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
         return false;
     if(!(waves_in_group <= config.n_inputs))
         return false;
-    if(!((k_mult) <= config.n_outputs))
+    if(!(k_mult <= config.n_outputs))
         return false;
     if((c_mult % VEC_SIZE) != 0)
         return false;
@@ -237,7 +237,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
     if(config.direction.IsBackwardData() && !(config.n_outputs % k_mult == 0))
         return false;
     if(config.direction.IsForward() &&
-            !((c_per_wave % c_mult == 0) && (c_per_last_wave % (c_mult) == 0)))
+       !((c_per_wave % c_mult == 0) && (c_per_last_wave % (c_mult) == 0)))
         return false;
     return true;
 }
@@ -262,19 +262,11 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
 
 void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config)
 {
-    //read_size       = 4;
-    //k_mult          = 16;
-    //chunks_per_wave = 1;
-    //chunk_size      = 16;
-    //n_mult          = 1;
-    //c_mult          = 1;
-    //waves_in_group  = 1;
-
     read_size       = 2;
-    k_mult          = 4;
+    k_mult          = 8;
     chunks_per_wave = 2;
-    chunk_size      = 2;
-    n_mult          = 3;
+    chunk_size      = 8;
+    n_mult          = 2;
     c_mult          = 2;
     waves_in_group  = 2;
 
@@ -282,11 +274,11 @@ void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config
     {
         MIOPEN_LOG_I("!IsValidForProblem(): " << ToString() << ". Conservative re-init...");
         read_size       = 1;
-        k_mult          = 1;
+        k_mult          = 4;
         chunks_per_wave = 1;
         chunk_size      = 1;
         n_mult          = 1;
-        c_mult          = 1;
+        c_mult          = 2;
         waves_in_group  = 1;
         assert(IsValidForProblem(config));
     }
@@ -300,6 +292,7 @@ std::string PerformanceConfigConvAsm1x1U::ToString() const
     return ss.str();
 }
 
+#if 0
 void PrintConfig(const PerformanceConfigConvAsm1x1U& pp, const ConvolutionContext& config)
 {
     const int in_gprs            = pp.chunks_per_wave * pp.n_mult * pp.c_mult * VEC_SIZE;
@@ -317,17 +310,17 @@ void PrintConfig(const PerformanceConfigConvAsm1x1U& pp, const ConvolutionContex
     const int chunk_mask         = (1 << active_chunk_lanes) - 1;
     const int active_n_per_gpr   = (config.batch_sz + total_n_blocks - 1) / total_n_blocks;
     const int active_n_per_wave  = pp.n_mult * active_n_per_gpr;
-    uint64_t active_mask              = chunk_mask;
+    uint64_t active_mask         = chunk_mask;
     for(int i = 0; i < active_n_per_gpr - 1; i++)
         active_mask = (active_mask << pp.chunk_size) + chunk_mask;
-    std::cerr << " img_hw = " << img_hw << " chunk_size = " << pp.chunk_size 
-              << " active_n_per_gpr = " << active_n_per_gpr
-              << " total_chunks = " << total_chunks
+    std::cerr << " img_hw = " << img_hw << " chunk_size = " << pp.chunk_size
+              << " active_n_per_gpr = " << active_n_per_gpr << " total_chunks = " << total_chunks
               << " active_chunk_lanes = " << active_chunk_lanes
               << " active_hw_per_wave = " << active_hw_per_wave << " chunk_mask = " << chunk_mask
               << " active_mask = " << active_mask << " active_n_per_wave = " << active_n_per_wave
               << std::endl;
 }
+#endif
 
 PerformanceConfigConvAsm1x1U
 ConvAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) const
@@ -432,7 +425,6 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
                                       const bool disableConfigOverrideFromEnv) const
 {
 
-    //PrintConfig(config, params);
     ConvSolution result;
 
     std::ostringstream options;
@@ -547,7 +539,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "c_mult", pcfg->GetCMult());
     GenerateClangDefsym(options, "waves_in_group", pcfg->GetWavesInGroup());
 
-    std::cerr << "options = " << options.str() << std::endl;
+    // std::cerr << "options = " << options.str() << std::endl;
 
     KernelInfo kinfo;
     kinfo.comp_options = options.str();
@@ -568,14 +560,12 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     const int n_images_per_wave = pcfg->GetNMult() * pcfg->GetNPerGpr();
     kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_images_per_wave));
 
-    std::cerr << "vld = { " << kinfo.l_wk[0] << ", " << kinfo.l_wk[1] << ", " << kinfo.l_wk[2]
-        << " }" << std::endl;
-    std::cerr << "vgd = { " << kinfo.g_wk[0] << ", " << kinfo.g_wk[1] << ", " << kinfo.g_wk[2]
-        << " }" << std::endl;
+    // std::cerr << "vld = { " << kinfo.l_wk[0] << ", " << kinfo.l_wk[1] << ", " << kinfo.l_wk[2]
+    //<< " }" << std::endl;
+    // std::cerr << "vgd = { " << kinfo.g_wk[0] << ", " << kinfo.g_wk[1] << ", " << kinfo.g_wk[2]
+    //<< " }" << std::endl;
 
     kinfo.kernel_file = "conv1x1u.s";
-    //kinfo.kernel_file = "conv1x1u_fp16.s";
-    //kinfo.kernel_file = "conv1x1u_fp16_mix.s";
     kinfo.kernel_name = "gcnAsmConv1x1U";
 
     if(UseSubsample(params))
