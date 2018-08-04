@@ -600,18 +600,17 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
                   (pix_id * MLO_READ_UNIT);
         scale_off = b * MLO_LRN_SCALE_BATCH_STRIDE + c_o * MLO_LRN_SCALE_CHANNEL_STRIDE +
                     (pix_id * MLO_READ_UNIT);
+        MLO_READ_TYPE prv_scale = ((MLO_READ_TYPE)K + accum * (MLO_READ_TYPE)alphaoverarea);
         //				fma(accum,alphaoverarea, (_FLOAT)1.f);
+
+        MLO_READ_TYPE exp_scale = exp((MLO_READ_TYPE)-beta * log(prv_scale));
         //				pow(prv_scale,-beta);
         // bug
         //			MLO_READ_TYPE prv_out = sqrt(bot_in2[MLO_LRN_PAD]);
         MLO_READ_TYPE prv_out = bot_in2[MLO_LRN_PAD];
         prv_out               = sqrt(prv_out);
-#if(MLO_C1x1_PIXLEFT > 0 || MIOPEN_USE_FP32 == 1)
-        // \todo DLOWELL: adding this preprocesser check to avoid unused variable
-        MLO_READ_TYPE prv_scale = ((MLO_READ_TYPE)K + accum * (MLO_READ_TYPE)alphaoverarea);
-        MLO_READ_TYPE exp_scale = exp((MLO_READ_TYPE)-beta * log(prv_scale));
-        MLO_READ_TYPE out_val   = prv_out * exp_scale;
-#endif
+        MLO_READ_TYPE out_val = prv_out * exp_scale;
+
 #if MLO_LOW_CHNL_COUNT == 1
         if(c_o < MLO_LRN_N_OUTPUTS)
 #endif
@@ -641,12 +640,8 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
             else
 #endif
             {
-#if(MIOPEN_USE_FP16 == 1)
-//*((__global MLO_READ_TYPE*)&top[top_off]) = out_val;
-// \todo DLOWELL: this needs a proper fix. This hack is only to get PRs through.
-#else
+
                 *((__global MLO_READ_TYPE*)&top[top_off]) = out_val;
-#endif
 #if MLO_LRN_DO_SCALE
                 *((__global MLO_READ_TYPE*)&scale[scale_off]) = prv_scale;
 #endif
