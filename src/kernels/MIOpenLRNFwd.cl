@@ -642,7 +642,7 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
             else
 #endif
             {
-#if(MIOPEN_USE_FP32 == 1)
+#if(MIOPEN_USE_FP16 == 1)
 //*((__global MLO_READ_TYPE*)&top[top_off]) = out_val;
 // \todo DLOWELL: this needs a proper fix. This hack is only to get PRs through.
 #else
@@ -711,7 +711,7 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
 #endif
             {
 
-//  *((__global MLO_READ_TYPE*)&top[top_off]) = out_val;
+                *((__global MLO_READ_TYPE*)&top[top_off]) = out_val;
 #if MLO_LRN_DO_SCALE
                 *((__global MLO_READ_TYPE*)&scale[scale_off]) = prv_scale;
 #endif
