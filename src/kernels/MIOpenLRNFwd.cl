@@ -602,8 +602,6 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
                     (pix_id * MLO_READ_UNIT);
         MLO_READ_TYPE prv_scale = ((MLO_READ_TYPE)K + accum * (MLO_READ_TYPE)alphaoverarea);
         //				fma(accum,alphaoverarea, (_FLOAT)1.f);
-
-        MLO_READ_TYPE exp_scale = exp((MLO_READ_TYPE)-beta * log(prv_scale));
         //				pow(prv_scale,-beta);
         // bug
         //			MLO_READ_TYPE prv_out = sqrt(bot_in2[MLO_LRN_PAD]);
@@ -611,7 +609,8 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
         prv_out               = sqrt(prv_out);
 #if(MLO_C1x1_PIXLEFT > 0 || MIOPEN_USE_FP32 == 1)
         // \todo DLOWELL: adding this preprocesser check to avoid unused variable
-        MLO_READ_TYPE out_val = prv_out * exp_scale;
+        MLO_READ_TYPE exp_scale = exp((MLO_READ_TYPE)-beta * log(prv_scale));
+        MLO_READ_TYPE out_val   = prv_out * exp_scale;
 #endif
 #if MLO_LOW_CHNL_COUNT == 1
         if(c_o < MLO_LRN_N_OUTPUTS)
