@@ -609,7 +609,7 @@ MIOpenLRNAcrossChannels4(const __global _FLOAT* bottom,
         //			MLO_READ_TYPE prv_out = sqrt(bot_in2[MLO_LRN_PAD]);
         MLO_READ_TYPE prv_out = bot_in2[MLO_LRN_PAD];
         prv_out               = sqrt(prv_out);
-#if(MLO_C1x1_PIXLEFT <= 0 || MIOPEN_USE_FP16 == 0)
+#if(MLO_C1x1_PIXLEFT <= 0 || MIOPEN_USE_FP32 == 1)
         // \todo DLOWELL: adding this preprocesser check to avoid unused variable
         MLO_READ_TYPE out_val = prv_out * exp_scale;
 #endif
