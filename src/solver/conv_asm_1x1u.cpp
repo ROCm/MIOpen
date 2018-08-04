@@ -64,7 +64,7 @@ static inline int AsmImgHeight(const ConvolutionContext& c)
 
 static inline int AsmImgWidth(const ConvolutionContext& c)
 {
-    return (UseSubsample(c) ? c.out_width : c.in_width) / VEC_SIZE;
+    return UseSubsample(c) ? c.out_width : c.in_width;
 }
 
 /// \todo move to separate header and use in other solvers.
@@ -237,7 +237,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
     if(config.direction.IsBackwardData() && !(config.n_outputs % k_mult == 0))
         return false;
     if(config.direction.IsForward() &&
-       !((c_per_wave % c_mult == 0) && (c_per_last_wave % (c_mult) == 0)))
+       !((c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0)))
         return false;
     return true;
 }
@@ -262,13 +262,13 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
 
 void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config)
 {
-    read_size       = 2;
-    k_mult          = 8;
-    chunks_per_wave = 2;
-    chunk_size      = 8;
-    n_mult          = 2;
-    c_mult          = 2;
-    waves_in_group  = 2;
+    read_size       = 4;
+    k_mult          = 16;
+    chunks_per_wave = 1;
+    chunk_size      = 16;
+    n_mult          = 1;
+    c_mult          = 1;
+    waves_in_group  = 1;
 
     if(!IsValidForProblem(config))
     {
@@ -539,7 +539,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "c_mult", pcfg->GetCMult());
     GenerateClangDefsym(options, "waves_in_group", pcfg->GetWavesInGroup());
 
-    // std::cerr << "options = " << options.str() << std::endl;
+    std::cerr << "options = " << options.str() << std::endl;
 
     KernelInfo kinfo;
     kinfo.comp_options = options.str();
@@ -554,16 +554,16 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
     kinfo.g_wk.push_back(
         kinfo.l_wk[0] *
-        divide_round_plus_inf(AsmImgHeight(params) * AsmImgWidth(params), hw_per_wave));
+        divide_round_plus_inf(AsmImgHeight(params) * ((AsmImgWidth(params) + VEC_SIZE - 1)/VEC_SIZE), hw_per_wave));
 
     kinfo.g_wk.push_back(divide_round_plus_inf(params.n_outputs, pcfg->GetKMult()));
     const int n_images_per_wave = pcfg->GetNMult() * pcfg->GetNPerGpr();
     kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_images_per_wave));
 
-    // std::cerr << "vld = { " << kinfo.l_wk[0] << ", " << kinfo.l_wk[1] << ", " << kinfo.l_wk[2]
-    //<< " }" << std::endl;
-    // std::cerr << "vgd = { " << kinfo.g_wk[0] << ", " << kinfo.g_wk[1] << ", " << kinfo.g_wk[2]
-    //<< " }" << std::endl;
+    std::cerr << "vld = { " << kinfo.l_wk[0] << ", " << kinfo.l_wk[1] << ", " << kinfo.l_wk[2]
+        << " }" << std::endl;
+    std::cerr << "vgd = { " << kinfo.g_wk[0] << ", " << kinfo.g_wk[1] << ", " << kinfo.g_wk[2]
+        << " }" << std::endl;
 
     kinfo.kernel_file = "conv1x1u.s";
     kinfo.kernel_name = "gcnAsmConv1x1U";
