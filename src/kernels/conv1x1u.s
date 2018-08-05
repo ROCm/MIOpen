@@ -191,9 +191,9 @@ lds_per_group = 0
 .endif
 
 
-input_buffer_size = input_n_stride * batch_size
+input_buffer_size = input_n_stride * batch_size + 4 / vec_size //padding the last fp16 element for odd hw
 filter_buffer_size = filters_size
-output_buffer_size = output_n_stride * batch_size
+output_buffer_size = output_n_stride * batch_size + 4 / vec_size //padding the last fp16 element for odd hw
 
 //static_assert(input_channels % (c_mult * waves_in_group) == 0) //todo: remove me
 
