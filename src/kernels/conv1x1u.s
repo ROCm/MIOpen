@@ -61,6 +61,13 @@ gid_n = gid_z
 .set out_ptr_off, 0x30
 .set dbg_ptr_off, 0x38
 
+.set vec_size, 2
+
+static_assert(c_mult % vec_size == 0)
+static_assert(k_mult % vec_size == 0)
+static_assert(c_mult % 2 == 0)
+static_assert(k_mult % 2 == 0)
+
 .include "conv_sizes.inc"
 
 static_assert ((.option.machine_version_major == 8) || (.option.machine_version_major == 9))
@@ -77,22 +84,6 @@ static_assert (output_k_stride < maxU24)
 static_assert (pad_h == 0 && pad_w == 0)
 static_assert (stride_h == 1 && stride_w == 1)
 static_assert (wei_h == 1 && wei_w == 1)
-
-
-//changes for fp16
-.set vec_size, 2
-//request c_mult and k_mult is multiple of vec_size for across channels packed
-//conv
-static_assert(c_mult % vec_size == 0)
-static_assert(k_mult % vec_size == 0)
-//adjust filter_strides for packed filter
-filter_k_stride = filter_k_stride / vec_size
-filter_c_stride = filter_c_stride / vec_size
-input_n_stride = input_n_stride / vec_size
-output_n_stride = output_n_stride / vec_size
-output_k_stride = output_k_stride / vec_size
-input_c_stride = input_c_stride / vec_size
-img_hw = img_hw / vec_size
 
 dot_instructions_available = 0
 .if (.option.machine_version_major == 9) && (.option.machine_version_minor == 0) && (.option.machine_version_stepping == 6)
@@ -149,7 +140,9 @@ hw_per_wave = chunk_size * chunks_per_wave
 active_hw_per_wave = active_chunk_lanes * chunks_per_wave
 
 in_gprs = chunks_per_wave * n_mult * c_mult
-//since we accum fp16 input into fp32, we need vec_size times registers
+
+//since we use mix-precision, which accumulates fp16 into fp32, we need vec_size
+//times fp16 registers for accumulation
 accums_cnt = k_mult * chunks_per_wave * n_mult * vec_size
 
 // exec mask
@@ -199,7 +192,7 @@ lds_per_group = 0
 
 
 input_buffer_size = input_n_stride * batch_size
-filter_buffer_size = filters_size / vec_size
+filter_buffer_size = filters_size
 output_buffer_size = output_n_stride * batch_size
 
 //static_assert(input_channels % (c_mult * waves_in_group) == 0) //todo: remove me
@@ -632,7 +625,7 @@ last_wave:
             s_mov_b32 exec_hi, active_mask_hi
             chunk = 0
             .rept chunks_per_wave
-                #v_cmpx_gt_i32 vcc, 0 + img_hw - chunk, v[current_hw]
+                v_cmpx_gt_i32 vcc, 0 + img_hw - chunk, v[current_hw]
                 //cvt and packed two fp32 into a fp32
                 v_cvt_pkrtz_f16_f32 v[acc], v[acc], v[acc+1]
                 buffer_store_dword v[acc], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0+4*chunk
