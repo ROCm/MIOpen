@@ -517,14 +517,14 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < in_sz; i++)
         {
-            //in[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            // in[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
             in[i] = static_cast<Tgpu>(rand() % 7);
         }
     }
 
     for(int i = 0; i < out_sz; i++)
     {
-        //dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        // dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
         dout[i] = static_cast<Tgpu>(rand() % 7);
     }
 
@@ -1660,11 +1660,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyForward()
         RunForwardCPU();
     }
 
-    for(int i = 0; i < outhost.size(); i++)
-        if(outhost[i] != out[i])
-            fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, outhost[i], (float)out[i]);
-        else
-            fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, outhost[i], (float)out[i]);
+    // for(int i = 0; i < outhost.size(); i++)
+    // if(outhost[i] != out[i])
+    // fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, outhost[i], (float)out[i]);
+    // else
+    // fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, outhost[i], (float)out[i]);
 
     auto error = miopen::rms_range(outhost, out);
     const Tref tolerance =
@@ -1692,11 +1692,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyBackward()
         RunBackwardDataCPU();
     }
 
-    for(int i = 0; i < din_host.size(); i++)
-        if(din_host[i] != din[i])
-            fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, din_host[i], (float)din[i]);
-        else
-            fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, din_host[i], (float)din[i]);
+    // for(int i = 0; i < din_host.size(); i++)
+    // if(din_host[i] != din[i])
+    // fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, din_host[i], (float)din[i]);
+    // else
+    // fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, din_host[i], (float)din[i]);
 
     auto error_data = miopen::rms_range(din_host, din);
 
