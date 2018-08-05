@@ -518,16 +518,14 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
         for(int i = 0; i < in_sz; i++)
         {
             //in[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            //in[i] = static_cast<Tgpu>(rand() % 7);
-            in[i] = 1;
+            in[i] = static_cast<Tgpu>(rand() % 7);
         }
     }
 
     for(int i = 0; i < out_sz; i++)
     {
         //dout[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-        //dout[i] = static_cast<Tgpu>(rand() % 7);
-        dout[i] = 1;
+        dout[i] = static_cast<Tgpu>(rand() % 7);
     }
 
     if(inflags.GetValueInt("bias") != 0)
@@ -570,8 +568,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
         for(int i = 0; i < wei_sz; i++)
         {
             // wei[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
-            //wei[i] = static_cast<Tgpu>(rand() % 7);
-            wei[i] = i;
+            wei[i] = static_cast<Tgpu>(rand() % 7);
         }
     }
 
