@@ -161,7 +161,6 @@
 #define MLO_PADDING_FIX1 (MLO_FILTER_SIZE1 % MLO_OUT_TILE1)
 #define MLO_PADDING_FIX0 (MLO_FILTER_SIZE0 % MLO_OUT_TILE0)
 
-
 #if defined(__AMDGCN__)
 extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane");
 #define uniform(x) __llvm_amdgcn_readfirstlane(x)
@@ -519,7 +518,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
     uint stack = lcl_id / MLO_ALUTILES_STACK_SZ; // stack
     uint alu_stack_id = lcl_id & (MLO_ALUTILES_STACK_SZ - 1); // alu index in stack
 #if MLO_ALUTILES_STACK_SZ >= 64
-    stack = uniform(stack);
+    stack      = uniform(stack);
 #endif
 #endif
 // ALU plane inside stack
@@ -805,7 +804,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #if MLO_FILTER_STRIDE1 == 1
     uint y_out_grp = y_grp;
 #else
-    uint y_out_grp   = y_tile_blk * MLO_IN_TILE1;
+    uint y_out_grp = y_tile_blk * MLO_IN_TILE1;
 #endif
 #else
     uint x_out_grp        = x_grp * MLO_FILTER_STRIDE0;
@@ -1069,7 +1068,6 @@ __attribute__((always_inline)) void ActivationFunction_ELU(const uint n,
     }
 }
 
-
 #ifdef MIOPEN_YES_ACTIV
 __attribute__((always_inline)) void ActivationFunction(const uint n,
                                                        _FLOAT* res,
@@ -1078,7 +1076,6 @@ __attribute__((always_inline)) void ActivationFunction(const uint n,
                                                        const _FLOAT beta,
                                                        const _FLOAT alpha)
 {
-
 
 #if MIOPEN_NRN_OP_ID == MIOPEN_NEURON_PASTHRU
     {
@@ -1125,8 +1122,6 @@ __attribute__((always_inline)) void ActivationFunction(const uint n,
         ActivationFunction_ELU(n, res, data, gamma, beta, alpha);
     }
 #endif
-
-
 }
 #endif
 

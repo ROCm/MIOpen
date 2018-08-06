@@ -453,7 +453,6 @@ struct ConvAsm3x3U : SolverBase<ConvolutionContext>
                               float& elapsed_time) const;
 };
 
-
 struct PerformanceConfigConvActivAsm1x1U : Serializable<PerformanceConfigConvActivAsm1x1U>
 {
     // ------------------- // Full set          Optimized       Spare
@@ -467,8 +466,12 @@ struct PerformanceConfigConvActivAsm1x1U : Serializable<PerformanceConfigConvAct
     bool use_spare_set;
 
     PerformanceConfigConvActivAsm1x1U(int, int, int, int, int, int, bool);
-    PerformanceConfigConvActivAsm1x1U() : PerformanceConfigConvActivAsm1x1U(-1, -1, -1, -1, -1, -1, false) {}
-    PerformanceConfigConvActivAsm1x1U(bool spare) : PerformanceConfigConvActivAsm1x1U(1, 1, 1, 1, 1, 1, spare)
+    PerformanceConfigConvActivAsm1x1U()
+        : PerformanceConfigConvActivAsm1x1U(-1, -1, -1, -1, -1, -1, false)
+    {
+    }
+    PerformanceConfigConvActivAsm1x1U(bool spare)
+        : PerformanceConfigConvActivAsm1x1U(1, 1, 1, 1, 1, 1, spare)
     {
     }
 
@@ -522,8 +525,6 @@ struct ConvActivAsm1x1U : SolverBase<ConvolutionContext>
                               const ConvSolution& solution,
                               float& elapsed_time) const;
 };
-
-
 
 struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
 {

@@ -199,7 +199,7 @@ extern "C" miopenStatus_t miopenCreateOpBiasBackward(miopenFusionPlanDescriptor_
                                                      miopenFusionOpDescriptor_t* dbiasOp,
                                                      const miopenTensorDescriptor_t dbDesc)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc, biasOp, dbDesc);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, dbiasOp, dbDesc);
     return (miopenStatusSuccess);
 }
 
