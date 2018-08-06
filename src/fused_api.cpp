@@ -40,7 +40,7 @@
 
 #ifdef __clang__
 #pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Whicpp-use-auto"
+#pragma clang diagnostic ignored "hicpp-use-auto"
 #endif
 
 // Return an error code that is "NotImplemented", if it exists then return success
