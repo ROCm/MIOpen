@@ -470,7 +470,7 @@ gcnAsmConv1x1U:
                         n_gpr_acc = n * chunks_per_wave
                         k_gpr_acc = k * n_mult * chunks_per_wave
 
-                        img = \ibase + ch_gpr + (n_gpr_inp + c_gpr_inp) * vec_size
+                        img = \ibase + ch_gpr + n_gpr_inp + c_gpr_inp * vec_size
                         acc = accums + (k_gpr_acc + n_gpr_acc + ch_gpr) * vec_size
 
                         .if(weights_layout == 0) //wei[k][c]
