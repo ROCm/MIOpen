@@ -427,7 +427,7 @@ struct PerformanceConfigConvAsm3x3U : Serializable<PerformanceConfigConvAsm3x3U>
     void EuristicInit(const ConvolutionContext& config);
     bool IsValidValue() const;
     bool SetNextValue();
-    bool IsValid(const ConvolutionContext& params) const;
+    bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvAsm3x3U& other) const;
     std::string ToString() const;
 };
