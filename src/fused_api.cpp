@@ -196,7 +196,7 @@ extern "C" miopenStatus_t miopenCreateOpBiasForward(miopenFusionPlanDescriptor_t
 }
 
 extern "C" miopenStatus_t miopenCreateOpBiasBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                     miopenFusionOpDescriptor_t* biasOp,
+                                                     miopenFusionOpDescriptor_t* dbiasOp,
                                                      const miopenTensorDescriptor_t dbDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, biasOp, dbDesc);
