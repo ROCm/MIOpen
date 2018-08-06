@@ -68,7 +68,7 @@ struct OperatorArgs : miopenOperatorArgs
 
 struct FusionOpDescriptor : miopenFusionOpDescriptor
 {
-    virtual ~FusionOpDescriptor() = default;
+    virtual ~FusionOpDescriptor()                 = default;
     FusionOpDescriptor(const FusionOpDescriptor&) = delete;
     FusionOpDescriptor()                          = default;
     FusionOpDescriptor& operator=(const FusionOpDescriptor&) = delete;
@@ -166,11 +166,10 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
           filter_desc(filter_descriptor),
           algo(fwd_algo),
           kernel_info_valid(false),
-          conv_compiler_options("")
-    {
-        // if(base_desc.u != 1 || base_desc.v != 1)
-        //     MIOPEN_THROW("Only stride 1 is supported for convolution operator");
-    };
+          conv_compiler_options(""){
+              // if(base_desc.u != 1 || base_desc.v != 1)
+              //     MIOPEN_THROW("Only stride 1 is supported for convolution operator");
+          };
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
     miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t w);
     std::vector<std::string> GetArgs() const override;
