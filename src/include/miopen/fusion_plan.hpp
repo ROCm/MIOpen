@@ -43,7 +43,7 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     FusionMDGraph lu;
     // FusionOpLU lu;
     bool is_valid;
-    bool is_asm_kernel;
+    FusionKernelSourceType kernel_source_type;
     bool fp_contains_bn;
     std::string program_name;
     std::string kernel_name;

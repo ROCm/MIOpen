@@ -40,7 +40,7 @@ FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
     : fusion_dir(dir),
       input_desc(inDesc),
       is_valid(false),
-      is_asm_kernel(false),
+      kernel_source_type(OpenCL),
       fp_contains_bn(false),
       program_name(""),
       kernel_name(""),
@@ -454,7 +454,12 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     MIOPEN_LOG_I2(program_name << ',' << kernel_name);
     if(program_name == "")
         MIOPEN_THROW("Invalid Fusion Plan");
-    is_asm_kernel  = (program_name.back() == 's');
+    if (miopen::EndsWith(program_name, ".s"))
+        kernel_source_type = Asm;
+    else if (miopen::EndsWith(program_name, ".so"))
+        kernel_source_type = Binary;
+    else
+        kernel_source_type = OpenCL;
 #if 0
     for(auto&& op : op_map)
     { // This needs to go away with the meta graph.
@@ -508,7 +513,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     {
         std::string compile_config;
         auto dType = input_desc.GetType();
-        if(!is_asm_kernel){
+        if(kernel_source_type == OpenCL){
             if(dType == miopenFloat)
             {
                 compile_config += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
@@ -524,7 +529,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         const auto& vgd = ops_head->GetGlobalWGSz(handle, algorithm_name);
         for(auto&& op : op_map)
         {
-            op->GetCompileParms(compile_config, handle, is_asm_kernel);
+            MIOPEN_LOG_I2("GetCompileParms, " << *op);
+            op->GetCompileParms(compile_config, handle, kernel_source_type);
         }
         MIOPEN_LOG_I2("Program: " << program_name << ", kernel: " << kernel_name);
         MIOPEN_LOG_I2("Build options: " << compile_config);
@@ -663,7 +669,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                 args.push_back(it->second);
         }
     }
-    if(is_asm_kernel)
+    if(kernel_source_type == Asm)
     { // Padded arguments
         std::vector<any_t> padded_args;
         size_t running_sz = args[0].size();
