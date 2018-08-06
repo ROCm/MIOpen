@@ -624,19 +624,27 @@ last_wave:
             s_mov_b32 exec_lo, active_mask_lo
             s_mov_b32 exec_hi, active_mask_hi
             chunk = 0
+            acc_t = acc
             .rept chunks_per_wave
-                v_cmpx_gt_i32 vcc, 0 + img_hw - chunk, v[current_hw]
+                v_cmpx_gt_i32 vcc, 0 + (img_hw - odd_hw) - chunk, v[current_hw]
                 //cvt and packed two fp32 into a fp32
                 v_cvt_pkrtz_f16_f32 v[acc], v[acc], v[acc+1]
                 buffer_store_dword v[acc], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0+4*chunk
                 chunk = chunk + 1
                 acc = acc + vec_size
             .endr
+            .if odd_hw
+                s_mov_b32 exec_lo, active_mask_lo
+                s_mov_b32 exec_hi, active_mask_hi
+                v_cmpx_eq_i32 vcc, 0 + img_hw - odd_hw, v[current_hw]
+                v_cvt_f16_f32 v[acc_t], v[acc_t]
+                buffer_store_short v[acc_t], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0
+            .endif
             nb = nb + 1
             .if nb == n_mult
                 s_add_u32 s[soffset_out], s[soffset_out], 0 + input_c_stride - (active_n_per_wave-active_n_per_gpr) * output_n_stride
             .else
-                s_add_u32 s[soffset_out], s[soffset_out], 0 + active_n_per_gpr* output_n_stride
+                s_add_u32 s[soffset_out], s[soffset_out], 0 + active_n_per_gpr * output_n_stride
             .endif
         .endr
         .if (disable_case_opt || output_channels % k_mult)

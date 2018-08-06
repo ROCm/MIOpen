@@ -38,6 +38,7 @@ filters_size = nbytes * weights_per_filter * input_channels * output_channels
 
 // input/output
 img_hw = (img_h * img_w + vec_size - 1) / vec_size
+odd_hw = (img_h * img_w) % vec_size
 out_w = (img_w + 2 * pad_w - wei_w) / stride_w + 1;
 out_h = (img_h + 2 * pad_h - wei_h) / stride_h + 1;
 input_line_size = nbytes * img_w
