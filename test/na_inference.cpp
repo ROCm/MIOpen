@@ -42,12 +42,12 @@ struct verify_inference_batchnorm_activ
     double epsilon;
 
     verify_inference_batchnorm_activ(tensor<T>& pinput,
-                                             miopenActivationDescriptor_t& pactivDesc,
-                                             tensor<T>& pbnscale,
-                                             tensor<T>& pbnbias,
-                                             tensor<T>& pestMean,
-                                             tensor<T>& pestVariance,
-                                             miopenBatchNormMode_t pbnmode)
+                                     miopenActivationDescriptor_t& pactivDesc,
+                                     tensor<T>& pbnscale,
+                                     tensor<T>& pbnbias,
+                                     tensor<T>& pestMean,
+                                     tensor<T>& pestVariance,
+                                     miopenBatchNormMode_t pbnmode)
     {
         input           = pinput;
         inputDesc       = &pinput.desc;
@@ -65,7 +65,7 @@ struct verify_inference_batchnorm_activ
     {
 
         auto&& handle = get_handle();
-        auto bout = input;
+        auto bout     = input;
         std::fill(bout.begin(), bout.end(), 0.);
         auto aout = input;
         std::fill(aout.begin(), aout.end(), 0.);
@@ -85,8 +85,7 @@ struct verify_inference_batchnorm_activ
         miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, fusePlanDesc);
         if(miopenError != miopenStatusSuccess)
         {
-            std::cerr << "BatchNorm+Activation Inference plan not supported."
-                      << std::endl;
+            std::cerr << "BatchNorm+Activation Inference plan not supported." << std::endl;
         }
         else
         {
@@ -101,19 +100,19 @@ struct verify_inference_batchnorm_activ
                     input, bout, bnscale, bnbias, epsilon, estMean, estVariance);
             }
             activationHostInfererence(activ_mode,
-                                          static_cast<T>(activ_gamma),
-                                          static_cast<T>(activ_beta),
-                                          static_cast<T>(activ_alpha),
-                                          bout,
-                                          aout);
+                                      static_cast<T>(activ_gamma),
+                                      static_cast<T>(activ_beta),
+                                      static_cast<T>(activ_alpha),
+                                      bout,
+                                      aout);
         }
         return aout;
     }
 
     tensor<T> gpu() const
     {
-        auto&& handle        = get_handle();
-        auto baout = input;
+        auto&& handle = get_handle();
+        auto baout    = input;
         std::fill(baout.begin(), baout.end(), 0.);
         auto in_dev          = handle.Write(input.data);
         auto out_dev         = handle.Write(baout.data);
@@ -154,7 +153,8 @@ struct verify_inference_batchnorm_activ
                                               estMean_dev.get(),
                                               estVariance_dev.get(),
                                               epsilon);
-            miopenSetOpArgsActivForward(fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
+            miopenSetOpArgsActivForward(
+                fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
             miopenExecuteFusionPlan(&handle,
                                     fusePlanDesc,
                                     inputDesc,
@@ -168,10 +168,7 @@ struct verify_inference_batchnorm_activ
         return baout;
     }
 
-    void fail(float = 0) const
-    {
-        std::cerr << "BatchNorm+Activation Inference:" << std::endl;
-    }
+    void fail(float = 0) const { std::cerr << "BatchNorm+Activation Inference:" << std::endl; }
 };
 
 template <class T>
@@ -188,15 +185,15 @@ struct na_fusion_driver : test_driver
     miopenBatchNormMode_t bnmode{};
     int batchnormMode;
 
-    unsigned long max_value      = miopen_type<T>{} == miopenHalf ? 5 : 17;
+    unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
     double alpha = 0., beta = 0., gamma = 0.;
 
     na_fusion_driver()
     {
         add(input, "input", get_input_tensor());
-        add(alpha, "alpha", generate_data({1. , 0.5}));
-        add(beta, "beta", generate_data({0. ,  0.5}));
-        add(gamma, "gamma", generate_data({1. ,0.5}));
+        add(alpha, "alpha", generate_data({1., 0.5}));
+        add(beta, "beta", generate_data({0., 0.5}));
+        add(gamma, "gamma", generate_data({1., 0.5}));
         add(amode, "amode", generate_data({0, 3, 8, 1}));
         add(batchnormMode, "batch-norm-mode", generate_data({0, 1}));
     }
@@ -244,7 +241,6 @@ struct na_fusion_driver : test_driver
             shift       = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
             estMean     = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
             estVariance = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
-
         }
         else
         {
@@ -263,7 +259,8 @@ struct na_fusion_driver : test_driver
                 input[i] = (((rand() % 2) == 1) ? -1 : 1) * (1e-5 * T(rand() % 100));
             }
         }
-        verify(verify_inference_batchnorm_activ<T>{input, activDesc, scale, shift, estMean, estVariance, bnmode});
+        verify(verify_inference_batchnorm_activ<T>{
+            input, activDesc, scale, shift, estMean, estVariance, bnmode});
         miopenDestroyActivationDescriptor(activDesc);
     }
 };
