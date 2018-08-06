@@ -86,7 +86,7 @@ void FusionMDGraph::Init(FusionMDGraph& g, miopenFusionOp_t op)
     break;
     case miopenFusionOpActivForward:
     case miopenFusionOpBiasForward:
-        MIOPEN_THROW("Operators Activ and Bias are not supported as first ops in a Fusion Plan");
+        MIOPEN_THROW("Operators Activ and Bias are not supported as first ops in a Fusion Plan (yet)");
     }
 }
 
@@ -129,6 +129,7 @@ void FusionMDGraph::InitBN(FusionMDGraph& g)
 void FusionMDGraph::InitConv(FusionMDGraph& g)
 {
     std::map<std::string, int> defaults = {{"mode", miopenConvolution},
+                                           {"algo", miopenConvolutionFwdAlgoDirect},
                                            {"paddingMode", miopenPaddingDefault},
                                            {"pad_h", 0},
                                            {"pad_w", 0},
@@ -296,22 +297,9 @@ bool FusionMDGraph::CmpOpKey(T&& edge_val, U&& op_val) const
 
 bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
 {
-#if 0
-    if(cur_vertex == nullptr)
-    {
-        if(ops[0]->kind() == root->op)
-        {
-            cur_vertex = root;
-            start_idx = 1;
-        }
-        else
-        {
-            MIOPEN_THROW("Operation not supported");
-        }
-    }
-#endif
 
     std::vector<std::pair<MDGraph_vertex_ptr, int>> new_list;
+    std::set<miopenConvFwdAlgorithm_t> new_set;
     // get the children of the cur_vertex
     for(auto idx_cur = 0; idx_cur < cur_vertex.size(); idx_cur++)
     {
@@ -328,11 +316,19 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
                 {
                     weight += std::stoi(ch_it->second["weight"][0]);
                     new_list.push_back(std::pair<MDGraph_vertex_ptr, int>(ch_it->first, weight));
+
+                    // Update the algo set
+                    // This piece of code is here only because 
+                    if(op->kind() == miopenFusionOpConvForward)
+                    {
+                        //new_set.insert(static_cast<miopenConvFwdAlgorithm_t>(ch_it->second["key"]["algo"]));
+                    }
                 }
             }
         }
     }
     cur_vertex = new_list;
+    algo_set = new_set;
 
     if(cur_vertex.size() == 0)
         return false;

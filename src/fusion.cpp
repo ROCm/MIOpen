@@ -113,6 +113,30 @@ miopenStatus_t FusionPlanDescriptor::GetWorkspaceSizeImmed(Handle& handle,
     return miopenStatusSuccess;
 }
 
+miopenStatus_t FusionPlanDescriptor::GetConvAlgos(FusionOpDescriptor& convOp, 
+    int reqAlgoCount, int& retAlgoCount, miopenConvFwdAlgorithm_t* ptrAlgos)
+{
+    (void)reqAlgoCount;
+    (void)retAlgoCount;
+    (void)ptrAlgos;
+    if(convOp.kind() != miopenFusionOpConvForward)
+        MIOPEN_THROW("GetConvAlgos is only supported for opertors of type miopenFusionOpConvForward");
+    // auto ptr = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(&convOp);
+
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t FusionPlanDescriptor::SetConvAlgo(FusionOpDescriptor& convOp,
+    miopenConvFwdAlgorithm_t algo)
+{
+    (void) convOp;
+    (void) algo;
+    if(convOp.kind() != miopenFusionOpConvForward)
+        MIOPEN_THROW("SetConvAlgo is only supported for opertors of type miopenFusionOpConvForward");
+    
+    return miopenStatusSuccess;   
+}
+
 std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& fpd)
 {
     (void)(fpd);
@@ -353,48 +377,6 @@ std::vector<std::string> BiasFusionOpDescriptor::GetArgs() const
 }
 
 std::string BiasFusionOpDescriptor::MDGraphKey() const { return base_desc.ToString(); }
-#if 0
-// Op LUT
-bool FusionOpLU::Advance(std::vector<std::shared_ptr<miopen::FusionOpDescriptor>> op_map)
-{
-
-    auto valid = false;
-    for(auto supportedOps : lut)
-    {
-        valid = std::equal(supportedOps.begin(),
-                           supportedOps.begin() + op_map.size() - 1,
-                           op_map.begin(),
-                           [&](miopenFusionOp_t x, std::shared_ptr<miopen::FusionOpDescriptor> y) {
-                               return x == y->kind();
-                           });
-        if(valid)
-            return valid;
-    }
-    /*    if(valid)
-        {
-            cur_idx = idx + 1;
-            lut_hit.push_back(1);
-            return valid;
-        }
-        else
-            lut_hit.push_back(0);
-
-        lut_hit.resize(cur_idx_tmp);*/
-    return false;
-}
-
-/*auto FusionOpLU::GetPaths()
-{
-    std::vector<miopenFusionOp_t> vec;
-    for(size_t idx = 0; lut_hit.size(); idx++)
-    {
-        if(lut_hit[idx] == 1)
-            vec.push_back(lut[idx]);
-    }
-    return vec;
-}
-*/
-#endif
 
 std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
 {
@@ -452,49 +434,6 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     if(program_name == "")
         MIOPEN_THROW("Invalid Fusion Plan");
     is_asm_kernel  = (program_name.back() == 's');
-#if 0
-    for(auto&& op : op_map)
-    { // This needs to go away with the meta graph.
-        if(op->kind() == miopenFusionOpBatchNormInference)
-        {
-            printf("Fusion plan contains batch norm.\n");
-            fp_contains_bn = true;
-            break;
-        }
-    }
-
-    if(ops_head->kind() == miopenFusionOpConvForward)
-    {
-        auto ops_conv = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head);
-
-        if(!fp_contains_bn)
-        { // If we get BN asm code then we can do this....
-            is_asm_kernel = ops_conv->isASMApplicable(handle);
-            if(is_asm_kernel)
-            {
-                algorithm_name = "miopenConvolutionDirectBiasActivAsm";
-            }
-            else
-            {
-                algorithm_name = "miopenConvolutionDirectBiasActiv";
-            }
-        }
-        else
-        {
-            std::cout << "Is this an assembly kernel? " << is_asm_kernel << std::endl;
-            algorithm_name = "miopenConvDirectBatchNormBiasActiv";
-        }
-    }
-    else if(ops_head->kind() == miopenFusionOpBatchNormInference)
-    {
-        fp_contains_bn = true;
-        algorithm_name = "miopenBatchNormActivInferAlgo";
-    }
-    else
-    {
-        status = miopenStatusNotImplemented;
-    }
-#endif
 
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
     if(!kernels.empty())
@@ -554,7 +493,6 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         MIOPEN_THROW("The input descriptors dont match.");
     }
 
-    // TODO: The Metadata graph should return this info
     auto ops_head = op_map[0];
 
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
