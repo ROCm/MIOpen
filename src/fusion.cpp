@@ -451,6 +451,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     algorithm_name = lu.GetAlgoName();
     program_name   = GetProgramName(handle);
     kernel_name    = GetKernelName(handle);
+    MIOPEN_LOG_I2(program_name << ',' << kernel_name);
     if(program_name == "")
         MIOPEN_THROW("Invalid Fusion Plan");
     is_asm_kernel  = (program_name.back() == 's');
@@ -585,6 +586,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     auto ops_head = op_map[0];
 
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
+    MIOPEN_LOG_I2(algorithm_name << ',' << network_config);
     if(kernels.empty())
     {
         MIOPEN_THROW("The FusionPlan was not compiled for execution");
