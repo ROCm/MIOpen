@@ -104,6 +104,38 @@ miopenFusionPlanGetWorkSpaceSize(miopenHandle_t handle,
 }
 
 extern "C" miopenStatus_t
+miopenFusionPlanConvolutionGetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                  miopenFusionOpDescriptor_t convOp,
+                                  const int requestAlgoCount,
+                                  int* returnedAlgoCount,
+                                  miopenConvFwdAlgorithm_t* returnedAlgos)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, requestAlgoCount, returnedAlgoCount, returnedAlgos);
+    miopenStatus_t res = miopenStatusSuccess;
+    miopen::try_([&]{
+        int cnt = 0;
+        res = miopen::deref(fusePlanDesc).GetConvAlgos(miopen::deref(convOp), 
+                        requestAlgoCount, cnt, returnedAlgos);
+        miopen::deref(returnedAlgoCount) = cnt;
+    });
+    return res;
+}
+
+extern "C" miopenStatus_t
+miopenFusionPlanConvolutionSetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                  miopenFusionOpDescriptor_t convOp,
+                                  miopenConvFwdAlgorithm_t algo)
+{
+  MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, algo);
+    miopenStatus_t res = miopenStatusSuccess;
+    miopen::try_([&]{
+      res = miopen::deref(fusePlanDesc).SetConvAlgo(miopen::deref(convOp),
+              algo);
+    });
+    return res;
+}
+
+extern "C" miopenStatus_t
 miopenCreateOpConvBackwardDataAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
                                    miopenFusionOpDescriptor_t* convOp,
                                    miopenConvolutionDescriptor_t convDesc,
