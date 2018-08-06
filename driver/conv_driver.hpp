@@ -1660,11 +1660,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyForward()
         RunForwardCPU();
     }
 
-    // for(int i = 0; i < outhost.size(); i++)
-    // if(outhost[i] != out[i])
-    // fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, outhost[i], (float)out[i]);
-    // else
-    // fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, outhost[i], (float)out[i]);
+    //for(int i = 0; i < outhost.size(); i++)
+        //if(outhost[i] != out[i])
+            //fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, outhost[i], (float)out[i]);
+        //else
+            //fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, outhost[i], (float)out[i]);
 
     auto error = miopen::rms_range(outhost, out);
     const Tref tolerance =
@@ -1692,11 +1692,11 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyBackward()
         RunBackwardDataCPU();
     }
 
-    // for(int i = 0; i < din_host.size(); i++)
-    // if(din_host[i] != din[i])
-    // fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, din_host[i], (float)din[i]);
-    // else
-    // fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, din_host[i], (float)din[i]);
+    //for(int i = 0; i < din_host.size(); i++)
+        //if(din_host[i] != din[i])
+            //fprintf(stdout, ">>>[%d] CPU = %f GPU = %f\n", i, din_host[i], (float)din[i]);
+        //else
+            //fprintf(stdout, "[%d] CPU = %f GPU = %f\n", i, din_host[i], (float)din[i]);
 
     auto error_data = miopen::rms_range(din_host, din);
 
