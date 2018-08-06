@@ -314,8 +314,8 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
     for(auto& kinder : cur_vertex)
     {
 
-        MDGraph_vertex_ptr& cur_vertex_ptr = kinder.first; // cur_vertex[idx_cur].first;
-        int& weight = kinder.second;                       // cur_vertex[idx_cur].second;
+        MDGraph_vertex_ptr& cur_vertex_ptr = kinder.first;  // cur_vertex[idx_cur].first;
+        int& weight                        = kinder.second; // cur_vertex[idx_cur].second;
 
         auto& ch = edge_list[cur_vertex_ptr];
         // if op is in the children and the edge key satisfies update cur_vertex
