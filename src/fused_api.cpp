@@ -38,6 +38,11 @@
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Whicpp-use-auto"
+#endif
+
 // Return an error code that is "NotImplemented", if it exists then return success
 // This function should:
 //		set up the place descriptor with expected input and ouput edges.
@@ -548,3 +553,8 @@ miopenGetFusionPlanCostEmpirical(miopenOpCost_t* opCost,
     (void)(opCost);
     return (miopenStatusSuccess);
 }
+
+// Restore warnings
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
