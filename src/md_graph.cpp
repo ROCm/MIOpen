@@ -259,7 +259,7 @@ void FusionMDGraph::AddEdge(MDGraph_vertex_ptr src,
     else
     {
         auto& old_map = edge_list[src][dst];
-        for(auto &it : map)
+        for(auto& it : map)
         {
             if(old_map.count(it.first) == 0)
             {
@@ -310,16 +310,16 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
 
     std::vector<std::pair<MDGraph_vertex_ptr, int>> new_list;
     // get the children of the cur_vertex
-    //unsigned int idx_cur = 0;
-    for(auto &kinder : cur_vertex)
+    // unsigned int idx_cur = 0;
+    for(auto& kinder : cur_vertex)
     {
-        
-        MDGraph_vertex_ptr& cur_vertex_ptr = kinder.first;//cur_vertex[idx_cur].first;
-        int& weight                        = kinder.second;//cur_vertex[idx_cur].second;
+
+        MDGraph_vertex_ptr& cur_vertex_ptr = kinder.first; // cur_vertex[idx_cur].first;
+        int& weight = kinder.second;                       // cur_vertex[idx_cur].second;
 
         auto& ch = edge_list[cur_vertex_ptr];
         // if op is in the children and the edge key satisfies update cur_vertex
-        for(auto &ch_it : ch)
+        for(auto& ch_it : ch)
         {
             if(ch_it.first->op == op->kind())
             {
@@ -330,7 +330,7 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
                 }
             }
         }
-        //idx_cur++;
+        // idx_cur++;
     }
     cur_vertex = new_list;
     return (!cur_vertex.empty());
