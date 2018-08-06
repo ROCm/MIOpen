@@ -50,7 +50,7 @@ struct verify_forward_conv_bias_batchnorm_activ
 
     miopenBatchNormMode_t bnmode;
     bool bias_mode = false;
-    bool doactive   = false;
+    bool doactive  = false;
     double epsilon;
 
     // using conv_base<T>::search; //DLOWELL not needed right now
@@ -65,7 +65,7 @@ struct verify_forward_conv_bias_batchnorm_activ
                                              tensor<T>& pbnbias,
                                              tensor<T>& pestMean,
                                              tensor<T>& pestVariance,
-                                             miopenBatchNormMode_t pbnmode/*, int psearch = 0 */)
+                                             miopenBatchNormMode_t pbnmode /*, int psearch = 0 */)
     {
         input           = pinput;
         inputDesc       = &pinput.desc;
@@ -122,7 +122,7 @@ struct verify_forward_conv_bias_batchnorm_activ
 
         miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bnmode, biasScaleTensor);
         if(doactive)
-        {    
+        {
             miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
         }
 
@@ -138,14 +138,14 @@ struct verify_forward_conv_bias_batchnorm_activ
                 }
                 else
                 {
-                     std::cerr << "Conv+Bias+BatchNorm Inference plan not supported."
-                                  << std::endl;   
-                } 
+                    std::cerr << "Conv+Bias+BatchNorm Inference plan not supported." << std::endl;
+                }
             else
-            {    
+            {
                 if(doactive)
                 {
-                    std::cerr << "Conv+BatchNorm+Activation Inference plan not supported." << std::endl;
+                    std::cerr << "Conv+BatchNorm+Activation Inference plan not supported."
+                              << std::endl;
                 }
                 else
                 {
@@ -235,7 +235,7 @@ struct verify_forward_conv_bias_batchnorm_activ
         miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bnmode, biasScaleTensor);
 
         if(doactive)
-        { 
+        {
             miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
         }
 
@@ -251,14 +251,14 @@ struct verify_forward_conv_bias_batchnorm_activ
                 }
                 else
                 {
-                     std::cerr << "Conv+Bias+BatchNorm Inference plan not supported."
-                                  << std::endl;   
-                } 
+                    std::cerr << "Conv+Bias+BatchNorm Inference plan not supported." << std::endl;
+                }
             else
-            {    
+            {
                 if(doactive)
                 {
-                    std::cerr << "Conv+BatchNorm+Activation Inference plan not supported." << std::endl;
+                    std::cerr << "Conv+BatchNorm+Activation Inference plan not supported."
+                              << std::endl;
                 }
                 else
                 {
@@ -312,10 +312,10 @@ struct verify_forward_conv_bias_batchnorm_activ
             }
             else
             {
-                 std::cerr << "Conv+Bias+BatchNorm Inference:" << std::endl;   
-            } 
+                std::cerr << "Conv+Bias+BatchNorm Inference:" << std::endl;
+            }
         else
-        {    
+        {
             if(doactive)
             {
                 std::cerr << "Conv+BatchNorm+Activation Inference:" << std::endl;
@@ -324,7 +324,7 @@ struct verify_forward_conv_bias_batchnorm_activ
             {
                 std::cerr << "Conv+BatchNorm Inference:" << std::endl;
             }
-        }      
+        }
     }
 };
 
@@ -471,17 +471,16 @@ struct cbna_fusion_driver : test_driver
 
             std::size_t ssn, ssc, ssh, ssw;
             auto derivedBnDesc = miopen::TensorDescriptor{};
-            output = get_output_tensor(filter, input, weights);
+            output             = get_output_tensor(filter, input, weights);
             miopen::DeriveBNTensorDescriptor(derivedBnDesc, output.desc, bnmode);
             std::tie(ssn, ssc, ssh, ssw) = miopen::tien<4>(derivedBnDesc.GetLengths());
 
             if(input.desc.GetType() == miopenFloat)
             {
-                scale = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
-                shift = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
-                estMean = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
+                scale       = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
+                shift       = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
+                estMean     = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
                 estVariance = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
-
             }
             else
             {
@@ -490,9 +489,9 @@ struct cbna_fusion_driver : test_driver
                 shift = tensor<T>{ssn, ssc, ssh, ssw};
                 for(int i = 0; i < scale.desc.GetElementSize(); i++)
                 {
-                    scale[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
-                    shift[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
-                    estMean[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
+                    scale[i]       = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
+                    shift[i]       = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
+                    estMean[i]     = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
                     estVariance[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
                 }
                 for(int i = 0; i < input.desc.GetElementSize(); i++)
@@ -515,14 +514,34 @@ struct cbna_fusion_driver : test_driver
                     auto bias =
                         tensor<T>{1, output.desc.GetLengths()[1], 1, 1}.generate(rand_gen{});
                     // create activation descriptor here
-                    verify(verify_forward_conv_bias_batchnorm_activ<T>{
-                        input, weights, filter, bias_mode, bias, activDesc, tactiv, scale, shift, estMean, estVariance, bnmode});
+                    verify(verify_forward_conv_bias_batchnorm_activ<T>{input,
+                                                                       weights,
+                                                                       filter,
+                                                                       bias_mode,
+                                                                       bias,
+                                                                       activDesc,
+                                                                       tactiv,
+                                                                       scale,
+                                                                       shift,
+                                                                       estMean,
+                                                                       estVariance,
+                                                                       bnmode});
                 }
                 else
                 {
-                    auto bias = tensor<T>{1, 1, 1, 1}; //dummy bias
-                    verify(verify_forward_conv_bias_batchnorm_activ<T>{
-                        input, weights, filter, bias_mode, bias, activDesc, tactiv, scale, shift, estMean, estVariance, bnmode});
+                    auto bias = tensor<T>{1, 1, 1, 1}; // dummy bias
+                    verify(verify_forward_conv_bias_batchnorm_activ<T>{input,
+                                                                       weights,
+                                                                       filter,
+                                                                       bias_mode,
+                                                                       bias,
+                                                                       activDesc,
+                                                                       tactiv,
+                                                                       scale,
+                                                                       shift,
+                                                                       estMean,
+                                                                       estVariance,
+                                                                       bnmode});
                 }
             }
         }
