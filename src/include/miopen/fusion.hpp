@@ -68,7 +68,7 @@ struct OperatorArgs : miopenOperatorArgs
 
 struct FusionOpDescriptor : miopenFusionOpDescriptor
 {
-    virtual ~FusionOpDescriptor(){};
+    virtual ~FusionOpDescriptor() = default;
     FusionOpDescriptor(const FusionOpDescriptor&) = delete;
     FusionOpDescriptor()                          = default;
     FusionOpDescriptor& operator=(const FusionOpDescriptor&) = delete;
