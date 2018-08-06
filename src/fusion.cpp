@@ -451,7 +451,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     kernel_name    = GetKernelName(handle);
     if(program_name.empty())
         MIOPEN_THROW("Invalid Fusion Plan");
-    is_asm_kernel  = (program_name.back() == 's');
+    is_asm_kernel = (program_name.back() == 's');
 #if 0
     for(auto&& op : op_map)
     { // This needs to go away with the meta graph.
@@ -505,7 +505,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     {
         std::string compile_config;
         auto dType = input_desc.GetType();
-        if(!is_asm_kernel){
+        if(!is_asm_kernel)
+        {
             if(dType == miopenFloat)
             {
                 compile_config += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
@@ -604,7 +605,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             auto op   = op_map[idx];
             auto keys = size_map[std::pair<size_t, size_t>(idx, sz)];
             std::sort(keys.begin(), keys.end());
-            for(auto &key : keys)
+            for(auto& key : keys)
             {
                 MIOPEN_LOG_I("Populate scalar args, key: " + key);
                 auto it = op_args.args_map.find(key);
@@ -624,7 +625,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         auto op   = op_map[idx];
         auto keys = ptr_map[idx];
         std::sort(keys.begin(), keys.end());
-        for(auto &key : keys)
+        for(auto& key : keys)
         {
             MIOPEN_LOG_I("Populate arg pointers, key: " + key);
             auto it = op_args.args_map.find(key);
