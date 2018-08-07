@@ -297,7 +297,6 @@ extern "C" miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
     });
 }
 
-
 extern "C" miopenStatus_t miopenSetOpArgsConvBackwardData(miopenOperatorArgs_t args,
                                                           const miopenFusionOpDescriptor_t convOp,
                                                           const void* alpha,
@@ -339,7 +338,6 @@ extern "C" miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
     });
 }
 
-
 extern "C" miopenStatus_t miopenSetOpArgsBiasBackward(miopenOperatorArgs_t args,
                                                       const miopenFusionOpDescriptor_t dbiasOp,
                                                       const void* alpha,
@@ -380,7 +378,6 @@ extern "C" miopenStatus_t miopenSetOpArgsActivBackward(miopenOperatorArgs_t args
     return (miopenStatusSuccess);
 }
 
-
 // Fusion op args for Batch Normalization
 extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t args,
                                                             const miopenFusionOpDescriptor_t bnOp,
@@ -407,7 +404,6 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t
                    epsilon);
     });
 }
-
 
 extern "C" miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_t args,
                                                           const miopenFusionOpDescriptor_t bnOp,
