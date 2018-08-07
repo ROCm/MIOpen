@@ -2888,7 +2888,6 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 #else
         (void)workSpace;     // Suppress warning
         (void)workSpaceSize; // Suppress warning
-        (void)workspace_req; // Suppress warning
 #endif
     }
     else if(mode == miopenGroupConv || mode == miopenDepthwise)
