@@ -282,10 +282,6 @@ extern "C" miopenStatus_t miopenDestroyOperatorArgs(miopenOperatorArgs_t args)
     return miopen::try_([&] { miopen_destroy_object(args); });
 }
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-hicpp-use-auto"
-#endif
 // Fusion op args for Convolution
 extern "C" miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
                                                      const miopenFusionOpDescriptor_t convOp,
@@ -300,10 +296,7 @@ extern "C" miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
         op.SetArgs(miopen::deref(args), alpha, beta, tmp);
     });
 }
-// Restore warnings
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
+
 
 extern "C" miopenStatus_t miopenSetOpArgsConvBackwardData(miopenOperatorArgs_t args,
                                                           const miopenFusionOpDescriptor_t convOp,
@@ -332,11 +325,6 @@ miopenSetOpArgsConvBackwardWeights(miopenOperatorArgs_t args,
 }
 //----
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-hicpp-use-auto"
-#endif
-// Fusion op args for bias
 extern "C" miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
                                                      const miopenFusionOpDescriptor_t biasOp,
                                                      const void* alpha,
@@ -350,10 +338,7 @@ extern "C" miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
         op.SetArgs(miopen::deref(args), alpha, beta, DataCast(bias));
     });
 }
-// Restore warnings
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
+
 
 extern "C" miopenStatus_t miopenSetOpArgsBiasBackward(miopenOperatorArgs_t args,
                                                       const miopenFusionOpDescriptor_t dbiasOp,
@@ -367,10 +352,6 @@ extern "C" miopenStatus_t miopenSetOpArgsBiasBackward(miopenOperatorArgs_t args,
 }
 //---
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-hicpp-use-auto"
-#endif
 extern "C" miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
                                                       const miopenFusionOpDescriptor_t activOp,
                                                       const void* alpha,
@@ -386,10 +367,6 @@ extern "C" miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
         op.SetArgs(miopen::deref(args), alpha, beta, activAlpha, activBeta, activGamma);
     });
 }
-// Restore warnings
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 extern "C" miopenStatus_t miopenSetOpArgsActivBackward(miopenOperatorArgs_t args,
                                                        const miopenFusionOpDescriptor_t activOp,
@@ -403,10 +380,7 @@ extern "C" miopenStatus_t miopenSetOpArgsActivBackward(miopenOperatorArgs_t args
     return (miopenStatusSuccess);
 }
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-hicpp-use-auto"
-#endif
+
 // Fusion op args for Batch Normalization
 extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t args,
                                                             const miopenFusionOpDescriptor_t bnOp,
@@ -433,10 +407,7 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t
                    epsilon);
     });
 }
-// Restore warnings
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
+
 
 extern "C" miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_t args,
                                                           const miopenFusionOpDescriptor_t bnOp,
