@@ -259,13 +259,3 @@ tensor<T> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
 {
     return tensor<T>{filter.GetForwardOutputTensor(input.desc, weights.desc)};
 }
-
-std::vector<miopen::ConvolutionDescriptor> get_filters()
-{
-    return {miopen::ConvolutionDescriptor{0, 0, 1, 1} /*,
-            miopen::ConvolutionDescriptor{0, 0, 2, 2},
-            miopen::ConvolutionDescriptor{1, 1, 1, 1},
-            miopen::ConvolutionDescriptor{1, 1, 2, 2},
-            miopen::ConvolutionDescriptor{2, 2, 1, 1},
-            miopen::ConvolutionDescriptor{3, 3, 2, 2}*/};
-};
