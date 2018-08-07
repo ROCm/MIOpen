@@ -375,13 +375,13 @@ if(MIOPEN_TEST_DEEPBENCH)
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 14 14 --weights 256 128 3 3 --filter 1 1 1 1
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 256 7 7 --weights 512 256 3 3 --filter 1 1 1 1
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 3 224 224 --weights 64 3 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 112 112 128 --weights 64 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 64 112 112 --weights 128 64 3 3 --filter 1 1 1 1
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 128 56 56 --weights 256 128 3 3 --filter 1 1 1 1
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 256 28 28 --weights 512 256 3 3 --filter 1 1 1 1
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 14 14 --weights 512 512 3 3 --filter 1 1 1 1
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 8 512 7 7 --weights 512 512 3 3 --filter 1 1 1 1
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 3 224 224 --weights 64 3 3 3 --filter 1 1 1 1
-    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 64 112 112 128 --weights 64 3 3 --filter 1 1 1 1
+    COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 64 112 112 --weights 128 64 3 3 --filter 1 1 1 1
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 128 56 56 --weights 256 128 3 3 --filter 1 1 1 1
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 256 28 28 --weights 512 256 3 3 --filter 1 1 1 1
     COMMAND $<TARGET_FILE:test_conv> --verbose --input 16 512 14 14 --weights 512 512 3 3 --filter 1 1 1 1

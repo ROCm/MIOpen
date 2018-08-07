@@ -30,7 +30,6 @@
 #include "InputFlags.hpp"
 #include "driver.hpp"
 #include "miopen_BatchNormHost.hpp"
-#include "tensor_driver.hpp"
 #include "timer.hpp"
 #include <algorithm>
 #include <cmath>
@@ -49,7 +48,8 @@
 
 #define EPSILON 1e-3
 
-#define ERRTOL 1e-4
+#define ERRTOL_FP32 1e-4
+#define ERRTOL_FP16 0.5e-3
 #define RMSTOL_FP32 1e-4
 #define RMSTOL_FP16 0.5e-3
 
@@ -120,8 +120,8 @@ class BatchNormDriver : public Driver
     bool keepRunningMeanVar;
     bool estimatedMeanVar;
 
-    unsigned char forw;
-    unsigned char back;
+    int forw;
+    int back;
 
     InputFlags inflags;
 
@@ -156,9 +156,9 @@ class BatchNormDriver : public Driver
     std::vector<Tref> dxout_host;
 
     std::vector<Tgpu> scale;
-    std::vector<Tgpu> scale_host;
+    std::vector<Tref> scale_host;
     std::vector<Tgpu> bias;
-    std::vector<Tgpu> bias_host;
+    std::vector<Tref> bias_host;
 
     std::vector<Tgpu> dscale;
     std::vector<Tref> dscale_host;
@@ -465,10 +465,10 @@ int BatchNormDriver<Tgpu, Tref>::createRunningBuffers()
             // Populate
             for(int i = 0; i < sb_sz; i++)
             {
-                runningMean_host[i] = runningMean[i] =
-                    RAN_GEN<Tref>(static_cast<Tref>(0.0), static_cast<Tref>(1.0));
-                runningVariance_host[i] = runningVariance[i] =
-                    RAN_GEN<Tref>(static_cast<Tref>(0.0), static_cast<Tref>(1.0));
+                runningMean[i]      = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+                runningMean_host[i] = static_cast<Tref>(runningMean[i]);
+                runningVariance[i]  = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+                runningVariance_host[i] = static_cast<Tref>(runningVariance[i]);
             }
         }
         else
@@ -532,8 +532,8 @@ int BatchNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
         // CPU allocation
         out_host   = std::vector<Tref>(out_sz, static_cast<Tref>(0));
-        scale_host = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-        bias_host  = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+        scale_host = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
+        bias_host  = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
 
         // Data initialization
         for(int i = 0; i < in_sz; i++)
@@ -545,9 +545,10 @@ int BatchNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         // Using random beta and gamma
         for(int i = 0; i < sb_sz; i++)
         {
-            scale[i] = scale_host[i] =
-                RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            bias[i] = bias_host[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            scale[i]      = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            scale_host[i] = static_cast<Tref>(scale[i]);
+            bias[i]       = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            bias_host[i]  = static_cast<Tref>(bias[i]);
         }
         status |= scale_dev->ToGPU(q, scale.data());
         status |= bias_dev->ToGPU(q, bias.data());
@@ -851,33 +852,33 @@ void BatchNormDriver<Tgpu, Tref>::runCPUFwdInference(
 
     if(bn_mode == miopenBNPerActivation)
     { // 1xCxHxW
-        miopenBNFwdInferPerActivationRunHost(/* alpha, beta, */ batch_sz,
-                                             channels,
-                                             height,
-                                             width,
-                                             in.data(),
-                                             out_host.data(),
-                                             scale_host.data(),
-                                             bias_host.data(),
-                                             epsilon,
-                                             keepRunningMeanVar,
-                                             runningMean_host.data(),
-                                             runningVariance_host.data());
+        miopenBNFwdInferPerActivationRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
+                                                         channels,
+                                                         height,
+                                                         width,
+                                                         in.data(),
+                                                         out_host.data(),
+                                                         scale_host.data(),
+                                                         bias_host.data(),
+                                                         epsilon,
+                                                         keepRunningMeanVar,
+                                                         runningMean_host.data(),
+                                                         runningVariance_host.data());
     }
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
-        miopenBNFwdInferSpatialRunHost(/* alpha, beta, */ batch_sz,
-                                       channels,
-                                       height,
-                                       width,
-                                       in.data(),
-                                       out_host.data(),
-                                       scale_host.data(),
-                                       bias_host.data(),
-                                       epsilon,
-                                       keepRunningMeanVar,
-                                       runningMean_host.data(),
-                                       runningVariance_host.data());
+        miopenBNFwdInferSpatialRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
+                                                   channels,
+                                                   height,
+                                                   width,
+                                                   in.data(),
+                                                   out_host.data(),
+                                                   scale_host.data(),
+                                                   bias_host.data(),
+                                                   epsilon,
+                                                   keepRunningMeanVar,
+                                                   runningMean_host.data(),
+                                                   runningVariance_host.data());
     }
     else
     {
@@ -895,41 +896,41 @@ void BatchNormDriver<Tgpu, Tref>::runCPUFwdTrain(
 
     if(bn_mode == miopenBNPerActivation)
     { // 1xCxHxW
-        miopenBNFwdTrainPerActivationRunHost(/* alpha, beta, */ batch_sz,
-                                             channels,
-                                             height,
-                                             width,
-                                             in.data(),
-                                             out_host.data(),
-                                             scale_host.data(),
-                                             bias_host.data(),
-                                             epsilon,
-                                             saveMeanVar,
-                                             keepRunningMeanVar,
-                                             saveMean_host.data(),
-                                             saveInvVariance_host.data(),
-                                             runningMean_host.data(),
-                                             runningVariance_host.data(),
-                                             eAF);
+        miopenBNFwdTrainPerActivationRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
+                                                         channels,
+                                                         height,
+                                                         width,
+                                                         in.data(),
+                                                         out_host.data(),
+                                                         scale_host.data(),
+                                                         bias_host.data(),
+                                                         epsilon,
+                                                         saveMeanVar,
+                                                         keepRunningMeanVar,
+                                                         saveMean_host.data(),
+                                                         saveInvVariance_host.data(),
+                                                         runningMean_host.data(),
+                                                         runningVariance_host.data(),
+                                                         eAF);
     }
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
-        miopenBNFwdTrainSpatialRunHost(/* alpha, beta, */ batch_sz,
-                                       channels,
-                                       height,
-                                       width,
-                                       in.data(),
-                                       out_host.data(),
-                                       scale_host.data(),
-                                       bias_host.data(),
-                                       epsilon,
-                                       saveMeanVar,
-                                       keepRunningMeanVar,
-                                       saveMean_host.data(),
-                                       saveInvVariance_host.data(),
-                                       runningMean_host.data(),
-                                       runningVariance_host.data(),
-                                       eAF);
+        miopenBNFwdTrainSpatialRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
+                                                   channels,
+                                                   height,
+                                                   width,
+                                                   in.data(),
+                                                   out_host.data(),
+                                                   scale_host.data(),
+                                                   bias_host.data(),
+                                                   epsilon,
+                                                   saveMeanVar,
+                                                   keepRunningMeanVar,
+                                                   saveMean_host.data(),
+                                                   saveInvVariance_host.data(),
+                                                   runningMean_host.data(),
+                                                   runningVariance_host.data(),
+                                                   eAF);
     }
     else
     {
@@ -1091,7 +1092,7 @@ int BatchNormDriver<Tgpu, Tref>::VerifyForward()
     const Tref maxrms = static_cast<Tref>((sizeof(Tgpu) == 4) ? RMSTOL_FP32 : RMSTOL_FP16);
 
 #if(MIO_BN_DEBUG == 1)
-    const Tref tolerance = static_cast<Tref>(ERRTOL);
+    const Tref tolerance = static_cast<Tref>((sizeof(Tgpu) == 4) ? ERRTOL_FP32 : ERRTOL_FP16);
     Tref diff            = static_cast<Tref>(0.);
 #endif
 
@@ -1308,40 +1309,41 @@ int BatchNormDriver<Tgpu, Tref>::RunBackwardCPU()
     Tref epsilon = static_cast<Tref>(EPSILON);
 
     if(bn_mode == miopenBNPerActivation)
-    {                                   // 1xCxHxW
-        miopenBNBwdPerActivationRunHost(/* alphaDiff, betaDiff, alphaParam, betaParam, */
-                                        batch_sz,
-                                        channels,
-                                        height,
-                                        width,
-                                        in.data(),
-                                        dyin.data(),
-                                        dxout_host.data(),
-                                        scale.data(),
-                                        dscale_host.data(),
-                                        dbias_host.data(),
-                                        epsilon,
-                                        saveMeanVar,
-                                        saveMean_host.data(),
-                                        saveInvVariance_host.data());
+    { // 1xCxHxW
+        miopenBNBwdPerActivationRunHost<Tgpu,
+                                        Tref>(/* alphaDiff, betaDiff, alphaParam, betaParam, */
+                                              batch_sz,
+                                              channels,
+                                              height,
+                                              width,
+                                              in.data(),
+                                              dyin.data(),
+                                              dxout_host.data(),
+                                              scale.data(),
+                                              dscale_host.data(),
+                                              dbias_host.data(),
+                                              epsilon,
+                                              saveMeanVar,
+                                              saveMean_host.data(),
+                                              saveInvVariance_host.data());
     }
     else if(bn_mode == miopenBNSpatial)
-    {                             // 1xCx1x1
-        miopenBNBwdSpatialRunHost(/* alphaDiff, betaDiff, alphaParam, betaParam, */
-                                  batch_sz,
-                                  channels,
-                                  height,
-                                  width,
-                                  in.data(),
-                                  dyin.data(),
-                                  dxout_host.data(),
-                                  scale.data(),
-                                  dscale_host.data(),
-                                  dbias_host.data(),
-                                  epsilon,
-                                  saveMeanVar,
-                                  saveMean_host.data(),
-                                  saveInvVariance_host.data());
+    {                                         // 1xCx1x1
+        miopenBNBwdSpatialRunHost<Tgpu, Tref>(/* alphaDiff, betaDiff, alphaParam, betaParam, */
+                                              batch_sz,
+                                              channels,
+                                              height,
+                                              width,
+                                              in.data(),
+                                              dyin.data(),
+                                              dxout_host.data(),
+                                              scale.data(),
+                                              dscale_host.data(),
+                                              dbias_host.data(),
+                                              epsilon,
+                                              saveMeanVar,
+                                              saveMean_host.data(),
+                                              saveInvVariance_host.data());
     }
     else
     {
@@ -1369,8 +1371,9 @@ int BatchNormDriver<Tgpu, Tref>::VerifyBackward()
     dscale_dev->FromGPU(GetStream(), dscale.data());
     dbias_dev->FromGPU(GetStream(), dbias.data());
 #if(MIO_BN_DEBUG == 1)
-    const Tref tolerance = static_cast<Tref>(ERRTOL * 1000);
-    Tref diff            = static_cast<Tref>(0.0);
+    const Tref tolerance =
+        static_cast<Tref>(1000 * (sizeof(Tgpu) == 4) ? ERRTOL_FP32 : ERRTOL_FP16);
+    Tref diff = static_cast<Tref>(0.0);
 #endif
     maxval          = static_cast<Tref>(0.0);
     auto errordxout = miopen::rms_range(dxout_host, dxout);
