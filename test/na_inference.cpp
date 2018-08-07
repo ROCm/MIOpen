@@ -201,6 +201,12 @@ struct na_fusion_driver : test_driver
     void run()
     {
 
+        if(input.desc.GetType() == miopenHalf) 
+        {
+            //std::cout << "Half precision not yet supported." << std::endl;
+            return;
+        }
+
         switch(amode)
         {
         case 0: activ_mode = miopenActivationPASTHRU; break;
@@ -244,9 +250,12 @@ struct na_fusion_driver : test_driver
         }
         else
         {
+            scale       = tensor<T>{ssn, ssc, ssh, ssw};
+            shift       = tensor<T>{ssn, ssc, ssh, ssw};
+            estMean     = tensor<T>{ssn, ssc, ssh, ssw};
+            estVariance = tensor<T>{ssn, ssc, ssh, ssw};
+
             srand(0);
-            scale = tensor<T>{ssn, ssc, ssh, ssw};
-            shift = tensor<T>{ssn, ssc, ssh, ssw};
             for(int i = 0; i < scale.desc.GetElementSize(); i++)
             {
                 scale[i]       = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
