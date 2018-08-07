@@ -360,10 +360,6 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         const size_t direct_workspace =
             ForwardBackwardDataGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc, 1);
 
-        if(dilation_w > 1 || dilation_h > 1)
-            return std::max((groups * ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc)),
-                            direct_workspace);
-
         // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
         // 1x1_stride=2
         if((wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0) &&
@@ -372,7 +368,8 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
             return std::max(ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc), direct_workspace);
         }
         if(dilation_w > 1 || dilation_h > 1)
-            return std::max(ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc), direct_workspace);
+            return std::max((groups * ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc)),
+                            direct_workspace);
 
         // Check if Winograd is available
         // If Winograd is present, there is no advantage in letting
@@ -414,17 +411,13 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         const size_t direct_workspace =
             ForwardBackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc, 0);
 
-        if(dilation_w > 1 || dilation_h > 1)
-            return std::max((groups * BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc)),
-                            direct_workspace);
-
         if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2))
         {
             size_t gemm_trans = BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc);
             return std::max(gemm_trans, direct_workspace);
         }
         if(dilation_w > 1 || dilation_h > 1)
-            return std::max(BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc),
+            return std::max((groups * BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc)),
                             direct_workspace);
 
         // Check if Winograd is available
