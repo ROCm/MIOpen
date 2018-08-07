@@ -345,7 +345,7 @@ struct cbna_fusion_driver : test_driver
     bool tactiv{};
     bool bias_mode = true;
     miopenBatchNormMode_t bnmode{};
-    int batchnormMode;
+    int batchnormMode = 0;
     std::string conv_mode;
     std::string pad_mode;
     bool enable_backward_weights = false;
@@ -504,7 +504,7 @@ struct cbna_fusion_driver : test_driver
                wei_h > 2 * fpad_h && wei_w > 2 * fpad_w && input_h >= (2 * fpad_h + wei_h) &&
                input_w >= (2 * fpad_w + wei_w))
             {
-                auto output = get_output_tensor(filter, input, weights);
+                output = get_output_tensor(filter, input, weights);
                 if(amode == -1)
                 {
                     tactiv = false;
