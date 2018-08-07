@@ -38,8 +38,6 @@
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
 
-
-
 // Return an error code that is "NotImplemented", if it exists then return success
 // This function should:
 //		set up the place descriptor with expected input and ouput edges.
@@ -307,7 +305,6 @@ extern "C" miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
 #pragma clang diagnostic pop
 #endif
 
-
 extern "C" miopenStatus_t miopenSetOpArgsConvBackwardData(miopenOperatorArgs_t args,
                                                           const miopenFusionOpDescriptor_t convOp,
                                                           const void* alpha,
@@ -406,7 +403,6 @@ extern "C" miopenStatus_t miopenSetOpArgsActivBackward(miopenOperatorArgs_t args
     return (miopenStatusSuccess);
 }
 
-
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-hicpp-use-auto"
@@ -441,8 +437,6 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-
-
 
 extern "C" miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_t args,
                                                           const miopenFusionOpDescriptor_t bnOp,
@@ -586,4 +580,3 @@ miopenGetFusionPlanCostEmpirical(miopenOpCost_t* opCost,
     (void)(opCost);
     return (miopenStatusSuccess);
 }
-
