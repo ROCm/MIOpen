@@ -601,7 +601,8 @@ struct conv_driver : test_driver
         /// \todo enhance support of half type into conv/transConv
         if((input.desc.GetType() == miopenHalf) &&
            (((filter.mode == miopenConvolution) && !filter.IsDirectSupported(weights.desc)) ||
-            (filter.dilation_h > 1 || filter.dilation_w > 1) || (filter.mode == miopenTranspose || filter.mode == miopenGroupConv ||
+            (filter.dilation_h > 1 || filter.dilation_w > 1) ||
+            (filter.mode == miopenTranspose || filter.mode == miopenGroupConv ||
              filter.mode == miopenDepthwise)))
         {
             // Unsupported config for conv with half type

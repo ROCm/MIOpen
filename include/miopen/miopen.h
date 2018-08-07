@@ -596,8 +596,10 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDes
                                                             int* dilation_h,
                                                             int* dilation_w);
 
-/*! @brief Specify the number of groups to be used in the associated convolution
+/*! @brief Set the number of groups to be used in Group/Depthwise convolution
 *
+* Must be called before all computational APIs of Group/Depthwise convolution, suggesting to call
+* with miopenInitConvolutionDescriptor() in initialization stage.
 * @param convDesc   Convolution layer descriptor (output)
 * @param groupCount      number of groups, in depthwise conv using filter_number/channel_multiplier
 * (input)
