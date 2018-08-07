@@ -367,7 +367,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 MIOPEN_LOG_FUNCTION("transpose, non 1x1");
 
                 float time_col2im = 0;
-                size_t out_offset = 0;
+                int out_offset    = 0;
 
                 gg.FindSolution(.003, handle, w, x, workSpace, false);
                 gg.RunGemm(handle, w, x, workSpace, 0, 0, 0);
@@ -635,7 +635,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 GemmDescriptor gemm_desc = CreateGemmDescriptorConvFwd(wDesc, xDesc, yDesc);
 
                 float time_im2col = 0;
-                size_t in_offset  = 0;
+                int in_offset     = 0;
                 time_im2col       = Im2ColGPU(handle,
                                         xDesc.GetElementSize(),
                                         x,
@@ -1099,8 +1099,8 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                 float t1     = 0;
                 for(int i = 0; i < in_n; i++)
                 {
-                    int out_offset   = i * wei_n * out_h * out_w;
-                    size_t in_offset = i * in_c * in_h * in_w;
+                    int out_offset = i * wei_n * out_h * out_w;
+                    int in_offset  = i * in_c * in_h * in_w;
                     Im2ColGPU(handle,
                               xDesc.GetElementSize(),
                               x,
@@ -1203,7 +1203,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             {
                 MIOPEN_LOG_FUNCTION("transppose, non 1x1");
 
-                size_t in_offset = i * in_c * in_h * in_w;
+                int in_offset = i * in_c * in_h * in_w;
 
                 gg.RunGemm(handle, w, x, workSpace, 0, in_offset, 0);
 
@@ -2324,7 +2324,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 // dx = transpose(w) * dy
                 GemmDescriptor gemm_desc = CreateGemmDescriptorConvBwdData(wDesc, dyDesc, dxDesc);
 
-                handle.ResetKernelTime();
+                float time_col2im = 0;
+                int in_offset     = 0;
 
                 float time_0 = 0;
                 float t1     = 0;
@@ -2858,7 +2859,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 MIOPEN_LOG_FUNCTION("transpose, non 1x1");
 
                 float time_im2col = 0;
-                size_t out_offset = 0;
+                int out_offset    = 0;
                 time_im2col       = Im2ColGPU(handle,
                                         dyDesc.GetElementSize(),
                                         dy,
@@ -2969,7 +2970,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                 GemmDescriptor gemm_desc = CreateGemmDescriptorConvBwdWeight(dyDesc, xDesc, dwDesc);
 
                 float time_im2col = 0;
-                size_t in_offset  = 0;
+                int in_offset     = 0;
                 time_im2col       = Im2ColGPU(handle,
                                         xDesc.GetElementSize(),
                                         x,
@@ -3183,8 +3184,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
                 for(int i = 0; i < in_n; i++)
                 {
-                    int out_offset   = i * wei_n * out_h * out_w;
-                    size_t in_offset = i * in_c * in_h * in_w;
+                    int out_offset = i * wei_n * out_h * out_w;
+                    int in_offset  = i * in_c * in_h * in_w;
                     Im2ColGPU(handle,
                               xDesc.GetElementSize(),
                               x,
@@ -3369,7 +3370,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
             {
                 MIOPEN_LOG_FUNCTION("transpose, non 1x1");
 
-                size_t out_offset = i * wei_n * out_h * out_w;
+                int out_offset = i * wei_n * out_h * out_w;
                 Im2ColGPU(handle,
                           dyDesc.GetElementSize(),
                           dy,
