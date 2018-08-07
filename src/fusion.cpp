@@ -113,28 +113,37 @@ miopenStatus_t FusionPlanDescriptor::GetWorkspaceSizeImmed(Handle& handle,
     return miopenStatusSuccess;
 }
 
-miopenStatus_t FusionPlanDescriptor::GetConvAlgos(FusionOpDescriptor& convOp, 
-    int reqAlgoCount, int& retAlgoCount, miopenConvFwdAlgorithm_t* ptrAlgos)
+miopenStatus_t FusionPlanDescriptor::GetConvAlgos(int reqAlgoCount,
+                                                  int& retAlgoCount,
+                                                  miopenConvFwdAlgorithm_t* ptrAlgos)
 {
-    (void)reqAlgoCount;
-    (void)retAlgoCount;
-    (void)ptrAlgos;
-    if(convOp.kind() != miopenFusionOpConvForward)
-        MIOPEN_THROW("GetConvAlgos is only supported for opertors of type miopenFusionOpConvForward");
+
     // auto ptr = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(&convOp);
+    std::vector<miopenConvFwdAlgorithm_t> algos = lu.GetConvAlgos();
+
+    if(algos.size() == 0)
+        MIOPEN_THROW("No supported algorithm or last operator was not convolution");
+
+    if(algos.size() > reqAlgoCount)
+        retAlgoCount = reqAlgoCount;
+    else
+        retAlgoCount = algos.size();
+    for(auto idx = 0; idx < retAlgoCount; idx++)
+    {
+        ptrAlgos[idx] = algos[idx];
+    }
 
     return miopenStatusSuccess;
 }
 
-miopenStatus_t FusionPlanDescriptor::SetConvAlgo(FusionOpDescriptor& convOp,
-    miopenConvFwdAlgorithm_t algo)
+miopenStatus_t FusionPlanDescriptor::SetConvAlgo(miopenConvFwdAlgorithm_t algo)
 {
-    (void) convOp;
-    (void) algo;
-    if(convOp.kind() != miopenFusionOpConvForward)
-        MIOPEN_THROW("SetConvAlgo is only supported for opertors of type miopenFusionOpConvForward");
-    
-    return miopenStatusSuccess;   
+    bool res = lu.SetConvAlgo(algo);
+
+    if(res)
+        return miopenStatusSuccess;
+    else
+        return miopenStatusUnknownError;
 }
 
 std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& fpd)
@@ -195,8 +204,7 @@ std::vector<std::string> ConvForwardOpDescriptor::GetArgs() const
 // paddingMode,
 //   int pad_h, int pad_w, int u, int v, int dilation_h, int dilation_w)
 std::string ConvForwardOpDescriptor::MDGraphKey(std::map<std::string, int> d,
-                                                std::vector<size_t> filter_lens,
-                                                miopenConvFwdAlgorithm_t algorithm)
+                                                std::vector<size_t> filter_lens)
 {
     int k, c, _kernel_size0, _kernel_size1;
     std::tie(k, c, _kernel_size0, _kernel_size1) = tien<4>(filter_lens);
@@ -216,7 +224,6 @@ std::string ConvForwardOpDescriptor::MDGraphKey(std::map<std::string, int> d,
     {
         result += std::to_string(n) + ",";
     }
-    result += std::to_string(algorithm);
     return result;
 }
 
@@ -232,7 +239,7 @@ std::string ConvForwardOpDescriptor::MDGraphKey() const
                                     {"dilation_w", base_desc.dilation_w}};
     auto lens = filter_desc.GetLengths();
 
-    return ConvForwardOpDescriptor::MDGraphKey(m, lens, algo);
+    return ConvForwardOpDescriptor::MDGraphKey(m, lens);
 }
 
 std::vector<size_t> ConvForwardOpDescriptor::GetLocalWGSz(Handle& handle,
@@ -433,7 +440,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     kernel_name    = GetKernelName(handle);
     if(program_name == "")
         MIOPEN_THROW("Invalid Fusion Plan");
-    is_asm_kernel  = (program_name.back() == 's');
+    is_asm_kernel = (program_name.back() == 's');
 
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
     if(!kernels.empty())
@@ -444,7 +451,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     {
         std::string compile_config;
         auto dType = input_desc.GetType();
-        if(!is_asm_kernel){
+        if(!is_asm_kernel)
+        {
             if(dType == miopenFloat)
             {
                 compile_config += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";

@@ -160,17 +160,14 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
 struct ConvForwardOpDescriptor : FusionOpDescriptor
 {
     ConvForwardOpDescriptor(ConvolutionDescriptor& conv_descriptor,
-                            TensorDescriptor& filter_descriptor,
-                            miopenConvFwdAlgorithm_t fwd_algo)
+                            TensorDescriptor& filter_descriptor)
         : base_desc(conv_descriptor),
           filter_desc(filter_descriptor),
-          algo(fwd_algo),
           kernel_info_valid(false),
-          conv_compiler_options("")
-    {
-        // if(base_desc.u != 1 || base_desc.v != 1)
-        //     MIOPEN_THROW("Only stride 1 is supported for convolution operator");
-    };
+          conv_compiler_options(""){
+              // if(base_desc.u != 1 || base_desc.v != 1)
+              //     MIOPEN_THROW("Only stride 1 is supported for convolution operator");
+          };
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
     miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t w);
     std::vector<std::string> GetArgs() const override;
@@ -182,15 +179,12 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     solver::KernelInfo& GetKernelInfo(Handle& handle, std::string algorithm_name);
     miopenFusionOp_t kind() override { return miopenFusionOpConvForward; };
     std::string MDGraphKey() const override;
-    static std::string MDGraphKey(std::map<std::string, int> d,
-                                  std::vector<size_t> filter_lens,
-                                  miopenConvFwdAlgorithm_t algorithm);
+    static std::string MDGraphKey(std::map<std::string, int> d, std::vector<size_t> filter_lens);
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
 
     ConvolutionDescriptor& base_desc;
     TensorDescriptor& filter_desc;
-    miopenConvFwdAlgorithm_t algo;
     solver::KernelInfo kernel_info;
     bool kernel_info_valid;
     std::string conv_compiler_options;
