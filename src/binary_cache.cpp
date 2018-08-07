@@ -49,16 +49,16 @@ boost::filesystem::path ComputeCachePath()
                           std::to_string(MIOPEN_VERSION_PATCH);
 
     const char* home_dir = GetStringEnv(HOME{});
-    if (home_dir == nullptr) {
-      // todo:
-      // need to figure out what is the correct thing to do here
-      // in tensoflow unit tests run via bazel, $HOME is not set, so this can happen
-      // setting home_dir to the empty string for now
-      home_dir = "";
+    if(home_dir == nullptr)
+    {
+        // todo:
+        // need to figure out what is the correct thing to do here
+        // in tensoflow unit tests run via bazel, $HOME is not set, so this can happen
+        // setting home_dir to the empty string for now
+        home_dir = "";
     }
-    
-    auto p = boost::filesystem::path{miopen::ReplaceString(cache_dir, "~", home_dir)} /
-             version;
+
+    auto p = boost::filesystem::path{miopen::ReplaceString(cache_dir, "~", home_dir)} / version;
     if(!boost::filesystem::exists(p))
         boost::filesystem::create_directories(p);
     return p;
