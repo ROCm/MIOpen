@@ -413,7 +413,7 @@ std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
 std::string FusionPlanDescriptor::GetKernelName(Handle& handle)
 {
     (void)handle;
-    if(!op_map.size())
+    if(!op_map.empty())
     {
         kernel_name = lu.GetKernelName();
         return kernel_name;
