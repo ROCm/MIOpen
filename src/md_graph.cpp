@@ -19,14 +19,15 @@ MDGraph_vertex::MDGraph_vertex(miopenFusionOp_t o,
 
 MDGraph_vertex_ptr FusionMDGraph::GetCurVertex()
 {
-    int weight              = cur_vertex[0].second;
+    auto& cur_map           = cur_vertex[0].second;
+    int weight              = std::stoi(cur_map["weight"]);
     MDGraph_vertex_ptr& ptr = cur_vertex[0].first;
 
     for(auto& cur : cur_vertex)
     {
-        if(cur.second > weight)
+        if(std::stoi(cur.second["weight"]) > weight)
         {
-            weight = cur.second;
+            weight = std::stoi(cur.second["weight"]);
             ptr    = cur.first;
         }
     }
@@ -74,6 +75,49 @@ std::string FusionMDGraph::GetAlgoName()
     }
 }
 
+std::vector<miopenConvFwdAlgorithm_t> FusionMDGraph::GetConvAlgos()
+{
+    std::vector<miopenConvFwdAlgorithm_t> ret(conv_algo_set.begin(), conv_algo_set.end());
+    return ret;
+}
+
+bool FusionMDGraph::SetConvAlgo(miopenConvFwdAlgorithm_t algo)
+{
+    // Make sure algo is in the current paths being tracked
+    if(conv_algo_set.empty())
+        MIOPEN_THROW("No algorithm supported by current fusion plan");
+
+    if(conv_algo_set.find(algo) == conv_algo_set.end())
+    {
+        MIOPEN_THROW("Current fusion plan does not support the algorithm requested");
+    }
+    std::vector<std::pair<MDGraph_vertex_ptr, cur_vertex_map>> new_list;
+
+    for(auto& kinder : cur_vertex)
+    {
+        MDGraph_vertex_ptr& cur_vertex_ptr = kinder.first;
+        auto& cur_map                      = kinder.second;
+        if(cur_map.find("algo") != cur_map.end())
+        {
+            miopenConvFwdAlgorithm_t a =
+                static_cast<miopenConvFwdAlgorithm_t>(std::stoi(cur_map["algo"]));
+            if(a == algo)
+            {
+                new_list.push_back(
+                    std::pair<MDGraph_vertex_ptr, cur_vertex_map>(cur_vertex_ptr, cur_map));
+            }
+        }
+        else
+            MIOPEN_THROW("Current fusion plan does not support the algorithm requested");
+    }
+
+    cur_vertex = new_list;
+    if(new_list.empty())
+        return false;
+    else
+        return true;
+}
+
 void FusionMDGraph::Init(FusionMDGraph& g, miopenFusionOp_t op)
 {
     switch(op)
@@ -86,7 +130,8 @@ void FusionMDGraph::Init(FusionMDGraph& g, miopenFusionOp_t op)
     break;
     case miopenFusionOpActivForward:
     case miopenFusionOpBiasForward:
-        MIOPEN_THROW("Operators Activ and Bias are not supported as first ops in a Fusion Plan (yet)");
+        MIOPEN_THROW(
+            "Operators Activ and Bias are not supported as first ops in a Fusion Plan (yet)");
     }
 }
 
@@ -129,7 +174,6 @@ void FusionMDGraph::InitBN(FusionMDGraph& g)
 void FusionMDGraph::InitConv(FusionMDGraph& g)
 {
     std::map<std::string, int> defaults = {{"mode", miopenConvolution},
-                                           {"algo", miopenConvolutionFwdAlgoDirect},
                                            {"paddingMode", miopenPaddingDefault},
                                            {"pad_h", 0},
                                            {"pad_w", 0},
@@ -154,9 +198,11 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                         "miopenConvolutionDirectBiasActivAsm",
                                                         true);
         // populate the graph
-        auto key = ConvForwardOpDescriptor::MDGraphKey(
-            defaults, {0, 0, 1, 1}, miopenConvolutionFwdAlgoDirect);
-        FusionMDGraph_Edge_Map map_asm_conv = {{"key", {key}}, {"weight", {"1"}}};
+        auto key = ConvForwardOpDescriptor::MDGraphKey(defaults, {0, 0, 1, 1});
+        FusionMDGraph_Edge_Map map_asm_conv = {
+            {"key", {key}},
+            {"weight", {"1"}},
+            {"algo", {std::to_string(miopenConvolutionFwdAlgoDirect)}}};
 
         g.AddEdge(nullptr, conv_v, map_asm_conv);
         g.AddEdge(conv_v, bias_v, empty_map);
@@ -176,9 +222,11 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         std::vector<size_t> lens = {1, 3, 5, 7, 9, 11};
         for(auto len : lens)
         {
-            auto cb_key = ConvForwardOpDescriptor::MDGraphKey(
-                defaults, {0, 0, len, len}, miopenConvolutionFwdAlgoDirect);
-            FusionMDGraph_Edge_Map map_conv_bias = {{"key", {cb_key}}, {"weight", {"0"}}};
+            auto cb_key = ConvForwardOpDescriptor::MDGraphKey(defaults, {0, 0, len, len});
+            FusionMDGraph_Edge_Map map_conv_bias = {
+                {"key", {cb_key}},
+                {"weight", {"0"}},
+                {"algo", {std::to_string(miopenConvolutionFwdAlgoDirect)}}};
             g.AddEdge(nullptr, conv_v, map_conv_bias);
         }
 
@@ -298,37 +346,59 @@ bool FusionMDGraph::CmpOpKey(T&& edge_val, U&& op_val) const
 bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
 {
 
-    std::vector<std::pair<MDGraph_vertex_ptr, int>> new_list;
+    std::vector<std::pair<MDGraph_vertex_ptr, cur_vertex_map>> new_list;
     std::set<miopenConvFwdAlgorithm_t> new_set;
     // get the children of the cur_vertex
-    for(auto idx_cur = 0; idx_cur < cur_vertex.size(); idx_cur++)
+    for(auto& kinder : cur_vertex) //  idx_cur = 0; idx_cur < cur_vertex.size(); idx_cur++)
     {
-        MDGraph_vertex_ptr& cur_vertex_ptr = cur_vertex[idx_cur].first;
-        int& weight                        = cur_vertex[idx_cur].second;
+        MDGraph_vertex_ptr& cur_vertex_ptr = kinder.first;
+        auto& cur_map                      = kinder.second;
+        int weight                         = std::stoi(cur_map["weight"]);
 
         auto& ch = edge_list[cur_vertex_ptr];
         // if op is in the children and the edge key satisfies update cur_vertex
         for(auto ch_it = ch.begin(); ch_it != ch.end(); ch_it++)
         {
+            std::set<miopenConvFwdAlgorithm_t> cur_path_set;
             if(ch_it->first->op == op->kind())
             {
                 if(CmpOpKey(ch_it->second["key"], op->MDGraphKey()))
                 {
                     weight += std::stoi(ch_it->second["weight"][0]);
-                    new_list.push_back(std::pair<MDGraph_vertex_ptr, int>(ch_it->first, weight));
-
+                    cur_map["weight"] = std::to_string(weight);
                     // Update the algo set
-                    // This piece of code is here only because 
                     if(op->kind() == miopenFusionOpConvForward)
                     {
-                        //new_set.insert(static_cast<miopenConvFwdAlgorithm_t>(ch_it->second["key"]["algo"]));
+                        for(auto s_algo : ch_it->second["algo"])
+                        {
+                            miopenConvFwdAlgorithm_t algo =
+                                static_cast<miopenConvFwdAlgorithm_t>(std::stoi(s_algo));
+                            cur_path_set.insert(algo);
+                        }
+                        new_set.insert(cur_path_set.begin(), cur_path_set.end());
+                        assert(cur_path_set.size() == 1);
+                        cur_map["algo"] =
+                            std::to_string(*cur_path_set.begin()); // there should be only one algo
                     }
+                    else
+                    {
+                        cur_map["algo"] = "";
+                    }
+                    new_list.push_back(
+                        std::pair<MDGraph_vertex_ptr, cur_vertex_map>(ch_it->first, cur_map));
                 }
             }
         }
     }
     cur_vertex = new_list;
-    algo_set = new_set;
+    if(op->kind() == miopenFusionOpConvForward) // TODO: Or any other convolution
+    {
+        conv_algo_set = new_set;
+    }
+    else
+    {
+        conv_algo_set.clear();
+    }
 
     if(cur_vertex.size() == 0)
         return false;
@@ -336,6 +406,11 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
         return true;
 }
 
-void FusionMDGraph::Reset() { cur_vertex = {{nullptr, 0}}; }
+void FusionMDGraph::Reset()
+{
+    cur_vertex.clear();
+    cur_vertex_map empty_map = {{"weight", "0"}};
+    cur_vertex.push_back(std::pair<MDGraph_vertex_ptr, cur_vertex_map>(nullptr, empty_map));
+}
 
 } // namespace miopen
