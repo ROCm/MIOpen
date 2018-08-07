@@ -391,12 +391,12 @@ struct cbna_fusion_driver : test_driver
 
     void run()
     {
-        if(input.desc.GetType() == miopenHalf) 
+        if(input.desc.GetType() == miopenHalf)
         {
-            //std::cout << "Half precision not yet supported." << std::endl;
+            // std::cout << "Half precision not yet supported." << std::endl;
             return;
         }
-        
+
         switch(amode)
         {
         case 0: activ_mode = miopenActivationPASTHRU; break;
@@ -414,7 +414,7 @@ struct cbna_fusion_driver : test_driver
         int input_c, input_h, input_w, wei_c, wei_k, wei_h, wei_w;
         std::tie(wei_k, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
         std::tie(std::ignore, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());
-        
+
         filter.mode        = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode = pmode_lookup[miopen::ToUpper(pad_mode)];
 
