@@ -243,6 +243,7 @@ enable_clang_tidy(
         -readability-else-after-return
         -readability-named-parameter
         -hicpp-use-auto
+	-modernize-use-auto
         ${CLANG_TIDY_CHECKS}
     ERRORS
         *
