@@ -70,6 +70,7 @@ extern "C" miopenStatus_t miopenCompileFusionPlan(miopenHandle_t handle,
 }
 
 // Create convolution ops with known algorithm
+#if 0
 extern "C" miopenStatus_t miopenCreateOpConvForwardAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
                                                         miopenFusionOpDescriptor_t* convOp,
                                                         miopenConvolutionDescriptor_t convDesc,
@@ -86,7 +87,7 @@ extern "C" miopenStatus_t miopenCreateOpConvForwardAlgo(miopenFusionPlanDescript
     });
     return res;
 }
-
+#endif
 extern "C" miopenStatus_t
 miopenFusionPlanGetWorkSpaceSize(miopenHandle_t handle,
                                  miopenFusionPlanDescriptor_t fusePlanDesc,
@@ -105,17 +106,15 @@ miopenFusionPlanGetWorkSpaceSize(miopenHandle_t handle,
 
 extern "C" miopenStatus_t
 miopenFusionPlanConvolutionGetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                  miopenFusionOpDescriptor_t convOp,
-                                  const int requestAlgoCount,
-                                  int* returnedAlgoCount,
-                                  miopenConvFwdAlgorithm_t* returnedAlgos)
+                                   const int requestAlgoCount,
+                                   int* returnedAlgoCount,
+                                   miopenConvFwdAlgorithm_t* returnedAlgos)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, requestAlgoCount, returnedAlgoCount, returnedAlgos);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, requestAlgoCount, returnedAlgoCount, returnedAlgos);
     miopenStatus_t res = miopenStatusSuccess;
-    miopen::try_([&]{
+    miopen::try_([&] {
         int cnt = 0;
-        res = miopen::deref(fusePlanDesc).GetConvAlgos(miopen::deref(convOp), 
-                        requestAlgoCount, cnt, returnedAlgos);
+        res     = miopen::deref(fusePlanDesc).GetConvAlgos(requestAlgoCount, cnt, returnedAlgos);
         miopen::deref(returnedAlgoCount) = cnt;
     });
     return res;
@@ -123,15 +122,11 @@ miopenFusionPlanConvolutionGetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
 
 extern "C" miopenStatus_t
 miopenFusionPlanConvolutionSetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                  miopenFusionOpDescriptor_t convOp,
-                                  miopenConvFwdAlgorithm_t algo)
+                                   miopenConvFwdAlgorithm_t algo)
 {
-  MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, algo);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, algo);
     miopenStatus_t res = miopenStatusSuccess;
-    miopen::try_([&]{
-      res = miopen::deref(fusePlanDesc).SetConvAlgo(miopen::deref(convOp),
-              algo);
-    });
+    miopen::try_([&] { res = miopen::deref(fusePlanDesc).SetConvAlgo(algo); });
     return res;
 }
 
@@ -164,7 +159,14 @@ extern "C" miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t
                                                     const miopenTensorDescriptor_t wDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, wDesc);
-    return (miopenStatusSuccess);
+    miopenStatus_t res = miopenStatusSuccess;
+    miopen::try_([&] {
+        auto fod = std::make_shared<miopen::ConvForwardOpDescriptor>(miopen::deref(convDesc),
+                                                                     miopen::deref(wDesc));
+        miopen::deref(convOp) = fod.get();
+        res                   = miopen::deref(fusePlanDesc).AddOp(fod);
+    });
+    return res;
 }
 
 extern "C" miopenStatus_t miopenCreateOpConvBackwardData(miopenFusionPlanDescriptor_t fusePlanDesc,
