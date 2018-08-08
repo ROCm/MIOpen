@@ -128,15 +128,15 @@ inline static bool Next_1_4_8_12__32(int& v)
 inline static bool Is_1_4(const int& v) { return v == 1 || v == 4; }
 
 static int ConvAsmRunAndMeasureSolution(miopen::Handle& profile_h,
-                                       Data_t bot_ocl_buf,
-                                       Data_t top_ocl_buf,
-                                       Data_t wei_ocl_buf,
-                                       Data_t bias_ocl_buf,
-                                       const ConvolutionContext& params,
-                                       const ConvSolution& solution,
-                                       float& elapsed_time)
+                                        Data_t bot_ocl_buf,
+                                        Data_t top_ocl_buf,
+                                        Data_t wei_ocl_buf,
+                                        Data_t bias_ocl_buf,
+                                        const ConvolutionContext& params,
+                                        const ConvSolution& solution,
+                                        float& elapsed_time)
 {
-       assert(bias_ocl_buf == nullptr);
+    assert(bias_ocl_buf == nullptr);
     (void)bias_ocl_buf;
     KernelInfo k_info;
 
@@ -202,7 +202,8 @@ static T ConvAsmSearch(const ConvolutionContext& context)
 }
 #endif
 
-static void GetSubSupSampleKernel(const ConvolutionContext& params, KernelInfo& kernel, int& workspce_sz)
+static void
+GetSubSupSampleKernel(const ConvolutionContext& params, KernelInfo& kernel, int& workspce_sz)
 {
     // subsampled input, in_height equals to image size after downsampling
     int in_batch_stride = AsmImgWidth(params) * AsmImgHeight(params) *
@@ -251,10 +252,9 @@ static void GetSubSupSampleKernel(const ConvolutionContext& params, KernelInfo& 
     kernel.comp_options = subsample_kernel_compilation_options;
 
     assert(params.out_data_type == "FP16" || params.out_data_type == "FP32" ||
-               params.out_data_type == "FP64");
-        int data_len =
-            (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
-    workspce_sz = in_batch_stride * params.batch_sz * data_len;
+           params.out_data_type == "FP64");
+    int data_len = (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
+    workspce_sz  = in_batch_stride * params.batch_sz * data_len;
 }
 
 static bool IsConvAsmApplicable(const ConvolutionContext& params)
@@ -330,7 +330,7 @@ static bool IsConvAsmApplicable(const ConvolutionContext& params)
     return ok;
 }
 
-template<typename T>
+template <typename T>
 static bool GetEnvPerfCfg(T& fromEnv)
 {
     bool is_valid = false;
@@ -381,12 +381,12 @@ bool PerformanceConfigConvActivAsm1x1U::SetNextValue()
 }
 
 PerformanceConfigConvActivAsm1x1U::PerformanceConfigConvActivAsm1x1U(int read_size_,
-                                                           int k_mult_,
-                                                           int chunks_per_wave_,
-                                                           int chunk_size_,
-                                                           int n_blocks_per_wave_,
-                                                           int waves_in_group_,
-                                                           bool use_spare_set_)
+                                                                     int k_mult_,
+                                                                     int chunks_per_wave_,
+                                                                     int chunk_size_,
+                                                                     int n_blocks_per_wave_,
+                                                                     int waves_in_group_,
+                                                                     bool use_spare_set_)
     : read_size(read_size_),
       k_mult(k_mult_),
       chunks_per_wave(chunks_per_wave_),
@@ -511,7 +511,7 @@ ConvActivAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) const
 }
 
 bool ConvActivAsm1x1U::IsValidPerformanceConfig(const ConvolutionContext& problem,
-                                           const PerformanceConfigConvActivAsm1x1U& c) const
+                                                const PerformanceConfigConvActivAsm1x1U& c) const
 {
     return c.IsValidValue() && c.IsValidForProblem(problem);
 }
@@ -523,10 +523,9 @@ bool ConvActivAsm1x1U::IsApplicable(const ConvolutionContext& params) const
 
 bool ConvActivAsm1x1U::IsFast(const ConvolutionContext&) const { return true; }
 
-
 ConvSolution ConvActivAsm1x1U::GetSolution(const ConvolutionContext& params,
-                                      const PerformanceConfigConvActivAsm1x1U& config,
-                                      const bool disableConfigOverrideFromEnv) const
+                                           const PerformanceConfigConvActivAsm1x1U& config,
+                                           const bool disableConfigOverrideFromEnv) const
 {
     ConvSolution result;
 
@@ -561,9 +560,9 @@ ConvSolution ConvActivAsm1x1U::GetSolution(const ConvolutionContext& params,
 
     const PerformanceConfigConvActivAsm1x1U* pcfg = &config;
     PerformanceConfigConvActivAsm1x1U fromEnv;
-    if(!disableConfigOverrideFromEnv&& GetEnvPerfCfg(fromEnv))
+    if(!disableConfigOverrideFromEnv && GetEnvPerfCfg(fromEnv))
     {
-       pcfg = &fromEnv;
+        pcfg = &fromEnv;
     }
 
     GenerateClangDefsym(options, "read_size", pcfg->GetReadSize());
@@ -573,7 +572,7 @@ ConvSolution ConvActivAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "n_blocks_per_wave", pcfg->GetNBlocksPerWave());
     GenerateClangDefsym(options, "waves_in_group", pcfg->GetWavesInGroup());
 
-        KernelInfo kinfo;
+    KernelInfo kinfo;
     kinfo.comp_options = options.str();
 
     kinfo.l_wk.clear(); // workgroupsize
@@ -603,19 +602,25 @@ ConvSolution ConvActivAsm1x1U::GetSolution(const ConvolutionContext& params,
     if(UseUpsample(params))
         result.construction_params.push_back(kernel);
     return result;
-
 }
 
 int ConvActivAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
-                                       Data_t bot_ocl_buf,
-                                       Data_t top_ocl_buf,
-                                       Data_t wei_ocl_buf,
-                                       Data_t bias_ocl_buf,
-                                       const ConvolutionContext& params,
-                                       const ConvSolution& solution,
-                                       float& elapsed_time) const
+                                            Data_t bot_ocl_buf,
+                                            Data_t top_ocl_buf,
+                                            Data_t wei_ocl_buf,
+                                            Data_t bias_ocl_buf,
+                                            const ConvolutionContext& params,
+                                            const ConvSolution& solution,
+                                            float& elapsed_time) const
 {
-    return ConvAsmRunAndMeasureSolution(profile_h, bot_ocl_buf, top_ocl_buf, wei_ocl_buf, bias_ocl_buf, params, solution, elapsed_time);
+    return ConvAsmRunAndMeasureSolution(profile_h,
+                                        bot_ocl_buf,
+                                        top_ocl_buf,
+                                        wei_ocl_buf,
+                                        bias_ocl_buf,
+                                        params,
+                                        solution,
+                                        elapsed_time);
 }
 
 PerformanceConfigConvActivAsm1x1U ConvActivAsm1x1U::Search(const ConvolutionContext& context) const
@@ -856,7 +861,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     PerformanceConfigConvAsm1x1U fromEnv;
     if(!disableConfigOverrideFromEnv && GetEnvPerfCfg(fromEnv))
     {
-       pcfg = &fromEnv;
+        pcfg = &fromEnv;
     }
 
     GenerateClangDefsym(options, "read_size", pcfg->GetReadSize());
@@ -908,7 +913,14 @@ int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
                                        const ConvSolution& solution,
                                        float& elapsed_time) const
 {
-    return ConvAsmRunAndMeasureSolution(profile_h, bot_ocl_buf, top_ocl_buf, wei_ocl_buf, bias_ocl_buf, params, solution, elapsed_time);
+    return ConvAsmRunAndMeasureSolution(profile_h,
+                                        bot_ocl_buf,
+                                        top_ocl_buf,
+                                        wei_ocl_buf,
+                                        bias_ocl_buf,
+                                        params,
+                                        solution,
+                                        elapsed_time);
 }
 
 PerformanceConfigConvAsm1x1U ConvAsm1x1U::Search(const ConvolutionContext& context) const

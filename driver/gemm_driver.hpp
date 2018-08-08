@@ -26,6 +26,7 @@
 #ifndef GUARD_MIOPEN_GEMM_DRIVER_HPP
 #define GUARD_MIOPEN_GEMM_DRIVER_HPP
 
+#if MIOPEN_USE_GEMM
 #include "InputFlags.hpp"
 #include "driver.hpp"
 #include <algorithm>
@@ -420,4 +421,5 @@ int GemmDriver<T>::VerifyBackward()
     return 0;
 }
 
+#endif // MIOPEN_USE_GEMM
 #endif // GUARD_MIOPEN_GEMM_DRIVER_HPP
