@@ -65,10 +65,10 @@ default activ_mode, MIOPEN_NEURON_PASTHRU
 default bias_mode, 0
 default fusion_mode, 0
 
-static_assert(fusion_mode || (bias_mode == 0 && activ_mode == MIOPEN_NEURON_PASTHRU))
+static_assert(fusion_mode || (bias_mode == 0 && enable_activ == 0))
 
 // kernarg layout:
-.if fusion_mode && activ_mode && bias_mode 
+.if fusion_mode && enable_activ && bias_mode 
 // dwords 0:0 - alpha_off 
 // dwords 1:1 - beta_off 
 // dwords 2:2 - beta_off 
@@ -83,7 +83,7 @@ static_assert(fusion_mode || (bias_mode == 0 && activ_mode == MIOPEN_NEURON_PAST
 .set out_ptr_off, 0x18
 .set wei_ptr_off, 0x20
 .set bias_ptr_off, 0x28
-.elseif fusion_mode && activ_mode
+.elseif fusion_mode && enable_activ 
 .set alpha_off, 0x0
 .set beta_off, 0x4
 .set gamm_off, 0x8
@@ -232,7 +232,7 @@ bias_buffer_size = output_channels * 4
     .SGPR_ALLOC_ONCE wave_id // wave_id in group
     .SGPR_ALLOC_ONCE loop_cnt
     .SGPR_ALLOC_ONCE current_c
-.if fusion_mode && activ_mode
+.if fusion_mode && enable_activ 
     .SGPR_ALLOC_ONCE alpha
     .SGPR_ALLOC_ONCE beta
     .SGPR_ALLOC_ONCE gamma
@@ -274,7 +274,7 @@ gcnAsmConv1x1U:
      workgroup_group_segment_byte_size = .AUTO_LDS_BYTE_SIZE
     .end_amd_kernel_code_t
 
-.if fusion_mode && activ_mode
+.if fusion_mode && enable_activ 
     s_load_dword s[alpha], s[kernarg:kernarg+1], 0x0 + alpha_off 
     s_load_dword s[beta], s[kernarg:kernarg+1], 0x0 + beta_off 
     s_load_dword s[gamma], s[kernarg:kernarg+1], 0x0 + gamm_off 
@@ -614,7 +614,7 @@ last_wave:
         .elseif \activ_mode == MIOPEN_NEURON_LEAKY_RELU //alpha * x | x <= 0; x | x > 0 
             v_cmp_lt_f32 vcc, 0, v[\base]
             v_mov_b32 v[vtmp], s[alpha]
-            v_cndmask_b32 v[vtmp], v[vtmp], 1.0, vcc
+            v_cndmask_b32 v[vtmp], 1.0, v[vtmp], vcc
             v_mul_f32 v[\base], v[\base], v[vtmp] 
         .elseif \activ_mode == MIOPEN_NEURON_ELU //alpha * (e^x - 1) | x <= 0; x | x > 0 
             v_cmp_lt_f32 vcc, 0, v[\base]
@@ -647,7 +647,7 @@ last_wave:
                 .if fusion_mode && bias_mode
                     bias_f acc, n
                 .endif
-                .if fusion_mode && activ_mode > MIOPEN_NEURON_PASTHRU
+                .if fusion_mode && enable_activ
                     activ_f acc, activ_mode
                 .endif
                 buffer_store_dword v[acc], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0+4*chunk
@@ -859,11 +859,11 @@ s_endpgm
 
 .macro metadata wg_x
   .if fusion_mode
-    .if bias_mode && activ_mode
+    .if bias_mode && enable_activ
         metadata_conv_bias_activ \wg_x
     .elseif bias_mode
         metadata_conv_bias \wg_x
-    .elseif activ_mode
+    .elseif enable_activ
         metadata_conv_activ \wg_x
     .else
         metadata_conv \wg_x

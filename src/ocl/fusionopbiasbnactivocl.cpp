@@ -82,7 +82,8 @@ ActivFusionOpDescriptor::GetCompileParms(std::string& compile_config, Handle& ha
     (void)(handle);
     if(is_asm)
     {
-        compile_config += " -Wa,-defsym,activ_mode=" + std::to_string(activMode);
+        compile_config +=
+            " -Wa,-defsym,enable_activ=1 -Wa,-defsym,activ_mode=" + std::to_string(activMode);
     }
     else
     {
