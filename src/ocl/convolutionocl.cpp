@@ -2324,9 +2324,6 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                 // dx = transpose(w) * dy
                 GemmDescriptor gemm_desc = CreateGemmDescriptorConvBwdData(wDesc, dyDesc, dxDesc);
 
-                float time_col2im = 0;
-                int in_offset     = 0;
-
                 float time_0 = 0;
                 float t1     = 0;
                 for(int i = 0; i < in_n; i++)
