@@ -36,7 +36,7 @@ namespace miopen {
 float Im2ColGPU(Handle& handle,
                 const int data_size,
                 ConstData_t im,
-                size_t im_offset,
+                const int im_offset,
                 const int c,
                 const int h,
                 const int w,
@@ -164,7 +164,7 @@ float Col2ImGPU(Handle& handle,
                 const int h,
                 const int w,
                 Data_t im,
-                size_t im_offset)
+                int im_offset)
 {
     std::string program_name = "MIOpenUtilKernels2.cl";
     std::string kernel_name  = "Col2Im";

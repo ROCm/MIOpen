@@ -642,7 +642,6 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
                                                                       processing_time,
                                                                       params,
                                                                       result);
-
                                     runs_left--;
                                     runs_left = (runs_left < 0) ? 0 : runs_left;
 
