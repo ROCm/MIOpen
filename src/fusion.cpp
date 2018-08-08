@@ -121,9 +121,6 @@ miopenStatus_t FusionPlanDescriptor::GetConvAlgos(int reqAlgoCount,
     // auto ptr = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(&convOp);
     std::vector<miopenConvFwdAlgorithm_t> algos = lu.GetConvAlgos();
 
-    if(algos.size() == 0)
-        MIOPEN_THROW("No supported algorithm or last operator was not convolution");
-
     if(algos.size() > reqAlgoCount)
         retAlgoCount = reqAlgoCount;
     else
