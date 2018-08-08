@@ -357,16 +357,16 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
         for(auto& ch_it : ch)
         {
             std::set<miopenConvFwdAlgorithm_t> cur_path_set;
-            if(ch_it->first->op == op->kind())
+            if(ch_it.first->op == op->kind())
             {
                 if(CmpOpKey(ch_it.second["key"], op->MDGraphKey()))
                 {
-                    weight += std::stoi(ch_it->second["weight"][0]);
+                    weight += std::stoi(ch_it.second["weight"][0]);
                     cur_map["weight"] = std::to_string(weight);
                     // Update the algo set
                     if(op->kind() == miopenFusionOpConvForward)
                     {
-                        for(auto s_algo : ch_it->second["algo"])
+                        for(auto s_algo : ch_it.second["algo"])
                         {
                             miopenConvFwdAlgorithm_t algo =
                                 static_cast<miopenConvFwdAlgorithm_t>(std::stoi(s_algo));
@@ -382,7 +382,7 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
                         cur_map["algo"] = "";
                     }
                     new_list.push_back(
-                        std::pair<MDGraph_vertex_ptr, cur_vertex_map>(ch_it->first, cur_map));
+                        std::pair<MDGraph_vertex_ptr, cur_vertex_map>(ch_it.first, cur_map));
                 }
             }
         }
