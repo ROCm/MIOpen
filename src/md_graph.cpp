@@ -308,16 +308,16 @@ void FusionMDGraph::AddEdge(MDGraph_vertex_ptr src,
     else
     {
         auto& old_map = edge_list[src][dst];
-        for(auto it = map.begin(); it != map.end(); it++)
+        for(auto& it : map)
         {
-            if(old_map.count(it->first) == 0)
+            if(old_map.count(it.first) == 0)
             {
-                old_map[it->first] = {it->second};
+                old_map[it.first] = {it.second};
             }
             else
             {
-                old_map[it->first].insert(
-                    old_map[it->first].end(), it->second.begin(), it->second.end());
+                old_map[it.first].insert(
+                    old_map[it.first].end(), it.second.begin(), it.second.end());
             }
         }
         if(old_map.count("key") == 0)
@@ -336,10 +336,7 @@ bool FusionMDGraph::CmpOpKey(T&& edge_val, U&& op_val) const
     else
     {
         auto it = std::find(edge_val.begin(), edge_val.end(), op_val);
-        if(it != edge_val.end())
-            return true;
-        else
-            return false;
+        return (it != edge_val.end());
     }
 }
 
@@ -349,7 +346,7 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
     std::vector<std::pair<MDGraph_vertex_ptr, cur_vertex_map>> new_list;
     std::set<miopenConvFwdAlgorithm_t> new_set;
     // get the children of the cur_vertex
-    for(auto& kinder : cur_vertex) //  idx_cur = 0; idx_cur < cur_vertex.size(); idx_cur++)
+    for(auto& kinder : cur_vertex)
     {
         MDGraph_vertex_ptr& cur_vertex_ptr = kinder.first;
         auto& cur_map                      = kinder.second;
@@ -357,12 +354,12 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
 
         auto& ch = edge_list[cur_vertex_ptr];
         // if op is in the children and the edge key satisfies update cur_vertex
-        for(auto ch_it = ch.begin(); ch_it != ch.end(); ch_it++)
+        for(auto& ch_it : ch)
         {
             std::set<miopenConvFwdAlgorithm_t> cur_path_set;
             if(ch_it->first->op == op->kind())
             {
-                if(CmpOpKey(ch_it->second["key"], op->MDGraphKey()))
+                if(CmpOpKey(ch_it.second["key"], op->MDGraphKey()))
                 {
                     weight += std::stoi(ch_it->second["weight"][0]);
                     cur_map["weight"] = std::to_string(weight);

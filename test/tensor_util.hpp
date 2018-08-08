@@ -70,4 +70,37 @@ void operate_over_subtensor_impl(const data_operator_t<T>& r_data_operator,
     }
 }
 
+template <typename T>
+void output_tensor_to_csv(const tensor<T>& x, std::string filename)
+{
+    int dim = x.desc.GetSize();
+    std::vector<int> index(dim);
+
+    std::ofstream file;
+
+    file.open(filename);
+
+    for(int j = 0; j < dim; ++j)
+        file << "d" << j << ", ";
+    file << "x" << std::endl;
+
+    for(int i = 0; i < x.data.size(); ++i)
+    {
+        int is = i;
+        for(int j = 0; j < dim; ++j)
+        {
+            index[j] = is / x.desc.GetStrides()[j];
+            is -= index[j] * x.desc.GetStrides()[j];
+        }
+
+        for(int j = 0; j < dim; ++j)
+        {
+            file << index[j] << ", ";
+        }
+        file << x[i] << std::endl;
+    }
+
+    file.close();
+}
+
 #endif
