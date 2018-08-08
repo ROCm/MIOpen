@@ -43,18 +43,22 @@ struct PerfField
 
 struct FindDbData : solver::Serializable<FindDbData>
 {
+    static constexpr const char* GetUnusedKCacheKey() { return "<unused>"; }
+
     std::string solver_id;
     float time;
     std::size_t workspace;
-    std::string network_config;
+    /// kchache_key may have a special value <unused>. It means that the particular solver doesn't
+    /// use kernel cache and doesn't require a validation of built kernel existance.
+    std::string kchache_key;
 
-    FindDbData() : solver_id("<unknown>"), network_config("<unknown>"), time(-1), workspace(-1) {}
+    FindDbData() : solver_id("<unknown>"), time(-1), workspace(-1), kchache_key("<unknown>") {}
 
     FindDbData(const std::string& solver_id_,
                float time_,
                std::size_t workspace_,
-               const std::string& network_config_)
-        : solver_id(solver_id_), time(time_), workspace(workspace_), network_config(network_config_)
+               const std::string& kchache_key_)
+        : solver_id(solver_id_), time(time_), workspace(workspace_), kchache_key(kchache_key_)
     {
     }
 
@@ -64,7 +68,7 @@ struct FindDbData : solver::Serializable<FindDbData>
         f(self.solver_id, "solver_id");
         f(self.time, "time");
         f(self.workspace, "workspace");
-        f(self.network_config, "network_config");
+        f(self.kchache_key, "kchache_key");
     }
 };
 
