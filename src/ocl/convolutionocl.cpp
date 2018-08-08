@@ -751,7 +751,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     // Todo: unify FFT network config to actually use loaded data.
     auto record = boost::optional<DbRecord>{boost::none}; // find_db.FindRecord(problem);
     auto loaded = record.is_initialized();
-    ConvFindHelper helper{handle, xDesc, x, wDesc, w, yDesc, workSpace, workSpaceSize, *this};
+    const ConvFindHelper helper{handle, xDesc, x, wDesc, w, yDesc, workSpace, workSpaceSize, *this};
 
     if(!loaded)
     {
