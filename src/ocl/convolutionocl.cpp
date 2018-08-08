@@ -292,6 +292,99 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
     }
 }
 
+void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
+                                                 const TensorDescriptor& xDesc,
+                                                 ConstData_t x,
+                                                 const TensorDescriptor& wDesc,
+                                                 ConstData_t w,
+                                                 const TensorDescriptor& yDesc,
+                                                 ConstData_t y,
+                                                 const int requestAlgoCount,
+                                                 int* returnedAlgoCount,
+                                                 miopenConvAlgoPerf_t* perfResults,
+                                                 Data_t workSpace,
+                                                 size_t workSpaceSize,
+                                                 bool exhaustiveSearch) const
+{
+    MIOPEN_LOG_I2("");
+    if(x == nullptr || w == nullptr || y == nullptr)
+        MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
+    if(returnedAlgoCount == nullptr)
+        MIOPEN_THROW(miopenStatusBadParm, "returnedAlgoCount cannot be nullptr");
+    if(perfResults == nullptr)
+        MIOPEN_THROW(miopenStatusBadParm, "perfResults cannot be nullptr");
+    if(requestAlgoCount < 1)
+        MIOPEN_THROW(miopenStatusBadParm, "requestAlgoCount cannot be < 1");
+
+    ProblemDescription problem;
+    problem.direction.Set(1);
+    problem.setOutputDescFromMLDesc(yDesc);
+    problem.setInputDescFromMLDesc(xDesc);
+    problem.setWeightDescFromMLDesc(wDesc);
+    problem.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+
+    const auto find_db_path = GetDbPath() + "/" + handle.GetDbPathFilename() + ".cd.fdb.txt";
+    Db find_db{find_db_path};
+    // Todo: unify FFT network config to actually use loaded data.
+    auto record = boost::optional<DbRecord>{boost::none}; // find_db.FindRecord(problem);
+    auto loaded = record.is_initialized();
+
+    if(!loaded)
+    {
+        record = DbRecord(problem);
+
+        FindConvFwdAlgorithmCore(
+            handle, xDesc, x, wDesc, w, yDesc, workSpace, workSpaceSize, exhaustiveSearch, *record);
+
+        if(!find_db.StoreRecord(record.get()))
+            MIOPEN_LOG_W("Failed to store record to find-db at <" << find_db_path << ">");
+    }
+
+    std::vector<PerfField> perf_db;
+    std::string network_config;
+    std::ignore = problem.mloBuildConf_Key(network_config);
+
+    for(const auto& pair : record->As<FindDbData>())
+    {
+        perf_db.push_back({pair.first, pair.second.time, pair.second.workspace});
+
+        if(loaded && !handle.HasKernel(pair.first, network_config))
+        {
+            FindConvFwdAlgorithmCore(handle,
+                                     xDesc,
+                                     x,
+                                     wDesc,
+                                     w,
+                                     yDesc,
+                                     workSpace,
+                                     workSpaceSize,
+                                     exhaustiveSearch,
+                                     *record);
+
+            loaded = false;
+        }
+    }
+
+    if(perf_db.empty())
+        MIOPEN_THROW("Fwd Convolution cannot be executed due to incorrect params");
+
+    // sort the perf_db
+    std::sort(begin(perf_db), end(perf_db));
+    for(const auto& entry : perf_db)
+        MIOPEN_LOG_I(entry.name << "\t" << entry.time << "\t" << entry.workspace);
+
+    // update perfResults
+    *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
+
+    for(int i = 0; i < *returnedAlgoCount; i++)
+    {
+        perfResults[i].fwd_algo =
+            static_cast<miopenConvFwdAlgorithm_t>(FwdAlgoResolver(perf_db[i].name));
+        perfResults[i].time   = perf_db[i].time;
+        perfResults[i].memory = perf_db[i].workspace;
+    }
+}
+
 void ConvolutionDescriptor::FindConvFwdAlgorithmCore(Handle& handle,
                                                      const TensorDescriptor& xDesc,
                                                      ConstData_t x,
@@ -596,8 +689,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithmCore(Handle& handle,
                 {
                     const std::string algorithm_name = "miopenConvolutionFwdAlgoDirect";
                     AddKernels(handle, algorithm_name, network_config, selected, nullptr);
-                    MIOPEN_LOG_I("Selected: " << selected << ": " << best << ", workspce_sz = "
-                                              << selected.workspce_sz);
+                    MIOPEN_LOG_I("Selected: " << selected << ": " << best
+                                              << ", workspce_sz = " << selected.workspce_sz);
                     record.SetValues(algorithm_name,
                                      FindDbData{selected.solver_id, best, selected.workspce_sz});
                 }
@@ -627,99 +720,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithmCore(Handle& handle,
                 }
             }
         }
-    }
-}
-
-void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
-                                                 const TensorDescriptor& xDesc,
-                                                 ConstData_t x,
-                                                 const TensorDescriptor& wDesc,
-                                                 ConstData_t w,
-                                                 const TensorDescriptor& yDesc,
-                                                 ConstData_t y,
-                                                 const int requestAlgoCount,
-                                                 int* returnedAlgoCount,
-                                                 miopenConvAlgoPerf_t* perfResults,
-                                                 Data_t workSpace,
-                                                 size_t workSpaceSize,
-                                                 bool exhaustiveSearch) const
-{
-    MIOPEN_LOG_I2("");
-    if(x == nullptr || w == nullptr || y == nullptr)
-        MIOPEN_THROW(miopenStatusBadParm, "Buffers cannot be NULL");
-    if(returnedAlgoCount == nullptr)
-        MIOPEN_THROW(miopenStatusBadParm, "returnedAlgoCount cannot be nullptr");
-    if(perfResults == nullptr)
-        MIOPEN_THROW(miopenStatusBadParm, "perfResults cannot be nullptr");
-    if(requestAlgoCount < 1)
-        MIOPEN_THROW(miopenStatusBadParm, "requestAlgoCount cannot be < 1");
-
-    ProblemDescription problem;
-    problem.direction.Set(1);
-    problem.setOutputDescFromMLDesc(yDesc);
-    problem.setInputDescFromMLDesc(xDesc);
-    problem.setWeightDescFromMLDesc(wDesc);
-    problem.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
-
-    const auto find_db_path = GetDbPath() + "/" + handle.GetDbPathFilename() + ".cd.fdb.txt";
-    Db find_db{find_db_path};
-    // Todo: unify FFT network config to actually use loaded data.
-    auto record = boost::optional<DbRecord>{boost::none}; // find_db.FindRecord(problem);
-    auto loaded = record.is_initialized();
-
-    if(!loaded)
-    {
-        record = DbRecord(problem);
-
-        FindConvFwdAlgorithmCore(
-            handle, xDesc, x, wDesc, w, yDesc, workSpace, workSpaceSize, exhaustiveSearch, *record);
-
-        if(!find_db.StoreRecord(record.get()))
-            MIOPEN_LOG_W("Failed to store record to find-db at <" << find_db_path << ">");
-    }
-
-    std::vector<PerfField> perf_db;
-    std::string network_config;
-    std::ignore = problem.mloBuildConf_Key(network_config);
-
-    for(const auto& pair : record->As<FindDbData>())
-    {
-        perf_db.push_back({pair.first, pair.second.time, pair.second.workspace});
-
-        if(loaded && !handle.HasKernel(pair.first, network_config))
-        {
-            FindConvFwdAlgorithmCore(handle,
-                                     xDesc,
-                                     x,
-                                     wDesc,
-                                     w,
-                                     yDesc,
-                                     workSpace,
-                                     workSpaceSize,
-                                     exhaustiveSearch,
-                                     *record);
-
-            loaded = false;
-        }
-    }
-
-    if(perf_db.empty())
-        MIOPEN_THROW("Fwd Convolution cannot be executed due to incorrect params");
-
-    // sort the perf_db
-    std::sort(begin(perf_db), end(perf_db));
-    for(const auto& entry : perf_db)
-        MIOPEN_LOG_I(entry.name << "\t" << entry.time << "\t" << entry.workspace);
-
-    // update perfResults
-    *returnedAlgoCount = std::min(requestAlgoCount, static_cast<int>(perf_db.size()));
-
-    for(int i = 0; i < *returnedAlgoCount; i++)
-    {
-        perfResults[i].fwd_algo =
-            static_cast<miopenConvFwdAlgorithm_t>(FwdAlgoResolver(perf_db[i].name));
-        perfResults[i].time   = perf_db[i].time;
-        perfResults[i].memory = perf_db[i].workspace;
     }
 }
 
