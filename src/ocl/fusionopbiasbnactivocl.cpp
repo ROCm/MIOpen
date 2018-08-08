@@ -46,10 +46,10 @@ BiasFusionOpDescriptor::GetCompileParms(std::string& compile_config, Handle& han
     std::string add;
     switch (source)
     {
-    case Asm:
+    case AsmText:
         add = " -Wa,-defsym,bias_mode=" + std::to_string(1);
         break;
-    case OpenCL:
+    case OpenclText:
         add = " -DMLO_CONV_BIAS=" + std::to_string(1);
         break;
     case Binary: break;
@@ -89,10 +89,10 @@ ActivFusionOpDescriptor::GetCompileParms(std::string& compile_config, Handle& ha
     std::string add;
     switch (source)
     {
-    case Asm:
+    case AsmText:
         add += " -Wa,-defsym,activ_mode=" + std::to_string(activMode);
         break;
-    case OpenCL:
+    case OpenclText:
         add += " -DMIOPEN_YES_ACTIV=1 -DMIOPEN_NRN_OP_ID=" + std::to_string(activMode);
         break;
     case Binary: break;
@@ -132,7 +132,7 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(std::string
 {
     (void)(handle); // only convolution uses handle
     (void)source;
-    assert(source == OpenCL);
+    assert(source == OpenclText);
     std::vector<size_t> vld{256, 1, 1};
     std::string add;
     if(mode == miopenBNSpatial)

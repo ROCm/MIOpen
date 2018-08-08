@@ -1,4 +1,7 @@
 #include <miopen/md_graph.hpp>
+#include <miopen/env.hpp>
+
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)
 
 namespace miopen {
 
@@ -137,8 +140,9 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                            {"dilation_h", 1},
                                            {"dilation_w", 1}};
     FusionMDGraph_Edge_Map empty_map = {{"key", {}}, {"weight", {"0"}}};
-    // Fused Winograd. Supports: { C>B>A, C>B, C>A }
-    {
+    
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}))
+    {   /// Fused Winograd. Supports: { C>B>A, C>B, C>A }
         /// \todo Get real gfx type, insert into filename.
         static const std::string program("conv_3x3_wheel_alpha_v9_2_7_gfx803_md10.so");
         static const std::string kernel("sp3AsmConvRxSU_CBA");
@@ -147,24 +151,13 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         auto vb      = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,  program, kernel, algo);
         auto vb_leaf = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,  program, kernel, algo, true);
         auto va_leaf = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward, program, kernel, algo, true);
-        {
-            /// \todo Winograd has some limitations related to x,y,C,K, needs to implement checks - how?
-            /// \todo "Direct" is formally incorrect.
-            /// \todo Winograd supports wide range of RxS. 3x3 only for now.
-            auto key = ConvForwardOpDescriptor::MDGraphKey(defaults, {0, 0, 3, 3}, miopenConvolutionFwdAlgoDirect);
-            FusionMDGraph_Edge_Map map_wino_conv = {{"key", {key}}, {"weight", {"10"}}};
-            g.AddEdge(nullptr, vc, map_wino_conv);
-        }
-        {
-            /// \todo Only 0x0 and 1x1 padding for now.
-            /// Winograd supports asymmetric padding, from 0 to 2^16.
-            std::map<std::string, int> defaults_pad1x1(defaults);
-            defaults_pad1x1["pad_h"] = 1;
-            defaults_pad1x1["pad_w"] = 1;
-            auto key = ConvForwardOpDescriptor::MDGraphKey(defaults_pad1x1, {0, 0, 3, 3}, miopenConvolutionFwdAlgoDirect);
-            FusionMDGraph_Edge_Map map_wino_conv = {{"key", {key}}, {"weight", {"10"}}};
-            g.AddEdge(nullptr, vc, map_wino_conv);
-        }
+        /// \todo Winograd has some limitations related to R,S,C,K, needs to implement checks - how?
+        /// \todo Only 0x0 padding for now. 9_2_7 supports asymmetric padding, from 0 to 2^16.
+        /// \todo Winograd supports wide range of RxS. 3x3 only for now.
+        /// \todo "Direct" is formally incorrect.
+        auto key = ConvForwardOpDescriptor::MDGraphKey(defaults, {0, 0, 3, 3}, miopenConvolutionFwdAlgoDirect);
+        FusionMDGraph_Edge_Map map_wino_conv = {{"key", {key}}, {"weight", {"10"}}};
+        g.AddEdge(nullptr, vc, map_wino_conv);
         // C>B>A
         g.AddEdge(vc, vb, empty_map);
         g.AddEdge(vb, va_leaf, empty_map);
