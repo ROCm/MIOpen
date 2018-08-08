@@ -721,12 +721,18 @@ size_t ConvolutionDescriptor::ConvolutionBackwardWeightsGetWorkSpaceSize(
 
 std::ostream& operator<<(std::ostream& stream, const ConvolutionDescriptor& c)
 {
+    MIOPEN_LOG_ENUM(
+        stream, c.mode, miopenConvolution, miopenTranspose, miopenGroupConv, miopenDepthwise)
+        << ", ";
     stream << c.pad_h << ", ";
     stream << c.pad_w << ", ";
     stream << c.u << ", ";
     stream << c.v << ", ";
     stream << c.dilation_h << ", ";
     stream << c.dilation_w << ", ";
+    if(c.mode == miopenGroupConv || c.mode == miopenDepthwise)
+        stream << c.group_count << ", ";
+
     return stream;
 }
 

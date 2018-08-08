@@ -550,7 +550,11 @@ struct conv_driver : test_driver
         {"CONV", miopenConvolution},
         {"TRANS", miopenTranspose},
         {"GROUP", miopenGroupConv},
-        {"DW", miopenDepthwise}};
+        {"DW", miopenDepthwise},
+        {"CONVOLUTION", miopenConvolution},
+        {"TRANSPOSE", miopenTranspose},
+        {"GROUPCONV", miopenGroupConv},
+        {"DEPTHWISE", miopenDepthwise}};
 
     std::unordered_map<std::string, miopenPaddingMode_t> pmode_lookup = {
         {"SAME", miopenPaddingSame},

@@ -599,7 +599,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDes
 /*! @brief Set the number of groups to be used in Group/Depthwise convolution
 *
 * Must be called before all computational APIs of Group/Depthwise convolution, suggesting to call
-* with miopenInitConvolutionDescriptor() in initialization stage.
+* following miopenInitConvolutionDescriptor() in initialization stage.
 * @param convDesc   Convolution layer descriptor (output)
 * @param groupCount      number of groups, in depthwise conv using filter_number/channel_multiplier
 * (input)
@@ -700,6 +700,8 @@ typedef struct
  * executing convolution layer functions. The maximum size of the memory needed from the set
  * of potential forward convolution algorithms is returned.
  *
+ * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before run this.
+ *
  * @param handle         MIOpen handle (input)
  * @param wDesc          Tensor descriptor for weight tensor w (input)
  * @param xDesc          Tensor descriptor for input data tensor x (input)
@@ -734,6 +736,8 @@ miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
  *
  * * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration.
  * If a match is not found, an exhaustive search is performed by running individual algorithms.
+ *
+ * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before run this.
  *
  * @param handle             MIOpen handle (input)
  * @param xDesc              Tensor descriptor for data input tensor x (input)
@@ -774,6 +778,8 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
  * miopenConvolutionForwardGetWorkSpaceSize() and miopenFindConvolutionForwardAlgorithm() must have
  * been executed previously to determine the required memory needed for the workspace and the
  * best convolutional algorithm, respectively.
+ *
+ * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before run this.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -833,6 +839,8 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
  * convolution layer functions. The maximum size of the memory needed from the set of potential
  * forward convolution algorithms is returned.
  *
+ * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before run this.
+ *
  * @param handle         MIOpen handle (input)
  * @param dyDesc         Tensor descriptor for data input tensor dy (input)
  * @param wDesc          Tensor descriptor for weight tensor w (input)
@@ -867,6 +875,8 @@ miopenConvolutionBackwardDataGetWorkSpaceSize(miopenHandle_t handle,
  *
  * * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration.
  * If a match is not found, an exhaustive search is performed by running individual algorithms.
+ *
+ * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before run this.
  *
  * @param handle             MIOpen handle (input)
  * @param dyDesc             Tensor descriptor for data input tensor dy (input)
@@ -908,6 +918,8 @@ miopenFindConvolutionBackwardDataAlgorithm(miopenHandle_t handle,
  * must have been executed previously to determine the required memory needed for the workspace and
  * the best convolutional algorithm, respectively.
  *
+ * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before run this.
+ *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
  * @param dyDesc         Tensor descriptor for data input tensor dy (input)
@@ -946,6 +958,8 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
  * convolution layer functions. The maximum size of the memory needed from the set of potential
  * forward convolution algorithms is returned.
  *
+ * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before run this.
+ *
  * @param handle         MIOpen handle (input)
  * @param dyDesc         Tensor descriptor for data input tensor dy (input)
  * @param xDesc          Tensor descriptor for data tensor x (input)
@@ -980,6 +994,8 @@ miopenConvolutionBackwardWeightsGetWorkSpaceSize(miopenHandle_t handle,
  *
  * * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration.
  * If a match is not found, an exhaustive search is performed by running individual algorithms.
+ *
+ * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before run this.
  *
  * @param handle             MIOpen handle (input)
  * @param dyDesc             Tensor descriptor for data input tensor dy (input)
@@ -1021,6 +1037,8 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
  * miopenFindConvolutionBackwardWeightsAlgorithm() must have
  * been executed previously to determine the required memory needed for the workspace and the
  * best convolutional algorithm, respectively.
+ *
+ * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before run this.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
