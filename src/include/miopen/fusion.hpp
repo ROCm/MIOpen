@@ -58,8 +58,8 @@ enum miopenFusionOp_t
 
 enum FusionKernelSourceType
 {
-    OpenCL,
-    Asm,
+    OpenclText,
+    AsmText,
     Binary,
 };
 
