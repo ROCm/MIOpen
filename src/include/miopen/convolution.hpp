@@ -301,17 +301,6 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                                     Data_t workSpace,
                                     size_t workSpaceSize) const;
 
-    void FindConvFwdAlgorithmCore(Handle& handle,
-                                  const TensorDescriptor& xDesc,
-                                  ConstData_t x,
-                                  const TensorDescriptor& wDesc,
-                                  ConstData_t w,
-                                  const TensorDescriptor& yDesc,
-                                  Data_t workSpace,
-                                  size_t workSpaceSize,
-                                  bool exhaustiveSearch,
-                                  DbRecord& record) const;
-
     miopenConvolutionMode_t mode;
     miopenPaddingMode_t paddingMode;
     int pad_h;
