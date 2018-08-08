@@ -399,7 +399,7 @@ bool FusionOpLU::Advance(std::vector<std::shared_ptr<miopen::FusionOpDescriptor>
 std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
 {
     (void)handle;
-    if(op_map.size() != 0)
+    if(!op_map.empty())
     {
         program_name = lu.GetProgramName();
         return program_name;
@@ -413,7 +413,7 @@ std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
 std::string FusionPlanDescriptor::GetKernelName(Handle& handle)
 {
     (void)handle;
-    if(op_map.size() != 0)
+    if(!op_map.empty())
     {
         kernel_name = lu.GetKernelName();
         return kernel_name;
@@ -449,9 +449,9 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     algorithm_name = lu.GetAlgoName();
     program_name   = GetProgramName(handle);
     kernel_name    = GetKernelName(handle);
-    if(program_name == "")
+    if(program_name.empty())
         MIOPEN_THROW("Invalid Fusion Plan");
-    is_asm_kernel  = (program_name.back() == 's');
+    is_asm_kernel = (program_name.back() == 's');
 #if 0
     for(auto&& op : op_map)
     { // This needs to go away with the meta graph.
@@ -505,7 +505,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     {
         std::string compile_config;
         auto dType = input_desc.GetType();
-        if(!is_asm_kernel){
+        if(!is_asm_kernel)
+        {
             if(dType == miopenFloat)
             {
                 compile_config += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
@@ -604,7 +605,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             auto op   = op_map[idx];
             auto keys = size_map[std::pair<size_t, size_t>(idx, sz)];
             std::sort(keys.begin(), keys.end());
-            for(auto key : keys)
+            for(auto& key : keys)
             {
                 MIOPEN_LOG_I("Populate scalar args, key: " + key);
                 auto it = op_args.args_map.find(key);
@@ -624,7 +625,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         auto op   = op_map[idx];
         auto keys = ptr_map[idx];
         std::sort(keys.begin(), keys.end());
-        for(auto key : keys)
+        for(auto& key : keys)
         {
             MIOPEN_LOG_I("Populate arg pointers, key: " + key);
             auto it = op_args.args_map.find(key);
