@@ -306,7 +306,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::AddCmdLineArgs()
         "mode", 'm', "conv", "Convolution Mode (conv, trans) (Default=conv)", "str");
 
     inflags.AddInputFlag(
-        "pad_mode", 'z', "conv", "Padding Mode (same, valid, default) (Default=default)", "str");
+        "pad_mode", 'z', "default", "Padding Mode (same, valid, default) (Default=default)", "str");
 
     inflags.AddInputFlag("dilation_h", 'l', "1", "Dilation of Filter Height (Default=1)", "int");
     inflags.AddInputFlag("dilation_w", 'j', "1", "Dilation of Filter Width (Default=1)", "int");
@@ -387,23 +387,28 @@ int ConvDriver<Tgpu, Tref, Tfile>::SetConvDescriptorFromCmdLineArgs()
         exit(0);
     }
 
-    if((inflags.GetValueStr("pad_mode")) == "same")
+    if((inflags.GetValueStr("mode")) == "conv" &&
+       ((dilation_h == 1 && dilation_w == 1) || (wei_h == 1 && wei_w == 1)))
     {
-        mode  = miopenConvolution;
-        pmode = miopenPaddingSame;
-        pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
-        pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
-        pad_h /= 2;
-        pad_w /= 2;
+        if((inflags.GetValueStr("pad_mode")) == "same")
+        {
+            mode  = miopenConvolution;
+            pmode = miopenPaddingSame;
+            pad_h =
+                (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
+            pad_w =
+                (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+            pad_h /= 2;
+            pad_w /= 2;
+        }
+        else if((inflags.GetValueStr("pad_mode")) == "valid")
+        {
+            pmode = miopenPaddingValid;
+            mode  = miopenConvolution;
+            pad_h = 0;
+            pad_w = 0;
+        }
     }
-    else if((inflags.GetValueStr("pad_mode")) == "valid")
-    {
-        pmode = miopenPaddingValid;
-        mode  = miopenConvolution;
-        pad_h = 0;
-        pad_w = 0;
-    }
-
     miopen::deref(convDesc) =
         miopen::ConvolutionDescriptor(mode, pmode, pad_h, pad_w, u, v, dilation_h, dilation_w);
     return miopenStatusSuccess;
@@ -764,19 +769,24 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardCPU()
     miopenGetConvolutionDescriptor(
         convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
-    if(pmode == miopenPaddingSame)
+    if(mode == miopenConvolution &&
+       ((dilation_h == 1 && dilation_w == 1) || (wei_h == 1 && wei_w == 1)))
     {
-        pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
-        pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
-        pad_h /= 2;
-        pad_w /= 2;
+        if(pmode == miopenPaddingSame)
+        {
+            pad_h =
+                (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
+            pad_w =
+                (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+            pad_h /= 2;
+            pad_w /= 2;
+        }
+        else if(pmode == miopenPaddingValid)
+        {
+            pad_h = 0;
+            pad_w = 0;
+        }
     }
-    else if(pmode == miopenPaddingValid)
-    {
-        pad_h = 0;
-        pad_w = 0;
-    }
-
     if(out_h <= 0 || out_w <= 0)
         MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
 
@@ -1139,17 +1149,23 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardWeightsCPU()
     miopenGetConvolutionDescriptor(
         convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
-    if(pmode == miopenPaddingSame)
+    if(mode == miopenConvolution &&
+       ((dilation_h == 1 && dilation_w == 1) || (wei_h == 1 && wei_w == 1)))
     {
-        pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
-        pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
-        pad_h /= 2;
-        pad_w /= 2;
-    }
-    else if(pmode == miopenPaddingValid)
-    {
-        pad_h = 0;
-        pad_w = 0;
+        if(pmode == miopenPaddingSame)
+        {
+            pad_h =
+                (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
+            pad_w =
+                (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+            pad_h /= 2;
+            pad_w /= 2;
+        }
+        else if(pmode == miopenPaddingValid)
+        {
+            pad_h = 0;
+            pad_w = 0;
+        }
     }
 
     if(out_h <= 0 || out_w <= 0)
@@ -1395,17 +1411,23 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardDataCPU()
     if(out_h <= 0 || out_w <= 0)
         MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
 
-    if(pmode == miopenPaddingSame)
+    if(mode == miopenConvolution &&
+       ((dilation_h == 1 && dilation_w == 1) || (wei_h == 1 && wei_w == 1)))
     {
-        pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
-        pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
-        pad_h /= 2;
-        pad_w /= 2;
-    }
-    else if(pmode == miopenPaddingValid)
-    {
-        pad_h = 0;
-        pad_w = 0;
+        if(pmode == miopenPaddingSame)
+        {
+            pad_h =
+                (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
+            pad_w =
+                (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
+            pad_h /= 2;
+            pad_w /= 2;
+        }
+        else if(pmode == miopenPaddingValid)
+        {
+            pad_h = 0;
+            pad_w = 0;
+        }
     }
 
     if(mode == miopenConvolution)

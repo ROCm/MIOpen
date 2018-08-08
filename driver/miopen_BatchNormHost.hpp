@@ -36,7 +36,7 @@
 #define MIO_BN_DIST 32
 #endif
 
-template <typename T>
+template <typename Tgpu, typename Tref>
 int miopenBNFwdTrainPerActivationRunHost(
     /*
         T alpha,
@@ -46,18 +46,18 @@ int miopenBNFwdTrainPerActivationRunHost(
     int channels,
     int height,
     int width,
-    const T* in_ptr,
-    double* out_ptr,
-    T* scale_ptr,
-    T* bias_ptr,
-    double epsilon,
+    const Tgpu* in_ptr,
+    Tref* out_ptr,
+    Tref* scale_ptr,
+    Tref* bias_ptr,
+    Tref epsilon,
     bool savemeanvar,
     bool runningmeanvar,
-    double* saveMean,
-    double* saveInvVariance,
-    double* runningMean,
-    double* runningVariance,
-    double expAvgFactor)
+    Tref* saveMean,
+    Tref* saveInvVariance,
+    Tref* runningMean,
+    Tref* runningVariance,
+    Tref expAvgFactor)
 {
 
     // C*H*W is also stored as in_nstride, H*W is in_cstride, W is in_hstride.
@@ -66,21 +66,21 @@ int miopenBNFwdTrainPerActivationRunHost(
     unsigned int in_nstride = channels * height * width;
     unsigned int in_cstride = height * width;
 
-    double mean_accum     = 0.;
-    double variance_accum = 0.;
-    double elemStd        = 0.;
+    Tref mean_accum     = static_cast<Tref>(0.);
+    Tref variance_accum = static_cast<Tref>(0.);
+    Tref elemStd        = static_cast<Tref>(0.);
 
     int ret = 0;
     for(int cidx = 0; cidx < channels; cidx++)
     { // via channel
-        mean_accum     = 0.;
-        variance_accum = 0.;
+        mean_accum     = static_cast<Tref>(0.);
+        variance_accum = static_cast<Tref>(0.);
         // process the batch per channel
         for(int row = 0; row < height; row++)
         { // via rows
             for(int column = 0; column < width; column++)
             { // via columns
-                mean_accum = 0.;
+                mean_accum = static_cast<Tref>(0.);
                 adjIndex   = in_cstride * cidx + width * row + column;
                 for(int bidx = 0; bidx < n_batchs; bidx++)
                 { // via mini_batch
@@ -89,19 +89,19 @@ int miopenBNFwdTrainPerActivationRunHost(
                     // iterating through the stack of images in the mini_batch
                     mean_accum += in_ptr[index];
                 }
-                mean_accum /= double(n_batchs);
+                mean_accum /= static_cast<Tref>(n_batchs);
 
                 if(savemeanvar)
                     saveMean[adjIndex] = mean_accum;
                 if(runningmeanvar)
                 {
-                    double newRunMean = runningMean[adjIndex] * (1 - expAvgFactor);
+                    Tref newRunMean = runningMean[adjIndex] * (static_cast<Tref>(1) - expAvgFactor);
                     runningMean[adjIndex] =
                         mean_accum * expAvgFactor + newRunMean; // newMean*factor + tmp
                 }
 
-                elemStd        = 0.;
-                variance_accum = 0.;
+                elemStd        = static_cast<Tref>(0.);
+                variance_accum = static_cast<Tref>(0.);
                 // #2 calculate the variances
                 // sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
                 for(int bidx = 0; bidx < n_batchs; bidx++)
@@ -113,21 +113,22 @@ int miopenBNFwdTrainPerActivationRunHost(
                     variance_accum += elemStd * elemStd; // sum{ (x_i - mean)^2 }
                 }                                        // end for(n)
 
-                variance_accum /= double(n_batchs); // (1/N)*sum{ (x_i - mean)^2 }
+                variance_accum /= static_cast<Tref>(n_batchs); // (1/N)*sum{ (x_i - mean)^2 }
 
                 if(runningmeanvar)
                 {
                     // var(n+1) = p * var(n-1) + (1 - p)*(b/b-1)*var(n)
-                    double adjust =
-                        (n_batchs == 1)
-                            ? variance_accum
-                            : (double(n_batchs) / double(n_batchs - 1) * variance_accum);
+                    Tref adjust = (n_batchs == 1)
+                                      ? variance_accum
+                                      : (static_cast<Tref>(n_batchs) /
+                                         static_cast<Tref>(n_batchs - 1) * variance_accum);
                     runningVariance[adjIndex] =
-                        (1 - expAvgFactor) * runningVariance[cidx] + expAvgFactor * adjust;
+                        (static_cast<Tref>(1) - expAvgFactor) * runningVariance[cidx] +
+                        expAvgFactor * adjust;
                 }
 
                 // #3 add epsilon for numeric stability, sqr_root, and invert
-                double elemInvVar = 1.0 / sqrt(variance_accum + epsilon);
+                Tref elemInvVar = static_cast<Tref>(1.0) / sqrt(variance_accum + epsilon);
 
                 if(savemeanvar)
                     saveInvVariance[adjIndex] = elemInvVar; /*output only*/
@@ -138,8 +139,8 @@ int miopenBNFwdTrainPerActivationRunHost(
                 { // via mini_batch
                     index = in_nstride * bidx + adjIndex;
                     // per (x-dims) channel load a block of data into LDS
-                    elemStd      = in_ptr[index] - mean_accum; // (x_i - mean)
-                    double inhat = elemStd * elemInvVar;
+                    elemStd    = in_ptr[index] - mean_accum; // (x_i - mean)
+                    Tref inhat = elemStd * elemInvVar;
                     // #5 Gamma and Beta adjust
                     // y_i = gamma*x_hat + beta
                     out_ptr[index] = scale_ptr[adjIndex] * inhat + bias_ptr[adjIndex];
@@ -150,7 +151,7 @@ int miopenBNFwdTrainPerActivationRunHost(
     return (ret);
 }
 
-template <typename T>
+template <typename Tgpu, typename Tref>
 int miopenBNFwdTrainSpatialRunHost(
     /*    T alpha,
         T beta,
@@ -159,18 +160,18 @@ int miopenBNFwdTrainSpatialRunHost(
     int channels,
     int height,
     int width,
-    const T* in_ptr,
-    double* out_ptr,
-    T* scale_ptr,
-    T* bias_ptr,
-    double epsilon,
+    const Tgpu* in_ptr,
+    Tref* out_ptr,
+    Tref* scale_ptr,
+    Tref* bias_ptr,
+    Tref epsilon,
     bool savemeanvar,
     bool runningmeanvar,
-    double* saveMean,
-    double* saveInvVariance,
-    double* runningMean,
-    double* runningVariance,
-    double expAvgFactor)
+    Tref* saveMean,
+    Tref* saveInvVariance,
+    Tref* runningMean,
+    Tref* runningVariance,
+    Tref expAvgFactor)
 {
 
     unsigned int imgIndex;
@@ -178,26 +179,26 @@ int miopenBNFwdTrainSpatialRunHost(
     unsigned int adjIndex;
     unsigned int in_nstride = channels * height * width;
     unsigned int in_cstride = height * width;
-    auto NHW                = double(in_cstride * n_batchs);
+    auto NHW                = static_cast<Tref>(in_cstride * n_batchs);
 
-    double elemStd        = 0.;
-    double variance_accum = 0.;
-    double mean_accum     = 0.;
+    Tref elemStd        = static_cast<Tref>(0.);
+    Tref variance_accum = static_cast<Tref>(0.);
+    Tref mean_accum     = static_cast<Tref>(0.);
 
 #if(MIO_HEIRARCH_SEL == 1)
-    double variance_accum_arr[MIO_BN_DIST];
-    double mean_accum_arr[MIO_BN_DIST];
+    Tref variance_accum_arr[MIO_BN_DIST];
+    Tref mean_accum_arr[MIO_BN_DIST];
 #endif
 
     int ret = 0;
     for(int cidx = 0; cidx < channels; cidx++)
     { // via channel
-        mean_accum = 0.;
+        mean_accum = static_cast<Tref>(0.);
 #if(MIO_HEIRARCH_SEL == 1)
         for(int i = 0; i < MIO_BN_DIST; i++)
         {
-            variance_accum_arr[i] = 0.;
-            mean_accum_arr[i]     = 0.;
+            variance_accum_arr[i] = static_cast<Tref>(0.);
+            mean_accum_arr[i]     = static_cast<Tref>(0.);
         }
 #endif
 
@@ -246,18 +247,18 @@ int miopenBNFwdTrainSpatialRunHost(
             mean_accum += mean_accum_arr[i];
         }
 #endif
-        mean_accum /= NHW;
+        mean_accum /= static_cast<Tref>(NHW);
 
         if(savemeanvar)
             saveMean[cidx] = mean_accum;
         if(runningmeanvar)
         {
-            double newRunMean = runningMean[cidx] * (1 - expAvgFactor);
+            Tref newRunMean   = runningMean[cidx] * (static_cast<Tref>(1) - expAvgFactor);
             runningMean[cidx] = mean_accum * expAvgFactor + newRunMean; // newMean*factor + tmp
         }
 
-        elemStd        = 0.;
-        variance_accum = 0.;
+        elemStd        = static_cast<Tref>(0.);
+        variance_accum = static_cast<Tref>(0.);
 #if(MIO_HEIRARCH_SEL == 0)
         // #2 calculate the variances
         // sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
@@ -312,19 +313,21 @@ int miopenBNFwdTrainSpatialRunHost(
         }
 #endif
 
-        variance_accum /= NHW; // (1/N)*sum{ (x_i - mean)^2 }
+        variance_accum /= static_cast<Tref>(NHW); // (1/N)*sum{ (x_i - mean)^2 }
         // printf("Variance sum on host: %f\n",variance_accum);
 
         if(runningmeanvar)
         {
-            double adjust = (n_batchs * in_cstride == 1) ? variance_accum
-                                                         : (NHW / (NHW - 1.0) * variance_accum);
-            runningVariance[cidx] =
-                (1 - expAvgFactor) * runningVariance[cidx] + expAvgFactor * adjust;
+            Tref adjust =
+                (n_batchs * in_cstride == 1)
+                    ? variance_accum
+                    : (static_cast<Tref>(NHW) / (static_cast<Tref>(NHW - 1.0)) * variance_accum);
+            runningVariance[cidx] = (static_cast<Tref>(1) - expAvgFactor) * runningVariance[cidx] +
+                                    expAvgFactor * adjust;
         }
 
         // #3 add epsilon for numeric stability, sqr_root, and invert
-        double invertVar = 1.0 / sqrt(variance_accum + epsilon);
+        Tref invertVar = static_cast<Tref>(1.0) / sqrt(variance_accum + epsilon);
 
         // printf("invVar on host: %lf\n",invertVar);
 
@@ -346,7 +349,7 @@ int miopenBNFwdTrainSpatialRunHost(
                         index = in_nstride * bidx + adjIndex;
                         // per (x-dims) channel load a block of data into LDS
                         // elemStd =(in_ptr[index] - mean_accum);
-                        // double inhat = elemStd*invertVar;
+                        // Tref inhat = elemStd*invertVar;
                         // #5 Gamma and Beta adjust
                         // y_i = gamma*x_hat + beta
                         out_ptr[index] =
@@ -363,23 +366,23 @@ int miopenBNFwdTrainSpatialRunHost(
 
 //==================== BEGIN INFERENCE KERNELS ========================
 
-template <typename T>
+template <typename Tgpu, typename Tref>
 int miopenBNFwdInferPerActivationRunHost(
-    /*	T alpha,
+    /* T alpha,
             T beta,
     */
     int n_batchs,
     int channels,
     int height,
     int width,
-    const T* in_ptr,
-    double* out_ptr,
-    T* scale_ptr,
-    T* bias_ptr,
-    double epsilon,
+    const Tgpu* in_ptr,
+    Tref* out_ptr,
+    Tref* scale_ptr,
+    Tref* bias_ptr,
+    Tref epsilon,
     bool estmeanvar,
-    double* estimatedMean,
-    double* estimatedVariance)
+    Tref* estimatedMean,
+    Tref* estimatedVariance)
 { // use running mean and variance
 
     // C*H*W is also stored as in_nstride, H*W is in_cstride, W is in_hstride.
@@ -388,15 +391,15 @@ int miopenBNFwdInferPerActivationRunHost(
     unsigned int in_nstride = channels * height * width;
     unsigned int in_cstride = height * width;
 
-    double elemStd = 0.;
+    Tref elemStd = static_cast<Tref>(0.);
 
     int ret = 0;
     if(estmeanvar)
     {
 
         printf("Running estimated mean / var inference on CPU.\n");
-        double mean     = 0.;
-        double variance = 0.;
+        Tref mean     = static_cast<Tref>(0.);
+        Tref variance = static_cast<Tref>(0.);
         for(int cidx = 0; cidx < channels; cidx++)
         { // via channel
             // process the batch per channel
@@ -404,16 +407,17 @@ int miopenBNFwdInferPerActivationRunHost(
             { // via rows
                 for(int column = 0; column < width; column++)
                 { // via columns
-                    adjIndex          = in_cstride * cidx + width * row + column;
-                    mean              = estimatedMean[adjIndex];
-                    variance          = estimatedVariance[adjIndex];
-                    double elemInvVar = 1.0 / double(sqrt(variance + epsilon));
+                    adjIndex = in_cstride * cidx + width * row + column;
+                    mean     = estimatedMean[adjIndex];
+                    variance = estimatedVariance[adjIndex];
+                    Tref elemInvVar =
+                        static_cast<Tref>(1.0) / static_cast<Tref>(sqrt(variance + epsilon));
                     for(int bidx = 0; bidx < n_batchs; bidx++)
                     { // via mini_batch
                         index = in_nstride * bidx + adjIndex;
                         // per (x-dims) channel load a block of data into LDS
-                        elemStd      = in_ptr[index] - mean; // (x_i - mean)
-                        double inhat = elemStd * elemInvVar;
+                        elemStd    = in_ptr[index] - mean; // (x_i - mean)
+                        Tref inhat = elemStd * elemInvVar;
                         // #5 Gamma and Beta adjust
                         // y_i = gamma*x_hat + beta
                         out_ptr[index] = scale_ptr[adjIndex] * inhat + bias_ptr[adjIndex];
@@ -425,8 +429,8 @@ int miopenBNFwdInferPerActivationRunHost(
     else
     {
 
-        double mean_accum     = 0.;
-        double variance_accum = 0.;
+        Tref mean_accum     = static_cast<Tref>(0.);
+        Tref variance_accum = static_cast<Tref>(0.);
         for(int cidx = 0; cidx < channels; cidx++)
         { // via channel
             // process the batch per channel
@@ -434,7 +438,7 @@ int miopenBNFwdInferPerActivationRunHost(
             { // via rows
                 for(int column = 0; column < width; column++)
                 { // via columns
-                    mean_accum = 0.;
+                    mean_accum = static_cast<Tref>(0.);
                     adjIndex   = in_cstride * cidx + width * row + column;
                     for(int bidx = 0; bidx < n_batchs; bidx++)
                     { // via mini_batch
@@ -443,23 +447,24 @@ int miopenBNFwdInferPerActivationRunHost(
                         // iterating through the stack of images in the mini_batch
                         mean_accum += in_ptr[index];
                     }
-                    mean_accum /= double(n_batchs);
+                    mean_accum /= static_cast<Tref>(n_batchs);
 
-                    elemStd        = 0.;
-                    variance_accum = 0.;
+                    elemStd        = static_cast<Tref>(0.);
+                    variance_accum = static_cast<Tref>(0.);
                     // #2 calculate the variances
                     // sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
                     for(int bidx = 0; bidx < n_batchs; bidx++)
                     { // via mini_batch
                         // per (x-dims) channel load a block of data into LDS
                         index   = in_nstride * bidx + adjIndex;
-                        elemStd = in_ptr[index] - mean_accum; // (x_i - mean)
-                        variance_accum += elemStd * elemStd;  // sum{ (x_i - mean)^2 }
-                    }                                         // end for(n)
-                    variance_accum /= double(n_batchs);       // (1/N)*sum{ (x_i - mean)^2 }
+                        elemStd = in_ptr[index] - mean_accum;      // (x_i - mean)
+                        variance_accum += elemStd * elemStd;       // sum{ (x_i - mean)^2 }
+                    }                                              // end for(n)
+                    variance_accum /= static_cast<Tref>(n_batchs); // (1/N)*sum{ (x_i - mean)^2 }
 
                     // #3 add epsilon for numeric stability, sqr_root, and invert
-                    double elemInvVar = 1.0 / double(sqrt(variance_accum + epsilon));
+                    Tref elemInvVar =
+                        static_cast<Tref>(1.0) / static_cast<Tref>(sqrt(variance_accum + epsilon));
 
                     // #4 apply the normalization
                     // x_hat = (x_i - mean) / sqrt(variance_accum - epsilon)
@@ -467,8 +472,8 @@ int miopenBNFwdInferPerActivationRunHost(
                     { // via mini_batch
                         index = in_nstride * bidx + adjIndex;
                         // per (x-dims) channel load a block of data into LDS
-                        elemStd      = in_ptr[index] - mean_accum; // (x_i - mean)
-                        double inhat = elemStd * elemInvVar;
+                        elemStd    = in_ptr[index] - mean_accum; // (x_i - mean)
+                        Tref inhat = elemStd * elemInvVar;
                         // #5 Gamma and Beta adjust
                         // y_i = gamma*x_hat + beta
                         out_ptr[index] = scale_ptr[adjIndex] * inhat + bias_ptr[adjIndex];
@@ -480,7 +485,7 @@ int miopenBNFwdInferPerActivationRunHost(
     return (ret);
 }
 
-template <typename T>
+template <typename Tgpu, typename Tref>
 int miopenBNFwdInferSpatialRunHost(
     /*        T alpha,
             T beta,
@@ -489,14 +494,14 @@ int miopenBNFwdInferSpatialRunHost(
     int channels,
     int height,
     int width,
-    const T* in_ptr,
-    double* out_ptr,
-    T* scale_ptr,
-    T* bias_ptr,
-    double epsilon,
+    const Tgpu* in_ptr,
+    Tref* out_ptr,
+    Tref* scale_ptr,
+    Tref* bias_ptr,
+    Tref epsilon,
     bool estmeanvar,
-    double* estimatedMean,
-    double* estimatedVariance)
+    Tref* estimatedMean,
+    Tref* estimatedVariance)
 {
 
     unsigned int index;
@@ -504,20 +509,20 @@ int miopenBNFwdInferSpatialRunHost(
     unsigned int in_nstride = channels * height * width;
     unsigned int in_cstride = height * width;
 
-    double elemStd = 0.;
-    int ret        = 0;
+    Tref elemStd = static_cast<Tref>(0.);
+    int ret      = 0;
 
     if(estmeanvar)
     {
 
-        double variance = 0.;
-        double mean     = 0.;
-        double inhat    = 0.;
+        Tref variance = static_cast<Tref>(0.);
+        Tref mean     = static_cast<Tref>(0.);
+        Tref inhat    = static_cast<Tref>(0.);
         for(int cidx = 0; cidx < channels; cidx++)
         { // via channel
-            mean             = estimatedMean[cidx];
-            variance         = estimatedVariance[cidx];
-            double invertVar = 1.0 / sqrt(variance + epsilon);
+            mean           = estimatedMean[cidx];
+            variance       = estimatedVariance[cidx];
+            Tref invertVar = static_cast<Tref>(1.0) / static_cast<Tref>(sqrt(variance + epsilon));
             // process the batch per channel
             for(int row = 0; row < height; row++)
             { // via rows
@@ -539,23 +544,23 @@ int miopenBNFwdInferSpatialRunHost(
     {
 
 #if(MIO_HEIRARCH_SEL == 1)
-        double variance_accum_arr[MIO_BN_DIST];
-        double mean_accum_arr[MIO_BN_DIST];
+        Tref variance_accum_arr[MIO_BN_DIST];
+        Tref mean_accum_arr[MIO_BN_DIST];
 #endif
 
-        double variance_accum = 0.;
-        double mean_accum     = 0.;
+        Tref variance_accum = static_cast<Tref>(0.);
+        Tref mean_accum     = static_cast<Tref>(0.);
         for(int cidx = 0; cidx < channels; cidx++)
         { // via channel
 #if(MIO_HEIRARCH_SEL == 1)
             for(int i = 0; i < MIO_BN_DIST; i++)
             {
-                variance_accum_arr[i] = 0.;
-                mean_accum_arr[i]     = 0.;
+                variance_accum_arr[i] = static_cast<Tref>(0.);
+                mean_accum_arr[i]     = static_cast<Tref>(0.);
             }
 #endif
 
-            mean_accum = 0.;
+            mean_accum = static_cast<Tref>(0.);
 #if(MIO_HEIRARCH_SEL == 0)
             // process the batch per channel
             for(int row = 0; row < height; row++)
@@ -595,10 +600,10 @@ int miopenBNFwdInferSpatialRunHost(
                 mean_accum += mean_accum_arr[i];
             }
 #endif
-            mean_accum /= double(in_cstride * n_batchs);
+            mean_accum /= static_cast<Tref>(in_cstride * n_batchs);
 
-            elemStd        = 0.;
-            variance_accum = 0.;
+            elemStd        = static_cast<Tref>(0.);
+            variance_accum = static_cast<Tref>(0.);
 #if(MIO_HEIRARCH_SEL == 0)
             // #2 calculate the variances
             // sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
@@ -641,10 +646,12 @@ int miopenBNFwdInferSpatialRunHost(
                 variance_accum += variance_accum_arr[i];
             }
 #endif
-            variance_accum /= double(in_cstride * n_batchs); // (1/N)*sum{ (x_i - mean)^2 }
+            variance_accum /=
+                static_cast<Tref>(in_cstride * n_batchs); // (1/N)*sum{ (x_i - mean)^2 }
 
             // #3 add epsilon for numeric stability, sqr_root, and invert
-            double invertVar = 1.0 / sqrt(variance_accum + epsilon);
+            Tref invertVar =
+                static_cast<Tref>(1.0) / static_cast<Tref>(sqrt(variance_accum + epsilon));
 
             // #4 apply the normalization
             // x_hat = (x_i - mean) / sqrt(variance_accum - epsilon)
@@ -658,8 +665,8 @@ int miopenBNFwdInferSpatialRunHost(
                         index = in_nstride * bidx + adjIndex;
                         // per (x-dims) channel load a block of data into LDS
                         // elemStd = in_ptr[index] - mean_accum;// (x_i - mean)
-                        elemStd      = out_ptr[index]; // using saved values from output tensor
-                        double inhat = elemStd * invertVar;
+                        elemStd    = out_ptr[index]; // using saved values from output tensor
+                        Tref inhat = elemStd * invertVar;
                         // #5 Gamma and Beta adjust
                         // y_i = gamma*x_hat + beta
                         out_ptr[index] = scale_ptr[cidx] * inhat + bias_ptr[cidx];
@@ -675,7 +682,7 @@ int miopenBNFwdInferSpatialRunHost(
 
 //================ START BACKWARDS PASS =====================
 
-template <typename T>
+template <typename Tgpu, typename Tref>
 int miopenBNBwdPerActivationRunHost(
     /*        T alphaDiff,
             T betaDiff,
@@ -686,16 +693,16 @@ int miopenBNBwdPerActivationRunHost(
     int channels,
     int height,
     int width,
-    const T* x_ptr,  // layer's fwd input
-    const T* dy_ptr, // fwd normalized x
-    double* dx_ptr,
-    T* scale_ptr,
-    double* dscale_ptr,
-    double* dbias_ptr,
-    double epsilon,
+    const Tgpu* x_ptr,  // layer's fwd input
+    const Tgpu* dy_ptr, // fwd normalized x
+    Tref* dx_ptr,
+    Tgpu* scale_ptr,
+    Tref* dscale_ptr,
+    Tref* dbias_ptr,
+    Tref epsilon,
     bool savedmeanvar,
-    double* savedMean,
-    double* savedInvVariance)
+    Tref* savedMean,
+    Tref* savedInvVariance)
 {
 
     // C*H*W is also stored as in_nstride, H*W is in_cstride, W is in_hstride.
@@ -703,15 +710,15 @@ int miopenBNBwdPerActivationRunHost(
     unsigned int adjIndex;
     unsigned int in_nstride = channels * height * width;
     unsigned int in_cstride = height * width;
-    double elemStd          = 0.;
-    double mean             = 0.;
-    double elemInvVar       = 0.;
-    double dyelem           = 0.;
-    double dxhat            = 0.;
-    double dxhathat         = 0.;
-    double tmp1, tmp2, tmp3;
+    Tref elemStd            = static_cast<Tref>(0.);
+    Tref mean               = static_cast<Tref>(0.);
+    Tref elemInvVar         = static_cast<Tref>(0.);
+    Tref dyelem             = static_cast<Tref>(0.);
+    Tref dxhat              = static_cast<Tref>(0.);
+    Tref dxhathat           = static_cast<Tref>(0.);
+    Tref tmp1, tmp2, tmp3;
 
-    std::vector<double> xhat(n_batchs * in_cstride);
+    std::vector<Tref> xhat(n_batchs * in_cstride);
 
     if(savedmeanvar)
     {
@@ -728,8 +735,8 @@ int miopenBNBwdPerActivationRunHost(
                     mean       = savedMean[adjIndex];        // HxW elements
                     elemInvVar = savedInvVariance[adjIndex]; // HxW elements
 
-                    dxhat    = 0.;
-                    dxhathat = 0.;
+                    dxhat    = static_cast<Tref>(0.);
+                    dxhathat = static_cast<Tref>(0.);
                     for(int bidx = 0; bidx < n_batchs; bidx++)
                     { // via mini_batch
                         index      = in_nstride * bidx + adjIndex;
@@ -751,7 +758,7 @@ int miopenBNBwdPerActivationRunHost(
                         xhat_index    = in_cstride * bidx + (width * row + column);
                         tmp1          = xhat[xhat_index] * dxhathat + dxhat;
                         tmp2          = n_batchs * dxhat - tmp1;
-                        tmp3          = elemInvVar / (double(n_batchs));
+                        tmp3          = elemInvVar / static_cast<Tref>(n_batchs);
                         dx_ptr[index] = tmp3 * tmp2;
                     } // end for(n_batchs)
                 }     // for (column)
@@ -761,7 +768,7 @@ int miopenBNBwdPerActivationRunHost(
     else
     {
 
-        double variance = 0.;
+        Tref variance = static_cast<Tref>(0.);
         for(int cidx = 0; cidx < channels; cidx++)
         { // via channel
             // process the batch per channel
@@ -769,7 +776,7 @@ int miopenBNBwdPerActivationRunHost(
             { // via rows
                 for(int column = 0; column < width; column++)
                 { // via columns
-                    mean     = 0.;
+                    mean     = static_cast<Tref>(0.);
                     adjIndex = in_cstride * cidx + width * row + column;
                     for(int bidx = 0; bidx < n_batchs; bidx++)
                     { // via mini_batch
@@ -778,26 +785,27 @@ int miopenBNBwdPerActivationRunHost(
                         // iterating through the stack of images in the mini_batch
                         mean += x_ptr[index];
                     }
-                    mean /= double(n_batchs);
+                    mean /= static_cast<Tref>(n_batchs);
 
-                    elemStd  = 0.;
-                    variance = 0.;
+                    elemStd  = static_cast<Tref>(0.);
+                    variance = static_cast<Tref>(0.);
                     // #2 calculate the variances
                     // sigma^2 = (1/batch_mean) * sum( (x_i - batch_mean)^2 )
                     for(int bidx = 0; bidx < n_batchs; bidx++)
                     { // via mini_batch
                         // per (x-dims) channel load a block of data into LDS
                         index   = in_nstride * bidx + adjIndex;
-                        elemStd = x_ptr[index] - mean; // (x_i - mean)
-                        variance += elemStd * elemStd; // sum{ (x_i - mean)^2 }
-                    }                                  // end for(n)
-                    variance /= double(n_batchs);      // (1/N)*sum{ (x_i - mean)^2 }
+                        elemStd = x_ptr[index] - mean;       // (x_i - mean)
+                        variance += elemStd * elemStd;       // sum{ (x_i - mean)^2 }
+                    }                                        // end for(n)
+                    variance /= static_cast<Tref>(n_batchs); // (1/N)*sum{ (x_i - mean)^2 }
 
                     // #3 add epsilon for numeric stability, sqr_root, and invert
-                    elemInvVar = 1.0 / sqrt(variance + epsilon);
+                    elemInvVar =
+                        static_cast<Tref>(1.0) / static_cast<Tref>(sqrt(variance + epsilon));
 
-                    dxhat    = 0.;
-                    dxhathat = 0.;
+                    dxhat    = static_cast<Tref>(0.);
+                    dxhathat = static_cast<Tref>(0.);
                     for(int bidx = 0; bidx < n_batchs; bidx++)
                     { // via mini_batch
                         index      = in_nstride * bidx + adjIndex;
@@ -819,7 +827,7 @@ int miopenBNBwdPerActivationRunHost(
                         xhat_index    = in_cstride * bidx + (width * row + column);
                         tmp1          = xhat[xhat_index] * dxhathat + dxhat;
                         tmp2          = n_batchs * dxhat - tmp1;
-                        tmp3          = elemInvVar / (double(n_batchs));
+                        tmp3          = elemInvVar / static_cast<Tref>(n_batchs);
                         dx_ptr[index] = tmp3 * tmp2;
                     } // end for(n_batchs)
                 }     // for (column)
@@ -830,7 +838,7 @@ int miopenBNBwdPerActivationRunHost(
     return 0;
 }
 
-template <typename T>
+template <typename Tgpu, typename Tref>
 int miopenBNBwdSpatialRunHost(
     /*      T alpha,
             T beta,
@@ -841,16 +849,16 @@ int miopenBNBwdSpatialRunHost(
     int channels,
     int height,
     int width,
-    const T* x_ptr,  // layer's fwd input
-    const T* dy_ptr, // fwd normalized x
-    double* dx_ptr,
-    T* scale_ptr,
-    double* dscale_ptr,
-    double* dbias_ptr,
-    double epsilon,
+    const Tgpu* x_ptr,  // layer's fwd input
+    const Tgpu* dy_ptr, // fwd normalized x
+    Tref* dx_ptr,
+    Tgpu* scale_ptr,
+    Tref* dscale_ptr,
+    Tref* dbias_ptr,
+    Tref epsilon,
     bool savedmeanvar,
-    double* savedMean,
-    double* savedInvVariance)
+    Tref* savedMean,
+    Tref* savedInvVariance)
 {
 
     // C*H*W is also stored as in_nstride, H*W is in_cstride, W is in_hstride.
@@ -859,11 +867,11 @@ int miopenBNBwdSpatialRunHost(
     unsigned int in_nstride = channels * height * width;
     unsigned int in_cstride = height * width;
     unsigned int Csubindex  = 0;
-    double elemStd          = 0.;
-    double mean             = 0.;
-    double invVar           = 0.;
-    double dyelem           = 0.;
-    double NHW              = double(n_batchs * in_cstride);
+    Tref elemStd            = static_cast<Tref>(0.);
+    Tref mean               = static_cast<Tref>(0.);
+    Tref invVar             = static_cast<Tref>(0.);
+    Tref dyelem             = static_cast<Tref>(0.);
+    Tref NHW                = static_cast<Tref>(n_batchs * in_cstride);
 
     if(savedmeanvar)
     {
@@ -903,9 +911,9 @@ int miopenBNBwdSpatialRunHost(
 
                         index         = in_nstride * bidx + adjIndex;
                         elemStd       = x_ptr[index] - mean; // (x_i - mean)
-                        double tmp1   = NHW * dy_ptr[index] - dbias_ptr[cidx];
-                        double tmp2   = -elemStd * invVar * dscale_ptr[cidx];
-                        double tmp3   = (scale_ptr[cidx] * invVar) / NHW;
+                        Tref tmp1     = static_cast<Tref>(NHW) * dy_ptr[index] - dbias_ptr[cidx];
+                        Tref tmp2     = -elemStd * invVar * dscale_ptr[cidx];
+                        Tref tmp3     = (scale_ptr[cidx] * invVar) / static_cast<Tref>(NHW);
                         dx_ptr[index] = tmp3 * (tmp2 + tmp1);
                     } // end for(n_batchs)
                 }     // for (column)
@@ -916,31 +924,31 @@ int miopenBNBwdSpatialRunHost(
     {
 
 #if(MIO_HEIRARCH_SEL == 1)
-        double variance_accum_arr[MIO_BN_DIST];
-        double mean_accum_arr[MIO_BN_DIST];
-        double dbias_accum_arr[MIO_BN_DIST];
-        double dscale_accum_arr[MIO_BN_DIST];
+        Tref variance_accum_arr[MIO_BN_DIST];
+        Tref mean_accum_arr[MIO_BN_DIST];
+        Tref dbias_accum_arr[MIO_BN_DIST];
+        Tref dscale_accum_arr[MIO_BN_DIST];
 #else
-        std::vector<double> xhat(n_batchs * in_cstride);
+        std::vector<Tref> xhat(n_batchs * in_cstride);
         unsigned int xhat_index;
 #endif
 
-        double variance = 0.;
+        Tref variance = static_cast<Tref>(0.);
         for(int cidx = 0; cidx < channels; cidx++)
         { // via channel
 #if(MIO_HEIRARCH_SEL == 1)
             for(int i = 0; i < MIO_BN_DIST; i++)
             {
-                variance_accum_arr[i] = 0.;
-                mean_accum_arr[i]     = 0.;
-                dbias_accum_arr[i]    = 0.;
-                dscale_accum_arr[i]   = 0.;
+                variance_accum_arr[i] = static_cast<Tref>(0.);
+                mean_accum_arr[i]     = static_cast<Tref>(0.);
+                dbias_accum_arr[i]    = static_cast<Tref>(0.);
+                dscale_accum_arr[i]   = static_cast<Tref>(0.);
             }
 #endif
             Csubindex = in_cstride * cidx;
 
             // process the batch per channel
-            mean = 0.;
+            mean = static_cast<Tref>(0.);
 #if(MIO_HEIRARCH_SEL == 0)
             for(int row = 0; row < height; row++)
             { // via rows
@@ -982,10 +990,10 @@ int miopenBNBwdSpatialRunHost(
                 mean += mean_accum_arr[i];
             }
 #endif
-            mean /= NHW;
+            mean /= static_cast<Tref>(NHW);
             // printf("MEAN: %f\n",mean);
-            elemStd  = 0.;
-            variance = 0.;
+            elemStd  = static_cast<Tref>(0.);
+            variance = static_cast<Tref>(0.);
 #if(MIO_HEIRARCH_SEL == 0)
             for(int row = 0; row < height; row++)
             { // via rows
@@ -1030,14 +1038,14 @@ int miopenBNBwdSpatialRunHost(
                 variance += variance_accum_arr[i];
             }
 #endif
-            variance /= NHW; // (1/(N*H*W))*sum{ (x_i - mean)^2 }
+            variance /= static_cast<Tref>(NHW); // (1/(N*H*W))*sum{ (x_i - mean)^2 }
             // printf("VARIANCE: %f\n",variance);
             // #3 add epsilon for numeric stability, sqr_root, and invert
             invVar = 1. / sqrt(variance + epsilon);
             // printf("invVar: %f\n",invVar);
 
-            dscale_ptr[cidx] = 0.;
-            dbias_ptr[cidx]  = 0.;
+            dscale_ptr[cidx] = static_cast<Tref>(0.);
+            dbias_ptr[cidx]  = static_cast<Tref>(0.);
 #if(MIO_HEIRARCH_SEL == 0)
             for(int row = 0; row < height; row++)
             { // via rows
@@ -1099,9 +1107,9 @@ int miopenBNBwdSpatialRunHost(
                     { // via mini_batch
                         index         = in_nstride * bidx + adjIndex;
                         xhat_index    = in_cstride * bidx + (width * row + column);
-                        double tmp1   = NHW * dy_ptr[index] - dbias_ptr[cidx];
-                        double tmp2   = -xhat[xhat_index] * dscale_ptr[cidx];
-                        double tmp3   = (scale_ptr[cidx] * invVar) / NHW;
+                        Tref tmp1     = static_cast<Tref>(NHW) * dy_ptr[index] - dbias_ptr[cidx];
+                        Tref tmp2     = -xhat[xhat_index] * dscale_ptr[cidx];
+                        Tref tmp3     = (scale_ptr[cidx] * invVar) / static_cast<Tref>(NHW);
                         dx_ptr[index] = tmp3 * (tmp2 + tmp1);
                     } // end for(n_batchs)
                 }     // for (column)
@@ -1118,10 +1126,10 @@ int miopenBNBwdSpatialRunHost(
                         index = in_nstride * bidx + adjIndex;
                         if(imgIndex < in_cstride)
                         {
-                            elemStd       = x_ptr[index] - mean; // (x_i - mean)
-                            double tmp1   = NHW * dy_ptr[index] - dbias_ptr[cidx];
-                            double tmp2   = -elemStd * invVar * dscale_ptr[cidx];
-                            double tmp3   = (scale_ptr[cidx] * invVar) / NHW;
+                            elemStd   = x_ptr[index] - mean; // (x_i - mean)
+                            Tref tmp1 = static_cast<Tref>(NHW) * dy_ptr[index] - dbias_ptr[cidx];
+                            Tref tmp2 = -elemStd * invVar * dscale_ptr[cidx];
+                            Tref tmp3 = (scale_ptr[cidx] * invVar) / static_cast<Tref>(NHW);
                             dx_ptr[index] = tmp3 * (tmp2 + tmp1);
                         }
                     } // end for(n_batchs)

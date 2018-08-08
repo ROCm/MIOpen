@@ -127,7 +127,7 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(std::string
     else if(mode == miopenBNPerActivation)
         compile_config += " -DPERACT_BN";
 
-    if(input_desc.GetLengths().size() == 0)
+    if(input_desc.GetLengths().empty())
         MIOPEN_THROW("The input descriptor is not set");
 
     int n, c, h, w;
@@ -171,7 +171,7 @@ std::vector<size_t> BatchNormInferenceFusionOpDescriptor::GetGlobalWGSz(Handle& 
     (void)handle;
     (void)algorithm_name;
 
-    if(input_desc.GetLengths().size() == 0)
+    if(input_desc.GetLengths().empty())
     {
         MIOPEN_THROW("Compile called for Fusion Plan without setting operator parameters");
     }

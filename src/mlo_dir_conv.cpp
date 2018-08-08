@@ -78,13 +78,12 @@ std::vector<miopen::solver::ConvSolution> mlo_construct_direct2D::FindAllSolutio
 miopen::solver::ConvSolution mlo_construct_direct2D_fusion::FindSolution()
 {
     return miopen::solver::SearchForSolution<
-    miopen::solver::ConvActivAsm1x1U, /* These need to be pruned*/
-    miopen::solver::ConvOclDirectFwd11x11,
-    miopen::solver::ConvOclDirectFwdGen,
-    miopen::solver::ConvOclDirectFwd3x3,
-    miopen::solver::ConvOclDirectFwd1x1,
-    miopen::solver::ConvOclDirectFwd
-    >(_search_params, this->GetDb());
+        miopen::solver::ConvActivAsm1x1U, /* These need to be pruned*/
+        miopen::solver::ConvOclDirectFwd11x11,
+        miopen::solver::ConvOclDirectFwdGen,
+        miopen::solver::ConvOclDirectFwd3x3,
+        miopen::solver::ConvOclDirectFwd1x1,
+        miopen::solver::ConvOclDirectFwd>(_search_params, this->GetDb());
 }
 
 miopen::solver::ConvSolution mlo_construct_direct2D::FindSolution()
