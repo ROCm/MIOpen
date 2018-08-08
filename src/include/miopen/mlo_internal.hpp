@@ -439,7 +439,7 @@ struct ProblemDescription
     {
         kernel_size0 = width;
         kernel_size1 = height;
-		int data_len = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
+        int data_len = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
         float_size   = (data_type == "FP32" ? 32 : 16);
         size_t size  = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
