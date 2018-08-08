@@ -374,7 +374,7 @@ struct cba_fusion_driver : test_driver
 
     void run()
     {
-        
+
         if(input.desc.GetType() == miopenHalf)
         {
             // std::cout << "Half precision not yet supported." << std::endl;
