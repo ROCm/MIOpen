@@ -40,7 +40,7 @@ FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
     : fusion_dir(dir),
       input_desc(inDesc),
       is_valid(false),
-      kernel_source_type(OpenCL),
+      kernel_source_type(OpenclText),
       fp_contains_bn(false),
       program_name(""),
       kernel_name(""),
@@ -455,11 +455,11 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     if(program_name == "")
         MIOPEN_THROW("Invalid Fusion Plan");
     if (miopen::EndsWith(program_name, ".s"))
-        kernel_source_type = Asm;
+        kernel_source_type = AsmText;
     else if (miopen::EndsWith(program_name, ".so"))
         kernel_source_type = Binary;
     else
-        kernel_source_type = OpenCL;
+        kernel_source_type = OpenclText;
 #if 0
     for(auto&& op : op_map)
     { // This needs to go away with the meta graph.
@@ -513,7 +513,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     {
         std::string compile_config;
         auto dType = input_desc.GetType();
-        if(kernel_source_type == OpenCL){
+        if(kernel_source_type == OpenclText){
             if(dType == miopenFloat)
             {
                 compile_config += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
@@ -565,6 +565,70 @@ std::ostream& operator<<(std::ostream& s, const OpKernelArg& arg)
     default: break;
     }
     return s;
+}
+
+static
+void AddPointerArg(std::vector<any_t> &args,
+    const std::vector<std::shared_ptr<FusionOpDescriptor>> &op_map,
+    const std::map<size_t, std::vector<std::string>> &ptr_map,
+    const OperatorArgs &op_args,
+    const std::string arg_name)
+{
+    for(auto idx = 0; idx < op_map.size(); ++idx)
+    {
+        auto op = op_map.at(idx);
+        auto ptr_keys = ptr_map.at(idx);
+        for(auto key : ptr_keys)
+        {
+            auto it = op_args.args_map.find(key);
+            if(it != op_args.args_map.end())
+            {
+                if (key == arg_name)
+                {
+                    MIOPEN_LOG_I2("Pointer arg, key: " << key << " = " << it->second);
+                    args.push_back(it->second);
+                    return;
+                }
+            }
+        }
+    }
+    MIOPEN_LOG_E("arg_name = " << arg_name);
+    MIOPEN_THROW("Pointer argument not found");
+}
+
+static
+void AddScalarArg(std::vector<any_t> &args,
+    const std::set<size_t> &arg_sizes,
+    /*const*/ std::vector<std::shared_ptr<FusionOpDescriptor>> &op_map,
+    /*const*/ std::map<std::pair<size_t, size_t>, std::vector<std::string>> &size_map,
+    const OperatorArgs &op_args,
+    const std::string arg_name)
+{
+    for(auto sz : arg_sizes) // Populate args for scalars
+    {
+        for(auto idx = 0; idx < op_map.size(); ++idx)
+        {
+            auto op   = op_map[idx];//.at(idx);
+            auto keys = size_map[std::pair<size_t, size_t>(idx, sz)]; //.at(std::pair<size_t, size_t>(idx, sz));
+            for(auto key : keys)
+            {
+                auto it = op_args.args_map.find(key);
+                if(it != op_args.args_map.end())
+                {
+                    if (key == arg_name)
+                    {
+                        MIOPEN_LOG_I2("Scalar arg, key: " << key << " = " << it->second);
+                        args.push_back(it->second);
+                        return;
+                    }
+                }
+                else
+                    MIOPEN_LOG_W("Scalar arg, key: " << key << " = <not found>");
+            }
+        }
+    }
+    MIOPEN_LOG_E("arg_name = " << arg_name);
+    MIOPEN_THROW("Scalar argument not found");
 }
 
 miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
@@ -619,10 +683,12 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                 {
                     arg_sizes.insert(it->second.size());
                     size_map[std::pair<size_t, size_t>(idx, it->second.size())].push_back(key);
+                    MIOPEN_LOG_I2("size_map[std::pair<size_t, size_t>("<<idx<<", "<< it->second.size() << ")].push_back("<<key<<");");
                 }
                 else
                 {
                     ptr_map[idx].push_back(key);
+                    MIOPEN_LOG_I2("ptr_map["<<idx<<"].push_back("<<key<<");");
                 }
             }
             else
@@ -632,44 +698,93 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     }
 
     std::vector<any_t> args;
-    for(auto sz : arg_sizes) // Populate args for scalars
+    if(kernel_source_type == Binary)
     {
-        for(auto idx = 0; idx < op_map.size(); idx++)
+        args.emplace_back(any_t(8)); // int N,
+        MIOPEN_LOG_I2("Scalar arg N = " << any_t(8));
+        args.emplace_back(any_t(32)); // int C,
+        MIOPEN_LOG_I2("Scalar arg C = " << any_t(32));
+        args.emplace_back(any_t(56)); // int H,
+        MIOPEN_LOG_I2("Scalar arg H = " << any_t(56));
+        args.emplace_back(any_t(56)); // int W,
+        MIOPEN_LOG_I2("Scalar arg W = " << any_t(56));
+        args.emplace_back(any_t(32)); // int K,
+        MIOPEN_LOG_I2("Scalar arg K = " << any_t(32));
+        args.emplace_back(any_t(56)); // int n_groups,
+        MIOPEN_LOG_I2("Scalar arg n_groups = " << any_t(56));
+        args.emplace_back(any_t((1<<7) + (1<<8))); // int flags, bias + leakyRelu
+        MIOPEN_LOG_I2("Scalar arg flags = " << any_t((1<<7) + (1<<8)));
+        args.emplace_back(any_t(0)); // int reserved,
+        MIOPEN_LOG_I2("Scalar arg reserved = " << any_t(0));
+        args.emplace_back(any_t(input)); // global float *input_addr,
+        MIOPEN_LOG_I2("input_addr = " << input);
+        AddPointerArg(args, op_map, ptr_map, op_args, "weights0"); // global float *filter_addr,
+        args.emplace_back(any_t(output)); // global float *output_addr,
+        MIOPEN_LOG_I2("output_addr = " << output);
+        args.emplace_back(any_t((int*)nullptr)); // global int *return_addr,
+        MIOPEN_LOG_I2("Scalar arg return_addr = " << any_t((int*)nullptr));
+        args.emplace_back(any_t(3)); // int R,
+        MIOPEN_LOG_I2("Scalar arg R = " << any_t(3));
+        args.emplace_back(any_t(3)); // int S,
+        MIOPEN_LOG_I2("Scalar arg S = " << any_t(3));
+        args.emplace_back(any_t(0)); // int pad_h,
+        MIOPEN_LOG_I2("Scalar arg pad_h = " << any_t(0));
+        args.emplace_back(any_t(0)); // int pad_w,
+        MIOPEN_LOG_I2("Scalar arg pad_w = " << any_t(0));
+        args.emplace_back(any_t(54)); // int out_h,
+        MIOPEN_LOG_I2("Scalar arg out_h = " << any_t(54));
+        args.emplace_back(any_t(54)); // int out_w,
+        MIOPEN_LOG_I2("Scalar arg out_w = " << any_t(54));
+        AddPointerArg(args, op_map, ptr_map, op_args, "bias1"); //global float *bias_addr,
+//        AddScalarArg(args, arg_sizes, op_map, size_map, op_args, "activAlpha2"); // float RELU_alpha
+        args.emplace_back(any_t(1.0f)); // float RELU_alpha
+        MIOPEN_LOG_I2("Scalar arg RELU_alpha = " << any_t(1.0f));
+    }
+    else
+    {
+        for(auto sz : arg_sizes) // Populate args for scalars
         {
+            for(auto idx = 0; idx < op_map.size(); idx++)
+            {
+                auto op   = op_map[idx];
+                auto keys = size_map[std::pair<size_t, size_t>(idx, sz)];
+                std::sort(keys.begin(), keys.end());
+                for(auto key : keys)
+                {
+                    auto it = op_args.args_map.find(key);
+                    if(it != op_args.args_map.end())
+                    {
+                        MIOPEN_LOG_I2("Scalar arg, key: " << key << " = " << it->second);
+                        args.push_back(it->second);
+                    }
+                    else
+                        MIOPEN_LOG_E("Scalar arg, key: " << key << " = <not found>");
+                }
+            }
+        }
+        // insert input / output pointer
+        args.emplace_back(any_t(input));
+        MIOPEN_LOG_I2("Input ptr arg = " << input);
+        args.emplace_back(any_t(output));
+        MIOPEN_LOG_I2("Output ptr arg = " << output);
+        // add other pointers in op-order
+        for(auto idx = 0; idx < op_map.size(); idx++)
+        { // Populate args for pointers based operator order
             auto op   = op_map[idx];
-            auto keys = size_map[std::pair<size_t, size_t>(idx, sz)];
+            auto keys = ptr_map[idx];
             std::sort(keys.begin(), keys.end());
             for(auto key : keys)
             {
                 auto it = op_args.args_map.find(key);
                 if(it != op_args.args_map.end())
                 {
-                    MIOPEN_LOG_I2("Populate scalar args, key: " << key << " = " << it->second);
+                    MIOPEN_LOG_I2("Pointer arg, key: " << key << " = " << it->second);
                     args.push_back(it->second);
                 }
-                else
-                    MIOPEN_LOG_E("Populate scalar args, key: " << key << " = <not found>");
             }
         }
     }
-    // insert input / output pointer
-    args.emplace_back(any_t(input));
-    args.emplace_back(any_t(output));
-    // add other pointers in op-order
-    for(auto idx = 0; idx < op_map.size(); idx++)
-    { // Populate args for pointers based operator order
-        auto op   = op_map[idx];
-        auto keys = ptr_map[idx];
-        std::sort(keys.begin(), keys.end());
-        for(auto key : keys)
-        {
-            MIOPEN_LOG_I2("Populate arg pointers, key: " << key);
-            auto it = op_args.args_map.find(key);
-            if(it != op_args.args_map.end())
-                args.push_back(it->second);
-        }
-    }
-    if(kernel_source_type == Asm)
+    if(kernel_source_type == AsmText)
     { // Padded arguments
         std::vector<any_t> padded_args;
         size_t running_sz = args[0].size();
