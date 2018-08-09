@@ -570,68 +570,42 @@ std::ostream& operator<<(std::ostream& s, const OpKernelArg& arg)
 }
 
 static
-void AddPointerArg(std::vector<any_t> &args,
+any_t GetArg(
     std::vector<std::shared_ptr<FusionOpDescriptor>> &op_map,
-    std::map<size_t, std::vector<std::string>> &ptr_map,
     const OperatorArgs &op_args,
+    const miopenFusionOp_t op,
     const std::string arg_name)
 {
     for(auto idx = 0; idx < op_map.size(); ++idx)
     {
-        auto op = op_map[idx];
-        auto ptr_keys = ptr_map[idx];
-        for(auto key : ptr_keys)
+        if (op_map[idx]->kind() == op)
         {
+            std::string key = arg_name + std::to_string(idx);
+            MIOPEN_LOG_I2(*op_map[idx] << ", finding: " << key);
             auto it = op_args.args_map.find(key);
             if(it != op_args.args_map.end())
             {
-                if (key == arg_name)
-                {
-                    MIOPEN_LOG_I("key: " << key << " = " << it->second);
-                    args.push_back(it->second);
-                    return;
-                }
+                MIOPEN_LOG_I2("found " << (it->second.is_ptr ? "pointer: " : "scalar: ") << key << " = " << it->second);
+                return it->second;
             }
         }
     }
     MIOPEN_LOG_E("Not found: arg_name = " << arg_name);
-    MIOPEN_THROW("Pointer argument not found");
+    MIOPEN_THROW("Argument not found");
+    return any_t(0);
 }
 
-static
-void AddScalarArg(std::vector<any_t> &args,
-    const std::set<size_t> &arg_sizes,
-    std::vector<std::shared_ptr<FusionOpDescriptor>> &op_map,
-    std::map<std::pair<size_t, size_t>, std::vector<std::string>> &size_map,
-    const OperatorArgs &op_args,
-    const std::string arg_name)
-{
-    for(auto sz : arg_sizes) // Populate args for scalars
-    {
-        for(auto idx = 0; idx < op_map.size(); ++idx)
-        {
-            auto op   = op_map[idx];
-            auto keys = size_map[std::pair<size_t, size_t>(idx, sz)];
-            for(auto key : keys)
-            {
-                auto it = op_args.args_map.find(key);
-                if(it != op_args.args_map.end())
-                {
-                    if (key == arg_name)
-                    {
-                        MIOPEN_LOG_I("key: " << key << " = " << it->second);
-                        args.push_back(it->second);
-                        return;
-                    }
-                }
-                else
-                    MIOPEN_LOG_W("key: " << key << " = <not found>");
-            }
-        }
-    }
-    MIOPEN_LOG_E("Not found: arg_name = " << arg_name);
-    MIOPEN_THROW("Scalar argument not found");
-}
+
+#ifdef ADD_ARGUMENT
+#error "ADD_ARGUMENT defined"
+#endif
+#define ADD_ARGUMENT(argument_name) do {                        \
+        const any_t argument(argument_name);                    \
+        args.emplace_back(argument);                            \
+        MIOPEN_LOG_I((argument.is_ptr ? "Pointer " : "Scalar ") \
+            << #argument_name " = " << argument);               \
+    } while(false)
+
 
 miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                                              TensorDescriptor& inputDesc,
@@ -717,46 +691,29 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         const int pad_h = 0;
         const int pad_w = 0;
         int* const return_addr = nullptr;
-
-        args.emplace_back(any_t(N));
-        MIOPEN_LOG_I("Scalar arg N = " << N);
-        args.emplace_back(any_t(C));
-        MIOPEN_LOG_I("Scalar arg C = " << C);
-        args.emplace_back(any_t(H));
-        MIOPEN_LOG_I("Scalar arg H = " << H);
-        args.emplace_back(any_t(W));
-        MIOPEN_LOG_I("Scalar arg W = " << W);
-        args.emplace_back(K);
-        MIOPEN_LOG_I("Scalar arg K = " << K);
-        args.emplace_back(n_groups);
-        MIOPEN_LOG_I("Scalar arg n_groups = " << n_groups);
-        args.emplace_back(any_t(flags));
-        MIOPEN_LOG_I("Scalar arg flags = " "0x" << std::hex << flags);
-        args.emplace_back(any_t(reserved));
-        MIOPEN_LOG_I("Scalar arg reserved = " << reserved);
-        args.emplace_back(any_t(input));
-        MIOPEN_LOG_I("input_addr = " << input);
-        AddPointerArg(args, op_map, ptr_map, op_args, "weights0"); /// FIXME global float *filter_addr,
-        args.emplace_back(any_t(output));
-        MIOPEN_LOG_I("output_addr = " << output);
-        args.emplace_back(any_t(return_addr));
-        MIOPEN_LOG_I("Scalar arg return_addr = " << return_addr);
-        args.emplace_back(any_t(R));
-        MIOPEN_LOG_I("Scalar arg R = " << R);
-        args.emplace_back(any_t(S));
-        MIOPEN_LOG_I("Scalar arg S = " << S);
-        args.emplace_back(any_t(pad_h));
-        MIOPEN_LOG_I("Scalar arg pad_h = " << pad_h);
-        args.emplace_back(any_t(pad_w));
-        MIOPEN_LOG_I("Scalar arg pad_w = " << pad_w);
-        args.emplace_back(oH);
-        MIOPEN_LOG_I("Scalar arg out_h = " << oH);
-        args.emplace_back(oW);
-        MIOPEN_LOG_I("Scalar arg out_w = " << oW);
-        AddPointerArg(args, op_map, ptr_map, op_args, "bias1"); /// FIXME global float *bias_addr,
-        AddScalarArg(args, arg_sizes, op_map, size_map, op_args, "activAlpha2"); /// FIXME float RELU_alpha
-//        args.emplace_back(any_t(1.0f)); // float RELU_alpha
-//        MIOPEN_LOG_I("Scalar arg RELU_alpha = " << any_t(1.0f));
+        ADD_ARGUMENT(N);
+        ADD_ARGUMENT(C);
+        ADD_ARGUMENT(H);
+        ADD_ARGUMENT(W);
+        ADD_ARGUMENT(K);
+        ADD_ARGUMENT(n_groups);
+        ADD_ARGUMENT(flags);
+        ADD_ARGUMENT(reserved);
+        ADD_ARGUMENT(input);
+        const auto weights = GetArg(op_map, op_args, miopenFusionOpConvForward, "weights");
+        ADD_ARGUMENT(weights);
+        ADD_ARGUMENT(output);
+        ADD_ARGUMENT(return_addr);
+        ADD_ARGUMENT(R);
+        ADD_ARGUMENT(S);
+        ADD_ARGUMENT(pad_h);
+        ADD_ARGUMENT(pad_w);
+        ADD_ARGUMENT(oH);
+        ADD_ARGUMENT(oW);
+        const auto bias = GetArg(op_map, op_args, miopenFusionOpBiasForward, "bias");
+        ADD_ARGUMENT(bias);
+        const auto alpha = GetArg(op_map, op_args, miopenFusionOpActivForward, "activAlpha");
+        ADD_ARGUMENT(alpha);
     }
     else
     {
@@ -767,36 +724,34 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                 auto op   = op_map[idx];
                 auto keys = size_map[std::pair<size_t, size_t>(idx, sz)];
                 std::sort(keys.begin(), keys.end());
-            for(auto& key : keys)
+                for(auto& key : keys)
                 {
                     auto it = op_args.args_map.find(key);
                     if(it != op_args.args_map.end())
                     {
-                        MIOPEN_LOG_I("Scalar arg, key: " << key << " = " << it->second);
+                        MIOPEN_LOG_I("Scalar " << key << " = " << it->second);
                         args.push_back(it->second);
                     }
-                    else
-                        MIOPEN_LOG_E("Scalar arg, key: " << key << " = <not found>");
                 }
             }
         }
         // insert input / output pointer
         args.emplace_back(any_t(input));
-        MIOPEN_LOG_I("Input ptr arg = " << input);
+        MIOPEN_LOG_I("Input ptr = " << input);
         args.emplace_back(any_t(output));
-        MIOPEN_LOG_I("Output ptr arg = " << output);
+        MIOPEN_LOG_I("Output ptr = " << output);
         // add other pointers in op-order
         for(auto idx = 0; idx < op_map.size(); idx++)
         { // Populate args for pointers based operator order
             auto op   = op_map[idx];
             auto keys = ptr_map[idx];
             std::sort(keys.begin(), keys.end());
-        for(auto& key : keys)
+            for(auto& key : keys)
             {
                 auto it = op_args.args_map.find(key);
                 if(it != op_args.args_map.end())
                 {
-                    MIOPEN_LOG_I("Pointer arg, key: " << key << " = " << it->second);
+                    MIOPEN_LOG_I("Pointer " << key << " = " << it->second);
                     args.push_back(it->second);
                 }
             }
