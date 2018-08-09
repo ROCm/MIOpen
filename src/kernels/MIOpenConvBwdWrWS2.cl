@@ -129,7 +129,11 @@
 
 __attribute__((always_inline)) uint iDiv(uint v, uint d)
 {
+#if 0
     uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
+#else
+    uint r = v / d;
+#endif
     return (r);
 }
 
@@ -145,7 +149,7 @@ __attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
 // split filter taps into sub-tiles along x and y axis with number of tap groups muliples of stride
 or 1
 // for example
-// the 5x10 filter has been split into 10 sub-tiles 1x5 each, 1 tap in y direction and 5 taps in x
+// the 5x10 filter has been split into 10 sub-tiles 1x5 each, 2 tap in y direction and 5 taps in x
 direction.
 // those horizontal taps are 0, 2, 4, 6, 8 and 1, 3, 5, 7, 9
 // a single vertical tap is 0 or 1 or 2 or 3 or 4.
@@ -245,12 +249,31 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         lcl[i] = 0;
     }
 
+#if 0 //debug
+    if(get_local_id(0) == 0)
+    {
+        printf("0: grp(%5d %5d %5d), ib %5d, c_idx %5d, o_idx %5d, gbl_in_off %10d, gbl_out_off %10d\n",
+                get_group_id(0), get_group_id(1), get_group_id(2),
+                ib, c_idx, o_idx,
+                gbl_in_off, gbl_out_off);
+
+    }
+#endif
+
     // over all batches
 
     for(uint b = 0; b < MLO_N_BATCH_LOOPS; ++b,
              gbl_in_off += MLO_N_LCL_BATCHS * MLO_IN_BATCH_STRIDE,
              gbl_out_off += MLO_N_LCL_BATCHS * MLO_OUT_BATCH_STRIDE)
     {
+#if 0 //debug
+        if(get_local_id(0) == 0)
+        {
+            printf("1: grp(%5d %5d %5d), b %5d, gbl_in_off %10d, gbl_out_off %10d\n",
+                    get_group_id(0), get_group_id(1), get_group_id(2),
+                    b, gbl_in_off, gbl_out_off);
+        }
+#endif
 
         barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -318,6 +341,14 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             {
                 lcl_bot[(c_scan + MLO_FILTER_PAD1) * MLO_IN_LCL_WIDTH + MLO_FILTER_PAD0 +
                         c_pix4 * MLO_READ_UNIT + i] = in_rd_data[i];
+#if 0 //debug
+                if(get_local_id(0) == 0)
+                {
+                    printf("1.1: grp(%5d %5d %5d), b %5d, i %5d, in_rd_data[i] %f\n",
+                            get_group_id(0), get_group_id(1), get_group_id(2),
+                            b, i, in_rd_data[i]);
+                }
+#endif
             }
         }
 
@@ -332,6 +363,14 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                  out_y += MLO_N_ALIGNED_OUT_SCAN_BLK)
         {
 
+#if 0 //debug
+            if(get_local_id(0) == 0)
+            {
+                printf("2: grp(%5d %5d %5d), b %5d, ob %5d, in_y %10d, out_y %10d\n",
+                        get_group_id(0), get_group_id(1), get_group_id(2),
+                        b, ob, in_y, out_y);
+            }
+#endif
             barrier(CLK_LOCAL_MEM_FENCE);
 
             // fetch input: (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + 1)
@@ -403,6 +442,15 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                         (c_scan2 + MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1) * MLO_IN_LCL_WIDTH +
                         MLO_FILTER_PAD0 + c_pix4 * MLO_READ_UNIT;
                     lcl_bot[lcl_off + i] = in_rd_data[i];
+#if 0 //debug
+                    if(get_local_id(0) == 0)
+                    {
+                        printf("2.1: grp(%5d %5d %5d), b %5d, ob %5d, in_y %10d, out_y %10d, i %5d, in_rd_data[i] %f\n",
+                                get_group_id(0), get_group_id(1), get_group_id(2),
+                                b, ob, in_y, out_y,
+                                i, in_rd_data[i]);
+                    }
+#endif
                 }
             }
 
@@ -501,6 +549,16 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                         uint lcl_off = o * MLO_OUT_LCL_SZ + o_scan * MLO_OUT_HORIZ_PIX_EXT_SZ +
                                        o_pix4 * MLO_READ_UNIT;
                         lcl_top[lcl_off + i] = out_rd_data[i];
+#if 0 //debug
+                        if(get_local_id(0) == 0)
+                        {
+                            printf("3.1: grp(%5d %5d %5d), b %5d, ob %5d, in_y %10d, out_y %10d, og %5d, gbl_out_scan_off1 %10d, i %5d, out_rd_data[i] %f\n",
+                                    get_group_id(0), get_group_id(1), get_group_id(2),
+                                    b, ob, in_y, out_y,
+                                    og, gbl_out_scan_off1,
+                                    i, out_rd_data[i]);
+                        }
+#endif
                     }
 
                 } //	for (uint oo_p4 = lcl_id; oo_p4 <
@@ -569,6 +627,14 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
                                 pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] +=
                                     i_val * o_val;
+#if 0 //debug
+                                if(get_local_id(0) == 0)
+                                {
+                                    printf("4.1: grp(%5d %5d %5d), i_val %f, o_val %f\n",
+                                            get_group_id(0), get_group_id(1), get_group_id(2),
+                                            i_val, o_val);
+                                }
+#endif
 
                             } // for (/*uint w = 0*/; w < MLO_WEI_WKITEM; ++w)
 
@@ -624,10 +690,17 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     // TO DO:: DEPENDING ON THE GROUP SIZE
     for(uint og = 0; og < MLO_N_OUT_BLK_GRP; ++og)
     {
+#if 1//debug
+        uint o_base = o_idx + og * MLO_N_LCL_OUT_MAPS;
+#endif
         barrier(CLK_LOCAL_MEM_FENCE);
         if(w_blk_idx < MLO_MAX_WEI_BLK_LOOP)
         {
+#if 0//debug
             for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
+#else
+            for(uint o = 0; o < MLO_N_LCL_OUT_MAPS && o_base + o < MLO_N_OUTPUTS; ++o)
+#endif
             {
                 uint w = 0;
                 for(; w < MLO_WEI_WKITEM; ++w)
@@ -640,6 +713,15 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                         w_x;
                     lcl[wei_lcl_off] =
                         pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w];
+#if 0 //debug
+                    if(get_local_id(0) == 0)
+                    {
+                        printf("5.1: grp(%5d %5d %5d), og %5d, o %5d, w %5d, wei_lcl_off %10d, lcl[wei_lcl_off] %f\n",
+                                get_group_id(0), get_group_id(1), get_group_id(2),
+                                og, o, w, wei_lcl_off,
+                                lcl[wei_lcl_off]);
+                    }
+#endif
                 }
             }
         }
@@ -647,8 +729,14 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         barrier(CLK_LOCAL_MEM_FENCE);
 
         // read into real filter table
-
+#if 0//debug
         for(uint l = lcl_id; l < (MLO_N_LCL_OUT_MAPS * MLO_WEI_CHANNEL_STRIDE); l += MLO_GRP_SZ)
+#else
+        int o_number = MLO_N_OUTPUTS - (int)o_base;
+        o_number = min(o_number, MLO_N_LCL_OUT_MAPS);
+        
+        for(uint l = lcl_id; (int)l < (o_number * MLO_WEI_CHANNEL_STRIDE); l += MLO_GRP_SZ)
+#endif
         {
 #if MLO_WEI_CHANNEL_STRIDE & (MLO_WEI_CHANNEL_STRIDE - 1)
             uint oo    = iDiv(l, MLO_WEI_CHANNEL_STRIDE);
@@ -674,9 +762,15 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             for(uint i = 0; i < MLO_MAX_WEI_BLK_LOOP; ++i)
             {
                 final_sum +=
+#if 0//debug
                     lcl_bot[((oo * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) *
                                 (MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM) +
                             wei_i_x];
+#else
+                    lcl[((oo * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) *
+                                (MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM) +
+                            wei_i_x];
+#endif
             }
 
             uint wei_out_off =
@@ -684,6 +778,16 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             if(wei_out_off < MLO_WEI_BATCH_STRIDE * MLO_N_OUTPUTS * MLO_N_BATCH_BLKS)
             {
                 weights_df[wei_out_off] = final_sum; // lcl_bot[lcl_id]; //
+
+#if 0 //debug
+                if(get_local_id(0) == 0)
+                {
+                    printf("6.1: grp(%5d %5d %5d), wei_out_off %10d, wei_df_off %10d, og %5d, oo %5d, wei_i %5d, final_sum %f\n",
+                            get_group_id(0), get_group_id(1), get_group_id(2),
+                            wei_out_off, wei_df_off, og, oo, wei_i,
+                            final_sum);
+                }
+#endif
 
 #if DBG_OUT_OF_RNGE
                 // assured

@@ -38,7 +38,11 @@
 #include <miopen/gemm_v2.hpp>
 #endif
 
+#include <miopen/handle_lock.hpp>
+
 namespace miopen {
+
+void ReadTo(Handle& handle, void* data, ConstData_t ddata, std::size_t sz);
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
 
@@ -2006,9 +2010,13 @@ inline float EvaluateWrWDirectSolution(Handle& handle,
             }
             else
             {
+#if 1//debug
                 kernels[0](dy, x, workSpace, padding_val);
+#endif
                 elapsed = handle.GetKernelTime();
+#if 1//debug
                 kernels[1](workSpace, dw); // reduction
+#endif
                 elapsed += handle.GetKernelTime();
             }
         }
@@ -2501,11 +2509,27 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                         else
                         {
                             float padding_val = 0;
+#if 1 //debug
                             kernel(dy, x, workSpace, as_float(padding_val));
+#endif
+
+#if 0//debug
+                            std::size_t sz = this->BackwardWeightsGetWorkSpaceSizeDirect(
+                                                    handle, dyDesc, xDesc, dwDesc);
+                            std::vector<float> tmp(sz/sizeof(float), 0);
+                            ReadTo(handle, tmp.data(), workSpace, sz);
+                            for(int i = 0; i < tmp.size(); ++i)
+                            {
+                                std::cout << __func__  << i << " " << tmp[i] << std::endl;
+                              //std::cout << tmp[i] << " ";
+                            }
+#endif
 
                             float time0 = handle.GetKernelTime();
                             // second kernel - reduction
+#if 1//debug
                             kernels[1](workSpace, dw);
+#endif
 
                             handle.AccumKernelTime(time0);
                         }
@@ -2678,6 +2702,26 @@ void ConvolutionBackwardBias(Handle& handle,
     {
         miopen::checkNumericsOutput(handle, dbDesc, db);
     }
+}
+
+void ReadTo(Handle& handle, void* data, ConstData_t ddata, std::size_t sz)
+{
+#if MIOPEN_BACKEND_OPENCL
+    MIOPEN_HANDLE_LOCK
+    handle.Finish();
+    auto status = clEnqueueReadBuffer(
+        handle.GetStream(), ddata, CL_TRUE, 0, sz, data, 0, nullptr, nullptr);
+    if(status != CL_SUCCESS)
+    {
+        MIOPEN_THROW_CL_STATUS(status, "OpenCL error reading from buffer: " + std::to_string(sz));
+    }
+#elif MIOPEN_BACKEND_HIP
+    MIOPEN_HANDLE_LOCK
+    handle.Finish();
+    auto status = hipMemcpy(data, ddata, sz, hipMemcpyDeviceToHost);
+    if(status != hipSuccess)
+        MIOPEN_THROW_HIP_STATUS(status, "Hip error reading from buffer: ");
+#endif
 }
 
 } // namespace miopen
