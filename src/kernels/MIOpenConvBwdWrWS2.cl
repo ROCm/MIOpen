@@ -627,10 +627,11 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         barrier(CLK_LOCAL_MEM_FENCE);
 
         // o_base may be larger than MLO_N_OUTPUTS, so o_number may be negative
-        uint o_base  = o_idx + og * MLO_N_LCL_OUT_MAPS;
-        int o_number = min((int)MLO_N_LCL_OUT_MAPS, (int)MLO_N_OUTPUTS - (int)o_base);
+        uint o_base   = o_idx + og * MLO_N_LCL_OUT_MAPS;
+        uint o_number = o_base < MLO_N_OUTPUTS ? MLO_N_OUTPUTS - o_base : 0;
+        o_number      = o_number < MLO_N_LCL_OUT_MAPS ? o_number : MLO_N_LCL_OUT_MAPS;
 
-        for(uint o = 0; (int)o < o_number; ++o)
+        for(uint o = 0; o < o_number; ++o)
         {
             if(w_blk_idx < MLO_MAX_WEI_BLK_LOOP)
             {
@@ -652,7 +653,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         barrier(CLK_LOCAL_MEM_FENCE);
 
         // read into real filter table
-        for(uint l = lcl_id; (int)l < (o_number * MLO_WEI_CHANNEL_STRIDE); l += MLO_GRP_SZ)
+        for(uint l = lcl_id; l < (o_number * MLO_WEI_CHANNEL_STRIDE); l += MLO_GRP_SZ)
         {
 #if MLO_WEI_CHANNEL_STRIDE & (MLO_WEI_CHANNEL_STRIDE - 1)
             uint oo    = iDiv(l, MLO_WEI_CHANNEL_STRIDE);
