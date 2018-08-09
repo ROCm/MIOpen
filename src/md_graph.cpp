@@ -103,8 +103,7 @@ bool FusionMDGraph::SetConvAlgo(miopenConvFwdAlgorithm_t algo)
                 static_cast<miopenConvFwdAlgorithm_t>(std::stoi(cur_map["algo"]));
             if(a == algo)
             {
-                new_list.push_back(
-                    std::pair<MDGraph_vertex_ptr, cur_vertex_map>(cur_vertex_ptr, cur_map));
+                new_list.emplace_back(cur_vertex_ptr, cur_map);
             }
         }
         else
@@ -112,10 +111,8 @@ bool FusionMDGraph::SetConvAlgo(miopenConvFwdAlgorithm_t algo)
     }
 
     cur_vertex = new_list;
-    if(new_list.empty())
-        return false;
-    else
-        return true;
+
+    return (!new_list.empty());
 }
 
 void FusionMDGraph::Init(FusionMDGraph& g, miopenFusionOp_t op)
@@ -366,7 +363,7 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
                     // Update the algo set
                     if(op->kind() == miopenFusionOpConvForward)
                     {
-                        for(auto s_algo : ch_it.second["algo"])
+                        for(const auto& s_algo : ch_it.second["algo"])
                         {
                             miopenConvFwdAlgorithm_t algo =
                                 static_cast<miopenConvFwdAlgorithm_t>(std::stoi(s_algo));
@@ -381,8 +378,7 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
                     {
                         cur_map["algo"] = "";
                     }
-                    new_list.push_back(
-                        std::pair<MDGraph_vertex_ptr, cur_vertex_map>(ch_it.first, cur_map));
+                    new_list.emplace_back(ch_it.first, cur_map);
                 }
             }
         }
@@ -397,17 +393,14 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
         conv_algo_set.clear();
     }
 
-    if(cur_vertex.size() == 0)
-        return false;
-    else
-        return true;
+    return (!cur_vertex.empty());
 }
 
 void FusionMDGraph::Reset()
 {
     cur_vertex.clear();
     cur_vertex_map empty_map = {{"weight", "0"}};
-    cur_vertex.push_back(std::pair<MDGraph_vertex_ptr, cur_vertex_map>(nullptr, empty_map));
+    cur_vertex.emplace_back(nullptr, empty_map);
 }
 
 } // namespace miopen
