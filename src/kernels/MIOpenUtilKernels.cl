@@ -55,7 +55,7 @@
  * Each thread writes one pixel of output. First (out_h*out_w) threads write to
  * the first line (row) of the im2col output.
  *
- * kernel void Im2Col(global _FLOAT* im, size_t im_offset,
+ * kernel void Im2Col(global _FLOAT* im, int im_offset,
  * 		const int h, const int w,
  * 		const int wei_h, const int wei_w,
  * 		const int out_h, const int out_w,
@@ -93,7 +93,7 @@
 
 kernel void Im2Col(const int data_size_off,
                    global _FLOAT* im,
-                   size_t im_offset,
+                   const int im_offset,
                    const int h,
                    const int w,
                    const int wei_h,

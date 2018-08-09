@@ -57,7 +57,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 1.4.1)
+rocm_setup_version(VERSION 1.4.2)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
@@ -168,9 +168,6 @@ set( DATA_INSTALL_DIR ${MIOPEN_INSTALL_DIR}/${CMAKE_INSTALL_DATAROOTDIR}/miopen 
 
 set(MIOPEN_GPU_SYNC Off CACHE BOOL "")
 if(BUILD_DEV)
-    # handle the clang/gdb bug
-    add_compile_options(-D_GLIBCXX_DEBUG)
-
     set(MIOPEN_BUILD_DEV 1)
     set(MIOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels" CACHE PATH "Default path to search for installed db")
     set(MIOPEN_USER_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels" CACHE PATH "Default path to search for user db")
@@ -245,6 +242,8 @@ enable_clang_tidy(
         -readability-braces-around-statements
         -readability-else-after-return
         -readability-named-parameter
+        -hicpp-use-auto
+	-modernize-use-auto
         ${CLANG_TIDY_CHECKS}
     ERRORS
         *

@@ -45,7 +45,7 @@ FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
       program_name(""),
       kernel_name(""),
       algorithm_name(""),
-      network_config("")
+      network_config(inDesc.ToString())
 {
 }
 
@@ -402,7 +402,7 @@ bool FusionOpLU::Advance(std::vector<std::shared_ptr<miopen::FusionOpDescriptor>
 std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
 {
     (void)handle;
-    if(op_map.size() != 0)
+    if(!op_map.empty())
     {
         program_name = lu.GetProgramName();
         return program_name;
@@ -416,7 +416,7 @@ std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
 std::string FusionPlanDescriptor::GetKernelName(Handle& handle)
 {
     (void)handle;
-    if(op_map.size() != 0)
+    if(!op_map.empty())
     {
         kernel_name = lu.GetKernelName();
         return kernel_name;
@@ -442,6 +442,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     // std::string algorithm_name{}; // = "miopenDirConvBatchNormActivAlgo";
     // TODO: The fusion plan is keeping track of the insertion order,
     // should we move this to the Graph ?
+    network_config += output_desc.ToString();
     for(auto&& op : op_map)
     {
         op->GetNetworkConfig(network_config, handle);
@@ -452,7 +453,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     program_name   = GetProgramName(handle);
     kernel_name    = GetKernelName(handle);
     MIOPEN_LOG_I2(program_name << ',' << kernel_name);
-    if(program_name == "")
+    if(program_name.empty())
         MIOPEN_THROW("Invalid Fusion Plan");
     if (miopen::EndsWith(program_name, ".s"))
         kernel_source_type = AsmText;
@@ -513,7 +514,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     {
         std::string compile_config;
         auto dType = input_desc.GetType();
-        if(kernel_source_type == OpenclText){
+        if(kernel_source_type == OpenclText)
+        {
             if(dType == miopenFloat)
             {
                 compile_config += " -DMIOPEN_USE_FP16=0 -DMIOPEN_USE_FP32=1";
@@ -749,12 +751,12 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                 auto op   = op_map[idx];
                 auto keys = size_map[std::pair<size_t, size_t>(idx, sz)];
                 std::sort(keys.begin(), keys.end());
-                for(auto key : keys)
+            for(auto& key : keys)
                 {
                     auto it = op_args.args_map.find(key);
                     if(it != op_args.args_map.end())
                     {
-                        MIOPEN_LOG_I2("Scalar arg, key: " << key << " = " << it->second);
+                        MIOPEN_LOG_I("Scalar arg, key: " << key << " = " << it->second);
                         args.push_back(it->second);
                     }
                     else
@@ -773,12 +775,12 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             auto op   = op_map[idx];
             auto keys = ptr_map[idx];
             std::sort(keys.begin(), keys.end());
-            for(auto key : keys)
+        for(auto& key : keys)
             {
                 auto it = op_args.args_map.find(key);
                 if(it != op_args.args_map.end())
                 {
-                    MIOPEN_LOG_I2("Pointer arg, key: " << key << " = " << it->second);
+                    MIOPEN_LOG_I("Pointer arg, key: " << key << " = " << it->second);
                     args.push_back(it->second);
                 }
             }
@@ -796,7 +798,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                 auto padding = running_sz % args[idx].size();
                 if(padding != 0)
                 {
-                    MIOPEN_LOG_I2("*************  Adding padding: " << padding);
+                    MIOPEN_LOG_I("*** Padding: " << padding);
                     any_t tmp(0, padding);
                     padded_args.push_back(tmp);
                     running_sz += padding;
