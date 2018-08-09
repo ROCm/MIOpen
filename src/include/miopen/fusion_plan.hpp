@@ -25,9 +25,6 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     miopenStatus_t Compile(Handle& handle);
     friend std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& fpd);
 
-    void InitMDGraphs();
-    void InitConvMDGraph(FusionMDGraph& g);
-
     protected:
     std::string GetKernelName(Handle& handle);
     std::string GetProgramName(Handle& handle);
