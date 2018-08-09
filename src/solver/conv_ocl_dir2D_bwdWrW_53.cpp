@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include "miopen/solver.hpp"
+#include <miopen/env.hpp>
 
 namespace miopen {
 namespace solver {
@@ -32,17 +33,11 @@ namespace solver {
 bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 {
     // Cases when dy has negative padding are not supported (issue 918)
+    // TODO: chao: this is not a bug, it's limitation of the kernel's algorithm, for now. But I will
+    // remove this limitation
     if(params.GetBackwardPad0() < 0 || params.GetBackwardPad1() < 0)
         return false;
-    /// \todo Workaround for some issues. Excludes some configs which covered by
-    /// the ConvOclBwdWrW2 solver. Found experimentally. Technically, this is a hack.
-    /// The kernel needs to be well understood and fixed.
-    if((params.kernel_size0 > 5) || (params.kernel_size0 == 5 && params.in_width >= 64))
-        return false;
-    /// \todo Workaround for issue #791. Found experimentally. Technically, this is a hack.
-    /// The kernel needs to be well understood and fixed.
-    if((params.kernel_size0 == 3 && params.pad0 == 0 && params.out_width >= 32))
-        return false;
+
     return ((params.kernel_size0 >= 2 || params.kernel_size1 >= 2) &&
             (params.kernel_stride1 == 1 && params.kernel_stride0 == 1));
 }
@@ -77,14 +72,6 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
 
     result.out_pix_tile0 = params.kernel_size0;
     result.out_pix_tile1 = params.kernel_size1;
-    result.in_tile1      = 1;
-
-    // span size
-    // param
-    result.in_tile0 = (params.in_width % 4 == 0) ? 4 : (params.in_width % 3 == 0)
-                                                           ? 3
-                                                           : (params.in_width % 2 == 0) ? 2 : 1;
-    int n_spans = (params.in_width + result.in_tile0 - 1) / result.in_tile0;
 
     // n of wavefronts per group
     // param
@@ -92,6 +79,18 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
                       ? 4
                       : (params.in_width <= 16) ? 1 : 2;
     int GRP_SZ = hw_wave_sz * n_waves;
+
+    result.in_tile1 = 1;
+    result.in_tile0 = (params.in_width % 4 == 0) ? 4 : (params.in_width % 3 == 0)
+                                                           ? 3
+                                                           : (params.in_width % 2 == 0) ? 2 : 1;
+
+    // work item in a group should cover at least 1 row of output image
+    result.in_tile0 = std::max((params.in_width + GRP_SZ - 1) / GRP_SZ, result.in_tile0);
+
+    // span size
+    // param
+    int n_spans = (params.in_width + result.in_tile0 - 1) / result.in_tile0;
 
     result.n_out_pix_tiles = 1;
     int n_out_stacks       = std::min(params.n_inputs, std::max(1, GRP_SZ / n_spans));
@@ -111,30 +110,30 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string((read_unit));
     // calculate number of input scans in the input block
     // max LDS size is 8K
-    int in_lcl_width =
-        ((params.in_width + read_unit - 1) / read_unit) * read_unit + 2 * params.pad0;
+    int out_lcl_width =
+        ((params.out_width + read_unit - 1) / read_unit) * read_unit + 2 * params.pad0;
     // number of input map blocks being process at once
     // param
-    int in_n_vert_reads = (params.out_height > 32 && params.out_width <= 64 &&
-                           (result.out_pix_tile0 * result.out_pix_tile1) <= 16)
-                              ? (params.out_height + 1) / 2
-                              : params.out_height;
-    while(in_lcl_width * in_n_vert_reads * result.n_in_data_tiles >
+    int out_n_vert_reads = (params.out_height > 32 && params.out_width <= 64 &&
+                            (result.out_pix_tile0 * result.out_pix_tile1) <= 16)
+                               ? (params.out_height + 1) / 2
+                               : params.out_height;
+    while(out_lcl_width * out_n_vert_reads * result.n_in_data_tiles >
           (dev_local_mem_sz / (2 * ((params.in_data_type == "FP32") ? 4 : 2))))
     {
-        in_n_vert_reads = (in_n_vert_reads + 1) / 2;
-        if(in_n_vert_reads < 2 && result.n_in_data_tiles >= 2)
+        out_n_vert_reads = (out_n_vert_reads + 1) / 2;
+        if(out_n_vert_reads < 2 && result.n_in_data_tiles >= 2)
         {
-            in_n_vert_reads = params.in_height;
+            out_n_vert_reads = params.in_height;
             result.n_in_data_tiles /= 2;
         }
-        else if(in_n_vert_reads < 2)
+        else if(out_n_vert_reads < 2)
         {
             MIOPEN_LOG_E("Not enough local memory to run direct algorithm");
             return ConvSolution(miopenStatusUnknownError);
         }
     }
-    int in_n_vert_read_loops = (params.in_height + in_n_vert_reads - 1) / in_n_vert_reads;
+    int out_n_vert_read_loops = (params.out_height + out_n_vert_reads - 1) / out_n_vert_reads;
 
     int ALIGNED_OUT_SCAN_LN = ((params.in_width + read_unit - 1) / read_unit); // image aligned scan
 
@@ -205,8 +204,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         std::to_string(ALIGNED_OUT_SCAN_LN) // image aligned scan
         + std::string(" -DMLO_HW_WAVE_SZ=") + std::to_string(hw_wave_sz) +
         std::string(" -DMLO_LG2_PHYS_WAVE_SZ=") + std::to_string(mloLg2(hw_wave_sz)) +
-        std::string(" -DMLO_IN_EXTENT1=") + std::to_string(in_n_vert_reads) +
-        std::string(" -DMLO_IN_N_VERT_LOOPS=") + std::to_string(in_n_vert_read_loops)
+        std::string(" -DMLO_IN_EXTENT1=") + std::to_string(out_n_vert_reads) +
+        std::string(" -DMLO_IN_N_VERT_LOOPS=") + std::to_string(out_n_vert_read_loops)
 
         + std::string(" -DMLO_CONV_BIAS=") + std::to_string(params.bias)
 
@@ -236,10 +235,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         kernel.g_wk.push_back(gbl_wk1);
         kernel.g_wk.push_back(gbl_wk2);
 
-        kernel.kernel_file =
-            (params.kernel_size0 == 5 && params.kernel_size1 == 5 && in_n_vert_read_loops == 1)
-                ? "MIOpenConvBwdWrW_LxG_5x5.cl"
-                : "MIOpenConvBwdWrW_LxG_P53.cl";
+        kernel.kernel_file  = "MIOpenConvBwdWrW_LxG_P53.cl";
         kernel.kernel_name  = "MIOpenCvBwdWrW";
         kernel.comp_options = comp_options;
 
@@ -252,10 +248,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     {
         KernelInfo kernel;
 
-        kernel.kernel_file =
-            (params.kernel_size0 == 5 && params.kernel_size1 == 5 && in_n_vert_read_loops == 1)
-                ? "MIOpenConvBwdWrW_LxG_5x5.cl"
-                : "MIOpenConvBwdWrW_LxG_P53.cl";
+        kernel.kernel_file  = "MIOpenConvBwdWrW_LxG_P53.cl";
         kernel.kernel_name  = "MIOpenCvBwdWrW_rdc";
         kernel.comp_options = comp_options;
 
