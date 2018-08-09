@@ -42,7 +42,8 @@ FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
       program_name(""),
       kernel_name(""),
       algorithm_name(""),
-      network_config(inDesc.ToString())
+      network_config(inDesc.ToString()),
+      data_type(inDesc.GetType())
 {
 }
 
