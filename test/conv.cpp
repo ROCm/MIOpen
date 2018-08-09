@@ -40,7 +40,6 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include <miopen/stringutils.hpp>
-#include "tensor_util.hpp"
 
 template <class T>
 tensor<T> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
@@ -426,14 +425,7 @@ struct verify_backward_weights_conv : conv_base<T>
         std::size_t workspace_size = filter.ConvolutionBackwardWeightsGetWorkSpaceSize(
             handle, out.desc, input.desc, rweights.desc);
 
-#if 1//debug
         std::vector<char> workspace(workspace_size);
-#else
-        std::vector<float> workspace(workspace_size/sizeof(float));
-        for(auto& v : workspace)
-            v = 1.0;
-#endif
-
         auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
 
         int ret_algo_count;
@@ -588,21 +580,8 @@ struct conv_driver : test_driver
                     verify(verify_backward_conv<T>{input, weights, out_p.first, filter, 0, search});
                 if(enable_backward_weights or (MIOPEN_USE_MIOPENGEMM and sizeof(T) > 2))
                 {
-#if 0 //debug
-                    for(auto& v : input.data)
-                        v = 1;
-
-                    for(auto& v : out_p.first.data)
-                        v = 1;
-
-                    for(auto& v : weights)
-                        v = 1;
-#endif
-                    auto pair = verify(verify_backward_weights_conv<T>{
+                    verify(verify_backward_weights_conv<T>{
                         input, weights, out_p.first, filter, 0, search});
-
-                    output_tensor_to_csv(pair.first, "cpu.csv");
-                    output_tensor_to_csv(pair.second, "gpu.csv");
                 }
             }
         }
