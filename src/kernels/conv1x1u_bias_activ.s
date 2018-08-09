@@ -597,7 +597,7 @@ last_wave:
         .elseif \activ_mode == MIOPEN_NEURON_RELU //max(0, x) 
             v_max_f32 v[\base], v[\base], 0
         .elseif \activ_mode == MIOPEN_NEURON_SOFTRELU //log(1 + e^x) 
-            exp_f \base
+            exp_f \base, 1
             v_add_f32 v[\base], 1.0, v[\base]
             log_f \base
         .elseif \activ_mode == MIOPEN_NEURON_ABS //abs(x) 
@@ -614,12 +614,12 @@ last_wave:
         .elseif \activ_mode == MIOPEN_NEURON_LEAKY_RELU //alpha * x | x <= 0; x | x > 0 
             v_cmp_lt_f32 vcc, 0, v[\base]
             v_mov_b32 v[vtmp], s[alpha]
-            v_cndmask_b32 v[vtmp], 1.0, v[vtmp], vcc
+            v_cndmask_b32 v[vtmp], v[vtmp], 1.0, vcc
             v_mul_f32 v[\base], v[\base], v[vtmp] 
         .elseif \activ_mode == MIOPEN_NEURON_ELU //alpha * (e^x - 1) | x <= 0; x | x > 0 
             v_cmp_lt_f32 vcc, 0, v[\base]
             v_mov_b32 v[vtmp2], v[\base]
-			exp_f \base 
+			exp_f \base, 1 
 		    v_add_f32 v[\base], -1.0, v[\base] 
 			v_mul_f32 v[\base], s[alpha], v[\base] 
             v_cndmask_b32 v[\base], v[\base], v[vtmp2], vcc

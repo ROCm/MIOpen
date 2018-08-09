@@ -133,6 +133,23 @@ int mlo_construct_norm::mloConstructFwd()
         }
     }
 
+    // Workaround for ROCm 1.8.2 compiler issue (#1057).
+    if(_search_params.in_data_type == "FP16" && read_unit > 1 &&
+       _kernel_name == "MIOpenLRNAcrossChannels4")
+    {
+        const std::string name = _search_params.GetStream().GetDeviceName();
+        if(name.find("gfx9") != std::string::npos) // Any gfx9 device.
+        {
+            MIOPEN_LOG_I("Workaround for #1057: " << name << ',' << _search_params.in_data_type
+                                                  << ','
+                                                  << MAP_SZ4
+                                                  << ','
+                                                  << read_unit);
+            MAP_SZ4 *= read_unit;
+            read_unit = 1;
+        }
+    }
+
     int scale_stride         = _search_params.out_stride;
     int scale_channel_stride = _search_params.out_channel_stride;
     int scale_batch_stride   = _search_params.out_batch_stride;

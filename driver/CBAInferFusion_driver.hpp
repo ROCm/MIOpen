@@ -590,14 +590,18 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     else
         out_sz = in_sz; // This is for N+A so the output is the same as the input size
 
-    size_t workSpaceSize_fwd = 0;
+    /*
+    size_t workSpaceSize_fwd{};
     if(fusion_mode != 2)
     {
         workSpaceSize_fwd = 0; // DLOWELL assigning this to zerosince we are only dealing with
                                // direct convolutions for now. Another solution to this is needed.
-                               /*miopenConvolutionForwardGetWorkSpaceSize(
-                                   GetHandle(), weightTensor, inputTensor, convDesc, outputTensor, &workSpaceSize_fwd);*/
+                               //miopenConvolutionForwardGetWorkSpaceSize(
+                               //    GetHandle(), weightTensor, inputTensor, convDesc, outputTensor,
+    &workSpaceSize_fwd);
     }
+    */
+
     // Workaround: Pad buffers allocations to be a multiple of 2M
     if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
     {

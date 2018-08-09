@@ -196,10 +196,10 @@ extern "C" miopenStatus_t miopenCreateOpBiasForward(miopenFusionPlanDescriptor_t
 }
 
 extern "C" miopenStatus_t miopenCreateOpBiasBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                     miopenFusionOpDescriptor_t* biasOp,
+                                                     miopenFusionOpDescriptor_t* dbiasOp,
                                                      const miopenTensorDescriptor_t dbDesc)
 {
-    MIOPEN_LOG_FUNCTION(fusePlanDesc, biasOp, dbDesc);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, dbiasOp, dbDesc);
     return (miopenStatusSuccess);
 }
 
@@ -324,7 +324,6 @@ miopenSetOpArgsConvBackwardWeights(miopenOperatorArgs_t args,
 }
 //----
 
-// Fusion op args for bias
 extern "C" miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
                                                      const miopenFusionOpDescriptor_t biasOp,
                                                      const void* alpha,
