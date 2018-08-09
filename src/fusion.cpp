@@ -702,43 +702,59 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     std::vector<any_t> args;
     if(kernel_source_type == Binary)
     {
-        args.emplace_back(any_t(8)); // int N,
-        MIOPEN_LOG_I("Scalar arg N = " << any_t(8));
-        args.emplace_back(any_t(32)); // int C,
-        MIOPEN_LOG_I("Scalar arg C = " << any_t(32));
-        args.emplace_back(any_t(56)); // int H,
-        MIOPEN_LOG_I("Scalar arg H = " << any_t(56));
-        args.emplace_back(any_t(56)); // int W,
-        MIOPEN_LOG_I("Scalar arg W = " << any_t(56));
-        args.emplace_back(any_t(32)); // int K,
-        MIOPEN_LOG_I("Scalar arg K = " << any_t(32));
-        args.emplace_back(any_t(56)); // int n_groups,
-        MIOPEN_LOG_I("Scalar arg n_groups = " << any_t(56));
-        args.emplace_back(any_t((1<<7) + (1<<8))); // int flags, bias + leakyRelu
-        MIOPEN_LOG_I("Scalar arg flags = " << any_t((1<<7) + (1<<8)));
-        args.emplace_back(any_t(0)); // int reserved,
-        MIOPEN_LOG_I("Scalar arg reserved = " << any_t(0));
-        args.emplace_back(any_t(input)); // global float *input_addr,
+        if ((input_desc.GetType() != miopenFloat) || (output_desc.GetType() != miopenFloat))
+            MIOPEN_THROW("Only FP32 floats are currently supported");
+        int N, C, H, W, oN, K, oH, oW;
+        std::tie(N, C, H, W) = miopen::tien<4>(input_desc.GetLengths(), 1);
+        std::tie(oN, K, oH, oW) = miopen::tien<4>(output_desc.GetLengths(), 1);
+        if (N != oN)
+            MIOPEN_THROW("input and output batch sizes do not match");
+        const int n_groups = 56; /// \FIXME
+        const int flags = ((1<<7) + (1<<8)); /// \FIXME bias + leakyRelu
+        const int reserved = 0;
+        const int R = 3;
+        const int S = 3;
+        const int pad_h = 0;
+        const int pad_w = 0;
+        int* const return_addr = nullptr;
+
+        args.emplace_back(any_t(N));
+        MIOPEN_LOG_I("Scalar arg N = " << N);
+        args.emplace_back(any_t(C));
+        MIOPEN_LOG_I("Scalar arg C = " << C);
+        args.emplace_back(any_t(H));
+        MIOPEN_LOG_I("Scalar arg H = " << H);
+        args.emplace_back(any_t(W));
+        MIOPEN_LOG_I("Scalar arg W = " << W);
+        args.emplace_back(K);
+        MIOPEN_LOG_I("Scalar arg K = " << K);
+        args.emplace_back(n_groups);
+        MIOPEN_LOG_I("Scalar arg n_groups = " << n_groups);
+        args.emplace_back(any_t(flags));
+        MIOPEN_LOG_I("Scalar arg flags = " "0x" << std::hex << flags);
+        args.emplace_back(any_t(reserved));
+        MIOPEN_LOG_I("Scalar arg reserved = " << reserved);
+        args.emplace_back(any_t(input));
         MIOPEN_LOG_I("input_addr = " << input);
-        AddPointerArg(args, op_map, ptr_map, op_args, "weights0"); // global float *filter_addr,
-        args.emplace_back(any_t(output)); // global float *output_addr,
+        AddPointerArg(args, op_map, ptr_map, op_args, "weights0"); /// FIXME global float *filter_addr,
+        args.emplace_back(any_t(output));
         MIOPEN_LOG_I("output_addr = " << output);
-        args.emplace_back(any_t((int*)nullptr)); // global int *return_addr,
-        MIOPEN_LOG_I("Scalar arg return_addr = " << any_t((int*)nullptr));
-        args.emplace_back(any_t(3)); // int R,
-        MIOPEN_LOG_I("Scalar arg R = " << any_t(3));
-        args.emplace_back(any_t(3)); // int S,
-        MIOPEN_LOG_I("Scalar arg S = " << any_t(3));
-        args.emplace_back(any_t(0)); // int pad_h,
-        MIOPEN_LOG_I("Scalar arg pad_h = " << any_t(0));
-        args.emplace_back(any_t(0)); // int pad_w,
-        MIOPEN_LOG_I("Scalar arg pad_w = " << any_t(0));
-        args.emplace_back(any_t(54)); // int out_h,
-        MIOPEN_LOG_I("Scalar arg out_h = " << any_t(54));
-        args.emplace_back(any_t(54)); // int out_w,
-        MIOPEN_LOG_I("Scalar arg out_w = " << any_t(54));
-        AddPointerArg(args, op_map, ptr_map, op_args, "bias1"); //global float *bias_addr,
-        AddScalarArg(args, arg_sizes, op_map, size_map, op_args, "activAlpha2"); // float RELU_alpha
+        args.emplace_back(any_t(return_addr));
+        MIOPEN_LOG_I("Scalar arg return_addr = " << return_addr);
+        args.emplace_back(any_t(R));
+        MIOPEN_LOG_I("Scalar arg R = " << R);
+        args.emplace_back(any_t(S));
+        MIOPEN_LOG_I("Scalar arg S = " << S);
+        args.emplace_back(any_t(pad_h));
+        MIOPEN_LOG_I("Scalar arg pad_h = " << pad_h);
+        args.emplace_back(any_t(pad_w));
+        MIOPEN_LOG_I("Scalar arg pad_w = " << pad_w);
+        args.emplace_back(oH);
+        MIOPEN_LOG_I("Scalar arg out_h = " << oH);
+        args.emplace_back(oW);
+        MIOPEN_LOG_I("Scalar arg out_w = " << oW);
+        AddPointerArg(args, op_map, ptr_map, op_args, "bias1"); /// FIXME global float *bias_addr,
+        AddScalarArg(args, arg_sizes, op_map, size_map, op_args, "activAlpha2"); /// FIXME float RELU_alpha
 //        args.emplace_back(any_t(1.0f)); // float RELU_alpha
 //        MIOPEN_LOG_I("Scalar arg RELU_alpha = " << any_t(1.0f));
     }
