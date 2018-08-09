@@ -94,8 +94,6 @@ SubSample(const __global _FLOAT* __restrict in, __global _FLOAT* __restrict out)
     }
 }
 
-#ifdef UPSAMPLE
-
 __attribute__((reqd_work_group_size(MLO_GRP0_SZ0, MLO_GRP0_SZ1, MLO_GRP0_SZ2))) __kernel void
 UpSample(const __global _FLOAT* __restrict in, __global _FLOAT* __restrict out)
 {
@@ -109,7 +107,7 @@ UpSample(const __global _FLOAT* __restrict in, __global _FLOAT* __restrict out)
     uint in_off  = batch_id * MLO_IN_BATCH_STRIDE + stack_pos * MLO_WRITE_UNIT;
     uint out_y   = in_y * MLO_FILTER0_STRIDE1;
     uint out_x   = in_x * MLO_FILTER0_STRIDE0;
-    uint out_off = batch_id * MLO_OUT_BATCH_STRIDE + map_id * MLO_OUT_CHANNEL_STRIDE +
+    uint out_off = batch_id * MLO_IN0_BATCH_STRIDE + map_id * MLO_OUT_CHANNEL_STRIDE +
                    out_y * MLO_OUT_STRIDE + out_x;
 
     const __global _FLOAT* in_ptr = &in[in_off];
@@ -120,4 +118,3 @@ UpSample(const __global _FLOAT* __restrict in, __global _FLOAT* __restrict out)
         *out_ptr = *in_ptr;
     }
 }
-#endif
