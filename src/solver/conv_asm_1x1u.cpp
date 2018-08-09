@@ -409,6 +409,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         int n_grp0_size0 = 256;
 
         const auto subsample_kernel_compilation_options =
+            std::string(" -DDATA_TYPE=") + (params.out_data_type == "FP16" ? "ushort" : "float") +
             std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
             std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
             std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(params.kernel_stride0) +
