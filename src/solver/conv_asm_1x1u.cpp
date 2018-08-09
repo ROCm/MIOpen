@@ -38,8 +38,6 @@
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_PERF_VALS)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED)
 
-#define VEC_SIZE 2
-
 namespace miopen {
 namespace solver {
 
@@ -209,12 +207,12 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
         return false;
     if(!(k_mult <= config.n_outputs))
         return false;
-    if((c_mult % VEC_SIZE) != 0)
+    if((c_mult % config.vec_size) != 0)
         return false;
-    if((k_mult % VEC_SIZE) != 0)
+    if((k_mult % config.vec_size) != 0)
         return false;
-    const int in_gprs  = chunks_per_wave * n_mult * c_mult * VEC_SIZE;
-    const int acc_gprs = chunks_per_wave * n_mult * k_mult * VEC_SIZE;
+    const int in_gprs  = chunks_per_wave * n_mult * c_mult * config.vec_size;
+    const int acc_gprs = chunks_per_wave * n_mult * k_mult * config.vec_size;
     const int vgprs    = 4 + 2 * in_gprs + acc_gprs;
     if(!(vgprs < 256))
         return false;
@@ -291,36 +289,6 @@ std::string PerformanceConfigConvAsm1x1U::ToString() const
     Serialize(ss);
     return ss.str();
 }
-
-#if 0
-void PrintConfig(const PerformanceConfigConvAsm1x1U& pp, const ConvolutionContext& config)
-{
-    const int in_gprs            = pp.chunks_per_wave * pp.n_mult * pp.c_mult * VEC_SIZE;
-    const int acc_gprs           = pp.chunks_per_wave * pp.n_mult * pp.k_mult * VEC_SIZE;
-    const int vgprs              = 4 + 2 * in_gprs + acc_gprs;
-    const int max_waves_per_CU   = (256 / vgprs) * 4;
-    const int sgprs              = 24 + 2 * pp.k_mult * pp.c_mult;
-    const int total_n_blocks     = (config.batch_sz + pp.GetNPerGpr() - 1) / pp.GetNPerGpr();
-    const int img_hw             = config.out_height * config.out_width / VEC_SIZE;
-    const int total_chunks       = (img_hw + pp.chunk_size - 1) / pp.chunk_size;
-    int c_per_wave               = (config.n_inputs + pp.waves_in_group - 1) / pp.waves_in_group;
-    int c_per_last_wave          = config.n_inputs - (c_per_wave * (pp.waves_in_group - 1));
-    const int active_chunk_lanes = (img_hw + total_chunks - 1) / total_chunks;
-    const int active_hw_per_wave = active_chunk_lanes * pp.chunks_per_wave;
-    const int chunk_mask         = (1 << active_chunk_lanes) - 1;
-    const int active_n_per_gpr   = (config.batch_sz + total_n_blocks - 1) / total_n_blocks;
-    const int active_n_per_wave  = pp.n_mult * active_n_per_gpr;
-    uint64_t active_mask         = chunk_mask;
-    for(int i = 0; i < active_n_per_gpr - 1; i++)
-        active_mask = (active_mask << pp.chunk_size) + chunk_mask;
-    std::cerr << " img_hw = " << img_hw << " chunk_size = " << pp.chunk_size
-              << " active_n_per_gpr = " << active_n_per_gpr << " total_chunks = " << total_chunks
-              << " active_chunk_lanes = " << active_chunk_lanes
-              << " active_hw_per_wave = " << active_hw_per_wave << " chunk_mask = " << chunk_mask
-              << " active_mask = " << active_mask << " active_n_per_wave = " << active_n_per_wave
-              << std::endl;
-}
-#endif
 
 PerformanceConfigConvAsm1x1U
 ConvAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) const
@@ -424,7 +392,6 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
                                       const PerformanceConfigConvAsm1x1U& config,
                                       const bool disableConfigOverrideFromEnv) const
 {
-
     ConvSolution result;
 
     std::ostringstream options;
@@ -533,6 +500,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         }
     }
 
+    GenerateClangDefsym(options, "vec_size", params.vec_size);
     GenerateClangDefsym(options, "read_size", pcfg->GetReadSize());
     GenerateClangDefsym(options, "k_mult", pcfg->GetKMult());
     GenerateClangDefsym(options, "chunks_per_wave", pcfg->GetChunksPerWave());
@@ -540,8 +508,6 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "n_mult", pcfg->GetNMult());
     GenerateClangDefsym(options, "c_mult", pcfg->GetCMult());
     GenerateClangDefsym(options, "waves_in_group", pcfg->GetWavesInGroup());
-
-    //std::cerr << "options = " << options.str() << std::endl;
 
     KernelInfo kinfo;
     kinfo.comp_options = options.str();
@@ -556,16 +522,11 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
     kinfo.g_wk.push_back(
         kinfo.l_wk[0] *
-        divide_round_plus_inf(AsmImgHeight(params) * ((AsmImgWidth(params) + VEC_SIZE - 1)/VEC_SIZE), hw_per_wave));
+        divide_round_plus_inf(AsmImgHeight(params) * ((AsmImgWidth(params) + params.vec_size - 1)/params.vec_size), hw_per_wave));
 
     kinfo.g_wk.push_back(divide_round_plus_inf(params.n_outputs, pcfg->GetKMult()));
     const int n_images_per_wave = pcfg->GetNMult() * pcfg->GetNPerGpr();
     kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_images_per_wave));
-
-    //std::cerr << "vld = { " << kinfo.l_wk[0] << ", " << kinfo.l_wk[1] << ", " << kinfo.l_wk[2]
-        //<< " }" << std::endl;
-    //std::cerr << "vgd = { " << kinfo.g_wk[0] << ", " << kinfo.g_wk[1] << ", " << kinfo.g_wk[2]
-        //<< " }" << std::endl;
 
     kinfo.kernel_file = "conv1x1u.s";
     kinfo.kernel_name = "gcnAsmConv1x1U";
