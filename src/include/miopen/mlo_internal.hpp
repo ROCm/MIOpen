@@ -525,7 +525,7 @@ struct mlo_construct_direct2D
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
         _search_params.weights_sz = size;
-        _search_params.vec_size = 32 / _search_params.float_size;
+        _search_params.vec_size   = 32 / _search_params.float_size;
     }
 
     /*
