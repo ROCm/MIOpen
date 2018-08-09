@@ -672,7 +672,6 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                              std::to_string(op->kind()));
         }
     }
-
     std::vector<any_t> args;
     if(kernel_source_type == Binary)
     {
@@ -683,14 +682,32 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         std::tie(oN, K, oH, oW) = miopen::tien<4>(output_desc.GetLengths(), 1);
         if (N != oN)
             MIOPEN_THROW("input and output batch sizes do not match");
+
         const int n_groups = 56; /// \FIXME
-        const int flags = ((1<<7) + (1<<8)); /// \FIXME bias + leakyRelu
+
+        // Get topology. One of: C>B>A, C>B, C>A
+        assert(op_map[0]->kind() == miopenFusionOpConvForward && 2 <= op_map.size() && op_map.size() <= 3);
+        bool is_bias = false;
+        bool is_activation = false;
+        for (const auto& op : op_map)
+        {
+            if (op->kind() == miopenFusionOpBiasForward)
+                is_bias = true;
+            else if (op->kind() == miopenFusionOpActivForward)
+                is_activation= true;
+        }
+
+        const int flags = (is_bias ? (1<<7) : 0) + (is_activation ? (1<<8) : 0);
         const int reserved = 0;
         const int R = 3;
         const int S = 3;
         const int pad_h = 0;
         const int pad_w = 0;
         int* const return_addr = nullptr;
+        const auto weights = GetArg(op_map, op_args, miopenFusionOpConvForward, "weights");
+        const auto bias = is_bias ? GetArg(op_map, op_args, miopenFusionOpBiasForward, "bias") : any_t(nullptr);
+        /// \FIXME RELU -> 0.0f
+        const auto alpha = is_activation ? GetArg(op_map, op_args, miopenFusionOpActivForward, "activAlpha") : any_t(0.0f);
         ADD_ARGUMENT(N);
         ADD_ARGUMENT(C);
         ADD_ARGUMENT(H);
@@ -700,7 +717,6 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         ADD_ARGUMENT(flags);
         ADD_ARGUMENT(reserved);
         ADD_ARGUMENT(input);
-        const auto weights = GetArg(op_map, op_args, miopenFusionOpConvForward, "weights");
         ADD_ARGUMENT(weights);
         ADD_ARGUMENT(output);
         ADD_ARGUMENT(return_addr);
@@ -710,9 +726,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         ADD_ARGUMENT(pad_w);
         ADD_ARGUMENT(oH);
         ADD_ARGUMENT(oW);
-        const auto bias = GetArg(op_map, op_args, miopenFusionOpBiasForward, "bias");
         ADD_ARGUMENT(bias);
-        const auto alpha = GetArg(op_map, op_args, miopenFusionOpActivForward, "activAlpha");
         ADD_ARGUMENT(alpha);
     }
     else
