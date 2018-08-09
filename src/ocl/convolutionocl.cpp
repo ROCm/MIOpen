@@ -776,7 +776,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                         int* return_addr = nullptr;
                         int N, C, H, W, K, n_groups;
                         construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-
                         kernel(N, C, H, W, K, n_groups, unused, unused, x, w, y, return_addr);
                     }
                     else

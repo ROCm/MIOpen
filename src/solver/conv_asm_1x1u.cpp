@@ -522,7 +522,9 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
     kinfo.g_wk.push_back(
         kinfo.l_wk[0] *
-        divide_round_plus_inf(AsmImgHeight(params) * ((AsmImgWidth(params) + params.vec_size - 1)/params.vec_size), hw_per_wave));
+        divide_round_plus_inf(AsmImgHeight(params) *
+                                  ((AsmImgWidth(params) + params.vec_size - 1) / params.vec_size),
+                              hw_per_wave));
 
     kinfo.g_wk.push_back(divide_round_plus_inf(params.n_outputs, pcfg->GetKMult()));
     const int n_images_per_wave = pcfg->GetNMult() * pcfg->GetNPerGpr();
