@@ -181,6 +181,7 @@ struct ProblemDescription
     int in_batch_stride    = 0;
     int out_channel_stride = 0;
     int out_batch_stride   = 0;
+    int group_counts       = 0;
     struct Direction
     {
         enum class Value
@@ -378,6 +379,7 @@ struct mlo_construct_direct2D
         _search_params.top_sz           = 0; // bytes
         _search_params.weights_sz       = 0; // bytes
         _search_params.bias_sz          = 0; // bytes
+        _search_params.group_counts     = 1;
     }
 
     void setupRocm();
@@ -500,6 +502,14 @@ struct mlo_construct_direct2D
         _search_params.pad0           = v_padding;
         _search_params.kernel_stride0 = u_stride;
         _search_params.kernel_stride1 = v_stride;
+    }
+
+    /*
+    * set group convolutional parameters
+    */
+    inline void setGroupConvCounts(int group_conv_counts)
+    {
+        _search_params.group_counts = group_conv_counts;
     }
 
     /*
