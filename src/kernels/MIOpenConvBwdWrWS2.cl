@@ -626,91 +626,76 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     {
         barrier(CLK_LOCAL_MEM_FENCE);
 
-#if 1 // debug
         // o_base may be larger than MLO_N_OUTPUTS, so o_number may be negative
         uint o_base  = o_idx + og * MLO_N_LCL_OUT_MAPS;
         int o_number = min((int)MLO_N_LCL_OUT_MAPS, (int)MLO_N_OUTPUTS - (int)o_base);
-#endif
 
-#if 0 // debug
-        if(w_blk_idx < MLO_MAX_WEI_BLK_LOOP)
-        {
-            for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
-            {
-#else
         for(uint o = 0; (int)o < o_number; ++o)
         {
             if(w_blk_idx < MLO_MAX_WEI_BLK_LOOP)
             {
-#endif
-        uint w = 0;
-        for(; w < MLO_WEI_WKITEM; ++w)
-        {
-            // save "virtual" filter table
-            uint w_x    = w_x0 + w * MLO_WEI_BLK_SZ0;
-            wei_lcl_off = ((o * MLO_MAX_WEI_BLK_LOOP + w_blk_idx) * MLO_FILTER_SIZE1 + w_y) *
-                              (MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM) +
-                          w_x;
-            lcl[wei_lcl_off] = pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w];
+                uint w = 0;
+                for(; w < MLO_WEI_WKITEM; ++w)
+                {
+                    // save "virtual" filter table
+                    uint w_x = w_x0 + w * MLO_WEI_BLK_SZ0;
+                    wei_lcl_off =
+                        ((o * MLO_MAX_WEI_BLK_LOOP + w_blk_idx) * MLO_FILTER_SIZE1 + w_y) *
+                            (MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM) +
+                        w_x;
+                    lcl[wei_lcl_off] =
+                        pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w];
+                }
+            }
         }
-    }
-}
 
-barrier(CLK_LOCAL_MEM_FENCE);
+        barrier(CLK_LOCAL_MEM_FENCE);
 
-// read into real filter table
-#if 0 // debug
-        for(uint l = lcl_id; l < (MLO_N_LCL_OUT_MAPS * MLO_WEI_CHANNEL_STRIDE); l += MLO_GRP_SZ)
-#else
+        // read into real filter table
         for(uint l = lcl_id; (int)l < (o_number * MLO_WEI_CHANNEL_STRIDE); l += MLO_GRP_SZ)
-#endif
-{
+        {
 #if MLO_WEI_CHANNEL_STRIDE & (MLO_WEI_CHANNEL_STRIDE - 1)
-    uint oo    = iDiv(l, MLO_WEI_CHANNEL_STRIDE);
-    uint wei_i = iMod(l, oo, MLO_WEI_CHANNEL_STRIDE);
+            uint oo    = iDiv(l, MLO_WEI_CHANNEL_STRIDE);
+            uint wei_i = iMod(l, oo, MLO_WEI_CHANNEL_STRIDE);
 #else
-            uint oo      = l / MLO_WEI_CHANNEL_STRIDE;
-            uint wei_i   = l & MLO_WEI_CHANNEL_STRIDE - 1;
+            uint oo             = l / MLO_WEI_CHANNEL_STRIDE;
+            uint wei_i          = l & MLO_WEI_CHANNEL_STRIDE - 1;
 #endif
 #if(MLO_FILTER_SIZE0) & ((MLO_FILTER_SIZE0)-1)
-    uint wei_i_y = iDiv(wei_i, (MLO_FILTER_SIZE0));
-    uint wei_i_x = iMod(wei_i, wei_i_y, (MLO_FILTER_SIZE0));
+            uint wei_i_y = iDiv(wei_i, (MLO_FILTER_SIZE0));
+            uint wei_i_x = iMod(wei_i, wei_i_y, (MLO_FILTER_SIZE0));
 #else
-            uint wei_i_y = wei_i / (MLO_FILTER_SIZE0);
-            uint wei_i_x = wei_i & ((MLO_FILTER_SIZE0)-1);
+            uint wei_i_y        = wei_i / (MLO_FILTER_SIZE0);
+            uint wei_i_x        = wei_i & ((MLO_FILTER_SIZE0)-1);
 #endif
-    // send it out
-    // inputs are outputs
-    uint wei_df_off = ((ib_base * MLO_N_OUTPUTS + o_idx) * (uint)MLO_WEI_BATCH_STRIDE)
-                      // this input channel
-                      + mul24(c_idx, (uint)MLO_WEI_CHANNEL_STRIDE);
+            // send it out
+            // inputs are outputs
+            uint wei_df_off = ((ib_base * MLO_N_OUTPUTS + o_idx) * (uint)MLO_WEI_BATCH_STRIDE)
+                              // this input channel
+                              + mul24(c_idx, (uint)MLO_WEI_CHANNEL_STRIDE);
 
-    final_sum = 0;
-    for(uint i = 0; i < MLO_MAX_WEI_BLK_LOOP; ++i)
-    {
-        final_sum += lcl[((oo * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) *
-                             (MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM) +
-                         wei_i_x];
-    }
+            final_sum = 0;
+            for(uint i = 0; i < MLO_MAX_WEI_BLK_LOOP; ++i)
+            {
+                final_sum += lcl[((oo * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) *
+                                     (MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM) +
+                                 wei_i_x];
+            }
 
-    uint wei_out_off = wei_df_off + (og * MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i;
-#if 0 // no longer needed
-            if(wei_out_off < MLO_WEI_BATCH_STRIDE * MLO_N_OUTPUTS * MLO_N_BATCH_BLKS)
-#endif
-    {
-        weights_df[wei_out_off] = final_sum; // lcl_bot[lcl_id]; //
+            uint wei_out_off =
+                wei_df_off + (og * MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i;
+            weights_df[wei_out_off] = final_sum; // lcl_bot[lcl_id]; //
 
 #if DBG_OUT_OF_RNGE
-        // assured
-        if(wei_out_off >= MLO_WEI_BATCH_STRIDE * MLO_N_OUTPUTS * MLO_N_BATCH_BLKS)
-        {
-            printf("k:err:interm-output-of-range\n");
-        }
+            // assured
+            if(wei_out_off >= MLO_WEI_BATCH_STRIDE * MLO_N_OUTPUTS * MLO_N_BATCH_BLKS)
+            {
+                printf("k:err:interm-output-of-range\n");
+            }
 #endif
-    }
-}
+        }
 
-} // for(uint og = 0; og < MLO_N_OUT_BLK_GRP; ++og)
+    } // for(uint og = 0; og < MLO_N_OUT_BLK_GRP; ++og)
 }
 
 // final reduction kernel
@@ -726,8 +711,8 @@ MIOpenCvBwdWrW_rdc(const __global _FLOAT* __restrict weight_df_tmp,
     uint wei_blk_idx = iDiv(wei_idx0, MLO_WEI_CHANNEL_STRIDE);
     uint wei_idx     = iMod(wei_idx0, wei_blk_idx, MLO_WEI_CHANNEL_STRIDE);
 #else
-    uint wei_blk_idx     = wei_idx0 / MLO_WEI_CHANNEL_STRIDE;
-    uint wei_idx         = wei_idx0 & (MLO_WEI_CHANNEL_STRIDE - 1);
+    uint wei_blk_idx            = wei_idx0 / MLO_WEI_CHANNEL_STRIDE;
+    uint wei_idx                = wei_idx0 & (MLO_WEI_CHANNEL_STRIDE - 1);
 #endif
 
     _FLOAT pvt_accum_wei[MLO_UT_READ_UNIT];
