@@ -64,6 +64,7 @@ MIOPEN_NEURON_ELU = 9          // alpha * (e^x - 1) | x <= 0; x | x > 0
 default activ_mode, MIOPEN_NEURON_PASTHRU
 default bias_mode, 0
 default fusion_mode, 0
+default enable_activ, 0
 
 static_assert(fusion_mode || (bias_mode == 0 && enable_activ == 0))
 
