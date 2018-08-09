@@ -53,7 +53,7 @@
 
 __attribute__((always_inline)) uint iDiv(uint v, uint d)
 {
-    uint r = (uint)((float)v * (1.f / (float)d) + 0.0000000001f);
+    uint r = v / d;
     return (r);
 }
 
