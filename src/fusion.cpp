@@ -685,18 +685,20 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
 
         const int n_groups = 56; /// \FIXME
 
-        // Get topology. One of: C>B>A, C>B, C>A
+        // Get topology (C>B>A, C>B, C>A), find out activation mode.
         assert(op_map[0]->kind() == miopenFusionOpConvForward && 2 <= op_map.size() && op_map.size() <= 3);
         bool is_bias = false;
         bool is_activation = false;
+        bool is_leakyRELU = false;
         for (const auto& op : op_map)
         {
             if (op->kind() == miopenFusionOpBiasForward)
                 is_bias = true;
-            else if (op->kind() == miopenFusionOpActivForward)
+            else if (op->kind() == miopenFusionOpActivForward) {
                 is_activation= true;
+                is_leakyRELU = (op->MDGraphKey() == std::to_string(miopenActivationLEAKYRELU));
+            }
         }
-
         const int flags = (is_bias ? (1<<7) : 0) + (is_activation ? (1<<8) : 0);
         const int reserved = 0;
         const int R = 3;
@@ -705,9 +707,12 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         const int pad_w = 0;
         int* const return_addr = nullptr;
         const auto weights = GetArg(op_map, op_args, miopenFusionOpConvForward, "weights");
-        const auto bias = is_bias ? GetArg(op_map, op_args, miopenFusionOpBiasForward, "bias") : any_t(nullptr);
-        /// \FIXME RELU -> 0.0f
-        const auto alpha = is_activation ? GetArg(op_map, op_args, miopenFusionOpActivForward, "activAlpha") : any_t(0.0f);
+        const auto bias = is_bias
+            ? GetArg(op_map, op_args, miopenFusionOpBiasForward, "bias")
+            : any_t(nullptr); // Kernel does not use it.
+        const auto alpha = (is_activation && is_leakyRELU)
+            ? GetArg(op_map, op_args, miopenFusionOpActivForward, "activAlpha")
+            : any_t(0.0f); // Fixed to 0.0 for RELU.
         ADD_ARGUMENT(N);
         ADD_ARGUMENT(C);
         ADD_ARGUMENT(H);
