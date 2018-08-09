@@ -571,15 +571,15 @@ std::ostream& operator<<(std::ostream& s, const OpKernelArg& arg)
 
 static
 void AddPointerArg(std::vector<any_t> &args,
-    const std::vector<std::shared_ptr<FusionOpDescriptor>> &op_map,
-    const std::map<size_t, std::vector<std::string>> &ptr_map,
+    std::vector<std::shared_ptr<FusionOpDescriptor>> &op_map,
+    std::map<size_t, std::vector<std::string>> &ptr_map,
     const OperatorArgs &op_args,
     const std::string arg_name)
 {
     for(auto idx = 0; idx < op_map.size(); ++idx)
     {
-        auto op = op_map.at(idx);
-        auto ptr_keys = ptr_map.at(idx);
+        auto op = op_map[idx];
+        auto ptr_keys = ptr_map[idx];
         for(auto key : ptr_keys)
         {
             auto it = op_args.args_map.find(key);
@@ -587,22 +587,22 @@ void AddPointerArg(std::vector<any_t> &args,
             {
                 if (key == arg_name)
                 {
-                    MIOPEN_LOG_I2("Pointer arg, key: " << key << " = " << it->second);
+                    MIOPEN_LOG_I("key: " << key << " = " << it->second);
                     args.push_back(it->second);
                     return;
                 }
             }
         }
     }
-    MIOPEN_LOG_E("arg_name = " << arg_name);
+    MIOPEN_LOG_E("Not found: arg_name = " << arg_name);
     MIOPEN_THROW("Pointer argument not found");
 }
 
 static
 void AddScalarArg(std::vector<any_t> &args,
     const std::set<size_t> &arg_sizes,
-    /*const*/ std::vector<std::shared_ptr<FusionOpDescriptor>> &op_map,
-    /*const*/ std::map<std::pair<size_t, size_t>, std::vector<std::string>> &size_map,
+    std::vector<std::shared_ptr<FusionOpDescriptor>> &op_map,
+    std::map<std::pair<size_t, size_t>, std::vector<std::string>> &size_map,
     const OperatorArgs &op_args,
     const std::string arg_name)
 {
@@ -610,8 +610,8 @@ void AddScalarArg(std::vector<any_t> &args,
     {
         for(auto idx = 0; idx < op_map.size(); ++idx)
         {
-            auto op   = op_map[idx];//.at(idx);
-            auto keys = size_map[std::pair<size_t, size_t>(idx, sz)]; //.at(std::pair<size_t, size_t>(idx, sz));
+            auto op   = op_map[idx];
+            auto keys = size_map[std::pair<size_t, size_t>(idx, sz)];
             for(auto key : keys)
             {
                 auto it = op_args.args_map.find(key);
@@ -619,17 +619,17 @@ void AddScalarArg(std::vector<any_t> &args,
                 {
                     if (key == arg_name)
                     {
-                        MIOPEN_LOG_I2("Scalar arg, key: " << key << " = " << it->second);
+                        MIOPEN_LOG_I("key: " << key << " = " << it->second);
                         args.push_back(it->second);
                         return;
                     }
                 }
                 else
-                    MIOPEN_LOG_W("Scalar arg, key: " << key << " = <not found>");
+                    MIOPEN_LOG_W("key: " << key << " = <not found>");
             }
         }
     }
-    MIOPEN_LOG_E("arg_name = " << arg_name);
+    MIOPEN_LOG_E("Not found: arg_name = " << arg_name);
     MIOPEN_THROW("Scalar argument not found");
 }
 
@@ -703,44 +703,44 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     if(kernel_source_type == Binary)
     {
         args.emplace_back(any_t(8)); // int N,
-        MIOPEN_LOG_I2("Scalar arg N = " << any_t(8));
+        MIOPEN_LOG_I("Scalar arg N = " << any_t(8));
         args.emplace_back(any_t(32)); // int C,
-        MIOPEN_LOG_I2("Scalar arg C = " << any_t(32));
+        MIOPEN_LOG_I("Scalar arg C = " << any_t(32));
         args.emplace_back(any_t(56)); // int H,
-        MIOPEN_LOG_I2("Scalar arg H = " << any_t(56));
+        MIOPEN_LOG_I("Scalar arg H = " << any_t(56));
         args.emplace_back(any_t(56)); // int W,
-        MIOPEN_LOG_I2("Scalar arg W = " << any_t(56));
+        MIOPEN_LOG_I("Scalar arg W = " << any_t(56));
         args.emplace_back(any_t(32)); // int K,
-        MIOPEN_LOG_I2("Scalar arg K = " << any_t(32));
+        MIOPEN_LOG_I("Scalar arg K = " << any_t(32));
         args.emplace_back(any_t(56)); // int n_groups,
-        MIOPEN_LOG_I2("Scalar arg n_groups = " << any_t(56));
+        MIOPEN_LOG_I("Scalar arg n_groups = " << any_t(56));
         args.emplace_back(any_t((1<<7) + (1<<8))); // int flags, bias + leakyRelu
-        MIOPEN_LOG_I2("Scalar arg flags = " << any_t((1<<7) + (1<<8)));
+        MIOPEN_LOG_I("Scalar arg flags = " << any_t((1<<7) + (1<<8)));
         args.emplace_back(any_t(0)); // int reserved,
-        MIOPEN_LOG_I2("Scalar arg reserved = " << any_t(0));
+        MIOPEN_LOG_I("Scalar arg reserved = " << any_t(0));
         args.emplace_back(any_t(input)); // global float *input_addr,
-        MIOPEN_LOG_I2("input_addr = " << input);
+        MIOPEN_LOG_I("input_addr = " << input);
         AddPointerArg(args, op_map, ptr_map, op_args, "weights0"); // global float *filter_addr,
         args.emplace_back(any_t(output)); // global float *output_addr,
-        MIOPEN_LOG_I2("output_addr = " << output);
+        MIOPEN_LOG_I("output_addr = " << output);
         args.emplace_back(any_t((int*)nullptr)); // global int *return_addr,
-        MIOPEN_LOG_I2("Scalar arg return_addr = " << any_t((int*)nullptr));
+        MIOPEN_LOG_I("Scalar arg return_addr = " << any_t((int*)nullptr));
         args.emplace_back(any_t(3)); // int R,
-        MIOPEN_LOG_I2("Scalar arg R = " << any_t(3));
+        MIOPEN_LOG_I("Scalar arg R = " << any_t(3));
         args.emplace_back(any_t(3)); // int S,
-        MIOPEN_LOG_I2("Scalar arg S = " << any_t(3));
+        MIOPEN_LOG_I("Scalar arg S = " << any_t(3));
         args.emplace_back(any_t(0)); // int pad_h,
-        MIOPEN_LOG_I2("Scalar arg pad_h = " << any_t(0));
+        MIOPEN_LOG_I("Scalar arg pad_h = " << any_t(0));
         args.emplace_back(any_t(0)); // int pad_w,
-        MIOPEN_LOG_I2("Scalar arg pad_w = " << any_t(0));
+        MIOPEN_LOG_I("Scalar arg pad_w = " << any_t(0));
         args.emplace_back(any_t(54)); // int out_h,
-        MIOPEN_LOG_I2("Scalar arg out_h = " << any_t(54));
+        MIOPEN_LOG_I("Scalar arg out_h = " << any_t(54));
         args.emplace_back(any_t(54)); // int out_w,
-        MIOPEN_LOG_I2("Scalar arg out_w = " << any_t(54));
+        MIOPEN_LOG_I("Scalar arg out_w = " << any_t(54));
         AddPointerArg(args, op_map, ptr_map, op_args, "bias1"); //global float *bias_addr,
-//        AddScalarArg(args, arg_sizes, op_map, size_map, op_args, "activAlpha2"); // float RELU_alpha
-        args.emplace_back(any_t(1.0f)); // float RELU_alpha
-        MIOPEN_LOG_I2("Scalar arg RELU_alpha = " << any_t(1.0f));
+        AddScalarArg(args, arg_sizes, op_map, size_map, op_args, "activAlpha2"); // float RELU_alpha
+//        args.emplace_back(any_t(1.0f)); // float RELU_alpha
+//        MIOPEN_LOG_I("Scalar arg RELU_alpha = " << any_t(1.0f));
     }
     else
     {
@@ -766,9 +766,9 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         }
         // insert input / output pointer
         args.emplace_back(any_t(input));
-        MIOPEN_LOG_I2("Input ptr arg = " << input);
+        MIOPEN_LOG_I("Input ptr arg = " << input);
         args.emplace_back(any_t(output));
-        MIOPEN_LOG_I2("Output ptr arg = " << output);
+        MIOPEN_LOG_I("Output ptr arg = " << output);
         // add other pointers in op-order
         for(auto idx = 0; idx < op_map.size(); idx++)
         { // Populate args for pointers based operator order
