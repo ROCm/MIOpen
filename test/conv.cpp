@@ -112,8 +112,8 @@ struct verify_forward_conv : conv_base<T>
                 ford(in_c, in_h, in_w, wei_h, wei_w)([&](int w, int i, int j, int x, int y) {
                     const int start_x = i * filter.u - filter.pad_h;
                     const int start_y = j * filter.v - filter.pad_w;
-                    const int out_x   = start_x + x;
-                    const int out_y   = start_y + y;
+                    const int out_x   = start_x + x * filter.dilation_h;
+                    const int out_y   = start_y + y * filter.dilation_w;
                     if(out_x >= 0 && out_x < out_h && out_y >= 0 && out_y < out_w)
                     {
                         rout(o, k, out_x, out_y) += input(o, w, i, j) * weights(w, k, x, y);
@@ -136,8 +136,8 @@ struct verify_forward_conv : conv_base<T>
 
                 double acc = bias;
                 ford(wei_c, wei_h, wei_w)([&](int k, int x, int y) {
-                    const int in_x = start_x + x;
-                    const int in_y = start_y + y;
+                    const int in_x = start_x + x * filter.dilation_h;
+                    const int in_y = start_y + y * filter.dilation_w;
                     if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
                     {
                         acc += input(o, k, in_x, in_y) * weights(w, k, x, y);
@@ -254,8 +254,8 @@ struct verify_backward_conv : conv_base<T>
 
                 double acc = 0.0;
                 ford(wei_c, wei_h, wei_w)([&](int k, int x, int y) {
-                    const int in_x = start_x + x;
-                    const int in_y = start_y + y;
+                    const int in_x = start_x + x * filter.dilation_h;
+                    const int in_y = start_y + y * filter.dilation_w;
                     if(in_x >= 0 && in_x < out_h && in_y >= 0 && in_y < out_w)
                     {
                         acc += out(o, k, in_x, in_y) * weights(w, k, x, y);
@@ -280,8 +280,8 @@ struct verify_backward_conv : conv_base<T>
                 ford(out_c, out_h, out_w, wei_h, wei_w)([&](int w, int i, int j, int x, int y) {
                     const int start_x = i * filter.u - filter.pad_h;
                     const int start_y = j * filter.v - filter.pad_w;
-                    const int in_x    = start_x + x;
-                    const int in_y    = start_y + y;
+                    const int in_x    = start_x + x * filter.dilation_h;
+                    const int in_y    = start_y + y * filter.dilation_w;
                     if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
                     {
                         rinput(o, k, in_x, in_y) += out(o, w, i, j) * weights(w, k, x, y);
@@ -397,8 +397,8 @@ struct verify_backward_weights_conv : conv_base<T>
             ford(out_n, out_h, out_w)([&](int o, int i, int j) {
                 const int start_x = i * filter.u - filter.pad_h;
                 const int start_y = j * filter.v - filter.pad_w;
-                const int in_x    = start_x + x;
-                const int in_y    = start_y + y;
+                const int in_x    = start_x + x * filter.dilation_h;
+                const int in_y    = start_y + y * filter.dilation_w;
                 if(in_x >= 0 && in_x < in_h && in_y >= 0 && in_y < in_w)
                 {
                     acc += (filter.mode == miopenTranspose
@@ -509,7 +509,10 @@ struct conv_driver : test_driver
                 miopen::ConvolutionDescriptor{1, 1, 1, 1},
                 miopen::ConvolutionDescriptor{1, 1, 2, 2},
                 miopen::ConvolutionDescriptor{2, 2, 1, 1},
-                miopen::ConvolutionDescriptor{3, 3, 2, 2}};
+                miopen::ConvolutionDescriptor{3, 3, 2, 2},
+                miopen::ConvolutionDescriptor{0, 0, 1, 1, 2, 2},
+                miopen::ConvolutionDescriptor{1, 1, 2, 2, 3, 3},
+                miopen::ConvolutionDescriptor{3, 3, 2, 2, 4, 4}};
     }
 
     void run()
@@ -525,7 +528,7 @@ struct conv_driver : test_driver
         /// \todo enhance support of half type into conv/transConv
         if((input.desc.GetType() == miopenHalf) &&
            (((filter.mode == miopenConvolution) && !filter.IsDirectSupported(weights.desc)) ||
-            (filter.mode == miopenTranspose)))
+            (filter.dilation_h > 1 || filter.dilation_w > 1) || (filter.mode == miopenTranspose)))
         {
             // Unsupported config for conv with half type
             return;
@@ -534,38 +537,44 @@ struct conv_driver : test_driver
         if(((filter.mode == miopenTranspose) && (input_c == wei_k)) ||
            ((filter.mode == miopenConvolution) && (input_c == wei_c)))
         {
-            if(filter.paddingMode == miopenPaddingSame)
+            if(filter.mode == miopenConvolution &&
+               ((filter.dilation_h == 1 && filter.dilation_w == 1) || (wei_h == 1 && wei_w == 1)))
             {
-                if(filter.u == 0 || filter.v == 0)
-                    return;
-                auto _pad_h = (input_h % filter.u == 0)
-                                  ? (std::max(static_cast<int>(wei_h - filter.u), 0))
-                                  : (std::max(static_cast<int>(wei_h - (input_h % filter.u)), 0));
-                auto _pad_w = (input_w % filter.v == 0)
-                                  ? (std::max(static_cast<int>(wei_w - filter.v), 0))
-                                  : (std::max(static_cast<int>(wei_w - (input_w % filter.v)), 0));
+                if(filter.paddingMode == miopenPaddingSame)
+                {
+                    if(filter.u == 0 || filter.v == 0)
+                        return;
+                    auto _pad_h =
+                        (input_h % filter.u == 0)
+                            ? (std::max(static_cast<int>(wei_h - filter.u), 0))
+                            : (std::max(static_cast<int>(wei_h - (input_h % filter.u)), 0));
+                    auto _pad_w =
+                        (input_w % filter.v == 0)
+                            ? (std::max(static_cast<int>(wei_w - filter.v), 0))
+                            : (std::max(static_cast<int>(wei_w - (input_w % filter.v)), 0));
 
-                filter.pad_h = _pad_h / 2;
-                filter.pad_w = _pad_w / 2;
+                    filter.pad_h = _pad_h / 2;
+                    filter.pad_w = _pad_w / 2;
 
-                int out_h = std::ceil(static_cast<double>(input_h) / filter.u);
-                int out_w = std::ceil(static_cast<double>(input_w) / filter.v);
+                    int out_h = std::ceil(static_cast<double>(input_h) / filter.u);
+                    int out_w = std::ceil(static_cast<double>(input_w) / filter.v);
 
-                if(out_h <= 0 || out_w <= 0)
-                    return;
-            }
-            else if(filter.paddingMode == miopenPaddingValid)
-            {
-                if(filter.u == 0 || filter.v == 0)
-                    return;
-                filter.pad_h = 0;
-                filter.pad_w = 0;
+                    if(out_h <= 0 || out_w <= 0)
+                        return;
+                }
+                else if(filter.paddingMode == miopenPaddingValid)
+                {
+                    if(filter.u == 0 || filter.v == 0)
+                        return;
+                    filter.pad_h = 0;
+                    filter.pad_w = 0;
 
-                int out_h = std::ceil(static_cast<double>(input_h - wei_h + 1) / filter.u);
-                int out_w = std::ceil(static_cast<double>(input_w - wei_w + 1) / filter.v);
+                    int out_h = std::ceil(static_cast<double>(input_h - wei_h + 1) / filter.u);
+                    int out_w = std::ceil(static_cast<double>(input_w - wei_w + 1) / filter.v);
 
-                if(out_h <= 0 || out_w <= 0)
-                    return;
+                    if(out_h <= 0 || out_w <= 0)
+                        return;
+                }
             }
 
             if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
@@ -574,7 +583,8 @@ struct conv_driver : test_driver
             {
                 auto out_p = verify(verify_forward_conv<T>{input, weights, filter, 0, search});
                 for(auto& x : out_p.first)
-                    x = (long(x + 19) * 2) % max_value; // Clamp big numbers
+                    x = (long(x + 19) * 2) % max_value + (long(x + 19) * 2) % (max_value - 1) +
+                        (long(x + 19) * 2) % (max_value + 1); // Clamp big numbers
                 if(do_backward_data)
                     verify(verify_backward_conv<T>{input, weights, out_p.first, filter, 0, search});
                 if(enable_backward_weights or (MIOPEN_USE_MIOPENGEMM and sizeof(T) > 2))

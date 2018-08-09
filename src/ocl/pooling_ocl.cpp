@@ -92,7 +92,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     std::tie(nIn, cIn, hIn, wIn)                         = tien<4>(xDesc.GetLengths());
     std::tie(nInStride, cInStride, hInStride, wInStride) = tien<4>(xDesc.GetStrides());
 
-    if(((lens[0] * lens[1]) >= std::numeric_limits<uint8_t>::max()) && do_backward)
+    if(((lens[0] * lens[1]) >= std::numeric_limits<uint16_t>::max()) && do_backward)
     {
         MIOPEN_THROW("Pooling window too large to do backwards");
     }
@@ -236,7 +236,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     std::tie(nIn, cIn, hIn, wIn)                         = tien<4>(xDesc.GetLengths());
     std::tie(nInStride, cInStride, hInStride, wInStride) = tien<4>(xDesc.GetStrides());
 
-    if(((lens[0] * lens[1]) >= std::numeric_limits<uint8_t>::max()))
+    if(((lens[0] * lens[1]) >= std::numeric_limits<uint16_t>::max()))
     {
         MIOPEN_THROW("Pooling window too large to do backwards");
     }
