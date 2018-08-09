@@ -135,7 +135,22 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
     std::ptrdiff_t output_h;
     std::ptrdiff_t output_w;
 
-    if(paddingMode == miopenPaddingDefault)
+    if(paddingMode == miopenPaddingSame && dilation_h == 1 && dilation_w == 1 &&
+       mode == miopenConvolution)
+    {
+        output_c = filter_k;
+        output_h = std::ceil(static_cast<double>(input_h) / u);
+        output_w = std::ceil(static_cast<double>(input_w) / v);
+    }
+    else if(paddingMode == miopenPaddingValid && dilation_h == 1 && dilation_w == 1 &&
+            mode == miopenConvolution)
+    {
+        output_c = filter_k;
+        output_h = std::ceil(static_cast<double>(input_h - filter_h + 1) / u);
+        output_w = std::ceil(static_cast<double>(input_w - filter_w + 1) / v);
+    }
+    else if(paddingMode == miopenPaddingDefault || paddingMode == miopenPaddingSame ||
+            paddingMode == miopenPaddingValid)
     {
         if(mode == miopenTranspose)
         {
@@ -153,18 +168,6 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
             output_w = std::max<std::ptrdiff_t>(
                 1, (input_w - (1 + dilation_w * (filter_w - 1)) + 2 * pad_w) / v + 1);
         }
-    }
-    else if(paddingMode == miopenPaddingSame)
-    {
-        output_c = filter_k;
-        output_h = std::ceil(static_cast<double>(input_h) / u);
-        output_w = std::ceil(static_cast<double>(input_w) / v);
-    }
-    else if(paddingMode == miopenPaddingValid)
-    {
-        output_c = filter_k;
-        output_h = std::ceil(static_cast<double>(input_h - filter_h + 1) / u);
-        output_w = std::ceil(static_cast<double>(input_w - filter_w + 1) / v);
     }
     else
         MIOPEN_THROW(miopenStatusInvalidValue, "Invalid Padding Mode!");
@@ -335,17 +338,15 @@ size_t ConvolutionDescriptor::ForwardGetWorkSpaceSize(Handle& handle,
         const size_t direct_workspace =
             ForwardBackwardDataGetWorkSpaceSizeDirect(handle, xDesc, yDesc, wDesc, 1);
 
-        if(dilation_w > 1 || dilation_h > 1)
-            return std::max(ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc), direct_workspace);
-
         // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
         // 1x1_stride=2
-        if((wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && dilation_h == 1 &&
-            dilation_w == 1) &&
+        if((wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0) &&
            ((in_h <= 14 && in_w <= 14 && u == 1 && v == 1) || (u == 2 && v == 2)))
         {
             return std::max(ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc), direct_workspace);
         }
+        if(dilation_w > 1 || dilation_h > 1)
+            return std::max(ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc), direct_workspace);
 
         // Check if Winograd is available
         // If Winograd is present, there is no advantage in letting
@@ -381,16 +382,15 @@ size_t ConvolutionDescriptor::BackwardDataGetWorkSpaceSize(Handle& handle,
         const size_t direct_workspace =
             ForwardBackwardDataGetWorkSpaceSizeDirect(handle, dxDesc, dyDesc, wDesc, 0);
 
-        if(dilation_w > 1 || dilation_h > 1)
-            return std::max(BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc),
-                            direct_workspace);
-
-        if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2) &&
-           dilation_w == 1 && dilation_h == 1)
+        if(wei_h == 1 && wei_w == 1 && pad_h == 0 && pad_w == 0 && (u == 2 && v == 2))
         {
             size_t gemm_trans = BackwardDataGetWorkSpaceSizeGEMMTranspose(dyDesc, dxDesc);
             return std::max(gemm_trans, direct_workspace);
         }
+        if(dilation_w > 1 || dilation_h > 1)
+            return std::max(BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, dyDesc),
+                            direct_workspace);
+
         // Check if Winograd is available
         // If Winograd is present, there is no advantage in letting
         // the user run another algorithm as those both slower and

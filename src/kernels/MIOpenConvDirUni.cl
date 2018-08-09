@@ -175,7 +175,7 @@ extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane")
 
 static inline uint iDiv(uint v, uint d)
 {
-    uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
+    uint r = v / d;
     return (r);
 }
 
@@ -187,7 +187,7 @@ static inline uint iMod(uint v, uint u, uint d)
 
 static inline void calculateXYPos(uint linPos, uint width, uint* __restrict x, uint* __restrict y)
 {
-    (*y) = (uint)((float)linPos * (1.0f / (float)width) + 0.00001f);
+    (*y) = linPos / width;
     (*x) = linPos - mul24((*y), width);
 }
 
@@ -212,8 +212,7 @@ static inline void readDataElem(uint linPos,
                                 uint gbl_stride,
                                 uint gbl_y,
                                 uint gbl_x,
-                                bool vis,
-                                UNUSED bool debug)
+                                bool vis)
 {
     uint x, y;
     calculateXYPos(linPos, lcl_width, &x, &y);
@@ -264,10 +263,8 @@ static inline void readData(uint lcl_id,
                             uint gbl_stride,
                             uint gbl_y,
                             uint gbl_x,
-                            bool vis,
-                            bool debug)
+                            bool vis)
 {
-
     for(uint i = lcl_id; i < size; i += lcl_p_stride)
     {
         readDataElem(i,
@@ -285,57 +282,7 @@ static inline void readData(uint lcl_id,
                      gbl_stride,
                      gbl_y,
                      gbl_x,
-                     vis,
-                     debug);
-    }
-}
-
-static inline void loadData(uint lcl_id,
-                            uint lcl_p_stride,
-                            __local _FLOAT* lcl_data,
-                            uint lcl_off,
-                            uint lcl_size,
-                            uint lcl_height,
-                            uint lcl_width,
-                            uint lcl_stride,
-                            uint lcl_bot_y,
-                            uint lcl_bot_x,
-                            const __global _FLOAT* gbl_data,
-                            uint gbl_off,
-                            uint gbl_size,
-                            uint gbl_height,
-                            uint glb_width,
-                            uint gbl_stride,
-                            uint gbl_bot_y,
-                            uint gbl_bot_x,
-                            uint buf_block_ind,
-                            uint max_n_bufs,
-                            uint lcl_n_bufs,
-                            bool debug)
-{
-
-    for(uint c = 0; c < lcl_n_bufs; ++c, lcl_off += lcl_size, gbl_off += gbl_size)
-    {
-        bool vis = (buf_block_ind + c < max_n_bufs);
-        readData(lcl_id,
-                 lcl_size,
-                 lcl_p_stride,
-                 lcl_data,
-                 lcl_off,
-                 lcl_height,
-                 lcl_width,
-                 lcl_stride,
-                 lcl_bot_y,
-                 lcl_bot_x,
-                 gbl_data,
-                 gbl_off,
-                 gbl_height,
-                 glb_width,
-                 gbl_stride,
-                 gbl_bot_y,
-                 gbl_bot_x,
-                 vis,
-                 (debug));
+                     vis);
     }
 }
 
@@ -359,9 +306,14 @@ static inline void Conv(uint o_map_base,
                                       mul24(i_c, (uint)MLO_FILTER_SZ));
         uint in_stg_off2 = in_stg_off1;
         for(uint j = 0; j < MLO_PVT_IN_HEIGHT - 1; ++j,
+#if MLO_DIR_FORWARD == 1
+                 in_stg_off2 += MLO_IN_LCL_WIDTH
+#else
                  in_stg_off2 += (((j - MLO_PADDING_SHIFT1 + MLO_PADDING_FIX1) % MLO_FILTER_STRIDE1)
                                      ? 0
-                                     : MLO_IN_LCL_WIDTH))
+                                     : MLO_IN_LCL_WIDTH)
+#endif
+            )
         {
             for(uint i = 0; i < MLO_PVT_IN_WIDTH; ++i)
             {
@@ -599,13 +551,13 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 #if MLO_LARGE_MAP == 0
     for(uint i = lcl_id; i < MLO_IN_LCL_SZ; i += MLO_GRP_SZ)
     {
-        lcl_indata[i] = 0;
+        lcl_indata[i] = 0.f;
     }
 #endif
 
     for(uint i = 0; i < MLO_PVT_ACCUM_DATA_SZ; ++i)
     {
-        pvt_accum[i] = 0;
+        pvt_accum[i] = 0.f;
     }
 
     for(uint ic = 0; ic < MLO_N_INPUTS; ic += MLO_N_IN_TILES_PERSTACK,
@@ -670,8 +622,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
                          MLO_IN_STRIDE,
                          y_in_grp,
                          x_in_grp,
-                         vis,
-                         true);
+                         vis);
             }
         }
 #else
@@ -726,8 +677,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
                      MLO_IN_STRIDE,
                      y_grp,
                      x_grp,
-                     vis,
-                     true);
+                     vis);
         }
 #endif
 

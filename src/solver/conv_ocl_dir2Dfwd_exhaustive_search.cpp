@@ -115,7 +115,8 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
             result.out_pix_tile1 = 0;
         }
     }
-    MIOPEN_LOG_I2("Returns: " << result);
+    if(!params.do_search) // Prevent spamming durign search.
+        MIOPEN_LOG_I2("Returns: " << result);
     return result;
 }
 
@@ -154,6 +155,7 @@ static int MeasureLoop(Handle* profile_h,
         return 1;
     }
 
+    MIOPEN_LOG_I2("Trying " << result);
     const auto kernel_params     = kernel_search_result.construction_params[0];
     std::string compiler_options = params.general_compile_options + kernel_params.comp_options;
 
@@ -230,6 +232,7 @@ static int MeasureLoop(Handle* profile_h,
         return -1;
     }
 
+    MIOPEN_LOG_I2("\t\t\t\t" << processing_time);
     return 0;
 }
 
@@ -639,7 +642,6 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
                                                                       processing_time,
                                                                       params,
                                                                       result);
-
                                     runs_left--;
                                     runs_left = (runs_left < 0) ? 0 : runs_left;
 
