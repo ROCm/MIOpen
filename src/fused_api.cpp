@@ -70,6 +70,7 @@ extern "C" miopenStatus_t miopenCompileFusionPlan(miopenHandle_t handle,
 }
 
 // Create convolution ops with known algorithm
+#if 0
 extern "C" miopenStatus_t miopenCreateOpConvForwardAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
                                                         miopenFusionOpDescriptor_t* convOp,
                                                         miopenConvolutionDescriptor_t convDesc,
@@ -86,7 +87,7 @@ extern "C" miopenStatus_t miopenCreateOpConvForwardAlgo(miopenFusionPlanDescript
     });
     return res;
 }
-
+#endif
 extern "C" miopenStatus_t
 miopenFusionPlanGetWorkSpaceSize(miopenHandle_t handle,
                                  miopenFusionPlanDescriptor_t fusePlanDesc,
@@ -100,6 +101,32 @@ miopenFusionPlanGetWorkSpaceSize(miopenHandle_t handle,
         res = miopen::deref(fusePlanDesc).GetWorkspaceSizeImmed(miopen::deref(handle), sz, algo);
         miopen::deref(workSpaceSize) = sz;
     });
+    return res;
+}
+
+extern "C" miopenStatus_t
+miopenFusionPlanConvolutionGetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                   const int requestAlgoCount,
+                                   int* returnedAlgoCount,
+                                   miopenConvFwdAlgorithm_t* returnedAlgos)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, requestAlgoCount, returnedAlgoCount, returnedAlgos);
+    miopenStatus_t res = miopenStatusSuccess;
+    miopen::try_([&] {
+        int cnt = 0;
+        res     = miopen::deref(fusePlanDesc).GetConvAlgos(requestAlgoCount, cnt, returnedAlgos);
+        miopen::deref(returnedAlgoCount) = cnt;
+    });
+    return res;
+}
+
+extern "C" miopenStatus_t
+miopenFusionPlanConvolutionSetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                   miopenConvFwdAlgorithm_t algo)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, algo);
+    miopenStatus_t res = miopenStatusSuccess;
+    miopen::try_([&] { res = miopen::deref(fusePlanDesc).SetConvAlgo(algo); });
     return res;
 }
 
@@ -132,7 +159,14 @@ extern "C" miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t
                                                     const miopenTensorDescriptor_t wDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, wDesc);
-    return (miopenStatusSuccess);
+    miopenStatus_t res = miopenStatusSuccess;
+    miopen::try_([&] {
+        auto fod = std::make_shared<miopen::ConvForwardOpDescriptor>(miopen::deref(convDesc),
+                                                                     miopen::deref(wDesc));
+        miopen::deref(convOp) = fod.get();
+        res                   = miopen::deref(fusePlanDesc).AddOp(fod);
+    });
+    return res;
 }
 
 extern "C" miopenStatus_t miopenCreateOpConvBackwardData(miopenFusionPlanDescriptor_t fusePlanDesc,
