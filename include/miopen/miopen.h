@@ -1778,6 +1778,7 @@ miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc);
 MIOPEN_EXPORT miopenStatus_t miopenCompileFusionPlan(miopenHandle_t handle,
                                                      miopenFusionPlanDescriptor_t fusePlanDesc);
 
+#if 0
 // Convolution create op with known algorithm---
 /*! @brief Creates forward convolution operator.
 *
@@ -1794,7 +1795,7 @@ miopenCreateOpConvForwardAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
                               miopenConvolutionDescriptor_t convDesc,
                               miopenConvFwdAlgorithm_t fwdAlgo,
                               const miopenTensorDescriptor_t wDesc);
-
+#endif
 /*! @brief Query the workspace size required for the fusion plan
  *
 * @param fusePlanDesc   A fusion plan descriptor (input)
@@ -1806,6 +1807,44 @@ miopenFusionPlanGetWorkSpaceSize(miopenHandle_t handle,
                                  miopenFusionPlanDescriptor_t fusePlanDesc,
                                  size_t* workSpaceSize,
                                  miopenConvFwdAlgorithm_t algo);
+
+/*!
+ * @brief Returns the supported algorithms for this operator in the Fusion Plan
+ *
+ * @details A Convolution operator in a fusion plan may be implemented by different algorithms
+ * representing different tradeoffs of memory and performance. The returned list of algorithms
+ * is sorted in decreasing order of priority. Therefore, if the user does not request an
+ * algorithm to be set using the miopenFusionPlanConvolutionSetAlgo call, the first algorithm
+ * in the list would be used to execute the convolution in the fusion plan. Moreover this call
+ * must be immediately preceded by the miopenCreateOpConvForward call for the op in question.
+ *
+ * @param fusePlanDesc A fusion plan descriptor (input)
+ * @param requestAlgoCount Number of algorithms to return
+ * @param returnedAlgoCount The actual number of returned algorithms ( Would always be less than
+ * equal to requestAlgoCount
+ * @param returnedAlgos Pointer to the list of supported algorithms
+ * @return miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t
+miopenFusionPlanConvolutionGetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                   const int requestAlgoCount,
+                                   int* returnedAlgoCount,
+                                   miopenConvFwdAlgorithm_t* returnedAlgos);
+
+/**
+ * @brief Requests the fusion runtime to choose a particular algorithm for the added convolution
+ * operation
+ *
+ * @details Please see the description for miopenFusionPlanConvolutionGetAlgo
+ *
+ * @param fusePlanDesc A fusion plan descriptor (input)
+ * @param algo Requested algorithm for the convolution operator
+ * @return miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenFusionPlanConvolutionSetAlgo(
+    miopenFusionPlanDescriptor_t fusePlanDesc, miopenConvFwdAlgorithm_t algo);
 
 /*! @brief Creates backwards data convolution operator.
 *
