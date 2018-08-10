@@ -58,6 +58,10 @@ miopen::MultiFileDb mlo_construct_direct2D::GetDb() const
 
 std::vector<miopen::solver::ConvSolution> mlo_construct_direct2D::FindAllSolutions()
 {
+    if(_search_params.group_counts > 1)
+        return miopen::solver::SearchForAllSolutions<miopen::solver::ConvOclDirectFwd>(
+            _search_params, this->GetDb());
+
     // clang-format off
     return miopen::solver::SearchForAllSolutions<
         miopen::solver::ConvAsm3x3U,
