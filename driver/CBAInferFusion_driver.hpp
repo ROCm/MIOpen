@@ -56,6 +56,8 @@
 #undef EPSILON
 #define EPSILON 1e-6
 
+#define MIO_CONV_ALGO_COUNT 4
+
 #define ERRTOL 1e-4
 #define RMSTOL_FP32 1e-4
 #define RMSTOL_FP16 0.5e-3
@@ -797,24 +799,20 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
 
     miopenCreateOpConvForward(fusePlanDesc, &convoOp, convDesc, weightTensor);
 
-    miopenConvFwdAlgorithm_t sup_algos[5];
+    miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
     int retAlgCount = 0;
     // Query the supported algorithms
-    miopenFusionPlanConvolutionGetAlgo(fusePlanDesc, 5, &retAlgCount, sup_algos);
-    bool is_found = false;
-    for(auto idx = 0; idx < retAlgCount; idx++)
+    miopenFusionPlanConvolutionGetAlgo(fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
+    if(std::end(sup_algos) ==
+       std::find(std::begin(sup_algos), std::end(sup_algos), miopenConvolutionFwdAlgoDirect))
     {
-        if(sup_algos[idx] == miopenConvolutionFwdAlgoDirect)
-        {
-            is_found = true;
-            break;
-        }
+        // should not throw
+        miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, miopenConvolutionFwdAlgoDirect);
     }
-    if(!is_found)
+    else
+    {
         assert(false);
-
-    // should not throw
-    miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, miopenConvolutionFwdAlgoDirect);
+    }
 
     if(bias_mode)
     {
@@ -898,21 +896,20 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
 #else
     miopenCreateOpConvForward(fusePlanDesc, &convoOp, convDesc, weightTensor);
 
-    miopenConvFwdAlgorithm_t sup_algos[5];
+    miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
     int retAlgCount = 0;
     // Query the supported algorithms
-    miopenFusionPlanConvolutionGetAlgo(fusePlanDesc, 5, &retAlgCount, sup_algos);
-    bool is_found = false;
-    for(auto idx = 0; idx < retAlgCount; idx++)
+    miopenFusionPlanConvolutionGetAlgo(fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
+    if(std::end(sup_algos) ==
+       std::find(std::begin(sup_algos), std::end(sup_algos), miopenConvolutionFwdAlgoDirect))
     {
-        if(sup_algos[idx] == miopenConvolutionFwdAlgoDirect)
-        {
-            is_found = true;
-            break;
-        }
+        // should not throw
+        miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, miopenConvolutionFwdAlgoDirect);
     }
-    if(!is_found)
+    else
+    {
         assert(false);
+    }
 
     // should not throw
     miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, miopenConvolutionFwdAlgoDirect);
@@ -1107,7 +1104,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUFusedConvBiasInference()
 #else
     miopenCreateOpConvForward(fusePlanDesc, &convoOp, convDesc, weightTensor);
 
-    miopenConvFwdAlgorithm_t sup_algos[5];
+    miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
     int retAlgCount = 0;
     // Query the supported algorithms
     miopenFusionPlanConvolutionGetAlgo(fusePlanDesc, 5, &retAlgCount, sup_algos);
