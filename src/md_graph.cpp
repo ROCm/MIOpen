@@ -185,7 +185,6 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
 
     if(!miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}))
     { /// Fused Winograd.
-        /// \todo Get real gfx type, insert into filename.
         static const std::string program("conv_3x3_wheel_alpha_v9_2_7_GFX*_md10.so");
         static const std::string kernel("sp3AsmConvRxSU_CBA");
         static const std::string algo("miopenConvolutionWinogradBiasActiv");
@@ -194,10 +193,13 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         /// \todo Winograd has some limitations related to R,S,C,K, needs to implement checks - how?
         /// \todo Only 0x0 padding for now. 9_2_7 supports asymmetric padding, from 0 to 2^16.
         /// \todo Winograd supports wide range of RxS. 3x3 only for now.
-        /// \todo "Direct" is formally incorrect.
-        auto key = ConvForwardOpDescriptor::MDGraphKey(
-            defaults, {0, 0, 3, 3}, miopenConvolutionFwdAlgoDirect);
-        FusionMDGraph_Edge_Map map_wino_conv = {{"key", {key}}, {"weight", {"10"}}};
+        auto key = ConvForwardOpDescriptor::MDGraphKey(defaults, {0, 0, 3, 3});
+        FusionMDGraph_Edge_Map map_wino_conv = {
+            {"key", {key}},
+            {"weight", {"10"}},
+            {"algo",
+             {std::to_string(
+                 miopenConvolutionFwdAlgoDirect)}}}; /// \todo "Direct" is formally incorrect.
         g.AddEdge(nullptr, vc, map_wino_conv);
         /// C>B>A| (4)
         auto vb =
