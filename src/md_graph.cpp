@@ -134,7 +134,7 @@ void FusionMDGraph::Init(FusionMDGraph& g, miopenFusionOp_t op)
 
 void FusionMDGraph::InitBN(FusionMDGraph& g)
 {
-    FusionMDGraph_Edge_Map empty_map = {{"key", {}}, {"weight", {"0"}}};
+    FusionMDGraph_Edge_Map empty_map = {{"key", {}}, {"weight", {"0"}}, {"precision", {}}};
 
     {
         auto bn_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormInference,
@@ -143,7 +143,8 @@ void FusionMDGraph::InitBN(FusionMDGraph& g)
                                                      "MIOpenBatchNormActivInferPerActEst");
         FusionMDGraph_Edge_Map edg_activ = {
             {"key", {BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNPerActivation)}},
-            {"weight", {"0"}}};
+            {"weight", {"0"}},
+            {"precision", {}}};
         g.AddEdge(nullptr, bn_v, edg_activ);
         auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
                                                         "MIOpenBatchNormActivInfer.cl",
@@ -158,7 +159,8 @@ void FusionMDGraph::InitBN(FusionMDGraph& g)
                                                      "MIOpenBatchNormActivInferSpatialEst");
         FusionMDGraph_Edge_Map edg_spatial = {
             {"key", {BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNSpatial)}},
-            {"weight", {"0"}}};
+            {"weight", {"0"}},
+            {"precision", {}}};
         g.AddEdge(nullptr, bn_v, edg_spatial);
         auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
                                                         "MIOpenBatchNormActivInfer.cl",
@@ -178,7 +180,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                            {"v", 1},
                                            {"dilation_h", 1},
                                            {"dilation_w", 1}};
-    FusionMDGraph_Edge_Map empty_map = {{"key", {}}, {"weight", {"0"}}};
+    FusionMDGraph_Edge_Map empty_map = {{"key", {}}, {"weight", {"0"}}, {"precision", {}}};
     // first path (asm kernel)
     { // Conv -> Bias -> Activ // Conv -> Activ
         auto conv_v = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
@@ -199,7 +201,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         FusionMDGraph_Edge_Map map_asm_conv = {
             {"key", {key}},
             {"weight", {"1"}},
-            {"algo", {std::to_string(miopenConvolutionFwdAlgoDirect)}}};
+            {"algo", {std::to_string(miopenConvolutionFwdAlgoDirect)}},
+            {"precision", {std::to_string(miopenFloat)}}};
 
         g.AddEdge(nullptr, conv_v, map_asm_conv);
         g.AddEdge(conv_v, bias_v, empty_map);
@@ -223,7 +226,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
             FusionMDGraph_Edge_Map map_conv_bias = {
                 {"key", {cb_key}},
                 {"weight", {"0"}},
-                {"algo", {std::to_string(miopenConvolutionFwdAlgoDirect)}}};
+                {"algo", {std::to_string(miopenConvolutionFwdAlgoDirect)}},
+                {"precision", {}}};
             g.AddEdge(nullptr, conv_v, map_conv_bias);
         }
 
@@ -254,10 +258,12 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                 FusionMDGraph_Edge_Map edg_activ = {
                     {"key",
                      {BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNPerActivation)}},
-                    {"weight", {"0"}}};
+                    {"weight", {"0"}},
+                    {"precision", {}}};
                 FusionMDGraph_Edge_Map edg_spatial = {
                     {"key", {BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNSpatial)}},
-                    {"weight", {"0"}}};
+                    {"weight", {"0"}},
+                    {"precision", {}}};
 
                 g.AddEdge(bias_v, bn_v, edg_activ);
                 g.AddEdge(bias_v, bn_v, edg_spatial);
@@ -278,10 +284,12 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                          "miopenConvDirectBatchNormBiasActiv");
             FusionMDGraph_Edge_Map edg_activ = {
                 {"key", {BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNPerActivation)}},
-                {"weight", {"0"}}};
+                {"weight", {"0"}},
+                {"precision", {}}};
             FusionMDGraph_Edge_Map edg_spatial = {
                 {"key", {BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNSpatial)}},
-                {"weight", {"0"}}};
+                {"weight", {"0"}},
+                {"precision", {}}};
             g.AddEdge(conv_v, bn_v, edg_activ);
             g.AddEdge(conv_v, bn_v, edg_spatial);
 
@@ -356,7 +364,9 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
             std::set<miopenConvFwdAlgorithm_t> cur_path_set;
             if(ch_it.first->op == op->kind())
             {
-                if(CmpOpKey(ch_it.second["key"], op->MDGraphKey()))
+                // TODO: Jehandad: move this to the more generic solution
+                if(CmpOpKey(ch_it.second["key"], op->MDGraphKey()) &&
+                   CmpOpKey(ch_it.second["precision"], std::to_string(op->input_desc.GetType())))
                 {
                     weight += std::stoi(ch_it.second["weight"][0]);
                     cur_map["weight"] = std::to_string(weight);

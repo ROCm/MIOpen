@@ -16,7 +16,7 @@ struct OpKernelArg
     template <typename T>
     OpKernelArg(T arg)
     {
-        assert(std::is_fundamental<T>::value);
+        // assert(std::is_fundamental<T>::value);
         auto chptr = reinterpret_cast<char*>(&arg);
         for(size_t idx = 0; idx < sizeof(T); idx++)
         {

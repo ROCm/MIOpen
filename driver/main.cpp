@@ -64,6 +64,10 @@ int main(int argc, char* argv[])
     {
         drv = new CBAInferFusionDriver<float, double>();
     }
+    else if(base_arg == "CBAInfer16")
+    {
+        drv = new CBAInferFusionDriver<float16, double>();
+    }
     else if(base_arg == "pool")
     {
         drv = new PoolDriver<float, double>();
@@ -130,7 +134,9 @@ int main(int argc, char* argv[])
     drv->GetandSetData();
     drv->AllocateBuffersAndCopy();
 
-    int fargval     = (base_arg != "CBAInfer") ? drv->GetInputFlags().GetValueInt("forw") : 1;
+    int fargval = ((base_arg != "CBAInfer") && (base_arg != "CBAInfer16"))
+                      ? drv->GetInputFlags().GetValueInt("forw")
+                      : 1;
     bool bnFwdInVer = (fargval == 2 && (base_arg == "bnorm"));
     bool verifyarg  = (drv->GetInputFlags().GetValueInt("verify") == 1);
 
