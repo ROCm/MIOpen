@@ -56,6 +56,8 @@
 #undef EPSILON
 #define EPSILON 1e-6
 
+#define MIO_CONV_ALGO_COUNT 4
+
 #define ERRTOL 1e-4
 #define RMSTOL_FP32 1e-4
 #define RMSTOL_FP16 0.5e-3
@@ -795,12 +797,22 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
     miopenGetConvolutionDescriptor(
         convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
-    miopenCreateOpConvForwardAlgo(fusePlanDesc,
-                                  &convoOp,
-                                  convDesc,
-                                  miopenConvolutionFwdAlgoDirect, // DLOWELL Hardcoded. This assumes
-                                                                  // immediate mode. Needs GetAlgo.
-                                  weightTensor);
+    miopenCreateOpConvForward(fusePlanDesc, &convoOp, convDesc, weightTensor);
+
+    miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
+    int retAlgCount = 0;
+    // Query the supported algorithms
+    miopenFusionPlanConvolutionGetAlgo(fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
+    if(std::end(sup_algos) ==
+       std::find(std::begin(sup_algos), std::end(sup_algos), miopenConvolutionFwdAlgoDirect))
+    {
+        // should not throw
+        miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, miopenConvolutionFwdAlgoDirect);
+    }
+    else
+    {
+        assert(false);
+    }
 
     if(bias_mode)
     {
@@ -874,12 +886,34 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
     miopenGetConvolutionDescriptor(
         convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
 
+#if 0
     miopenCreateOpConvForwardAlgo(fusePlanDesc,
                                   &convoOp,
                                   convDesc,
                                   // DLOWELL Hardcoded. This assumes immediate mode. Needs GetAlgo.
                                   miopenConvolutionFwdAlgoDirect,
                                   weightTensor);
+#else
+    miopenCreateOpConvForward(fusePlanDesc, &convoOp, convDesc, weightTensor);
+
+    miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
+    int retAlgCount = 0;
+    // Query the supported algorithms
+    miopenFusionPlanConvolutionGetAlgo(fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
+    if(std::end(sup_algos) ==
+       std::find(std::begin(sup_algos), std::end(sup_algos), miopenConvolutionFwdAlgoDirect))
+    {
+        // should not throw
+        miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, miopenConvolutionFwdAlgoDirect);
+    }
+    else
+    {
+        assert(false);
+    }
+
+    // should not throw
+    miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, miopenConvolutionFwdAlgoDirect);
+#endif
 
     if(bias_mode)
     {
@@ -1060,13 +1094,36 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUFusedConvBiasInference()
     miopenConvolutionMode_t mode;
     miopenGetConvolutionDescriptor(
         convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
-
+#if 0
     miopenCreateOpConvForwardAlgo(fusePlanDesc,
                                   &convoOp,
                                   convDesc,
                                   // DLOWELL Hardcoded. This assumes immediate mode. Needs GetAlgo.
                                   miopenConvolutionFwdAlgoDirect,
                                   weightTensor);
+#else
+    miopenCreateOpConvForward(fusePlanDesc, &convoOp, convDesc, weightTensor);
+
+    miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
+    int retAlgCount = 0;
+    // Query the supported algorithms
+    miopenFusionPlanConvolutionGetAlgo(fusePlanDesc, 5, &retAlgCount, sup_algos);
+    bool is_found = false;
+    for(auto idx = 0; idx < retAlgCount; idx++)
+    {
+        if(sup_algos[idx] == miopenConvolutionFwdAlgoDirect)
+        {
+            is_found = true;
+            break;
+        }
+    }
+    if(!is_found)
+        assert(false);
+
+    // should not throw
+    miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, miopenConvolutionFwdAlgoDirect);
+
+#endif
 
     miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasTensor);
     miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());

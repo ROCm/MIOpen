@@ -88,7 +88,9 @@ miopenStatus_t ActivFusionOpDescriptor::GetCompileParms(std::string& compile_con
     std::string add;
     switch(source)
     {
-    case AsmText: add += " -Wa,-defsym,activ_mode=" + std::to_string(activMode); break;
+    case AsmText:
+        add += " -Wa,-defsym,enable_activ=1 -Wa,-defsym,activ_mode=" + std::to_string(activMode);
+        break;
     case OpenclText:
         add += " -DMIOPEN_YES_ACTIV=1 -DMIOPEN_NRN_OP_ID=" + std::to_string(activMode);
         break;
