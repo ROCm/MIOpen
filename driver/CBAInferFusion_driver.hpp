@@ -1104,7 +1104,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUFusedConvBiasInference()
 #else
     miopenCreateOpConvForward(fusePlanDesc, &convoOp, convDesc, weightTensor);
 
-    miopenConvFwdAlgorithm_t sup_algos[5];
+    miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
     int retAlgCount = 0;
     // Query the supported algorithms
     miopenFusionPlanConvolutionGetAlgo(fusePlanDesc, 5, &retAlgCount, sup_algos);
