@@ -585,7 +585,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     auto ops_head = op_map[0];
 
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
-    MIOPEN_LOG_I2(algorithm_name << ',' << network_config);
+    MIOPEN_LOG_I(algorithm_name << ',' << network_config);
     if(kernels.empty())
     {
         MIOPEN_THROW("The FusionPlan was not compiled for execution");
@@ -612,16 +612,10 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                 {
                     arg_sizes.insert(it->second.size());
                     size_map[std::pair<size_t, size_t>(idx, it->second.size())].push_back(key);
-                    MIOPEN_LOG_I2("size_map[std::pair<size_t, size_t>(" << idx << ", "
-                                                                        << it->second.size()
-                                                                        << ")].push_back("
-                                                                        << key
-                                                                        << ");");
                 }
                 else
                 {
                     ptr_map[idx].push_back(key);
-                    MIOPEN_LOG_I2("ptr_map[" << idx << "].push_back(" << key << ");");
                 }
             }
             else
