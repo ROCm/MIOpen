@@ -639,9 +639,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         std::tie(oN, K, oH, oW) = miopen::tien<4>(output_desc.GetLengths(), 1);
         if(N != oN)
             MIOPEN_THROW("input and output batch sizes do not match");
-
-        const int n_groups = 56; /// \FIXME
-
+        const int n_groups = handle.GetMaxComputeUnits();
         // Get topology (C>B>A, C>B, C>A), find out activation mode.
         assert(op_map[0]->kind() == miopenFusionOpConvForward && 2 <= op_map.size() &&
                op_map.size() <= 3);
