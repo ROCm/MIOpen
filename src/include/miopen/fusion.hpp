@@ -134,6 +134,7 @@ struct ActivFusionOpDescriptor : FusionOpDescriptor
     std::vector<std::string> GetArgs() const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpActivForward; };
     std::string MDGraphKey() const override;
+    static std::string MDGraphKey(miopenActivationMode_t mode);
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
     miopenActivationMode_t activMode;
