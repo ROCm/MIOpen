@@ -28,6 +28,10 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     void InitMDGraphs();
     void InitConvMDGraph(FusionMDGraph& g);
 
+    miopenStatus_t
+    GetConvAlgos(int reqAlgoCount, int& retAlgoCount, miopenConvFwdAlgorithm_t* ptrAlgos);
+    miopenStatus_t SetConvAlgo(miopenConvFwdAlgorithm_t algo);
+
     protected:
     std::string GetKernelName(Handle& handle);
     std::string GetProgramName(Handle& handle);
