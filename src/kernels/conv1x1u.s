@@ -62,11 +62,12 @@ gid_n = gid_z
 .set dbg_ptr_off, 0x38
 
 default vec_size, 1
+static_assert(vec_size == 1 || vec_size == 2 || vec_size == 4)
 
 static_assert(c_mult % vec_size == 0)
 static_assert(k_mult % vec_size == 0)
-static_assert(c_mult % 2 == 0)
-static_assert(k_mult % 2 == 0)
+static_assert(output_channels % vec_size == 0)
+static_assert(input_channels % vec_size == 0)
 
 .include "conv_sizes.inc"
 
@@ -126,12 +127,12 @@ n_per_wave = n_mult * n_per_gpr
 active_n_per_wave = n_mult * active_n_per_gpr
 
 
-total_chunks = (img_hw + chunk_size - 1) / chunk_size
+total_chunks = (img_hw_vec + chunk_size - 1) / chunk_size
 .if total_chunks < chunks_per_wave
     total_chunks = chunks_per_wave
 .endif
 .if balanced_chunk
-    active_chunk_lanes = (img_hw + total_chunks - 1) / total_chunks
+    active_chunk_lanes = (img_hw_vec + total_chunks - 1) / total_chunks
 .else
     active_chunk_lanes = chunk_size
 .endif
@@ -626,7 +627,7 @@ last_wave:
             chunk = 0
             acc_t = acc
             .rept chunks_per_wave
-                v_cmpx_gt_i32 vcc, 0 + (img_hw - odd_hw) - chunk, v[current_hw]
+                v_cmpx_gt_i32 vcc, 0 + (img_hw_vec - odd_hw) - chunk, v[current_hw]
                 .if vec_size == 2
                     //cvt and packed two fp32 into a fp32
                     v_cvt_pkrtz_f16_f32 v[acc], v[acc], v[acc+1]
@@ -638,7 +639,7 @@ last_wave:
             .if vec_size == 2 && odd_hw
                 s_mov_b32 exec_lo, active_mask_lo
                 s_mov_b32 exec_hi, active_mask_hi
-                v_cmpx_eq_i32 vcc, 0 + img_hw - odd_hw, v[current_hw]
+                v_cmpx_eq_i32 vcc, 0 + img_hw_vec - odd_hw, v[current_hw]
                 v_cvt_f16_f32 v[acc_t], v[acc_t]
                 buffer_store_short v[acc_t], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0
             .endif

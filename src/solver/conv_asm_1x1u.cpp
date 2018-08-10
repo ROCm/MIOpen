@@ -207,11 +207,15 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
         return false;
     if(!(k_mult <= config.n_outputs))
         return false;
+    if((config.n_outputs % config.vec_size) != 0)
+        return false;
+    if((config.n_inputs % config.vec_size) != 0)
+        return false;
     if((c_mult % config.vec_size) != 0)
         return false;
     if((k_mult % config.vec_size) != 0)
         return false;
-    const int in_gprs  = chunks_per_wave * n_mult * c_mult * config.vec_size;
+    const int in_gprs  = chunks_per_wave * n_mult * c_mult;
     const int acc_gprs = chunks_per_wave * n_mult * k_mult * config.vec_size;
     const int vgprs    = 4 + 2 * in_gprs + acc_gprs;
     if(!(vgprs < 256))
@@ -457,6 +461,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
     }
 
+    GenerateClangDefsym(options, "vec_size", params.vec_size);
     GenerateClangDefsym(options, "stride_h", 1);
     GenerateClangDefsym(options, "stride_w", 1);
     GenerateClangDefsym(options, "img_h", AsmImgHeight(params)); // H
@@ -500,7 +505,6 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         }
     }
 
-    GenerateClangDefsym(options, "vec_size", params.vec_size);
     GenerateClangDefsym(options, "read_size", pcfg->GetReadSize());
     GenerateClangDefsym(options, "k_mult", pcfg->GetKMult());
     GenerateClangDefsym(options, "chunks_per_wave", pcfg->GetChunksPerWave());
