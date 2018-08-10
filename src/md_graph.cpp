@@ -118,16 +118,12 @@ bool FusionMDGraph::SetConvAlgo(miopenConvFwdAlgorithm_t algo)
     return (!new_list.empty());
 }
 
-void FusionMDGraph::Init(FusionMDGraph& g, miopenFusionOp_t op)
+void FusionMDGraph::Init(FusionMDGraph& g, miopenFusionOp_t op, bool allow_winograd)
 {
     switch(op)
     {
-    case miopenFusionOpConvForward: { InitConv(g);
-    }
-    break;
-    case miopenFusionOpBatchNormInference: { InitBN(g);
-    }
-    break;
+    case miopenFusionOpConvForward: InitConv(g, allow_winograd); break;
+    case miopenFusionOpBatchNormInference: InitBN(g); break;
     case miopenFusionOpActivForward:
     case miopenFusionOpBiasForward:
         MIOPEN_THROW(
@@ -171,7 +167,7 @@ void FusionMDGraph::InitBN(FusionMDGraph& g)
     }
 }
 
-void FusionMDGraph::InitConv(FusionMDGraph& g)
+void FusionMDGraph::InitConv(FusionMDGraph& g, bool allow_winograd)
 {
     std::map<std::string, int> defaults = {{"mode", miopenConvolution},
                                            {"paddingMode", miopenPaddingDefault},
@@ -183,7 +179,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                            {"dilation_w", 1}};
     FusionMDGraph_Edge_Map empty_map = {{"key", {}}, {"weight", {"0"}}};
 
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}))
+    if(allow_winograd && !miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}))
     { /// Fused Winograd.
         static const std::string program("conv_3x3_wheel_alpha_v9_2_7_GFX*_md10.so");
         static const std::string kernel("sp3AsmConvRxSU_CBA");
