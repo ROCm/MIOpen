@@ -89,6 +89,7 @@ struct ProblemDescription
     int in_batch_stride    = 0;
     int out_channel_stride = 0;
     int out_batch_stride   = 0;
+    int group_counts       = 0;
     struct Direction
     {
         enum class Value
