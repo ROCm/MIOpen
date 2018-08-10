@@ -31,6 +31,8 @@
 #include <miopen/visit_float.hpp>
 #include <ostream>
 #include <ios>
+#include <algorithm>
+#include <string>
 #include <half.hpp>
 
 namespace miopen {
@@ -399,12 +401,23 @@ bool FusionOpLU::Advance(std::vector<std::shared_ptr<miopen::FusionOpDescriptor>
 */
 #endif
 
+static inline void
+find_replace_first(std::string& s_where, const std::string& s_find, const std::string& s_replace)
+{
+    const auto pos = s_where.find(s_find);
+    if(pos != std::string::npos)
+        s_where.replace(pos, s_find.length(), s_replace);
+}
+
 std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
 {
-    (void)handle;
     if(!op_map.empty())
     {
         program_name = lu.GetProgramName();
+        // Replace "GFX*" wildcard by device name (in lowercase)
+        auto d = handle.GetDeviceName();
+        std::transform(d.begin(), d.end(), d.begin(), ::tolower);
+        find_replace_first(program_name, "GFX*", d);
         return program_name;
     }
     else

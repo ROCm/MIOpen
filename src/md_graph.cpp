@@ -144,7 +144,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
     if(!miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}))
     { /// Fused Winograd.
         /// \todo Get real gfx type, insert into filename.
-        static const std::string program("conv_3x3_wheel_alpha_v9_2_7_gfx803_md10.so");
+        static const std::string program("conv_3x3_wheel_alpha_v9_2_7_GFX*_md10.so");
         static const std::string kernel("sp3AsmConvRxSU_CBA");
         static const std::string algo("miopenConvolutionWinogradBiasActiv");
         auto vc =
