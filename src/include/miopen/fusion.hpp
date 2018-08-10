@@ -87,7 +87,7 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     virtual miopenStatus_t
     GetCompileParms(std::string& compile_config, Handle& handle, FusionKernelSourceType source);
     friend std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x);
-    virtual miopenFusionOp_t kind() const = 0;
+    virtual miopenFusionOp_t kind() const            = 0;
     virtual std::vector<std::string> GetArgs() const = 0;
     virtual std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name);
     virtual std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name);
@@ -104,8 +104,9 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
     BiasFusionOpDescriptor(TensorDescriptor& desc) : base_desc(desc){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
-    miopenStatus_t
-    GetCompileParms(std::string& compile_config, Handle& handle, FusionKernelSourceType source) override;
+    miopenStatus_t GetCompileParms(std::string& compile_config,
+                                   Handle& handle,
+                                   FusionKernelSourceType source) override;
     miopenStatus_t
     SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t bdata);
     std::vector<std::string> GetArgs() const override;
@@ -121,8 +122,9 @@ struct ActivFusionOpDescriptor : FusionOpDescriptor
     ActivFusionOpDescriptor(miopenActivationMode_t mode) : activMode(mode){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
-    miopenStatus_t
-    GetCompileParms(std::string& compile_config, Handle& handle, FusionKernelSourceType source) override;
+    miopenStatus_t GetCompileParms(std::string& compile_config,
+                                   Handle& handle,
+                                   FusionKernelSourceType source) override;
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
@@ -143,8 +145,9 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
         : mode(bn_mode), base_desc(desc){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
-    miopenStatus_t
-    GetCompileParms(std::string& compile_config, Handle& handle, FusionKernelSourceType source) override;
+    miopenStatus_t GetCompileParms(std::string& compile_config,
+                                   Handle& handle,
+                                   FusionKernelSourceType source) override;
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
@@ -176,13 +179,14 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
           conv_compiler_options(""){
               // if(base_desc.u != 1 || base_desc.v != 1)
               //     MIOPEN_THROW("Only stride 1 is supported for convolution operator");
-    };
+          };
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
     miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t w);
     std::vector<std::string> GetArgs() const override;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
-    miopenStatus_t
-    GetCompileParms(std::string& compile_config, Handle& handle, FusionKernelSourceType source) override;
+    miopenStatus_t GetCompileParms(std::string& compile_config,
+                                   Handle& handle,
+                                   FusionKernelSourceType source) override;
     bool isASMApplicable(Handle& handle);
     solver::KernelInfo& GetKernelInfo(Handle& handle);
     solver::KernelInfo& GetKernelInfo(Handle& handle, std::string algorithm_name);

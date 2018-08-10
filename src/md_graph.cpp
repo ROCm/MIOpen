@@ -140,36 +140,41 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                            {"dilation_h", 1},
                                            {"dilation_w", 1}};
     FusionMDGraph_Edge_Map empty_map = {{"key", {}}, {"weight", {"0"}}};
-    
+
     if(!miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}))
-    {   /// Fused Winograd.
+    { /// Fused Winograd.
         /// \todo Get real gfx type, insert into filename.
         static const std::string program("conv_3x3_wheel_alpha_v9_2_7_gfx803_md10.so");
         static const std::string kernel("sp3AsmConvRxSU_CBA");
         static const std::string algo("miopenConvolutionWinogradBiasActiv");
-        auto vc      = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,  program, kernel, algo);
+        auto vc =
+            std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward, program, kernel, algo);
         /// \todo Winograd has some limitations related to R,S,C,K, needs to implement checks - how?
         /// \todo Only 0x0 padding for now. 9_2_7 supports asymmetric padding, from 0 to 2^16.
         /// \todo Winograd supports wide range of RxS. 3x3 only for now.
         /// \todo "Direct" is formally incorrect.
-        auto key = ConvForwardOpDescriptor::MDGraphKey(defaults, {0, 0, 3, 3}, miopenConvolutionFwdAlgoDirect);
+        auto key = ConvForwardOpDescriptor::MDGraphKey(
+            defaults, {0, 0, 3, 3}, miopenConvolutionFwdAlgoDirect);
         FusionMDGraph_Edge_Map map_wino_conv = {{"key", {key}}, {"weight", {"10"}}};
         g.AddEdge(nullptr, vc, map_wino_conv);
-        // C>B>A| (4)
-        auto vb = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,  program, kernel, algo);
+        /// C>B>A| (4)
+        auto vb =
+            std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward, program, kernel, algo);
         g.AddEdge(vc, vb, empty_map);
-        auto va_leaf = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward, program, kernel, algo, true);
+        auto va_leaf = std::make_shared<MDGraph_vertex>(
+            miopenFusionOpActivForward, program, kernel, algo, true);
         g.AddEdge(vb, va_leaf, empty_map);
-        // C>A| (5)
+        /// C>A| (5)
         g.AddEdge(vc, va_leaf, empty_map);
         ///
-        /// \FIXME Bug: In spite of C>B| topology is disabled below, it is selected anyway for Winograd.
-        /// Possible reason is presence of C>B>A| configuration, which is somehow matches C>B| fused configuration.
-        /// Fortunately, it is supported.
+        /// \FIXME Bug: In spite of C>B| topology is disabled below, it is selected anyway for
+        /// Winograd. Possible reason is presence of C>B>A| configuration, which is somehow matches
+        /// C>B| fused configuration. Fortunately, it is supported.
         ///
         /// C>B| (6)
         /// \todo Shader supports, but not required for now.
-        /// auto vb_leaf = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,  program, kernel, algo, true);
+        /// auto vb_leaf = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,  program,
+        /// kernel, algo, true);
         /// g.AddEdge(vc, vb_leaf, empty_map);
     }
     // first path (asm kernel)

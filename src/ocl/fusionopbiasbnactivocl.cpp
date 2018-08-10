@@ -8,8 +8,9 @@ miopenStatus_t FusionOpDescriptor::GetNetworkConfig(std::string& network_config,
     return miopenStatusSuccess;
 }
 
-miopenStatus_t
-FusionOpDescriptor::GetCompileParms(std::string& compile_config, Handle& handle, const FusionKernelSourceType source)
+miopenStatus_t FusionOpDescriptor::GetCompileParms(std::string& compile_config,
+                                                   Handle& handle,
+                                                   const FusionKernelSourceType source)
 {
     (void)(compile_config);
     (void)(handle);
@@ -39,19 +40,16 @@ miopenStatus_t BiasFusionOpDescriptor::GetNetworkConfig(std::string& network_con
     return miopenStatusSuccess;
 }
 
-miopenStatus_t
-BiasFusionOpDescriptor::GetCompileParms(std::string& compile_config, Handle& handle, const FusionKernelSourceType source)
+miopenStatus_t BiasFusionOpDescriptor::GetCompileParms(std::string& compile_config,
+                                                       Handle& handle,
+                                                       const FusionKernelSourceType source)
 {
     (void)(handle); // only convolution uses handle
     std::string add;
-    switch (source)
+    switch(source)
     {
-    case AsmText:
-        add = " -Wa,-defsym,bias_mode=" + std::to_string(1);
-        break;
-    case OpenclText:
-        add = " -DMLO_CONV_BIAS=" + std::to_string(1);
-        break;
+    case AsmText: add    = " -Wa,-defsym,bias_mode=" + std::to_string(1); break;
+    case OpenclText: add = " -DMLO_CONV_BIAS=" + std::to_string(1); break;
     case Binary: break;
     }
     MIOPEN_LOG_I2(add);
@@ -82,16 +80,15 @@ miopenStatus_t ActivFusionOpDescriptor::GetNetworkConfig(std::string& network_co
     return miopenStatusSuccess;
 }
 
-miopenStatus_t
-ActivFusionOpDescriptor::GetCompileParms(std::string& compile_config, Handle& handle, const FusionKernelSourceType source)
+miopenStatus_t ActivFusionOpDescriptor::GetCompileParms(std::string& compile_config,
+                                                        Handle& handle,
+                                                        const FusionKernelSourceType source)
 {
     (void)handle;
     std::string add;
-    switch (source)
+    switch(source)
     {
-    case AsmText:
-        add += " -Wa,-defsym,activ_mode=" + std::to_string(activMode);
-        break;
+    case AsmText: add += " -Wa,-defsym,activ_mode=" + std::to_string(activMode); break;
     case OpenclText:
         add += " -DMIOPEN_YES_ACTIV=1 -DMIOPEN_NRN_OP_ID=" + std::to_string(activMode);
         break;
@@ -126,9 +123,8 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetNetworkConfig(std::strin
     return miopenStatusSuccess;
 }
 
-miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(std::string& compile_config,
-                                                                     Handle& handle,
-                                                                     const FusionKernelSourceType source)
+miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(
+    std::string& compile_config, Handle& handle, const FusionKernelSourceType source)
 {
     (void)(handle); // only convolution uses handle
     (void)source;
@@ -158,10 +154,9 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(std::string
     {
         read_unit = 1;
     }
-    add += " -DMIO_BN_CHW=" + std::to_string(c * h * w) + " -DMIO_BN_HW=" +
-                      std::to_string(h * w) + " -DMIO_BN_N=" + std::to_string(n) +
-                      " -DMIO_BN_GRP0=" + std::to_string(vld.at(0)) + " -DMIO_BN_GRP1=" +
-                      std::to_string(1) + " -DMIO_BN_GRP2=" + std::to_string(1);
+    add += " -DMIO_BN_CHW=" + std::to_string(c * h * w) + " -DMIO_BN_HW=" + std::to_string(h * w) +
+           " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_GRP0=" + std::to_string(vld.at(0)) +
+           " -DMIO_BN_GRP1=" + std::to_string(1) + " -DMIO_BN_GRP2=" + std::to_string(1);
 
     std::string READ_TYPE = (read_unit == 1) ? "_FLOAT" : "_FLOAT" + std::to_string(read_unit);
     add += " -DMIOPEN_READ_UNIT=" + std::to_string(read_unit);
