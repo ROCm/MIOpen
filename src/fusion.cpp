@@ -455,9 +455,9 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     MIOPEN_LOG_I2(program_name << ',' << kernel_name);
     if(program_name.empty())
         MIOPEN_THROW("Invalid Fusion Plan");
-    if (miopen::EndsWith(program_name, ".s"))
+    if(miopen::EndsWith(program_name, ".s"))
         kernel_source_type = AsmText;
-    else if (miopen::EndsWith(program_name, ".so"))
+    else if(miopen::EndsWith(program_name, ".so"))
         kernel_source_type = Binary;
     else
         kernel_source_type = OpenclText;
@@ -547,16 +547,15 @@ std::ostream& operator<<(std::ostream& s, const OpKernelArg& arg)
 {
     union
     {
-        unsigned long long ul;
+        unsigned long long ul = 0;
         double d;
         float f;
         half_float::half h;
         char c[sizeof(ul)];
-    }
-    val = {0};
-    if (arg.buffer.size() > sizeof(val.ul))
+    } val = {0};
+    if(arg.buffer.size() > sizeof(val.ul))
         return s << "<too long value>";
-    for(int i = 0; i < arg.buffer.size(); ++i)
+    for(int i    = 0; i < arg.buffer.size(); ++i)
         val.c[i] = arg.buffer[i];
     s << std::hex << "0x" << val.ul << std::dec << " = " << static_cast<long long>(val.ul);
     switch(arg.buffer.size())
@@ -569,43 +568,42 @@ std::ostream& operator<<(std::ostream& s, const OpKernelArg& arg)
     return s;
 }
 
-static
-any_t GetArg(
-    std::vector<std::shared_ptr<FusionOpDescriptor>> &op_map,
-    const OperatorArgs &op_args,
-    const miopenFusionOp_t op,
-    const std::string arg_name)
+static any_t GetArg(std::vector<std::shared_ptr<FusionOpDescriptor>>& op_map,
+                    const OperatorArgs& op_args,
+                    const miopenFusionOp_t op,
+                    const std::string arg_name)
 {
     for(auto idx = 0; idx < op_map.size(); ++idx)
     {
-        if (op_map[idx]->kind() == op)
+        if(op_map[idx]->kind() == op)
         {
             std::string key = arg_name + std::to_string(idx);
             MIOPEN_LOG_I2(*op_map[idx] << ", finding: " << key);
             auto it = op_args.args_map.find(key);
             if(it != op_args.args_map.end())
             {
-                MIOPEN_LOG_I2("found " << (it->second.is_ptr ? "pointer: " : "scalar: ") << key << " = " << it->second);
+                MIOPEN_LOG_I2("found " << (it->second.is_ptr ? "pointer: " : "scalar: ") << key
+                                       << " = "
+                                       << it->second);
                 return it->second;
             }
         }
     }
     MIOPEN_LOG_E("Not found: arg_name = " << arg_name);
     MIOPEN_THROW("Argument not found");
-    return any_t(0);
 }
-
 
 #ifdef ADD_ARGUMENT
 #error "ADD_ARGUMENT defined"
 #endif
-#define ADD_ARGUMENT(argument_name) do {                        \
-        const any_t argument(argument_name);                    \
-        args.emplace_back(argument);                            \
-        MIOPEN_LOG_I((argument.is_ptr ? "Pointer " : "Scalar ") \
-            << #argument_name " = " << argument);               \
+#define ADD_ARGUMENT(argument_name)                                                     \
+    do                                                                                  \
+    {                                                                                   \
+        const any_t argument(argument_name);                                            \
+        args.emplace_back(argument);                                                    \
+        MIOPEN_LOG_I((argument.is_ptr ? "Pointer " : "Scalar ") << #argument_name " = " \
+                                                                << argument);           \
     } while(false)
-
 
 miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                                              TensorDescriptor& inputDesc,
@@ -659,12 +657,16 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                 {
                     arg_sizes.insert(it->second.size());
                     size_map[std::pair<size_t, size_t>(idx, it->second.size())].push_back(key);
-                    MIOPEN_LOG_I2("size_map[std::pair<size_t, size_t>("<<idx<<", "<< it->second.size() << ")].push_back("<<key<<");");
+                    MIOPEN_LOG_I2("size_map[std::pair<size_t, size_t>(" << idx << ", "
+                                                                        << it->second.size()
+                                                                        << ")].push_back("
+                                                                        << key
+                                                                        << ");");
                 }
                 else
                 {
                     ptr_map[idx].push_back(key);
-                    MIOPEN_LOG_I2("ptr_map["<<idx<<"].push_back("<<key<<");");
+                    MIOPEN_LOG_I2("ptr_map[" << idx << "].push_back(" << key << ");");
                 }
             }
             else
@@ -675,44 +677,45 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     std::vector<any_t> args;
     if(kernel_source_type == Binary)
     {
-        if ((input_desc.GetType() != miopenFloat) || (output_desc.GetType() != miopenFloat))
+        if((input_desc.GetType() != miopenFloat) || (output_desc.GetType() != miopenFloat))
             MIOPEN_THROW("Only FP32 floats are currently supported");
         int N, C, H, W, oN, K, oH, oW;
-        std::tie(N, C, H, W) = miopen::tien<4>(input_desc.GetLengths(), 1);
+        std::tie(N, C, H, W)    = miopen::tien<4>(input_desc.GetLengths(), 1);
         std::tie(oN, K, oH, oW) = miopen::tien<4>(output_desc.GetLengths(), 1);
-        if (N != oN)
+        if(N != oN)
             MIOPEN_THROW("input and output batch sizes do not match");
 
         const int n_groups = 56; /// \FIXME
 
         // Get topology (C>B>A, C>B, C>A), find out activation mode.
-        assert(op_map[0]->kind() == miopenFusionOpConvForward && 2 <= op_map.size() && op_map.size() <= 3);
-        bool is_bias = false;
+        assert(op_map[0]->kind() == miopenFusionOpConvForward && 2 <= op_map.size() &&
+               op_map.size() <= 3);
+        bool is_bias       = false;
         bool is_activation = false;
-        bool is_leakyRELU = false;
-        for (const auto& op : op_map)
+        bool is_leakyRELU  = false;
+        for(const auto& op : op_map)
         {
-            if (op->kind() == miopenFusionOpBiasForward)
+            if(op->kind() == miopenFusionOpBiasForward)
                 is_bias = true;
-            else if (op->kind() == miopenFusionOpActivForward) {
-                is_activation= true;
-                is_leakyRELU = (op->MDGraphKey() == std::to_string(miopenActivationLEAKYRELU));
+            else if(op->kind() == miopenFusionOpActivForward)
+            {
+                is_activation = true;
+                is_leakyRELU  = (op->MDGraphKey() == std::to_string(miopenActivationLEAKYRELU));
             }
         }
-        const int flags = (is_bias ? (1<<7) : 0) + (is_activation ? (1<<8) : 0);
-        const int reserved = 0;
-        const int R = 3;
-        const int S = 3;
-        const int pad_h = 0;
-        const int pad_w = 0;
+        const int flags        = (is_bias ? (1 << 7) : 0) + (is_activation ? (1 << 8) : 0);
+        const int reserved     = 0;
+        const int R            = 3;
+        const int S            = 3;
+        const int pad_h        = 0;
+        const int pad_w        = 0;
         int* const return_addr = nullptr;
-        const auto weights = GetArg(op_map, op_args, miopenFusionOpConvForward, "weights");
-        const auto bias = is_bias
-            ? GetArg(op_map, op_args, miopenFusionOpBiasForward, "bias")
-            : any_t(nullptr); // Kernel does not use it.
+        const auto weights     = GetArg(op_map, op_args, miopenFusionOpConvForward, "weights");
+        const auto bias = is_bias ? GetArg(op_map, op_args, miopenFusionOpBiasForward, "bias")
+                                  : any_t(nullptr); // Kernel does not use it.
         const auto alpha = (is_activation && is_leakyRELU)
-            ? GetArg(op_map, op_args, miopenFusionOpActivForward, "activAlpha")
-            : any_t(0.0f); // Fixed to 0.0 for RELU.
+                               ? GetArg(op_map, op_args, miopenFusionOpActivForward, "activAlpha")
+                               : any_t(0.0f); // Fixed to 0.0 for RELU.
         ADD_ARGUMENT(N);
         ADD_ARGUMENT(C);
         ADD_ARGUMENT(H);

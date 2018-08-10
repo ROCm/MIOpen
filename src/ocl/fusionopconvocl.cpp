@@ -263,10 +263,10 @@ solver::KernelInfo& ConvForwardOpDescriptor::GetKernelInfo(Handle& handle,
         // printf("Compiler options: %s\n", kernel_info.comp_options.c_str());
         // kernel_info = solver::CBAFusionGetSolution(compile_config);
     }
-    else if (algorithm_name == "miopenConvolutionWinogradBiasActiv")
+    else if(algorithm_name == "miopenConvolutionWinogradBiasActiv")
     {
         const auto n_groups = handle.GetMaxComputeUnits();
-        const auto name = handle.GetDeviceName();
+        const auto name     = handle.GetDeviceName();
         decltype(kernel_info) ki;
         ki.g_wk.push_back(512 * n_groups);
         ki.g_wk.push_back(1);
@@ -274,9 +274,9 @@ solver::KernelInfo& ConvForwardOpDescriptor::GetKernelInfo(Handle& handle,
         ki.l_wk.push_back(512);
         ki.l_wk.push_back(1);
         ki.l_wk.push_back(1);
-        ki.kernel_name = "sp3AsmConvRxSU_CBA";
-        ki.kernel_file = "conv_3x3_wheel_alpha_v9_2_7_" + name + "_md10.so";
-        kernel_info = ki;
+        ki.kernel_name    = "sp3AsmConvRxSU_CBA";
+        ki.kernel_file    = "conv_3x3_wheel_alpha_v9_2_7_" + name + "_md10.so";
+        kernel_info       = ki;
         kernel_info_valid = true;
     }
     else
