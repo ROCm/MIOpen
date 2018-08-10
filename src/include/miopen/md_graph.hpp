@@ -23,18 +23,15 @@ struct MDGraph_vertex
     int id;
 
     MDGraph_vertex(const MDGraph_vertex& other) = delete;
-#if 0
-    bool operator==(const MDGraph_vertex& other) const
-    {
-        return (op==other.op) && (is_leaf == other.is_leaf) && (vertex_data == other.vertex_data);
-    };
-#endif
+    std::string& operator[](std::string& x) { return vertex_data[x]; }
 };
 
 using MDGraph_vertex_ptr = std::shared_ptr<MDGraph_vertex>;
 
 struct FusionMDGraph
 {
+    using cur_vertex_map = std::unordered_map<std::string, std::string>;
+    FusionMDGraph() { Reset(); }
     static void Init(FusionMDGraph& g, miopenFusionOp_t op);
     static void InitConv(FusionMDGraph& g);
     static void InitBN(FusionMDGraph& g);
@@ -49,9 +46,13 @@ struct FusionMDGraph
     std::string GetProgramName();
     std::string GetKernelName();
     std::string GetAlgoName();
+    std::vector<miopenConvFwdAlgorithm_t> GetConvAlgos();
+    bool SetConvAlgo(miopenConvFwdAlgorithm_t algo);
 
     protected:
-    std::vector<std::pair<MDGraph_vertex_ptr, int>> cur_vertex = {{nullptr, 0}};
+    std::vector<std::pair<MDGraph_vertex_ptr, cur_vertex_map>>
+        cur_vertex; //= {{nullptr, {{"weight", "0"}}}};
+    std::set<miopenConvFwdAlgorithm_t> conv_algo_set;
     std::unordered_map<MDGraph_vertex_ptr,
                        std::unordered_map<MDGraph_vertex_ptr, FusionMDGraph_Edge_Map>>
         edge_list;

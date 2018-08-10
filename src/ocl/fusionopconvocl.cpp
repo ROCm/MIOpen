@@ -203,45 +203,6 @@ miopenStatus_t ConvForwardOpDescriptor::GetNetworkConfig(std::string& network_co
     network_config += conv_config;
     return miopenStatusSuccess;
 }
-#if 0
-bool ConvForwardOpDescriptor::isASMApplicable(Handle& handle)
-{
-    auto ki = GetKernelInfo(handle);
-    return ki.kernel_file[ki.kernel_file.length() - 1] == 's';
-}
-
-solver::KernelInfo& ConvForwardOpDescriptor::GetKernelInfo(Handle& handle)
-{
-    if(!kernel_info_valid)
-    {
-        // In the absence of the config tree
-        mlo_construct_direct2D_fusion construct_params = ConstructParams(handle);
-        ConvolutionContext params;
-        construct_params.mloCopyTo(params);
-        const auto solution = FindFirstSolution(construct_params);
-        auto k_file         = solution.construction_params[0].kernel_file;
-        // TODO: There is redundant code hidden in both the branches below
-        if(k_file[k_file.length() - 1] == 's') // is an asm kernel
-        {
-            solver::KernelInfo ki;
-            ki.comp_options =
-                solution.construction_params[0].comp_options + " -Wa,-defsym,fusion_mode=1";
-            ki.l_wk        = solution.construction_params[0].l_wk;
-            ki.g_wk        = solution.construction_params[0].g_wk;
-            ki.kernel_file = "conv1x1u_bias_activ.s";
-            ki.kernel_name = "gcnAsmConv1x1U";
-            kernel_info    = ki;
-        }
-        else
-        {
-            params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
-            kernel_info = solver::CBAFusionGetSolution(params);
-        }
-        kernel_info_valid = true;
-    }
-    return kernel_info;
-}
-#endif
 
 // DLOWELL: This implementation is a hack since we are hardcoding in a way to get around ASM
 /// \todo kernel_info seems to be only partially used, e.g. kernel_file is not used.

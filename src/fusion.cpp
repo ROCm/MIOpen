@@ -118,6 +118,36 @@ miopenStatus_t FusionPlanDescriptor::GetWorkspaceSizeImmed(Handle& handle,
     return miopenStatusSuccess;
 }
 
+miopenStatus_t FusionPlanDescriptor::GetConvAlgos(int reqAlgoCount,
+                                                  int& retAlgoCount,
+                                                  miopenConvFwdAlgorithm_t* ptrAlgos)
+{
+
+    // auto ptr = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(&convOp);
+    std::vector<miopenConvFwdAlgorithm_t> algos = lu.GetConvAlgos();
+
+    if(algos.size() > reqAlgoCount)
+        retAlgoCount = reqAlgoCount;
+    else
+        retAlgoCount = algos.size();
+    for(auto idx = 0; idx < retAlgoCount; idx++)
+    {
+        ptrAlgos[idx] = algos[idx];
+    }
+
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t FusionPlanDescriptor::SetConvAlgo(miopenConvFwdAlgorithm_t algo)
+{
+    bool res = lu.SetConvAlgo(algo);
+
+    if(res)
+        return miopenStatusSuccess;
+    else
+        return miopenStatusUnknownError;
+}
+
 std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& fpd)
 {
     (void)(fpd);
@@ -176,8 +206,7 @@ std::vector<std::string> ConvForwardOpDescriptor::GetArgs() const
 // paddingMode,
 //   int pad_h, int pad_w, int u, int v, int dilation_h, int dilation_w)
 std::string ConvForwardOpDescriptor::MDGraphKey(std::map<std::string, int> d,
-                                                std::vector<size_t> filter_lens,
-                                                miopenConvFwdAlgorithm_t algorithm)
+                                                std::vector<size_t> filter_lens)
 {
     int k, c, _kernel_size0, _kernel_size1;
     std::tie(k, c, _kernel_size0, _kernel_size1) = tien<4>(filter_lens);
@@ -197,7 +226,6 @@ std::string ConvForwardOpDescriptor::MDGraphKey(std::map<std::string, int> d,
     {
         result += std::to_string(n) + ",";
     }
-    result += std::to_string(algorithm);
     return result;
 }
 
@@ -213,7 +241,7 @@ std::string ConvForwardOpDescriptor::MDGraphKey() const
                                     {"dilation_w", base_desc.dilation_w}};
     auto lens = filter_desc.GetLengths();
 
-    return ConvForwardOpDescriptor::MDGraphKey(m, lens, algo);
+    return ConvForwardOpDescriptor::MDGraphKey(m, lens);
 }
 
 std::vector<size_t> ConvForwardOpDescriptor::GetLocalWGSz(Handle& handle,
@@ -358,48 +386,6 @@ std::vector<std::string> BiasFusionOpDescriptor::GetArgs() const
 }
 
 std::string BiasFusionOpDescriptor::MDGraphKey() const { return base_desc.ToString(); }
-#if 0
-// Op LUT
-bool FusionOpLU::Advance(std::vector<std::shared_ptr<miopen::FusionOpDescriptor>> op_map)
-{
-
-    auto valid = false;
-    for(auto supportedOps : lut)
-    {
-        valid = std::equal(supportedOps.begin(),
-                           supportedOps.begin() + op_map.size() - 1,
-                           op_map.begin(),
-                           [&](miopenFusionOp_t x, std::shared_ptr<miopen::FusionOpDescriptor> y) {
-                               return x == y->kind();
-                           });
-        if(valid)
-            return valid;
-    }
-    /*    if(valid)
-        {
-            cur_idx = idx + 1;
-            lut_hit.push_back(1);
-            return valid;
-        }
-        else
-            lut_hit.push_back(0);
-
-        lut_hit.resize(cur_idx_tmp);*/
-    return false;
-}
-
-/*auto FusionOpLU::GetPaths()
-{
-    std::vector<miopenFusionOp_t> vec;
-    for(size_t idx = 0; lut_hit.size(); idx++)
-    {
-        if(lut_hit[idx] == 1)
-            vec.push_back(lut[idx]);
-    }
-    return vec;
-}
-*/
-#endif
 
 static inline void
 find_replace_first(std::string& s_where, const std::string& s_find, const std::string& s_replace)
@@ -474,49 +460,6 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         kernel_source_type = Binary;
     else
         kernel_source_type = OpenclText;
-#if 0
-    for(auto&& op : op_map)
-    { // This needs to go away with the meta graph.
-        if(op->kind() == miopenFusionOpBatchNormInference)
-        {
-            printf("Fusion plan contains batch norm.\n");
-            fp_contains_bn = true;
-            break;
-        }
-    }
-
-    if(ops_head->kind() == miopenFusionOpConvForward)
-    {
-        auto ops_conv = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(ops_head);
-
-        if(!fp_contains_bn)
-        { // If we get BN asm code then we can do this....
-            is_asm_kernel = ops_conv->isASMApplicable(handle);
-            if(is_asm_kernel)
-            {
-                algorithm_name = "miopenConvolutionDirectBiasActivAsm";
-            }
-            else
-            {
-                algorithm_name = "miopenConvolutionDirectBiasActiv";
-            }
-        }
-        else
-        {
-            std::cout << "Is this an assembly kernel? " << is_asm_kernel << std::endl;
-            algorithm_name = "miopenConvDirectBatchNormBiasActiv";
-        }
-    }
-    else if(ops_head->kind() == miopenFusionOpBatchNormInference)
-    {
-        fp_contains_bn = true;
-        algorithm_name = "miopenBatchNormActivInferAlgo";
-    }
-    else
-    {
-        status = miopenStatusNotImplemented;
-    }
-#endif
 
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
     if(!kernels.empty())
@@ -639,7 +582,6 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         MIOPEN_THROW("The input descriptors dont match.");
     }
 
-    // TODO: The Metadata graph should return this info
     auto ops_head = op_map[0];
 
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
