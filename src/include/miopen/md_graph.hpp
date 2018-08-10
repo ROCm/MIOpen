@@ -23,7 +23,7 @@ struct MDGraph_vertex
     int id;
 
     MDGraph_vertex(const MDGraph_vertex& other) = delete;
-    std::string& operator[](std::string x) { return vertex_data[x]; }
+    std::string& operator[](std::string& x) { return vertex_data[x]; }
 };
 
 using MDGraph_vertex_ptr = std::shared_ptr<MDGraph_vertex>;
