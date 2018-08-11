@@ -81,8 +81,9 @@ struct verify_forward_conv_bias
             fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
         // TODO: Replace this with WinoGrad to check for wino grad supported kernels
         miopenConvFwdAlgorithm_t req_algo = miopenConvolutionFwdAlgoDirect;
-        if(std::end(sup_algos) ==
-           std::find(std::begin(sup_algos), std::end(sup_algos), miopenConvolutionFwdAlgoDirect))
+        if((std::begin(sup_algos) + retAlgCount) != std::find(std::begin(sup_algos),
+                                                              std::begin(sup_algos) + retAlgCount,
+                                                              miopenConvolutionFwdAlgoDirect))
         {
             // should not throw
             miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, req_algo);
@@ -137,8 +138,9 @@ struct verify_forward_conv_bias
             fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
         // TODO: Replace this with WinoGrad to check for wino grad supported kernels
         miopenConvFwdAlgorithm_t req_algo = miopenConvolutionFwdAlgoDirect;
-        if(std::end(sup_algos) ==
-           std::find(std::begin(sup_algos), std::end(sup_algos), miopenConvolutionFwdAlgoDirect))
+        if(std::begin(sup_algos) + retAlgCount != std::find(std::begin(sup_algos),
+                                                            std::begin(sup_algos) + retAlgCount,
+                                                            miopenConvolutionFwdAlgoDirect))
         {
             // should not throw
             miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, req_algo);
@@ -241,8 +243,9 @@ struct verify_forward_conv_bias_activ
             fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
         // TODO: Replace this with WinoGrad to check for wino grad supported kernels
         miopenConvFwdAlgorithm_t req_algo = miopenConvolutionFwdAlgoDirect;
-        if(std::end(sup_algos) ==
-           std::find(std::begin(sup_algos), std::end(sup_algos), miopenConvolutionFwdAlgoDirect))
+        if((std::begin(sup_algos) + retAlgCount) != std::find(std::begin(sup_algos),
+                                                              std::begin(sup_algos) + retAlgCount,
+                                                              miopenConvolutionFwdAlgoDirect))
         {
             // should not throw
             miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, req_algo);
@@ -324,8 +327,9 @@ struct verify_forward_conv_bias_activ
             fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
         // TODO: Replace this with WinoGrad to check for wino grad supported kernels
         miopenConvFwdAlgorithm_t req_algo = miopenConvolutionFwdAlgoDirect;
-        if(std::end(sup_algos) ==
-           std::find(std::begin(sup_algos), std::end(sup_algos), miopenConvolutionFwdAlgoDirect))
+        if((std::begin(sup_algos) + retAlgCount) != std::find(std::begin(sup_algos),
+                                                              std::begin(sup_algos) + retAlgCount,
+                                                              miopenConvolutionFwdAlgoDirect))
         {
             // should not throw
             miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, req_algo);
