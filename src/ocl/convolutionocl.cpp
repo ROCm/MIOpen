@@ -196,14 +196,8 @@ int ConvolutionDescriptor::FindWinogradKernel(Handle& handle,
 {
     try
     {
-        mlo_construct_winograd construct_params(direction);
+        mlo_construct_winograd construct_params(xDesc, wDesc, yDesc, *this, direction);
         construct_params.setStream(&handle);
-
-        construct_params.setOutputDescFromMLDesc(yDesc);
-        construct_params.setInputDescFromMLDesc(xDesc);
-        construct_params.setWeightDescFromMLDesc(wDesc);
-
-        construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
         const auto solution = FindFirstSolution(construct_params);
         if(!solution.Succeeded())
@@ -263,17 +257,15 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
        !(mode == miopenGroupConv || mode == miopenDepthwise))
         return {};
 
-    mlo_construct_direct2D construct_params(isForward ? 1 : 0);
+    mlo_construct_direct2D construct_params(xDesc, wDesc, yDesc, *this, isForward ? 1 : 0);
     construct_params.setDoSearch(exhaustiveSearch);
     construct_params.saveSearchRequest(true);
     construct_params.setGeneralCompOptions("");
     construct_params.setStream(&handle);
-    construct_params.setOutputDescFromMLDesc(yDesc);
-    construct_params.setInputDescFromMLDesc(xDesc);
-    construct_params.setWeightDescFromMLDesc(wDesc);
-    construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+
     if(mode == miopenGroupConv || mode == miopenDepthwise)
         construct_params.setGroupConvCounts(group_count);
+
     if((IsWinograd3x3Supported(handle, isForward, wDesc, (isForward ? xDesc : yDesc)) &&
         construct_params.mloIsFastBinaryWinograd3x3U()) &&
        !(mode == miopenGroupConv || mode == miopenDepthwise))
@@ -866,11 +858,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         case miopenConvolutionFwdAlgoDirect:
         {
             // TODO(paul): Replicating code for now.
-            mlo_construct_direct2D construct_params(1); // forward
-            construct_params.setOutputDescFromMLDesc(yDesc);
-            construct_params.setInputDescFromMLDesc(xDesc);
-            construct_params.setWeightDescFromMLDesc(wDesc);
-            construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+            mlo_construct_direct2D construct_params(xDesc, wDesc, yDesc, *this, 1); // forward
             construct_params.setStream(&handle);
 
             std::string network_config;
@@ -958,12 +946,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
 
         case miopenConvolutionFwdAlgoWinograd:
         {
-            mlo_construct_winograd construct_params(1); // forward
-            construct_params.setOutputDescFromMLDesc(yDesc);
-            construct_params.setInputDescFromMLDesc(xDesc);
-            construct_params.setWeightDescFromMLDesc(wDesc);
-            construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
-
+            mlo_construct_winograd construct_params(xDesc, wDesc, yDesc, *this, 1); // forward
             construct_params.setStream(&handle);
 
             std::string network_config;
@@ -1264,11 +1247,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         case miopenConvolutionFwdAlgoDirect:
         {
             // TODO(paul): Replicating code for now.
-            mlo_construct_direct2D construct_params(1); // forward
-            construct_params.setOutputDescFromMLDesc(yDesc);
-            construct_params.setInputDescFromMLDesc(xDesc);
-            construct_params.setWeightDescFromMLDesc(wDesc);
-            construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+            mlo_construct_direct2D construct_params(xDesc, wDesc, yDesc, *this, 1); // forward
             construct_params.setStream(&handle);
 
             std::string network_config;
@@ -2108,11 +2087,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         {
         case miopenConvolutionBwdDataAlgoDirect:
         {
-            mlo_construct_direct2D construct_params(0); // backward
-            construct_params.setOutputDescFromMLDesc(dyDesc);
-            construct_params.setInputDescFromMLDesc(dxDesc);
-            construct_params.setWeightDescFromMLDesc(wDesc);
-            construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+            mlo_construct_direct2D construct_params(dxDesc, wDesc, dyDesc, *this, 0); // backward
             construct_params.setStream(&handle);
 
             std::string network_config;
@@ -2183,11 +2158,8 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
 
         case miopenConvolutionBwdDataAlgoWinograd:
         {
-            mlo_construct_winograd construct_params(0); // backward data
-            construct_params.setOutputDescFromMLDesc(dyDesc);
-            construct_params.setInputDescFromMLDesc(dxDesc);
-            construct_params.setWeightDescFromMLDesc(wDesc);
-            construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+            mlo_construct_winograd construct_params(
+                dxDesc, wDesc, dyDesc, *this, 0); // backward data
 
             construct_params.setStream(&handle);
             std::string network_config;
@@ -2491,11 +2463,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         {
         case miopenConvolutionBwdDataAlgoDirect:
         {
-            mlo_construct_direct2D construct_params(0); // backward
-            construct_params.setOutputDescFromMLDesc(dyDesc);
-            construct_params.setInputDescFromMLDesc(dxDesc);
-            construct_params.setWeightDescFromMLDesc(wDesc);
-            construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
+            mlo_construct_direct2D construct_params(dxDesc, wDesc, dyDesc, *this, 0); // backward
             construct_params.setStream(&handle);
 
             std::string network_config;
@@ -3021,13 +2989,10 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             if(wei_w >= wei_h && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}) &&
                IsBwdWeightsDirectSupported(dwDesc))
             {
-                mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
+                mlo_construct_BwdWrW2D construct_params(
+                    xDesc, dwDesc, dyDesc, *this, 0); // backward with regards to weights
                 construct_params.setDoSearch(exhaustiveSearch);
                 construct_params.setStream(&handle);
-                construct_params.setOutputDescFromMLDesc(dyDesc);
-                construct_params.setInputDescFromMLDesc(xDesc);
-                construct_params.setWeightDescFromMLDesc(dwDesc);
-                construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
                 construct_params.mloBuildConf_Key(network_config);
                 const std::string algorithm_name = "miopenConvolutionBwdWeightsAlgoDirect";
@@ -3244,12 +3209,9 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         {
             if(wei_w >= wei_h)
             {
-                mlo_construct_BwdWrW2D construct_params(0); // backward with regards to weights
+                mlo_construct_BwdWrW2D construct_params(
+                    xDesc, dwDesc, dyDesc, *this, 0); // backward with regards to weights
                 construct_params.setStream(&handle);
-                construct_params.setOutputDescFromMLDesc(dyDesc);
-                construct_params.setInputDescFromMLDesc(xDesc);
-                construct_params.setWeightDescFromMLDesc(dwDesc);
-                construct_params.setConvDescr(pad_h, pad_w, u, v, dilation_h, dilation_w);
 
                 visit_float(dyDesc.GetType(), [&](auto as_float) {
 
