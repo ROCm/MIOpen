@@ -803,8 +803,9 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
     int retAlgCount = 0;
     // Query the supported algorithms
     miopenFusionPlanConvolutionGetAlgo(fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
-    if((std::begin(sup_algos) + retAlgCount ) !=
-       std::find(std::begin(sup_algos), std::begin(sup_algos) + retAlgCount, miopenConvolutionFwdAlgoDirect))
+    if((std::begin(sup_algos) + retAlgCount) != std::find(std::begin(sup_algos),
+                                                          std::begin(sup_algos) + retAlgCount,
+                                                          miopenConvolutionFwdAlgoDirect))
     {
         // should not throw
         miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, miopenConvolutionFwdAlgoDirect);
@@ -900,8 +901,9 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
     int retAlgCount = 0;
     // Query the supported algorithms
     miopenFusionPlanConvolutionGetAlgo(fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
-    if((std::begin(sup_algos) + retAlgCount ) !=
-       std::find(std::begin(sup_algos), std::begin(sup_algos) + retAlgCount, miopenConvolutionFwdAlgoDirect))
+    if((std::begin(sup_algos) + retAlgCount) != std::find(std::begin(sup_algos),
+                                                          std::begin(sup_algos) + retAlgCount,
+                                                          miopenConvolutionFwdAlgoDirect))
     {
         // should not throw
         miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, miopenConvolutionFwdAlgoDirect);
