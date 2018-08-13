@@ -129,7 +129,7 @@
 
 __attribute__((always_inline)) uint iDiv(uint v, uint d)
 {
-    uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
+    uint r = v / d;
     return (r);
 }
 
@@ -145,7 +145,7 @@ __attribute__((always_inline)) uint iMod(uint v, uint u, uint d)
 // split filter taps into sub-tiles along x and y axis with number of tap groups muliples of stride
 or 1
 // for example
-// the 5x10 filter has been split into 10 sub-tiles 1x5 each, 1 tap in y direction and 5 taps in x
+// the 5x10 filter has been split into 10 sub-tiles 1x5 each, 2 tap in y direction and 5 taps in x
 direction.
 // those horizontal taps are 0, 2, 4, 6, 8 and 1, 3, 5, 7, 9
 // a single vertical tap is 0 or 1 or 2 or 3 or 4.
@@ -625,9 +625,15 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     for(uint og = 0; og < MLO_N_OUT_BLK_GRP; ++og)
     {
         barrier(CLK_LOCAL_MEM_FENCE);
-        if(w_blk_idx < MLO_MAX_WEI_BLK_LOOP)
+
+        // o_base may be larger than MLO_N_OUTPUTS, so o_number may be negative
+        uint o_base   = o_idx + og * MLO_N_LCL_OUT_MAPS;
+        uint o_number = o_base < MLO_N_OUTPUTS ? MLO_N_OUTPUTS - o_base : 0;
+        o_number      = o_number < MLO_N_LCL_OUT_MAPS ? o_number : MLO_N_LCL_OUT_MAPS;
+
+        for(uint o = 0; o < o_number; ++o)
         {
-            for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
+            if(w_blk_idx < MLO_MAX_WEI_BLK_LOOP)
             {
                 uint w = 0;
                 for(; w < MLO_WEI_WKITEM; ++w)
@@ -647,8 +653,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         barrier(CLK_LOCAL_MEM_FENCE);
 
         // read into real filter table
-
-        for(uint l = lcl_id; l < (MLO_N_LCL_OUT_MAPS * MLO_WEI_CHANNEL_STRIDE); l += MLO_GRP_SZ)
+        for(uint l = lcl_id; l < (o_number * MLO_WEI_CHANNEL_STRIDE); l += MLO_GRP_SZ)
         {
 #if MLO_WEI_CHANNEL_STRIDE & (MLO_WEI_CHANNEL_STRIDE - 1)
             uint oo    = iDiv(l, MLO_WEI_CHANNEL_STRIDE);
@@ -673,26 +678,22 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             final_sum = 0;
             for(uint i = 0; i < MLO_MAX_WEI_BLK_LOOP; ++i)
             {
-                final_sum +=
-                    lcl_bot[((oo * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) *
-                                (MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM) +
-                            wei_i_x];
+                final_sum += lcl[((oo * MLO_MAX_WEI_BLK_LOOP + i) * MLO_FILTER_SIZE1 + wei_i_y) *
+                                     (MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM) +
+                                 wei_i_x];
             }
 
             uint wei_out_off =
                 wei_df_off + (og * MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i;
-            if(wei_out_off < MLO_WEI_BATCH_STRIDE * MLO_N_OUTPUTS * MLO_N_BATCH_BLKS)
-            {
-                weights_df[wei_out_off] = final_sum; // lcl_bot[lcl_id]; //
+            weights_df[wei_out_off] = final_sum; // lcl_bot[lcl_id]; //
 
 #if DBG_OUT_OF_RNGE
-                // assured
-                if(wei_out_off >= MLO_WEI_BATCH_STRIDE * MLO_N_OUTPUTS * MLO_N_BATCH_BLKS)
-                {
-                    printf("k:err:interm-output-of-range\n");
-                }
-#endif
+            // assured
+            if(wei_out_off >= MLO_WEI_BATCH_STRIDE * MLO_N_OUTPUTS * MLO_N_BATCH_BLKS)
+            {
+                printf("k:err:interm-output-of-range\n");
             }
+#endif
         }
 
     } // for(uint og = 0; og < MLO_N_OUT_BLK_GRP; ++og)

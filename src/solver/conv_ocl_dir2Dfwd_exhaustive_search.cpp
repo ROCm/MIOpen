@@ -73,7 +73,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::GetPerformanceConfig(const ConvolutionCo
 
     result.n_stacks = 1; // # of diff stacks (part of batch).
 
-    if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
+    if(params.kernel_size0 == 1 && params.kernel_size1 == 1 && params.group_counts < 2)
     {
 
         // version
@@ -349,7 +349,7 @@ ConvOclDirectFwdLegacyExhaustiveSearch::Search(const ConvolutionContext& params)
 
     long long runs_left = 0;
 
-    if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
+    if(params.kernel_size0 == 1 && params.kernel_size1 == 1 && params.group_counts < 2)
     {
         int n_grp_tiles0 = 3;
         std::cout << "Searching the best solution in the 4 dim space. Please, be patient it may "
