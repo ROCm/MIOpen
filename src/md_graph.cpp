@@ -233,8 +233,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                                 /*c any*/ 0,
                                                                 /* x */ 1,
                                                                 /* y */ 1);
-        map_asm_conv.emplace("weight", EdgeOp(1, true, OpEqual));
-        map_asm_conv.emplace("algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpEqual));
+        map_asm_conv.emplace("weight", EdgeOp(1, true, OpAny));
+        map_asm_conv.emplace("algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
 
         g.AddEdge(nullptr, conv_v, map_asm_conv);
         g.AddEdge(conv_v, bias_v, empty_map);
@@ -266,8 +266,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                                      /*c any*/ 0,
                                                                      /* x */ len,
                                                                      /* y */ len);
-            map_conv_bias.emplace("weight", EdgeOp(0, true, OpEqual));
-            map_conv_bias.emplace("algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpEqual));
+            map_conv_bias.emplace("weight", EdgeOp(0, true, OpAny));
+            map_conv_bias.emplace("algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
 
             g.AddEdge(nullptr, conv_v, map_conv_bias);
         }
@@ -298,11 +298,11 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                              "miopenConvDirectBatchNormBiasActiv");
                 auto edg_activ =
                     BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNPerActivation);
-                edg_activ.emplace("weight", EdgeOp(0, true, OpEqual));
+                edg_activ.emplace("weight", EdgeOp(0, true, OpAny));
 
                 auto edg_spatial =
                     BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNSpatial);
-                edg_spatial.emplace("weight", EdgeOp(0, true, OpEqual));
+                edg_spatial.emplace("weight", EdgeOp(0, true, OpAny));
 
                 g.AddEdge(bias_v, bn_v, edg_activ);
                 g.AddEdge(bias_v, bn_v, edg_spatial);
@@ -323,10 +323,10 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                          "miopenConvDirectBatchNormBiasActiv");
             auto edg_activ =
                 BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNPerActivation);
-            edg_activ.emplace("weight", EdgeOp(0, true, OpEqual));
+            edg_activ.emplace("weight", EdgeOp(0, true, OpAny));
 
             auto edg_spatial = BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNSpatial);
-            edg_spatial.emplace("weight", EdgeOp(0, true, OpEqual));
+            edg_spatial.emplace("weight", EdgeOp(0, true, OpAny));
 
             g.AddEdge(conv_v, bn_v, edg_activ);
             g.AddEdge(conv_v, bn_v, edg_spatial);
@@ -400,11 +400,11 @@ bool FusionMDGraph::CmpOpKey(const FusionMDGraph_Edge_Map& edge_val,
     {
         if(op_val.count(kv.first) == 1)
         {
-            if(FusionMDGraph::ExecEdgeOp(kv.second, op_val.at(kv.first)))
-                return true;
+            if(!FusionMDGraph::ExecEdgeOp(kv.second, op_val.at(kv.first)))
+                return false;
         }
     }
-    return false;
+    return true;
 }
 
 bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
