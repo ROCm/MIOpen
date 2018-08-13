@@ -110,6 +110,7 @@ using mlo_kernel_info = std::tuple<const std::string,
 #include <miopen/handle.hpp>
 #include <miopen/db_path.hpp>
 #include <miopen/db.hpp>
+#include <miopen/problem_description.hpp>
 
 inline int mloLg2(int v)
 {
@@ -146,100 +147,29 @@ class StaticContainer
     }
 };
 
-struct ProblemDescription
+template <class TTo>
+size_t setTopDescFromMLDesc(TTo& to, const TensorDescriptor& tensor)
 {
-    int vec_size         = 1;
-    int n_inputs         = 0;
-    int in_height        = 0;
-    int in_width         = 0;
-    int kernel_size1     = 0;
-    int kernel_size0     = 0;
-    int n_outputs        = 0;
-    int out_height       = 0;
-    int out_width        = 0;
-    int batch_sz         = 0;
-    int pad0             = 0;
-    int pad1             = 0;
-    int kernel_stride0   = 0;
-    int kernel_stride1   = 0;
-    int kernel_dilation0 = 0;
-    int kernel_dilation1 = 0;
-    int bias             = 0;
-    std::string in_layout;
-    std::string in_data_type;
-    std::string weights_layout;
-    std::string out_data_type;
-    std::string out_layout;
-    int float_size         = 32;
-    size_t bot_sz          = 0;
-    size_t top_sz          = 0;
-    size_t weights_sz      = 0;
-    size_t bias_sz         = 0;
-    int deconvolution      = 0;
-    int in_stride          = 0;
-    int out_stride         = 0;
-    int in_channel_stride  = 0;
-    int in_batch_stride    = 0;
-    int out_channel_stride = 0;
-    int out_batch_stride   = 0;
-    struct Direction
-    {
-        enum class Value
-        {
-            Unknown,
-            Forward,
-            Backward,
-            BackwardWrW,
-        };
+    return SetDescFromMLDesc(to, tensor, &TTo::setTopDescr);
+}
 
-        private:
-        Value v = Value::Unknown;
+template <class TTo>
+size_t setBotDescFromMLDesc(TTo& to, const TensorDescriptor& tensor)
+{
+    return SetDescFromMLDesc(to, tensor, &TTo::setBotDescr);
+}
 
-        public:
-        bool IsKnown() const { return v != Value::Unknown; }
-        bool IsForward() const { return v == Value::Forward; }
-        bool IsBackwardData() const { return v == Value::Backward; } // Syntax glue.
-        bool IsBackwardWrW() const { return v == Value::BackwardWrW; }
-        void Set(int forward)
-        {
-            assert(0 <= forward && forward <= 1);
-            v = forward != 0 ? Value::Forward : Value::Backward;
-        }
-        template <typename T>
-        void Set(T) = delete;
-        void SetBackwardWrW() { v = Value::BackwardWrW; }
-    } direction;
-    int GetBackwardPad0() const { return kernel_size0 - pad0 - 1; }
-    int GetBackwardPad1() const { return kernel_size1 - pad1 - 1; }
+template <class TTo>
+size_t setTopDfDescFromMLDesc(TTo& to, const TensorDescriptor& tensor)
+{
+    return SetDescFromMLDesc(to, tensor, &TTo::setTopDfDescr);
+}
 
-    void Serialize(std::ostream& stream) const
-    {
-        if(!direction.IsKnown())
-            MIOPEN_THROW("!direction.IsKnown()");
-        const auto sep = '-';
-        // clang-format off
-        // 576-4-4-1x1-192-4-4-8-1x1-2x2-3x3-0-NCHW-FP32-F
-        stream
-            << n_inputs << sep << in_height << sep << in_width
-            << sep << kernel_size1 << 'x' << kernel_size0
-            << sep << n_outputs << sep << out_height << sep << out_width
-            << sep << batch_sz
-            << sep << pad1 << 'x' << pad0
-            << sep << kernel_stride1 << 'x' << kernel_stride0
-            << sep << kernel_dilation1 << 'x' << kernel_dilation1
-            << sep << bias
-            << sep << in_layout
-            << sep << in_data_type
-            << sep << (direction.IsForward() ? "F"
-                     : direction.IsBackwardData() ? "B" : "W"); // clang-format on
-    }
-
-    friend std::ostream& operator<<(std::ostream& os, const ProblemDescription& obj)
-    {
-        obj.Serialize(os);
-        return os;
-    }
-};
+template <class TTo>
+size_t setBotDfDescFromMLDesc(TTo& to, const TensorDescriptor& tensor)
+{
+    return SetDescFromMLDesc(to, tensor, &TTo::setBotDfDescr);
+}
 
 /// A leftover of the legacy design, houses problem config,
 /// environmental context (e.g. HW/SW platform) and solver-specific state.
@@ -259,6 +189,17 @@ struct ConvolutionContext : ProblemDescription
 
     inline Handle& GetStream() const { return *_stream; }
     inline void SetStream(Handle* stream) { _stream = stream; }
+
+    ConvolutionContext() = default;
+    ConvolutionContext(const TensorDescriptor& in,
+                       const TensorDescriptor& weights,
+                       const TensorDescriptor& out,
+                       const ConvolutionDescriptor& conv,
+                       int dir,
+                       int bias_)
+        : ProblemDescription(in, weights, out, conv, dir, bias_)
+    {
+    }
 
     std::string GetPerfDbPath() const
     {
@@ -328,24 +269,24 @@ struct mlo_construct_activ_lrn_pooling_common
     std::vector<size_t> _g_wk;
 
     /*
-    * returns kernel file name without location
-    */
+     * returns kernel file name without location
+     */
     inline std::string getKernelFile() const { return (_kernel_file); }
     /*
-    * retuns kerner/shader name
-    */
+     * retuns kerner/shader name
+     */
     inline std::string getKernelName() const { return (_kernel_name); }
     /*
-    * return set of compile options
-    */
+     * return set of compile options
+     */
     inline const std::string& getCompilerOptions() const { return (_comp_options); }
     /*
-    *  return a local working configuration
-    */
+     *  return a local working configuration
+     */
     inline const std::vector<size_t>& getLocalWkSize() const { return (_l_wk); }
     /*
-    * return a global working configuration
-    */
+     * return a global working configuration
+     */
     inline const std::vector<size_t>& getGlobalWkSize() const { return (_g_wk); }
 
     int _grp_tile0      = 8; // total number ALUs per group
@@ -355,8 +296,8 @@ struct mlo_construct_activ_lrn_pooling_common
     size_t _workspce_sz = 0;
 
     /*
-    * get workspace size
-    */
+     * get workspace size
+     */
     inline size_t getWorkSpaceSzBytes() const { return (_workspce_sz); }
 };
 
@@ -379,31 +320,44 @@ struct mlo_construct_direct2D
         _search_params.top_sz           = 0; // bytes
         _search_params.weights_sz       = 0; // bytes
         _search_params.bias_sz          = 0; // bytes
+        _search_params.group_counts     = 1;
+    }
+
+    mlo_construct_direct2D(const miopen::TensorDescriptor& in,
+                           const miopen::TensorDescriptor& weights,
+                           const miopen::TensorDescriptor& out,
+                           const miopen::ConvolutionDescriptor& conv,
+                           int dir,
+                           bool do_bias = false)
+        : _search_params(in, weights, out, conv, dir, (do_bias) ? 1 : 0)
+    {
+        _search_params.deconvolution = 0;
+        _search_params.group_counts  = 1;
     }
 
     void setupRocm();
     void setupFloats();
 
     /*
-    * major interface
-    * it has to be called only after
-    * convolutional parmeters, input, output and weight tesnor have been set
-    *
-    * constructs compiler option
-    *
-    * selects kernel file and name
-    * covers genrinc forward convolution:
-    * arbitrary combination of kerenl sizes, strides
-    */
+     * major interface
+     * it has to be called only after
+     * convolutional parmeters, input, output and weight tesnor have been set
+     *
+     * constructs compiler option
+     *
+     * selects kernel file and name
+     * covers genrinc forward convolution:
+     * arbitrary combination of kerenl sizes, strides
+     */
 
     miopen::solver::ConvSolution FindSolution();
     std::vector<miopen::solver::ConvSolution> FindAllSolutions();
     miopen::MultiFileDb GetDb() const;
 
     /*
-    * returns parameter values that are compiled in legacy kernels for kernels using them as
-    * arguments.
-    */
+     * returns parameter values that are compiled in legacy kernels for kernels using them as
+     * arguments.
+     */
     inline void getCompiledInParameters(int* const N,
                                         int* const C,
                                         int* const H,
@@ -459,16 +413,16 @@ struct mlo_construct_direct2D
     }
 
     /*
-    * get common compiler options
-    */
+     * get common compiler options
+     */
     inline const std::string& getGeneralCompOptions() const
     {
         return (_search_params.general_compile_options);
     }
 
     /*
-    * return direction: true - forward, false - backward
-    */
+     * return direction: true - forward, false - backward
+     */
     inline bool isForwardDirection() const
     {
         if(!_search_params.direction.IsKnown())
@@ -477,162 +431,26 @@ struct mlo_construct_direct2D
     }
 
     /*
-    *  is bias incuded
-    */
+     *  is bias incuded
+     */
     inline bool doBias() const { return (_search_params.bias == 1); }
 
     /*
-    * set library stream
-    */
+     * set library stream
+     */
     inline void setStream(miopen::Handle* stream) { _search_params.SetStream(stream); }
 
     /*
-    * set convolutional parameters
-    */
-    inline void setConvDescr(int u_padding,
-                             int v_padding,
-                             int u_stride,
-                             int v_stride,
-                             int /*u_upstride*/,
-                             int /*v_upstride*/
-                             )
+     * set group convolutional parameters
+     */
+    inline void setGroupConvCounts(int group_conv_counts)
     {
-        _search_params.pad1           = u_padding;
-        _search_params.pad0           = v_padding;
-        _search_params.kernel_stride0 = u_stride;
-        _search_params.kernel_stride1 = v_stride;
+        _search_params.group_counts = group_conv_counts;
     }
 
     /*
-    * set weights tensor
-    */
-    inline void setWeightsDescr(const std::string& layout,
-                                const std::string& data_type,
-                                int batch,
-                                int depth,
-                                int height,
-                                int width,
-                                int batch_stride,
-                                int channel_stride,
-                                int stride,
-                                int w_stride)
-    {
-        _search_params.kernel_size0 = width;
-        _search_params.kernel_size1 = height;
-        int data_len                = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
-        _search_params.float_size   = (data_type == "FP32" ? 32 : 16);
-        size_t size                 = (layout == "NCHW")
-                          ? batch * depth * height * width * data_len
-                          : batch * batch_stride * channel_stride * stride * w_stride * data_len;
-        _search_params.weights_sz = size;
-        _search_params.vec_size   = 32 / _search_params.float_size;
-    }
-
-    /*
-    * set output tensor
-    */
-    inline void setOutputDescr(const std::string& layout,
-                               const std::string& data_type,
-                               int batch,
-                               int depth,
-                               int height,
-                               int width,
-                               int batch_stride,
-                               int channel_stride,
-                               int stride,
-                               int w_stride)
-    {
-        _search_params.batch_sz   = batch;
-        int data_len              = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
-        _search_params.float_size = (data_type == "FP32" ? 32 : 16);
-        size_t size               = (layout == "NCHW")
-                          ? batch * depth * height * width * data_len
-                          : batch * batch_stride * channel_stride * stride * w_stride * data_len;
-        if(_search_params.direction.IsForward())
-        {
-
-            _search_params.out_width          = width;
-            _search_params.out_height         = height;
-            _search_params.n_outputs          = depth;
-            _search_params.out_batch_stride   = batch_stride;
-            _search_params.out_channel_stride = channel_stride;
-            _search_params.out_stride         = stride;
-            _search_params.top_sz             = size;
-            _search_params.out_layout         = layout;
-            _search_params.out_data_type      = data_type;
-        }
-        else
-        {
-            _search_params.in_width          = width;
-            _search_params.in_height         = height;
-            _search_params.n_inputs          = depth;
-            _search_params.in_batch_stride   = batch_stride;
-            _search_params.in_channel_stride = channel_stride;
-            _search_params.in_stride         = stride;
-            _search_params.bot_sz            = size;
-            _search_params.in_layout         = layout;
-            _search_params.in_data_type      = data_type;
-            //			_tens_layout = layout;
-            //			_tens_data_format = data_type;
-        }
-    }
-
-    /*
-    *  set input tensor
-    */
-
-    inline void setInputDescr(const std::string& layout,
-                              const std::string& data_type,
-                              int batch,
-                              int depth,
-                              int height,
-                              int width,
-                              int batch_stride,
-                              int channel_stride,
-                              int stride,
-                              int w_stride)
-    {
-        _search_params.batch_sz   = batch;
-        int data_len              = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
-        _search_params.float_size = (data_type == "FP32" ? 32 : 16);
-        size_t size               = (layout == "NCHW")
-                          ? batch * depth * height * width * data_len
-                          : batch * batch_stride * channel_stride * stride * w_stride * data_len;
-        if(_search_params.direction.IsForward())
-        {
-
-            _search_params.in_width          = width;
-            _search_params.in_height         = height;
-            _search_params.n_inputs          = depth;
-            _search_params.in_batch_stride   = batch_stride;
-            _search_params.in_channel_stride = channel_stride;
-            _search_params.in_stride         = stride;
-            _search_params.bot_sz            = size;
-            _search_params.in_layout         = layout;
-            _search_params.in_data_type      = data_type;
-            //			_tens_layout = layout;
-            //			_tens_data_format = data_type;
-        }
-        else
-        {
-            _search_params.out_width          = width;
-            _search_params.out_height         = height;
-            _search_params.n_outputs          = depth;
-            _search_params.out_batch_stride   = batch_stride;
-            _search_params.out_channel_stride = channel_stride;
-            _search_params.out_stride         = stride;
-            _search_params.top_sz             = size;
-            _search_params.out_layout         = layout;
-            _search_params.out_data_type      = data_type;
-        }
-
-        _search_params.bias_sz =
-            (_search_params.bias) != 0 ? _search_params.n_outputs * data_len : 0;
-    }
-
-    /*
-    * set top tensor
-    */
+     * set top tensor
+     */
     void setTopDescr(const std::string& layout,
                      const std::string& data_type,
                      int batch,
@@ -644,29 +462,21 @@ struct mlo_construct_direct2D
                      int stride,
                      int w_stride)
     {
-        _search_params.batch_sz   = batch;
-        int data_len              = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
-        _search_params.float_size = (data_type == "FP32" ? 32 : 16);
-        size_t size               = (layout == "NCHW")
-                          ? batch * depth * height * width * data_len
-                          : batch * batch_stride * channel_stride * stride * w_stride * data_len;
-
-        _search_params.out_width          = width;
-        _search_params.out_height         = height;
-        _search_params.n_outputs          = depth;
-        _search_params.out_batch_stride   = batch_stride;
-        _search_params.out_channel_stride = channel_stride;
-        _search_params.out_stride         = stride;
-        _search_params.top_sz             = size;
-        _search_params.out_layout         = layout;
-        _search_params.out_data_type      = data_type;
-        _search_params.bias_sz =
-            (_search_params.bias != 0) ? (_search_params.n_outputs * data_len) : 0;
+        _search_params.setTopDescr(layout,
+                                   data_type,
+                                   batch,
+                                   depth,
+                                   height,
+                                   width,
+                                   batch_stride,
+                                   channel_stride,
+                                   stride,
+                                   w_stride);
     }
 
     /*
-    *  set bot tensor
-    */
+     *  set bot tensor
+     */
 
     void setBotDescr(const std::string& layout,
                      const std::string& data_type,
@@ -679,28 +489,20 @@ struct mlo_construct_direct2D
                      int stride,
                      int w_stride)
     {
-        _search_params.batch_sz   = batch;
-        int data_len              = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
-        _search_params.float_size = (data_type == "FP32" ? 32 : 16);
-        size_t size               = (layout == "NCHW")
-                          ? batch * depth * height * width * data_len
-                          : batch * batch_stride * channel_stride * stride * w_stride * data_len;
-
-        _search_params.in_width          = width;
-        _search_params.in_height         = height;
-        _search_params.n_inputs          = depth;
-        _search_params.in_batch_stride   = batch_stride;
-        _search_params.in_channel_stride = channel_stride;
-        _search_params.in_stride         = stride;
-        _search_params.bot_sz            = size;
-        _search_params.in_layout         = layout;
-        _search_params.in_data_type      = data_type;
-        //			_tens_layout = layout;
-        //			_tens_data_format = data_type;
+        _search_params.setBotDescr(layout,
+                                   data_type,
+                                   batch,
+                                   depth,
+                                   height,
+                                   width,
+                                   batch_stride,
+                                   channel_stride,
+                                   stride,
+                                   w_stride);
     }
     /*
-    * set top df tensor
-    */
+     * set top df tensor
+     */
     void setTopDfDescr(const std::string& layout,
                        const std::string& data_type,
                        int batch,
@@ -712,27 +514,35 @@ struct mlo_construct_direct2D
                        int stride,
                        int w_stride)
     {
-        _search_params.batch_sz   = batch;
-        int data_len              = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
-        _search_params.float_size = (data_type == "FP32" ? 32 : 16);
-        size_t size               = (layout == "NCHW")
+        _search_params.setTopDfDescr(layout,
+                                     data_type,
+                                     batch,
+                                     depth,
+                                     height,
+                                     width,
+                                     batch_stride,
+                                     channel_stride,
+                                     stride,
+                                     w_stride);
+
+        int data_len = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
+        size_t size  = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
-        _out_df_width            = width;
-        _out_df_height           = height;
-        _search_params.n_outputs = depth;
-        _out_df_batch_stride     = batch_stride;
-        _out_df_channel_stride   = channel_stride;
-        _out_df_stride           = stride;
-        _top_df_sz               = size;
-        _out_df_layout           = layout;
-        _out_df_data_type        = data_type;
+        _out_df_width          = width;
+        _out_df_height         = height;
+        _out_df_batch_stride   = batch_stride;
+        _out_df_channel_stride = channel_stride;
+        _out_df_stride         = stride;
+        _top_df_sz             = size;
+        _out_df_layout         = layout;
+        _out_df_data_type      = data_type;
     }
 
     /*
-    *  set bot df tensor
-    */
+     *  set bot df tensor
+     */
 
     void setBotDfDescr(const std::string& layout,
                        const std::string& data_type,
@@ -745,45 +555,53 @@ struct mlo_construct_direct2D
                        int stride,
                        int w_stride)
     {
-        _search_params.batch_sz   = batch;
-        int data_len              = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
-        _search_params.float_size = (data_type == "FP32" ? 32 : 16);
-        size_t size               = (layout == "NCHW")
+        _search_params.setBotDfDescr(layout,
+                                     data_type,
+                                     batch,
+                                     depth,
+                                     height,
+                                     width,
+                                     batch_stride,
+                                     channel_stride,
+                                     stride,
+                                     w_stride);
+
+        int data_len = (data_type == "FP16") ? 2 : (data_type == "FP32") ? 4 : 8;
+        size_t size  = (layout == "NCHW")
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
 
-        _in_df_width            = width;
-        _in_df_height           = height;
-        _search_params.n_inputs = depth;
-        _in_df_batch_stride     = batch_stride;
-        _in_df_channel_stride   = channel_stride;
-        _in_df_stride           = stride;
-        _bot_df_sz              = size;
-        _in_df_layout           = layout;
-        _in_df_data_type        = data_type;
+        _in_df_width          = width;
+        _in_df_height         = height;
+        _in_df_batch_stride   = batch_stride;
+        _in_df_channel_stride = channel_stride;
+        _in_df_stride         = stride;
+        _bot_df_sz            = size;
+        _in_df_layout         = layout;
+        _in_df_data_type      = data_type;
     }
 
     /*
-    *  indicate the need for backward pass
-    */
+     *  indicate the need for backward pass
+     */
     inline void doBackward(bool do_bwd) { _do_backward = do_bwd; }
     /*
-    * need for backward pass?
-    */
+     * need for backward pass?
+     */
     inline bool doBackward() const { return (_do_backward); }
 
     /*
-    *  allow the search for the best possible solution
-    */
+     *  allow the search for the best possible solution
+     */
     inline void setDoSearch(const bool do_search) { _search_params.do_search = do_search; }
 
     /*
-    * allow to save the missing configuraion in the search request file for an offline search
-    */
+     * allow to save the missing configuraion in the search request file for an offline search
+     */
     inline void saveSearchRequest(bool save_req) { _search_params.save_srch_req = save_req; }
     /*
-    * set common compiler options
-    */
+     * set common compiler options
+     */
     inline void setGeneralCompOptions(const std::string& options)
     {
         _search_params.general_compile_options += options;
@@ -795,7 +613,10 @@ struct mlo_construct_direct2D
     }
 
     // MD: Hack to get the key outside of mlo_internal
-    int mloBuildConf_Key(std::string& conf_key) const;
+    int mloBuildConf_Key(std::string& conf_key) const
+    {
+        return _search_params.mloBuildConf_Key(conf_key);
+    }
 
     // MD: Where is this being used?
     void getNewInputDescr(std::string& layout,
@@ -811,13 +632,25 @@ struct mlo_construct_direct2D
     // TEMP
     int mloConstructSP2D();
 
-    size_t setInputDescFromMLDesc(const miopen::TensorDescriptor& input_tensor);
-    size_t setOutputDescFromMLDesc(const miopen::TensorDescriptor& output_tensor);
-    size_t setWeightDescFromMLDesc(const miopen::TensorDescriptor& weight_tensor);
-    size_t setTopDescFromMLDesc(const miopen::TensorDescriptor& tensor);
-    size_t setBotDescFromMLDesc(const miopen::TensorDescriptor& tensor);
-    size_t setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor);
-    size_t setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor);
+    size_t setTopDescFromMLDesc(const miopen::TensorDescriptor& tensor)
+    {
+        return miopen::setTopDescFromMLDesc(*this, tensor);
+    }
+
+    size_t setBotDescFromMLDesc(const miopen::TensorDescriptor& tensor)
+    {
+        return miopen::setBotDescFromMLDesc(*this, tensor);
+    }
+
+    size_t setTopDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
+    {
+        return miopen::setTopDfDescFromMLDesc(*this, tensor);
+    }
+
+    size_t setBotDfDescFromMLDesc(const miopen::TensorDescriptor& tensor)
+    {
+        return miopen::setBotDfDescFromMLDesc(*this, tensor);
+    }
 
     bool mloIsFastBinaryWinograd3x3U() const;
 
@@ -864,12 +697,18 @@ struct mlo_construct_direct2D
 };
 
 /*
-* backward with regard to weights construction
-*/
+ * backward with regard to weights construction
+ */
 
 struct mlo_construct_BwdWrW2D : mlo_construct_direct2D
 {
-    mlo_construct_BwdWrW2D(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias)
+    mlo_construct_BwdWrW2D(const miopen::TensorDescriptor& in,
+                           const miopen::TensorDescriptor& weights,
+                           const miopen::TensorDescriptor& out,
+                           const miopen::ConvolutionDescriptor& conv,
+                           int dir,
+                           bool do_bias = false)
+        : mlo_construct_direct2D(in, weights, out, conv, dir, do_bias)
     {
         _search_params.direction.SetBackwardWrW();
     }
@@ -878,12 +717,20 @@ struct mlo_construct_BwdWrW2D : mlo_construct_direct2D
 };
 
 /*
-* winograd algorithm
-*/
+ * winograd algorithm
+ */
 
 struct mlo_construct_winograd : mlo_construct_direct2D
 {
-    mlo_construct_winograd(int dir, bool do_bias = false) : mlo_construct_direct2D(dir, do_bias) {}
+    mlo_construct_winograd(const miopen::TensorDescriptor& in,
+                           const miopen::TensorDescriptor& weights,
+                           const miopen::TensorDescriptor& out,
+                           const miopen::ConvolutionDescriptor& conv,
+                           int dir,
+                           bool do_bias = false)
+        : mlo_construct_direct2D(in, weights, out, conv, dir, do_bias)
+    {
+    }
 
     miopen::solver::ConvSolution FindSolution();
 };
