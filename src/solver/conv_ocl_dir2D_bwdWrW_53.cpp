@@ -66,6 +66,10 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     int N_BATCH_LOOPS = (params.n_inputs * params.n_outputs <= 8 * 1024)
                             ? 1
                             : (params.batch_sz <= 16 || params.in_width <= width_check)
+// To Do: check fp16 mapping
+#if 0
+                            : (params.batch_sz <= 16 || params.in_width <= 32)
+#endif
                                   ? (params.batch_sz / result.n_stacks)
                                   : 4;
     int n_batch_blks =
@@ -120,7 +124,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
                                ? (params.out_height + 1) / 2
                                : params.out_height;
     while(out_lcl_width * out_n_vert_reads * result.n_in_data_tiles >
-          (dev_local_mem_sz / (2 * ((params.in_data_type == "FP32") ? 4 : 2))))
+          (dev_local_mem_sz /
+           (2 * (params.out_data_type == "FP32" ? 4 : (params.out_data_type == "FP16" ? 2 : 8)))))
     {
         out_n_vert_reads = (out_n_vert_reads + 1) / 2;
         if(out_n_vert_reads < 2 && result.n_in_data_tiles >= 2)
@@ -263,7 +268,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
         kernel.g_wk.push_back(1);
         kernel.g_wk.push_back(1);
 
-        int data_len = (params.out_data_type == "FP32" ? 4 : 8);
+        int data_len =
+            (params.out_data_type == "FP32" ? 4 : (params.out_data_type == "FP16" ? 2 : 8));
 
         result.construction_params.push_back(kernel);
         result.workspce_sz = wei_bstride * params.n_inputs * n_batch_blks * data_len;
