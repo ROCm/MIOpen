@@ -207,8 +207,16 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
         return false;
     if(!(k_mult <= config.n_outputs))
         return false;
+    if((config.n_outputs % config.vec_size) != 0)
+        return false;
+    if((config.n_inputs % config.vec_size) != 0)
+        return false;
+    if((c_mult % config.vec_size) != 0)
+        return false;
+    if((k_mult % config.vec_size) != 0)
+        return false;
     const int in_gprs  = chunks_per_wave * n_mult * c_mult;
-    const int acc_gprs = chunks_per_wave * n_mult * k_mult;
+    const int acc_gprs = chunks_per_wave * n_mult * k_mult * config.vec_size;
     const int vgprs    = 4 + 2 * in_gprs + acc_gprs;
     if(!(vgprs < 256))
         return false;
@@ -268,11 +276,11 @@ void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config
     {
         MIOPEN_LOG_I("!IsValidForProblem(): " << ToString() << ". Conservative re-init...");
         read_size       = 1;
-        k_mult          = 1;
+        k_mult          = 4;
         chunks_per_wave = 1;
         chunk_size      = 1;
         n_mult          = 1;
-        c_mult          = 1;
+        c_mult          = 2;
         waves_in_group  = 1;
         assert(IsValidForProblem(config));
     }
@@ -327,7 +335,8 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_dilation0 == 1
         && params.kernel_dilation1 == 1
         && params.bias == 0
-        && params.float_size == 32
+        && params.n_inputs % params.vec_size == 0
+        && params.n_outputs % params.vec_size == 0
         && params.in_layout == "NCHW");
     if(!ok)
     {
@@ -409,7 +418,8 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         int n_grp0_size0 = 256;
 
         const auto subsample_kernel_compilation_options =
-            " -DUPSAMPLE" + std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
+            std::string(" -DDATA_TYPE=") + (params.in_data_type == "FP16" ? "ushort" : "float") +
+            std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
             std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
             std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(params.kernel_stride0) +
             std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(params.kernel_stride1) +
@@ -417,8 +427,9 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
             std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(params.out_channel_stride) +
             std::string(" -DMLO_OUT_STRIDE=") + std::to_string(params.out_stride) +
             std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(in_batch_stride) +
-            std::string(" -DMLO_IN0_BATCH_STRIDE=") + std::to_string(params.in_batch_stride) +
-            std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(params.out_batch_stride) +
+            std::string(" -DMLO_IN0_BATCH_STRIDE=") +
+            std::to_string(params.direction.IsForward() ? params.in_batch_stride
+                                                        : params.out_batch_stride) +
             std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(params.in_channel_stride) +
             std::string(" -DMLO_IN0_STRIDE=") + std::to_string(params.in_stride) +
             params.general_compile_options;
@@ -451,6 +462,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
     }
 
+    GenerateClangDefsym(options, "vec_size", params.vec_size);
     GenerateClangDefsym(options, "stride_h", 1);
     GenerateClangDefsym(options, "stride_w", 1);
     GenerateClangDefsym(options, "img_h", AsmImgHeight(params)); // H
@@ -515,7 +527,9 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
     kinfo.g_wk.push_back(
         kinfo.l_wk[0] *
-        divide_round_plus_inf(AsmImgHeight(params) * AsmImgWidth(params), hw_per_wave));
+        divide_round_plus_inf(AsmImgHeight(params) *
+                                  ((AsmImgWidth(params) + params.vec_size - 1) / params.vec_size),
+                              hw_per_wave));
 
     kinfo.g_wk.push_back(divide_round_plus_inf(params.n_outputs, pcfg->GetKMult()));
     const int n_images_per_wave = pcfg->GetNMult() * pcfg->GetNPerGpr();
