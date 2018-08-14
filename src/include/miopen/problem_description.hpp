@@ -271,14 +271,14 @@ struct ProblemDescription
      * set convolutional parameters
      */
     void setConvDescr(
-        int u_padding, int v_padding, int u_stride, int v_stride, int u_dilation, int v_dilation)
+        int u_padding, int v_padding, int u_stride, int v_stride, int h_dilation, int w_dilation)
     {
         pad1             = u_padding;
         pad0             = v_padding;
         kernel_stride0   = u_stride;
         kernel_stride1   = v_stride;
-        kernel_dilation0 = u_dilation;
-        kernel_dilation1 = v_dilation;
+        kernel_dilation0 = h_dilation;
+        kernel_dilation1 = w_dilation;
     }
 
     /*
