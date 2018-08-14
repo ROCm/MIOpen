@@ -56,6 +56,7 @@ struct ConvolutionDescriptor;
 
 struct ProblemDescription
 {
+    int vec_size         = 1;
     int n_inputs         = 0;
     int in_height        = 0;
     int in_width         = 0;
@@ -304,6 +305,7 @@ struct ProblemDescription
                           ? batch * depth * height * width * data_len
                           : batch * batch_stride * channel_stride * stride * w_stride * data_len;
         weights_sz = size;
+        vec_size   = 32 / float_size;
     }
 
     /*
