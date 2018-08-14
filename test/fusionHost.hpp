@@ -185,7 +185,7 @@ void batchNormPerActivHostInference(const tensor<T>& input,
                 // apply down the n_batch dimension
                 double mean       = estimatedMean(0, cidx, row, column);
                 double variance   = estimatedVariance(0, cidx, row, column);
-                double elemInvVar = 1.0/sqrt(variance + epsilon);
+                double elemInvVar = 1.0 / sqrt(variance + epsilon);
                 for(int bidx = 0; bidx < n_batches; bidx++)
                 { // via mini_batch
                     // per (x-dims) channel load a block of data into LDS

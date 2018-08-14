@@ -523,10 +523,11 @@ struct cbna_fusion_driver : test_driver
                 srand(0);
                 for(int i = 0; i < scale.desc.GetElementSize(); i++)
                 {
-                    scale[i]       = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
-                    shift[i]       = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
-                    estMean[i]     = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
-                    estVariance[i] = std::fabs((((rand() % 2) == 1) ? -1 : 1) * 1e-2 * T(rand() % 100));
+                    scale[i]   = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
+                    shift[i]   = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
+                    estMean[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
+                    estVariance[i] =
+                        std::fabs((((rand() % 2) == 1) ? -1 : 1) * 1e-2 * T(rand() % 100));
                 }
                 for(int i = 0; i < input.desc.GetElementSize(); i++)
                 {
