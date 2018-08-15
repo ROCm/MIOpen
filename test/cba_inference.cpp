@@ -512,6 +512,14 @@ struct cba_fusion_driver : test_driver
                     return;
             }
 
+            if(input.desc.GetType() == miopenHalf)
+            {
+                for(int i = 0; i < input.desc.GetElementSize(); i++)
+                {
+                    input[i] = (((rand() % 2) == 1) ? -1 : 1 * (0.01 * T(rand() % 100)));
+                }
+            }
+
             if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
                wei_h > 2 * fpad_h && wei_w > 2 * fpad_w && input_h >= (2 * fpad_h + wei_h) &&
                input_w >= (2 * fpad_w + wei_w))
