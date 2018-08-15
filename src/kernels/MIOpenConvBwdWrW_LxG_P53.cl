@@ -274,45 +274,11 @@ __attribute__((always_inline)) void Processing(UNUSED uint sc,
                         pvt_accum[pvt_accum_off]
                             // each wk-it process an input
                             += (_FLOAT_ACCUM)(bot_val * top_val);
-
-#if 0//debug
-                        if( sc >= 27 && get_local_id(0) == 0 && get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0)
-                        {
-                            printf("process 8: gid(%5u %5u %5u), lid(%5u): pvt_accum %f %f %f %f %f %f %f %f %f\n",
-                                    get_group_id(0), get_group_id(1), get_group_id(2),
-                                    get_local_id(0),
-                                    (float)pvt_accum[0], (float)pvt_accum[1], (float)pvt_accum[2], 
-                                    (float)pvt_accum[3], (float)pvt_accum[4], (float)pvt_accum[5],
-                                    (float)pvt_accum[6], (float)pvt_accum[7], (float)pvt_accum[8]);
-                        }
-#elif 0
-
-                        if(get_local_id(0) == 0 && get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0)
-                        {
-                            printf("process 8: gid(%5u %5u %5u), lid(%5u): bot_val %f, top_val %f\n",
-                                    get_group_id(0), get_group_id(1), get_group_id(2),
-                                    get_local_id(0),
-                                    (float)bot_val, (float)top_val);
-                        }
-#endif
                     }
                 }
             }
         }
     }
-
-#if 0//debug
-    if( get_local_id(0) == 0 && get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0)
-    {
-        printf("process: gid(%5u %5u %5u), lid(%5u): sc %5u, sc_lcl_off %5u, top_lim %5u, bot_lim %5d, MLO_IN_LCL_WIDTH %5d, pvt_accum %f %f %f %f %f %f %f %f %f\n",
-                get_group_id(0), get_group_id(1), get_group_id(2),
-                get_local_id(0),
-                sc, sc_lcl_off, top_lim, bot_lim, MLO_IN_LCL_WIDTH,
-                (float)pvt_accum[0], (float)pvt_accum[1], (float)pvt_accum[2], 
-                (float)pvt_accum[3], (float)pvt_accum[4], (float)pvt_accum[5],
-                (float)pvt_accum[6], (float)pvt_accum[7], (float)pvt_accum[8]);
-    }
-#endif
 }
 
 __attribute__((always_inline)) void moveOutputUp(__private _FLOAT* __restrict top_dat)
@@ -444,7 +410,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 #if MLO_N_SPANS_PER_SCAN & (MLO_N_SPANS_PER_SCAN - 1)
     uint spn = iMod(lcl_id, o, MLO_N_SPANS_PER_SCAN);
 #else
-    uint spn         = lcl_id & (MLO_N_SPANS_PER_SCAN - 1);
+    uint spn = lcl_id & (MLO_N_SPANS_PER_SCAN - 1);
 #endif
     //	bool scan_lead = (o*MLO_N_SPANS_PER_SCAN == lcl_id);
 
@@ -530,53 +496,15 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         // prolog
         // handling padding
 
-#if 0//debug
-        if( get_local_id(0) == 0 && get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0)
-        {
-            printf("3: gid(%5u %5u %5u), lid(%5u): b %5u, sc %5u, pvt_accum %f %f %f %f %f %f %f %f %f\n",
-                    get_group_id(0), get_group_id(1), get_group_id(2),
-                    get_local_id(0),
-                    b,
-                    sc,
-                    (float)pvt_accum[0], (float)pvt_accum[1], (float)pvt_accum[2], 
-                    (float)pvt_accum[3], (float)pvt_accum[4], (float)pvt_accum[5],
-                    (float)pvt_accum[6], (float)pvt_accum[7], (float)pvt_accum[8]);
-        }
-#endif
-
         // top padding
         for(; sc < MLO_FILTER_SIZE1 - MLO_FILTER_PAD1 - 1; ++sc, sc_lcl_off += MLO_IN_LCL_WIDTH)
         {
             Processing(sc, sc_lcl_off, sc + MLO_FILTER_PAD1, 0, pvt_accum, lcl_bot, top_dat);
         }
 
-#if 0//debug
-        if( get_local_id(0) == 0 && get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0)
-        {
-            printf("4: gid(%5u %5u %5u), lid(%5u): b %5u, sc %5u, pvt_accum %f %f %f %f %f %f %f %f %f\n",
-                    get_group_id(0), get_group_id(1), get_group_id(2),
-                    get_local_id(0),
-                    b,
-                    sc,
-                    (float)pvt_accum[0], (float)pvt_accum[1], (float)pvt_accum[2], 
-                    (float)pvt_accum[3], (float)pvt_accum[4], (float)pvt_accum[5],
-                    (float)pvt_accum[6], (float)pvt_accum[7], (float)pvt_accum[8]);
-        }
-#endif
-
 #ifdef __AMDGCN__
 #pragma unroll 2
 #endif
-
-#if 0//debug
-        for(; sc < MLO_IN_EXTENT1
-#if MLO_IN_N_VERT_LOOPS == 1
-                       -
-                       MLO_FILTER_PAD1
-#endif
-            ;
-            ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
-#else
 
 #if MLO_IN_N_VERT_LOOPS == 1
         for(; sc < MLO_IN_HEIGHT + MLO_FILTER_PAD1 - MLO_FILTER_SIZE1 + 1;
@@ -584,7 +512,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         for(; sc < MLO_IN_EXTENT1;
 #endif
             ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
-#endif
         {
 
             for(uint k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
@@ -619,20 +546,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             // point to the start of the local buffer
 
             sc_lcl_off = lcl_bot_off;
-
-#if 0//debug
-            if( get_local_id(0) == 0 && get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0)
-            {
-                printf("5: gid(%5u %5u %5u), lid(%5u): b %5u, sc %5u, pvt_accum %f %f %f %f %f %f %f %f %f\n",
-                        get_group_id(0), get_group_id(1), get_group_id(2),
-                        get_local_id(0),
-                        b,
-                        sc,
-                        (float)pvt_accum[0], (float)pvt_accum[1], (float)pvt_accum[2], 
-                        (float)pvt_accum[3], (float)pvt_accum[4], (float)pvt_accum[5],
-                        (float)pvt_accum[6], (float)pvt_accum[7], (float)pvt_accum[8]);
-            }
-#endif
 
             for(; sc < (i_loop + 2) * MLO_IN_EXTENT1;
                 ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
@@ -678,26 +591,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             // point to the start of the local buffer
             sc_lcl_off = lcl_bot_off;
 
-#if 0//debug
-            if( get_local_id(0) == 0 && get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0)
-            {
-                printf("6: gid(%5u %5u %5u), lid(%5u): b %5u, sc %5u, pvt_accum %f %f %f %f %f %f %f %f %f\n",
-                        get_group_id(0), get_group_id(1), get_group_id(2),
-                        get_local_id(0),
-                        b,
-                        sc,
-                        (float)pvt_accum[0], (float)pvt_accum[1], (float)pvt_accum[2], 
-                        (float)pvt_accum[3], (float)pvt_accum[4], (float)pvt_accum[5],
-                        (float)pvt_accum[6], (float)pvt_accum[7], (float)pvt_accum[8]);
-            }
-#endif
-
 #pragma unroll 3
-#if 0//debug
-            for(; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1;
-#else
             for(; sc < MLO_IN_HEIGHT + MLO_FILTER_PAD1 - MLO_FILTER_SIZE1 + 1;
-#endif
                 ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
             {
 
@@ -719,19 +614,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             }
         }
 
-#if 0//debug
-        if( get_local_id(0) == 0 && get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0)
-        {
-            printf("7: gid(%5u %5u %5u), lid(%5u): b %5u, sc %5u, pvt_accum %f %f %f %f %f %f %f %f %f\n",
-                    get_group_id(0), get_group_id(1), get_group_id(2),
-                    get_local_id(0),
-                    b,
-                    sc,
-                    (float)pvt_accum[0], (float)pvt_accum[1], (float)pvt_accum[2], 
-                    (float)pvt_accum[3], (float)pvt_accum[4], (float)pvt_accum[5],
-                    (float)pvt_accum[6], (float)pvt_accum[7], (float)pvt_accum[8]);
-        }
-#endif
         // epilog
         // handling padding
 
@@ -752,32 +634,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         } // for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 2; ++sc, gbl_out_scan_off +=
           // MLO_OUT_CHANNEL_STRIDE, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
 
-#if 0//debug
-        if( get_local_id(0) == 0 && get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0)
-        {
-            printf("8: gid(%5u %5u %5u), lid(%5u): b %5u, pvt_accum %f %f %f %f %f %f %f %f %f\n",
-                    get_group_id(0), get_group_id(1), get_group_id(2),
-                    get_local_id(0),
-                    b,
-                    (float)pvt_accum[0], (float)pvt_accum[1], (float)pvt_accum[2], 
-                    (float)pvt_accum[3], (float)pvt_accum[4], (float)pvt_accum[5],
-                    (float)pvt_accum[6], (float)pvt_accum[7], (float)pvt_accum[8]);
-        }
-#endif
     } // 	for (int b = 0;
-
-#if 0//debug
-  //if( get_local_id(0) == 0 && get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0)
-    if( get_local_id(0) < MLO_N_OUT_HORIZ_READS && get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0)
-    {
-        printf("9: gid(%5u %5u %5u), lid(%5u): pvt_accum %f %f %f %f %f %f %f %f %f\n",
-                get_group_id(0), get_group_id(1), get_group_id(2),
-                get_local_id(0),
-                    (float)pvt_accum[0], (float)pvt_accum[1], (float)pvt_accum[2], 
-                    (float)pvt_accum[3], (float)pvt_accum[4], (float)pvt_accum[5],
-                    (float)pvt_accum[6], (float)pvt_accum[7], (float)pvt_accum[8]);
-    }
-#endif
 
     // final summation over all output maps and each filter row
     // this coudl be done with log but it negligeble anyway
@@ -819,17 +676,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         }
     }
 
-#if 0//debug
-    if( get_local_id(0) == 0 && get_group_id(0) == 0 && get_group_id(1) == 0 && get_group_id(2) == 0)
-    {
-        printf("10: gid(%5u %5u %5u), lid(%5u): pvt_accum %f %f %f %f %f %f %f %f %f\n",
-                get_group_id(0), get_group_id(1), get_group_id(2),
-                get_local_id(0),
-                (float)pvt_accum[0], (float)pvt_accum[1], (float)pvt_accum[2], 
-                (float)pvt_accum[3], (float)pvt_accum[4], (float)pvt_accum[5],
-                (float)pvt_accum[6], (float)pvt_accum[7], (float)pvt_accum[8]);
-    }
-#endif
     // output
     // inputs are outputs
     // TODO : for more than 1 input

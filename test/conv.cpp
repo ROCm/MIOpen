@@ -40,7 +40,6 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include <miopen/stringutils.hpp>
-#include "tensor_util.hpp"
 
 template <class T>
 tensor<T> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
@@ -95,9 +94,7 @@ struct verify_forward_conv : conv_base<T>
     tensor<T> cpu() const
     {
         auto rout = get_output_tensor(filter, input, weights);
-#if 0//debug
-        return rout;
-#endif
+
         if(filter.mode == miopenTranspose)
         {
             std::fill(rout.begin(), rout.end(), 0);
@@ -604,7 +601,6 @@ struct conv_driver : test_driver
            !(filter.mode == miopenDepthwise || filter.mode == miopenTranspose))
             filter.mode = miopenGroupConv;
 
-#if 0//debug
         /// lack of support of 2x2 filter and transposeConv for half type
         /// \todo enhance support of half type into conv/transConv
         if((input.desc.GetType() == miopenHalf) &&
@@ -616,7 +612,6 @@ struct conv_driver : test_driver
             // Unsupported config for conv with half type
             return;
         }
-#endif
 
         if(((filter.mode == miopenTranspose) && (input_c == wei_k)) ||
            ((filter.mode == miopenConvolution) && (input_c == wei_c)) ||
@@ -663,7 +658,6 @@ struct conv_driver : test_driver
                 }
             }
 
-#if 0//debug
             if(((filter.mode == miopenConvolution &&
                  input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1)) ||
                 (filter.mode == miopenTranspose &&
@@ -673,56 +667,17 @@ struct conv_driver : test_driver
                 (filter.mode == miopenDepthwise && weights.desc.GetLengths().at(1) == 1)) &&
                wei_h > 2 * filter.pad_h && wei_w > 2 * filter.pad_w &&
                input_h >= (2 * filter.pad_h + wei_h) && input_w >= (2 * filter.pad_w + wei_w))
-#else
-            if(((filter.mode == miopenConvolution &&
-                 input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1)) ||
-                (filter.mode == miopenTranspose &&
-                 input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(0)) ||
-                (filter.mode == miopenGroupConv &&
-                 (input.desc.GetLengths().at(1) % weights.desc.GetLengths().at(1) == 0)) ||
-                (filter.mode == miopenDepthwise && weights.desc.GetLengths().at(1) == 1)))
-#endif
             {
                 auto out_p = verify(verify_forward_conv<T>{input, weights, filter, 0, search});
                 for(auto& x : out_p.first)
-#if 0//debug
                     x = (long(x + 19) * 2) % max_value + (long(x + 19) * 2) % (max_value - 1) +
                         (long(x + 19) * 2) % (max_value + 1); // Clamp big numbers
-#else
-                    x = (long(x + 19) * 2) % 3;
-#endif
                 if(do_backward_data)
                     verify(verify_backward_conv<T>{input, weights, out_p.first, filter, 0, search});
                 if(enable_backward_weights or (MIOPEN_USE_MIOPENGEMM and sizeof(T) > 2))
                 {
-#if 1//debug
                     verify(verify_backward_weights_conv<T>{
                         input, weights, out_p.first, filter, 0, search});
-#else
-                    for(int i = 0; i < input.data.size(); ++i)
-                    {
-                      //input.data[i] = (i % (28*28))/ 28;
-                        input.data[i] = 1;
-                    }
-
-                    for(auto& v : weights)
-                        v = 1;
-
-                    for(int i = 0; i < out_p.first.data.size(); ++i)
-                    {
-                      //out_p.first.data[i] = (i % (30*30))/ 30;
-                        out_p.first.data[i] = 1;
-                    }
-
-                    std::cout  << "hahahahah " << __func__ << "in " << input.data.size()
-                        <<"wei " << weights.data.size() << "out " << out_p.first.data.size() << std::endl;
-
-                    auto p = verify(verify_backward_weights_conv<T>{
-                        input, weights, out_p.first, filter, 0, search});
-
-                    output_tensor_to_csv(p.first, "cpu.csv");
-                    output_tensor_to_csv(p.second, "gpu.csv");
-#endif
                 }
             }
         }
