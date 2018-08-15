@@ -228,7 +228,7 @@ void activationHostInfererence(miopenActivationMode_t activMode,
         f = [=](T x) { return static_cast<T>(std::log1p(std::exp(x))); };
         break;
     case miopenActivationABS: //  abs(x)
-        f = [=](T x) { return static_cast<T>(std::abs(x)); };
+        f = [=](T x) { return static_cast<T>(std::fabs(x)); };
         break;
     case miopenActivationPOWER: // (alpha + beta * x) ^ gamma
         f = [=](T x) {
