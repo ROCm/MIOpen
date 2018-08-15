@@ -179,12 +179,12 @@ struct verify_forward_conv_bias_batchnorm_activ
             }
             if(doactive)
             {
-                activationHostInfererence(activ_mode,
-                                          static_cast<T>(activ_gamma),
-                                          static_cast<T>(activ_beta),
-                                          static_cast<T>(activ_alpha),
-                                          bout,
-                                          aout);
+                activationHostInfer(activ_mode,
+                          static_cast<T>(activ_gamma),
+                          static_cast<T>(activ_beta),
+                          static_cast<T>(activ_alpha),
+                          bout.data,
+                          aout.data);
             }
             else
             {
