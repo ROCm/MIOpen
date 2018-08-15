@@ -205,6 +205,7 @@ miopenStatus_t ConvForwardOpDescriptor::GetNetworkConfig(std::string& network_co
 }
 
 // DLOWELL: This implementation is a hack since we are hardcoding in a way to get around ASM
+/// \todo kernel_info seems to be only partially used, e.g. kernel_file is not used.
 solver::KernelInfo& ConvForwardOpDescriptor::GetKernelInfo(Handle& handle,
                                                            std::string algorithm_name)
 {
@@ -222,6 +223,22 @@ solver::KernelInfo& ConvForwardOpDescriptor::GetKernelInfo(Handle& handle,
         kernel_info_valid = true;
         // printf("Compiler options: %s\n", kernel_info.comp_options.c_str());
         // kernel_info = solver::CBAFusionGetSolution(compile_config);
+    }
+    else if(algorithm_name == "miopenConvolutionWinogradBiasActiv")
+    {
+        const auto n_groups = handle.GetMaxComputeUnits();
+        const auto name     = handle.GetDeviceName();
+        decltype(kernel_info) ki;
+        ki.g_wk.push_back(512 * n_groups);
+        ki.g_wk.push_back(1);
+        ki.g_wk.push_back(1);
+        ki.l_wk.push_back(512);
+        ki.l_wk.push_back(1);
+        ki.l_wk.push_back(1);
+        ki.kernel_name    = "sp3AsmConvRxSU_CBA";
+        ki.kernel_file    = "conv_3x3_wheel_alpha_v9_2_7_" + name + "_md10.so";
+        kernel_info       = ki;
+        kernel_info_valid = true;
     }
     else
     { // DLOWELL: Is this valid if there is dType is FP16?
@@ -257,13 +274,13 @@ solver::KernelInfo& ConvForwardOpDescriptor::GetKernelInfo(Handle& handle,
 
 miopenStatus_t ConvForwardOpDescriptor::GetCompileParms(std::string& compile_config,
                                                         Handle& /*handle*/,
-                                                        bool /*is_asm*/)
+                                                        const FusionKernelSourceType source)
 {
-    /*    (void)(is_asm);
-        (void)(handle);*/
     // GetKernelInfo(handle);
     // compile_config += kernel_info.comp_options;
     // DLOWELL: Kernel info needs to be called first for this to have any value
+    (void)source;
+    MIOPEN_LOG_I2(conv_compiler_options);
     compile_config += conv_compiler_options;
     return miopenStatusSuccess;
 }

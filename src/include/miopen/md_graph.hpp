@@ -32,12 +32,11 @@ struct FusionMDGraph
 {
     using cur_vertex_map = std::unordered_map<std::string, std::string>;
     FusionMDGraph() { Reset(); }
-    static void Init(FusionMDGraph& g, miopenFusionOp_t op);
-    static void InitConv(FusionMDGraph& g);
+    static void Init(FusionMDGraph& g, miopenFusionOp_t op, bool allow_winograd);
+    static void InitConv(FusionMDGraph& g, bool allow_winograd);
     static void InitBN(FusionMDGraph& g);
     void Reset();
     bool Advance(std::shared_ptr<FusionOpDescriptor> op);
-    void AddVeretx(MDGraph_vertex& vertex);
     void AddEdge(MDGraph_vertex_ptr src, MDGraph_vertex_ptr dst, FusionMDGraph_Edge_Map& map);
 
     template <class T, class U>

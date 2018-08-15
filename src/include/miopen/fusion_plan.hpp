@@ -25,9 +25,6 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     miopenStatus_t Compile(Handle& handle);
     friend std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& fpd);
 
-    void InitMDGraphs();
-    void InitConvMDGraph(FusionMDGraph& g);
-
     miopenStatus_t
     GetConvAlgos(int reqAlgoCount, int& retAlgoCount, miopenConvFwdAlgorithm_t* ptrAlgos);
     miopenStatus_t SetConvAlgo(miopenConvFwdAlgorithm_t algo);
@@ -47,7 +44,7 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     FusionMDGraph lu;
     // FusionOpLU lu;
     bool is_valid;
-    bool is_asm_kernel;
+    FusionKernelSourceType kernel_source_type;
     bool fp_contains_bn;
     std::string program_name;
     std::string kernel_name;
