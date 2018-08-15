@@ -193,11 +193,11 @@ void FusionMDGraph::InitConv(FusionMDGraph& g, bool allow_winograd)
         /// \todo Only 0x0 padding for now. 9_2_7 supports asymmetric padding, from 0 to 2^16.
         /// \todo Winograd supports wide range of RxS. 3x3 only for now.
         auto key = ConvForwardOpDescriptor::MDGraphKey(defaults, {0, 0, 3, 3});
-        /// \todo "Direct" is formally incorrect.
         FusionMDGraph_Edge_Map map_wino_conv = {
             {"key", {key}},
             {"weight", {"10"}},
-            {"algo", {std::to_string(miopenConvolutionFwdAlgoDirect)}}};
+            {"algo", {std::to_string(miopenConvolutionFwdAlgoWinograd)}},
+            {"precision", {std::to_string(miopenFloat)}}};
         g.AddEdge(nullptr, vc, map_wino_conv);
 
         /// C>B>A| (4)
