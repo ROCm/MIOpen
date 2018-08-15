@@ -62,14 +62,9 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
     // defines how to proceed : 1 grouop per batch or with a loop over all batches
     // loop over al batches make sense in 2 cases: a lot of small inputs/outputs or few batches
     // param
-    int width_check   = params.in_data_type == "FP16" ? 15 : 32;
     int N_BATCH_LOOPS = (params.n_inputs * params.n_outputs <= 8 * 1024)
                             ? 1
-                            : (params.batch_sz <= 16 || params.in_width <= width_check)
-// To Do: check fp16 mapping
-#if 0
                             : (params.batch_sz <= 16 || params.in_width <= 32)
-#endif
                                   ? (params.batch_sz / result.n_stacks)
                                   : 4;
     int n_batch_blks =
