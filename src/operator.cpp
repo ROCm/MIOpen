@@ -28,20 +28,14 @@
 #include <miopen/logger.hpp>
 
 namespace miopen {
-std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor&) // x )
+std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x)
 {
-    /*    MIOPEN_LOG_ENUM(stream,
-                        x.mode,
-                        miopenActivationPASTHRU,
-                        miopenActivationLOGISTIC,
-                        miopenActivationTANH,
-                        miopenActivationRELU,
-                        miopenActivationSOFTRELU,
-                        miopenActivationABS,
-                        miopenActivationPOWER,
-                        miopenActivationCLIPPEDRELU,
-                        miopenActivationLEAKYRELU,
-                        miopenActivationELU)*/
+    MIOPEN_LOG_ENUM(stream,
+                    x.kind(),
+                    miopenFusionOpConvForward,
+                    miopenFusionOpActivForward,
+                    miopenFusionOpBatchNormInference,
+                    miopenFusionOpBiasForward);
     // LogRange(stream, x.parms, ", ") << ", ";
     return stream;
 }
