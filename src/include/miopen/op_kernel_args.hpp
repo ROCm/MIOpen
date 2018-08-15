@@ -24,7 +24,7 @@ struct OpKernelArg
         }
     }
     template <typename T>
-    OpKernelArg(T* arg)
+    OpKernelArg(T* arg) // NOLINT
     {
         auto intptr = reinterpret_cast<std::uintptr_t>(arg);
         auto chptr  = reinterpret_cast<char*>(&intptr);
