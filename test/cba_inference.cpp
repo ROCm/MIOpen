@@ -73,12 +73,13 @@ struct verify_forward_conv_bias
         miopenFusionOpDescriptor_t biasOp;
         miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
         miopenCreateOpConvForward(fusePlanDesc, &convoOp, filter, weightsDesc);
-
+#if 0
         miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
         int retAlgCount = 0;
         // Query the supported algorithms
         miopenFusionPlanConvolutionGetAlgo(
             fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
+
         // TODO: Replace this with WinoGrad to check for wino grad supported kernels
         miopenConvFwdAlgorithm_t req_algo = miopenConvolutionFwdAlgoDirect;
         if((std::begin(sup_algos) + retAlgCount) != std::find(std::begin(sup_algos),
@@ -88,6 +89,7 @@ struct verify_forward_conv_bias
             // should not throw
             miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, req_algo);
         }
+#endif
 
         miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
 
@@ -130,7 +132,7 @@ struct verify_forward_conv_bias
             // \todo : DLOWELL Hardcoded. This assumes immediate mode. Needs GetAlgo.
             // miopenConvolutionFwdAlgoDirect,
             weightsDesc);
-
+#if 0
         miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
         int retAlgCount = 0;
         // Query the supported algorithms
@@ -145,7 +147,7 @@ struct verify_forward_conv_bias
             // should not throw
             miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, req_algo);
         }
-
+#endif
         miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
 
         // Compile
@@ -235,7 +237,7 @@ struct verify_forward_conv_bias_activ
             // \todo dlowell: Hardcoded right now. This assumes immediate mode. Needs GetAlgo.
             // miopenConvolutionFwdAlgoDirect,
             weightsDesc);
-
+#if 0
         miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
         int retAlgCount = 0;
         // Query the supported algorithms
@@ -250,7 +252,7 @@ struct verify_forward_conv_bias_activ
             // should not throw
             miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, req_algo);
         }
-
+#endif
         if(bias_mode)
             miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
 
@@ -320,6 +322,7 @@ struct verify_forward_conv_bias_activ
             // \todo dlowell: Hardcoded right now. This assumes immediate mode. Needs GetAlgo.
             // miopenConvolutionFwdAlgoDirect,
             weightsDesc);
+#if 0
         miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
         int retAlgCount = 0;
         // Query the supported algorithms
@@ -334,7 +337,7 @@ struct verify_forward_conv_bias_activ
             // should not throw
             miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, req_algo);
         }
-
+#endif
         if(bias_mode)
             miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
 
@@ -434,13 +437,11 @@ struct cba_fusion_driver : test_driver
 
     void run()
     {
-#if 0
+
         if(input.desc.GetType() == miopenHalf)
         {
-            // std::cout << "Half precision not yet supported." << std::endl;
-            return;
+            std::cout << "Half precision in action." << std::endl;
         }
-#endif
         switch(amode)
         {
         case 0: activ_mode = miopenActivationPASTHRU; break;
