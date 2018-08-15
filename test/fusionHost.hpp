@@ -199,13 +199,13 @@ void batchNormPerActivHostInference(const tensor<T>& input,
     });
 }
 
-//template <class T>
+// template <class T>
 void activationHostInfer(miopenActivationMode_t activMode,
-                               float gamma,
-                               float beta,
-                               float alpha,
-                               const std::vector<float> input,
-                               std::vector<float>& output)
+                         float gamma,
+                         float beta,
+                         float alpha,
+                         const std::vector<float> input,
+                         std::vector<float>& output)
 {
 
     std::function<float(float)> f;
@@ -245,21 +245,19 @@ void activationHostInfer(miopenActivationMode_t activMode,
     case miopenActivationELU: // alpah * (exp(x)-1) | x<=0; x | x>0
         f = [=](float x) { return ((x > 0.) ? x : alpha * std::expm1(x)); };
         break;
-    //default: printf("ERROR: unknown neuron type: %d\n", activMode); break;
+        // default: printf("ERROR: unknown neuron type: %d\n", activMode); break;
     }
 
-    par_for(input.size(), 1, [&](int index) {
-        output.at(index) = f(input.at(index)); });
+    par_for(input.size(), 1, [&](int index) { output.at(index) = f(input.at(index)); });
 }
 
-
-//template <class T>
+// template <class T>
 void activationHostInfer(miopenActivationMode_t activMode,
-                               half_float::half gamma,
-                               half_float::half beta,
-                               half_float::half alpha,
-                               const std::vector<half_float::half> input,
-                               std::vector<half_float::half>& output)
+                         half_float::half gamma,
+                         half_float::half beta,
+                         half_float::half alpha,
+                         const std::vector<half_float::half> input,
+                         std::vector<half_float::half>& output)
 {
 
     std::function<half_float::half(half_float::half)> f;
@@ -270,7 +268,9 @@ void activationHostInfer(miopenActivationMode_t activMode,
         f = [=](half_float::half x) { return x; };
         break;
     case miopenActivationLOGISTIC: // 1 / (1 + e^-x)  //Sigmoid
-        f = [=](half_float::half x) { return static_cast<half_float::half>(1. / (1. + half_float::exp(-x))); };
+        f = [=](half_float::half x) {
+            return static_cast<half_float::half>(1. / (1. + half_float::exp(-x)));
+        };
         break;
     case miopenActivationTANH: // beta * tanh(alpha * x)
         f = [=](half_float::half x) { return (beta * half_float::tanh(alpha * x)); };
@@ -287,26 +287,32 @@ void activationHostInfer(miopenActivationMode_t activMode,
     case miopenActivationPOWER: // (alpha + beta * x) ^ gamma
         f = [=](half_float::half x) {
             auto v = (alpha + beta * x);
-            return (v <= std::numeric_limits<half_float::half>::epsilon()) ? static_cast<half_float::half>(0.)
-                                                            : static_cast<half_float::half>(half_float::pow(v, gamma));
+            return (v <= std::numeric_limits<half_float::half>::epsilon())
+                       ? static_cast<half_float::half>(0.)
+                       : static_cast<half_float::half>(half_float::pow(v, gamma));
         };
         break;
     case miopenActivationCLIPPEDRELU: // min(alpha, max(0, x))
-        f = [=](half_float::half x) { return (half_float::fmin(alpha, half_float::fmax(static_cast<half_float::half>(0.), x))); };
+        f = [=](half_float::half x) {
+            return (
+                half_float::fmin(alpha, half_float::fmax(static_cast<half_float::half>(0.), x)));
+        };
         break;
     case miopenActivationLEAKYRELU: // alpha * x | x<=0; x | x>0
-        f = [=](half_float::half x) { return static_cast<half_float::half>((x > 0.) ? x : x * alpha); };
+        f = [=](half_float::half x) {
+            return static_cast<half_float::half>((x > 0.) ? x : x * alpha);
+        };
         break;
     case miopenActivationELU: // alpah * (exp(x)-1) | x<=0; x | x>0
-        f = [=](half_float::half x) { return static_cast<half_float::half>((x > 0.) ? x : alpha * half_float::expm1(x)); };
+        f = [=](half_float::half x) {
+            return static_cast<half_float::half>((x > 0.) ? x : alpha * half_float::expm1(x));
+        };
         break;
         // default: printf("ERROR: unknown neuron type: %d\n", activMode); break;
     }
 
     par_for(input.size(), 1, [&](int index) { output.at(index) = f(input.at(index)); });
 }
-
-
 
 template <class T>
 tensor<T> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
