@@ -99,13 +99,18 @@ struct verify_inference_batchnorm_activ
                 batchNormSpatialHostInference(
                     input, bout, bnscale, bnbias, epsilon, estMean, estVariance);
             }
-            activationHostInfererence(activ_mode,
+
+            activationHostInfer(activ_mode,
                                       static_cast<T>(activ_gamma),
                                       static_cast<T>(activ_beta),
                                       static_cast<T>(activ_alpha),
-                                      bout,
-                                      aout);
+                                      bout.data,
+                                      aout.data);
+
         }
+
+/*        for(auto& idx: aout.data)
+            printf("aout: %lf\n",idx);*/
         return aout;
     }
 

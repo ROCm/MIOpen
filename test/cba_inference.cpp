@@ -269,12 +269,13 @@ struct verify_forward_conv_bias_activ
         {
             // If we are using convolutions as the base, we can calculate the
             convHostForward(input, rout, weights, 1, bias, filter);
-            activationHostInfererence(activ_mode,
-                                      static_cast<T>(activ_gamma),
-                                      static_cast<T>(activ_beta),
-                                      static_cast<T>(activ_alpha),
-                                      rout,
-                                      aout);
+            activationHostInfer(activ_mode,
+                          static_cast<T>(activ_gamma),
+                          static_cast<T>(activ_beta),
+                          static_cast<T>(activ_alpha),
+                          rout.data,
+                          aout.data);
+
         }
         return aout;
     }
