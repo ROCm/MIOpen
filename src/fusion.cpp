@@ -29,6 +29,11 @@
 #include <miopen/logger.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/visit_float.hpp>
+#include <ostream>
+#include <ios>
+#include <algorithm>
+#include <string>
+#include <half.hpp>
 
 namespace miopen {
 
@@ -37,7 +42,7 @@ FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
     : fusion_dir(dir),
       input_desc(inDesc),
       is_valid(false),
-      is_asm_kernel(false),
+      kernel_source_type(OpenclText),
       fp_contains_bn(false),
       program_name(""),
       kernel_name(""),
@@ -52,7 +57,21 @@ miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> d
     // load the md graph for the first op
     if(op_count == 0)
     {
-        FusionMDGraph::Init(lu, desc->kind());
+        /// This hack implements very basic check for applicability of winograd 9_2_7.
+        /// Valid only for forward convolution, 3x3 filter, 0x0 padding, 1x1 stride.
+        /// \todo Generic implementation.
+        bool allow_winograd = true;
+        if(desc->kind() == miopenFusionOpConvForward)
+        {
+            auto ptr = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(desc);
+            MIOPEN_LOG_I2("filter_desc = " << ptr->filter_desc);
+            int c = 0;
+            std::tie(std::ignore, c, std::ignore, std::ignore) =
+                tien<4>(ptr->filter_desc.GetLengths());
+            // Assume that c == 0 means "unknown". Disable winograd to ensure correctness.
+            allow_winograd = (c != 0 && c % 2 == 0 && c >= 18);
+        }
+        FusionMDGraph::Init(lu, desc->kind(), allow_winograd);
     }
     desc->SetIdx(op_count);
     if(op_map.empty())
@@ -296,6 +315,11 @@ miopenStatus_t ActivFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_d
 
 std::string ActivFusionOpDescriptor::MDGraphKey() const { return std::to_string(activMode); }
 
+std::string ActivFusionOpDescriptor::MDGraphKey(miopenActivationMode_t m)
+{
+    return std::to_string(m);
+}
+
 miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
 {
     output_desc = input_desc;
@@ -382,12 +406,23 @@ std::vector<std::string> BiasFusionOpDescriptor::GetArgs() const
 
 std::string BiasFusionOpDescriptor::MDGraphKey() const { return base_desc.ToString(); }
 
+static inline void
+find_replace_first(std::string& s_where, const std::string& s_find, const std::string& s_replace)
+{
+    const auto pos = s_where.find(s_find);
+    if(pos != std::string::npos)
+        s_where.replace(pos, s_find.length(), s_replace);
+}
+
 std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
 {
-    (void)handle;
     if(!op_map.empty())
     {
         program_name = lu.GetProgramName();
+        // Replace "GFX*" wildcard by device name (in lowercase)
+        auto d = handle.GetDeviceName();
+        std::transform(d.begin(), d.end(), d.begin(), ::tolower);
+        find_replace_first(program_name, "GFX*", d);
         return program_name;
     }
     else
@@ -435,9 +470,15 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     algorithm_name = lu.GetAlgoName();
     program_name   = GetProgramName(handle);
     kernel_name    = GetKernelName(handle);
+    MIOPEN_LOG_I2(program_name << ',' << kernel_name);
     if(program_name.empty())
         MIOPEN_THROW("Invalid Fusion Plan");
-    is_asm_kernel = (program_name.back() == 's');
+    if(miopen::EndsWith(program_name, ".s"))
+        kernel_source_type = AsmText;
+    else if(miopen::EndsWith(program_name, ".so"))
+        kernel_source_type = Binary;
+    else
+        kernel_source_type = OpenclText;
 
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
     if(!kernels.empty())
@@ -448,7 +489,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     {
         std::string compile_config;
         auto dType = input_desc.GetType();
-        if(!is_asm_kernel)
+        if(kernel_source_type == OpenclText)
         {
             if(dType == miopenFloat)
             {
@@ -465,17 +506,79 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         const auto& vgd = ops_head->GetGlobalWGSz(handle, algorithm_name);
         for(auto&& op : op_map)
         {
-            op->GetCompileParms(compile_config, handle, is_asm_kernel);
+            MIOPEN_LOG_I2("GetCompileParms, " << *op);
+            op->GetCompileParms(compile_config, handle, kernel_source_type);
         }
-        std::cout << "Add Kernel Compiler options: " << compile_config << std::endl;
-        std::cout << "Program name: " << program_name << std::endl;
-        std::cout << "Kernel name: " << kernel_name << std::endl;
+        MIOPEN_LOG_I2("Program: " << program_name << ", kernel: " << kernel_name);
+        MIOPEN_LOG_I2("Build options: " << compile_config);
         handle.AddKernel(
             algorithm_name, network_config, program_name, kernel_name, vld, vgd, compile_config);
         status = miopenStatusSuccess;
     }
     return status;
 }
+
+std::ostream& operator<<(std::ostream& s, const OpKernelArg& arg)
+{
+    union
+    {
+        unsigned long long ul = 0;
+        double d;
+        float f;
+        half_float::half h;
+        char c[sizeof(ul)];
+    } val = {0};
+    if(arg.buffer.size() > sizeof(val.ul))
+        return s << "<too long value>";
+    for(int i    = 0; i < arg.buffer.size(); ++i)
+        val.c[i] = arg.buffer[i];
+    s << std::hex << "0x" << val.ul << std::dec << " = " << static_cast<long long>(val.ul);
+    switch(arg.buffer.size())
+    {
+    case 2: s << " = " << static_cast<float>(val.h) << "H"; break;
+    case 4: s << " = " << val.f << "F"; break;
+    case 8: s << " = " << val.d << "D"; break;
+    default: break;
+    }
+    return s;
+}
+
+static any_t GetArg(std::vector<std::shared_ptr<FusionOpDescriptor>>& op_map,
+                    const OperatorArgs& op_args,
+                    const miopenFusionOp_t op,
+                    const std::string arg_name)
+{
+    for(auto idx = 0; idx < op_map.size(); ++idx)
+    {
+        if(op_map[idx]->kind() == op)
+        {
+            std::string key = arg_name + std::to_string(idx);
+            MIOPEN_LOG_I2(*op_map[idx] << ", finding: " << key);
+            auto it = op_args.args_map.find(key);
+            if(it != op_args.args_map.end())
+            {
+                MIOPEN_LOG_I2("found " << (it->second.is_ptr ? "pointer: " : "scalar: ") << key
+                                       << " = "
+                                       << it->second);
+                return it->second;
+            }
+        }
+    }
+    MIOPEN_LOG_E("Not found: arg_name = " << arg_name);
+    MIOPEN_THROW("Argument not found");
+}
+
+#ifdef ADD_ARGUMENT
+#error "ADD_ARGUMENT defined"
+#endif
+#define ADD_ARGUMENT(argument_name)                                                     \
+    do                                                                                  \
+    {                                                                                   \
+        const any_t argument(argument_name);                                            \
+        args.emplace_back(argument);                                                    \
+        MIOPEN_LOG_I((argument.is_ptr ? "Pointer " : "Scalar ") << #argument_name " = " \
+                                                                << argument);           \
+    } while(false)
 
 miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                                              TensorDescriptor& inputDesc,
@@ -501,6 +604,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     auto ops_head = op_map[0];
 
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
+    MIOPEN_LOG_I(algorithm_name << ',' << network_config);
     if(kernels.empty())
     {
         MIOPEN_THROW("The FusionPlan was not compiled for execution");
@@ -538,44 +642,110 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                              std::to_string(op->kind()));
         }
     }
-
     std::vector<any_t> args;
-    for(auto sz : arg_sizes) // Populate args for scalars
+    if(kernel_source_type == Binary)
     {
-        for(auto idx = 0; idx < op_map.size(); idx++)
+        if((input_desc.GetType() != miopenFloat) || (output_desc.GetType() != miopenFloat))
+            MIOPEN_THROW("Only FP32 floats are currently supported");
+        int N, C, H, W, oN, K, oH, oW;
+        std::tie(N, C, H, W)    = miopen::tien<4>(input_desc.GetLengths(), 1);
+        std::tie(oN, K, oH, oW) = miopen::tien<4>(output_desc.GetLengths(), 1);
+        if(N != oN)
+            MIOPEN_THROW("input and output batch sizes do not match");
+        const int n_groups = handle.GetMaxComputeUnits();
+        // Get topology (C>B>A, C>B, C>A), find out activation mode.
+        assert(op_map[0]->kind() == miopenFusionOpConvForward && 2 <= op_map.size() &&
+               op_map.size() <= 3);
+        bool is_bias       = false;
+        bool is_activation = false;
+        bool is_leakyRELU  = false;
+        for(const auto& op : op_map)
         {
+            if(op->kind() == miopenFusionOpBiasForward)
+                is_bias = true;
+            else if(op->kind() == miopenFusionOpActivForward)
+            {
+                is_activation = true;
+                is_leakyRELU  = (op->MDGraphKey() == std::to_string(miopenActivationLEAKYRELU));
+            }
+        }
+        const int flags        = (is_bias ? (1 << 7) : 0) + (is_activation ? (1 << 8) : 0);
+        const int reserved     = 0;
+        const int R            = 3;
+        const int S            = 3;
+        const int pad_h        = 0;
+        const int pad_w        = 0;
+        int* const return_addr = nullptr;
+        const auto weights     = GetArg(op_map, op_args, miopenFusionOpConvForward, "weights");
+        const auto bias = is_bias ? GetArg(op_map, op_args, miopenFusionOpBiasForward, "bias")
+                                  : any_t(nullptr); // Kernel does not use it.
+        const auto alpha = (is_activation && is_leakyRELU)
+                               ? GetArg(op_map, op_args, miopenFusionOpActivForward, "activAlpha")
+                               : any_t(0.0f); // Fixed to 0.0 for RELU.
+        ADD_ARGUMENT(N);
+        ADD_ARGUMENT(C);
+        ADD_ARGUMENT(H);
+        ADD_ARGUMENT(W);
+        ADD_ARGUMENT(K);
+        ADD_ARGUMENT(n_groups);
+        ADD_ARGUMENT(flags);
+        ADD_ARGUMENT(reserved);
+        ADD_ARGUMENT(input);
+        ADD_ARGUMENT(weights);
+        ADD_ARGUMENT(output);
+        ADD_ARGUMENT(return_addr);
+        ADD_ARGUMENT(R);
+        ADD_ARGUMENT(S);
+        ADD_ARGUMENT(pad_h);
+        ADD_ARGUMENT(pad_w);
+        ADD_ARGUMENT(oH);
+        ADD_ARGUMENT(oW);
+        ADD_ARGUMENT(bias);
+        ADD_ARGUMENT(alpha);
+    }
+    else
+    {
+        for(auto sz : arg_sizes) // Populate args for scalars
+        {
+            for(auto idx = 0; idx < op_map.size(); idx++)
+            {
+                auto op   = op_map[idx];
+                auto keys = size_map[std::pair<size_t, size_t>(idx, sz)];
+                std::sort(keys.begin(), keys.end());
+                for(auto& key : keys)
+                {
+                    auto it = op_args.args_map.find(key);
+                    if(it != op_args.args_map.end())
+                    {
+                        MIOPEN_LOG_I("Scalar " << key << " = " << it->second);
+                        args.push_back(it->second);
+                    }
+                }
+            }
+        }
+        // insert input / output pointer
+        args.emplace_back(any_t(input));
+        MIOPEN_LOG_I("Input ptr = " << input);
+        args.emplace_back(any_t(output));
+        MIOPEN_LOG_I("Output ptr = " << output);
+        // add other pointers in op-order
+        for(auto idx = 0; idx < op_map.size(); idx++)
+        { // Populate args for pointers based operator order
             auto op   = op_map[idx];
-            auto keys = size_map[std::pair<size_t, size_t>(idx, sz)];
+            auto keys = ptr_map[idx];
             std::sort(keys.begin(), keys.end());
             for(auto& key : keys)
             {
-                MIOPEN_LOG_I("Populate scalar args, key: " + key);
                 auto it = op_args.args_map.find(key);
                 if(it != op_args.args_map.end())
                 {
+                    MIOPEN_LOG_I("Pointer " << key << " = " << it->second);
                     args.push_back(it->second);
                 }
             }
         }
     }
-    // insert input / output pointer
-    args.emplace_back(any_t(input));
-    args.emplace_back(any_t(output));
-    // add other pointers in op-order
-    for(auto idx = 0; idx < op_map.size(); idx++)
-    { // Populate args for pointers based operator order
-        auto op   = op_map[idx];
-        auto keys = ptr_map[idx];
-        std::sort(keys.begin(), keys.end());
-        for(auto& key : keys)
-        {
-            MIOPEN_LOG_I("Populate arg pointers, key: " + key);
-            auto it = op_args.args_map.find(key);
-            if(it != op_args.args_map.end())
-                args.push_back(it->second);
-        }
-    }
-    if(is_asm_kernel)
+    if(kernel_source_type == AsmText)
     { // Padded arguments
         std::vector<any_t> padded_args;
         size_t running_sz = args[0].size();
@@ -587,7 +757,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                 auto padding = running_sz % args[idx].size();
                 if(padding != 0)
                 {
-                    MIOPEN_LOG_I("*************  Adding padding: " + std::to_string(padding));
+                    MIOPEN_LOG_I("*** Padding: " << padding);
                     any_t tmp(0, padding);
                     padded_args.push_back(tmp);
                     running_sz += padding;
