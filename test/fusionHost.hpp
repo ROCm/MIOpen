@@ -252,6 +252,70 @@ void activationHostInfererence(miopenActivationMode_t activMode,
     par_for(input.desc.GetElementSize(), 1, [&](int index) { output[index] = f(input[index]); });
 }
 
+/*
+
+void activationHostInfererenceHalf(miopenActivationMode_t activMode,
+                               half_float::half gamma,
+                               half_float::half beta,
+                               half_float::half alpha,
+                               const tensor<half_float::half>& input,
+                               tensor<half_float::half>& output)
+{
+
+    std::function<half_float::half(half_float::half)> f;
+
+    switch(activMode)
+    {
+    case miopenActivationPASTHRU: //  x
+        f = [=](half_float::half x) { return x; };
+        break;
+    case miopenActivationLOGISTIC: // 1 / (1 + e^-x)  //Sigmoid
+        f = [=](half_float::half x) { return (1. / (1. + half_float::exp(-x))); };
+        break;
+    case miopenActivationTANH: // beta * tanh(alpha * x)
+        f = [=](T x) { return static_cast<T>(beta * std::tanh(alpha * x)); };
+        break;
+    case miopenActivationRELU: // max(0, x)
+        f = [=](T x) { return static_cast<T>((x > 0.) ? x : 0.); };
+        break;
+    case miopenActivationSOFTRELU: //  log(1 + e^x)   // bonomial normal log likelihood
+        f = [=](T x) { return static_cast<T>(std::log1p(std::exp(x))); };
+        break;
+    case miopenActivationABS: //  abs(x)
+        f = [=](T x) { return static_cast<T>(half_float::fabs(x)); };
+        break;
+    case miopenActivationPOWER: // (alpha + beta * x) ^ gamma
+        f = [=](T x) {
+            auto v = static_cast<T>(alpha + beta * x);
+            return (v <= std::numeric_limits<T>::epsilon()) ? static_cast<T>(0.)
+                                                            : static_cast<T>(pow(v, gamma));
+        };
+        break;
+    case miopenActivationCLIPPEDRELU: // min(alpha, max(0, x))
+        f = [=](T x) { return static_cast<T>(std::min(alpha, std::max(T(0.), x))); };
+        break;
+    case miopenActivationLEAKYRELU: // alpha * x | x<=0; x | x>0
+        f = [=](T x) { return static_cast<T>((x > 0.) ? x : x * alpha); };
+        break;
+    case miopenActivationELU: // alpah * (exp(x)-1) | x<=0; x | x>0
+        f = [=](T x) { return static_cast<T>((x > 0.) ? x : alpha * std::expm1(x)); };
+        break;
+        // default: printf("ERROR: unknown neuron type: %d\n", activMode); break;
+    }
+
+    par_for(input.desc.GetElementSize(), 1, [&](int index) { output[index] = f(input[index]); });
+}
+
+*/
+
+
+
+
+
+
+
+
+
 template <class T>
 tensor<T> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
                             const tensor<T>& input,
