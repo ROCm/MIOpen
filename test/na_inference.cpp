@@ -101,16 +101,15 @@ struct verify_inference_batchnorm_activ
             }
 
             activationHostInfer(activ_mode,
-                                      static_cast<T>(activ_gamma),
-                                      static_cast<T>(activ_beta),
-                                      static_cast<T>(activ_alpha),
-                                      bout.data,
-                                      aout.data);
-
+                                static_cast<T>(activ_gamma),
+                                static_cast<T>(activ_beta),
+                                static_cast<T>(activ_alpha),
+                                bout.data,
+                                aout.data);
         }
 
-/*        for(auto& idx: aout.data)
-            printf("aout: %lf\n",idx);*/
+        /*        for(auto& idx: aout.data)
+                    printf("aout: %lf\n",idx);*/
         return aout;
     }
 
