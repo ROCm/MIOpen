@@ -30,8 +30,6 @@
 #include <miopen/batch_norm_activ.hpp>
 #include <miopen/direct_conv_ocl.hpp>
 
-#define MIO_CONV_ALGO_COUNT 4
-
 // DLOWELL I'll resuse this for all ordered combinations
 // of convolution + bias + batchnorm + activations
 template <class T>
@@ -73,24 +71,6 @@ struct verify_forward_conv_bias
         miopenFusionOpDescriptor_t biasOp;
         miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
         miopenCreateOpConvForward(fusePlanDesc, &convoOp, filter, weightsDesc);
-#if 0
-        miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
-        int retAlgCount = 0;
-        // Query the supported algorithms
-        miopenFusionPlanConvolutionGetAlgo(
-            fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
-
-        // TODO: Replace this with WinoGrad to check for wino grad supported kernels
-        miopenConvFwdAlgorithm_t req_algo = miopenConvolutionFwdAlgoDirect;
-        if((std::begin(sup_algos) + retAlgCount) != std::find(std::begin(sup_algos),
-                                                              std::begin(sup_algos) + retAlgCount,
-                                                              miopenConvolutionFwdAlgoDirect))
-        {
-            // should not throw
-            miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, req_algo);
-        }
-#endif
-
         miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
 
         // Compile
@@ -129,25 +109,8 @@ struct verify_forward_conv_bias
             fusePlanDesc,
             &convoOp,
             filter,
-            // \todo : DLOWELL Hardcoded. This assumes immediate mode. Needs GetAlgo.
-            // miopenConvolutionFwdAlgoDirect,
             weightsDesc);
-#if 0
-        miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
-        int retAlgCount = 0;
-        // Query the supported algorithms
-        miopenFusionPlanConvolutionGetAlgo(
-            fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
-        // TODO: Replace this with WinoGrad to check for wino grad supported kernels
-        miopenConvFwdAlgorithm_t req_algo = miopenConvolutionFwdAlgoDirect;
-        if(std::begin(sup_algos) + retAlgCount != std::find(std::begin(sup_algos),
-                                                            std::begin(sup_algos) + retAlgCount,
-                                                            miopenConvolutionFwdAlgoDirect))
-        {
-            // should not throw
-            miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, req_algo);
-        }
-#endif
+
         miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
 
         // Compile
@@ -234,25 +197,8 @@ struct verify_forward_conv_bias_activ
             fusePlanDesc,
             &convoOp,
             filter,
-            // \todo dlowell: Hardcoded right now. This assumes immediate mode. Needs GetAlgo.
-            // miopenConvolutionFwdAlgoDirect,
             weightsDesc);
-#if 0
-        miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
-        int retAlgCount = 0;
-        // Query the supported algorithms
-        miopenFusionPlanConvolutionGetAlgo(
-            fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
-        // TODO: Replace this with WinoGrad to check for wino grad supported kernels
-        miopenConvFwdAlgorithm_t req_algo = miopenConvolutionFwdAlgoDirect;
-        if((std::begin(sup_algos) + retAlgCount) != std::find(std::begin(sup_algos),
-                                                              std::begin(sup_algos) + retAlgCount,
-                                                              miopenConvolutionFwdAlgoDirect))
-        {
-            // should not throw
-            miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, req_algo);
-        }
-#endif
+
         if(bias_mode)
             miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
 
@@ -315,25 +261,8 @@ struct verify_forward_conv_bias_activ
             fusePlanDesc,
             &convoOp,
             filter,
-            // \todo dlowell: Hardcoded right now. This assumes immediate mode. Needs GetAlgo.
-            // miopenConvolutionFwdAlgoDirect,
             weightsDesc);
-#if 0
-        miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
-        int retAlgCount = 0;
-        // Query the supported algorithms
-        miopenFusionPlanConvolutionGetAlgo(
-            fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
-        // TODO: Replace this with WinoGrad to check for wino grad supported kernels
-        miopenConvFwdAlgorithm_t req_algo = miopenConvolutionFwdAlgoDirect;
-        if((std::begin(sup_algos) + retAlgCount) != std::find(std::begin(sup_algos),
-                                                              std::begin(sup_algos) + retAlgCount,
-                                                              miopenConvolutionFwdAlgoDirect))
-        {
-            // should not throw
-            miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, req_algo);
-        }
-#endif
+
         if(bias_mode)
             miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
 
