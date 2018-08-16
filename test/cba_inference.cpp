@@ -272,9 +272,9 @@ struct verify_forward_conv_bias_activ
             // If we are using convolutions as the base, we can calculate the
             convHostForward(input, rout, weights, 1, bias, filter);
             activationHostInfer(activ_mode,
-                                static_cast<T>(activ_gamma),
-                                static_cast<T>(activ_beta),
-                                static_cast<T>(activ_alpha),
+                                activ_gamma,
+                                activ_beta,
+                                activ_alpha,
                                 rout.data,
                                 aout.data);
         }
@@ -422,7 +422,7 @@ struct cba_fusion_driver : test_driver
         //       add(conv_mode, "cmode", generate_data({"conv"}/*, "trans"}*/));
         add(pad_mode, "pmode", generate_data({"default" /*, "same", "valid"*/}));
         add(tactiv, "test_activ", generate_data({false, true}));
-        add(amode, "amode", generate_data({/*0,*/ 3, 8, 1}));
+        add(amode, "amode", generate_data({3, 6}));
     }
 
     std::vector<miopen::ConvolutionDescriptor> get_filters()
@@ -437,11 +437,6 @@ struct cba_fusion_driver : test_driver
 
     void run()
     {
-
-        if(input.desc.GetType() == miopenHalf)
-        {
-            std::cout << "Half precision in action." << std::endl;
-        }
         switch(amode)
         {
         case 0: activ_mode = miopenActivationPASTHRU; break;
@@ -513,14 +508,6 @@ struct cba_fusion_driver : test_driver
                     return;
             }
 
-            if(input.desc.GetType() == miopenHalf)
-            {
-                for(int i = 0; i < input.desc.GetElementSize(); i++)
-                {
-                    input[i] = (((rand() % 2) == 1) ? -1 : 1 * (0.01 * T(rand() % 100)));
-                }
-            }
-
             if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
                wei_h > 2 * fpad_h && wei_w > 2 * fpad_w && input_h >= (2 * fpad_h + wei_h) &&
                input_w >= (2 * fpad_w + wei_w))
@@ -531,6 +518,7 @@ struct cba_fusion_driver : test_driver
                 {
                     auto bias =
                         tensor<T>{1, output.desc.GetLengths()[1], 1, 1}.generate(rand_gen{});
+
                     // create activation descriptor here
                     if(tactiv)
                     {

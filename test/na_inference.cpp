@@ -101,15 +101,13 @@ struct verify_inference_batchnorm_activ
             }
 
             activationHostInfer(activ_mode,
-                                static_cast<T>(activ_gamma),
-                                static_cast<T>(activ_beta),
-                                static_cast<T>(activ_alpha),
+                                activ_gamma,
+                                activ_beta,
+                                activ_alpha,
                                 bout.data,
                                 aout.data);
         }
 
-        /*        for(auto& idx: aout.data)
-                    printf("aout: %lf\n",idx);*/
         return aout;
     }
 
@@ -198,18 +196,12 @@ struct na_fusion_driver : test_driver
         add(alpha, "alpha", generate_data({/*1.,*/ 0.5}));
         add(beta, "beta", generate_data({/*0.,*/ 0.5}));
         add(gamma, "gamma", generate_data({/*1.,*/ 0.5}));
-        add(amode, "amode", generate_data({0, 3, 8, 1}));
+        add(amode, "amode", generate_data({0, 3, 5}));
         add(batchnormMode, "batch-norm-mode", generate_data({0, 1}));
     }
 
     void run()
     {
-
-        /*        if(input.desc.GetType() == miopenHalf)
-                {
-                    // std::cout << "Half precision not yet supported." << std::endl;
-                    return;
-                }*/
 
         switch(amode)
         {
