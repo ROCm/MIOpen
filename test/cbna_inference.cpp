@@ -518,7 +518,7 @@ struct cbna_fusion_driver : test_driver
                 }
                 for(int i = 0; i < input.desc.GetElementSize(); i++)
                 {
-                    input[i] = (((rand() % 2) == 1) ? -1 : 1) * T(rand() % 100);
+                    input[i] = (((rand() % 2) == 1) ? -1 : 1) * (0.1 * T(rand() % 100));
                 }
             }
 
