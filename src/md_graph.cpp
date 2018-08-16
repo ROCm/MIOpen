@@ -214,12 +214,22 @@ void FusionMDGraph::InitConv(FusionMDGraph& g, bool allow_winograd)
         /// \todo Winograd has some limitations related to R,S,C,K, needs to implement checks - how?
         /// \todo Only 0x0 padding for now. 9_2_7 supports asymmetric padding, from 0 to 2^16.
         /// \todo Winograd supports wide range of RxS. 3x3 only for now.
-        auto key = ConvForwardOpDescriptor::MDGraphKey(defaults, {0, 0, 3, 3});
-        FusionMDGraph_Edge_Map map_wino_conv = {
-            {"key", {key}},
-            {"weight", {"10"}},
-            {"algo", {std::to_string(miopenConvolutionFwdAlgoWinograd)}},
-            {"precision", {std::to_string(miopenFloat)}}};
+        auto map_wino_conv = ConvForwardOpDescriptor::MDGraphKey(miopenConvolution,
+                                                                 miopenPaddingDefault,
+                                                                 /*pad_h*/ 0,
+                                                                 /*pad_w*/ 0,
+                                                                 /* u */ 1,
+                                                                 /* v */ 1,
+                                                                 /*dilation_h*/ 1,
+                                                                 /*dilation_w*/ 1,
+                                                                 /*k any*/ 0,
+                                                                 /*c any*/ 0,
+                                                                 /* x */ 3,
+                                                                 /* y */ 3);
+        map_wino_conv.emplace("weight", EdgeOp(10, true, OpAny));
+        map_wino_conv.emplace("algo", EdgeOp(miopenConvolutionFwdAlgoWinograd, true, OpAny));
+        map_wino_conv.emplace("precision", EdgeOp(miopenFloat, true, OpEqual));
+
         g.AddEdge(nullptr, vc, map_wino_conv);
 
         /// C>B>A| (4)
@@ -230,12 +240,15 @@ void FusionMDGraph::InitConv(FusionMDGraph& g, bool allow_winograd)
         auto va_leaf = std::make_shared<MDGraph_vertex>(
             miopenFusionOpActivForward, program, kernel, algo, true);
 
-        FusionMDGraph_Edge_Map edg_activ_relu = {
-            {"key", {ActivFusionOpDescriptor::MDGraphKey(miopenActivationRELU)}},
-            {"weight", {"0"}}};
-        FusionMDGraph_Edge_Map edg_activ_leaky_relu = {
-            {"key", {ActivFusionOpDescriptor::MDGraphKey(miopenActivationLEAKYRELU)}},
-            {"weight", {"0"}}};
+        FusionMDGraph_Edge_Map edg_activ_relu =
+            ActivFusionOpDescriptor::MDGraphKey(miopenActivationRELU);
+        edg_activ_relu.emplace("weight", EdgeOp(0, true, OpAny));
+        edg_activ_relu.emplace("precision", EdgeOp(miopenFloat, true, OpEqual));
+
+        FusionMDGraph_Edge_Map edg_activ_leaky_relu =
+            ActivFusionOpDescriptor::MDGraphKey(miopenActivationLEAKYRELU);
+        edg_activ_leaky_relu.emplace("weight", EdgeOp(0, true, OpAny));
+        edg_activ_leaky_relu.emplace("precision", EdgeOp(miopenFloat, true, OpEqual));
 
         g.AddEdge(vb, va_leaf, edg_activ_relu);
         g.AddEdge(vb, va_leaf, edg_activ_leaky_relu);
@@ -286,6 +299,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g, bool allow_winograd)
                                                                 /* y */ 1);
         map_asm_conv.emplace("weight", EdgeOp(1, true, OpAny));
         map_asm_conv.emplace("algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
+        map_asm_conv.emplace("precision", EdgeOp(miopenFloat, true, OpEqual));
 
         g.AddEdge(nullptr, conv_v, map_asm_conv);
         g.AddEdge(conv_v, bias_v, empty_map);

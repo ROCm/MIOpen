@@ -252,18 +252,20 @@ FusionMDGraph_Edge_Map ConvForwardOpDescriptor::MDGraphKey() const
     auto lens = filter_desc.GetLengths();
     int k, c, x, y;
     std::tie(k, c, x, y) = tien<4>(lens);
-    return ConvForwardOpDescriptor::MDGraphKey(base_desc.mode,
-                                               base_desc.paddingMode,
-                                               base_desc.pad_h,
-                                               base_desc.pad_w,
-                                               base_desc.u,
-                                               base_desc.v,
-                                               base_desc.dilation_h,
-                                               base_desc.dilation_w,
-                                               k,
-                                               c,
-                                               x,
-                                               y);
+    auto m = ConvForwardOpDescriptor::MDGraphKey(base_desc.mode,
+                                                 base_desc.paddingMode,
+                                                 base_desc.pad_h,
+                                                 base_desc.pad_w,
+                                                 base_desc.u,
+                                                 base_desc.v,
+                                                 base_desc.dilation_h,
+                                                 base_desc.dilation_w,
+                                                 k,
+                                                 c,
+                                                 x,
+                                                 y);
+    m.emplace("precision", EdgeOp(input_desc.GetType(), true, OpEqual));
+    return m;
 }
 
 std::vector<size_t> ConvForwardOpDescriptor::GetLocalWGSz(Handle& handle,
@@ -333,11 +335,6 @@ FusionMDGraph_Edge_Map ActivFusionOpDescriptor::MDGraphKey(miopenActivationMode_
 FusionMDGraph_Edge_Map ActivFusionOpDescriptor::MDGraphKey() const
 {
     return ActivFusionOpDescriptor::MDGraphKey(activMode);
-}
-
-std::string ActivFusionOpDescriptor::MDGraphKey(miopenActivationMode_t mode)
-{
-    return std::to_string(mode);
 }
 
 miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
@@ -690,7 +687,8 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             else if(op->kind() == miopenFusionOpActivForward)
             {
                 is_activation = true;
-                is_leakyRELU  = (op->MDGraphKey() == std::to_string(miopenActivationLEAKYRELU));
+                is_leakyRELU  = (op->MDGraphKey().at("activ_mode").val ==
+                                std::to_string(miopenActivationLEAKYRELU));
             }
         }
         const int flags        = (is_bias ? (1 << 7) : 0) + (is_activation ? (1 << 8) : 0);
