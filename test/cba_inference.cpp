@@ -105,11 +105,7 @@ struct verify_forward_conv_bias
         double alpha = 1., beta = 0.;
         miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
         miopenCreateOperatorArgs(&fusionArgs);
-        miopenCreateOpConvForward(
-            fusePlanDesc,
-            &convoOp,
-            filter,
-            weightsDesc);
+        miopenCreateOpConvForward(fusePlanDesc, &convoOp, filter, weightsDesc);
 
         miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
 
@@ -193,11 +189,7 @@ struct verify_forward_conv_bias_activ
             activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
 
         miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
-        miopenCreateOpConvForward(
-            fusePlanDesc,
-            &convoOp,
-            filter,
-            weightsDesc);
+        miopenCreateOpConvForward(fusePlanDesc, &convoOp, filter, weightsDesc);
 
         if(bias_mode)
             miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
@@ -257,11 +249,7 @@ struct verify_forward_conv_bias_activ
         double alpha = 1., beta = 0.;
         miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
         miopenCreateOperatorArgs(&fusionArgs);
-        miopenCreateOpConvForward(
-            fusePlanDesc,
-            &convoOp,
-            filter,
-            weightsDesc);
+        miopenCreateOpConvForward(fusePlanDesc, &convoOp, filter, weightsDesc);
 
         if(bias_mode)
             miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);

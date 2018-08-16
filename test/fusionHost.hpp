@@ -215,39 +215,39 @@ void activationHostInfer(miopenActivationMode_t activMode,
     switch(activMode)
     {
     case miopenActivationPASTHRU: //  x
-        f = [=](double x) { return x; };
+        f = [&](double x) { return x; };
         break;
     case miopenActivationLOGISTIC: // 1 / (1 + e^-x)  //Sigmoid
-        f = [=](double x) { return (1. / (1. + std::exp(-x))); };
+        f = [&](double x) { return (1. / (1. + std::exp(-x))); };
         break;
     case miopenActivationTANH: // beta * tanh(alpha * x)
-        f = [=](double x) { return (beta * std::tanh(alpha * x)); };
+        f = [&](double x) { return (beta * std::tanh(alpha * x)); };
         break;
     case miopenActivationRELU: // max(0, x)
-        f = [=](double x) { return ((x > 0.) ? x : 0.); };
+        f = [&](double x) { return ((x > 0.) ? x : 0.); };
         break;
     case miopenActivationSOFTRELU: //  log(1 + e^x)   // bonomial normal log likelihood
-        f = [=](double x) {
+        f = [&](double x) {
             return (x > 0.) ? (x + std::log1p(std::exp(-x))) : (std::log1p(std::exp(x)));
         };
         break;
     case miopenActivationABS: //  abs(x)
-        f = [=](double x) { return (std::fabs(x)); };
+        f = [&](double x) { return (std::fabs(x)); };
         break;
     case miopenActivationPOWER: // (alpha + beta * x) ^ gamma
-        f = [=](double x) {
+        f = [&](double x) {
             auto v = (alpha + beta * x);
             return (v <= std::numeric_limits<double>::epsilon()) ? 0. : pow(v, gamma);
         };
         break;
     case miopenActivationCLIPPEDRELU: // min(alpha, max(0, x))
-        f = [=](double x) { return (std::min(alpha, std::max(double(0.), x))); };
+        f = [&](double x) { return (std::min(alpha, std::max(double(0.), x))); };
         break;
     case miopenActivationLEAKYRELU: // alpha * x | x<=0; x | x>0
-        f = [=](double x) { return ((x > 0.) ? x : x * alpha); };
+        f = [&](double x) { return ((x > 0.) ? x : x * alpha); };
         break;
     case miopenActivationELU: // alpah * (exp(x)-1) | x<=0; x | x>0
-        f = [=](double x) { return ((x > 0.) ? x : alpha * std::expm1(x)); };
+        f = [&](double x) { return ((x > 0.) ? x : alpha * std::expm1(x)); };
         break;
         // default: printf("ERROR: unknown neuron type: %d\n", activMode); break;
     }
