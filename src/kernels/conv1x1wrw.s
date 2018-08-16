@@ -67,6 +67,7 @@ gid_z = 4
     default chunk_size, 4 // 1..16, 2^n
     default n_part_cnt, 1 //1..8
 .endif
+default vec_size, 1
 default limit_wave_cnt, 0
 default hw_per_gpr, 1 // 1..4, 2^n
 
