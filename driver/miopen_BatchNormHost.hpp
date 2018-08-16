@@ -36,6 +36,22 @@
 #define MIO_BN_DIST 32
 #endif
 
+int computeNStride(int channels, int depth, int height, int width)
+{
+    if(!depth)
+        return channels * height * width;
+    else
+        return channels * depth * height * width;
+}
+
+int computeCStride(int depth, int height, int width)
+{
+    if(!depth)
+        return height * width;
+    else
+        return depth * height * width;
+}
+
 template <typename Tgpu, typename Tref>
 int miopenBNFwdTrainPerActivationRunHost(
     /*
@@ -44,6 +60,7 @@ int miopenBNFwdTrainPerActivationRunHost(
     */
     int n_batchs,
     int channels,
+    int depth,
     int height,
     int width,
     const Tgpu* in_ptr,
@@ -63,12 +80,16 @@ int miopenBNFwdTrainPerActivationRunHost(
     // C*H*W is also stored as in_nstride, H*W is in_cstride, W is in_hstride.
     unsigned int index;
     unsigned int adjIndex;
-    unsigned int in_nstride = channels * height * width;
-    unsigned int in_cstride = height * width;
+    unsigned int in_nstride = computeNStride(channels, depth, height, width);
+    unsigned int in_cstride = computeCStride(depth, height, width);
 
     Tref mean_accum     = static_cast<Tref>(0.);
     Tref variance_accum = static_cast<Tref>(0.);
     Tref elemStd        = static_cast<Tref>(0.);
+
+    // When depth is present, flatten depth and height as height
+    if(depth)
+        height *= depth;
 
     int ret = 0;
     for(int cidx = 0; cidx < channels; cidx++)
@@ -76,6 +97,7 @@ int miopenBNFwdTrainPerActivationRunHost(
         mean_accum     = static_cast<Tref>(0.);
         variance_accum = static_cast<Tref>(0.);
         // process the batch per channel
+
         for(int row = 0; row < height; row++)
         { // via rows
             for(int column = 0; column < width; column++)
@@ -158,6 +180,7 @@ int miopenBNFwdTrainSpatialRunHost(
     */
     int n_batchs,
     int channels,
+    int depth,
     int height,
     int width,
     const Tgpu* in_ptr,
@@ -177,13 +200,17 @@ int miopenBNFwdTrainSpatialRunHost(
     unsigned int imgIndex;
     unsigned int index;
     unsigned int adjIndex;
-    unsigned int in_nstride = channels * height * width;
-    unsigned int in_cstride = height * width;
+    unsigned int in_nstride = computeNStride(channels, depth, height, width);
+    unsigned int in_cstride = computeCStride(depth, height, width);
     auto NHW                = static_cast<Tref>(in_cstride * n_batchs);
 
     Tref elemStd        = static_cast<Tref>(0.);
     Tref variance_accum = static_cast<Tref>(0.);
     Tref mean_accum     = static_cast<Tref>(0.);
+
+    // When depth is present, flatten depth and height as height
+    if(depth)
+        height *= depth;
 
 #if(MIO_HEIRARCH_SEL == 1)
     Tref variance_accum_arr[MIO_BN_DIST];
@@ -373,6 +400,7 @@ int miopenBNFwdInferPerActivationRunHost(
     */
     int n_batchs,
     int channels,
+    int depth,
     int height,
     int width,
     const Tgpu* in_ptr,
@@ -388,10 +416,14 @@ int miopenBNFwdInferPerActivationRunHost(
     // C*H*W is also stored as in_nstride, H*W is in_cstride, W is in_hstride.
     unsigned int index;
     unsigned int adjIndex;
-    unsigned int in_nstride = channels * height * width;
-    unsigned int in_cstride = height * width;
+    unsigned int in_nstride = computeNStride(channels, depth, height, width);
+    unsigned int in_cstride = computeCStride(depth, height, width);
 
     Tref elemStd = static_cast<Tref>(0.);
+
+    // When depth is present, flatten depth and height as height
+    if(depth)
+        height *= depth;
 
     int ret = 0;
     if(estmeanvar)
@@ -403,6 +435,7 @@ int miopenBNFwdInferPerActivationRunHost(
         for(int cidx = 0; cidx < channels; cidx++)
         { // via channel
             // process the batch per channel
+
             for(int row = 0; row < height; row++)
             { // via rows
                 for(int column = 0; column < width; column++)
@@ -434,6 +467,7 @@ int miopenBNFwdInferPerActivationRunHost(
         for(int cidx = 0; cidx < channels; cidx++)
         { // via channel
             // process the batch per channel
+
             for(int row = 0; row < height; row++)
             { // via rows
                 for(int column = 0; column < width; column++)
@@ -492,6 +526,7 @@ int miopenBNFwdInferSpatialRunHost(
     */
     int n_batchs,
     int channels,
+    int depth,
     int height,
     int width,
     const Tgpu* in_ptr,
@@ -506,11 +541,15 @@ int miopenBNFwdInferSpatialRunHost(
 
     unsigned int index;
     unsigned int adjIndex;
-    unsigned int in_nstride = channels * height * width;
-    unsigned int in_cstride = height * width;
+    unsigned int in_nstride = computeNStride(channels, depth, height, width);
+    unsigned int in_cstride = computeCStride(depth, height, width);
 
     Tref elemStd = static_cast<Tref>(0.);
     int ret      = 0;
+
+    // When depth is present, flatten depth and height as height
+    if(depth)
+        height *= depth;
 
     if(estmeanvar)
     {
@@ -691,6 +730,7 @@ int miopenBNBwdPerActivationRunHost(
     */
     int n_batchs,
     int channels,
+    int depth,
     int height,
     int width,
     const Tgpu* x_ptr,  // layer's fwd input
@@ -708,8 +748,8 @@ int miopenBNBwdPerActivationRunHost(
     // C*H*W is also stored as in_nstride, H*W is in_cstride, W is in_hstride.
     unsigned int index, xhat_index;
     unsigned int adjIndex;
-    unsigned int in_nstride = channels * height * width;
-    unsigned int in_cstride = height * width;
+    unsigned int in_nstride = computeNStride(channels, depth, height, width);
+    unsigned int in_cstride = computeCStride(depth, height, width);
     Tref elemStd            = static_cast<Tref>(0.);
     Tref mean               = static_cast<Tref>(0.);
     Tref elemInvVar         = static_cast<Tref>(0.);
@@ -719,6 +759,9 @@ int miopenBNBwdPerActivationRunHost(
     Tref tmp1, tmp2, tmp3;
 
     std::vector<Tref> xhat(n_batchs * in_cstride);
+    // When depth is present, flatten depth and height as height
+    if(depth)
+        height *= depth;
 
     if(savedmeanvar)
     {
@@ -847,6 +890,7 @@ int miopenBNBwdSpatialRunHost(
     */
     int n_batchs,
     int channels,
+    int depth,
     int height,
     int width,
     const Tgpu* x_ptr,  // layer's fwd input
@@ -864,20 +908,24 @@ int miopenBNBwdSpatialRunHost(
     // C*H*W is also stored as in_nstride, H*W is in_cstride, W is in_hstride.
     unsigned int index;
     unsigned int adjIndex;
-    unsigned int in_nstride = channels * height * width;
-    unsigned int in_cstride = height * width;
+    unsigned int in_nstride = computeNStride(channels, depth, height, width);
+    unsigned int in_cstride = computeCStride(depth, height, width);
     unsigned int Csubindex  = 0;
     Tref elemStd            = static_cast<Tref>(0.);
     Tref mean               = static_cast<Tref>(0.);
     Tref invVar             = static_cast<Tref>(0.);
     Tref dyelem             = static_cast<Tref>(0.);
     Tref NHW                = static_cast<Tref>(n_batchs * in_cstride);
+    // When depth is present, flatten depth and height as height
+    if(depth)
+        height *= depth;
 
     if(savedmeanvar)
     {
         for(int cidx = 0; cidx < channels; cidx++)
         { // via channel
             Csubindex = in_cstride * cidx;
+
             for(int row = 0; row < height; row++)
             { // via rows
                 for(int column = 0; column < width; column++)
@@ -1094,8 +1142,8 @@ int miopenBNBwdSpatialRunHost(
             }
 #endif
 
-// printf("dscale: %f\n",dscale_ptr[cidx]);
-// printf("dbias: %f\n",dbias_ptr[cidx]);
+            // printf("dscale: %f\n",dscale_ptr[cidx]);
+            // printf("dbias: %f\n",dbias_ptr[cidx]);
 
 #if(MIO_HEIRARCH_SEL == 0)
             for(int row = 0; row < height; row++)
@@ -1136,7 +1184,6 @@ int miopenBNBwdSpatialRunHost(
                 }     // for (column)
             }         // for (row)
 #endif
-
         } // for (channel)
     }     // end else
 

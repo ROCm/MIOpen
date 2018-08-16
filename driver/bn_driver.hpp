@@ -98,8 +98,10 @@ class BatchNormDriver : public Driver
     void runGPUFwdTrain(Tref epsilon, Tref eAF, float alpha, float beta);
     void runGPUBwd(Tref epsilon, float alpha, float beta);
 
-    void runCPUFwdInference(Tref epsilon, int batch_sz, int channels, int height, int width);
-    void runCPUFwdTrain(Tref epsilon, Tref eAF, int batch_sz, int channels, int height, int width);
+    void runCPUFwdInference(
+        Tref epsilon, int batch_sz, int channels, int height, int width, int depth = 0);
+    void runCPUFwdTrain(
+        Tref epsilon, Tref eAF, int batch_sz, int channels, int height, int width, int depth = 0);
 
     int VerifyBackward();
     int VerifyForward();
@@ -124,6 +126,7 @@ class BatchNormDriver : public Driver
     int back;
 
     InputFlags inflags;
+    bool isDepthSpecified = false;
 
     miopenTensorDescriptor_t inputTensor;
     miopenTensorDescriptor_t biasScaleTensor;
@@ -201,13 +204,21 @@ int BatchNormDriver<Tgpu, Tref>::GetandSetData()
     SetBNParametersFromCmdLineArgs();
 
     std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
+
     std::vector<int> sb_len;
     if(bn_mode == miopenBNPerActivation)
-    { // 1xCxHxW
+    {
+        // 1xCxHxW | in_len.size = 4
         sb_len.push_back(1);
         sb_len.push_back(in_len[1]);
         sb_len.push_back(in_len[2]);
         sb_len.push_back(in_len[3]);
+
+        // 1xCxDxHxW | in_len.size = 5
+        if(in_len.size() == 5)
+        {
+            sb_len.push_back(in_len[4]);
+        }
     }
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
@@ -215,15 +226,21 @@ int BatchNormDriver<Tgpu, Tref>::GetandSetData()
         sb_len.push_back(in_len[1]);
         sb_len.push_back(1);
         sb_len.push_back(1);
+
+        // 1xCx1x1x1
+        if(in_len.size() == 5)
+        {
+            sb_len.push_back(1);
+        }
     }
 
-    SetTensor4d(inputTensor, in_len, data_type);
-    SetTensor4d(biasScaleTensor, sb_len, data_type);
-    SetTensor4d(outputTensor, in_len, data_type);
+    SetTensorNd(inputTensor, in_len, data_type);
+    SetTensorNd(biasScaleTensor, sb_len, data_type);
+    SetTensorNd(outputTensor, in_len, data_type);
 
     // backwards
-    SetTensor4d(dyInputTensor, in_len, data_type);
-    SetTensor4d(dxOutputTensor, in_len, data_type);
+    SetTensorNd(dyInputTensor, in_len, data_type);
+    SetTensorNd(dxOutputTensor, in_len, data_type);
 
     return miopenStatusSuccess;
 }
@@ -246,6 +263,7 @@ int BatchNormDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
+    inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
     inflags.AddInputFlag("alpha", 'A', "1.0", "Alpha (Default=1.0)", "float");
     inflags.AddInputFlag("beta", 'B', "0.", "Beta (Default=0.)", "float");
     inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
@@ -282,7 +300,21 @@ std::vector<int> BatchNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
     int in_c = inflags.GetValueInt("in_channels");
     int in_h = inflags.GetValueInt("in_h");
     int in_w = inflags.GetValueInt("in_w");
-    return std::vector<int>({in_n, in_c, in_h, in_w});
+    int in_d = inflags.GetValueInt("in_d");
+
+    if(in_d)
+    {
+        int in_d         = inflags.GetValueInt("in_d");
+        isDepthSpecified = true;
+
+        // NxCxDxHxW -> NxCx(D*H)xW
+        return std::vector<int>({in_n, in_c, in_d, in_h, in_w});
+    }
+    else
+    {
+        isDepthSpecified = false;
+        return std::vector<int>({in_n, in_c, in_h, in_w});
+    }
 }
 
 template <typename Tgpu, typename Tref>
@@ -847,13 +879,14 @@ int BatchNormDriver<Tgpu, Tref>::RunForwardGPU()
 
 template <typename Tgpu, typename Tref>
 void BatchNormDriver<Tgpu, Tref>::runCPUFwdInference(
-    Tref epsilon, int batch_sz, int channels, int height, int width)
+    Tref epsilon, int batch_sz, int channels, int height, int width, int depth)
 {
 
     if(bn_mode == miopenBNPerActivation)
     { // 1xCxHxW
         miopenBNFwdInferPerActivationRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
                                                          channels,
+                                                         depth,
                                                          height,
                                                          width,
                                                          in.data(),
@@ -869,6 +902,7 @@ void BatchNormDriver<Tgpu, Tref>::runCPUFwdInference(
     { // 1xCx1x1
         miopenBNFwdInferSpatialRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
                                                    channels,
+                                                   depth,
                                                    height,
                                                    width,
                                                    in.data(),
@@ -891,13 +925,14 @@ void BatchNormDriver<Tgpu, Tref>::runCPUFwdInference(
 
 template <typename Tgpu, typename Tref>
 void BatchNormDriver<Tgpu, Tref>::runCPUFwdTrain(
-    Tref epsilon, Tref eAF, int batch_sz, int channels, int height, int width)
+    Tref epsilon, Tref eAF, int batch_sz, int channels, int height, int width, int depth)
 {
 
     if(bn_mode == miopenBNPerActivation)
     { // 1xCxHxW
         miopenBNFwdTrainPerActivationRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
                                                          channels,
+                                                         depth,
                                                          height,
                                                          width,
                                                          in.data(),
@@ -917,6 +952,7 @@ void BatchNormDriver<Tgpu, Tref>::runCPUFwdTrain(
     { // 1xCx1x1
         miopenBNFwdTrainSpatialRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
                                                    channels,
+                                                   depth,
                                                    height,
                                                    width,
                                                    in.data(),
@@ -943,21 +979,18 @@ void BatchNormDriver<Tgpu, Tref>::runCPUFwdTrain(
 template <typename Tgpu, typename Tref>
 int BatchNormDriver<Tgpu, Tref>::RunForwardCPU()
 {
+    int nIn = 0, cIn = 0, dIn = 0, hIn = 0, wIn = 0;
 
-    int nInStride, cInStride, hInStride, wInStride;
-    miopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
-    int nIn, cIn, hIn, wIn;
-    miopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
-    int nOutStride, cOutStride, hOutStride, wOutStride;
-    miopenGet4dTensorDescriptorStrides(
-        outputTensor, &nOutStride, &cOutStride, &hOutStride, &wOutStride);
-    int nOut, cOut, hOut, wOut;
-    miopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
+    if(isDepthSpecified)
+        miopenGet5dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &dIn, &hIn, &wIn);
+    else
+        miopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
 
     int batch_sz = nIn;
     int channels = cIn;
     int height   = hIn;
     int width    = wIn;
+    int depth    = dIn;
 
     //	T alpha = 0., beta  = 0.;
     Tref epsilon = static_cast<Tref>(EPSILON);
@@ -968,12 +1001,13 @@ int BatchNormDriver<Tgpu, Tref>::RunForwardCPU()
         for(int i = 0; i < inflags.GetValueInt("iter"); i++)
         {
             eAF = static_cast<Tref>(1.0) / (static_cast<Tref>(i) + static_cast<Tref>(1.0));
-            runCPUFwdTrain(epsilon, eAF, /* alpha, beta,*/ batch_sz, channels, height, width);
+            runCPUFwdTrain(
+                epsilon, eAF, /* alpha, beta,*/ batch_sz, channels, height, width, depth);
         }
     }
     else if(forw == 2)
     { // inference only
-        runCPUFwdInference(epsilon, /* alpha, beta,*/ batch_sz, channels, height, width);
+        runCPUFwdInference(epsilon, /* alpha, beta,*/ batch_sz, channels, height, width, depth);
     }
 
     return miopenStatusSuccess;
@@ -1289,20 +1323,18 @@ int BatchNormDriver<Tgpu, Tref>::RunBackwardCPU()
     if(!back)
         return miopenStatusSuccess;
 
-    int nInStride, cInStride, hInStride, wInStride;
-    miopenGet4dTensorDescriptorStrides(inputTensor, &nInStride, &cInStride, &hInStride, &wInStride);
-    int nIn, cIn, hIn, wIn;
-    miopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
-    int nOutStride, cOutStride, hOutStride, wOutStride;
-    miopenGet4dTensorDescriptorStrides(
-        outputTensor, &nOutStride, &cOutStride, &hOutStride, &wOutStride);
-    int nOut, cOut, hOut, wOut;
-    miopenGet4dTensorDescriptorLengths(outputTensor, &nOut, &cOut, &hOut, &wOut);
+    int nIn = 0, cIn = 0, dIn = 0, hIn = 0, wIn = 0;
+    std::cout << "isDepthSpecified" << isDepthSpecified << std::endl;
+    if(isDepthSpecified)
+        miopenGet5dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &dIn, &hIn, &wIn);
+    else
+        miopenGet4dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &hIn, &wIn);
 
     int batch_sz = nIn;
     int channels = cIn;
     int height   = hIn;
     int width    = wIn;
+    int depth    = dIn;
 
     //	T alphaDiff = 1, betaDiff = 0;
     //	T alphaParam = 1, betaParam = 0;
@@ -1314,6 +1346,7 @@ int BatchNormDriver<Tgpu, Tref>::RunBackwardCPU()
                                         Tref>(/* alphaDiff, betaDiff, alphaParam, betaParam, */
                                               batch_sz,
                                               channels,
+                                              depth,
                                               height,
                                               width,
                                               in.data(),
@@ -1332,6 +1365,7 @@ int BatchNormDriver<Tgpu, Tref>::RunBackwardCPU()
         miopenBNBwdSpatialRunHost<Tgpu, Tref>(/* alphaDiff, betaDiff, alphaParam, betaParam, */
                                               batch_sz,
                                               channels,
+                                              depth,
                                               height,
                                               width,
                                               in.data(),

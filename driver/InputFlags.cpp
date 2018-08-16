@@ -49,8 +49,7 @@ void InputFlags::AddInputFlag(const std::string& _long_name,
         MapInputs[_short_name] = in;
 }
 
-[[gnu::noreturn]] void InputFlags::Print() const
-{
+[[gnu::noreturn]] void InputFlags::Print() const {
     printf("MIOpen Driver Input Flags: \n\n");
 
     for(auto& content : MapInputs)
