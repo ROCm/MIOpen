@@ -99,13 +99,11 @@ struct verify_inference_batchnorm_activ
                 batchNormSpatialHostInference(
                     input, bout, bnscale, bnbias, epsilon, estMean, estVariance);
             }
-            activationHostInfererence(activ_mode,
-                                      static_cast<T>(activ_gamma),
-                                      static_cast<T>(activ_beta),
-                                      static_cast<T>(activ_alpha),
-                                      bout,
-                                      aout);
+
+            activationHostInfer(
+                activ_mode, activ_gamma, activ_beta, activ_alpha, bout.data, aout.data);
         }
+
         return aout;
     }
 
@@ -191,21 +189,15 @@ struct na_fusion_driver : test_driver
     na_fusion_driver()
     {
         add(input, "input", get_input_tensor());
-        add(alpha, "alpha", generate_data({1., 0.5}));
-        add(beta, "beta", generate_data({0., 0.5}));
-        add(gamma, "gamma", generate_data({1., 0.5}));
-        add(amode, "amode", generate_data({0, 3, 8, 1}));
+        add(alpha, "alpha", generate_data({/*1.,*/ 0.5}));
+        add(beta, "beta", generate_data({/*0.,*/ 0.5}));
+        add(gamma, "gamma", generate_data({/*1.,*/ 0.5}));
+        add(amode, "amode", generate_data({0, 3, 5}));
         add(batchnormMode, "batch-norm-mode", generate_data({0, 1}));
     }
 
     void run()
     {
-
-        if(input.desc.GetType() == miopenHalf)
-        {
-            // std::cout << "Half precision not yet supported." << std::endl;
-            return;
-        }
 
         switch(amode)
         {
@@ -261,11 +253,11 @@ struct na_fusion_driver : test_driver
                 scale[i]       = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
                 shift[i]       = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
                 estMean[i]     = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
-                estVariance[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
+                estVariance[i] = std::fabs((((rand() % 2) == 1) ? -1 : 1) * 1e-2 * T(rand() % 100));
             }
             for(int i = 0; i < input.desc.GetElementSize(); i++)
             {
-                input[i] = (((rand() % 2) == 1) ? -1 : 1) * (1e-5 * T(rand() % 100));
+                input[i] = (((rand() % 2) == 1) ? -1 : 1) * T(rand() % 100);
             }
         }
         verify(verify_inference_batchnorm_activ<T>{
