@@ -201,13 +201,9 @@ void batchNormPerActivHostInference(const tensor<T>& input,
     });
 }
 
-
 template <class F>
-void visitActivationHostInfer(miopenActivationMode_t activMode,
-                         double gamma,
-                         double beta,
-                         double alpha,
-                          F f)
+void visitActivationHostInfer(
+    miopenActivationMode_t activMode, double gamma, double beta, double alpha, F f)
 {
     switch(activMode)
     {
@@ -232,7 +228,7 @@ void visitActivationHostInfer(miopenActivationMode_t activMode,
         f([=](double x) { return (std::fabs(x)); });
         break;
     case miopenActivationPOWER: // (alpha + beta * x) ^ gamma
-        f([=](double x){
+        f([=](double x) {
             auto v = (alpha + beta * x);
             return (v <= std::numeric_limits<double>::epsilon()) ? 0. : pow(v, gamma);
         });
@@ -248,7 +244,6 @@ void visitActivationHostInfer(miopenActivationMode_t activMode,
         break;
         // default: printf("ERROR: unknown neuron type: %d\n", activMode); break;
     }
-
 }
 
 template <class T>
