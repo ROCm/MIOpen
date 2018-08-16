@@ -30,8 +30,6 @@
 
 #define MIO_CONV_ALGO_COUNT 4
 
-// DLOWELL I'll resuse this for all ordered combinations
-// of convolution + bias + batchnorm + activations
 template <class T>
 struct verify_forward_conv_bias_batchnorm_activ
 {
@@ -412,13 +410,6 @@ struct cbna_fusion_driver : test_driver
 
     void run()
     {
-#if 0
-        if(input.desc.GetType() == miopenHalf)
-        {
-            // std::cout << "Half precision not yet supported." << std::endl;
-            return;
-        }
-#endif
         switch(amode)
         {
         case 0: activ_mode = miopenActivationPASTHRU; break;
