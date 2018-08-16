@@ -106,7 +106,7 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
     SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t bdata);
     std::vector<std::string> GetArgs() const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpBiasForward; };
-    std::string MDGraphKey() const override;
+    FusionMDGraph_Edge_Map MDGraphKey() const override;
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
     TensorDescriptor& base_desc;
@@ -128,8 +128,8 @@ struct ActivFusionOpDescriptor : FusionOpDescriptor
                            double activGamma);
     std::vector<std::string> GetArgs() const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpActivForward; };
-    std::string MDGraphKey() const override;
-    static std::string MDGraphKey(miopenActivationMode_t mode);
+    FusionMDGraph_Edge_Map MDGraphKey() const override;
+    static FusionMDGraph_Edge_Map MDGraphKey(miopenActivationMode_t mode);
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
     miopenActivationMode_t activMode;
@@ -154,8 +154,8 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
                            double epsilon);
     std::vector<std::string> GetArgs() const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormInference; };
-    std::string MDGraphKey() const override;
-    static std::string MDGraphKey(miopenBatchNormMode_t bn_mode);
+    FusionMDGraph_Edge_Map MDGraphKey() const override;
+    static FusionMDGraph_Edge_Map MDGraphKey(miopenBatchNormMode_t bn_mode);
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
 
