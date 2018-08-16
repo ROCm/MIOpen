@@ -47,7 +47,8 @@ FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
       program_name(""),
       kernel_name(""),
       algorithm_name(""),
-      network_config(inDesc.ToString())
+      network_config(inDesc.ToString()),
+      data_type(inDesc.GetType())
 {
 }
 
@@ -280,17 +281,22 @@ miopenStatus_t ActivFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                 double activBeta,
                                                 double activGamma)
 {
-    auto id             = std::to_string(GetIdx());
-    auto alpha_any      = any_t(*(static_cast<const float*>(alpha)));
-    auto beta_any       = any_t(*(static_cast<const float*>(beta)));
-    auto activAlpha_any = any_t(static_cast<float>(activAlpha));
-    auto activBeta_any  = any_t(static_cast<float>(activBeta));
-    auto activGamma_any = any_t(static_cast<float>(activGamma));
-    // args.ins_arg("alpha" + id, alpha_any);
-    // args.ins_arg("beta" + id, beta_any);
-    args.ins_arg("activAlpha" + id, activAlpha_any);
-    args.ins_arg("activBeta" + id, activBeta_any);
-    args.ins_arg("activGamma" + id, activGamma_any);
+    (void)(alpha);
+    (void)(beta);
+
+    auto id = std::to_string(GetIdx());
+    if(input_desc.GetType() == miopenFloat)
+    {
+        args.ins_arg("activAlpha" + id, any_t(static_cast<float>(activAlpha)));
+        args.ins_arg("activBeta" + id, any_t(static_cast<float>(activBeta)));
+        args.ins_arg("activGamma" + id, any_t(static_cast<float>(activGamma)));
+    }
+    else if(input_desc.GetType() == miopenHalf)
+    {
+        args.ins_arg("activAlpha" + id, any_t(static_cast<half_float::half>(activAlpha)));
+        args.ins_arg("activBeta" + id, any_t(static_cast<half_float::half>(activBeta)));
+        args.ins_arg("activGamma" + id, any_t(static_cast<half_float::half>(activGamma)));
+    }
     return miopenStatusSuccess;
 }
 
@@ -315,9 +321,9 @@ miopenStatus_t ActivFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_d
 
 std::string ActivFusionOpDescriptor::MDGraphKey() const { return std::to_string(activMode); }
 
-std::string ActivFusionOpDescriptor::MDGraphKey(miopenActivationMode_t m)
+std::string ActivFusionOpDescriptor::MDGraphKey(miopenActivationMode_t mode)
 {
-    return std::to_string(m);
+    return std::to_string(mode);
 }
 
 miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
