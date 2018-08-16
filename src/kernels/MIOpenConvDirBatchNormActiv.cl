@@ -340,7 +340,8 @@ static inline void Conv(uint o_map_base,
                         __local _FLOAT* __restrict lcl_indata,
                         __private _FLOAT* __restrict pvt_wei_stage,
                         __local _FLOAT* __restrict lcl_wei,
-                        __private _FLOAT* __restrict pvt_accum)
+                        __private float* __restrict pvt_accum)
+                        /*__private _FLOAT* __restrict pvt_accum)*/
 {
     // convolution
 
@@ -419,7 +420,8 @@ static inline void Conv(uint o_map_base,
                         for(uint i = 0; i < MLO_OUT_TILE0; ++i)
                         {
 #if MLO_DIR_FORWARD == 1
-                            _FLOAT sum = (_FLOAT)0;
+                            /*_FLOAT sum = (_FLOAT)0;*/
+                            float sum = (float)0;
 #endif
                             for(uint l = 0; l < MLO_FILTER_SIZE0; ++l)
                             {
@@ -437,9 +439,9 @@ static inline void Conv(uint o_map_base,
 #if MLO_DIR_FORWARD == 1
                                 // Directly accumulating to `pvt_accum` here sometimes results in
                                 // validation error for half precision.
-                                sum += pvt_in_stage[j * MLO_PVT_IN_WIDTH * MLO_FILTER_STRIDE1 +
+                                sum += (float)(pvt_in_stage[j * MLO_PVT_IN_WIDTH * MLO_FILTER_STRIDE1 +
                                                     i * MLO_FILTER_STRIDE0 + l] *
-                                       pvt_wei_stage[l_act];
+                                       pvt_wei_stage[l_act]);
 #else
                             if(((i + l + 1 - MLO_PADDING_SHIFT0 +
                                  (MLO_FILTER_SIZE0 % MLO_FILTER_STRIDE0)) %
@@ -492,7 +494,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 {
     __local _FLOAT lcl_indata[MLO_IN_LCL_SZ];
     __local _FLOAT lcl_wei[MLO_WEIGHTS_SZ];
-    __private _FLOAT pvt_accum[MLO_PVT_ACCUM_DATA_SZ];
+    /*__private _FLOAT pvt_accum[MLO_PVT_ACCUM_DATA_SZ];*/
+    __private float pvt_accum[MLO_PVT_ACCUM_DATA_SZ];
     __private _FLOAT pvt_in_stage[MLO_PVT_IN_HEIGHT * MLO_PVT_IN_WIDTH];
     __private _FLOAT pvt_wei_stage[MLO_FILTER_SIZE0];
 
@@ -1153,7 +1156,8 @@ MIOpenConvUniBatchNormActiv(
 {
     __local _FLOAT lcl_indata[MLO_IN_LCL_SZ];
     __local _FLOAT lcl_wei[MLO_WEIGHTS_SZ];
-    __private _FLOAT pvt_accum[MLO_PVT_ACCUM_DATA_SZ];
+    __private float pvt_accum[MLO_PVT_ACCUM_DATA_SZ];
+    /*__private _FLOAT pvt_accum[MLO_PVT_ACCUM_DATA_SZ];*/
     __private _FLOAT pvt_in_stage[MLO_PVT_IN_HEIGHT * MLO_PVT_IN_WIDTH];
     __private _FLOAT pvt_wei_stage[MLO_FILTER_SIZE0];
 
@@ -1553,7 +1557,7 @@ MIOpenConvUniBatchNormActiv(
 #endif
 
 #endif
-                            conv_res = pvt_accum[o * MLO_OUT_TILE_SZ + j * MLO_OUT_TILE0 + i]
+                            conv_res = (_FLOAT)pvt_accum[o * MLO_OUT_TILE_SZ + j * MLO_OUT_TILE0 + i]
 #if MLO_CONV_BIAS
                                        + conv_bias[o_map + o]
 #endif
