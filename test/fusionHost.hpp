@@ -102,7 +102,8 @@ void convHostForward(const tensor<T>& input,
                 int in_off_h = i * u;
                 for(int j = 0; j < out_w; j++)
                 { // output_width (from getforwardoutputdim())
-                    auto acc     = static_cast<T>(0.);
+                    /*auto acc     = static_cast<T>(0.);*/
+                    auto acc     = static_cast<double>(0.);
                     int in_off_w = j * v;
                     for(int k = 0; k < in_c; k++)
                     { // in_channels (RGB)
@@ -116,17 +117,18 @@ void convHostForward(const tensor<T>& input,
                                     int in_y = in_off_w - pad_w + y * dilation_w;
                                     if(in_y >= 0 && in_y < in_w)
                                     {
-                                        acc +=
+                                        acc += double(
                                             static_cast<T>(input[o * in_nstride + k * in_cstride +
                                                                  in_x * in_w + in_y]) *
-                                            static_cast<T>(weights(w, k, x, y));
+                                            static_cast<T>(weights(w, k, x, y)));
                                     }
                                 }
                             }
                         }
                     }
-                    acc = bias_mode != 0 ? acc + static_cast<T>(bias[w]) : acc;
-                    output[o * out_nstride + w * out_cstride + i * out_hstride + j] = acc;
+                    acc = bias_mode != 0 ? acc + static_cast<double>(bias[w]) : acc;
+                    output[o * out_nstride + w * out_cstride + i * out_hstride + j] =
+                        static_cast<T>(acc);
                 }
             }
         }
@@ -185,7 +187,7 @@ void batchNormPerActivHostInference(const tensor<T>& input,
                 // apply down the n_batch dimension
                 double mean       = estimatedMean(0, cidx, row, column);
                 double variance   = estimatedVariance(0, cidx, row, column);
-                double elemInvVar = 1.0 / double(sqrt(variance + epsilon));
+                double elemInvVar = 1.0 / sqrt(variance + epsilon);
                 for(int bidx = 0; bidx < n_batches; bidx++)
                 { // via mini_batch
                     // per (x-dims) channel load a block of data into LDS
@@ -199,57 +201,64 @@ void batchNormPerActivHostInference(const tensor<T>& input,
     });
 }
 
-template <class T>
-void activationHostInfererence(miopenActivationMode_t activMode,
-                               T gamma,
-                               T beta,
-                               T alpha,
-                               const tensor<T>& input,
-                               tensor<T>& output)
+template <class F>
+void visitActivationHostInfer(
+    miopenActivationMode_t activMode, double gamma, double beta, double alpha, F f)
 {
-
-    std::function<T(T)> f;
-
     switch(activMode)
     {
     case miopenActivationPASTHRU: //  x
-        f = [=](T x) { return x; };
+        f([=](double x) { return x; });
         break;
     case miopenActivationLOGISTIC: // 1 / (1 + e^-x)  //Sigmoid
-        f = [=](T x) { return static_cast<T>(1. / (1. + std::exp(-x))); };
+        f([=](double x) { return (1. / (1. + std::exp(-x))); });
         break;
     case miopenActivationTANH: // beta * tanh(alpha * x)
-        f = [=](T x) { return static_cast<T>(beta * std::tanh(alpha * x)); };
+        f([=](double x) { return (beta * std::tanh(alpha * x)); });
         break;
     case miopenActivationRELU: // max(0, x)
-        f = [=](T x) { return static_cast<T>((x > 0.) ? x : 0.); };
+        f([=](double x) { return ((x > 0.) ? x : 0.); });
         break;
     case miopenActivationSOFTRELU: //  log(1 + e^x)   // bonomial normal log likelihood
-        f = [=](T x) { return static_cast<T>(std::log1p(std::exp(x))); };
+        f([=](double x) {
+            return (x > 0.) ? (x + std::log1p(std::exp(-x))) : (std::log1p(std::exp(x)));
+        });
         break;
     case miopenActivationABS: //  abs(x)
-        f = [=](T x) { return static_cast<T>(std::abs(x)); };
+        f([=](double x) { return (std::fabs(x)); });
         break;
     case miopenActivationPOWER: // (alpha + beta * x) ^ gamma
-        f = [=](T x) {
-            auto v = static_cast<T>(alpha + beta * x);
-            return (v <= std::numeric_limits<T>::epsilon()) ? static_cast<T>(0.)
-                                                            : static_cast<T>(pow(v, gamma));
-        };
+        f([=](double x) {
+            auto v = (alpha + beta * x);
+            return (v <= std::numeric_limits<double>::epsilon()) ? 0. : pow(v, gamma);
+        });
         break;
     case miopenActivationCLIPPEDRELU: // min(alpha, max(0, x))
-        f = [=](T x) { return static_cast<T>(std::min(alpha, std::max(T(0.), x))); };
+        f([=](double x) { return (std::min(alpha, std::max(double(0.), x))); });
         break;
     case miopenActivationLEAKYRELU: // alpha * x | x<=0; x | x>0
-        f = [=](T x) { return static_cast<T>((x > 0.) ? x : x * alpha); };
+        f([=](double x) { return ((x > 0.) ? x : x * alpha); });
         break;
     case miopenActivationELU: // alpah * (exp(x)-1) | x<=0; x | x>0
-        f = [=](T x) { return static_cast<T>((x > 0.) ? x : alpha * std::expm1(x)); };
+        f([=](double x) { return ((x > 0.) ? x : alpha * std::expm1(x)); });
         break;
         // default: printf("ERROR: unknown neuron type: %d\n", activMode); break;
     }
+}
 
-    par_for(input.desc.GetElementSize(), 1, [&](int index) { output[index] = f(input[index]); });
+template <class T>
+void activationHostInfer(miopenActivationMode_t activMode,
+                         double gamma,
+                         double beta,
+                         double alpha,
+                         const std::vector<T> input,
+                         std::vector<T>& output)
+{
+    visitActivationHostInfer(activMode, gamma, beta, alpha, [&](auto f) {
+        par_for(input.size(), 1, [&](int index) {
+            output[index] = static_cast<T>(f(static_cast<double>(input[index])));
+        });
+    });
 }
 
 template <class T>

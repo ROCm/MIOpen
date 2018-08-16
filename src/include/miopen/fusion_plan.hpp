@@ -50,6 +50,7 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     std::string kernel_name;
     std::string algorithm_name;
     std::string network_config;
+    miopenDataType_t data_type;
 };
 
 } // namespace miopen
