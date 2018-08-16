@@ -216,7 +216,6 @@ solver::KernelInfo& ConvForwardOpDescriptor::GetKernelInfo(Handle& handle,
     { // May need an extra check of FP16 versus FP32
         mlo_construct_direct2D_fusion construct_params = ConstructParams(handle);
         ConvolutionContext params;
-        params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
         construct_params.mloCopyTo(params);
         // params.general_compile_options += compile_config;
         kernel_info       = solver::CBAFusionGetSolution(params);
@@ -263,7 +262,6 @@ solver::KernelInfo& ConvForwardOpDescriptor::GetKernelInfo(Handle& handle,
         }
         else
         { // May need an extra check of FP16 versus FP32
-            params.general_compile_options += " -DMIOPEN_USE_FP32=1 -DMIOPEN_USE_FP16=0";
             kernel_info = solver::CBAFusionGetSolution(params);
         }
         kernel_info_valid = true;
