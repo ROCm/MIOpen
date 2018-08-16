@@ -117,8 +117,8 @@ void convHostForward(const tensor<T>& input,
                                     int in_y = in_off_w - pad_w + y * dilation_w;
                                     if(in_y >= 0 && in_y < in_w)
                                     {
-                                        acc +=
-                                            double(static_cast<T>(input[o * in_nstride + k * in_cstride +
+                                        acc += double(
+                                            static_cast<T>(input[o * in_nstride + k * in_cstride +
                                                                  in_x * in_w + in_y]) *
                                             static_cast<T>(weights(w, k, x, y)));
                                     }
@@ -127,7 +127,8 @@ void convHostForward(const tensor<T>& input,
                         }
                     }
                     acc = bias_mode != 0 ? acc + static_cast<double>(bias[w]) : acc;
-                    output[o * out_nstride + w * out_cstride + i * out_hstride + j] = static_cast<T>(acc);
+                    output[o * out_nstride + w * out_cstride + i * out_hstride + j] =
+                        static_cast<T>(acc);
                 }
             }
         }
@@ -226,7 +227,9 @@ void activationHostInfer(miopenActivationMode_t activMode,
         f = [=](double x) { return ((x > 0.) ? x : 0.); };
         break;
     case miopenActivationSOFTRELU: //  log(1 + e^x)   // bonomial normal log likelihood
-        f = [=](double x) { return (x > 0.) ? (x+std::log1p(std::exp(-x))):(std::log1p(std::exp(x))); };
+        f = [=](double x) {
+            return (x > 0.) ? (x + std::log1p(std::exp(-x))) : (std::log1p(std::exp(x)));
+        };
         break;
     case miopenActivationABS: //  abs(x)
         f = [=](double x) { return (std::fabs(x)); };
@@ -249,9 +252,10 @@ void activationHostInfer(miopenActivationMode_t activMode,
         // default: printf("ERROR: unknown neuron type: %d\n", activMode); break;
     }
 
-    par_for(input.size(), 1, [&](int index) { output.at(index) = static_cast<T>(f(static_cast<double>(input.at(index)))); });
+    par_for(input.size(), 1, [&](int index) {
+        output.at(index) = static_cast<T>(f(static_cast<double>(input.at(index))));
+    });
 }
-
 
 template <class T>
 tensor<T> get_output_tensor(const miopen::ConvolutionDescriptor& filter,

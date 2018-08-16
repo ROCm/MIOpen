@@ -100,12 +100,8 @@ struct verify_inference_batchnorm_activ
                     input, bout, bnscale, bnbias, epsilon, estMean, estVariance);
             }
 
-            activationHostInfer(activ_mode,
-                                activ_gamma,
-                                activ_beta,
-                                activ_alpha,
-                                bout.data,
-                                aout.data);
+            activationHostInfer(
+                activ_mode, activ_gamma, activ_beta, activ_alpha, bout.data, aout.data);
         }
 
         return aout;

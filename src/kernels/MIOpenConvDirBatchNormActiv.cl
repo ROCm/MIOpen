@@ -341,7 +341,7 @@ static inline void Conv(uint o_map_base,
                         __private _FLOAT* __restrict pvt_wei_stage,
                         __local _FLOAT* __restrict lcl_wei,
                         __private float* __restrict pvt_accum)
-                        /*__private _FLOAT* __restrict pvt_accum)*/
+/*__private _FLOAT* __restrict pvt_accum)*/
 {
     // convolution
 
@@ -439,9 +439,10 @@ static inline void Conv(uint o_map_base,
 #if MLO_DIR_FORWARD == 1
                                 // Directly accumulating to `pvt_accum` here sometimes results in
                                 // validation error for half precision.
-                                sum += (float)(pvt_in_stage[j * MLO_PVT_IN_WIDTH * MLO_FILTER_STRIDE1 +
-                                                    i * MLO_FILTER_STRIDE0 + l] *
-                                       pvt_wei_stage[l_act]);
+                                sum +=
+                                    (float)(pvt_in_stage[j * MLO_PVT_IN_WIDTH * MLO_FILTER_STRIDE1 +
+                                                         i * MLO_FILTER_STRIDE0 + l] *
+                                            pvt_wei_stage[l_act]);
 #else
                             if(((i + l + 1 - MLO_PADDING_SHIFT0 +
                                  (MLO_FILTER_SIZE0 % MLO_FILTER_STRIDE0)) %
@@ -1557,9 +1558,10 @@ MIOpenConvUniBatchNormActiv(
 #endif
 
 #endif
-                            conv_res = (_FLOAT)pvt_accum[o * MLO_OUT_TILE_SZ + j * MLO_OUT_TILE0 + i]
+                            conv_res =
+                                (_FLOAT)pvt_accum[o * MLO_OUT_TILE_SZ + j * MLO_OUT_TILE0 + i]
 #if MLO_CONV_BIAS
-                                       + conv_bias[o_map + o]
+                                + conv_bias[o_map + o]
 #endif
                                 ;
 #ifdef NO_BN
