@@ -321,9 +321,9 @@ miopenStatus_t ActivFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_d
 
 std::string ActivFusionOpDescriptor::MDGraphKey() const { return std::to_string(activMode); }
 
-std::string ActivFusionOpDescriptor::MDGraphKey(miopenActivationMode_t m)
+std::string ActivFusionOpDescriptor::MDGraphKey(miopenActivationMode_t mode)
 {
-    return std::to_string(m);
+    return std::to_string(mode);
 }
 
 miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
