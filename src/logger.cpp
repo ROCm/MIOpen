@@ -52,13 +52,13 @@ inline bool operator>=(const int& lhs, const LoggingLevel& rhs)
 
 bool IsLoggingTraceDetailed() { return miopen::IsEnabled(MIOPEN_ENABLE_LOGGING{}); }
 
-int IsLogging(const LoggingLevel level)
+bool IsLogging(const LoggingLevel level)
 {
     const int enabled_level = miopen::Value(MIOPEN_LOG_LEVEL{});
     if(enabled_level != LoggingLevel::Default)
-        return static_cast<int>(enabled_level >= level);
+        return enabled_level >= level;
 #ifdef NDEBUG // Simplest way.
-    return static_cast<int>(LoggingLevel::Warning >= level);
+    return LoggingLevel::Warning >= level;
 #else
     return LoggingLevel::Info >= level;
 #endif

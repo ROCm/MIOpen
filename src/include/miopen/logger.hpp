@@ -196,7 +196,7 @@ std::string PlatformName();
 
 /// \return true if level is enabled.
 /// \param level - one of the values defined in LoggingLevel.
-int IsLogging(LoggingLevel level = LoggingLevel::Error);
+bool IsLogging(LoggingLevel level = LoggingLevel::Error);
 bool IsLoggingCmd();
 bool IsLoggingTraceDetailed();
 

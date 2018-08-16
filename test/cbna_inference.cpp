@@ -30,8 +30,6 @@
 
 #define MIO_CONV_ALGO_COUNT 4
 
-// DLOWELL I'll resuse this for all ordered combinations
-// of convolution + bias + batchnorm + activations
 template <class T>
 struct verify_forward_conv_bias_batchnorm_activ
 {
@@ -119,8 +117,9 @@ struct verify_forward_conv_bias_batchnorm_activ
             fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
         // TODO: Replace this with WinoGrad to check for wino grad supported kernels
         miopenConvFwdAlgorithm_t req_algo = miopenConvolutionFwdAlgoDirect;
-        if( (std::begin(sup_algos) + retAlgCount) !=
-           std::find(std::begin(sup_algos), std::begin(sup_algos) + retAlgCount, miopenConvolutionFwdAlgoDirect))
+        if((std::begin(sup_algos) + retAlgCount) != std::find(std::begin(sup_algos),
+                                                              std::begin(sup_algos) + retAlgCount,
+                                                              miopenConvolutionFwdAlgoDirect))
         {
             // should not throw
             miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, req_algo);
@@ -178,12 +177,8 @@ struct verify_forward_conv_bias_batchnorm_activ
             }
             if(doactive)
             {
-                activationHostInfererence(activ_mode,
-                                          static_cast<T>(activ_gamma),
-                                          static_cast<T>(activ_beta),
-                                          static_cast<T>(activ_alpha),
-                                          bout,
-                                          aout);
+                activationHostInfer(
+                    activ_mode, activ_gamma, activ_beta, activ_alpha, bout.data, aout.data);
             }
             else
             {
@@ -245,8 +240,9 @@ struct verify_forward_conv_bias_batchnorm_activ
             fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
         // TODO: Replace this with WinoGrad to check for wino grad supported kernels
         miopenConvFwdAlgorithm_t req_algo = miopenConvolutionFwdAlgoDirect;
-        if( (std::begin(sup_algos) + retAlgCount) !=
-           std::find(std::begin(sup_algos), std::begin(sup_algos) + retAlgCount, miopenConvolutionFwdAlgoDirect))
+        if((std::begin(sup_algos) + retAlgCount) != std::find(std::begin(sup_algos),
+                                                              std::begin(sup_algos) + retAlgCount,
+                                                              miopenConvolutionFwdAlgoDirect))
         {
             // should not throw
             miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, req_algo);
@@ -398,7 +394,7 @@ struct cbna_fusion_driver : test_driver
         //       add(conv_mode, "cmode", generate_data({"conv"}/*, "trans"}*/));
         add(pad_mode, "pmode", generate_data({"default" /*, "same", "valid"*/}));
         add(tactiv, "test_activ", generate_data({false, true}));
-        add(amode, "amode", generate_data({-1, 0, 3, 8, 1}));
+        add(amode, "amode", generate_data({-1, 3, 8}));
         add(batchnormMode, "batch-norm-mode", generate_data({0, 1}));
     }
 
@@ -414,12 +410,6 @@ struct cbna_fusion_driver : test_driver
 
     void run()
     {
-        if(input.desc.GetType() == miopenHalf)
-        {
-            // std::cout << "Half precision not yet supported." << std::endl;
-            return;
-        }
-
         switch(amode)
         {
         case 0: activ_mode = miopenActivationPASTHRU; break;
@@ -520,14 +510,15 @@ struct cbna_fusion_driver : test_driver
                 srand(0);
                 for(int i = 0; i < scale.desc.GetElementSize(); i++)
                 {
-                    scale[i]       = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
-                    shift[i]       = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
-                    estMean[i]     = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
-                    estVariance[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
+                    scale[i]   = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
+                    shift[i]   = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
+                    estMean[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
+                    estVariance[i] =
+                        std::fabs((((rand() % 2) == 1) ? -1 : 1) * 1e-1 * T(rand() % 100));
                 }
                 for(int i = 0; i < input.desc.GetElementSize(); i++)
                 {
-                    input[i] = (((rand() % 2) == 1) ? -1 : 1) * (1e-5 * T(rand() % 100));
+                    input[i] = (((rand() % 2) == 1) ? -1 : 1) * (0.1 * T(rand() % 100));
                 }
             }
 

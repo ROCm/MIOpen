@@ -48,6 +48,13 @@ namespace solver {
 KernelInfo CBAFusionGetSolution(const ConvolutionContext& params);
 } // namespace solver
 
+enum FusionKernelSourceType
+{
+    OpenclText,
+    AsmText,
+    Binary,
+};
+
 using any_t = OpKernelArg;
 struct OperatorArgs : miopenOperatorArgs
 {
@@ -73,9 +80,9 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     virtual miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) = 0;
     virtual miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
     virtual miopenStatus_t
-    GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm);
+    GetCompileParms(std::string& compile_config, Handle& handle, FusionKernelSourceType source);
     friend std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x);
-    virtual miopenFusionOp_t kind()                  = 0;
+    virtual miopenFusionOp_t kind() const            = 0;
     virtual std::vector<std::string> GetArgs() const = 0;
     virtual std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name);
     virtual std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name);
@@ -92,13 +99,14 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
     BiasFusionOpDescriptor(TensorDescriptor& desc) : base_desc(desc){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
-    miopenStatus_t
-    GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm) override;
+    miopenStatus_t GetCompileParms(std::string& compile_config,
+                                   Handle& handle,
+                                   FusionKernelSourceType source) override;
     miopenStatus_t
     SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t bdata);
     std::vector<std::string> GetArgs() const override;
-    miopenFusionOp_t kind() override { return miopenFusionOpBiasForward; };
-    FusionMDGraph_Edge_Map MDGraphKey() const override;
+    miopenFusionOp_t kind() const override { return miopenFusionOpBiasForward; };
+    std::string MDGraphKey() const override;
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
     TensorDescriptor& base_desc;
@@ -109,8 +117,9 @@ struct ActivFusionOpDescriptor : FusionOpDescriptor
     ActivFusionOpDescriptor(miopenActivationMode_t mode) : activMode(mode){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
-    miopenStatus_t
-    GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm) override;
+    miopenStatus_t GetCompileParms(std::string& compile_config,
+                                   Handle& handle,
+                                   FusionKernelSourceType source) override;
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
@@ -118,9 +127,9 @@ struct ActivFusionOpDescriptor : FusionOpDescriptor
                            double activBeta,
                            double activGamma);
     std::vector<std::string> GetArgs() const override;
-    miopenFusionOp_t kind() override { return miopenFusionOpActivForward; };
-    static FusionMDGraph_Edge_Map MDGraphKey(miopenActivationMode_t mode);
-    FusionMDGraph_Edge_Map MDGraphKey() const override;
+    miopenFusionOp_t kind() const override { return miopenFusionOpActivForward; };
+    std::string MDGraphKey() const override;
+    static std::string MDGraphKey(miopenActivationMode_t mode);
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
     miopenActivationMode_t activMode;
@@ -132,8 +141,9 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
         : mode(bn_mode), base_desc(desc){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
-    miopenStatus_t
-    GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm) override;
+    miopenStatus_t GetCompileParms(std::string& compile_config,
+                                   Handle& handle,
+                                   FusionKernelSourceType source) override;
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
@@ -143,9 +153,9 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
                            ConstData_t estimatedVariance,
                            double epsilon);
     std::vector<std::string> GetArgs() const override;
-    miopenFusionOp_t kind() override { return miopenFusionOpBatchNormInference; };
-    FusionMDGraph_Edge_Map MDGraphKey() const override;
-    static FusionMDGraph_Edge_Map MDGraphKey(miopenBatchNormMode_t bn_mode);
+    miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormInference; };
+    std::string MDGraphKey() const override;
+    static std::string MDGraphKey(miopenBatchNormMode_t bn_mode);
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
 
@@ -168,12 +178,13 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t w);
     std::vector<std::string> GetArgs() const override;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
-    miopenStatus_t
-    GetCompileParms(std::string& compile_config, Handle& handle, bool is_asm) override;
+    miopenStatus_t GetCompileParms(std::string& compile_config,
+                                   Handle& handle,
+                                   FusionKernelSourceType source) override;
     bool isASMApplicable(Handle& handle);
     solver::KernelInfo& GetKernelInfo(Handle& handle);
     solver::KernelInfo& GetKernelInfo(Handle& handle, std::string algorithm_name);
-    miopenFusionOp_t kind() override { return miopenFusionOpConvForward; };
+    miopenFusionOp_t kind() const override { return miopenFusionOpConvForward; };
     FusionMDGraph_Edge_Map MDGraphKey() const override;
     static FusionMDGraph_Edge_Map MDGraphKey(miopenConvolutionMode_t conv_mode,
                                              miopenPaddingMode_t pad_mode,
