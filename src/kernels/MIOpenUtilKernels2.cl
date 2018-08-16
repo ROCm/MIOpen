@@ -65,7 +65,7 @@ __kernel void Col2Im(global _FLOAT* col,
                      const int height,
                      const int width,
                      global _FLOAT* im,
-                     size_t im_offset)
+                     const int im_offset)
 {
     global _FLOAT* im_off = im + im_offset;
     int gid               = (int)get_global_id(0);
