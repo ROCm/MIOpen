@@ -179,12 +179,8 @@ struct verify_forward_conv_bias_batchnorm_activ
             }
             if(doactive)
             {
-                activationHostInfer(activ_mode,
-                                    activ_gamma,
-                                    activ_beta,
-                                    activ_alpha,
-                                    bout.data,
-                                    aout.data);
+                activationHostInfer(
+                    activ_mode, activ_gamma, activ_beta, activ_alpha, bout.data, aout.data);
             }
             else
             {
