@@ -53,6 +53,7 @@ FusionPlanDescriptor::FusionPlanDescriptor(const miopenFusionDirection_t dir,
 }
 
 FusionPlanDescriptor::~FusionPlanDescriptor() { op_map.clear(); }
+
 miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> desc)
 {
     // load the md graph for the first op
@@ -217,46 +218,54 @@ std::vector<std::string> ConvForwardOpDescriptor::GetArgs() const
     return keys;
 }
 
-// std::string ConvForwardOpDescriptor::MDGraphKey(miopenConvolutionMode_t mode, miopenPaddingMode_t
-// paddingMode,
-//   int pad_h, int pad_w, int u, int v, int dilation_h, int dilation_w)
-std::string ConvForwardOpDescriptor::MDGraphKey(std::map<std::string, int> d,
-                                                std::vector<size_t> filter_lens)
+FusionMDGraph_Edge_Map ConvForwardOpDescriptor::MDGraphKey(miopenConvolutionMode_t conv_mode,
+                                                           miopenPaddingMode_t pad_mode,
+                                                           size_t pad_h,
+                                                           size_t pad_w,
+                                                           size_t u,
+                                                           size_t v,
+                                                           size_t dilation_h,
+                                                           size_t dilation_w,
+                                                           int k,
+                                                           int c,
+                                                           int x,
+                                                           int y)
 {
-    int k, c, _kernel_size0, _kernel_size1;
-    std::tie(k, c, _kernel_size0, _kernel_size1) = tien<4>(filter_lens);
-    std::vector<int> vec = {d["mode"],
-                            d["paddingMode"],
-                            d["pad_h"],
-                            d["pad_w"],
-                            d["u"],
-                            d["v"],
-                            d["dilation_h"],
-                            d["dilation_w"],
-                            _kernel_size0,
-                            _kernel_size1};
-    std::string result;
-
-    for(auto n : vec)
-    {
-        result += std::to_string(n) + ",";
-    }
-    return result;
+    return {
+        {"conv_mode", EdgeOp(conv_mode, true, OpEqual)},
+        {"pad_mode", EdgeOp(pad_mode, true, OpEqual)},
+        {"pad_h", EdgeOp(pad_h, true, OpEqual)},
+        {"pad_w", EdgeOp(pad_w, true, OpEqual)},
+        {"u", EdgeOp(u, true, OpEqual)},
+        {"v", EdgeOp(v, true, OpEqual)},
+        {"dilation_h", EdgeOp(dilation_h, true, OpEqual)},
+        {"dilation_w", EdgeOp(dilation_w, true, OpEqual)},
+        {"k", EdgeOp(k, true, OpAny)},
+        {"c", EdgeOp(c, true, OpAny)},
+        {"x", EdgeOp(x, true, OpEqual)},
+        {"y", EdgeOp(y, true, OpEqual)},
+    };
 }
 
-std::string ConvForwardOpDescriptor::MDGraphKey() const
+FusionMDGraph_Edge_Map ConvForwardOpDescriptor::MDGraphKey() const
 {
-    std::map<std::string, int> m = {{"mode", static_cast<int>(base_desc.mode)},
-                                    {"paddingMode", static_cast<int>(base_desc.paddingMode)},
-                                    {"pad_h", base_desc.pad_h},
-                                    {"pad_w", base_desc.pad_w},
-                                    {"u", base_desc.u},
-                                    {"v", base_desc.v},
-                                    {"dilation_h", base_desc.dilation_h},
-                                    {"dilation_w", base_desc.dilation_w}};
     auto lens = filter_desc.GetLengths();
-
-    return ConvForwardOpDescriptor::MDGraphKey(m, lens);
+    int k, c, x, y;
+    std::tie(k, c, x, y) = tien<4>(lens);
+    auto m = ConvForwardOpDescriptor::MDGraphKey(base_desc.mode,
+                                                 base_desc.paddingMode,
+                                                 base_desc.pad_h,
+                                                 base_desc.pad_w,
+                                                 base_desc.u,
+                                                 base_desc.v,
+                                                 base_desc.dilation_h,
+                                                 base_desc.dilation_w,
+                                                 k,
+                                                 c,
+                                                 x,
+                                                 y);
+    m.emplace("precision", EdgeOp(input_desc.GetType(), true, OpEqual));
+    return m;
 }
 
 std::vector<size_t> ConvForwardOpDescriptor::GetLocalWGSz(Handle& handle,
@@ -318,12 +327,14 @@ miopenStatus_t ActivFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_d
     output_desc = input_desc;
     return miopenStatusSuccess;
 }
-
-std::string ActivFusionOpDescriptor::MDGraphKey() const { return std::to_string(activMode); }
-
-std::string ActivFusionOpDescriptor::MDGraphKey(miopenActivationMode_t mode)
+FusionMDGraph_Edge_Map ActivFusionOpDescriptor::MDGraphKey(miopenActivationMode_t mode)
 {
-    return std::to_string(mode);
+    return {{"activ_mode", EdgeOp(mode, true, OpEqual)}};
+}
+
+FusionMDGraph_Edge_Map ActivFusionOpDescriptor::MDGraphKey() const
+{
+    return ActivFusionOpDescriptor::MDGraphKey(activMode);
 }
 
 miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
@@ -371,12 +382,13 @@ std::vector<std::string> BatchNormInferenceFusionOpDescriptor::GetArgs() const
     return keys;
 }
 
-std::string BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBatchNormMode_t bn_mode)
+FusionMDGraph_Edge_Map
+BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBatchNormMode_t bn_mode)
 {
-    return std::to_string(bn_mode);
+    return {{"bn_mode", EdgeOp(bn_mode, true, OpEqual)}};
 }
 
-std::string BatchNormInferenceFusionOpDescriptor::MDGraphKey() const
+FusionMDGraph_Edge_Map BatchNormInferenceFusionOpDescriptor::MDGraphKey() const
 {
     return BatchNormInferenceFusionOpDescriptor::MDGraphKey(mode);
 }
@@ -410,7 +422,10 @@ std::vector<std::string> BiasFusionOpDescriptor::GetArgs() const
     return keys;
 }
 
-std::string BiasFusionOpDescriptor::MDGraphKey() const { return base_desc.ToString(); }
+FusionMDGraph_Edge_Map BiasFusionOpDescriptor::MDGraphKey() const
+{
+    return FusionMDGraph::EmptyEdgeMap();
+}
 
 static inline void
 find_replace_first(std::string& s_where, const std::string& s_find, const std::string& s_replace)
@@ -672,7 +687,8 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             else if(op->kind() == miopenFusionOpActivForward)
             {
                 is_activation = true;
-                is_leakyRELU  = (op->MDGraphKey() == std::to_string(miopenActivationLEAKYRELU));
+                is_leakyRELU  = (op->MDGraphKey().at("activ_mode").val ==
+                                std::to_string(miopenActivationLEAKYRELU));
             }
         }
         const int flags        = (is_bias ? (1 << 7) : 0) + (is_activation ? (1 << 8) : 0);
