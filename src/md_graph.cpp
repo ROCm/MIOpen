@@ -409,7 +409,7 @@ void FusionMDGraph::AddEdge(MDGraph_vertex_ptr src,
                             MDGraph_vertex_ptr dst,
                             FusionMDGraph_Edge_Map& map)
 {
-    if(edge_list[src][dst].size() == 0)
+    if(edge_list[src][dst].empty())
     {
         edge_list[src][dst] = {map};
     }
@@ -430,6 +430,7 @@ bool FusionMDGraph::ExecEdgeOp(const EdgeOp& edg_op, const EdgeOp& op_val)
     case OpAny: { return true;
     }
     }
+    return false;
 }
 
 bool FusionMDGraph::CmpOpKey(const FusionMDGraph_Edge_Map& edge_val,
