@@ -631,12 +631,11 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         uint o_number = o_base < MLO_N_OUTPUTS ? MLO_N_OUTPUTS - o_base : 0;
         o_number      = o_number < MLO_N_LCL_OUT_MAPS ? o_number : MLO_N_LCL_OUT_MAPS;
 
-        for(uint o = 0; o < o_number; ++o)
+        for(uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
         {
-            if(w_blk_idx < MLO_MAX_WEI_BLK_LOOP)
+            if(o < o_number && w_blk_idx < MLO_MAX_WEI_BLK_LOOP)
             {
-                uint w = 0;
-                for(; w < MLO_WEI_WKITEM; ++w)
+                for(uint w = 0; w < MLO_WEI_WKITEM; ++w)
                 {
                     // save "virtual" filter table
                     uint w_x = w_x0 + w * MLO_WEI_BLK_SZ0;
@@ -685,7 +684,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
             uint wei_out_off =
                 wei_df_off + (og * MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i;
-            weights_df[wei_out_off] = final_sum; // lcl_bot[lcl_id]; //
+
+            weights_df[wei_out_off] = final_sum; // lcl[lcl_id]; //
 
 #if DBG_OUT_OF_RNGE
             // assured
