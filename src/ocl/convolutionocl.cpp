@@ -266,10 +266,10 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
     if(mode == miopenGroupConv || mode == miopenDepthwise)
         construct_params.setGroupConvCounts(group_count);
 
-    if((IsWinograd3x3Supported(handle, isForward, wDesc, (isForward ? xDesc : yDesc)) &&
-        construct_params.mloIsFastBinaryWinograd3x3U()) &&
-       !(mode == miopenGroupConv || mode == miopenDepthwise))
-        return {};
+    // if((IsWinograd3x3Supported(handle, isForward, wDesc, (isForward ? xDesc : yDesc)) &&
+    // construct_params.mloIsFastBinaryWinograd3x3U()) &&
+    //!(mode == miopenGroupConv || mode == miopenDepthwise))
+    // return {};
 
     try
     {
@@ -501,6 +501,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 #endif
         if(dilation_h == 1 && dilation_w == 1)
         {
+
             { // Direct algo
                 ExtraKernelArgs eka;
                 const auto all = FindDataDirectSolutions(
@@ -553,7 +554,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
     {
         std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
 
-#if MIOPEN_USE_GEMM
+//#if MIOPEN_USE_GEMM
+#if 0
         if(xDesc.GetType() == miopenFloat)
         {
             // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR for
@@ -662,6 +664,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 #endif
         if(dilation_h == 1 && dilation_w == 1)
         {
+#if 0
             // Winograd algo
             WinogradKernelParams k_p;
             KernelInvoke kernel_wino;
@@ -708,6 +711,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 time_wino = handle.GetKernelTime();
                 perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoWinograd", time_wino, 0});
             }
+#endif
 
             { // Direct algo
                 ExtraKernelArgs eka;
@@ -756,6 +760,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                 }
             }
 
+#if 0
             // FFT algo
             std::vector<KernelInvoke> kernels_fft;
             size_t workspace_fft = ForwardGetWorkSpaceSizeFFT(wDesc, xDesc, yDesc);
@@ -778,6 +783,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                         PerfField{"miopenConvolutionFwdAlgoFFT", time_fft, workspace_fft});
                 }
             }
+#endif
         }
     }
 

@@ -64,16 +64,17 @@ std::vector<miopen::solver::ConvSolution> mlo_construct_direct2D::FindAllSolutio
 
     // clang-format off
     return miopen::solver::SearchForAllSolutions<
-        miopen::solver::ConvAsm3x3U,
-        miopen::solver::ConvAsm1x1U,
-        miopen::solver::ConvAsm5x10u2v2f1,
-        miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1,
-        miopen::solver::ConvAsm5x10u2v2b1,
-        miopen::solver::ConvOclDirectFwd11x11,
-        miopen::solver::ConvOclDirectFwdGen,
-        miopen::solver::ConvOclDirectFwd3x3,
-        miopen::solver::ConvOclDirectFwd1x1,
-        miopen::solver::ConvOclDirectFwd
+        miopen::solver::ConvAsm3x3U
+        //miopen::solver::ConvAsm3x3U,
+        //miopen::solver::ConvAsm1x1U,
+        //miopen::solver::ConvAsm5x10u2v2f1,
+        //miopen::solver::ConvAsm7x7c3h224w224k64u2v2p3q3f1,
+        //miopen::solver::ConvAsm5x10u2v2b1,
+        //miopen::solver::ConvOclDirectFwd11x11,
+        //miopen::solver::ConvOclDirectFwdGen,
+        //miopen::solver::ConvOclDirectFwd3x3,
+        //miopen::solver::ConvOclDirectFwd1x1,
+        //miopen::solver::ConvOclDirectFwd
     >(_search_params, this->GetDb());
     // clang-format on
 }
