@@ -1142,9 +1142,6 @@ int miopenBNBwdSpatialRunHost(
             }
 #endif
 
-            // printf("dscale: %f\n",dscale_ptr[cidx]);
-            // printf("dbias: %f\n",dbias_ptr[cidx]);
-
 #if(MIO_HEIRARCH_SEL == 0)
             for(int row = 0; row < height; row++)
             { // via rows
