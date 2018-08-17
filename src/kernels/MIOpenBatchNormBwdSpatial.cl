@@ -917,8 +917,13 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     barrier(CLK_LOCAL_MEM_FENCE);
     if(lid == 0)
     {
+#if MIOPEN_USE_FP16 == 1
+        *(dbias + grpid)  = (temp_db >= (float)MAX_VAL) ? MAX_VAL : db;
+        *(dscale + grpid) = (temp_ds >= (float)MAX_VAL || temp_ds < 0) ? MAX_VAL : ds;
+#else
         *(dbias + grpid)  = db;
         *(dscale + grpid) = ds;
+#endif
     }
 
     _FLOAT vals[MIO_MAX_READ];
@@ -940,9 +945,9 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             float temp_vals = (float)tmp3 * (temp_tmp2 + temp_tmp1);
             vals[j]         = (_FLOAT)temp_vals;
 #else
-            tmp1    = mad(NHW, dyvalue, -db);
-            tmp2    = -xhat * ds;
-            vals[j] = tmp3 * (tmp2 + tmp1);
+            tmp1          = mad(NHW, dyvalue, -db);
+            tmp2          = -xhat * ds;
+            vals[j]       = tmp3 * (tmp2 + tmp1);
 #endif
         }
         barrier(CLK_GLOBAL_MEM_FENCE);

@@ -429,9 +429,16 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
             mad((_FLOAT)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
         resultRunningMean[grpid] =
             mad(mean, (_FLOAT)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
+#if MIOPEN_USE_FP16 == 1
+        const float temp_adjust =
+            (MIO_BN_NHW == 1) ? ((float)variance)
+                              : ((float)variance) * ((float)MIO_BN_NHW / (float)(MIO_BN_NHW - 1.0));
+        const _FLOAT adjust = (_FLOAT)temp_adjust;
+#else
         const _FLOAT adjust = (MIO_BN_NHW == 1)
                                   ? variance
                                   : variance * ((_FLOAT)MIO_BN_NHW / (_FLOAT)(MIO_BN_NHW - 1.0));
+#endif
         resultRunningVariance[grpid] =
             (1 - (_FLOAT)expAvgFactor) * *(resultRunningVariance + grpid) +
             (_FLOAT)expAvgFactor * adjust;
@@ -729,9 +736,16 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
             mad((_FLOAT)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
         resultRunningMean[grpid] =
             mad(mean, (_FLOAT)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
+#if MIOPEN_USE_FP16 == 1
+        const float temp_adjust =
+            (MIO_BN_NHW == 1) ? ((float)variance)
+                              : ((float)variance) * ((float)MIO_BN_NHW / (float)(MIO_BN_NHW - 1.0));
+        const _FLOAT adjust = (_FLOAT)temp_adjust;
+#else
         const _FLOAT adjust = (MIO_BN_NHW == 1)
                                   ? variance
                                   : variance * ((_FLOAT)MIO_BN_NHW / (_FLOAT)(MIO_BN_NHW - 1.0));
+#endif
         resultRunningVariance[grpid] =
             (1 - (_FLOAT)expAvgFactor) * *(resultRunningVariance + grpid) +
             (_FLOAT)expAvgFactor * adjust;
@@ -987,8 +1001,15 @@ MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
         resultRunningMean[xgid] =
             mad(mean, (_FLOAT)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
 
-        _FLOAT NHW                  = (_FLOAT)MIO_BN_NHW;
-        const _FLOAT adjust         = (MIO_BN_NHW == 1) ? variance : variance * (NHW / (NHW - 1));
+#if MIOPEN_USE_FP16 == 1
+        const float temp_adjust =
+            (MIO_BN_NHW == 1) ? ((float)variance)
+                              : ((float)variance) * ((float)MIO_BN_NHW / (float)(MIO_BN_NHW - 1.0));
+        const _FLOAT adjust         = (_FLOAT)temp_adjust;
+#else
+        _FLOAT NHW          = (_FLOAT)MIO_BN_NHW;
+        const _FLOAT adjust = (MIO_BN_NHW == 1) ? variance : variance * (NHW / (NHW - 1));
+#endif
         resultRunningVariance[xgid] = (1 - (_FLOAT)expAvgFactor) * *(resultRunningVariance + xgid) +
                                       (_FLOAT)expAvgFactor * adjust;
 #endif
@@ -1292,9 +1313,16 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
             mad((_FLOAT)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
         resultRunningMean[grpid] =
             mad(mean, (_FLOAT)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
+#if MIOPEN_USE_FP16 == 1
+        const float temp_adjust =
+            (MIO_BN_NHW == 1) ? ((float)variance)
+                              : ((float)variance) * ((float)MIO_BN_NHW / (float)(MIO_BN_NHW - 1.0));
+        const _FLOAT adjust = (_FLOAT)temp_adjust;
+#else
         const _FLOAT adjust = (MIO_BN_NHW == 1)
                                   ? variance
                                   : variance * ((_FLOAT)MIO_BN_NHW / (_FLOAT)(MIO_BN_NHW - 1.0));
+#endif
         resultRunningVariance[grpid] =
             (1 - (_FLOAT)expAvgFactor) * *(resultRunningVariance + grpid) +
             (_FLOAT)expAvgFactor * adjust;
