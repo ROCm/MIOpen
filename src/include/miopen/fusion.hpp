@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2018 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,7 @@
 #include <miopen/convolution.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/op_kernel_args.hpp>
+#include <miopen/fusion_ops.hpp>
 
 #include <set>
 #include <vector>
@@ -46,15 +47,6 @@ namespace miopen {
 namespace solver {
 KernelInfo CBAFusionGetSolution(const ConvolutionContext& params);
 } // namespace solver
-
-// Supported operators
-enum miopenFusionOp_t
-{
-    miopenFusionOpConvForward        = 0,
-    miopenFusionOpActivForward       = 1,
-    miopenFusionOpBatchNormInference = 2,
-    miopenFusionOpBiasForward        = 3,
-};
 
 enum FusionKernelSourceType
 {
@@ -81,7 +73,10 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     FusionOpDescriptor& operator=(const FusionOpDescriptor&) = delete;
     void SetIdx(int _id) { plan_idx = _id; };
     int GetIdx() const { return plan_idx; };
-    virtual std::string MDGraphKey() const { return ""; };
+    virtual FusionMDGraph_Edge_Map MDGraphKey() const
+    {
+        return {{"weight", EdgeOp(0, true, OpAny)}};
+    };
     virtual miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) = 0;
     virtual miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
     virtual miopenStatus_t
@@ -111,7 +106,7 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
     SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t bdata);
     std::vector<std::string> GetArgs() const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpBiasForward; };
-    std::string MDGraphKey() const override;
+    FusionMDGraph_Edge_Map MDGraphKey() const override;
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
     TensorDescriptor& base_desc;
@@ -133,8 +128,8 @@ struct ActivFusionOpDescriptor : FusionOpDescriptor
                            double activGamma);
     std::vector<std::string> GetArgs() const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpActivForward; };
-    std::string MDGraphKey() const override;
-    static std::string MDGraphKey(miopenActivationMode_t mode);
+    FusionMDGraph_Edge_Map MDGraphKey() const override;
+    static FusionMDGraph_Edge_Map MDGraphKey(miopenActivationMode_t mode);
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
     miopenActivationMode_t activMode;
@@ -159,8 +154,8 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
                            double epsilon);
     std::vector<std::string> GetArgs() const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormInference; };
-    std::string MDGraphKey() const override;
-    static std::string MDGraphKey(miopenBatchNormMode_t bn_mode);
+    FusionMDGraph_Edge_Map MDGraphKey() const override;
+    static FusionMDGraph_Edge_Map MDGraphKey(miopenBatchNormMode_t bn_mode);
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
 
@@ -190,8 +185,19 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     solver::KernelInfo& GetKernelInfo(Handle& handle);
     solver::KernelInfo& GetKernelInfo(Handle& handle, std::string algorithm_name);
     miopenFusionOp_t kind() const override { return miopenFusionOpConvForward; };
-    std::string MDGraphKey() const override;
-    static std::string MDGraphKey(std::map<std::string, int> d, std::vector<size_t> filter_lens);
+    FusionMDGraph_Edge_Map MDGraphKey() const override;
+    static FusionMDGraph_Edge_Map MDGraphKey(miopenConvolutionMode_t conv_mode,
+                                             miopenPaddingMode_t pad_mode,
+                                             size_t pad_h,
+                                             size_t pad_w,
+                                             size_t u,
+                                             size_t v,
+                                             size_t dilation_h,
+                                             size_t dilation_w,
+                                             int k,
+                                             int c,
+                                             int x,
+                                             int y);
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
 
@@ -204,40 +210,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     private:
     mlo_construct_direct2D_fusion ConstructParams(Handle& handle);
 };
-#if 0
-struct FusionOpLU
-{
-    FusionOpLU()
-    {
-        lut = {
-            {miopenFusionOpConvForward,
-             miopenFusionOpBiasForward,
-             miopenFusionOpBatchNormInference,
-             miopenFusionOpActivForward}, // cbna
-            {miopenFusionOpConvForward,
-             miopenFusionOpBiasForward,
-             miopenFusionOpActivForward}, // cba
-            {miopenFusionOpConvForward,
-             miopenFusionOpBiasForward,
-             miopenFusionOpBatchNormInference}, // cbn
-            {miopenFusionOpConvForward,
-             miopenFusionOpBatchNormInference,
-             miopenFusionOpActivForward},                                  // cna
-            {miopenFusionOpConvForward, miopenFusionOpActivForward},       // ca
-            {miopenFusionOpConvForward, miopenFusionOpBatchNormInference}, // cn
-            {miopenFusionOpBatchNormInference, miopenFusionOpActivForward} // ba
-        };
-        cur_idx = 0;
-    }
-    void Reset() { cur_idx = 0; };
-    bool Advance(std::vector<std::shared_ptr<miopen::FusionOpDescriptor>> op_map);
 
-    protected:
-    std::vector<std::vector<miopenFusionOp_t>> lut;
-    std::vector<int> lut_hit;
-    size_t cur_idx;
-};
-#endif
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenFusionOpDescriptor, miopen::FusionOpDescriptor);
 MIOPEN_DEFINE_OBJECT(miopenOperatorArgs, miopen::OperatorArgs);

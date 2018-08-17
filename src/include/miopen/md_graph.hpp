@@ -1,12 +1,38 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2018 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
 #pragma once
 #include <miopen/miopen.h>
+#include <miopen/fusion_ops.hpp>
 #include <miopen/fusion.hpp>
 
 #include <boost/functional/hash.hpp>
+#include <unordered_map>
 
 namespace miopen {
-
-using FusionMDGraph_Edge_Map = std::unordered_map<std::string, std::vector<std::string>>;
 
 struct MDGraph_vertex
 {
@@ -39,21 +65,23 @@ struct FusionMDGraph
     bool Advance(std::shared_ptr<FusionOpDescriptor> op);
     void AddEdge(MDGraph_vertex_ptr src, MDGraph_vertex_ptr dst, FusionMDGraph_Edge_Map& map);
 
-    template <class T, class U>
-    bool CmpOpKey(T&& edge_val, U&& op_val) const;
+    bool CmpOpKey(const FusionMDGraph_Edge_Map& edge_val,
+                  const FusionMDGraph_Edge_Map& op_val) const;
     MDGraph_vertex_ptr GetCurVertex();
     std::string GetProgramName();
     std::string GetKernelName();
     std::string GetAlgoName();
     std::vector<miopenConvFwdAlgorithm_t> GetConvAlgos();
     bool SetConvAlgo(miopenConvFwdAlgorithm_t algo);
+    static FusionMDGraph_Edge_Map EmptyEdgeMap(int weight = 0, MDGraph_op_t op = OpAny);
+    static bool ExecEdgeOp(const EdgeOp& edg_op, const EdgeOp& op_val);
 
     protected:
     std::vector<std::pair<MDGraph_vertex_ptr, cur_vertex_map>>
         cur_vertex; //= {{nullptr, {{"weight", "0"}}}};
     std::set<miopenConvFwdAlgorithm_t> conv_algo_set;
     std::unordered_map<MDGraph_vertex_ptr,
-                       std::unordered_map<MDGraph_vertex_ptr, FusionMDGraph_Edge_Map>>
+                       std::unordered_map<MDGraph_vertex_ptr, FusionMDGraph_Edge_Map_Vec>>
         edge_list;
 };
 
