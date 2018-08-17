@@ -409,7 +409,7 @@ void FusionMDGraph::AddEdge(MDGraph_vertex_ptr src,
                             MDGraph_vertex_ptr dst,
                             FusionMDGraph_Edge_Map& map)
 {
-    if(edge_list[src][dst].size() == 0)
+    if(edge_list[src][dst].empty())
     {
         edge_list[src][dst] = {map};
     }
