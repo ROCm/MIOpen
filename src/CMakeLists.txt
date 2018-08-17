@@ -112,6 +112,8 @@ set( MIOpen_Source
     include/miopen/softmax.hpp
     include/miopen/rnn.hpp
     include/miopen/md_graph.hpp
+    include/miopen/fusion_ops.hpp
+    include/miopen/fusion.hpp
     md_graph.cpp
     tensor.cpp
     tensor_api.cpp
