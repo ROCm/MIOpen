@@ -228,7 +228,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/activ_ocl.cpp
         ocl/batchnormocl.cpp
         ocl/batchnormactivocl.cpp
-        ocl/convbatchnormactivocl.cpp
         ocl/convolutionocl.cpp
         ocl/convolutionocl_fft.cpp
         ocl/lrn_ocl.cpp
@@ -242,7 +241,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/utilocl.cpp
         ocl/gcn_asm_utils.cpp
         pooling.cpp
-        ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         ${PROJECT_BINARY_DIR}/kernel.cpp
