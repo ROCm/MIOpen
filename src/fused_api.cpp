@@ -61,6 +61,20 @@ miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc)
     return miopen::try_([&] { miopen_destroy_object(fusePlanDesc); });
 }
 
+extern "C" miopenStatus_t miopenFusionPlanGetOp(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                const int op_idx,
+                                                miopenFusionOpDescriptor_t* op)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, op_idx);
+    miopenStatus_t res = miopenStatusBadParm;
+    miopen::try_([&] {
+        std::shared_ptr<miopen::FusionOpDescriptor> desc;
+        res               = miopen::deref(fusePlanDesc).GetOp(op_idx, desc);
+        miopen::deref(op) = desc.get();
+    });
+    return res;
+}
+
 // Return an error code that is "NotImplemented", if it exists then return success
 extern "C" miopenStatus_t miopenCompileFusionPlan(miopenHandle_t handle,
                                                   miopenFusionPlanDescriptor_t fusePlanDesc)

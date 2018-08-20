@@ -29,6 +29,8 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     GetConvAlgos(int reqAlgoCount, int& retAlgoCount, miopenConvFwdAlgorithm_t* ptrAlgos);
     miopenStatus_t SetConvAlgo(miopenConvFwdAlgorithm_t algo);
 
+    miopenStatus_t GetOp(int op_idx, std::shared_ptr<FusionOpDescriptor>& desc);
+
     protected:
     std::string GetKernelName(Handle& handle);
     std::string GetProgramName(Handle& handle);
