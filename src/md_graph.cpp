@@ -110,9 +110,8 @@ void FusionMDGraph::Init(FusionMDGraph& g, miopenFusionOp_t op)
     {
     case miopenFusionOpBatchNormInference: InitBN(g); break;
     case miopenFusionOpActivForward:
-        // TODO(JD): uncomment this along with the enum values in fusion_ops.hpp
-        // case miopenFusionOpBiasForward:
-        // case miopenFusionOpConvForward:
+    case miopenFusionOpBiasForward:
+    case miopenFusionOpConvForward:
         MIOPEN_THROW(
             "Operators Conv, Activ and Bias are not supported as first ops in a Fusion Plan (yet)");
     }
