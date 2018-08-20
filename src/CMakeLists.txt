@@ -90,7 +90,6 @@ set( MIOpen_Source
     include/miopen/find_controls.hpp
     include/miopen/batch_norm.hpp
     include/miopen/batch_norm_activ.hpp
-    include/miopen/conv_batch_norm_activ.hpp
     include/miopen/direct_conv_ocl.hpp
     include/miopen/check_numerics.hpp
     include/miopen/common.hpp
@@ -149,7 +148,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
 
     set(MIOPEN_KERNELS
         kernels/MIOpenCheckNumerics.cl
-        kernels/MIOpenBatchNormActivInfer.cl
         kernels/MIOpenBatchNormFwdTrainSpatial.cl
         kernels/MIOpenBatchNormFwdTrainPerAct.cl
         kernels/MIOpenBatchNormFwdInferSpatial.cl
@@ -157,7 +155,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenBatchNormBwdSpatial.cl
         kernels/MIOpenBatchNormBwdPerAct.cl
         kernels/MIOpenConvDirUni.cl
-        kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
@@ -182,7 +179,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/bugzilla_34765_detect.s
         kernels/conv3x3.s
         kernels/conv1x1u.s
-        kernels/conv1x1u_bias_activ.s
         kernels/conv3x3wrw.s
         kernels/conv1x1wrw.s
         kernels/conv5x10u2v2f1.s
@@ -228,7 +224,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/activ_ocl.cpp
         ocl/batchnormocl.cpp
         ocl/batchnormactivocl.cpp
-        ocl/convbatchnormactivocl.cpp
         ocl/convolutionocl.cpp
         ocl/convolutionocl_fft.cpp
         ocl/lrn_ocl.cpp
@@ -242,7 +237,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/utilocl.cpp
         ocl/gcn_asm_utils.cpp
         pooling.cpp
-        ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         ${PROJECT_BINARY_DIR}/kernel.cpp
