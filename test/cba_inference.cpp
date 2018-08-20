@@ -132,25 +132,17 @@ struct verify_forward_conv_bias
         miopenFusionOpDescriptor_t convoOp_cpy;
 
         miopenError = miopenFusionPlanGetOp(fusePlanDesc, 0, &convoOp_cpy);
-        if(miopenError != miopenStatusSuccess || convoOp_cpy != convoOp)
-        {
-            std::cerr << "GetOp failed for convolution";
-            assert(false);
-        }
+        EXPECT(miopenError == miopenStatusSuccess);
+        EXPECT(convoOp == convoOp_cpy);
 
         miopenFusionOpDescriptor_t biasOp_cpy;
         miopenError = miopenFusionPlanGetOp(fusePlanDesc, 1, &biasOp_cpy);
-        if(miopenError != miopenStatusSuccess || biasOp_cpy != biasOp)
-        {
-            std::cerr << "GetOp failed for bias";
-            assert(false);
-        }
+        EXPECT(miopenError == miopenStatusSuccess);
+        EXPECT(biasOp == biasOp_cpy);
+
         miopenError = miopenFusionPlanGetOp(fusePlanDesc, 2, &biasOp_cpy);
-        if(miopenError == miopenStatusSuccess)
-        {
-            std::cerr << "Out of bounds access succeeded";
-            assert(false);
-        }
+        EXPECT(miopenError != miopenStatusSuccess);
+
         return rout;
     }
 
