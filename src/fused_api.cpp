@@ -101,7 +101,7 @@ extern "C" miopenStatus_t miopenCreateOpConvForwardAlgo(miopenFusionPlanDescript
     });
     return res;
 }
-#endif
+
 extern "C" miopenStatus_t
 miopenFusionPlanGetWorkSpaceSize(miopenHandle_t handle,
                                  miopenFusionPlanDescriptor_t fusePlanDesc,
@@ -201,7 +201,7 @@ miopenCreateOpConvBackwardWeights(miopenFusionPlanDescriptor_t fusePlanDesc,
     MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, wDesc);
     return (miopenStatusSuccess);
 }
-
+#endif
 //---
 
 // Activation create ops
@@ -218,7 +218,7 @@ extern "C" miopenStatus_t miopenCreateOpActivationForward(miopenFusionPlanDescri
     });
     return res;
 }
-
+#if 0
 extern "C" miopenStatus_t
 miopenCreateOpActivationBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                  miopenFusionOpDescriptor_t* activOp,
@@ -250,6 +250,7 @@ extern "C" miopenStatus_t miopenCreateOpBiasBackward(miopenFusionPlanDescriptor_
     MIOPEN_LOG_FUNCTION(fusePlanDesc, dbiasOp, dbDesc);
     return (miopenStatusSuccess);
 }
+#endif
 
 // Batch normalization create op
 extern "C" miopenStatus_t
@@ -268,6 +269,7 @@ miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
     });
     return res;
 }
+#if 0
 
 extern "C" miopenStatus_t
 miopenCreateOpBatchNormForward(miopenFusionPlanDescriptor_t fusePlanDesc,
@@ -317,6 +319,7 @@ extern "C" miopenStatus_t miopenCreateOpPoolingBackward(miopenFusionPlanDescript
     MIOPEN_LOG_FUNCTION(fusePlanDesc, poolOp, poolDesc);
     return (miopenStatusSuccess);
 }
+#endif
 
 extern "C" miopenStatus_t miopenCreateOperatorArgs(miopenOperatorArgs_t* args)
 {
@@ -329,7 +332,7 @@ extern "C" miopenStatus_t miopenDestroyOperatorArgs(miopenOperatorArgs_t args)
     MIOPEN_LOG_FUNCTION(args);
     return miopen::try_([&] { miopen_destroy_object(args); });
 }
-
+#if 0
 // Fusion op args for Convolution
 extern "C" miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
                                                      const miopenFusionOpDescriptor_t convOp,
@@ -396,6 +399,7 @@ extern "C" miopenStatus_t miopenSetOpArgsBiasBackward(miopenOperatorArgs_t args,
     MIOPEN_LOG_FUNCTION(args, dbiasOp, alpha, beta, dbias);
     return (miopenStatusSuccess);
 }
+#endif
 //---
 
 extern "C" miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
@@ -414,6 +418,8 @@ extern "C" miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
     });
 }
 
+#if 0
+
 extern "C" miopenStatus_t miopenSetOpArgsActivBackward(miopenOperatorArgs_t args,
                                                        const miopenFusionOpDescriptor_t activOp,
                                                        const void* alpha,
@@ -425,7 +431,7 @@ extern "C" miopenStatus_t miopenSetOpArgsActivBackward(miopenOperatorArgs_t args
     MIOPEN_LOG_FUNCTION(args, activOp, alpha, beta, activAlpha, activBeta, activGamma);
     return (miopenStatusSuccess);
 }
-
+#endif
 // Fusion op args for Batch Normalization
 extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t args,
                                                             const miopenFusionOpDescriptor_t bnOp,
@@ -452,7 +458,7 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t
                    epsilon);
     });
 }
-
+#if 0
 extern "C" miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_t args,
                                                           const miopenFusionOpDescriptor_t bnOp,
                                                           const void* alpha,
@@ -543,7 +549,7 @@ extern "C" miopenStatus_t miopenSetOpArgsTensorOp(miopenOperatorArgs_t args,
     MIOPEN_LOG_FUNCTION(args, tOp, alpha1, alpha2, B, beta);
     return (miopenStatusSuccess);
 }
-
+#endif
 // Return an error code that is "NotImplemented", if it exists then return success
 extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
                                                   const miopenFusionPlanDescriptor_t fusePlanDesc,
@@ -565,7 +571,7 @@ extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
                      miopen::deref(args));
     });
 }
-
+#if 0
 // Heurtistic based benchmarking.
 extern "C" miopenStatus_t miopenGetFusionPlanCostEstimate(
     miopenOpCost_t* opCost, miopenHandle_t handle, const miopenFusionPlanDescriptor_t fusePlanDesc)
@@ -595,3 +601,5 @@ miopenGetFusionPlanCostEmpirical(miopenOpCost_t* opCost,
     (void)(opCost);
     return (miopenStatusSuccess);
 }
+
+#endif
