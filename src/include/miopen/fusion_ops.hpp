@@ -34,10 +34,10 @@ namespace miopen {
 // Supported operators
 enum miopenFusionOp_t
 {
-    // miopenFusionOpConvForward        = 0,
+    miopenFusionOpConvForward        = 0,
     miopenFusionOpActivForward       = 1,
     miopenFusionOpBatchNormInference = 2,
-    // miopenFusionOpBiasForward        = 3,
+    miopenFusionOpBiasForward        = 3,
 };
 
 enum MDGraph_op_t
