@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 .hsa_code_object_version 2,1
 .hsa_code_object_isa
 
@@ -56,63 +55,105 @@ gid_n = gid_z
 // dwords 8:9 - input buffer pointer
 // dwords 10:11 - weights pointer
 // dwords 12:13 - output buffer pointer
+
 .set in_ptr_off, 0x20
 .set wei_ptr_off, 0x28
 .set out_ptr_off, 0x30
 .set dbg_ptr_off, 0x38
 
-default vec_size, 1
-static_assert(vec_size == 1 || vec_size == 2 || vec_size == 4)
 
-static_assert(c_mult % vec_size == 0)
-static_assert(k_mult % vec_size == 0)
-static_assert(output_channels % vec_size == 0)
-static_assert(input_channels % vec_size == 0)
-
-.include "conv_sizes.inc"
-
-static_assert ((.option.machine_version_major == 8) || (.option.machine_version_major == 9))
 
 maxU24 = 1 << 24
 invalid_addr_lit = 0x7FFFFFFF
 static_assert (filter_c_stride < maxU24)
 static_assert (filter_k_stride < maxU24)
 static_assert (input_n_stride < maxU24)
-static_assert (output_n_stride < maxU24)
 static_assert (input_c_stride < maxU24)
+static_assert (output_n_stride < maxU24)
 static_assert (output_k_stride < maxU24)
+static_assert (input_channels % vec_c_in == 0)
+static_assert (output_channels % vec_k_out == 0)//TODO change last conv step
 
 static_assert (pad_h == 0 && pad_w == 0)
 static_assert (stride_h == 1 && stride_w == 1)
 static_assert (wei_h == 1 && wei_w == 1)
 
+//TODO take them from host, as symbols
+// krenel supports fp32 regular layout or fp16_vec2 or int8_vec4
+static_assert ((acc_type == TYPE_FP32 && buf_type == TYPE_FP32&& vec_c_in == 1) || (acc_type == TYPE_FP32&& buf_type == TYPE_FP16 && (vec_c_in == 2 || vec_c_in == 1)) || (acc_type == TYPE_INT32 && buf_type == TYPE_INT16 && vec_c_in == 2) || (acc_type == TYPE_INT32 && buf_type == TYPE_INT8 && vec_c_in == 4) || (acc_type == TYPE_INT32 && buf_type == TYPE_INT4 && vec_c_in == 8))
+static_assert (k_mult % vec_k_out == 0)
+
+static_assert( (vec_c_in == 1) || (vec_c_in == 2) || (vec_c_in == 4) || (vec_c_in == 8) )
+static_assert( (vec_k_out == 1) || (vec_k_out == 2) || (vec_k_out == 4) || (vec_k_out == 8) )
+static_assert( (vec_c_in == vec_k_out) || (vec_k_out == 1) )
+
+
+elements_in_dword = 1
+output_dword_chunks_cnt = 1
+input_dword_chunks_cnt = 1
+.if(buf_type == TYPE_FP16 || buf_type == TYPE_INT16)
+    elements_in_dword = 2
+.elseif(buf_type == TYPE_INT8)
+    elements_in_dword = 4
+.elseif(buf_type == TYPE_INT4)
+    elements_in_dword = 8
+.endif
+
+.if(vec_k_out > elements_in_dword)
+    static_assert(vec_k_out == elements_in_dword)
+.else
+    output_dword_chunks_cnt = elements_in_dword / vec_k_out
+.endif
+
+.if(vec_c_in > elements_in_dword)
+    static_assert(vec_c_in == elements_in_dword)
+.else
+    input_dword_chunks_cnt = elements_in_dword / vec_c_in
+.endif
+
+
+img_hw = img_h * img_w
+img_hw_vec = (img_h * img_w + input_dword_chunks_cnt - 1) / input_dword_chunks_cnt
+rem_hw_in  = (img_h * img_w) % input_dword_chunks_cnt
+
+
+static_assert( chunks_per_wave % output_dword_chunks_cnt == 0)
+static_assert( chunks_per_wave % input_dword_chunks_cnt == 0)
+
+hi_input_channels = (input_channels + vec_c_in - 1) / vec_c_in
+hi_output_channels = (output_channels + vec_k_out - 1) / vec_k_out
+
 dot_instructions_available = 0
 .if (.option.machine_version_major == 9) && (.option.machine_version_minor == 0) && (.option.machine_version_stepping == 6)
     dot_instructions_available = 1
 .endif
+madmix_instructions_available = 0
+fmamix_instructions_available = 0
+.if (.option.machine_version_major == 9)
+    .if(.option.machine_version_stepping > 2)
+        fmamix_instructions_available = 1
+    .else
+        madmix_instructions_available = 1
+    .endif
+.endif
 
 // perf params
-
-.ifnotdef do_not_use_default_perf_params
-	default read_size, 2 // 1, 2, 3, 4
-	default k_mult, 4 // 1, 2..32 (4*n)
-	default c_mult, 1 // 1, 2..32 (4*n)
-	default chunks_per_wave, 2 // 1..16
-	default chunk_size, 16 // 1..64
-	default n_mult, 1 // 1..8
-	default waves_in_group, 1 // 1..16
-.endif
-default balanced_n, 1
-default balanced_chunk, 1
-
+default read_size, 2 // 1, 2, 3, 4
+default k_mult, 4 // 1..32 (preffer 4*n)
+default c_mult, 1 // 1, 2..32 (4*n) //TODO solve sgpr align isue
+default chunks_per_wave, 2 // 1..16
+default chunk_size, 16 // 1..64
+default balanced_n, 1 // 0..1 (deprecated)
+default balanced_chunk, 1 // 0..1 (deprecated)
+default n_mult, 1 // 1..8
+default waves_in_group, 1 // 1..16 (preffer 1..8)
 default lds_limit, .MAX_LDS / 8
-default disable_case_opt, 1
+default disable_case_opt, 0
 
-
-static_assert (read_size <= chunks_per_wave)
-static_assert (waves_in_group <= input_channels && waves_in_group <= 8)
-//static_assert (output_channels % k_mult == 0)
-
+static_assert ( (read_size * input_dword_chunks_cnt) <= chunks_per_wave)
+static_assert (waves_in_group <= hi_input_channels && waves_in_group <= 16)
+//static_assert (hi_output_channels % k_mult == 0)
+default use_saturated_integer_cast, 0
 
 // chunk parameters
 n_per_gpr = 64 / chunk_size
@@ -127,22 +168,23 @@ n_per_wave = n_mult * n_per_gpr
 active_n_per_wave = n_mult * active_n_per_gpr
 
 
-total_chunks = (img_hw_vec + chunk_size - 1) / chunk_size
+total_chunks = (img_hw + chunk_size - 1) / chunk_size
 .if total_chunks < chunks_per_wave
     total_chunks = chunks_per_wave
 .endif
 .if balanced_chunk
-    active_chunk_lanes = (img_hw_vec + total_chunks - 1) / total_chunks
+    active_chunk_lanes = (img_hw + total_chunks - 1) / total_chunks
 .else
     active_chunk_lanes = chunk_size
 .endif
 hw_per_wave = chunk_size * chunks_per_wave
 active_hw_per_wave = active_chunk_lanes * chunks_per_wave
 
-in_gprs = chunks_per_wave * n_mult * c_mult
+in_gprs = (n_mult * c_mult * chunks_per_wave  + elements_in_dword - 1) / elements_in_dword
+
 //since we use mix-precision, which accumulates fp16 into fp32, we need vec_size
 //times fp16 registers for accumulation
-accums_cnt = k_mult * chunks_per_wave * n_mult * vec_size
+accums_cnt = k_mult * chunks_per_wave * n_mult
 
 // exec mask
 log2 chunk_size_log2, chunk_size
@@ -159,7 +201,8 @@ active_mask_lo = active_mask & 0xFFFFFFFF
 active_mask_hi = active_mask >> 32
 
 // group parameters
-c_per_wave = (input_channels + waves_in_group - 1) / waves_in_group
+hi_c_per_wave = (hi_input_channels + waves_in_group - 1) / waves_in_group
+last_wave_hi_c_per_wave = hi_input_channels - hi_c_per_wave * (waves_in_group-1)
 lds_per_group = 0
 .if waves_in_group > 1
     lds_per_wave = lds_limit / (waves_in_group - 1)
@@ -175,26 +218,29 @@ lds_per_group = 0
     .endif
 .endif
 
+
+raw_filter_dword_k_cnt = 1
 .if(weights_layout == 0)
+    static_assert ((hi_c_per_wave * vec_c_in) % c_mult == 0 && (last_wave_hi_c_per_wave * vec_c_in )% c_mult == 0)
+    
     filter_c_gpr_stride = 1
-    filter_k_gpr_stride = c_mult / vec_size
-    sequential_read_size= c_mult / vec_size
+    filter_k_gpr_stride = c_mult / elements_in_dword 
+    sequential_read_size= c_mult / elements_in_dword 
     sequential_read_stride = filter_k_stride
     sequential_reads_cnt = k_mult
+    static_assert(c_mult % vec_c_filter == 0)
 .else
-    filter_c_gpr_stride = k_mult / vec_size
+    static_assert ((hi_c_per_wave * vec_c_in) % c_mult == 0 && (last_wave_hi_c_per_wave * vec_c_in )% c_mult == 0)
+    raw_filter_dword_k_cnt = elements_in_dword / vec_c_filter
+    static_assert(k_mult % (elements_in_dword / vec_c_filter) == 0)
+    static_assert (output_channels % k_mult == 0)
+    filter_c_gpr_stride = k_mult / (elements_in_dword / vec_c_filter)
     filter_k_gpr_stride = 1
-    sequential_read_size= k_mult / vec_size
+    sequential_read_size= k_mult / (elements_in_dword / vec_c_filter)
     sequential_read_stride = filter_c_stride
-    sequential_reads_cnt = c_mult
+    sequential_reads_cnt = c_mult / vec_c_filter
+
 .endif
-
-
-input_buffer_size = input_n_stride * batch_size + 4 / vec_size //padding the last fp16 element for odd hw
-filter_buffer_size = filters_size
-output_buffer_size = output_n_stride * batch_size + 4 / vec_size //padding the last fp16 element for odd hw
-
-//static_assert(input_channels % (c_mult * waves_in_group) == 0) //todo: remove me
 
 .GPR_ALLOC_BEGIN
 
@@ -221,7 +267,7 @@ output_buffer_size = output_n_stride * batch_size + 4 / vec_size //padding the l
     .SGPR_ALLOC_ONCE stmp_offset
     .SGPR_ALLOC_ONCE stmp
     .SGPR_RESERVE_XNACK
-    
+
     .VGPR_ALLOC_FROM 0
     .VGPR_ALLOC tid
     .VGPR_ALLOC voffset_in
@@ -230,10 +276,16 @@ output_buffer_size = output_n_stride * batch_size + 4 / vec_size //padding the l
     .VGPR_ALLOC inputB, in_gprs
     .VGPR_ALLOC accums, accums_cnt
     .VGPR_ALLOC vtmp
-    
+    .if (madmix_instructions_available == 0 && dot_instructions_available == 0 && fmamix_instructions_available == 0)
+        .VGPR_ALLOC vtmp_f_cvt
+    .endif
+    .if (rem_hw_in)
+        .VGPR_ALLOC current_hw_in
+    .endif
+
     .LDS_ALLOC_FROM 0
     .LDS_ALLOC accums_lds, lds_per_group
-    
+
 .GPR_ALLOC_END
 
 max_waves_per_CU = (256 / .AUTO_VGPR_COUNT) * 4
@@ -258,15 +310,14 @@ gcnAsmConv1x1U:
     .end_amd_kernel_code_t
 
 
-    
     s_load_dwordx2 s[desc_in:desc_in+1], s[kernarg:kernarg+1], 0x0 + in_ptr_off
     s_load_dwordx2 s[desc_wei:desc_wei+1], s[kernarg:kernarg+1], 0x0 + wei_ptr_off
     s_load_dwordx2 s[desc_out:desc_out+1], s[kernarg:kernarg+1], 0x0 + out_ptr_off
-    
+
     // mask off unused lanes
     s_mov_b32 exec_lo, active_mask_lo
     s_mov_b32 exec_hi, active_mask_hi
-    
+
     // fill format and size fields of buffer descriptors
     static_assert ((.option.machine_version_major == 8) || (.option.machine_version_major == 9))
     s_mov_b32 s[desc_in+2], input_buffer_size
@@ -275,35 +326,46 @@ gcnAsmConv1x1U:
     s_mov_b32 s[desc_wei+3], 0x00027000
     s_mov_b32 s[desc_out+2], output_buffer_size
     s_mov_b32 s[desc_out+3], 0x00027000
-    
+
     v_lshrrev_b32 v[vtmp], 6, v[tid]
     v_readfirstlane_b32 s[wave_id], v[vtmp]
     v_and_b32 v[tid], 0x3f, v[tid]
-    
+
     // calculate input/output offsets
     v_lshrrev_b32 v[vtmp], 0 + chunk_size_log2, v[tid] // vtmp = wave part id
     v_mul_u32_u24 v[voffset_in], 0 + input_n_stride, v[vtmp]
     v_mul_u32_u24 v[voffset_out], 0 + output_n_stride, v[vtmp]
+
     v_and_b32 v[vtmp], 0 + chunk_size - 1, v[tid] // vtmp = lane in wave part
-    v_mul_u32_u24 v[vtmp], 4 * chunks_per_wave, v[vtmp]
+    v_mul_u32_u24 v[vtmp], 0 + input_w_stride * chunks_per_wave, v[vtmp]
     _v_add_nc_u32 v[voffset_in], v[voffset_in], v[vtmp]
+
+    v_and_b32 v[vtmp], 0 + chunk_size - 1, v[tid] // vtmp = lane in wave part
+    v_mul_u32_u24 v[vtmp], 0 + output_w_stride * chunks_per_wave, v[vtmp]
     _v_add_nc_u32 v[voffset_out], v[voffset_out], v[vtmp]
+
     s_mul_i32 s[soffset_in], s[gid_n], 0 + input_n_stride * active_n_per_wave
     s_mul_i32 s[soffset_out], s[gid_n], 0 + output_n_stride * active_n_per_wave
-    s_mul_i32 s[stmp], s[gid_hw], 0 + active_hw_per_wave * 4
+
+    s_mul_i32 s[stmp], s[gid_hw], 0 + active_hw_per_wave * input_w_stride
     s_add_u32 s[soffset_in], s[soffset_in], s[stmp]
+
+    s_mul_i32 s[stmp], s[gid_hw], 0 + active_hw_per_wave * output_w_stride
     s_add_u32 s[soffset_out], s[soffset_out], s[stmp]
-    s_mul_i32 s[stmp], s[wave_id], 0 + c_per_wave * input_c_stride
+
+    s_mul_i32 s[stmp], s[wave_id], 0 + hi_c_per_wave * input_c_stride
     s_add_u32 s[soffset_in], s[soffset_in], s[stmp]
-    s_mul_i32 s[stmp], s[gid_k], 0 + output_k_stride * k_mult
+
+    s_mul_i32 s[stmp], s[gid_k], 0 + output_k_stride * k_mult / vec_k_out
     s_add_u32 s[soffset_out], s[soffset_out], s[stmp]
     s_mul_i32 s[soffset_wei], s[gid_k], 0 + k_mult * filter_k_stride
-    s_mul_i32 s[stmp], s[wave_id], 0 + c_per_wave * filter_c_stride
+    
+    static_assert(vec_c_in == vec_c_filter)
+    s_mul_i32 s[stmp], s[wave_id], 0 + hi_c_per_wave * filter_c_stride
     s_add_u32 s[soffset_wei], s[soffset_wei], s[stmp]
 
-
     s_waitcnt 0
-    
+
     .macro xsload base, xx, cnt
         .rept \xx
             .if \cnt == 1
@@ -315,7 +377,7 @@ gcnAsmConv1x1U:
             s_add_u32 s[soffset_wei], s[soffset_wei], 0+4*\cnt
         .endr
     .endm
-    
+
     .macro load_filters base, seq_size, seq_cnt, seq_stride
         seq_it = 0
         fbase = \base
@@ -330,7 +392,7 @@ gcnAsmConv1x1U:
             rest = rest - x2_chunks * 2
             x1_chunks = rest
             imm_off = 0
-            
+
             xsload fbase, x16_chunks, 16
             xsload fbase, x8_chunks, 8
             xsload fbase, x4_chunks, 4
@@ -346,61 +408,73 @@ gcnAsmConv1x1U:
         .endr
     .endm
 
-    .if chunks_per_wave % read_size
-        mbufs_cnt = c_mult * n_mult * (1 + chunks_per_wave / read_size)
+    .if chunks_per_wave % (read_size * input_dword_chunks_cnt)
+        mbufs_cnt = (c_mult / elements_in_dword) * n_mult * (1 + chunks_per_wave / (read_size * input_dword_chunks_cnt))
     .else
-        mbufs_cnt = c_mult * n_mult * (chunks_per_wave / read_size)
+        mbufs_cnt = (c_mult / elements_in_dword) * n_mult * (chunks_per_wave / (read_size * input_dword_chunks_cnt))
     .endif
     .macro load_input base
         ibase = \base
-        full_loads = chunks_per_wave / read_size
-        partial_load_size = chunks_per_wave % read_size
+        hi_c_mult = c_mult / vec_c_in
+        full_loads =              chunks_per_wave / (read_size * input_dword_chunks_cnt)
+        partial_load_chunks_cnt = chunks_per_wave % (read_size * input_dword_chunks_cnt)
+        partial_load_dwords = (partial_load_chunks_cnt + input_dword_chunks_cnt -1) / input_dword_chunks_cnt
+        partial_load_short  =  partial_load_chunks_cnt % input_dword_chunks_cnt
         nb = 0
         .rept n_mult
             c_it = 0
             s_mov_b32 s[stmp_offset], s[soffset_in]
-            .rept c_mult
+            .rept hi_c_mult // input and filter must be vectorized
                 s_cmpk_le_i32 s[loop_cnt], 0 + c_it
                 s_cmov_b32 s[stmp_offset], 0 + invalid_addr_lit
 
+                ld_it = 0 
                 imm_off = 0
-                .rept full_loads
-                    m_buffer_load_dwordx read_size, ibase, voffset_in, desc_in, stmp_offset, imm_off
-                    ibase = ibase + read_size
-                    imm_off = imm_off + 4 * read_size
+                current_read_cnt = read_size
+                rem_ibase = ibase
+                .rept full_loads + 1
+                    .if(ld_it == full_loads)
+                        current_read_cnt = partial_load_dwords
+                    .endif
+                    m_buffer_load_dwordx current_read_cnt, ibase, voffset_in, desc_in, stmp_offset, imm_off
+                    ibase = ibase + current_read_cnt
+                    imm_off = imm_off + 4 * current_read_cnt
+                    ld_it = ld_it + 1
                     //TODO change step size
                 .endr
-                m_buffer_load_dwordx partial_load_size, ibase, voffset_in, desc_in, stmp_offset, imm_off
-                ibase = ibase + partial_load_size
+                .if elements_in_dword == 2 && rem_hw_in
+                
+                    chunk_id = img_hw / (chunks_per_wave)
+                    rem_dword_id = (img_hw % (chunks_per_wave)) / input_dword_chunks_cnt
+                    rem_ibase = rem_ibase + rem_dword_id
+                    v_cmpx_eq_i32 vcc, 0 + chunk_id * (chunks_per_wave), v[current_hw_in]
+                    
+                    m_buffer_load_ushort 1,  rem_ibase, voffset_in, desc_in, stmp_offset, rem_dword_id * 4
+                    s_mov_b32 exec_lo, active_mask_lo
+                    s_mov_b32 exec_hi, active_mask_hi
+                .endif
                 c_it = c_it + 1
                 s_add_u32 s[stmp_offset], s[stmp_offset], input_c_stride
             .endr
             nb = nb + 1
+
             .if nb == n_mult
-                s_add_u32 s[soffset_in], s[soffset_in], 0 + (input_c_stride * c_mult) - input_n_stride * (active_n_per_wave - active_n_per_gpr)
+                s_add_u32 s[soffset_in], s[soffset_in], 0 + (input_c_stride * hi_c_mult) - input_n_stride * active_n_per_gpr*(n_mult - 1)
             .else
                 s_add_u32 s[soffset_in], s[soffset_in], 0 + input_n_stride * active_n_per_gpr
             .endif
         .endr
 
         s_addk_i32 s[loop_cnt], 0 - (1 * c_mult)
-        .if (disable_case_opt || c_per_wave % 4 || input_channels % c_per_wave)
+        .if (1|| hi_c_per_wave % 4 || hi_input_channels % hi_c_per_wave)
             s_cmpk_le_i32 s[loop_cnt], 0
             s_cmov_b32 s[desc_in+2], 0
         .endif
 
     .endm
-    
-    //perf conv on packed img vgpr 
-    .macro conv_line acc, wei, img
-        .if dot_instructions_available
-            v_dot2_f32_f16 v[\acc], s[\wei], v[\img], v[\acc]
-        .else
-            v_mad_mix_f32 v[\acc], s[\wei], v[\img], v[\acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
-            v_mad_mix_f32 v[\acc], s[\wei], v[\img], v[\acc] op_sel:[1,1,0] op_sel_hi:[1,1,0]
-        .endif
-        #v_fma_mix_f32 v[\acc], s[\wei], v[\img], v[\acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
-        #v_fma_mix_f32 v[\acc], s[\wei], v[\img], v[\acc] op_sel:[1,1,0] op_sel_hi:[1,1,0]
+
+    .macro get_acc_idx acc, k, n, chunk
+        \acc = accums + chunks_per_wave * n_mult * \k + \n * chunks_per_wave + \chunk
     .endm
 
     //repack imgs between two vgpr
@@ -413,101 +487,178 @@ gcnAsmConv1x1U:
     //repack filter between two sgpr
     .macro exch_filter, filter_c0, filter_c1
         s_mov_b32 s[stmp], s[\filter_c0]
-        s_pack_ll_b32_b16 s[\filter_c0], s[\filter_c0], s[\filter_c1] 
+        s_pack_ll_b32_b16 s[\filter_c0], s[\filter_c0], s[\filter_c1]
         s_pack_hh_b32_b16 s[\filter_c1], s[stmp], s[\filter_c1]
     .endm
 
-    //repack input across channels
+        //repack input across channels
     .macro trans_input ibase
-        .if vec_size == 2
-            c = 0
-            .rept c_mult / vec_size
-                n = 0
-                .rept n_mult
-                    ch_gpr = 0
-                    .rept chunks_per_wave
-                        c_gpr_inp = c * chunks_per_wave
-                        n_gpr_inp = n * c_mult * chunks_per_wave
-                        img = \ibase + ch_gpr + n_gpr_inp + c_gpr_inp
-                        exch_img img, img + chunks_per_wave
-                        ch_gpr = ch_gpr + 1
-                    .endr
-                    n = n + 1
+      .if(input_dword_chunks_cnt == 2)
+        c = 0
+        .rept c_mult / input_dword_chunks_cnt
+            n = 0
+            .rept n_mult
+                ch_gpr = 0
+                dwords_with_chunks_from_cx_lane = chunks_per_wave / input_dword_chunks_cnt
+                .rept (dwords_with_chunks_from_cx_lane)
+                    c_gpr_inp = c * dwords_with_chunks_from_cx_lane
+                    n_gpr_inp = n * c_mult * dwords_with_chunks_from_cx_lane
+                    img = \ibase + ch_gpr + n_gpr_inp + c_gpr_inp
+                    exch_img img, img + dwords_with_chunks_from_cx_lane
+                    ch_gpr = ch_gpr + 1
                 .endr
-                c = c + vec_size
+                n = n + 1
             .endr
-        .endif
+            c = c + input_dword_chunks_cnt
+        .endr
+      .endif
     .endm
 
     //repack filter across channels
     .macro trans_filter fbase
-        .if(vec_size == 2 && weights_layout != 0)
+      .if(elements_in_dword == 2 &&  raw_filter_dword_k_cnt == 2)
+        .if(weights_layout != 0)
             c = 0
-            .rept sequential_reads_cnt 
+            .rept sequential_reads_cnt / raw_filter_dword_k_cnt
                 k = 0
-                .rept filter_c_gpr_stride 
-                    c_gpr_filter = c * filter_c_gpr_stride
+                .rept filter_c_gpr_stride
+                    c_gpr_filter = (c) * filter_c_gpr_stride
                     k_gpr_filter = k * filter_k_gpr_stride
                     wei = \fbase + k_gpr_filter + c_gpr_filter
-                    exch_filter wei, wei + filter_c_gpr_stride 
+                    exch_filter wei, wei + filter_c_gpr_stride
                     k = k + 1
                 .endr
-                c = c + vec_size 
+                c = c + raw_filter_dword_k_cnt
             .endr
         .endif
+      .endif
     .endm
-
     .macro conv ibase, fbase
-        c = 0
-        .rept c_mult / vec_size
+        chunk_lo_intrans_gpr_stride = chunks_per_wave / input_dword_chunks_cnt
+        chunk_hi_intrans_gpr_stride = 1
+        hi_c_mult = c_mult / elements_in_dword
+        k_lo_gpr_stride = filter_c_gpr_stride
+        k_hi_gpr_stride = filter_k_gpr_stride
+        c_hi_ftrans_gpr_stride = filter_c_gpr_stride * raw_filter_dword_k_cnt
+        c_hi_intrans_gpr_stride = chunks_per_wave
+        n_input_gpr_stride = hi_c_mult * c_hi_intrans_gpr_stride
+        c_hi = 0
+        .rept hi_c_mult
             k = 0
             .rept k_mult
-                n = 0
+                nb = 0
                 .rept n_mult
-                    ch_gpr = 0
+                    chunk = 0
                     .rept chunks_per_wave
-                        c_gpr_inp = c * chunks_per_wave
-                        n_gpr_inp = n * c_mult * chunks_per_wave
-                        n_gpr_acc = n * chunks_per_wave
-                        k_gpr_acc = k * n_mult * chunks_per_wave
+                        get_acc_idx acc, k, nb, chunk
+                        k_lo = (k % raw_filter_dword_k_cnt) * k_lo_gpr_stride
+                        k_hi = (k / raw_filter_dword_k_cnt) * k_hi_gpr_stride
+                        k_gpr_filter = k_lo + k_hi
 
-                        img = \ibase + ch_gpr + n_gpr_inp + c_gpr_inp * vec_size
-                        acc = accums + (k_gpr_acc + n_gpr_acc + ch_gpr) * vec_size
+                        c_gpr_filter = c_hi * c_hi_ftrans_gpr_stride 
+                        f_gpr = \fbase + k_gpr_filter + c_gpr_filter
 
-                        .if(vec_size == 2 && weights_layout != 0) //wei[k][c]
-                            x = k / vec_size
-                            y = k % vec_size
-                            wei = \fbase + x + y * filter_c_gpr_stride + k_mult * c
-                        .else //wei[c][k]
-                            c_gpr_filter = c * filter_c_gpr_stride
-                            k_gpr_filter = k * filter_k_gpr_stride
-                            wei = \fbase + k_gpr_filter + c_gpr_filter
-                        .endif
+                        c_gpr_inp = c_hi * c_hi_intrans_gpr_stride
+                        n_gpr_inp = nb * n_input_gpr_stride
 
-                        #v_mov_b32 v[img], 0x3C003C00
-                        #v_mov_b32 v[img + chunks_per_wave], 0x3C003C00
-                        #s_mov_b32 s[wei], 0x3C003C00
+                        chunk_lo = ((chunk) % input_dword_chunks_cnt) * chunk_lo_intrans_gpr_stride
+                        chunk_hi = (chunk / input_dword_chunks_cnt) * chunk_hi_intrans_gpr_stride
+                        inp_gpr = \ibase + c_gpr_inp + n_gpr_inp + chunk_lo + chunk_hi
 
-                        .if vec_size == 2
-                            conv_line acc, wei, img
-                            conv_line acc+1, wei, img + chunks_per_wave
+                        .if acc_type == TYPE_FP32 && buf_type == TYPE_FP32 && vec_c_in == 1
+                            v_mac_f32 v[acc], s[f_gpr], v[inp_gpr]
+                        .elseif acc_type == TYPE_FP32 && buf_type == TYPE_FP16
+                            .if dot_instructions_available
+                                v_dot2_f32_f16 v[acc], s[f_gpr], v[inp_gpr], v[acc]
+                            .elseif madmix_instructions_available
+                                v_mad_mix_f32 v[acc], s[f_gpr], v[inp_gpr], v[acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
+                                v_mad_mix_f32 v[acc], s[f_gpr], v[inp_gpr], v[acc] op_sel:[1,1,0] op_sel_hi:[1,1,0]
+                            .elseif fmamix_instructions_available
+                                v_fma_mix_f32 v[acc], s[f_gpr], v[inp_gpr], v[acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
+                                v_fma_mix_f32 v[acc], s[f_gpr], v[inp_gpr], v[acc] op_sel:[1,1,0] op_sel_hi:[1,1,0]
+                            .else
+                                v_cvt_f32_f16 v[vtmp], v[inp_gpr]
+                                v_cvt_f32_f16 v[vtmp_f_cvt], v[f_gpr]
+                                v_mac_f32     v[acc], v[vtmp], v[vtmp_f_cvt]
+
+                                v_lshrrev_b32 v[vtmp], 16, v[inp_gpr]
+                                v_lshrrev_b32 v[vtmp_f_cvt], 16, v[f_gpr]
+
+                                v_cvt_f32_f16 v[vtmp], v[vtmp]
+                                v_cvt_f32_f16 v[vtmp_f_cvt], v[vtmp_f_cvt]
+                                v_mac_f32     v[acc], v[vtmp], v[vtmp_f_cvt]
+                            .endif
+                        .elseif acc_type == TYPE_INT32 && buf_type == TYPE_INT16 && vec_c_in == 2
+                            .if dot_instructions_available
+                                v_dot2_i32_i16 v[acc], s[f_gpr], v[inp_gpr], v[acc]
+                            .else
+                                v_lshlrev_b32 v[vtmp], 16, v[inp_gpr]
+                                v_ashrrev_i32 v[vtmp], 16, v[vtmp]
+                                s_sext_i32_i16 s[stmp], s[f_gpr]
+                                v_mul_i32_i24 v[vtmp], s[stmp], v[vtmp]
+                                _v_add_nc_u32 v[acc], v[acc], v[vtmp]
+
+                                v_ashrrev_i32 v[vtmp], 16, v[inp_gpr]
+                                s_ashr_i32 s[stmp], s[f_gpr], 16
+                                v_mul_i32_i24 v[vtmp], s[stmp], v[vtmp]
+                                _v_add_nc_u32 v[acc], v[acc], v[vtmp]
+                            .endif
+                        .elseif acc_type == TYPE_INT32 && buf_type == TYPE_INT8 && vec_c_in == 4
+                            .if dot_instructions_available
+                                v_dot4_i32_i8 v[acc], s[f_gpr], v[inp_gpr], v[acc]
+                            .else
+                                i = 0
+                                .rept 4
+                                    v_lshlrev_b32 v[vtmp], 24 - 8*i, v[inp_gpr]
+                                    v_ashrrev_i32 v[vtmp], 24, v[vtmp]
+                                    s_lshl_b32 s[stmp], s[f_gpr], 24 - 8*i
+                                    s_ashr_i32 s[stmp], s[stmp], 24
+
+                                    v_mul_i32_i24 v[vtmp], s[stmp], v[vtmp]
+                                    _v_add_nc_u32 v[acc], v[acc], v[vtmp]
+                                    i = i + 1
+                                .endr
+                            .endif
+                        .elseif acc_type == TYPE_INT32 && buf_type == TYPE_INT4 && vec_c_in == 8
+                            .if dot_instructions_available
+                                v_dot8_i32_i4 v[acc], s[f_gpr], v[inp_gpr], v[acc]
+                            .else
+                                i = 0
+                                .rept 8
+                                    v_lshlrev_b32 v[vtmp], 28 - 4*i, v[inp_gpr]
+                                    v_ashrrev_i32 v[vtmp], 28, v[vtmp]
+                                    s_lshl_b32 s[stmp], s[f_gpr], 28 - 4*i
+                                    s_ashr_i32 s[stmp], s[stmp], 28
+
+                                    v_mul_i32_i24 v[vtmp], s[stmp], v[vtmp]
+                                    _v_add_nc_u32 v[acc], v[acc], v[vtmp]
+                                    i = i + 1
+                                .endr
+                            .endif
                         .else
-                            v_mac_f32 v[accums + k_gpr_acc + n_gpr_acc + ch_gpr], s[\fbase + k_gpr_filter + c_gpr_filter], v[\ibase + ch_gpr + n_gpr_inp + c_gpr_inp]
+                            static_assert(0)
                         .endif
-
-                        ch_gpr = ch_gpr + 1
+                        chunk = chunk + 1
                     .endr
-                    n = n + 1
+                    nb = nb + 1
                 .endr
                 k = k + 1
             .endr
-            c = c + 1 
+            c_hi = c_hi + 1
         .endr
     .endm
 
-    s_mov_b32 s[loop_cnt], 0 + c_per_wave
+    .if(rem_hw_in)
+        v_and_b32 v[current_hw_in], 0 + chunk_size - 1, v[tid]
+        v_mul_u32_u24 v[current_hw_in], 0 + chunks_per_wave, v[current_hw_in]
+        s_mul_i32 s[stmp], s[gid_hw], 0 + active_hw_per_wave
+        _v_add_nc_u32 v[current_hw_in],  s[stmp], v[current_hw_in]
+        dump_vgpr current_hw_in
+        dump_val 0x111
+    .endif
+    s_mov_b32 s[loop_cnt], 0 + hi_c_per_wave * vec_c_in
     s_cmpk_eq_u32 s[wave_id], 0 + waves_in_group - 1
-    s_cmov_b32 s[loop_cnt], 0 + input_channels - c_per_wave * (waves_in_group-1)
+    s_cmov_b32 s[loop_cnt], 0 + last_wave_hi_c_per_wave * vec_c_in
 
     load_input inputA
     load_filters filtersA, sequential_read_size, sequential_reads_cnt, sequential_read_stride
@@ -535,9 +686,8 @@ loop_begin:
     trans_filter filtersB
     conv inputB, filtersB
 
-   
+
 loop_end:
-    //load vec_size * c_mult channels once
     s_cmpk_gt_i32 s[loop_cnt], 1 * c_mult
     s_cbranch_scc1 loop_begin
 
@@ -561,14 +711,14 @@ loop_end:
         s_mov_b32 m0, -1
         s_cmpk_eq_u32 s[wave_id], 0 + waves_in_group - 1
         s_cbranch_scc1 last_wave
-        
+
         s_mul_i32 s[stmp], s[wave_id], 4 * .WAVE_SIZE * lds_gprs_per_loop
 
         v_lshlrev_b32 v[lds_off], 2, v[tid]
         _v_add_nc_u32 v[lds_off], s[stmp], v[lds_off]
         acc_id = 0
         sync_loop = 0
-        .rept sync_loops 
+        .rept sync_loops
             imm_off = (sync_loop % 2) * lds_gprs_per_loop * (waves_in_group-1) * 4 * .WAVE_SIZE
             .rept lds_gprs_per_loop
                 .if acc_id < accums_cnt
@@ -597,7 +747,11 @@ last_wave:
                     .if acc_id < accums_cnt
                         ds_read_b32 v[vtmp], v[lds_off] offset:0+imm_off
                         s_waitcnt 0
-                        v_add_f32 v[accums + acc_id], v[vtmp], v[accums + acc_id]
+                        .if acc_type == TYPE_FP32
+                            v_add_f32 v[accums + acc_id], v[vtmp], v[accums + acc_id]
+                        .elseif acc_type == TYPE_INT32
+                            _v_add_nc_u32 v[accums + acc_id], v[vtmp], v[accums + acc_id]
+                        .endif
                     .endif
                     wave = wave + 1
                 .endr
@@ -607,64 +761,158 @@ last_wave:
             sync_loop = sync_loop + 1
         .endr
     .endif
-    
-    // store output
-    .GPR_REUSE stmp_offset, current_k
-    .GPR_REUSE inputA, current_hw
-    s_mul_i32 s[current_k], s[gid_k], 0 + k_mult
-    v_and_b32 v[current_hw], 0 + chunk_size - 1, v[tid]
-    v_mul_u32_u24 v[current_hw], 0 + chunks_per_wave, v[current_hw]
-    s_mul_i32 s[stmp], s[gid_hw], 0 + active_hw_per_wave
-    _v_add_nc_u32 v[current_hw],  s[stmp], v[current_hw]
-    
-    k = 0
-    acc = accums
-    .rept k_mult
+
+    // Pack output
+
+    .macro set_acc_idx idx, k, nb, chunk
+        get_acc_idx acc\idx, \k, \nb, \chunk
+    .endm
+    .altmacro
+    .macro set_all_acc_idx  rounded_ck_base, vec_ck, nb, chunk_base
+        _idx = 1
+        _ck_local = 0
+        _chunk_local = 0
+        .rep elements_in_dword
+            set_acc_idx %_idx, (\rounded_ck_base * \vec_ck + _ck_local), \nb, \chunk_base + _chunk_local
+            .if(\vec_ck == 1)
+                _chunk_local = _chunk_local + 1
+            .else
+                _ck_local = _ck_local + 1
+            .endif
+            _idx = _idx + 1
+        .endr
+    .endm
+
+    .if (vec_k_out > 1) || (elements_in_dword > 1)
         nb = 0
         .rept n_mult
-            s_mov_b32 exec_lo, active_mask_lo
-            s_mov_b32 exec_hi, active_mask_hi
-            chunk = 0
-            acc_t = acc
-            .rept chunks_per_wave
-                v_cmpx_gt_i32 vcc, 0 + (img_hw_vec - odd_hw) - chunk, v[current_hw]
-                .if vec_size == 2
-                    //cvt and packed two fp32 into a fp32
-                    v_cvt_pkrtz_f16_f32 v[acc], v[acc], v[acc+1]
-                .endif
-                buffer_store_dword v[acc], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0+4*chunk
-                chunk = chunk + 1
-                acc = acc + vec_size
+            hi_chunk = 0
+            .rept chunks_per_wave / (output_dword_chunks_cnt)
+                hi_k = 0
+                .rept k_mult / vec_k_out
+                    set_all_acc_idx hi_k, vec_k_out, nb, hi_chunk  * output_dword_chunks_cnt
+                    .if acc_type == TYPE_FP32 && buf_type == TYPE_FP16
+                        v_cvt_pkrtz_f16_f32 v[acc1], v[acc1], v[acc2]
+                    .elseif acc_type == TYPE_INT32 && buf_type == TYPE_INT16
+                        v_cvt_pk_i16_i32 v[acc1], v[acc1], v[acc2]
+                    .elseif acc_type == TYPE_INT32 && buf_type == TYPE_INT8
+                        v_mov_b32 v[vtmp], 127
+                        s_mov_b32 s[stmp], -128
+                        .if use_saturated_integer_cast
+                            v_med3_i32 v[acc1], v[acc1], v[vtmp], s[stmp]
+                            v_med3_i32 v[acc2], v[acc2], v[vtmp], s[stmp]
+                            v_med3_i32 v[acc3], v[acc3], v[vtmp], s[stmp]
+                            v_med3_i32 v[acc4], v[acc4], v[vtmp], s[stmp]
+                        .endif
+                        v_and_b32 v[acc1], 0xFF, v[acc1]
+                        v_and_b32 v[acc2], 0xFF, v[acc2]
+                        v_and_b32 v[acc3], 0xFF, v[acc3]
+                        v_lshlrev_b32 v[acc2], 8, v[acc2]
+                        v_lshlrev_b32 v[acc3], 16, v[acc3]
+                        v_lshlrev_b32 v[acc4], 24, v[acc4]
+                        v_or_b32 v[acc1], v[acc1], v[acc4]
+                        v_or3_b32 v[acc1], v[acc1], v[acc2], v[acc3]
+                    .elseif acc_type == TYPE_INT32 && buf_type == TYPE_INT4
+                        i = 0
+                        .rept elements_in_dword
+                            .if(vec_k_out == 1)
+                                get_acc_idx acci, (hi_k * vec_k_out), nb, hi_chunk  + i
+                            .else
+                                get_acc_idx acci, (hi_k * vec_k_out + i), nb, hi_chunk
+                            .endif
+
+                            .if use_saturated_integer_cast
+                                v_med3_i32 v[acci], v[acci], -8, 7
+                            .endif
+                            .if i < (elements_in_dword-1)
+                                v_and_b32 v[acci], 0xF, v[acci]
+                            .endif
+                            .if i > 0
+                                v_lshlrev_b32 v[acci], 0 + i*elements_in_dword, v[acci]
+                            .endif
+                            i = i + 1
+                        .endr
+                        v_or3_b32 v[acc1], v[acc1], v[acc2], v[acc3]
+                        v_or3_b32 v[acc4], v[acc4], v[acc5], v[acc6]
+                        v_or_b32 v[acc7], v[acc7], v[acc8]
+                        v_or3_b32 v[acc1], v[acc1], v[acc4], v[acc7]
+                    .else
+                        static_assert(0)
+                    .endif
+                    hi_k = hi_k + 1
+                .endr
+                hi_chunk = hi_chunk + 1
             .endr
-            .if vec_size == 2 && odd_hw
+            nb = nb + 1
+        .endr
+    .endif
+
+    // store output
+    .GPR_REUSE stmp_offset, current_k
+        
+    s_mul_i32 s[current_k], s[gid_k], 0 + k_mult / vec_k_out
+    
+    .if(!rem_hw_in)
+        .GPR_REUSE inputA, current_hw
+        v_and_b32 v[current_hw], 0 + chunk_size - 1, v[tid]
+        v_mul_u32_u24 v[current_hw], 0 + chunks_per_wave, v[current_hw]
+        s_mul_i32 s[stmp], s[gid_hw], 0 + active_hw_per_wave
+        _v_add_nc_u32 v[current_hw],  s[stmp], v[current_hw]
+    .else
+        .GPR_REUSE current_hw_in, current_hw
+    .endif
+    .macro store_result 
+        rem_hw_out = (img_h * img_w) % output_dword_chunks_cnt
+        k = 0
+        .rept k_mult / vec_k_out
+            nb = 0
+            .rept n_mult
                 s_mov_b32 exec_lo, active_mask_lo
                 s_mov_b32 exec_hi, active_mask_hi
-                v_cmpx_eq_i32 vcc, 0 + img_hw_vec - odd_hw, v[current_hw]
-                v_cvt_f16_f32 v[acc_t], v[acc_t]
-                buffer_store_short v[acc_t], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0
+                chunk = 0
+                .rept chunks_per_wave / output_dword_chunks_cnt
+                    v_cmpx_ge_i32 vcc, 0 + (img_hw - rem_hw_out) - (chunk + 1) * output_dword_chunks_cnt, v[current_hw]
+                    get_acc_idx acc, vec_k_out * k, nb, chunk * output_dword_chunks_cnt
+                    buffer_store_dword v[acc], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0+4 * chunk
+                    chunk = chunk + 1
+                .endr
+                .if(rem_hw_out != 0)
+                    //TODO add support for int8
+                    s_mov_b32 exec_lo, active_mask_lo
+                    s_mov_b32 exec_hi, active_mask_hi
+                    
+                    chunk_id = img_hw / (chunks_per_wave)
+                    
+                    v_cmpx_eq_i32 vcc, 0 + chunk_id * chunks_per_wave, v[current_hw] 
+
+                    last_dword = (img_hw % chunks_per_wave) / output_dword_chunks_cnt
+                    get_acc_idx acc, vec_k_out * k, nb, last_dword * output_dword_chunks_cnt
+                    buffer_store_short v[acc], v[voffset_out], s[desc_out:desc_out+3], s[soffset_out] offen offset:0+4 * last_dword
+                .endif
+                nb = nb + 1
+                .if nb == n_mult
+                    s_add_u32 s[soffset_out], s[soffset_out], 0 + output_k_stride - active_n_per_gpr * output_n_stride * (n_mult - 1)
+                .else
+                    s_add_u32 s[soffset_out], s[soffset_out], 0 + active_n_per_gpr * output_n_stride
+                .endif
+            .endr
+            .if (1  || hi_output_channels % (k_mult / vec_k_out))
+                s_cmpk_ge_i32 s[current_k], 0 + hi_output_channels - k - 1
+                s_cmov_b32 s[desc_out+2], 0
             .endif
-            nb = nb + 1
-            .if nb == n_mult
-                s_add_u32 s[soffset_out], s[soffset_out], 0 + input_c_stride - (active_n_per_wave-active_n_per_gpr) * output_n_stride
-            .else
-                s_add_u32 s[soffset_out], s[soffset_out], 0 + active_n_per_gpr* output_n_stride
-            .endif
-        .endr
-        .if (disable_case_opt || output_channels % k_mult)
-            s_cmpk_ge_i32 s[current_k], 0 + output_channels - k - 1
-            s_cmov_b32 s[desc_out+2], 0
             k = k + 1
-        .endif
-    .endr
+        .endr
+    .endm
     
-    
+    store_result 
+
 s_endpgm
 
 .Lfunc_end0:
     .size gcnAsmConv1x1U, .Lfunc_end0 - gcnAsmConv1x1U
 
 .ifndef ROCM_METADATA_VERSION
-.error "ROCM_METADATA_VERSION must be defined"
+    .error "ROCM_METADATA_VERSION must be defined"
 .end
 .endif
 
