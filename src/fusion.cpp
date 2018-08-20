@@ -87,7 +87,20 @@ miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> d
     return miopenStatusSuccess;
 }
 
-TensorDescriptor FusionPlanDescriptor::DeriveOutputDescriptor()
+miopenStatus_t FusionPlanDescriptor::GetOp(int op_idx, std::shared_ptr<FusionOpDescriptor>& desc)
+{
+    auto err = miopenStatusSuccess;
+
+    if(op_idx >= op_map.size())
+    {
+        MIOPEN_THROW("Operator index out of bounds");
+    }
+
+    desc = op_map[op_idx];
+    return err;
+}
+
+TensorDescriptor FusionPlanDescriptor::FusionPlanDescriptor::DeriveOutputDescriptor()
 {
     TensorDescriptor i_desc = input_desc;
     TensorDescriptor o_desc;
