@@ -653,8 +653,6 @@ gcnAsmConv1x1U:
         v_mul_u32_u24 v[current_hw_in], 0 + chunks_per_wave, v[current_hw_in]
         s_mul_i32 s[stmp], s[gid_hw], 0 + active_hw_per_wave
         _v_add_nc_u32 v[current_hw_in],  s[stmp], v[current_hw_in]
-        dump_vgpr current_hw_in
-        dump_val 0x111
     .endif
     s_mov_b32 s[loop_cnt], 0 + hi_c_per_wave * vec_c_in
     s_cmpk_eq_u32 s[wave_id], 0 + waves_in_group - 1
