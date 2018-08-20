@@ -128,6 +128,21 @@ struct verify_forward_conv_bias
                                     fusionArgs);
             rout.data = handle.Read<T>(out_dev, rout.data.size());
         }
+
+        miopenFusionOpDescriptor_t convoOp_cpy;
+
+        miopenError = miopenFusionPlanGetOp(fusePlanDesc, 0, &convoOp_cpy);
+        EXPECT(miopenError == miopenStatusSuccess);
+        EXPECT(convoOp == convoOp_cpy);
+
+        miopenFusionOpDescriptor_t biasOp_cpy;
+        miopenError = miopenFusionPlanGetOp(fusePlanDesc, 1, &biasOp_cpy);
+        EXPECT(miopenError == miopenStatusSuccess);
+        EXPECT(biasOp == biasOp_cpy);
+
+        miopenError = miopenFusionPlanGetOp(fusePlanDesc, 2, &biasOp_cpy);
+        EXPECT(miopenError != miopenStatusSuccess);
+
         return rout;
     }
 
