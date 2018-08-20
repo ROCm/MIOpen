@@ -543,6 +543,13 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
     GenerateClangDefsym(options, "acc_type", 1);
     GenerateClangDefsym(options, "buf_type", (data_len == 2 ? 2 : 1));
+    enum class MemLayout : int
+    {
+        NCHW = 0,
+        CNHW = 1,
+        NHWC = 2,
+        CHWN = 3,
+    };
 
     struct buff_info
     {
@@ -550,27 +557,27 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         struct
         {
             int nk, c, h, w;
-        } stride, byte_stride, size;
+        } stride{}, byte_stride{}, size{};
 
-        buff_info(int _layout, int nk, int _c, int h, int w, int _vec_c, int data_len_t)
+        buff_info(MemLayout layout, int nk, int c, int h, int w, int vec_c, int data_len_t)
         {
-            int c_hi        = (_c + _vec_c - 1) / _vec_c;
-            int count       = (size_t)nk * c_hi * h * w * _vec_c;
+            int c_hi        = (c + vec_c - 1) / vec_c;
+            int count       = nk * c_hi * h * w * vec_c;
             total_byte_size = count * data_len_t;
             size.nk         = nk;
-            size.c          = _c;
+            size.c          = c;
             size.h          = h;
             size.w          = w;
 
-            switch(_layout)
+            switch(layout)
             {
-            case 0:
+            case MemLayout::NCHW:
                 stride.w  = 1;
                 stride.h  = w;
                 stride.c  = w * h;
                 stride.nk = w * h * c_hi;
                 break;
-            case 1:
+            case MemLayout::CNHW:
                 stride.w  = 1;
                 stride.h  = w;
                 stride.nk = w * h;
@@ -578,10 +585,10 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
                 break;
             default: assert(0); break;
             }
-            stride.nk *= _vec_c;
-            stride.c *= _vec_c;
-            stride.h *= _vec_c;
-            stride.w *= _vec_c;
+            stride.nk *= vec_c;
+            stride.c *= vec_c;
+            stride.h *= vec_c;
+            stride.w *= vec_c;
             byte_stride.nk = stride.nk * data_len_t;
             byte_stride.c  = stride.c * data_len_t;
             byte_stride.h  = stride.h * data_len_t;
@@ -589,22 +596,27 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         }
     };
 
-    buff_info ibuf(0,
+    buff_info ibuf(MemLayout::NCHW,
                    params.batch_sz,
                    params.n_inputs,
                    AsmImgHeight(params),
                    AsmImgWidth(params),
                    1,
                    data_len);
-    buff_info obuf(0,
+    buff_info obuf(MemLayout::NCHW,
                    params.batch_sz,
                    params.n_outputs,
                    AsmImgHeight(params),
                    AsmImgWidth(params),
                    1,
                    data_len);
-    buff_info fbuf(
-        params.direction.IsForward() ? 0 : 1, params.n_outputs, params.n_inputs, 1, 1, 1, data_len);
+    buff_info fbuf(params.direction.IsForward() ? MemLayout::NCHW : MemLayout::CNHW,
+                   params.n_outputs,
+                   params.n_inputs,
+                   1,
+                   1,
+                   1,
+                   data_len);
 
     GenerateClangDefsym(options, "input_n_stride", ibuf.byte_stride.nk);
     GenerateClangDefsym(options, "input_c_stride", ibuf.byte_stride.c);
