@@ -1778,6 +1778,21 @@ miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc);
 MIOPEN_EXPORT miopenStatus_t miopenCompileFusionPlan(miopenHandle_t handle,
                                                      miopenFusionPlanDescriptor_t fusePlanDesc);
 
+/*!
+ * @brief Allows access to the operators in a fusion plan
+ * @details This api call does bounds checking on the supplied op_idx and would
+ *          return miopenStatusError if the index is out of bounds
+ *
+ * @param fusePlanDesc A fusion plan descriptor (input)
+ * @param op_idx Index of the required operator in the fusion plan, in the order of insertion
+ * @param op returned pointer to the operator
+ * @return miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenFusionPlanGetOp(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                   const int op_idx,
+                                                   miopenFusionOpDescriptor_t* op);
+
 #if 0
 // Convolution create op with known algorithm---
 /*! @brief Creates forward convolution operator.
