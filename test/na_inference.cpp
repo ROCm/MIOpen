@@ -25,7 +25,7 @@
  *******************************************************************************/
 #include "fusionHost.hpp"
 #include <miopen/stringutils.hpp>
-#include <miopen/batch_norm_activ.hpp>
+// #include <miopen/batch_norm_activ.hpp>
 
 template <class T>
 struct verify_inference_batchnorm_activ
