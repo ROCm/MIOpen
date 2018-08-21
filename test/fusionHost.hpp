@@ -36,103 +36,10 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <utility>
-
-// #include "network_data.hpp"
 #include "driver.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
-
-template <class T>
-void convHostForward(const tensor<T>& input,
-                     tensor<T>& output,
-                     const tensor<T>& weights,
-                     const int bias_mode,
-                     const tensor<T>& bias,
-                     const miopenConvolutionDescriptor_t convDesc)
-{
-
-    int in_n, in_c, in_h, in_w;
-    int in_nstride, in_cstride, in_hstride, in_wstride;
-    std::tie(in_n, in_c, in_h, in_w) = miopen::tien<4>(input.desc.GetLengths());
-    std::tie(in_nstride, in_cstride, in_hstride, in_wstride) =
-        miopen::tien<4>(input.desc.GetStrides());
-
-    int wei_n, wei_c, wei_h, wei_w;
-    int wei_nstride, wei_cstride, wei_hstride, wei_wstride;
-    std::tie(wei_n, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
-    std::tie(wei_nstride, wei_cstride, wei_hstride, wei_wstride) =
-        miopen::tien<4>(weights.desc.GetStrides());
-
-    int out_n, out_c, out_h, out_w;
-    int out_nstride, out_cstride, out_hstride, out_wstride;
-    std::tie(out_n, out_c, out_h, out_w) = miopen::tien<4>(output.desc.GetLengths());
-    std::tie(out_nstride, out_cstride, out_hstride, out_wstride) =
-        miopen::tien<4>(output.desc.GetStrides());
-
-    int u, v, pad_h, pad_w, dilation_h, dilation_w;
-    miopenConvolutionMode_t mode;
-    miopenPaddingMode_t pmode = miopen::deref(convDesc).paddingMode;
-    miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pad_h, &pad_w, &u, &v, &dilation_h, &dilation_w);
-
-    if(pmode == miopenPaddingSame)
-    {
-        pad_h = (in_h % u == 0) ? (std::max((wei_h - u), 0)) : (std::max((wei_h - (in_h % u)), 0));
-        pad_w = (in_w % v == 0) ? (std::max((wei_w - v), 0)) : (std::max((wei_w - (in_w % v)), 0));
-        pad_h /= 2;
-        pad_w /= 2;
-    }
-    else if(pmode == miopenPaddingValid)
-    {
-        pad_h = 0;
-        pad_w = 0;
-    }
-
-    if(out_h <= 0 || out_w <= 0)
-        MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
-
-    for(int o = 0; o < out_n; o++)
-    { // mini-batch size
-        for(int w = 0; w < out_c; w++)
-        { // out_channels (num filters)
-            for(int i = 0; i < out_h; i++)
-            { // output_height (from getforwardoutputdim())
-                int in_off_h = i * u;
-                for(int j = 0; j < out_w; j++)
-                { // output_width (from getforwardoutputdim())
-                    /*auto acc     = static_cast<T>(0.);*/
-                    auto acc     = static_cast<double>(0.);
-                    int in_off_w = j * v;
-                    for(int k = 0; k < in_c; k++)
-                    { // in_channels (RGB)
-                        for(int x = 0; x < wei_h; x++)
-                        {
-                            int in_x = in_off_h - pad_h + x * dilation_h;
-                            if(in_x >= 0 && in_x < in_h)
-                            {
-                                for(int y = 0; y < wei_w; y++)
-                                {
-                                    int in_y = in_off_w - pad_w + y * dilation_w;
-                                    if(in_y >= 0 && in_y < in_w)
-                                    {
-                                        acc += double(
-                                            static_cast<T>(input[o * in_nstride + k * in_cstride +
-                                                                 in_x * in_w + in_y]) *
-                                            static_cast<T>(weights(w, k, x, y)));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    acc = bias_mode != 0 ? acc + static_cast<double>(bias[w]) : acc;
-                    output[o * out_nstride + w * out_cstride + i * out_hstride + j] =
-                        static_cast<T>(acc);
-                }
-            }
-        }
-    }
-}
 
 template <class T>
 void batchNormSpatialHostInference(const tensor<T>& input,
