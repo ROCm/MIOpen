@@ -547,8 +547,6 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     {
         NCHW = 0,
         CNHW = 1,
-        NHWC = 2,
-        CHWN = 3,
     };
 
     struct buff_info
