@@ -42,7 +42,6 @@
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
-#include <miopen/direct_conv_ocl.hpp>
 
 template <class T>
 void convHostForward(const tensor<T>& input,
