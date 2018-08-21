@@ -33,7 +33,6 @@
 #include <miopen/tensor.hpp>
 #include <miopen/activ.hpp>
 #include <miopen/convolution.hpp>
-#include <miopen/solver.hpp>
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/fusion_ops.hpp>
 
