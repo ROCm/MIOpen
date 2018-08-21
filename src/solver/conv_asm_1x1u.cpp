@@ -127,236 +127,6 @@ inline static bool Next_1_4_8_12__32(int& v)
 
 inline static bool Is_1_4(const int& v) { return v == 1 || v == 4; }
 
-static int ConvAsmRunAndMeasureSolution(miopen::Handle& profile_h,
-                                        Data_t bot_ocl_buf,
-                                        Data_t top_ocl_buf,
-                                        Data_t wei_ocl_buf,
-                                        Data_t bias_ocl_buf,
-                                        const ConvolutionContext& params,
-                                        const ConvSolution& solution,
-                                        float& elapsed_time)
-{
-    assert(bias_ocl_buf == nullptr);
-    (void)bias_ocl_buf;
-    KernelInfo k_info;
-
-    if(UseSubsample(params))
-        k_info = solution.construction_params[1];
-    else if(UseUpsample(params))
-        k_info = solution.construction_params[0];
-    else
-        k_info = solution.construction_params[0];
-
-#ifdef NDEBUG
-    try
-#endif
-    {
-        elapsed_time = std::numeric_limits<float>::max();
-        // ConvolutionContext::general_compile_options is for OpenCL kernels
-        // and thus not applicable for assembly.
-        auto kernel = profile_h.AddKernel("",
-                                          "",
-                                          k_info.kernel_file,
-                                          k_info.kernel_name,
-                                          k_info.l_wk,
-                                          k_info.g_wk,
-                                          k_info.comp_options);
-
-        int unused       = 0;
-        int* return_addr = nullptr;
-        auto n_groups =
-            static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
-
-        kernel(params.batch_sz,      // N
-               params.n_inputs,      // C
-               AsmImgHeight(params), // H
-               AsmImgWidth(params),  // W
-               params.n_outputs,     // K
-               n_groups,             // n_groups
-               unused,
-               unused,
-               bot_ocl_buf,
-               wei_ocl_buf,
-               top_ocl_buf,
-               return_addr);
-
-        elapsed_time = profile_h.GetKernelTime();
-    }
-#ifdef NDEBUG
-    catch(miopen::Exception&)
-    {
-        return -1;
-    }
-#endif
-    return 0;
-}
-
-#if 0
-template<typename T>
-static T ConvAsmSearch(const ConvolutionContext& context)
-{
-    if(UseSubsample(context) || UseUpsample(context))
-        return GenericSearch(*this, context, SearchTweak::OverrideXBufferSizeByWorkspaceSize);
-    else
-        return GenericSearch(*this, context);
-}
-#endif
-
-static void
-GetSubSupSampleKernel(const ConvolutionContext& params, KernelInfo& kernel, int& workspce_sz)
-{
-    // subsampled input, in_height equals to image size after downsampling
-    int in_batch_stride = AsmImgWidth(params) * AsmImgHeight(params) *
-                          (UseSubsample(params) ? params.n_inputs : params.n_outputs);
-    int write_unit =
-        (AsmImgWidth(params) % 4 == 0) ? 4 : (AsmImgWidth(params) % 3 == 0)
-                                                 ? 3
-                                                 : (AsmImgWidth(params) % 2 == 0) ? 2 : 1;
-
-    int n_grp0_size0 = 256;
-
-    const auto subsample_kernel_compilation_options =
-        " -DUPSAMPLE" + std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
-        std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
-        std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(params.kernel_stride0) +
-        std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(params.kernel_stride1) +
-        std::string(" -DMLO_WRITE_UNIT=") + std::to_string(write_unit) +
-        std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(params.out_channel_stride) +
-        std::string(" -DMLO_OUT_STRIDE=") + std::to_string(params.out_stride) +
-        std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(in_batch_stride) +
-        std::string(" -DMLO_IN0_BATCH_STRIDE=") + std::to_string(params.in_batch_stride) +
-        std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(params.out_batch_stride) +
-        std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(params.in_channel_stride) +
-        std::string(" -DMLO_IN0_STRIDE=") + std::to_string(params.in_stride) +
-        params.general_compile_options;
-
-    kernel.l_wk.push_back(n_grp0_size0);
-    kernel.l_wk.push_back(1);
-    kernel.l_wk.push_back(1);
-    // output is number of subsampled input maps
-    size_t gbl_wk0 = (in_batch_stride / write_unit);
-    size_t gbl_wk1 = params.batch_sz;
-    size_t gbl_wk2 = 1;
-
-    kernel.g_wk.push_back(gbl_wk0);
-    kernel.g_wk.push_back(gbl_wk1);
-    kernel.g_wk.push_back(gbl_wk2);
-
-    kernel.kernel_file = "MIOpenUtilKernels3.cl";
-
-    if(UseSubsample(params))
-        kernel.kernel_name = "SubSample";
-    else
-        kernel.kernel_name = "UpSample";
-
-    kernel.comp_options = subsample_kernel_compilation_options;
-
-    assert(params.out_data_type == "FP16" || params.out_data_type == "FP32" ||
-           params.out_data_type == "FP64");
-    int data_len = (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
-    workspce_sz  = in_batch_stride * params.batch_sz * data_len;
-}
-
-static bool IsConvAsmApplicable(const ConvolutionContext& params)
-{
-    if(!params.use_asm_kernels)
-    {
-        return false;
-    }
-    if(!(params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
-    {
-        return false;
-    }
-    const std::string name = params.GetStream().GetDeviceName();
-    if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
-    {
-        return false;
-    }
-    assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
-    // clang-format off
-    bool ok = (params.pad0 == 0         // -q  pad_w
-        && params.pad1 == 0             // -p  pad_h
-        && params.kernel_stride0 <= 2   // -u  stride_w
-        && params.kernel_stride0 == params.kernel_stride1
-        && params.kernel_size0 == 1     // -x  S wei_w
-        && params.kernel_size1 == 1     // -y  R wei_h
-        && params.kernel_dilation0 == 1
-        && params.kernel_dilation1 == 1
-        && params.bias == 0
-        && params.float_size == 32
-        && params.in_layout == "NCHW");
-    if(!ok)
-    {
-        return false; // Early exit to speed up the check.
-    }
-    if (miopen::IsEnabled(MIOPEN_DEBUG_FIND_FIRST_CONV{})
-        && params.kernel_stride0 > 1)
-    {
-        /// Disabled asm_1x1u for stride=2 due to the overhead of
-        /// Up/Subsampler and SetTensor for UpSampler. (Refer to issue #940).
-        return false;
-    }
-    /// \todo Ilya: The checks below look adequate but needs to be double-checked.
-    {
-        const long input_line_size = 4 * params.in_width;
-        const long input_feature_map_size = input_line_size * params.in_height;
-        const long input_stack_size = input_feature_map_size * params.n_inputs;
-        if (! (input_stack_size < (1U << 24)))
-            return false;
-    }
-    {
-        const long output_line_size = 4 * params.out_width;
-        const long output_feature_map_size = output_line_size * params.out_height;
-        const long output_stack_size = output_feature_map_size * params.n_outputs;
-        if (! (output_stack_size < (1U << 24)))
-            return false;
-    }
-    // Check limits:
-    auto h_w = static_cast<long>(AsmImgHeight(params)) * AsmImgWidth(params);
-    const auto r_s     = static_cast<long>(params.kernel_size1) * params.kernel_size0;
-    const auto c_h_w   = static_cast<long>(params.n_inputs) * h_w;    // C*H*W
-    const auto k_h_w   = static_cast<long>(params.n_outputs) * h_w;   // K*H*W
-    const auto n_c_h_w = static_cast<long>(params.batch_sz) * c_h_w;  // N*C*H*W
-    const auto n_k_h_w = static_cast<long>(params.batch_sz) * k_h_w;  // N*K*H*W
-    const auto c_k_r_s = static_cast<long>(params.n_inputs) * params.n_outputs * r_s; // C*K*R*S
-    ok = params.batch_sz < std::pow(2, 16)      // -n   N batch_size
-         && params.n_inputs < std::pow(2, 16)   // -c   C input_channels
-         && params.n_outputs < std::pow(2, 16)  // -k   K output_channels
-         && c_h_w < std::pow(2, 24)
-         && k_h_w < std::pow(2, 24)
-         && n_c_h_w < std::pow(2, 29)
-         && n_k_h_w < std::pow(2, 29)
-         && c_k_r_s < std::pow(2, 29); // clang-format on
-    return ok;
-}
-
-template <typename T>
-static bool GetEnvPerfCfg(T& fromEnv)
-{
-    bool is_valid = false;
-    std::string s;
-    const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_PERF_VALS{});
-    if(p_asciz != nullptr)
-    {
-        s = std::string(p_asciz);
-        if(!s.empty()) // else nothing to parse.
-        {
-            if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())
-            {
-                MIOPEN_LOG_E("MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_PERF_VALS: "
-                             "Bad format or invalid for the problem config: "
-                             << s);
-            }
-            else
-            {
-                MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
-                is_valid = true;
-            }
-        }
-    }
-    return is_valid;
-}
-
 bool PerformanceConfigConvAsm1x1U::SetNextValue()
 {
     // Increment with wrap-around:
@@ -533,7 +303,75 @@ bool ConvAsm1x1U::IsValidPerformanceConfig(const ConvolutionContext& problem,
 
 bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
 {
-    return IsConvAsmApplicable(params);
+    if(!params.use_asm_kernels)
+    {
+        return false;
+    }
+    if(!(params.rmv == rocm_meta_version::V3 || params.rmv == rocm_meta_version::AMDHSA_1_0))
+    {
+        return false;
+    }
+    const std::string name = params.GetStream().GetDeviceName();
+    if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
+    {
+        return false;
+    }
+    assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
+    // clang-format off
+    bool ok = (params.pad0 == 0         // -q  pad_w
+        && params.pad1 == 0             // -p  pad_h
+        && params.kernel_stride0 <= 2   // -u  stride_w
+        && params.kernel_stride0 == params.kernel_stride1
+        && params.kernel_size0 == 1     // -x  S wei_w
+        && params.kernel_size1 == 1     // -y  R wei_h
+        && params.kernel_dilation0 == 1
+        && params.kernel_dilation1 == 1
+        && params.bias == 0
+        && params.float_size == 32
+        && params.in_layout == "NCHW");
+    if(!ok)
+    {
+        return false; // Early exit to speed up the check.
+    }
+    if (miopen::IsEnabled(MIOPEN_DEBUG_FIND_FIRST_CONV{})
+        && params.kernel_stride0 > 1)
+    {
+        /// Disabled asm_1x1u for stride=2 due to the overhead of
+        /// Up/Subsampler and SetTensor for UpSampler. (Refer to issue #940).
+        return false;
+    }
+    /// \todo Ilya: The checks below look adequate but needs to be double-checked.
+    {
+        const long input_line_size = 4 * params.in_width;
+        const long input_feature_map_size = input_line_size * params.in_height;
+        const long input_stack_size = input_feature_map_size * params.n_inputs;
+        if (! (input_stack_size < (1U << 24)))
+            return false;
+    }
+    {
+        const long output_line_size = 4 * params.out_width;
+        const long output_feature_map_size = output_line_size * params.out_height;
+        const long output_stack_size = output_feature_map_size * params.n_outputs;
+        if (! (output_stack_size < (1U << 24)))
+            return false;
+    }
+    // Check limits:
+    auto h_w = static_cast<long>(AsmImgHeight(params)) * AsmImgWidth(params);
+    const auto r_s     = static_cast<long>(params.kernel_size1) * params.kernel_size0;
+    const auto c_h_w   = static_cast<long>(params.n_inputs) * h_w;    // C*H*W
+    const auto k_h_w   = static_cast<long>(params.n_outputs) * h_w;   // K*H*W
+    const auto n_c_h_w = static_cast<long>(params.batch_sz) * c_h_w;  // N*C*H*W
+    const auto n_k_h_w = static_cast<long>(params.batch_sz) * k_h_w;  // N*K*H*W
+    const auto c_k_r_s = static_cast<long>(params.n_inputs) * params.n_outputs * r_s; // C*K*R*S
+    ok = params.batch_sz < std::pow(2, 16)      // -n   N batch_size
+         && params.n_inputs < std::pow(2, 16)   // -c   C input_channels
+         && params.n_outputs < std::pow(2, 16)  // -k   K output_channels
+         && c_h_w < std::pow(2, 24)
+         && k_h_w < std::pow(2, 24)
+         && n_c_h_w < std::pow(2, 29)
+         && n_k_h_w < std::pow(2, 29)
+         && c_k_r_s < std::pow(2, 29); // clang-format on
+    return ok;
 }
 
 bool ConvAsm1x1U::IsFast(const ConvolutionContext&) const { return true; }
@@ -560,9 +398,57 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
     if(UseSubsample(params) || UseUpsample(params))
     {
-        int workspce_sz;
-        GetSubSupSampleKernel(params, kernel, workspce_sz);
-        result.workspce_sz = workspce_sz;
+        // subsampled input, in_height equals to image size after downsampling
+        int in_batch_stride = AsmImgWidth(params) * AsmImgHeight(params) *
+                              (UseSubsample(params) ? params.n_inputs : params.n_outputs);
+        int write_unit =
+            (AsmImgWidth(params) % 4 == 0) ? 4 : (AsmImgWidth(params) % 3 == 0)
+                                                     ? 3
+                                                     : (AsmImgWidth(params) % 2 == 0) ? 2 : 1;
+
+        int n_grp0_size0 = 256;
+
+        const auto subsample_kernel_compilation_options =
+            " -DUPSAMPLE" + std::string(" -DMLO_GRP0_SZ0=") + std::to_string(n_grp0_size0) +
+            std::string(" -DMLO_GRP0_SZ1=1 ") + std::string(" -DMLO_GRP0_SZ2=1 ") +
+            std::string(" -DMLO_FILTER0_STRIDE0=") + std::to_string(params.kernel_stride0) +
+            std::string(" -DMLO_FILTER0_STRIDE1=") + std::to_string(params.kernel_stride1) +
+            std::string(" -DMLO_WRITE_UNIT=") + std::to_string(write_unit) +
+            std::string(" -DMLO_OUT_CHANNEL_STRIDE=") + std::to_string(params.out_channel_stride) +
+            std::string(" -DMLO_OUT_STRIDE=") + std::to_string(params.out_stride) +
+            std::string(" -DMLO_IN_BATCH_STRIDE=") + std::to_string(in_batch_stride) +
+            std::string(" -DMLO_IN0_BATCH_STRIDE=") + std::to_string(params.in_batch_stride) +
+            std::string(" -DMLO_OUT_BATCH_STRIDE=") + std::to_string(params.out_batch_stride) +
+            std::string(" -DMLO_IN0_CHANNEL_STRIDE=") + std::to_string(params.in_channel_stride) +
+            std::string(" -DMLO_IN0_STRIDE=") + std::to_string(params.in_stride) +
+            params.general_compile_options;
+
+        kernel.l_wk.push_back(n_grp0_size0);
+        kernel.l_wk.push_back(1);
+        kernel.l_wk.push_back(1);
+        // output is number of subsampled input maps
+        size_t gbl_wk0 = (in_batch_stride / write_unit);
+        size_t gbl_wk1 = params.batch_sz;
+        size_t gbl_wk2 = 1;
+
+        kernel.g_wk.push_back(gbl_wk0);
+        kernel.g_wk.push_back(gbl_wk1);
+        kernel.g_wk.push_back(gbl_wk2);
+
+        kernel.kernel_file = "MIOpenUtilKernels3.cl";
+
+        if(UseSubsample(params))
+            kernel.kernel_name = "SubSample";
+        else
+            kernel.kernel_name = "UpSample";
+
+        kernel.comp_options = subsample_kernel_compilation_options;
+
+        assert(params.out_data_type == "FP16" || params.out_data_type == "FP32" ||
+               params.out_data_type == "FP64");
+        int data_len =
+            (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
+        result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
     }
 
     GenerateClangDefsym(options, "stride_h", 1);
@@ -584,9 +470,28 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
     const PerformanceConfigConvAsm1x1U* pcfg = &config;
     PerformanceConfigConvAsm1x1U fromEnv;
-    if(!disableConfigOverrideFromEnv && GetEnvPerfCfg(fromEnv))
+    if(!disableConfigOverrideFromEnv)
     {
-        pcfg = &fromEnv;
+        std::string s;
+        const auto p_asciz = miopen::GetStringEnv(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_PERF_VALS{});
+        if(p_asciz != nullptr)
+        {
+            s = std::string(p_asciz);
+            if(!s.empty()) // else nothing to parse.
+            {
+                if(!fromEnv.Deserialize(s) || !fromEnv.IsValidValue())
+                {
+                    MIOPEN_LOG_E("MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_PERF_VALS: "
+                                 "Bad format or invalid for the problem config: "
+                                 << s);
+                }
+                else
+                {
+                    MIOPEN_LOG_I("Overridden from env: " << fromEnv.ToString());
+                    pcfg = &fromEnv;
+                }
+            }
+        }
     }
 
     GenerateClangDefsym(options, "read_size", pcfg->GetReadSize());
@@ -638,14 +543,59 @@ int ConvAsm1x1U::RunAndMeasureSolution(miopen::Handle& profile_h,
                                        const ConvSolution& solution,
                                        float& elapsed_time) const
 {
-    return ConvAsmRunAndMeasureSolution(profile_h,
-                                        bot_ocl_buf,
-                                        top_ocl_buf,
-                                        wei_ocl_buf,
-                                        bias_ocl_buf,
-                                        params,
-                                        solution,
-                                        elapsed_time);
+    assert(bias_ocl_buf == nullptr);
+    (void)bias_ocl_buf;
+    KernelInfo k_info;
+
+    if(UseSubsample(params))
+        k_info = solution.construction_params[1];
+    else if(UseUpsample(params))
+        k_info = solution.construction_params[0];
+    else
+        k_info = solution.construction_params[0];
+
+#ifdef NDEBUG
+    try
+#endif
+    {
+        elapsed_time = std::numeric_limits<float>::max();
+        // ConvolutionContext::general_compile_options is for OpenCL kernels
+        // and thus not applicable for assembly.
+        auto kernel = profile_h.AddKernel("",
+                                          "",
+                                          k_info.kernel_file,
+                                          k_info.kernel_name,
+                                          k_info.l_wk,
+                                          k_info.g_wk,
+                                          k_info.comp_options);
+
+        int unused       = 0;
+        int* return_addr = nullptr;
+        auto n_groups =
+            static_cast<int>(params.GetStream().GetMaxComputeUnits()); // kernel needs int32
+
+        kernel(params.batch_sz,      // N
+               params.n_inputs,      // C
+               AsmImgHeight(params), // H
+               AsmImgWidth(params),  // W
+               params.n_outputs,     // K
+               n_groups,             // n_groups
+               unused,
+               unused,
+               bot_ocl_buf,
+               wei_ocl_buf,
+               top_ocl_buf,
+               return_addr);
+
+        elapsed_time = profile_h.GetKernelTime();
+    }
+#ifdef NDEBUG
+    catch(miopen::Exception&)
+    {
+        return -1;
+    }
+#endif
+    return 0;
 }
 
 PerformanceConfigConvAsm1x1U ConvAsm1x1U::Search(const ConvolutionContext& context) const
