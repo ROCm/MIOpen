@@ -621,11 +621,8 @@ gcnAsmConv3x3U:
     s_cmpk_eq_u32 s[gid_y], 0
     s_cselect_b32 s[img_offset], 0, -1 * input_line_stride
     s_cselect_b32 s[tmp], -1 * input_line_stride, 0
-    .if uneven_line_read_mode || uneven_line_write_mode
-        v_mov_b32 v[in_off], s[tmp]
-    .else
-        _v_add_nc_u32 v[in_off], s[tmp], v[tid]
-    .endif
+    v_mov_b32 v[in_off], s[tmp]
+   _v_add_nc_u32 v[in_off], v[in_off], v[tid]
     s_mul_i32 s[tmp], s[gid_y], 0 + input_line_stride * acc_lines_per_wave
     s_add_u32 s[img_offset], s[img_offset], s[tmp]
   .else
@@ -657,7 +654,7 @@ gcnAsmConv3x3U:
         s_xor_b32 exec_lo, exec_lo, last_active_lane_mask
     .endif
     .if enable_zero_line_padding_on_read
-        _v_add_nc_u32 v[in_off_p], v[in_off_p], v[in_off] 
+       _v_add_nc_u32 v[in_off_p], v[in_off_p], v[in_off] 
     .endif
   .endif
 
@@ -883,7 +880,8 @@ loop_end:
 .endm
 
   .if uneven_line_write_mode && enable_zero_line_padding_on_read
-    v_sub_u32 v[in_off_p], v[in_off_p], v[in_off]
+   _v_sub_nc_u32 v[in_off_p], v[in_off_p], v[in_off]
+   _v_add_nc_u32 v[in_off_p], v[in_off_p], v[tid]
   .endif
 
 
