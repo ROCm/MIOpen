@@ -46,7 +46,6 @@
 #include "random.hpp"
 #include "mloNeuronHost.hpp"
 
-#include <miopen/batch_norm_activ.hpp>
 
 #define MIO_BN_DEBUG 0
 #define MIO_BN_MAX_DEBUGLOOP 65536
@@ -284,14 +283,16 @@ template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("batchsize", 'n', "32", "Mini-batch size (Default=32)", "int");
+    inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
+    inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
+    inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
     inflags.AddInputFlag("alpha", 'A', "1.0", "Alpha (Default=1.0)", "float");
     inflags.AddInputFlag("beta", 'B', "0.", "Beta (Default=0.)", "float");
     inflags.AddInputFlag("gamma", 'G', "1", "Activation gamma (Default=1)", "double");
     inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
-    inflags.AddInputFlag(
-        "activMode", 'm', "3", "Activation Mode (relu,..., see spec) (Default=3(relu))", "int");
+    inflags.AddInputFlag("activMode", 'm', "3", "Activation Mode (relu,..., see spec) (Default=3(relu))", "int");
     inflags.AddInputFlag("bnMode",
                          'M',
                          "0",
@@ -369,8 +370,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::createRunningBuffers()
     uint32_t ctx               = 0;
 #endif
 
-    if(fusion_mode < 4)
-    {
+
         size_t sb_sz = GetTensorSize(biasScaleTensor);
 
         // GPU allocation
@@ -396,12 +396,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::createRunningBuffers()
         // GPU data transfer
         status |= runningMean_dev->ToGPU(q, runningMean.data());
         status |= runningVariance_dev->ToGPU(q, runningVariance.data());
-    }
-    else
-    {
-        runningMean_dev     = nullptr;
-        runningVariance_dev = nullptr;
-    }
+    
     if(status != CL_SUCCESS)
         printf("Error copying data to GPU\n");
 
