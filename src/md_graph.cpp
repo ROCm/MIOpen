@@ -206,7 +206,6 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
 {
 
     std::vector<std::pair<MDGraph_vertex_ptr, cur_vertex_map>> new_list;
-    std::set<miopenConvFwdAlgorithm_t> new_set;
     // get the children of the cur_vertex
     for(auto& kinder : cur_vertex)
     {
@@ -218,7 +217,6 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
         // if op is in the children and the edge key satisfies update cur_vertex
         for(auto& ch_it : ch)
         {
-            std::set<miopenConvFwdAlgorithm_t> cur_path_set;
             if(ch_it.first->op == op->kind())
             {
                 for(auto& edg_map : ch_it.second)
