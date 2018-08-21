@@ -268,11 +268,11 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
     if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED{})) // clang-format off
     {
         // Narrow search space in optimized mode.
-        if (! ((use_spare_set ? Is_1_4(k_mult) : IsTwoPower<16,32>(k_mult))
+        if (! ((use_spare_set ? Is_1_4(k_mult) : IsTwoPower<8,32>(k_mult))
             && IsLinear<1,8>(chunks_per_wave)
             && (use_spare_set ? Is_1_4(chunk_size) : IsTwoPower<16,64>(chunk_size))
             && IsLinear<1,4>(n_mult)
-            && IsTwoPower<1,2>(c_mult)
+            && IsTwoPower<1,4>(c_mult)
             && IsLinear<1,4>(waves_in_group)))
             return false;
     } // clang-format on
@@ -581,7 +581,6 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
                 stride.nk = w * h;
                 stride.c  = w * h * nk;
                 break;
-            default: assert(0); break;
             }
             stride.nk *= vec_c;
             stride.c *= vec_c;
