@@ -254,7 +254,7 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
     KernelInfo construction_params;
     construction_params.comp_options = options.str();
 
-    std::cerr << "options = " << options.str() << std::endl;
+    //std::cerr << "options = " << options.str() << std::endl;
 
     construction_params.l_wk.push_back(active_lanes);
     construction_params.l_wk.push_back(1);
