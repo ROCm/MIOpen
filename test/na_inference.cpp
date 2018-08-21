@@ -25,7 +25,7 @@
  *******************************************************************************/
 #include "fusionHost.hpp"
 #include <miopen/stringutils.hpp>
-// #include <miopen/batch_norm_activ.hpp>
+//#include <miopen/batch_norm_activ.hpp>
 
 template <class T>
 struct verify_inference_batchnorm_activ
@@ -42,7 +42,7 @@ struct verify_inference_batchnorm_activ
     double epsilon;
 
     verify_inference_batchnorm_activ(tensor<T>& pinput,
-                                     miopenActivationDescriptor_t& pactivDesc,
+                                     miopenActivationDescriptor_t pactivDesc,
                                      tensor<T>& pbnscale,
                                      tensor<T>& pbnbias,
                                      tensor<T>& pestMean,
@@ -178,7 +178,7 @@ struct na_fusion_driver : test_driver
     tensor<T> shift;
     tensor<T> estMean;
     tensor<T> estVariance;
-    miopen::ActivationDescriptor activDesc{};
+    miopenActivationDescriptor_t activDesc{};
     miopenActivationMode_t activ_mode = miopenActivationRELU;
     std::string amode;
     miopenBatchNormMode_t bnmode{};
@@ -193,43 +193,40 @@ struct na_fusion_driver : test_driver
         add(alpha, "alpha", generate_data({/*1.,*/ 0.5}));
         add(beta, "beta", generate_data({/*0.,*/ 0.5}));
         add(gamma, "gamma", generate_data({/*1.,*/ 0.5}));
-        add(amode, "amode", generate_data({"RELU", "LOGISTIC", "c"})); // get_activation_modes());
+        add(amode, "amode", generate_data({"RELU", "LOGISTIC", "ABS"})); 
         add(batchnormMode, "batch-norm-mode", generate_data({0, 1}));
-    }
-    ~na_fusion_driver()
-    {
-        // todo: realease all the
     }
 
     void run()
     {
-        if(amode == "a")
-        {
-            activ_mode = miopenActivationPASTHRU;
-        }
-        else if(amode == "b")
-        {
-            activ_mode = miopenActivationLOGISTIC;
-        }
 
-        // switch(amode)
-        // {
-        // case 0: activ_mode = miopenActivationPASTHRU; break;
-        // case 1: activ_mode = miopenActivationLOGISTIC; break;
-        // case 2: activ_mode = miopenActivationTANH; break;
-        // case 3: activ_mode = miopenActivationRELU; break;
-        // case 4: activ_mode = miopenActivationSOFTRELU; break;
-        // case 5: activ_mode = miopenActivationABS; break;
-        // case 6: activ_mode = miopenActivationPOWER; break;
-        // case 7: activ_mode = miopenActivationCLIPPEDRELU; break;
-        // case 8: activ_mode = miopenActivationLEAKYRELU; break;
-        // case 9: activ_mode = miopenActivationELU;
-        // }
+        if(amode == "PASSTHRU")
+            activ_mode = miopenActivationPASTHRU;
+        else if(amode == "LOGISTIC")
+            activ_mode = miopenActivationLOGISTIC;
+        else if(amode == "TANH")
+            activ_mode = miopenActivationTANH;
+        else if(amode == "RELU")
+            activ_mode = miopenActivationRELU;
+        else if(amode == "SOFTRELU")
+            activ_mode = miopenActivationSOFTRELU;
+        else if(amode == "LOGISTIC")
+            activ_mode = miopenActivationABS;
+        else if(amode == "POWER")
+            activ_mode = miopenActivationPOWER;
+        else if(amode == "CLIPPEDRELU")
+            activ_mode = miopenActivationCLIPPEDRELU;
+        else if(amode == "LEAKYRELU")
+            activ_mode = miopenActivationLEAKYRELU;
+        else if(amode == "ELU")
+            activ_mode = miopenActivationELU;
+        
 
         int input_c, input_h, input_w;
         std::tie(std::ignore, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());
 
-        miopenSetActivationDescriptor(&activDesc, activ_mode, alpha, beta, gamma);
+        miopenCreateActivationDescriptor(&activDesc);
+        miopenSetActivationDescriptor(activDesc, activ_mode, alpha, beta, gamma);
 
         if(batchnormMode == 1)
         {
@@ -273,7 +270,8 @@ struct na_fusion_driver : test_driver
             }
         }
         verify(verify_inference_batchnorm_activ<T>{
-            input, &activDesc, scale, shift, estMean, estVariance, bnmode});
+            input, activDesc, scale, shift, estMean, estVariance, bnmode});
+        miopenDestroyActivationDescriptor(activDesc);
     }
 };
 
