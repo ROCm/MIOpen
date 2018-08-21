@@ -30,12 +30,7 @@
 namespace miopen {
 std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x)
 {
-    MIOPEN_LOG_ENUM(stream,
-                    x.kind(),
-                    miopenFusionOpConvForward,
-                    miopenFusionOpActivForward,
-                    miopenFusionOpBatchNormInference,
-                    miopenFusionOpBiasForward);
+    MIOPEN_LOG_ENUM(stream, x.kind(), miopenFusionOpActivForward, miopenFusionOpBatchNormInference);
     // LogRange(stream, x.parms, ", ") << ", ";
     return stream;
 }

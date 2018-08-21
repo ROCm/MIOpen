@@ -89,8 +89,6 @@ set( MIOpen_Source
     include/miopen/lock_file.hpp
     include/miopen/find_controls.hpp
     include/miopen/batch_norm.hpp
-    include/miopen/batch_norm_activ.hpp
-    include/miopen/direct_conv_ocl.hpp
     include/miopen/check_numerics.hpp
     include/miopen/common.hpp
     include/miopen/convolution.hpp
@@ -209,7 +207,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so
         kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so
         kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so
-        kernels/MIOpenConvBwdBias.cl)
+        kernels/MIOpenConvBwdBias.cl
+        kernels/MIOpenBatchNormActivInfer.cl)
 
     add_kernels("${MIOPEN_KERNELS}")
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
@@ -220,7 +219,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         mlo_dir_conv.cpp
         ocl/activ_ocl.cpp
         ocl/batchnormocl.cpp
-        ocl/batchnormactivocl.cpp
         ocl/convolutionocl.cpp
         ocl/convolutionocl_fft.cpp
         ocl/lrn_ocl.cpp
