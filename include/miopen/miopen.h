@@ -1743,7 +1743,7 @@ typedef enum {
 */
 typedef struct miopen_op_cost
 {
-    size_t workSpace;         /*!< requiered worspace */
+    size_t workSpace;         /*!< required workspace */
     double time;              /*!< execution time */
     double deviceUtilization; /*!< % of device utilized bt the op */
 } miopenOpCost_t;

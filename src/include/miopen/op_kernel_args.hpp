@@ -2,6 +2,7 @@
 
 #include <type_traits>
 #include <cstdint>
+#include <half.hpp>
 
 #include <boost/container/small_vector.hpp>
 struct OpKernelArg
@@ -12,17 +13,17 @@ struct OpKernelArg
     template <typename T>
     OpKernelArg(T arg) : buffer(sizeof(T))
     {
-        static_assert(std::is_trivial<T>{}, "Only for trivial types");
+        static_assert(std::is_trivial<T>{} || std::is_same<T, half_float::half>{},
+                      "Only for trivial types");
         *(reinterpret_cast<T*>(buffer.data())) = arg;
     }
 
     template <typename T>
     OpKernelArg(T* arg) // NOLINT
-        : buffer(sizeof(T))
+        : buffer(sizeof(T*))
     {
-        static_assert(std::is_trivial<T>{}, "Only for trivial types");
-        *(reinterpret_cast<T*>(buffer.data())) = arg;
-        is_ptr                                 = true;
+        *(reinterpret_cast<T**>(buffer.data())) = arg;
+        is_ptr                                  = true;
     }
 
     std::size_t size() const { return buffer.size(); };
