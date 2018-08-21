@@ -43,10 +43,9 @@ extern "C" miopenStatus_t miopenDeriveBNTensorDescriptor(miopenTensorDescriptor_
     });
 }
 
-miopen::TensorDescriptor
-BuildReshaped4DTensorDescriptor(const miopenTensorDescriptor_t tDesc)
+miopen::TensorDescriptor BuildReshaped4DTensorDescriptor(const miopenTensorDescriptor_t tDesc)
 {
-    auto size = miopen::deref(tDesc).GetSize();
+    auto size     = miopen::deref(tDesc).GetSize();
     auto dataType = miopen::deref(tDesc).GetType();
 
     std::vector<int> dims(size, 0);
@@ -56,7 +55,6 @@ BuildReshaped4DTensorDescriptor(const miopenTensorDescriptor_t tDesc)
     dims[2] *= dims[3];
     dims[3] = dims[4];
     dims.pop_back();
-
 
     return {dataType, dims};
 }
