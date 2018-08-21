@@ -374,4 +374,25 @@ inline std::vector<std::vector<int>> get_tensor_offsets()
 
 inline std::vector<int> get_tensor_offset() { return {0, 1, 2, 3, 4, 5}; }
 
+inline std::vector<std::string>
+get_activation_input_strings(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+{
+    // clang-format off
+    return 
+    {
+        {"PASSTHRU",
+        "LOGISTIC",
+        "TANH",
+        "RELU",
+        "SOFTRELU",
+        "ABS",
+        "POWER",
+        "CLIPPEDRELU",
+        "LEAKYRELU",
+        "ELU"}
+    };
+}
+
+
+
 #endif

@@ -14,7 +14,7 @@ The above steps assume that an MIOpen handle object has already been initialized
 The following sections further elaborate the above steps as well as give code examples to make these ideas concrete.
 
 ## Intended Audience
-The primary consumer of the fusion API is either the MIGraph Library or other high level frameworks such as TensorFlow/XLA etc.
+The primary consumer of the fusion API are high level frameworks such as TensorFlow/XLA etc.
 
  
 ## Fusion Plan
