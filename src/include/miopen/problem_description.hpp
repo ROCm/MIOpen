@@ -128,7 +128,7 @@ struct ProblemDescription
                        const TensorDescriptor& out,
                        const ConvolutionDescriptor& conv,
                        int dir,
-                       int bias_ = false);
+                       int bias_ = 0);
 
     void Serialize(std::ostream& stream) const
     {

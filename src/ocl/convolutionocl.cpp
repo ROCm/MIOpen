@@ -327,13 +327,13 @@ static void DirConvFindCore(Handle& handle,
         {
             std::string network_config;
 
-            size_t workspace_req = BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc);
+            size_t workspace_req = conv.BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc);
             float time_gemm      = 0;
             GemmGeometry gg =
                 CreateGemmGeometryConvBwdData(xDesc, wDesc, yDesc, true, network_config);
 
             // 1x1 does not require im2col or workspace
-            if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
+            if(wei_h == 1 && wei_w == 1 && conv.v == 1 && conv.u == 1)
             {
                 MIOPEN_LOG_FUNCTION("transpose, 1x1");
 
@@ -342,8 +342,9 @@ static void DirConvFindCore(Handle& handle,
 
                 time_gemm = in_n * handle.GetKernelTime();
 
-                record.SetValues("miopenConvolutionFwdAlgoGEMM",
-                                 FindDbData{"gemm", time_gemm, 0, network_config});
+                record.SetValues(
+                    "miopenConvolutionFwdAlgoGEMM",
+                    FindDbData{"gemm", time_gemm, 0, network_config}); // Todo: gemm solver id?
             }
 
             // if not 1x1
@@ -366,8 +367,8 @@ static void DirConvFindCore(Handle& handle,
                                         wei_w,
                                         conv.pad_h,
                                         conv.pad_w,
-                                        u,
-                                        v,
+                                        conv.u,
+                                        conv.v,
                                         conv.dilation_h,
                                         conv.dilation_w,
                                         wei_n,
@@ -378,8 +379,10 @@ static void DirConvFindCore(Handle& handle,
 
                 time_gemm += in_n * time_col2im;
 
-                record.SetValues("miopenConvolutionFwdAlgoGEMM",
-                                 FindDbData{"gemm", time_gemm, workspace_req, network_config});
+                record.SetValues(
+                    "miopenConvolutionFwdAlgoGEMM",
+                    FindDbData{
+                        "gemm", time_gemm, workspace_req, network_config}); // Todo: gemm solver id?
             }
         }
 #else
@@ -405,16 +408,29 @@ static void DirConvFindCore(Handle& handle,
             // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR
             // for 1x1_stride=2
             if((wei_h == 1 && wei_w == 1 && conv.pad_h == 0 && conv.pad_w == 0) &&
-               ((in_h <= 14 && in_w <= 14 && u == 1 && v == 1) || (u == 2 && v == 2)))
+               ((in_h <= 14 && in_w <= 14 && conv.u == 1 && conv.v == 1) ||
+                (conv.u == 2 && conv.v == 2)))
             {
-                size_t workspace_req = ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
+                size_t workspace_req = conv.ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
                 if(workSpace != nullptr && workSpaceSize >= workspace_req)
                 {
+                    std::string network_config;
                     GemmGeometry gg = CreateGemmGeometryConvFwdCNHW(
                         xDesc, wDesc, yDesc, false, network_config, conv.group_count);
 
-                    transpose_NCHW2CNHW(
-                        handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
+                    transpose_NCHW2CNHW(handle,
+                                        in_n,
+                                        in_c,
+                                        in_h,
+                                        in_w,
+                                        out_h,
+                                        out_w,
+                                        x,
+                                        workSpace,
+                                        0,
+                                        0,
+                                        conv.v,
+                                        conv.u);
                     time_gemm = handle.GetKernelTime();
 
                     gg.FindSolution(0.03, handle, workSpace, w, tmp_y.get(), false);
@@ -437,14 +453,18 @@ static void DirConvFindCore(Handle& handle,
                                         1);
                     time_gemm += handle.GetKernelTime();
 
-                    perf_db.push_back(
-                        PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, workspace_req});
+                    record.SetValues("miopenConvolutionFwdAlgoGEMM",
+                                     FindDbData{"gemm",
+                                                time_gemm,
+                                                workspace_req,
+                                                network_config}); // Todo: gemm solver id?
                 }
             }
             // 1x1_stride=1 with GEMM and zero workspace
             else if(wei_h == 1 && wei_w == 1 && conv.pad_h == 0 && conv.pad_w == 0 &&
-                    (u == 1 && v == 1))
+                    (conv.u == 1 && conv.v == 1))
             {
+                std::string network_config;
                 GemmGeometry gg = CreateGemmGeometryConvFwd(
                     xDesc, wDesc, yDesc, false, network_config, conv.group_count);
 
@@ -452,12 +472,15 @@ static void DirConvFindCore(Handle& handle,
                 gg.RunGemm(handle, x, w, tmp_y.get(), 0, 0, 0);
                 time_gemm = in_n * conv.group_count * (handle.GetKernelTime());
 
-                perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM", time_gemm, 0});
+                record.SetValues(
+                    "miopenConvolutionFwdAlgoGEMM",
+                    FindDbData{"gemm", time_gemm, 0, network_config}); // Todo: gemm solver id?
             }
             // if not 1x1
             else if(workSpace != nullptr &&
-                    workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc))
+                    workSpaceSize >= conv.ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc))
             {
+                std::string network_config;
                 GemmGeometry gg = CreateGemmGeometryConvFwd(
                     xDesc, wDesc, yDesc, false, network_config, conv.group_count);
                 float time_im2col = 0;
@@ -475,8 +498,8 @@ static void DirConvFindCore(Handle& handle,
                                         out_w,
                                         conv.pad_h,
                                         conv.pad_w,
-                                        u,
-                                        v,
+                                        conv.u,
+                                        conv.v,
                                         conv.dilation_h,
                                         conv.dilation_w,
                                         workSpace);
@@ -484,9 +507,12 @@ static void DirConvFindCore(Handle& handle,
                 gg.FindSolution(.003, handle, workSpace, w, tmp_y.get(), false);
                 gg.RunGemm(handle, workSpace, w, tmp_y.get(), 0, 0, 0);
                 time_gemm = in_n * (time_im2col + conv.group_count * handle.GetKernelTime());
-                perf_db.push_back(PerfField{"miopenConvolutionFwdAlgoGEMM",
+
+                record.SetValues("miopenConvolutionFwdAlgoGEMM",
+                                 FindDbData{"gemm",
                                             time_gemm,
-                                            ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc)});
+                                            conv.ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc),
+                                            network_config}); // Todo: gemm solver id?
             }
         }
 #else
@@ -556,17 +582,29 @@ static void DirConvFindCore(Handle& handle,
             // Use transpose path if input ht and width <= 14 for 1x1_stride=1 convolutions OR
             // for 1x1_stride=2
             if((wei_h == 1 && wei_w == 1 && conv.pad_h == 0 && conv.pad_w == 0) &&
-               ((in_h <= 14 && in_w <= 14 && u == 1 && v == 1) || (u == 2 && v == 2)))
+               ((in_h <= 14 && in_w <= 14 && conv.u == 1 && conv.v == 1) ||
+                (conv.u == 2 && conv.v == 2)))
             {
-                size_t workspace_req = ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
+                size_t workspace_req = conv.ForwardGetWorkSpaceSizeGEMMTranspose(xDesc, yDesc);
                 if(workSpace != nullptr && workSpaceSize >= workspace_req)
                 {
                     MIOPEN_LOG_FUNCTION("convolution, 1x1, 14x14");
 
                     float time_gemm = 0;
 
-                    transpose_NCHW2CNHW(
-                        handle, in_n, in_c, in_h, in_w, out_h, out_w, x, workSpace, 0, 0, v, u);
+                    transpose_NCHW2CNHW(handle,
+                                        in_n,
+                                        in_c,
+                                        in_h,
+                                        in_w,
+                                        out_h,
+                                        out_w,
+                                        x,
+                                        workSpace,
+                                        0,
+                                        0,
+                                        conv.v,
+                                        conv.u);
                     time_gemm = handle.GetKernelTime();
 
                     size_t x_t_size = in_n * in_c * out_h * out_w;
@@ -575,7 +613,8 @@ static void DirConvFindCore(Handle& handle,
                     GemmDescriptor gemm_desc = CreateGemmDescriptorConvCNHWFwd(wDesc, xDesc, yDesc);
 
                     // y = CNHW2NCHW(w * NCHW2CNHW(x))
-                    CallGemm(handle, gemm_desc, w, 0, workSpace, 0, tmp_y.get(), 0);
+                    std::string kcache_key;
+                    CallGemm(handle, gemm_desc, w, 0, workSpace, 0, tmp_y.get(), 0, &kcache_key);
 
                     time_gemm += handle.GetKernelTime();
 
@@ -602,7 +641,7 @@ static void DirConvFindCore(Handle& handle,
             }
             // 1x1_stride=1 with GEMM and zero workspace
             else if(wei_h == 1 && wei_w == 1 && conv.pad_h == 0 && conv.pad_w == 0 &&
-                    (u == 1 && v == 1))
+                    (conv.u == 1 && conv.v == 1))
             {
                 MIOPEN_LOG_FUNCTION("convolution, 1x1");
 
@@ -611,7 +650,8 @@ static void DirConvFindCore(Handle& handle,
                     CreateGemmStridedBatchedParamConv1x1Fwd(wDesc, xDesc, yDesc);
 
                 // y = w * x
-                CallGemmStridedBatched(handle, gemm_desc, w, 0, x, 0, tmp_y.get(), 0);
+                std::string kcache_key;
+                CallGemmStridedBatched(handle, gemm_desc, w, 0, x, 0, tmp_y.get(), 0, &kcache_key);
 
                 float time_gemm = handle.GetKernelTime();
 
@@ -621,7 +661,7 @@ static void DirConvFindCore(Handle& handle,
             }
             // if not 1x1
             else if(workSpace != nullptr &&
-                    workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc))
+                    workSpaceSize >= conv.ForwardGetWorkSpaceSizeGEMM(handle, wDesc, yDesc))
             {
                 MIOPEN_LOG_FUNCTION("convolution, non 1x1");
 
@@ -643,14 +683,15 @@ static void DirConvFindCore(Handle& handle,
                                         out_w,
                                         conv.pad_h,
                                         conv.pad_w,
-                                        u,
-                                        v,
+                                        conv.u,
+                                        conv.v,
                                         conv.dilation_h,
                                         conv.dilation_w,
                                         workSpace);
 
                 // y = w * Im2Col(x)
-                CallGemm(handle, gemm_desc, w, 0, workSpace, 0, tmp_y.get(), 0);
+                std::string kcache_key;
+                CallGemm(handle, gemm_desc, w, 0, workSpace, 0, tmp_y.get(), 0, &kcache_key);
 
                 float time_gemm = in_n * (time_im2col + handle.GetKernelTime());
 
