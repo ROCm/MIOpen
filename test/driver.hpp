@@ -286,6 +286,14 @@ struct test_driver
         return lazy_generate_tensor<F, std::vector<X>>(f, single);
     }
 
+
+    generate_tensor_t<std::vector<std::string>> get_activation_modes()
+    {
+        return lazy_generate_tensor([=] { return get_activation_input_strings(); },
+                                    {"PASSTHRU", "RELU","ABS"});
+    }
+
+
     generate_tensor_t<std::vector<int>> get_bn_spatial_input_tensor()
     {
         return lazy_generate_tensor([=] { return get_bn_spatial_inputs(batch_factor); },
