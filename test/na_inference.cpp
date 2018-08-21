@@ -163,7 +163,7 @@ struct verify_inference_batchnorm_activ
                                     fusionArgs);
             baout.data = handle.Read<T>(out_dev, baout.data.size());
         }
-
+        miopenDestroyFusionPlanDescriptor(fusePlanDesc);
         return baout;
     }
 
@@ -193,7 +193,7 @@ struct na_fusion_driver : test_driver
         add(alpha, "alpha", generate_data({/*1.,*/ 0.5}));
         add(beta, "beta", generate_data({/*0.,*/ 0.5}));
         add(gamma, "gamma", generate_data({/*1.,*/ 0.5}));
-        add(amode, "amode", generate_data({0, 3, 5}));
+        add(amode, "amode", get_activation_modes());
         add(batchnormMode, "batch-norm-mode", generate_data({0, 1}));
     }
 
