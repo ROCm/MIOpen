@@ -46,7 +46,6 @@
 #include "random.hpp"
 #include "mloNeuronHost.hpp"
 
-
 #define MIO_BN_DEBUG 0
 #define MIO_BN_MAX_DEBUGLOOP 65536
 
@@ -292,7 +291,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
-    inflags.AddInputFlag("activMode", 'm', "3", "Activation Mode (relu,..., see spec) (Default=3(relu))", "int");
+    inflags.AddInputFlag(
+        "activMode", 'm', "3", "Activation Mode (relu,..., see spec) (Default=3(relu))", "int");
     inflags.AddInputFlag("bnMode",
                          'M',
                          "0",
@@ -348,7 +348,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::createSaveBuffers()
     cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
-    int status                 = 0;
+    int status             = 0;
 #endif
 
     if(status != CL_SUCCESS)
@@ -366,37 +366,36 @@ int CBAInferFusionDriver<Tgpu, Tref>::createRunningBuffers()
     cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
-    int status                 = 0;
-    uint32_t ctx               = 0;
+    int status             = 0;
+    uint32_t ctx           = 0;
 #endif
 
+    size_t sb_sz = GetTensorSize(biasScaleTensor);
 
-        size_t sb_sz = GetTensorSize(biasScaleTensor);
+    // GPU allocation
+    runningMean_dev     = std::make_unique<GPUMem>(ctx, sb_sz, sizeof(Tgpu));
+    runningVariance_dev = std::make_unique<GPUMem>(ctx, sb_sz, sizeof(Tgpu));
 
-        // GPU allocation
-        runningMean_dev     = std::make_unique<GPUMem>(ctx, sb_sz, sizeof(Tgpu));
-        runningVariance_dev = std::make_unique<GPUMem>(ctx, sb_sz, sizeof(Tgpu));
+    // GPU host allocation
+    runningMean     = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+    runningVariance = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
 
-        // GPU host allocation
-        runningMean     = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-        runningVariance = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-
-        // Populate
-        for(int i = 0; i < sb_sz; i++)
-        {
+    // Populate
+    for(int i = 0; i < sb_sz; i++)
+    {
 #if(CBA_DEBUG_VALUES == 1)
-            runningMean[i]     = 0.;
-            runningVariance[i] = 1.;
+        runningMean[i]     = 0.;
+        runningVariance[i] = 1.;
 #else
-            runningMean[i]     = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            runningVariance[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        runningMean[i]     = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        runningVariance[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
 #endif
-        }
+    }
 
-        // GPU data transfer
-        status |= runningMean_dev->ToGPU(q, runningMean.data());
-        status |= runningVariance_dev->ToGPU(q, runningVariance.data());
-    
+    // GPU data transfer
+    status |= runningMean_dev->ToGPU(q, runningMean.data());
+    status |= runningVariance_dev->ToGPU(q, runningVariance.data());
+
     if(status != CL_SUCCESS)
         printf("Error copying data to GPU\n");
 
@@ -412,8 +411,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
-    int status                 = 0;
-    uint32_t ctx               = 0;
+    int status             = 0;
+    uint32_t ctx           = 0;
 #endif
 
     size_t in_sz = GetTensorSize(inputTensor);
@@ -446,8 +445,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                        // static_cast<Tgpu>(1.0))); // 1.0;
         bias[i] = 10.;
 #else
-        scale[i]               = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-        bias[i]                = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        scale[i]           = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        bias[i]            = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
 #endif
     }
     status |= scale_dev->ToGPU(q, scale.data());
