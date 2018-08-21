@@ -153,7 +153,7 @@ If the plan compiles successfully, arguments for the operator are set and the pl
         finishTiming(it);
     }
 ```
-Where the helper function `GetHandle()` returns the MIOpen Handle and `in_dev` and `out_dev` represnet device memory pointer holder. The `outputTensor` is the tensor descriptor for the output of the fusion plan. 
+Where the helper function `GetHandle()` returns the MIOpen Handle and `in_dev` and `out_dev` represent device memory pointer holder. The `outputTensor` is the tensor descriptor for the output of the fusion plan. 
 
 Also note that the `miopenExecuteFusionPlan` may be called again and again with differnt `fusionArgs` without the need to recompile the fusion plan.
 

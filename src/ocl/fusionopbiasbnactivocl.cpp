@@ -1,51 +1,40 @@
 #include <miopen/fusion.hpp>
 
 namespace miopen {
-miopenStatus_t FusionOpDescriptor::GetNetworkConfig(std::string& network_config, Handle& handle)
+miopenStatus_t FusionOpDescriptor::GetNetworkConfig(std::string& /*network_config*/, Handle& /*handle*/)
 {
-    (void)(network_config);
-    (void)(handle);
     return miopenStatusSuccess;
 }
 
-miopenStatus_t FusionOpDescriptor::GetCompileParms(std::string& compile_config,
-                                                   Handle& handle,
-                                                   const FusionKernelSourceType source)
+miopenStatus_t FusionOpDescriptor::GetCompileParms(std::string& /*compile_config*/,
+                                                   Handle& /*handle*/,
+                                                   const FusionKernelSourceType /*source*/)
 {
-    (void)(compile_config);
-    (void)(handle);
-    (void)(source);
     MIOPEN_LOG_I2("");
     return miopenStatusSuccess;
 }
 
-std::vector<size_t> FusionOpDescriptor::GetLocalWGSz(Handle& handle, std::string algorithm_name)
+std::vector<size_t> FusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/, std::string /*algorithm_name*/)
 {
-    (void)handle;
-    (void)(algorithm_name);
     MIOPEN_THROW("Op does not support local workgroup size");
 }
 
-std::vector<size_t> FusionOpDescriptor::GetGlobalWGSz(Handle& handle, std::string algorithm_name)
+std::vector<size_t> FusionOpDescriptor::GetGlobalWGSz(Handle& /*handle*/, std::string /*algorithm_name*/)
 {
-    (void)handle;
-    (void)(algorithm_name);
     MIOPEN_THROW("Op does not support global workgroup size");
 }
 
 miopenStatus_t ActivFusionOpDescriptor::GetNetworkConfig(std::string& network_config,
-                                                         Handle& handle)
+                                                         Handle& /*handle*/)
 {
-    (void)handle;
     network_config += "Activ" + std::to_string(activMode);
     return miopenStatusSuccess;
 }
 
 miopenStatus_t ActivFusionOpDescriptor::GetCompileParms(std::string& compile_config,
-                                                        Handle& handle,
+                                                        Handle& /*handle*/,
                                                         const FusionKernelSourceType source)
 {
-    (void)handle;
     std::string add;
     switch(source)
     {
@@ -62,35 +51,28 @@ miopenStatus_t ActivFusionOpDescriptor::GetCompileParms(std::string& compile_con
     return miopenStatusSuccess;
 }
 
-std::vector<size_t> ActivFusionOpDescriptor::GetLocalWGSz(Handle& handle,
-                                                          std::string algorithm_name)
+std::vector<size_t> ActivFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
+                                                          std::string /*algorithm_name*/)
 {
-    (void)handle;
-    (void)(algorithm_name);
     MIOPEN_THROW("Op does not support local workgroup size");
 }
 
-std::vector<size_t> ActivFusionOpDescriptor::GetGlobalWGSz(Handle& handle,
-                                                           std::string algorithm_name)
+std::vector<size_t> ActivFusionOpDescriptor::GetGlobalWGSz(Handle& /*handle*/,
+                                                           std::string /*algorithm_name*/)
 {
-    (void)handle;
-    (void)(algorithm_name);
     MIOPEN_THROW("Op does not support global workgroup size");
 }
 
 miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetNetworkConfig(std::string& network_config,
-                                                                      Handle& handle)
+                                                                      Handle& /*handle*/)
 {
-    (void)(handle);
     network_config += "bn" + std::to_string(mode);
     return miopenStatusSuccess;
 }
 
 miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(
-    std::string& compile_config, Handle& handle, const FusionKernelSourceType source)
+    std::string& compile_config, Handle& /*handle*/, const FusionKernelSourceType /*source*/)
 {
-    (void)(handle); // only convolution uses handle
-    (void)source;
     assert(source == OpenclText);
     std::vector<size_t> vld{256, 1, 1};
     std::string add;
@@ -109,7 +91,7 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(
     size_t read_unit = 0;
     size_t read_len  = (mode == miopenBNSpatial) ? h * w : c * h * w;
 
-    if(mode /*ops_head->mode*/ == miopenBNSpatial)
+    if(mode == miopenBNSpatial)
     {
         read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
     }
@@ -129,21 +111,15 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(
     return miopenStatusSuccess;
 }
 
-std::vector<size_t> BatchNormInferenceFusionOpDescriptor::GetLocalWGSz(Handle& handle,
-                                                                       std::string algorithm_name)
-{
-    (void)handle;
-    (void)algorithm_name;
-    std::vector<size_t> vld{256, 1, 1};
+std::vector<size_t> BatchNormInferenceFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
+                                                                       std::string /*algorithm_name*/)
+{   std::vector<size_t> vld{256, 1, 1};
     return vld;
 }
 
-std::vector<size_t> BatchNormInferenceFusionOpDescriptor::GetGlobalWGSz(Handle& handle,
-                                                                        std::string algorithm_name)
+std::vector<size_t> BatchNormInferenceFusionOpDescriptor::GetGlobalWGSz(Handle& /*handle*/,
+                                                                        std::string /*algorithm_name*/)
 {
-    (void)handle;
-    (void)algorithm_name;
-
     if(input_desc.GetLengths().empty())
     {
         MIOPEN_THROW("Compile called for Fusion Plan without setting operator parameters");

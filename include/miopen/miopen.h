@@ -1734,8 +1734,8 @@ MIOPEN_DECLARE_OBJECT(miopenOperatorArgs);
 * @brief Kernel fusion direction in the network
 */
 typedef enum {
-    miopenVerticalFusion   = 0, /*!< forward inference */
-    miopenHorizontalFusion = 1, /*!< forward training */
+    miopenVerticalFusion   = 0, /*!< fuses layers vertically, current the only supported mode */
+    miopenHorizontalFusion = 1, /*!< fuses layers horizontally, this is unimplemented */
 } miopenFusionDirection_t;
 
 /*! @struct miopenOpCost_t
