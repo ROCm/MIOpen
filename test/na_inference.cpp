@@ -180,7 +180,7 @@ struct na_fusion_driver : test_driver
     tensor<T> estVariance;
     miopen::ActivationDescriptor activDesc{};
     miopenActivationMode_t activ_mode = miopenActivationRELU;
-    int amode                         = 0;
+    std::string amode;
     miopenBatchNormMode_t bnmode{};
     int batchnormMode = 0;
 
@@ -193,26 +193,38 @@ struct na_fusion_driver : test_driver
         add(alpha, "alpha", generate_data({/*1.,*/ 0.5}));
         add(beta, "beta", generate_data({/*0.,*/ 0.5}));
         add(gamma, "gamma", generate_data({/*1.,*/ 0.5}));
-        add(amode, "amode", get_activation_modes());
+        add(amode, "amode", generate_data({"RELU", "LOGISTIC", "c"})); // get_activation_modes());
         add(batchnormMode, "batch-norm-mode", generate_data({0, 1}));
+    }
+    ~na_fusion_driver()
+    {
+        // todo: realease all the
     }
 
     void run()
     {
-
-        switch(amode)
+        if(amode == "a")
         {
-        case 0: activ_mode = miopenActivationPASTHRU; break;
-        case 1: activ_mode = miopenActivationLOGISTIC; break;
-        case 2: activ_mode = miopenActivationTANH; break;
-        case 3: activ_mode = miopenActivationRELU; break;
-        case 4: activ_mode = miopenActivationSOFTRELU; break;
-        case 5: activ_mode = miopenActivationABS; break;
-        case 6: activ_mode = miopenActivationPOWER; break;
-        case 7: activ_mode = miopenActivationCLIPPEDRELU; break;
-        case 8: activ_mode = miopenActivationLEAKYRELU; break;
-        case 9: activ_mode = miopenActivationELU;
+            activ_mode = miopenActivationPASTHRU;
         }
+        else if(amode == "b")
+        {
+            activ_mode = miopenActivationLOGISTIC;
+        }
+
+        // switch(amode)
+        // {
+        // case 0: activ_mode = miopenActivationPASTHRU; break;
+        // case 1: activ_mode = miopenActivationLOGISTIC; break;
+        // case 2: activ_mode = miopenActivationTANH; break;
+        // case 3: activ_mode = miopenActivationRELU; break;
+        // case 4: activ_mode = miopenActivationSOFTRELU; break;
+        // case 5: activ_mode = miopenActivationABS; break;
+        // case 6: activ_mode = miopenActivationPOWER; break;
+        // case 7: activ_mode = miopenActivationCLIPPEDRELU; break;
+        // case 8: activ_mode = miopenActivationLEAKYRELU; break;
+        // case 9: activ_mode = miopenActivationELU;
+        // }
 
         int input_c, input_h, input_w;
         std::tie(std::ignore, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());
