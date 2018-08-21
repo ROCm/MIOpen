@@ -1,7 +1,8 @@
 #include <miopen/fusion.hpp>
 
 namespace miopen {
-miopenStatus_t FusionOpDescriptor::GetNetworkConfig(std::string& /*network_config*/, Handle& /*handle*/)
+miopenStatus_t FusionOpDescriptor::GetNetworkConfig(std::string& /*network_config*/,
+                                                    Handle& /*handle*/)
 {
     return miopenStatusSuccess;
 }
@@ -14,12 +15,14 @@ miopenStatus_t FusionOpDescriptor::GetCompileParms(std::string& /*compile_config
     return miopenStatusSuccess;
 }
 
-std::vector<size_t> FusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/, std::string /*algorithm_name*/)
+std::vector<size_t> FusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
+                                                     std::string /*algorithm_name*/)
 {
     MIOPEN_THROW("Op does not support local workgroup size");
 }
 
-std::vector<size_t> FusionOpDescriptor::GetGlobalWGSz(Handle& /*handle*/, std::string /*algorithm_name*/)
+std::vector<size_t> FusionOpDescriptor::GetGlobalWGSz(Handle& /*handle*/,
+                                                      std::string /*algorithm_name*/)
 {
     MIOPEN_THROW("Op does not support global workgroup size");
 }
@@ -111,14 +114,17 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(
     return miopenStatusSuccess;
 }
 
-std::vector<size_t> BatchNormInferenceFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
-                                                                       std::string /*algorithm_name*/)
-{   std::vector<size_t> vld{256, 1, 1};
+std::vector<size_t>
+BatchNormInferenceFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
+                                                   std::string /*algorithm_name*/)
+{
+    std::vector<size_t> vld{256, 1, 1};
     return vld;
 }
 
-std::vector<size_t> BatchNormInferenceFusionOpDescriptor::GetGlobalWGSz(Handle& /*handle*/,
-                                                                        std::string /*algorithm_name*/)
+std::vector<size_t>
+BatchNormInferenceFusionOpDescriptor::GetGlobalWGSz(Handle& /*handle*/,
+                                                    std::string /*algorithm_name*/)
 {
     if(input_desc.GetLengths().empty())
     {
