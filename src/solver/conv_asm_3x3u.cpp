@@ -200,7 +200,6 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
 {
     ConvSolution result;
     std::ostringstream options;
-
     GenerateClangDefsym(options, "batch_size", params.batch_sz);
     GenerateClangDefsym(options, "img_width", params.in_width);
     GenerateClangDefsym(options, "img_height", params.in_height);
@@ -254,8 +253,6 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
     KernelInfo construction_params;
     construction_params.comp_options = options.str();
 
-    //std::cerr << "options = " << options.str() << std::endl;
-
     construction_params.l_wk.push_back(active_lanes);
     construction_params.l_wk.push_back(1);
     construction_params.l_wk.push_back(1);
@@ -266,8 +263,7 @@ ConvSolution ConvAsm3x3U::GetSolution(const ConvolutionContext& params,
                                        pcfg->output_lines_per_wave);
     construction_params.g_wk.push_back(params.batch_sz);
 
-    // construction_params.kernel_file = "conv3x3.s";
-    construction_params.kernel_file = "conv3x3_v2.s";
+    construction_params.kernel_file = "conv3x3.s";
     construction_params.kernel_name = "gcnAsmConv3x3U";
 
     result.construction_params.push_back(construction_params);
