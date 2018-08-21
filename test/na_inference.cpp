@@ -193,7 +193,7 @@ struct na_fusion_driver : test_driver
         add(alpha, "alpha", generate_data({/*1.,*/ 0.5}));
         add(beta, "beta", generate_data({/*0.,*/ 0.5}));
         add(gamma, "gamma", generate_data({/*1.,*/ 0.5}));
-        add(amode, "amode", generate_data({"RELU", "LOGISTIC", "ABS"})); 
+        add(amode, "amode", generate_data({"RELU", "LOGISTIC", "ABS"}));
         add(batchnormMode, "batch-norm-mode", generate_data({0, 1}));
     }
 
@@ -220,7 +220,6 @@ struct na_fusion_driver : test_driver
             activ_mode = miopenActivationLEAKYRELU;
         else if(amode == "ELU")
             activ_mode = miopenActivationELU;
-        
 
         int input_c, input_h, input_w;
         std::tie(std::ignore, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());

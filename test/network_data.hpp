@@ -374,6 +374,4 @@ inline std::vector<std::vector<int>> get_tensor_offsets()
 
 inline std::vector<int> get_tensor_offset() { return {0, 1, 2, 3, 4, 5}; }
 
-
-
 #endif
