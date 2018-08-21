@@ -601,7 +601,7 @@ gcnAsmConv3x3U:
     v_mbcnt_hi_u32_b32 v[dbg_ptr], -1, v[dbg_ptr]
     v_mul_u32_u24 v[dbg_ptr], v[dbg_ptr], 4
     v_mov_b32 v[dbg_ptr+1], s[7]
-    v_add_u32 v[dbg_ptr], vcc, v[dbg_ptr], s[6]
+   _v_add_nc_u32 v[dbg_ptr], v[dbg_ptr], s[6]
     v_addc_u32 v[dbg_ptr+1], vcc, v[dbg_ptr+1], 0, vcc
     s_mov_b32 exec_lo, s[dbg_exec_lo]
     s_mov_b32 exec_hi, s[dbg_exec_hi]
@@ -615,13 +615,17 @@ gcnAsmConv3x3U:
   s_load_dwordx2 s[out_ptr:out_ptr+1], s[kernarg:kernarg+1], 0x0 + out_ptr_off
 
   v_and_b32 v[tid], 0x3f, v[tid]
-  v_mul_u32_u24 v[tid], v[tid], 4
+  v_mul_u32_u24 v[tid], v[tid], 4 * gprs_per_output_line 
   // compute offsets for input
   .if enable_zero_line_padding_on_read
     s_cmpk_eq_u32 s[gid_y], 0
     s_cselect_b32 s[img_offset], 0, -1 * input_line_stride
     s_cselect_b32 s[tmp], -1 * input_line_stride, 0
-    v_mov_b32 v[in_off], s[tmp]
+    .if uneven_line_read_mode || uneven_line_write_mode
+        v_mov_b32 v[in_off], s[tmp]
+    .else
+        _v_add_nc_u32 v[in_off], s[tmp], v[tid]
+    .endif
     s_mul_i32 s[tmp], s[gid_y], 0 + input_line_stride * acc_lines_per_wave
     s_add_u32 s[img_offset], s[img_offset], s[tmp]
   .else
@@ -653,7 +657,7 @@ gcnAsmConv3x3U:
         s_xor_b32 exec_lo, exec_lo, last_active_lane_mask
     .endif
     .if enable_zero_line_padding_on_read
-        v_add_u32 v[in_off_p], vcc, v[in_off_p], v[in_off]
+        _v_add_nc_u32 v[in_off_p], v[in_off_p], v[in_off] 
     .endif
   .endif
 
@@ -672,9 +676,9 @@ gcnAsmConv3x3U:
   .if batch_size > 1
     s_mul_i32 s[tmp], s[gid_z], input_feature_map_stride * input_channels
     s_add_u32 s[in_desc], s[in_desc], s[tmp] // add input image batch offset
-    s_addc_u32 s[in_desc+1], s[in_desc+1], 0x0 + gprs_per_input_line << 18 // add stride
+    #s_addc_u32 s[in_desc+1], s[in_desc+1], 0x0 + gprs_per_input_line << 18 // add stride
   .else
-    s_add_u32 s[in_desc+1], s[in_desc+1], 0x0 + gprs_per_input_line << 18 // add stride
+    #s_add_u32 s[in_desc+1], s[in_desc+1], 0x0 + gprs_per_input_line << 18 // add stride
   .endif
   s_mov_b32 s[in_desc+2], input_buffer_window // size
   s_mov_b32 s[in_desc+3], 0x00027000
@@ -688,7 +692,7 @@ gcnAsmConv3x3U:
     s_add_u32 s[tmp], s[tmp], s[gid_z]
   .endif
   s_add_u32 s[out_ptr], s[out_ptr], s[tmp]
-  s_addc_u32 s[out_ptr+1], s[out_ptr+1], 0x0 + gprs_per_output_line << 18 // output stride
+  #s_addc_u32 s[out_ptr+1], s[out_ptr+1], 0x0 + gprs_per_output_line << 18 // output stride
   s_mul_i32 s[tmp], s[gid_y], output_line_stride * output_lines_per_wave // output line offset
   .GPR_REUSE tmp, out_img_off
   .GPR_INVALIDATE gid_x
@@ -791,7 +795,7 @@ loop_end:
   .conv3x3 linesB, filtersB, filtersB_part
 .endif
 
-  // construct output descriptr
+  // construct output descriptor
   .GPR_REUSE in_desc, out_desc
   s_mov_b64 s[out_desc:out_desc+1], s[out_ptr:out_ptr+1]
   s_mov_b32 s[out_desc+2], output_buffer_window
@@ -818,7 +822,7 @@ loop_end:
             .if \partial
                 buffer_store_dwordx\count v[\base+vals_stored:\base+vals_stored+\count-1], v[in_off_p], s[out_desc:out_desc+3], s[\s_offset] offen offset:0+imm_off
             .else
-                buffer_store_dwordx\count v[\base+vals_stored:\base+vals_stored+\count-1], v[tid], s[out_desc:out_desc+3], s[\s_offset] offset:0+imm_off
+                buffer_store_dwordx\count v[\base+vals_stored:\base+vals_stored+\count-1], v[tid], s[out_desc:out_desc+3], s[\s_offset] offen offset:0+imm_off
             .endif
         .endif
         vals_to_store = vals_to_store - \count
@@ -879,7 +883,7 @@ loop_end:
 .endm
 
   .if uneven_line_write_mode && enable_zero_line_padding_on_read
-    v_sub_u32 v[in_off_p], vcc, v[in_off_p], v[in_off]
+    v_sub_u32 v[in_off_p], v[in_off_p], v[in_off]
   .endif
 
 

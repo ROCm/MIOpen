@@ -963,7 +963,7 @@ loop_end:
   .conv3x3 linesB, filtersB, filtersB_part
 .endif
 
-  // construct output descriptor
+  // construct output descriptr
   .GPR_REUSE in_desc, out_desc
   s_mov_b64 s[out_desc:out_desc+1], s[out_ptr:out_ptr+1]
   s_mov_b32 s[out_desc+2], output_buffer_window
