@@ -6,44 +6,30 @@
 #include <boost/container/small_vector.hpp>
 struct OpKernelArg
 {
+
     OpKernelArg(char val, size_t sz)
+    : buffer(sz)
     {
-        for(size_t idx = 0; idx < sz; idx++)
-        {
-            buffer.push_back(val);
-        }
+        std::fill(buffer.begin(), buffer.end(), val);
     }
+
     template <typename T>
     OpKernelArg(T arg)
+    : buffer(sizeof(T))
     {
-        // assert(std::is_fundamental<T>::value);
-        auto chptr = reinterpret_cast<char*>(&arg);
-        for(size_t idx = 0; idx < sizeof(T); idx++)
-        {
-            buffer.push_back(*(chptr + idx));
-        }
+        static_assert(std::is_trivial<T>{}, "Only for trivial types");
+        *(reinterpret_cast<T*>(buffer.data())) = arg;
     }
+
     template <typename T>
     OpKernelArg(T* arg) // NOLINT
+    : buffer(sizeof(T))
     {
-        auto intptr = reinterpret_cast<std::uintptr_t>(arg);
-        auto chptr  = reinterpret_cast<char*>(&intptr);
-        for(size_t idx = 0; idx < sizeof(std::uintptr_t); idx++)
-        {
-            buffer.push_back(*(chptr + idx));
-        }
+        static_assert(std::is_trivial<T>{}, "Only for trivial types");
+        *(reinterpret_cast<T*>(buffer.data())) = arg;
         is_ptr = true;
     }
-    OpKernelArg& operator=(const OpKernelArg& other)
-    {
-        if(buffer.size() < other.buffer.size())
-        {
-            buffer.resize(other.buffer.size());
-        }
-        std::copy(other.buffer.begin(), other.buffer.end(), buffer.begin());
-        return *this;
-    }
-    OpKernelArg(const OpKernelArg& other) : buffer(other.buffer), is_ptr(other.is_ptr){};
+
     std::size_t size() const { return buffer.size(); };
     boost::container::small_vector<char, 8> buffer;
     bool is_ptr = false;
