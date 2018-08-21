@@ -45,8 +45,6 @@
 
 #elif MIOPEN_BACKEND_HIP
 #include <hip/hip_runtime_api.h>
-#else
-#pragma error "backend not defined"
 #endif
 
 /*
