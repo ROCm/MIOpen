@@ -27,6 +27,32 @@
 #include <miopen/stringutils.hpp>
 //#include <miopen/batch_norm_activ.hpp>
 
+using ptr_FusionPlanDesc = MIOPEN_MANAGE_PTR(miopenFusionPlanDescriptor_t,
+                                             miopenDestroyFusionPlanDescriptor);
+using ptr_FusionPlanArgs = MIOPEN_MANAGE_PTR(miopenOperatorArgs_t, miopenDestroyOperatorArgs);
+using ptr_ActivationDesc = MIOPEN_MANAGE_PTR(miopenActivationDescriptor_t,
+                                             miopenDestroyActivationDescriptor);
+
+ptr_FusionPlanDesc GetManagedFusionPlanDesc(miopenTensorDescriptor_t inputDesc)
+{
+    miopenFusionPlanDescriptor_t fusePlanDesc;
+    miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
+    return ptr_FusionPlanDesc{fusePlanDesc};
+}
+
+ptr_FusionPlanArgs GetManageFusionPlanArgs()
+{
+    miopenOperatorArgs_t fusionArgs;
+    miopenCreateOperatorArgs(&fusionArgs);
+    return ptr_FusionPlanArgs{fusionArgs};
+}
+
+ptr_ActivationDesc GetManagedActivDesc()
+{
+    miopenActivationDescriptor_t activdesc;
+    miopenCreateActivationDescriptor(&activdesc);
+    return ptr_ActivationDesc{activdesc};
+}
 template <class T>
 struct verify_inference_batchnorm_activ
 {
@@ -69,7 +95,7 @@ struct verify_inference_batchnorm_activ
         std::fill(bout.begin(), bout.end(), 0.);
         auto aout = input;
         std::fill(aout.begin(), aout.end(), 0.);
-        miopenFusionPlanDescriptor_t fusePlanDesc;
+
         miopenFusionOpDescriptor_t bNormOp = nullptr;
         miopenFusionOpDescriptor_t activOp = nullptr;
 
@@ -77,14 +103,11 @@ struct verify_inference_batchnorm_activ
         miopenActivationMode_t activ_mode;
         miopenGetActivationDescriptor(
             activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
+        auto ptr_fusionplan = GetManagedFusionPlanDesc(inputDesc);
+        miopenCreateOpBatchNormInference(ptr_fusionplan.get(), &bNormOp, bnmode, biasScaleTensor);
+        miopenCreateOpActivationForward(ptr_fusionplan.get(), &activOp, activ_mode);
 
-        miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
-        MIOPEN_MANAGE_PTR(miopenFusionPlanDescriptor_t, miopenDestroyFusionPlanDescriptor)
-        mgr_fusePlanDesc{fusePlanDesc};
-        miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bnmode, biasScaleTensor);
-        miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
-
-        miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, fusePlanDesc);
+        miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, ptr_fusionplan.get());
         if(miopenError != miopenStatusSuccess)
         {
             std::cerr << "BatchNorm+Activation Inference plan not supported." << std::endl;
@@ -120,10 +143,8 @@ struct verify_inference_batchnorm_activ
         auto estMean_dev     = handle.Write(estMean.data);
         auto estVariance_dev = handle.Write(estVariance.data);
 
-        miopenFusionPlanDescriptor_t fusePlanDesc;
         miopenFusionOpDescriptor_t bNormOp = nullptr;
         miopenFusionOpDescriptor_t activOp = nullptr;
-        miopenOperatorArgs_t fusionArgs;
 
         double activ_alpha, activ_beta, activ_gamma;
         miopenActivationMode_t activ_mode;
@@ -131,23 +152,20 @@ struct verify_inference_batchnorm_activ
             activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
 
         double alpha = 1., beta = 0.;
-        miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
-        MIOPEN_MANAGE_PTR(miopenFusionPlanDescriptor_t, miopenDestroyFusionPlanDescriptor)
-        mgr_fusePlanDesc{fusePlanDesc};
-        miopenCreateOperatorArgs(&fusionArgs);
-        MIOPEN_MANAGE_PTR(miopenOperatorArgs_t, miopenDestroyOperatorArgs)
-        mgr_fusionArgs{fusionArgs};
-        miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bnmode, biasScaleTensor);
-        miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
+        auto ptr_fusionplan = GetManagedFusionPlanDesc(inputDesc);
+        auto ptr_fusionargs = GetManageFusionPlanArgs();
 
-        miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, fusePlanDesc);
+        miopenCreateOpBatchNormInference(ptr_fusionplan.get(), &bNormOp, bnmode, biasScaleTensor);
+        miopenCreateOpActivationForward(ptr_fusionplan.get(), &activOp, activ_mode);
+
+        miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, ptr_fusionplan.get());
         if(miopenError != miopenStatusSuccess)
         {
             std::cerr << "BatchNorm+Activation Inference plan not supported." << std::endl;
         }
         else
         {
-            miopenSetOpArgsBatchNormInference(fusionArgs,
+            miopenSetOpArgsBatchNormInference(ptr_fusionargs.get(),
                                               bNormOp,
                                               &alpha,
                                               &beta,
@@ -157,14 +175,14 @@ struct verify_inference_batchnorm_activ
                                               estVariance_dev.get(),
                                               epsilon);
             miopenSetOpArgsActivForward(
-                fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
+                ptr_fusionargs.get(), activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
             miopenExecuteFusionPlan(&handle,
-                                    fusePlanDesc,
+                                    ptr_fusionplan.get(),
                                     inputDesc,
                                     in_dev.get(),
                                     inputDesc,
                                     out_dev.get(),
-                                    fusionArgs);
+                                    ptr_fusionargs.get());
             baout.data = handle.Read<T>(out_dev, baout.data.size());
         }
         return baout;
@@ -186,9 +204,7 @@ struct na_fusion_driver : test_driver
     tensor<T> shift;
     tensor<T> estMean;
     tensor<T> estVariance;
-    miopenActivationDescriptor_t activDesc{};
-    MIOPEN_MANAGE_PTR(miopenActivationDescriptor_t, miopenDestroyActivationDescriptor)
-    mgr_activDesc{activDesc};
+    ptr_ActivationDesc ptr_activdesc = nullptr;
 
     miopenActivationMode_t activ_mode = miopenActivationRELU;
     std::string amode;
@@ -238,9 +254,8 @@ struct na_fusion_driver : test_driver
 
         int input_c, input_h, input_w;
         std::tie(std::ignore, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());
-
-        miopenCreateActivationDescriptor(&activDesc);
-        miopenSetActivationDescriptor(activDesc, activ_mode, alpha, beta, gamma);
+        ptr_activdesc = GetManagedActivDesc();
+        miopenSetActivationDescriptor(ptr_activdesc.get(), activ_mode, alpha, beta, gamma);
 
         if(batchnormMode == 1)
         {
@@ -284,7 +299,7 @@ struct na_fusion_driver : test_driver
             }
         }
         verify(verify_inference_batchnorm_activ<T>{
-            input, activDesc, scale, shift, estMean, estVariance, bnmode});
+            input, ptr_activdesc.get(), scale, shift, estMean, estVariance, bnmode});
     }
 };
 
