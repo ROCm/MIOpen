@@ -601,7 +601,7 @@ gcnAsmConv3x3U:
     v_mbcnt_hi_u32_b32 v[dbg_ptr], -1, v[dbg_ptr]
     v_mul_u32_u24 v[dbg_ptr], v[dbg_ptr], 4
     v_mov_b32 v[dbg_ptr+1], s[7]
-   _v_add_nc_u32 v[dbg_ptr], v[dbg_ptr], s[6]
+   _v_add_co_u32 v[dbg_ptr], vcc, v[dbg_ptr], s[6]
     v_addc_u32 v[dbg_ptr+1], vcc, v[dbg_ptr+1], 0, vcc
     s_mov_b32 exec_lo, s[dbg_exec_lo]
     s_mov_b32 exec_hi, s[dbg_exec_hi]
@@ -673,9 +673,6 @@ gcnAsmConv3x3U:
   .if batch_size > 1
     s_mul_i32 s[tmp], s[gid_z], input_feature_map_stride * input_channels
     s_add_u32 s[in_desc], s[in_desc], s[tmp] // add input image batch offset
-    #s_addc_u32 s[in_desc+1], s[in_desc+1], 0x0 + gprs_per_input_line << 18 // add stride
-  .else
-    #s_add_u32 s[in_desc+1], s[in_desc+1], 0x0 + gprs_per_input_line << 18 // add stride
   .endif
   s_mov_b32 s[in_desc+2], input_buffer_window // size
   s_mov_b32 s[in_desc+3], 0x00027000
@@ -689,7 +686,6 @@ gcnAsmConv3x3U:
     s_add_u32 s[tmp], s[tmp], s[gid_z]
   .endif
   s_add_u32 s[out_ptr], s[out_ptr], s[tmp]
-  #s_addc_u32 s[out_ptr+1], s[out_ptr+1], 0x0 + gprs_per_output_line << 18 // output stride
   s_mul_i32 s[tmp], s[gid_y], output_line_stride * output_lines_per_wave // output line offset
   .GPR_REUSE tmp, out_img_off
   .GPR_INVALIDATE gid_x
