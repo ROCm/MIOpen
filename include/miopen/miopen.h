@@ -1738,16 +1738,6 @@ typedef enum {
     miopenHorizontalFusion = 1, /*!< fuses layers horizontally, this is unimplemented */
 } miopenFusionDirection_t;
 
-/*! @struct miopenOpCost_t
-* @brief cost of a single (possibly fused) op
-*/
-typedef struct miopen_op_cost
-{
-    size_t workSpace;         /*!< required workspace */
-    double time;              /*!< execution time */
-    double deviceUtilization; /*!< % of device utilized bt the op */
-} miopenOpCost_t;
-
 /*! @brief Creates the kenrel fusion plan descriptor object
 *
 * @param fusePlanDesc  Pointer to a fusion plan (output)

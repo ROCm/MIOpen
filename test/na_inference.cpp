@@ -210,7 +210,7 @@ struct na_fusion_driver : test_driver
             activ_mode = miopenActivationRELU;
         else if(amode == "SOFTRELU")
             activ_mode = miopenActivationSOFTRELU;
-        else if(amode == "LOGISTIC")
+        else if(amode == "ABS")
             activ_mode = miopenActivationABS;
         else if(amode == "POWER")
             activ_mode = miopenActivationPOWER;

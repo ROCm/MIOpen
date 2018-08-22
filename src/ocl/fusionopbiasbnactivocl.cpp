@@ -76,7 +76,10 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetNetworkConfig(std::strin
 miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(
     std::string& compile_config, Handle& /*handle*/, const FusionKernelSourceType source)
 {
-    assert(source == OpenclText);
+    if(source != OpenclText)
+    {
+        MIOPEN_THROW("Invalid source file type");
+    }
     std::vector<size_t> vld{256, 1, 1};
     std::string add;
     if(mode == miopenBNSpatial)
