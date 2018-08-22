@@ -79,6 +79,8 @@ struct verify_inference_batchnorm_activ
             activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
 
         miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
+        MIOPEN_MANAGE_PTR(miopenFusionPlanDescriptor_t, miopenDestroyFusionPlanDescriptor)
+        mgr_fusePlanDesc{fusePlanDesc};
         miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bnmode, biasScaleTensor);
         miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
 
@@ -103,8 +105,6 @@ struct verify_inference_batchnorm_activ
             activationHostInfer(
                 activ_mode, activ_gamma, activ_beta, activ_alpha, bout.data, aout.data);
         }
-
-        miopenDestroyFusionPlanDescriptor(fusePlanDesc);
         return aout;
     }
 
@@ -132,7 +132,11 @@ struct verify_inference_batchnorm_activ
 
         double alpha = 1., beta = 0.;
         miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
+        MIOPEN_MANAGE_PTR(miopenFusionPlanDescriptor_t, miopenDestroyFusionPlanDescriptor)
+        mgr_fusePlanDesc{fusePlanDesc};
         miopenCreateOperatorArgs(&fusionArgs);
+        MIOPEN_MANAGE_PTR(miopenOperatorArgs_t, miopenDestroyOperatorArgs)
+        mgr_fusionArgs{fusionArgs};
         miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bnmode, biasScaleTensor);
         miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
 
@@ -163,12 +167,16 @@ struct verify_inference_batchnorm_activ
                                     fusionArgs);
             baout.data = handle.Read<T>(out_dev, baout.data.size());
         }
-        miopenDestroyFusionPlanDescriptor(fusePlanDesc);
         return baout;
     }
 
     void fail(float = 0) const { std::cerr << "BatchNorm+Activation Inference:" << std::endl; }
 };
+
+static std::string transform_mode(std::string s)
+{
+    return miopen::RemovePrefix(miopen::ToUpper(s), "MIOPENACTIVATION");
+}
 
 template <class T>
 struct na_fusion_driver : test_driver
@@ -179,6 +187,9 @@ struct na_fusion_driver : test_driver
     tensor<T> estMean;
     tensor<T> estVariance;
     miopenActivationDescriptor_t activDesc{};
+    MIOPEN_MANAGE_PTR(miopenActivationDescriptor_t, miopenDestroyActivationDescriptor)
+    mgr_activDesc{activDesc};
+
     miopenActivationMode_t activ_mode = miopenActivationRELU;
     std::string amode;
     miopenBatchNormMode_t bnmode{};
@@ -193,12 +204,16 @@ struct na_fusion_driver : test_driver
         add(alpha, "alpha", generate_data({/*1.,*/ 0.5}));
         add(beta, "beta", generate_data({/*0.,*/ 0.5}));
         add(gamma, "gamma", generate_data({/*1.,*/ 0.5}));
-        add(amode, "amode", generate_data({"RELU", "LOGISTIC", "ABS"}));
+        add(amode,
+            "amode",
+            generate_data(
+                {"MIOPENACTIVATIONRELU", "MIOPENACTIVATIONLOGISTIC", "MIOPENACTIVATIONABS"}));
         add(batchnormMode, "batch-norm-mode", generate_data({0, 1}));
     }
 
     void run()
     {
+        amode = transform_mode(amode);
 
         if(amode == "PASSTHRU")
             activ_mode = miopenActivationPASTHRU;
@@ -270,7 +285,6 @@ struct na_fusion_driver : test_driver
         }
         verify(verify_inference_batchnorm_activ<T>{
             input, activDesc, scale, shift, estMean, estVariance, bnmode});
-        miopenDestroyActivationDescriptor(activDesc);
     }
 };
 
