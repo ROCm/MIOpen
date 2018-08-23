@@ -571,4 +571,3 @@ extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
                      miopen::deref(args));
     });
 }
-
