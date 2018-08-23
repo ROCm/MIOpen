@@ -65,15 +65,22 @@ struct verify_inference_batchnorm_activ
     tensor<T> estMean{};
     tensor<T> estVariance{};
     miopenBatchNormMode_t bnmode;
+    miopenFusionPlanDescriptor_t fusionplan;
+    miopenFusionOpDescriptor_t bNormOp;
+    miopenFusionOpDescriptor_t activOp;
+
     double epsilon;
 
-    verify_inference_batchnorm_activ(tensor<T>& pinput,
+    verify_inference_batchnorm_activ(miopenFusionPlanDescriptor_t pfusionplan,
+                                     tensor<T>& pinput,
                                      miopenActivationDescriptor_t pactivDesc,
                                      tensor<T>& pbnscale,
                                      tensor<T>& pbnbias,
                                      tensor<T>& pestMean,
                                      tensor<T>& pestVariance,
-                                     miopenBatchNormMode_t pbnmode)
+                                     miopenBatchNormMode_t pbnmode,
+                                     miopenFusionOpDescriptor_t pbNormOp,
+                                     miopenFusionOpDescriptor_t pactivOp)
     {
         input           = pinput;
         inputDesc       = &pinput.desc;
@@ -84,50 +91,38 @@ struct verify_inference_batchnorm_activ
         estMean         = pestMean;
         estVariance     = pestVariance;
         bnmode          = pbnmode;
+        fusionplan      = pfusionplan;
+        bNormOp         = pbNormOp;
+        activOp         = pactivOp;
         epsilon         = 1.0e-5;
     }
 
     tensor<T> cpu() const
     {
-
-        auto&& handle = get_handle();
         auto bout     = input;
         std::fill(bout.begin(), bout.end(), 0.);
         auto aout = input;
         std::fill(aout.begin(), aout.end(), 0.);
 
-        miopenFusionOpDescriptor_t bNormOp = nullptr;
-        miopenFusionOpDescriptor_t activOp = nullptr;
-
         double activ_alpha, activ_beta, activ_gamma;
         miopenActivationMode_t activ_mode;
         miopenGetActivationDescriptor(
             activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
-        auto ptr_fusionplan = GetManagedFusionPlanDesc(inputDesc);
-        miopenCreateOpBatchNormInference(ptr_fusionplan.get(), &bNormOp, bnmode, biasScaleTensor);
-        miopenCreateOpActivationForward(ptr_fusionplan.get(), &activOp, activ_mode);
-
-        miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, ptr_fusionplan.get());
-        if(miopenError != miopenStatusSuccess)
+        
+        if(bnmode == miopenBNPerActivation)
         {
-            std::cerr << "BatchNorm+Activation Inference plan not supported." << std::endl;
+            batchNormPerActivHostInference(
+                input, bout, bnscale, bnbias, epsilon, estMean, estVariance);
         }
         else
         {
-            if(bnmode == miopenBNPerActivation)
-            {
-                batchNormPerActivHostInference(
-                    input, bout, bnscale, bnbias, epsilon, estMean, estVariance);
-            }
-            else
-            {
-                batchNormSpatialHostInference(
-                    input, bout, bnscale, bnbias, epsilon, estMean, estVariance);
-            }
-
-            activationHostInfer(
-                activ_mode, activ_gamma, activ_beta, activ_alpha, bout.data, aout.data);
+            batchNormSpatialHostInference(
+                input, bout, bnscale, bnbias, epsilon, estMean, estVariance);
         }
+
+        activationHostInfer(
+            activ_mode, activ_gamma, activ_beta, activ_alpha, bout.data, aout.data);
+    
         return aout;
     }
 
@@ -143,48 +138,32 @@ struct verify_inference_batchnorm_activ
         auto estMean_dev     = handle.Write(estMean.data);
         auto estVariance_dev = handle.Write(estVariance.data);
 
-        miopenFusionOpDescriptor_t bNormOp = nullptr;
-        miopenFusionOpDescriptor_t activOp = nullptr;
-
         double activ_alpha, activ_beta, activ_gamma;
         miopenActivationMode_t activ_mode;
         miopenGetActivationDescriptor(
             activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
 
         double alpha = 1., beta = 0.;
-        auto ptr_fusionplan = GetManagedFusionPlanDesc(inputDesc);
         auto ptr_fusionargs = GetManageFusionPlanArgs();
-
-        miopenCreateOpBatchNormInference(ptr_fusionplan.get(), &bNormOp, bnmode, biasScaleTensor);
-        miopenCreateOpActivationForward(ptr_fusionplan.get(), &activOp, activ_mode);
-
-        miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, ptr_fusionplan.get());
-        if(miopenError != miopenStatusSuccess)
-        {
-            std::cerr << "BatchNorm+Activation Inference plan not supported." << std::endl;
-        }
-        else
-        {
-            miopenSetOpArgsBatchNormInference(ptr_fusionargs.get(),
-                                              bNormOp,
-                                              &alpha,
-                                              &beta,
-                                              bnscale_dev.get(),
-                                              bnbias_dev.get(),
-                                              estMean_dev.get(),
-                                              estVariance_dev.get(),
-                                              epsilon);
-            miopenSetOpArgsActivForward(
-                ptr_fusionargs.get(), activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
-            miopenExecuteFusionPlan(&handle,
-                                    ptr_fusionplan.get(),
-                                    inputDesc,
-                                    in_dev.get(),
-                                    inputDesc,
-                                    out_dev.get(),
-                                    ptr_fusionargs.get());
-            baout.data = handle.Read<T>(out_dev, baout.data.size());
-        }
+        miopenSetOpArgsBatchNormInference(ptr_fusionargs.get(),
+                                          bNormOp,
+                                          &alpha,
+                                          &beta,
+                                          bnscale_dev.get(),
+                                          bnbias_dev.get(),
+                                          estMean_dev.get(),
+                                          estVariance_dev.get(),
+                                          epsilon);
+        miopenSetOpArgsActivForward(
+            ptr_fusionargs.get(), activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
+        miopenExecuteFusionPlan(&handle,
+                                fusionplan,
+                                inputDesc,
+                                in_dev.get(),
+                                inputDesc,
+                                out_dev.get(),
+                                ptr_fusionargs.get());
+        baout.data = handle.Read<T>(out_dev, baout.data.size());
         return baout;
     }
 
@@ -298,8 +277,29 @@ struct na_fusion_driver : test_driver
                 input[i] = (((rand() % 2) == 1) ? -1 : 1) * T(rand() % 100);
             }
         }
-        verify(verify_inference_batchnorm_activ<T>{
-            input, ptr_activdesc.get(), scale, shift, estMean, estVariance, bnmode});
+
+        auto&& handle = get_handle();
+
+        miopenFusionOpDescriptor_t bNormOp = nullptr;
+        miopenFusionOpDescriptor_t activOp = nullptr;
+
+        auto ptr_fusionplan = GetManagedFusionPlanDesc(&input.desc);
+
+        miopenCreateOpBatchNormInference(ptr_fusionplan.get(), &bNormOp, bnmode, &scale.desc);
+        miopenCreateOpActivationForward(ptr_fusionplan.get(), &activOp, activ_mode);
+
+        miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, ptr_fusionplan.get());
+        if(miopenError != miopenStatusSuccess)
+        {
+            std::cerr << "BatchNorm+Activation Inference plan not supported." << std::endl;
+        }
+        else
+        {
+            verify(verify_inference_batchnorm_activ<T>{
+                            ptr_fusionplan.get(), input, ptr_activdesc.get(), 
+                            scale, shift, estMean, estVariance, bnmode, bNormOp, activOp});
+        }
+
     }
 };
 
