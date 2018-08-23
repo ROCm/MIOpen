@@ -32,7 +32,7 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     miopenStatus_t GetOp(int op_idx, std::shared_ptr<FusionOpDescriptor>& desc);
 
     protected:
-    std::string GetKernelName(Handle& handle);
+    std::string GetKernelName();
     std::string GetProgramName(Handle& handle);
     auto GetLocalWGSz();
     auto GetGlobalWGSz();

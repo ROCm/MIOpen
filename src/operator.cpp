@@ -28,10 +28,9 @@
 #include <miopen/logger.hpp>
 
 namespace miopen {
-std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x)
+std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& op)
 {
-    MIOPEN_LOG_ENUM(stream, x.kind(), miopenFusionOpActivForward, miopenFusionOpBatchNormInference);
-    // LogRange(stream, x.parms, ", ") << ", ";
+    MIOPEN_LOG_ENUM(stream, op.kind(), miopenFusionOpActivForward, miopenFusionOpBatchNormInference);
     return stream;
 }
 
