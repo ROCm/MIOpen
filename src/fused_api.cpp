@@ -559,7 +559,7 @@ extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
                                                   void* output,
                                                   miopenOperatorArgs_t args)
 {
-    // MIOPEN_LOG_FUNCTION(handle, fusePlanDesc, inputDesc, input, outputDesc, output, args);
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, inputDesc, input, outputDesc, output, args);
     return miopen::try_([&] {
 
         miopen::deref(fusePlanDesc)
@@ -571,35 +571,4 @@ extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
                      miopen::deref(args));
     });
 }
-#if 0
-// Heurtistic based benchmarking.
-extern "C" miopenStatus_t miopenGetFusionPlanCostEstimate(
-    miopenOpCost_t* opCost, miopenHandle_t handle, const miopenFusionPlanDescriptor_t fusePlanDesc)
-{
-    // MIOPEN_LOG_FUNCTION(opCost, handle, fusePlanDesc);
-    (void)(opCost);
-    (void)(handle);
-    (void)(fusePlanDesc);
-    return (miopenStatusSuccess);
-}
 
-// Empirical benchmarking, aka we actually run the fusion plan.
-extern "C" miopenStatus_t
-miopenGetFusionPlanCostEmpirical(miopenOpCost_t* opCost,
-                                 miopenHandle_t handle,
-                                 const miopenFusionPlanDescriptor_t fusePlanDesc,
-                                 const miopenTensorDescriptor_t inputDesc,
-                                 const void* input,
-                                 miopenOperatorArgs_t args)
-{
-    // MIOPEN_LOG_FUNCTION(opCost, handle, fusePlanDesc, inputDesc, input, args);
-    (void)(handle);
-    (void)(fusePlanDesc);
-    (void)(inputDesc);
-    (void)(input);
-    (void)(args);
-    (void)(opCost);
-    return (miopenStatusSuccess);
-}
-
-#endif
