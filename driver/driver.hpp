@@ -131,8 +131,9 @@ void PadBufferSize(size_t& sz, int datatype_sz)
 [[gnu::noreturn]] void Usage()
 {
     printf("Usage: ./driver *base_arg* *other_args*\n");
-    printf("Supported Base Arguments: conv[fp16], CBAInfer[fp16], pool[fp16], lrn[fp16], activ[fp16], "
-           "softmax[fp16], bnorm[fp16], rnn, gemm\n");
+    printf(
+        "Supported Base Arguments: conv[fp16], CBAInfer[fp16], pool[fp16], lrn[fp16], activ[fp16], "
+        "softmax[fp16], bnorm[fp16], rnn, gemm\n");
     exit(0);
 }
 
