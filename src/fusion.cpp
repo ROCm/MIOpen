@@ -75,15 +75,8 @@ miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> d
 
 miopenStatus_t FusionPlanDescriptor::GetOp(int op_idx, std::shared_ptr<FusionOpDescriptor>& desc)
 {
-    auto err = miopenStatusSuccess;
-
-    if(op_idx >= op_map.size())
-    {
-        MIOPEN_THROW("Operator index out of bounds");
-    }
-
-    desc = op_map[op_idx];
-    return err;
+    desc = op_map.at(op_idx);
+    return miopenStatusSuccess;
 }
 
 TensorDescriptor FusionPlanDescriptor::FusionPlanDescriptor::DeriveOutputDescriptor()
@@ -92,6 +85,9 @@ TensorDescriptor FusionPlanDescriptor::FusionPlanDescriptor::DeriveOutputDescrip
     TensorDescriptor o_desc;
     if(fusion_dir == miopenVerticalFusion)
     {
+        // All the ops should have the same output descriptor otherwise
+        // fusion would not be feasible, thus we need to call GetOutputDesc on all
+        // the ops and make sure it returns the same value
         for(auto&& op : op_map)
         {
             op->SetInputDesc(i_desc);
@@ -101,9 +97,6 @@ TensorDescriptor FusionPlanDescriptor::FusionPlanDescriptor::DeriveOutputDescrip
     }
     else
     {
-        // TODO: All the ops should have the same output descriptor otherwise
-        // fusion would not be feasible, thus we need to call GetOutputDesc on all
-        // the ops and make sure it returns the same value
         MIOPEN_THROW("Unsupported fusion direction");
     }
     return o_desc;
@@ -111,34 +104,18 @@ TensorDescriptor FusionPlanDescriptor::FusionPlanDescriptor::DeriveOutputDescrip
 
 std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& fpd)
 {
-    (void)(fpd);
-    /*    MIOPEN_LOG_ENUM(stream,
-                        x.mode,
-                        miopenActivationPASTHRU,
-                        miopenActivationLOGISTIC,
-                        miopenActivationTANH,
-                        miopenActivationRELU,
-                        miopenActivationSOFTRELU,
-                        miopenActivationABS,
-                        miopenActivationPOWER,
-                        miopenActivationCLIPPEDRELU,
-                        miopenActivationLEAKYRELU,
-                        miopenActivationELU)*/
-    // LogRange(stream, x.parms, ", ") << ", ";
+    stream << "kernel_name: " << fpd.kernel_name;
     return stream;
 }
 
 // Activ Forward
 miopenStatus_t ActivFusionOpDescriptor::SetArgs(OperatorArgs& args,
-                                                const void* alpha,
-                                                const void* beta,
+                                                const void* /*alpha*/,
+                                                const void* /*beta*/,
                                                 double activAlpha,
                                                 double activBeta,
                                                 double activGamma)
 {
-    (void)(alpha);
-    (void)(beta);
-
     auto id = std::to_string(GetIdx());
     if(input_desc.GetType() == miopenFloat)
     {
@@ -159,8 +136,6 @@ std::vector<std::string> ActivFusionOpDescriptor::GetArgs() const
 {
     std::vector<std::string> keys;
     auto id = std::to_string(GetIdx());
-    // keys.push_back("alpha" + id);
-    // keys.push_back("beta" + id);
     keys.push_back("activAlpha" + id);
     keys.push_back("activBeta" + id);
     keys.push_back("activGamma" + id);
@@ -218,8 +193,6 @@ std::vector<std::string> BatchNormInferenceFusionOpDescriptor::GetArgs() const
 {
     std::vector<std::string> keys;
     auto id = std::to_string(GetIdx());
-    // keys.push_back("alpha" + id);
-    // keys.push_back("beta" + id);
     keys.push_back("epsilon" + id);
     keys.push_back("bnScale" + id);
     keys.push_back("bnBias" + id);
@@ -264,9 +237,8 @@ std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
     }
 }
 
-std::string FusionPlanDescriptor::GetKernelName(Handle& handle)
+std::string FusionPlanDescriptor::GetKernelName()
 {
-    (void)handle;
     if(!op_map.empty())
     {
         kernel_name = lu.GetKernelName();
@@ -285,24 +257,17 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     {
         MIOPEN_THROW("Trying to compile and invalid FusionPlan");
     }
-    // std::string network_config{};
     network_config = "";
-    /*    std::string program_name{};
-        std::string kernel_name{};*/
-    // TODO: move the hard coded algo name to the LUT
-    // std::string algorithm_name{}; // = "miopenDirConvBatchNormActivAlgo";
-    // TODO: The fusion plan is keeping track of the insertion order,
-    // should we move this to the Graph ?
     network_config += output_desc.ToString();
     for(auto&& op : op_map)
     {
         op->GetNetworkConfig(network_config, handle);
     }
     // Check if the kernel is assembly or OpenCL
-    auto ops_head  = op_map[0]; // ins_order[0]];
+    auto ops_head  = op_map[0];
     algorithm_name = lu.GetAlgoName();
     program_name   = GetProgramName(handle);
-    kernel_name    = GetKernelName(handle);
+    kernel_name    = GetKernelName();
     MIOPEN_LOG_I2(program_name << ',' << kernel_name);
     if(program_name.empty())
         MIOPEN_THROW("Invalid Fusion Plan");

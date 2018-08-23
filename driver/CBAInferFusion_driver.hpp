@@ -78,8 +78,6 @@ class CBAInferFusionDriver : public Driver
         miopenCreateTensorDescriptor(&outputTensor);
         miopenCreateTensorDescriptor(&biasScaleTensor);
         miopenCreateActivationDescriptor(&activDesc);
-
-        // DLOWELL starting point for fusion plans
         miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputTensor);
         miopenCreateOperatorArgs(&fusionArgs);
 
@@ -227,8 +225,6 @@ class CBAInferFusionDriver : public Driver
     miopenFusionOpDescriptor_t bNormOp;
     miopenFusionOpDescriptor_t activOp;
     miopenOperatorArgs_t fusionArgs;
-
-    // Tref maxval;
 };
 
 template <typename Tgpu, typename Tref>
