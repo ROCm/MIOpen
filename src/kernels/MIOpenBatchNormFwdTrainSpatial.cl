@@ -144,7 +144,7 @@ static inline void ReduceKernel(__local float* lcl_mem,
     float sum               = (float)0.;
     unsigned int lcl_offset = unit_id * unit_len;
 
-    __attribute__((opencl_unroll_hint(2))) for(unsigned int i = 0; i < unit_len; i += sum_stride)
+    for(unsigned int i = 0; i < unit_len; i += sum_stride)
     {
         sum += lcl_mem[lcl_offset + i];
     }
@@ -292,7 +292,10 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
     if(lid < MIO_BN_SEGMENT)
     {
-        __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_NLOOPM; ++n)
+#if MIOPEN_USE_FP16 == 0
+        __attribute__((opencl_unroll_hint(2)))
+#endif
+        for(unsigned int n = 0; n < MIO_BN_NLOOPM; ++n)
         {
             nid            = n * MIO_BN_SEGIHW + lidihw;
             index          = nid * MIO_BN_CHW + chwid;
@@ -397,7 +400,10 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         //==== CALC NORM =======================
         _FLOAT inhat = 0.;
 
-        __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_NLOOPM; n++)
+#if MIOPEN_USE_FP16 == 0
+        __attribute__((opencl_unroll_hint(2)))
+#endif
+        for(unsigned int n = 0; n < MIO_BN_NLOOPM; n++)
         { // apply normalization
             inhat      = (batchvalues[n] - mean) * invVariance;
             nid        = n * MIO_BN_SEGIHW + lidihw;
