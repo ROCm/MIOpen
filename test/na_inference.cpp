@@ -99,7 +99,7 @@ struct verify_inference_batchnorm_activ
 
     tensor<T> cpu() const
     {
-        auto bout     = input;
+        auto bout = input;
         std::fill(bout.begin(), bout.end(), 0.);
         auto aout = input;
         std::fill(aout.begin(), aout.end(), 0.);
@@ -108,7 +108,7 @@ struct verify_inference_batchnorm_activ
         miopenActivationMode_t activ_mode;
         miopenGetActivationDescriptor(
             activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
-        
+
         if(bnmode == miopenBNPerActivation)
         {
             batchNormPerActivHostInference(
@@ -120,9 +120,8 @@ struct verify_inference_batchnorm_activ
                 input, bout, bnscale, bnbias, epsilon, estMean, estVariance);
         }
 
-        activationHostInfer(
-            activ_mode, activ_gamma, activ_beta, activ_alpha, bout.data, aout.data);
-    
+        activationHostInfer(activ_mode, activ_gamma, activ_beta, activ_alpha, bout.data, aout.data);
+
         return aout;
     }
 
@@ -295,11 +294,17 @@ struct na_fusion_driver : test_driver
         }
         else
         {
-            verify(verify_inference_batchnorm_activ<T>{
-                            ptr_fusionplan.get(), input, ptr_activdesc.get(), 
-                            scale, shift, estMean, estVariance, bnmode, bNormOp, activOp});
+            verify(verify_inference_batchnorm_activ<T>{ptr_fusionplan.get(),
+                                                       input,
+                                                       ptr_activdesc.get(),
+                                                       scale,
+                                                       shift,
+                                                       estMean,
+                                                       estVariance,
+                                                       bnmode,
+                                                       bNormOp,
+                                                       activOp});
         }
-
     }
 };
 
