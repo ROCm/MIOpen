@@ -26,8 +26,6 @@
 #include <array>
 #include <initializer_list>
 #include <memory>
-#include <miopen/pooling.hpp>
-#include <miopen/tensor_ops.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/batch_norm.hpp>
 #include <miopen/activ.hpp>
@@ -36,7 +34,7 @@
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/tensor_ops.hpp>
+
 
 // Return an error code that is "NotImplemented", if it exists then return success
 // This function should:
