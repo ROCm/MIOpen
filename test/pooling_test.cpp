@@ -341,7 +341,7 @@ struct pooling_driver : test_driver
 
     pooling_driver()
     {
-        add(input, "input", get_input_tensor());
+        add(input, "input", get_input_tensor(number_generator_rand_integer{}));
         add(lens, "lens", generate_data({{2, 2}, {3, 3}}));
         add(strides, "strides", generate_data({{2, 2}, {1, 1}}));
         add(pads, "pads", generate_data({{0, 0}, {1, 1}}));

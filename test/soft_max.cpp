@@ -141,7 +141,7 @@ struct softmax_driver : test_driver
 {
     tensor<T> input;
 
-    softmax_driver() { add(input, "input", get_input_tensor()); }
+    softmax_driver() { add(input, "input", get_input_tensor(number_generator_rand_integer{})); }
 
     void run()
     {
