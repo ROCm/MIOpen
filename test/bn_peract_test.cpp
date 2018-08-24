@@ -90,9 +90,9 @@ struct verify_forward_train_bn_per_activation
         if(input.desc.GetType() == miopenFloat)
         {
             runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
-                number_generator_rand_integer{});
+                tensor_elem_gen_integer<T>{});
             runVar = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
-                number_generator_rand_integer{});
+                tensor_elem_gen_integer<T>{});
         }
         else
         {
@@ -215,9 +215,9 @@ struct verify_forward_train_bn_per_activation
         if(input.desc.GetType() == miopenFloat)
         {
             runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
-                number_generator_rand_integer{});
+                tensor_elem_gen_integer<T>{});
             runVar = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
-                number_generator_rand_integer{});
+                tensor_elem_gen_integer<T>{});
         }
         else
         {
@@ -948,7 +948,7 @@ struct batch_norm_per_activation_driver : test_driver
     batch_norm_per_activation_driver()
     {
         this->batch_factor = 4;
-        add(input, "input", get_bn_peract_input_tensor(number_generator_rand_integer{}));
+        add(input, "input", get_bn_peract_input_tensor(tensor_elem_gen_integer<T>{}));
     }
 
     void run()
@@ -969,8 +969,8 @@ struct batch_norm_per_activation_driver : test_driver
 
         if(input.desc.GetType() == miopenFloat)
         {
-            scale = tensor<T>{ssn, ssc, ssh, ssw}.generate(number_generator_rand_integer{});
-            shift = tensor<T>{ssn, ssc, ssh, ssw}.generate(number_generator_rand_integer{});
+            scale = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer<T>{});
+            shift = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer<T>{});
         }
         else
         {
@@ -1003,7 +1003,7 @@ struct batch_norm_per_activation_driver : test_driver
 
         // backprop recalc
         auto dy_input = tensor<T>{n, c, h, w}.generate(
-            number_generator_rand_integer{}); //= std::get<0>(outpair.first);//
+            tensor_elem_gen_integer<T>{}); //= std::get<0>(outpair.first);//
         verify(verify_backward_bn_per_activation_recalc<T>{input, dy_input, scale});
 
         // backprop use saved values

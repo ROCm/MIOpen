@@ -563,8 +563,8 @@ struct conv_driver : test_driver
 
     conv_driver()
     {
-        add(input, "input", get_input_tensor(number_generator_rand_integer{}));
-        add(weights, "weights", get_weights_tensor(number_generator_rand_integer{}));
+        add(input, "input", get_input_tensor(tensor_elem_gen_integer<T>{}));
+        add(weights, "weights", get_weights_tensor(tensor_elem_gen_integer<T>{}));
         add(filter, "filter", generate_data(get_filters()));
         add(enable_backward_weights, "enable-backward-weights", flag());
         add(do_backward_data, "disable-backward-data", set_value(false));
