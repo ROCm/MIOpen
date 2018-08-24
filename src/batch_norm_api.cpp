@@ -125,13 +125,16 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
 
     if(miopen::IsLoggingCmd())
     {
-        if (miopen::deref(xDesc).GetType() == miopenHalf) {
+        if(miopen::deref(xDesc).GetType() == miopenHalf)
+        {
             std::cerr << MIOPEN_DRIVER_CMD("bnormfp16");
-        } else {
+        }
+        else
+        {
             std::cerr << MIOPEN_DRIVER_CMD("bnorm");
         }
-        std::cerr << " -n " << miopen::deref(xDesc).GetLengths()[0]
-                  << " -c " << miopen::deref(xDesc).GetLengths()[1] << " -H "
+        std::cerr << " -n " << miopen::deref(xDesc).GetLengths()[0] << " -c "
+                  << miopen::deref(xDesc).GetLengths()[1] << " -H "
                   << miopen::deref(xDesc).GetLengths()[2] << " -W "
                   << miopen::deref(xDesc).GetLengths()[3]
 
@@ -207,9 +210,12 @@ miopenBatchNormalizationBackward(miopenHandle_t handle,
                         savedInvVariance);
     if(miopen::IsLoggingCmd())
     {
-        if (miopen::deref(xDesc).GetType() == miopenHalf) {
+        if(miopen::deref(xDesc).GetType() == miopenHalf)
+        {
             std::cerr << MIOPEN_DRIVER_CMD("bnormfp16");
-        } else {
+        }
+        else
+        {
             std::cerr << MIOPEN_DRIVER_CMD("bnorm");
         }
         std::cerr << "\n";
