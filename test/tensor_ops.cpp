@@ -290,9 +290,9 @@ struct tensor_ops_driver : test_driver
         std::vector<int> blens = {{32, 16, 20, 16, 8}};
         std::vector<int> clens = {{32, 16, 20, 16, 8}};
 
-        super_a = tensor<T>{alens}.generate(number_generator_rand_integer{});
-        super_b = tensor<T>{blens}.generate(number_generator_rand_integer{});
-        super_c = tensor<T>{clens}.generate(number_generator_rand_integer{});
+        super_a = tensor<T>{alens}.generate(tensor_elem_gen_integer<T>{});
+        super_b = tensor<T>{blens}.generate(tensor_elem_gen_integer<T>{});
+        super_c = tensor<T>{clens}.generate(tensor_elem_gen_integer<T>{});
 
         std::vector<std::vector<int>> get_offsets     = {{64, 32, 16}, {32, 16, 32}, {32, 16, 32}};
         std::vector<std::vector<float>> get_alphabeta = {{1, 1, 0}, {-1, 1, 1}, {1.0, 0.5, 0.3}};

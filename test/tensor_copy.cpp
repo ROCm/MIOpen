@@ -153,8 +153,8 @@ struct tensor_copy_driver : test_driver
 
     void run()
     {
-        srcSuper = tensor<T>{srcSuperLens}.generate(number_generator_rand_integer{});
-        dstSuper = tensor<T>{dstSuperLens}.generate(number_generator_rand_integer{});
+        srcSuper = tensor<T>{srcSuperLens}.generate(tensor_elem_gen_integer<T>{});
+        dstSuper = tensor<T>{dstSuperLens}.generate(tensor_elem_gen_integer<T>{});
 
         std::vector<size_t> srcSuperStrides = srcSuper.desc.GetStrides();
         std::vector<size_t> dstSuperStrides = dstSuper.desc.GetStrides();

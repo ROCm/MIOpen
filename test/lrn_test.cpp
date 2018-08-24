@@ -272,7 +272,7 @@ struct lrn_driver : test_driver
 
     lrn_driver()
     {
-        add(input, "input", get_input_tensor(number_generator_rand_integer{}));
+        add(input, "input", get_input_tensor(tensor_elem_gen_integer<T>{}));
         add(n, "N", generate_data({1, 3, 5}));
         add(alpha, "alpha", generate_data({1.0}));
         add(beta, "beta", generate_data({0}));
@@ -291,9 +291,9 @@ struct lrn_driver : test_driver
         std::size_t n_batch, channels, height, width;
         std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
         auto scale =
-            tensor<T>{n_batch, channels, height, width}.generate(number_generator_rand_integer{});
+            tensor<T>{n_batch, channels, height, width}.generate(tensor_elem_gen_integer<T>{});
         auto inputX =
-            tensor<T>{n_batch, channels, height, width}.generate(number_generator_rand_integer{});
+            tensor<T>{n_batch, channels, height, width}.generate(tensor_elem_gen_integer<T>{});
         par_ford(n_batch, channels, height, width)(
             [&](int b, int c, int h, int w) { scale(b, c, h, w) += 1; });
 
