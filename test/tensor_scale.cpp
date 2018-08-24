@@ -122,7 +122,7 @@ struct tensor_scale_driver : test_driver
 
     void run()
     {
-        super = tensor<T>{superLens}.generate(rand_gen{});
+        super = tensor<T>{superLens}.generate(number_generator_rand_integer{});
 
         std::vector<size_t> superStrides = super.desc.GetStrides();
         std::vector<int> subStrides(superStrides.begin() + (super.desc.GetSize() - subLens.size()),
