@@ -45,8 +45,7 @@ set(SKIP_TESTS)
 set(MIOPEN_TEST_FLOAT_ARG)
 
 if(MIOPEN_TEST_HALF)
-    # Skipping 3d_bn test until nan issue is addressed in bn kernels for half precision data types(PR #1097).
-    set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm test_bn_3d_spatial_test)
+    set(SKIP_TESTS test_gru test_rnn_vanilla test_lstm)
     set(MIOPEN_TEST_FLOAT_ARG --half)
 endif()
 

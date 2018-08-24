@@ -304,7 +304,6 @@ std::vector<int> BatchNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 
     if(in_d)
     {
-        int in_d         = inflags.GetValueInt("in_d");
         isDepthSpecified = true;
 
         // NxCxDxHxW -> NxCx(D*H)xW
@@ -886,7 +885,7 @@ void BatchNormDriver<Tgpu, Tref>::runCPUFwdInference(
     { // 1xCxHxW
         miopenBNFwdInferPerActivationRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
                                                          channels,
-                                                         depth,
+                                                         (isDepthSpecified ? depth : 1),
                                                          height,
                                                          width,
                                                          in.data(),
@@ -902,7 +901,7 @@ void BatchNormDriver<Tgpu, Tref>::runCPUFwdInference(
     { // 1xCx1x1
         miopenBNFwdInferSpatialRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
                                                    channels,
-                                                   depth,
+                                                   (isDepthSpecified ? depth : 1),
                                                    height,
                                                    width,
                                                    in.data(),
@@ -932,7 +931,7 @@ void BatchNormDriver<Tgpu, Tref>::runCPUFwdTrain(
     { // 1xCxHxW
         miopenBNFwdTrainPerActivationRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
                                                          channels,
-                                                         depth,
+                                                         (isDepthSpecified ? depth : 1),
                                                          height,
                                                          width,
                                                          in.data(),
@@ -952,7 +951,7 @@ void BatchNormDriver<Tgpu, Tref>::runCPUFwdTrain(
     { // 1xCx1x1
         miopenBNFwdTrainSpatialRunHost<Tgpu, Tref>(/* alpha, beta, */ batch_sz,
                                                    channels,
-                                                   depth,
+                                                   (isDepthSpecified ? depth : 1),
                                                    height,
                                                    width,
                                                    in.data(),
@@ -1324,7 +1323,6 @@ int BatchNormDriver<Tgpu, Tref>::RunBackwardCPU()
         return miopenStatusSuccess;
 
     int nIn = 0, cIn = 0, dIn = 0, hIn = 0, wIn = 0;
-    std::cout << "isDepthSpecified" << isDepthSpecified << std::endl;
     if(isDepthSpecified)
         miopenGet5dTensorDescriptorLengths(inputTensor, &nIn, &cIn, &dIn, &hIn, &wIn);
     else
@@ -1346,7 +1344,7 @@ int BatchNormDriver<Tgpu, Tref>::RunBackwardCPU()
                                         Tref>(/* alphaDiff, betaDiff, alphaParam, betaParam, */
                                               batch_sz,
                                               channels,
-                                              depth,
+                                              (isDepthSpecified ? depth : 1),
                                               height,
                                               width,
                                               in.data(),
@@ -1365,7 +1363,7 @@ int BatchNormDriver<Tgpu, Tref>::RunBackwardCPU()
         miopenBNBwdSpatialRunHost<Tgpu, Tref>(/* alphaDiff, betaDiff, alphaParam, betaParam, */
                                               batch_sz,
                                               channels,
-                                              depth,
+                                              (isDepthSpecified ? depth : 1),
                                               height,
                                               width,
                                               in.data(),

@@ -54,20 +54,6 @@
 //****************************************************
 // FORWARD TRAIN
 //****************************************************
-
-miopen::TensorDescriptor BuildReshaped4DTensorDescriptor(const miopen::TensorDescriptor& tDesc)
-{
-    auto dataType = tDesc.GetType();
-    std::vector<size_t> dims(tDesc.GetLengths());
-
-    // NxCxDxHxW -> NxCx(D*H)xW
-    dims[2] *= dims[3];
-    dims[3] = dims[4];
-    dims.pop_back();
-
-    return {dataType, dims};
-}
-
 template <class T>
 struct verify_forward_train_3d_bn_per_activation
 {
@@ -1011,7 +997,8 @@ struct batch_norm_3d_per_activation_driver : test_driver
 
         if(n == 1)
         {
-            std::cout << "Invalid batch size for batch norm tests.\nExiting...\n" << std::endl;
+            // Invalid batch size for batch normalization
+            std::cout << "Batch size of 1 is not supported for BN operation." << std::endl;
             return;
         }
 
