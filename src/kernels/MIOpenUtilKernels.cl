@@ -120,6 +120,7 @@ kernel void Im2Col(const int data_size_off,
     int lid               = get_local_id(0);
     int gid               = get_group_id(0);
 
+#ifndef EXTREME_LARGE
 #if NUM_IM_BLKS == 1 && STRIDE_GT_1 == 0
 
     // Load image into LDS
@@ -218,4 +219,36 @@ kernel void Im2Col(const int data_size_off,
         inner_lid += 256;
     }
 #endif // NUM_IM_BLKS && STRIDE_GT_1
+#else
+
+    int tid = get_global_id(0);
+    while(tid < out_h * out_w * wei_w * wei_h * NUM_CH_TOTAL)
+    {
+        // which row of the output to write to
+        int col_row = tid / (out_h * out_w);
+
+        // which pixel from the image and which channel to read from
+        int im_x = col_row % wei_w;           // used to compute im_off_w
+        int im_y = (col_row / wei_w) % wei_h; // used to compute im_off_y
+        int im_c = col_row / (wei_w * wei_h); // im_c is the img channel
+
+        int out_x = tid % out_w;
+        int out_y = (tid / out_w) % out_h;
+
+        // take the strides and padding into account while reading from the image
+        int im_off_h = out_y * stride_h - pad_h + im_y * dilation_h;
+        int im_off_w = out_x * stride_w - pad_w + im_x * dilation_w;
+
+        if(im_off_h >= 0 && im_off_h < h && im_off_w >= 0 && im_off_w < w)
+        {
+            col[col_row * out_h * out_w + out_y * out_w + out_x] =
+                im_off[im_c * h * w + im_off_h * w + im_off_w];
+        }
+        else
+        {
+            col[col_row * out_h * out_w + out_y * out_w + out_x] = 0.;
+        }
+        tid += get_global_size(0);
+    }
+#endif
 }
