@@ -24,22 +24,25 @@
  * 
  *******************************************************************************/
 
+nbytes = 4 / vec_size
 // weights
 weights_per_filter = wei_w * wei_h
 .if weights_layout == 0 // KCHW
-	.set filter_c_stride, 4 * weights_per_filter
-	.set filter_k_stride, 4 * weights_per_filter * input_channels
+	.set filter_c_stride, nbytes * weights_per_filter
+	.set filter_k_stride, nbytes * weights_per_filter * input_channels
 .else // CKHW
-	.set filter_c_stride, 4 * weights_per_filter * output_channels
-	.set filter_k_stride, 4 * weights_per_filter
+	.set filter_c_stride, nbytes * weights_per_filter * output_channels
+	.set filter_k_stride, nbytes * weights_per_filter
 .endif
-filters_size = 4 * weights_per_filter * input_channels * output_channels
+filters_size = nbytes * weights_per_filter * input_channels * output_channels
 
 // input/output
 img_hw = img_h * img_w
+img_hw_vec = (img_hw + vec_size - 1) / vec_size
+odd_hw = (img_h * img_w) % vec_size
 out_w = (img_w + 2 * pad_w - wei_w) / stride_w + 1;
 out_h = (img_h + 2 * pad_h - wei_h) / stride_h + 1;
-input_line_size = 4 * img_w
+input_line_size = nbytes * img_w
 
 input_c_stride = input_line_size * img_h
 input_feature_map_size = input_c_stride
@@ -47,7 +50,7 @@ input_feature_map_size = input_c_stride
 input_n_stride = input_feature_map_size * input_channels
 input_stack_size = input_n_stride
 
-output_line_size = 4 * out_w
+output_line_size = nbytes * out_w
 
 output_k_stride = output_line_size * out_h
 output_feature_map_size = output_k_stride
