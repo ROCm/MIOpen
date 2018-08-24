@@ -25,7 +25,6 @@
  *******************************************************************************/
 #include "fusionHost.hpp"
 #include <miopen/stringutils.hpp>
-//#include <miopen/batch_norm_activ.hpp>
 
 using ptr_FusionPlanDesc = MIOPEN_MANAGE_PTR(miopenFusionPlanDescriptor_t,
                                              miopenDestroyFusionPlanDescriptor);
@@ -119,9 +118,7 @@ struct verify_inference_batchnorm_activ
             batchNormSpatialHostInference(
                 input, bout, bnscale, bnbias, epsilon, estMean, estVariance);
         }
-
         activationHostInfer(activ_mode, activ_gamma, activ_beta, activ_alpha, bout.data, aout.data);
-
         return aout;
     }
 
