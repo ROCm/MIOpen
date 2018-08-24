@@ -61,6 +61,19 @@ void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
     derivedBnDesc = TensorDescriptor(xDesc.GetType(), newlens.data(), xDesc.GetSize());
 }
 
+TensorDescriptor BuildReshaped4DTensorDescriptor(const miopen::TensorDescriptor& tDesc)
+{
+    auto dataType = tDesc.GetType();
+    std::vector<size_t> dims(tDesc.GetLengths());
+
+    // NxCxDxHxW -> NxCx(D*H)xW
+    dims[2] *= dims[3];
+    dims[3] = dims[4];
+    dims.pop_back();
+
+    return {dataType, dims};
+}
+
 void profileSequence(Handle& handle, unsigned char select, float* ctime)
 {
 
