@@ -138,6 +138,21 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
     miopenBatchNormMode_t mode;
     TensorDescriptor& base_desc;
 };
+struct ConvForwardOpDescriptor : FusionOpDescriptor
+{
+    static FusionMDGraph_Edge_Map MDGraphKey(miopenConvolutionMode_t conv_mode,
+                                             miopenPaddingMode_t pad_mode,
+                                             size_t pad_h,
+                                             size_t pad_w,
+                                             size_t u,
+                                             size_t v,
+                                             size_t dilation_h,
+                                             size_t dilation_w,
+                                             int k,
+                                             int c,
+                                             int x,
+                                             int y);
+};
 
 } // namespace miopen
 MIOPEN_DEFINE_OBJECT(miopenFusionOpDescriptor, miopen::FusionOpDescriptor);

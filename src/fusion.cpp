@@ -108,6 +108,34 @@ std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& fpd)
     return stream;
 }
 
+FusionMDGraph_Edge_Map ConvForwardOpDescriptor::MDGraphKey(miopenConvolutionMode_t conv_mode,
+                                                           miopenPaddingMode_t pad_mode,
+                                                           size_t pad_h,
+                                                           size_t pad_w,
+                                                           size_t u,
+                                                           size_t v,
+                                                           size_t dilation_h,
+                                                           size_t dilation_w,
+                                                           int k,
+                                                           int c,
+                                                           int x,
+                                                           int y)
+{
+    return {
+        {"conv_mode", EdgeOp(conv_mode, true, OpEqual)},
+        {"pad_mode", EdgeOp(pad_mode, true, OpEqual)},
+        {"pad_h", EdgeOp(pad_h, true, OpEqual)},
+        {"pad_w", EdgeOp(pad_w, true, OpEqual)},
+        {"u", EdgeOp(u, true, OpEqual)},
+        {"v", EdgeOp(v, true, OpEqual)},
+        {"dilation_h", EdgeOp(dilation_h, true, OpEqual)},
+        {"dilation_w", EdgeOp(dilation_w, true, OpEqual)},
+        {"k", EdgeOp(k, true, OpAny)},
+        {"c", EdgeOp(c, true, OpAny)},
+        {"x", EdgeOp(x, true, OpEqual)},
+        {"y", EdgeOp(y, true, OpEqual)},
+    };
+}
 // Activ Forward
 miopenStatus_t ActivFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                 const void* /*alpha*/,

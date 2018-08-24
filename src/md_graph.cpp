@@ -104,14 +104,54 @@ std::string FusionMDGraph::GetAlgoName()
     }
 }
 
+std::vector<miopenConvFwdAlgorithm_t> FusionMDGraph::GetConvAlgos()
+{
+    std::vector<miopenConvFwdAlgorithm_t> ret(conv_algo_set.begin(), conv_algo_set.end());
+    return ret;
+}
+
+bool FusionMDGraph::SetConvAlgo(miopenConvFwdAlgorithm_t algo)
+{
+    // Make sure algo is in the current paths being tracked
+    if(conv_algo_set.empty())
+        MIOPEN_THROW("No algorithm supported by current fusion plan");
+
+    if(conv_algo_set.find(algo) == conv_algo_set.end())
+    {
+        MIOPEN_THROW("Current fusion plan does not support the algorithm requested");
+    }
+    std::vector<std::pair<MDGraph_vertex_ptr, cur_vertex_map>> new_list;
+
+    for(auto& kinder : cur_vertex)
+    {
+        MDGraph_vertex_ptr& cur_vertex_ptr = kinder.first;
+        auto& cur_map                      = kinder.second;
+        if(cur_map.find("algo") != cur_map.end())
+        {
+            miopenConvFwdAlgorithm_t a =
+                static_cast<miopenConvFwdAlgorithm_t>(std::stoi(cur_map["algo"]));
+            if(a == algo)
+            {
+                new_list.emplace_back(cur_vertex_ptr, cur_map);
+            }
+        }
+        else
+            MIOPEN_THROW("Current fusion plan does not support the algorithm requested");
+    }
+
+    cur_vertex = new_list;
+
+    return (!new_list.empty());
+}
+
 void FusionMDGraph::Init(FusionMDGraph& g, miopenFusionOp_t op)
 {
     switch(op)
     {
+    case miopenFusionOpConvForward: InitConv(g); break;
     case miopenFusionOpBatchNormInference: InitBN(g); break;
     case miopenFusionOpActivForward:
     case miopenFusionOpBiasForward:
-    case miopenFusionOpConvForward:
         MIOPEN_THROW(
             "Operators Conv, Activ and Bias are not supported as first ops in a Fusion Plan (yet)");
     }
@@ -157,6 +197,147 @@ void FusionMDGraph::InitBN(FusionMDGraph& g)
                                                         "MIOpenBatchNormActivInferSpatialEst",
                                                         "MIOpenBatchNormActivInferSpatialEst");
         g.AddEdge(bn_v, activ_v, empty_map);
+    }
+}
+
+void FusionMDGraph::InitConv(FusionMDGraph& g)
+{
+
+    FusionMDGraph_Edge_Map empty_map = FusionMDGraph::EmptyEdgeMap();
+
+    // first path (asm kernel)
+    { // Conv -> Bias -> Activ // Conv -> Activ
+        auto conv_v = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
+                                                       "conv1x1u_bias_activ.s",
+                                                       "gcnAsmConv1x1U",
+                                                       "miopenConvolutionDirectBiasActivAsm");
+        auto bias_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
+                                                       "conv1x1u_bias_activ.s",
+                                                       "gcnAsmConv1x1U",
+                                                       "miopenConvolutionDirectBiasActivAsm");
+        auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
+                                                        "conv1x1u_bias_activ.s",
+                                                        "gcnAsmConv1x1U",
+                                                        "miopenConvolutionDirectBiasActivAsm",
+                                                        true);
+        // populate the graph
+        auto map_asm_conv = ConvForwardOpDescriptor::MDGraphKey(miopenConvolution,
+                                                                miopenPaddingDefault,
+                                                                /*pad_h*/ 0,
+                                                                /*pad_w*/ 0,
+                                                                /* u */ 1,
+                                                                /* v */ 1,
+                                                                /*dilation_h*/ 1,
+                                                                /*dilation_w*/ 1,
+                                                                /*k any*/ 0,
+                                                                /*c any*/ 0,
+                                                                /* x */ 1,
+                                                                /* y */ 1);
+        map_asm_conv.emplace("weight", EdgeOp(1, true, OpAny));
+        map_asm_conv.emplace("algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
+        map_asm_conv.emplace("precision", EdgeOp(miopenFloat, true, OpEqual));
+
+        g.AddEdge(nullptr, conv_v, map_asm_conv);
+        g.AddEdge(conv_v, bias_v, empty_map);
+        g.AddEdge(bias_v, activ_v, empty_map);
+
+        g.AddEdge(conv_v, activ_v, empty_map);
+    }
+
+    // second path (ocl kernel)
+    {
+        auto conv_v = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
+                                                       "MIOpenConvDirBatchNormActiv.cl",
+                                                       "MIOpenConvUniBatchNormActiv",
+                                                       "miopenConvolutionDirectBiasActiv");
+
+        // from ConvolutionDescriptor::IsDirectSupported
+        std::vector<size_t> lens = {1, 3, 5, 7, 9, 11};
+        for(auto len : lens)
+        {
+            auto map_conv_bias = ConvForwardOpDescriptor::MDGraphKey(miopenConvolution,
+                                                                     miopenPaddingDefault,
+                                                                     /*pad_h*/ 0,
+                                                                     /*pad_w*/ 0,
+                                                                     /* u */ 1,
+                                                                     /* v */ 1,
+                                                                     /*dilation_h*/ 1,
+                                                                     /*dilation_w*/ 1,
+                                                                     /*k any*/ 0,
+                                                                     /*c any*/ 0,
+                                                                     /* x */ len,
+                                                                     /* y */ len);
+            map_conv_bias.emplace("weight", EdgeOp(0, true, OpAny));
+            map_conv_bias.emplace("algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
+
+            g.AddEdge(nullptr, conv_v, map_conv_bias);
+        }
+
+        { // Conv -> Bias
+
+            auto bias_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
+                                                           "MIOpenConvDirBatchNormActiv.cl",
+                                                           "MIOpenConvUniBatchNormActiv",
+                                                           "miopenConvolutionDirectBiasActiv");
+
+            g.AddEdge(conv_v, bias_v, empty_map);
+            { // Conv -> Bias -> Activ // Conv -> Activ
+                auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
+                                                                "MIOpenConvDirBatchNormActiv.cl",
+                                                                "MIOpenConvUniBatchNormActiv",
+                                                                "miopenConvolutionDirectBiasActiv",
+                                                                true);
+                g.AddEdge(bias_v, activ_v, empty_map);
+
+                g.AddEdge(conv_v, activ_v, empty_map);
+            }
+
+            { // Conv -> Bias -> BatchNorm -> Activ
+                auto bn_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormInference,
+                                                             "MIOpenConvDirBatchNormActiv.cl",
+                                                             "MIOpenConvUniBatchNormActiv",
+                                                             "miopenConvDirectBatchNormBiasActiv");
+                auto edg_activ =
+                    BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNPerActivation);
+                edg_activ.emplace("weight", EdgeOp(0, true, OpAny));
+
+                auto edg_spatial =
+                    BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNSpatial);
+                edg_spatial.emplace("weight", EdgeOp(0, true, OpAny));
+
+                g.AddEdge(bias_v, bn_v, edg_activ);
+                g.AddEdge(bias_v, bn_v, edg_spatial);
+
+                auto activ_v =
+                    std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
+                                                     "MIOpenConvDirBatchNormActiv.cl",
+                                                     "MIOpenConvUniBatchNormActiv",
+                                                     "miopenConvDirectBatchNormBiasActiv");
+                g.AddEdge(bn_v, activ_v, empty_map);
+            }
+        }
+
+        { // Conv -> BN
+            auto bn_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormInference,
+                                                         "MIOpenConvDirBatchNormActiv.cl",
+                                                         "MIOpenConvUniBatchNormActiv",
+                                                         "miopenConvDirectBatchNormBiasActiv");
+            auto edg_activ =
+                BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNPerActivation);
+            edg_activ.emplace("weight", EdgeOp(0, true, OpAny));
+
+            auto edg_spatial = BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNSpatial);
+            edg_spatial.emplace("weight", EdgeOp(0, true, OpAny));
+
+            g.AddEdge(conv_v, bn_v, edg_activ);
+            g.AddEdge(conv_v, bn_v, edg_spatial);
+
+            auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
+                                                            "MIOpenConvDirBatchNormActiv.cl",
+                                                            "MIOpenConvUniBatchNormActiv",
+                                                            "miopenConvDirectBatchNormBiasActiv");
+            g.AddEdge(bn_v, activ_v, empty_map);
+        }
     }
 }
 
@@ -206,6 +387,7 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
 {
 
     std::vector<std::pair<MDGraph_vertex_ptr, cur_vertex_map>> new_list;
+    std::set<miopenConvFwdAlgorithm_t> new_set;
     // get the children of the cur_vertex
     for(auto& kinder : cur_vertex)
     {
@@ -217,6 +399,7 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
         // if op is in the children and the edge key satisfies update cur_vertex
         for(auto& ch_it : ch)
         {
+            std::set<miopenConvFwdAlgorithm_t> cur_path_set;
             if(ch_it.first->op == op->kind())
             {
                 for(auto& edg_map : ch_it.second)
@@ -225,7 +408,22 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
                     {
                         weight += std::stoi(edg_map.at("weight").val);
                         cur_map["weight"] = std::to_string(weight);
-                        cur_map["algo"]   = "";
+                        if(op->kind() == miopenFusionOpConvForward)
+                        {
+
+                            miopenConvFwdAlgorithm_t algo = static_cast<miopenConvFwdAlgorithm_t>(
+                                std::stoi(edg_map.at("algo").val));
+                            cur_path_set.insert(algo);
+
+                            new_set.insert(cur_path_set.begin(), cur_path_set.end());
+                            assert(cur_path_set.size() == 1);
+                            cur_map["algo"] = std::to_string(
+                                *cur_path_set.begin()); // there should be only one algo
+                        }
+                        else
+                        {
+                            cur_map["algo"] = "";
+                        }
                         new_list.emplace_back(ch_it.first, cur_map);
                     }
                 }
@@ -233,6 +431,14 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
         }
     }
     cur_vertex = new_list;
+    if(op->kind() == miopenFusionOpConvForward) // TODO: Or any other convolution
+    {
+        conv_algo_set = new_set;
+    }
+    else
+    {
+        conv_algo_set.clear();
+    }
 
     return (!cur_vertex.empty());
 }
