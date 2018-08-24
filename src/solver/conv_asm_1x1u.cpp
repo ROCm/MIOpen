@@ -704,17 +704,33 @@ bool PerformanceConfigConvAsm1x1U::IsValidValue() const
 
 bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& config) const
 {
+    int elements_in_dword = (config.in_data_type == "FP16" ? 2 : 1);
+
     if(!IsValidValue())
         return false;
-    if(!(read_size <= chunks_per_wave))
+    if(!(read_size * elements_in_dword <= chunks_per_wave))
         return false;
     if(!(waves_in_group <= config.n_inputs))
         return false;
     if(!(k_mult <= config.n_outputs))
         return false;
-    const int in_gprs  = chunks_per_wave * n_mult * c_mult;
+    if((config.n_outputs % elements_in_dword) != 0)
+        return false;
+    if((config.n_inputs % elements_in_dword) != 0)
+        return false;
+    if((c_mult % elements_in_dword) != 0)
+        return false;
+    if((k_mult % elements_in_dword) != 0)
+        return false;
+    const int in_gprs =
+        (chunks_per_wave * n_mult * c_mult + elements_in_dword - 1) / elements_in_dword;
     const int acc_gprs = chunks_per_wave * n_mult * k_mult;
-    const int vgprs    = 4 + 2 * in_gprs + acc_gprs;
+    const int img_hw   = config.out_height * config.out_width;
+    // TODO last vgpr only for old card.
+    // ADD if(option.machine_version_major == 9)
+    // vgprs  = 4 + 2 * in_gprs + acc_gprs + (img_hw % elements_in_dword != 0 ? 1: 0);
+    // else
+    const int vgprs = 4 + 2 * in_gprs + acc_gprs + (img_hw % elements_in_dword != 0 ? 1 : 0) + 1;
     if(!(vgprs < 256))
         return false;
     const int max_waves_per_CU = (256 / vgprs) * 4;
@@ -726,19 +742,28 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
     const int total_n_blocks = (config.batch_sz + GetNPerGpr() - 1) / GetNPerGpr();
     if(!(n_mult <= total_n_blocks))
         return false;
-    const int img_hw       = config.out_height * config.out_width;
+
     const int total_chunks = (img_hw + chunk_size - 1) / chunk_size;
     if(!(chunks_per_wave <= total_chunks))
         return false;
-    int c_per_wave      = (config.n_inputs + waves_in_group - 1) / waves_in_group;
-    int c_per_last_wave = config.n_inputs - (c_per_wave * (waves_in_group - 1));
 
-    if(config.direction.IsBackwardData() && !(config.n_outputs % k_mult == 0))
+    int vec_c_in = 1, vec_k_out = 1, vec_c_filter = 1;
+
+    int rounded_c       = (config.n_inputs + vec_c_in - 1) / vec_c_in;
+    int c_per_wave      = (rounded_c + waves_in_group - 1) / waves_in_group;
+    int c_per_last_wave = rounded_c - (c_per_wave * (waves_in_group - 1));
+    bool res            = (waves_in_group <= rounded_c);
+
+    res = res && (k_mult % vec_k_out == 0);
+    res = res && (k_mult % vec_k_out == 0);
+    res = res && ((chunks_per_wave % (elements_in_dword / vec_k_out)) == 0);
+
+    if(config.direction.IsBackwardData() && !(config.n_outputs % k_mult == 0) &&
+       !(k_mult % (elements_in_dword / vec_c_filter) == 0))
         return false;
-    if(config.direction.IsForward() &&
-       !((c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0)))
+    if(!((c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0)))
         return false;
-    return true;
+    return res;
 }
 
 bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) const
@@ -748,11 +773,11 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
     if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED{})) // clang-format off
     {
         // Narrow search space in optimized mode.
-        if (! ((use_spare_set ? Is_1_4(k_mult) : IsTwoPower<16,32>(k_mult))
+        if (! ((use_spare_set ? Is_1_4(k_mult) : IsTwoPower<8,32>(k_mult))
             && IsLinear<1,8>(chunks_per_wave)
             && (use_spare_set ? Is_1_4(chunk_size) : IsTwoPower<16,64>(chunk_size))
             && IsLinear<1,4>(n_mult)
-            && IsTwoPower<1,2>(c_mult)
+            && IsTwoPower<1,4>(c_mult)
             && IsLinear<1,4>(waves_in_group)))
             return false;
     } // clang-format on
@@ -778,6 +803,50 @@ void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config
         chunk_size      = 1;
         n_mult          = 1;
         c_mult          = 1;
+        waves_in_group  = 1;
+    }
+    if(!IsValidForProblem(config))
+    {
+        MIOPEN_LOG_I("!IsValidForProblem(): " << ToString() << ". Conservative re-init...");
+        read_size       = 1;
+        k_mult          = 2;
+        chunks_per_wave = 1;
+        chunk_size      = 1;
+        n_mult          = 1;
+        c_mult          = 1;
+        waves_in_group  = 1;
+    }
+    if(!IsValidForProblem(config))
+    {
+        MIOPEN_LOG_I("!IsValidForProblem(): " << ToString() << ". Conservative re-init...");
+        read_size       = 1;
+        k_mult          = 1;
+        chunks_per_wave = 1;
+        chunk_size      = 1;
+        n_mult          = 1;
+        c_mult          = 2;
+        waves_in_group  = 1;
+    }
+    if(!IsValidForProblem(config))
+    {
+        MIOPEN_LOG_I("!IsValidForProblem(): " << ToString() << ". Conservative re-init...");
+        read_size       = 1;
+        k_mult          = 2;
+        chunks_per_wave = 2;
+        chunk_size      = 1;
+        n_mult          = 1;
+        c_mult          = 1;
+        waves_in_group  = 1;
+    }
+    if(!IsValidForProblem(config))
+    {
+        MIOPEN_LOG_I("!IsValidForProblem(): " << ToString() << ". Conservative re-init...");
+        read_size       = 1;
+        k_mult          = 4;
+        chunks_per_wave = 2;
+        chunk_size      = 1;
+        n_mult          = 1;
+        c_mult          = 2;
         waves_in_group  = 1;
         assert(IsValidForProblem(config));
     }
@@ -832,7 +901,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     result.workspce_sz = 0;
 
     KernelInfo kernel;
-
+    int data_len = (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
     if(UseSubsample(params) || UseUpsample(params))
     {
         int workspce_sz;
@@ -854,6 +923,103 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "pad_h", params.pad1);
     GenerateClangDefsym(options, "pad_w", params.pad0);
     GenerateClangDefsym(options, "weights_layout", params.direction.IsForward() ? 0 : 1);
+
+    GenerateClangDefsym(options, "vec_c_in", 1);
+    GenerateClangDefsym(options, "vec_k_out", 1);
+    GenerateClangDefsym(options, "vec_c_filter", 1);
+
+    GenerateClangDefsym(options, "acc_type", 1);
+    GenerateClangDefsym(options, "buf_type", (data_len == 2 ? 2 : 1));
+    enum class MemLayout : int
+    {
+        NCHW = 0,
+        CNHW = 1,
+    };
+
+    struct buff_info
+    {
+        size_t total_byte_size;
+        struct
+        {
+            int nk, c, h, w;
+        } stride{}, byte_stride{}, size{};
+
+        buff_info(MemLayout layout, int nk, int c, int h, int w, int vec_c, int data_len_t)
+        {
+            int c_hi        = (c + vec_c - 1) / vec_c;
+            int count       = nk * c_hi * h * w * vec_c;
+            total_byte_size = count * data_len_t;
+            size.nk         = nk;
+            size.c          = c;
+            size.h          = h;
+            size.w          = w;
+
+            switch(layout)
+            {
+            case MemLayout::NCHW:
+                stride.w  = 1;
+                stride.h  = w;
+                stride.c  = w * h;
+                stride.nk = w * h * c_hi;
+                break;
+            case MemLayout::CNHW:
+                stride.w  = 1;
+                stride.h  = w;
+                stride.nk = w * h;
+                stride.c  = w * h * nk;
+                break;
+            }
+            stride.nk *= vec_c;
+            stride.c *= vec_c;
+            stride.h *= vec_c;
+            stride.w *= vec_c;
+            byte_stride.nk = stride.nk * data_len_t;
+            byte_stride.c  = stride.c * data_len_t;
+            byte_stride.h  = stride.h * data_len_t;
+            byte_stride.w  = stride.w * data_len_t;
+        }
+    };
+
+    buff_info ibuf(MemLayout::NCHW,
+                   params.batch_sz,
+                   params.n_inputs,
+                   AsmImgHeight(params),
+                   AsmImgWidth(params),
+                   1,
+                   data_len);
+    buff_info obuf(MemLayout::NCHW,
+                   params.batch_sz,
+                   params.n_outputs,
+                   AsmImgHeight(params),
+                   AsmImgWidth(params),
+                   1,
+                   data_len);
+    buff_info fbuf(params.direction.IsForward() ? MemLayout::NCHW : MemLayout::CNHW,
+                   params.n_outputs,
+                   params.n_inputs,
+                   1,
+                   1,
+                   1,
+                   data_len);
+
+    GenerateClangDefsym(options, "input_n_stride", ibuf.byte_stride.nk);
+    GenerateClangDefsym(options, "input_c_stride", ibuf.byte_stride.c);
+    GenerateClangDefsym(options, "input_h_stride", ibuf.byte_stride.h);
+    GenerateClangDefsym(options, "input_w_stride", ibuf.byte_stride.w);
+
+    GenerateClangDefsym(options, "output_n_stride", obuf.byte_stride.nk);
+    GenerateClangDefsym(options, "output_k_stride", obuf.byte_stride.c);
+    GenerateClangDefsym(options, "output_h_stride", obuf.byte_stride.h);
+    GenerateClangDefsym(options, "output_w_stride", obuf.byte_stride.w);
+
+    GenerateClangDefsym(options, "filter_k_stride", fbuf.byte_stride.nk);
+    GenerateClangDefsym(options, "filter_c_stride", fbuf.byte_stride.c);
+    GenerateClangDefsym(options, "filter_h_stride", fbuf.byte_stride.h);
+    GenerateClangDefsym(options, "filter_w_stride", fbuf.byte_stride.w);
+    GenerateClangDefsym(options, "input_buffer_size", ibuf.total_byte_size);
+    GenerateClangDefsym(options, "filter_buffer_size", fbuf.total_byte_size);
+    GenerateClangDefsym(options, "output_buffer_size", obuf.total_byte_size);
+
     GenerateClangDefsym(
         options, "ROCM_METADATA_VERSION", (params.rmv == rocm_meta_version::V3) ? 3 : 4);
 
