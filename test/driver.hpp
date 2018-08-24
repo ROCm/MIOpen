@@ -65,7 +65,7 @@ struct tensor_elem_gen_integer
 template <class T>
 struct tensor_elem_gen_float
 {
-    unsigned long max_value = std::is_same<T, float>::value ? 1e-4 : 1e-2;
+    double max_value = std::is_same<T, float>::value ? 1e-4 : 1e-2;
 
     template <class... Ts>
     double operator()(Ts... Xs) const
