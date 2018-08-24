@@ -35,7 +35,6 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
 
-
 // Return an error code that is "NotImplemented", if it exists then return success
 // This function should:
 //		set up the place descriptor with expected input and ouput edges.
