@@ -82,8 +82,10 @@ struct verify_forward_train_bn_spatial
 
         if(input.desc.GetType() == miopenFloat)
         {
-            runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
-            runVar  = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
+            runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
+                number_generator_rand_integer{});
+            runVar = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
+                number_generator_rand_integer{});
         }
         else
         {
@@ -248,8 +250,10 @@ struct verify_forward_train_bn_spatial
 
         if(input.desc.GetType() == miopenFloat)
         {
-            runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
-            runVar  = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(rand_gen{});
+            runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
+                number_generator_rand_integer{});
+            runVar = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
+                number_generator_rand_integer{});
         }
         else
         {
@@ -1105,7 +1109,7 @@ struct batch_norm_spatial_driver : test_driver
         this->batch_factor = 4;
 
         // this->verbose=true;
-        add(input, "input", get_bn_spatial_input_tensor());
+        add(input, "input", get_bn_spatial_input_tensor(number_generator_rand_integer{}));
     }
 
     void run()
@@ -1129,8 +1133,8 @@ struct batch_norm_spatial_driver : test_driver
 
         if(input.desc.GetType() == miopenFloat)
         {
-            scale = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
-            shift = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
+            scale = tensor<T>{ssn, ssc, ssh, ssw}.generate(number_generator_rand_integer{});
+            shift = tensor<T>{ssn, ssc, ssh, ssw}.generate(number_generator_rand_integer{});
         }
         else
         {
