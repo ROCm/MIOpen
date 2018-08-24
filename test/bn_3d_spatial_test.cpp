@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2018 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -47,19 +47,6 @@
 #define MIO_BN_TEST_EXPAVGFACTOR 0.1
 #define MIO_BN_TEST_EPSILON 1e-5 // FLT_EPSILON
 #define MIO_BN_SP_TEST_DEBUG 0
-
-miopen::TensorDescriptor BuildReshaped4DTensorDescriptor(const miopen::TensorDescriptor& tDesc)
-{
-    auto dataType = tDesc.GetType();
-    std::vector<size_t> dims(tDesc.GetLengths());
-
-    // NxCxDxHxW -> NxCx(D*H)xW
-    dims[2] *= dims[3];
-    dims[3] = dims[4];
-    dims.pop_back();
-
-    return {dataType, dims};
-}
 
 //****************************************************
 // FORWARD TRAIN
@@ -324,11 +311,11 @@ struct verify_forward_train_3d_bn_spatial
                                          miopenBNSpatial,
                                          &alpha,
                                          &beta,
-                                         BuildReshaped4DTensorDescriptor(input.desc),
+                                         miopen::BuildReshaped4DTensorDescriptor(input.desc),
                                          in_dev.get(),
-                                         BuildReshaped4DTensorDescriptor(out.desc),
+                                         miopen::BuildReshaped4DTensorDescriptor(out.desc),
                                          out_dev.get(),
-                                         BuildReshaped4DTensorDescriptor(scale.desc),
+                                         miopen::BuildReshaped4DTensorDescriptor(scale.desc),
                                          scale_dev.get(),
                                          shift_dev.get(),
                                          expAvgFactor,
@@ -514,11 +501,11 @@ struct verify_forward_infer_3d_bn_spatial_recalc
                                           miopenBNSpatial,
                                           &alpha,
                                           &beta,
-                                          BuildReshaped4DTensorDescriptor(input.desc),
+                                          miopen::BuildReshaped4DTensorDescriptor(input.desc),
                                           in_dev.get(),
-                                          BuildReshaped4DTensorDescriptor(out.desc),
+                                          miopen::BuildReshaped4DTensorDescriptor(out.desc),
                                           out_dev.get(),
-                                          BuildReshaped4DTensorDescriptor(scale.desc),
+                                          miopen::BuildReshaped4DTensorDescriptor(scale.desc),
                                           scale_dev.get(),
                                           shift_dev.get(),
                                           nullptr,
@@ -630,11 +617,11 @@ struct verify_forward_infer_3d_bn_spatial_use_est
                                           miopenBNSpatial,
                                           &alpha,
                                           &beta,
-                                          BuildReshaped4DTensorDescriptor(input.desc),
+                                          miopen::BuildReshaped4DTensorDescriptor(input.desc),
                                           in_dev.get(),
-                                          BuildReshaped4DTensorDescriptor(out.desc),
+                                          miopen::BuildReshaped4DTensorDescriptor(out.desc),
                                           out_dev.get(),
-                                          BuildReshaped4DTensorDescriptor(scale.desc),
+                                          miopen::BuildReshaped4DTensorDescriptor(scale.desc),
                                           scale_dev.get(),
                                           shift_dev.get(),
                                           estMean_dev.get(),
@@ -910,13 +897,13 @@ struct verify_backward_3d_bn_spatial_recalc
                                   &beta,
                                   &alpha,
                                   &beta,
-                                  BuildReshaped4DTensorDescriptor(x_input.desc),
+                                  miopen::BuildReshaped4DTensorDescriptor(x_input.desc),
                                   xin_dev.get(),
-                                  BuildReshaped4DTensorDescriptor(dy_input.desc),
+                                  miopen::BuildReshaped4DTensorDescriptor(dy_input.desc),
                                   dyin_dev.get(),
-                                  BuildReshaped4DTensorDescriptor(dx_out.desc),
+                                  miopen::BuildReshaped4DTensorDescriptor(dx_out.desc),
                                   dx_out_dev.get(),
-                                  BuildReshaped4DTensorDescriptor(scale.desc),
+                                  miopen::BuildReshaped4DTensorDescriptor(scale.desc),
                                   scale_dev.get(),
                                   dscale_dev.get(),
                                   dshift_dev.get(),
@@ -1137,13 +1124,13 @@ struct verify_backward_3d_bn_spatial_use_saved
                                   &beta,
                                   &alpha,
                                   &beta,
-                                  BuildReshaped4DTensorDescriptor(x_input.desc),
+                                  miopen::BuildReshaped4DTensorDescriptor(x_input.desc),
                                   xin_dev.get(),
-                                  BuildReshaped4DTensorDescriptor(dy_input.desc),
+                                  miopen::BuildReshaped4DTensorDescriptor(dy_input.desc),
                                   dyin_dev.get(),
-                                  BuildReshaped4DTensorDescriptor(dx_out.desc),
+                                  miopen::BuildReshaped4DTensorDescriptor(dx_out.desc),
                                   dx_out_dev.get(),
-                                  BuildReshaped4DTensorDescriptor(scale.desc),
+                                  miopen::BuildReshaped4DTensorDescriptor(scale.desc),
                                   scale_dev.get(),
                                   dscale_dev.get(),
                                   dshift_dev.get(),
@@ -1204,6 +1191,13 @@ struct batch_norm_3d_spatial_driver : test_driver
 
         std::size_t n, c, d, h, w;
         std::tie(n, c, d, h, w) = miopen::tien<5>(input.desc.GetLengths());
+
+        if(n == 1)
+        {
+            // Invalid batch size for batch normalization
+            std::cout << "Batch size of 1 is not supported for BN operation." << std::endl;
+            return;
+        }
 
         std::size_t ssn, ssc, ssd, ssh, ssw;
         auto derivedBnDesc = miopen::TensorDescriptor{};
