@@ -33,14 +33,17 @@
 #if MIOPEN_USE_FP16 == 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
+#define _FLOAT_ACCUM float
 #ifndef HALF_MAX
 #define MAX_VAL 65504 /* max value */
 #else
 #define MAX_VAL HALF_MAX
 #endif
+
 #endif
 #if MIOPEN_USE_FP32 == 1
 #define _FLOAT float
+#define _FLOAT_ACCUM float
 #ifndef FLT_MAX
 #define MAX_VAL 3.402823466e+38F /* max value */
 #else
@@ -242,7 +245,7 @@ __attribute__((always_inline)) void Processing(UNUSED uint sc,
                                                uint sc_lcl_off,
                                                uint top_lim,
                                                int bot_lim,
-                                               __private _FLOAT* __restrict pvt_accum,
+                                               __private _FLOAT_ACCUM* __restrict pvt_accum,
                                                __local _FLOAT* __restrict lcl_bot,
                                                __private _FLOAT* __restrict top_dat)
 {
@@ -270,7 +273,7 @@ __attribute__((always_inline)) void Processing(UNUSED uint sc,
 
                         pvt_accum[pvt_accum_off]
                             // each wk-it process an input
-                            += bot_val * top_val;
+                            += (_FLOAT_ACCUM)(bot_val * top_val);
                     }
                 }
             }
@@ -407,7 +410,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 #if MLO_N_SPANS_PER_SCAN & (MLO_N_SPANS_PER_SCAN - 1)
     uint spn = iMod(lcl_id, o, MLO_N_SPANS_PER_SCAN);
 #else
-    uint spn         = lcl_id & (MLO_N_SPANS_PER_SCAN - 1);
+    uint spn = lcl_id & (MLO_N_SPANS_PER_SCAN - 1);
 #endif
     //	bool scan_lead = (o*MLO_N_SPANS_PER_SCAN == lcl_id);
 
@@ -428,7 +431,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
 #define MLO_ACCUM_SZ (MLO_N_LCL_OUT_MAPS * MLO_N_LCL_IN_MAPS * MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0)
 
-    __private _FLOAT pvt_accum[MLO_ACCUM_SZ];
+    __private _FLOAT_ACCUM pvt_accum[MLO_ACCUM_SZ];
 
     for(uint i = 0; i < MLO_ACCUM_SZ; ++i)
     {
@@ -502,12 +505,12 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 #ifdef __AMDGCN__
 #pragma unroll 2
 #endif
-        for(; sc < MLO_IN_EXTENT1
+
 #if MLO_IN_N_VERT_LOOPS == 1
-                       -
-                       MLO_FILTER_PAD1
+        for(; sc < MLO_IN_HEIGHT + MLO_FILTER_PAD1 - MLO_FILTER_SIZE1 + 1;
+#else
+        for(; sc < MLO_IN_EXTENT1;
 #endif
-            ;
             ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
         {
 
@@ -589,7 +592,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             sc_lcl_off = lcl_bot_off;
 
 #pragma unroll 3
-            for(; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1;
+            for(; sc < MLO_IN_HEIGHT + MLO_FILTER_PAD1 - MLO_FILTER_SIZE1 + 1;
                 ++sc, gbl_out_scan_off += MLO_OUT_STRIDE, sc_lcl_off += MLO_IN_LCL_WIDTH)
             {
 
