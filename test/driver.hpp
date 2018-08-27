@@ -44,14 +44,14 @@ constexpr std::is_same<T, U> is_same(const T&)
     return {};
 }
 
-template <class T>
 struct tensor_elem_gen_integer
 {
-    unsigned long max_value = std::is_same<T, float>::value ? 17 : 5;
+    miopenDataType_t data_type = miopenFloat;
 
     template <class... Ts>
     double operator()(Ts... Xs) const
     {
+        int max_value = data_type == miopenFloat ? 17 : 5;
         static_assert(sizeof...(Ts) < 6,
                       "Dimensions in tensor_elem_gen_integer must be less than 6.");
         assert(max_value > 0);
@@ -62,20 +62,22 @@ struct tensor_elem_gen_integer
     }
 };
 
-template <class T>
 struct tensor_elem_gen_float
 {
-    double max_value = std::is_same<T, float>::value ? 1e-4 : 1e-2;
+    miopenDataType_t data_type = miopenFloat;
 
     template <class... Ts>
     double operator()(Ts... Xs) const
     {
-        return max_value * tensor_elem_gen_integer<T>{17}(Xs...) / 17 * (rand() % 2 ? 1 : -1);
+        double max_value = data_type == miopenFloat ? 1e-4 : 1e-2;
+        return max_value * tensor_elem_gen_integer{miopenFloat}(Xs...) / 17 * (rand() % 2 ? 1 : -1);
     }
 };
 
 struct tensor_elem_gen_one
 {
+    miopenDataType_t data_type = miopenFloat;
+
     template <class... Ts>
     double operator()(Ts...) const
     {
@@ -250,99 +252,89 @@ struct test_driver
         std::cout << std::endl;
     }
 
-    template <class X, class G>
+    template <class X, class G = tensor_elem_gen_integer>
     struct generate_tensor_t
     {
         std::function<std::set<X>()> get_data;
-        G tensor_elem_gen;
 
         template <class T>
         void operator()(T& x, argument& arg) const
         {
             arg.add_source(get_data, x);
-            G num_g = tensor_elem_gen;
-            arg.post_write_actions.push_back([&x, num_g] { tensor_generate{}(x, num_g); });
+            arg.post_write_actions.push_back([&x] { tensor_generate{}(x, G{x.desc.GetType()}); });
         }
     };
 
-    template <class X, class G>
-    generate_tensor_t<X, G> generate_tensor(std::set<X> dims, X single, G tensor_elem_gen)
+    template <class X, class G = tensor_elem_gen_integer>
+    generate_tensor_t<X, G> generate_tensor(std::set<X> dims, X single)
     {
         return {[=]() -> std::set<X> {
-                    if(full_set)
-                        return dims;
-                    else
-                        return {single};
-                },
-                tensor_elem_gen};
+            if(full_set)
+                return dims;
+            else
+                return {single};
+        }};
     }
 
-    template <class X, class G>
+    template <class X, class G = tensor_elem_gen_integer>
     generate_tensor_t<std::vector<X>, G> generate_tensor(std::set<std::vector<X>> dims,
-                                                         std::initializer_list<X> single,
-                                                         G tensor_elem_gen)
+                                                         std::initializer_list<X> single)
     {
-        return generate_tensor<std::vector<X>, G>(dims, single, tensor_elem_gen);
+        return generate_tensor<std::vector<X>, G>(dims, single);
     }
 
-    template <class F, class G>
-    auto lazy_generate_tensor(F f, G tensor_elem_gen)
-        -> generate_tensor_t<miopen::range_value<decltype(f())>, G>
+    template <class F, class G = tensor_elem_gen_integer>
+    auto lazy_generate_tensor(F f) -> generate_tensor_t<miopen::range_value<decltype(f())>, G>
     {
         return {[=]() -> decltype(f()) {
-                    if(full_set)
-                        return f();
-                    else
-                        return {*f().begin()};
-                },
-                tensor_elem_gen};
+            if(full_set)
+                return f();
+            else
+                return {*f().begin()};
+        }};
     }
 
-    template <class F, class X, class G>
-    generate_tensor_t<X, G> lazy_generate_tensor(F f, X single, G tensor_elem_gen)
+    template <class F, class X, class G = tensor_elem_gen_integer>
+    generate_tensor_t<X, G> lazy_generate_tensor(F f, X single)
     {
         return {[=]() -> std::set<X> {
-                    if(full_set)
-                        return f();
-                    else
-                        return {single};
-                },
-                tensor_elem_gen};
+            if(full_set)
+                return f();
+            else
+                return {single};
+        }};
     }
 
-    template <class F, class X, class G>
-    generate_tensor_t<std::vector<X>, G>
-    lazy_generate_tensor(F f, std::initializer_list<X> single, G tensor_elem_gen)
+    template <class F, class X, class G = tensor_elem_gen_integer>
+    generate_tensor_t<std::vector<X>, G> lazy_generate_tensor(F f, std::initializer_list<X> single)
     {
-        return lazy_generate_tensor<F, std::vector<X>, G>(f, single, tensor_elem_gen);
+        return lazy_generate_tensor<F, std::vector<X>, G>(f, single);
     }
 
-    template <class G>
-    generate_tensor_t<std::vector<int>, G> get_bn_spatial_input_tensor(G tensor_elem_gen)
+    template <class G = tensor_elem_gen_integer>
+    generate_tensor_t<std::vector<int>, G> get_bn_spatial_input_tensor()
     {
-        return lazy_generate_tensor(
-            [=] { return get_bn_spatial_inputs(batch_factor); }, {4, 64, 28, 28}, tensor_elem_gen);
+        return lazy_generate_tensor([=] { return get_bn_spatial_inputs(batch_factor); },
+                                    {4, 64, 28, 28});
     }
 
-    template <class G>
-    generate_tensor_t<std::vector<int>, G> get_bn_peract_input_tensor(G tensor_elem_gen)
+    template <class G = tensor_elem_gen_integer>
+    generate_tensor_t<std::vector<int>, G> get_bn_peract_input_tensor()
     {
-        return lazy_generate_tensor(
-            [=] { return get_bn_peract_inputs(batch_factor); }, {16, 32, 8, 8}, tensor_elem_gen);
+        return lazy_generate_tensor([=] { return get_bn_peract_inputs(batch_factor); },
+                                    {16, 32, 8, 8});
     }
 
-    template <class G>
-    generate_tensor_t<std::vector<int>, G> get_input_tensor(G tensor_elem_gen)
+    template <class G = tensor_elem_gen_integer>
+    generate_tensor_t<std::vector<int>, G> get_input_tensor()
     {
-        return lazy_generate_tensor(
-            [=] { return get_inputs(batch_factor); }, {16, 32, 8, 8}, tensor_elem_gen);
+        return lazy_generate_tensor([=] { return get_inputs(batch_factor); }, {16, 32, 8, 8});
     }
 
-    template <class G>
-    generate_tensor_t<std::vector<int>, G> get_weights_tensor(G tensor_elem_gen)
+    template <class G = tensor_elem_gen_integer>
+    generate_tensor_t<std::vector<int>, G> get_weights_tensor()
     {
-        return lazy_generate_tensor(
-            [=] { return get_weights(batch_factor); }, {64, 32, 5, 5}, tensor_elem_gen);
+        return lazy_generate_tensor([=] { return get_weights(batch_factor); }, {64, 32, 5, 5});
     }
 
     template <class X>
