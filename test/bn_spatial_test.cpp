@@ -83,9 +83,9 @@ struct verify_forward_train_bn_spatial
         if(input.desc.GetType() == miopenFloat)
         {
             runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
-                tensor_elem_gen_integer<T>{});
+                tensor_elem_gen_integer{miopenFloat});
             runVar = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
-                tensor_elem_gen_integer<T>{});
+                tensor_elem_gen_integer{miopenFloat});
         }
         else
         {
@@ -251,9 +251,9 @@ struct verify_forward_train_bn_spatial
         if(input.desc.GetType() == miopenFloat)
         {
             runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
-                tensor_elem_gen_integer<T>{});
+                tensor_elem_gen_integer{miopenFloat});
             runVar = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
-                tensor_elem_gen_integer<T>{});
+                tensor_elem_gen_integer{miopenFloat});
         }
         else
         {
@@ -1109,7 +1109,7 @@ struct batch_norm_spatial_driver : test_driver
         this->batch_factor = 4;
 
         // this->verbose=true;
-        add(input, "input", get_bn_spatial_input_tensor(tensor_elem_gen_integer<T>{}));
+        add(input, "input", get_bn_spatial_input_tensor());
     }
 
     void run()
@@ -1133,8 +1133,8 @@ struct batch_norm_spatial_driver : test_driver
 
         if(input.desc.GetType() == miopenFloat)
         {
-            scale = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer<T>{});
-            shift = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer<T>{});
+            scale = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{miopenFloat});
+            shift = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{miopenFloat});
         }
         else
         {
