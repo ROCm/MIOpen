@@ -30,6 +30,7 @@
 #define FOUR 4
 #define EIGHT 8
 
+#define _FLOAT_ACCUM float
 #if MIOPEN_USE_FP16 == 1
 #define MIO_BN_NODPP 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
@@ -116,7 +117,7 @@
 
 #ifndef MIO_BN_NODPP
 #define MIO_BN_NODPP 0
-#elif(MIO_BN_NODPP == 1)
+#elif(MIO_BN_NODPP == 1 && MIO_BN_VARIANT != 0)
 #undef __AMDGCN__
 #endif
 
@@ -190,7 +191,7 @@ regLDSreduce(_FLOAT* value, __local _FLOAT* data, unsigned int localID, _FLOAT s
 
 #ifdef __AMDGCN__
 
-static inline void dpp_reduction(_FLOAT* temp_sum)
+static inline void dpp_reduction(_FLOAT_ACCUM* temp_sum)
 {
     __asm__ volatile("s_nop 4\n"
                      "v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0\n"
@@ -209,7 +210,7 @@ static inline void dpp_reduction(_FLOAT* temp_sum)
                      : "0"(*temp_sum));
 }
 
-static inline void dpp_interleaved_reduction(_FLOAT* temp_sum1, _FLOAT* temp_sum2)
+static inline void dpp_interleaved_reduction(_FLOAT_ACCUM* temp_sum1, _FLOAT_ACCUM* temp_sum2)
 {
     __asm__ volatile("s_nop 4\n"
                      "v_add_f32 %0 %0 %0 row_shr:1 bound_ctrl:0\n"
@@ -266,12 +267,12 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 {
 
     // SPATIAL
-    _FLOAT mean        = (_FLOAT)0.;
-    _FLOAT variance    = (_FLOAT)0.;
-    _FLOAT invVariance = (_FLOAT)0.;
-    _FLOAT pvscale     = (_FLOAT)0.;
-    _FLOAT pvbias      = (_FLOAT)0.;
-    _FLOAT batchvalues[MIO_BN_NLOOP];
+    _FLOAT_ACCUM mean        = (_FLOAT_ACCUM)0.;
+    _FLOAT_ACCUM variance    = (_FLOAT_ACCUM)0.;
+    _FLOAT_ACCUM invVariance = (_FLOAT_ACCUM)0.;
+    _FLOAT_ACCUM pvscale     = (_FLOAT_ACCUM)0.;
+    _FLOAT_ACCUM pvbias      = (_FLOAT_ACCUM)0.;
+    _FLOAT_ACCUM batchvalues[MIO_BN_NLOOP];
 
     __local _FLOAT lcl_bias;
     __local _FLOAT lcl_scale;
@@ -299,46 +300,20 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         {
             nid            = n * MIO_BN_SEGIHW + lidihw;
             index          = nid * MIO_BN_CHW + chwid;
-            batchvalues[n] = *(in + index);
+            batchvalues[n] = (_FLOAT_ACCUM)(*(in + index));
             mean += batchvalues[n];
             variance = mad(batchvalues[n], batchvalues[n], variance);
         }
-        nid                        = MIO_BN_SNHW + lidihw;
-        index                      = nid * MIO_BN_CHW + chwid;
-        batchvalues[MIO_BN_NLOOPM] = (index < MIO_BN_NCHW) ? *(in + index) : (_FLOAT)0.;
+        nid   = MIO_BN_SNHW + lidihw;
+        index = nid * MIO_BN_CHW + chwid;
+        batchvalues[MIO_BN_NLOOPM] =
+            (index < MIO_BN_NCHW) ? (_FLOAT_ACCUM)(*(in + index)) : (_FLOAT_ACCUM)0.;
         mean += batchvalues[MIO_BN_NLOOPM];
         variance = mad(batchvalues[MIO_BN_NLOOPM], batchvalues[MIO_BN_NLOOPM], variance);
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 #ifndef __AMDGCN__
-#if MIOPEN_USE_FP16 == 1
-    local float lcl_data[MIO_BN_LDS_SIZE];
-    lcl_data[lid] = (float)mean;
-    barrier(CLK_LOCAL_MEM_FENCE);
-    for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 256; red >>= 1)
-    {
-        if(lid < red)
-            lcl_data[lid] += lcl_data[lid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    float temp_mean = (float)mean;
-    regLDSreduce(&temp_mean, lcl_data, lid, (float)INHW);
-    mean = (_FLOAT)temp_mean;
-    barrier(CLK_LOCAL_MEM_FENCE);
-    lcl_data[lid] = (float)variance;
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-    for(unsigned int red = (MIO_BN_GRP0 >> 1); red > 256; red >>= 1)
-    {
-        if(lid < red)
-            lcl_data[lid] += lcl_data[lid + red];
-        barrier(CLK_LOCAL_MEM_FENCE);
-    }
-    float temp_variance = (float)variance;
-    regLDSreduce(&temp_variance, lcl_data, lid, (float)INHW);
-    variance = (_FLOAT)temp_variance;
-#else
-    __local _FLOAT lcl_data[MIO_BN_LDS_SIZE];
+    __local _FLOAT_ACCUM lcl_data[MIO_BN_LDS_SIZE];
 
     // Reduce mean
     lcl_data[lid] = mean;
@@ -349,7 +324,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
             lcl_data[lid] += lcl_data[lid + red];
         barrier(CLK_LOCAL_MEM_FENCE);
     }
-    regLDSreduce(&mean, lcl_data, lid, (_FLOAT)INHW);
+    regLDSreduce(&mean, lcl_data, lid, (_FLOAT_ACCUM)INHW);
     barrier(CLK_LOCAL_MEM_FENCE);
 
     // Reduce variance
@@ -361,14 +336,13 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
             lcl_data[lid] += lcl_data[lid + red];
         barrier(CLK_LOCAL_MEM_FENCE);
     }
-    regLDSreduce(&variance, lcl_data, lid, (_FLOAT)INHW);
-#endif
+    regLDSreduce(&variance, lcl_data, lid, (_FLOAT_ACCUM)INHW);
     barrier(CLK_LOCAL_MEM_FENCE);
 #else
 
     unsigned int ldsidx = lid >> 6;
-    __local _FLOAT lcl_mean[MIO_BN_LDSGCN_SIZE];
-    __local _FLOAT lcl_variance[MIO_BN_LDSGCN_SIZE];
+    __local _FLOAT_ACCUM lcl_mean[MIO_BN_LDSGCN_SIZE];
+    __local _FLOAT_ACCUM lcl_variance[MIO_BN_LDSGCN_SIZE];
 
     dpp_interleaved_reduction(&mean, &variance);
 
@@ -379,26 +353,26 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
     }
 
     barrier(CLK_LOCAL_MEM_FENCE);
-    mean = variance = 0.;
+    mean = variance = (_FLOAT_ACCUM)0.;
     __attribute__((opencl_unroll_hint(2))) for(unsigned int i = 0; i < MIO_BN_LDSGCN_SIZE; i++)
     {
         mean += lcl_mean[i];
         variance += lcl_variance[i];
     }
-    mean *= (_FLOAT)INHW;
-    variance *= (_FLOAT)INHW;
+    mean *= (_FLOAT_ACCUM)INHW;
+    variance *= (_FLOAT_ACCUM)INHW;
 
 #endif
 
     variance    = mad(-mean, mean, variance);
-    invVariance = rsqrt(variance + epsilon);
-    pvscale     = lcl_scale;
-    pvbias      = lcl_bias;
+    invVariance = rsqrt(variance + (_FLOAT_ACCUM)epsilon);
+    pvscale     = (_FLOAT_ACCUM)lcl_scale;
+    pvbias      = (_FLOAT_ACCUM)lcl_bias;
 
     if(lid < MIO_BN_SEGMENT)
     {
         //==== CALC NORM =======================
-        _FLOAT inhat = 0.;
+        _FLOAT_ACCUM inhat = (_FLOAT_ACCUM)0.;
 
 #if MIOPEN_USE_FP16 == 0
         __attribute__((opencl_unroll_hint(2)))
@@ -408,7 +382,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
             inhat      = (batchvalues[n] - mean) * invVariance;
             nid        = n * MIO_BN_SEGIHW + lidihw;
             index      = nid * MIO_BN_CHW + chwid;
-            out[index] = mad(pvscale, inhat, pvbias);
+            out[index] = (_FLOAT)mad(pvscale, inhat, pvbias);
         } // end for
 
         // Tail of loop
@@ -416,7 +390,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         nid   = MIO_BN_SNHW + lidihw;
         index = nid * MIO_BN_CHW + chwid;
         if(index < MIO_BN_NCHW)
-            out[index] = mad(pvscale, inhat, pvbias);
+            out[index] = (_FLOAT)mad(pvscale, inhat, pvbias);
     }
 
 #if(MIO_SAVE_MEAN_VARIANCE == 1 || MIO_RUNNING_RESULT == 1)
@@ -425,29 +399,24 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 
 // Save mean and calculate and save running mean
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-        *(resultSaveMean + grpid)        = mean;
-        *(resultSaveInvVariance + grpid) = invVariance;
+        *(resultSaveMean + grpid)        = (_FLOAT)mean;
+        *(resultSaveInvVariance + grpid) = (_FLOAT)invVariance;
 #endif
 
 #if(MIO_RUNNING_RESULT == 1)
-        _FLOAT pvt_runMean = *(resultRunningMean + grpid);
-        _FLOAT pvt_newRunMean =
-            mad((_FLOAT)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
+        _FLOAT_ACCUM pvt_runMean    = (_FLOAT_ACCUM)(*(resultRunningMean + grpid));
+        _FLOAT_ACCUM pvt_newRunMean = mad(
+            (_FLOAT_ACCUM)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
         resultRunningMean[grpid] =
-            mad(mean, (_FLOAT)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
-#if MIOPEN_USE_FP16 == 1
-        const float temp_adjust =
-            (MIO_BN_NHW == 1) ? ((float)variance)
-                              : ((float)variance) * ((float)MIO_BN_NHW / (float)(MIO_BN_NHW - 1.0));
-        const _FLOAT adjust = (_FLOAT)temp_adjust;
-#else
-        const _FLOAT adjust = (MIO_BN_NHW == 1)
-                                  ? variance
-                                  : variance * ((_FLOAT)MIO_BN_NHW / (_FLOAT)(MIO_BN_NHW - 1.0));
-#endif
-        resultRunningVariance[grpid] =
-            (1 - (_FLOAT)expAvgFactor) * *(resultRunningVariance + grpid) +
-            (_FLOAT)expAvgFactor * adjust;
+            (_FLOAT)mad(mean, (_FLOAT_ACCUM)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
+        const _FLOAT_ACCUM adjust =
+            (MIO_BN_NHW == 1)
+                ? variance
+                : variance * ((_FLOAT_ACCUM)MIO_BN_NHW / (_FLOAT_ACCUM)(MIO_BN_NHW - 1.0));
+
+        resultRunningVariance[grpid] = (_FLOAT)(
+            (1 - (_FLOAT_ACCUM)expAvgFactor) * (_FLOAT_ACCUM)(*(resultRunningVariance + grpid)) +
+            (_FLOAT_ACCUM)expAvgFactor * adjust);
 #endif
     }
 #endif
