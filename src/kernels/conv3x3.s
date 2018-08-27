@@ -655,6 +655,8 @@ gcnAsmConv3x3U:
     .endif
     .if enable_zero_line_padding_on_read
        _v_add_nc_u32 v[in_off_p], v[in_off_p], v[in_off] 
+    .else
+       _v_add_nc_u32 v[in_off_p], v[in_off_p], v[tid]
     .endif
   .endif
 
