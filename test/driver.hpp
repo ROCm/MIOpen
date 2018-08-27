@@ -283,8 +283,8 @@ struct test_driver
         return generate_tensor<std::vector<X>, G>(dims, single);
     }
 
-    template <class F, class G = tensor_elem_gen_integer>
-    auto lazy_generate_tensor(F f) -> generate_tensor_t<miopen::range_value<decltype(f())>, G>
+    template <class F, class G>
+    auto lazy_generate_tensor(F f, G) -> generate_tensor_t<miopen::range_value<decltype(f())>, G>
     {
         return {[=]() -> decltype(f()) {
             if(full_set)
@@ -294,8 +294,8 @@ struct test_driver
         }};
     }
 
-    template <class F, class X, class G = tensor_elem_gen_integer>
-    generate_tensor_t<X, G> lazy_generate_tensor(F f, X single)
+    template <class F, class X, class G>
+    generate_tensor_t<X, G> lazy_generate_tensor(F f, X single, G)
     {
         return {[=]() -> std::set<X> {
             if(full_set)
@@ -305,36 +305,37 @@ struct test_driver
         }};
     }
 
-    template <class F, class X, class G = tensor_elem_gen_integer>
-    generate_tensor_t<std::vector<X>, G> lazy_generate_tensor(F f, std::initializer_list<X> single)
+    template <class F, class X, class G>
+    generate_tensor_t<std::vector<X>, G>
+    lazy_generate_tensor(F f, std::initializer_list<X> single, G)
     {
-        return lazy_generate_tensor<F, std::vector<X>, G>(f, single);
+        return lazy_generate_tensor<F, std::vector<X>, G>(f, single, G{});
     }
 
     template <class G = tensor_elem_gen_integer>
     generate_tensor_t<std::vector<int>, G> get_bn_spatial_input_tensor()
     {
-        return lazy_generate_tensor([=] { return get_bn_spatial_inputs(batch_factor); },
-                                    {4, 64, 28, 28});
+        return lazy_generate_tensor(
+            [=] { return get_bn_spatial_inputs(batch_factor); }, {4, 64, 28, 28}, G{});
     }
 
     template <class G = tensor_elem_gen_integer>
     generate_tensor_t<std::vector<int>, G> get_bn_peract_input_tensor()
     {
-        return lazy_generate_tensor([=] { return get_bn_peract_inputs(batch_factor); },
-                                    {16, 32, 8, 8});
+        return lazy_generate_tensor(
+            [=] { return get_bn_peract_inputs(batch_factor); }, {16, 32, 8, 8}, G{});
     }
 
     template <class G = tensor_elem_gen_integer>
     generate_tensor_t<std::vector<int>, G> get_input_tensor()
     {
-        return lazy_generate_tensor([=] { return get_inputs(batch_factor); }, {16, 32, 8, 8});
+        return lazy_generate_tensor([=] { return get_inputs(batch_factor); }, {16, 32, 8, 8}, G{});
     }
 
     template <class G = tensor_elem_gen_integer>
     generate_tensor_t<std::vector<int>, G> get_weights_tensor()
     {
-        return lazy_generate_tensor([=] { return get_weights(batch_factor); }, {64, 32, 5, 5});
+        return lazy_generate_tensor([=] { return get_weights(batch_factor); }, {64, 32, 5, 5}, G{});
     }
 
     template <class X>
