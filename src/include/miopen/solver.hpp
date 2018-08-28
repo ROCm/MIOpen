@@ -942,7 +942,7 @@ struct mlo_construct_direct2D_fusion : mlo_construct_direct2D
                                   const miopen::TensorDescriptor& out,
                                   const miopen::ConvolutionDescriptor& conv,
                                   int dir,
-                                  bool do_bias = false) 
+                                  bool do_bias = false)
         : mlo_construct_direct2D(in, weights, out, conv, dir, do_bias)
     {
     }
