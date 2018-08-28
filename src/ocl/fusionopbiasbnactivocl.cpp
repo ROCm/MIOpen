@@ -29,7 +29,8 @@ std::vector<size_t> FusionOpDescriptor::GetGlobalWGSz(Handle& /*handle*/,
     MIOPEN_THROW("Op does not support global workgroup size");
 }
 
-miopenStatus_t BiasFusionOpDescriptor::GetNetworkConfig(std::string& network_config, Handle& /*handle*/)
+miopenStatus_t BiasFusionOpDescriptor::GetNetworkConfig(std::string& network_config,
+                                                        Handle& /*handle*/)
 {
     network_config += "biasOn"; // for bias
     return miopenStatusSuccess;
@@ -53,7 +54,8 @@ BiasFusionOpDescriptor::GetCompileParms(std::string& compile_config,
     return miopenStatusSuccess;
 }
 
-std::vector<size_t> BiasFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/, std::string /*algorithm_name*/)
+std::vector<size_t> BiasFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
+                                                         std::string /*algorithm_name*/)
 {
     MIOPEN_THROW("Op does not support local workgroup size");
 }

@@ -246,7 +246,6 @@ extern "C" miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
     });
 }
 
-
 extern "C" miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
                                                       const miopenFusionOpDescriptor_t activOp,
                                                       const void* alpha,

@@ -61,8 +61,8 @@ struct FusionMDGraph
 {
     using cur_vertex_map = std::unordered_map<std::string, boost::any>;
     FusionMDGraph() { Reset(); }
-    static void Init(FusionMDGraph& g, miopenFusionOp_t op, bool allow_winograd);
-    static void InitConv(FusionMDGraph& g, bool allow_winograd);
+    static void Init(FusionMDGraph& g, miopenFusionOp_t op);
+    static void InitConv(FusionMDGraph& g);
     static void InitBN(FusionMDGraph& g);
     void Reset();
     bool Advance(std::shared_ptr<FusionOpDescriptor> op);
@@ -80,6 +80,7 @@ struct FusionMDGraph
     static bool ExecEdgeOp(const EdgeOp& edg_op, const EdgeOp& op_val);
     static bool ExecOpEqual(const EdgeOp& edg_op, const EdgeOp& op_val);
     static bool ExecOpModulo(const EdgeOp& edg_op, const EdgeOp& op_val);
+    static bool ExecOpGTE(const EdgeOp& edg_op, const EdgeOp& op_val);
     std::vector<solver::AnySolver> GetSolvers();
 
     protected:
