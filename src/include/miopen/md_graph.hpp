@@ -29,6 +29,7 @@
 #include <miopen/fusion_ops.hpp>
 #include <miopen/fusion.hpp>
 
+#include <boost/functional/hash.hpp>
 #include <unordered_map>
 
 namespace miopen {
@@ -78,11 +79,13 @@ struct FusionMDGraph
     static FusionMDGraph_Edge_Map EmptyEdgeMap(int weight = 0, MDGraph_op_t op = OpAny);
     static bool ExecEdgeOp(const EdgeOp& edg_op, const EdgeOp& op_val);
     static bool ExecOpEqual(const EdgeOp& edg_op, const EdgeOp& op_val);
+    static bool ExecOpModulo(const EdgeOp& edg_op, const EdgeOp& op_val);
     std::vector<solver::AnySolver> GetSolvers();
 
     protected:
     std::vector<std::pair<MDGraph_vertex_ptr, cur_vertex_map>> cur_vertex;
     std::set<miopenConvFwdAlgorithm_t> conv_algo_set;
+
     std::unordered_map<MDGraph_vertex_ptr,
                        std::unordered_map<MDGraph_vertex_ptr, FusionMDGraph_Edge_Map_Vec>>
         edge_list;

@@ -45,9 +45,11 @@ enum miopenFusionOp_t
 
 enum MDGraph_op_t
 {
-    OpEqual,
-    OpNotEqual,
-    OpAny,
+    OpEqual,    // of the same type and equal
+    OpNotEqual, // Not Equal
+    OpAny,      // Dont care, used for metadata
+    OpModulo,   // op_val.val % edg_val.val == edg_val.result (only supported for ints)
+    OpGTE,
 };
 
 std::ostream& operator<<(std::ostream& stream, const MDGraph_op_t& o);
@@ -67,7 +69,8 @@ struct EdgeOp
     }
 };
 
-using FusionMDGraph_Edge_Map     = std::unordered_map<std::string, EdgeOp>;
+using FusionMDGraph_Op_Map       = std::unordered_map<std::string, EdgeOp>;
+using FusionMDGraph_Edge_Map     = std::unordered_map<std::string, std::vector<EdgeOp>>;
 using FusionMDGraph_Edge_Map_Vec = std::vector<FusionMDGraph_Edge_Map>;
 
 } // namespace miopen
