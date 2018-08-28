@@ -325,7 +325,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
     }
     SetTensor4d(outputTensor, out_len, data_type);
 
-
     if(bias_mode != 0)
     {
         std::vector<int> b_len{1, out_len[1], 1, 1};
@@ -493,7 +492,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::createSaveBuffers()
     cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
-    int status             = 0;
+    int status                 = 0;
 #endif
 
     if(status != CL_SUCCESS)
@@ -511,8 +510,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::createRunningBuffers()
     cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
-    int status             = 0;
-    uint32_t ctx           = 0;
+    int status                 = 0;
+    uint32_t ctx               = 0;
 #endif
 
     if(fusion_mode < 4)
@@ -568,8 +567,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
-    int status             = 0;
-    uint32_t ctx           = 0;
+    int status                 = 0;
+    uint32_t ctx               = 0;
 #endif
 
     size_t in_sz  = GetTensorSize(inputTensor);
@@ -587,13 +586,10 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     else
         out_sz = in_sz; // This is for N+A so the output is the same as the input size
 
-
     if(miopen::IsEnabled(MIOPEN_DRIVER_PAD_BUFFERS_2M{}))
     {
         PadBufferSize(wei_sz, sizeof(Tgpu));
     }
-
-
 
     if(bias_mode)
     {
@@ -1066,7 +1062,6 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUFusedConvBiasInference()
     // should not throw
     miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, miopenConvolutionFwdAlgoDirect);
 
-
     miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasTensor);
     miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());
 
@@ -1120,10 +1115,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
     case 2: runGPUBatchNormActivInference(); break;
     case 6: runGPUFusedConvBiasInference(); break;
     }
-
-
-
-
 
     if(WALL_CLOCK)
     {
