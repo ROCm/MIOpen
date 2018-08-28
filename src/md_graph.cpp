@@ -193,7 +193,7 @@ void FusionMDGraph::Init(FusionMDGraph& g, miopenFusionOp_t op, bool allow_winog
 FusionMDGraph_Edge_Map FusionMDGraph::EmptyEdgeMap(int weight /* = 0 */,
                                                    MDGraph_op_t op /* = OpAny */)
 {
-    return {{"weight", EdgeOp(weight, true, op)}};
+    return {{"weight", {EdgeOp(weight, true, op)}}};
 }
 
 void FusionMDGraph::InitBN(FusionMDGraph& g)
@@ -232,6 +232,12 @@ void FusionMDGraph::InitBN(FusionMDGraph& g)
         g.AddEdge(bn_v, activ_v, empty_map);
     }
 }
+template <class M, class K, class... Ts>
+void map_emplace(M& m, const K& k, Ts&&... objs)
+{
+    auto tmp = {objs...};
+    m.emplace(k, tmp);
+}
 
 void FusionMDGraph::InitConv(FusionMDGraph& g, bool allow_winograd)
 {
@@ -260,9 +266,9 @@ void FusionMDGraph::InitConv(FusionMDGraph& g, bool allow_winograd)
                                                                  /*c any*/ 0,
                                                                  /* x */ 3,
                                                                  /* y */ 3);
-        map_wino_conv.emplace("weight", EdgeOp(10, true, OpAny));
-        map_wino_conv.emplace("algo", EdgeOp(miopenConvolutionFwdAlgoWinograd, true, OpAny));
-        map_wino_conv.emplace("precision", EdgeOp(miopenFloat, true, OpEqual));
+        map_emplace(map_wino_conv, "weight", EdgeOp(10, true, OpAny));
+        map_emplace(map_wino_conv, "algo", EdgeOp(miopenConvolutionFwdAlgoWinograd, true, OpAny));
+        map_emplace(map_wino_conv, "precision", EdgeOp(miopenFloat, true, OpEqual));
 
         g.AddEdge(nullptr, vc, map_wino_conv);
 
@@ -276,13 +282,13 @@ void FusionMDGraph::InitConv(FusionMDGraph& g, bool allow_winograd)
 
         FusionMDGraph_Edge_Map edg_activ_relu =
             ActivFusionOpDescriptor::MDGraphKey(miopenActivationRELU);
-        edg_activ_relu.emplace("weight", EdgeOp(0, true, OpAny));
-        edg_activ_relu.emplace("precision", EdgeOp(miopenFloat, true, OpEqual));
+        map_emplace(edg_activ_relu, "weight", EdgeOp(0, true, OpAny));
+        map_emplace(edg_activ_relu, "precision", EdgeOp(miopenFloat, true, OpEqual));
 
         FusionMDGraph_Edge_Map edg_activ_leaky_relu =
             ActivFusionOpDescriptor::MDGraphKey(miopenActivationLEAKYRELU);
-        edg_activ_leaky_relu.emplace("weight", EdgeOp(0, true, OpAny));
-        edg_activ_leaky_relu.emplace("precision", EdgeOp(miopenFloat, true, OpEqual));
+        map_emplace(edg_activ_leaky_relu, "weight", EdgeOp(0, true, OpAny));
+        map_emplace(edg_activ_leaky_relu, "precision", EdgeOp(miopenFloat, true, OpEqual));
 
         g.AddEdge(vb, va_leaf, edg_activ_relu);
         g.AddEdge(vb, va_leaf, edg_activ_leaky_relu);
@@ -333,9 +339,9 @@ void FusionMDGraph::InitConv(FusionMDGraph& g, bool allow_winograd)
                                                                 /*c any*/ 0,
                                                                 /* x */ 1,
                                                                 /* y */ 1);
-        map_asm_conv.emplace("weight", EdgeOp(1, true, OpAny));
-        map_asm_conv.emplace("algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
-        map_asm_conv.emplace("precision", EdgeOp(miopenFloat, true, OpEqual));
+        map_emplace(map_asm_conv, "weight", EdgeOp(1, true, OpAny));
+        map_emplace(map_asm_conv, "algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
+        map_emplace(map_asm_conv, "precision", EdgeOp(miopenFloat, true, OpEqual));
 
         g.AddEdge(nullptr, conv_v, map_asm_conv);
         g.AddEdge(conv_v, bias_v, empty_map);
@@ -369,8 +375,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g, bool allow_winograd)
                                                                      /*c any*/ 0,
                                                                      /* x */ len,
                                                                      /* y */ len);
-            map_conv_bias.emplace("weight", EdgeOp(0, true, OpAny));
-            map_conv_bias.emplace("algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
+            map_emplace(map_conv_bias, "weight", EdgeOp(0, true, OpAny));
+            map_emplace(map_conv_bias, "algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
 
             g.AddEdge(nullptr, conv_v, map_conv_bias);
         }
@@ -401,11 +407,11 @@ void FusionMDGraph::InitConv(FusionMDGraph& g, bool allow_winograd)
                                                              "miopenConvDirectBatchNormBiasActiv");
                 auto edg_activ =
                     BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNPerActivation);
-                edg_activ.emplace("weight", EdgeOp(0, true, OpAny));
+                map_emplace(edg_activ, "weight", EdgeOp(0, true, OpAny));
 
                 auto edg_spatial =
                     BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNSpatial);
-                edg_spatial.emplace("weight", EdgeOp(0, true, OpAny));
+                map_emplace(edg_spatial, "weight", EdgeOp(0, true, OpAny));
 
                 g.AddEdge(bias_v, bn_v, edg_activ);
                 g.AddEdge(bias_v, bn_v, edg_spatial);
@@ -426,10 +432,10 @@ void FusionMDGraph::InitConv(FusionMDGraph& g, bool allow_winograd)
                                                          "miopenConvDirectBatchNormBiasActiv");
             auto edg_activ =
                 BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNPerActivation);
-            edg_activ.emplace("weight", EdgeOp(0, true, OpAny));
+            map_emplace(edg_activ, "weight", EdgeOp(0, true, OpAny));
 
             auto edg_spatial = BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBNSpatial);
-            edg_spatial.emplace("weight", EdgeOp(0, true, OpAny));
+            map_emplace(edg_spatial, "weight", EdgeOp(0, true, OpAny));
 
             g.AddEdge(conv_v, bn_v, edg_activ);
             g.AddEdge(conv_v, bn_v, edg_spatial);
@@ -486,6 +492,16 @@ bool FusionMDGraph::ExecOpEqual(const EdgeOp& edg_op, const EdgeOp& op_val)
         MIOPEN_THROW("Unsupported Graph Edge Operation"); // + edg_op.val.type());
 }
 
+bool FusionMDGraph::ExecOpModulo(const EdgeOp& edg_op, const EdgeOp& op_val)
+{
+    if(!(edg_op.val.type() == typeid(int) && op_val.val.type() == typeid(int) &&
+         edg_op.result.type() == typeid(int)))
+        MIOPEN_THROW("Invalid operand types for Edge Op OpModulo");
+
+    return (boost::any_cast<int>(op_val.val) % boost::any_cast<int>(edg_op.val)) ==
+           boost::any_cast<int>(edg_op.result);
+}
+
 bool FusionMDGraph::ExecEdgeOp(const EdgeOp& edg_op, const EdgeOp& op_val)
 {
     switch(edg_op.op)
@@ -495,6 +511,10 @@ bool FusionMDGraph::ExecEdgeOp(const EdgeOp& edg_op, const EdgeOp& op_val)
     case OpNotEqual: { return !(FusionMDGraph::ExecOpEqual(edg_op, op_val));
     }
     case OpAny: { return true;
+    }
+    case OpModulo: { return FusionMDGraph::ExecOpModulo(edg_op, op_val);
+    }
+    case OpGTE: {
     }
     }
     return false;
@@ -507,18 +527,22 @@ bool FusionMDGraph::CmpOpKey(const FusionMDGraph_Edge_Map& edge_val,
     {
         if(op_val.count(kv.first) == 1)
         {
-            if(!FusionMDGraph::ExecEdgeOp(kv.second, op_val.at(kv.first)))
+            if(op_val.at(kv.first).size() > 1)
             {
-                MIOPEN_LOG_I("Edge Op :" << kv.second << " Op Val: " << op_val.at(kv.first)
-                                         << " Edge Op for key: "
-                                         << kv.first
-                                         << " Failed");
-                return false;
+                MIOPEN_THROW("The operator attribute vector length cannot be greater than 1");
             }
-            else
+            for(auto& edg_ops : kv.second)
             {
-                MIOPEN_LOG_I("Edge Op for key: " << kv.first << " Successfull");
+                if(!FusionMDGraph::ExecEdgeOp(edg_ops, op_val.at(kv.first).at(0)))
+                {
+                    MIOPEN_LOG_I("Edge Op :" << kv.second << " Op Val: " << op_val.at(kv.first)
+                                             << " Edge Op for key: "
+                                             << kv.first
+                                             << " Failed");
+                    return false;
+                }
             }
+            MIOPEN_LOG_I("Edge Op for key: " << kv.first << " Successfull");
         }
         else
         {
@@ -561,14 +585,15 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
                     if(CmpOpKey(edg_map, op->MDGraphKey()))
                     {
                         MIOPEN_LOG_I("Key Match Successfull");
-                        weight += boost::any_cast<int>(edg_map.at("weight").val);
+                        weight += boost::any_cast<int>(edg_map.at("weight").at(0).val);
                         cur_map["weight"] = weight;
 
                         // Update the algo set
                         if(op->kind() == miopenFusionOpConvForward)
                         {
                             miopenConvFwdAlgorithm_t algo =
-                                boost::any_cast<miopenConvFwdAlgorithm_t>(edg_map.at("algo").val);
+                                boost::any_cast<miopenConvFwdAlgorithm_t>(
+                                    edg_map.at("algo").at(0).val);
                             MIOPEN_LOG_I("Operator Matched: Convolution: Algo: " +
                                          std::to_string(algo));
                             cur_path_set.insert(algo);
