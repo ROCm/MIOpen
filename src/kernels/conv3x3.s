@@ -468,7 +468,7 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
             .elseif enable_zero_line_padding_on_read
                 buffer_load_dword v[\base+vals_loaded], v[in_off], s[in_desc:in_desc+3], s[\s_offset] offen offset:0+imm_off
             .else
-                buffer_load_dword v[\base+vals_loaded], v[tid], s[in_desc:in_desc+3], s[\s_offset] offen offset:0+imm_off
+                buffer_load_dword v[\base+vals_loaded], v[voffset], s[in_desc:in_desc+3], s[\s_offset] offen offset:0+imm_off
             .endif
         .else
             .if \partial
@@ -476,7 +476,7 @@ __sgprs_allocated_after_filters = .SGPR_NEXT_FREE - __sgprs_ptr
             .elseif enable_zero_line_padding_on_read
                 buffer_load_dwordx\count v[\base+vals_loaded:\base+vals_loaded+\count-1], v[in_off], s[in_desc:in_desc+3], s[\s_offset] offen offset:0+imm_off
             .else
-                buffer_load_dwordx\count v[\base+vals_loaded:\base+vals_loaded+\count-1], v[tid], s[in_desc:in_desc+3], s[\s_offset] offen offset:0+imm_off
+                buffer_load_dwordx\count v[\base+vals_loaded:\base+vals_loaded+\count-1], v[voffset], s[in_desc:in_desc+3], s[\s_offset] offen offset:0+imm_off
             .endif
         .endif
 
@@ -615,14 +615,15 @@ gcnAsmConv3x3U:
   s_load_dwordx2 s[out_ptr:out_ptr+1], s[kernarg:kernarg+1], 0x0 + out_ptr_off
 
   v_and_b32 v[tid], 0x3f, v[tid]
-  v_mul_u32_u24 v[tid], v[tid], 4 * gprs_per_output_line 
+  v_mul_u32_u24 v[tid], v[tid], 4 * gprs_per_output_line
+  .GPR_REUSE tid, voffset
   // compute offsets for input
   .if enable_zero_line_padding_on_read
     s_cmpk_eq_u32 s[gid_y], 0
     s_cselect_b32 s[img_offset], 0, -1 * input_line_stride
     s_cselect_b32 s[tmp], -1 * input_line_stride, 0
     v_mov_b32 v[in_off], s[tmp]
-   _v_add_nc_u32 v[in_off], v[in_off], v[tid]
+   _v_add_nc_u32 v[in_off], v[in_off], v[voffset]
     s_mul_i32 s[tmp], s[gid_y], 0 + input_line_stride * acc_lines_per_wave
     s_add_u32 s[img_offset], s[img_offset], s[tmp]
   .else
@@ -656,7 +657,7 @@ gcnAsmConv3x3U:
     .if enable_zero_line_padding_on_read
        _v_add_nc_u32 v[in_off_p], v[in_off_p], v[in_off] 
     .else
-       _v_add_nc_u32 v[in_off_p], v[in_off_p], v[tid]
+       _v_add_nc_u32 v[in_off_p], v[in_off_p], v[voffset]
     .endif
   .endif
 
@@ -811,13 +812,13 @@ loop_end:
             .if \partial
                 buffer_store_dword v[\base+vals_stored], v[in_off_p], s[out_desc:out_desc+3], s[\s_offset] offen offset:0+imm_off
             .else
-                buffer_store_dword v[\base+vals_stored], v[tid], s[out_desc:out_desc+3], s[\s_offset] offen offset:0+imm_off
+                buffer_store_dword v[\base+vals_stored], v[voffset], s[out_desc:out_desc+3], s[\s_offset] offen offset:0+imm_off
             .endif
         .else
             .if \partial
                 buffer_store_dwordx\count v[\base+vals_stored:\base+vals_stored+\count-1], v[in_off_p], s[out_desc:out_desc+3], s[\s_offset] offen offset:0+imm_off
             .else
-                buffer_store_dwordx\count v[\base+vals_stored:\base+vals_stored+\count-1], v[tid], s[out_desc:out_desc+3], s[\s_offset] offen offset:0+imm_off
+                buffer_store_dwordx\count v[\base+vals_stored:\base+vals_stored+\count-1], v[voffset], s[out_desc:out_desc+3], s[\s_offset] offen offset:0+imm_off
             .endif
         .endif
         vals_to_store = vals_to_store - \count
@@ -879,7 +880,7 @@ loop_end:
 
   .if uneven_line_write_mode && enable_zero_line_padding_on_read
    _v_sub_nc_u32 v[in_off_p], v[in_off_p], v[in_off]
-   _v_add_nc_u32 v[in_off_p], v[in_off_p], v[tid]
+   _v_add_nc_u32 v[in_off_p], v[in_off_p], v[voffset]
   .endif
 
 
