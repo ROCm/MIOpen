@@ -70,7 +70,8 @@ struct tensor_elem_gen_float
     double operator()(Ts... Xs) const
     {
         double max_value = data_type == miopenFloat ? 1e-4 : 1e-2;
-        return max_value * tensor_elem_gen_integer{miopenFloat}(Xs...) / 17 * (rand() % 2 ? 1 : -1);
+        return max_value * tensor_elem_gen_integer{miopenFloat}(Xs...) / 17 *
+               ((rand() % 2) ? 1 : -1);
     }
 };
 
