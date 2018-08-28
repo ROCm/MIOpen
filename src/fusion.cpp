@@ -137,7 +137,7 @@ miopenStatus_t FusionPlanDescriptor::GetWorkspaceSizeImmed(Handle& handle,
             auto ptr = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(op);
             TensorDescriptor opd;
             ptr->GetOutputDesc(opd);
-            size_t tmp_sz  = ptr->base_desc.ForwardGetWorkSpaceSize(
+            size_t tmp_sz = ptr->base_desc.ForwardGetWorkSpaceSize(
                 handle, ptr->filter_desc, ptr->input_desc, opd);
             if(tmp_sz > workSpaceSize)
                 workSpaceSize = tmp_sz;
@@ -198,7 +198,7 @@ miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
                                                 const void* /*beta*/,
                                                 ConstData_t w)
 {
-    auto id = std::to_string(GetIdx());
+    auto id    = std::to_string(GetIdx());
     auto w_any = any_t(w);
     args.ins_arg("weights" + id, w_any);
 
@@ -226,18 +226,18 @@ FusionMDGraph_Edge_Map ConvForwardOpDescriptor::MDGraphKey(miopenConvolutionMode
                                                            int y)
 {
     return {
-        {"conv_mode", EdgeOp(conv_mode, true, OpEqual)},
-        {"pad_mode", EdgeOp(pad_mode, true, OpEqual)},
-        {"pad_h", EdgeOp(pad_h, true, OpEqual)},
-        {"pad_w", EdgeOp(pad_w, true, OpEqual)},
-        {"u", EdgeOp(u, true, OpEqual)},
-        {"v", EdgeOp(v, true, OpEqual)},
-        {"dilation_h", EdgeOp(dilation_h, true, OpEqual)},
-        {"dilation_w", EdgeOp(dilation_w, true, OpEqual)},
-        {"k", EdgeOp(k, true, OpAny)},
-        {"c", EdgeOp(c, true, OpAny)},
-        {"x", EdgeOp(x, true, OpEqual)},
-        {"y", EdgeOp(y, true, OpEqual)},
+        {"conv_mode", {EdgeOp(conv_mode, true, OpEqual)}},
+        {"pad_mode", {EdgeOp(pad_mode, true, OpEqual)}},
+        {"pad_h", {EdgeOp(pad_h, true, OpEqual)}},
+        {"pad_w", {EdgeOp(pad_w, true, OpEqual)}},
+        {"u", {EdgeOp(u, true, OpEqual)}},
+        {"v", {EdgeOp(v, true, OpEqual)}},
+        {"dilation_h", {EdgeOp(dilation_h, true, OpEqual)}},
+        {"dilation_w", {EdgeOp(dilation_w, true, OpEqual)}},
+        {"k", {EdgeOp(k, true, OpAny)}},
+        {"c", {EdgeOp(c, true, OpAny)}},
+        {"x", {EdgeOp(x, true, OpEqual)}},
+        {"y", {EdgeOp(y, true, OpEqual)}},
     };
 }
 
@@ -258,7 +258,8 @@ FusionMDGraph_Edge_Map ConvForwardOpDescriptor::MDGraphKey() const
                                                  c,
                                                  x,
                                                  y);
-    m.emplace("precision", EdgeOp(input_desc.GetType(), true, OpEqual));
+    auto precision_vec = {EdgeOp(input_desc.GetType(), true, OpEqual)};
+    m.emplace("precision", precision_vec);
     return m;
 }
 
@@ -304,7 +305,7 @@ miopenStatus_t ActivFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_d
 }
 FusionMDGraph_Edge_Map ActivFusionOpDescriptor::MDGraphKey(miopenActivationMode_t mode)
 {
-    return {{"activ_mode", EdgeOp(mode, true, OpEqual)}};
+    return {{"activ_mode", {EdgeOp(mode, true, OpEqual)}}};
 }
 
 FusionMDGraph_Edge_Map ActivFusionOpDescriptor::MDGraphKey() const
@@ -358,7 +359,7 @@ std::vector<std::string> BatchNormInferenceFusionOpDescriptor::GetArgs() const
 FusionMDGraph_Edge_Map
 BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBatchNormMode_t bn_mode)
 {
-    return {{"bn_mode", EdgeOp(bn_mode, true, OpEqual)}};
+    return {{"bn_mode", {EdgeOp(bn_mode, true, OpEqual)}}};
 }
 
 FusionMDGraph_Edge_Map BatchNormInferenceFusionOpDescriptor::MDGraphKey() const
@@ -378,7 +379,7 @@ miopenStatus_t BiasFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                const void* /*beta*/,
                                                ConstData_t bdata)
 {
-    auto id = std::to_string(GetIdx());
+    auto id        = std::to_string(GetIdx());
     auto bdata_any = any_t(bdata);
     args.ins_arg("bias" + id, bdata_any);
     return miopenStatusSuccess;
@@ -654,7 +655,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                 is_activation = true;
                 is_leakyRELU =
                     (boost::any_cast<miopenActivationMode_t>(
-                         op->MDGraphKey().at("activ_mode").val) == miopenActivationLEAKYRELU);
+                         op->MDGraphKey().at("activ_mode").at(0).val) == miopenActivationLEAKYRELU);
             }
         }
         const int flags        = (is_bias ? (1 << 7) : 0) + (is_activation ? (1 << 8) : 0);

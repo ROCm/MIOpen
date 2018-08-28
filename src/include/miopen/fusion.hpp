@@ -70,7 +70,7 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     int GetIdx() const { return plan_idx; };
     virtual FusionMDGraph_Edge_Map MDGraphKey() const
     {
-        return {{"weight", EdgeOp(0, true, OpAny)}};
+        return {{"weight", {EdgeOp(0, true, OpAny)}}};
     };
     virtual miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) = 0;
     virtual miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
