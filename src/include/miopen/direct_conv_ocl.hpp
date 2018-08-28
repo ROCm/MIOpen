@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2018 Advanced Micro Devices, Inc.
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,51 +23,35 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifndef GUARD_MIOPEN_DIRECT_CONV_OCL_HPP_
+#define GUARD_MIOPEN_DIRECT_CONV_OCL_HPP_
 
-#pragma once
-#include <miopen/logger.hpp>
-
-#include <string>
-#include <unordered_map>
-#include <vector>
-#include <boost/any.hpp>
+#include <chrono>
+#include <cmath>
+#include <miopen/common.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
 
-// Supported operators
-enum miopenFusionOp_t
-{
-    miopenFusionOpConvForward        = 0,
-    miopenFusionOpActivForward       = 1,
-    miopenFusionOpBatchNormInference = 2,
-    miopenFusionOpBiasForward        = 3,
-};
-
-enum MDGraph_op_t
-{
-    OpEqual,
-    OpNotEqual,
-    OpAny,
-};
-
-std::ostream& operator<<(std::ostream& stream, const MDGraph_op_t& o);
-std::ostream& operator<<(std::ostream& stream, const boost::any& a);
-
-struct EdgeOp
-{
-    template <class U, class V>
-    EdgeOp(U v, V r = true, MDGraph_op_t o = OpAny) : val(v), result(r), op(o){};
-    boost::any val;
-    boost::any result;
-    MDGraph_op_t op = OpAny;
-    friend std::ostream& operator<<(std::ostream& stream, const EdgeOp& o)
-    {
-        stream << "val: " << o.val << " op: " << o.op;
-        return stream;
-    }
-};
-
-using FusionMDGraph_Edge_Map     = std::unordered_map<std::string, EdgeOp>;
-using FusionMDGraph_Edge_Map_Vec = std::vector<FusionMDGraph_Edge_Map>;
-
+void DirectConvInference(Handle& handle,
+                         const void* alpha,
+                         const TensorDescriptor& xDesc,
+                         ConstData_t x,
+                         const TensorDescriptor& wDesc,
+                         ConstData_t w,
+                         const void* beta,
+                         const TensorDescriptor& yDesc,
+                         Data_t y,
+                         int pad_h,
+                         int pad_w,
+                         int u,
+                         int v,
+                         int dilation_h,
+                         int dilation_w,
+                         int bias_mode,
+                         ConstData_t convBias);
 } // namespace miopen
+
+#endif

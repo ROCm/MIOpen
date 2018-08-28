@@ -251,6 +251,14 @@ auto FindFirstSolution(T& x) -> decltype(x.FindSolution())
     return x.FindSolution();
 }
 
+template <class T, class U>
+auto FindFirstSolution(T& x, U& solvers) -> decltype(x.FindSolution(solvers))
+{
+    x.setupRocm();
+    x.setupFloats();
+    return x.FindSolution(solvers);
+}
+
 template <class T>
 auto FindAllSolutions(T& x) -> decltype(x.FindAllSolutions())
 {
@@ -875,21 +883,6 @@ struct mlo_construct_neuron : mlo_construct_direct2D, mlo_construct_activ_lrn_po
     double _gamma;
     double _beta;
     double _alpha;
-};
-
-// MLO construct for ConvBiasBatchNormActiv
-struct mlo_construct_direct2D_fusion : mlo_construct_direct2D
-{
-    mlo_construct_direct2D_fusion(int dir, bool do_bias = false)
-        : mlo_construct_direct2D(dir, do_bias)
-    {
-    }
-
-    inline void mloCopyTo(miopen::ConvolutionContext& params) const /// TODO: get rid of this
-    {
-        params = _search_params;
-    }
-    miopen::solver::ConvSolution FindSolution();
 };
 
 #endif
