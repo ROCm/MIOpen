@@ -877,19 +877,4 @@ struct mlo_construct_neuron : mlo_construct_direct2D, mlo_construct_activ_lrn_po
     double _alpha;
 };
 
-// MLO construct for ConvBiasBatchNormActiv
-struct mlo_construct_direct2D_fusion : mlo_construct_direct2D
-{
-    mlo_construct_direct2D_fusion(int dir, bool do_bias = false)
-        : mlo_construct_direct2D(dir, do_bias)
-    {
-    }
-
-    inline void mloCopyTo(miopen::ConvolutionContext& params) const /// TODO: get rid of this
-    {
-        params = _search_params;
-    }
-    miopen::solver::ConvSolution FindSolution();
-};
-
 #endif
