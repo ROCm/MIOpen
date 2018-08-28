@@ -177,11 +177,11 @@ bool FusionMDGraph::SetConvAlgo(miopenConvFwdAlgorithm_t algo)
     return (!new_list.empty());
 }
 
-void FusionMDGraph::Init(FusionMDGraph& g, miopenFusionOp_t op, bool allow_winograd)
+void FusionMDGraph::Init(FusionMDGraph& g, miopenFusionOp_t op)
 {
     switch(op)
     {
-    case miopenFusionOpConvForward: InitConv(g, allow_winograd); break;
+    case miopenFusionOpConvForward: InitConv(g); break;
     case miopenFusionOpBatchNormInference: InitBN(g); break;
     case miopenFusionOpActivForward:
     case miopenFusionOpBiasForward:
@@ -239,11 +239,11 @@ void map_emplace(M& m, const K& k, Ts&&... objs)
     m.emplace(k, tmp);
 }
 
-void FusionMDGraph::InitConv(FusionMDGraph& g, bool allow_winograd)
+void FusionMDGraph::InitConv(FusionMDGraph& g)
 {
 
     FusionMDGraph_Edge_Map empty_map = FusionMDGraph::EmptyEdgeMap();
-    if(allow_winograd && !miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}))
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}))
     { /// Fused Winograd.
         static const std::string program("conv_3x3_wheel_alpha_v9_2_7_GFX*_md10.so");
         static const std::string kernel("sp3AsmConvRxSU_CBA");
@@ -266,6 +266,9 @@ void FusionMDGraph::InitConv(FusionMDGraph& g, bool allow_winograd)
                                                                  /*c any*/ 0,
                                                                  /* x */ 3,
                                                                  /* y */ 3);
+        map_wino_conv["c"].push_back(EdgeOp(0, true, OpNotEqual));
+        map_wino_conv["c"].push_back(EdgeOp(2, 0, OpModulo));
+        map_wino_conv["c"].push_back(EdgeOp(18, true, OpGTE));
         map_emplace(map_wino_conv, "weight", EdgeOp(10, true, OpAny));
         map_emplace(map_wino_conv, "algo", EdgeOp(miopenConvolutionFwdAlgoWinograd, true, OpAny));
         map_emplace(map_wino_conv, "precision", EdgeOp(miopenFloat, true, OpEqual));
@@ -502,6 +505,13 @@ bool FusionMDGraph::ExecOpModulo(const EdgeOp& edg_op, const EdgeOp& op_val)
            boost::any_cast<int>(edg_op.result);
 }
 
+bool FusionMDGraph::ExecOpGTE(const EdgeOp& edg_op, const EdgeOp& op_val)
+{
+    if(!(edg_op.val.type() == typeid(int) && op_val.val.type() == typeid(int)))
+        MIOPEN_THROW("Invalid operand types for Edge Op OpGTE (>=)");
+    return (boost::any_cast<int>(op_val.val) >= boost::any_cast<int>(edg_op.val));
+}
+
 bool FusionMDGraph::ExecEdgeOp(const EdgeOp& edg_op, const EdgeOp& op_val)
 {
     switch(edg_op.op)
@@ -514,7 +524,7 @@ bool FusionMDGraph::ExecEdgeOp(const EdgeOp& edg_op, const EdgeOp& op_val)
     }
     case OpModulo: { return FusionMDGraph::ExecOpModulo(edg_op, op_val);
     }
-    case OpGTE: {
+    case OpGTE: { return FusionMDGraph::ExecOpGTE(edg_op, op_val);
     }
     }
     return false;
@@ -535,7 +545,7 @@ bool FusionMDGraph::CmpOpKey(const FusionMDGraph_Edge_Map& edge_val,
             {
                 if(!FusionMDGraph::ExecEdgeOp(edg_ops, op_val.at(kv.first).at(0)))
                 {
-                    MIOPEN_LOG_I("Edge Op :" << kv.second << " Op Val: " << op_val.at(kv.first)
+                    MIOPEN_LOG_I("Edge Op :" << edg_ops << " Op Val: " << op_val.at(kv.first).at(0)
                                              << " Edge Op for key: "
                                              << kv.first
                                              << " Failed");
