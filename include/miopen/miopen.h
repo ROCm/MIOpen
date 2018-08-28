@@ -1813,6 +1813,80 @@ MIOPEN_EXPORT miopenStatus_t miopenFusionPlanGetOp(miopenFusionPlanDescriptor_t 
                                                    const int op_idx,
                                                    miopenFusionOpDescriptor_t* op);
 
+/*! @brief Query the workspace size required for the fusion plan
+ *
+* @param fusePlanDesc   A fusion plan descriptor (input)
+* @param workSpaceSize  Pointer to memory to return size in bytes (output)
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenFusionPlanGetWorkSpaceSize(miopenHandle_t handle,
+                                 miopenFusionPlanDescriptor_t fusePlanDesc,
+                                 size_t* workSpaceSize,
+                                 miopenConvFwdAlgorithm_t algo);
+
+/*!
+ * @brief Returns the supported algorithms for this operator in the Fusion Plan
+ *
+ * @details A Convolution operator in a fusion plan may be implemented by different algorithms
+ * representing different tradeoffs of memory and performance. The returned list of algorithms
+ * is sorted in decreasing order of priority. Therefore, if the user does not request an
+ * algorithm to be set using the miopenFusionPlanConvolutionSetAlgo call, the first algorithm
+ * in the list would be used to execute the convolution in the fusion plan. Moreover this call
+ * must be immediately preceded by the miopenCreateOpConvForward call for the op in question.
+ *
+ * @param fusePlanDesc A fusion plan descriptor (input)
+ * @param requestAlgoCount Number of algorithms to return
+ * @param returnedAlgoCount The actual number of returned algorithms ( Would always be less than
+ * equal to requestAlgoCount
+ * @param returnedAlgos Pointer to the list of supported algorithms
+ * @return miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t
+miopenFusionPlanConvolutionGetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                   const int requestAlgoCount,
+                                   int* returnedAlgoCount,
+                                   miopenConvFwdAlgorithm_t* returnedAlgos);
+
+/**
+ * @brief Requests the fusion runtime to choose a particular algorithm for the added convolution
+ * operation
+ *
+ * @details Please see the description for miopenFusionPlanConvolutionGetAlgo
+ *
+ * @param fusePlanDesc A fusion plan descriptor (input)
+ * @param algo Requested algorithm for the convolution operator
+ * @return miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenFusionPlanConvolutionSetAlgo(
+    miopenFusionPlanDescriptor_t fusePlanDesc, miopenConvFwdAlgorithm_t algo);
+
+/*! @brief Creates backwards data convolution operator.
+*
+* @param fusePlanDesc   A fusion plan descriptor (input)
+* @param convOp         Pointer to an operator type (output)
+* @param convDesc       Convolution layer descriptor (input)
+* @param bwdDataAlgo    A MIOpen backwards data convolutin algorithm (input)
+* @param wDesc          Descriptor for the weights tensor (input)
+* @return               miopenStatus_t
+*/
+
+// Convolution create op for unknown algorithm ---
+/*! @brief Creates forward convolution operator.
+*
+* @param fusePlanDesc   A fusion plan descriptor (input)
+* @param convOp         Pointer to an operator type (output)
+* @param convDesc       Convolution layer descriptor (input)
+* @param wDesc          Descriptor for the weights tensor (input)
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                       miopenFusionOpDescriptor_t* convOp,
+                                                       miopenConvolutionDescriptor_t convDesc,
+                                                       const miopenTensorDescriptor_t wDesc);
+
 //---
 
 // Activation create ops ---
@@ -1828,7 +1902,17 @@ miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                 miopenFusionOpDescriptor_t* activOp,
                                 miopenActivationMode_t mode);
 
-//---
+// Bias create ops ---
+/*! @brief Creates a forward bias operator.
+*
+* @param fusePlanDesc   A fusion plan descriptor (input)
+* @param biasOp         Pointer to an operator type (output)
+* @param bDesc          bias tensor descriptor (input)
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCreateOpBiasForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                       miopenFusionOpDescriptor_t* biasOp,
+                                                       const miopenTensorDescriptor_t bDesc);
 
 // Batch normalization create ops ---
 /*! @brief Creates a forward inference batch normalization operator.
@@ -1860,6 +1944,21 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateOperatorArgs(miopenOperatorArgs_t* args
 */
 MIOPEN_EXPORT miopenStatus_t miopenDestroyOperatorArgs(miopenOperatorArgs_t args);
 
+// Convolution set arguments ---
+/*! @brief Sets the arguments for forward convolution op
+*
+* @param args    An arguments object type (output)
+* @param convOp  Forward convolution operator (input)
+* @param alpha   Floating point scaling factor, allocated on the host (input)
+* @param beta    Floating point shift factor, allocated on the host (input)
+* @param w       Pointer to tensor memory  (input)
+* @return        miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
+                                                        const miopenFusionOpDescriptor_t convOp,
+                                                        const void* alpha,
+                                                        const void* beta,
+                                                        const void* w);
 // Activation set arguments ---
 /*! @brief Sets the arguments for forward activation op
 *
@@ -1903,6 +2002,21 @@ miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t args,
                                   const void* estimatedVariance,
                                   double epsilon);
 
+// Bias forward set arguments ---
+/*! @brief Sets the arguments for forward bias op
+*
+* @param args           An arguments object type (output)
+* @param biasOp         Forward bias operator (input)
+* @param alpha          Floating point scaling factor, allocated on the host (input)
+* @param beta           Floating point shift factor, allocated on the host (input)
+* @param bias           Pointer to the forward bias input tensor memory  (input)
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
+                                                        const miopenFusionOpDescriptor_t biasOp,
+                                                        const void* alpha,
+                                                        const void* beta,
+                                                        const void* bias);
 /*! @brief Executes the fusion plan
 *
 *
@@ -1923,7 +2037,6 @@ miopenExecuteFusionPlan(const miopenHandle_t handle,
                         const miopenTensorDescriptor_t outputDesc,
                         void* output,
                         miopenOperatorArgs_t args);
-
 /** @} */
 // CLOSEOUT FUSION DOXYGEN GROUP
 
