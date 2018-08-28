@@ -571,6 +571,7 @@ ConvSolution ConvActivAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
     GenerateClangDefsym(options, "n_blocks_per_wave", pcfg->GetNBlocksPerWave());
     GenerateClangDefsym(options, "waves_in_group", pcfg->GetWavesInGroup());
+    GenerateClangDefsym(options, "fusion_mode", 1);
 
     KernelInfo kinfo;
     kinfo.comp_options = options.str();
