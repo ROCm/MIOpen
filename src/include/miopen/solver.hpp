@@ -654,6 +654,12 @@ struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
     bool IsValidPerformanceConfig(const ConvolutionContext&, const LegacyPerformanceConfig&) const;
 };
 
+struct ConvOclDirectFwdFused : ConvOclDirectFwd
+{
+    ConvSolution GetSolution(const ConvolutionContext& params,
+                             const LegacyPerformanceConfig& searched_params) const;
+};
+
 struct ConvOclDirectFwd1x1 : ConvOclDirectFwdLegacyExhaustiveSearch
 {
     bool IsApplicable(const ConvolutionContext& params) const;
@@ -863,7 +869,92 @@ struct ConvOclBwdWrW1x1 : SolverBase<ConvolutionContext>
     ConvSolution GetSolution(const ConvolutionContext& params) const;
 };
 
+struct AnySolver
+{
+    AnySolver() : ptr_value(nullptr){};
+    template <class U>
+    AnySolver(U src) : ptr_value(new AnySolver_tmpl<U>(std::forward<U>(src))){};
+    bool IsApplicable(const ConvolutionContext& ctx) const
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->IsApplicable(ctx);
+    };
+    const std::type_info& Type() const
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->Type();
+    };
+    bool IsEmpty() const { return ptr_value == nullptr; };
+    bool IsFast(const ConvolutionContext& ctx) const
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->IsFast(ctx);
+    };
+    ConvSolution FindSolution(const ConvolutionContext& ctx, MultiFileDb& db) const
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->FindSolution(ctx, db);
+    };
+
+    // virtual base class
+    struct AnySolver_base
+    {
+        using ptr = std::shared_ptr<const AnySolver_base>;
+
+        virtual ~AnySolver_base(){};
+        virtual bool IsApplicable(const ConvolutionContext& ctx) const = 0;
+        virtual bool IsFast(const ConvolutionContext& ctx) const       = 0;
+        virtual const std::type_info& Type() const                     = 0;
+        virtual ConvSolution FindSolution(const ConvolutionContext& ctx, MultiFileDb& db) const = 0;
+    };
+
+    // templated derived class
+    template <class T>
+    struct AnySolver_tmpl : AnySolver_base
+    {
+        AnySolver_tmpl(T obj) : value(std::move(obj)){};
+        bool IsApplicable(const ConvolutionContext& ctx) const override
+        {
+            return value.IsApplicable(ctx);
+        };
+        bool IsFast(const ConvolutionContext& ctx) const override { return value.IsFast(ctx); };
+        ConvSolution FindSolution(const ConvolutionContext& ctx, MultiFileDb& db) const override
+        {
+            return miopen::solver::FindSolution(value, ctx, db);
+        };
+        const std::type_info& Type() const override { return typeid(T); };
+
+        private:
+        T value;
+    };
+
+    AnySolver_base::ptr ptr_value;
+};
+
 } // namespace solver
 } // namespace miopen
+
+struct mlo_construct_direct2D_fusion : mlo_construct_direct2D
+{
+    mlo_construct_direct2D_fusion(int dir, bool do_bias = false)
+        : mlo_construct_direct2D(dir, do_bias)
+    {
+    }
+    mlo_construct_direct2D_fusion(const miopen::TensorDescriptor& in,
+                           const miopen::TensorDescriptor& weights,
+                           const miopen::TensorDescriptor& out,
+                           const miopen::ConvolutionDescriptor& conv,
+                           int dir,
+                           bool do_bias = false)
+        : mlo_construct_direct2D(in, weights, out, conv, dir, do_bias)
+    {
+    }
+
+    inline void mloCopyTo(miopen::ConvolutionContext& params) const /// TODO: get rid of this
+    {
+        params = _search_params;
+    }
+    miopen::solver::ConvSolution FindSolution(std::vector<miopen::solver::AnySolver> solvers);
+};
 
 #endif // GUARD_MIOPEN_SOLVER_HPP_
