@@ -49,7 +49,7 @@ enum MDGraph_op_t
     OpNotEqual, // Not Equal
     OpAny,      // Dont care, used for metadata
     OpModulo,   // op_val.val % edg_val.val == edg_val.result (only supported for ints)
-    OpGTE,
+    OpGTE,      // op_val.val >= edg_val.val (only supported for ints)
 };
 
 std::ostream& operator<<(std::ostream& stream, const MDGraph_op_t& o);

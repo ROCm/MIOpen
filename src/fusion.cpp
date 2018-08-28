@@ -59,21 +59,7 @@ miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> d
     // load the md graph for the first op
     if(op_count == 0)
     {
-        /// This hack implements very basic check for applicability of winograd 9_2_7.
-        /// Valid only for forward convolution, 3x3 filter, 0x0 padding, 1x1 stride.
-        /// \todo Generic implementation.
-        bool allow_winograd = true;
-        if(desc->kind() == miopenFusionOpConvForward)
-        {
-            auto ptr = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(desc);
-            MIOPEN_LOG_I2("filter_desc = " << ptr->filter_desc);
-            int c = 0;
-            std::tie(std::ignore, c, std::ignore, std::ignore) =
-                tien<4>(ptr->filter_desc.GetLengths());
-            // Assume that c == 0 means "unknown". Disable winograd to ensure correctness.
-            allow_winograd = (c != 0 && c % 2 == 0 && c >= 18);
-        }
-        FusionMDGraph::Init(lu, desc->kind(), allow_winograd);
+        FusionMDGraph::Init(lu, desc->kind());
     }
     desc->SetIdx(op_count);
     if(op_map.empty())
