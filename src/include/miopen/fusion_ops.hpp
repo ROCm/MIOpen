@@ -25,9 +25,12 @@
  *******************************************************************************/
 
 #pragma once
+#include <miopen/logger.hpp>
+
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <boost/any.hpp>
 
 namespace miopen {
 
@@ -47,14 +50,21 @@ enum MDGraph_op_t
     OpAny,
 };
 
+std::ostream& operator<<(std::ostream& stream, const MDGraph_op_t& o);
+std::ostream& operator<<(std::ostream& stream, const boost::any& a);
+
 struct EdgeOp
 {
     template <class U, class V>
-    EdgeOp(U v, V r = true, MDGraph_op_t o = OpAny)
-        : val(std::to_string(v)), result(std::to_string(r)), op(o){};
-    std::string val    = "";
-    std::string result = "";
-    MDGraph_op_t op    = OpAny;
+    EdgeOp(U v, V r = true, MDGraph_op_t o = OpAny) : val(v), result(r), op(o){};
+    boost::any val;
+    boost::any result;
+    MDGraph_op_t op = OpAny;
+    friend std::ostream& operator<<(std::ostream& stream, const EdgeOp& o)
+    {
+        stream << "val: " << o.val << " op: " << o.op;
+        return stream;
+    }
 };
 
 using FusionMDGraph_Edge_Map     = std::unordered_map<std::string, EdgeOp>;
