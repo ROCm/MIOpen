@@ -559,7 +559,7 @@ int miopenBNFwdInferSpatialRunHost(
                 { // via rows
                     for(int column = 0; column < width; column++)
                     { // via columns
-                        adjIndex = in_cstride * cidx + width * row + column;
+                        adjIndex = in_cstride * cidx + in_dstride * didx + width * row + column;
                         for(int bidx = 0; bidx < n_batchs; bidx++)
                         { // via mini_batch
                             index          = in_nstride * bidx + adjIndex;
@@ -601,7 +601,7 @@ int miopenBNFwdInferSpatialRunHost(
                 { // via rows
                     for(int column = 0; column < width; column++)
                     { // via columns
-                        adjIndex = in_cstride * cidx + width * row + column;
+                        adjIndex = in_cstride * cidx + in_dstride * didx + width * row + column;
                         for(int bidx = 0; bidx < n_batchs; bidx++)
                         { // via mini_batch
                             index = in_nstride * bidx + adjIndex;
@@ -930,9 +930,6 @@ int miopenBNBwdSpatialRunHost(
     Tref invVar             = static_cast<Tref>(0.);
     Tref dyelem             = static_cast<Tref>(0.);
     Tref NHW                = static_cast<Tref>(n_batchs * in_cstride);
-    // When depth is present, flatten depth and height as height
-    if(depth)
-        height *= depth;
 
     if(savedmeanvar)
     {
