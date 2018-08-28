@@ -418,7 +418,7 @@ bool FusionMDGraph::ExecOpEqual(const EdgeOp& edg_op, const EdgeOp& op_val)
         return boost::any_cast<miopenDataType_t>(edg_op.val) ==
                boost::any_cast<miopenDataType_t>(op_val.val);
     else
-        MIOPEN_THROW("Unsupported Graph Edge Operation"); 
+        MIOPEN_THROW("Unsupported Graph Edge Operation");
 }
 
 bool FusionMDGraph::ExecEdgeOp(const EdgeOp& edg_op, const EdgeOp& op_val)
