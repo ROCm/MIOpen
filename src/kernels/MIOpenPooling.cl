@@ -142,6 +142,7 @@ mloPoolingG(const __global _FLOAT* bot,
         }
     }
 
+#pragma unroll
     for(uint k = 0; k < MLO_POOLING_N_VERT_OUT_PIX; k++)
     {
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE
