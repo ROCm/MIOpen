@@ -307,7 +307,7 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
         kernel.g_wk.push_back(1);
         result.construction_params.push_back(kernel);
 
-        int data_len       = (params.out_data_type == "FP32" ? 4 : 8);
+        int data_len       = (params.out_data_type == "FP16" ? 2 : params.out_data_type == "FP32" ? 4 : 8);
         result.workspce_sz = wei_bstride * params.n_inputs * n_batch_blks * data_len;
     }
     return result;
