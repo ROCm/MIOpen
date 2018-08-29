@@ -175,7 +175,7 @@ extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane")
 
 static inline uint iDiv(uint v, uint d)
 {
-    uint r = v / d;
+    uint r = (uint)((float)v * (1.0f / (float)d) + 0.00001f);
     return (r);
 }
 
@@ -187,7 +187,7 @@ static inline uint iMod(uint v, uint u, uint d)
 
 static inline void calculateXYPos(uint linPos, uint width, uint* __restrict x, uint* __restrict y)
 {
-    (*y) = linPos / width;
+    (*y) = (uint)((float)linPos * (1.0f / (float)width) + 0.00001f);
     (*x) = linPos - mul24((*y), width);
 }
 
@@ -212,7 +212,8 @@ static inline void readDataElem(uint linPos,
                                 uint gbl_stride,
                                 uint gbl_y,
                                 uint gbl_x,
-                                bool vis)
+                                bool vis,
+                                UNUSED bool debug)
 {
     uint x, y;
     calculateXYPos(linPos, lcl_width, &x, &y);
@@ -263,8 +264,10 @@ static inline void readData(uint lcl_id,
                             uint gbl_stride,
                             uint gbl_y,
                             uint gbl_x,
-                            bool vis)
+                            bool vis,
+                            bool debug)
 {
+
     for(uint i = lcl_id; i < size; i += lcl_p_stride)
     {
         readDataElem(i,
@@ -282,7 +285,57 @@ static inline void readData(uint lcl_id,
                      gbl_stride,
                      gbl_y,
                      gbl_x,
-                     vis);
+                     vis,
+                     debug);
+    }
+}
+
+static inline void loadData(uint lcl_id,
+                            uint lcl_p_stride,
+                            __local _FLOAT* lcl_data,
+                            uint lcl_off,
+                            uint lcl_size,
+                            uint lcl_height,
+                            uint lcl_width,
+                            uint lcl_stride,
+                            uint lcl_bot_y,
+                            uint lcl_bot_x,
+                            const __global _FLOAT* gbl_data,
+                            uint gbl_off,
+                            uint gbl_size,
+                            uint gbl_height,
+                            uint glb_width,
+                            uint gbl_stride,
+                            uint gbl_bot_y,
+                            uint gbl_bot_x,
+                            uint buf_block_ind,
+                            uint max_n_bufs,
+                            uint lcl_n_bufs,
+                            bool debug)
+{
+
+    for(uint c = 0; c < lcl_n_bufs; ++c, lcl_off += lcl_size, gbl_off += gbl_size)
+    {
+        bool vis = (buf_block_ind + c < max_n_bufs);
+        readData(lcl_id,
+                 lcl_size,
+                 lcl_p_stride,
+                 lcl_data,
+                 lcl_off,
+                 lcl_height,
+                 lcl_width,
+                 lcl_stride,
+                 lcl_bot_y,
+                 lcl_bot_x,
+                 gbl_data,
+                 gbl_off,
+                 gbl_height,
+                 glb_width,
+                 gbl_stride,
+                 gbl_bot_y,
+                 gbl_bot_x,
+                 vis,
+                 (debug));
     }
 }
 
@@ -435,13 +488,13 @@ static inline void Conv(uint o_map_base,
 }
 
 __attribute__((reqd_work_group_size(MLO_GRP_SZ0, MLO_GRP_SZ1, MLO_GRP_SZ2))) __kernel void
-MIOpenConvUni(const __global _FLOAT* __restrict in,
-              const __global _FLOAT* __restrict weights,
+MIOpenGroupConvUni(const __global _FLOAT* __restrict in,
+                   const __global _FLOAT* __restrict weights,
 #if MLO_CONV_BIAS
-              const __global _FLOAT* __restrict bias,
+                   const __global _FLOAT* __restrict bias,
 #endif
-              __global _FLOAT* __restrict out,
-              UNUSED _FLOAT padding_val)
+                   __global _FLOAT* __restrict out,
+                   UNUSED _FLOAT padding_val)
 {
 #if((MLO_IN_LCL_SZ + MLO_WEIGHTS_SZ) * SIZEOF_FLOAT) > MLO_LDS_MAX_SIZE
 #error "Local memory size should not exceed 64k."
@@ -495,11 +548,12 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
     uint alu_tl0          = alu_out_id & (MLO_ALU_VTILE0 - 1);
 #endif
 
-    uint o_map_plane =
-        o_pack * MLO_N_OUT_TILES_PERSTACK; // first output maps index per full ALU plane stack
-    uint o_map_base = alu_out_plane_id * MLO_N_OUT_TILES; // local output map offset
-    uint o_map      = o_map_plane + o_map_base;           // output map index per ALU plane
-    uint b_index    = b_pack * MLO_N_STACKS;
+    uint ig          = o_pack / MLO_STACK_PERGROUP;
+    uint within_ig   = o_pack % MLO_STACK_PERGROUP;
+    uint o_map_plane = ig * MLO_GROUP_TILES + within_ig * MLO_N_OUT_TILES_PERSTACK;
+    uint o_map_base  = alu_out_plane_id * MLO_N_OUT_TILES; // local output map offset
+    uint o_map       = o_map_plane + o_map_base;           // output map index per ALU plane
+    uint b_index     = b_pack * MLO_N_STACKS;
 
 #if MLO_LARGE_MAP != 1
 #if MLO_N_READ_PROCS >= MLO_GRP_SZ
@@ -540,34 +594,43 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
     // base offset to read data from local input data
     uint in_stg_off = stack * MLO_IN_LCL_PERSTACK_SZ + (y_in_lcl)*MLO_IN_LCL_WIDTH + x_in_lcl;
 
-    uint in_off = b_index * MLO_IN_BATCH_STRIDE;
-
-#if MLO_DIR_FORWARD == 1
-    uint wei_off = mul24(o_map_plane, (uint)(MLO_N_INPUTS * MLO_FILTER_SZ));
-#else
-    uint wei_off          = mul24(o_map_plane, (uint)MLO_FILTER_SZ);
-#endif
-
 #if MLO_LARGE_MAP == 0
     for(uint i = lcl_id; i < MLO_IN_LCL_SZ; i += MLO_GRP_SZ)
     {
-        lcl_indata[i] = 0.f;
+        lcl_indata[i] = 0;
     }
 #endif
 
     for(uint i = 0; i < MLO_PVT_ACCUM_DATA_SZ; ++i)
     {
-        pvt_accum[i] = 0.f;
+        pvt_accum[i] = 0;
     }
 
-    for(uint ic = 0; ic < MLO_N_INPUTS; ic += MLO_N_IN_TILES_PERSTACK,
-             in_off += MLO_IN_CHANNEL_STRIDE * MLO_N_IN_TILES_PERSTACK,
-             wei_off += MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ
-#if MLO_DIR_FORWARD == 0
-                                        *
-                                        MLO_N_OUTPUTS
+#if MLO_DIR_FORWARD == 1
+    uint wei_off0 = ((MLO_N_OUTPUTS / MLO_GROUP_COUNTS) * ig +
+                     ((o_map % (MLO_N_OUTPUTS / MLO_GROUP_COUNTS)) / MLO_N_OUT_TILES_PERSTACK) *
+                         MLO_N_OUT_TILES_PERSTACK) *
+                    (MLO_N_INPUTS / MLO_GROUP_COUNTS) * MLO_FILTER_SZ;
+#else
+    uint wei_off0 = ((MLO_N_OUTPUTS / MLO_GROUP_COUNTS) * (MLO_N_INPUTS / MLO_GROUP_COUNTS) * ig +
+                     ((o_map % (MLO_N_OUTPUTS / MLO_GROUP_COUNTS)) / MLO_N_OUT_TILES_PERSTACK) *
+                         MLO_N_OUT_TILES_PERSTACK) *
+                    MLO_FILTER_SZ;
 #endif
-        )
+
+    uint in_off0 = (MLO_N_INPUTS / MLO_GROUP_COUNTS) * ig * MLO_IN_CHANNEL_STRIDE +
+                   b_index * MLO_IN_BATCH_STRIDE;
+
+    for(uint ic = (MLO_N_INPUTS / MLO_GROUP_COUNTS) * ig;
+        ic < (MLO_N_INPUTS / MLO_GROUP_COUNTS) * (ig + 1);
+        ic += MLO_N_IN_TILES_PERSTACK,
+             in_off0 += MLO_IN_CHANNEL_STRIDE * MLO_N_IN_TILES_PERSTACK,
+             wei_off0 += MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ
+#if MLO_DIR_FORWARD == 0
+                         *
+                         (MLO_N_OUTPUTS / MLO_GROUP_COUNTS)
+#endif
+            )
     {
         barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -579,7 +642,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 
 #if MLO_LARGE_MAP == 1
         uint in_lcl_off1 = 0;
-        uint in_off1     = in_off;
+        uint in_off1     = in_off0;
         for(uint i_b = 0; i_b < MLO_N_STACKS;
             ++i_b, in_off1 += MLO_IN_BATCH_STRIDE, in_lcl_off1 += MLO_IN_LCL_PERSTACK_SZ)
         {
@@ -594,9 +657,9 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
             for(uint i_c = 0; i_c < MLO_N_IN_TILES_PERSTACK;
                 ++i_c, in_off2 += MLO_IN_CHANNEL_STRIDE, in_lcl_off2 += MLO_IN_LCL_TILE_SZ)
             {
-#if MLO_INPUTS_ALIGNED == 0
-                vis &= (ic + i_c < MLO_N_INPUTS);
-#endif
+                vis &= (ig < MLO_GROUP_COUNTS);
+                vis &= (ic + i_c < (MLO_N_INPUTS / MLO_GROUP_COUNTS) * (ig + 1));
+                vis &= (ic + i_c >= (MLO_N_INPUTS / MLO_GROUP_COUNTS) * ig);
 
                 uint elem_id      = lcl_id;
                 uint lcl_p_stride = MLO_GRP_SZ0;
@@ -622,7 +685,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
                          MLO_IN_STRIDE,
                          y_in_grp,
                          x_in_grp,
-                         vis);
+                         vis,
+                         true);
             }
         }
 #else
@@ -642,10 +706,11 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
             vis &= (b_index + i_b < MLO_BATCH_SZ);
 #endif
 
-#if MLO_INPUTS_ALIGNED == 0
-            vis &= (ic + i_c < MLO_N_INPUTS);
-#endif
-            uint in_off2     = in_off + i_b * MLO_IN_BATCH_STRIDE + i_c * MLO_IN_CHANNEL_STRIDE;
+            vis &= (ig < MLO_GROUP_COUNTS);
+            vis &= (ic + i_c < (MLO_N_INPUTS / MLO_GROUP_COUNTS) * (ig + 1));
+            vis &= (ic + i_c >= (MLO_N_INPUTS / MLO_GROUP_COUNTS) * ig);
+
+            uint in_off2     = in_off0 + i_b * MLO_IN_BATCH_STRIDE + i_c * MLO_IN_CHANNEL_STRIDE;
             uint in_lcl_off2 = i_b * MLO_IN_LCL_PERSTACK_SZ + i_c * MLO_IN_LCL_TILE_SZ;
 
             uint elem_id      = wave_lcl_id;
@@ -677,7 +742,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
                      MLO_IN_STRIDE,
                      y_grp,
                      x_grp,
-                     vis);
+                     vis,
+                     true);
         }
 #endif
 
@@ -697,8 +763,15 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
             uint lcl_o = i / (MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ);
             uint gbl_i = i & ((MLO_N_IN_TILES_PERSTACK * MLO_FILTER_SZ) - 1);
 #endif
-            uint gbl_we_off   = wei_off + lcl_o * MLO_N_INPUTS * MLO_FILTER_SZ + gbl_i;
-            bool within_range = gbl_we_off < (MLO_N_OUTPUTS * MLO_N_INPUTS * MLO_FILTER_SZ);
+            uint gbl_we_off =
+                wei_off0 + lcl_o * (MLO_N_INPUTS / MLO_GROUP_COUNTS) * MLO_FILTER_SZ + gbl_i;
+
+            bool within_range =
+                gbl_we_off < ((MLO_N_OUTPUTS / MLO_GROUP_COUNTS) *
+                              (MLO_N_INPUTS / MLO_GROUP_COUNTS) * (ig + 1) * MLO_FILTER_SZ);
+            within_range &= gbl_we_off >= ((MLO_N_OUTPUTS / MLO_GROUP_COUNTS) *
+                                           (MLO_N_INPUTS / MLO_GROUP_COUNTS) * ig * MLO_FILTER_SZ);
+            within_range &= (ig < MLO_GROUP_COUNTS);
 
             gbl_we_off = (within_range) ? gbl_we_off : 0;
             _FLOAT wei = weights[gbl_we_off];
@@ -724,14 +797,20 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 
             uint lcl_we_off = mad24(
                 mad24(lcl_c, (uint)MLO_N_IN_TILES_PERSTACK, lcl_o), (uint)MLO_FILTER_SZ, lcl_i);
-            uint gbl_we_off = mad24(
-                mad24(lcl_o, (uint)MLO_N_OUTPUTS, lcl_c), (uint)MLO_FILTER_SZ, wei_off + lcl_i);
-            bool within_range   = gbl_we_off < (MLO_N_OUTPUTS * MLO_N_INPUTS * MLO_FILTER_SZ);
+            uint gbl_we_off = mad24(mad24(lcl_o, (uint)(MLO_N_OUTPUTS / MLO_GROUP_COUNTS), lcl_c),
+                                    (uint)MLO_FILTER_SZ,
+                                    wei_off0 + lcl_i);
+            bool within_range =
+                gbl_we_off < ((MLO_N_OUTPUTS / MLO_GROUP_COUNTS) *
+                              (MLO_N_INPUTS / MLO_GROUP_COUNTS) * (ig + 1) * MLO_FILTER_SZ);
+            within_range &= gbl_we_off >= ((MLO_N_OUTPUTS / MLO_GROUP_COUNTS) *
+                                           (MLO_N_INPUTS / MLO_GROUP_COUNTS) * ig * MLO_FILTER_SZ);
+            within_range &= (ig < MLO_GROUP_COUNTS);
+
             gbl_we_off          = (within_range) ? gbl_we_off : 0;
             _FLOAT wei          = weights[gbl_we_off];
             wei                 = (within_range) ? wei : 0;
             lcl_wei[lcl_we_off] = wei;
-
 #endif
         }
 
@@ -748,6 +827,7 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
 
         //		barrier(CLK_LOCAL_MEM_FENCE);
     }
+
 // write results out
 #if MLO_DIR_FORWARD == 1
 #if MLO_FILTER_STRIDE0 == 1
@@ -761,8 +841,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
     uint y_out_grp = y_tile_blk * MLO_IN_TILE1;
 #endif
 #else
-    uint x_out_grp        = x_grp * MLO_FILTER_STRIDE0;
-    uint y_out_grp        = y_grp * MLO_FILTER_STRIDE1;
+    uint x_out_grp = x_grp * MLO_FILTER_STRIDE0;
+    uint y_out_grp = y_grp * MLO_FILTER_STRIDE1;
 #endif
     uint x_out_lcl = alu_tl0 * MLO_OUT_TILE0;
     uint y_out_lcl = alu_tl1 * MLO_OUT_TILE1;
@@ -779,9 +859,8 @@ MIOpenConvUni(const __global _FLOAT* __restrict in,
         uint out_off1 = out_off;
         for(uint o = 0; o < MLO_N_OUT_TILES; ++o, out_off1 += MLO_OUT_CHANNEL_STRIDE)
         {
-#if MLO_OUTPUTS_ALIGNED == 0
-            if(o_map + o < MLO_N_OUTPUTS)
-#endif
+            if(o_map + o < (MLO_N_OUTPUTS / MLO_GROUP_COUNTS) * (ig + 1) &&
+               o_map + o >= (MLO_N_OUTPUTS / MLO_GROUP_COUNTS) * ig && ig < MLO_GROUP_COUNTS)
             {
                 // over output tile
                 uint out_off2 = out_off1;
