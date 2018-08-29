@@ -421,6 +421,19 @@ std::string FusionPlanDescriptor::GetKernelName()
     }
 }
 
+std::string FusionPlanDescriptor::GetAlgorithmName()
+{
+    if(!op_map.empty())
+    {
+        algorithm_name = lu.GetAlgoName();
+        return algorithm_name;
+    }
+    else
+    {
+        MIOPEN_THROW("Unsupported starting op in Fusion Plan");
+    }
+}
+
 miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
     miopenStatus_t status = miopenStatusUnknownError;

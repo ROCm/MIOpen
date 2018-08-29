@@ -251,7 +251,6 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         auto vc =
             std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward, program, kernel, algo);
         vc->solver = solver::ConvBinWinogradRxS{};
-        /// \todo Winograd has some limitations related to R,S,C,K, needs to implement checks - how?
         /// \todo Only 0x0 padding for now. 9_2_7 supports asymmetric padding, from 0 to 2^16.
         /// \todo Winograd supports wide range of RxS. 3x3 only for now.
         auto map_wino_conv = ConvForwardOpDescriptor::MDGraphKey(miopenConvolution,
