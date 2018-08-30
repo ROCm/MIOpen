@@ -26,8 +26,6 @@
 #include <array>
 #include <initializer_list>
 #include <memory>
-#include <miopen/pooling.hpp>
-#include <miopen/tensor_ops.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/batch_norm.hpp>
 #include <miopen/activ.hpp>
@@ -36,7 +34,6 @@
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor.hpp>
-#include <miopen/tensor_ops.hpp>
 
 // Return an error code that is "NotImplemented", if it exists then return success
 // This function should:
@@ -83,25 +80,6 @@ extern "C" miopenStatus_t miopenCompileFusionPlan(miopenHandle_t handle,
     return miopen::try_([&] { miopen::deref(fusePlanDesc).Compile(miopen::deref(handle)); });
 }
 
-// Create convolution ops with known algorithm
-#if 0
-extern "C" miopenStatus_t miopenCreateOpConvForwardAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                        miopenFusionOpDescriptor_t* convOp,
-                                                        miopenConvolutionDescriptor_t convDesc,
-                                                        miopenConvFwdAlgorithm_t fwdAlgo,
-                                                        const miopenTensorDescriptor_t wDesc)
-{
-    MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, fwdAlgo, wDesc);
-    miopenStatus_t res = miopenStatusSuccess;
-    miopen::try_([&] {
-        auto fod = std::make_shared<miopen::ConvForwardOpDescriptor>(
-            miopen::deref(convDesc), miopen::deref(wDesc), fwdAlgo);
-        miopen::deref(convOp) = fod.get();
-        res                   = miopen::deref(fusePlanDesc).AddOp(fod);
-    });
-    return res;
-}
-#endif
 extern "C" miopenStatus_t
 miopenFusionPlanGetWorkSpaceSize(miopenHandle_t handle,
                                  miopenFusionPlanDescriptor_t fusePlanDesc,
@@ -160,7 +138,6 @@ extern "C" miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t
     });
     return res;
 }
-
 // Activation create ops
 extern "C" miopenStatus_t miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                                           miopenFusionOpDescriptor_t* activOp,
@@ -175,7 +152,6 @@ extern "C" miopenStatus_t miopenCreateOpActivationForward(miopenFusionPlanDescri
     });
     return res;
 }
-
 extern "C" miopenStatus_t miopenCreateOpBiasForward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                                     miopenFusionOpDescriptor_t* biasOp,
                                                     const miopenTensorDescriptor_t bDesc)
