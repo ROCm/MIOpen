@@ -90,9 +90,9 @@ struct verify_forward_train_bn_per_activation
         if(input.desc.GetType() == miopenFloat)
         {
             runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
-                tensor_elem_gen_integer{miopenFloat});
+                tensor_elem_gen_integer{17});
             runVar = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
-                tensor_elem_gen_integer{miopenFloat});
+                tensor_elem_gen_integer{17});
         }
         else
         {
@@ -215,9 +215,9 @@ struct verify_forward_train_bn_per_activation
         if(input.desc.GetType() == miopenFloat)
         {
             runMean = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
-                tensor_elem_gen_integer{miopenFloat});
+                tensor_elem_gen_integer{17});
             runVar = tensor<T>{rs_n_batch, rs_channels, rs_height, rs_width}.generate(
-                tensor_elem_gen_integer{miopenFloat});
+                tensor_elem_gen_integer{17});
         }
         else
         {
@@ -969,8 +969,8 @@ struct batch_norm_per_activation_driver : test_driver
 
         if(input.desc.GetType() == miopenFloat)
         {
-            scale = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{miopenFloat});
-            shift = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{miopenFloat});
+            scale = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
+            shift = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
         }
         else
         {
@@ -1002,8 +1002,10 @@ struct batch_norm_per_activation_driver : test_driver
             input, scale, shift, estMean, estVar});
 
         // backprop recalc
+        unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
+
         auto dy_input = tensor<T>{n, c, h, w}.generate(
-            tensor_elem_gen_integer{}); //= std::get<0>(outpair.first);//
+            tensor_elem_gen_integer{max_value}); //= std::get<0>(outpair.first);//
         verify(verify_backward_bn_per_activation_recalc<T>{input, dy_input, scale});
 
         // backprop use saved values

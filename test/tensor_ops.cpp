@@ -290,9 +290,11 @@ struct tensor_ops_driver : test_driver
         std::vector<int> blens = {{32, 16, 20, 16, 8}};
         std::vector<int> clens = {{32, 16, 20, 16, 8}};
 
-        super_a = tensor<T>{alens}.generate(tensor_elem_gen_integer{});
-        super_b = tensor<T>{blens}.generate(tensor_elem_gen_integer{});
-        super_c = tensor<T>{clens}.generate(tensor_elem_gen_integer{});
+        unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
+
+        super_a = tensor<T>{alens}.generate(tensor_elem_gen_integer{max_value});
+        super_b = tensor<T>{blens}.generate(tensor_elem_gen_integer{max_value});
+        super_c = tensor<T>{clens}.generate(tensor_elem_gen_integer{max_value});
 
         std::vector<std::vector<int>> get_offsets     = {{64, 32, 16}, {32, 16, 32}, {32, 16, 32}};
         std::vector<std::vector<float>> get_alphabeta = {{1, 1, 0}, {-1, 1, 1}, {1.0, 0.5, 0.3}};
