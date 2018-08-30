@@ -32,19 +32,29 @@ namespace solver {
 
 bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
 {
-    // FIE ME:  it sounds a bug to enable kernel_size1x1 from original condition
-    if(params.kernel_size0 == 1 && params.kernel_size1 == 1)
-        return false;
+    bool solution = true;
 
-    /// \todo Workaround for issue 918. Looks like dy tensor with padding < 1 is not supported.
-    if((params.GetBackwardPad0() < 1 || params.GetBackwardPad1() < 1))
-        return false;
+    solution &= params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1;
 
-    return ((params.kernel_size0 >= params.kernel_size1) &&
-            ((params.kernel_stride0 > 1 || params.kernel_stride1 > 1) ||
-             (params.kernel_size0 > 5) || (params.kernel_size0 == 5 && params.in_width >= 64))) ||
-           ((params.pad0 == 0 || params.pad1 == 0) &&
-            (params.kernel_size0 != 1 || params.kernel_size1 != 1));
+#if 0
+    // TODO: chao: revisit this if failure is encountered.
+    // There is a stronger restriction than this one, which make this one unnecessary.
+    // The kernel read stripes (in height direction, one stripe at a time) of input into LDS,
+    // the height of stripe is (MLO_N_ALIGNED_OUT_SCAN_BLK - 1) * MLO_FILTER_STRIDE1 +
+    // MLO_FILTER_SIZE1,
+    // (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1) of it is reusable from previous read,
+    // (MLO_N_ALIGNED_OUT_SCAN_BLK * MLO_FILTER_STRIDE1) of it is fresh read from device memory.
+    // So (MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1) need no less than 0.
+    solution &= params.kernel_size1 - params.kernel_stride1 >= 0;
+#endif
+
+    // The first scan of stripe of the input into LDS will read a strip of height (kernel_size1 -
+    // kernel_stride1),
+    // this stripe should include the whole lower bound padding, as well as some or none of the
+    // input.
+    solution &= params.kernel_size1 - params.kernel_stride1 >= params.pad1;
+
+    return solution;
 }
 
 ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
