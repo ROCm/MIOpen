@@ -28,10 +28,10 @@
 #include <miopen/logger.hpp>
 
 namespace miopen {
-std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& op)
+std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x)
 {
     MIOPEN_LOG_ENUM(stream,
-                    op.kind(),
+                    x.kind(),
                     miopenFusionOpConvForward,
                     miopenFusionOpActivForward,
                     miopenFusionOpBatchNormInference,
