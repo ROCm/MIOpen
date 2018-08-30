@@ -55,13 +55,11 @@
 #define UNUSED __attribute__((__unused__))
 
 #define DBG_OUT_OF_RNGE 0
-// number of filter taps in the processing wk_item
-//#define MLO_WEI_WKITEM 5
 
 #define MLO_N_OUT_HORIZ_READS (MLO_ALIGNED_OUT_SCAN_LN)
 #define MLO_OUT_HORIZ_PIX_SZ (MLO_N_OUT_HORIZ_READS * MLO_READ_UNIT)
 
-// n of of filter blks
+// MLO_WEI_BLK_SZ0 is the width of each filter tap
 #define MLO_WEI_BLK_SZ0 ((MLO_FILTER_SIZE0 + MLO_WEI_WKITEM - 1) / MLO_WEI_WKITEM)
 #define MLO_WEI_BLK_SZ (MLO_FILTER_SIZE1 * MLO_WEI_BLK_SZ0)
 // n of filter tiles in the group grid
@@ -71,6 +69,15 @@
 #define MLO_OUT_WEI_EXT_SCAN_BLK ((MLO_OUT_WIDTH + MLO_N_WEI_BLK - 1) / MLO_N_WEI_BLK)
 
 #define MLO_OUT_WEI_SCAN_BLK (MLO_OUT_WEI_EXT_SCAN_BLK)
+
+// MLO_WEI_WKITEM is the number of filter taps (in horizonotal direction)
+// MLO_WEI_WKITEM number of input data are saved in register for each thread
+// MLO_WEI_WKITEM_REUSE is number of input data that can be reused, when filter move horizontally
+#if MLO_WEI_WKITEM > (MLO_FILTER_STRIDE0 / MLO_WEI_BLK_SZ0)
+#define MLO_WEI_WKITEM_REUSE (MLO_WEI_WKITEM - (MLO_FILTER_STRIDE0 / MLO_WEI_BLK_SZ0))
+#else
+#define MLO_WEI_WKITEM_REUSE 0
+#endif
 
 // max loop over virtual blocks for small images
 #define MLO_MAX_WEI_BLK_TMP ((MLO_OUT_WIDTH + MLO_OUT_WEI_SCAN_BLK - 1) / MLO_OUT_WEI_SCAN_BLK)
@@ -522,8 +529,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
                     _FLOAT i_vals[MLO_WEI_WKITEM];
 
-                    for(uint w = 0; w < (MLO_WEI_WKITEM - (MLO_FILTER_STRIDE0 / MLO_WEI_BLK_SZ0));
-                        ++w)
+                    for(uint w = 0; w < MLO_WEI_WKITEM_REUSE; ++w)
                     {
                         uint w_x   = w_x0 + w * MLO_WEI_BLK_SZ0;
                         uint i_off = (j * MLO_FILTER_STRIDE1 + w_y) * MLO_IN_LCL_WIDTH +
@@ -540,9 +546,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                     {
 
                         // read the current input pixel
-                        for(uint w = (MLO_WEI_WKITEM - (MLO_FILTER_STRIDE0 / MLO_WEI_BLK_SZ0));
-                            w < MLO_WEI_WKITEM;
-                            ++w)
+                        for(uint w = MLO_WEI_WKITEM_REUSE; w < MLO_WEI_WKITEM; ++w)
                         {
                             uint w_x = w_x0 + w * MLO_WEI_BLK_SZ0;
                             uint i_off =
@@ -572,11 +576,9 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                             } // for (/*uint w = 0*/; w < MLO_WEI_WKITEM; ++w)
                         }     // for (uint o = 0; o < MLO_N_LCL_OUT_MAPS; ++o)
 
-                        for(uint w = 0;
-                            w < (MLO_WEI_WKITEM - (MLO_FILTER_STRIDE0 / MLO_WEI_BLK_SZ0));
-                            ++w)
+                        for(uint w = 0; w < MLO_WEI_WKITEM_REUSE; ++w)
                         {
-                            i_vals[w] = i_vals[w + (MLO_FILTER_STRIDE0 / MLO_WEI_BLK_SZ0)];
+                            i_vals[w] = i_vals[w + MLO_WEI_WKITEM - MLO_WEI_WKITEM_REUSE];
                         }
                     } // for (uint i = 0; i < MLO_OUT_WEI_SCAN_BLK; ++i)
                 }     // for (uint j = 0; j < MLO_N_ALIGNED_OUT_SCAN_BLK; ++j)
