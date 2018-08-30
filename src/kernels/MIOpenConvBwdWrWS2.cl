@@ -324,7 +324,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             }
         }
 
-        // chao: TODO: potential bug: in_y (uint) maybe negative, not safe
         in_y += MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1 - MLO_FILTER_PAD1;
 
         // TO DO: HANDLE PADDING
@@ -585,8 +584,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
             } // for(; og < (MLO_N_OUT_BLK_GRP; ++og )
 
             // move the input data tail inside LDS to reduce mem bandwidth
-            for(uint c_scan3 = 0; c_scan3 < (uint)(MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1);
-                ++c_scan3)
+            for(uint c_scan = 0; c_scan < MLO_FILTER_SIZE1 - MLO_FILTER_STRIDE1; ++c_scan)
             {
                 barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -596,9 +594,9 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                     uint c_pix4 = p4;
                     for(uint i = 0; i < MLO_READ_UNIT; ++i)
                     {
-                        lcl_bot[c_scan3 * (MLO_IN_LCL_WIDTH) + MLO_FILTER_PAD0 +
+                        lcl_bot[c_scan * (MLO_IN_LCL_WIDTH) + MLO_FILTER_PAD0 +
                                 c_pix4 * MLO_READ_UNIT + i] =
-                            lcl_bot[(c_scan3 +
+                            lcl_bot[(c_scan +
                                      (MLO_IN_LCL_HEIGHT - MLO_FILTER_SIZE1 + MLO_FILTER_STRIDE1)) *
                                         (MLO_IN_LCL_WIDTH) +
                                     MLO_FILTER_PAD0 + c_pix4 * MLO_READ_UNIT + i];
