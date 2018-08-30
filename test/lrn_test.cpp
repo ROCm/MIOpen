@@ -290,10 +290,13 @@ struct lrn_driver : test_driver
 
         std::size_t n_batch, channels, height, width;
         std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
-        auto scale =
-            tensor<T>{n_batch, channels, height, width}.generate(tensor_elem_gen_integer{});
-        auto inputX =
-            tensor<T>{n_batch, channels, height, width}.generate(tensor_elem_gen_integer{});
+
+        unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
+
+        auto scale = tensor<T>{n_batch, channels, height, width}.generate(
+            tensor_elem_gen_integer{max_value});
+        auto inputX = tensor<T>{n_batch, channels, height, width}.generate(
+            tensor_elem_gen_integer{max_value});
         par_ford(n_batch, channels, height, width)(
             [&](int b, int c, int h, int w) { scale(b, c, h, w) += 1; });
 
