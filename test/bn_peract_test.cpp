@@ -948,7 +948,10 @@ struct batch_norm_per_activation_driver : test_driver
     batch_norm_per_activation_driver()
     {
         this->batch_factor = 4;
-        add(input, "input", get_bn_peract_input_tensor());
+        add(input,
+            "input",
+            get_bn_peract_input_tensor(
+                tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
     }
 
     void run()
