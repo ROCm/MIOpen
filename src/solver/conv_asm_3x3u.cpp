@@ -170,8 +170,8 @@ bool ConvAsm3x3U::IsApplicable(const ConvolutionContext& params) const
     }
 
     const std::string name = params.GetStream().GetDeviceName();
-    if(name.find("gfx8") == std::string::npos)
-    { // Any gfx8 device is ok.
+    if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
+    {
         return false;
     }
     assert(params.weights_layout.length() == 0); // FIXME _weights_layout is not supported yet.
