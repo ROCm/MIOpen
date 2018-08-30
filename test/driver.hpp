@@ -61,26 +61,6 @@ struct tensor_elem_gen_integer
     }
 };
 
-struct tensor_elem_gen_float
-{
-    double max_value = 1e-2;
-
-    template <class... Ts>
-    double operator()(Ts... Xs) const
-    {
-        return max_value * tensor_elem_gen_integer{17}(Xs...) / 17 * ((rand() % 2) ? 1 : -1);
-    }
-};
-
-struct tensor_elem_gen_one
-{
-    template <class... Ts>
-    double operator()(Ts...) const
-    {
-        return 1;
-    }
-};
-
 // Run cpu in parallel if it can be ran as const
 template <class V, class... Ts>
 auto cpu_async(const V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
