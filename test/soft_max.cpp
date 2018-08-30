@@ -141,7 +141,12 @@ struct softmax_driver : test_driver
 {
     tensor<T> input;
 
-    softmax_driver() { add(input, "input", get_input_tensor()); }
+    softmax_driver()
+    {
+        add(input,
+            "input",
+            get_input_tensor(tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
+    }
 
     void run()
     {
