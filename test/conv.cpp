@@ -41,6 +41,27 @@
 #include "verify.hpp"
 #include <miopen/stringutils.hpp>
 
+struct tensor_elem_gen_float
+{
+    double max_value = 1e-2;
+
+    template <class... Ts>
+    double operator()(Ts... Xs) const
+    {
+        return max_value * tensor_elem_gen_integer{17}(Xs...) / 17 * ((double)std::rand()) /
+               RAND_MAX;
+    }
+};
+
+struct tensor_elem_gen_one
+{
+    template <class... Ts>
+    double operator()(Ts...) const
+    {
+        return 1;
+    }
+};
+
 template <class T>
 tensor<T> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
                             const tensor<T>& input,
