@@ -48,7 +48,7 @@ struct tensor_elem_gen_float
     template <class... Ts>
     double operator()(Ts... Xs) const
     {
-        return max_value * tensor_elem_gen_integer{17}(Xs...) / 17 * ((double)std::rand()) /
+        return max_value * tensor_elem_gen_integer{17}(Xs...) / 17 * (double(std::rand())) /
                RAND_MAX;
     }
 };
