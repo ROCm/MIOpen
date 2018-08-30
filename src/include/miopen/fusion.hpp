@@ -49,14 +49,13 @@ enum FusionKernelSourceType
     Binary,
 };
 
-using any_t = OpKernelArg;
 struct OperatorArgs : miopenOperatorArgs
 {
     OperatorArgs();
-    void ins_arg(std::string name, any_t v);
+    void ins_arg(std::string name, OpKernelArg v);
     friend std::ostream& operator<<(std::ostream& stream, const OperatorArgs& x);
-    std::vector<any_t> args_vec;
-    std::unordered_map<std::string, any_t> args_map;
+    std::vector<OpKernelArg> args_vec;
+    std::unordered_map<std::string, OpKernelArg> args_map;
 };
 
 struct FusionOpDescriptor : miopenFusionOpDescriptor
