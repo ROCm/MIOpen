@@ -242,6 +242,8 @@ enable_clang_tidy(
         -readability-braces-around-statements
         -readability-else-after-return
         -readability-named-parameter
+        -hicpp-use-auto
+	-modernize-use-auto
         ${CLANG_TIDY_CHECKS}
     ERRORS
         *

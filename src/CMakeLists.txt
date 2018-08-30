@@ -65,7 +65,11 @@ set( MIOpen_Source
     db.cpp
     db_record.cpp
     find_controls.cpp
-    load_file.cpp
+    fusion.cpp
+    op_args.cpp
+    operator.cpp
+    fused_api.cpp
+	load_file.cpp
     pooling_api.cpp
     kernel_warnings.cpp
     logger.cpp
@@ -106,6 +110,10 @@ set( MIOpen_Source
     include/miopen/activ.hpp
     include/miopen/softmax.hpp
     include/miopen/rnn.hpp
+    include/miopen/md_graph.hpp
+    include/miopen/fusion_ops.hpp
+    include/miopen/fusion.hpp
+    md_graph.cpp
     tensor.cpp
     tensor_api.cpp
     solver.cpp
@@ -202,7 +210,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m30.so
         kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m21.so
         kernels/conv_3x3_wheel_alpha_v3_0b_gfx803_m10.so
-        kernels/MIOpenConvBwdBias.cl)
+        kernels/MIOpenConvBwdBias.cl
+        kernels/MIOpenBatchNormActivInfer.cl)
 
     add_kernels("${MIOPEN_KERNELS}")
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
@@ -226,6 +235,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/utilocl.cpp
         ocl/gcn_asm_utils.cpp
         pooling.cpp
+        ocl/fusionopbiasbnactivocl.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         ${PROJECT_BINARY_DIR}/kernel.cpp
         )
