@@ -1109,7 +1109,10 @@ struct batch_norm_spatial_driver : test_driver
         this->batch_factor = 4;
 
         // this->verbose=true;
-        add(input, "input", get_bn_spatial_input_tensor());
+        add(input,
+            "input",
+            get_bn_spatial_input_tensor(
+                tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
     }
 
     void run()
