@@ -153,8 +153,10 @@ struct tensor_copy_driver : test_driver
 
     void run()
     {
-        srcSuper = tensor<T>{srcSuperLens}.generate(tensor_elem_gen_integer{});
-        dstSuper = tensor<T>{dstSuperLens}.generate(tensor_elem_gen_integer{});
+        unsigned long max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
+
+        srcSuper = tensor<T>{srcSuperLens}.generate(tensor_elem_gen_integer{max_value});
+        dstSuper = tensor<T>{dstSuperLens}.generate(tensor_elem_gen_integer{max_value});
 
         std::vector<size_t> srcSuperStrides = srcSuper.desc.GetStrides();
         std::vector<size_t> dstSuperStrides = dstSuper.desc.GetStrides();
