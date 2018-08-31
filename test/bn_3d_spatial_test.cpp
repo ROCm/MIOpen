@@ -1208,6 +1208,14 @@ struct batch_norm_3d_spatial_driver : test_driver
         {
             scale = tensor<T>{ssn, ssc, ssd, ssh, ssw}.generate(rand_gen{});
             shift = tensor<T>{ssn, ssc, ssd, ssh, ssw}.generate(rand_gen{});
+
+            if(d * h * w < 3072)
+            {
+                std::cout << "Choosing smaller input values for low dims" << std::endl;
+                rand_gen rg{};
+                rg.max_value = 7;
+                input        = tensor<T>{n, c, d, h, w}.generate(rg);
+            }
         }
         else
         {
