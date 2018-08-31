@@ -401,7 +401,7 @@ get_3d_bn_spatial_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
     return 
     {
         { pick_batch_size(32, n),   1,   32,  32,  32  },       // 32x32x32 based on VoxNet arch
-//        { pick_batch_size(32, n),   1,   14,  14,  14  },
+        { pick_batch_size(32, n),   1,   14,  14,  14  },
         { pick_batch_size(32, n),  32,   14,  14,  14  },
         { pick_batch_size(32, n),  32,   12,  12,  12  },
         { pick_batch_size(32, n),  32,    6,   6,   6  },
@@ -417,11 +417,11 @@ get_3d_bn_spatial_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
         { pick_batch_size(32,  n), 32,   14,  25,  59  },
         { pick_batch_size(32,  n), 32,    6,  10,  27  },
         { pick_batch_size(32,  n), 32,    4,   6,  11  },                        
-//        { pick_batch_size(32,  n), 32,    2,   2,   3  },                        
+        { pick_batch_size(32,  n), 32,    2,   2,   3  },                        
         { pick_batch_size(32,  n), 32,   32,  28,  62  },       // Hand-gesture recognition CVPR 2015 paper Low Res Net Path 
         { pick_batch_size(32,  n), 32,   14,  12,  29  },
         { pick_batch_size(32,  n), 32,    6,   4,  12  },                        
-//        { pick_batch_size(32,  n), 32,    4,   2,   2  },                        
+        { pick_batch_size(32,  n), 32,    4,   2,   2  },                        
         { pick_batch_size(16,  n), 32,    6,  50,  50  },       // Multi-view 3D convnet
         { pick_batch_size(1,   n), 3,     8,  240, 320 },      // 3D convet on video
         { pick_batch_size(1,   n), 3,    16,  240, 320 },      // 3D convet on video
