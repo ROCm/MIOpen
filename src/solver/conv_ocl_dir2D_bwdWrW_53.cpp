@@ -32,6 +32,7 @@ namespace solver {
 
 bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 {
+#if 0//debug
     // Cases when dy has negative padding are not supported (issue 918)
     // TODO: chao: this is not a bug, it's limitation of the kernel's algorithm, for now. But I will
     // remove this limitation
@@ -40,6 +41,16 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 
     return ((params.kernel_size0 >= 2 || params.kernel_size1 >= 2) &&
             (params.kernel_stride1 == 1 && params.kernel_stride0 == 1));
+#else
+    bool solution = true;
+    solution &= (params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1);
+    solution &= (params.kernel_stride0 == 1 && params.kernel_stride1 == 1);
+
+    // This limitation is because of the way the kernel process data at lower (vertical) boundary
+    solution &= params.kernel_size1 - params.pad1 - params.kernel_stride1 >= 0;
+
+    return solution;
+#endif
 }
 
 ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) const
