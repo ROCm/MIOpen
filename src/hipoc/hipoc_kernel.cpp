@@ -30,6 +30,7 @@
 #include <miopen/handle_lock.hpp>
 #include <thread>
 #include <hip/hip_hcc.h>
+#include <hip/hip_runtime.h>
 
 namespace miopen {
 

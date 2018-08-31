@@ -57,6 +57,7 @@
  * @defgroup tensor
  * @defgroup softmax
  * @defgroup RNN
+ * @defgroup fusion
  *
 */
 
@@ -226,6 +227,15 @@ MIOPEN_EXPORT miopenStatus_t miopenGetKernelTime(miopenHandle_t handle, float* t
 MIOPEN_EXPORT miopenStatus_t miopenEnableProfiling(miopenHandle_t handle, bool enable);
 /** @} */
 // CLOSEOUT HANDLE DOXYGEN GROUP
+
+/*! @ingroup fusion
+ * @brief Creates the miopenFusionOpDescriptor_t type
+ *
+ * Fusion Operator Descriptor contains the meta-data associated with an operator
+ * to be fused in a compute graph
+ *
+ */
+MIOPEN_DECLARE_OBJECT(miopenFusionOpDescriptor);
 
 /*! @ingroup tensor
  * @brief Creates the miopenTensorDescriptor_t type
@@ -1742,6 +1752,183 @@ MIOPEN_EXPORT miopenStatus_t miopenSoftmaxBackward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT SOFTMAX DOXYGEN GROUP
+
+/*! @ingroup FUSION
+* @brief MIOpen fusion interface
+*/
+MIOPEN_DECLARE_OBJECT(miopenFusionPlanDescriptor);
+MIOPEN_DECLARE_OBJECT(miopenOperatorDescriptor);
+MIOPEN_DECLARE_OBJECT(miopenOperatorArgs);
+
+/** @addtogroup FUSION
+*
+*  @{
+*/
+
+/*! @enum miopenFusionDirection_t
+* @brief Kernel fusion direction in the network
+*/
+typedef enum {
+    miopenVerticalFusion   = 0, /*!< fuses layers vertically, current the only supported mode */
+    miopenHorizontalFusion = 1, /*!< fuses layers horizontally, this is unimplemented */
+} miopenFusionDirection_t;
+
+/*! @brief Creates the kenrel fusion plan descriptor object
+*
+* @param fusePlanDesc  Pointer to a fusion plan (output)
+* @param fuseDirection Horizontal or Vertical fusion (input)
+* @param inputDesc     Descriptor to tensor for the input (input)
+* @return              miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* fusePlanDesc,
+                                                    const miopenFusionDirection_t fuseDirection,
+                                                    const miopenTensorDescriptor_t inputDesc);
+
+/*! @brief Destroy the fusion plan descriptor object
+*
+* @param fusePlanDesc  A fusion plan descriptor type
+* @return              miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc);
+
+/*! @brief Compiles the fusion plan
+*
+* @param handle           MIOpen handle (input)
+* @param fusePlanDesc A fusion plan descriptor (input)
+* @return             miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCompileFusionPlan(miopenHandle_t handle,
+                                                     miopenFusionPlanDescriptor_t fusePlanDesc);
+
+/*!
+ * @brief Allows access to the operators in a fusion plan
+ * @details This api call does bounds checking on the supplied op_idx and would
+ *          return miopenStatusError if the index is out of bounds
+ *
+ * @param fusePlanDesc A fusion plan descriptor (input)
+ * @param op_idx Index of the required operator in the fusion plan, in the order of insertion
+ * @param op returned pointer to the operator
+ * @return miopenStatus_t
+ */
+
+MIOPEN_EXPORT miopenStatus_t miopenFusionPlanGetOp(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                   const int op_idx,
+                                                   miopenFusionOpDescriptor_t* op);
+
+//---
+
+// Activation create ops ---
+/*! @brief Creates a forward activation operator.
+*
+* @param fusePlanDesc    A fusion plan descriptor (input)
+* @param activOp         Pointer to an operator type (output)
+* @param mode            Activation version (input)
+* @return                miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                miopenFusionOpDescriptor_t* activOp,
+                                miopenActivationMode_t mode);
+
+//---
+
+// Batch normalization create ops ---
+/*! @brief Creates a forward inference batch normalization operator.
+*
+* @param fusePlanDesc           A fusion plan descriptor (input)
+* @param bnOp                   Pointer to an operator type (output)
+* @param bn_mode                Batch normalization layer mode (input)
+* @param bnScaleBiasMeanVarDesc Gamma, beta, mean, variance tensor descriptor (input)
+* @return                       miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                 miopenFusionOpDescriptor_t* bnOp,
+                                 const miopenBatchNormMode_t bn_mode,
+                                 const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc);
+
+//---
+/*! @brief Creates an operator argument object
+*
+* @param args        Pointer to an operator argument type (output)
+* @return            miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCreateOperatorArgs(miopenOperatorArgs_t* args);
+
+/*! @brief Destroys an operator argument object
+*
+* @param args        An operator argument type (output)
+* @return            miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenDestroyOperatorArgs(miopenOperatorArgs_t args);
+
+// Activation set arguments ---
+/*! @brief Sets the arguments for forward activation op
+*
+* @param args    An arguments object type (output)
+* @param alpha   Floating point scaling factor, allocated on the host (input)
+* @param beta    Floating point shift factor, allocated on the host (input)
+* @param activAlpha  Double precision activation parameter which depends on activation mode (input)
+* @param activBeta   Double precision activation parameter which depends on activation mode (input)
+* @param activGamma  Double precision activation parameter which depends on activation mode (input)
+* @return        miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
+                                                         const miopenFusionOpDescriptor_t activOp,
+                                                         const void* alpha,
+                                                         const void* beta,
+                                                         double activAlpha,
+                                                         double activBeta,
+                                                         double activGamma);
+// Batch Normalization set arguments ---
+/*! @brief Sets the arguments for inference batch normalization op
+*
+* @param args               An arguments object type (output)
+* @param bnOp               Batch normalization inference operator (input)
+* @param alpha              Floating point scaling factor, allocated on the host (input)
+* @param beta               Floating point shift factor, allocated on the host (input)
+* @param bnScale            Pointer to the gamma tensor memory  (input)
+* @param bnBias             Pointer to the beta tensor memory  (input)
+* @param estimatedMean      Pointer to population mean memory  (input)
+* @param estimatedVariance  Pointer to population variance memory  (input)
+* @param epsilon            Scalar value for numerical stability (input)
+* @return                   miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t args,
+                                  const miopenFusionOpDescriptor_t bnOp,
+                                  const void* alpha,
+                                  const void* beta,
+                                  const void* bnScale,
+                                  const void* bnBias,
+                                  const void* estimatedMean,
+                                  const void* estimatedVariance,
+                                  double epsilon);
+
+/*! @brief Executes the fusion plan
+*
+*
+* @param handle           MIOpen handle (input)
+* @param fusePlanDesc     fused plan descriptor (input)
+* @param inputDesc        Descriptor of the input tensor (input)
+* @param input            Source data tensor  (input)
+* @param outputDesc       Decriptor of the output tensor (input)
+* @param output           Destination data tensor  (output)
+* @param args             An argument object of the fused kernel (input)
+* @return           miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenExecuteFusionPlan(const miopenHandle_t handle,
+                        const miopenFusionPlanDescriptor_t fusePlanDesc,
+                        const miopenTensorDescriptor_t inputDesc,
+                        const void* input,
+                        const miopenTensorDescriptor_t outputDesc,
+                        void* output,
+                        miopenOperatorArgs_t args);
+
+/** @} */
+// CLOSEOUT FUSION DOXYGEN GROUP
 
 /** @addtogroup RNN
 *
