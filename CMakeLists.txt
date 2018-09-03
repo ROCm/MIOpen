@@ -75,7 +75,7 @@ add_compile_options(-std=c++14)
 # OPTION - MIOpen Backend
 # - OpenCL
 # - HCC
-if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
+if(CMAKE_CXX_COMPILER MATCHES ".*hcc" OR CMAKE_CXX_COMPILER MATCHES ".*hipcc")
     set(MIOPEN_DEFAULT_BACKEND "HIP")
 else()
     set(MIOPEN_DEFAULT_BACKEND "OpenCL")
@@ -193,7 +193,7 @@ rocm_create_package(
 )
 
 include(EnableCompilerWarnings)
-if(CMAKE_CXX_COMPILER MATCHES ".*hcc")
+if(CMAKE_CXX_COMPILER MATCHES ".*hcc" OR CMAKE_CXX_COMPILER MATCHES ".*hipcc" )
     set(CLANG_TIDY_CHECKS -modernize-use-override -readability-non-const-parameter)
 endif()
 include(ClangTidy)
@@ -244,6 +244,8 @@ enable_clang_tidy(
         -readability-braces-around-statements
         -readability-else-after-return
         -readability-named-parameter
+        -hicpp-use-auto
+	-modernize-use-auto
         ${CLANG_TIDY_CHECKS}
     ERRORS
         *

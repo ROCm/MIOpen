@@ -50,6 +50,16 @@
     .endif
 .endm
 
+// SUB_NC
+.macro _v_sub_nc_u32 dst, src0, src1, dpp=
+    .if (.option.machine_version_major == 8)
+        // None No-Carry instruction in Gfx8, modifies VCC.
+        v_sub_u32 \dst, vcc, \src0, \src1 \dpp
+    .else
+        v_sub_u32 \dst, \src0, \src1 \dpp
+    .endif
+.endm
+
 // ADD_CO (gfx8 add)
 .macro _v_add_co_u32 dst, co, src0, src1, dpp=
     .if ((.option.machine_version_major == 8) || ((.option.machine_version_major == 9) && (WORKAROUND_BUG_34765 == 1)))
