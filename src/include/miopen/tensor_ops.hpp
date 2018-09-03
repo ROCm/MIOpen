@@ -69,6 +69,19 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
     }
 #endif
 
+    // if tensors are all packed
+    bool is_all_packed = true;
+    for(std::size_t itensor = 0; itensor < NTensor; ++itensor)
+        is_all_packed &= real_descriptors[itensor]->IsPacked();
+
+    if(is_all_packed)
+    {
+        auto sz = real_descriptors[0]->GetElementSize();
+        return create_tuple<NTensor>([&](auto itensor) {
+            return TensorDescriptor{real_descriptors[itensor]->GetType(), {sz}, {1}};
+        });
+    }
+
     // start flattening tensors
     std::array<std::vector<std::size_t>, NTensor> array_of_flat_lengths;
     std::array<std::vector<std::size_t>, NTensor> array_of_flat_strides;
@@ -92,8 +105,7 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
                 std::size_t stride          = boost::get<itensor + 1>(*i);
                 std::size_t previous_stride = boost::get<itensor + 1>(*i_previous);
                 std::size_t full_len        = previous_stride / stride;
-                if(len != full_len)
-                    is_all_full_length = false;
+                is_all_full_length &= (len == full_len);
             },
             NTensorConstant);
 
