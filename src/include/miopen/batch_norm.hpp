@@ -46,6 +46,8 @@ void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
                               const TensorDescriptor& xDesc,
                               miopenBatchNormMode_t bn_mode);
 
+TensorDescriptor BuildReshaped4DTensorDescriptor(const miopen::TensorDescriptor& tDesc);
+
 void bnBwdTrainSelectSingle(Handle& handle,
                             miopenDataType_t dtype,
                             std::string& program_name,
