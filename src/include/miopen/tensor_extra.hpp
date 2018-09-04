@@ -36,3 +36,13 @@ MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptorLengths(
 
 MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptorStrides(
     miopenTensorDescriptor_t tensorDesc, int* nStride, int* cStride, int* hStride, int* wStride);
+
+MIOPEN_EXPORT miopenStatus_t miopenGet5dTensorDescriptorLengths(
+    miopenTensorDescriptor_t tensorDesc, int* n, int* c, int* d, int* h, int* w);
+
+MIOPEN_EXPORT miopenStatus_t miopenGet5dTensorDescriptorStrides(miopenTensorDescriptor_t tensorDesc,
+                                                                int* nStride,
+                                                                int* cStride,
+                                                                int* dStride,
+                                                                int* hStride,
+                                                                int* wStride);

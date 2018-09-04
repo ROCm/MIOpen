@@ -39,22 +39,45 @@ std::vector<int> GetTensorLengths(miopenTensorDescriptor_t& tensor)
     int c;
     int h;
     int w;
+    int d;
 
-    miopenGet4dTensorDescriptorLengths(tensor, &n, &c, &h, &w);
+    int size = 0;
+    miopenGetTensorDescriptorSize(tensor, &size);
 
-    return std::vector<int>({n, c, h, w});
+    if(size == 5)
+    {
+        miopenGet5dTensorDescriptorLengths(tensor, &n, &c, &d, &h, &w);
+        return std::vector<int>({n, c, d, h, w});
+    }
+    else
+    {
+        miopenGet4dTensorDescriptorLengths(tensor, &n, &c, &h, &w);
+        return std::vector<int>({n, c, h, w});
+    }
 }
 
 std::vector<int> GetTensorStrides(miopenTensorDescriptor_t& tensor)
 {
     int nstride;
     int cstride;
+    int dstride;
     int hstride;
     int wstride;
 
-    miopenGet4dTensorDescriptorStrides(tensor, &nstride, &cstride, &hstride, &wstride);
+    int size = 0;
+    miopenGetTensorDescriptorSize(tensor, &size);
 
-    return std::vector<int>({nstride, cstride, hstride, wstride});
+    if(size == 5)
+    {
+        miopenGet5dTensorDescriptorStrides(
+            tensor, &nstride, &cstride, &dstride, &hstride, &wstride);
+        return std::vector<int>({nstride, cstride, dstride, hstride, wstride});
+    }
+    else
+    {
+        miopenGet4dTensorDescriptorStrides(tensor, &nstride, &cstride, &hstride, &wstride);
+        return std::vector<int>({nstride, cstride, hstride, wstride});
+    }
 }
 
 int SetTensor4d(miopenTensorDescriptor_t t,
@@ -62,6 +85,13 @@ int SetTensor4d(miopenTensorDescriptor_t t,
                 miopenDataType_t data_type = miopenFloat)
 {
     return miopenSet4dTensorDescriptor(t, data_type, UNPACK_VEC4(len));
+}
+
+int SetTensorNd(miopenTensorDescriptor_t t,
+                std::vector<int>& len,
+                miopenDataType_t data_type = miopenFloat)
+{
+    return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), nullptr);
 }
 
 size_t GetTensorSize(miopenTensorDescriptor_t& tensor)
