@@ -1,6 +1,6 @@
 # MIOpen Fusion API
 ## Introduction
-With the increase in the depth of deep learning networks and a requirement for faster kernels it is imperative that more ways be sought to improve the performance of GPU hardware. One mechansim to achieve higher efficiency is to _fuse_ separate kernels into a single kernel to reduce off-chip memory access and avoid kernel launch overhead. This document outlines the proposed addition of a Fusion API to the MIOpen library. The fusion API would allow a user to specify operators that she wants to fuse in a single kernel, compile it and then launch the kernel. While not all combinations might be supported by the library, the API is flexible enough to allow the specification of many operations in any order from a finite set of supported operators. All combinations of all the operators might not be supported, therefore the API provides a mechanism to report combinations that are not supported.
+With the increase in the depth of deep learning networks and a requirement for faster kernels it is imperative that more ways be sought to improve the performance of GPU hardware. One mechanism to achieve higher efficiency is to _fuse_ separate kernels into a single kernel to reduce off-chip memory access and avoid kernel launch overhead. This document outlines the proposed addition of a Fusion API to the MIOpen library. The fusion API would allow users to specify operators that he/she wants to fuse in a single kernel, compile it and then launch the kernel. While not all combinations might be supported by the library, the API is flexible enough to allow the specification of many operations in any order from a finite set of supported operators. All combinations of operators might not be supported, therefore the API provides a mechanism to report combinations that are not supported.
 
 Let us assume that a user wishes to fuse a convolution and activation operation together, the following list outlines the steps required 
 
@@ -29,7 +29,7 @@ const miopenFusionDirection_t fuseDirection,const miopenTensorDescriptor_t input
 ``` 
 The *input descriptor* specifies the geometry of the incoming data. Since the data geometry of the intermediate operations can be derived from the input tensor, therefore only the input tensor is required for the fusion plan and not for the individual operations.
 
-Once the fusion plan descriptor is created, different operators can be added to the it by using the individual operator creation API calls. An operation creation might fail if the API does not support the fusion of the operations being added and report back immediately to the user.
+Once the fusion plan descriptor is created, different operators can be added to it by using the individual operator creation API calls. Creation of an operator might fail if the API does not support the fusion of the operations being added and report back immediately to the user.
 
 Following the operator addition, the user would compile the fusion plan, to populate the MIOpen kernel cache with the fused kernel and make it ready for execution. The API call that accomplishes this is:
 
@@ -37,7 +37,7 @@ Following the operator addition, the user would compile the fusion plan, to popu
 miopenStatus_t
 miopenCompileFusionPlan(miopenHandle_t handle, miopenFusionPlanDescriptor_t fusePlanDesc);
 ```
-In order to compile the fusion plan, the user is assumed to have acquired an MIOpen handle object. While a fusion plan itself is not bound to a handle object, an instance of a fusion plan that is compiled with a particular handle is bound to the same handle. It may be noted that a fusion plan compilation might fail for a number of reasons, moreover it is not assured that a fused version of the kernel would offer any performance improvement over the separately run kernels.
+In order to compile the fusion plan, the user is assumed to have acquired an MIOpen handle object. While a fusion plan itself is not bound to a handle object, an instance of a fusion plan that is compiled with a particular handle is bound to the same handle. It may be noted that compilation of a fusion plan might fail for a number of reasons, moreover it is not assured that a fused version of the kernel would offer any performance improvement over the separately run kernels.
 
 Finally, the compiled fusion plan may be executed with the API call given below passing it the actual data to be processed.
 

@@ -934,9 +934,12 @@ struct AnySolver
 } // namespace solver
 } // namespace miopen
 
-// MLO construct for ConvBiasBatchNormActiv
 struct mlo_construct_direct2D_fusion : mlo_construct_direct2D
 {
+    mlo_construct_direct2D_fusion(int dir, bool do_bias = false)
+        : mlo_construct_direct2D(dir, do_bias)
+    {
+    }
     mlo_construct_direct2D_fusion(const miopen::TensorDescriptor& in,
                                   const miopen::TensorDescriptor& weights,
                                   const miopen::TensorDescriptor& out,
@@ -944,10 +947,6 @@ struct mlo_construct_direct2D_fusion : mlo_construct_direct2D
                                   int dir,
                                   bool do_bias = false)
         : mlo_construct_direct2D(in, weights, out, conv, dir, do_bias)
-    {
-    }
-    mlo_construct_direct2D_fusion(int dir, bool do_bias = false)
-        : mlo_construct_direct2D(dir, do_bias)
     {
     }
 

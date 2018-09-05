@@ -510,7 +510,6 @@ bool FusionMDGraph::ExecOpGTE(const EdgeOp& edg_op, const EdgeOp& op_val)
         MIOPEN_THROW("Invalid operand types for Edge Op OpGTE (>=)");
     return (boost::any_cast<int>(op_val.val) >= boost::any_cast<int>(edg_op.val));
 }
-
 bool FusionMDGraph::ExecEdgeOp(const EdgeOp& edg_op, const EdgeOp& op_val)
 {
     switch(edg_op.op)

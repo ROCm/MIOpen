@@ -260,15 +260,15 @@ miopenStatus_t ActivFusionOpDescriptor::SetArgs(OperatorArgs& args,
     auto id = std::to_string(GetIdx());
     if(input_desc.GetType() == miopenFloat)
     {
-        args.ins_arg("activAlpha" + id, any_t(static_cast<float>(activAlpha)));
-        args.ins_arg("activBeta" + id, any_t(static_cast<float>(activBeta)));
-        args.ins_arg("activGamma" + id, any_t(static_cast<float>(activGamma)));
+        args.ins_arg("activAlpha" + id, OpKernelArg(static_cast<float>(activAlpha)));
+        args.ins_arg("activBeta" + id, OpKernelArg(static_cast<float>(activBeta)));
+        args.ins_arg("activGamma" + id, OpKernelArg(static_cast<float>(activGamma)));
     }
     else if(input_desc.GetType() == miopenHalf)
     {
-        args.ins_arg("activAlpha" + id, any_t(static_cast<half_float::half>(activAlpha)));
-        args.ins_arg("activBeta" + id, any_t(static_cast<half_float::half>(activBeta)));
-        args.ins_arg("activGamma" + id, any_t(static_cast<half_float::half>(activGamma)));
+        args.ins_arg("activAlpha" + id, OpKernelArg(static_cast<half_float::half>(activAlpha)));
+        args.ins_arg("activBeta" + id, OpKernelArg(static_cast<half_float::half>(activBeta)));
+        args.ins_arg("activGamma" + id, OpKernelArg(static_cast<half_float::half>(activGamma)));
     }
     return miopenStatusSuccess;
 }
@@ -315,13 +315,13 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                              double epsilon)
 {
     auto id                    = std::to_string(GetIdx());
-    auto alpha_any             = any_t(*(static_cast<const float*>(alpha)));
-    auto beta_any              = any_t(*(static_cast<const float*>(beta)));
-    auto bnScale_any           = any_t(bnScale);
-    auto bnBias_any            = any_t(bnBias);
-    auto estimatedMean_any     = any_t(estimatedMean);
-    auto estimatedVariance_any = any_t(estimatedVariance);
-    auto epsilon_any           = any_t(static_cast<double>(epsilon));
+    auto alpha_any             = OpKernelArg(*(static_cast<const float*>(alpha)));
+    auto beta_any              = OpKernelArg(*(static_cast<const float*>(beta)));
+    auto bnScale_any           = OpKernelArg(bnScale);
+    auto bnBias_any            = OpKernelArg(bnBias);
+    auto estimatedMean_any     = OpKernelArg(estimatedMean);
+    auto estimatedVariance_any = OpKernelArg(estimatedVariance);
+    auto epsilon_any           = OpKernelArg(static_cast<double>(epsilon));
     args.ins_arg("epsilon" + id, epsilon_any);
     args.ins_arg("bnScale" + id, bnScale_any);
     args.ins_arg("bnBias" + id, bnBias_any);
@@ -628,7 +628,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                              std::to_string(op->kind()));
         }
     }
-    std::vector<any_t> args;
+    std::vector<OpKernelArg> args;
     if(kernel_source_type == Binary)
     {
         if((input_desc.GetType() != miopenFloat) || (output_desc.GetType() != miopenFloat))
@@ -733,9 +733,30 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             }
         }
     }
+    // insert input / output pointer
+    args.emplace_back(OpKernelArg(input));
+    MIOPEN_LOG_I("Input ptr = " << input);
+    args.emplace_back(OpKernelArg(output));
+    MIOPEN_LOG_I("Output ptr = " << output);
+    // add other pointers in op-order
+    for(auto idx = 0; idx < op_map.size(); idx++)
+    { // Populate args for pointers based operator order
+        auto op   = op_map[idx];
+        auto keys = ptr_map[idx];
+        std::sort(keys.begin(), keys.end());
+        for(auto& key : keys)
+        {
+            auto it = op_args.args_map.find(key);
+            if(it != op_args.args_map.end())
+            {
+                MIOPEN_LOG_I("Pointer " << key << " = " << it->second);
+                args.push_back(it->second);
+            }
+        }
+    }
     if(kernel_source_type == AsmText)
     { // Padded arguments
-        std::vector<any_t> padded_args;
+        std::vector<OpKernelArg> padded_args;
         size_t running_sz = args[0].size();
         padded_args.push_back(std::move(args[0]));
         for(auto idx = 1; idx < args.size(); idx++)
@@ -746,7 +767,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                 if(padding != 0)
                 {
                     MIOPEN_LOG_I("*** Padding: " << padding);
-                    any_t tmp(0, padding);
+                    OpKernelArg tmp(0, padding);
                     padded_args.push_back(tmp);
                     running_sz += padding;
                 }

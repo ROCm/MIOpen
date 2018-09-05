@@ -136,8 +136,10 @@ static int ConvAsmRunAndMeasureSolution(miopen::Handle& profile_h,
                                         const ConvSolution& solution,
                                         float& elapsed_time)
 {
-    assert(bias_ocl_buf == nullptr);
-    (void)bias_ocl_buf;
+    if(bias_ocl_buf != nullptr)
+    {
+        MIOPEN_THROW("Invalid value for bias_ocl_buf");
+    }
     KernelInfo k_info;
 
     if(UseSubsample(params))
