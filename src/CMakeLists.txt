@@ -334,7 +334,7 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     list(APPEND PACKAGE_DEPENDS PACKAGE OpenCL)
     set(BACKEND_PACKAGE "OpenCL")
 elseif(MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP")
-    target_link_libraries( MIOpen PRIVATE hip::hip_hcc ${hcc_LIBRARIES} )
+    target_link_libraries( MIOpen PRIVATE hip::hip_hcc hip::device )
     target_link_libraries( MIOpen INTERFACE hip::hip_hcc )
     if(ENABLE_HIP_WORKAROUNDS)
         # Workaround hip not setting its usage requirements correctly

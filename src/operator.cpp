@@ -28,10 +28,10 @@
 #include <miopen/logger.hpp>
 
 namespace miopen {
-std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& op)
+std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x)
 {
     MIOPEN_LOG_ENUM(stream,
-                    op.kind(),
+                    x.kind(),
                     miopenFusionOpConvForward,
                     miopenFusionOpActivForward,
                     miopenFusionOpBatchNormInference,
@@ -67,5 +67,4 @@ std::ostream& operator<<(std::ostream& stream, const boost::any& a)
         stream << "Unsupported any type: " << a.type().name();
     return stream;
 }
-
 } // namespace miopen

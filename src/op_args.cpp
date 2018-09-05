@@ -32,7 +32,7 @@ namespace miopen {
 // operator args
 OperatorArgs::OperatorArgs() {}
 
-void OperatorArgs::ins_arg(std::string name, any_t v)
+void OperatorArgs::ins_arg(std::string name, OpKernelArg v)
 {
     args_map.emplace(std::make_pair(name, v));
     //    args_map[name] = std::move(v);
