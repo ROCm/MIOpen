@@ -1,5 +1,6 @@
 #include <miopen/fusion.hpp>
 #include <miopen/solver.hpp>
+#include <miopen/gcn_asm_utils.hpp>
 
 namespace miopen {
 
@@ -41,6 +42,12 @@ ConvForwardOpDescriptor::GetCompileParms(std::string& compile_config,
     kernel_info_valid     = true;
     conv_compiler_options = solution.construction_params[0].comp_options;
     compile_config += conv_compiler_options;
+    if(source == AsmText)
+    {
+        std::ostringstream options;
+        GenerateClangDefsym(options, "fusion_mode", 1);
+        compile_config += options.str();
+    }
     return miopenStatusSuccess;
 }
 std::vector<size_t> ConvForwardOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
