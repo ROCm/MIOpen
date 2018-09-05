@@ -93,7 +93,10 @@ std::vector<solver::AnySolver> FusionMDGraph::GetSolvers()
     std::vector<solver::AnySolver> res;
     for(auto& cur : cur_vertex)
     {
-        res.push_back(boost::any_cast<solver::AnySolver>(cur.second.at("solver")));
+        if(cur.second.find("solver") != cur.second.end())
+        {
+            res.push_back(boost::any_cast<solver::AnySolver>(cur.second.at("solver")));
+        }
     }
     return res;
 }
@@ -318,6 +321,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                        "gcnAsmConv1x1U",
                                                        "miopenConvolutionDirectBiasActivAsm");
         conv_v->solver = solver::ConvActivAsm1x1U{};
+        // conv_v->solver = solver::ConvAsm1x1U{};
 
         auto bias_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
                                                        "conv1x1u_bias_activ.s",
