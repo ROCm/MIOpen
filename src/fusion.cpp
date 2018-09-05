@@ -733,27 +733,6 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             }
         }
     }
-    // insert input / output pointer
-    args.emplace_back(OpKernelArg(input));
-    MIOPEN_LOG_I("Input ptr = " << input);
-    args.emplace_back(OpKernelArg(output));
-    MIOPEN_LOG_I("Output ptr = " << output);
-    // add other pointers in op-order
-    for(auto idx = 0; idx < op_map.size(); idx++)
-    { // Populate args for pointers based operator order
-        auto op   = op_map[idx];
-        auto keys = ptr_map[idx];
-        std::sort(keys.begin(), keys.end());
-        for(auto& key : keys)
-        {
-            auto it = op_args.args_map.find(key);
-            if(it != op_args.args_map.end())
-            {
-                MIOPEN_LOG_I("Pointer " << key << " = " << it->second);
-                args.push_back(it->second);
-            }
-        }
-    }
     if(kernel_source_type == AsmText)
     { // Padded arguments
         std::vector<OpKernelArg> padded_args;
