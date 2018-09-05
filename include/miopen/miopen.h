@@ -1420,6 +1420,9 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lr
  * For an input tensor NCHW and spatial mode, the output derived tensor is 1C11, while for
  * per-activation the derived tensor is 1CHW.
  *
+ * For an input tensor NCDHW and spatial mode, the output derived tensor is 1C111, while for
+ * per-activation the derived tensor is 1CDHW.
+ *
  * @param derivedBnDesc   Output derived tensor descriptor (output)
  * @param xDesc           Input tensor descriptor (input)
  * @param bn_mode         Batch Normalization mode (input)
