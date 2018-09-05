@@ -185,7 +185,7 @@ miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
                                                 ConstData_t w)
 {
     auto id    = std::to_string(GetIdx());
-    auto w_any = any_t(w);
+    auto w_any = OpKernelArg(w);
     args.ins_arg("weights" + id, w_any);
 
     return miopenStatusSuccess;
@@ -366,7 +366,7 @@ miopenStatus_t BiasFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                ConstData_t bdata)
 {
     auto id        = std::to_string(GetIdx());
-    auto bdata_any = any_t(bdata);
+    auto bdata_any = OpKernelArg(bdata);
     args.ins_arg("bias" + id, bdata_any);
     return miopenStatusSuccess;
 }
@@ -529,10 +529,10 @@ std::ostream& operator<<(std::ostream& s, const OpKernelArg& arg)
     return s;
 }
 
-static any_t GetArg(std::vector<std::shared_ptr<FusionOpDescriptor>>& op_map,
-                    const OperatorArgs& op_args,
-                    const miopenFusionOp_t op,
-                    const std::string arg_name)
+static OpKernelArg GetArg(std::vector<std::shared_ptr<FusionOpDescriptor>>& op_map,
+                          const OperatorArgs& op_args,
+                          const miopenFusionOp_t op,
+                          const std::string arg_name)
 {
     for(auto idx = 0; idx < op_map.size(); ++idx)
     {
@@ -560,7 +560,7 @@ static any_t GetArg(std::vector<std::shared_ptr<FusionOpDescriptor>>& op_map,
 #define ADD_ARGUMENT(argument_name)                                                     \
     do                                                                                  \
     {                                                                                   \
-        const any_t argument(argument_name);                                            \
+        const OpKernelArg argument(argument_name);                                      \
         args.emplace_back(argument);                                                    \
         MIOPEN_LOG_I((argument.is_ptr ? "Pointer " : "Scalar ") << #argument_name " = " \
                                                                 << argument);           \
@@ -666,10 +666,10 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         int* const return_addr = nullptr;
         const auto weights     = GetArg(op_map, op_args, miopenFusionOpConvForward, "weights");
         const auto bias = is_bias ? GetArg(op_map, op_args, miopenFusionOpBiasForward, "bias")
-                                  : any_t(nullptr); // Kernel does not use it.
+                                  : OpKernelArg(nullptr); // Kernel does not use it.
         const auto alpha = (is_activation && is_leakyRELU)
                                ? GetArg(op_map, op_args, miopenFusionOpActivForward, "activAlpha")
-                               : any_t(0.0f); // Fixed to 0.0 for RELU.
+                               : OpKernelArg(0.0f); // Fixed to 0.0 for RELU.
         ADD_ARGUMENT(N);
         ADD_ARGUMENT(C);
         ADD_ARGUMENT(H);
@@ -712,9 +712,9 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             }
         }
         // insert input / output pointer
-        args.emplace_back(any_t(input));
+        args.emplace_back(OpKernelArg(input));
         MIOPEN_LOG_I("Input ptr = " << input);
-        args.emplace_back(any_t(output));
+        args.emplace_back(OpKernelArg(output));
         MIOPEN_LOG_I("Output ptr = " << output);
         // add other pointers in op-order
         for(auto idx = 0; idx < op_map.size(); idx++)
