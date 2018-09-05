@@ -49,14 +49,13 @@ enum FusionKernelSourceType
     Binary,
 };
 
-using any_t = OpKernelArg;
 struct OperatorArgs : miopenOperatorArgs
 {
     OperatorArgs();
-    void ins_arg(std::string name, any_t v);
+    void ins_arg(std::string name, OpKernelArg v);
     friend std::ostream& operator<<(std::ostream& stream, const OperatorArgs& x);
-    std::vector<any_t> args_vec;
-    std::unordered_map<std::string, any_t> args_map;
+    std::vector<OpKernelArg> args_vec;
+    std::unordered_map<std::string, OpKernelArg> args_map;
 };
 
 struct FusionOpDescriptor : miopenFusionOpDescriptor
@@ -137,6 +136,21 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
 
     miopenBatchNormMode_t mode;
     TensorDescriptor& base_desc;
+};
+struct ConvForwardOpDescriptor : FusionOpDescriptor
+{
+    static FusionMDGraph_Edge_Map MDGraphKey(miopenConvolutionMode_t conv_mode,
+                                             miopenPaddingMode_t pad_mode,
+                                             size_t pad_h,
+                                             size_t pad_w,
+                                             size_t u,
+                                             size_t v,
+                                             size_t dilation_h,
+                                             size_t dilation_w,
+                                             int k,
+                                             int c,
+                                             int x,
+                                             int y);
 };
 
 } // namespace miopen

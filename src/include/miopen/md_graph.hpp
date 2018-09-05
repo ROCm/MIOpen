@@ -49,15 +49,19 @@ struct MDGraph_vertex
 
     MDGraph_vertex(const MDGraph_vertex& other) = delete;
     std::string& operator[](std::string& x) { return vertex_data[x]; }
+
+    solver::AnySolver solver;
+    friend std::ostream& operator<<(std::ostream& stream, const MDGraph_vertex& v);
 };
 
 using MDGraph_vertex_ptr = std::shared_ptr<MDGraph_vertex>;
 
 struct FusionMDGraph
 {
-    using cur_vertex_map = std::unordered_map<std::string, std::string>;
+    using cur_vertex_map = std::unordered_map<std::string, boost::any>;
     FusionMDGraph() { Reset(); }
     static void Init(FusionMDGraph& g, miopenFusionOp_t op);
+    static void InitConv(FusionMDGraph& g);
     static void InitBN(FusionMDGraph& g);
     void Reset();
     bool Advance(std::shared_ptr<FusionOpDescriptor> op);
@@ -69,12 +73,17 @@ struct FusionMDGraph
     std::string GetProgramName();
     std::string GetKernelName();
     std::string GetAlgoName();
+    std::vector<miopenConvFwdAlgorithm_t> GetConvAlgos();
+    bool SetConvAlgo(miopenConvFwdAlgorithm_t algo);
     static FusionMDGraph_Edge_Map EmptyEdgeMap(int weight = 0, MDGraph_op_t op = OpAny);
     static bool ExecEdgeOp(const EdgeOp& edg_op, const EdgeOp& op_val);
+    static bool ExecOpEqual(const EdgeOp& edg_op, const EdgeOp& op_val);
+    std::vector<solver::AnySolver> GetSolvers();
 
     protected:
     std::vector<std::pair<MDGraph_vertex_ptr, cur_vertex_map>>
         cur_vertex; //= {{nullptr, {{"weight", "0"}}}};
+    std::set<miopenConvFwdAlgorithm_t> conv_algo_set;
     std::unordered_map<MDGraph_vertex_ptr,
                        std::unordered_map<MDGraph_vertex_ptr, FusionMDGraph_Edge_Map_Vec>>
         edge_list;
