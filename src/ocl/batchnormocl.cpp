@@ -60,7 +60,7 @@ void BatchNormForwardTraining(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(xDesc.GetType() != yDesc.GetType() || xDesc.GetType() != bnScaleBiasMeanVarDesc.GetType())
+    if(xDesc.GetType() != yDesc.GetType())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -183,7 +183,7 @@ void BatchNormForwardTraining(Handle& handle,
             if(!kernels.empty())
             {
                 auto kernel = kernels.front();
-                visit_float(xDesc.GetType(), [&](auto as_float) {
+                visit_float(bnScaleBiasMeanVarDesc.GetType(), [&](auto as_float) {
                     if(resultsave && resultrunning)
                     {
 
@@ -290,7 +290,7 @@ void BatchNormForwardTraining(Handle& handle,
             if(!kernels.empty())
             {
                 float ctime = 0.;
-                visit_float(xDesc.GetType(), [&](auto as_float) {
+                visit_float(bnScaleBiasMeanVarDesc.GetType(), [&](auto as_float) {
                     if(resultsave && resultrunning)
                     {
                         kernels[0](x, y);
@@ -608,8 +608,7 @@ void BatchNormForwardInference(Handle& handle,
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
-        if(xDesc.GetType() != yDesc.GetType() ||
-           xDesc.GetType() != bnScaleBiasMeanVarDesc.GetType())
+        if(xDesc.GetType() != yDesc.GetType())
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
@@ -772,8 +771,7 @@ void BatchNormBackward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(dxDesc.GetType() != dyDesc.GetType() || dyDesc.GetType() != xDesc.GetType() ||
-       xDesc.GetType() != bnScaleBiasDiffDesc.GetType())
+    if(dxDesc.GetType() != dyDesc.GetType() || dyDesc.GetType() != xDesc.GetType())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -894,7 +892,7 @@ void BatchNormBackward(Handle& handle,
             if(!kernels.empty())
             {
                 auto kernel = kernels.front();
-                visit_float(xDesc.GetType(), [&](auto as_float) {
+                visit_float(bnScaleBiasDiffDesc.GetType(), [&](auto as_float) {
                     if(useSaved)
                     {
                         kernel(x,
@@ -971,7 +969,7 @@ void BatchNormBackward(Handle& handle,
             if(!kernels.empty())
             {
                 float ctime = 0.;
-                visit_float(xDesc.GetType(), [&](auto as_float) {
+                visit_float(bnScaleBiasDiffDesc.GetType(), [&](auto as_float) {
                     if(useSaved)
                     {
                         kernels[0](x, dy, dx, savedMean, savedInvVariance);
