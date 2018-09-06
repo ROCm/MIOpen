@@ -623,12 +623,18 @@ void BatchNormForwardInference(Handle& handle,
             MIOPEN_THROW(miopenStatusBadParm);
         }
 
-        bool bfp16parm = false;
-        bool bfp32parm = true;
-        if(xDesc.GetType() == miopenHalf)
+        bool bfpmixparm = false;
+        bool bfp16parm  = false;
+        bool bfp32parm  = true;
+        if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenHalf)
         {
             bfp16parm = true;
             bfp32parm = false;
+        }
+        else if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenFloat)
+        {
+            bfpmixparm = true;
+            bfp32parm  = false;
         }
 
         int n, c, h, w;
@@ -682,6 +688,7 @@ void BatchNormForwardInference(Handle& handle,
             std::string parms =
                 " -DMIOPEN_USE_FP16=" + std::to_string(static_cast<int>(bfp16parm)) +
                 " -DMIOPEN_USE_FP32=" + std::to_string(static_cast<int>(bfp32parm)) +
+                " -DMIOPEN_USE_FPMIX=" + std::to_string(static_cast<int>(bfpmixparm)) +
                 " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_HW=" + std::to_string(in_cstride) +
                 " -DMIO_BN_CHW=" + std::to_string(in_nstride) + " -DMIO_BN_GRP0=" +
                 std::to_string(xlocalsize) + " -DMIO_BN_GRP1=" + std::to_string(ylocalsize) +
