@@ -23,26 +23,38 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <initializer_list>
-#include <miopen/miopen.h>
+#include <cassert>
+#include <miopen/fusion.hpp>
+#include <miopen/logger.hpp>
 
-MIOPEN_EXPORT int miopenGetTensorIndex(miopenTensorDescriptor_t tensorDesc,
-                                       std::initializer_list<int> indices);
+namespace miopen {
 
-int miopenGetTensorDescriptorElementSize(miopenTensorDescriptor_t tensorDesc);
+// operator args
+OperatorArgs::OperatorArgs() {}
 
-MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptorLengths(
-    miopenTensorDescriptor_t tensorDesc, int* n, int* c, int* h, int* w);
+void OperatorArgs::ins_arg(std::string name, OpKernelArg v)
+{
+    args_map.emplace(std::make_pair(name, v));
+    //    args_map[name] = std::move(v);
+    args_vec.push_back(v);
+}
 
-MIOPEN_EXPORT miopenStatus_t miopenGet4dTensorDescriptorStrides(
-    miopenTensorDescriptor_t tensorDesc, int* nStride, int* cStride, int* hStride, int* wStride);
+std::ostream& operator<<(std::ostream& stream, const OperatorArgs&) // x )
+{
+    /*MIOPEN_LOG_ENUM(stream,
+                    x.mode,
+                    miopenActivationPASTHRU,
+                    miopenActivationLOGISTIC,
+                    miopenActivationTANH,
+                    miopenActivationRELU,
+                    miopenActivationSOFTRELU,
+                    miopenActivationABS,
+                    miopenActivationPOWER,
+                    miopenActivationCLIPPEDRELU,
+                    miopenActivationLEAKYRELU,
+                    miopenActivationELU)*/
+    // LogRange(stream, x.parms, ", ") << ", ";
+    return stream;
+}
 
-MIOPEN_EXPORT miopenStatus_t miopenGet5dTensorDescriptorLengths(
-    miopenTensorDescriptor_t tensorDesc, int* n, int* c, int* d, int* h, int* w);
-
-MIOPEN_EXPORT miopenStatus_t miopenGet5dTensorDescriptorStrides(miopenTensorDescriptor_t tensorDesc,
-                                                                int* nStride,
-                                                                int* cStride,
-                                                                int* dStride,
-                                                                int* hStride,
-                                                                int* wStride);
+} // namespace miopen
