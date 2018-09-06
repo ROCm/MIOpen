@@ -1789,8 +1789,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t
 * @param fusePlanDesc  A fusion plan descriptor type
 * @return              miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t
-miopenDestroyFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc);
+MIOPEN_EXPORT miopenStatus_t miopenDestroyFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc);
 
 /*! @brief Compiles the fusion plan
 *
@@ -1861,7 +1860,6 @@ miopenFusionPlanConvolutionGetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
  */
 MIOPEN_EXPORT miopenStatus_t miopenFusionPlanConvolutionSetAlgo(
     miopenFusionPlanDescriptor_t fusePlanDesc, miopenConvFwdAlgorithm_t algo);
-
 
 // Convolution create op for unknown algorithm ---
 /*! @brief Creates forward convolution operator.
