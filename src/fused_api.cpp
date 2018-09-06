@@ -50,8 +50,7 @@ extern "C" miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* f
     });
 }
 
-extern "C" miopenStatus_t
-miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc)
+extern "C" miopenStatus_t miopenDestroyFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc)
 {
 
     MIOPEN_LOG_FUNCTION(fusePlanDesc)
