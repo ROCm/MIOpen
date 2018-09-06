@@ -130,7 +130,6 @@ class CBAInferFusionDriver : public Driver
     void runGPUActivFwdInference();
     void runCPUActivFwdInference();
 
-    void runGPUConvFwdInference();
     void runCPUConvFwdInference();
 
     void runGPUConvBiasInference();
@@ -1198,40 +1197,6 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
     // C+N mode so we are done
     if(fusion_mode == 3)
         out_host = bn_res_host; // DLOWELL if we add C+B+N the is to be modified
-
-    return;
-}
-
-template <typename Tgpu, typename Tref>
-void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvFwdInference()
-{
-
-    float alpha = static_cast<float>(1), beta = static_cast<float>(0);
-
-    int pad_h      = inflags.GetValueInt("pad_h");
-    int pad_w      = inflags.GetValueInt("pad_w");
-    int u          = inflags.GetValueInt("conv_stride_0");
-    int v          = inflags.GetValueInt("conv_stride_1");
-    int dilation_h = inflags.GetValueInt("dilation_h");
-    int dilation_w = inflags.GetValueInt("dilation_w");
-
-    miopen::DirectConvInference(miopen::deref(GetHandle()),
-                                &alpha,
-                                miopen::deref(inputTensor),
-                                in_dev->GetMem(),
-                                miopen::deref(weightTensor),
-                                wei_dev->GetMem(),
-                                &beta,
-                                miopen::deref(outputTensor),
-                                conv_res_dev->GetMem(),
-                                pad_h,
-                                pad_w,
-                                u,
-                                v,
-                                dilation_h,
-                                dilation_w,
-                                bias_mode,
-                                bias_mode != 0 ? b_dev->GetMem() : nullptr);
 
     return;
 }
