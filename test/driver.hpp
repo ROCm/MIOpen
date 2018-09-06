@@ -319,6 +319,24 @@ struct test_driver
 
     template <class G = tensor_elem_gen_integer>
     generate_tensor_t<std::vector<int>, G>
+    get_3d_bn_spatial_input_tensor(G tensor_elem_gen = tensor_elem_gen_integer{})
+    {
+        return lazy_generate_tensor([=] { return get_3d_bn_spatial_inputs(batch_factor); },
+                                    {16, 32, 8, 8, 8},
+                                    tensor_elem_gen);
+    }
+
+    template <class G = tensor_elem_gen_integer>
+    generate_tensor_t<std::vector<int>, G>
+    get_3d_bn_peract_input_tensor(G tensor_elem_gen = tensor_elem_gen_integer{})
+    {
+        return lazy_generate_tensor([=] { return get_3d_bn_peract_inputs(batch_factor); },
+                                    {16, 32, 8, 8, 8},
+                                    tensor_elem_gen);
+    }
+
+    template <class G = tensor_elem_gen_integer>
+    generate_tensor_t<std::vector<int>, G>
     get_weights_tensor(G tensor_elem_gen = tensor_elem_gen_integer{})
     {
         return lazy_generate_tensor(
