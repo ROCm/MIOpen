@@ -215,8 +215,8 @@ bool ConvOclDirectFwd::IsValidPerformanceConfig(
     return true;
 }
 
-ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
-                                           const LegacyPerformanceConfig& searched_params) const
+inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
+                                    const LegacyPerformanceConfig& searched_params)
 {
     ConvSolution result;
 
@@ -410,6 +410,34 @@ ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
     kernel_params.kernel_name = group_counts >= 2 ? "MIOpenGroupConvUni" : "MIOpenConvUni";
 
     result.construction_params.push_back(kernel_params);
+
+    return result;
+}
+
+ConvSolution ConvOclDirectFwd::GetSolution(const ConvolutionContext& params,
+                                           const LegacyPerformanceConfig& searched_params) const
+{
+    ConvSolution result = BaseGetSolution(params, searched_params);
+
+    if(result.Succeeded())
+    {
+        result.construction_params[0].comp_options +=
+            std::string(" -DMLO_CONV_BIAS=") + std::to_string(static_cast<long long>(params.bias)) +
+            params.general_compile_options;
+    }
+
+    return result;
+}
+
+ConvSolution
+ConvOclDirectFwdFused::GetSolution(const ConvolutionContext& params,
+                                   const LegacyPerformanceConfig& searched_params) const
+{
+    ConvSolution result = BaseGetSolution(params, searched_params);
+    if(result.Succeeded())
+    {
+        result.construction_params[0].comp_options += params.general_compile_options;
+    }
     return result;
 }
 } // namespace solver
