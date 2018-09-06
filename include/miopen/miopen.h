@@ -1790,7 +1790,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t
 * @return              miopenStatus_t
 */
 MIOPEN_EXPORT miopenStatus_t
-miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc);
+miopenDestroyFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc);
 
 /*! @brief Compiles the fusion plan
 *
@@ -1811,7 +1811,6 @@ MIOPEN_EXPORT miopenStatus_t miopenCompileFusionPlan(miopenHandle_t handle,
  * @param op returned pointer to the operator
  * @return miopenStatus_t
  */
-
 MIOPEN_EXPORT miopenStatus_t miopenFusionPlanGetOp(miopenFusionPlanDescriptor_t fusePlanDesc,
                                                    const int op_idx,
                                                    miopenFusionOpDescriptor_t* op);
@@ -1845,15 +1844,13 @@ miopenFusionPlanGetWorkSpaceSize(miopenHandle_t handle,
  * @param returnedAlgos Pointer to the list of supported algorithms
  * @return miopenStatus_t
  */
-
 MIOPEN_EXPORT miopenStatus_t
 miopenFusionPlanConvolutionGetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
                                    const int requestAlgoCount,
                                    int* returnedAlgoCount,
                                    miopenConvFwdAlgorithm_t* returnedAlgos);
 
-/**
- * @brief Requests the fusion runtime to choose a particular algorithm for the added convolution
+/*! @brief Requests the fusion runtime to choose a particular algorithm for the added convolution
  * operation
  *
  * @details Please see the description for miopenFusionPlanConvolutionGetAlgo
@@ -1862,19 +1859,9 @@ miopenFusionPlanConvolutionGetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
  * @param algo Requested algorithm for the convolution operator
  * @return miopenStatus_t
  */
-
 MIOPEN_EXPORT miopenStatus_t miopenFusionPlanConvolutionSetAlgo(
     miopenFusionPlanDescriptor_t fusePlanDesc, miopenConvFwdAlgorithm_t algo);
 
-/*! @brief Creates backwards data convolution operator.
-*
-* @param fusePlanDesc   A fusion plan descriptor (input)
-* @param convOp         Pointer to an operator type (output)
-* @param convDesc       Convolution layer descriptor (input)
-* @param bwdDataAlgo    A MIOpen backwards data convolutin algorithm (input)
-* @param wDesc          Descriptor for the weights tensor (input)
-* @return               miopenStatus_t
-*/
 
 // Convolution create op for unknown algorithm ---
 /*! @brief Creates forward convolution operator.
