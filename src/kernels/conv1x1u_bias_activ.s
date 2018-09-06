@@ -108,7 +108,7 @@ static_assert(fusion_mode || (bias_mode == 0 && enable_activ == 0))
 .set dbg_ptr_off, 0x38
 .endif
 
-
+.set vec_size, 1 
 
 .include "conv_sizes.inc"
 
