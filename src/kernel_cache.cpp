@@ -127,6 +127,21 @@ const std::vector<Kernel>& KernelCache::GetKernels(const std::string& algorithm,
     return empty;
 }
 
+bool KernelCache::HasKernels(const std::string& algorithm, const std::string& network_config) const
+{
+    const auto key = std::make_pair(algorithm, network_config);
+#ifndef NDEBUG
+    MIOPEN_LOG_I("Key: " << key.first << " \"" << key.second << '\"');
+#endif
+    const auto it = kernel_map.find(key);
+    if(it == kernel_map.end())
+        return false;
+
+    assert(it->second.size() > 0 &&
+           "There should be at least one kernel in kernel cache if an entry exists");
+    return true;
+}
+
 Kernel KernelCache::AddKernel(Handle& h,
                               const std::string& algorithm,
                               const std::string& network_config,
