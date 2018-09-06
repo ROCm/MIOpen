@@ -81,7 +81,7 @@ struct verify_forward_conv_bias
             // If we are using convolutions as the base, we can calculate the
             convHostForward(input, rout, weights, 1, bias, filter);
         }
-        miopenDestroyFusionPlanDescriptor(fusePlanDesc);
+        miopenDestroyFusionPlan(fusePlanDesc);
         return rout;
     }
 
