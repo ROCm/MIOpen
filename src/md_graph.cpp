@@ -244,7 +244,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                        "conv1x1u_bias_activ.s",
                                                        "gcnAsmConv1x1U",
                                                        "miopenConvolutionDirectBiasActivAsm");
-        conv_v->solver = solver::ConvAsm1x1U{};
+        conv_v->solver = solver::ConvActivAsm1x1U{};
 
         auto bias_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
                                                        "conv1x1u_bias_activ.s",
