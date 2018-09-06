@@ -235,12 +235,6 @@ void FusionMDGraph::InitBN(FusionMDGraph& g)
         g.AddEdge(bn_v, activ_v, empty_map);
     }
 }
-template <class M, class K, class... Ts>
-void map_emplace(M& m, const K& k, Ts&&... objs)
-{
-    auto tmp = {objs...};
-    m.emplace(k, tmp);
-}
 
 void FusionMDGraph::InitConv(FusionMDGraph& g)
 {

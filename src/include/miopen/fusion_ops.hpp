@@ -73,4 +73,11 @@ using FusionMDGraph_Op_Map       = std::unordered_map<std::string, EdgeOp>;
 using FusionMDGraph_Edge_Map     = std::unordered_map<std::string, std::vector<EdgeOp>>;
 using FusionMDGraph_Edge_Map_Vec = std::vector<FusionMDGraph_Edge_Map>;
 
+template <class M, class K, class... Ts>
+void map_emplace(M& m, const K& k, Ts&&... objs)
+{
+    auto tmp = {objs...};
+    m.emplace(k, tmp);
+}
+
 } // namespace miopen
