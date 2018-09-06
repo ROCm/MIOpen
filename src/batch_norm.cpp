@@ -45,16 +45,33 @@ void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
     newlens[1] = lengths[1];
     if(bn_mode == miopenBNSpatial)
     {
-        newlens[0] = newlens[2] = newlens[3] = 1; // TODO: support 5D
+        newlens[0] = newlens[2] = newlens[3] = 1;
+        if(lengths.size() == 5)
+            newlens[4] = 1;
     }
     else
     {
         newlens[0] = 1;
         newlens[2] = lengths[2];
         newlens[3] = lengths[3];
-        ; // TODO: support 5D
+
+        if(lengths.size() == 5)
+            newlens[4] = lengths[4];
     }
     derivedBnDesc = TensorDescriptor(xDesc.GetType(), newlens.data(), xDesc.GetSize());
+}
+
+TensorDescriptor BuildReshaped4DTensorDescriptor(const miopen::TensorDescriptor& tDesc)
+{
+    auto dataType = tDesc.GetType();
+    std::vector<size_t> dims(tDesc.GetLengths());
+
+    // NxCxDxHxW -> NxCx(D*H)xW
+    dims[2] *= dims[3];
+    dims[3] = dims[4];
+    dims.pop_back();
+
+    return {dataType, dims};
 }
 
 void profileSequence(Handle& handle, unsigned char select, float* ctime)
