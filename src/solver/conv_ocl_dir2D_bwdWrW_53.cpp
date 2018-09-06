@@ -36,8 +36,12 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
     solution &= (params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1);
     solution &= (params.kernel_stride0 == 1 && params.kernel_stride1 == 1);
 
-    // This limitation is because of the way the kernel process data at lower (vertical) boundary
+    // This limitation is because of the way the kernel process data at lower vertical boundary (including padding) 
     solution &= params.kernel_size1 - params.pad1 - params.kernel_stride1 >= 0;
+
+    // Input image height plus vertical paddings should be no less than filter vertical size
+    // TODO: chao: revisit this to make sure this is the actual limitation
+    solution &= params.kernel_size1 <= params.out_height + 2*params.pad1;//params.out_height is actually the input height
 
     return solution;
 }
@@ -48,8 +52,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
 
     size_t localMemSize = 64 * 1024;
 
-    const auto hw_wave_sz       = 64;
-    const auto dev_local_mem_sz = localMemSize; // in bytes
+    const size_t hw_wave_sz       = 64;
+    const size_t dev_local_mem_sz = localMemSize; // in bytes
                                                 // major parameters
 
     // inpout are outputs
