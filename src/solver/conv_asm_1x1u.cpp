@@ -518,6 +518,7 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
 
         assert(params.out_data_type == "FP16" || params.out_data_type == "FP32" ||
                params.out_data_type == "FP64");
+        result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
     }
 
     GenerateClangDefsym(options, "stride_h", 1);
