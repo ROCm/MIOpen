@@ -609,7 +609,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDes
 /*! @brief Set the number of groups to be used in Group/Depthwise convolution
 *
 * Must be called before all computational APIs of Group/Depthwise convolution, it is preferable to
-* call miopenInitConvolutionDescriptor() first, then miopenSetConvolutionGroup() to fully initialize 
+* call miopenInitConvolutionDescriptor() first, then miopenSetConvolutionGroupCount() to fully initialize 
 * group convolutions.
 *
 * @param convDesc   Convolution layer descriptor (output)
