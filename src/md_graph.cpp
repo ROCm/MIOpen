@@ -547,10 +547,10 @@ bool FusionMDGraph::CmpOpKey(const FusionMDGraph_Edge_Map& edge_val,
             {
                 if(!FusionMDGraph::ExecEdgeOp(edg_ops, op_val.at(kv.first).at(0)))
                 {
-                    MIOPEN_LOG_I("Edge Op :" << edg_ops << " Op Val: " << op_val.at(kv.first).at(0)
-                                             << " Edge Op for key: "
-                                             << kv.first
-                                             << " Failed");
+                    MIOPEN_LOG_I2("Edge Op :" << edg_ops << " Op Val: " << op_val.at(kv.first).at(0)
+                                              << " Edge Op for key: "
+                                              << kv.first
+                                              << " Failed");
                     return false;
                 }
             }
