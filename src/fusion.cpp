@@ -82,7 +82,7 @@ miopenStatus_t FusionPlanDescriptor::GetOp(int op_idx, std::shared_ptr<FusionOpD
         MIOPEN_THROW("Operator index out of bounds");
     }
 
-    desc = op_map[op_idx];
+    desc = op_map.at(op_idx);
     return err;
 }
 
@@ -137,7 +137,6 @@ miopenStatus_t FusionPlanDescriptor::GetConvAlgos(int reqAlgoCount,
                                                   miopenConvFwdAlgorithm_t* ptrAlgos)
 {
 
-    // auto ptr = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(&convOp);
     std::vector<miopenConvFwdAlgorithm_t> algos = lu.GetConvAlgos();
 
     if(algos.size() > reqAlgoCount)
@@ -244,8 +243,7 @@ FusionMDGraph_Edge_Map ConvForwardOpDescriptor::MDGraphKey() const
                                                  c,
                                                  x,
                                                  y);
-    auto precision_vec = {EdgeOp(input_desc.GetType(), true, OpEqual)};
-    m.emplace("precision", precision_vec);
+    map_emplace(m, "precision", EdgeOp(input_desc.GetType(), true, OpEqual));
     return m;
 }
 
@@ -484,6 +482,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         }
         for(auto&& op : op_map)
         {
+            MIOPEN_LOG_I2("GetCompileParms, " << *op);
             if(op->GetCompileParms(compile_config, handle, kernel_source_type, lu.GetSolvers()) !=
                miopenStatusSuccess)
             {
@@ -606,7 +605,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
 
     for(auto idx = 0; idx < op_map.size(); idx++)
     {
-        auto op   = op_map[idx];
+        auto op   = op_map.at(idx);
         auto keys = op->GetArgs();
         for(auto&& key : keys)
         {
@@ -697,16 +696,19 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         {
             for(auto idx = 0; idx < op_map.size(); idx++)
             {
-                auto op   = op_map[idx];
-                auto keys = size_map[std::pair<size_t, size_t>(idx, sz)];
-                std::sort(keys.begin(), keys.end());
-                for(auto& key : keys)
+                auto key_pair = std::pair<size_t, size_t>(idx, sz);
+                if(size_map.count(key_pair) > 0)
                 {
-                    auto it = op_args.args_map.find(key);
-                    if(it != op_args.args_map.end())
+                    auto keys = size_map.at(key_pair);
+                    std::sort(keys.begin(), keys.end());
+                    for(auto& key : keys)
                     {
-                        MIOPEN_LOG_I("Scalar " << key << " = " << it->second);
-                        args.push_back(it->second);
+                        auto it = op_args.args_map.find(key);
+                        if(it != op_args.args_map.end())
+                        {
+                            MIOPEN_LOG_I("Scalar " << key << " = " << it->second);
+                            args.push_back(it->second);
+                        }
                     }
                 }
             }
@@ -719,16 +721,19 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         // add other pointers in op-order
         for(auto idx = 0; idx < op_map.size(); idx++)
         {
-            auto op   = op_map[idx];
-            auto keys = ptr_map[idx];
-            std::sort(keys.begin(), keys.end());
-            for(auto& key : keys)
+            auto op = op_map.at(idx);
+            if(ptr_map.count(idx) > 0)
             {
-                auto it = op_args.args_map.find(key);
-                if(it != op_args.args_map.end())
+                auto keys = ptr_map.at(idx);
+                std::sort(keys.begin(), keys.end());
+                for(auto& key : keys)
                 {
-                    MIOPEN_LOG_I("Pointer " << key << " = " << it->second);
-                    args.push_back(it->second);
+                    auto it = op_args.args_map.find(key);
+                    if(it != op_args.args_map.end())
+                    {
+                        MIOPEN_LOG_I("Pointer " << key << " = " << it->second);
+                        args.push_back(it->second);
+                    }
                 }
             }
         }

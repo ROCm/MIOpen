@@ -1866,16 +1866,6 @@ miopenFusionPlanConvolutionGetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
 MIOPEN_EXPORT miopenStatus_t miopenFusionPlanConvolutionSetAlgo(
     miopenFusionPlanDescriptor_t fusePlanDesc, miopenConvFwdAlgorithm_t algo);
 
-/*! @brief Creates backwards data convolution operator.
-*
-* @param fusePlanDesc   A fusion plan descriptor (input)
-* @param convOp         Pointer to an operator type (output)
-* @param convDesc       Convolution layer descriptor (input)
-* @param bwdDataAlgo    A MIOpen backwards data convolutin algorithm (input)
-* @param wDesc          Descriptor for the weights tensor (input)
-* @return               miopenStatus_t
-*/
-
 // Convolution create op for unknown algorithm ---
 /*! @brief Creates forward convolution operator.
 *
