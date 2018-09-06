@@ -209,8 +209,16 @@ extern "C" miopenStatus_t miopenConvolutionForward(miopenHandle_t handle,
 
     if(miopen::IsLoggingCmd())
     {
-        std::cerr << MIOPEN_DRIVER_CMD("conv") << " -n " << miopen::deref(xDesc).GetLengths()[0]
-                  << " -c " << miopen::deref(xDesc).GetLengths()[1] << " -H "
+        if(miopen::deref(xDesc).GetType() == miopenHalf)
+        {
+            std::cerr << MIOPEN_DRIVER_CMD("convfp16");
+        }
+        else
+        {
+            std::cerr << MIOPEN_DRIVER_CMD("conv");
+        }
+        std::cerr << " -n " << miopen::deref(xDesc).GetLengths()[0] << " -c "
+                  << miopen::deref(xDesc).GetLengths()[1] << " -H "
                   << miopen::deref(xDesc).GetLengths()[2] << " -W "
                   << miopen::deref(xDesc).GetLengths()[3]
 
@@ -346,8 +354,16 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
 
     if(miopen::IsLoggingCmd())
     {
-        std::cerr << MIOPEN_DRIVER_CMD("conv") << " -n " << miopen::deref(dxDesc).GetLengths()[0]
-                  << " -c " << miopen::deref(dxDesc).GetLengths()[1] << " -H "
+        if(miopen::deref(dyDesc).GetType() == miopenHalf)
+        {
+            std::cerr << MIOPEN_DRIVER_CMD("convfp16");
+        }
+        else
+        {
+            std::cerr << MIOPEN_DRIVER_CMD("conv");
+        }
+        std::cerr << " -n " << miopen::deref(dxDesc).GetLengths()[0] << " -c "
+                  << miopen::deref(dxDesc).GetLengths()[1] << " -H "
                   << miopen::deref(dxDesc).GetLengths()[2] << " -W "
                   << miopen::deref(dxDesc).GetLengths()[3]
 
@@ -457,8 +473,16 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
 
     if(miopen::IsLoggingCmd())
     {
-        std::cerr << MIOPEN_DRIVER_CMD("conv") << " -n " << miopen::deref(xDesc).GetLengths()[0]
-                  << " -c " << miopen::deref(xDesc).GetLengths()[1] << " -H "
+        if(miopen::deref(xDesc).GetType() == miopenHalf)
+        {
+            std::cerr << MIOPEN_DRIVER_CMD("convfp16");
+        }
+        else
+        {
+            std::cerr << MIOPEN_DRIVER_CMD("conv");
+        }
+        std::cerr << " -n " << miopen::deref(xDesc).GetLengths()[0] << " -c "
+                  << miopen::deref(xDesc).GetLengths()[1] << " -H "
                   << miopen::deref(xDesc).GetLengths()[2] << " -W "
                   << miopen::deref(xDesc).GetLengths()[3]
 

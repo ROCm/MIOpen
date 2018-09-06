@@ -41,6 +41,7 @@
 #include <miopen/clhelper.hpp>
 #include <miopen/each_args.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/op_kernel_args.hpp>
 
 namespace miopen {
 
@@ -90,6 +91,23 @@ struct OCLKernelInvoke
     std::array<size_t, 3> global_work_dim    = {};
     std::array<size_t, 3> local_work_dim     = {};
     std::function<void(cl_event&)> callback;
+
+    void operator()(std::vector<OpKernelArg> args) const
+    {
+        for(size_t idx = 0; idx < args.size(); idx++)
+        {
+            auto arg      = args[idx];
+            cl_int status = clSetKernelArg(
+                kernel.get(), idx, arg.size(), reinterpret_cast<const void*>(&arg.buffer[0]));
+            if(status != CL_SUCCESS)
+            {
+                MIOPEN_THROW("Error setting argument #" + std::to_string(idx) +
+                             " to kernel (size = " + std::to_string(arg.size()) + "): " +
+                             OpenCLErrorMessage(status));
+            }
+        }
+        run();
+    }
 
     template <class... Ts>
     void operator()(const Ts&... xs) const
