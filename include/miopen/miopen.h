@@ -562,7 +562,7 @@ miopenCreateConvolutionDescriptor(miopenConvolutionDescriptor_t* convDesc);
 
 /*! @brief Creates a convolution layer descriptor
  *
- * For group/depthwise convolution dilation height and width, only a group value of 1 is supported.
+ * For group/depthwise convolution dilation height and width, only a dilation value of 1 is supported.
  *
  * @param convDesc   Convolution layer descriptor (output)
  * @param c_mode     Convolutional mode (input)
@@ -585,7 +585,7 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
 
 /*! @brief Retrieves a convolution layer descriptor's details
  *
- * For group/depthwise convolution dilation height and width, only a group value of 1 is supported.
+ * For group/depthwise convolution dilation height and width, only a dilation value of 1 is supported.
  *
  * @param convDesc   Convolution layer descriptor (input)
  * @param c_mode     Convolutional mode (output)
@@ -609,8 +609,9 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDes
 /*! @brief Set the number of groups to be used in Group/Depthwise convolution
 *
 * Must be called before all computational APIs of Group/Depthwise convolution, it is preferable to
-* call
-* miopenInitConvolutionDescriptor() in the initialization stage.
+* call miopenInitConvolutionDescriptor() first, then miopenSetConvolutionGroup() to fully initialize 
+* group convolutions.
+*
 * @param convDesc   Convolution layer descriptor (output)
 * @param groupCount      number of groups, in depthwise conv using filter_number/channel_multiplier
 * (input)
