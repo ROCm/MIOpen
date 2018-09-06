@@ -26,9 +26,9 @@
 #ifndef GUARD_MIOPEN_DB_RECORD_HPP_
 #define GUARD_MIOPEN_DB_RECORD_HPP_
 
-#include <miopen/config.h>
 #include <miopen/logger.hpp>
 
+#include <cassert>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -65,6 +65,53 @@ namespace miopen {
 /// All operations are MP- and MT-safe.
 class DbRecord
 {
+    public:
+    template <class TValue>
+    class Iterator
+    {
+        friend class DbRecord;
+
+        using InnerIterator = std::unordered_map<std::string, std::string>::const_iterator;
+
+        public:
+        std::pair<const std::string&, TValue> operator*() const
+        {
+            assert(it != InnerIterator{});
+            TValue value;
+            value.Deserialize(it->second);
+            return {it->first, value};
+        }
+
+        Iterator& operator++()
+        {
+            ++it;
+            return *this;
+        }
+
+        const Iterator operator++(int) { return Iterator{it++}; }
+
+        bool operator==(const Iterator& other) const { return it == other.it; }
+        bool operator!=(const Iterator& other) const { return it != other.it; }
+
+        private:
+        Iterator(const InnerIterator it_) : it(it_) {}
+        InnerIterator it;
+    };
+
+    template <class TValue>
+    class IterationHelper
+    {
+        public:
+        Iterator<TValue> begin() const { return {record.map.begin()}; }
+        Iterator<TValue> end() const { return {record.map.end()}; }
+
+        private:
+        IterationHelper(const DbRecord& record_) : record(record_) {}
+
+        const DbRecord& record;
+        friend class DbRecord;
+    };
+
     private:
     std::string key;
     std::unordered_map<std::string, std::string> map;
@@ -137,6 +184,12 @@ class DbRecord
     ///
     /// Returns true if erase was successful. Returns false if this ID was not found.
     bool EraseValues(const std::string& id);
+
+    template <class TValue>
+    IterationHelper<TValue> As() const
+    {
+        return *this;
+    }
 
     friend class Db;
 };

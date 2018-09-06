@@ -63,7 +63,8 @@ void CallGemm(Handle& handle,
               ConstData_t B,
               int b_offset,
               Data_t C,
-              int c_offset);
+              int c_offset,
+              std::string* kcache_key = nullptr);
 
 void CallGemmStridedBatched(Handle& handle,
                             GemmDescriptor gemm_desc,
@@ -72,7 +73,8 @@ void CallGemmStridedBatched(Handle& handle,
                             ConstData_t B,
                             int b_offset,
                             Data_t C,
-                            int c_offset);
+                            int c_offset,
+                            std::string* kcache_key = nullptr);
 
 void CallGemmStridedBatchedSequential(Handle& handle,
                                       GemmDescriptor gemm_desc,
@@ -81,7 +83,8 @@ void CallGemmStridedBatchedSequential(Handle& handle,
                                       ConstData_t B,
                                       int b_offset,
                                       Data_t C,
-                                      int c_offset);
+                                      int c_offset,
+                                      std::string* kcache_key = nullptr);
 
 // GEMM parameters for Convolution (using Im2Col) Fwd
 // y = w * Im2Col(x)

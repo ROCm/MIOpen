@@ -89,6 +89,8 @@ struct Handle : miopenHandle
                            const std::string& params,
                            std::size_t cache_index = 0);
 
+    bool HasKernel(const std::string& algorithm, const std::string& network_config) const;
+
     void ClearKernels(const std::string& algorithm, const std::string& network_config);
 
     auto GetKernels(const std::string& algorithm, const std::string& network_config)
@@ -153,6 +155,15 @@ struct Handle : miopenHandle
         std::vector<T> result(sz);
         this->ReadTo(result.data(), ddata, sz * sizeof(T));
         return result;
+    }
+
+    std::string GetDbPathFilename()
+    {
+        // clang-format off
+        return GetDeviceName()
+             + "_"
+             + std::to_string(GetMaxComputeUnits());
+        // clang-format on
     }
 
 #if MIOPEN_USE_ROCBLAS

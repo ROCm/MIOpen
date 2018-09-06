@@ -206,9 +206,7 @@ struct ConvolutionContext : ProblemDescription
         // clang-format off
         return GetDbPath()
              + "/"
-             + GetStream().GetDeviceName()
-             + "_"
-             + std::to_string(GetStream().GetMaxComputeUnits())
+             + GetStream().GetDbPathFilename()
              + ".cd.pdb.txt";
         // clang-format on
     }
@@ -218,9 +216,7 @@ struct ConvolutionContext : ProblemDescription
         // clang-format off
         return GetUserDbPath()
              + "/"
-             + GetStream().GetDeviceName()
-             + "_"
-             + std::to_string(GetStream().GetMaxComputeUnits())
+             + GetStream().GetDbPathFilename()
              + ".cd.updb.txt";
         // clang-format on
     }
