@@ -197,7 +197,7 @@ class CBAInferFusionDriver : public Driver
         miopenDestroyActivationDescriptor(activDesc);
         miopenDestroyConvolutionDescriptor(convDesc);
 
-        miopenDestroyFusionPlanDescriptor(fusePlanDesc);
+        miopenDestroyFusionPlan(fusePlanDesc);
         miopenDestroyOperatorArgs(fusionArgs);
     }
 

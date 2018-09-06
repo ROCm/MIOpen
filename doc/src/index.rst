@@ -16,8 +16,9 @@ Welcome to MIOpen
     driver
     cache
     perfdatabase
+    Getting_Started_FusionAPI
     apireference
-    
+
 
 
 Indices and tables
