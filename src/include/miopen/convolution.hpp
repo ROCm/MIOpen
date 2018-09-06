@@ -153,14 +153,17 @@ struct ConvolutionDescriptor : miopenConvolutionDescriptor
                            const TensorDescriptor& yDesc,
                            WinogradKernelParams& k_p,
                            KernelInvoke& kernel,
-                           int direction) const;
+                           std::string& solver_id,
+                           int direction,
+                           std::string* kcache_key = nullptr) const;
 
     int FindFwdFFTKernel(Handle& handle,
                          const TensorDescriptor& xDesc,
                          const TensorDescriptor& wDesc,
                          const TensorDescriptor& yDesc,
                          size_t workSpaceSize,
-                         std::vector<KernelInvoke>& kernels) const;
+                         std::vector<KernelInvoke>& kernels,
+                         std::string& kcache_key) const;
 
     float ExecuteFwdFFTKernel(Handle& handle,
                               const TensorDescriptor& xDesc,
