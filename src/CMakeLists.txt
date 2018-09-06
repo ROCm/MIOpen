@@ -119,6 +119,7 @@ set( MIOpen_Source
     solver.cpp
     solver/conv_asm_3x3u.cpp
     solver/conv_asm_1x1u.cpp
+    solver/conv_asm_1x1u_bias_activ.cpp
     solver/conv_asm_5x10u2v2f1.cpp
     solver/conv_asm_5x10u2v2b1.cpp
     solver/conv_asm_7x7c3h224w224k64u2v2p3q3f1.cpp
