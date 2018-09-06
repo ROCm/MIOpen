@@ -29,6 +29,7 @@
 
 #define WG_SIZE 256
 #define MAX_ACTIVE_THREADS (64 * 4 * 64)
+#define MAX_LOCAL_MEM 65536
 //#define MIOPEN_TRANS_DEBUG
 
 namespace miopen {
@@ -110,6 +111,42 @@ float Im2ColGPU(Handle& handle,
                 num_ch_per_wg * ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
                     ((std::ceil(static_cast<float>(tile_sz_y) / num_ch_per_wg) - 1) * stride_h +
                      (wei_h - 1) * dilation_h + 1));
+
+        // adjust mapping for large kernel
+        int type_size    = 4; // Need to adjust for fp16
+        int extreme_case = num_ch_per_wg * ((wei_w - 1) * dilation_w + 1) *
+                           ((wei_h - 1) * dilation_h + 1) * type_size;
+        if(extreme_case > MAX_LOCAL_MEM)
+        {
+            params += " -DEXTREME_LARGE";
+            params += " -DNUM_CH_TOTAL=" + std::to_string(c);
+        }
+        else
+        {
+            while(local_mem_sz * type_size > MAX_LOCAL_MEM)
+            {
+                tile_sz_x  = tile_sz_x == 1 ? 1 : (tile_sz_y == 1 ? (tile_sz_x / 2) : tile_sz_x);
+                tile_sz_y  = tile_sz_y == 1 ? 1 : (tile_sz_y / 2);
+                num_blks_x = std::ceil(static_cast<float>(out_w) / tile_sz_x);
+                num_blks   = num_blks_x * std::ceil(static_cast<float>(out_h) / tile_sz_y);
+                if(num_ch_per_wg == 1)
+                    local_mem_sz = ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
+                                   ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1);
+                else
+                    local_mem_sz = std::max(
+                        num_ch_per_wg *
+                            ((std::ceil(static_cast<float>(tile_sz_x) / num_ch_per_wg) - 1) *
+                                 stride_w +
+                             (wei_w - 1) * dilation_w + 1) *
+                            ((tile_sz_y - 1) * stride_h + (wei_h - 1) * dilation_h + 1),
+                        num_ch_per_wg *
+                            ((tile_sz_x - 1) * stride_w + (wei_w - 1) * dilation_w + 1) *
+                            ((std::ceil(static_cast<float>(tile_sz_y) / num_ch_per_wg) - 1) *
+                                 stride_h +
+                             (wei_h - 1) * dilation_h + 1));
+            }
+        }
+
         int data_size_off = data_size - im_offset;
 
         params += " -DNUM_CH_PER_WG=" + std::to_string(num_ch_per_wg);

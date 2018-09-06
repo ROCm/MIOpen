@@ -28,10 +28,43 @@
 #include <miopen/logger.hpp>
 
 namespace miopen {
-std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& op)
+std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x)
 {
-    MIOPEN_LOG_ENUM(
-        stream, op.kind(), miopenFusionOpActivForward, miopenFusionOpBatchNormInference);
+    MIOPEN_LOG_ENUM(stream,
+                    x.kind(),
+                    miopenFusionOpConvForward,
+                    miopenFusionOpActivForward,
+                    miopenFusionOpBatchNormInference,
+                    miopenFusionOpBiasForward);
+    return stream;
+}
+
+std::ostream& operator<<(std::ostream& stream, const MDGraph_op_t& o)
+{
+    MIOPEN_LOG_ENUM(stream, o, OpEqual, OpNotEqual, OpAny);
+    return stream;
+}
+
+std::ostream& operator<<(std::ostream& stream, const boost::any& a)
+{
+    if(a.type() == typeid(std::string))
+        stream << boost::any_cast<std::string>(a);
+    else if(a.type() == typeid(int))
+        stream << boost::any_cast<int>(a);
+    else if(a.type() == typeid(miopenConvolutionMode_t))
+        stream << boost::any_cast<miopenConvolutionMode_t>(a);
+    else if(a.type() == typeid(miopenPaddingMode_t))
+        stream << boost::any_cast<miopenPaddingMode_t>(a);
+    else if(a.type() == typeid(size_t))
+        stream << boost::any_cast<size_t>(a);
+    else if(a.type() == typeid(miopenBatchNormMode_t))
+        stream << boost::any_cast<miopenBatchNormMode_t>(a);
+    else if(a.type() == typeid(miopenActivationMode_t))
+        stream << boost::any_cast<miopenActivationMode_t>(a);
+    else if(a.type() == typeid(miopenDataType_t))
+        stream << boost::any_cast<miopenDataType_t>(a);
+    else
+        stream << "Unsupported any type: " << a.type().name();
     return stream;
 }
 

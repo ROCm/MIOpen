@@ -298,6 +298,18 @@ struct test_driver
                                     {16, 32, 8, 8});
     }
 
+    generate_tensor_t<std::vector<int>> get_3d_bn_spatial_input_tensor()
+    {
+        return lazy_generate_tensor([=] { return get_3d_bn_spatial_inputs(batch_factor); },
+                                    {16, 32, 8, 8, 8});
+    }
+
+    generate_tensor_t<std::vector<int>> get_3d_bn_peract_input_tensor()
+    {
+        return lazy_generate_tensor([=] { return get_3d_bn_peract_inputs(batch_factor); },
+                                    {16, 32, 8, 8, 8});
+    }
+
     generate_tensor_t<std::vector<int>> get_input_tensor()
     {
         return lazy_generate_tensor([=] { return get_inputs(batch_factor); }, {16, 32, 8, 8});

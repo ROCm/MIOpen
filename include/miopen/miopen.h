@@ -562,7 +562,7 @@ miopenCreateConvolutionDescriptor(miopenConvolutionDescriptor_t* convDesc);
 
 /*! @brief Creates a convolution layer descriptor
  *
- * For dilation height and width, only a value of 1 is supported.
+ * For group/depthwise convolution dilation height and width, only a value of 1 is supported.
  *
  * @param convDesc   Convolution layer descriptor (output)
  * @param c_mode     Convolutional mode (input)
@@ -585,7 +585,7 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
 
 /*! @brief Retrieves a convolution layer descriptor's details
  *
- * For dilation height and width, only a value of 1 is supported.
+ * For group/depthwise convolution dilation height and width, only a value of 1 is supported.
  *
  * @param convDesc   Convolution layer descriptor (input)
  * @param c_mode     Convolutional mode (output)
@@ -1419,6 +1419,9 @@ MIOPEN_EXPORT miopenStatus_t miopenDestroyLRNDescriptor(miopenLRNDescriptor_t lr
  *
  * For an input tensor NCHW and spatial mode, the output derived tensor is 1C11, while for
  * per-activation the derived tensor is 1CHW.
+ *
+ * For an input tensor NCDHW and spatial mode, the output derived tensor is 1C111, while for
+ * per-activation the derived tensor is 1CDHW.
  *
  * @param derivedBnDesc   Output derived tensor descriptor (output)
  * @param xDesc           Input tensor descriptor (input)
