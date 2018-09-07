@@ -114,8 +114,6 @@ miopenStatus_t FusionPlanDescriptor::GetWorkspaceSizeImmed(Handle& handle,
                                                            miopenConvFwdAlgorithm_t /*algo*/)
 {
     workSpaceSize = 0;
-    // iterate over all the conv ops in the plan and return the max amount of
-    // ws required
     for(auto&& op : op_map)
     {
         if(op->kind() == miopenFusionOpConvForward)
@@ -136,13 +134,9 @@ miopenStatus_t FusionPlanDescriptor::GetConvAlgos(int reqAlgoCount,
                                                   int& retAlgoCount,
                                                   miopenConvFwdAlgorithm_t* ptrAlgos)
 {
+    auto algos = lu.GetConvAlgos();
+    retAlgoCount = std::min(reqAlgoCount, static_cast<int>(algos.size()));
 
-    std::vector<miopenConvFwdAlgorithm_t> algos = lu.GetConvAlgos();
-
-    if(algos.size() > reqAlgoCount)
-        retAlgoCount = reqAlgoCount;
-    else
-        retAlgoCount = algos.size();
     for(auto idx = 0; idx < retAlgoCount; idx++)
     {
         ptrAlgos[idx] = algos[idx];
@@ -183,9 +177,8 @@ miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
                                                 const void* /*beta*/,
                                                 ConstData_t w)
 {
-    auto id    = std::to_string(GetIdx());
     auto w_any = OpKernelArg(w);
-    args.ins_arg("weights" + id, w_any);
+    args.ins_arg("weights" + std::to_string(GetIdx()), w_any);
 
     return miopenStatusSuccess;
 }
@@ -363,9 +356,8 @@ miopenStatus_t BiasFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                const void* /*beta*/,
                                                ConstData_t bdata)
 {
-    auto id        = std::to_string(GetIdx());
     auto bdata_any = OpKernelArg(bdata);
-    args.ins_arg("bias" + id, bdata_any);
+    args.ins_arg("bias" + std::to_string(GetIdx()), bdata_any);
     return miopenStatusSuccess;
 }
 

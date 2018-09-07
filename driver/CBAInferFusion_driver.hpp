@@ -117,10 +117,6 @@ class CBAInferFusionDriver : public Driver
 
     int AllocateBuffersAndCopy();
 
-    int FindConvForward(int& ret_algo_count,
-                        int request_algo_count,
-                        std::vector<miopenConvAlgoPerf_t>& perf_results);
-
     int RunForwardGPU();
     int RunForwardCPU();
 
@@ -418,7 +414,6 @@ std::vector<int> CBAInferFusionDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdL
     int in_c = inflags.GetValueInt("in_channels");
     int in_h = inflags.GetValueInt("in_h");
     int in_w = inflags.GetValueInt("in_w");
-
     return std::vector<int>({in_n, in_c, in_h, in_w});
 }
 
@@ -934,26 +929,6 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUActivFwdInference()
     return;
 }
 
-template <typename Tgpu, typename Tref>
-int CBAInferFusionDriver<Tgpu, Tref>::FindConvForward(
-    int& ret_algo_count, int request_algo_count, std::vector<miopenConvAlgoPerf_t>& perf_results)
-{
-    return miopenFindConvolutionForwardAlgorithm(
-        GetHandle(),
-        inputTensor,
-        in_dev->GetMem(),
-        weightTensor,
-        wei_dev->GetMem(),
-        convDesc,
-        outputTensor,
-        conv_res_dev->GetMem(),
-        request_algo_count,
-        &ret_algo_count,
-        perf_results.data(),
-        (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem() : nullptr,
-        (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetSize() : 0,
-        (inflags.GetValueInt("search") == 1) ? true : false);
-}
 
 template <typename Tgpu, typename Tref>
 void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBiasInference()
