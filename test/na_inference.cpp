@@ -26,7 +26,6 @@
 #include "fusionHost.hpp"
 #include <miopen/stringutils.hpp>
 
-
 template <class T>
 struct verify_inference_batchnorm_activ
 {
