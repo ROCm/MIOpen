@@ -41,7 +41,6 @@ struct verify_inference_batchnorm_activ
     miopenFusionPlanDescriptor_t fusionplan;
     miopenFusionOpDescriptor_t bNormOp;
     miopenFusionOpDescriptor_t activOp;
-
     double epsilon;
 
     verify_inference_batchnorm_activ(miopenFusionPlanDescriptor_t pfusionplan,
