@@ -45,6 +45,7 @@ struct verify_forward_conv_bias_batchnorm_activ
     tensor<T> bnbias{};
     tensor<T> estMean{};
     tensor<T> estVariance{};
+    miopenFusionPlanDescriptor_t fusionplan;
 
     miopenBatchNormMode_t bnmode;
     bool bias_mode = false;
@@ -52,18 +53,19 @@ struct verify_forward_conv_bias_batchnorm_activ
     double epsilon;
 
     // using conv_base<T>::search; //DLOWELL not needed right now
-    verify_forward_conv_bias_batchnorm_activ(tensor<T>& pinput,
+    verify_forward_conv_bias_batchnorm_activ(miopenFusionPlanDescriptor_t pfusionplan,
+                                             tensor<T>& pinput,
                                              tensor<T>& pweights,
                                              miopen::ConvolutionDescriptor& pfilter,
                                              bool pbias_mode,
                                              tensor<T>& pbias,
-                                             miopenActivationDescriptor_t& pactivDesc,
+                                             miopenActivationDescriptor_t pactivDesc,
                                              bool pdoactiv,
                                              tensor<T>& pbnscale,
                                              tensor<T>& pbnbias,
                                              tensor<T>& pestMean,
                                              tensor<T>& pestVariance,
-                                             miopenBatchNormMode_t pbnmode /*, int psearch = 0 */)
+                                             miopenBatchNormMode_t pbnmode)
     {
         input           = pinput;
         inputDesc       = &pinput.desc;
@@ -81,107 +83,42 @@ struct verify_forward_conv_bias_batchnorm_activ
         estMean         = pestMean;
         estVariance     = pestVariance;
         bnmode          = pbnmode;
+        fusionplan      = pfusionplan;
         epsilon         = 1.0e-5;
-        // search  = psearch;
     }
 
     tensor<T> cpu() const
     {
 
-        auto&& handle = get_handle();
         auto rout     = get_output_tensor(miopen::deref(filter), input, weights);
         auto aout     = rout;
         std::fill(aout.begin(), aout.end(), 0.);
         auto bout = rout;
         std::fill(bout.begin(), bout.end(), 0.);
-        miopenFusionPlanDescriptor_t fusePlanDesc;
-        // miopenFusionOpDescriptor_t bNormOp;
-        miopenFusionOpDescriptor_t convoOp = nullptr;
-        miopenFusionOpDescriptor_t biasOp  = nullptr;
-        miopenFusionOpDescriptor_t bNormOp = nullptr;
-        miopenFusionOpDescriptor_t activOp = nullptr;
 
-        double activ_alpha, activ_beta, activ_gamma;
-        miopenActivationMode_t activ_mode;
-        miopenGetActivationDescriptor(
-            activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
-
-        miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
-        miopenCreateOpConvForward(fusePlanDesc, &convoOp, filter, weightsDesc);
-        miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
-        int retAlgCount = 0;
-        // Query the supported algorithms
-        miopenFusionPlanConvolutionGetAlgo(
-            fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
-        // TODO: Replace this with WinoGrad to check for wino grad supported kernels
-        miopenConvFwdAlgorithm_t req_algo = miopenConvolutionFwdAlgoDirect;
-        if((std::begin(sup_algos) + retAlgCount) != std::find(std::begin(sup_algos),
-                                                              std::begin(sup_algos) + retAlgCount,
-                                                              miopenConvolutionFwdAlgoDirect))
+        // If we are using convolutions as the base, we can calculate the
+        convHostForward(input, rout, weights, bias_mode, bias, filter);
+        if(bnmode == miopenBNPerActivation)
         {
-            // should not throw
-            miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, req_algo);
-        }
-
-        if(bias_mode)
-            miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
-
-        miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bnmode, biasScaleTensor);
-        if(doactive)
-        {
-            miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
-        }
-
-        // Compile
-        miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, fusePlanDesc);
-        if(miopenError != miopenStatusSuccess)
-        {
-            if(bias_mode)
-                if(doactive)
-                {
-                    std::cerr << "Conv+Bias+BatchNorm+Activation Inference plan not supported."
-                              << std::endl;
-                }
-                else
-                {
-                    std::cerr << "Conv+Bias+BatchNorm Inference plan not supported." << std::endl;
-                }
-            else
-            {
-                if(doactive)
-                {
-                    std::cerr << "Conv+BatchNorm+Activation Inference plan not supported."
-                              << std::endl;
-                }
-                else
-                {
-                    std::cerr << "Conv+BatchNorm Inference plan not supported." << std::endl;
-                }
-            }
+            batchNormPerActivHostInference(
+                rout, bout, bnscale, bnbias, epsilon, estMean, estVariance);
         }
         else
         {
-            // If we are using convolutions as the base, we can calculate the
-            convHostForward(input, rout, weights, bias_mode, bias, filter);
-            if(bnmode == miopenBNPerActivation)
-            {
-                batchNormPerActivHostInference(
-                    rout, bout, bnscale, bnbias, epsilon, estMean, estVariance);
-            }
-            else
-            {
-                batchNormSpatialHostInference(
-                    rout, bout, bnscale, bnbias, epsilon, estMean, estVariance);
-            }
-            if(doactive)
-            {
-                activationHostInfer(
-                    activ_mode, activ_gamma, activ_beta, activ_alpha, bout.data, aout.data);
-            }
-            else
-            {
-                return bout;
-            }
+            batchNormSpatialHostInference(
+                rout, bout, bnscale, bnbias, epsilon, estMean, estVariance);
+        }
+        if(doactive)
+        {
+            double activ_alpha, activ_beta, activ_gamma;
+            miopenActivationMode_t activ_mode;
+            miopenGetActivationDescriptor(activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
+            activationHostInfer(
+                activ_mode, activ_gamma, activ_beta, activ_alpha, bout.data, aout.data);
+        }
+        else
+        {
+            return bout;
         }
         return aout;
     }
@@ -198,125 +135,56 @@ struct verify_forward_conv_bias_batchnorm_activ
         auto bnbias_dev      = handle.Write(bnbias.data);
         auto estMean_dev     = handle.Write(estMean.data);
         auto estVariance_dev = handle.Write(estVariance.data);
-        // DLOWELL: All of this search logic is shelved until we have more fused algos to implement
-        /*        size_t workspace_size =
-                    filter.ForwardGetWorkSpaceSize(handle, weights.desc, input.desc, rout.desc);
 
-                std::vector<char> workspace(workspace_size);
-                auto workspace_dev = workspace_size != 0 ? handle.Write(workspace) : nullptr;
-
-                int ret_algo_count;
-                miopenConvAlgoPerf_t perf;
-        */
-        miopenFusionPlanDescriptor_t fusePlanDesc;
         miopenFusionOpDescriptor_t convoOp = nullptr;
         miopenFusionOpDescriptor_t biasOp  = nullptr;
         miopenFusionOpDescriptor_t bNormOp = nullptr;
         miopenFusionOpDescriptor_t activOp = nullptr;
-        miopenOperatorArgs_t fusionArgs;
+        auto ptr_fusionargs = GetManageFusionPlanArgs();
 
-        double activ_alpha, activ_beta, activ_gamma;
-        miopenActivationMode_t activ_mode;
-        miopenGetActivationDescriptor(
-            activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
-
+        
         double alpha = 1., beta = 0.;
-        miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
-        miopenCreateOperatorArgs(&fusionArgs);
-        miopenCreateOpConvForward(
-            fusePlanDesc,
-            &convoOp,
-            filter,
-            // \todo dlowell: Hardcoded right now. This assumes immediate mode. Needs GetAlgo.
-            // miopenConvolutionFwdAlgoDirect,
-            weightsDesc);
-
-        miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
-        int retAlgCount = 0;
-        // Query the supported algorithms
-        miopenFusionPlanConvolutionGetAlgo(
-            fusePlanDesc, MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
-        // TODO: Replace this with WinoGrad to check for wino grad supported kernels
-        miopenConvFwdAlgorithm_t req_algo = miopenConvolutionFwdAlgoDirect;
-        if((std::begin(sup_algos) + retAlgCount) != std::find(std::begin(sup_algos),
-                                                              std::begin(sup_algos) + retAlgCount,
-                                                              miopenConvolutionFwdAlgoDirect))
-        {
-            // should not throw
-            miopenFusionPlanConvolutionSetAlgo(fusePlanDesc, req_algo);
-        }
+        auto opcounter             = 0;
+        miopenStatus_t miopenError = miopenFusionPlanGetOp(fusionplan, opcounter++, &convoOp);
+        EXPECT(miopenError == miopenStatusSuccess);
+        miopenSetOpArgsConvForward(ptr_fusionargs.get(), convoOp, &alpha, &beta, wei_dev.get());
 
         if(bias_mode)
-            miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasDesc);
+        {
+            miopenError = miopenFusionPlanGetOp(fusionplan, opcounter++, &biasOp);
+            EXPECT(miopenError == miopenStatusSuccess);
+            miopenSetOpArgsBiasForward(ptr_fusionargs.get(), biasOp, &alpha, &beta, b_dev.get());
+        }
 
-        miopenCreateOpBatchNormInference(fusePlanDesc, &bNormOp, bnmode, biasScaleTensor);
-
+        miopenError = miopenFusionPlanGetOp(fusionplan, opcounter++, &bNormOp);
+        EXPECT(miopenError == miopenStatusSuccess);
+        miopenSetOpArgsBatchNormInference(ptr_fusionargs.get(),
+                                          bNormOp,
+                                          &alpha,
+                                          &beta,
+                                          bnscale_dev.get(),
+                                          bnbias_dev.get(),
+                                          estMean_dev.get(),
+                                          estVariance_dev.get(),
+                                          epsilon);
         if(doactive)
         {
-            miopenCreateOpActivationForward(fusePlanDesc, &activOp, activ_mode);
+            miopenError = miopenFusionPlanGetOp(fusionplan, opcounter, &activOp);
+            EXPECT(miopenError == miopenStatusSuccess);
+            double activ_alpha, activ_beta, activ_gamma;
+            miopenActivationMode_t activ_mode;
+            miopenGetActivationDescriptor(activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
+            miopenSetOpArgsActivForward(
+                ptr_fusionargs.get(), activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
         }
-
-        // Compile
-        miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, fusePlanDesc);
-        if(miopenError != miopenStatusSuccess)
-        {
-            if(bias_mode)
-                if(doactive)
-                {
-                    std::cerr << "Conv+Bias+BatchNorm+Activation Inference plan not supported."
-                              << std::endl;
-                }
-                else
-                {
-                    std::cerr << "Conv+Bias+BatchNorm Inference plan not supported." << std::endl;
-                }
-            else
-            {
-                if(doactive)
-                {
-                    std::cerr << "Conv+BatchNorm+Activation Inference plan not supported."
-                              << std::endl;
-                }
-                else
-                {
-                    std::cerr << "Conv+BatchNorm Inference plan not supported." << std::endl;
-                }
-            }
-        }
-        else
-        {
-
-            miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev.get());
-
-            if(bias_mode)
-            {
-                miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev.get());
-            }
-
-            miopenSetOpArgsBatchNormInference(fusionArgs,
-                                              bNormOp,
-                                              &alpha,
-                                              &beta,
-                                              bnscale_dev.get(),
-                                              bnbias_dev.get(),
-                                              estMean_dev.get(),
-                                              estVariance_dev.get(),
-                                              epsilon);
-            if(doactive)
-            {
-                miopenSetOpArgsActivForward(
-                    fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
-            }
-            miopenExecuteFusionPlan(&handle,
-                                    fusePlanDesc,
-                                    inputDesc,
-                                    in_dev.get(),
-                                    &rout.desc,
-                                    out_dev.get(),
-                                    fusionArgs);
-            rout.data = handle.Read<T>(out_dev, rout.data.size());
-        }
-
+        miopenExecuteFusionPlan(&handle,
+                                fusionplan,
+                                inputDesc,
+                                in_dev.get(),
+                                &rout.desc,
+                                out_dev.get(),
+                                ptr_fusionargs.get());
+        rout.data = handle.Read<T>(out_dev, rout.data.size());
         return rout;
     }
 
@@ -355,8 +223,9 @@ struct cbna_fusion_driver : test_driver
     tensor<T> shift;
     tensor<T> estMean;
     tensor<T> estVariance;
+    tensor<T> bias;
     miopen::ConvolutionDescriptor filter;
-    miopenActivationDescriptor_t activDesc{};
+    ptr_ActivationDesc ptr_activdesc  = nullptr;
     miopenActivationMode_t activ_mode = miopenActivationRELU;
     int amode                         = 0;
     bool tactiv{};
@@ -392,7 +261,7 @@ struct cbna_fusion_driver : test_driver
         //       add(conv_mode, "cmode", generate_data({"conv"}/*, "trans"}*/));
         add(pad_mode, "pmode", generate_data({"default" /*, "same", "valid"*/}));
         add(tactiv, "test_activ", generate_data({false, true}));
-        add(amode, "amode", generate_data({-1, 3, 8}));
+        add(amode, "amode", generate_data({1, 3, 8}));
         add(batchnormMode, "batch-norm-mode", generate_data({0, 1}));
     }
 
@@ -426,6 +295,15 @@ struct cbna_fusion_driver : test_driver
         std::tie(wei_k, wei_c, wei_h, wei_w) = miopen::tien<4>(weights.desc.GetLengths());
         std::tie(std::ignore, input_c, input_h, input_w) = miopen::tien<4>(input.desc.GetLengths());
 
+        miopenFusionOpDescriptor_t convoOp = nullptr;
+        miopenFusionOpDescriptor_t biasOp  = nullptr;
+        miopenFusionOpDescriptor_t bNormOp = nullptr;
+        miopenFusionOpDescriptor_t activOp = nullptr;
+
+        auto&& handle       = get_handle();
+        auto ptr_fusionplan = GetManagedFusionPlanDesc(&input.desc);
+
+
         filter.mode        = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode = pmode_lookup[miopen::ToUpper(pad_mode)];
 
@@ -435,8 +313,6 @@ struct cbna_fusion_driver : test_driver
         auto fpad_w       = filter.pad_w;
         auto fpaddingMode = filter.paddingMode;
 
-        miopenCreateActivationDescriptor(&activDesc);
-        miopenSetActivationDescriptor(activDesc, activ_mode, alpha, beta, gamma);
 
         if(((filter.mode == miopenTranspose) && (input_c == wei_k)) ||
            ((filter.mode == miopenConvolution) && (input_c == wei_c)))
@@ -519,53 +395,114 @@ struct cbna_fusion_driver : test_driver
                     input[i] = (((rand() % 2) == 1) ? -1 : 1) * (0.1 * T(rand() % 100));
                 }
             }
+        }
 
-            if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
-               wei_h > 2 * fpad_h && wei_w > 2 * fpad_w && input_h >= (2 * fpad_h + wei_h) &&
-               input_w >= (2 * fpad_w + wei_w))
-            {
-                output = get_output_tensor(filter, input, weights);
-                if(amode == -1)
+
+        miopenCreateOpConvForward(ptr_fusionplan.get(), &convoOp, &filter, &weights.desc);
+
+        miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
+        int retAlgCount = 0;
+        // Query the supported algorithms
+        miopenFusionPlanConvolutionGetAlgo(ptr_fusionplan.get(), MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
+        // TODO: Replace this with WinoGrad to check for wino grad supported kernels
+        miopenConvFwdAlgorithm_t req_algo = miopenConvolutionFwdAlgoDirect;
+        if((std::begin(sup_algos) + retAlgCount) != std::find(std::begin(sup_algos),
+                                                              std::begin(sup_algos) + retAlgCount,
+                                                              miopenConvolutionFwdAlgoDirect))
+        {
+            // should not throw
+            miopenFusionPlanConvolutionSetAlgo(ptr_fusionplan.get(), req_algo);
+        }
+
+        if(bias_mode)
+        {
+            bias = tensor<T>{1, output.desc.GetLengths()[1], 1, 1}.generate(rand_gen{});
+            miopenCreateOpBiasForward(ptr_fusionplan.get(), &biasOp, &bias.desc);
+        }
+        else
+        {
+            bias = tensor<T>{1, 1, 1, 1};
+        }
+
+        miopenCreateOpBatchNormInference(ptr_fusionplan.get(), &bNormOp, bnmode, &scale.desc);
+
+        ptr_activdesc = GetManagedActivDesc();
+        if(tactiv)
+        {
+            miopenSetActivationDescriptor(ptr_activdesc.get(), activ_mode, alpha, beta, gamma);
+            miopenCreateOpActivationForward(ptr_fusionplan.get(), &activOp, activ_mode);
+        }
+
+        // Compile
+        miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, ptr_fusionplan.get());
+        if(miopenError != miopenStatusSuccess)
+        {
+            if(bias_mode)
+                if(tactiv)
                 {
-                    tactiv = false;
-                }
-                if(bias_mode)
-                {
-                    auto bias =
-                        tensor<T>{1, output.desc.GetLengths()[1], 1, 1}.generate(rand_gen{});
-                    // create activation descriptor here
-                    verify(verify_forward_conv_bias_batchnorm_activ<T>{input,
-                                                                       weights,
-                                                                       filter,
-                                                                       bias_mode,
-                                                                       bias,
-                                                                       activDesc,
-                                                                       tactiv,
-                                                                       scale,
-                                                                       shift,
-                                                                       estMean,
-                                                                       estVariance,
-                                                                       bnmode});
+                    std::cerr << "Conv+Bias+BatchNorm+Activation Inference plan not supported."
+                              << std::endl;
                 }
                 else
                 {
-                    auto bias = tensor<T>{1, 1, 1, 1}; // dummy bias
-                    verify(verify_forward_conv_bias_batchnorm_activ<T>{input,
-                                                                       weights,
-                                                                       filter,
-                                                                       bias_mode,
-                                                                       bias,
-                                                                       activDesc,
-                                                                       tactiv,
-                                                                       scale,
-                                                                       shift,
-                                                                       estMean,
-                                                                       estVariance,
-                                                                       bnmode});
+                    std::cerr << "Conv+Bias+BatchNorm Inference plan not supported." << std::endl;
+                }
+            else
+            {
+                if(tactiv)
+                {
+                    std::cerr << "Conv+BatchNorm+Activation Inference plan not supported."
+                              << std::endl;
+                }
+                else
+                {
+                    std::cerr << "Conv+BatchNorm Inference plan not supported." << std::endl;
                 }
             }
+        }else if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
+               wei_h > 2 * fpad_h && wei_w > 2 * fpad_w && input_h >= (2 * fpad_h + wei_h) &&
+               input_w >= (2 * fpad_w + wei_w))
+        {
+            output = get_output_tensor(filter, input, weights);
+            /*if(amode == -1)
+            {
+                tactiv = false;
+            }*/
+            if(bias_mode)
+            {
+                // create activation descriptor here
+                verify(verify_forward_conv_bias_batchnorm_activ<T>{ptr_fusionplan.get(),
+                                                                   input,
+                                                                   weights,
+                                                                   filter,
+                                                                   bias_mode,
+                                                                   bias,
+                                                                   ptr_activdesc.get(),
+                                                                   tactiv,
+                                                                   scale,
+                                                                   shift,
+                                                                   estMean,
+                                                                   estVariance,
+                                                                   bnmode});
+            }
+/*            else
+            {
+                auto bias = tensor<T>{1, 1, 1, 1}; // dummy bias
+                verify(verify_forward_conv_bias_batchnorm_activ<T>{ptr_fusionplan.get(),
+                                                                   input,
+                                                                   weights,
+                                                                   filter,
+                                                                   bias_mode,
+                                                                   bias,
+                                                                   activDesc,
+                                                                   tactiv,
+                                                                   scale,
+                                                                   shift,
+                                                                   estMean,
+                                                                   estVariance,
+                                                                   bnmode});
+            }*/
         }
-        miopenDestroyActivationDescriptor(activDesc);
     }
 };
 
