@@ -33,15 +33,10 @@ namespace solver {
 
 bool ConvOclDirectFwd1x1::IsApplicable(const ConvolutionContext& params) const
 {
-    bool solution = true;
-
-    solution &= params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1;
-    solution &= params.kernel_size0 == 1 && params.kernel_size1 == 1;
-
-    // TODO: Chao: update 1x1 fwd kernel to support padding
-    solution &= params.pad0 == 0 && params.pad1 == 0;
-
-    return solution;
+    return (params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1) &&
+           (params.kernel_size0 == 1 && params.kernel_size1 == 1) &&
+           // TODO: update 1x1 fwd kernel to support padding
+           (params.pad0 == 0 && params.pad1 == 0);
 }
 
 ConvSolution ConvOclDirectFwd1x1::GetSolution(const ConvolutionContext& params,
