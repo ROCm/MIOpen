@@ -41,7 +41,6 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 
-
 template <class T>
 void convHostForward(const tensor<T>& input,
                      tensor<T>& output,
