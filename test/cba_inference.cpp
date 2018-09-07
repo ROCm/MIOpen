@@ -290,7 +290,7 @@ struct cba_fusion_driver : test_driver
         auto fpad_w       = filter.pad_w;
         auto fpaddingMode = filter.paddingMode;
 
-        auto&& handle       = get_handle();
+        auto&& handle = get_handle();
 
         miopenFusionOpDescriptor_t convoOp = nullptr;
         miopenFusionOpDescriptor_t biasOp  = nullptr;
