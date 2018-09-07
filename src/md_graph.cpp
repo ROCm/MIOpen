@@ -315,7 +315,6 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                        "gcnAsmConv1x1U",
                                                        "miopenConvolutionDirectBiasActivAsm");
         conv_v->solver = solver::ConvActivAsm1x1U{};
-        // conv_v->solver = solver::ConvAsm1x1U{};
 
         auto bias_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
                                                        "conv1x1u_bias_activ.s",
@@ -489,7 +488,7 @@ bool FusionMDGraph::ExecOpEqual(const EdgeOp& edg_op, const EdgeOp& op_val)
         return boost::any_cast<miopenDataType_t>(edg_op.val) ==
                boost::any_cast<miopenDataType_t>(op_val.val);
     else
-        MIOPEN_THROW("Unsupported Graph Edge Operation"); // + edg_op.val.type());
+        MIOPEN_THROW("Unsupported Graph Edge Operation");
 }
 
 bool FusionMDGraph::ExecOpModulo(const EdgeOp& edg_op, const EdgeOp& op_val)

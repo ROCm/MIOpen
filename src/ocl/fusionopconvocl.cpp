@@ -31,7 +31,6 @@ ConvForwardOpDescriptor::GetCompileParms(std::string& compile_config,
                                          FusionKernelSourceType source,
                                          const std::vector<solver::AnySolver>& solvers)
 {
-    (void)source;
     mlo_construct_direct2D_fusion construct_params = ConstructParams(handle);
     const auto solution                            = FindFirstSolution(construct_params, solvers);
     if(!solution.Succeeded())

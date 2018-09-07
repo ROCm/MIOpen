@@ -86,7 +86,7 @@ miopenFusionPlanGetWorkSpaceSize(miopenHandle_t handle,
                                  miopenConvFwdAlgorithm_t algo)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, workSpaceSize);
-    miopenStatus_t res = miopenStatusSuccess;
+    miopenStatus_t res = miopenStatusUnknownError;
     miopen::try_([&] {
         size_t sz;
         res = miopen::deref(fusePlanDesc).GetWorkspaceSizeImmed(miopen::deref(handle), sz, algo);
@@ -102,7 +102,7 @@ miopenFusionPlanConvolutionGetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
                                    miopenConvFwdAlgorithm_t* returnedAlgos)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, requestAlgoCount, returnedAlgoCount, returnedAlgos);
-    miopenStatus_t res = miopenStatusSuccess;
+    miopenStatus_t res = miopenStatusUnknownError;
     miopen::try_([&] {
         int cnt = 0;
         res     = miopen::deref(fusePlanDesc).GetConvAlgos(requestAlgoCount, cnt, returnedAlgos);
@@ -116,7 +116,7 @@ miopenFusionPlanConvolutionSetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
                                    miopenConvFwdAlgorithm_t algo)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, algo);
-    miopenStatus_t res = miopenStatusSuccess;
+    miopenStatus_t res = miopenStatusUnknownError;
     miopen::try_([&] { res = miopen::deref(fusePlanDesc).SetConvAlgo(algo); });
     return res;
 }
@@ -128,7 +128,7 @@ extern "C" miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t
                                                     const miopenTensorDescriptor_t wDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, wDesc);
-    miopenStatus_t res = miopenStatusSuccess;
+    miopenStatus_t res = miopenStatusUnknownError;
     miopen::try_([&] {
         auto fod = std::make_shared<miopen::ConvForwardOpDescriptor>(miopen::deref(convDesc),
                                                                      miopen::deref(wDesc));
@@ -143,7 +143,7 @@ extern "C" miopenStatus_t miopenCreateOpActivationForward(miopenFusionPlanDescri
                                                           miopenActivationMode_t mode)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, mode);
-    miopenStatus_t res = miopenStatusSuccess;
+    miopenStatus_t res = miopenStatusUnknownError;
     miopen::try_([&] {
         auto fod               = std::make_shared<miopen::ActivFusionOpDescriptor>(mode);
         miopen::deref(activOp) = fod.get();
@@ -156,7 +156,7 @@ extern "C" miopenStatus_t miopenCreateOpBiasForward(miopenFusionPlanDescriptor_t
                                                     const miopenTensorDescriptor_t bDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, biasOp, bDesc);
-    miopenStatus_t res = miopenStatusSuccess;
+    miopenStatus_t res = miopenStatusUnknownError;
     miopen::try_([&] {
         auto bod = std::make_shared<miopen::BiasFusionOpDescriptor>(miopen::deref(bDesc));
         miopen::deref(biasOp) = bod.get();
@@ -173,7 +173,7 @@ miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
                                  const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode, bnScaleBiasMeanVarDesc);
-    miopenStatus_t res = miopenStatusSuccess;
+    miopenStatus_t res = miopenStatusUnknownError;
     miopen::try_([&] {
         auto bod = std::make_shared<miopen::BatchNormInferenceFusionOpDescriptor>(
             bn_mode, miopen::deref(bnScaleBiasMeanVarDesc));
