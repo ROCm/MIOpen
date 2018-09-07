@@ -344,6 +344,10 @@ struct cba_fusion_driver : test_driver
                 bias = tensor<T>{1, output.desc.GetLengths()[1], 1, 1}.generate(rand_gen{});
                 miopenCreateOpBiasForward(ptr_fusionplan.get(), &biasOp, &bias.desc);
             }
+            else
+            {
+                bias = tensor<T>{1, 1, 1, 1};
+            }
 
             if(tactiv)
             {
