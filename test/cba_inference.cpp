@@ -291,7 +291,6 @@ struct cba_fusion_driver : test_driver
         auto fpaddingMode = filter.paddingMode;
 
         auto&& handle       = get_handle();
-        auto ptr_fusionplan = GetManagedFusionPlanDesc(&input.desc);
 
         miopenFusionOpDescriptor_t convoOp = nullptr;
         miopenFusionOpDescriptor_t biasOp  = nullptr;
