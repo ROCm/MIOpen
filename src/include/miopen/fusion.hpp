@@ -168,10 +168,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
         : base_desc(conv_descriptor),
           filter_desc(filter_descriptor),
           kernel_info_valid(false),
-          conv_compiler_options(""){
-              // if(base_desc.u != 1 || base_desc.v != 1)
-              //     MIOPEN_THROW("Only stride 1 is supported for convolution operator");
-          };
+          conv_compiler_options(""){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
     miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t w);
     std::vector<std::string> GetArgs() const override;
