@@ -53,7 +53,6 @@ ptr_ActivationDesc GetManagedActivDesc()
     return ptr_ActivationDesc{activdesc};
 }
 
-
 template <class T>
 struct verify_forward_conv_bias_batchnorm_activ
 {
