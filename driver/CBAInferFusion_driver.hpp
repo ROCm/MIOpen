@@ -69,14 +69,13 @@
 //"Fusion mode (cbna = 0, cna = 1, na = 2, cn = 3, cba = 4, ca = 5, cb = 6) (Default=cbna)",
 typedef enum {
     miopen_fusion_cbna = 0,
-    miopen_fusion_cna = 1,
-    miopen_fusion_na = 2,
-    miopen_fusion_cn = 3,
-    miopen_fusion_cba = 4,
-    miopen_fusion_ca = 5,
-    miopen_fusion_cb = 6,
+    miopen_fusion_cna  = 1,
+    miopen_fusion_na   = 2,
+    miopen_fusion_cn   = 3,
+    miopen_fusion_cba  = 4,
+    miopen_fusion_ca   = 5,
+    miopen_fusion_cb   = 6,
 } fusionMode_t;
-
 
 template <typename Tgpu, typename Tref>
 class CBAInferFusionDriver : public Driver
@@ -284,11 +283,17 @@ int CBAInferFusionDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
         std::cout << "Fusion mode out of range.\n Exiting..." << std::endl;
         exit(EXIT_FAILURE);
     }
-    if(fusion_mode != miopen_fusion_cba && fusion_mode != miopen_fusion_ca && fusion_mode != miopen_fusion_cb) useBatchNorm = true;
-    else useBatchNorm = false;
+    if(fusion_mode != miopen_fusion_cba && fusion_mode != miopen_fusion_ca &&
+       fusion_mode != miopen_fusion_cb)
+        useBatchNorm = true;
+    else
+        useBatchNorm = false;
 
-    if(fusion_mode == miopen_fusion_cbna || fusion_mode == miopen_fusion_cba || fusion_mode == miopen_fusion_cb) bias_mode = 1;
-    else bias_mode = 0;
+    if(fusion_mode == miopen_fusion_cbna || fusion_mode == miopen_fusion_cba ||
+       fusion_mode == miopen_fusion_cb)
+        bias_mode = 1;
+    else
+        bias_mode = 0;
 
     return miopenStatusSuccess;
 }
@@ -358,11 +363,14 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
-    inflags.AddInputFlag("out_channels", 'k', "32", "Number of Output Channels (Default=32)", "int");
+    inflags.AddInputFlag(
+        "out_channels", 'k', "32", "Number of Output Channels (Default=32)", "int");
     inflags.AddInputFlag("fil_h", 'y', "3", "Filter Height (Default=3)", "int");
     inflags.AddInputFlag("fil_w", 'x', "3", "Filter Width (Default=3)", "int");
-    inflags.AddInputFlag("conv_stride_0", 'u', "1", "Convolution Stride Vertical (Default=1)", "int");
-    inflags.AddInputFlag("conv_stride_1", 'v', "1", "Convolution Stride Horizontal (Default=1)", "int");
+    inflags.AddInputFlag(
+        "conv_stride_0", 'u', "1", "Convolution Stride Vertical (Default=1)", "int");
+    inflags.AddInputFlag(
+        "conv_stride_1", 'v', "1", "Convolution Stride Horizontal (Default=1)", "int");
     inflags.AddInputFlag("pad_h", 'p', "0", "Zero Padding Height (Default=0)", "int");
     inflags.AddInputFlag("pad_w", 'q', "0", "Zero Padding Width (Default=0)", "int");
     inflags.AddInputFlag("pad_val", 'r', "0", "Padding Value (Default=0)", "int");
@@ -373,9 +381,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
 
-    /*inflags.AddInputFlag("printconv", 'P', "1", "Print Convolution Dimensions (Default=1)", "int");*/
+    /*inflags.AddInputFlag("printconv", 'P', "1", "Print Convolution Dimensions (Default=1)",
+     * "int");*/
 
-    inflags.AddInputFlag("activMode", 'm', "3", "Activation Mode (relu,..., see spec) (Default=3(relu))", "int");
+    inflags.AddInputFlag(
+        "activMode", 'm', "3", "Activation Mode (relu,..., see spec) (Default=3(relu))", "int");
     inflags.AddInputFlag("bnMode",
                          'M',
                          "0",
@@ -493,7 +503,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::createSaveBuffers()
     cl_context ctx;
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #elif MIOPEN_BACKEND_HIP
-    int status    = 0;
+    int status                 = 0;
 #endif
 
     if(status != CL_SUCCESS)
@@ -862,7 +872,6 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
                                 fusionArgs);
         finishTiming(it);
     }
-
 }
 
 template <typename Tgpu, typename Tref>
@@ -902,8 +911,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUActivFwdInference()
                                         activ_beta,
                                         activ_alpha,
                                         out.size(),
-                                        (!useBatchNorm) ? conv_res_host.data()
-                                                          : bn_res_host.data(),
+                                        (!useBatchNorm) ? conv_res_host.data() : bn_res_host.data(),
                                         out_host.data());
 
     return;
@@ -1054,7 +1062,8 @@ template <typename Tgpu, typename Tref>
 void CBAInferFusionDriver<Tgpu, Tref>::runCPUConvFwdInference()
 {
     ConvForwardCPU<Tgpu, Tref>(in_host,
-                               fusion_mode != miopen_fusion_cb ? conv_res_host : out_host, // dlowell 6 or 5???
+                               fusion_mode != miopen_fusion_cb ? conv_res_host
+                                                               : out_host, // dlowell 6 or 5???
                                wei,
                                b,
                                bias_mode,
@@ -1075,7 +1084,8 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
     { // 1xCxHxW
         std::cout << "Running CPU per activation BN." << std::endl;
         miopenBNPerActivFwdInferHost(
-            fusion_mode != miopen_fusion_na ? outputTensor : inputTensor, // DLOWELL use output for splice test
+            fusion_mode != miopen_fusion_na ? outputTensor
+                                            : inputTensor, // DLOWELL use output for splice test
             fusion_mode != miopen_fusion_na
                 ? conv_res_host.data()
                 : in_host.data(), // conv_res_host.data(), //DLOWELL use conv for splice test
@@ -1090,7 +1100,8 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUBNFwdInference()
     { // 1xCx1x1
         std::cout << "Running CPU spatial BN." << std::endl;
         miopenBNSpatialFwdInferHost(
-            fusion_mode != miopen_fusion_na ? outputTensor : inputTensor, // DLOWELL use output for splice test
+            fusion_mode != miopen_fusion_na ? outputTensor
+                                            : inputTensor, // DLOWELL use output for splice test
             fusion_mode != miopen_fusion_na
                 ? conv_res_host.data()
                 : in_host.data(), // conv_res_host.data(), //DLOWELL use conv for splice test
