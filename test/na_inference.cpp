@@ -26,31 +26,7 @@
 #include "fusionHost.hpp"
 #include <miopen/stringutils.hpp>
 
-using ptr_FusionPlanDesc = MIOPEN_MANAGE_PTR(miopenFusionPlanDescriptor_t, miopenDestroyFusionPlan);
-using ptr_FusionPlanArgs = MIOPEN_MANAGE_PTR(miopenOperatorArgs_t, miopenDestroyOperatorArgs);
-using ptr_ActivationDesc = MIOPEN_MANAGE_PTR(miopenActivationDescriptor_t,
-                                             miopenDestroyActivationDescriptor);
 
-ptr_FusionPlanDesc GetManagedFusionPlanDesc(miopenTensorDescriptor_t inputDesc)
-{
-    miopenFusionPlanDescriptor_t fusePlanDesc;
-    miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputDesc);
-    return ptr_FusionPlanDesc{fusePlanDesc};
-}
-
-ptr_FusionPlanArgs GetManageFusionPlanArgs()
-{
-    miopenOperatorArgs_t fusionArgs;
-    miopenCreateOperatorArgs(&fusionArgs);
-    return ptr_FusionPlanArgs{fusionArgs};
-}
-
-ptr_ActivationDesc GetManagedActivDesc()
-{
-    miopenActivationDescriptor_t activdesc;
-    miopenCreateActivationDescriptor(&activdesc);
-    return ptr_ActivationDesc{activdesc};
-}
 template <class T>
 struct verify_inference_batchnorm_activ
 {
