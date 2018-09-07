@@ -90,8 +90,8 @@ struct verify_forward_conv_bias_batchnorm_activ
     tensor<T> cpu() const
     {
 
-        auto rout     = get_output_tensor(miopen::deref(filter), input, weights);
-        auto aout     = rout;
+        auto rout = get_output_tensor(miopen::deref(filter), input, weights);
+        auto aout = rout;
         std::fill(aout.begin(), aout.end(), 0.);
         auto bout = rout;
         std::fill(bout.begin(), bout.end(), 0.);
@@ -112,7 +112,8 @@ struct verify_forward_conv_bias_batchnorm_activ
         {
             double activ_alpha, activ_beta, activ_gamma;
             miopenActivationMode_t activ_mode;
-            miopenGetActivationDescriptor(activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
+            miopenGetActivationDescriptor(
+                activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
             activationHostInfer(
                 activ_mode, activ_gamma, activ_beta, activ_alpha, bout.data, aout.data);
         }
@@ -140,9 +141,8 @@ struct verify_forward_conv_bias_batchnorm_activ
         miopenFusionOpDescriptor_t biasOp  = nullptr;
         miopenFusionOpDescriptor_t bNormOp = nullptr;
         miopenFusionOpDescriptor_t activOp = nullptr;
-        auto ptr_fusionargs = GetManageFusionPlanArgs();
+        auto ptr_fusionargs                = GetManageFusionPlanArgs();
 
-        
         double alpha = 1., beta = 0.;
         auto opcounter             = 0;
         miopenStatus_t miopenError = miopenFusionPlanGetOp(fusionplan, opcounter++, &convoOp);
@@ -173,7 +173,8 @@ struct verify_forward_conv_bias_batchnorm_activ
             EXPECT(miopenError == miopenStatusSuccess);
             double activ_alpha, activ_beta, activ_gamma;
             miopenActivationMode_t activ_mode;
-            miopenGetActivationDescriptor(activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
+            miopenGetActivationDescriptor(
+                activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
             miopenSetOpArgsActivForward(
                 ptr_fusionargs.get(), activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
         }
@@ -303,7 +304,6 @@ struct cbna_fusion_driver : test_driver
         auto&& handle       = get_handle();
         auto ptr_fusionplan = GetManagedFusionPlanDesc(&input.desc);
 
-
         filter.mode        = cmode_lookup[miopen::ToUpper(conv_mode)];
         filter.paddingMode = pmode_lookup[miopen::ToUpper(pad_mode)];
 
@@ -312,7 +312,6 @@ struct cbna_fusion_driver : test_driver
         auto fpad_h       = filter.pad_h;
         auto fpad_w       = filter.pad_w;
         auto fpaddingMode = filter.paddingMode;
-
 
         if(((filter.mode == miopenTranspose) && (input_c == wei_k)) ||
            ((filter.mode == miopenConvolution) && (input_c == wei_c)))
@@ -397,13 +396,13 @@ struct cbna_fusion_driver : test_driver
             }
         }
 
-
         miopenCreateOpConvForward(ptr_fusionplan.get(), &convoOp, &filter, &weights.desc);
 
         miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
         int retAlgCount = 0;
         // Query the supported algorithms
-        miopenFusionPlanConvolutionGetAlgo(ptr_fusionplan.get(), MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
+        miopenFusionPlanConvolutionGetAlgo(
+            ptr_fusionplan.get(), MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
         // TODO: Replace this with WinoGrad to check for wino grad supported kernels
         miopenConvFwdAlgorithm_t req_algo = miopenConvolutionFwdAlgoDirect;
         if((std::begin(sup_algos) + retAlgCount) != std::find(std::begin(sup_algos),
@@ -459,9 +458,10 @@ struct cbna_fusion_driver : test_driver
                     std::cerr << "Conv+BatchNorm Inference plan not supported." << std::endl;
                 }
             }
-        }else if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
-               wei_h > 2 * fpad_h && wei_w > 2 * fpad_w && input_h >= (2 * fpad_h + wei_h) &&
-               input_w >= (2 * fpad_w + wei_w))
+        }
+        else if(input.desc.GetLengths().at(1) == weights.desc.GetLengths().at(1) &&
+                wei_h > 2 * fpad_h && wei_w > 2 * fpad_w && input_h >= (2 * fpad_h + wei_h) &&
+                input_w >= (2 * fpad_w + wei_w))
         {
             output = get_output_tensor(filter, input, weights);
             /*if(amode == -1)
@@ -485,23 +485,23 @@ struct cbna_fusion_driver : test_driver
                                                                    estVariance,
                                                                    bnmode});
             }
-/*            else
-            {
-                auto bias = tensor<T>{1, 1, 1, 1}; // dummy bias
-                verify(verify_forward_conv_bias_batchnorm_activ<T>{ptr_fusionplan.get(),
-                                                                   input,
-                                                                   weights,
-                                                                   filter,
-                                                                   bias_mode,
-                                                                   bias,
-                                                                   activDesc,
-                                                                   tactiv,
-                                                                   scale,
-                                                                   shift,
-                                                                   estMean,
-                                                                   estVariance,
-                                                                   bnmode});
-            }*/
+            /*            else
+                        {
+                            auto bias = tensor<T>{1, 1, 1, 1}; // dummy bias
+                            verify(verify_forward_conv_bias_batchnorm_activ<T>{ptr_fusionplan.get(),
+                                                                               input,
+                                                                               weights,
+                                                                               filter,
+                                                                               bias_mode,
+                                                                               bias,
+                                                                               activDesc,
+                                                                               tactiv,
+                                                                               scale,
+                                                                               shift,
+                                                                               estMean,
+                                                                               estVariance,
+                                                                               bnmode});
+                        }*/
         }
     }
 };
