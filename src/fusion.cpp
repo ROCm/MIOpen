@@ -134,7 +134,7 @@ miopenStatus_t FusionPlanDescriptor::GetConvAlgos(int reqAlgoCount,
                                                   int& retAlgoCount,
                                                   miopenConvFwdAlgorithm_t* ptrAlgos)
 {
-    auto algos = lu.GetConvAlgos();
+    auto algos   = lu.GetConvAlgos();
     retAlgoCount = std::min(reqAlgoCount, static_cast<int>(algos.size()));
 
     for(auto idx = 0; idx < retAlgoCount; idx++)

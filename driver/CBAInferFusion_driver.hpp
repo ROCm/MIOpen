@@ -929,7 +929,6 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUActivFwdInference()
     return;
 }
 
-
 template <typename Tgpu, typename Tref>
 void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBiasInference()
 {
