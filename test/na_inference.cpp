@@ -248,10 +248,10 @@ struct na_fusion_driver : test_driver
 
         if(input.desc.GetType() == miopenFloat)
         {
-            scale       = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
-            shift       = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
-            estMean     = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
-            estVariance = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
+            scale       = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
+            shift       = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
+            estMean     = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
+            estVariance = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
         }
         else
         {

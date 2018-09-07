@@ -84,9 +84,9 @@ struct verify_forward_train_3d_bn_spatial
         if(input.desc.GetType() == miopenFloat)
         {
             runMean = tensor<T>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width}.generate(
-                rand_gen{});
+                tensor_elem_gen_integer{17});
             runVar = tensor<T>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width}.generate(
-                rand_gen{});
+                tensor_elem_gen_integer{17});
         }
         else
         {
@@ -270,9 +270,9 @@ struct verify_forward_train_3d_bn_spatial
         if(input.desc.GetType() == miopenFloat)
         {
             runMean = tensor<T>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width}.generate(
-                rand_gen{});
+                tensor_elem_gen_integer{17});
             runVar = tensor<T>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width}.generate(
-                rand_gen{});
+                tensor_elem_gen_integer{17});
         }
         else
         {
@@ -1183,7 +1183,10 @@ struct batch_norm_3d_spatial_driver : test_driver
         this->batch_factor = 4;
 
         // this->verbose=true;
-        add(input, "input", get_3d_bn_spatial_input_tensor());
+        add(input,
+            "input",
+            get_3d_bn_spatial_input_tensor(
+                tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
     }
 
     void run()
@@ -1206,15 +1209,13 @@ struct batch_norm_3d_spatial_driver : test_driver
 
         if(input.desc.GetType() == miopenFloat)
         {
-            scale = tensor<T>{ssn, ssc, ssd, ssh, ssw}.generate(rand_gen{});
-            shift = tensor<T>{ssn, ssc, ssd, ssh, ssw}.generate(rand_gen{});
+            scale = tensor<T>{ssn, ssc, ssd, ssh, ssw}.generate(tensor_elem_gen_integer{17});
+            shift = tensor<T>{ssn, ssc, ssd, ssh, ssw}.generate(tensor_elem_gen_integer{17});
 
             if(d * h * w < 3072)
             {
                 std::cout << "Choosing smaller input values for low dims" << std::endl;
-                rand_gen rg{};
-                rg.max_value = 7;
-                input        = tensor<T>{n, c, d, h, w}.generate(rg);
+                input = tensor<T>{n, c, d, h, w}.generate(tensor_elem_gen_integer{7});
             }
         }
         else
