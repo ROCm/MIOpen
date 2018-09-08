@@ -287,7 +287,7 @@ struct cbna_fusion_driver : test_driver
         //       add(conv_mode, "cmode", generate_data({"conv"}/*, "trans"}*/));
         add(pad_mode, "pmode", generate_data({"default" /*, "same", "valid"*/}));
         add(tactiv, "test_activ", generate_data({false, true}));
-        add(amode, "amode", generate_data({1, 3, 8}));
+        add(amode, "amode", generate_data({3, 8}));
         add(batchnormMode, "batch-norm-mode", generate_data({0, 1}));
     }
 
@@ -489,10 +489,6 @@ struct cbna_fusion_driver : test_driver
                 input_w >= (2 * fpad_w + wei_w))
         {
             output = get_output_tensor(filter, input, weights);
-            /*if(amode == -1)
-            {
-                tactiv = false;
-            }*/
             if(bias_mode)
             {
                 // create activation descriptor here
@@ -510,23 +506,6 @@ struct cbna_fusion_driver : test_driver
                                                                    estVariance,
                                                                    bnmode});
             }
-            /*            else
-                        {
-                            auto bias = tensor<T>{1, 1, 1, 1}; // dummy bias
-                            verify(verify_forward_conv_bias_batchnorm_activ<T>{ptr_fusionplan.get(),
-                                                                               input,
-                                                                               weights,
-                                                                               filter,
-                                                                               bias_mode,
-                                                                               bias,
-                                                                               activDesc,
-                                                                               tactiv,
-                                                                               scale,
-                                                                               shift,
-                                                                               estMean,
-                                                                               estVariance,
-                                                                               bnmode});
-                        }*/
         }
     }
 };
