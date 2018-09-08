@@ -981,8 +981,8 @@ struct batch_norm_per_activation_driver : test_driver
             shift = tensor<PREC_TYPE>{ssn, ssc, ssh, ssw};
             for(int i = 0; i < scale.desc.GetElementSize(); i++)
             {
-                scale[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * (PREC_TYPE)(rand() % 100);
-                shift[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * (PREC_TYPE)(rand() % 100);
+                scale[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * PREC_TYPE(rand() % 100);
+                shift[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-3 * PREC_TYPE(rand() % 100);
             }
             for(int i = 0; i < input.desc.GetElementSize(); i++)
             {
