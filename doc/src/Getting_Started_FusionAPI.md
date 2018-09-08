@@ -1,4 +1,5 @@
-# MIOpen Fusion API
+Fusion API: Getting Started
+===========================
 ## Introduction
 With the increase in the depth of deep learning networks and a requirement for faster kernels it is imperative that more ways be sought to improve the performance of GPU hardware. One mechanism to achieve higher efficiency is to _fuse_ separate kernels into a single kernel to reduce off-chip memory access and avoid kernel launch overhead. This document outlines the proposed addition of a Fusion API to the MIOpen library. The fusion API would allow users to specify operators that he/she wants to fuse in a single kernel, compile it and then launch the kernel. While not all combinations might be supported by the library, the API is flexible enough to allow the specification of many operations in any order from a finite set of supported operators. All combinations of operators might not be supported, therefore the API provides a mechanism to report combinations that are not supported.
 
@@ -53,7 +54,7 @@ miopenExecuteFusionPlan(const miopenHandle_t handle,
 ```
 It may be noted that it is an error to attempt to execute a fusion plan that is either not compiled or is invalid. 
 
-The *args* parameter would be discussed in a later section. The same fusion plan in its compiled state may be executed again and again with different data to amortize the compilation cost. This would become clearer with the discussion of the *args* parameter. Once the user is finished with the fusion plan it may be destroyed using the `miopenDestroyFusionPlanDescriptor` call.
+The *args* parameter would be discussed in a later section. The same fusion plan in its compiled state may be executed again and again with different data to amortize the compilation cost. This would become clearer with the discussion of the *args* parameter. Once the user is finished with the fusion plan it may be destroyed using the `miopenDestroyFusionPlan` call.
 
 While the fusion plan forms the glue for the different fused operations, the following section outlines the currently supported operations providing more detail.
 
