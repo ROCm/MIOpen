@@ -247,6 +247,14 @@ auto FindFirstSolution(T& x) -> decltype(x.FindSolution())
     return x.FindSolution();
 }
 
+template <class T, class U>
+auto FindFirstSolution(T& x, U& solvers) -> decltype(x.FindSolution(solvers))
+{
+    x.setupRocm();
+    x.setupFloats();
+    return x.FindSolution(solvers);
+}
+
 template <class T>
 auto FindAllSolutions(T& x) -> decltype(x.FindAllSolutions())
 {
