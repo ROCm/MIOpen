@@ -287,7 +287,7 @@ struct cbna_fusion_driver : test_driver
         //       add(conv_mode, "cmode", generate_data({"conv"}/*, "trans"}*/));
         add(pad_mode, "pmode", generate_data({"default" /*, "same", "valid"*/}));
         add(tactiv, "test_activ", generate_data({false, true}));
-        add(amode, "amode", generate_data({3, 8}));
+        add(amode, "amode", generate_data({3}));
         add(batchnormMode, "batch-norm-mode", generate_data({0, 1}));
     }
 
