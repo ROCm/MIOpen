@@ -99,7 +99,9 @@ int mloNeuronForwardRunHostAndVerify(int neuron_type,
         f = [=](_Tcheck x) { return (x > 0) ? x : 0; };
         break;
     case MIOPEN_NEURON_SOFTRELU: //	log(1 + e^x)   // bonomial normal log likelihood
-        f = [=](_Tcheck x) { return std::log1p(std::exp(x)); };
+        f = [=](_Tcheck x) {
+            return (x > 0.) ? (x + std::log1p(std::exp(-x))) : (std::log1p(std::exp(x)));
+        };
         break;
     case MIOPEN_NEURON_ABS: //	abs(x)
         f = [=](_Tcheck x) { return std::abs(x); };
