@@ -79,8 +79,7 @@ miopenStatus_t FusionPlanDescriptor::GetOp(int op_idx, std::shared_ptr<FusionOpD
 
     if(op_idx >= op_map.size())
     {
-        MIOPEN_LOG_I2("Operator index out of bounds");
-        MIOPEN_THROW(miopenStatusBadParm);
+        MIOPEN_THROW(miopenStatusBadParm, "Operator index out of bounds");
     }
 
     desc = op_map.at(op_idx);
@@ -105,8 +104,7 @@ TensorDescriptor FusionPlanDescriptor::FusionPlanDescriptor::DeriveOutputDescrip
     }
     else
     {
-        MIOPEN_LOG_I("Unsupported fusion direction");
-        MIOPEN_THROW(miopenStatusNotImplemented);
+        MIOPEN_THROW(miopenStatusNotImplemented, "Unsupported fusion direction");
     }
     return o_desc;
 }
@@ -396,8 +394,7 @@ std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
     }
     else
     {
-        MIOPEN_LOG_I("Unsupported starting op in Fusion Plan");
-        MIOPEN_THROW(miopenStatusNotImplemented);
+        MIOPEN_THROW(miopenStatusNotImplemented, "Unsupported starting op in Fusion Plan");
     }
 }
 
@@ -410,8 +407,7 @@ std::string FusionPlanDescriptor::GetKernelName()
     }
     else
     {
-        MIOPEN_LOG_I("Unsupported starting op in Fusion Plan");
-        MIOPEN_THROW(miopenStatusNotImplemented);
+        MIOPEN_THROW(miopenStatusNotImplemented, "Unsupported starting op in Fusion Plan");
     }
 }
 
@@ -424,8 +420,7 @@ std::string FusionPlanDescriptor::GetAlgorithmName()
     }
     else
     {
-        MIOPEN_LOG_I("Unsupported starting op in Fusion Plan");
-        MIOPEN_THROW(miopenStatusNotImplemented);
+        MIOPEN_THROW(miopenStatusNotImplemented, "Unsupported starting op in Fusion Plan");
     }
 }
 
@@ -552,8 +547,7 @@ static OpKernelArg GetArg(std::vector<std::shared_ptr<FusionOpDescriptor>>& op_m
             }
         }
     }
-    MIOPEN_LOG_E("Not found: arg_name = " << arg_name);
-    MIOPEN_THROW(miopenStatusInternalError);
+    MIOPEN_THROW(miopenStatusInternalError, "Not found: arg_name = " + arg_name);
 }
 
 #ifdef ADD_ARGUMENT
@@ -577,19 +571,16 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
 {
     if(!isValid())
     {
-        MIOPEN_LOG_I2("Attempting to execute an invalid fusion plan.");
-        MIOPEN_THROW(miopenStatusBadParm);
+        MIOPEN_THROW(miopenStatusBadParm, "Attempting to execute an invalid fusion plan.");
     }
 
     if(output_desc != outputDesc)
     {
-        MIOPEN_LOG_I2("The output descriptors dont match.");
-        MIOPEN_THROW(miopenStatusBadParm);
+        MIOPEN_THROW(miopenStatusBadParm, "The output descriptors dont match.");
     }
     if(input_desc != inputDesc)
     {
-        MIOPEN_LOG_I2("The input descriptors dont match.");
-        MIOPEN_THROW(miopenStatusBadParm);
+        MIOPEN_THROW(miopenStatusBadParm, "The input descriptors dont match.");
     }
 
     auto ops_head = op_map[0];
@@ -598,8 +589,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     MIOPEN_LOG_I(algorithm_name << ',' << network_config);
     if(kernels.empty())
     {
-        MIOPEN_LOG_I2("The FusionPlan was not compiled for execution");
-        MIOPEN_THROW(miopenStatusBadParm);
+        MIOPEN_THROW(miopenStatusBadParm, "The FusionPlan was not compiled for execution");
     }
     KernelInvoke kernel = kernels.front();
 
@@ -631,9 +621,9 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
             }
             else
             {
-                MIOPEN_LOG_E("Arg " + key + " was not set for Operator: " +
-                             std::to_string(op->kind()));
-                MIOPEN_THROW(miopenStatusBadParm);
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "Arg " + key + " was not set for Operator: " +
+                                 std::to_string(op->kind()));
             }
         }
     }
@@ -642,9 +632,8 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     {
         if((input_desc.GetType() != miopenFloat) || (output_desc.GetType() != miopenFloat))
         {
-            // this condition is already checked by the MDGraph, should it be repeated?
-            MIOPEN_LOG_E("Only FP32 floats are currently supported for the Winograd kernel");
-            MIOPEN_THROW(miopenStatusBadParm);
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Only FP32 floats are currently supported for the Winograd kernel");
         }
         int N, C, H, W, oN, K, oH, oW;
         std::tie(N, C, H, W)    = miopen::tien<4>(input_desc.GetLengths(), 1);
