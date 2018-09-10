@@ -158,14 +158,9 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
                                               const __global _FLOAT* __restrict bot,
                                               __local _FLOAT* __restrict lcl_bot)
 {
-#if 0 // debug
     for(uint p4 = lcl_id; p4 < MLO_N_LCL_IN_MAPS * MLO_N_IN_HORIZ_READS * n_v_reads;
         p4 += MLO_GRP_SZ)
-#else
-    for(uint p4 = lcl_id; p4 < n_in_map_reads * MLO_N_IN_HORIZ_READS * n_v_reads; p4 += MLO_GRP_SZ)
-#endif
     {
-        __private _FLOAT in_rd_data[MLO_READ_UNIT];
         uint c    = 0;
         uint t_p4 = p4;
 #if MLO_N_LCL_IN_MAPS > 1
@@ -184,41 +179,58 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
         uint bot_off = gbl_in_scan_off + c * MLO_IN_CHANNEL_STRIDE + c_scan * MLO_IN_STRIDE +
                        c_pix4 * MLO_READ_UNIT;
         const __global _FLOAT* bot_p = &bot[bot_off];
-#if MLO_IN_N_PIXS_OFF > 0
 
-        if(c_pix4 == MLO_N_IN_HORIZ_READS - 1)
+        __private _FLOAT in_rd_data[MLO_READ_UNIT];
+
+#if 1 // debug
+        for(uint i = 0; i < MLO_READ_UNIT; ++i)
         {
-            for(uint i = 0; i < MLO_IN_N_PIXS_OFF; ++i)
-            {
-                in_rd_data[i] = bot_p[i];
-
-#if DBG_OUT_OF_RNGE
-                if(bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
-                {
-                    printf("k:err:out-of-range\n");
-                }
-#endif
-            }
-
-            for(uint i = MLO_IN_N_PIXS_OFF; i < MLO_READ_UNIT; ++i)
-            {
-                in_rd_data[i] = 0;
-            }
+            in_rd_data[i] = 0;
         }
-        else
 #endif
-        {
 
-            for(uint i = 0; i < MLO_READ_UNIT; ++i)
+#if 1 // debug
+        if(c < n_in_map_reads)
+#endif
+
+        {
+#if MLO_IN_N_PIXS_OFF > 0
+            if(c_pix4 == MLO_N_IN_HORIZ_READS - 1)
             {
-                in_rd_data[i] = bot_p[i];
+                for(uint i = 0; i < MLO_IN_N_PIXS_OFF; ++i)
+                {
+                    in_rd_data[i] = bot_p[i];
 
 #if DBG_OUT_OF_RNGE
-                if(bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+                    if(bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+                    {
+                        printf("k:err:out-of-range\n");
+                    }
+#endif
+                }
+
+#if 0 // not neccessay any more
+                for(uint i = MLO_IN_N_PIXS_OFF; i < MLO_READ_UNIT; ++i)
                 {
-                    printf("k:err:out-of-range\n");
+                    in_rd_data[i] = 0;
                 }
 #endif
+            }
+            else
+#endif
+            {
+
+                for(uint i = 0; i < MLO_READ_UNIT; ++i)
+                {
+                    in_rd_data[i] = bot_p[i];
+
+#if DBG_OUT_OF_RNGE
+                    if(bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
+                    {
+                        printf("k:err:out-of-range\n");
+                    }
+#endif
+                }
             }
         }
 
@@ -711,7 +723,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         if(spn == 0 && o_idx + o + k * MLO_OUT_STACKS < MLO_N_OUTPUTS && o < MLO_OUT_STACKS)
         {
             for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
-            {
 #else
     for(uint k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
     {
@@ -719,17 +730,17 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         {
             if(spn == 0 && c < n_in_map_reads && o_idx + o + k * MLO_OUT_STACKS < MLO_N_OUTPUTS &&
                o < MLO_OUT_STACKS)
-            {
 #endif
-    for(uint i = 0; i < (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0); ++i)
-    {
-        weights_df[wei_df_off + k * MLO_OUT_STACKS * MLO_WEI_BATCH_STRIDE +
-                   c * MLO_WEI_CHANNEL_STRIDE + i] =
-            pvt_accum[(k * MLO_N_LCL_IN_MAPS + c) * MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0 + i];
+            {
+                for(uint i = 0; i < (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0); ++i)
+                {
+                    weights_df[wei_df_off + k * MLO_OUT_STACKS * MLO_WEI_BATCH_STRIDE +
+                               c * MLO_WEI_CHANNEL_STRIDE + i] =
+                        pvt_accum[(k * MLO_N_LCL_IN_MAPS + c) * MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0 + i];
+                }
+            }
+        }
     }
-}
-}
-}
 }
 
 // final reduction kernel
