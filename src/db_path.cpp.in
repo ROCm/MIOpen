@@ -32,6 +32,7 @@
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DB_PATH)
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_USER_DB_PATH)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_DB_PATH)
 
 namespace miopen {
 
@@ -63,11 +64,26 @@ std::string PrepareUserDbPath()
 
     return ReplaceString(p, "~", home_dir);
 }
+
+std::string PrepareFindDbPath()
+{
+    auto p = GetStringEnv(MIOPEN_FIND_DB_PATH{});
+    if(p == nullptr)
+        p = "${MIOPEN_FIND_DB_PATH}";
+
+    return ReplaceString(p, "~", GetStringEnv(HOME{}));
+}
 } // namespace
 
 const std::string& GetUserDbPath()
 {
     static const auto instance = PrepareUserDbPath();
+    return instance;
+}
+
+const std::string& GetFindDbPath()
+{
+    static const auto instance = PrepareFindDbPath();
     return instance;
 }
 

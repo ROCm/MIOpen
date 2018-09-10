@@ -234,7 +234,9 @@ struct activation_driver : test_driver
         add_mode(miopenActivationELU,
                  [=](double x) { return (x > 0) ? x : alpha * std::expm1(x); },
                  [=](double dy, double x, double y) { return dy * ((x > 0) ? 1 : y + alpha); });
-        add(input, "input", get_input_tensor());
+        add(input,
+            "input",
+            get_input_tensor(tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
         add(alpha, "alpha");
         add(beta, "beta");
         add(gamma, "gamma");
