@@ -276,8 +276,8 @@ struct cbna_fusion_driver : test_driver
 
     cbna_fusion_driver()
     {
-        add(input, "input", get_input_tensor());
-        add(weights, "weights", get_weights_tensor());
+        add(input, "input", get_input_tensor(tensor_elem_gen_integer{max_value}));
+        add(weights, "weights", get_weights_tensor(tensor_elem_gen_integer{max_value}));
         add(filter, "filter", generate_data(get_filters()));
         add(alpha, "alpha", generate_data({/*1. , */ 0.5}));
         add(beta, "beta", generate_data({/*0. , */ 0.5}));
@@ -393,10 +393,10 @@ struct cbna_fusion_driver : test_driver
 
             if(input.desc.GetType() == miopenFloat)
             {
-                scale       = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
-                shift       = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
-                estMean     = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
-                estVariance = tensor<T>{ssn, ssc, ssh, ssw}.generate(rand_gen{});
+                scale       = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
+                shift       = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
+                estMean     = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
+                estVariance = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
             }
             else
             {
@@ -440,7 +440,8 @@ struct cbna_fusion_driver : test_driver
 
         if(bias_mode)
         {
-            bias = tensor<T>{1, output.desc.GetLengths()[1], 1, 1}.generate(rand_gen{});
+            bias = tensor<T>{1, output.desc.GetLengths()[1], 1, 1}.generate(
+                tensor_elem_gen_integer{17});
             miopenCreateOpBiasForward(ptr_fusionplan.get(), &biasOp, &bias.desc);
         }
         else
