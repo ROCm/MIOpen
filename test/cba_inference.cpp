@@ -260,8 +260,8 @@ struct cba_fusion_driver : test_driver
 
     cba_fusion_driver()
     {
-        add(input, "input", get_input_tensor());
-        add(weights, "weights", get_weights_tensor());
+        add(input, "input", get_input_tensor(tensor_elem_gen_integer{max_value}));
+        add(weights, "weights", get_weights_tensor(tensor_elem_gen_integer{max_value}));
         add(filter, "filter", generate_data(get_filters()));
         add(alpha, "alpha", generate_data({/*1. , */ 0.5}));
         add(beta, "beta", generate_data({/*0. , */ 0.5}));
@@ -363,7 +363,21 @@ struct cba_fusion_driver : test_driver
             auto output = get_output_tensor(filter, input, weights);
             if(bias_mode)
             {
-                bias = tensor<T>{1, output.desc.GetLengths()[1], 1, 1}.generate(rand_gen{});
+                if(input.desc.GetType() == miopenFloat)
+                {
+                    bias = tensor<T>{1, output.desc.GetLengths()[1], 1, 1}.generate(
+                        tensor_elem_gen_integer{17});
+                }
+                else
+                {
+                    bias = tensor<T>{1, output.desc.GetLengths()[1], 1, 1};
+                    srand(0);
+                    for(int i = 0; i < bias.desc.GetElementSize(); i++)
+                    {
+                        bias[i] = (((rand() % 2) == 1) ? -1 : 1) * (0.1 * T(rand() % 100));
+                    }
+                }
+
                 miopenCreateOpBiasForward(ptr_fusionplan.get(), &biasOp, &bias.desc);
             }
             else
