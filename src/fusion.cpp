@@ -79,7 +79,8 @@ miopenStatus_t FusionPlanDescriptor::GetOp(int op_idx, std::shared_ptr<FusionOpD
 
     if(op_idx >= op_map.size())
     {
-        MIOPEN_THROW("Operator index out of bounds");
+        MIOPEN_LOG_I2("Operator index out of bounds");
+        MIOPEN_THROW(miopenStatusBadParm);
     }
 
     desc = op_map.at(op_idx);
@@ -104,7 +105,8 @@ TensorDescriptor FusionPlanDescriptor::FusionPlanDescriptor::DeriveOutputDescrip
     }
     else
     {
-        MIOPEN_THROW("Unsupported fusion direction");
+        MIOPEN_LOG_I("Unsupported fusion direction");
+        MIOPEN_THROW(miopenStatusNotImplemented);
     }
     return o_desc;
 }
@@ -394,7 +396,8 @@ std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
     }
     else
     {
-        MIOPEN_THROW("Unsupported starting op in Fusion Plan");
+        MIOPEN_LOG_I("Unsupported starting op in Fusion Plan");
+        MIOPEN_THROW(miopenStatusNotImplemented);
     }
 }
 
@@ -407,7 +410,8 @@ std::string FusionPlanDescriptor::GetKernelName()
     }
     else
     {
-        MIOPEN_THROW("Unsupported starting op in Fusion Plan");
+        MIOPEN_LOG_I("Unsupported starting op in Fusion Plan");
+        MIOPEN_THROW(miopenStatusNotImplemented);
     }
 }
 
@@ -420,7 +424,8 @@ std::string FusionPlanDescriptor::GetAlgorithmName()
     }
     else
     {
-        MIOPEN_THROW("Unsupported starting op in Fusion Plan");
+        MIOPEN_LOG_I("Unsupported starting op in Fusion Plan");
+        MIOPEN_THROW(miopenStatusNotImplemented);
     }
 }
 
@@ -429,7 +434,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     miopenStatus_t status = miopenStatusUnknownError;
     if(!isValid())
     {
-        MIOPEN_THROW("Trying to compile and invalid FusionPlan");
+        MIOPEN_LOG_I2("Trying to compile an invalid FusionPlan");
+        MIOPEN_THROW(miopenStatusBadParm);
     }
     network_config = "";
     network_config += output_desc.ToString();
@@ -444,7 +450,11 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     kernel_name    = GetKernelName();
     MIOPEN_LOG_I2(program_name << ',' << kernel_name);
     if(program_name.empty())
-        MIOPEN_THROW("Invalid Fusion Plan");
+    {
+
+        MIOPEN_LOG_I2("Trying to compile an invalid FusionPlan");
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
     if(miopen::EndsWith(program_name, ".s"))
         kernel_source_type = AsmText;
     else if(miopen::EndsWith(program_name, ".so"))
@@ -478,7 +488,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             if(op->GetCompileParms(compile_config, handle, kernel_source_type, lu.GetSolvers()) !=
                miopenStatusSuccess)
             {
-                MIOPEN_THROW("Unsupported fusion plan");
+                MIOPEN_LOG_I2("Unsupported fusion plan");
+                MIOPEN_THROW(miopenStatusInternalError);
             }
         }
         // TODO: This true for inference but might not be true in general
@@ -542,7 +553,7 @@ static OpKernelArg GetArg(std::vector<std::shared_ptr<FusionOpDescriptor>>& op_m
         }
     }
     MIOPEN_LOG_E("Not found: arg_name = " << arg_name);
-    MIOPEN_THROW("Argument not found");
+    MIOPEN_THROW(miopenStatusInternalError);
 }
 
 #ifdef ADD_ARGUMENT
@@ -566,16 +577,19 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
 {
     if(!isValid())
     {
-        MIOPEN_THROW("Attempting to execute an invalid fusion plan.");
+        MIOPEN_LOG_I2("Attempting to execute an invalid fusion plan.");
+        MIOPEN_THROW(miopenStatusBadParm);
     }
 
     if(output_desc != outputDesc)
     {
-        MIOPEN_THROW("The output descriptors dont match.");
+        MIOPEN_LOG_I2("The output descriptors dont match.");
+        MIOPEN_THROW(miopenStatusBadParm);
     }
     if(input_desc != inputDesc)
     {
-        MIOPEN_THROW("The input descriptors dont match.");
+        MIOPEN_LOG_I2("The input descriptors dont match.");
+        MIOPEN_THROW(miopenStatusBadParm);
     }
 
     auto ops_head = op_map[0];
@@ -584,7 +598,8 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     MIOPEN_LOG_I(algorithm_name << ',' << network_config);
     if(kernels.empty())
     {
-        MIOPEN_THROW("The FusionPlan was not compiled for execution");
+        MIOPEN_LOG_I2("The FusionPlan was not compiled for execution");
+        MIOPEN_THROW(miopenStatusBadParm);
     }
     KernelInvoke kernel = kernels.front();
 
@@ -615,15 +630,22 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                 }
             }
             else
-                MIOPEN_THROW("Arg " + key + " was not set for Operator: " +
+            {
+                MIOPEN_LOG_E("Arg " + key + " was not set for Operator: " +
                              std::to_string(op->kind()));
+                MIOPEN_THROW(miopenStatusBadParm);
+            }
         }
     }
     std::vector<OpKernelArg> args;
     if(kernel_source_type == Binary)
     {
         if((input_desc.GetType() != miopenFloat) || (output_desc.GetType() != miopenFloat))
-            MIOPEN_THROW("Only FP32 floats are currently supported");
+        {
+            // this condition is already checked by the MDGraph, should it be repeated?
+            MIOPEN_LOG_E("Only FP32 floats are currently supported for the Winograd kernel");
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
         int N, C, H, W, oN, K, oH, oW;
         std::tie(N, C, H, W)    = miopen::tien<4>(input_desc.GetLengths(), 1);
         std::tie(oN, K, oH, oW) = miopen::tien<4>(output_desc.GetLengths(), 1);

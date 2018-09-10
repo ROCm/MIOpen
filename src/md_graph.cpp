@@ -111,7 +111,8 @@ std::string FusionMDGraph::GetProgramName()
     }
     else
     {
-        MIOPEN_THROW("Invalid FusionPlan");
+        MIOPEN_LOG_I2("Invalid FusionPlan");
+        MIOPEN_THROW(miopenStatusBadParm);
     }
 }
 
@@ -124,7 +125,8 @@ std::string FusionMDGraph::GetKernelName()
     }
     else
     {
-        MIOPEN_THROW("Invalid FusionPlan");
+        MIOPEN_LOG_I2("Invalid FusionPlan");
+        MIOPEN_THROW(miopenStatusBadParm);
     }
 }
 
@@ -137,7 +139,8 @@ std::string FusionMDGraph::GetAlgoName()
     }
     else
     {
-        MIOPEN_THROW("Invalid FusionPlan");
+        MIOPEN_LOG_I2("Invalid FusionPlan");
+        MIOPEN_THROW(miopenStatusBadParm);
     }
 }
 
@@ -151,11 +154,15 @@ bool FusionMDGraph::SetConvAlgo(miopenConvFwdAlgorithm_t algo)
 {
     // Make sure algo is in the current paths being tracked
     if(conv_algo_set.empty())
-        MIOPEN_THROW("No algorithm supported by current fusion plan");
+    {
+        MIOPEN_LOG_E("No algorithm supported by current fusion plan");
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
 
     if(conv_algo_set.find(algo) == conv_algo_set.end())
     {
-        MIOPEN_THROW("Current fusion plan does not support the algorithm requested");
+        MIOPEN_LOG_E("Current fusion plan does not support the algorithm requested");
+        MIOPEN_THROW(miopenStatusBadParm);
     }
     std::vector<std::pair<MDGraph_vertex_ptr, cur_vertex_map>> new_list;
 
@@ -172,7 +179,10 @@ bool FusionMDGraph::SetConvAlgo(miopenConvFwdAlgorithm_t algo)
             }
         }
         else
-            MIOPEN_THROW("Current fusion plan does not support the algorithm requested");
+        {
+            MIOPEN_LOG_E("Current fusion plan does not support the algorithm requested");
+            MIOPEN_THROW(miopenStatusBadParm);
+        }
     }
 
     cur_vertex = new_list;
@@ -189,6 +199,7 @@ void FusionMDGraph::Init(FusionMDGraph& g, miopenFusionOp_t op)
     case miopenFusionOpActivForward:
     case miopenFusionOpBiasForward:
         MIOPEN_THROW(
+            miopenStatusNotImplemented,
             "Operators Activ and Bias are not supported as first ops in a Fusion Plan (yet)");
     }
 }
@@ -488,14 +499,17 @@ bool FusionMDGraph::ExecOpEqual(const EdgeOp& edg_op, const EdgeOp& op_val)
         return boost::any_cast<miopenDataType_t>(edg_op.val) ==
                boost::any_cast<miopenDataType_t>(op_val.val);
     else
-        MIOPEN_THROW("Unsupported Graph Edge Operation");
+        MIOPEN_THROW(miopenStatusNotImplemented, "Unsupported Graph Edge Operation");
 }
 
 bool FusionMDGraph::ExecOpModulo(const EdgeOp& edg_op, const EdgeOp& op_val)
 {
     if(!(edg_op.val.type() == typeid(int) && op_val.val.type() == typeid(int) &&
          edg_op.result.type() == typeid(int)))
-        MIOPEN_THROW("Invalid operand types for Edge Op OpModulo");
+    {
+        MIOPEN_LOG_E("Invalid operand types for Edge Op OpModulo");
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
 
     return (boost::any_cast<int>(op_val.val) % boost::any_cast<int>(edg_op.val)) ==
            boost::any_cast<int>(edg_op.result);
@@ -504,7 +518,10 @@ bool FusionMDGraph::ExecOpModulo(const EdgeOp& edg_op, const EdgeOp& op_val)
 bool FusionMDGraph::ExecOpGTE(const EdgeOp& edg_op, const EdgeOp& op_val)
 {
     if(!(edg_op.val.type() == typeid(int) && op_val.val.type() == typeid(int)))
-        MIOPEN_THROW("Invalid operand types for Edge Op OpGTE (>=)");
+    {
+        MIOPEN_LOG_E("Invalid operand types for Edge Op OpGTE (>=)");
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
     return (boost::any_cast<int>(op_val.val) >= boost::any_cast<int>(edg_op.val));
 }
 bool FusionMDGraph::ExecEdgeOp(const EdgeOp& edg_op, const EdgeOp& op_val)
@@ -534,7 +551,8 @@ bool FusionMDGraph::CmpOpKey(const FusionMDGraph_Edge_Map& edge_val,
         {
             if(op_val.at(kv.first).size() > 1)
             {
-                MIOPEN_THROW("The operator attribute vector length cannot be greater than 1");
+                MIOPEN_THROW(miopenStatusInternalError,
+                             "The operator attribute vector length cannot be greater than 1");
             }
             for(auto& edg_ops : kv.second)
             {
