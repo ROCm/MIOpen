@@ -276,8 +276,8 @@ struct cbna_fusion_driver : test_driver
 
     cbna_fusion_driver()
     {
-        add(input, "input", get_input_tensor());
-        add(weights, "weights", get_weights_tensor());
+        add(input, "input", get_input_tensor(tensor_elem_gen_integer{max_value}));
+        add(weights, "weights", get_weights_tensor(tensor_elem_gen_integer{max_value}));
         add(filter, "filter", generate_data(get_filters()));
         add(alpha, "alpha", generate_data({/*1. , */ 0.5}));
         add(beta, "beta", generate_data({/*0. , */ 0.5}));
