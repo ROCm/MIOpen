@@ -151,19 +151,18 @@ __attribute__((always_inline)) void ReduceKernel(__local _FLOAT* lcl_blob,
 */
 __attribute__((always_inline)) void readInput(uint lcl_id,
                                               uint gbl_in_scan_off,
-#if 1//debug
+#if 1 // debug
                                               uint n_in_map_reads,
 #endif
                                               uint n_v_reads,
                                               const __global _FLOAT* __restrict bot,
                                               __local _FLOAT* __restrict lcl_bot)
 {
-#if 0//debug
+#if 0 // debug
     for(uint p4 = lcl_id; p4 < MLO_N_LCL_IN_MAPS * MLO_N_IN_HORIZ_READS * n_v_reads;
         p4 += MLO_GRP_SZ)
 #else
-    for(uint p4 = lcl_id; p4 < n_in_map_reads * MLO_N_IN_HORIZ_READS * n_v_reads;
-        p4 += MLO_GRP_SZ)
+    for(uint p4 = lcl_id; p4 < n_in_map_reads * MLO_N_IN_HORIZ_READS * n_v_reads; p4 += MLO_GRP_SZ)
 #endif
     {
         __private _FLOAT in_rd_data[MLO_READ_UNIT];
@@ -243,13 +242,14 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
 
         loop over filter vertical size
 */
-__attribute__((always_inline)) void Processing(UNUSED uint sc,
-                                               uint sc_lcl_off,
-                                               uint top_lim,
-                                               int bot_lim, //bot_lim could be negative at lower boundary padding
-                                               __private _FLOAT_ACCUM* __restrict pvt_accum,
-                                               __local _FLOAT* __restrict lcl_bot,
-                                               __private _FLOAT* __restrict top_dat)
+__attribute__((always_inline)) void
+Processing(UNUSED uint sc,
+           uint sc_lcl_off,
+           uint top_lim,
+           int bot_lim, // bot_lim could be negative at lower boundary padding
+           __private _FLOAT_ACCUM* __restrict pvt_accum,
+           __local _FLOAT* __restrict lcl_bot,
+           __private _FLOAT* __restrict top_dat)
 {
     for(int l = top_lim; l >= bot_lim; --l)
     {
@@ -404,8 +404,10 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
     uint o_idx = o_idx_base * (MLO_N_LCL_OUT_MAPS * MLO_OUT_STACKS); // output map index
 
-#if 1//debug
-    uint n_in_map_reads = MLO_N_INPUTS >= c_idx + MLO_N_LCL_IN_MAPS ? MLO_N_LCL_IN_MAPS : (MLO_N_INPUTS >= c_idx ? MLO_N_INPUTS - c_idx : 0);
+#if 1 // debug
+    uint n_in_map_reads = MLO_N_INPUTS >= c_idx + MLO_N_LCL_IN_MAPS
+                              ? MLO_N_LCL_IN_MAPS
+                              : (MLO_N_INPUTS >= c_idx ? MLO_N_INPUTS - c_idx : 0);
 #endif
 
     uint gbl_in_off  = c_idx * MLO_IN_CHANNEL_STRIDE + ib * MLO_IN_BATCH_STRIDE;
@@ -464,8 +466,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         uint gbl_in_scan_off  = gbl_in_off;
         uint gbl_out_scan_off = gbl_out_off;
 
-        // read input map
-#if 0//debug
+// read input map
+#if 0 // debug
         readInput(lcl_id, gbl_in_scan_off, MLO_IN_VERT_READS, bot, lcl_bot);
 #else
         readInput(lcl_id, gbl_in_scan_off, n_in_map_reads, MLO_IN_VERT_READS, bot, lcl_bot);
@@ -551,7 +553,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         {
             barrier(CLK_LOCAL_MEM_FENCE);
 
-#if 0//debug
+#if 0 // debug
             readInput(lcl_id, gbl_in_scan_off, MLO_IN_VERT_READS, bot, lcl_bot);
 #else
             readInput(lcl_id, gbl_in_scan_off, n_in_map_reads, MLO_IN_VERT_READS, bot, lcl_bot);
@@ -600,7 +602,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
 #define MLO_LAST_VERT_READS (MLO_IN_HEIGHT - MLO_IN_EXTENT1 * (MLO_IN_N_VERT_LOOPS - 1))
 
-#if 0//debug
+#if 0 // debug
             readInput(lcl_id, gbl_in_scan_off, MLO_LAST_VERT_READS, bot, lcl_bot);
 #else
             readInput(lcl_id, gbl_in_scan_off, n_in_map_reads, MLO_LAST_VERT_READS, bot, lcl_bot);
@@ -652,7 +654,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
         } // for (; sc < MLO_OUT_HEIGHT - MLO_FILTER_PAD1 + 2; ++sc, gbl_out_scan_off +=
           // MLO_OUT_CHANNEL_STRIDE, gbl_in_scan_off += MLO_IN_CHANNEL_STRIDE)
-    } // 	for (int b = 0;
+    }     // 	for (int b = 0;
 
     // final summation over all output maps and each filter row
     // this coudl be done with log but it negligeble anyway
@@ -694,7 +696,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         }
     }
 
-
     // output
     // inputs are outputs
     // TODO : for more than 1 input
@@ -704,7 +705,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         // this input channel
         + mul24(c_idx, (uint)MLO_WEI_CHANNEL_STRIDE);
 
-#if 0//debug
+#if 0 // debug
     for(uint k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
     {
         if(spn == 0 && o_idx + o + k * MLO_OUT_STACKS < MLO_N_OUTPUTS && o < MLO_OUT_STACKS)
@@ -716,20 +717,19 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     {
         for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
         {
-            if(spn == 0 && c < n_in_map_reads && o_idx + o + k * MLO_OUT_STACKS < MLO_N_OUTPUTS && o < MLO_OUT_STACKS)
+            if(spn == 0 && c < n_in_map_reads && o_idx + o + k * MLO_OUT_STACKS < MLO_N_OUTPUTS &&
+               o < MLO_OUT_STACKS)
             {
 #endif
-                for(uint i = 0; i < (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0); ++i)
-                {
-                    weights_df[wei_df_off + k * MLO_OUT_STACKS * MLO_WEI_BATCH_STRIDE +
-                               c * MLO_WEI_CHANNEL_STRIDE + i] =
-                        pvt_accum[(k * MLO_N_LCL_IN_MAPS + c) * MLO_FILTER_SIZE1 *
-                                      MLO_FILTER_SIZE0 +
-                                  i];
-                }
-            }
-        }
+    for(uint i = 0; i < (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0); ++i)
+    {
+        weights_df[wei_df_off + k * MLO_OUT_STACKS * MLO_WEI_BATCH_STRIDE +
+                   c * MLO_WEI_CHANNEL_STRIDE + i] =
+            pvt_accum[(k * MLO_N_LCL_IN_MAPS + c) * MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0 + i];
     }
+}
+}
+}
 }
 
 // final reduction kernel
