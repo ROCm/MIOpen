@@ -57,7 +57,7 @@ if(NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 1.4.2)
+rocm_setup_version(VERSION 1.5.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 
@@ -171,11 +171,13 @@ if(BUILD_DEV)
     set(MIOPEN_BUILD_DEV 1)
     set(MIOPEN_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels" CACHE PATH "Default path to search for installed db")
     set(MIOPEN_USER_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels" CACHE PATH "Default path to search for user db")
+    set(MIOPEN_FIND_DB_PATH "${CMAKE_SOURCE_DIR}/src/kernels" CACHE PATH "Default path to search for find db")
     set(MIOPEN_CACHE_DIR "" CACHE STRING "")
 else()
     set(MIOPEN_BUILD_DEV 0)
     set(MIOPEN_DB_PATH "${CMAKE_INSTALL_PREFIX}/${DATA_INSTALL_DIR}/db" CACHE PATH "Default path to search for installed db")
     set(MIOPEN_USER_DB_PATH "~/.config/miopen/" CACHE STRING "Default path to search for user db")
+    set(MIOPEN_FIND_DB_PATH "~/.config/miopen/" CACHE STRING "Default path to search for find db")
     set(MIOPEN_CACHE_DIR "~/.cache/miopen/" CACHE STRING "")
 endif()
 

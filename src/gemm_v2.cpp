@@ -29,6 +29,7 @@
 #if MIOPEN_USE_ROCBLAS
 #include <rocblas.h>
 #include <miopen/hipoc_kernel.hpp>
+#include <miopen/perf_field.hpp>
 #elif MIOPEN_USE_MIOPENGEMM
 #include <miopen/miopengemm.hpp>
 #endif
@@ -42,7 +43,8 @@ void CallGemm(Handle& handle,
               ConstData_t B,
               int b_offset,
               Data_t C,
-              int c_offset)
+              int c_offset,
+              std::string* kcache_key)
 {
 #if MIOPEN_USE_ROCBLAS
     MIOPEN_LOG_FUNCTION("rocBLAS");
@@ -91,6 +93,9 @@ void CallGemm(Handle& handle,
         handle.AccumKernelTime(mS);
     }
 
+    if(kcache_key != nullptr)
+        *kcache_key = FindDbData::GetUnusedKCacheKey();
+
 #elif MIOPEN_USE_MIOPENGEMM
     MIOPEN_LOG_FUNCTION("MIOpenGEMM");
 
@@ -122,6 +127,9 @@ void CallGemm(Handle& handle,
 
     const std::string algorithm_name = "MIOpenGEMM";
     const std::string network_config = gemm_desc_to_string();
+
+    if(kcache_key != nullptr)
+        *kcache_key = network_config;
 
     auto&& kernels = handle.GetKernels(algorithm_name, network_config);
 
@@ -181,7 +189,8 @@ void CallGemmStridedBatched(Handle& handle,
                             ConstData_t B,
                             int b_offset,
                             Data_t C,
-                            int c_offset)
+                            int c_offset,
+                            std::string* kcache_key)
 {
 #if MIOPEN_USE_ROCBLAS
     MIOPEN_LOG_FUNCTION("rocBLAS");
@@ -236,9 +245,13 @@ void CallGemmStridedBatched(Handle& handle,
         handle.AccumKernelTime(mS);
     }
 
+    if(kcache_key != nullptr)
+        *kcache_key = FindDbData::GetUnusedKCacheKey();
+
 #elif MIOPEN_USE_MIOPENGEMM
 
-    CallGemmStridedBatchedSequential(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
+    CallGemmStridedBatchedSequential(
+        handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key);
 #else
     (void)handle;
     (void)gemm_desc;
@@ -248,6 +261,7 @@ void CallGemmStridedBatched(Handle& handle,
     (void)b_offset;
     (void)C;
     (void)c_offset;
+    (void)kcache_key;
 
     MIOPEN_THROW("No GEMM backend");
 #endif
@@ -260,7 +274,8 @@ void CallGemmStridedBatchedSequential(Handle& handle,
                                       ConstData_t B,
                                       int b_offset,
                                       Data_t C,
-                                      int c_offset)
+                                      int c_offset,
+                                      std::string* kcache_key)
 {
 #if MIOPEN_USE_ROCBLAS
     MIOPEN_LOG_FUNCTION("rocBLAS");
@@ -313,6 +328,9 @@ void CallGemmStridedBatchedSequential(Handle& handle,
         handle.AccumKernelTime(mS);
     }
 
+    if(kcache_key != nullptr)
+        *kcache_key = FindDbData::GetUnusedKCacheKey();
+
 #elif MIOPEN_USE_MIOPENGEMM
     MIOPEN_LOG_FUNCTION("MIOpenGEMM");
 
@@ -344,6 +362,9 @@ void CallGemmStridedBatchedSequential(Handle& handle,
 
     const std::string algorithm_name = "MIOpenGEMM";
     const std::string network_config = gemm_desc_to_string();
+
+    if(kcache_key != nullptr)
+        *kcache_key = network_config;
 
     auto&& old_kernels = handle.GetKernels(algorithm_name, network_config);
 
@@ -425,6 +446,7 @@ void CallGemmStridedBatchedSequential(Handle& handle,
     (void)b_offset;
     (void)C;
     (void)c_offset;
+    (void)kcache_key;
 
     MIOPEN_THROW("No GEMM backend");
 #endif

@@ -95,7 +95,12 @@ struct conv_bias_driver : test_driver
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
         {"CONV", miopenConvolution}, {"TRANS", miopenTranspose}};
 
-    conv_bias_driver() { add(output, "output", get_input_tensor()); }
+    conv_bias_driver()
+    {
+        add(output,
+            "output",
+            get_input_tensor(tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
+    }
 
     void run()
     {

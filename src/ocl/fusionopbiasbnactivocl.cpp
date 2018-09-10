@@ -7,9 +7,11 @@ miopenStatus_t FusionOpDescriptor::GetNetworkConfig(std::string& /*network_confi
     return miopenStatusSuccess;
 }
 
-miopenStatus_t FusionOpDescriptor::GetCompileParms(std::string& /*compile_config*/,
-                                                   Handle& /*handle*/,
-                                                   const FusionKernelSourceType /*source*/)
+miopenStatus_t
+FusionOpDescriptor::GetCompileParms(std::string& /*compile_config*/,
+                                    Handle& /*handle*/,
+                                    const FusionKernelSourceType /*source*/,
+                                    const std::vector<solver::AnySolver>& /*solvers*/)
 {
     MIOPEN_LOG_I2("");
     return miopenStatusSuccess;
@@ -27,6 +29,43 @@ std::vector<size_t> FusionOpDescriptor::GetGlobalWGSz(Handle& /*handle*/,
     MIOPEN_THROW("Op does not support global workgroup size");
 }
 
+miopenStatus_t BiasFusionOpDescriptor::GetNetworkConfig(std::string& network_config,
+                                                        Handle& /*handle*/)
+{
+    network_config += "biasOn"; // for bias
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t
+BiasFusionOpDescriptor::GetCompileParms(std::string& compile_config,
+                                        Handle& /*handle*/,
+                                        FusionKernelSourceType source,
+                                        const std::vector<solver::AnySolver>& /*solvers*/)
+{
+    std::string add;
+    switch(source)
+    {
+    case AsmText: add    = " -Wa,-defsym,bias_mode=" + std::to_string(1); break;
+    case OpenclText: add = " -DMLO_CONV_BIAS=" + std::to_string(1); break;
+    case Binary: break;
+    }
+    MIOPEN_LOG_I2(add);
+    compile_config += add;
+    return miopenStatusSuccess;
+}
+
+std::vector<size_t> BiasFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
+                                                         std::string /*algorithm_name*/)
+{
+    MIOPEN_THROW("Op does not support local workgroup size");
+}
+
+std::vector<size_t> BiasFusionOpDescriptor::GetGlobalWGSz(Handle& /*handle*/,
+                                                          std::string /*algorithm_name*/)
+{
+    MIOPEN_THROW("Op does not support global workgroup size");
+}
+
 miopenStatus_t ActivFusionOpDescriptor::GetNetworkConfig(std::string& network_config,
                                                          Handle& /*handle*/)
 {
@@ -34,9 +73,11 @@ miopenStatus_t ActivFusionOpDescriptor::GetNetworkConfig(std::string& network_co
     return miopenStatusSuccess;
 }
 
-miopenStatus_t ActivFusionOpDescriptor::GetCompileParms(std::string& compile_config,
-                                                        Handle& /*handle*/,
-                                                        const FusionKernelSourceType source)
+miopenStatus_t
+ActivFusionOpDescriptor::GetCompileParms(std::string& compile_config,
+                                         Handle& /*handle*/,
+                                         const FusionKernelSourceType source,
+                                         const std::vector<solver::AnySolver>& /*solvers*/)
 {
     std::string add;
     switch(source)
@@ -74,7 +115,10 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetNetworkConfig(std::strin
 }
 
 miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(
-    std::string& compile_config, Handle& /*handle*/, const FusionKernelSourceType source)
+    std::string& compile_config,
+    Handle& /*handle*/,
+    FusionKernelSourceType source,
+    const std::vector<solver::AnySolver>& /*solvers*/)
 {
     if(source != OpenclText)
     {
