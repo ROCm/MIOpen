@@ -32,18 +32,25 @@ namespace solver {
 
 bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 {
-    bool solution = true;
-    solution &= (params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1);
-    solution &= (params.kernel_stride0 == 1 && params.kernel_stride1 == 1);
+    return 
+        (params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1) &&
+        (params.kernel_stride0 == 1 && params.kernel_stride1 == 1) &&
 
-    // This limitation is because of the way the kernel process data at lower vertical boundary (including padding) 
-    solution &= params.kernel_size1 - params.pad1 - params.kernel_stride1 >= 0;
+        // This limitation is because of the way the kernel process data at lower vertical boundary (including padding).
+        (params.kernel_size1 - params.pad1 - params.kernel_stride1 >= 0) &&
 
-    // Input image height plus vertical paddings should be no less than filter vertical size
-    // TODO: chao: revisit this to make sure this is the actual limitation
-    solution &= params.kernel_size1 <= params.out_height + 2*params.pad1;//params.out_height is actually the input height
+        // Input image height plus vertical paddings should be no less than filter vertical size.
+        // TODO: chao: revisit this to make sure this is the actual limitation.
+        // remind that input is output, output is input.
+        (params.kernel_size1 <= params.out_height + 2*params.pad1) &&
 
-    return solution;
+        // Input and output width and height need to match exactly, 
+        // meaning, filter's moving range should be the same as input plus padding.
+        // TODO: chao: in order to remove this limitation, need to rewrite how kernel handle right padding,
+        // when reading an input row into LDS. Also need to rewrite the vertical loop.
+        // remind that input is output, output is input
+        (params.in_height == params.out_height + 2 * params.pad1 - params.kernel_size1 + 1) &&
+        (params.in_width  == params.out_width  + 2 * params.pad0 - params.kernel_size0 + 1);
 }
 
 ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) const
