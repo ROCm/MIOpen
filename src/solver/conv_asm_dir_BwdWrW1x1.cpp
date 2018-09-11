@@ -306,7 +306,7 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
             return false;
     }
     int acc_gprs = c_mult * k_mult * k_per_gpr;
-    if(!(acc_gprs + 11 + (c_mult + k_mult) * read_size <= (n_part_cnt > 4 ? 128 : 256)))
+    if(!(acc_gprs + 12 + (c_mult + k_mult) * read_size <= (n_part_cnt > 4 ? 128 : 256)))
     {
         return false;
     }
