@@ -62,7 +62,7 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
 
     const auto hw_wave_sz       = 64;
     const auto dev_local_mem_sz = localMemSize; // in bytes
-                                                  // major parameters
+                                                // major parameters
 
     // inpout are outputs
     int wei_cstride = params.kernel_size0 * params.kernel_size1;
