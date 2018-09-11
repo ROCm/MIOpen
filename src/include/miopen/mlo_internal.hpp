@@ -206,9 +206,7 @@ struct ConvolutionContext : ProblemDescription
         // clang-format off
         return GetDbPath()
              + "/"
-             + GetStream().GetDeviceName()
-             + "_"
-             + std::to_string(GetStream().GetMaxComputeUnits())
+             + GetStream().GetDbPathFilename()
              + ".cd.pdb.txt";
         // clang-format on
     }
@@ -218,9 +216,7 @@ struct ConvolutionContext : ProblemDescription
         // clang-format off
         return GetUserDbPath()
              + "/"
-             + GetStream().GetDeviceName()
-             + "_"
-             + std::to_string(GetStream().GetMaxComputeUnits())
+             + GetStream().GetDbPathFilename()
              + ".cd.updb.txt";
         // clang-format on
     }
@@ -249,6 +245,14 @@ auto FindFirstSolution(T& x) -> decltype(x.FindSolution())
     x.setupRocm();
     x.setupFloats();
     return x.FindSolution();
+}
+
+template <class T, class U>
+auto FindFirstSolution(T& x, U& solvers) -> decltype(x.FindSolution(solvers))
+{
+    x.setupRocm();
+    x.setupFloats();
+    return x.FindSolution(solvers);
 }
 
 template <class T>

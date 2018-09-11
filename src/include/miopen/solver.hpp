@@ -202,6 +202,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
             }
         }
     }
+
     return s.GetSolution(context, s.GetPerformanceConfig(context));
 }
 

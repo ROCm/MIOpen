@@ -119,6 +119,7 @@ set( MIOpen_Source
     solver.cpp
     solver/conv_asm_3x3u.cpp
     solver/conv_asm_1x1u.cpp
+    solver/conv_asm_1x1u_bias_activ.cpp
     solver/conv_asm_5x10u2v2f1.cpp
     solver/conv_asm_5x10u2v2b1.cpp
     solver/conv_asm_7x7c3h224w224k64u2v2p3q3f1.cpp
@@ -155,6 +156,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenBatchNormBwdSpatial.cl
         kernels/MIOpenBatchNormBwdPerAct.cl
         kernels/MIOpenConvDirUni.cl
+        kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
@@ -180,6 +182,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/bugzilla_34765_detect.s
         kernels/conv3x3.s
         kernels/conv1x1u.s
+        kernels/conv1x1u_bias_activ.s
         kernels/conv3x3wrw.s
         kernels/conv1x1wrw.s
         kernels/conv5x10u2v2f1.s
@@ -188,6 +191,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenTensorKernels.cl
         kernels/MIOpenSubTensorOpWithScalarKernel.cl
         kernels/MIOpenSubTensorOpWithSubTensorKernel.cl
+        kernels/conv_3x3_wheel_alpha_v9_2_7_gfx803_md10.so
+        kernels/conv_3x3_wheel_alpha_v9_2_7_gfx900_md10.so
+        kernels/conv_3x3_wheel_alpha_v9_2_7_gfx906_md10.so
         kernels/conv_3x3_wheel_alpha_v9_0_15_gfx803_m30.so
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dil_gfx803_m30.so
         kernels/conv_3x3_wheel_alpha_v9_0_15_stride_2_dec_gfx803_m30.so
@@ -235,6 +241,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/utilocl.cpp
         ocl/gcn_asm_utils.cpp
         pooling.cpp
+        ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         ${PROJECT_BINARY_DIR}/kernel.cpp

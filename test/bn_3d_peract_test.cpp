@@ -91,9 +91,9 @@ struct verify_forward_train_3d_bn_per_activation
         if(input.desc.GetType() == miopenFloat)
         {
             runMean = tensor<T>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width}.generate(
-                rand_gen{});
+                tensor_elem_gen_integer{17});
             runVar = tensor<T>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width}.generate(
-                rand_gen{});
+                tensor_elem_gen_integer{17});
         }
         else
         {
@@ -225,9 +225,9 @@ struct verify_forward_train_3d_bn_per_activation
         if(input.desc.GetType() == miopenFloat)
         {
             runMean = tensor<T>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width}.generate(
-                rand_gen{});
+                tensor_elem_gen_integer{17});
             runVar = tensor<T>{rs_n_batch, rs_channels, rs_depth, rs_height, rs_width}.generate(
-                rand_gen{});
+                tensor_elem_gen_integer{17});
         }
         else
         {
@@ -987,7 +987,10 @@ struct batch_norm_3d_per_activation_driver : test_driver
     batch_norm_3d_per_activation_driver()
     {
         this->batch_factor = 4;
-        add(input, "input", get_3d_bn_peract_input_tensor());
+        add(input,
+            "input",
+            get_3d_bn_peract_input_tensor(
+                tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}));
     }
 
     void run()
@@ -1009,8 +1012,8 @@ struct batch_norm_3d_per_activation_driver : test_driver
 
         if(input.desc.GetType() == miopenFloat)
         {
-            scale = tensor<T>{ssn, ssc, ssd, ssh, ssw}.generate(rand_gen{});
-            shift = tensor<T>{ssn, ssc, ssd, ssh, ssw}.generate(rand_gen{});
+            scale = tensor<T>{ssn, ssc, ssd, ssh, ssw}.generate(tensor_elem_gen_integer{17});
+            shift = tensor<T>{ssn, ssc, ssd, ssh, ssw}.generate(tensor_elem_gen_integer{17});
         }
         else
         {
@@ -1042,8 +1045,8 @@ struct batch_norm_3d_per_activation_driver : test_driver
             input, scale, shift, estMean, estVar});
 
         // backprop recalc
-        auto dy_input =
-            tensor<T>{n, c, d, h, w}.generate(rand_gen{}); //= std::get<0>(outpair.first);//
+        auto dy_input = tensor<T>{n, c, d, h, w}.generate(tensor_elem_gen_integer{
+            miopen_type<T>{} == miopenHalf ? 5 : 17}); //= std::get<0>(outpair.first);//
         verify(verify_backward_3d_bn_per_activation_recalc<T>{input, dy_input, scale});
 
         // backprop use saved values
