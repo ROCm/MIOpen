@@ -303,7 +303,10 @@ accums_cnt = wei_w * wei_h * k_per_gpr * c_mult * k_mult
 .VGPR_ALLOC lines_out, read_size * k_mult
 .VGPR_ALLOC permute_addr
 .VGPR_ALLOC n_id
-
+.if (madmix_instructions_available == 0 && dot_instructions_available == 0 && fmamix_instructions_available == 0)
+    .VGPR_ALLOC vtmp_cvt_fir
+    .VGPR_ALLOC vtmp_cvt_sec
+.endif
 
 
 static_assert (((n_part_cnt - 1) * wave_size * 4 * accums_cnt) <= 65536) //LDS size
@@ -345,12 +348,27 @@ gcnAsmConv1x1WrW:
         .elseif fmamix_instructions_available
             v_fma_mix_f32 v[\v_acc], v[\v_base_out], v[\v_base_in], v[\v_acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
             v_fma_mix_f32 v[\v_acc], v[\v_base_out], v[\v_base_in], v[\v_acc] op_sel:[1,1,0] op_sel_hi:[1,1,0]
+        .else
+            v_cvt_f32_f16 v[vtmp_cvt_fir], v[\v_base_in]
+            v_cvt_f32_f16 v[vtmp_cvt_sec], v[f_gpr]
+            v_mac_f32     v[\v_acc], v[vtmp_cvt_fir], v[vtmp_cvt_sec]
+
+            v_lshrrev_b32 v[vtmp_cvt_fir], 16, v[\v_base_in]
+            v_lshrrev_b32 v[vtmp_cvt_sec], 16, v[f_gpr]
+
+            v_cvt_f32_f16 v[vtmp_cvt_fir], v[vtmp_cvt_fir]
+            v_cvt_f32_f16 v[vtmp_cvt_sec], v[vtmp_cvt_sec]
+            v_mac_f32     v[\v_acc], v[vtmp_cvt_fir], v[vtmp_cvt_sec]
         .endif
     .else   //if partial read
         .if(madmix_instructions_available)
             v_mad_mix_f32 v[\v_acc], v[\v_base_out], v[\v_base_in], v[\v_acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
         .elseif fmamix_instructions_available
             v_fma_mix_f32 v[\v_acc], v[\v_base_out], v[\v_base_in], v[\v_acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
+        .else
+            v_cvt_f32_f16 v[vtmp_cvt_fir], v[\v_base_in]
+            v_cvt_f32_f16 v[vtmp_cvt_sec], v[f_gpr]
+            v_mac_f32     v[\v_acc], v[vtmp_cvt_fir], v[vtmp_cvt_sec]
         .endif
     .endif
 .endm
@@ -622,7 +640,6 @@ gcnAsmConv1x1WrW:
          mult = mult / sequential_output_channels
         adj_size = adj_size * sequential_output_channels
 
-
         _mult_it = 0
         .rept mult
             _sequential_output_channels_it = 0
@@ -649,9 +666,7 @@ gcnAsmConv1x1WrW:
                         m_buffer_load_ushort bound_shorts_cnt, dst + bound_dwords_cnt, \voff2, desc, soff, (_sequential_ck_offset + short_offset)
                     
                         s_mov_b64 exec, -1
-                        
                     .else
-                    
                         m_buffer_load_dwordx \dwords2, dst + \dwords1, \voff2, desc, soff, (_sequential_ck_offset + part2_offset)
 
                         .if(\shorts2 != 0)
@@ -674,7 +689,6 @@ gcnAsmConv1x1WrW:
             .endif
         .endr
     .endm
-    
     
 
 loop_n_begin: // loop over batch (n)
@@ -783,7 +797,6 @@ loop_n_end:
         .endr
     .endm
 
-
     .if (n_part_cnt > 1)
         lds_read_size = 1
         v_mul_u32_u24 v[voffset_ldsw], 0 + lds_element_stride * lds_read_size, v[tid]
@@ -861,7 +874,6 @@ loop_n_end:
     
     _v_add_nc_u32 v[permute_addr], 0 + wave_size / k_ds_rotates, v[tid]
     v_lshlrev_b32 v[permute_addr], 2, v[permute_addr]
-
     
     // store accums
     k_ds = 0
