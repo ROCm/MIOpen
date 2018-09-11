@@ -884,8 +884,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                         *this,
                         exhaustiveSearch,
                         *record);
-        if(!find_db.StoreRecord(record.get()))
-            MIOPEN_LOG_W("Failed to store record to find-db at <" << find_db_path << ">");
+        // if(!find_db.StoreRecord(record.get()))
+        //    MIOPEN_LOG_W("Failed to store record to find-db at <" << find_db_path << ">");
     }
 
     std::vector<PerfField> perf_db;
