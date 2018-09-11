@@ -50,8 +50,7 @@ extern "C" miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* f
     });
 }
 
-extern "C" miopenStatus_t
-miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc)
+extern "C" miopenStatus_t miopenDestroyFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc)
 {
 
     MIOPEN_LOG_FUNCTION(fusePlanDesc)
@@ -80,17 +79,88 @@ extern "C" miopenStatus_t miopenCompileFusionPlan(miopenHandle_t handle,
     return miopen::try_([&] { miopen::deref(fusePlanDesc).Compile(miopen::deref(handle)); });
 }
 
+extern "C" miopenStatus_t
+miopenFusionPlanGetWorkSpaceSize(miopenHandle_t handle,
+                                 miopenFusionPlanDescriptor_t fusePlanDesc,
+                                 size_t* workSpaceSize,
+                                 miopenConvFwdAlgorithm_t algo)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, workSpaceSize);
+    miopenStatus_t res = miopenStatusUnknownError;
+    miopen::try_([&] {
+        size_t sz;
+        res = miopen::deref(fusePlanDesc).GetWorkspaceSizeImmed(miopen::deref(handle), sz, algo);
+        miopen::deref(workSpaceSize) = sz;
+    });
+    return res;
+}
+
+extern "C" miopenStatus_t
+miopenFusionPlanConvolutionGetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                   const int requestAlgoCount,
+                                   int* returnedAlgoCount,
+                                   miopenConvFwdAlgorithm_t* returnedAlgos)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, requestAlgoCount, returnedAlgoCount, returnedAlgos);
+    miopenStatus_t res = miopenStatusUnknownError;
+    miopen::try_([&] {
+        int cnt = 0;
+        res     = miopen::deref(fusePlanDesc).GetConvAlgos(requestAlgoCount, cnt, returnedAlgos);
+        miopen::deref(returnedAlgoCount) = cnt;
+    });
+    return res;
+}
+
+extern "C" miopenStatus_t
+miopenFusionPlanConvolutionSetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                   miopenConvFwdAlgorithm_t algo)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, algo);
+    miopenStatus_t res = miopenStatusUnknownError;
+    miopen::try_([&] { res = miopen::deref(fusePlanDesc).SetConvAlgo(algo); });
+    return res;
+}
+
+// Create convolution ops with unknown algorithms
+extern "C" miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                    miopenFusionOpDescriptor_t* convOp,
+                                                    miopenConvolutionDescriptor_t convDesc,
+                                                    const miopenTensorDescriptor_t wDesc)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, convOp, convDesc, wDesc);
+    miopenStatus_t res = miopenStatusUnknownError;
+    miopen::try_([&] {
+        auto fod = std::make_shared<miopen::ConvForwardOpDescriptor>(miopen::deref(convDesc),
+                                                                     miopen::deref(wDesc));
+        miopen::deref(convOp) = fod.get();
+        res                   = miopen::deref(fusePlanDesc).AddOp(fod);
+    });
+    return res;
+}
 // Activation create ops
 extern "C" miopenStatus_t miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                                           miopenFusionOpDescriptor_t* activOp,
                                                           miopenActivationMode_t mode)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, mode);
-    miopenStatus_t res = miopenStatusSuccess;
+    miopenStatus_t res = miopenStatusUnknownError;
     miopen::try_([&] {
         auto fod               = std::make_shared<miopen::ActivFusionOpDescriptor>(mode);
         miopen::deref(activOp) = fod.get();
         res                    = miopen::deref(fusePlanDesc).AddOp(fod);
+    });
+    return res;
+}
+extern "C" miopenStatus_t miopenCreateOpBiasForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                    miopenFusionOpDescriptor_t* biasOp,
+                                                    const miopenTensorDescriptor_t bDesc)
+{
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, biasOp, bDesc);
+    miopenStatus_t res = miopenStatusUnknownError;
+    miopen::try_([&] {
+        auto bod = std::make_shared<miopen::BiasFusionOpDescriptor>(miopen::deref(bDesc));
+        miopen::deref(biasOp) = bod.get();
+        res                   = miopen::deref(fusePlanDesc).AddOp(bod);
     });
     return res;
 }
@@ -103,7 +173,7 @@ miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
                                  const miopenTensorDescriptor_t bnScaleBiasMeanVarDesc)
 {
     MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode, bnScaleBiasMeanVarDesc);
-    miopenStatus_t res = miopenStatusSuccess;
+    miopenStatus_t res = miopenStatusUnknownError;
     miopen::try_([&] {
         auto bod = std::make_shared<miopen::BatchNormInferenceFusionOpDescriptor>(
             bn_mode, miopen::deref(bnScaleBiasMeanVarDesc));
@@ -112,7 +182,6 @@ miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
     });
     return res;
 }
-
 extern "C" miopenStatus_t miopenCreateOperatorArgs(miopenOperatorArgs_t* args)
 {
     MIOPEN_LOG_FUNCTION(args);
@@ -123,6 +192,33 @@ extern "C" miopenStatus_t miopenDestroyOperatorArgs(miopenOperatorArgs_t args)
 {
     MIOPEN_LOG_FUNCTION(args);
     return miopen::try_([&] { miopen_destroy_object(args); });
+}
+extern "C" miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
+                                                     const miopenFusionOpDescriptor_t convOp,
+                                                     const void* alpha,
+                                                     const void* beta,
+                                                     const void* w)
+{
+    MIOPEN_LOG_FUNCTION(args, alpha, beta, convOp, w);
+    return miopen::try_([&] {
+        auto&& op = dynamic_cast<miopen::ConvForwardOpDescriptor&>(miopen::deref(convOp));
+        auto tmp  = DataCast(w);
+        op.SetArgs(miopen::deref(args), alpha, beta, tmp);
+    });
+}
+
+extern "C" miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
+                                                     const miopenFusionOpDescriptor_t biasOp,
+                                                     const void* alpha,
+                                                     const void* beta,
+                                                     const void* bias)
+{
+
+    MIOPEN_LOG_FUNCTION(args, biasOp, alpha, beta, bias);
+    return miopen::try_([&] {
+        auto&& op = dynamic_cast<miopen::BiasFusionOpDescriptor&>(miopen::deref(biasOp));
+        op.SetArgs(miopen::deref(args), alpha, beta, DataCast(bias));
+    });
 }
 
 extern "C" miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,

@@ -365,10 +365,9 @@ inline ConvSolution BaseGetSolution(const ConvolutionContext& params,
         std::to_string(static_cast<long long>(
             result.n_in_data_tiles)) // total # of blocks of different inputs in LDS
         + std::string(" -DMLO_N_READ_PROCS=") +
-        std::to_string(static_cast<long long>(n_read_procs)) + std::string(" -DMLO_CONV_BIAS=") +
-        std::to_string(static_cast<long long>(params.bias)) + std::string(" -DMLO_ALU_VTILE0=") +
+        std::to_string(static_cast<long long>(n_read_procs)) + std::string(" -DMLO_ALU_VTILE0=") +
         std::to_string(static_cast<long long>(alu_tile0)) + std::string(" -DMLO_ALU_VTILE1=") +
-        std::to_string(static_cast<long long>(alu_tile1)) + params.general_compile_options;
+        std::to_string(static_cast<long long>(alu_tile1));
     if(group_counts >= 2)
     {
         kernel_params.comp_options += (std::string(" -DMLO_GROUP_COUNTS=") +

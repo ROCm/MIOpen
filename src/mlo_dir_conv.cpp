@@ -56,6 +56,29 @@ miopen::MultiFileDb mlo_construct_direct2D::GetDb() const
     return {db_path(), _search_params.GetUserPerfDbPath()};
 }
 
+miopen::solver::ConvSolution
+mlo_construct_direct2D_fusion::FindSolution(std::vector<miopen::solver::AnySolver> solvers)
+{
+    miopen::solver::ConvSolution solution{miopenStatusUnknownError};
+    std::string solver_id;
+    auto db = this->GetDb();
+    for(auto& solver : solvers)
+    {
+        solution = solver.FindSolution(_search_params, db);
+        if(solution.Succeeded() && solver.IsApplicable(_search_params) &&
+           solver.IsFast(_search_params))
+        {
+            solver_id = miopen::solver::SolverDbId(solver);
+            break;
+        }
+    }
+    if(solution.Succeeded() && solution.construction_params.empty())
+    {
+        MIOPEN_THROW(std::string("Internal error in solver: ") + solver_id);
+    }
+    return solution;
+}
+
 std::vector<miopen::solver::ConvSolution> mlo_construct_direct2D::FindAllSolutions()
 {
     if(_search_params.group_counts > 1)

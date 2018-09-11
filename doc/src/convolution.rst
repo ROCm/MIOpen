@@ -45,8 +45,14 @@ miopenGetConvolutionDescriptor
 
 .. doxygenfunction::  miopenGetConvolutionDescriptor
 
+miopenSetConvolutionGroupCount
+------------------------------
+
+.. doxygenfunction::  miopenSetConvolutionGroupCount
+
 miopenGetConvolutionForwardOutputDim
 ------------------------------------
+
 .. doxygenfunction::  miopenGetConvolutionForwardOutputDim
 
 miopenConvolutionForwardGetWorkSpaceSize

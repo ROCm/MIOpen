@@ -562,7 +562,8 @@ miopenCreateConvolutionDescriptor(miopenConvolutionDescriptor_t* convDesc);
 
 /*! @brief Creates a convolution layer descriptor
  *
- * For group/depthwise convolution dilation height and width, only a value of 1 is supported.
+ * For group/depthwise convolution dilation height and width, only a dilation value of 1 is
+ * supported.
  *
  * @param convDesc   Convolution layer descriptor (output)
  * @param c_mode     Convolutional mode (input)
@@ -585,7 +586,8 @@ MIOPEN_EXPORT miopenStatus_t miopenInitConvolutionDescriptor(miopenConvolutionDe
 
 /*! @brief Retrieves a convolution layer descriptor's details
  *
- * For group/depthwise convolution dilation height and width, only a value of 1 is supported.
+ * For group/depthwise convolution dilation height and width, only a dilation value of 1 is
+ * supported.
  *
  * @param convDesc   Convolution layer descriptor (input)
  * @param c_mode     Convolutional mode (output)
@@ -608,8 +610,11 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionDescriptor(miopenConvolutionDes
 
 /*! @brief Set the number of groups to be used in Group/Depthwise convolution
 *
-* Must be called before all computational APIs of Group/Depthwise convolution, suggesting to call
-* following miopenInitConvolutionDescriptor() in initialization stage.
+* Must be called before all computational APIs of Group/Depthwise convolution, it is preferable to
+* call miopenInitConvolutionDescriptor() first, then miopenSetConvolutionGroupCount() to fully
+* initialize
+* group convolutions.
+*
 * @param convDesc   Convolution layer descriptor (output)
 * @param groupCount      number of groups, in depthwise conv using filter_number/channel_multiplier
 * (input)
@@ -710,7 +715,8 @@ typedef struct
  * executing convolution layer functions. The maximum size of the memory needed from the set
  * of potential forward convolution algorithms is returned.
  *
- * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before run this.
+ * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
+ * this.
  *
  * @param handle         MIOpen handle (input)
  * @param wDesc          Tensor descriptor for weight tensor w (input)
@@ -747,7 +753,8 @@ miopenConvolutionForwardGetWorkSpaceSize(miopenHandle_t handle,
  * * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration.
  * If a match is not found, an exhaustive search is performed by running individual algorithms.
  *
- * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before run this.
+ * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
+ * this.
  *
  * @param handle             MIOpen handle (input)
  * @param xDesc              Tensor descriptor for data input tensor x (input)
@@ -789,7 +796,8 @@ miopenFindConvolutionForwardAlgorithm(miopenHandle_t handle,
  * been executed previously to determine the required memory needed for the workspace and the
  * best convolutional algorithm, respectively.
  *
- * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before run this.
+ * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
+ * this.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -849,7 +857,8 @@ MIOPEN_EXPORT miopenStatus_t miopenConvolutionForwardBias(miopenHandle_t handle,
  * convolution layer functions. The maximum size of the memory needed from the set of potential
  * forward convolution algorithms is returned.
  *
- * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before run this.
+ * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
+ * this.
  *
  * @param handle         MIOpen handle (input)
  * @param dyDesc         Tensor descriptor for data input tensor dy (input)
@@ -886,7 +895,8 @@ miopenConvolutionBackwardDataGetWorkSpaceSize(miopenHandle_t handle,
  * * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration.
  * If a match is not found, an exhaustive search is performed by running individual algorithms.
  *
- * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before run this.
+ * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
+ * this.
  *
  * @param handle             MIOpen handle (input)
  * @param dyDesc             Tensor descriptor for data input tensor dy (input)
@@ -928,7 +938,8 @@ miopenFindConvolutionBackwardDataAlgorithm(miopenHandle_t handle,
  * must have been executed previously to determine the required memory needed for the workspace and
  * the best convolutional algorithm, respectively.
  *
- * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before run this.
+ * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
+ * this.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -968,7 +979,8 @@ miopenConvolutionBackwardData(miopenHandle_t handle,
  * convolution layer functions. The maximum size of the memory needed from the set of potential
  * forward convolution algorithms is returned.
  *
- * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before run this.
+ * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
+ * this.
  *
  * @param handle         MIOpen handle (input)
  * @param dyDesc         Tensor descriptor for data input tensor dy (input)
@@ -1005,7 +1017,8 @@ miopenConvolutionBackwardWeightsGetWorkSpaceSize(miopenHandle_t handle,
  * * If exhaustiveSearch == 1, MIOpen will look for the best kernel for the provided configuration.
  * If a match is not found, an exhaustive search is performed by running individual algorithms.
  *
- * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before run this.
+ * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
+ * this.
  *
  * @param handle             MIOpen handle (input)
  * @param dyDesc             Tensor descriptor for data input tensor dy (input)
@@ -1048,7 +1061,8 @@ miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t handle,
  * been executed previously to determine the required memory needed for the workspace and the
  * best convolutional algorithm, respectively.
  *
- * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before run this.
+ * If using Group/Depthwise convolution mode, call miopenSetConvolutionGroupCount() before running
+ * this.
  *
  * @param handle         MIOpen handle (input)
  * @param alpha          Floating point scaling factor, allocated on the host (input)
@@ -1789,8 +1803,7 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateFusionPlan(miopenFusionPlanDescriptor_t
 * @param fusePlanDesc  A fusion plan descriptor type
 * @return              miopenStatus_t
 */
-MIOPEN_EXPORT miopenStatus_t
-miopenDestroyFusionPlanDescriptor(miopenFusionPlanDescriptor_t fusePlanDesc);
+MIOPEN_EXPORT miopenStatus_t miopenDestroyFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc);
 
 /*! @brief Compiles the fusion plan
 *
@@ -1811,10 +1824,69 @@ MIOPEN_EXPORT miopenStatus_t miopenCompileFusionPlan(miopenHandle_t handle,
  * @param op returned pointer to the operator
  * @return miopenStatus_t
  */
-
 MIOPEN_EXPORT miopenStatus_t miopenFusionPlanGetOp(miopenFusionPlanDescriptor_t fusePlanDesc,
                                                    const int op_idx,
                                                    miopenFusionOpDescriptor_t* op);
+
+/*! @brief Query the workspace size required for the fusion plan
+ *
+* @param fusePlanDesc   A fusion plan descriptor (input)
+* @param workSpaceSize  Pointer to memory to return size in bytes (output)
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t
+miopenFusionPlanGetWorkSpaceSize(miopenHandle_t handle,
+                                 miopenFusionPlanDescriptor_t fusePlanDesc,
+                                 size_t* workSpaceSize,
+                                 miopenConvFwdAlgorithm_t algo);
+
+/*!
+ * @brief Returns the supported algorithms for the convolution operator in the Fusion Plan
+ *
+ * @details A Convolution operator in a fusion plan may be implemented by different algorithms
+ * representing different tradeoffs of memory and performance. The returned list of algorithms
+ * is sorted in decreasing order of priority. Therefore, if the user does not request an
+ * algorithm to be set using the miopenFusionPlanConvolutionSetAlgo call, the first algorithm
+ * in the list would be used to execute the convolution in the fusion plan. Moreover this call
+ * must be immediately preceded by the miopenCreateOpConvForward call for the op in question.
+ *
+ * @param fusePlanDesc A fusion plan descriptor (input)
+ * @param requestAlgoCount Number of algorithms to return (input)
+ * @param returnedAlgoCount The actual number of returned algorithms; always be less than
+ * equal to requestAlgoCount (output)
+ * @param returnedAlgos Pointer to the list of supported algorithms
+ * @return miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenFusionPlanConvolutionGetAlgo(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                   const int requestAlgoCount,
+                                   int* returnedAlgoCount,
+                                   miopenConvFwdAlgorithm_t* returnedAlgos);
+
+/*! @brief Requests the fusion runtime to choose a particular algorithm for the added convolution
+ * operation
+ *
+ * @details Please see the description for miopenFusionPlanConvolutionGetAlgo
+ *
+ * @param fusePlanDesc A fusion plan descriptor (input)
+ * @param algo Requested algorithm for the convolution operator (input)
+ * @return miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenFusionPlanConvolutionSetAlgo(
+    miopenFusionPlanDescriptor_t fusePlanDesc, miopenConvFwdAlgorithm_t algo);
+
+/*! @brief Creates forward convolution operator.
+*
+* @param fusePlanDesc   A fusion plan descriptor (input)
+* @param convOp         Pointer to an operator type (output)
+* @param convDesc       Convolution layer descriptor (input)
+* @param wDesc          Descriptor for the weights tensor (input)
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCreateOpConvForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                       miopenFusionOpDescriptor_t* convOp,
+                                                       miopenConvolutionDescriptor_t convDesc,
+                                                       const miopenTensorDescriptor_t wDesc);
 
 //---
 
@@ -1831,7 +1903,17 @@ miopenCreateOpActivationForward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                 miopenFusionOpDescriptor_t* activOp,
                                 miopenActivationMode_t mode);
 
-//---
+// Bias create ops ---
+/*! @brief Creates a forward bias operator.
+*
+* @param fusePlanDesc   A fusion plan descriptor (input)
+* @param biasOp         Pointer to an operator type (output)
+* @param bDesc          bias tensor descriptor (input)
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenCreateOpBiasForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                       miopenFusionOpDescriptor_t* biasOp,
+                                                       const miopenTensorDescriptor_t bDesc);
 
 // Batch normalization create ops ---
 /*! @brief Creates a forward inference batch normalization operator.
@@ -1863,6 +1945,21 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateOperatorArgs(miopenOperatorArgs_t* args
 */
 MIOPEN_EXPORT miopenStatus_t miopenDestroyOperatorArgs(miopenOperatorArgs_t args);
 
+// Convolution set arguments ---
+/*! @brief Sets the arguments for forward convolution op
+*
+* @param args    An arguments object type (output)
+* @param convOp  Forward convolution operator (input)
+* @param alpha   Floating point scaling factor, allocated on the host (input)
+* @param beta    Floating point shift factor, allocated on the host (input)
+* @param w       Pointer to tensor memory  (input)
+* @return        miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsConvForward(miopenOperatorArgs_t args,
+                                                        const miopenFusionOpDescriptor_t convOp,
+                                                        const void* alpha,
+                                                        const void* beta,
+                                                        const void* w);
 // Activation set arguments ---
 /*! @brief Sets the arguments for forward activation op
 *
@@ -1906,6 +2003,21 @@ miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t args,
                                   const void* estimatedVariance,
                                   double epsilon);
 
+// Bias forward set arguments ---
+/*! @brief Sets the arguments for forward bias op
+*
+* @param args           An arguments object type (output)
+* @param biasOp         Forward bias operator (input)
+* @param alpha          Floating point scaling factor, allocated on the host (input)
+* @param beta           Floating point shift factor, allocated on the host (input)
+* @param bias           Pointer to the forward bias input tensor memory  (input)
+* @return               miopenStatus_t
+*/
+MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
+                                                        const miopenFusionOpDescriptor_t biasOp,
+                                                        const void* alpha,
+                                                        const void* beta,
+                                                        const void* bias);
 /*! @brief Executes the fusion plan
 *
 *
@@ -1926,7 +2038,6 @@ miopenExecuteFusionPlan(const miopenHandle_t handle,
                         const miopenTensorDescriptor_t outputDesc,
                         void* output,
                         miopenOperatorArgs_t args);
-
 /** @} */
 // CLOSEOUT FUSION DOXYGEN GROUP
 

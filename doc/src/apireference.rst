@@ -16,3 +16,4 @@ API Reference
     lrn
     pooling
     softmax
+    fusion
