@@ -152,7 +152,10 @@ __attribute__((always_inline)) void ReduceKernel(__local _FLOAT* lcl_blob,
 */
 __attribute__((always_inline)) void readInput(uint lcl_id,
                                               uint gbl_in_scan_off,
-                                              uint n_in_map_reads,
+#if !MLO_READ_PARTIAL_N_LCL_IN_MAPS
+                                              UNUSED
+#endif
+                                                  uint n_in_map_reads,
                                               uint n_v_reads,
                                               const __global _FLOAT* __restrict bot,
                                               __local _FLOAT* __restrict lcl_bot)
