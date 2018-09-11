@@ -75,8 +75,15 @@ miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> d
 
 miopenStatus_t FusionPlanDescriptor::GetOp(int op_idx, std::shared_ptr<FusionOpDescriptor>& desc)
 {
+    auto err = miopenStatusSuccess;
+
+    if(op_idx >= op_map.size())
+    {
+        MIOPEN_THROW("Operator index out of bounds");
+    }
+
     desc = op_map.at(op_idx);
-    return miopenStatusSuccess;
+    return err;
 }
 
 TensorDescriptor FusionPlanDescriptor::FusionPlanDescriptor::DeriveOutputDescriptor()
@@ -102,10 +109,85 @@ TensorDescriptor FusionPlanDescriptor::FusionPlanDescriptor::DeriveOutputDescrip
     return o_desc;
 }
 
+miopenStatus_t FusionPlanDescriptor::GetWorkspaceSizeImmed(Handle& handle,
+                                                           size_t& workSpaceSize,
+                                                           miopenConvFwdAlgorithm_t /*algo*/)
+{
+    workSpaceSize = 0;
+    for(auto&& op : op_map)
+    {
+        if(op->kind() == miopenFusionOpConvForward)
+        {
+            auto ptr = std::dynamic_pointer_cast<ConvForwardOpDescriptor>(op);
+            TensorDescriptor opd;
+            ptr->GetOutputDesc(opd);
+            size_t tmp_sz = ptr->base_desc.ForwardGetWorkSpaceSize(
+                handle, ptr->filter_desc, ptr->input_desc, opd);
+            if(tmp_sz > workSpaceSize)
+                workSpaceSize = tmp_sz;
+        }
+    }
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t FusionPlanDescriptor::GetConvAlgos(int reqAlgoCount,
+                                                  int& retAlgoCount,
+                                                  miopenConvFwdAlgorithm_t* ptrAlgos)
+{
+    auto algos   = lu.GetConvAlgos();
+    retAlgoCount = std::min(reqAlgoCount, static_cast<int>(algos.size()));
+
+    for(auto idx = 0; idx < retAlgoCount; idx++)
+    {
+        ptrAlgos[idx] = algos[idx];
+    }
+
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t FusionPlanDescriptor::SetConvAlgo(miopenConvFwdAlgorithm_t algo)
+{
+    bool res = lu.SetConvAlgo(algo);
+
+    if(res)
+        return miopenStatusSuccess;
+    else
+        return miopenStatusUnknownError;
+}
+
 std::ostream& operator<<(std::ostream& stream, const FusionPlanDescriptor& fpd)
 {
     stream << "kernel_name: " << fpd.kernel_name;
     return stream;
+}
+
+// Fusion operator descriptors
+// Conv Forward
+miopenStatus_t ConvForwardOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
+{
+    std::size_t n, c, h, w;
+    std::tie(n, c, h, w) = base_desc.GetForwardOutputDim(input_desc, filter_desc);
+    TensorDescriptor desc(input_desc.GetType(), {n, c, h, w});
+    output_desc = desc;
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
+                                                const void* /*alpha*/,
+                                                const void* /*beta*/,
+                                                ConstData_t w)
+{
+    auto w_any = OpKernelArg(w);
+    args.ins_arg("weights" + std::to_string(GetIdx()), w_any);
+
+    return miopenStatusSuccess;
+}
+
+std::vector<std::string> ConvForwardOpDescriptor::GetArgs() const
+{
+    std::vector<std::string> keys;
+    keys.push_back("weights" + std::to_string(GetIdx()));
+    return keys;
 }
 
 FusionMDGraph_Edge_Map ConvForwardOpDescriptor::MDGraphKey(miopenConvolutionMode_t conv_mode,
@@ -122,20 +204,42 @@ FusionMDGraph_Edge_Map ConvForwardOpDescriptor::MDGraphKey(miopenConvolutionMode
                                                            int y)
 {
     return {
-        {"conv_mode", EdgeOp(conv_mode, true, OpEqual)},
-        {"pad_mode", EdgeOp(pad_mode, true, OpEqual)},
-        {"pad_h", EdgeOp(pad_h, true, OpEqual)},
-        {"pad_w", EdgeOp(pad_w, true, OpEqual)},
-        {"u", EdgeOp(u, true, OpEqual)},
-        {"v", EdgeOp(v, true, OpEqual)},
-        {"dilation_h", EdgeOp(dilation_h, true, OpEqual)},
-        {"dilation_w", EdgeOp(dilation_w, true, OpEqual)},
-        {"k", EdgeOp(k, true, OpAny)},
-        {"c", EdgeOp(c, true, OpAny)},
-        {"x", EdgeOp(x, true, OpEqual)},
-        {"y", EdgeOp(y, true, OpEqual)},
+        {"conv_mode", {EdgeOp(conv_mode, true, OpEqual)}},
+        {"pad_mode", {EdgeOp(pad_mode, true, OpEqual)}},
+        {"pad_h", {EdgeOp(pad_h, true, OpEqual)}},
+        {"pad_w", {EdgeOp(pad_w, true, OpEqual)}},
+        {"u", {EdgeOp(u, true, OpEqual)}},
+        {"v", {EdgeOp(v, true, OpEqual)}},
+        {"dilation_h", {EdgeOp(dilation_h, true, OpEqual)}},
+        {"dilation_w", {EdgeOp(dilation_w, true, OpEqual)}},
+        {"k", {EdgeOp(k, true, OpAny)}},
+        {"c", {EdgeOp(c, true, OpAny)}},
+        {"x", {EdgeOp(x, true, OpEqual)}},
+        {"y", {EdgeOp(y, true, OpEqual)}},
     };
 }
+
+FusionMDGraph_Edge_Map ConvForwardOpDescriptor::MDGraphKey() const
+{
+    auto lens = filter_desc.GetLengths();
+    int k, c, x, y;
+    std::tie(k, c, x, y) = tien<4>(lens);
+    auto m = ConvForwardOpDescriptor::MDGraphKey(base_desc.mode,
+                                                 base_desc.paddingMode,
+                                                 base_desc.pad_h,
+                                                 base_desc.pad_w,
+                                                 base_desc.u,
+                                                 base_desc.v,
+                                                 base_desc.dilation_h,
+                                                 base_desc.dilation_w,
+                                                 k,
+                                                 c,
+                                                 x,
+                                                 y);
+    map_emplace(m, "precision", EdgeOp(input_desc.GetType(), true, OpEqual));
+    return m;
+}
+
 // Activ Forward
 miopenStatus_t ActivFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                 const void* /*alpha*/,
@@ -178,7 +282,7 @@ miopenStatus_t ActivFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_d
 }
 FusionMDGraph_Edge_Map ActivFusionOpDescriptor::MDGraphKey(miopenActivationMode_t mode)
 {
-    return {{"activ_mode", EdgeOp(mode, true, OpEqual)}};
+    return {{"activ_mode", {EdgeOp(mode, true, OpEqual)}}};
 }
 
 FusionMDGraph_Edge_Map ActivFusionOpDescriptor::MDGraphKey() const
@@ -232,12 +336,41 @@ std::vector<std::string> BatchNormInferenceFusionOpDescriptor::GetArgs() const
 FusionMDGraph_Edge_Map
 BatchNormInferenceFusionOpDescriptor::MDGraphKey(miopenBatchNormMode_t bn_mode)
 {
-    return {{"bn_mode", EdgeOp(bn_mode, true, OpEqual)}};
+    return {{"bn_mode", {EdgeOp(bn_mode, true, OpEqual)}}};
 }
 
 FusionMDGraph_Edge_Map BatchNormInferenceFusionOpDescriptor::MDGraphKey() const
 {
     return BatchNormInferenceFusionOpDescriptor::MDGraphKey(mode);
+}
+
+// Bias forward
+miopenStatus_t BiasFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
+{
+    output_desc = input_desc;
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t BiasFusionOpDescriptor::SetArgs(OperatorArgs& args,
+                                               const void* /*alpha*/,
+                                               const void* /*beta*/,
+                                               ConstData_t bdata)
+{
+    auto bdata_any = OpKernelArg(bdata);
+    args.ins_arg("bias" + std::to_string(GetIdx()), bdata_any);
+    return miopenStatusSuccess;
+}
+
+std::vector<std::string> BiasFusionOpDescriptor::GetArgs() const
+{
+    std::vector<std::string> keys;
+    keys.push_back("bias" + std::to_string(GetIdx()));
+    return keys;
+}
+
+FusionMDGraph_Edge_Map BiasFusionOpDescriptor::MDGraphKey() const
+{
+    return FusionMDGraph::EmptyEdgeMap();
 }
 
 static inline void
@@ -271,6 +404,19 @@ std::string FusionPlanDescriptor::GetKernelName()
     {
         kernel_name = lu.GetKernelName();
         return kernel_name;
+    }
+    else
+    {
+        MIOPEN_THROW("Unsupported starting op in Fusion Plan");
+    }
+}
+
+std::string FusionPlanDescriptor::GetAlgorithmName()
+{
+    if(!op_map.empty())
+    {
+        algorithm_name = lu.GetAlgoName();
+        return algorithm_name;
     }
     else
     {
@@ -326,15 +472,20 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
                 compile_config += " -DMIOPEN_USE_FP16=1 -DMIOPEN_USE_FP32=0";
             }
         }
-        // TODO: This true for inference but might not be true in general
-        // This is sill an open question
-        const auto& vld = ops_head->GetLocalWGSz(handle, algorithm_name);
-        const auto& vgd = ops_head->GetGlobalWGSz(handle, algorithm_name);
         for(auto&& op : op_map)
         {
             MIOPEN_LOG_I2("GetCompileParms, " << *op);
-            op->GetCompileParms(compile_config, handle, kernel_source_type);
+            if(op->GetCompileParms(compile_config, handle, kernel_source_type, lu.GetSolvers()) !=
+               miopenStatusSuccess)
+            {
+                MIOPEN_THROW("Unsupported fusion plan");
+            }
         }
+        // TODO: This true for inference but might not be true in general
+        // This is sill an open question
+        // Must be preceded by GetCompileParms
+        const auto& vld = ops_head->GetLocalWGSz(handle, algorithm_name);
+        const auto& vgd = ops_head->GetGlobalWGSz(handle, algorithm_name);
         MIOPEN_LOG_I2("Program: " << program_name << ", kernel: " << kernel_name);
         MIOPEN_LOG_I2("Build options: " << compile_config);
         handle.AddKernel(
@@ -368,6 +519,43 @@ std::ostream& operator<<(std::ostream& s, const OpKernelArg& arg)
     }
     return s;
 }
+
+static OpKernelArg GetArg(std::vector<std::shared_ptr<FusionOpDescriptor>>& op_map,
+                          const OperatorArgs& op_args,
+                          const miopenFusionOp_t op,
+                          const std::string arg_name)
+{
+    for(auto idx = 0; idx < op_map.size(); ++idx)
+    {
+        if(op_map[idx]->kind() == op)
+        {
+            std::string key = arg_name + std::to_string(idx);
+            MIOPEN_LOG_I2(*op_map[idx] << ", finding: " << key);
+            auto it = op_args.args_map.find(key);
+            if(it != op_args.args_map.end())
+            {
+                MIOPEN_LOG_I2("found " << (it->second.is_ptr ? "pointer: " : "scalar: ") << key
+                                       << " = "
+                                       << it->second);
+                return it->second;
+            }
+        }
+    }
+    MIOPEN_LOG_E("Not found: arg_name = " << arg_name);
+    MIOPEN_THROW("Argument not found");
+}
+
+#ifdef ADD_ARGUMENT
+#error "ADD_ARGUMENT defined"
+#endif
+#define ADD_ARGUMENT(argument_name)                                                     \
+    do                                                                                  \
+    {                                                                                   \
+        const OpKernelArg argument(argument_name);                                      \
+        args.emplace_back(argument);                                                    \
+        MIOPEN_LOG_I((argument.is_ptr ? "Pointer " : "Scalar ") << #argument_name " = " \
+                                                                << argument);           \
+    } while(false)
 
 miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                                              TensorDescriptor& inputDesc,
@@ -409,7 +597,7 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
 
     for(auto idx = 0; idx < op_map.size(); idx++)
     {
-        auto op   = op_map[idx];
+        auto op   = op_map.at(idx);
         auto keys = op->GetArgs();
         for(auto&& key : keys)
         {
@@ -432,47 +620,116 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         }
     }
     std::vector<OpKernelArg> args;
-
-    for(auto sz : arg_sizes) // Populate args for scalars
+    if(kernel_source_type == Binary)
     {
+        if((input_desc.GetType() != miopenFloat) || (output_desc.GetType() != miopenFloat))
+            MIOPEN_THROW("Only FP32 floats are currently supported");
+        int N, C, H, W, oN, K, oH, oW;
+        std::tie(N, C, H, W)    = miopen::tien<4>(input_desc.GetLengths(), 1);
+        std::tie(oN, K, oH, oW) = miopen::tien<4>(output_desc.GetLengths(), 1);
+        if(N != oN)
+            MIOPEN_THROW("input and output batch sizes do not match");
+        const int n_groups = handle.GetMaxComputeUnits();
+        // Get topology (C>B>A, C>B, C>A), find out activation mode.
+        assert(op_map[0]->kind() == miopenFusionOpConvForward && 2 <= op_map.size() &&
+               op_map.size() <= 3);
+        bool is_bias       = false;
+        bool is_activation = false;
+        bool is_leakyRELU  = false;
+        for(const auto& op : op_map)
+        {
+            if(op->kind() == miopenFusionOpBiasForward)
+                is_bias = true;
+            else if(op->kind() == miopenFusionOpActivForward)
+            {
+                is_activation = true;
+                is_leakyRELU =
+                    (boost::any_cast<miopenActivationMode_t>(
+                         op->MDGraphKey().at("activ_mode").at(0).val) == miopenActivationLEAKYRELU);
+            }
+        }
+        const int flags        = (is_bias ? (1 << 7) : 0) + (is_activation ? (1 << 8) : 0);
+        const int reserved     = 0;
+        const int R            = 3;
+        const int S            = 3;
+        const int pad_h        = 0;
+        const int pad_w        = 0;
+        int* const return_addr = nullptr;
+        const auto weights     = GetArg(op_map, op_args, miopenFusionOpConvForward, "weights");
+        const auto bias = is_bias ? GetArg(op_map, op_args, miopenFusionOpBiasForward, "bias")
+                                  : OpKernelArg(nullptr); // Kernel does not use it.
+        const auto alpha = (is_activation && is_leakyRELU)
+                               ? GetArg(op_map, op_args, miopenFusionOpActivForward, "activAlpha")
+                               : OpKernelArg(0.0f); // Fixed to 0.0 for RELU.
+        ADD_ARGUMENT(N);
+        ADD_ARGUMENT(C);
+        ADD_ARGUMENT(H);
+        ADD_ARGUMENT(W);
+        ADD_ARGUMENT(K);
+        ADD_ARGUMENT(n_groups);
+        ADD_ARGUMENT(flags);
+        ADD_ARGUMENT(reserved);
+        ADD_ARGUMENT(input);
+        ADD_ARGUMENT(weights);
+        ADD_ARGUMENT(output);
+        ADD_ARGUMENT(return_addr);
+        ADD_ARGUMENT(R);
+        ADD_ARGUMENT(S);
+        ADD_ARGUMENT(pad_h);
+        ADD_ARGUMENT(pad_w);
+        ADD_ARGUMENT(oH);
+        ADD_ARGUMENT(oW);
+        ADD_ARGUMENT(bias);
+        ADD_ARGUMENT(alpha);
+    }
+    else
+    {
+        for(auto sz : arg_sizes) // Populate args for scalars
+        {
+            for(auto idx = 0; idx < op_map.size(); idx++)
+            {
+                auto key_pair = std::pair<size_t, size_t>(idx, sz);
+                if(size_map.count(key_pair) > 0)
+                {
+                    auto keys = size_map.at(key_pair);
+                    std::sort(keys.begin(), keys.end());
+                    for(auto& key : keys)
+                    {
+                        auto it = op_args.args_map.find(key);
+                        if(it != op_args.args_map.end())
+                        {
+                            MIOPEN_LOG_I("Scalar " << key << " = " << it->second);
+                            args.push_back(it->second);
+                        }
+                    }
+                }
+            }
+        }
+        // insert input / output pointer
+        args.emplace_back(OpKernelArg(input));
+        MIOPEN_LOG_I("Input ptr = " << input);
+        args.emplace_back(OpKernelArg(output));
+        MIOPEN_LOG_I("Output ptr = " << output);
+        // add other pointers in op-order
         for(auto idx = 0; idx < op_map.size(); idx++)
         {
-            auto op   = op_map[idx];
-            auto keys = size_map[std::pair<size_t, size_t>(idx, sz)];
-            std::sort(keys.begin(), keys.end());
-            for(auto& key : keys)
+            auto op = op_map.at(idx);
+            if(ptr_map.count(idx) > 0)
             {
-                auto it = op_args.args_map.find(key);
-                if(it != op_args.args_map.end())
+                auto keys = ptr_map.at(idx);
+                std::sort(keys.begin(), keys.end());
+                for(auto& key : keys)
                 {
-                    MIOPEN_LOG_I("Scalar " << key << " = " << it->second);
-                    args.push_back(it->second);
+                    auto it = op_args.args_map.find(key);
+                    if(it != op_args.args_map.end())
+                    {
+                        MIOPEN_LOG_I("Pointer " << key << " = " << it->second);
+                        args.push_back(it->second);
+                    }
                 }
             }
         }
     }
-    // insert input / output pointer
-    args.emplace_back(OpKernelArg(input));
-    MIOPEN_LOG_I("Input ptr = " << input);
-    args.emplace_back(OpKernelArg(output));
-    MIOPEN_LOG_I("Output ptr = " << output);
-    // add other pointers in op-order
-    for(auto idx = 0; idx < op_map.size(); idx++)
-    { // Populate args for pointers based operator order
-        auto op   = op_map[idx];
-        auto keys = ptr_map[idx];
-        std::sort(keys.begin(), keys.end());
-        for(auto& key : keys)
-        {
-            auto it = op_args.args_map.find(key);
-            if(it != op_args.args_map.end())
-            {
-                MIOPEN_LOG_I("Pointer " << key << " = " << it->second);
-                args.push_back(it->second);
-            }
-        }
-    }
-
     if(kernel_source_type == AsmText)
     { // Padded arguments
         std::vector<OpKernelArg> padded_args;

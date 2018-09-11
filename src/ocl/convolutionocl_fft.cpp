@@ -123,7 +123,8 @@ static int FindFFTKernel(Handle& handle,
                          const TensorDescriptor& yDesc,
                          size_t workSpaceSize,
                          std::vector<KernelInvoke>& kernels,
-                         bool fwd)
+                         bool fwd,
+                         std::string* kcache_key = nullptr)
 {
 
     if(workSpaceSize == 0)
@@ -306,6 +307,9 @@ static int FindFFTKernel(Handle& handle,
 
     const std::string config_prefix = make_config_prefix(in_h, in_w, in_n, in_c, out_c);
 
+    if(kcache_key != nullptr)
+        *kcache_key = config_prefix;
+
     for(int ik = 0; ik < NumKernels; ik++)
     {
         std::string kernel_name;
@@ -356,10 +360,11 @@ int ConvolutionDescriptor::FindFwdFFTKernel(Handle& handle,
                                             const TensorDescriptor& wDesc,
                                             const TensorDescriptor& yDesc,
                                             size_t workSpaceSize,
-                                            std::vector<KernelInvoke>& kernels) const
+                                            std::vector<KernelInvoke>& kernels,
+                                            std::string& kcache_key) const
 {
 
-    return FindFFTKernel(handle, xDesc, wDesc, yDesc, workSpaceSize, kernels, true);
+    return FindFFTKernel(handle, xDesc, wDesc, yDesc, workSpaceSize, kernels, true, &kcache_key);
 }
 
 int ConvolutionDescriptor::FindBwdFFTKernel(Handle& handle,

@@ -33,6 +33,7 @@
 #include <miopen/tensor.hpp>
 #include <miopen/activ.hpp>
 #include <miopen/convolution.hpp>
+#include <miopen/solver.hpp>
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/fusion_ops.hpp>
 
@@ -68,12 +69,14 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     int GetIdx() const { return plan_idx; };
     virtual FusionMDGraph_Edge_Map MDGraphKey() const
     {
-        return {{"weight", EdgeOp(0, true, OpAny)}};
+        return {{"weight", {EdgeOp(0, true, OpAny)}}};
     };
     virtual miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) = 0;
     virtual miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle);
-    virtual miopenStatus_t
-    GetCompileParms(std::string& compile_config, Handle& handle, FusionKernelSourceType source);
+    virtual miopenStatus_t GetCompileParms(std::string& compile_config,
+                                           Handle& handle,
+                                           FusionKernelSourceType source,
+                                           const std::vector<solver::AnySolver>& solvers);
     friend std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x);
     virtual miopenFusionOp_t kind() const            = 0;
     virtual std::vector<std::string> GetArgs() const = 0;
@@ -87,6 +90,25 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
     std::shared_ptr<OperatorArgs> args = nullptr;
 };
 
+struct BiasFusionOpDescriptor : FusionOpDescriptor
+{
+    BiasFusionOpDescriptor(TensorDescriptor& desc) : base_desc(desc){};
+    miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
+    miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
+    miopenStatus_t GetCompileParms(std::string& compile_config,
+                                   Handle& handle,
+                                   FusionKernelSourceType source,
+                                   const std::vector<solver::AnySolver>& solvers) override;
+    miopenStatus_t
+    SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t bdata);
+    std::vector<std::string> GetArgs() const override;
+    miopenFusionOp_t kind() const override { return miopenFusionOpBiasForward; };
+    FusionMDGraph_Edge_Map MDGraphKey() const override;
+    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
+    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
+    TensorDescriptor& base_desc;
+};
+
 struct ActivFusionOpDescriptor : FusionOpDescriptor
 {
     ActivFusionOpDescriptor(miopenActivationMode_t mode) : activMode(mode){};
@@ -94,7 +116,8 @@ struct ActivFusionOpDescriptor : FusionOpDescriptor
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
     miopenStatus_t GetCompileParms(std::string& compile_config,
                                    Handle& handle,
-                                   FusionKernelSourceType source) override;
+                                   FusionKernelSourceType source,
+                                   const std::vector<solver::AnySolver>& solvers) override;
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
@@ -118,7 +141,8 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
     miopenStatus_t GetCompileParms(std::string& compile_config,
                                    Handle& handle,
-                                   FusionKernelSourceType source) override;
+                                   FusionKernelSourceType source,
+                                   const std::vector<solver::AnySolver>& solvers) override;
     miopenStatus_t SetArgs(OperatorArgs& args,
                            const void* alpha,
                            const void* beta,
@@ -139,6 +163,23 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
 };
 struct ConvForwardOpDescriptor : FusionOpDescriptor
 {
+    ConvForwardOpDescriptor(ConvolutionDescriptor& conv_descriptor,
+                            TensorDescriptor& filter_descriptor)
+        : base_desc(conv_descriptor),
+          filter_desc(filter_descriptor),
+          kernel_info_valid(false),
+          conv_compiler_options(""){};
+    miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
+    miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t w);
+    std::vector<std::string> GetArgs() const override;
+    miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
+    miopenStatus_t GetCompileParms(std::string& compile_config,
+                                   Handle& handle,
+                                   FusionKernelSourceType source,
+                                   const std::vector<solver::AnySolver>& solvers) override;
+    bool isASMApplicable(Handle& handle);
+    miopenFusionOp_t kind() const override { return miopenFusionOpConvForward; };
+    FusionMDGraph_Edge_Map MDGraphKey() const override;
     static FusionMDGraph_Edge_Map MDGraphKey(miopenConvolutionMode_t conv_mode,
                                              miopenPaddingMode_t pad_mode,
                                              size_t pad_h,
@@ -151,6 +192,17 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
                                              int c,
                                              int x,
                                              int y);
+    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
+    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
+
+    ConvolutionDescriptor& base_desc;
+    TensorDescriptor& filter_desc;
+    solver::KernelInfo kernel_info;
+    bool kernel_info_valid;
+    std::string conv_compiler_options;
+
+    private:
+    mlo_construct_direct2D_fusion ConstructParams(Handle& handle);
 };
 
 } // namespace miopen
