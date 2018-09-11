@@ -90,6 +90,9 @@
 #define MLO_LCL_SZ (MLO_WEI_LCL_SZ)
 #endif
 
+// if to read all of the number of MLO_N_LCL_IN_MAPS input channel or not
+#define MLO_READ_PARTIAL_N_LCL_IN_MAPS (MLO_N_INPUTS % MLO_N_LCL_IN_MAPS != 0)
+
 __attribute__((always_inline)) uint iDiv(uint v, uint d)
 {
     uint r = v / d;
@@ -183,7 +186,9 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
             in_rd_data[i] = 0;
         }
 
+#if MLO_READ_PARTIAL_N_LCL_IN_MAPS
         if(c < n_in_map_reads)
+#endif
         {
 #if MLO_IN_N_PIXS_OFF > 0
             if(c_pix4 == MLO_N_IN_HORIZ_READS - 1)
@@ -196,6 +201,7 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
             else
 #endif
             {
+
                 for(uint i = 0; i < MLO_READ_UNIT; ++i)
                 {
                     in_rd_data[i] = bot_p[i];
@@ -371,9 +377,13 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
     uint o_idx = o_idx_base * (MLO_N_LCL_OUT_MAPS * MLO_OUT_STACKS); // output map index
 
+#if MLO_READ_PARTIAL_N_LCL_IN_MAPS
     uint n_in_map_reads = MLO_N_INPUTS >= c_idx + MLO_N_LCL_IN_MAPS
                               ? MLO_N_LCL_IN_MAPS
                               : (MLO_N_INPUTS >= c_idx ? MLO_N_INPUTS - c_idx : 0);
+#else
+    uint n_in_map_reads = MLO_N_LCL_IN_MAPS;
+#endif
 
     uint gbl_in_off  = c_idx * MLO_IN_CHANNEL_STRIDE + ib * MLO_IN_BATCH_STRIDE;
     uint gbl_out_off = o_idx * MLO_OUT_CHANNEL_STRIDE + ib * MLO_OUT_BATCH_STRIDE;
@@ -383,7 +393,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 #if MLO_N_SPANS_PER_SCAN & (MLO_N_SPANS_PER_SCAN - 1)
     uint spn = iMod(lcl_id, o, MLO_N_SPANS_PER_SCAN);
 #else
-    uint spn = lcl_id & (MLO_N_SPANS_PER_SCAN - 1);
+    uint spn            = lcl_id & (MLO_N_SPANS_PER_SCAN - 1);
 #endif
     //	bool scan_lead = (o*MLO_N_SPANS_PER_SCAN == lcl_id);
 
