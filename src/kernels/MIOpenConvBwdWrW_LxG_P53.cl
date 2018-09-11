@@ -57,8 +57,6 @@
 
 #define UNUSED __attribute__((__unused__))
 
-#define DBG_OUT_OF_RNGE 0
-
 #define MLO_N_OUT_HORIZ_READS ((MLO_OUT_WIDTH + MLO_IN_TILE0 - 1) / MLO_IN_TILE0)
 #define MLO_N_SPANS_PER_SCAN (MLO_N_OUT_HORIZ_READS)
 #define MLO_N_OUT_HORIZ_PIX_READS (MLO_N_OUT_HORIZ_READS * MLO_IN_TILE0)
@@ -151,9 +149,7 @@ __attribute__((always_inline)) void ReduceKernel(__local _FLOAT* lcl_blob,
 */
 __attribute__((always_inline)) void readInput(uint lcl_id,
                                               uint gbl_in_scan_off,
-#if 1 // debug
                                               uint n_in_map_reads,
-#endif
                                               uint n_v_reads,
                                               const __global _FLOAT* __restrict bot,
                                               __local _FLOAT* __restrict lcl_bot)
@@ -182,17 +178,12 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
 
         __private _FLOAT in_rd_data[MLO_READ_UNIT];
 
-#if 1 // debug
         for(uint i = 0; i < MLO_READ_UNIT; ++i)
         {
             in_rd_data[i] = 0;
         }
-#endif
 
-#if 1 // debug
         if(c < n_in_map_reads)
-#endif
-
         {
 #if MLO_IN_N_PIXS_OFF > 0
             if(c_pix4 == MLO_N_IN_HORIZ_READS - 1)
@@ -200,36 +191,14 @@ __attribute__((always_inline)) void readInput(uint lcl_id,
                 for(uint i = 0; i < MLO_IN_N_PIXS_OFF; ++i)
                 {
                     in_rd_data[i] = bot_p[i];
-
-#if DBG_OUT_OF_RNGE
-                    if(bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
-                    {
-                        printf("k:err:out-of-range\n");
-                    }
-#endif
                 }
-
-#if 0 // not neccessay any more
-                for(uint i = MLO_IN_N_PIXS_OFF; i < MLO_READ_UNIT; ++i)
-                {
-                    in_rd_data[i] = 0;
-                }
-#endif
             }
             else
 #endif
             {
-
                 for(uint i = 0; i < MLO_READ_UNIT; ++i)
                 {
                     in_rd_data[i] = bot_p[i];
-
-#if DBG_OUT_OF_RNGE
-                    if(bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
-                    {
-                        printf("k:err:out-of-range\n");
-                    }
-#endif
                 }
             }
         }
@@ -329,13 +298,6 @@ __attribute__((always_inline)) void spanReadingOutput(int spn,
         for(; i < MLO_OUT_N_PIXS_OFF; ++i)
         {
             top_dat[pvt_off + i] = top_df_p[i] * mask;
-
-#if DBG_OUT_OF_RNGE
-            if(top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
-            {
-                printf("k:err:out-of-range\n");
-            }
-#endif
         }
         for(; i < MLO_IN_TILE0; ++i)
         {
@@ -350,13 +312,6 @@ __attribute__((always_inline)) void spanReadingOutput(int spn,
         for(uint i = 0; i < MLO_IN_TILE0; ++i)
         {
             top_dat[pvt_off + i] = top_df_p[i] * mask;
-
-#if DBG_OUT_OF_RNGE
-            if(top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
-            {
-                printf("k:err:out-of-range\n");
-            }
-#endif
         }
     }
 }
@@ -416,11 +371,9 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
     uint o_idx = o_idx_base * (MLO_N_LCL_OUT_MAPS * MLO_OUT_STACKS); // output map index
 
-#if 1 // debug
     uint n_in_map_reads = MLO_N_INPUTS >= c_idx + MLO_N_LCL_IN_MAPS
                               ? MLO_N_LCL_IN_MAPS
                               : (MLO_N_INPUTS >= c_idx ? MLO_N_INPUTS - c_idx : 0);
-#endif
 
     uint gbl_in_off  = c_idx * MLO_IN_CHANNEL_STRIDE + ib * MLO_IN_BATCH_STRIDE;
     uint gbl_out_off = o_idx * MLO_OUT_CHANNEL_STRIDE + ib * MLO_OUT_BATCH_STRIDE;
@@ -478,12 +431,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         uint gbl_in_scan_off  = gbl_in_off;
         uint gbl_out_scan_off = gbl_out_off;
 
-// read input map
-#if 0 // debug
-        readInput(lcl_id, gbl_in_scan_off, MLO_IN_VERT_READS, bot, lcl_bot);
-#else
+        // read input map
         readInput(lcl_id, gbl_in_scan_off, n_in_map_reads, MLO_IN_VERT_READS, bot, lcl_bot);
-#endif
 
         // move input pointer
         gbl_in_scan_off += MLO_IN_STRIDE * MLO_IN_EXTENT1;
@@ -565,11 +514,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         {
             barrier(CLK_LOCAL_MEM_FENCE);
 
-#if 0 // debug
-            readInput(lcl_id, gbl_in_scan_off, MLO_IN_VERT_READS, bot, lcl_bot);
-#else
             readInput(lcl_id, gbl_in_scan_off, n_in_map_reads, MLO_IN_VERT_READS, bot, lcl_bot);
-#endif
 
             // point to the start of the local buffer
 
@@ -614,11 +559,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
 #define MLO_LAST_VERT_READS (MLO_IN_HEIGHT - MLO_IN_EXTENT1 * (MLO_IN_N_VERT_LOOPS - 1))
 
-#if 0 // debug
-            readInput(lcl_id, gbl_in_scan_off, MLO_LAST_VERT_READS, bot, lcl_bot);
-#else
             readInput(lcl_id, gbl_in_scan_off, n_in_map_reads, MLO_LAST_VERT_READS, bot, lcl_bot);
-#endif
 
             // point to the start of the local buffer
             sc_lcl_off = lcl_bot_off;
@@ -717,26 +658,20 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
         // this input channel
         + mul24(c_idx, (uint)MLO_WEI_CHANNEL_STRIDE);
 
-#if 0 // debug
-    for(uint k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
-    {
-        if(spn == 0 && o_idx + o + k * MLO_OUT_STACKS < MLO_N_OUTPUTS && o < MLO_OUT_STACKS)
-        {
-            for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
-#else
     for(uint k = 0; k < MLO_N_LCL_OUT_MAPS; ++k)
     {
         for(uint c = 0; c < MLO_N_LCL_IN_MAPS; ++c)
         {
             if(spn == 0 && c < n_in_map_reads && o_idx + o + k * MLO_OUT_STACKS < MLO_N_OUTPUTS &&
                o < MLO_OUT_STACKS)
-#endif
             {
                 for(uint i = 0; i < (MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0); ++i)
                 {
                     weights_df[wei_df_off + k * MLO_OUT_STACKS * MLO_WEI_BATCH_STRIDE +
                                c * MLO_WEI_CHANNEL_STRIDE + i] =
-                        pvt_accum[(k * MLO_N_LCL_IN_MAPS + c) * MLO_FILTER_SIZE1 * MLO_FILTER_SIZE0 + i];
+                        pvt_accum[(k * MLO_N_LCL_IN_MAPS + c) * MLO_FILTER_SIZE1 *
+                                      MLO_FILTER_SIZE0 +
+                                  i];
                 }
             }
         }
