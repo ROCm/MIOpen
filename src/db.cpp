@@ -248,16 +248,20 @@ bool Db::FlushUnsafe(const DbRecord& record, const RecordPositions* pos)
 
     if(pos->begin < 0 || pos->end < 0)
     {
-        std::ofstream file(filename, std::ios::app);
-
-        if(!file)
         {
-            MIOPEN_LOG_E("File is unwritable: " << filename);
-            return false;
+            std::ofstream file(filename, std::ios::app);
+
+            if(!file)
+            {
+                MIOPEN_LOG_E("File is unwritable: " << filename);
+                return false;
+            }
+
+            (void)file.tellp();
+            record.WriteContents(file);
         }
 
-        (void)file.tellp();
-        record.WriteContents(file);
+        boost::filesystem::permissions(filename, boost::filesystem::all_all);
     }
     else
     {
