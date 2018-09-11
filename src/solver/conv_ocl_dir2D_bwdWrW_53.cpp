@@ -60,8 +60,8 @@ ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) cons
 
     size_t localMemSize = 64 * 1024;
 
-    const size_t hw_wave_sz       = 64;
-    const size_t dev_local_mem_sz = localMemSize; // in bytes
+    const auto hw_wave_sz       = 64;
+    const auto dev_local_mem_sz = localMemSize; // in bytes
                                                   // major parameters
 
     // inpout are outputs
