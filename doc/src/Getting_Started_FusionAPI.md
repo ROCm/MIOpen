@@ -1,36 +1,45 @@
 Fusion API: Getting Started
 ===========================
 ## Introduction
-With the increase in the depth of deep learning networks and a requirement for faster kernels it is imperative that more ways be sought to improve the performance of GPU hardware. One mechanism to achieve higher efficiency is to _fuse_ separate kernels into a single kernel to reduce off-chip memory access and avoid kernel launch overhead. This document outlines the proposed addition of a Fusion API to the MIOpen library. The fusion API would allow users to specify operators that he/she wants to fuse in a single kernel, compile it and then launch the kernel. While not all combinations might be supported by the library, the API is flexible enough to allow the specification of many operations in any order from a finite set of supported operators. All combinations of operators might not be supported, therefore the API provides a mechanism to report combinations that are not supported.
+With the increase in the depth of deep learning networks and a requirement for faster kernels it is imperative that more ways be sought to improve the performance of GPU hardware. One mechanism to achieve higher efficiency is to _fuse_ separate kernels into a single kernel to reduce off-chip memory access and avoid kernel launch overhead. This document outlines the proposed addition of a Fusion API to the MIOpen library. The fusion API would allow users to specify operators (**Comment:** document uses "operators" and "operations" interchangeably to denote what is being fused...need to be consistent..preference would be "operations")  that he/she wants to fuse in a single kernel, compile it and then launch the kernel. While not all combinations might be supported by the library, the API is flexible enough to allow the specification of many operations in any order from a finite set of supported operators. All combinations of operators might not be supported, therefore the API provides a mechanism to report combinations that are not supported.
 
-Let us assume that a user wishes to fuse a convolution and activation operation together, the following list outlines the steps required 
+~~Let us assume that a user wishes to fuse a convolution and activation operation together~~  
+**Comment:** Replace above line with a concrete example with all details provided (convolution input shape, padding, filter shape, etc), have a link here to the code corresponding to that example, and use snippets from it throughout this document. This helps make the context + usage of the various APIs clearer.
+
+The following list outlines the steps required 
 
 - Create a fusion plan
 - Create and add the convolution and activation operators
 - Compile the Fusion Plan 
+- **Comment:** Step to add arguments to the individual operations? (`miopenSetOpsArgs*`)
 - If the above succeeds, execute the fusion plan
+- **Comment:** Maybe add a step here to show how to reuse a compiled fusion plan?
 
 The above steps assume that an MIOpen handle object has already been initialized. Moreover, the order in which operators are created is important, since it represents the order of operations on the data itself. Therefore a fusion plan with convolution created before activation is a different fusion plan as opposed to if activation was added before convolution. 
 
 The following sections further elaborate the above steps as well as give code examples to make these ideas concrete.
 
-## Intended Audience
+### Intended Audience
 The primary consumer of the fusion API are high level frameworks such as TensorFlow/XLA etc.
 
- 
+**Comment:** Section headers (##) need to exactly match the bullets points above (Create a fusion plan, Create and add ...)
+
 ## Fusion Plan
-A **Fusion Plan** is the uber data structure which holds all the metadata about the users fusion intent as well as logic to **Compile** and **Execute** a fusion plan. As mentioned earlier, a fusion plan holds the order in which different opertions would be applied on the data, but it also specifies the _axis_ of fusion as well. Therefore, a user might wish to fuse operations in a **vertical** (sequential) directions such as the convolution/ activation fusion mentioned in the introduction. Alternatively, the API supports the specification of **horizontal** (parallel) operations fusions. While vertical fusions are more ubiquitous, horizontal fusions might be useful in networks such as inception, where different operation operate on the same data. The current version of the API only supports vertical fusions.
+A **Fusion Plan** is the ~~uber~~ data structure which holds all the metadata about the users fusion intent as well as logic to **Compile** and **Execute** a fusion plan. As mentioned earlier, a fusion plan holds the order in which different opertions would be applied on the data, but it also specifies the _axis_ of fusion as well. Therefore, a user might wish to fuse operations in a **vertical** (sequential) directions such as the convolution/ activation fusion mentioned in the introduction. Alternatively, the API supports the specification of **horizontal** (parallel) operations fusions. While vertical fusions are more ubiquitous, horizontal fusions might be useful in networks such as inception, where different operation operate on the same data. The current version of the API only supports vertical fusions. (**Comment:** Either provide an example of what **horizontal** fusion means or leave it off completely. Preference would be to not mention it, since this is an introductory doc, and we do not support it anyway)
 
 A fusion plan is created using the API call:
+(**Comment:** show both the signature shown below + the snippet of the call to it in the example I mentioned before. Same comment applies to all other code examples)
 
 ```cpp
 miopenStatus_t
 miopenCreateFusionPlan(miopenFusionPlanDescriptor_t* fusePlanDesc,
 const miopenFusionDirection_t fuseDirection,const miopenTensorDescriptor_t inputDesc);
 ``` 
-The *input descriptor* specifies the geometry of the incoming data. Since the data geometry of the intermediate operations can be derived from the input tensor, therefore only the input tensor is required for the fusion plan and not for the individual operations.
+The *input tensor descriptor* specifies the geometry of the incoming data. Since the data geometry of the intermediate operations can be derived from the *input tensor descriptor*, therefore only the *input tensor descriptor* is required for the fusion plan and not for the individual operations.
 
-Once the fusion plan descriptor is created, different operators can be added to it by using the individual operator creation API calls. Creation of an operator might fail if the API does not support the fusion of the operations being added and report back immediately to the user.
+Once the fusion plan descriptor is created, one?two? or more operators can be added to it by using the individual operator creation API calls. Creation of an operator might fail if the API does not support the fusion of the operations being added and report back immediately to the user.
+
+(**Comment:** add a snippet showing the signatures for operation creation APIs for the operators in the example, plus the snippet showing the call to them in the example. Also add a few lines about how we only need to specify the tensor descriptors associated with the various ops here, what characterizes a unique fusion (input tensor descriptor + sequence of operations + the tensor descriptors associated with each operations, or something more/less), criteria for reusing a fusion plan, etc)
 
 Following the operator addition, the user would compile the fusion plan, to populate the MIOpen kernel cache with the fused kernel and make it ready for execution. The API call that accomplishes this is:
 
@@ -38,7 +47,9 @@ Following the operator addition, the user would compile the fusion plan, to popu
 miopenStatus_t
 miopenCompileFusionPlan(miopenHandle_t handle, miopenFusionPlanDescriptor_t fusePlanDesc);
 ```
-In order to compile the fusion plan, the user is assumed to have acquired an MIOpen handle object. While a fusion plan itself is not bound to a handle object, an instance of a fusion plan that is compiled with a particular handle is bound to the same handle. It may be noted that compilation of a fusion plan might fail for a number of reasons, moreover it is not assured that a fused version of the kernel would offer any performance improvement over the separately run kernels.
+In order to compile the fusion plan, the user is assumed to have acquired an MIOpen handle object. While a fusion plan itself is not bound to a MIOpen handle object, an instance of a fusion plan that is compiled with a particular handle is bound to the same handle (**Comment:** dont think I understand this...what is the difference between a "fusion plan" and a "fusion plan instance"....the fusion plan descriptor corresponds to which one of two? what corresponds to the other one?) . It may be noted that compilation of a fusion plan might fail for a number of reasons, moreover it is not assured that a fused version of the kernel would offer any performance improvement over the separately run kernels.
+
+(**Comment:** Need to show how associate arguments to the various operations)
 
 Finally, the compiled fusion plan may be executed with the API call given below passing it the actual data to be processed.
 
@@ -54,7 +65,7 @@ miopenExecuteFusionPlan(const miopenHandle_t handle,
 ```
 It may be noted that it is an error to attempt to execute a fusion plan that is either not compiled or is invalid. 
 
-The *args* parameter would be discussed in a later section. The same fusion plan in its compiled state may be executed again and again with different data to amortize the compilation cost. This would become clearer with the discussion of the *args* parameter. Once the user is finished with the fusion plan it may be destroyed using the `miopenDestroyFusionPlan` call.
+~~The *args* parameter would be discussed in a later section. The same fusion plan in its compiled state may be executed again and again with different data to amortize the compilation cost. This would become clearer with the discussion of the *args* parameter. Once the user is finished with the fusion plan it may be destroyed using the `miopenDestroyFusionPlan` call.~~ Inline this discussion above, it is part of the flow.
 
 While the fusion plan forms the glue for the different fused operations, the following section outlines the currently supported operations providing more detail.
 
@@ -159,3 +170,5 @@ Where the helper function `GetHandle()` returns the MIOpen Handle and `in_dev` a
 Also note that the `miopenExecuteFusionPlan` may be called again and again with differnt `fusionArgs` without the need to recompile the fusion plan.
 
 The above example is from the `CBAInfer` driver provided in the `fusion-dev-core` branch and supplies other examples of supported fusion plans. A test script `fusion_tests.sh` is also provided in the root directory to execute all the fusions currently supported through the same driver.
+
+(**Comment:** Add a section/table here to list ownership/lifetime details of various handles that are created while creating/compiling/executing a fusion plan. The goal here is to explicitly state the responsibilities of the application code in managing the various handles created.)
