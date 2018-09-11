@@ -461,7 +461,7 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_dilation0 == 1
         && params.kernel_dilation1 == 1
         && params.bias == 0
-        && params.float_size == 32
+        && (params.float_size == 32 || params.float_size == 16) 
         && params.in_layout == "NCHW");
     if(!ok)
     {
@@ -506,7 +506,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
     assert(params.pad1 == 0 && params.pad0 == 0);
     result.workspce_sz = 0;
-
+    int data_len = (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
     if(UseSubsample(params))
     {
         // subsampled input, in_height equals to image size after downsampling
@@ -554,14 +554,16 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
 
         assert(params.out_data_type == "FP16" || params.out_data_type == "FP32" ||
                params.out_data_type == "FP64");
-        int data_len =
-            (params.out_data_type == "FP16" ? 2 : (params.out_data_type == "FP32" ? 4 : 8));
+
         result.workspce_sz = in_batch_stride * params.batch_sz * data_len;
     }
     GenerateClangDefsym(options, "stride_h", 1);
     GenerateClangDefsym(options, "stride_w", 1);
     GenerateClangDefsym(options, "img_h", AsmImgHeight(params)); // H
     GenerateClangDefsym(options, "img_w", AsmImgWidth(params));  // W
+    GenerateClangDefsym(options, "out_h", AsmImgHeight(params)); // output H
+    GenerateClangDefsym(options, "out_w", AsmImgWidth(params));  // output W
+
     GenerateClangDefsym(options, "batch_size", params.batch_sz); // N
     // Note that params.n_outputs and params.n_inputs are swapped for backward convolutions.
     GenerateClangDefsym(options, "input_channels", params.n_outputs); // C
@@ -576,6 +578,92 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         options, "ROCM_METADATA_VERSION", (params.rmv == rocm_meta_version::V3) ? 3 : 4);
     // Perf tune:
     GenerateClangDefsym(options, "do_not_use_default_perf_params", 1);
+
+    GenerateClangDefsym(options, "acc_type", 1);
+    GenerateClangDefsym(options, "buf_type", (data_len == 2 ? 2 : 1));
+
+    enum class MemLayout : int
+    {
+        NCHW = 0,
+        CNHW = 1,
+    };
+
+    struct buff_info
+    {
+        size_t total_byte_size;
+        struct
+        {
+            int nk, c, h, w;
+        } stride{}, byte_stride{}, size{};
+
+        buff_info(MemLayout layout, int nk, int c, int h, int w, int vec_c, int data_len_t)
+        {
+            int c_hi        = (c + vec_c - 1) / vec_c;
+            int count       = nk * c_hi * h * w * vec_c;
+            total_byte_size = count * data_len_t;
+            size.nk         = nk;
+            size.c          = c;
+            size.h          = h;
+            size.w          = w;
+
+            switch(layout)
+            {
+            case MemLayout::NCHW:
+                stride.w  = 1;
+                stride.h  = w;
+                stride.c  = w * h;
+                stride.nk = w * h * c_hi;
+                break;
+            case MemLayout::CNHW:
+                stride.w  = 1;
+                stride.h  = w;
+                stride.nk = w * h;
+                stride.c  = w * h * nk;
+                break;
+            }
+            stride.nk *= vec_c;
+            stride.c *= vec_c;
+            stride.h *= vec_c;
+            stride.w *= vec_c;
+            byte_stride.nk = stride.nk * data_len_t;
+            byte_stride.c  = stride.c * data_len_t;
+            byte_stride.h  = stride.h * data_len_t;
+            byte_stride.w  = stride.w * data_len_t;
+        }
+    };
+
+    buff_info ibuf(MemLayout::NCHW,
+                   params.batch_sz,
+                   params.n_outputs,
+                   AsmImgHeight(params),
+                   AsmImgWidth(params),
+                   1,
+                   data_len);
+    buff_info obuf(MemLayout::NCHW,
+                   params.batch_sz,
+                   params.n_inputs,
+                   AsmImgHeight(params),
+                   AsmImgWidth(params),
+                   1,
+                   data_len);
+    buff_info fbuf(MemLayout::NCHW, params.n_inputs, params.n_outputs, 1, 1, 1, data_len);
+    GenerateClangDefsym(options, "input_n_stride", ibuf.byte_stride.nk);
+    GenerateClangDefsym(options, "input_c_stride", ibuf.byte_stride.c);
+    GenerateClangDefsym(options, "input_h_stride", ibuf.byte_stride.h);
+    GenerateClangDefsym(options, "input_w_stride", ibuf.byte_stride.w);
+
+    GenerateClangDefsym(options, "output_n_stride", obuf.byte_stride.nk);
+    GenerateClangDefsym(options, "output_k_stride", obuf.byte_stride.c);
+    GenerateClangDefsym(options, "output_h_stride", obuf.byte_stride.h);
+    GenerateClangDefsym(options, "output_w_stride", obuf.byte_stride.w);
+
+    GenerateClangDefsym(options, "filter_k_stride", fbuf.byte_stride.nk);
+    GenerateClangDefsym(options, "filter_c_stride", fbuf.byte_stride.c);
+    GenerateClangDefsym(options, "filter_h_stride", fbuf.byte_stride.h);
+    GenerateClangDefsym(options, "filter_w_stride", fbuf.byte_stride.w);
+    GenerateClangDefsym(options, "input_buffer_size", ibuf.total_byte_size);
+    GenerateClangDefsym(options, "filter_buffer_size", fbuf.total_byte_size);
+    GenerateClangDefsym(options, "output_buffer_size", obuf.total_byte_size);
 
     const PerformanceConfigConvAsmBwdWrW1x1* pcfg = &config;
     PerformanceConfigConvAsmBwdWrW1x1 fromEnv;
