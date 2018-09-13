@@ -374,6 +374,10 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                                      /*c any*/ 0,
                                                                      /* x */ len,
                                                                      /* y */ len);
+            map_conv_bias["pad_h"].clear();
+            map_conv_bias["pad_h"].push_back(EdgeOp(1, true, OpLTE));
+            map_conv_bias["pad_w"].clear();
+            map_conv_bias["pad_w"].push_back(EdgeOp(1, true, OpLTE));
             map_emplace(map_conv_bias, "weight", EdgeOp(0, true, OpAny));
             map_emplace(map_conv_bias, "algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
 
@@ -507,6 +511,16 @@ bool FusionMDGraph::ExecOpGTE(const EdgeOp& edg_op, const EdgeOp& op_val)
         MIOPEN_THROW("Invalid operand types for Edge Op OpGTE (>=)");
     return (boost::any_cast<int>(op_val.val) >= boost::any_cast<int>(edg_op.val));
 }
+
+bool FusionMDGraph::ExecOpLTE(const EdgeOp& edg_op, const EdgeOp& op_val)
+{
+    if(!(edg_op.val.type() == typeid(int) && op_val.val.type() == typeid(int)))
+    {
+        MIOPEN_LOG_I("Invalid operand types for Edge Op OpLTE (<=)");
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+    return (boost::any_cast<int>(op_val.val) <= boost::any_cast<int>(edg_op.val));
+}
 bool FusionMDGraph::ExecEdgeOp(const EdgeOp& edg_op, const EdgeOp& op_val)
 {
     switch(edg_op.op)
@@ -520,6 +534,8 @@ bool FusionMDGraph::ExecEdgeOp(const EdgeOp& edg_op, const EdgeOp& op_val)
     case OpModulo: { return FusionMDGraph::ExecOpModulo(edg_op, op_val);
     }
     case OpGTE: { return FusionMDGraph::ExecOpGTE(edg_op, op_val);
+    }
+    case OpLTE: { return FusionMDGraph::ExecOpLTE(edg_op, op_val);
     }
     }
     return false;

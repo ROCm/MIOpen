@@ -81,6 +81,7 @@ struct FusionMDGraph
     static bool ExecOpEqual(const EdgeOp& edg_op, const EdgeOp& op_val);
     static bool ExecOpModulo(const EdgeOp& edg_op, const EdgeOp& op_val);
     static bool ExecOpGTE(const EdgeOp& edg_op, const EdgeOp& op_val);
+    static bool ExecOpLTE(const EdgeOp& edg_op, const EdgeOp& op_val);
     std::vector<solver::AnySolver> GetSolvers();
 
     protected:
