@@ -123,6 +123,7 @@ static_assert( chunks_per_wave % input_dword_chunks_cnt == 0)
 hi_input_channels = (input_channels + vec_c_in - 1) / vec_c_in
 hi_output_channels = (output_channels + vec_k_out - 1) / vec_k_out
 
+s_pack_instructions_available = 0
 dot_instructions_available = 0
 .if (.option.machine_version_major == 9) && (.option.machine_version_minor == 0) && (.option.machine_version_stepping == 6)
     dot_instructions_available = 1
@@ -135,6 +136,7 @@ fmamix_instructions_available = 0
     .else
         madmix_instructions_available = 1
     .endif
+    s_pack_instructions_available = 1
 .endif
 
 // perf params
@@ -484,11 +486,31 @@ gcnAsmConv1x1U:
         v_mov_b32_sdwa v[\img_c1], v[vtmp] dst_sel:WORD_0 src0_sel:WORD_1
     .endm
 
+    .macro filter_pack_ll dst, src0, src1
+        .if s_pack_instructions_available
+            s_pack_ll_b32_b16 s[\dst], s[\src0], s[\src1]
+        .else
+            s_and_b32 s[stmp], s[\src0], 0x0000ffff
+            s_lshl_b32 s[\dst], s[\src1], 16
+            s_or_b32 s[\dst], s[\dst], s[stmp]
+        .endif
+    .endm
+
+    .macro filter_pack_hh dst, src0, src1
+        .if s_pack_instructions_available
+            s_pack_hh_b32_b16 s[\dst], s[\src0], s[\src1]
+        .else
+            s_lshr_b32 s[stmp], s[\src0], 16
+            s_and_b32 s[\dst], s[\src1], 0xffff0000
+            s_or_b32 s[\dst], s[\dst], s[stmp]
+        .endif
+    .endm
+
     //repack filter between two sgpr
     .macro exch_filter, filter_c0, filter_c1
-        s_mov_b32 s[stmp], s[\filter_c0]
-        s_pack_ll_b32_b16 s[\filter_c0], s[\filter_c0], s[\filter_c1]
-        s_pack_hh_b32_b16 s[\filter_c1], s[stmp], s[\filter_c1]
+        s_mov_b32 s[stmp_offset], s[\filter_c0]
+        filter_pack_ll \filter_c0, \filter_c0, \filter_c1
+        filter_pack_hh \filter_c1, stmp_offset, \filter_c1
     .endm
 
         //repack input across channels
