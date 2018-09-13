@@ -235,12 +235,3 @@ The table below outlines the supported fusions as well as any applicable constra
  </tr>
 </table>
 
-[//]: # (**Comment:** Section headers (##) need to exactly match the bullets points above (Create a fusion plan, Create and add ...))
-
-[//]: # ((**Comment:** show both the signature shown below + the snippet of the call to it in the example I mentioned before. Same comment applies to all other code examples))
-
-[//]: # (**Comment:** add a snippet showing the signatures for operation creation APIs for the operators in the example, plus the snippet showing the call to them in the example. Also add a few lines about how we only need to specify the tensor descriptors associated with the various ops here, what characterizes a unique fusion (input tensor descriptor + sequence of operations + the tensor descriptors associated with each operations, or something more/less), criteria for reusing a fusion plan, etc)
-
-[//]: # (**Comment:** dont think I understand this...what is the difference between a "fusion plan" and a "fusion plan instance"....the fusion plan descriptor corresponds to which one of two? what corresponds to the other one?)
-
-[//]: # (**Comment:** Need to show how associate arguments to the various operations)
