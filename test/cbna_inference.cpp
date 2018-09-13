@@ -242,7 +242,6 @@ struct verify_forward_conv_bias_batchnorm_activ
 template <class T>
 struct cbna_fusion_driver : test_driver
 {
-
     tensor<T> input;
     tensor<T> output;
     tensor<T> weights;
@@ -304,9 +303,6 @@ struct cbna_fusion_driver : test_driver
 
     void run()
     {
-
-        return; // DLOWELL disabled CBNA test
-
         switch(amode)
         {
         case 0: activ_mode = miopenActivationPASTHRU; break;
