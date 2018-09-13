@@ -182,7 +182,7 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
                 {
                     return s.GetSolution(context, config);
                 }
-                MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverDbId(s) << ": "
+                MIOPEN_LOG_W("Invalid config loaded from Perf Db: " << SolverDbId(s) << ": "
                                                                     << config);
             }
         }
