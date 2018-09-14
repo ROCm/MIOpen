@@ -81,7 +81,7 @@ It may be noted that `conv_desc` is the regular MIOpen Convolution descriptor an
 
 During this process, it is important that the returned codes be checked to make sure that the operations as well as their order is supported. The operator insertion might fail for a number of reasons such as unsupported sequence of operations, unsupported dimensions of the input or in case of convolution unsupported dimensions for the filters. In the above example, these aspects are ignored for the sake of simplicity.
 
-## <a name="compile_fusion"></a>Compile the Fusion Plan
+## Compile the Fusion Plan
 
 Following the operator addition, the user would compile the fusion plan, to populate the MIOpen kernel cache with the fused kernel and make it ready for execution. The API call that accomplishes this is:
 
@@ -188,7 +188,7 @@ miopenStatus_t miopenDestroyFusionPlan(miopenFusionPlanDescriptor_t fusePlanDesc
 Once the fusion plan object is destroyed, all the operations created are destroyed automatically and do not need any special cleanup.
 
 
-## <a name="supported_fusions"></a> Supported Fusions
+## Supported Fusions
 The table below outlines the supported fusions as well as any applicable constraints. Currently, only convolutions with unit stride and unit dilation are supported. Currently, the fusion API is in the initial phases of development and may change.
 
 <table border=0 cellpadding=0 cellspacing=0 width=713 style='border-collapse:
@@ -241,7 +241,7 @@ The table below outlines the supported fusions as well as any applicable constra
 </table>
 
 
-## <a name="supported_fusions"></a> Performance Comparison to Non-Fused Kernels
+## Performance Comparison to Non-Fused Kernels
 
 
 The following graph depicts the speedup gained for a fused Convolution+Bias+Activation over a non-fused version, all configurations have a batch size of 64:
