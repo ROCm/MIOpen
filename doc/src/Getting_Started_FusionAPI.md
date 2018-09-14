@@ -245,7 +245,8 @@ The table below outlines the supported fusions as well as any applicable constra
 ## <a name="supported_fusions"></a> Performance Comparison to Non-Fused Kernels
 The table below shows some of the tested configurations and the respective increase in performance. Other supported configurations are not shown here.
 
-rder=0 cellpadding=0 cellspacing=0 width=753 style='border-collapse:
+
+<table border=0 cellpadding=0 cellspacing=0 width=753 style='border-collapse:
  collapse;table-layout:fixed;width:565pt'>
  <col width=73 style='mso-width-source:userset;mso-width-alt:2011;width:55pt'>
  <col width=49 style='mso-width-source:userset;mso-width-alt:1353;width:37pt'>
@@ -812,4 +813,3 @@ rder=0 cellpadding=0 cellspacing=0 width=753 style='border-collapse:
   <td class=xl69 align=right>2.855</td>
  </tr>
 </table>
-
