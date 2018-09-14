@@ -242,11 +242,9 @@ The table below outlines the supported fusions as well as any applicable constra
 
 
 ## <a name="supported_fusions"></a> Performance Comparison to Non-Fused Kernels
-The table below shows some of the tested configurations and the respective increase in performance. Other supported configurations are not shown here.
 
-All configurations have a batch size of 64.
 
-The following graphs depicts the speedup gained for a fused Convolution+Bias+Activation over a non-fused version:
+The following graphs depicts the speedup gained for a fused Convolution+Bias+Activation over a non-fused version, all configurations have a batch size of 64:
 
 ![CBA Graph](cba.png)
 
