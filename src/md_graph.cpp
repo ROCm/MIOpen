@@ -405,7 +405,46 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
 
                 g.AddEdge(conv_v, activ_v, empty_map);
             }
+        }
+    }
 
+    // third path (ocl kernel no padding support for batch norm)
+    {
+        auto conv_v = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
+                                                       "MIOpenConvDirBatchNormActiv.cl",
+                                                       "MIOpenConvUniBatchNormActiv",
+                                                       "miopenConvolutionDirectBiasActiv");
+
+        conv_v->solver = solver::ConvOclDirectFwdFused{};
+
+        // from ConvolutionDescriptor::IsDirectSupported
+        std::vector<size_t> lens = {1, 3, 5, 7, 9, 11};
+        for(auto len : lens)
+        {
+            auto map_conv_bias = ConvForwardOpDescriptor::MDGraphKey(miopenConvolution,
+                                                                     miopenPaddingDefault,
+                                                                     /*pad_h*/ 0,
+                                                                     /*pad_w*/ 0,
+                                                                     /* u */ 1,
+                                                                     /* v */ 1,
+                                                                     /*dilation_h*/ 1,
+                                                                     /*dilation_w*/ 1,
+                                                                     /*k any*/ 0,
+                                                                     /*c any*/ 0,
+                                                                     /* x */ len,
+                                                                     /* y */ len);
+            map_emplace(map_conv_bias, "weight", EdgeOp(0, true, OpAny));
+            map_emplace(map_conv_bias, "algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
+
+            g.AddEdge(nullptr, conv_v, map_conv_bias);
+        }
+
+        { // Conv -> Bias
+
+            auto bias_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward,
+                                                           "MIOpenConvDirBatchNormActiv.cl",
+                                                           "MIOpenConvUniBatchNormActiv",
+                                                           "miopenConvolutionDirectBiasActiv");
             { // Conv -> Bias -> BatchNorm -> Activ
                 auto bn_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormInference,
                                                              "MIOpenConvDirBatchNormActiv.cl",
