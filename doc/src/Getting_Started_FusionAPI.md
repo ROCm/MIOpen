@@ -244,7 +244,11 @@ The table below outlines the supported fusions as well as any applicable constra
 ## <a name="supported_fusions"></a> Performance Comparison to Non-Fused Kernels
 
 
-The following graphs depicts the speedup gained for a fused Convolution+Bias+Activation over a non-fused version, all configurations have a batch size of 64:
+The following graph depicts the speedup gained for a fused Convolution+Bias+Activation over a non-fused version, all configurations have a batch size of 64:
 
 ![CBA Graph](cba.png)
+
+Speedup obtained by fusing Batchnorm (spatial mode) with Activation are presented in the graph below:
+
+![Batchnorm activation fusion](na.png)
 
