@@ -237,6 +237,8 @@ The table below outlines the supported fusions as well as any applicable constra
 
 ## <a name="supported_fusions"></a> Performance Comparison to Non-Fused Kernels
 The table below shows some of the tested configurations and the respective increase in performance. Other supported configurations are not shown here.
+
+
 | ﻿            |            |                |        |       |                |                         |                  |                | Speedup     | Speedup   |
 |-------------|------------|----------------|--------|-------|----------------|-------------------------|------------------|----------------|-------------|-----------|
 | Fusion Mode | Batch Size | Input Channels | Height | Width | Conv. Channels | Filter Height and Width | kernel time (ms) | wall time (ms) | kernel time | wall time |
