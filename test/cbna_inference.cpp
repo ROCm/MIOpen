@@ -278,18 +278,20 @@ struct cbna_fusion_driver : test_driver
     cbna_fusion_driver()
     {
         add(input, "input", get_input_tensor(tensor_elem_gen_integer{max_value}));
-        add(weights, "weights", get_weights_tensor(tensor_elem_gen_integer{max_value}));
         add(filter, "filter", generate_data(get_filters()));
+
+        // \todo: Remove this once the HIP issue is resolved
+#if (MIOPEN_BACKEND_HIP == 0)
+        add(weights, "weights", get_weights_tensor(tensor_elem_gen_integer{max_value}));
         add(alpha, "alpha", generate_data({/*1. , */ 0.5}));
         add(beta, "beta", generate_data({/*0. , */ 0.5}));
         add(gamma, "gamma", generate_data({/*1. ,*/ 0.5}));
         add(bias_mode, "bmode", generate_data({true, false}));
-        // \todo dlowell: fusion can't handle trans right now.
-        //       add(conv_mode, "cmode", generate_data({"conv"}/*, "trans"}*/));
         add(pad_mode, "pmode", generate_data({"default" /*, "same", "valid"*/}));
         add(tactiv, "test_activ", generate_data({false, true}));
         add(amode, "amode", generate_data({3}));
         add(batchnormMode, "batch-norm-mode", generate_data({0, 1}));
+#endif
     }
 
     std::vector<miopen::ConvolutionDescriptor> get_filters()
@@ -305,7 +307,13 @@ struct cbna_fusion_driver : test_driver
     void run()
     {
 
-        return; // DLOWELL disabled CBNA test
+        // \todo: Remove this once the HIP issue is resolved
+#if (MIOPEN_BACKEND_HIP == 1)
+            weights = tensor<T>{32, 32, 3, 3}.generate(tensor_elem_gen_integer{max_value});
+#endif
+
+
+
 
         switch(amode)
         {
@@ -395,34 +403,11 @@ struct cbna_fusion_driver : test_driver
             miopen::DeriveBNTensorDescriptor(derivedBnDesc, output.desc, bnmode);
             std::tie(ssn, ssc, ssh, ssw) = miopen::tien<4>(derivedBnDesc.GetLengths());
 
-            if(input.desc.GetType() == miopenFloat)
-            {
-                scale       = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
-                shift       = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
-                estMean     = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
-                estVariance = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{17});
-            }
-            else
-            {
-                scale       = tensor<T>{ssn, ssc, ssh, ssw};
-                shift       = tensor<T>{ssn, ssc, ssh, ssw};
-                estMean     = tensor<T>{ssn, ssc, ssh, ssw};
-                estVariance = tensor<T>{ssn, ssc, ssh, ssw};
+            scale       = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
+            shift       = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
+            estMean     = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
+            estVariance = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
 
-                srand(0);
-                for(int i = 0; i < scale.desc.GetElementSize(); i++)
-                {
-                    scale[i]   = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
-                    shift[i]   = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
-                    estMean[i] = (((rand() % 2) == 1) ? -1 : 1) * 1e-4 * T(rand() % 100);
-                    estVariance[i] =
-                        std::fabs((((rand() % 2) == 1) ? -1 : 1) * 1e-1 * T(rand() % 100));
-                }
-                for(int i = 0; i < input.desc.GetElementSize(); i++)
-                {
-                    input[i] = (((rand() % 2) == 1) ? -1 : 1) * (0.1 * T(rand() % 100));
-                }
-            }
         }
 
         miopenCreateOpConvForward(ptr_fusionplan.get(), &convoOp, &filter, &weights.desc);
@@ -445,7 +430,7 @@ struct cbna_fusion_driver : test_driver
         if(bias_mode)
         {
             bias = tensor<T>{1, output.desc.GetLengths()[1], 1, 1}.generate(
-                tensor_elem_gen_integer{17});
+                tensor_elem_gen_integer{max_value});
             miopenCreateOpBiasForward(ptr_fusionplan.get(), &biasOp, &bias.desc);
         }
         else
