@@ -189,7 +189,7 @@ Once the fusion plan object is destroyed, all the operations created are destroy
 
 
 ## <a name="supported_fusions"></a> Supported Fusions
-The table below outlines the supported fusions as well as any applicable constraints. Currently, only convolutions with no padding, unit stride and unit dilation are supported. Currently, the fusion API is in the initial phases of development and may change.
+The table below outlines the supported fusions as well as any applicable constraints. Currently, only convolutions with unit stride and unit dilation are supported. Currently, the fusion API is in the initial phases of development and may change.
 
 <table border=0 cellpadding=0 cellspacing=0 width=713 style='border-collapse:
  collapse;table-layout:fixed;width:534pt'>
