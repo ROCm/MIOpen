@@ -237,11 +237,9 @@ The table below outlines the supported fusions as well as any applicable constra
 
 ## <a name="supported_fusions"></a> Performance Comparison to Non-Fused Kernels
 The table below shows some of the tested configurations and the respective increase in performance. Other supported configurations are not shown here.
-
-|             |            |                |        |       |                |                         |                  |                |          Speedup        |
+| ﻿            |            |                |        |       |                |                         |                  |                | Speedup     | Speedup   |
 |-------------|------------|----------------|--------|-------|----------------|-------------------------|------------------|----------------|-------------|-----------|
 | Fusion Mode | Batch Size | Input Channels | Height | Width | Conv. Channels | Filter Height and Width | kernel time (ms) | wall time (ms) | kernel time | wall time |
-|-------------|------------|----------------|--------|-------|----------------|-------------------------|------------------|----------------|-------------|-----------|
 | C-B-A       | 64         | 1024           | 14     | 14    | 256            | 1                       | 0.9495           | 1.7053         | 1.2182      | 1.1880    |
 | C-B-A       | 64         | 128            | 28     | 28    | 128            | 3                       | 0.7927           | 0.8974         | 1.2869      | 1.3688    |
 | C-B-A       | 64         | 128            | 28     | 28    | 512            | 1                       | 1.0656           | 1.6839         | 1.9908      | 1.3686    |
@@ -255,7 +253,7 @@ The table below shows some of the tested configurations and the respective incre
 | C-B-A       | 64         | 64             | 55     | 55    | 256            | 1                       | 1.2223           | 1.7120         | 2.6976      | 1.7321    |
 | C-B-A       | 64         | 64             | 55     | 55    | 64             | 1                       | 0.3186           | 0.3838         | 2.6831      | 1.9685    |
 | C-B-A       | 64         | 64             | 55     | 55    | 64             | 3                       | 0.8934           | 1.4642         | 1.5497      | 0.9451    |
-|             |            |                |        |       |                |                         |                  |   Average      | 1.5501      | 1.1715    |
+|             |            |                |        |       |                |                         |                  | Average        | 1.5501      | 1.1715    |
 | C-A         | 64         | 1024           | 14     | 14    | 256            | 1                       | 0.9412           | 1.3590         | 1.1321      | 1.4267    |
 | C-A         | 64         | 128            | 28     | 28    | 128            | 3                       | 0.7912           | 0.8894         | 1.1345      | 1.2481    |
 | C-A         | 64         | 128            | 28     | 28    | 512            | 1                       | 1.0475           | 1.1856         | 1.4766      | 1.8913    |
@@ -269,7 +267,7 @@ The table below shows some of the tested configurations and the respective incre
 | C-A         | 64         | 64             | 55     | 55    | 256            | 1                       | 1.2159           | 1.3582         | 1.7601      | 2.1865    |
 | C-A         | 64         | 64             | 55     | 55    | 64             | 1                       | 0.3188           | 0.3746         | 1.8092      | 2.0135    |
 | C-A         | 64         | 64             | 55     | 55    | 64             | 3                       | 0.8950           | 1.0372         | 1.2576      | 1.3338    |
-|             |            |                |        |       |                |                         |                  |   Average      | 1.2464      | 1.4150    |
+|             |            |                |        |       |                |                         |                  | Average        | 1.2464      | 1.4150    |
 | N-A         | 64         | 1024           | 14     | 14    | 256            | 1                       | 0.2690           | 0.3220         | 2.3744      | 2.5766    |
 | N-A         | 64         | 128            | 28     | 28    | 128            | 3                       | 0.1348           | 0.1850         | 2.2086      | 2.6150    |
 | N-A         | 64         | 128            | 28     | 28    | 512            | 1                       | 0.1349           | 0.1854         | 2.3359      | 2.7634    |
@@ -283,4 +281,4 @@ The table below shows some of the tested configurations and the respective incre
 | N-A         | 64         | 64             | 55     | 55    | 256            | 1                       | 0.2644           | 0.3154         | 2.4319      | 2.6550    |
 | N-A         | 64         | 64             | 55     | 55    | 64             | 1                       | 0.2636           | 0.3118         | 2.4621      | 2.6778    |
 | N-A         | 64         | 64             | 55     | 55    | 64             | 3                       | 0.2645           | 0.3154         | 2.3763      | 2.5929    |
-|             |            |                |        |       |                |                         |                  |   Average      | 2.3773      | 2.8554    |
+|             |            |                |        |       |                |                         |                  | Average        | 2.3773      | 2.8554    |
