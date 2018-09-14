@@ -265,8 +265,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         /// \todo Winograd supports wide range of RxS. 3x3 only for now.
         auto map_wino_conv = ConvForwardOpDescriptor::MDGraphKey(miopenConvolution,
                                                                  miopenPaddingDefault,
-                                                                 /*pad_h*/ 0,
-                                                                 /*pad_w*/ 0,
+                                                                 /*pad_h*/ 1,
+                                                                 /*pad_w*/ 1,
                                                                  /* u */ 1,
                                                                  /* v */ 1,
                                                                  /*dilation_h*/ 1,
@@ -570,11 +570,11 @@ bool FusionMDGraph::CmpOpKey(const FusionMDGraph_Edge_Map& edge_val,
                     return false;
                 }
             }
-            MIOPEN_LOG_I("Edge Op for key: " << kv.first << " Successfull");
+            MIOPEN_LOG_I2("Edge Op for key: " << kv.first << " Successfull");
         }
         else
         {
-            MIOPEN_LOG_I("Key: " << kv.first << " NOT found");
+            MIOPEN_LOG_I2("Key: " << kv.first << " NOT found");
         }
     }
     return true;
@@ -591,11 +591,11 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
         MDGraph_vertex_ptr& cur_vertex_ptr = kinder.first;
         if(cur_vertex_ptr == nullptr)
         {
-            MIOPEN_LOG_I("Current vertex: nullptr");
+            MIOPEN_LOG_I2("Current vertex: nullptr");
         }
         else
         {
-            MIOPEN_LOG_I("Current vertex: " << *cur_vertex_ptr);
+            MIOPEN_LOG_I2("Current vertex: " << *cur_vertex_ptr);
         }
         auto cur_map = kinder.second;
         // get the children of the cur_vertex
@@ -603,7 +603,7 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
         // if op is in the children and the edge key satisfies update cur_vertex
         for(auto& ch_it : ch)
         {
-            MIOPEN_LOG_I("Child: " << *ch_it.first);
+            MIOPEN_LOG_I2("Child: " << *ch_it.first);
             std::set<miopenConvFwdAlgorithm_t> cur_path_set;
             if(ch_it.first->op == op->kind())
             {
@@ -612,7 +612,7 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
                     int weight = boost::any_cast<int>(cur_map["weight"]);
                     if(CmpOpKey(edg_map, op->MDGraphKey()))
                     {
-                        MIOPEN_LOG_I("Key Match Successfull");
+                        MIOPEN_LOG_I2("Key Match Successfull");
                         weight += boost::any_cast<int>(edg_map.at("weight").at(0).val);
                         cur_map["weight"] = weight;
 
@@ -622,8 +622,8 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
                             miopenConvFwdAlgorithm_t algo =
                                 boost::any_cast<miopenConvFwdAlgorithm_t>(
                                     edg_map.at("algo").at(0).val);
-                            MIOPEN_LOG_I("Operator Matched: Convolution: Algo: " +
-                                         std::to_string(algo));
+                            MIOPEN_LOG_I2("Operator Matched: Convolution: Algo: " +
+                                          std::to_string(algo));
                             cur_path_set.insert(algo);
 
                             new_set.insert(cur_path_set.begin(), cur_path_set.end());
@@ -639,14 +639,14 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
                         }
                         else
                         {
-                            MIOPEN_LOG_I("Operator Matched: " + std::to_string(op->kind()));
+                            MIOPEN_LOG_I2("Operator Matched: " + std::to_string(op->kind()));
                             cur_map.erase("algo");
                         }
                         new_list.emplace_back(ch_it.first, cur_map);
                     }
                     else
                     {
-                        MIOPEN_LOG_I("Key Map Match failed");
+                        MIOPEN_LOG_I2("Key Map Match failed");
                     }
                 }
             }
