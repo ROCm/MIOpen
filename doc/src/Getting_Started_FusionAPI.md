@@ -245,529 +245,1822 @@ The table below outlines the supported fusions as well as any applicable constra
 The table below shows some of the tested configurations and the respective increase in performance. Other supported configurations are not shown here.
 
 All configurations have a batch size of 64.
-<table border=0 cellpadding=0 cellspacing=0 width=704 style='border-collapse:
- collapse;table-layout:fixed;width:528pt'>
- <col width=73 style='mso-width-source:userset;mso-width-alt:2011;width:55pt'>
- <col width=71 style='mso-width-source:userset;mso-width-alt:1938;width:53pt'>
- <col width=56 style='mso-width-source:userset;mso-width-alt:1536;width:42pt'>
- <col width=52 style='mso-width-source:userset;mso-width-alt:1426;width:39pt'>
- <col width=76 style='mso-width-source:userset;mso-width-alt:2084;width:57pt'>
- <col width=84 style='mso-width-source:userset;mso-width-alt:2304;width:63pt'>
- <col width=89 style='mso-width-source:userset;mso-width-alt:2450;width:67pt'>
- <col width=67 style='mso-width-source:userset;mso-width-alt:1828;width:50pt'>
- <col width=73 style='mso-width-source:userset;mso-width-alt:2011;width:55pt'>
- <col width=63 style='mso-width-source:userset;mso-width-alt:1718;width:47pt'>
+
+<table border=0 cellpadding=0 cellspacing=0 width=894 style='border-collapse:
+ collapse;table-layout:fixed;width:672pt'>
+ <col width=87 style='mso-width-source:userset;mso-width-alt:2377;width:65pt'>
+ <col width=89 span=8 style='mso-width-source:userset;mso-width-alt:2450;
+ width:67pt'>
+ <col width=95 style='mso-width-source:userset;mso-width-alt:2596;width:71pt'>
  <tr class=xl65 height=24 style='height:18.0pt'>
-  <td height=24 class=xl65 width=73 style='height:18.0pt;width:55pt'></td>
-  <td class=xl65 width=71 style='width:53pt'></td>
-  <td class=xl65 width=56 style='width:42pt'></td>
-  <td class=xl65 width=52 style='width:39pt'></td>
-  <td class=xl65 width=76 style='width:57pt'></td>
-  <td class=xl65 width=84 style='width:63pt'></td>
-  <td class=xl65 width=89 style='width:67pt'></td>
-  <td class=xl65 width=67 style='width:50pt'></td>
-  <td colspan=2 class=xl68 width=136 style='width:102pt'>Speedup</td>
+  <td height=24 class=xl71 width=87 style='height:18.0pt;width:65pt;font-size:
+  12.0pt;color:black;font-weight:700;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl66 width=89 style='border-left:none;width:67pt;font-size:12.0pt;
+  color:black;font-weight:700;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl66 width=89 style='border-left:none;width:67pt;font-size:12.0pt;
+  color:black;font-weight:700;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl66 width=89 style='border-left:none;width:67pt;font-size:12.0pt;
+  color:black;font-weight:700;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl66 width=89 style='border-left:none;width:67pt;font-size:12.0pt;
+  color:black;font-weight:700;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl66 width=89 style='border-left:none;width:67pt;font-size:12.0pt;
+  color:black;font-weight:700;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl66 width=89 style='border-left:none;width:67pt;font-size:12.0pt;
+  color:black;font-weight:700;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl66 width=89 style='border-left:none;width:67pt;font-size:12.0pt;
+  color:black;font-weight:700;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl74 width=89 style='border-left:none;width:67pt;font-size:12.0pt;
+  color:black;font-weight:700;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border-top:.5pt solid windowtext;
+  border-right:none;border-bottom:.5pt solid windowtext;border-left:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>Speedup</td>
+  <td class=xl77 width=95 style='width:71pt;font-size:12.0pt;color:black;
+  font-weight:700;text-decoration:none;text-underline-style:none;text-line-through:
+  none;font-family:Candara, sans-serif;border-top:.5pt solid windowtext;
+  border-right:.5pt solid windowtext;border-bottom:.5pt solid windowtext;
+  border-left:none;background:#D9D9D9;mso-pattern:#D9D9D9 none'>Speedup</td>
  </tr>
- <tr class=xl70 height=76 style='height:57.0pt'>
-  <td height=76 class=xl70 width=73 style='height:57.0pt;width:55pt'>Fusion
-  Mode</td>
-  <td class=xl70 width=71 style='width:53pt'>Input Channels</td>
-  <td class=xl70 width=56 style='width:42pt'>Height</td>
-  <td class=xl70 width=52 style='width:39pt'>Width</td>
-  <td class=xl70 width=76 style='width:57pt'>Conv. Channels</td>
-  <td class=xl70 width=84 style='width:63pt'>Filter Height and Width</td>
-  <td class=xl70 width=89 style='width:67pt'>kernel time (ms)</td>
-  <td class=xl70 width=67 style='width:50pt'>wall time (ms)</td>
-  <td class=xl70 width=73 style='width:55pt'>kernel time</td>
-  <td class=xl70 width=63 style='width:47pt'>wall time</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>1024</td>
-  <td align=right>14</td>
-  <td align=right>14</td>
-  <td align=right>256</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>0.949</td>
-  <td class=xl69 align=right>1.705</td>
-  <td class=xl69 align=right>1.218</td>
-  <td class=xl69 align=right>1.188</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>128</td>
-  <td align=right>28</td>
-  <td align=right>28</td>
-  <td align=right>128</td>
-  <td align=right>3</td>
-  <td class=xl69 align=right>0.793</td>
-  <td class=xl69 align=right>0.897</td>
-  <td class=xl69 align=right>1.287</td>
-  <td class=xl69 align=right>1.369</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>128</td>
-  <td align=right>28</td>
-  <td align=right>28</td>
-  <td align=right>512</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>1.066</td>
-  <td class=xl69 align=right>1.684</td>
-  <td class=xl69 align=right>1.991</td>
-  <td class=xl69 align=right>1.369</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>2048</td>
-  <td align=right>7</td>
-  <td align=right>7</td>
-  <td align=right>512</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>1.156</td>
-  <td class=xl69 align=right>1.714</td>
-  <td class=xl69 align=right>1.010</td>
-  <td class=xl69 align=right>0.787</td>
+ <tr height=76 style='height:57.0pt'>
+  <td height=76 class=xl72 width=87 style='height:57.0pt;border-top:none;
+  width:65pt;font-size:12.0pt;color:black;font-weight:700;text-decoration:none;
+  text-underline-style:none;text-line-through:none;font-family:Candara, sans-serif;
+  border:.5pt solid windowtext'>Fusion Mode</td>
+  <td class=xl67 width=89 style='border-top:none;border-left:none;width:67pt'>Input
+  Channels</td>
+  <td class=xl67 width=89 style='border-top:none;border-left:none;width:67pt'>Height</td>
+  <td class=xl67 width=89 style='border-top:none;border-left:none;width:67pt'>Width</td>
+  <td class=xl67 width=89 style='border-top:none;border-left:none;width:67pt'>Conv.
+  Channels</td>
+  <td class=xl67 width=89 style='border-top:none;border-left:none;width:67pt'>Filter
+  Height and Width</td>
+  <td class=xl67 width=89 style='border-top:none;border-left:none;width:67pt'>kernel
+  time (ms)</td>
+  <td class=xl67 width=89 style='border-top:none;border-left:none;width:67pt'>wall
+  time (ms)</td>
+  <td class=xl67 width=89 style='border-top:none;border-left:none;width:67pt'>kernel
+  time</td>
+  <td class=xl75 width=95 style='border-top:none;border-left:none;width:71pt;
+  font-size:12.0pt;color:black;font-weight:700;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>wall
+  time</td>
  </tr>
  <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>256</td>
-  <td align=right>14</td>
-  <td align=right>14</td>
-  <td align=right>1024</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>1.217</td>
-  <td class=xl69 align=right>1.721</td>
-  <td class=xl69 align=right>1.371</td>
-  <td class=xl69 align=right>0.930</td>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>C-B-A</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1024</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>14</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>14</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>256</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.949</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.705</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.218</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.188</td>
  </tr>
  <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>256</td>
-  <td align=right>14</td>
-  <td align=right>14</td>
-  <td align=right>256</td>
-  <td align=right>3</td>
-  <td class=xl69 align=right>0.640</td>
-  <td class=xl69 align=right>0.706</td>
-  <td class=xl69 align=right>1.173</td>
-  <td class=xl69 align=right>1.239</td>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>C-B-A</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>128</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>28</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>28</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>128</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>3</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.793</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.897</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.287</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.369</td>
  </tr>
  <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>256</td>
-  <td align=right>55</td>
-  <td align=right>55</td>
-  <td align=right>64</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>0.881</td>
-  <td class=xl69 align=right>1.622</td>
-  <td class=xl69 align=right>1.653</td>
-  <td class=xl69 align=right>0.858</td>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>C-B-A</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>128</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>28</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>28</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>512</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.066</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.684</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.991</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.369</td>
  </tr>
  <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>512</td>
-  <td align=right>28</td>
-  <td align=right>28</td>
-  <td align=right>128</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>0.999</td>
-  <td class=xl69 align=right>1.629</td>
-  <td class=xl69 align=right>1.276</td>
-  <td class=xl69 align=right>0.849</td>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>C-B-A</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>2048</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>7</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>7</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>512</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.156</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.714</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.010</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.787</td>
  </tr>
  <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>512</td>
-  <td align=right>7</td>
-  <td align=right>7</td>
-  <td align=right>2048</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>1.247</td>
-  <td class=xl69 align=right>1.755</td>
-  <td class=xl69 align=right>1.152</td>
-  <td class=xl69 align=right>0.855</td>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>C-B-A</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>256</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>14</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>14</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1024</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.217</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.721</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.371</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.930</td>
  </tr>
  <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>512</td>
-  <td align=right>7</td>
-  <td align=right>7</td>
-  <td align=right>512</td>
-  <td align=right>3</td>
-  <td class=xl69 align=right>0.731</td>
-  <td class=xl69 align=right>0.811</td>
-  <td class=xl69 align=right>1.089</td>
-  <td class=xl69 align=right>1.140</td>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>C-B-A</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>256</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>14</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>14</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>256</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>3</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.640</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.706</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.173</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.239</td>
  </tr>
  <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>64</td>
-  <td align=right>55</td>
-  <td align=right>55</td>
-  <td align=right>256</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>1.222</td>
-  <td class=xl69 align=right>1.712</td>
-  <td class=xl69 align=right>2.698</td>
-  <td class=xl69 align=right>1.732</td>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>C-B-A</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>256</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>55</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>55</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>64</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.881</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.622</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.653</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.858</td>
  </tr>
  <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>64</td>
-  <td align=right>55</td>
-  <td align=right>55</td>
-  <td align=right>64</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>0.319</td>
-  <td class=xl69 align=right>0.384</td>
-  <td class=xl69 align=right>2.683</td>
-  <td class=xl69 align=right>1.968</td>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>C-B-A</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>512</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>28</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>28</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>128</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.999</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.629</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.276</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.849</td>
  </tr>
  <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>64</td>
-  <td align=right>55</td>
-  <td align=right>55</td>
-  <td align=right>64</td>
-  <td align=right>3</td>
-  <td class=xl69 align=right>0.893</td>
-  <td class=xl69 align=right>1.464</td>
-  <td class=xl69 align=right>1.550</td>
-  <td class=xl69 align=right>0.945</td>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>C-B-A</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>512</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>7</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>7</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>2048</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.247</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.755</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.152</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.855</td>
  </tr>
  <tr height=24 style='height:18.0pt'>
-  <td height=24 colspan=6 style='height:18.0pt;mso-ignore:colspan'></td>
-  <td class=xl66></td>
-  <td class=xl65>Average</td>
-  <td class=xl69 align=right>1.550</td>
-  <td class=xl69 align=right>1.171</td>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>C-B-A</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>512</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>7</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>7</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>512</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>3</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.731</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.811</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.089</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.140</td>
  </tr>
  <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>1024</td>
-  <td align=right>14</td>
-  <td align=right>14</td>
-  <td align=right>256</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>0.941</td>
-  <td class=xl69 align=right>1.359</td>
-  <td class=xl69 align=right>1.132</td>
-  <td class=xl69 align=right>1.427</td>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>C-B-A</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>64</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>55</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>55</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>256</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.222</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.712</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>2.698</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.732</td>
  </tr>
  <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>128</td>
-  <td align=right>28</td>
-  <td align=right>28</td>
-  <td align=right>128</td>
-  <td align=right>3</td>
-  <td class=xl69 align=right>0.791</td>
-  <td class=xl69 align=right>0.889</td>
-  <td class=xl69 align=right>1.135</td>
-  <td class=xl69 align=right>1.248</td>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>C-B-A</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>64</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>55</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>55</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>64</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.319</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.384</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>2.683</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.968</td>
  </tr>
  <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>128</td>
-  <td align=right>28</td>
-  <td align=right>28</td>
-  <td align=right>512</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>1.047</td>
-  <td class=xl69 align=right>1.186</td>
-  <td class=xl69 align=right>1.477</td>
-  <td class=xl69 align=right>1.891</td>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>C-B-A</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>64</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>55</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>55</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>64</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>3</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.893</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.464</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.550</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.945</td>
  </tr>
  <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>2048</td>
-  <td align=right>7</td>
-  <td align=right>7</td>
-  <td align=right>512</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>1.153</td>
-  <td class=xl69 align=right>1.272</td>
-  <td class=xl69 align=right>0.955</td>
-  <td class=xl69 align=right>1.059</td>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>&nbsp;</td>
+  <td class=xl68 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>&nbsp;</td>
+  <td class=xl68 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>&nbsp;</td>
+  <td class=xl68 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>&nbsp;</td>
+  <td class=xl68 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>&nbsp;</td>
+  <td class=xl68 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>&nbsp;</td>
+  <td class=xl70 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>&nbsp;</td>
+  <td class=xl66 style='border-top:none;border-left:none'>Average</td>
+  <td class=xl69 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.550</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.171</td>
  </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>256</td>
-  <td align=right>14</td>
-  <td align=right>14</td>
-  <td align=right>1024</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>1.209</td>
-  <td class=xl69 align=right>1.345</td>
-  <td class=xl69 align=right>1.106</td>
-  <td class=xl69 align=right>1.195</td>
+ <![if supportMisalignedColumns]>
+ <tr height=0 style='display:none'>
+  <td width=87 style='width:65pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=95 style='width:71pt'></td>
  </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>256</td>
-  <td align=right>14</td>
-  <td align=right>14</td>
-  <td align=right>256</td>
-  <td align=right>3</td>
-  <td class=xl69 align=right>0.640</td>
-  <td class=xl69 align=right>0.705</td>
-  <td class=xl69 align=right>1.063</td>
-  <td class=xl69 align=right>1.233</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>256</td>
-  <td align=right>55</td>
-  <td align=right>55</td>
-  <td align=right>64</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>0.879</td>
-  <td class=xl69 align=right>1.005</td>
-  <td class=xl69 align=right>1.339</td>
-  <td class=xl69 align=right>1.381</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>512</td>
-  <td align=right>28</td>
-  <td align=right>28</td>
-  <td align=right>128</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>0.991</td>
-  <td class=xl69 align=right>1.137</td>
-  <td class=xl69 align=right>1.144</td>
-  <td class=xl69 align=right>1.194</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>512</td>
-  <td align=right>7</td>
-  <td align=right>7</td>
-  <td align=right>2048</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>1.250</td>
-  <td class=xl69 align=right>1.367</td>
-  <td class=xl69 align=right>1.008</td>
-  <td class=xl69 align=right>1.100</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>512</td>
-  <td align=right>7</td>
-  <td align=right>7</td>
-  <td align=right>512</td>
-  <td align=right>3</td>
-  <td class=xl69 align=right>0.728</td>
-  <td class=xl69 align=right>0.818</td>
-  <td class=xl69 align=right>1.017</td>
-  <td class=xl69 align=right>1.134</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>64</td>
-  <td align=right>55</td>
-  <td align=right>55</td>
-  <td align=right>256</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>1.216</td>
-  <td class=xl69 align=right>1.358</td>
-  <td class=xl69 align=right>1.760</td>
-  <td class=xl69 align=right>2.187</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>64</td>
-  <td align=right>55</td>
-  <td align=right>55</td>
-  <td align=right>64</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>0.319</td>
-  <td class=xl69 align=right>0.375</td>
-  <td class=xl69 align=right>1.809</td>
-  <td class=xl69 align=right>2.013</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>64</td>
-  <td align=right>55</td>
-  <td align=right>55</td>
-  <td align=right>64</td>
-  <td align=right>3</td>
-  <td class=xl67 align=right>0.8950</td>
-  <td class=xl67 align=right>1.0372</td>
-  <td class=xl69 align=right>1.258</td>
-  <td class=xl69 align=right>1.334</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 colspan=6 style='height:18.0pt;mso-ignore:colspan'></td>
-  <td class=xl66></td>
-  <td class=xl65>Average</td>
-  <td class=xl69 align=right>1.246</td>
-  <td class=xl69 align=right>1.415</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>1024</td>
-  <td align=right>14</td>
-  <td align=right>14</td>
-  <td align=right>256</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>0.269</td>
-  <td class=xl69 align=right>0.322</td>
-  <td class=xl69 align=right>2.374</td>
-  <td class=xl69 align=right>2.577</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>128</td>
-  <td align=right>28</td>
-  <td align=right>28</td>
-  <td align=right>128</td>
-  <td align=right>3</td>
-  <td class=xl69 align=right>0.135</td>
-  <td class=xl69 align=right>0.185</td>
-  <td class=xl69 align=right>2.209</td>
-  <td class=xl69 align=right>2.615</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>128</td>
-  <td align=right>28</td>
-  <td align=right>28</td>
-  <td align=right>512</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>0.135</td>
-  <td class=xl69 align=right>0.185</td>
-  <td class=xl69 align=right>2.336</td>
-  <td class=xl69 align=right>2.763</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>2048</td>
-  <td align=right>7</td>
-  <td align=right>7</td>
-  <td align=right>512</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>0.135</td>
-  <td class=xl69 align=right>0.183</td>
-  <td class=xl69 align=right>3.250</td>
-  <td class=xl69 align=right>3.452</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>256</td>
-  <td align=right>14</td>
-  <td align=right>14</td>
-  <td align=right>1024</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>0.072</td>
-  <td class=xl69 align=right>0.122</td>
-  <td class=xl69 align=right>2.065</td>
-  <td class=xl69 align=right>2.824</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>256</td>
-  <td align=right>14</td>
-  <td align=right>14</td>
-  <td align=right>256</td>
-  <td align=right>3</td>
-  <td class=xl69 align=right>0.073</td>
-  <td class=xl69 align=right>0.122</td>
-  <td class=xl69 align=right>1.826</td>
-  <td class=xl69 align=right>2.667</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>256</td>
-  <td align=right>55</td>
-  <td align=right>55</td>
-  <td align=right>64</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>1.090</td>
-  <td class=xl69 align=right>1.241</td>
-  <td class=xl69 align=right>2.338</td>
-  <td class=xl69 align=right>2.610</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>512</td>
-  <td align=right>28</td>
-  <td align=right>28</td>
-  <td align=right>128</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>0.557</td>
-  <td class=xl69 align=right>0.617</td>
-  <td class=xl69 align=right>2.680</td>
-  <td class=xl69 align=right>4.144</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>512</td>
-  <td align=right>7</td>
-  <td align=right>7</td>
-  <td align=right>2048</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>0.046</td>
-  <td class=xl69 align=right>0.093</td>
-  <td class=xl69 align=right>2.467</td>
-  <td class=xl69 align=right>3.129</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>512</td>
-  <td align=right>7</td>
-  <td align=right>7</td>
-  <td align=right>512</td>
-  <td align=right>3</td>
-  <td class=xl69 align=right>0.047</td>
-  <td class=xl69 align=right>0.101</td>
-  <td class=xl69 align=right>2.091</td>
-  <td class=xl69 align=right>2.414</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>64</td>
-  <td align=right>55</td>
-  <td align=right>55</td>
-  <td align=right>256</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>0.264</td>
-  <td class=xl69 align=right>0.315</td>
-  <td class=xl69 align=right>2.432</td>
-  <td class=xl69 align=right>2.655</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>64</td>
-  <td align=right>55</td>
-  <td align=right>55</td>
-  <td align=right>64</td>
-  <td align=right>1</td>
-  <td class=xl69 align=right>0.264</td>
-  <td class=xl69 align=right>0.312</td>
-  <td class=xl69 align=right>2.462</td>
-  <td class=xl69 align=right>2.678</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>64</td>
-  <td align=right>55</td>
-  <td align=right>55</td>
-  <td align=right>64</td>
-  <td align=right>3</td>
-  <td class=xl69 align=right>0.265</td>
-  <td class=xl69 align=right>0.315</td>
-  <td class=xl69 align=right>2.376</td>
-  <td class=xl69 align=right>2.593</td>
- </tr>
- <tr height=24 style='height:18.0pt'>
-  <td height=24 colspan=7 style='height:18.0pt;mso-ignore:colspan'></td>
-  <td class=xl65>Average</td>
-  <td class=xl69 align=right>2.377</td>
-  <td class=xl69 align=right>2.855</td>
- </tr>
+ <![endif]>
 </table>
+
+
+<table border=0 cellpadding=0 cellspacing=0 width=894 style='border-collapse:
+ collapse;table-layout:fixed;width:672pt'>
+ <col width=87 style='mso-width-source:userset;mso-width-alt:2377;width:65pt'>
+ <col width=89 span=8 style='mso-width-source:userset;mso-width-alt:2450;
+ width:67pt'>
+ <col width=95 style='mso-width-source:userset;mso-width-alt:2596;width:71pt'>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl71 width=87 style='height:18.0pt;width:65pt;font-size:
+  12.0pt;color:black;font-weight:700;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>&nbsp;</td>
+  <td class=xl65 width=89 style='border-left:none;width:67pt'>&nbsp;</td>
+  <td class=xl65 width=89 style='border-left:none;width:67pt'>&nbsp;</td>
+  <td class=xl65 width=89 style='border-left:none;width:67pt'>&nbsp;</td>
+  <td class=xl65 width=89 style='border-left:none;width:67pt'>&nbsp;</td>
+  <td class=xl65 width=89 style='border-left:none;width:67pt'>&nbsp;</td>
+  <td class=xl65 width=89 style='border-left:none;width:67pt'>&nbsp;</td>
+  <td class=xl65 width=89 style='border-left:none;width:67pt'>&nbsp;</td>
+  <td class=xl74 width=89 style='border-left:none;width:67pt'>Speedup</td>
+  <td class=xl77 width=95 style='width:71pt;font-size:12.0pt;color:black;
+  font-weight:700;text-decoration:none;text-underline-style:none;text-line-through:
+  none;font-family:Candara, sans-serif;border-top:.5pt solid windowtext;
+  border-right:.5pt solid windowtext;border-bottom:.5pt solid windowtext;
+  border-left:none'>Speedup</td>
+ </tr>
+ <tr height=76 style='height:57.0pt'>
+  <td height=76 class=xl72 width=87 style='height:57.0pt;border-top:none;
+  width:65pt;font-size:12.0pt;color:black;font-weight:700;text-decoration:none;
+  text-underline-style:none;text-line-through:none;font-family:Candara, sans-serif;
+  border:.5pt solid windowtext;background:#D9D9D9;mso-pattern:#D9D9D9 none'>Fusion
+  Mode</td>
+  <td class=xl66 width=89 style='border-top:none;border-left:none;width:67pt;
+  font-size:12.0pt;color:black;font-weight:700;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>Input Channels</td>
+  <td class=xl66 width=89 style='border-top:none;border-left:none;width:67pt;
+  font-size:12.0pt;color:black;font-weight:700;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>Height</td>
+  <td class=xl66 width=89 style='border-top:none;border-left:none;width:67pt;
+  font-size:12.0pt;color:black;font-weight:700;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>Width</td>
+  <td class=xl66 width=89 style='border-top:none;border-left:none;width:67pt;
+  font-size:12.0pt;color:black;font-weight:700;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>Conv. Channels</td>
+  <td class=xl66 width=89 style='border-top:none;border-left:none;width:67pt;
+  font-size:12.0pt;color:black;font-weight:700;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>Filter Height and Width</td>
+  <td class=xl66 width=89 style='border-top:none;border-left:none;width:67pt;
+  font-size:12.0pt;color:black;font-weight:700;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>kernel time (ms)</td>
+  <td class=xl66 width=89 style='border-top:none;border-left:none;width:67pt;
+  font-size:12.0pt;color:black;font-weight:700;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>wall time (ms)</td>
+  <td class=xl66 width=89 style='border-top:none;border-left:none;width:67pt;
+  font-size:12.0pt;color:black;font-weight:700;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>kernel time</td>
+  <td class=xl75 width=95 style='border-top:none;border-left:none;width:71pt;
+  font-size:12.0pt;color:black;font-weight:700;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>wall time</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>C-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1024</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>14</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>14</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>256</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.941</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.359</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.132</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.427</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>C-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>128</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>28</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>28</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>128</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>3</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.791</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.889</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.135</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.248</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>C-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>128</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>28</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>28</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>512</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.047</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.186</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.477</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.891</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>C-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>2048</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>7</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>7</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>512</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.153</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.272</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.955</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.059</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>C-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>256</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>14</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>14</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1024</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.209</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.345</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.106</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.195</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>C-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>256</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>14</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>14</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>256</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>3</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.640</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.705</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.063</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.233</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>C-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>256</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>55</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>55</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>64</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.879</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.005</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.339</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.381</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>C-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>512</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>28</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>28</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>128</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.991</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.137</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.144</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.194</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>C-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>512</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>7</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>7</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>2048</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.250</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.367</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.008</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.100</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>C-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>512</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>7</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>7</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>512</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>3</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.728</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.818</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.017</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.134</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>C-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>64</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>55</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>55</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>256</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.216</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.358</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.760</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>2.187</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>C-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>64</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>55</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>55</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>64</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.319</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.375</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.809</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>2.013</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>C-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>64</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>55</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>55</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>64</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>3</td>
+  <td class=xl70 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.8950</td>
+  <td class=xl70 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.0372</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.258</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.334</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl73 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl67 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl67 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl67 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl67 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl67 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl69 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl65 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:700;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>Average</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.246</td>
+  <td class=xl76 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.415</td>
+ </tr>
+ <![if supportMisalignedColumns]>
+ <tr height=0 style='display:none'>
+  <td width=87 style='width:65pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=95 style='width:71pt'></td>
+ </tr>
+ <![endif]>
+</table>
+
+
+<table border=0 cellpadding=0 cellspacing=0 width=894 style='border-collapse:
+ collapse;table-layout:fixed;width:672pt'>
+ <col width=87 style='mso-width-source:userset;mso-width-alt:2377;width:65pt'>
+ <col width=89 span=8 style='mso-width-source:userset;mso-width-alt:2450;
+ width:67pt'>
+ <col width=95 style='mso-width-source:userset;mso-width-alt:2596;width:71pt'>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl69 width=87 style='height:18.0pt;width:65pt;font-size:
+  12.0pt;color:black;font-weight:700;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl65 width=89 style='border-left:none;width:67pt;font-size:12.0pt;
+  color:black;font-weight:700;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl65 width=89 style='border-left:none;width:67pt;font-size:12.0pt;
+  color:black;font-weight:700;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl65 width=89 style='border-left:none;width:67pt;font-size:12.0pt;
+  color:black;font-weight:700;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl65 width=89 style='border-left:none;width:67pt;font-size:12.0pt;
+  color:black;font-weight:700;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl65 width=89 style='border-left:none;width:67pt;font-size:12.0pt;
+  color:black;font-weight:700;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl65 width=89 style='border-left:none;width:67pt;font-size:12.0pt;
+  color:black;font-weight:700;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl65 width=89 style='border-left:none;width:67pt;font-size:12.0pt;
+  color:black;font-weight:700;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>&nbsp;</td>
+  <td class=xl72 width=89 style='border-left:none;width:67pt;font-size:12.0pt;
+  color:black;font-weight:700;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border-top:.5pt solid windowtext;
+  border-right:none;border-bottom:.5pt solid windowtext;border-left:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>Speedup</td>
+  <td class=xl80 width=95 style='width:71pt;font-size:12.0pt;color:black;
+  font-weight:700;text-decoration:none;text-underline-style:none;text-line-through:
+  none;font-family:Candara, sans-serif;border-top:.5pt solid windowtext;
+  border-right:.5pt solid windowtext;border-bottom:.5pt solid windowtext;
+  border-left:none;background:#D9D9D9;mso-pattern:#D9D9D9 none'>Speedup</td>
+ </tr>
+ <tr height=76 style='height:57.0pt'>
+  <td height=76 class=xl70 width=87 style='height:57.0pt;border-top:none;
+  width:65pt;font-size:12.0pt;color:black;font-weight:700;text-decoration:none;
+  text-underline-style:none;text-line-through:none;font-family:Candara, sans-serif;
+  border:.5pt solid windowtext'>Fusion Mode</td>
+  <td class=xl66 width=89 style='border-top:none;border-left:none;width:67pt'>Input
+  Channels</td>
+  <td class=xl66 width=89 style='border-top:none;border-left:none;width:67pt'>Height</td>
+  <td class=xl66 width=89 style='border-top:none;border-left:none;width:67pt'>Width</td>
+  <td class=xl66 width=89 style='border-top:none;border-left:none;width:67pt'>Conv.
+  Channels</td>
+  <td class=xl66 width=89 style='border-top:none;border-left:none;width:67pt'>Filter
+  Height and Width</td>
+  <td class=xl66 width=89 style='border-top:none;border-left:none;width:67pt'>kernel
+  time (ms)</td>
+  <td class=xl66 width=89 style='border-top:none;border-left:none;width:67pt'>wall
+  time (ms)</td>
+  <td class=xl66 width=89 style='border-top:none;border-left:none;width:67pt'>kernel
+  time</td>
+  <td class=xl73 width=95 style='border-top:none;border-left:none;width:71pt;
+  font-size:12.0pt;color:black;font-weight:700;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>wall
+  time</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl71 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>N-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1024</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>14</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>14</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>256</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.269</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.322</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>2.374</td>
+  <td class=xl74 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>2.577</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl71 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>N-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>128</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>28</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>28</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>128</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>3</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.135</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.185</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>2.209</td>
+  <td class=xl74 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>2.615</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl71 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>N-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>128</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>28</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>28</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>512</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.135</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.185</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>2.336</td>
+  <td class=xl74 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>2.763</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl71 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>N-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>2048</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>7</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>7</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>512</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.135</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.183</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>3.250</td>
+  <td class=xl74 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>3.452</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl71 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>N-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>256</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>14</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>14</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1024</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.072</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.122</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>2.065</td>
+  <td class=xl74 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>2.824</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl71 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>N-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>256</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>14</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>14</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>256</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>3</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.073</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.122</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1.826</td>
+  <td class=xl74 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>2.667</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl71 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>N-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>256</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>55</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>55</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>64</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.090</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1.241</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>2.338</td>
+  <td class=xl74 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>2.610</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl71 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>N-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>512</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>28</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>28</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>128</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.557</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.617</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>2.680</td>
+  <td class=xl74 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>4.144</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl71 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>N-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>512</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>7</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>7</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>2048</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.046</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.093</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>2.467</td>
+  <td class=xl74 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>3.129</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl71 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>N-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>512</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>7</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>7</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>512</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>3</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.047</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.101</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>2.091</td>
+  <td class=xl74 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>2.414</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl71 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>N-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>64</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>55</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>55</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>256</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>1</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.264</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.315</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>2.432</td>
+  <td class=xl74 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>2.655</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl71 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>N-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>64</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>55</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>55</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>64</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>1</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.264</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>0.312</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>2.462</td>
+  <td class=xl74 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>2.678</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl71 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>N-A</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>64</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>55</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>55</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>64</td>
+  <td class=xl67 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>3</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.265</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>0.315</td>
+  <td class=xl68 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>2.376</td>
+  <td class=xl74 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext;
+  background:#D9D9D9;mso-pattern:#D9D9D9 none'>2.593</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 class=xl75 style='height:18.0pt;border-top:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>&nbsp;</td>
+  <td class=xl76 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>&nbsp;</td>
+  <td class=xl76 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>&nbsp;</td>
+  <td class=xl76 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>&nbsp;</td>
+  <td class=xl76 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>&nbsp;</td>
+  <td class=xl76 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>&nbsp;</td>
+  <td class=xl76 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:400;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>&nbsp;</td>
+  <td class=xl77 style='border-top:none;border-left:none;font-size:12.0pt;
+  color:black;font-weight:700;text-decoration:none;text-underline-style:none;
+  text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>Average</td>
+  <td class=xl78 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>2.377</td>
+  <td class=xl79 align=right style='border-top:none;border-left:none;
+  font-size:12.0pt;color:black;font-weight:400;text-decoration:none;text-underline-style:
+  none;text-line-through:none;font-family:Candara, sans-serif;border:.5pt solid windowtext'>2.855</td>
+ </tr>
+ <![if supportMisalignedColumns]>
+ <tr height=0 style='display:none'>
+  <td width=87 style='width:65pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=89 style='width:67pt'></td>
+  <td width=95 style='width:71pt'></td>
+ </tr>
+ <![endif]>
+</table>
+
 
