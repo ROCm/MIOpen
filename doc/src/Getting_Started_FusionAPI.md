@@ -191,58 +191,625 @@ Once the fusion plan object is destroyed, all the operations created are destroy
 ## <a name="supported_fusions"></a> Supported Fusions
 The table below outlines the supported fusions as well as any applicable constraints. Currently, only convolutions with unit stride and unit dilation are supported. Currently, the fusion API is in the initial phases of development and may change.
 
-| ﻿**Combination** | **Conv Algo** | **Filter Dims**                    | **BN Mode** | **Activations**      | **Other Constraints**     |
-|-------------|-----------|--------------------------------|---------|------------------|-----------------------|
-| CBNA        | Direct    | 1x1, 3x3, 5x5, 7x7, 9x9, 11x11 | All     | All              | Padding not supported |
-| CBA         | Direct    | 1x1, 3x3, 5x5, 7x7, 9x9, 11x11 |         | All              |                       |
-|             | Winograd  | 3x3                            | N/A     | Relu, Leaky Relu | c >= 18               |
-| NA          | -         | -                              | All     | All              | Padding not supported |
+<table border=0 cellpadding=0 cellspacing=0 width=713 style='border-collapse:
+ collapse;table-layout:fixed;width:534pt'>
+ <col width=108 style='mso-width-source:userset;mso-width-alt:3456;width:81pt'>
+ <col width=87 style='width:65pt'>
+ <col width=221 style='mso-width-source:userset;mso-width-alt:7082;width:166pt'>
+ <col width=87 style='width:65pt'>
+ <col width=123 style='mso-width-source:userset;mso-width-alt:3925;width:92pt'>
+ <col width=87 style='width:65pt'>
+ <tr height=21 style='height:16.0pt'>
+  <td height=21 class=xl63 width=108 style='height:16.0pt;width:81pt'>Combination</td>
+  <td class=xl63 width=87 style='width:65pt'>Conv Algo</td>
+  <td class=xl63 width=221 style='width:166pt'>Filter Dims</td>
+  <td class=xl63 width=87 style='width:65pt'>BN Mode</td>
+  <td class=xl63 width=123 style='width:92pt'>Activations</td>
+  <td class=xl63 width=87 style='width:65pt'>Other Constr<span
+  style='display:none'>aints</span></td>
+ </tr>
+ <tr height=21 style='height:16.0pt'>
+  <td height=21 style='height:16.0pt'>CBNA</td>
+  <td>Direct</td>
+  <td>1x1, 3x3, 5x5, 7x7, 9x9, 11x11</td>
+  <td>All</td>
+  <td>All</td>
+  <td>Padding not <span style='display:none'>supported</span></td>
+ </tr>
+ <tr height=21 style='height:16.0pt'>
+  <td rowspan=2 height=42 class=xl64 style='height:32.0pt'>CBA</td>
+  <td>Direct</td>
+  <td>1x1, 3x3, 5x5, 7x7, 9x9, 11x11</td>
+  <td></td>
+  <td>All</td>
+  <td></td>
+ </tr>
+ <tr height=21 style='height:16.0pt'>
+  <td height=21 style='height:16.0pt'>Winograd</td>
+  <td>3x3</td>
+  <td>N/A</td>
+  <td>Relu, Leaky Relu</td>
+  <td>c &gt;= 18</td>
+ </tr>
+ <tr height=21 style='height:16.0pt'>
+  <td height=21 style='height:16.0pt'>NA</td>
+  <td>-</td>
+  <td>-</td>
+  <td>All</td>
+  <td>All</td>
+  <td>Padding not <span style='display:none'>supported</span></td>
+ </tr>
+</table>
+
 
 ## <a name="supported_fusions"></a> Performance Comparison to Non-Fused Kernels
 The table below shows some of the tested configurations and the respective increase in performance. Other supported configurations are not shown here.
 
-| ﻿            |            |                |        |       |                |                         |                  |                | Speedup     | Speedup   |
-|-------------|------------|----------------|--------|-------|----------------|-------------------------|------------------|----------------|-------------|-----------|
-| Fusion Mode | Batch Size | Input Channels | Height | Width | Conv. Channels | Filter Height and Width | kernel time (ms) | wall time (ms) | kernel time | wall time |
-| C-B-A       | 64         | 1024           | 14     | 14    | 256            | 1                       | 0.949            | 1.705          | 1.218       | 1.188     |
-| C-B-A       | 64         | 128            | 28     | 28    | 128            | 3                       | 0.793            | 0.897          | 1.287       | 1.369     |
-| C-B-A       | 64         | 128            | 28     | 28    | 512            | 1                       | 1.066            | 1.684          | 1.991       | 1.369     |
-| C-B-A       | 64         | 2048           | 7      | 7     | 512            | 1                       | 1.156            | 1.714          | 1.010       | 0.787     |
-| C-B-A       | 64         | 256            | 14     | 14    | 1024           | 1                       | 1.217            | 1.721          | 1.371       | 0.930     |
-| C-B-A       | 64         | 256            | 14     | 14    | 256            | 3                       | 0.640            | 0.706          | 1.173       | 1.239     |
-| C-B-A       | 64         | 256            | 55     | 55    | 64             | 1                       | 0.881            | 1.622          | 1.653       | 0.858     |
-| C-B-A       | 64         | 512            | 28     | 28    | 128            | 1                       | 0.999            | 1.629          | 1.276       | 0.849     |
-| C-B-A       | 64         | 512            | 7      | 7     | 2048           | 1                       | 1.247            | 1.755          | 1.152       | 0.855     |
-| C-B-A       | 64         | 512            | 7      | 7     | 512            | 3                       | 0.731            | 0.811          | 1.089       | 1.140     |
-| C-B-A       | 64         | 64             | 55     | 55    | 256            | 1                       | 1.222            | 1.712          | 2.698       | 1.732     |
-| C-B-A       | 64         | 64             | 55     | 55    | 64             | 1                       | 0.319            | 0.384          | 2.683       | 1.968     |
-| C-B-A       | 64         | 64             | 55     | 55    | 64             | 3                       | 0.893            | 1.464          | 1.550       | 0.945     |
-|             |            |                |        |       |                |                         |                  | Average        | 1.550       | 1.171     |
-| C-A         | 64         | 1024           | 14     | 14    | 256            | 1                       | 0.941            | 1.359          | 1.132       | 1.427     |
-| C-A         | 64         | 128            | 28     | 28    | 128            | 3                       | 0.791            | 0.889          | 1.135       | 1.248     |
-| C-A         | 64         | 128            | 28     | 28    | 512            | 1                       | 1.047            | 1.186          | 1.477       | 1.891     |
-| C-A         | 64         | 2048           | 7      | 7     | 512            | 1                       | 1.153            | 1.272          | 0.955       | 1.059     |
-| C-A         | 64         | 256            | 14     | 14    | 1024           | 1                       | 1.209            | 1.345          | 1.106       | 1.195     |
-| C-A         | 64         | 256            | 14     | 14    | 256            | 3                       | 0.640            | 0.705          | 1.063       | 1.233     |
-| C-A         | 64         | 256            | 55     | 55    | 64             | 1                       | 0.879            | 1.005          | 1.339       | 1.381     |
-| C-A         | 64         | 512            | 28     | 28    | 128            | 1                       | 0.991            | 1.137          | 1.144       | 1.194     |
-| C-A         | 64         | 512            | 7      | 7     | 2048           | 1                       | 1.250            | 1.367          | 1.008       | 1.100     |
-| C-A         | 64         | 512            | 7      | 7     | 512            | 3                       | 0.728            | 0.818          | 1.017       | 1.134     |
-| C-A         | 64         | 64             | 55     | 55    | 256            | 1                       | 1.216            | 1.358          | 1.760       | 2.187     |
-| C-A         | 64         | 64             | 55     | 55    | 64             | 1                       | 0.319            | 0.375          | 1.809       | 2.013     |
-| C-A         | 64         | 64             | 55     | 55    | 64             | 3                       | 0.895            | 1.037          | 1.258       | 1.334     |
-|             |            |                |        |       |                |                         |                  | Average        | 1.246       | 1.415     |
-| N-A         | 64         | 1024           | 14     | 14    | 256            | 1                       | 0.269            | 0.322          | 2.374       | 2.577     |
-| N-A         | 64         | 128            | 28     | 28    | 128            | 3                       | 0.135            | 0.185          | 2.209       | 2.615     |
-| N-A         | 64         | 128            | 28     | 28    | 512            | 1                       | 0.135            | 0.185          | 2.336       | 2.763     |
-| N-A         | 64         | 2048           | 7      | 7     | 512            | 1                       | 0.135            | 0.183          | 3.250       | 3.452     |
-| N-A         | 64         | 256            | 14     | 14    | 1024           | 1                       | 0.072            | 0.122          | 2.065       | 2.824     |
-| N-A         | 64         | 256            | 14     | 14    | 256            | 3                       | 0.073            | 0.122          | 1.826       | 2.667     |
-| N-A         | 64         | 256            | 55     | 55    | 64             | 1                       | 1.090            | 1.241          | 2.338       | 2.610     |
-| N-A         | 64         | 512            | 28     | 28    | 128            | 1                       | 0.557            | 0.617          | 2.680       | 4.144     |
-| N-A         | 64         | 512            | 7      | 7     | 2048           | 1                       | 0.046            | 0.093          | 2.467       | 3.129     |
-| N-A         | 64         | 512            | 7      | 7     | 512            | 3                       | 0.047            | 0.101          | 2.091       | 2.414     |
-| N-A         | 64         | 64             | 55     | 55    | 256            | 1                       | 0.264            | 0.315          | 2.432       | 2.655     |
-| N-A         | 64         | 64             | 55     | 55    | 64             | 1                       | 0.264            | 0.312          | 2.462       | 2.678     |
-| N-A         | 64         | 64             | 55     | 55    | 64             | 3                       | 0.265            | 0.315          | 2.376       | 2.593     |
-|             |            |                |        |       |                |                         |                  | Average        | 2.377       | 2.855     |
+rder=0 cellpadding=0 cellspacing=0 width=753 style='border-collapse:
+ collapse;table-layout:fixed;width:565pt'>
+ <col width=73 style='mso-width-source:userset;mso-width-alt:2011;width:55pt'>
+ <col width=49 style='mso-width-source:userset;mso-width-alt:1353;width:37pt'>
+ <col width=71 style='mso-width-source:userset;mso-width-alt:1938;width:53pt'>
+ <col width=56 style='mso-width-source:userset;mso-width-alt:1536;width:42pt'>
+ <col width=52 style='mso-width-source:userset;mso-width-alt:1426;width:39pt'>
+ <col width=76 style='mso-width-source:userset;mso-width-alt:2084;width:57pt'>
+ <col width=84 style='mso-width-source:userset;mso-width-alt:2304;width:63pt'>
+ <col width=89 style='mso-width-source:userset;mso-width-alt:2450;width:67pt'>
+ <col width=67 style='mso-width-source:userset;mso-width-alt:1828;width:50pt'>
+ <col width=73 style='mso-width-source:userset;mso-width-alt:2011;width:55pt'>
+ <col width=63 style='mso-width-source:userset;mso-width-alt:1718;width:47pt'>
+ <tr class=xl65 height=24 style='height:18.0pt'>
+  <td height=24 class=xl65 width=73 style='height:18.0pt;width:55pt'></td>
+  <td class=xl65 width=49 style='width:37pt'></td>
+  <td class=xl65 width=71 style='width:53pt'></td>
+  <td class=xl65 width=56 style='width:42pt'></td>
+  <td class=xl65 width=52 style='width:39pt'></td>
+  <td class=xl65 width=76 style='width:57pt'></td>
+  <td class=xl65 width=84 style='width:63pt'></td>
+  <td class=xl65 width=89 style='width:67pt'></td>
+  <td class=xl65 width=67 style='width:50pt'></td>
+  <td colspan=2 class=xl68 width=136 style='width:102pt'>Speedup</td>
+ </tr>
+ <tr class=xl70 height=76 style='height:57.0pt'>
+  <td height=76 class=xl70 width=73 style='height:57.0pt;width:55pt'>Fusion
+  Mode</td>
+  <td class=xl70 width=49 style='width:37pt'>Batch Size</td>
+  <td class=xl70 width=71 style='width:53pt'>Input Channels</td>
+  <td class=xl70 width=56 style='width:42pt'>Height</td>
+  <td class=xl70 width=52 style='width:39pt'>Width</td>
+  <td class=xl70 width=76 style='width:57pt'>Conv. Channels</td>
+  <td class=xl70 width=84 style='width:63pt'>Filter Height and Width</td>
+  <td class=xl70 width=89 style='width:67pt'>kernel time (ms)</td>
+  <td class=xl70 width=67 style='width:50pt'>wall time (ms)</td>
+  <td class=xl70 width=73 style='width:55pt'>kernel time</td>
+  <td class=xl70 width=63 style='width:47pt'>wall time</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-B-A</td>
+  <td align=right>64</td>
+  <td align=right>1024</td>
+  <td align=right>14</td>
+  <td align=right>14</td>
+  <td align=right>256</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>0.949</td>
+  <td class=xl69 align=right>1.705</td>
+  <td class=xl69 align=right>1.218</td>
+  <td class=xl69 align=right>1.188</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-B-A</td>
+  <td align=right>64</td>
+  <td align=right>128</td>
+  <td align=right>28</td>
+  <td align=right>28</td>
+  <td align=right>128</td>
+  <td align=right>3</td>
+  <td class=xl69 align=right>0.793</td>
+  <td class=xl69 align=right>0.897</td>
+  <td class=xl69 align=right>1.287</td>
+  <td class=xl69 align=right>1.369</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-B-A</td>
+  <td align=right>64</td>
+  <td align=right>128</td>
+  <td align=right>28</td>
+  <td align=right>28</td>
+  <td align=right>512</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>1.066</td>
+  <td class=xl69 align=right>1.684</td>
+  <td class=xl69 align=right>1.991</td>
+  <td class=xl69 align=right>1.369</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-B-A</td>
+  <td align=right>64</td>
+  <td align=right>2048</td>
+  <td align=right>7</td>
+  <td align=right>7</td>
+  <td align=right>512</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>1.156</td>
+  <td class=xl69 align=right>1.714</td>
+  <td class=xl69 align=right>1.010</td>
+  <td class=xl69 align=right>0.787</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-B-A</td>
+  <td align=right>64</td>
+  <td align=right>256</td>
+  <td align=right>14</td>
+  <td align=right>14</td>
+  <td align=right>1024</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>1.217</td>
+  <td class=xl69 align=right>1.721</td>
+  <td class=xl69 align=right>1.371</td>
+  <td class=xl69 align=right>0.930</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-B-A</td>
+  <td align=right>64</td>
+  <td align=right>256</td>
+  <td align=right>14</td>
+  <td align=right>14</td>
+  <td align=right>256</td>
+  <td align=right>3</td>
+  <td class=xl69 align=right>0.640</td>
+  <td class=xl69 align=right>0.706</td>
+  <td class=xl69 align=right>1.173</td>
+  <td class=xl69 align=right>1.239</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-B-A</td>
+  <td align=right>64</td>
+  <td align=right>256</td>
+  <td align=right>55</td>
+  <td align=right>55</td>
+  <td align=right>64</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>0.881</td>
+  <td class=xl69 align=right>1.622</td>
+  <td class=xl69 align=right>1.653</td>
+  <td class=xl69 align=right>0.858</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-B-A</td>
+  <td align=right>64</td>
+  <td align=right>512</td>
+  <td align=right>28</td>
+  <td align=right>28</td>
+  <td align=right>128</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>0.999</td>
+  <td class=xl69 align=right>1.629</td>
+  <td class=xl69 align=right>1.276</td>
+  <td class=xl69 align=right>0.849</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-B-A</td>
+  <td align=right>64</td>
+  <td align=right>512</td>
+  <td align=right>7</td>
+  <td align=right>7</td>
+  <td align=right>2048</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>1.247</td>
+  <td class=xl69 align=right>1.755</td>
+  <td class=xl69 align=right>1.152</td>
+  <td class=xl69 align=right>0.855</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-B-A</td>
+  <td align=right>64</td>
+  <td align=right>512</td>
+  <td align=right>7</td>
+  <td align=right>7</td>
+  <td align=right>512</td>
+  <td align=right>3</td>
+  <td class=xl69 align=right>0.731</td>
+  <td class=xl69 align=right>0.811</td>
+  <td class=xl69 align=right>1.089</td>
+  <td class=xl69 align=right>1.140</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-B-A</td>
+  <td align=right>64</td>
+  <td align=right>64</td>
+  <td align=right>55</td>
+  <td align=right>55</td>
+  <td align=right>256</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>1.222</td>
+  <td class=xl69 align=right>1.712</td>
+  <td class=xl69 align=right>2.698</td>
+  <td class=xl69 align=right>1.732</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-B-A</td>
+  <td align=right>64</td>
+  <td align=right>64</td>
+  <td align=right>55</td>
+  <td align=right>55</td>
+  <td align=right>64</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>0.319</td>
+  <td class=xl69 align=right>0.384</td>
+  <td class=xl69 align=right>2.683</td>
+  <td class=xl69 align=right>1.968</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-B-A</td>
+  <td align=right>64</td>
+  <td align=right>64</td>
+  <td align=right>55</td>
+  <td align=right>55</td>
+  <td align=right>64</td>
+  <td align=right>3</td>
+  <td class=xl69 align=right>0.893</td>
+  <td class=xl69 align=right>1.464</td>
+  <td class=xl69 align=right>1.550</td>
+  <td class=xl69 align=right>0.945</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 colspan=7 style='height:18.0pt;mso-ignore:colspan'></td>
+  <td class=xl66></td>
+  <td class=xl65>Average</td>
+  <td class=xl69 align=right>1.550</td>
+  <td class=xl69 align=right>1.171</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-A</td>
+  <td align=right>64</td>
+  <td align=right>1024</td>
+  <td align=right>14</td>
+  <td align=right>14</td>
+  <td align=right>256</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>0.941</td>
+  <td class=xl69 align=right>1.359</td>
+  <td class=xl69 align=right>1.132</td>
+  <td class=xl69 align=right>1.427</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-A</td>
+  <td align=right>64</td>
+  <td align=right>128</td>
+  <td align=right>28</td>
+  <td align=right>28</td>
+  <td align=right>128</td>
+  <td align=right>3</td>
+  <td class=xl69 align=right>0.791</td>
+  <td class=xl69 align=right>0.889</td>
+  <td class=xl69 align=right>1.135</td>
+  <td class=xl69 align=right>1.248</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-A</td>
+  <td align=right>64</td>
+  <td align=right>128</td>
+  <td align=right>28</td>
+  <td align=right>28</td>
+  <td align=right>512</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>1.047</td>
+  <td class=xl69 align=right>1.186</td>
+  <td class=xl69 align=right>1.477</td>
+  <td class=xl69 align=right>1.891</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-A</td>
+  <td align=right>64</td>
+  <td align=right>2048</td>
+  <td align=right>7</td>
+  <td align=right>7</td>
+  <td align=right>512</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>1.153</td>
+  <td class=xl69 align=right>1.272</td>
+  <td class=xl69 align=right>0.955</td>
+  <td class=xl69 align=right>1.059</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-A</td>
+  <td align=right>64</td>
+  <td align=right>256</td>
+  <td align=right>14</td>
+  <td align=right>14</td>
+  <td align=right>1024</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>1.209</td>
+  <td class=xl69 align=right>1.345</td>
+  <td class=xl69 align=right>1.106</td>
+  <td class=xl69 align=right>1.195</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-A</td>
+  <td align=right>64</td>
+  <td align=right>256</td>
+  <td align=right>14</td>
+  <td align=right>14</td>
+  <td align=right>256</td>
+  <td align=right>3</td>
+  <td class=xl69 align=right>0.640</td>
+  <td class=xl69 align=right>0.705</td>
+  <td class=xl69 align=right>1.063</td>
+  <td class=xl69 align=right>1.233</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-A</td>
+  <td align=right>64</td>
+  <td align=right>256</td>
+  <td align=right>55</td>
+  <td align=right>55</td>
+  <td align=right>64</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>0.879</td>
+  <td class=xl69 align=right>1.005</td>
+  <td class=xl69 align=right>1.339</td>
+  <td class=xl69 align=right>1.381</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-A</td>
+  <td align=right>64</td>
+  <td align=right>512</td>
+  <td align=right>28</td>
+  <td align=right>28</td>
+  <td align=right>128</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>0.991</td>
+  <td class=xl69 align=right>1.137</td>
+  <td class=xl69 align=right>1.144</td>
+  <td class=xl69 align=right>1.194</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-A</td>
+  <td align=right>64</td>
+  <td align=right>512</td>
+  <td align=right>7</td>
+  <td align=right>7</td>
+  <td align=right>2048</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>1.250</td>
+  <td class=xl69 align=right>1.367</td>
+  <td class=xl69 align=right>1.008</td>
+  <td class=xl69 align=right>1.100</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-A</td>
+  <td align=right>64</td>
+  <td align=right>512</td>
+  <td align=right>7</td>
+  <td align=right>7</td>
+  <td align=right>512</td>
+  <td align=right>3</td>
+  <td class=xl69 align=right>0.728</td>
+  <td class=xl69 align=right>0.818</td>
+  <td class=xl69 align=right>1.017</td>
+  <td class=xl69 align=right>1.134</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-A</td>
+  <td align=right>64</td>
+  <td align=right>64</td>
+  <td align=right>55</td>
+  <td align=right>55</td>
+  <td align=right>256</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>1.216</td>
+  <td class=xl69 align=right>1.358</td>
+  <td class=xl69 align=right>1.760</td>
+  <td class=xl69 align=right>2.187</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-A</td>
+  <td align=right>64</td>
+  <td align=right>64</td>
+  <td align=right>55</td>
+  <td align=right>55</td>
+  <td align=right>64</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>0.319</td>
+  <td class=xl69 align=right>0.375</td>
+  <td class=xl69 align=right>1.809</td>
+  <td class=xl69 align=right>2.013</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>C-A</td>
+  <td align=right>64</td>
+  <td align=right>64</td>
+  <td align=right>55</td>
+  <td align=right>55</td>
+  <td align=right>64</td>
+  <td align=right>3</td>
+  <td class=xl67 align=right>0.8950</td>
+  <td class=xl67 align=right>1.0372</td>
+  <td class=xl69 align=right>1.258</td>
+  <td class=xl69 align=right>1.334</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 colspan=7 style='height:18.0pt;mso-ignore:colspan'></td>
+  <td class=xl66></td>
+  <td class=xl65>Average</td>
+  <td class=xl69 align=right>1.246</td>
+  <td class=xl69 align=right>1.415</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>N-A</td>
+  <td align=right>64</td>
+  <td align=right>1024</td>
+  <td align=right>14</td>
+  <td align=right>14</td>
+  <td align=right>256</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>0.269</td>
+  <td class=xl69 align=right>0.322</td>
+  <td class=xl69 align=right>2.374</td>
+  <td class=xl69 align=right>2.577</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>N-A</td>
+  <td align=right>64</td>
+  <td align=right>128</td>
+  <td align=right>28</td>
+  <td align=right>28</td>
+  <td align=right>128</td>
+  <td align=right>3</td>
+  <td class=xl69 align=right>0.135</td>
+  <td class=xl69 align=right>0.185</td>
+  <td class=xl69 align=right>2.209</td>
+  <td class=xl69 align=right>2.615</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>N-A</td>
+  <td align=right>64</td>
+  <td align=right>128</td>
+  <td align=right>28</td>
+  <td align=right>28</td>
+  <td align=right>512</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>0.135</td>
+  <td class=xl69 align=right>0.185</td>
+  <td class=xl69 align=right>2.336</td>
+  <td class=xl69 align=right>2.763</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>N-A</td>
+  <td align=right>64</td>
+  <td align=right>2048</td>
+  <td align=right>7</td>
+  <td align=right>7</td>
+  <td align=right>512</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>0.135</td>
+  <td class=xl69 align=right>0.183</td>
+  <td class=xl69 align=right>3.250</td>
+  <td class=xl69 align=right>3.452</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>N-A</td>
+  <td align=right>64</td>
+  <td align=right>256</td>
+  <td align=right>14</td>
+  <td align=right>14</td>
+  <td align=right>1024</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>0.072</td>
+  <td class=xl69 align=right>0.122</td>
+  <td class=xl69 align=right>2.065</td>
+  <td class=xl69 align=right>2.824</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>N-A</td>
+  <td align=right>64</td>
+  <td align=right>256</td>
+  <td align=right>14</td>
+  <td align=right>14</td>
+  <td align=right>256</td>
+  <td align=right>3</td>
+  <td class=xl69 align=right>0.073</td>
+  <td class=xl69 align=right>0.122</td>
+  <td class=xl69 align=right>1.826</td>
+  <td class=xl69 align=right>2.667</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>N-A</td>
+  <td align=right>64</td>
+  <td align=right>256</td>
+  <td align=right>55</td>
+  <td align=right>55</td>
+  <td align=right>64</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>1.090</td>
+  <td class=xl69 align=right>1.241</td>
+  <td class=xl69 align=right>2.338</td>
+  <td class=xl69 align=right>2.610</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>N-A</td>
+  <td align=right>64</td>
+  <td align=right>512</td>
+  <td align=right>28</td>
+  <td align=right>28</td>
+  <td align=right>128</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>0.557</td>
+  <td class=xl69 align=right>0.617</td>
+  <td class=xl69 align=right>2.680</td>
+  <td class=xl69 align=right>4.144</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>N-A</td>
+  <td align=right>64</td>
+  <td align=right>512</td>
+  <td align=right>7</td>
+  <td align=right>7</td>
+  <td align=right>2048</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>0.046</td>
+  <td class=xl69 align=right>0.093</td>
+  <td class=xl69 align=right>2.467</td>
+  <td class=xl69 align=right>3.129</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>N-A</td>
+  <td align=right>64</td>
+  <td align=right>512</td>
+  <td align=right>7</td>
+  <td align=right>7</td>
+  <td align=right>512</td>
+  <td align=right>3</td>
+  <td class=xl69 align=right>0.047</td>
+  <td class=xl69 align=right>0.101</td>
+  <td class=xl69 align=right>2.091</td>
+  <td class=xl69 align=right>2.414</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>N-A</td>
+  <td align=right>64</td>
+  <td align=right>64</td>
+  <td align=right>55</td>
+  <td align=right>55</td>
+  <td align=right>256</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>0.264</td>
+  <td class=xl69 align=right>0.315</td>
+  <td class=xl69 align=right>2.432</td>
+  <td class=xl69 align=right>2.655</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>N-A</td>
+  <td align=right>64</td>
+  <td align=right>64</td>
+  <td align=right>55</td>
+  <td align=right>55</td>
+  <td align=right>64</td>
+  <td align=right>1</td>
+  <td class=xl69 align=right>0.264</td>
+  <td class=xl69 align=right>0.312</td>
+  <td class=xl69 align=right>2.462</td>
+  <td class=xl69 align=right>2.678</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 style='height:18.0pt'>N-A</td>
+  <td align=right>64</td>
+  <td align=right>64</td>
+  <td align=right>55</td>
+  <td align=right>55</td>
+  <td align=right>64</td>
+  <td align=right>3</td>
+  <td class=xl69 align=right>0.265</td>
+  <td class=xl69 align=right>0.315</td>
+  <td class=xl69 align=right>2.376</td>
+  <td class=xl69 align=right>2.593</td>
+ </tr>
+ <tr height=24 style='height:18.0pt'>
+  <td height=24 colspan=8 style='height:18.0pt;mso-ignore:colspan'></td>
+  <td class=xl65>Average</td>
+  <td class=xl69 align=right>2.377</td>
+  <td class=xl69 align=right>2.855</td>
+ </tr>
+</table>
+
