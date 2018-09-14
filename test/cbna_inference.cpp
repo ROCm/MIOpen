@@ -254,7 +254,7 @@ struct cbna_fusion_driver : test_driver
     miopen::ConvolutionDescriptor filter;
     ptr_ActivationDesc ptr_activdesc  = nullptr;
     miopenActivationMode_t activ_mode = miopenActivationRELU;
-    int amode                         = 0;
+    int amode                         = 3;
     bool tactiv{};
     bool bias_mode = true;
     miopenBatchNormMode_t bnmode{};
@@ -279,19 +279,15 @@ struct cbna_fusion_driver : test_driver
     {
         add(input, "input", get_input_tensor(tensor_elem_gen_integer{max_value}));
         add(filter, "filter", generate_data(get_filters()));
-
-// \todo: Remove this once the HIP issue is resolved
-#if(MIOPEN_BACKEND_HIP == 0)
-        add(weights, "weights", get_weights_tensor(tensor_elem_gen_integer{max_value}));
         add(alpha, "alpha", generate_data({/*1. , */ 0.5}));
         add(beta, "beta", generate_data({/*0. , */ 0.5}));
         add(gamma, "gamma", generate_data({/*1. ,*/ 0.5}));
+        add(weights, "weights", get_weights_tensor(tensor_elem_gen_integer{max_value}));
         add(bias_mode, "bmode", generate_data({true, false}));
         add(pad_mode, "pmode", generate_data({"default" /*, "same", "valid"*/}));
         add(tactiv, "test_activ", generate_data({false, true}));
         add(amode, "amode", generate_data({3}));
         add(batchnormMode, "batch-norm-mode", generate_data({0, 1}));
-#endif
     }
 
     std::vector<miopen::ConvolutionDescriptor> get_filters()
@@ -309,7 +305,16 @@ struct cbna_fusion_driver : test_driver
 
 // \todo: Remove this once the HIP issue is resolved
 #if(MIOPEN_BACKEND_HIP == 1)
-        weights = tensor<T>{32, 32, 3, 3}.generate(tensor_elem_gen_integer{max_value});
+        static bool ranonce = false;
+        if(!ranonce){
+            ranonce = true;
+        }
+        else
+        {
+            return;
+        }
+
+
 #endif
 
         switch(amode)
