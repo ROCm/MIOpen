@@ -191,49 +191,12 @@ Once the fusion plan object is destroyed, all the operations created are destroy
 ## <a name="supported_fusions"></a> Supported Fusions
 The table below outlines the supported fusions as well as any applicable constraints. Currently, only convolutions with unit stride and unit dilation are supported. Currently, the fusion API is in the initial phases of development and may change.
 
-<table border=0 cellpadding=0 cellspacing=0 width=713 style='border-collapse:
- collapse;table-layout:fixed;width:534pt'>
- <tr height=21 style='height:16.0pt'>
-  <td height=21 class=xl64 width=108 style='height:16.0pt;width:81pt'>Combination <legend>C: Convolution <br/> B: Bias <br/> N: Batch Norm <br/> A: Activation</legend> </td>
-  <td class=xl64 width=87 style='width:65pt'>Conv Algo</td>
-  <td class=xl64 width=221 style='width:166pt'>Filter Dims</td>
-  <td class=xl64 width=87 style='width:65pt'>BN Mode</td>
-  <td class=xl64 width=123 style='width:92pt'>Activations</td>
-  <td class=xl64 width=87 style='width:65pt'>Other Constr<span
-  style='display:none'>aints</span></td>
- </tr>
- <tr height=21 style='height:16.0pt'>
-  <td height=21 style='height:16.0pt'>C-B-N-A</td>
-  <td>Direct</td>
-  <td>1x1, 3x3, 5x5, 7x7, 9x9, 11x11</td>
-  <td>All</td>
-  <td>All</td>
-  <td></td>
- </tr>
- <tr height=21 style='height:16.0pt'>
-  <td rowspan=2 height=42 class=xl63 style='height:32.0pt'>C-B-A</td>
-  <td>Direct</td>
-  <td>1x1, 3x3, 5x5, 7x7, 9x9, 11x11</td>
-  <td>--</td>
-  <td>All</td>
-  <td></td>
- </tr>
- <tr height=21 style='height:16.0pt'>
-  <td height=21 style='height:16.0pt'>Winograd</td>
-  <td>3x3</td>
-  <td>--</td>
-  <td>Relu, Leaky Relu</td>
-  <td>c &gt;= 18</td>
- </tr>
- <tr height=21 style='height:16.0pt'>
-  <td height=21 style='height:16.0pt'>N-A</td>
-  <td>-</td>
-  <td>-</td>
-  <td>All</td>
-  <td>All</td>
-  <td></td>
- </tr>
-</table>
+| ﻿**Combination** | **Conv Algo** | **Filter Dims**                    | **BN Mode** | **Activations**      | **Other Constraints**     |
+|-------------|-----------|--------------------------------|---------|------------------|-----------------------|
+| CBNA        | Direct    | 1x1, 3x3, 5x5, 7x7, 9x9, 11x11 | All     | All              | Padding not supported |
+| CBA         | Direct    | 1x1, 3x3, 5x5, 7x7, 9x9, 11x11 |         | All              |                       |
+|             | Winograd  | 3x3                            | N/A     | Relu, Leaky Relu | c >= 18               |
+| NA          | -         | -                              | All     | All              | Padding not supported |
 
 ## <a name="supported_fusions"></a> Performance Comparison to Non-Fused Kernels
 The table below shows some of the tested configurations and the respective increase in performance. Other supported configurations are not shown here.
