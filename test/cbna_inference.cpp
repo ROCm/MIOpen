@@ -306,14 +306,14 @@ struct cbna_fusion_driver : test_driver
 // \todo: Remove this once the HIP issue is resolved
 #if(MIOPEN_BACKEND_HIP == 1)
         static bool ranonce = false;
-        if(!ranonce){
+        if(!ranonce)
+        {
             ranonce = true;
         }
         else
         {
             return;
         }
-
 
 #endif
 
