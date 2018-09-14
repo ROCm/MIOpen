@@ -199,45 +199,44 @@ The table below outlines the supported fusions as well as any applicable constra
  <col width=87 style='width:65pt'>
  <col width=123 style='mso-width-source:userset;mso-width-alt:3925;width:92pt'>
  <col width=87 style='width:65pt'>
- <tr height=21 style='height:16.0pt'>
-  <td height=21 class=xl63 width=108 style='height:16.0pt;width:81pt'>Combination</td>
-  <td class=xl63 width=87 style='width:65pt'>Conv Algo</td>
-  <td class=xl63 width=221 style='width:166pt'>Filter Dims</td>
-  <td class=xl63 width=87 style='width:65pt'>BN Mode</td>
-  <td class=xl63 width=123 style='width:92pt'>Activations</td>
-  <td class=xl63 width=87 style='width:65pt'>Other Constr<span
-  style='display:none'>aints</span></td>
+ <tr height=45 style='height:34.0pt'>
+  <td height=45 class=xl65 width=108 style='height:34.0pt;width:81pt'>Combination</td>
+  <td class=xl65 width=87 style='width:65pt'>Conv Algo</td>
+  <td class=xl65 width=221 style='width:166pt'>Filter Dims</td>
+  <td class=xl65 width=87 style='width:65pt'>BN Mode</td>
+  <td class=xl65 width=123 style='width:92pt'>Activations</td>
+  <td class=xl65 width=87 style='width:65pt'>Other Constraints</td>
  </tr>
- <tr height=21 style='height:16.0pt'>
-  <td height=21 style='height:16.0pt'>CBNA</td>
-  <td>Direct</td>
-  <td>1x1, 3x3, 5x5, 7x7, 9x9, 11x11</td>
-  <td>All</td>
-  <td>All</td>
-  <td>Padding not <span style='display:none'>supported</span></td>
+ <tr height=45 style='height:34.0pt'>
+  <td height=45 class=xl66 width=108 style='height:34.0pt;width:81pt'>CBNA</td>
+  <td class=xl66 width=87 style='width:65pt'>Direct</td>
+  <td class=xl66 width=221 style='width:166pt'>1x1, 3x3, 5x5, 7x7, 9x9, 11x11</td>
+  <td class=xl66 width=87 style='width:65pt'>All</td>
+  <td class=xl66 width=123 style='width:92pt'>All</td>
+  <td class=xl66 width=87 style='width:65pt'>Padding not supported</td>
  </tr>
- <tr height=21 style='height:16.0pt'>
-  <td rowspan=2 height=42 class=xl64 style='height:32.0pt'>CBA</td>
-  <td>Direct</td>
-  <td>1x1, 3x3, 5x5, 7x7, 9x9, 11x11</td>
-  <td></td>
-  <td>All</td>
-  <td></td>
+ <tr height=23 style='height:17.0pt'>
+  <td rowspan=2 height=46 class=xl67 width=108 style='height:34.0pt;width:81pt'>CBA</td>
+  <td class=xl66 width=87 style='width:65pt'>Direct</td>
+  <td class=xl66 width=221 style='width:166pt'>1x1, 3x3, 5x5, 7x7, 9x9, 11x11</td>
+  <td class=xl66 width=87 style='width:65pt'></td>
+  <td class=xl66 width=123 style='width:92pt'>All</td>
+  <td class=xl66 width=87 style='width:65pt'></td>
  </tr>
- <tr height=21 style='height:16.0pt'>
-  <td height=21 style='height:16.0pt'>Winograd</td>
-  <td>3x3</td>
-  <td>N/A</td>
-  <td>Relu, Leaky Relu</td>
-  <td>c &gt;= 18</td>
+ <tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl66 width=87 style='height:17.0pt;width:65pt'>Winograd</td>
+  <td class=xl66 width=221 style='width:166pt'>3x3</td>
+  <td class=xl66 width=87 style='width:65pt'>N/A</td>
+  <td class=xl66 width=123 style='width:92pt'>Relu, Leaky Relu</td>
+  <td class=xl66 width=87 style='width:65pt'>c &gt;= 18</td>
  </tr>
- <tr height=21 style='height:16.0pt'>
-  <td height=21 style='height:16.0pt'>NA</td>
-  <td>-</td>
-  <td>-</td>
-  <td>All</td>
-  <td>All</td>
-  <td>Padding not <span style='display:none'>supported</span></td>
+ <tr height=45 style='height:34.0pt'>
+  <td height=45 class=xl66 width=108 style='height:34.0pt;width:81pt'>NA</td>
+  <td class=xl66 width=87 style='width:65pt'>-</td>
+  <td class=xl66 width=221 style='width:166pt'>-</td>
+  <td class=xl66 width=87 style='width:65pt'>All</td>
+  <td class=xl66 width=123 style='width:92pt'>All</td>
+  <td class=xl66 width=87 style='width:65pt'>Padding not supported</td>
  </tr>
 </table>
 
@@ -245,11 +244,10 @@ The table below outlines the supported fusions as well as any applicable constra
 ## <a name="supported_fusions"></a> Performance Comparison to Non-Fused Kernels
 The table below shows some of the tested configurations and the respective increase in performance. Other supported configurations are not shown here.
 
-
-<table border=0 cellpadding=0 cellspacing=0 width=753 style='border-collapse:
- collapse;table-layout:fixed;width:565pt'>
+All configurations have a batch size of 64.
+<table border=0 cellpadding=0 cellspacing=0 width=704 style='border-collapse:
+ collapse;table-layout:fixed;width:528pt'>
  <col width=73 style='mso-width-source:userset;mso-width-alt:2011;width:55pt'>
- <col width=49 style='mso-width-source:userset;mso-width-alt:1353;width:37pt'>
  <col width=71 style='mso-width-source:userset;mso-width-alt:1938;width:53pt'>
  <col width=56 style='mso-width-source:userset;mso-width-alt:1536;width:42pt'>
  <col width=52 style='mso-width-source:userset;mso-width-alt:1426;width:39pt'>
@@ -261,7 +259,6 @@ The table below shows some of the tested configurations and the respective incre
  <col width=63 style='mso-width-source:userset;mso-width-alt:1718;width:47pt'>
  <tr class=xl65 height=24 style='height:18.0pt'>
   <td height=24 class=xl65 width=73 style='height:18.0pt;width:55pt'></td>
-  <td class=xl65 width=49 style='width:37pt'></td>
   <td class=xl65 width=71 style='width:53pt'></td>
   <td class=xl65 width=56 style='width:42pt'></td>
   <td class=xl65 width=52 style='width:39pt'></td>
@@ -274,7 +271,6 @@ The table below shows some of the tested configurations and the respective incre
  <tr class=xl70 height=76 style='height:57.0pt'>
   <td height=76 class=xl70 width=73 style='height:57.0pt;width:55pt'>Fusion
   Mode</td>
-  <td class=xl70 width=49 style='width:37pt'>Batch Size</td>
   <td class=xl70 width=71 style='width:53pt'>Input Channels</td>
   <td class=xl70 width=56 style='width:42pt'>Height</td>
   <td class=xl70 width=52 style='width:39pt'>Width</td>
@@ -287,7 +283,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>64</td>
   <td align=right>1024</td>
   <td align=right>14</td>
   <td align=right>14</td>
@@ -300,7 +295,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>64</td>
   <td align=right>128</td>
   <td align=right>28</td>
   <td align=right>28</td>
@@ -313,7 +307,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>64</td>
   <td align=right>128</td>
   <td align=right>28</td>
   <td align=right>28</td>
@@ -326,7 +319,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>64</td>
   <td align=right>2048</td>
   <td align=right>7</td>
   <td align=right>7</td>
@@ -339,7 +331,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>64</td>
   <td align=right>256</td>
   <td align=right>14</td>
   <td align=right>14</td>
@@ -352,7 +343,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>64</td>
   <td align=right>256</td>
   <td align=right>14</td>
   <td align=right>14</td>
@@ -365,7 +355,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>64</td>
   <td align=right>256</td>
   <td align=right>55</td>
   <td align=right>55</td>
@@ -378,7 +367,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>64</td>
   <td align=right>512</td>
   <td align=right>28</td>
   <td align=right>28</td>
@@ -391,7 +379,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>64</td>
   <td align=right>512</td>
   <td align=right>7</td>
   <td align=right>7</td>
@@ -404,7 +391,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>64</td>
   <td align=right>512</td>
   <td align=right>7</td>
   <td align=right>7</td>
@@ -418,7 +404,6 @@ The table below shows some of the tested configurations and the respective incre
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-B-A</td>
   <td align=right>64</td>
-  <td align=right>64</td>
   <td align=right>55</td>
   <td align=right>55</td>
   <td align=right>256</td>
@@ -430,7 +415,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-B-A</td>
-  <td align=right>64</td>
   <td align=right>64</td>
   <td align=right>55</td>
   <td align=right>55</td>
@@ -444,7 +428,6 @@ The table below shows some of the tested configurations and the respective incre
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-B-A</td>
   <td align=right>64</td>
-  <td align=right>64</td>
   <td align=right>55</td>
   <td align=right>55</td>
   <td align=right>64</td>
@@ -455,7 +438,7 @@ The table below shows some of the tested configurations and the respective incre
   <td class=xl69 align=right>0.945</td>
  </tr>
  <tr height=24 style='height:18.0pt'>
-  <td height=24 colspan=7 style='height:18.0pt;mso-ignore:colspan'></td>
+  <td height=24 colspan=6 style='height:18.0pt;mso-ignore:colspan'></td>
   <td class=xl66></td>
   <td class=xl65>Average</td>
   <td class=xl69 align=right>1.550</td>
@@ -463,7 +446,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>64</td>
   <td align=right>1024</td>
   <td align=right>14</td>
   <td align=right>14</td>
@@ -476,7 +458,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>64</td>
   <td align=right>128</td>
   <td align=right>28</td>
   <td align=right>28</td>
@@ -489,7 +470,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>64</td>
   <td align=right>128</td>
   <td align=right>28</td>
   <td align=right>28</td>
@@ -502,7 +482,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>64</td>
   <td align=right>2048</td>
   <td align=right>7</td>
   <td align=right>7</td>
@@ -515,7 +494,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>64</td>
   <td align=right>256</td>
   <td align=right>14</td>
   <td align=right>14</td>
@@ -528,7 +506,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>64</td>
   <td align=right>256</td>
   <td align=right>14</td>
   <td align=right>14</td>
@@ -541,7 +518,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>64</td>
   <td align=right>256</td>
   <td align=right>55</td>
   <td align=right>55</td>
@@ -554,7 +530,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>64</td>
   <td align=right>512</td>
   <td align=right>28</td>
   <td align=right>28</td>
@@ -567,7 +542,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>64</td>
   <td align=right>512</td>
   <td align=right>7</td>
   <td align=right>7</td>
@@ -580,7 +554,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>64</td>
   <td align=right>512</td>
   <td align=right>7</td>
   <td align=right>7</td>
@@ -594,7 +567,6 @@ The table below shows some of the tested configurations and the respective incre
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-A</td>
   <td align=right>64</td>
-  <td align=right>64</td>
   <td align=right>55</td>
   <td align=right>55</td>
   <td align=right>256</td>
@@ -606,7 +578,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-A</td>
-  <td align=right>64</td>
   <td align=right>64</td>
   <td align=right>55</td>
   <td align=right>55</td>
@@ -620,7 +591,6 @@ The table below shows some of the tested configurations and the respective incre
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>C-A</td>
   <td align=right>64</td>
-  <td align=right>64</td>
   <td align=right>55</td>
   <td align=right>55</td>
   <td align=right>64</td>
@@ -631,7 +601,7 @@ The table below shows some of the tested configurations and the respective incre
   <td class=xl69 align=right>1.334</td>
  </tr>
  <tr height=24 style='height:18.0pt'>
-  <td height=24 colspan=7 style='height:18.0pt;mso-ignore:colspan'></td>
+  <td height=24 colspan=6 style='height:18.0pt;mso-ignore:colspan'></td>
   <td class=xl66></td>
   <td class=xl65>Average</td>
   <td class=xl69 align=right>1.246</td>
@@ -639,7 +609,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>64</td>
   <td align=right>1024</td>
   <td align=right>14</td>
   <td align=right>14</td>
@@ -652,7 +621,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>64</td>
   <td align=right>128</td>
   <td align=right>28</td>
   <td align=right>28</td>
@@ -665,7 +633,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>64</td>
   <td align=right>128</td>
   <td align=right>28</td>
   <td align=right>28</td>
@@ -678,7 +645,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>64</td>
   <td align=right>2048</td>
   <td align=right>7</td>
   <td align=right>7</td>
@@ -691,7 +657,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>64</td>
   <td align=right>256</td>
   <td align=right>14</td>
   <td align=right>14</td>
@@ -704,7 +669,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>64</td>
   <td align=right>256</td>
   <td align=right>14</td>
   <td align=right>14</td>
@@ -717,7 +681,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>64</td>
   <td align=right>256</td>
   <td align=right>55</td>
   <td align=right>55</td>
@@ -730,7 +693,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>64</td>
   <td align=right>512</td>
   <td align=right>28</td>
   <td align=right>28</td>
@@ -743,7 +705,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>64</td>
   <td align=right>512</td>
   <td align=right>7</td>
   <td align=right>7</td>
@@ -756,7 +717,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>64</td>
   <td align=right>512</td>
   <td align=right>7</td>
   <td align=right>7</td>
@@ -770,7 +730,6 @@ The table below shows some of the tested configurations and the respective incre
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>N-A</td>
   <td align=right>64</td>
-  <td align=right>64</td>
   <td align=right>55</td>
   <td align=right>55</td>
   <td align=right>256</td>
@@ -782,7 +741,6 @@ The table below shows some of the tested configurations and the respective incre
  </tr>
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>N-A</td>
-  <td align=right>64</td>
   <td align=right>64</td>
   <td align=right>55</td>
   <td align=right>55</td>
@@ -796,7 +754,6 @@ The table below shows some of the tested configurations and the respective incre
  <tr height=24 style='height:18.0pt'>
   <td height=24 style='height:18.0pt'>N-A</td>
   <td align=right>64</td>
-  <td align=right>64</td>
   <td align=right>55</td>
   <td align=right>55</td>
   <td align=right>64</td>
@@ -807,9 +764,10 @@ The table below shows some of the tested configurations and the respective incre
   <td class=xl69 align=right>2.593</td>
  </tr>
  <tr height=24 style='height:18.0pt'>
-  <td height=24 colspan=8 style='height:18.0pt;mso-ignore:colspan'></td>
+  <td height=24 colspan=7 style='height:18.0pt;mso-ignore:colspan'></td>
   <td class=xl65>Average</td>
   <td class=xl69 align=right>2.377</td>
   <td class=xl69 align=right>2.855</td>
  </tr>
 </table>
+
