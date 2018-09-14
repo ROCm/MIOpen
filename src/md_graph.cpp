@@ -374,10 +374,13 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                                      /*c any*/ 0,
                                                                      /* x */ len,
                                                                      /* y */ len);
-            map_conv_bias["pad_h"].clear();
-            map_conv_bias["pad_h"].push_back(EdgeOp(1, true, OpLTE));
-            map_conv_bias["pad_w"].clear();
-            map_conv_bias["pad_w"].push_back(EdgeOp(1, true, OpLTE));
+            if(len != 1)
+            {
+                map_conv_bias["pad_h"].clear();
+                map_conv_bias["pad_h"].push_back(EdgeOp(1, true, OpLTE));
+                map_conv_bias["pad_w"].clear();
+                map_conv_bias["pad_w"].push_back(EdgeOp(1, true, OpLTE));
+            }
             map_emplace(map_conv_bias, "weight", EdgeOp(0, true, OpAny));
             map_emplace(map_conv_bias, "algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
 
