@@ -663,8 +663,8 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
         const int reserved     = 0;
         const int R            = 3;
         const int S            = 3;
-        const int pad_h        = 0;
-        const int pad_w        = 0;
+        const int pad_h        = 1;
+        const int pad_w        = 1;
         int* const return_addr = nullptr;
         const auto weights     = GetArg(op_map, op_args, miopenFusionOpConvForward, "weights");
         const auto bias = is_bias ? GetArg(op_map, op_args, miopenFusionOpBiasForward, "bias")
