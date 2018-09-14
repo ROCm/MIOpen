@@ -41,17 +41,14 @@ bool DbRecord::SetValues(const std::string& id, const std::string& values)
     const auto it = map.find(id);
     if(it == map.end() || it->second != values)
     {
-        MIOPEN_LOG_I("Record under key: " << key << ", content "
-                                          << (it == map.end() ? "inserted" : "overwritten")
-                                          << ": "
-                                          << id
-                                          << ':'
-                                          << values);
+        MIOPEN_LOG_I(key << ", content " << (it == map.end() ? "inserted" : "overwritten") << ": "
+                         << id
+                         << ':'
+                         << values);
         map[id] = values;
         return true;
     }
-    MIOPEN_LOG_I("Record under key: " << key << ", content is the same, not changed:" << id << ':'
-                                      << values);
+    MIOPEN_LOG_I(key << ", content is the same, not changed:" << id << ':' << values);
     return false;
 }
 
@@ -61,12 +58,12 @@ bool DbRecord::GetValues(const std::string& id, std::string& values) const
 
     if(it == map.end())
     {
-        MIOPEN_LOG_I2("Values for " << id << " not found.");
+        MIOPEN_LOG_I(key << '=' << id << ':' << "<values not found>");
         return false;
     }
 
     values = it->second;
-    MIOPEN_LOG_I("Read record " << key << '=' << id << ':' << values);
+    MIOPEN_LOG_I(key << '=' << id << ':' << values);
     return true;
 }
 
@@ -75,11 +72,11 @@ bool DbRecord::EraseValues(const std::string& id)
     const auto it = map.find(id);
     if(it != map.end())
     {
-        MIOPEN_LOG_I("Record under key: " << key << ", removed: " << id << ':' << it->second);
+        MIOPEN_LOG_I(key << ", removed: " << id << ':' << it->second);
         map.erase(it);
         return true;
     }
-    MIOPEN_LOG_W("Record under key: " << key << ", not found: " << id);
+    MIOPEN_LOG_W(key << ", not found: " << id);
     return false;
 }
 
