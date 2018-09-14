@@ -280,8 +280,8 @@ struct cbna_fusion_driver : test_driver
         add(input, "input", get_input_tensor(tensor_elem_gen_integer{max_value}));
         add(filter, "filter", generate_data(get_filters()));
 
-        // \todo: Remove this once the HIP issue is resolved
-#if (MIOPEN_BACKEND_HIP == 0)
+// \todo: Remove this once the HIP issue is resolved
+#if(MIOPEN_BACKEND_HIP == 0)
         add(weights, "weights", get_weights_tensor(tensor_elem_gen_integer{max_value}));
         add(alpha, "alpha", generate_data({/*1. , */ 0.5}));
         add(beta, "beta", generate_data({/*0. , */ 0.5}));
@@ -307,13 +307,10 @@ struct cbna_fusion_driver : test_driver
     void run()
     {
 
-        // \todo: Remove this once the HIP issue is resolved
-#if (MIOPEN_BACKEND_HIP == 1)
-            weights = tensor<T>{32, 32, 3, 3}.generate(tensor_elem_gen_integer{max_value});
+// \todo: Remove this once the HIP issue is resolved
+#if(MIOPEN_BACKEND_HIP == 1)
+        weights = tensor<T>{32, 32, 3, 3}.generate(tensor_elem_gen_integer{max_value});
 #endif
-
-
-
 
         switch(amode)
         {
@@ -403,11 +400,11 @@ struct cbna_fusion_driver : test_driver
             miopen::DeriveBNTensorDescriptor(derivedBnDesc, output.desc, bnmode);
             std::tie(ssn, ssc, ssh, ssw) = miopen::tien<4>(derivedBnDesc.GetLengths());
 
-            scale       = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
-            shift       = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
-            estMean     = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
-            estVariance = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
-
+            scale   = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
+            shift   = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
+            estMean = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
+            estVariance =
+                tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
         }
 
         miopenCreateOpConvForward(ptr_fusionplan.get(), &convoOp, &filter, &weights.desc);
