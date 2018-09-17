@@ -755,14 +755,15 @@ struct ConvAsmBwdWrW3x3 : SolverBase<ConvolutionContext>
 struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsmBwdWrW1x1>
 {
 
-    int chunk_size; // {1,2,4,8,16}
-    int c_per_gpr;  // {1,2,4,8,16}
-    int c_mult;     // {1,2,4,8,16}
-    int k_per_gpr;  // {1,2,4,8,16}
-    int k_mult;     // {1,2,4,8,16}
-    int n_per_gpr;  // {1,2,4}
-    int n_part_cnt; // [1..8]
-    int read_size;  // [1..4]
+    int chunk_size;  // {1,2,4,8,16}
+    int c_per_gpr;   // {1,2,4,8,16}
+    int c_mult;      // {1,2,4,8,16}
+    int k_per_gpr;   // {1,2,4,8,16}
+    int k_mult;      // {1,2,4,8,16}
+    int n_per_gpr;   // {1,2,4}
+    int n_part_cnt;  // [1..8]
+    int read_size;   // [1..4]
+    int short_store; // {0,1}
     bool use_spare_set;
 
     /// The following conditions must be met.
@@ -791,13 +792,14 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
                                       int n_per_gpr_,
                                       int n_part_cnt_,
                                       int read_size_,
+                                      int short_store_,
                                       bool);
     PerformanceConfigConvAsmBwdWrW1x1()
-        : PerformanceConfigConvAsmBwdWrW1x1(-1, -1, -1, -1, -1, -1, -1, -1, false)
+        : PerformanceConfigConvAsmBwdWrW1x1(-1, -1, -1, -1, -1, -1, -1, -1, -1, false)
     {
     }
     PerformanceConfigConvAsmBwdWrW1x1(bool spare)
-        : PerformanceConfigConvAsmBwdWrW1x1(1, 1, 1, 1, 1, 1, 1, 1, spare)
+        : PerformanceConfigConvAsmBwdWrW1x1(1, 1, 1, 1, 1, 1, 1, 1, 1, spare)
     {
     }
 
@@ -812,6 +814,7 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
         f(self.n_per_gpr, "n_per_gpr");
         f(self.n_part_cnt, "n_part_cnt");
         f(self.read_size, "read_size");
+        f(self.short_store, "short_store");
     }
 
     // clang-format off
@@ -825,6 +828,7 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
     int GetHWPerGpr() const {   assert(c_per_gpr); assert(n_per_gpr); assert(chunk_size);  
                                 return wave_size / (c_per_gpr * n_per_gpr * chunk_size); } // "hw" stands for "height-and-width".
     int GetReadSize() const { return read_size; }
+    int GetShortStore() const {return short_store; }
     // clang-format on
 
     void EuristicInit(const ConvolutionContext& config);
