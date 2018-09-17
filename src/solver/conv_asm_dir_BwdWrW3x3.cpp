@@ -38,7 +38,7 @@
 #define MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED 0
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_PERF_VALS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_SEARCH_QUICK)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_SEARCH_OPTIMIZED)
 
 namespace miopen {
 namespace solver {
@@ -63,7 +63,7 @@ bool PerformanceConfigAsmDirect3x3WrW::SetNextValue()
     do
     {
 #if MIOPEN_GCN_ASM_DIRECT_3X3WRW_SEARCH_LWC_FIXED == 0
-        if(!miopen::IsEnabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_SEARCH_QUICK{}))
+        if(miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_3X3WRW_SEARCH_OPTIMIZED{}))
         {
             // (0 <= limit_wave_cnt && limit_wave_cnt <= 9)
             if(++limit_wave_cnt <= 9)
