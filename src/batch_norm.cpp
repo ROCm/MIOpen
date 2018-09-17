@@ -58,7 +58,8 @@ void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
         if(lengths.size() == 5)
             newlens[4] = lengths[4];
     }
-    derivedBnDesc = TensorDescriptor(xDesc.GetType(), newlens.data(), xDesc.GetSize());
+    derivedBnDesc =
+        TensorDescriptor(/* xDesc.GetType() */ miopenFloat, newlens.data(), xDesc.GetSize());
 }
 
 TensorDescriptor BuildReshaped4DTensorDescriptor(const miopen::TensorDescriptor& tDesc)
