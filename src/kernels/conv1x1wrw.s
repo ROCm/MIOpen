@@ -95,7 +95,6 @@ dword_size = 4
 elements_in_dword = 1
 .if(buf_type == TYPE_FP16 || buf_type == TYPE_INT16)
     elements_in_dword = 2
-    short_store = 1
 .elseif(buf_type == TYPE_INT8)
     elements_in_dword = 4
 .elseif(buf_type == TYPE_INT4)
@@ -116,6 +115,8 @@ sequential_k_channels = 1
 .endif
 static_assert(c_mult % sequential_c_channels == 0)
 static_assert(k_mult % sequential_k_channels == 0)
+static_assert(input_channels % sequential_c_channels == 0)
+static_assert(output_channels % sequential_k_channels == 0)
 
 dot_instructions_available = 0
 .if (.option.machine_version_major == 9) && (.option.machine_version_minor == 0) && (.option.machine_version_stepping == 6)

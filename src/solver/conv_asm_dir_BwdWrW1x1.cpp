@@ -165,6 +165,8 @@ bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
                 break;
             if(!Inc_1_2_4(n_per_gpr))
                 break;
+            if(!IncPack<1, 0>(short_store))
+                break;
             // All the fields (components) of performance confic have wrapped around.
             return false;
         } while(false);
@@ -202,6 +204,8 @@ bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
                     break;
                 if(!IncPack<1, 2, 4, 8>(n_part_cnt))
                     break;
+                if(!IncPack<1, 0>(short_store))
+                    break;
                 return false;
             } while(false);
         }
@@ -225,6 +229,8 @@ bool PerformanceConfigConvAsmBwdWrW1x1::SetNextValue()
                     break;
                 if(!IncPack<1, 2, 4, 8>(n_part_cnt))
                     break;
+                if(!IncPack<1, 0>(short_store))
+                    break;
                 return false;
             } while(false);
         }
@@ -240,6 +246,7 @@ PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(int chunk_s
                                                                      int n_per_gpr_,
                                                                      int n_part_cnt_,
                                                                      int read_size_,
+                                                                     int short_store_,
                                                                      bool use_spare_set_)
     : chunk_size(chunk_size_),
       c_per_gpr(c_per_gpr_),
@@ -249,6 +256,7 @@ PerformanceConfigConvAsmBwdWrW1x1::PerformanceConfigConvAsmBwdWrW1x1(int chunk_s
       n_per_gpr(n_per_gpr_),
       n_part_cnt(n_part_cnt_),
       read_size(read_size_),
+      short_store(short_store_),
       use_spare_set(use_spare_set_)
 {
 }
@@ -265,6 +273,7 @@ operator==(const PerformanceConfigConvAsmBwdWrW1x1& other) const
         && n_per_gpr == other.n_per_gpr
         && n_part_cnt == other.n_part_cnt
         && read_size == other.read_size
+        && short_store == other.short_store
         && use_spare_set == other.use_spare_set; // clang-format on
 }
 
@@ -295,16 +304,17 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 
     if(!(c_per_gpr * n_per_gpr * GetHWPerGpr() * chunk_size == wave_size))
         return false;
-
-    if(c_mult > 1 || k_mult > 1)
+    if(config.out_data_type == "FP16")
     {
-        assert(c_per_gpr * c_mult != 0);
-        if(!(config.n_outputs % (c_per_gpr * c_mult) == 0))
-            return false;
-        assert(k_per_gpr * k_mult != 0);
-        if(!(config.n_inputs % (k_per_gpr * k_mult) == 0))
+        if((short_store == 0) && ((c_mult % 2) != 0 || (config.n_inputs % 2) != 0))
             return false;
     }
+    else
+    {
+        if(short_store == 1)
+            return false;
+    }
+
     int acc_gprs = c_mult * k_mult * k_per_gpr;
     if(!(acc_gprs + 12 + (c_mult + k_mult) * read_size <= (n_part_cnt > 4 ? 128 : 256)))
     {
@@ -321,7 +331,8 @@ bool PerformanceConfigConvAsmBwdWrW1x1::IsValid(const ConvolutionContext& config
 
 void PerformanceConfigConvAsmBwdWrW1x1::EuristicInit(const ConvolutionContext& config)
 {
-    read_size = 4;
+    short_store = (config.out_data_type == "FP16") ? 1 : 0;
+    read_size   = 4;
     n_per_gpr =
         (config.batch_sz >= 4 && (AsmImgHeight(config) * AsmImgWidth(config)) <= 128) ? 4 : 1;
 
@@ -692,6 +703,7 @@ ConvSolution ConvAsmBwdWrW1x1::GetSolution(const ConvolutionContext& params,
         }
     }
 
+    GenerateClangDefsym(options, "short_store", pcfg->GetShortStore());
     GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
     GenerateClangDefsym(options, "c_per_gpr", pcfg->GetCPerGpr());
     GenerateClangDefsym(options, "c_mult", pcfg->GetCMult());
