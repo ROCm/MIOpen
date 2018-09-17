@@ -302,11 +302,7 @@ struct cbna_fusion_driver : test_driver
 
     void run()
     {
-
-// \todo: Remove this once the HIP issue is resolved
-#if(MIOPEN_BACKEND_HIP == 1)
         static bool ranonce = false;
-#endif
 
         switch(amode)
         {
@@ -471,14 +467,17 @@ struct cbna_fusion_driver : test_driver
                 wei_h > 2 * fpad_h && wei_w > 2 * fpad_w && input_h >= (2 * fpad_h + wei_h) &&
                 input_w >= (2 * fpad_w + wei_w))
         {
+            (void) ranonce;
+#if(MIOPEN_BACKEND_HIP == 1)
             if(!ranonce)
-            { //Compiled and ready to run, but once!
+            { // Compiled and ready to run, but once!
                 ranonce = true;
             }
             else
             {
                 exit(EXIT_SUCCESS);
             }
+#endif
             output = get_output_tensor(filter, input, weights);
             if(bias_mode)
             {
