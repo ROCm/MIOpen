@@ -33,6 +33,7 @@
 #if MIOPEN_USE_FP16 == 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
+#define _FLOAT_PREC half
 #ifndef HALF_MAX
 #define MAX_VAL 65504 /* max value */
 #else
@@ -41,11 +42,24 @@
 #endif
 #if MIOPEN_USE_FP32 == 1
 #define _FLOAT float
+#define _FLOAT_PREC float
 #ifndef FLT_MAX
 #define MAX_VAL 3.402823466e+38F /* max value */
 #else
 #define MAX_VAL FLT_MAX
 #endif
+#endif
+#if MIOPEN_USE_FPMIX == 1
+#pragma OPENCL EXTENSION cl_khr_fp16 : enable
+#define _FLOAT half
+#define _FLOAT_PREC float
+/*
+#ifndef HALF_MAX
+#define MAX_VAL 65504
+#else
+#define MAX_VAL HALF_MAX
+#endif
+*/
 #endif
 
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
@@ -85,19 +99,19 @@
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormFwdInferPerActivationEst(
-    const __global _FLOAT* in,                     /* x input */
-    __global _FLOAT* __restrict out,               /* y output */
-    __global _FLOAT* __restrict estimatedMean,     /*input and output, same descriptor as bias*/
-    __global _FLOAT* __restrict estimatedVariance, /*input and output*/
-    const __global _FLOAT* __restrict scale,       /* gamma 1xCxHxW */
-    const __global _FLOAT* __restrict bias,        /* beta 1xCxHxW */
+    const __global _FLOAT* in,                      /* x input */
+    __global _FLOAT* __restrict out,                /* y output */
+    __global _FLOAT_PREC* __restrict estimatedMean, /*input and output, same descriptor as bias*/
+    __global _FLOAT_PREC* __restrict estimatedVariance, /*input and output*/
+    const __global _FLOAT_PREC* __restrict scale,       /* gamma 1xCxHxW */
+    const __global _FLOAT_PREC* __restrict bias,        /* beta 1xCxHxW */
     double epsilon)
 {
 
     // PER ACTIVATION
-    _FLOAT mean, variance;
-    _FLOAT invVariance, elemStd, inhat;
-    _FLOAT pvt_scale, pvt_bias;
+    _FLOAT_PREC mean, variance;
+    _FLOAT_PREC invVariance, elemStd, inhat;
+    _FLOAT_PREC pvt_scale, pvt_bias;
     unsigned int adjIndex, inImgIndex, index;
 
     int xgid    = get_global_id(0);
@@ -123,12 +137,13 @@ MIOpenBatchNormFwdInferPerActivationEst(
             for(int n = 0; n < MIO_BN_N; n++)
             {
                 // per (x-dims) channel load a block of data into LDS
-                index      = MIO_BN_CHW * n + adjIndex;
-                elemStd    = *(in + index) - mean; // (x_i - mean)
-                inhat      = elemStd * invVariance;
-                out[index] = mad(pvt_scale, inhat, pvt_bias); //	y_i = gamma*x_hat + beta
-            }                                                 // end for
-        }                                                     // end if
+                index   = MIO_BN_CHW * n + adjIndex;
+                elemStd = (_FLOAT_PREC)(*(in + index)) - mean; // (x_i - mean)
+                inhat   = elemStd * invVariance;
+                out[index] =
+                    (_FLOAT)(mad(pvt_scale, inhat, pvt_bias)); //	y_i = gamma*x_hat + beta
+            }                                                  // end for
+        }                                                      // end if
     } // end for(img_offset) //image mini_batch is processed
 }
 
