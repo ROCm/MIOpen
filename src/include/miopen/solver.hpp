@@ -184,7 +184,8 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
                 }
                 MIOPEN_LOG(
                     (MIOPEN_INSTALLABLE ? LoggingLevel::Warning : miopen::LoggingLevel::Error),
-                    "Invalid config loaded from Perf Db: " << SolverDbId(s) << ": " << config);
+                    "Invalid config loaded from Perf Db: " << SolverDbId(s) << ": " << config
+                                                           << ". Performance may degrade.");
             }
             else
             {
