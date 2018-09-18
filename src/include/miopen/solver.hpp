@@ -177,13 +177,17 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
             PerformanceConfig config{};
             if(db.Load(context, SolverDbId(s), config))
             {
-                MIOPEN_LOG_I("Perf Db: record loaded: " << SolverDbId(s));
+                MIOPEN_LOG_I2("Perf Db: record loaded: " << SolverDbId(s));
                 if(s.IsValidPerformanceConfig(context, config))
                 {
                     return s.GetSolution(context, config);
                 }
-                MIOPEN_LOG_E("Invalid config loaded from Perf Db: " << SolverDbId(s) << ": "
+                MIOPEN_LOG_W("Invalid config loaded from Perf Db: " << SolverDbId(s) << ": "
                                                                     << config);
+            }
+            else
+            {
+                MIOPEN_LOG_I("Perf Db: record not found for: " << SolverDbId(s));
             }
         }
 
