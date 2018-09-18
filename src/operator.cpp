@@ -41,7 +41,7 @@ std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x)
 
 std::ostream& operator<<(std::ostream& stream, const MDGraph_op_t& o)
 {
-    MIOPEN_LOG_ENUM(stream, o, OpEqual, OpNotEqual, OpAny, OpModulo, OpGTE);
+    MIOPEN_LOG_ENUM(stream, o, OpEqual, OpNotEqual, OpAny, OpModulo, OpGTE, OpLTE);
     return stream;
 }
 

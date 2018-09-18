@@ -723,7 +723,7 @@ int miopenBNFwdInferSpatialRunHost(
 
 //================ START BACKWARDS PASS =====================
 
-template <typename Tgpu, typename Tref>
+template <typename Tgpu, typename Tref, typename Tmix>
 int miopenBNBwdPerActivationRunHost(
     /*        T alphaDiff,
             T betaDiff,
@@ -738,7 +738,7 @@ int miopenBNBwdPerActivationRunHost(
     const Tgpu* x_ptr,  // layer's fwd input
     const Tgpu* dy_ptr, // fwd normalized x
     Tref* dx_ptr,
-    Tgpu* scale_ptr,
+    Tmix* scale_ptr,
     Tref* dscale_ptr,
     Tref* dbias_ptr,
     Tref epsilon,
@@ -894,7 +894,7 @@ int miopenBNBwdPerActivationRunHost(
     return 0;
 }
 
-template <typename Tgpu, typename Tref>
+template <typename Tgpu, typename Tref, typename Tmix>
 int miopenBNBwdSpatialRunHost(
     /*      T alpha,
             T beta,
@@ -909,7 +909,7 @@ int miopenBNBwdSpatialRunHost(
     const Tgpu* x_ptr,  // layer's fwd input
     const Tgpu* dy_ptr, // fwd normalized x
     Tref* dx_ptr,
-    Tgpu* scale_ptr,
+    Tmix* scale_ptr,
     Tref* dscale_ptr,
     Tref* dbias_ptr,
     Tref epsilon,
