@@ -61,7 +61,7 @@
 
 //#define BN_RUNFOR_PROFILER
 
-template <typename Tgpu, typename Tref>
+template <typename Tgpu, typename Tref, typename Tmix = Tgpu>
 class BatchNormDriver : public Driver
 {
     public:
@@ -158,23 +158,23 @@ class BatchNormDriver : public Driver
     std::vector<Tgpu> dxout;
     std::vector<Tref> dxout_host;
 
-    std::vector<Tgpu> scale;
+    std::vector<Tmix> scale;
     std::vector<Tref> scale_host;
-    std::vector<Tgpu> bias;
+    std::vector<Tmix> bias;
     std::vector<Tref> bias_host;
 
-    std::vector<Tgpu> dscale;
+    std::vector<Tmix> dscale;
     std::vector<Tref> dscale_host;
-    std::vector<Tgpu> dbias;
+    std::vector<Tmix> dbias;
     std::vector<Tref> dbias_host;
 
-    std::vector<Tgpu> runningMean;
-    std::vector<Tgpu> runningVariance;
+    std::vector<Tmix> runningMean;
+    std::vector<Tmix> runningVariance;
     std::vector<Tref> runningMean_host;
     std::vector<Tref> runningVariance_host;
 
-    std::vector<Tgpu> saveMean;
-    std::vector<Tgpu> saveInvVariance;
+    std::vector<Tmix> saveMean;
+    std::vector<Tmix> saveInvVariance;
 
     std::vector<Tref> saveMean_host;
     std::vector<Tref> saveInvVariance_host;
@@ -184,8 +184,8 @@ class BatchNormDriver : public Driver
     Tref maxval;
 };
 
-template <typename Tgpu, typename Tref>
-int BatchNormDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
+template <typename Tgpu, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Tref, Tmix>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
@@ -197,8 +197,8 @@ int BatchNormDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int BatchNormDriver<Tgpu, Tref>::GetandSetData()
+template <typename Tgpu, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Tref, Tmix>::GetandSetData()
 {
 
     SetBNParametersFromCmdLineArgs();
@@ -235,7 +235,7 @@ int BatchNormDriver<Tgpu, Tref>::GetandSetData()
     }
 
     SetTensorNd(inputTensor, in_len, data_type);
-    SetTensorNd(biasScaleTensor, sb_len, data_type);
+    SetTensorNd(biasScaleTensor, sb_len, ((sizeof(Tmix) == 4) ? miopenFloat : miopenHalf));
     SetTensorNd(outputTensor, in_len, data_type);
 
     // backwards
@@ -245,8 +245,8 @@ int BatchNormDriver<Tgpu, Tref>::GetandSetData()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int BatchNormDriver<Tgpu, Tref>::AddCmdLineArgs()
+template <typename Tgpu, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Tref, Tmix>::AddCmdLineArgs()
 {
     inflags.AddInputFlag(
         "forw",
@@ -293,8 +293,8 @@ int BatchNormDriver<Tgpu, Tref>::AddCmdLineArgs()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-std::vector<int> BatchNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
+template <typename Tgpu, typename Tref, typename Tmix>
+std::vector<int> BatchNormDriver<Tgpu, Tref, Tmix>::GetInputTensorLengthsFromCmdLine()
 {
     int in_n = inflags.GetValueInt("batchsize");
     int in_c = inflags.GetValueInt("in_channels");
@@ -316,8 +316,8 @@ std::vector<int> BatchNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
     }
 }
 
-template <typename Tgpu, typename Tref>
-int BatchNormDriver<Tgpu, Tref>::SetBNParametersFromCmdLineArgs()
+template <typename Tgpu, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Tref, Tmix>::SetBNParametersFromCmdLineArgs()
 {
 
     //    	double bnAlpha = inflags.GetValueDouble("alpha");
@@ -397,8 +397,8 @@ int BatchNormDriver<Tgpu, Tref>::SetBNParametersFromCmdLineArgs()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int BatchNormDriver<Tgpu, Tref>::createSaveBuffers()
+template <typename Tgpu, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Tref, Tmix>::createSaveBuffers()
 {
 
 #if MIOPEN_BACKEND_OPENCL
@@ -415,14 +415,14 @@ int BatchNormDriver<Tgpu, Tref>::createSaveBuffers()
     if(saveMeanVar)
     {
         // GPU allocation
-        saveMean_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
-        saveInvVariance_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
+        saveMean_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tmix)));
+        saveInvVariance_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tmix)));
 
         if(back == 1)
         {
             // GPU host allocation
-            saveMean        = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-            saveInvVariance = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+            saveMean        = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
+            saveInvVariance = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
 
             // CPU allocation
             saveMean_host        = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
@@ -440,8 +440,8 @@ int BatchNormDriver<Tgpu, Tref>::createSaveBuffers()
         else
         {
             // GPU host allocation
-            saveMean        = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-            saveInvVariance = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+            saveMean        = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
+            saveInvVariance = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
 
             // CPU allocation
             saveMean_host        = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
@@ -463,8 +463,8 @@ int BatchNormDriver<Tgpu, Tref>::createSaveBuffers()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int BatchNormDriver<Tgpu, Tref>::createRunningBuffers()
+template <typename Tgpu, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Tref, Tmix>::createRunningBuffers()
 {
 
 #if MIOPEN_BACKEND_OPENCL
@@ -480,14 +480,14 @@ int BatchNormDriver<Tgpu, Tref>::createRunningBuffers()
     if(keepRunningMeanVar)
     {
         // GPU allocation
-        runningMean_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
-        runningVariance_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
+        runningMean_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tmix)));
+        runningVariance_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tmix)));
 
         if(forw == 2)
         {
             // GPU host allocation
-            runningMean     = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-            runningVariance = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+            runningMean     = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
+            runningVariance = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
 
             // CPU allocation
             runningMean_host     = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
@@ -496,17 +496,17 @@ int BatchNormDriver<Tgpu, Tref>::createRunningBuffers()
             // Populate
             for(int i = 0; i < sb_sz; i++)
             {
-                runningMean[i]      = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+                runningMean[i]      = RAN_GEN<Tmix>(static_cast<Tmix>(0.0), static_cast<Tmix>(1.0));
                 runningMean_host[i] = static_cast<Tref>(runningMean[i]);
-                runningVariance[i]  = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+                runningVariance[i]  = RAN_GEN<Tmix>(static_cast<Tmix>(0.0), static_cast<Tmix>(1.0));
                 runningVariance_host[i] = static_cast<Tref>(runningVariance[i]);
             }
         }
         else
         {
             // GPU host allocation
-            runningMean     = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-            runningVariance = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+            runningMean     = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
+            runningVariance = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
 
             // CPU allocation
             runningMean_host     = std::vector<Tref>(sb_sz, static_cast<Tref>(0));
@@ -528,8 +528,8 @@ int BatchNormDriver<Tgpu, Tref>::createRunningBuffers()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int BatchNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
+template <typename Tgpu, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Tref, Tmix>::AllocateBuffersAndCopy()
 {
 
 #if MIOPEN_BACKEND_OPENCL
@@ -551,15 +551,15 @@ int BatchNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
         // GPU allocation
         in_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-        scale_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
-        bias_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
+        scale_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tmix)));
+        bias_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tmix)));
         out_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
 
         // GPU host allocation
         in    = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
         out   = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-        scale = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-        bias  = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+        scale = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
+        bias  = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
 
         // CPU allocation
         out_host   = std::vector<Tref>(out_sz, static_cast<Tref>(0));
@@ -576,9 +576,9 @@ int BatchNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         // Using random beta and gamma
         for(int i = 0; i < sb_sz; i++)
         {
-            scale[i]      = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            scale[i]      = RAN_GEN<Tmix>(static_cast<Tmix>(0.0), static_cast<Tmix>(1.0));
             scale_host[i] = static_cast<Tref>(scale[i]);
-            bias[i]       = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            bias[i]       = RAN_GEN<Tmix>(static_cast<Tmix>(0.0), static_cast<Tmix>(1.0));
             bias_host[i]  = static_cast<Tref>(bias[i]);
         }
         status |= scale_dev->ToGPU(q, scale.data());
@@ -605,17 +605,17 @@ int BatchNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         in_dev     = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
         dyin_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
         dxout_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-        dscale_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
-        dbias_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
-        scale_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tgpu)));
+        dscale_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tmix)));
+        dbias_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tmix)));
+        scale_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, sb_sz, sizeof(Tmix)));
 
         // GPU host allocation
         in     = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
         dyin   = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
         dxout  = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-        dscale = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-        dbias  = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
-        scale  = std::vector<Tgpu>(sb_sz, static_cast<Tgpu>(0));
+        dscale = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
+        dbias  = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
+        scale  = std::vector<Tmix>(sb_sz, static_cast<Tmix>(0));
 
         // CPU allocation
         dxout_host  = std::vector<Tref>(out_sz, static_cast<Tref>(0));
@@ -625,7 +625,7 @@ int BatchNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         // Populate
         for(int i = 0; i < sb_sz; i++)
         {
-            scale[i] = RAN_GEN<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+            scale[i] = RAN_GEN<Tmix>(static_cast<Tmix>(0.0), static_cast<Tmix>(1.0));
         }
         status |= scale_dev->ToGPU(q, scale.data());
         status |= dscale_dev->ToGPU(q, dscale.data());
@@ -649,8 +649,8 @@ int BatchNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-void BatchNormDriver<Tgpu, Tref>::runGPUFwdInference(Tref epsilon, float alpha, float beta)
+template <typename Tgpu, typename Tref, typename Tmix>
+void BatchNormDriver<Tgpu, Tref, Tmix>::runGPUFwdInference(Tref epsilon, float alpha, float beta)
 {
 
     if(keepRunningMeanVar)
@@ -691,8 +691,11 @@ void BatchNormDriver<Tgpu, Tref>::runGPUFwdInference(Tref epsilon, float alpha, 
     return;
 }
 
-template <typename Tgpu, typename Tref>
-void BatchNormDriver<Tgpu, Tref>::runGPUFwdTrain(Tref epsilon, Tref eAF, float alpha, float beta)
+template <typename Tgpu, typename Tref, typename Tmix>
+void BatchNormDriver<Tgpu, Tref, Tmix>::runGPUFwdTrain(Tref epsilon,
+                                                       Tref eAF,
+                                                       float alpha,
+                                                       float beta)
 {
     if(saveMeanVar && keepRunningMeanVar)
     {
@@ -796,8 +799,8 @@ void BatchNormDriver<Tgpu, Tref>::runGPUFwdTrain(Tref epsilon, Tref eAF, float a
 #endif
 }
 
-template <typename Tgpu, typename Tref>
-int BatchNormDriver<Tgpu, Tref>::RunForwardGPU()
+template <typename Tgpu, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardGPU()
 {
 
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
@@ -876,8 +879,8 @@ int BatchNormDriver<Tgpu, Tref>::RunForwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-void BatchNormDriver<Tgpu, Tref>::runCPUFwdInference(
+template <typename Tgpu, typename Tref, typename Tmix>
+void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdInference(
     Tref epsilon, int batch_sz, int channels, int height, int width, int depth)
 {
 
@@ -922,8 +925,8 @@ void BatchNormDriver<Tgpu, Tref>::runCPUFwdInference(
     return;
 }
 
-template <typename Tgpu, typename Tref>
-void BatchNormDriver<Tgpu, Tref>::runCPUFwdTrain(
+template <typename Tgpu, typename Tref, typename Tmix>
+void BatchNormDriver<Tgpu, Tref, Tmix>::runCPUFwdTrain(
     Tref epsilon, Tref eAF, int batch_sz, int channels, int height, int width, int depth)
 {
 
@@ -975,8 +978,8 @@ void BatchNormDriver<Tgpu, Tref>::runCPUFwdTrain(
     }
 }
 
-template <typename Tgpu, typename Tref>
-int BatchNormDriver<Tgpu, Tref>::RunForwardCPU()
+template <typename Tgpu, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Tref, Tmix>::RunForwardCPU()
 {
     int nIn = 0, cIn = 0, dIn = 0, hIn = 0, wIn = 0;
 
@@ -1012,8 +1015,8 @@ int BatchNormDriver<Tgpu, Tref>::RunForwardCPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int BatchNormDriver<Tgpu, Tref>::RunBackwardGPU()
+template <typename Tgpu, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardGPU()
 {
 
     if(!back)
@@ -1114,8 +1117,8 @@ int BatchNormDriver<Tgpu, Tref>::RunBackwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int BatchNormDriver<Tgpu, Tref>::VerifyForward()
+template <typename Tgpu, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyForward()
 {
 
     // jump out since we are forcing forward off when doing backwards.
@@ -1152,13 +1155,13 @@ int BatchNormDriver<Tgpu, Tref>::VerifyForward()
                                i < MIO_BN_MAX_DEBUGLOOP;
                     i++)
                 {
-                    diff = fabs(Tgpu(fabs(runningMean[i]) - fabs(runningMean_host[i])));
+                    diff = fabs(Tmix(fabs(runningMean[i]) - fabs(runningMean_host[i])));
                     if(diff > tolerance)
                     {
                         std::cout << "rm[" << i << "]: " << runningMean[i];
                         std::cout << ", rm_host[" << i << "]: " << runningMean_host[i];
                         std::cout << ", diff[" << i
-                                  << "]: " << Tgpu(fabs(runningMean[i]) - fabs(runningMean_host[i]))
+                                  << "]: " << Tmix(fabs(runningMean[i]) - fabs(runningMean_host[i]))
                                   << std::endl;
                     }
                 }
@@ -1180,13 +1183,13 @@ int BatchNormDriver<Tgpu, Tref>::VerifyForward()
                                i < MIO_BN_MAX_DEBUGLOOP;
                     i++)
                 {
-                    diff = fabs(Tgpu(fabs(runningVariance[i]) - fabs(runningVariance_host[i])));
+                    diff = fabs(Tmix(fabs(runningVariance[i]) - fabs(runningVariance_host[i])));
                     if(diff > tolerance)
                     {
                         std::cout << "rv[" << i << "]: " << runningVariance[i];
                         std::cout << ", rv_host[" << i << "]: " << runningVariance_host[i];
                         std::cout << ", diff[" << i << "]: "
-                                  << Tgpu(fabs(runningVariance[i]) - fabs(runningVariance_host[i]))
+                                  << Tmix(fabs(runningVariance[i]) - fabs(runningVariance_host[i]))
                                   << std::endl;
                     }
                 }
@@ -1214,14 +1217,14 @@ int BatchNormDriver<Tgpu, Tref>::VerifyForward()
                     i < saveMean.size() && i < saveMean_host.size() && i < MIO_BN_MAX_DEBUGLOOP;
                     i++)
                 {
-                    diff   = fabs(Tgpu(fabs(saveMean[i]) - fabs(saveMean_host[i])));
+                    diff   = fabs(Tmix(fabs(saveMean[i]) - fabs(saveMean_host[i])));
                     maxval = maxval < diff ? diff : maxval;
                     if(diff > tolerance)
                     {
                         std::cout << "sm[" << i << "]: " << saveMean[i];
                         std::cout << ", sm_host[" << i << "]: " << saveMean_host[i];
                         std::cout << ", diff[" << i
-                                  << "]: " << Tgpu(fabs(saveMean[i]) - fabs(saveMean_host[i]))
+                                  << "]: " << Tmix(fabs(saveMean[i]) - fabs(saveMean_host[i]))
                                   << std::endl;
                     }
                 }
@@ -1245,13 +1248,13 @@ int BatchNormDriver<Tgpu, Tref>::VerifyForward()
                                i < MIO_BN_MAX_DEBUGLOOP;
                     i++)
                 {
-                    diff = fabs(Tgpu(fabs(saveInvVariance[i]) - fabs(saveInvVariance_host[i])));
+                    diff = fabs(Tmix(fabs(saveInvVariance[i]) - fabs(saveInvVariance_host[i])));
                     if(diff > tolerance)
                     {
                         std::cout << "sv[" << i << "]: " << saveInvVariance[i];
                         std::cout << ", sv_host[" << i << "]: " << saveInvVariance_host[i];
                         std::cout << ", diff[" << i << "]: "
-                                  << Tgpu(fabs(saveInvVariance[i]) - fabs(saveInvVariance_host[i]))
+                                  << Tmix(fabs(saveInvVariance[i]) - fabs(saveInvVariance_host[i]))
                                   << std::endl;
                     }
                 }
@@ -1315,8 +1318,8 @@ int BatchNormDriver<Tgpu, Tref>::VerifyForward()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int BatchNormDriver<Tgpu, Tref>::RunBackwardCPU()
+template <typename Tgpu, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Tref, Tmix>::RunBackwardCPU()
 {
 
     if(!back)
@@ -1339,43 +1342,44 @@ int BatchNormDriver<Tgpu, Tref>::RunBackwardCPU()
     Tref epsilon = static_cast<Tref>(EPSILON);
 
     if(bn_mode == miopenBNPerActivation)
-    { // 1xCxHxW
-        miopenBNBwdPerActivationRunHost<Tgpu,
-                                        Tref>(/* alphaDiff, betaDiff, alphaParam, betaParam, */
-                                              batch_sz,
-                                              channels,
-                                              (isDepthSpecified ? depth : 1),
-                                              height,
-                                              width,
-                                              in.data(),
-                                              dyin.data(),
-                                              dxout_host.data(),
-                                              scale.data(),
-                                              dscale_host.data(),
-                                              dbias_host.data(),
-                                              epsilon,
-                                              saveMeanVar,
-                                              saveMean_host.data(),
-                                              saveInvVariance_host.data());
+    {                                                     // 1xCxHxW
+        miopenBNBwdPerActivationRunHost<Tgpu, Tref, Tmix>(/* alphaDiff, betaDiff, alphaParam,
+                                                             betaParam, */
+                                                          batch_sz,
+                                                          channels,
+                                                          (isDepthSpecified ? depth : 1),
+                                                          height,
+                                                          width,
+                                                          in.data(),
+                                                          dyin.data(),
+                                                          dxout_host.data(),
+                                                          scale.data(),
+                                                          dscale_host.data(),
+                                                          dbias_host.data(),
+                                                          epsilon,
+                                                          saveMeanVar,
+                                                          saveMean_host.data(),
+                                                          saveInvVariance_host.data());
     }
     else if(bn_mode == miopenBNSpatial)
-    {                                         // 1xCx1x1
-        miopenBNBwdSpatialRunHost<Tgpu, Tref>(/* alphaDiff, betaDiff, alphaParam, betaParam, */
-                                              batch_sz,
-                                              channels,
-                                              (isDepthSpecified ? depth : 1),
-                                              height,
-                                              width,
-                                              in.data(),
-                                              dyin.data(),
-                                              dxout_host.data(),
-                                              scale.data(),
-                                              dscale_host.data(),
-                                              dbias_host.data(),
-                                              epsilon,
-                                              saveMeanVar,
-                                              saveMean_host.data(),
-                                              saveInvVariance_host.data());
+    {                                               // 1xCx1x1
+        miopenBNBwdSpatialRunHost<Tgpu, Tref, Tmix>(/* alphaDiff, betaDiff, alphaParam, betaParam,
+                                                       */
+                                                    batch_sz,
+                                                    channels,
+                                                    (isDepthSpecified ? depth : 1),
+                                                    height,
+                                                    width,
+                                                    in.data(),
+                                                    dyin.data(),
+                                                    dxout_host.data(),
+                                                    scale.data(),
+                                                    dscale_host.data(),
+                                                    dbias_host.data(),
+                                                    epsilon,
+                                                    saveMeanVar,
+                                                    saveMean_host.data(),
+                                                    saveInvVariance_host.data());
     }
     else
     {
@@ -1387,8 +1391,8 @@ int BatchNormDriver<Tgpu, Tref>::RunBackwardCPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int BatchNormDriver<Tgpu, Tref>::VerifyBackward()
+template <typename Tgpu, typename Tref, typename Tmix>
+int BatchNormDriver<Tgpu, Tref, Tmix>::VerifyBackward()
 {
 
     if(!back)
@@ -1446,14 +1450,14 @@ int BatchNormDriver<Tgpu, Tref>::VerifyBackward()
 #if(MIO_BN_DEBUG == 1)
         for(int i = 0; i < dscale.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
         {
-            diff   = fabs(Tgpu(fabs(dscale[i]) - fabs(dscale_host[i])));
+            diff   = fabs(Tmix(fabs(dscale[i]) - fabs(dscale_host[i])));
             maxval = maxval < diff ? diff : maxval;
             if(diff > tolerance)
             {
                 std::cout << "dscale[" << i << "]: " << dscale[i];
                 std::cout << "\tdscale_host[" << i << "]: " << dscale_host[i];
                 std::cout << "\tdiff[" << i
-                          << "]: " << Tgpu(fabs(dscale[i]) - fabs(dscale_host[i]));
+                          << "]: " << Tmix(fabs(dscale[i]) - fabs(dscale_host[i]));
                 std::cout << "\tratioH: "
                           << fabs(fabs(dscale[i]) - fabs(dscale_host[i])) / fabs(dscale_host[i])
                           << std::endl;
@@ -1476,12 +1480,12 @@ int BatchNormDriver<Tgpu, Tref>::VerifyBackward()
 #if(MIO_BN_DEBUG == 1)
         for(int i = 0; i < dbias.size() && i < MIO_BN_MAX_DEBUGLOOP; i++)
         {
-            diff = fabs(Tgpu(fabs(dbias[i]) - fabs(dbias_host[i])));
+            diff = fabs(Tmix(fabs(dbias[i]) - fabs(dbias_host[i])));
             if(diff > tolerance)
             {
                 std::cout << "dbias[" << i << "]: " << dbias[i];
                 std::cout << "\tdbias_host[" << i << "]: " << dbias_host[i];
-                std::cout << "\tdiff[" << i << "]: " << Tgpu(fabs(dbias[i]) - fabs(dbias_host[i]));
+                std::cout << "\tdiff[" << i << "]: " << Tmix(fabs(dbias[i]) - fabs(dbias_host[i]));
                 std::cout << "\tratioH: "
                           << fabs(fabs(dbias[i]) - fabs(dbias_host[i])) / fabs(dbias_host[i])
                           << std::endl;

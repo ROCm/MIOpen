@@ -1,6 +1,36 @@
 
 ## MIOpen Release notes
 
+### 09/14/2018 [ 1.5.0 ]
+
+Notes:
+
+- A new kernel fusion API is now available for inference for convolution, bias, 
+  batch normalization, and activations.
+- This release includes new features and bug fixes
+- Group and Depthwise convolutions are now available
+- 3D Batch Normalization has been implemented for fully packed tensors
+- Dilation for convolutions have been implemented
+
+Changes:
+
+- Fixed bugs in direct convolutions
+- Fixed issue with paths when $HOME variable is not set
+- Fixed padding issues with 1x1 convolutions
+- Added incremental support for fp16
+- Added fused kernels for Winograd and direct with bias and activations
+- Added a getting started guide for kernel fusion.
+- Added group and depthwise API for convolutions
+- Added 3-D batch normalization support with 5-D tensors
+- Improved max pooling performance
+- Improved debug and error reporting information
+- Improved documentation for convolutions
+
+Known Issues:
+
+- RNNs do not support fp16
+- Training with CNNs does not support fp16
+
 
 ### 07/30/2018 [ 1.4.2 ]
 
