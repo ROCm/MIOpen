@@ -385,6 +385,12 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
     {
         return false;
     }
+    /// \todo Workaround for issue #1152. Fix the kernel and remove this.
+    if(name.find("gfx8") != std::string::npos && params.direction.IsBackwardData() &&
+       params.float_size == 16)
+    {
+        return false;
+    }
     assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
     // clang-format off
     bool ok = (params.pad0 == 0         // -q  pad_w
