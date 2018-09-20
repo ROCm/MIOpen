@@ -227,8 +227,10 @@ static int MeasureLoop(Handle* profile_h,
             processing_time = subtractTimes(e, s);
         }
     }
-    catch(miopen::Exception&)
+    catch(miopen::Exception& ex)
     {
+        MIOPEN_LOG((MIOPEN_INSTALLABLE ? miopen::LoggingLevel::Info : miopen::LoggingLevel::Error),
+                   "Status: " << ex.status << ", Message: \"" << ex.what() << '\"');
         return -1;
     }
 
