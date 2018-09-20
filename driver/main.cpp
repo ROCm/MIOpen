@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
     }
     else if(base_arg == "bnormfp16")
     {
-        drv = new BatchNormDriver<float16, double>();
+        drv = new BatchNormDriver<float16, double, float>();
     }
     else if(base_arg == "rnn")
     {
