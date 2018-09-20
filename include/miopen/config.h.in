@@ -40,4 +40,16 @@
 
 #define MIOPEN_USE_GEMM (MIOPEN_USE_MIOPENGEMM or MIOPEN_USE_ROCBLAS)
 
+// Usage of "defined" operator within macro expansion is undefined behavior,
+// so "defined(NDEBUG)" cannot be used there... unlike the following macro:
+#ifdef NDEBUG
+#define MIOPEN_NDEBUG 1
+#else
+#define MIOPEN_NDEBUG 0
+#endif
+
+// Installable builds are those which aren't intended for debugging.
+// We damp down some diagnostic messages (Error -> Warning) etc.
+#define MIOPEN_INSTALLABLE (MIOPEN_NDEBUG && !MIOPEN_BUILD_DEV)
+
 #endif

@@ -26,6 +26,8 @@
 #ifndef GUARD_MIOPEN_DB_RECORD_HPP_
 #define GUARD_MIOPEN_DB_RECORD_HPP_
 
+#include <miopen/config.h>
+
 #include <miopen/logger.hpp>
 
 #include <cassert>
@@ -174,7 +176,7 @@ class DbRecord
 
         const bool ok = values.Deserialize(s);
         if(!ok)
-            MIOPEN_LOG(LoggingLevel::Warning,
+            MIOPEN_LOG((MIOPEN_INSTALLABLE ? LoggingLevel::Warning : miopen::LoggingLevel::Error),
                        "Perf db record is obsolete or corrupt: " << s
                                                                  << ". Performance may degrade.");
         return ok;
