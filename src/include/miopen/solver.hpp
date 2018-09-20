@@ -182,8 +182,10 @@ auto FindSolutionImpl(rank<1>, Solver s, const Context& context, Db& db)
                 {
                     return s.GetSolution(context, config);
                 }
-                MIOPEN_LOG_W("Invalid config loaded from Perf Db: " << SolverDbId(s) << ": "
-                                                                    << config);
+                MIOPEN_LOG(
+                    (MIOPEN_INSTALLABLE ? LoggingLevel::Warning : miopen::LoggingLevel::Error),
+                    "Invalid config loaded from Perf Db: " << SolverDbId(s) << ": " << config
+                                                           << ". Performance may degrade.");
             }
             else
             {
