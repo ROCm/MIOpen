@@ -23,23 +23,20 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#define PPCAT_NX(A, B) A##B
-#define PPCAT(A, B) PPCAT_NX(A, B)
-#define TWO 2
-#define FOUR 4
-#define EIGHT 8
-
-#if MIOPEN_USE_FP16 == 1
+#if MIOPEN_USE_FP16
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#define _FLOAT half
+typedef half data_t;
+typedef float accumulator_t;
+#define ACCUMULATOR_NEEDS_CONVERSION 1
 #ifndef HALF_MAX
 #define MAX_VAL 65504 /* max value */
 #else
 #define MAX_VAL HALF_MAX
 #endif
-#endif
-#if MIOPEN_USE_FP32 == 1
-#define _FLOAT float
+#elif MIOPEN_USE_FP32
+typedef float data_t;
+typedef float accumulator_t;
+#define ACCUMULATOR_NEEDS_CONVERSION 0
 #ifndef FLT_MAX
 #define MAX_VAL 3.402823466e+38F /* max value */
 #else
@@ -47,11 +44,7 @@
 #endif
 #endif
 
-#define _FLOAT2 PPCAT(_FLOAT, TWO)
-#define _FLOAT4 PPCAT(_FLOAT, FOUR)
-#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
-
-__kernel void Col2Im(global _FLOAT* col,
+__kernel void Col2Im(global data_t* col,
                      const int col_h,
                      const int col_w,
                      const int wei_h,
@@ -64,10 +57,10 @@ __kernel void Col2Im(global _FLOAT* col,
                      const int dilation_w,
                      const int height,
                      const int width,
-                     global _FLOAT* im,
+                     global data_t* im,
                      const int im_offset)
 {
-    global _FLOAT* im_off = im + im_offset;
+    global data_t* im_off = im + im_offset;
     int gid               = (int)get_global_id(0);
 
     int im_ch  = gid / (width * height);
@@ -87,7 +80,7 @@ __kernel void Col2Im(global _FLOAT* col,
     int ch_offset = im_ch * col_w * col_h * wei_w * wei_h;
     col += ch_offset;
 
-    _FLOAT tmp = (_FLOAT)0.0f;
+    accumulator_t tmp = (accumulator_t)0;
     for(int cy = start_h; cy < end_h; cy++)
     {
         for(int cx = start_w; cx < end_w; cx++)
@@ -97,9 +90,13 @@ __kernel void Col2Im(global _FLOAT* col,
                 int col_off_y = cy + (((im_h - cy * stride_h) / dilation_h) * wei_w * col_h);
                 int col_off_x = cx + (((im_w - cx * stride_w) / dilation_w) * col_w * col_h);
 
-                tmp += col[col_off_y * col_w + col_off_x];
+                tmp += (accumulator_t)(col[col_off_y * col_w + col_off_x]);
             }
         }
     }
+#if ACCUMULATOR_NEEDS_CONVERSION
+    im_off[gid] = tmp > ((accumulator_t)MAX_VAL) ? MAX_VAL : (data_t)tmp;
+#else
     im_off[gid] = tmp;
+#endif
 }
