@@ -23,45 +23,27 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#define PPCAT_NX(A, B) A##B
-#define PPCAT(A, B) PPCAT_NX(A, B)
-#define TWO 2
-#define FOUR 4
-#define EIGHT 8
 
-#if MIOPEN_USE_FP16 == 1
-#pragma OPENCL EXTENSION cl_khr_fp16 : enable
-#define _FLOAT half
-#ifndef HALF_MAX
-#define MAX_VAL 65504 /* max value */
-#else
-#define MAX_VAL HALF_MAX
+#if MIOPEN_USE_FP16
+// As the half type degrades the performance, use short instead of half in the
+// im2col, which has no match op. May change back to half when compile can
+// deliver equal performance as short
+typedef short data_t;
+#elif MIOPEN_USE_FP32
+typedef float data_t;
 #endif
-#endif
-#if MIOPEN_USE_FP32 == 1
-#define _FLOAT float
-#ifndef FLT_MAX
-#define MAX_VAL 3.402823466e+38F /* max value */
-#else
-#define MAX_VAL FLT_MAX
-#endif
-#endif
-
-#define _FLOAT2 PPCAT(_FLOAT, TWO)
-#define _FLOAT4 PPCAT(_FLOAT, FOUR)
-#define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 /* Simple GPU implementation - number of threads launced == sizeof im2col buffer
  * Each thread writes one pixel of output. First (out_h*out_w) threads write to
  * the first line (row) of the im2col output.
  *
- * kernel void Im2Col(global _FLOAT* im, int im_offset,
+ * kernel void Im2Col(global data_t* im, int im_offset,
  * 		const int h, const int w,
  * 		const int wei_h, const int wei_w,
  * 		const int out_h, const int out_w,
  * 		const int pad_h, const int pad_w,
  * 		const int stride_h, const int stride_w,
- * 		global _FLOAT* col)
+ * 		global data_t* col)
  * {
  * 	int tid = get_global_id(0);
  *  // which row of the output to write to
@@ -79,7 +61,7 @@
  * 	int im_off_h = out_y * stride_h - pad_h + im_y;
  * 	int im_off_w = out_x * stride_w - pad_w + im_x;
  *
- * 	global _FLOAT *im_off = (global _FLOAT *)&im[im_offset];
+ * 	global data_t *im_off = (global data_t *)&im[im_offset];
  *
  * 	if(im_off_h >= 0 && im_off_h < h && im_off_w >= 0 && im_off_w < w) {
  * 		col[col_row*out_h*out_w + out_y*out_w + out_x] = im_off[im_c*h*w + im_off_h*w +
@@ -92,7 +74,7 @@
  */
 
 kernel void Im2Col(const int data_size_off,
-                   global _FLOAT* im,
+                   global data_t* im,
                    const int im_offset,
                    const int h,
                    const int w,
@@ -106,7 +88,7 @@ kernel void Im2Col(const int data_size_off,
                    const int stride_w,
                    const int dilation_h,
                    const int dilation_w,
-                   global _FLOAT* col)
+                   global data_t* col)
 {
 #define THREADS_PER_CH (256 / NUM_CH_PER_WG)
 
@@ -116,7 +98,7 @@ kernel void Im2Col(const int data_size_off,
 #define IM_OFF_GUARD(idx) im_off[idx]
 #endif
 
-    global _FLOAT* im_off = im + im_offset;
+    global data_t* im_off = im + im_offset;
     int lid               = get_local_id(0);
     int gid               = get_group_id(0);
 
@@ -124,7 +106,7 @@ kernel void Im2Col(const int data_size_off,
 #if NUM_IM_BLKS == 1 && STRIDE_GT_1 == 0
 
     // Load image into LDS
-    local _FLOAT local_im[LOCAL_MEM_SIZE];
+    local data_t local_im[LOCAL_MEM_SIZE];
 
     int witem_ch = lid / THREADS_PER_CH;
 
@@ -165,7 +147,7 @@ kernel void Im2Col(const int data_size_off,
 
 #else  // NUM_IM_BLKS > 1 || STRIDE_GT_1 1
 
-    local _FLOAT local_im[LOCAL_MEM_SIZE];
+    local data_t local_im[LOCAL_MEM_SIZE];
 
     int wg_ch = gid / NUM_IM_BLKS;
 
