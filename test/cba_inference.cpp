@@ -105,9 +105,6 @@ struct verify_forward_conv_bias
         EXPECT(miopenError == miopenStatusSuccess);
         miopenError = miopenFusionPlanGetOp(fusionplan, 1, &biasOp);
         EXPECT(miopenError == miopenStatusSuccess);
-        miopenFusionOpDescriptor_t dummyOp;
-        miopenError = miopenFusionPlanGetOp(fusionplan, 2, &dummyOp);
-        EXPECT(miopenError != miopenStatusSuccess);
         miopenSetOpArgsConvForward(ptr_fusionargs.get(), convoOp, &alpha, &beta, wei_dev.get());
         miopenSetOpArgsBiasForward(ptr_fusionargs.get(), biasOp, &alpha, &beta, b_dev.get());
         miopenExecuteFusionPlan(&handle,
