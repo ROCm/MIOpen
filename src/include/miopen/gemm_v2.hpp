@@ -26,6 +26,7 @@
 #ifndef GUARD_MIOPEN_GEMM_V2_HPP_
 #define GUARD_MIOPEN_GEMM_V2_HPP_
 
+#include <miopen/miopen.h>
 #include <miopen/handle.hpp>
 #include <miopen/tensor.hpp>
 
@@ -54,29 +55,20 @@ struct GemmDescriptor
     int batch_count;
     long long int strideA, strideB, strideC;
     float alpha, beta;
+    miopenDataType_t dataType;
 };
 
-void CallGemm(Handle& handle,
-              GemmDescriptor gemm_desc,
-              ConstData_t A,
-              int a_offset,
-              ConstData_t B,
-              int b_offset,
-              Data_t C,
-              int c_offset,
-              std::string* kcache_key = nullptr);
+miopenStatus_t CallGemm(Handle& handle,
+                        GemmDescriptor gemm_desc,
+                        ConstData_t A,
+                        int a_offset,
+                        ConstData_t B,
+                        int b_offset,
+                        Data_t C,
+                        int c_offset,
+                        std::string* kcache_key = nullptr);
 
-void CallGemmStridedBatched(Handle& handle,
-                            GemmDescriptor gemm_desc,
-                            ConstData_t A,
-                            int a_offset,
-                            ConstData_t B,
-                            int b_offset,
-                            Data_t C,
-                            int c_offset,
-                            std::string* kcache_key = nullptr);
-
-void CallGemmStridedBatchedSequential(Handle& handle,
+miopenStatus_t CallGemmStridedBatched(Handle& handle,
                                       GemmDescriptor gemm_desc,
                                       ConstData_t A,
                                       int a_offset,
@@ -85,6 +77,16 @@ void CallGemmStridedBatchedSequential(Handle& handle,
                                       Data_t C,
                                       int c_offset,
                                       std::string* kcache_key = nullptr);
+
+miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
+                                                GemmDescriptor gemm_desc,
+                                                ConstData_t A,
+                                                int a_offset,
+                                                ConstData_t B,
+                                                int b_offset,
+                                                Data_t C,
+                                                int c_offset,
+                                                std::string* kcache_key = nullptr);
 
 // GEMM parameters for Convolution (using Im2Col) Fwd
 // y = w * Im2Col(x)
@@ -118,21 +120,21 @@ GemmDescriptor CreateGemmDescriptorConvCNHWBwdData(const TensorDescriptor& wDesc
 
 // strided batched GEMM parameters for 1x1 Convolution Fwd
 // y[i] = w * x[i], i is batch id
-GemmDescriptor CreateGemmStridedBatchedParamConv1x1Fwd(const TensorDescriptor& wDesc,
-                                                       const TensorDescriptor& xDesc,
-                                                       const TensorDescriptor& yDesc);
+GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1Fwd(const TensorDescriptor& wDesc,
+                                                            const TensorDescriptor& xDesc,
+                                                            const TensorDescriptor& yDesc);
 
 // strided batched GEMM parameters for 1x1 Convolution Bwd-Data
 // dx[i] = transpose(w) * dy[i], i is batch id
-GemmDescriptor CreateGemmStridedBatchedParamConv1x1BwdData(const TensorDescriptor& wDesc,
-                                                           const TensorDescriptor& dyDesc,
-                                                           const TensorDescriptor& dxDesc);
+GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdData(const TensorDescriptor& wDesc,
+                                                                const TensorDescriptor& dyDesc,
+                                                                const TensorDescriptor& dxDesc);
 
 // strided batched GEMM parameters for 1x1 Convolution Bwd-Weight
 // dw = sum_over_batch(dy[i] * transpose(x[i])), i is batch id
-GemmDescriptor CreateGemmStridedBatchedParamConv1x1BwdWeight(const TensorDescriptor& dyDesc,
-                                                             const TensorDescriptor& xDesc,
-                                                             const TensorDescriptor& dwDesc);
+GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(const TensorDescriptor& dyDesc,
+                                                                  const TensorDescriptor& xDesc,
+                                                                  const TensorDescriptor& dwDesc);
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_GEMM_V2_HPP_
