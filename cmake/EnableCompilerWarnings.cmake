@@ -83,8 +83,10 @@ else()
                 -Wno-missing-prototypes
                 -Wno-nested-anon-types
                 -Wno-padded
+                -Wno-return-std-move-in-c++11
                 -Wno-shorten-64-to-32
                 -Wno-sign-conversion
+                -Wno-unknown-warning-option
                 -Wno-unused-command-line-argument
                 -Wno-weak-vtables
             )
