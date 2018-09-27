@@ -472,7 +472,7 @@ int PoolDriver<Tgpu, Tref>::VerifyForward()
     }
 
     if(hOut <= 0 || wOut <= 0)
-        MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
+        throw std::runtime_error("Invalid Test Case: Check Output Dimension.");
 
     int pooling_method = (mode == miopenPoolingMax) ? MLO_POOLING_OP_MAX : MLO_POOLING_OP_AVE;
 
@@ -548,7 +548,7 @@ int PoolDriver<Tgpu, Tref>::VerifyBackward()
         poolDesc, &mode, &windowHeight, &windowWidth, &pad_h, &pad_w, &u, &v);
 
     if(hOut <= 0 || wOut <= 0)
-        MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
+        throw std::runtime_error("Invalid Test Case: Check Output Dimension.");
 
     if(pmode == miopenPaddingSame)
     {

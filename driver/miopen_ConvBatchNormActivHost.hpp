@@ -303,7 +303,7 @@ int ConvForwardCPU(const std::vector<Tref>& in,
     }
 
     if(out_h <= 0 || out_w <= 0)
-        MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
+        throw std::runtime_error("Invalid Test Case: Check Output Dimension.");
 
     miopenGet4dTensorDescriptor(weightTensor,
                                 &dt,
