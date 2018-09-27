@@ -173,9 +173,11 @@ ConvolutionDescriptor::GetForwardOutputDim(const TensorDescriptor& inputTensorDe
         {
             output_c = filter_c;
             output_h = std::max<std::ptrdiff_t>(
-                1, u * (input_h - 1) + 1 + dilation_h * (filter_h - 1.0) - 2 * pad_h);
+                1,
+                std::ptrdiff_t(u * (input_h - 1) + 1 + dilation_h * (filter_h - 1.0) - 2 * pad_h));
             output_w = std::max<std::ptrdiff_t>(
-                1, v * (input_w - 1) + 1 + dilation_w * (filter_w - 1.0) - 2 * pad_w);
+                1,
+                std::ptrdiff_t(v * (input_w - 1) + 1 + dilation_w * (filter_w - 1.0) - 2 * pad_w));
         }
         else
         {
