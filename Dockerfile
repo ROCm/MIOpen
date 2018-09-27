@@ -61,13 +61,12 @@ RUN pip install cget
 ADD cmake/mingw-toolchain.cmake $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
 RUN cget -p $PREFIX/x86_64-w64-mingw32 init -t $PREFIX/x86_64-w64-mingw32/cmake/toolchain.cmake
 
-# Build hcc
-RUN git clone https://github.com/RadeonOpenCompute/hcc.git -b clang_tot_upgrade /hcc && \
-    cd hcc && \
-    git reset --hard 5a607e6e3c04c23c83d5c78d9eae5aaa4b8c2998 && \
-    git submodule init && \
-    git submodule update --recursive && \
-    cget -p $PREFIX install hcc,. && cd .. && rm -rf /hcc
+# Install rclone
+RUN pip install https://github.com/pfultz2/rclone/archive/master.tar.gz
+
+# Install hcc
+RUN rclone -b roc-1.9.x  -c ec91fedbbe48d1c621ea08a493bc11869a10eedd https://github.com/RadeonOpenCompute/hcc.git /hcc
+RUN cget -p $PREFIX install hcc,/hcc  && rm -rf /hcc
 
 # This is a workaround for broken installations
 RUN ln -s $PREFIX /opt/rocm/hip
