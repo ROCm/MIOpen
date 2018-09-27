@@ -694,6 +694,9 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
 
     FindForward(ret_algo_count, request_algo_count, perf_results);
 
+    if(ret_algo_count == 0)
+        throw std::runtime_error("Find Forward Conv. ret_algo_count == 0");
+
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
     Timer t;
@@ -845,7 +848,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardCPU()
         }
     }
     if(out_h <= 0 || out_w <= 0)
-        MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
+        throw std::runtime_error("Invalid Test Case: Check Output Dimension.");
 
     if(mode == miopenConvolution)
     {
@@ -1075,6 +1078,9 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
 
     FindBackwardData(ret_algo_count, request_algo_count, perf_results_data);
 
+    if(ret_algo_count == 0)
+        throw std::runtime_error("Find Backward Data Conv. ret_algo_count == 0");
+
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
     int ret = 0;
 
@@ -1118,6 +1124,9 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
     std::vector<miopenConvAlgoPerf_t> perf_results_weights(request_algo_count);
 
     FindBackwardWeights(ret_algo_count, request_algo_count, perf_results_weights);
+
+    if(ret_algo_count == 0)
+        throw std::runtime_error("Find Backward Weights Conv. ret_algo_count == 0");
 
     START_TIME;
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
@@ -1281,7 +1290,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardWeightsCPU()
     }
 
     if(out_h <= 0 || out_w <= 0)
-        MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
+        throw std::runtime_error("Invalid Test Case: Check Output Dimension.");
 
     if(mode == miopenConvolution)
     {
@@ -1567,7 +1576,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardDataCPU()
     group_count = miopen::deref(convDesc).group_count;
 
     if(out_h <= 0 || out_w <= 0)
-        MIOPEN_THROW("Invalid Test Case: Check Output Dimension.");
+        throw std::runtime_error("Invalid Test Case: Check Output Dimension.");
 
     if(mode == miopenConvolution &&
        ((dilation_h == 1 && dilation_w == 1) || (wei_h == 1 && wei_w == 1)))

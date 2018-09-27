@@ -862,7 +862,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                                                  const TensorDescriptor& yDesc,
                                                  ConstData_t y,
                                                  const int requestAlgoCount,
-                                                 int* returnedAlgoCount,
+                                                 int* const returnedAlgoCount,
                                                  miopenConvAlgoPerf_t* perfResults,
                                                  Data_t workSpace,
                                                  size_t workSpaceSize,
@@ -877,6 +877,8 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "perfResults cannot be nullptr");
     if(requestAlgoCount < 1)
         MIOPEN_THROW(miopenStatusBadParm, "requestAlgoCount cannot be < 1");
+
+    *returnedAlgoCount = 0;
 
     ProblemDescription problem(xDesc, wDesc, yDesc, *this, 1);
 
@@ -1645,7 +1647,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                                                      const TensorDescriptor& dxDesc,
                                                      ConstData_t dx,
                                                      const int requestAlgoCount,
-                                                     int* returnedAlgoCount,
+                                                     int* const returnedAlgoCount,
                                                      miopenConvAlgoPerf_t* perfResults,
                                                      Data_t workSpace,
                                                      size_t workSpaceSize,
@@ -1660,6 +1662,8 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "perfResults cannot be nullptr");
     if(requestAlgoCount < 1)
         MIOPEN_THROW(miopenStatusBadParm, "requestAlgoCount cannot be < 1");
+
+    *returnedAlgoCount = 0;
 
     // create a dummy buffer for use as output for the kernel calls
     // because kernels are called purely for timing purposes
@@ -2994,7 +2998,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
                                                         const TensorDescriptor& dwDesc,
                                                         ConstData_t dw,
                                                         const int requestAlgoCount,
-                                                        int* returnedAlgoCount,
+                                                        int* const returnedAlgoCount,
                                                         miopenConvAlgoPerf_t* perfResults,
                                                         Data_t workSpace,
                                                         size_t workSpaceSize,
@@ -3009,6 +3013,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "perfResults cannot be nullptr");
     if(requestAlgoCount < 1)
         MIOPEN_THROW(miopenStatusBadParm, "requestAlgoCount cannot be < 1");
+
+    *returnedAlgoCount = 0;
 
     // create a dummy buffer for use as output for the kernel calls
     // because kernels are called purely for timing purposes
