@@ -336,7 +336,6 @@ struct mlo_construct_direct2D
         : _search_params(in, weights, out, conv, dir, (do_bias) ? 1 : 0)
     {
         _search_params.deconvolution = 0;
-        _search_params.group_counts  = 1;
     }
 
     void setupRocm();
