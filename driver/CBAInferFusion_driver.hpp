@@ -90,7 +90,6 @@ class CBAInferFusionDriver : public Driver
         miopenCreateTensorDescriptor(&biasScaleTensor);
         miopenCreateConvolutionDescriptor(&convDesc);
         miopenCreateActivationDescriptor(&activDesc);
-        miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputTensor);
         miopenCreateOperatorArgs(&fusionArgs);
 
         workspace_fwd_dev = nullptr;
@@ -330,6 +329,9 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
 
     SetTensor4d(inputTensor, in_len, data_type);
+
+    miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputTensor);
+
     SetTensor4d(weightTensor, wei_len, data_type);
 
     std::vector<int> out_len{};
