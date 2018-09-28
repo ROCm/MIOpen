@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2018 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -339,65 +339,65 @@ struct cbna_fusion_driver : test_driver
         auto fpad_w       = filter.pad_w;
         auto fpaddingMode = filter.paddingMode;
 
-        if(((filter.mode == miopenTranspose) && (input_c == wei_k)) ||
-           ((filter.mode == miopenConvolution) && (input_c == wei_c)))
+        if(!((filter.mode == miopenTranspose) && (input_c == wei_k)) &&
+           !((filter.mode == miopenConvolution) && (input_c == wei_c)))
         {
-            if(fpaddingMode == miopenPaddingSame)
-            {
-
-                if(u == 0 || v == 0)
-                    return;
-                auto _pad_h = (input_h % u == 0)
-                                  ? (std::max(static_cast<int>(wei_h - u), 0))
-                                  : (std::max(static_cast<int>(wei_h - (input_h % u)), 0));
-                auto _pad_w = (input_w % v == 0)
-                                  ? (std::max(static_cast<int>(wei_w - v), 0))
-                                  : (std::max(static_cast<int>(wei_w - (input_w % v)), 0));
-
-                filter.pad_h = _pad_h / 2;
-                filter.pad_w = _pad_w / 2;
-
-                int out_h = std::ceil(static_cast<double>(input_h) / u);
-                int out_w = std::ceil(static_cast<double>(input_w) / v);
-
-                if(out_h <= 0 || out_w <= 0)
-                    return;
-            }
-            else if(fpaddingMode == miopenPaddingValid)
-            {
-                if(u == 0 || v == 0)
-                    return;
-                filter.pad_h = 0;
-                filter.pad_w = 0;
-
-                int out_h = std::ceil(static_cast<double>(input_h - wei_h + 1) / u);
-                int out_w = std::ceil(static_cast<double>(input_w - wei_w + 1) / v);
-
-                if(out_h <= 0 || out_w <= 0)
-                    return;
-            }
-
-            if(batchnormMode == 1)
-            {
-                bnmode = miopenBNSpatial;
-            }
-            else if(batchnormMode == 0)
-            {
-                bnmode = miopenBNPerActivation;
-            }
-
-            std::size_t ssn, ssc, ssh, ssw;
-            auto derivedBnDesc = miopen::TensorDescriptor{};
-            output             = get_output_tensor(filter, input, weights);
-            miopen::DeriveBNTensorDescriptor(derivedBnDesc, output.desc, bnmode);
-            std::tie(ssn, ssc, ssh, ssw) = miopen::tien<4>(derivedBnDesc.GetLengths());
-
-            scale   = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
-            shift   = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
-            estMean = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
-            estVariance =
-                tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
+            return;
         }
+        if(fpaddingMode == miopenPaddingSame)
+        {
+
+            if(u == 0 || v == 0)
+                return;
+            auto _pad_h = (input_h % u == 0)
+                              ? (std::max(static_cast<int>(wei_h - u), 0))
+                              : (std::max(static_cast<int>(wei_h - (input_h % u)), 0));
+            auto _pad_w = (input_w % v == 0)
+                              ? (std::max(static_cast<int>(wei_w - v), 0))
+                              : (std::max(static_cast<int>(wei_w - (input_w % v)), 0));
+
+            filter.pad_h = _pad_h / 2;
+            filter.pad_w = _pad_w / 2;
+
+            int out_h = std::ceil(static_cast<double>(input_h) / u);
+            int out_w = std::ceil(static_cast<double>(input_w) / v);
+
+            if(out_h <= 0 || out_w <= 0)
+                return;
+        }
+        else if(fpaddingMode == miopenPaddingValid)
+        {
+            if(u == 0 || v == 0)
+                return;
+            filter.pad_h = 0;
+            filter.pad_w = 0;
+
+            int out_h = std::ceil(static_cast<double>(input_h - wei_h + 1) / u);
+            int out_w = std::ceil(static_cast<double>(input_w - wei_w + 1) / v);
+
+            if(out_h <= 0 || out_w <= 0)
+                return;
+        }
+
+        if(batchnormMode == 1)
+        {
+            bnmode = miopenBNSpatial;
+        }
+        else if(batchnormMode == 0)
+        {
+            bnmode = miopenBNPerActivation;
+        }
+
+        std::size_t ssn, ssc, ssh, ssw;
+        auto derivedBnDesc = miopen::TensorDescriptor{};
+        output             = get_output_tensor(filter, input, weights);
+        miopen::DeriveBNTensorDescriptor(derivedBnDesc, output.desc, bnmode);
+        std::tie(ssn, ssc, ssh, ssw) = miopen::tien<4>(derivedBnDesc.GetLengths());
+
+        scale       = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
+        shift       = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
+        estMean     = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
+        estVariance = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
 
         miopenCreateOpConvForward(ptr_fusionplan.get(), &convoOp, &filter, &weights.desc);
 
