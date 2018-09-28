@@ -167,7 +167,7 @@ struct verify_forward_conv_bias_activ
         miopenActivationMode_t activ_mode;
         miopenGetActivationDescriptor(
             activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
-        convHostForward(input, rout, weights, 1, bias, filter);
+        convHostForward(input, rout, weights, bias_mode, bias, filter);
         activationHostInfer(activ_mode, activ_gamma, activ_beta, activ_alpha, rout.data, aout.data);
         return aout;
     }
