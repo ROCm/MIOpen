@@ -41,7 +41,7 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 
     private:
     miopenFusionDirection_t fusion_dir;
-    const TensorDescriptor& input_desc;
+    TensorDescriptor input_desc;
     TensorDescriptor output_desc;
     int op_count = 0;
     std::vector<std::shared_ptr<FusionOpDescriptor>> op_map;
