@@ -26,8 +26,6 @@
 #include "fusionHost.hpp"
 #include <miopen/stringutils.hpp>
 
-#define MIO_CONV_ALGO_COUNT 4
-
 using ptr_FusionPlanDesc = MIOPEN_MANAGE_PTR(miopenFusionPlanDescriptor_t, miopenDestroyFusionPlan);
 using ptr_FusionPlanArgs = MIOPEN_MANAGE_PTR(miopenOperatorArgs_t, miopenDestroyOperatorArgs);
 using ptr_ActivationDesc = MIOPEN_MANAGE_PTR(miopenActivationDescriptor_t,
@@ -339,11 +337,11 @@ struct cbna_fusion_driver : test_driver
         auto fpad_w       = filter.pad_w;
         auto fpaddingMode = filter.paddingMode;
 
-        if(!((filter.mode == miopenTranspose) && (input_c == wei_k)) &&
-           !((filter.mode == miopenConvolution) && (input_c == wei_c)))
+        if(input_c != wei_c)
         {
             return;
         }
+
         if(fpaddingMode == miopenPaddingSame)
         {
 
@@ -400,21 +398,6 @@ struct cbna_fusion_driver : test_driver
         estVariance = tensor<T>{ssn, ssc, ssh, ssw}.generate(tensor_elem_gen_integer{max_value});
 
         miopenCreateOpConvForward(ptr_fusionplan.get(), &convoOp, &filter, &weights.desc);
-
-        miopenConvFwdAlgorithm_t sup_algos[MIO_CONV_ALGO_COUNT];
-        int retAlgCount = 0;
-        // Query the supported algorithms
-        miopenFusionPlanConvolutionGetAlgo(
-            ptr_fusionplan.get(), MIO_CONV_ALGO_COUNT, &retAlgCount, sup_algos);
-        // TODO: Replace this with WinoGrad to check for wino grad supported kernels
-        miopenConvFwdAlgorithm_t req_algo = miopenConvolutionFwdAlgoDirect;
-        if((std::begin(sup_algos) + retAlgCount) != std::find(std::begin(sup_algos),
-                                                              std::begin(sup_algos) + retAlgCount,
-                                                              miopenConvolutionFwdAlgoDirect))
-        {
-            // should not throw
-            miopenFusionPlanConvolutionSetAlgo(ptr_fusionplan.get(), req_algo);
-        }
 
         if(bias_mode)
         {
