@@ -458,6 +458,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                            "MIOpenConvDirBatchNormActiv.cl",
                                                            "MIOpenConvUniBatchNormActiv",
                                                            "miopenConvolutionDirectBiasActiv");
+            g.AddEdge(conv_v, bias_v, empty_map);
             { // Conv -> Bias -> BatchNorm -> Activ
                 auto bn_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormInference,
                                                              "MIOpenConvDirBatchNormActiv.cl",

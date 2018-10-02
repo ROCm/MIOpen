@@ -264,6 +264,8 @@ struct cbna_fusion_driver : test_driver
     int search                   = 0;
     unsigned long max_value      = miopen_type<T>{} == miopenHalf ? 5 : 17;
     double alpha = 0., beta = 0., gamma = 0.;
+    int successfull_cnt = 0;
+    int total_cnt       = 0;
 
     std::unordered_map<std::string, miopenConvolutionMode_t> cmode_lookup = {
         {"CONV", miopenConvolution}}; //, {"TRANS", miopenTranspose}};
@@ -286,6 +288,12 @@ struct cbna_fusion_driver : test_driver
         add(tactiv, "test_activ", generate_data({false, true}));
         add(amode, "amode", generate_data({3}));
         add(batchnormMode, "batch-norm-mode", generate_data({0, 1}));
+    }
+
+    ~cbna_fusion_driver()
+    {
+        std::cout << "Total Test Count: " << total_cnt << std::endl;
+        std::cout << "Successful Test Count: " << successfull_cnt << std::endl;
     }
 
     std::vector<miopen::ConvolutionDescriptor> get_filters()
@@ -420,6 +428,7 @@ struct cbna_fusion_driver : test_driver
         }
 
         // Compile
+        ++total_cnt;
         miopenStatus_t miopenError = miopenCompileFusionPlan(&handle, ptr_fusionplan.get());
         if(miopenError != miopenStatusSuccess)
         {
@@ -462,6 +471,7 @@ struct cbna_fusion_driver : test_driver
             }
 #endif
             output = get_output_tensor(filter, input, weights);
+            ++successfull_cnt;
             if(bias_mode)
             {
                 // create activation descriptor here
