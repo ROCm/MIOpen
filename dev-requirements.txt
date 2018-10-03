@@ -1,5 +1,5 @@
 pfultz2/rocm-recipes
 ROCm-Developer-Tools/HIP@3a41f286203968421c557338d6fb39c36f3c717c
 -f requirements.txt
-RadeonOpenCompute/clang-ocl@a180592885ecae5b8beadf667c633c246cec82b6
+RadeonOpenCompute/clang-ocl@799713643b5591a3b877c586ef2c7fbc012af819
 danmar/cppcheck@fe1b1d537ecaa0e573000f7d073a0e661e3256f2
