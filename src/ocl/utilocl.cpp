@@ -57,12 +57,12 @@ float Im2ColGPU(Handle& handle,
     std::string program_name = "MIOpenUtilKernels.cl";
     std::string kernel_name  = "Im2Col";
 
-    std::string network_config = std::to_string(c) + "x" + std::to_string(h) + "x" +
-                                 std::to_string(w) + "x" + std::to_string(wei_h) + "x" +
-                                 std::to_string(wei_w) + "x" + std::to_string(pad_h) + "x" +
-                                 std::to_string(pad_w) + "x" + std::to_string(stride_h) + "x" +
-                                 std::to_string(stride_w) + "x" + std::to_string(dilation_h) + "x" +
-                                 std::to_string(dilation_w) + "x" + std::to_string(type);
+    std::string network_config = "c" + std::to_string(c) + "h" + std::to_string(h) + "w" +
+                                 std::to_string(w) + "y" + std::to_string(wei_h) + "x" +
+                                 std::to_string(wei_w) + "p" + std::to_string(pad_h) + "q" +
+                                 std::to_string(pad_w) + "u" + std::to_string(stride_h) + "v" +
+                                 std::to_string(stride_w) + "l" + std::to_string(dilation_h) + "j" +
+                                 std::to_string(dilation_w) + "t" + std::to_string(type);
 
     auto&& kernels = handle.GetKernels("miopenIm2Col", network_config);
 
@@ -214,12 +214,12 @@ float Col2ImGPU(Handle& handle,
     std::string program_name = "MIOpenUtilKernels2.cl";
     std::string kernel_name  = "Col2Im";
 
-    std::string network_config =
-        std::to_string(col_h) + "x" + std::to_string(col_w) + "x" + std::to_string(wei_h) + "x" +
-        std::to_string(wei_w) + "x" + std::to_string(pad_h) + "x" + std::to_string(pad_w) + "x" +
-        std::to_string(stride_h) + "x" + std::to_string(stride_w) + "x" +
-        std::to_string(dilation_h) + "x" + std::to_string(dilation_w) + "x" + std::to_string(c) +
-        "x" + std::to_string(h) + "x" + std::to_string(w) + "x" + std::to_string(type);
+    std::string network_config = "c" + std::to_string(c) + "h" + std::to_string(h) + "w" +
+                                 std::to_string(w) + "y" + std::to_string(wei_h) + "x" +
+                                 std::to_string(wei_w) + "p" + std::to_string(pad_h) + "q" +
+                                 std::to_string(pad_w) + "u" + std::to_string(stride_h) + "v" +
+                                 std::to_string(stride_w) + "l" + std::to_string(dilation_h) + "j" +
+                                 std::to_string(dilation_w) + "t" + std::to_string(type);
 
     auto&& kernels = handle.GetKernels("miopenCol2Im", network_config);
 
@@ -292,11 +292,11 @@ float transpose_NCHW2CNHW(Handle& handle,
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
-    std::string network_config =
-        std::to_string(n) + "x" + std::to_string(c) + "x" + std::to_string(h_in) + "x" +
-        std::to_string(h_out) + "x" + std::to_string(w_in) + "x" + std::to_string(w_out) + "x" +
-        std::to_string(h_stride) + "x" + std::to_string(w_stride) + "x" +
-        std::to_string(in_offset) + "x" + std::to_string(out_offset) + "x" + std::to_string(type);
+    std::string network_config = "n" + std::to_string(n) + "c" + std::to_string(c) + "h" +
+                                 std::to_string(h_in) + "w" + std::to_string(w_in) + "inoff" +
+                                 std::to_string(in_offset) + "otoff" + std::to_string(out_offset) +
+                                 "u" + std::to_string(h_stride) + "v" + std::to_string(w_stride) +
+                                 "t" + std::to_string(type);
 
     std::string kernel_name = "transpose_NCHW2CNHW";
 
@@ -415,11 +415,11 @@ float transpose_CNHW2NCHW(Handle& handle,
 
     std::string program_name = "MIOpenUtilKernels4.cl";
 
-    std::string network_config =
-        std::to_string(n) + "x" + std::to_string(c) + "x" + std::to_string(h_in) + "x" +
-        std::to_string(h_out) + "x" + std::to_string(w_in) + "x" + std::to_string(w_out) + "x" +
-        std::to_string(h_stride) + "x" + std::to_string(w_stride) + "x" +
-        std::to_string(in_offset) + "x" + std::to_string(out_offset) + "x" + std::to_string(type);
+    std::string network_config = "n" + std::to_string(n) + "c" + std::to_string(c) + "h" +
+                                 std::to_string(h_in) + "w" + std::to_string(w_in) + "inoff" +
+                                 std::to_string(in_offset) + "otoff" + std::to_string(out_offset) +
+                                 "u" + std::to_string(h_stride) + "v" + std::to_string(w_stride) +
+                                 "t" + std::to_string(type);
 
     std::string kernel_name = "transpose_CNHW2NCHW";
 
