@@ -1149,6 +1149,16 @@ MIOpenConvUniBatchNormActiv(
                     {
                         if(1)
                         {
+#else
+                for(uint j = 0; j < MLO_OUT_TILE1; ++j, out_off2 += MLO_OUT_STRIDE)
+                {
+                    if(y_out_grp + y_out_lcl + j < MLO_OUT_HEIGHT)
+                        for(uint i = 0; i < MLO_OUT_TILE0; ++i)
+                        {
+                            if(x_out_grp + x_out_lcl + i < MLO_OUT_WIDTH &&
+                               out_off2 + i < MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
+                            {
+#endif
 
 #ifndef NO_BN
 #ifdef PERACT_BN
@@ -1159,27 +1169,6 @@ MIOpenConvUniBatchNormActiv(
                             _FLOAT pbias        = bn_bias[chw_i];
                             _FLOAT pinvVariance = rsqrt(fabs(pvar + epsilon));
 #endif
-#endif
-#else
-                for(uint j = 0; j < MLO_OUT_TILE1; ++j, out_off2 += MLO_OUT_STRIDE)
-                {
-                    if(y_out_grp + y_out_lcl + j < MLO_OUT_HEIGHT)
-                        for(uint i = 0; i < MLO_OUT_TILE0; ++i)
-                        {
-                            if(x_out_grp + x_out_lcl + i < MLO_OUT_WIDTH &&
-                               out_off2 + i < MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
-                            {
-#ifndef NO_BN
-#ifdef PERACT_BN
-                                uint chw_i          = (out_off2 + i) % (MLO_OUT_BATCH_STRIDE);
-                                _FLOAT pmean        = estimatedMean[chw_i];
-                                _FLOAT pvar         = estimatedVariance[chw_i];
-                                _FLOAT pscale       = scale[chw_i];
-                                _FLOAT pbias        = bn_bias[chw_i];
-                                _FLOAT pinvVariance = rsqrt(fabs(pvar + epsilon));
-#endif
-#endif
-
 #endif
                             conv_res =
                                 (_FLOAT)pvt_accum[o * MLO_OUT_TILE_SZ + j * MLO_OUT_TILE0 + i]
