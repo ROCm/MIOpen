@@ -33,6 +33,8 @@
 #include <miopen/type_name.hpp>
 
 #include <half.hpp>
+#include <iomanip>
+#include <fstream>
 
 template <class F>
 void visit_tensor_size(std::size_t n, F f)
@@ -244,6 +246,23 @@ struct tensor
         return stream << t.desc;
     }
 };
+template <class T>
+void save_tensor(tensor<T> input, std::string fn, int slice)
+{
+    std::ofstream myfile;
+    myfile.open(fn, std::ofstream::out | std::ofstream::trunc);
+    int b, c, h, w;
+    std::tie(b, c, h, w) = miopen::tien<4>(input.desc.GetLengths());
+    for(auto hidx = 0; hidx < h; hidx++)
+    {
+        for(auto widx = 0; widx < w; widx++)
+        {
+            myfile << std::setprecision(9) << input(0, slice, hidx, widx) << ", ";
+        }
+        myfile << std::endl;
+    }
+    myfile.close();
+}
 
 template <class T, class G>
 tensor<T> make_tensor(std::initializer_list<std::size_t> dims, G g)
