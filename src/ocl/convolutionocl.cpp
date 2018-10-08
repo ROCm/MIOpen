@@ -733,6 +733,7 @@ static void DirConvFindCore(Handle& handle,
                0)
             { // TODO: be more graceful
                 // Execute the winograd kernel
+                // Invocation of winograd does not depend on input bitness (FP32 or FP16)
                 float time_wino  = 0;
                 int flags        = 0;
                 int reserved     = 0;
