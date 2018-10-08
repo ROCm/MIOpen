@@ -120,7 +120,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     find_package(hip REQUIRED)
     link_libraries(stdc++)
     # A hack to make this work without the device enumerator
-    link_libraries(-amdgpu-target=gfx803 -amdgpu-target=gfx900 -Wno-unused-command-line-argument)
+    link_libraries(-amdgpu-target=gfx803 -amdgpu-target=gfx900 -amdgpu-target=gfx906 -Wno-unused-command-line-argument)
 
     # rocblas
     set(MIOPEN_USE_ROCBLAS OFF CACHE BOOL "")
