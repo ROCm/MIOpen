@@ -56,6 +56,7 @@
 #include <numeric>
 #include <sstream>
 #include <vector>
+#include <type_traits>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DRIVER_PAD_BUFFERS_2M)
 
@@ -217,6 +218,8 @@ class ConvDriver : public Driver
     miopenConvolutionDescriptor_t convDesc;
 
     std::string GetVerificationCacheFileName() const;
+    std::string GetVCacheFwdOutBasename() const;
+    std::string GetVCacheBwdDataBasename() const;
 
     bool TryReadVerificationCache(const std::string& file_name,
                                   miopenTensorDescriptor_t& tensorDesc,
@@ -479,6 +482,24 @@ std::vector<int> ConvDriver<Tgpu, Tref, Tfile>::GetOutputTensorLengths()
     return std::vector<int>({n, c, h, w});
 }
 
+namespace detail {
+
+template <typename T>
+T RanGenWeights()
+{
+    return RAN_GEN<T>(static_cast<T>(-0.5), static_cast<T>(0.5));
+}
+
+// Shift FP16 distribution towards positive numbers,
+// otherwise Winograd FP16 validation fails.
+template <>
+float16 RanGenWeights()
+{
+    return RAN_GEN<float16>(static_cast<float16>(-1.0 / 3.0), static_cast<float16>(0.5));
+}
+
+} // namespace detail
+
 template <typename Tgpu, typename Tref, typename Tfile>
 int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
 {
@@ -625,7 +646,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < wei_sz; i++)
         {
-            wei[i] = Data_scale * RAN_GEN<Tgpu>(static_cast<Tgpu>(-0.5), static_cast<Tgpu>(0.5));
+            wei[i] = Data_scale * detail::RanGenWeights<Tgpu>();
         }
     }
 
@@ -1017,7 +1038,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardCPU()
         dumpBufferToFile<Tref>("dump_fwd_out_cpu.bin", outhost.data(), outhost.size());
     }
 
-    TrySaveVerificationCache("fwd_out", outhost);
+    TrySaveVerificationCache(GetVCacheFwdOutBasename(), outhost);
     return 0;
 }
 
@@ -1762,7 +1783,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardDataCPU()
         dumpBufferToFile<Tref>("dump_bwd_din_cpu.bin", din_host.data(), din_host.size());
     }
 
-    TrySaveVerificationCache("bwd_dat", din_host);
+    TrySaveVerificationCache(GetVCacheBwdDataBasename(), din_host);
     return 0;
 }
 
@@ -1889,10 +1910,25 @@ void ConvDriver<Tgpu, Tref, Tfile>::TrySaveVerificationCache(const std::string& 
 }
 
 template <typename Tgpu, typename Tref, typename Tfile>
+std::string ConvDriver<Tgpu, Tref, Tfile>::GetVCacheFwdOutBasename() const
+{
+    // "_v2" is to ensure compatibility of verification cache. After this commit fp16 weights buffer
+    // will have different data (due to change of random-distribution).
+    return {std::string("fwd_out") + (std::is_same<float16, Tgpu>::value ? "_v2" : "")};
+}
+
+template <typename Tgpu, typename Tref, typename Tfile>
+std::string ConvDriver<Tgpu, Tref, Tfile>::GetVCacheBwdDataBasename() const
+{
+    // Ensure compatibility of verification cache. After this commit fp16 weights buffer
+    // will have different data (due to change of random-distribution).
+    return {std::string("bwd_dat") + (std::is_same<float16, Tgpu>::value ? "_v2" : "")};
+}
+
+template <typename Tgpu, typename Tref, typename Tfile>
 int ConvDriver<Tgpu, Tref, Tfile>::VerifyForward()
 {
-
-    if(!TryReadVerificationCache("fwd_out", outputTensor, outhost.data()))
+    if(!TryReadVerificationCache(GetVCacheFwdOutBasename(), outputTensor, outhost.data()))
     {
         RunForwardCPU();
     }
@@ -1918,7 +1954,7 @@ int ConvDriver<Tgpu, Tref, Tfile>::VerifyBackward()
     const Tref tolerance =
         ((sizeof(Tgpu) == 4) ? static_cast<Tref>(1e-6) : static_cast<Tref>(7e-2));
 
-    if(!TryReadVerificationCache("bwd_dat", inputTensor, din_host.data()))
+    if(!TryReadVerificationCache(GetVCacheBwdDataBasename(), inputTensor, din_host.data()))
     {
         RunBackwardDataCPU();
     }
