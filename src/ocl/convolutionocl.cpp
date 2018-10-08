@@ -3237,6 +3237,8 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
 
         if(dilation_h == 1 && dilation_w == 1)
         {
+            std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
+
             if(wei_w >= wei_h && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}) &&
                IsBwdWeightsDirectSupported(dwDesc))
             {
