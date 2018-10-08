@@ -106,7 +106,7 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
     FusionMDGraph_Edge_Map MDGraphKey() const override;
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
-    TensorDescriptor& base_desc;
+    TensorDescriptor base_desc;
 };
 
 struct ActivFusionOpDescriptor : FusionOpDescriptor
@@ -159,7 +159,7 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
 
     miopenBatchNormMode_t mode;
-    TensorDescriptor& base_desc;
+    TensorDescriptor base_desc;
 };
 struct ConvForwardOpDescriptor : FusionOpDescriptor
 {
@@ -195,8 +195,8 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
     std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name) override;
 
-    ConvolutionDescriptor& base_desc;
-    TensorDescriptor& filter_desc;
+    ConvolutionDescriptor base_desc;
+    TensorDescriptor filter_desc;
     solver::KernelInfo kernel_info;
     bool kernel_info_valid;
     std::string conv_compiler_options;
