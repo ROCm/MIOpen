@@ -1162,7 +1162,11 @@ MIOpenConvUniBatchNormActiv(
 
 #ifndef NO_BN
 #ifdef PERACT_BN
-                            uint chw_i          = (out_off2 + i) % (MLO_OUT_BATCH_STRIDE);
+                            uint chw_i = (out_off2 + i)
+#if MLO_BATCH_SZ > 1
+                                         % (MLO_OUT_BATCH_STRIDE)
+#endif
+                                ;
                             _FLOAT pmean        = estimatedMean[chw_i];
                             _FLOAT pvar         = estimatedVariance[chw_i];
                             _FLOAT pscale       = scale[chw_i];
