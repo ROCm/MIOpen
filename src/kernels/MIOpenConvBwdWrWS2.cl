@@ -54,8 +54,6 @@
 
 #define UNUSED __attribute__((__unused__))
 
-#define DBG_OUT_OF_RNGE 0
-
 #define MLO_N_OUT_HORIZ_READS (MLO_ALIGNED_OUT_SCAN_LN)
 #define MLO_OUT_HORIZ_PIX_SZ (MLO_N_OUT_HORIZ_READS * MLO_READ_UNIT)
 
@@ -66,9 +64,9 @@
 #define MLO_N_WEI_BLK (MLO_GRP_SZ / MLO_WEI_BLK_SZ)
 // n of steps per scan line to be made in the inner loop
 // extended scan to deal with overshot in the inner loop
-#define MLO_OUT_WEI_EXT_SCAN_BLK ((MLO_OUT_WIDTH + MLO_N_WEI_BLK - 1) / MLO_N_WEI_BLK)
+#define MLO_OUT_WEI_EXT_SCAN_LOOP ((MLO_OUT_WIDTH + MLO_N_WEI_BLK - 1) / MLO_N_WEI_BLK)
 
-#define MLO_OUT_WEI_SCAN_BLK (MLO_OUT_WEI_EXT_SCAN_BLK)
+#define MLO_OUT_WEI_SCAN_LOOP (MLO_OUT_WEI_EXT_SCAN_LOOP)
 
 // MLO_WEI_WKITEM is the number of filter taps (in horizonotal direction)
 // MLO_WEI_WKITEM number of input data are saved in register for each thread
@@ -79,11 +77,9 @@
 #define MLO_WEI_WKITEM_REUSE 0
 #endif
 
-// max loop over virtual blocks for small images
-#define MLO_MAX_WEI_BLK_TMP ((MLO_OUT_WIDTH + MLO_OUT_WEI_SCAN_BLK - 1) / MLO_OUT_WEI_SCAN_BLK)
-#if MLO_MAX_WEI_BLK_TMP < MLO_N_WEI_BLK
-#define MLO_MAX_WEI_BLK MLO_MAX_WEI_BLK_TMP
-#else
+#define MLO_MAX_WEI_BLK ((MLO_OUT_WIDTH + MLO_OUT_WEI_SCAN_LOOP - 1) / MLO_OUT_WEI_SCAN_LOOP)
+#if MLO_MAX_WEI_BLK > MLO_N_WEI_BLK
+#undef MLO_MAX_WEI_BLK
 #define MLO_MAX_WEI_BLK MLO_N_WEI_BLK
 #endif
 
@@ -93,8 +89,8 @@
 #define MLO_OUT_BLK_GRP_PIX_SZ (MLO_OUT_HORIZ_PIX_SZ * MLO_N_ALIGNED_OUT_SCAN_BLK)
 #define MLO_OUT_BLK_GRP_WK_SZ (MLO_OUT_BLK_GRP_PIX_SZ / MLO_READ_UNIT)
 
-#if MLO_OUT_HORIZ_PIX_SZ < (MLO_OUT_WEI_EXT_SCAN_BLK * MLO_MAX_WEI_BLK)
-#define MLO_OUT_HORIZ_PIX_EXT_SZ (MLO_OUT_WEI_EXT_SCAN_BLK * MLO_MAX_WEI_BLK)
+#if MLO_OUT_HORIZ_PIX_SZ < (MLO_OUT_WEI_EXT_SCAN_LOOP * MLO_MAX_WEI_BLK)
+#define MLO_OUT_HORIZ_PIX_EXT_SZ (MLO_OUT_WEI_EXT_SCAN_LOOP * MLO_MAX_WEI_BLK)
 #else
 #define MLO_OUT_HORIZ_PIX_EXT_SZ MLO_OUT_HORIZ_PIX_SZ
 #endif
@@ -114,16 +110,11 @@
 // TO DO:: CHECK PADDING!!!
 #define MLO_IN_LCL_HEIGHT ((MLO_N_ALIGNED_OUT_SCAN_BLK - 1) * MLO_FILTER_STRIDE1 + MLO_FILTER_SIZE1)
 // there is an assumption that the scanline fits into LDS
-#define MLO_N_IN_HORIZ_PIX_READS \
-    (MLO_IN_WIDTH) //((MLO_OUT_WIDTH-1)*MLO_FILTER_STRIDE0 + MLO_FILTER_SIZE0 - 2 * MLO_FILTER_PAD0)
+#define MLO_N_IN_HORIZ_PIX_READS MLO_IN_WIDTH
 #define MLO_N_IN_HORIZ_READS ((MLO_N_IN_HORIZ_PIX_READS + MLO_READ_UNIT - 1) / MLO_READ_UNIT)
 #define MLO_IN_N_PIXS_OFF \
     (MLO_N_IN_HORIZ_PIX_READS - (MLO_N_IN_HORIZ_PIX_READS / MLO_READ_UNIT) * MLO_READ_UNIT)
 
-#define MLO_IN_LCL_WIDTH (MLO_N_IN_HORIZ_READS * MLO_READ_UNIT + MLO_FILTER_SIZE0 - 1)
-#define MLO_IN_BLK_GRP_PIX_SZ (MLO_IN_LCL_WIDTH * MLO_IN_LCL_HEIGHT)
-#define MLO_IN_BLK_GRP_WK_SZ (MLO_IN_BLK_GRP_PIX_SZ / MLO_READ_UNIT)
-#define MLO_IN_LCL_SZ (MLO_IN_BLK_GRP_PIX_SZ)
 // LDS IN SIZE
 #define MLO_TOTAL_IN_LCL_SZ (MLO_N_LCL_BATCHS * MLO_N_LCL_IN_MAPS * MLO_IN_LCL_SZ)
 #define MLO_IN_VERT_READS (MLO_GRP_SZ / MLO_N_IN_HORIZ_READS)
@@ -198,7 +189,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 #endif
                UNUSED _FLOAT padding_val)
 {
-
     // input/output tiles + reduce buffer
 
     __local _FLOAT lcl[(MLO_LCL_SZ)];
@@ -238,6 +228,9 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     uint w_y                    = w_idx / MLO_WEI_BLK_SZ0;
     uint w_x0                   = w_idx & (MLO_WEI_BLK_SZ0 - 1);
 #endif
+
+    // only w_blk_idx_dummy < MLO_MAX_WEI_BLK will do useful core convolution computation
+    uint w_blk_idx_dummy = w_blk_idx < MLO_MAX_WEI_BLK ? w_blk_idx : 0;
 
     __private _FLOAT pvt_accum[(MLO_N_OUT_BLK_GRP * MLO_N_LCL_OUT_MAPS * MLO_WEI_WKITEM)];
 
@@ -301,12 +294,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                     for(; i < MLO_IN_N_PIXS_OFF; ++i)
                     {
                         in_rd_data[i] = bot_p[i];
-#if DBG_OUT_OF_RNGE
-                        if(bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
-                        {
-                            printf("k:err:in-of-range\n");
-                        }
-#endif
                     }
                 }
                 else
@@ -315,12 +302,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                     for(uint i = 0; i < MLO_READ_UNIT; ++i)
                     {
                         in_rd_data[i] = bot_p[i];
-#if DBG_OUT_OF_RNGE
-                        if(bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
-                        {
-                            printf("k:err:in-of-range\n");
-                        }
-#endif
                     }
                 }
             }
@@ -361,11 +342,13 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 uint c_pix4     = p4 & (MLO_N_IN_HORIZ_READS - 1);
 #endif
 
+                // this effectively set upper and right boundary padding to 0 in LDS
                 for(uint i = 0; i < MLO_READ_UNIT; ++i)
                 {
                     in_rd_data[i] = 0;
                 }
 
+                // this effectively set upper boundary padding to 0 in LDS
                 if(in_y + c_scan < MLO_IN_HEIGHT)
                 {
                     uint bot_off =
@@ -380,12 +363,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                         for(; i < MLO_IN_N_PIXS_OFF; ++i)
                         {
                             in_rd_data[i] = bot_p[i];
-#if DBG_OUT_OF_RNGE
-                            if(bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
-                            {
-                                printf("k:err:in-of-range\n");
-                            }
-#endif
                         }
                     }
                     else
@@ -395,12 +372,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                         for(uint i = 0; i < MLO_READ_UNIT; ++i)
                         {
                             in_rd_data[i] = bot_p[i];
-#if DBG_OUT_OF_RNGE
-                            if(bot_off + i >= MLO_IN_BATCH_STRIDE * MLO_BATCH_SZ)
-                            {
-                                printf("k:err:in-of-range\n");
-                            }
-#endif
                         }
                     }
 
@@ -474,12 +445,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                             for(; i < MLO_OUT_N_PIXS_OFF; ++i)
                             {
                                 out_rd_data[i] = top_df_p[i];
-#if DBG_OUT_OF_RNGE
-                                if(top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
-                                {
-                                    printf("k:err:out-of-range\n");
-                                }
-#endif
                             }
                         }
 
@@ -490,12 +455,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                             for(uint i = 0; i < MLO_READ_UNIT; ++i)
                             {
                                 out_rd_data[i] = top_df_p[i];
-#if DBG_OUT_OF_RNGE
-                                if(top_df_off + i >= MLO_OUT_BATCH_STRIDE * MLO_BATCH_SZ)
-                                {
-                                    printf("k:err:out-of-range\n");
-                                }
-#endif
                             }
                         }
 
@@ -531,10 +490,11 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
                     for(uint w = 0; w < MLO_WEI_WKITEM_REUSE; ++w)
                     {
-                        uint w_x   = w_x0 + w * MLO_WEI_BLK_SZ0;
-                        uint i_off = (j * MLO_FILTER_STRIDE1 + w_y) * MLO_IN_LCL_WIDTH +
-                                     (w_blk_idx * MLO_OUT_WEI_SCAN_BLK + 0) * MLO_FILTER_STRIDE0 +
-                                     w_x;
+                        uint w_x = w_x0 + w * MLO_WEI_BLK_SZ0;
+                        uint i_off =
+                            (j * MLO_FILTER_STRIDE1 + w_y) * MLO_IN_LCL_WIDTH +
+                            (w_blk_idx_dummy * MLO_OUT_WEI_SCAN_LOOP + 0) * MLO_FILTER_STRIDE0 +
+                            w_x;
                         _FLOAT i_val = lcl_bot[i_off];
 
                         i_vals[w] = i_val;
@@ -542,7 +502,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
 
                     // if we overshoot the scanline
                     // out data will be 0 by initial setting
-                    for(uint i = 0; i < MLO_OUT_WEI_SCAN_BLK; ++i)
+                    for(uint i = 0; i < MLO_OUT_WEI_SCAN_LOOP; ++i)
                     {
 
                         // read the current input pixel
@@ -551,7 +511,8 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                             uint w_x = w_x0 + w * MLO_WEI_BLK_SZ0;
                             uint i_off =
                                 (j * MLO_FILTER_STRIDE1 + w_y) * MLO_IN_LCL_WIDTH +
-                                (w_blk_idx * MLO_OUT_WEI_SCAN_BLK + i) * MLO_FILTER_STRIDE0 + w_x;
+                                (w_blk_idx_dummy * MLO_OUT_WEI_SCAN_LOOP + i) * MLO_FILTER_STRIDE0 +
+                                w_x;
                             _FLOAT i_val = lcl_bot[i_off];
 
                             i_vals[w] = i_val;
@@ -563,13 +524,11 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                             // read with MLO_OUT_HORIX_PIX_EXT_SZ stride
                             _FLOAT o_val =
                                 lcl_top[(o)*MLO_OUT_LCL_SZ + j * MLO_OUT_HORIZ_PIX_EXT_SZ +
-                                        (w_blk_idx * MLO_OUT_WEI_SCAN_BLK + i)];
+                                        (w_blk_idx_dummy * MLO_OUT_WEI_SCAN_LOOP + i)];
 
-                            uint w = 0;
-                            _FLOAT i_val;
-                            for(/*uint w = 0*/; w < MLO_WEI_WKITEM; ++w)
+                            for(uint w = 0; w < MLO_WEI_WKITEM; ++w)
                             {
-                                i_val = i_vals[w];
+                                _FLOAT i_val = i_vals[w];
 
                                 pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w] +=
                                     i_val * o_val;
@@ -580,7 +539,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                         {
                             i_vals[w] = i_vals[w + MLO_WEI_WKITEM - MLO_WEI_WKITEM_REUSE];
                         }
-                    } // for (uint i = 0; i < MLO_OUT_WEI_SCAN_BLK; ++i)
+                    } // for (uint i = 0; i < MLO_OUT_WEI_SCAN_LOOP; ++i)
                 }     // for (uint j = 0; j < MLO_N_ALIGNED_OUT_SCAN_BLK; ++j)
 
             } // for(; og < (MLO_N_OUT_BLK_GRP; ++og )
@@ -683,14 +642,6 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                 wei_df_off + (og * MLO_N_LCL_OUT_MAPS + oo) * MLO_WEI_BATCH_STRIDE + wei_i;
 
             weights_df[wei_out_off] = final_sum; // lcl[lcl_id]; //
-
-#if DBG_OUT_OF_RNGE
-            // assured
-            if(wei_out_off >= MLO_WEI_BATCH_STRIDE * MLO_N_OUTPUTS * MLO_N_BATCH_BLKS)
-            {
-                printf("k:err:interm-output-of-range\n");
-            }
-#endif
         }
 
     } // for(uint og = 0; og < MLO_N_OUT_BLK_GRP; ++og)
