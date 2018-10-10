@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2018 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,58 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifndef MIOPEN_GUARD_MLOPEN_EXPANDUSER_HPP
+#define MIOPEN_GUARD_MLOPEN_EXPANDUSER_HPP
 
-#include <miopen/db_path.hpp>
-#include <miopen/env.hpp>
-#include <miopen/stringutils.hpp>
-#include <miopen/expanduser.hpp>
-
-#include <cstdlib>
-
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DB_PATH)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_USER_DB_PATH)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_FIND_DB_PATH)
+#include <string>
 
 namespace miopen {
 
-std::string GetDbPath()
-{
-    auto p = GetStringEnv(MIOPEN_DB_PATH{});
-    if(p == nullptr)
-        return "${MIOPEN_DB_PATH}";
-    else
-        return p;
-}
-
-namespace {
-std::string PrepareUserDbPath()
-{
-    auto p = GetStringEnv(MIOPEN_USER_DB_PATH{});
-    if(p == nullptr)
-        p = "${MIOPEN_USER_DB_PATH}";
-    return ExpandUser(p);
-}
-
-std::string PrepareFindDbPath()
-{
-    auto p = GetStringEnv(MIOPEN_FIND_DB_PATH{});
-    if(p == nullptr)
-        p = "${MIOPEN_FIND_DB_PATH}";
-
-    return ExpandUser(p);
-}
-} // namespace
-
-const std::string& GetUserDbPath()
-{
-    static const auto instance = PrepareUserDbPath();
-    return instance;
-}
-
-const std::string& GetFindDbPath()
-{
-    static const auto instance = PrepareFindDbPath();
-    return instance;
-}
+std::string ExpandUser(std::string p);
 
 } // namespace miopen
+
+#endif

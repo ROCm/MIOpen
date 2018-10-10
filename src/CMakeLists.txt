@@ -64,6 +64,7 @@ set( MIOpen_Source
     convolution_fft.cpp
     db.cpp
     db_record.cpp
+    expanduser.cpp
     find_controls.cpp
     fusion.cpp
     op_args.cpp
