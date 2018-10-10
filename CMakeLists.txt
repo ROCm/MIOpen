@@ -49,7 +49,7 @@ include(ROCMPackageConfigHelpers)
 include(ROCMSetupVersion)
 include(ROCMInstallSymlinks)
 include(ROCMCreatePackage)
-
+include(CheckCXXCompilerFlag)
 
 # Strip symbols for release
 if(NOT WIN32 AND NOT APPLE)
@@ -119,8 +119,14 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
     endif()
     find_package(hip REQUIRED)
     link_libraries(stdc++)
+
     # A hack to make this work without the device enumerator
-    link_libraries(-amdgpu-target=gfx803 -amdgpu-target=gfx900 -amdgpu-target=gfx906 -Wno-unused-command-line-argument)
+    link_libraries(-amdgpu-target=gfx803 -amdgpu-target=gfx900 -Wno-unused-command-line-argument)
+    CHECK_CXX_COMPILER_FLAG(-amdgpu-target=gfx906, GFX_906_FLAG_VALID)
+    if(GFX_906_FLAG_VALID)
+        link_libraries(-amdgpu-target=gfx906)
+    endif()
+    # end hack
 
     # rocblas
     set(MIOPEN_USE_ROCBLAS OFF CACHE BOOL "")
@@ -245,7 +251,7 @@ enable_clang_tidy(
         -readability-else-after-return
         -readability-named-parameter
         -hicpp-use-auto
-	-modernize-use-auto
+	    -modernize-use-auto
         ${CLANG_TIDY_CHECKS}
     ERRORS
         *
