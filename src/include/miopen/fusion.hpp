@@ -78,8 +78,8 @@ struct FusionOpDescriptor : miopenFusionOpDescriptor
                                            FusionKernelSourceType source,
                                            const std::vector<solver::AnySolver>& solvers);
     friend std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x);
-    virtual miopenFusionOp_t kind() const            = 0;
-    virtual std::vector<std::string> GetArgs() const = 0;
+    virtual miopenFusionOp_t kind() const = 0;
+    virtual std::vector<std::pair<std::string, OpKernelArg>> GetArgs() const = 0;
     virtual std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name);
     virtual std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name);
     void SetInputDesc(TensorDescriptor i_desc) { input_desc = i_desc; };
@@ -101,7 +101,7 @@ struct BiasFusionOpDescriptor : FusionOpDescriptor
                                    const std::vector<solver::AnySolver>& solvers) override;
     miopenStatus_t
     SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t bdata);
-    std::vector<std::string> GetArgs() const override;
+    std::vector<std::pair<std::string, OpKernelArg>> GetArgs() const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpBiasForward; };
     FusionMDGraph_Edge_Map MDGraphKey() const override;
     std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name) override;
@@ -124,7 +124,7 @@ struct ActivFusionOpDescriptor : FusionOpDescriptor
                            double activAlpha,
                            double activBeta,
                            double activGamma);
-    std::vector<std::string> GetArgs() const override;
+    std::vector<std::pair<std::string, OpKernelArg>> GetArgs() const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpActivForward; };
     FusionMDGraph_Edge_Map MDGraphKey() const override;
     static FusionMDGraph_Edge_Map MDGraphKey(miopenActivationMode_t mode);
@@ -151,7 +151,7 @@ struct BatchNormInferenceFusionOpDescriptor : FusionOpDescriptor
                            ConstData_t estimatedMean,
                            ConstData_t estimatedVariance,
                            double epsilon);
-    std::vector<std::string> GetArgs() const override;
+    std::vector<std::pair<std::string, OpKernelArg>> GetArgs() const override;
     miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormInference; };
     FusionMDGraph_Edge_Map MDGraphKey() const override;
     static FusionMDGraph_Edge_Map MDGraphKey(miopenBatchNormMode_t bn_mode);
@@ -171,7 +171,7 @@ struct ConvForwardOpDescriptor : FusionOpDescriptor
           conv_compiler_options(""){};
     miopenStatus_t GetOutputDesc(TensorDescriptor& output_desc) override;
     miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t w);
-    std::vector<std::string> GetArgs() const override;
+    std::vector<std::pair<std::string, OpKernelArg>> GetArgs() const override;
     miopenStatus_t GetNetworkConfig(std::string& network_config, Handle& handle) override;
     miopenStatus_t GetCompileParms(std::string& compile_config,
                                    Handle& handle,
