@@ -183,10 +183,11 @@ miopenStatus_t ConvForwardOpDescriptor::SetArgs(OperatorArgs& args,
     return miopenStatusSuccess;
 }
 
-std::vector<std::string> ConvForwardOpDescriptor::GetArgs() const
+std::vector<std::pair<std::string, OpKernelArg>> ConvForwardOpDescriptor::GetArgs() const
 {
-    std::vector<std::string> keys;
-    keys.push_back("weights" + std::to_string(GetIdx()));
+    ConstData_t w = nullptr;
+    std::vector<std::pair<std::string, OpKernelArg>> keys;
+    keys.emplace_back("weights" + std::to_string(GetIdx()), OpKernelArg(w));
     return keys;
 }
 
@@ -264,13 +265,25 @@ miopenStatus_t ActivFusionOpDescriptor::SetArgs(OperatorArgs& args,
     return miopenStatusSuccess;
 }
 
-std::vector<std::string> ActivFusionOpDescriptor::GetArgs() const
+std::vector<std::pair<std::string, OpKernelArg>> ActivFusionOpDescriptor::GetArgs() const
 {
-    std::vector<std::string> keys;
+    std::vector<std::pair<std::string, OpKernelArg>> keys;
     auto id = std::to_string(GetIdx());
-    keys.push_back("activAlpha" + id);
-    keys.push_back("activBeta" + id);
-    keys.push_back("activGamma" + id);
+    if(input_desc.GetType() == miopenFloat)
+    {
+        float a = 0.0;
+        keys.emplace_back("activAlpha" + id, OpKernelArg(a));
+        keys.emplace_back("activBeta" + id, OpKernelArg(a));
+        keys.emplace_back("activGamma" + id, OpKernelArg(a));
+    }
+    else if(input_desc.GetType() == miopenHalf)
+    {
+        half_float::half a;
+        keys.emplace_back("activAlpha" + id, OpKernelArg(a));
+        keys.emplace_back("activBeta" + id, OpKernelArg(a));
+        keys.emplace_back("activGamma" + id, OpKernelArg(a));
+    }
+
     return keys;
 }
 
@@ -321,15 +334,21 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::SetArgs(OperatorArgs& args,
     return miopenStatusSuccess;
 }
 
-std::vector<std::string> BatchNormInferenceFusionOpDescriptor::GetArgs() const
+std::vector<std::pair<std::string, OpKernelArg>>
+BatchNormInferenceFusionOpDescriptor::GetArgs() const
 {
-    std::vector<std::string> keys;
-    auto id = std::to_string(GetIdx());
-    keys.push_back("epsilon" + id);
-    keys.push_back("bnScale" + id);
-    keys.push_back("bnBias" + id);
-    keys.push_back("estimatedMean" + id);
-    keys.push_back("estimatedVariance" + id);
+    std::vector<std::pair<std::string, OpKernelArg>> keys;
+    auto id        = std::to_string(GetIdx());
+    double epsilon = 0.0;
+    keys.emplace_back("epsilon" + id, OpKernelArg(epsilon));
+    ConstData_t bnScale = nullptr;
+    keys.emplace_back("bnScale" + id, OpKernelArg(bnScale));
+    ConstData_t bnBias = nullptr;
+    keys.emplace_back("bnBias" + id, OpKernelArg(bnBias));
+    ConstData_t estimatedMean = nullptr;
+    keys.emplace_back("estimatedMean" + id, OpKernelArg(estimatedMean));
+    ConstData_t estimatedVariance = nullptr;
+    keys.emplace_back("estimatedVariance" + id, OpKernelArg(estimatedVariance));
     return keys;
 }
 
@@ -361,10 +380,11 @@ miopenStatus_t BiasFusionOpDescriptor::SetArgs(OperatorArgs& args,
     return miopenStatusSuccess;
 }
 
-std::vector<std::string> BiasFusionOpDescriptor::GetArgs() const
+std::vector<std::pair<std::string, OpKernelArg>> BiasFusionOpDescriptor::GetArgs() const
 {
-    std::vector<std::string> keys;
-    keys.push_back("bias" + std::to_string(GetIdx()));
+    ConstData_t bdata = nullptr;
+    std::vector<std::pair<std::string, OpKernelArg>> keys;
+    keys.emplace_back("bias" + std::to_string(GetIdx()), OpKernelArg(bdata));
     return keys;
 }
 
@@ -496,11 +516,109 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         MIOPEN_LOG_I2("Build options: " << compile_config);
         handle.AddKernel(
             algorithm_name, network_config, program_name, kernel_name, vld, vgd, compile_config);
+
         status = miopenStatusSuccess;
     }
+    arg_list = CalcArgOrder();
     return status;
 }
 
+std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder()
+{
+    std::vector<Exec_arg_t> arg_keys;
+    // Construct the kernel args
+    std::set<size_t> arg_sizes; // a set of argument sizes
+    // A map between argument sizes and argument names
+    std::map<std::pair<size_t, size_t>, std::vector<std::string>> size_map;
+    // A map between argument pointers (buffers) and argument names
+    std::map<size_t, std::vector<std::string>> ptr_map;
+
+    for(size_t idx = 0; idx < op_map.size(); idx++)
+    {
+        auto op   = op_map.at(idx);
+        auto keys = op->GetArgs();
+        for(auto&& key_arg : keys)
+        {
+            if(!key_arg.second.is_ptr)
+            {
+                arg_sizes.insert(key_arg.second.size());
+                size_map[std::make_pair(idx, key_arg.second.size())].push_back(key_arg.first);
+            }
+            else
+            {
+                ptr_map[idx].push_back(key_arg.first);
+            }
+        }
+    }
+
+    arg_keys.clear();
+
+    if(kernel_source_type != Binary)
+    {
+        for(auto sz : arg_sizes) // Populate args for scalars
+        {
+            for(auto idx = 0; idx < op_map.size(); idx++)
+            {
+                auto key_pair = std::make_pair(idx, sz);
+                if(size_map.count(key_pair) > 0)
+                {
+                    auto keys = size_map.at(key_pair);
+                    std::sort(keys.begin(), keys.end());
+                    for(auto& key : keys)
+                    {
+                        MIOPEN_LOG_I("Scalar " << key << " = " << key);
+                        arg_keys.emplace_back(key, Scalar, sz);
+                    }
+                }
+            }
+        }
+        // insert input / output pointer
+        arg_keys.emplace_back("reserved_input_tensor_ptr", Input_Ptr, sizeof(ConstData_t));
+        arg_keys.emplace_back("reserved_output_tensor_ptr", Output_Ptr, sizeof(ConstData_t));
+        // add other pointers in op-order
+        for(auto idx = 0; idx < op_map.size(); idx++)
+        {
+            auto op = op_map.at(idx);
+            if(ptr_map.count(idx) > 0)
+            {
+                auto keys = ptr_map.at(idx);
+                std::sort(keys.begin(), keys.end());
+                for(auto& key : keys)
+                {
+                    arg_keys.emplace_back(key, Pointer, sizeof(ConstData_t));
+                }
+            }
+        }
+        if(kernel_source_type == AsmText)
+        { // Padded arguments
+            std::vector<Exec_arg_t> padded_args;
+            size_t running_sz = arg_keys[0].size;
+            padded_args.push_back(arg_keys[0]);
+            for(auto idx = 1; idx < arg_keys.size(); idx++)
+            {
+                if(arg_keys[idx - 1].size != arg_keys[idx].size)
+                {
+                    auto padding = running_sz % arg_keys[idx].size;
+                    if(padding != 0)
+                    {
+                        MIOPEN_LOG_I("*** Padding: " << padding);
+                        padded_args.emplace_back("reserved_padding", Padding, padding);
+                        running_sz += padding;
+                    }
+                }
+                padded_args.push_back(arg_keys[idx]);
+                running_sz += arg_keys[idx].size;
+            }
+            arg_keys = std::move(padded_args);
+        }
+
+        if(arg_keys.empty())
+        {
+            MIOPEN_THROW("Kernel arguments not setup properly");
+        }
+    }
+    return arg_keys;
+}
 std::ostream& operator<<(std::ostream& s, const OpKernelArg& arg)
 {
     union
@@ -593,40 +711,6 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     }
     KernelInvoke kernel = kernels.front();
 
-    // Construct the kernel args
-    std::set<size_t> arg_sizes; // a set of argument sizes
-    // A map between argument sizes and argument names
-    std::map<std::pair<size_t, size_t>, std::vector<std::string>> size_map;
-    // A map between argument pointers (buffers) and argument names
-    std::map<size_t, std::vector<std::string>> ptr_map;
-
-    for(auto idx = 0; idx < op_map.size(); idx++)
-    {
-        auto op   = op_map.at(idx);
-        auto keys = op->GetArgs();
-        for(auto&& key : keys)
-        {
-            auto it = op_args.args_map.find(key);
-            if(it != op_args.args_map.end())
-            {
-                if(!it->second.is_ptr)
-                {
-                    arg_sizes.insert(it->second.size());
-                    size_map[std::pair<size_t, size_t>(idx, it->second.size())].push_back(key);
-                }
-                else
-                {
-                    ptr_map[idx].push_back(key);
-                }
-            }
-            else
-            {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "Arg " + key + " was not set for Operator: " +
-                                 std::to_string(op->kind()));
-            }
-        }
-    }
     std::vector<OpKernelArg> args;
     if(kernel_source_type == Binary)
     {
@@ -695,79 +779,33 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     }
     else
     {
-        for(auto sz : arg_sizes) // Populate args for scalars
+        if(arg_list.empty())
         {
-            for(auto idx = 0; idx < op_map.size(); idx++)
+            MIOPEN_THROW("Kernel arguments not setup properly");
+        }
+        for(auto& arg : arg_list)
+        {
+            switch(arg.type)
             {
-                auto key_pair = std::pair<size_t, size_t>(idx, sz);
-                if(size_map.count(key_pair) > 0)
+            case Input_Ptr: args.emplace_back(OpKernelArg(input)); break;
+            case Output_Ptr: args.emplace_back(OpKernelArg(output)); break;
+            case Padding: args.emplace_back(OpKernelArg(0, arg.size)); break;
+            case Scalar:
+            case Pointer:
+                auto it = op_args.args_map.find(arg.key);
+                if(it != op_args.args_map.end())
                 {
-                    auto keys = size_map.at(key_pair);
-                    std::sort(keys.begin(), keys.end());
-                    for(auto& key : keys)
-                    {
-                        auto it = op_args.args_map.find(key);
-                        if(it != op_args.args_map.end())
-                        {
-                            MIOPEN_LOG_I("Scalar " << key << " = " << it->second);
-                            args.push_back(it->second);
-                        }
-                    }
+                    args.push_back(it->second);
                 }
+                break;
             }
         }
-        // insert input / output pointer
-        args.emplace_back(OpKernelArg(input));
-        MIOPEN_LOG_I("Input ptr = " << input);
-        args.emplace_back(OpKernelArg(output));
-        MIOPEN_LOG_I("Output ptr = " << output);
-        // add other pointers in op-order
-        for(auto idx = 0; idx < op_map.size(); idx++)
+        if(args.empty())
         {
-            auto op = op_map.at(idx);
-            if(ptr_map.count(idx) > 0)
-            {
-                auto keys = ptr_map.at(idx);
-                std::sort(keys.begin(), keys.end());
-                for(auto& key : keys)
-                {
-                    auto it = op_args.args_map.find(key);
-                    if(it != op_args.args_map.end())
-                    {
-                        MIOPEN_LOG_I("Pointer " << key << " = " << it->second);
-                        args.push_back(it->second);
-                    }
-                }
-            }
+            MIOPEN_THROW("Operator args not populated properly");
         }
     }
-    if(kernel_source_type == AsmText)
-    { // Padded arguments
-        std::vector<OpKernelArg> padded_args;
-        size_t running_sz = args[0].size();
-        padded_args.push_back(std::move(args[0]));
-        for(auto idx = 1; idx < args.size(); idx++)
-        {
-            if(args[idx - 1].size() != args[idx].size())
-            {
-                auto padding = running_sz % args[idx].size();
-                if(padding != 0)
-                {
-                    MIOPEN_LOG_I("*** Padding: " << padding);
-                    OpKernelArg tmp(0, padding);
-                    padded_args.push_back(tmp);
-                    running_sz += padding;
-                }
-            }
-            padded_args.push_back(std::move(args[idx]));
-            running_sz += args[idx].size();
-        }
-        kernel(padded_args);
-    }
-    else
-    {
-        kernel(args);
-    }
+    kernel(args);
     return miopenStatusSuccess;
 }
 

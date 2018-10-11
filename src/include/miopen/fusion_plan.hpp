@@ -6,6 +6,23 @@
 
 namespace miopen {
 
+enum Exec_Arg_Type_t
+{
+    Scalar,
+    Input_Ptr,
+    Output_Ptr,
+    Pointer,
+    Padding,
+};
+
+struct Exec_arg_t
+{
+    std::string key;
+    Exec_Arg_Type_t type;
+    int size;
+    Exec_arg_t(std::string k, Exec_Arg_Type_t t, int s) : key(std::move(k)), type(t), size(s) {}
+};
+
 struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 {
     FusionPlanDescriptor(miopenFusionDirection_t dir, const TensorDescriptor& inDesc);
@@ -38,6 +55,7 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     protected:
     auto GetLocalWGSz();
     auto GetGlobalWGSz();
+    std::vector<Exec_arg_t> CalcArgOrder();
 
     private:
     miopenFusionDirection_t fusion_dir;
@@ -55,6 +73,7 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     std::string algorithm_name;
     std::string network_config;
     miopenDataType_t data_type;
+    std::vector<Exec_arg_t> arg_list;
 };
 
 } // namespace miopen
