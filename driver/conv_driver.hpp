@@ -720,6 +720,9 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
 
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
+    float kernel_total_time = 0.0;
+    float kernel_first_time = 0.0;
+
     Timer t;
     START_TIME;
 
@@ -739,20 +742,27 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunForwardGPU()
                                  (workspace_fwd_dev != nullptr) ? workspace_fwd_dev->GetMem()
                                                                 : nullptr,
                                  perf_results[0].memory);
+
+        float time = 0.0;
+        miopenGetKernelTime(GetHandle(), &time);
+        kernel_total_time += time;
+        if(i == 0)
+            kernel_first_time = time;
     }
 
     if(inflags.GetValueInt("time") == 1)
     {
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-
         STOP_TIME;
         if(WALL_CLOCK)
             printf("Wall-clock Time Forward Conv. Elapsed: %f ms\n",
                    t.gettime_ms() / inflags.GetValueInt("iter"));
 
+        int iter = inflags.GetValueInt("iter");
+        float kernel_average_time =
+            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
+
         printf("MIOpen Forward Conv. Algorithm: %d\n", perf_results[0].fwd_algo);
-        printf("GPU Kernel Time Forward Conv. Elapsed: %f ms\n", time);
+        printf("GPU Kernel Time Forward Conv. Elapsed: %f ms (average)\n", kernel_average_time);
     }
 
     if(inflags.GetValueInt("bias") != 0)
@@ -1105,6 +1115,9 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
     int ret = 0;
 
+    float kernel_total_time = 0.0;
+    float kernel_first_time = 0.0;
+
     Timer t;
     START_TIME;
 
@@ -1124,20 +1137,28 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
             din_dev->GetMem(),
             (workspace_bwd_data_dev != nullptr) ? workspace_bwd_data_dev->GetMem() : nullptr,
             perf_results_data[0].memory);
+
+        float time = 0.0;
+        miopenGetKernelTime(GetHandle(), &time);
+        kernel_total_time += time;
+        if(i == 0)
+            kernel_first_time = time;
     }
 
     if(inflags.GetValueInt("time") == 1)
     {
-        float time = 0.0;
-        miopenGetKernelTime(GetHandle(), &time);
-
         STOP_TIME;
         if(WALL_CLOCK)
             printf("Wall-clock Time Backward Data Conv. Elapsed: %f ms\n",
                    t.gettime_ms() / inflags.GetValueInt("iter"));
 
+        int iter = inflags.GetValueInt("iter");
+        float kernel_average_time =
+            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
+
         printf("MIOpen Backward Data Conv. Algorithm: %d\n", perf_results_data[0].bwd_data_algo);
-        printf("GPU Kernel Time Backward Data Conv. Elapsed: %f ms\n", time);
+        printf("GPU Kernel Time Backward Data Conv. Elapsed: %f ms (average)\n",
+               kernel_average_time);
     }
 
     din_dev->FromGPU(GetStream(), din.data());
@@ -1148,6 +1169,9 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
 
     if(ret_algo_count == 0)
         throw std::runtime_error("Find Backward Weights Conv. ret_algo_count == 0");
+
+    kernel_total_time = 0.0;
+    kernel_first_time = 0.0;
 
     START_TIME;
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
@@ -1166,6 +1190,12 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
             dwei_dev->GetMem(),
             (workspace_bwd_weights_dev != nullptr) ? workspace_bwd_weights_dev->GetMem() : nullptr,
             perf_results_weights[0].memory);
+
+        float time = 0.0;
+        miopenGetKernelTime(GetHandle(), &time);
+        kernel_total_time += time;
+        if(i == 0)
+            kernel_first_time = time;
     }
 
     if(inflags.GetValueInt("time") == 1)
@@ -1178,9 +1208,14 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardGPU()
             printf("Wall-clock Time Backward Weights Conv. Elapsed: %f ms\n",
                    t.gettime_ms() / inflags.GetValueInt("iter"));
 
+        int iter = inflags.GetValueInt("iter");
+        float kernel_average_time =
+            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
+
         printf("MIOpen Backward Weights Conv. Algorithm: %d\n",
                perf_results_weights[0].bwd_weights_algo);
-        printf("GPU Kernel Time Backward Weights Conv. Elapsed: %f ms\n", time);
+        printf("GPU Kernel Time Backward Weights Conv. Elapsed: %f ms (average)\n",
+               kernel_average_time);
     }
     dwei_dev->FromGPU(GetStream(), dwei.data());
 

@@ -61,6 +61,21 @@ struct tensor_elem_gen_integer
     }
 };
 
+struct tensor_elem_gen_checkboard_sign
+{
+    template <class... Ts>
+    double operator()(Ts... Xs) const
+    {
+        std::array<unsigned long, sizeof...(Ts)> dims = {{Xs...}};
+        return std::accumulate(dims.begin(),
+                               dims.end(),
+                               true,
+                               [](bool init, unsigned long x) -> int { return init != (x % 2); })
+                   ? 1
+                   : -1;
+    }
+};
+
 // Run cpu in parallel if it can be ran as const
 template <class V, class... Ts>
 auto cpu_async(const V& v, Ts&&... xs) -> std::future<decltype(v.cpu(xs...))>
