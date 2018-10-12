@@ -303,17 +303,10 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
         std::to_string((params.out_width)) + std::string(" -DMLO_IN_HEIGHT=") +
         std::to_string(params.out_height) + std::string(" -DMLO_OUT_WIDTH=") +
         std::to_string(params.in_width) + std::string(" -DMLO_OUT_HEIGHT=") +
-        std::to_string(params.in_height) + std::string(" -DMLO_IN_TILE1=") +
-        std::to_string(result.in_tile1) + std::string(" -DMLO_IN_TILE0=") +
-        std::to_string(result.in_tile0) + std::string(" -DMLO_N_LCL_BATCHS=") +
-        std::to_string(result.n_stacks) // # of diff stacks (part of batch).
-        + std::string(" -DMLO_N_LCL_OUT_MAPS=") +
+        std::to_string(params.in_height) + std::string(" -DMLO_N_LCL_OUT_MAPS=") +
         std::to_string(result.n_out_pix_tiles) // # output pixel tiles per wk-item (ALU)
         + std::string(" -DMLO_N_LCL_IN_MAPS=") +
         std::to_string(result.n_in_data_tiles) // total # of blocks of different inputs in LDS
-        + std::string(" -DMLO_OUT_TILE0=") +
-        std::to_string((result.out_pix_tile0)) // size of ouptput tile per wk-item (ALU))
-        + std::string(" -DMLO_OUT_TILE1=") + std::to_string(result.out_pix_tile1) //
         + std::string(" -DMLO_N_WAVES=") + std::to_string(n_waves) +
         std::string(" -DMLO_READ_TYPE=") + READ_TYPE + std::string(" -DMLO_READ_UNIT=") +
         std::to_string(read_unit) + std::string(" -DMLO_ALIGNED_OUT_SCAN_LN=") +
