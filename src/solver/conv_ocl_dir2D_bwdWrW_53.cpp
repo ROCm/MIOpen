@@ -30,8 +30,38 @@
 namespace miopen {
 namespace solver {
 
+// Workaround for issue 1173. These FP16 configs would cause clang-ocl compiler to crash
+// during kernel compilation, due to compiler bug
+#define WORKAROUND_ISSUE_1173 1
+
+// Workaround for issue 1242. These FP32 configs produce wrong result if compiled with
+// OpenCL 1.2.0-2018090737 that comes with rocm 1.9, using -O2 flag or higher.
+// However, when compiled with older OpenCL that comes with rocm 1.8, this config
+// would pass
+#define WORKAROUND_ISSUE_1242 1
+
 bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 {
+
+    bool workaround = false;
+
+#if WORKAROUND_ISSUE_1173
+    workaround = workaround ||
+                 (params.out_data_type == "FP16" &&
+                  ((params.kernel_size0 == 7 && params.kernel_size1 == 7 && params.pad0 == 3) ||
+                   (params.kernel_size0 == 7 && params.kernel_size1 == 7 && params.pad0 == 2) ||
+                   (params.kernel_size0 == 11 && params.kernel_size1 == 11 && params.pad0 == 5) ||
+                   (params.kernel_size0 == 11 && params.kernel_size1 == 11 && params.pad0 == 2) ||
+                   (params.kernel_size0 == 11 && params.kernel_size1 == 11 && params.pad0 == 1)));
+#endif
+
+#if WORKAROUND_ISSUE_1242
+    workaround = workaround ||
+                 (params.out_data_type == "FP32" &&
+                  ((params.kernel_size0 == 7 && params.kernel_size1 == 7 && params.pad0 == 3) &&
+                   (params.out_height % 112 == 0 || params.out_width % 112 == 0)));
+#endif
+
     return (params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1) &&
            (params.kernel_stride0 == 1 && params.kernel_stride1 == 1) &&
 
@@ -51,7 +81,10 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
            // loop.
            // Remind that input is output, output is input.
            (params.in_height == params.out_height + 2 * params.pad1 - params.kernel_size1 + 1) &&
-           (params.in_width == params.out_width + 2 * params.pad0 - params.kernel_size0 + 1);
+           (params.in_width == params.out_width + 2 * params.pad0 - params.kernel_size0 + 1) &&
+
+           // workaround
+           !workaround;
 }
 
 ConvSolution ConvOclBwdWrW53::GetSolution(const ConvolutionContext& params) const
