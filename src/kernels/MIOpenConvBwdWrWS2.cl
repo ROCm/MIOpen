@@ -30,9 +30,14 @@
 #define FOUR 4
 #define EIGHT 8
 
+// For FP16 cases, this kernel use FP16 accumulator, because using FP32
+// accumulator will results in substantial performance drop.
+// Please refer to PR 1245 for details
+// TODO: Revisit this if FP16 case failure occurs
 #if MIOPEN_USE_FP16 == 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
+#define _FLOAT_ACCUM half
 #ifndef HALF_MAX
 #define MAX_VAL 65504 /* max value */
 #else
@@ -41,6 +46,7 @@
 #endif
 #if MIOPEN_USE_FP32 == 1
 #define _FLOAT float
+#define _FLOAT_ACCUM float
 #ifndef FLT_MAX
 #define MAX_VAL 3.402823466e+38F /* max value */
 #else
@@ -53,6 +59,12 @@
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 
 #define UNUSED __attribute__((__unused__))
+
+#if((MLO_BATCH_SZ % MLO_N_BATCH_LOOPS) == 0)
+#define MLO_N_BATCH_LOOPS_PARTIAL 0
+#else
+#define MLO_N_BATCH_LOOPS_PARTIAL 1
+#endif
 
 #define MLO_N_OUT_HORIZ_READS (MLO_ALIGNED_OUT_SCAN_LN)
 #define MLO_OUT_HORIZ_PIX_SZ (MLO_N_OUT_HORIZ_READS * MLO_READ_UNIT)
@@ -97,7 +109,7 @@
 #define MLO_OUT_BLK_GRP_EXT_PIX_SZ (MLO_OUT_HORIZ_PIX_EXT_SZ * MLO_N_ALIGNED_OUT_SCAN_BLK)
 #define MLO_OUT_LCL_SZ (MLO_OUT_BLK_GRP_EXT_PIX_SZ)
 // LDS OUT SIZE
-#define MLO_TOTAL_OUT_LCL_SZ (MLO_N_LCL_BATCHS * MLO_N_LCL_OUT_MAPS * MLO_OUT_LCL_SZ)
+#define MLO_TOTAL_OUT_LCL_SZ (MLO_N_LCL_OUT_MAPS * MLO_OUT_LCL_SZ)
 #if((MLO_OUT_HEIGHT / MLO_N_ALIGNED_OUT_SCAN_BLK) * MLO_N_ALIGNED_OUT_SCAN_BLK == MLO_OUT_HEIGHT)
 #define MLO_BLK_ALIGNED 1
 #else
@@ -116,7 +128,7 @@
     (MLO_N_IN_HORIZ_PIX_READS - (MLO_N_IN_HORIZ_PIX_READS / MLO_READ_UNIT) * MLO_READ_UNIT)
 
 // LDS IN SIZE
-#define MLO_TOTAL_IN_LCL_SZ (MLO_N_LCL_BATCHS * MLO_N_LCL_IN_MAPS * MLO_IN_LCL_SZ)
+#define MLO_TOTAL_IN_LCL_SZ (MLO_N_LCL_IN_MAPS * MLO_IN_LCL_SZ)
 #define MLO_IN_VERT_READS (MLO_GRP_SZ / MLO_N_IN_HORIZ_READS)
 
 #if(MLO_TOTAL_OUT_LCL_SZ + MLO_TOTAL_IN_LCL_SZ) > (MLO_WEI_BLKS_LCL_SZ)
@@ -200,7 +212,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     uint o_idx_base = get_group_id(1); // output map index base
     uint ib_base    = get_group_id(2); // batch index base
 
-    uint ib = ib_base * (MLO_N_BATCH_LOOPS * MLO_N_LCL_BATCHS);
+    uint ib = ib_base * MLO_N_BATCH_LOOPS;
 
     uint c_idx = c_idx_base * MLO_N_LCL_IN_MAPS; // input map index
 
@@ -216,23 +228,21 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     uint w_blk_idx = iDiv(lcl_id, MLO_WEI_BLK_SZ);
     uint w_idx     = iMod(lcl_id, w_blk_idx, MLO_WEI_BLK_SZ);
 #else
-    uint w_blk_idx              = lcl_id / MLO_WEI_BLK_SZ;
-    uint w_idx                  = lcl_id & (MLO_WEI_BLK_SZ - 1);
+    uint w_blk_idx = lcl_id / MLO_WEI_BLK_SZ;
+    uint w_idx     = lcl_id & (MLO_WEI_BLK_SZ - 1);
 #endif
 #if MLO_WEI_BLK_SZ0 & (MLO_WEI_BLK_SZ0 - 1)
-    // weight y
-    uint w_y = iDiv(w_idx, MLO_WEI_BLK_SZ0);
-    // weight starting x
+    uint w_y  = iDiv(w_idx, MLO_WEI_BLK_SZ0);
     uint w_x0 = iMod(w_idx, w_y, MLO_WEI_BLK_SZ0);
 #else
-    uint w_y                    = w_idx / MLO_WEI_BLK_SZ0;
-    uint w_x0                   = w_idx & (MLO_WEI_BLK_SZ0 - 1);
+    uint w_y       = w_idx / MLO_WEI_BLK_SZ0;
+    uint w_x0      = w_idx & (MLO_WEI_BLK_SZ0 - 1);
 #endif
 
     // only w_blk_idx_dummy < MLO_MAX_WEI_BLK will do useful core convolution computation
     uint w_blk_idx_dummy = w_blk_idx < MLO_MAX_WEI_BLK ? w_blk_idx : 0;
 
-    __private _FLOAT pvt_accum[(MLO_N_OUT_BLK_GRP * MLO_N_LCL_OUT_MAPS * MLO_WEI_WKITEM)];
+    __private _FLOAT_ACCUM pvt_accum[(MLO_N_OUT_BLK_GRP * MLO_N_LCL_OUT_MAPS * MLO_WEI_WKITEM)];
 
     for(uint i = 0; i < (MLO_N_OUT_BLK_GRP * MLO_N_LCL_OUT_MAPS * MLO_WEI_WKITEM); ++i)
     {
@@ -246,10 +256,13 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
     }
 
     // over all batches
-
-    for(uint b = 0; b < MLO_N_BATCH_LOOPS; ++b,
-             gbl_in_off += MLO_N_LCL_BATCHS * MLO_IN_BATCH_STRIDE,
-             gbl_out_off += MLO_N_LCL_BATCHS * MLO_OUT_BATCH_STRIDE)
+    for(uint b = 0;
+#if MLO_N_BATCH_LOOPS_PARTIAL
+        b < MLO_N_BATCH_LOOPS && ib + b < MLO_BATCH_SZ;
+#else
+        b < MLO_N_BATCH_LOOPS;
+#endif
+        ++b, gbl_in_off += MLO_IN_BATCH_STRIDE, gbl_out_off += MLO_OUT_BATCH_STRIDE)
     {
 
         barrier(CLK_LOCAL_MEM_FENCE);
@@ -599,6 +612,7 @@ MIOpenCvBwdWrW(const __global _FLOAT* __restrict top_df,
                     wei_lcl_off = ((o * MLO_MAX_WEI_BLK + w_blk_idx) * MLO_FILTER_SIZE1 + w_y) *
                                       (MLO_WEI_BLK_SZ0 * MLO_WEI_WKITEM) +
                                   w_x;
+
                     lcl[wei_lcl_off] =
                         pvt_accum[(og * MLO_N_LCL_OUT_MAPS + o) * MLO_WEI_WKITEM + w];
                 }
