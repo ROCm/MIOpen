@@ -58,8 +58,9 @@ bool ConvOclBwdWrW53::IsApplicable(const ConvolutionContext& params) const
 #if WORKAROUND_ISSUE_1242
     workaround = workaround ||
                  (params.out_data_type == "FP32" &&
-                  ((params.kernel_size0 == 7 && params.kernel_size1 == 7 && params.pad0 == 3) &&
-                   (params.out_height % 112 == 0 || params.out_width % 112 == 0)));
+                  ((params.kernel_size0 == 7 && params.kernel_size1 == 7 && params.pad0 == 3) ||
+                   (params.kernel_size0 == 7 && params.kernel_size1 == 7 && params.pad0 == 1)) &&
+                  (params.out_height % 112 == 0 || params.out_width % 112 == 0));
 #endif
 
     return (params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1) &&

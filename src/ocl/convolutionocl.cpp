@@ -1880,6 +1880,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
         (void)workSpace;     // Suppress warning
         (void)workSpaceSize; // Suppress warning
 #endif
+
         if(dilation_h == 1 && dilation_w == 1)
         {
             { // Direct algo
@@ -3236,12 +3237,11 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
         }
 #endif
 
-        if(dilation_h == 1 && dilation_w == 1)
+        // direct convolution
         {
             std::tie(std::ignore, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
 
-            if(wei_w >= wei_h && !miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}) &&
-               IsBwdWeightsDirectSupported(dwDesc))
+            if(!miopen::IsDisabled(MIOPEN_DEBUG_CONV_DIRECT{}))
             {
                 mlo_construct_BwdWrW2D construct_params(
                     xDesc, dwDesc, dyDesc, *this, 0); // backward with regards to weights
@@ -3459,99 +3459,95 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
         case miopenConvolutionBwdWeightsAlgoDirect:
         {
-            if(wei_w >= wei_h)
-            {
-                mlo_construct_BwdWrW2D construct_params(
-                    xDesc, dwDesc, dyDesc, *this, 0); // backward with regards to weights
-                construct_params.setStream(&handle);
+            mlo_construct_BwdWrW2D construct_params(
+                xDesc, dwDesc, dyDesc, *this, 0); // backward with regards to weights
+            construct_params.setStream(&handle);
 
-                visit_float(dyDesc.GetType(), [&](auto as_float) {
+            visit_float(dyDesc.GetType(), [&](auto as_float) {
 
-                    std::string network_config;
-                    construct_params.mloBuildConf_Key(network_config);
+                std::string network_config;
+                construct_params.mloBuildConf_Key(network_config);
 
-                    auto&& kernels =
-                        handle.GetKernels("miopenConvolutionBwdWeightsAlgoDirect", network_config);
-                    if(kernels.empty())
-                        MIOPEN_THROW("No kernels found");
-                    auto kernel = kernels[0];
+                auto&& kernels =
+                    handle.GetKernels("miopenConvolutionBwdWeightsAlgoDirect", network_config);
+                if(kernels.empty())
+                    MIOPEN_THROW("No kernels found");
+                auto kernel = kernels[0];
 
-                    handle.ResetKernelTime();
+                handle.ResetKernelTime();
 
-                    if((kernel.GetName() == "gcnAsmConv3x3WrW") ||
-                       (kernel.GetName() == "gcnAsmConv1x1WrW"))
+                if((kernel.GetName() == "gcnAsmConv3x3WrW") ||
+                   (kernel.GetName() == "gcnAsmConv1x1WrW"))
+                {
+                    assert(kernels.size() == 1);
+                    int unused       = 0;
+                    int* return_addr = nullptr;
+                    int N, C, H, W, K, n_groups;
+                    construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
+                    kernel(N, C, H, W, K, n_groups, unused, unused, x, dw, dy, return_addr);
+                }
+                else if(kernels.size() == 1)
+                {
+                    float padding_val = 0;
+                    kernel(dy, x, dw, as_float(padding_val));
+                }
+                else
+                {
+                    assert(kernels.size() == 2);
+                    // this pointer needed here as a workaround in gcc 5
+                    assert(workSpace != nullptr &&
+                           workSpaceSize >= this->BackwardWeightsGetWorkSpaceSizeDirect(
+                                                handle, dyDesc, xDesc, dwDesc));
+                    if(kernel.GetName() == "SubSample")
                     {
-                        assert(kernels.size() == 1);
-                        int unused       = 0;
-                        int* return_addr = nullptr;
-                        int N, C, H, W, K, n_groups;
-                        construct_params.getCompiledInParameters(&N, &C, &H, &W, &K, &n_groups);
-                        kernel(N, C, H, W, K, n_groups, unused, unused, x, dw, dy, return_addr);
-                    }
-                    else if(kernels.size() == 1)
-                    {
-                        float padding_val = 0;
-                        kernel(dy, x, dw, as_float(padding_val));
-                    }
-                    else
-                    {
-                        assert(kernels.size() == 2);
-                        // this pointer needed here as a workaround in gcc 5
-                        assert(workSpace != nullptr &&
-                               workSpaceSize >= this->BackwardWeightsGetWorkSpaceSizeDirect(
-                                                    handle, dyDesc, xDesc, dwDesc));
+                        // subsampling kernel
+                        kernel(x, workSpace);
+                        float time0 = handle.GetKernelTime();
 
-                        if(kernel.GetName() == "SubSample")
+                        // wrw  kernel
+                        if(kernels[1].GetName() == "gcnAsmConv1x1WrW")
                         {
-                            // subsampling kernel
-                            kernel(x, workSpace);
-                            float time0 = handle.GetKernelTime();
-
-                            // wrw  kernel
-                            if(kernels[1].GetName() == "gcnAsmConv1x1WrW")
-                            {
-                                int unused       = 0;
-                                int* return_addr = nullptr;
-                                int N, C, H, W, K, n_groups, out_H, out_W;
-                                construct_params.getCompiledInParameters(
-                                    &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
-                                // out_H/W are used instead of H/W; see comment in
-                                // AsmImgHeight(), conv_asm_dir_BwdWrW1x1.cpp.
-                                kernels[1](N,
-                                           C,
-                                           out_H,
-                                           out_W,
-                                           K,
-                                           n_groups,
-                                           unused,
-                                           unused,
-                                           workSpace,
-                                           dw,
-                                           dy,
-                                           return_addr);
-                            }
-                            else
-                            {
-                                float padding_val = 0;
-                                kernels[1](dy, workSpace, dw, as_float(padding_val));
-                            }
-
-                            handle.AccumKernelTime(time0);
+                            int unused       = 0;
+                            int* return_addr = nullptr;
+                            int N, C, H, W, K, n_groups, out_H, out_W;
+                            construct_params.getCompiledInParameters(
+                                &N, &C, &H, &W, &K, &n_groups, &out_H, &out_W);
+                            // out_H/W are used instead of H/W; see comment in
+                            // AsmImgHeight(), conv_asm_dir_BwdWrW1x1.cpp.
+                            kernels[1](N,
+                                       C,
+                                       out_H,
+                                       out_W,
+                                       K,
+                                       n_groups,
+                                       unused,
+                                       unused,
+                                       workSpace,
+                                       dw,
+                                       dy,
+                                       return_addr);
                         }
                         else
                         {
                             float padding_val = 0;
-                            kernel(dy, x, workSpace, as_float(padding_val));
-
-                            float time0 = handle.GetKernelTime();
-                            // second kernel - reduction
-                            kernels[1](workSpace, dw);
-
-                            handle.AccumKernelTime(time0);
+                            kernels[1](dy, workSpace, dw, as_float(padding_val));
                         }
+
+                        handle.AccumKernelTime(time0);
                     }
-                });
-            }
+                    else
+                    {
+                        float padding_val = 0;
+                        kernel(dy, x, workSpace, as_float(padding_val));
+
+                        float time0 = handle.GetKernelTime();
+                        // second kernel - reduction
+                        kernels[1](workSpace, dw);
+
+                        handle.AccumKernelTime(time0);
+                    }
+                }
+            });
         }
         break;
         };
