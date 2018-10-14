@@ -40,12 +40,6 @@
 #if ROCBLAS_TIMING_ENQUEUE_DUMMY
 #define ROCBLAS_TIMING_MEMSET_SIZE 10000000
 #endif
-
-#define ROCBLAS_USE_SGEMM_HGEMM_BATCHED_NONBATCHED 0
-#define ROCBLAS_USE_GEMM_EX_NONBATCHED 1
-#define ROCBLAS_USE_GEMM_EX_BATCHED_NONBATCHED 2
-
-#define ROCBLAS_USE_GEMM_METHOD ROCBLAS_USE_GEMM_EX_NONBATCHED
 #endif
 
 namespace miopen {
@@ -118,57 +112,7 @@ miopenStatus_t CallGemm(Handle& handle,
     }
 
     rocblas_status rb_status = rocblas_status::rocblas_status_internal_error;
-#if(ROCBLAS_USE_GEMM_METHOD == ROCBLAS_USE_SGEMM_HGEMM_BATCHED_NONBATCHED)
-    switch(gemm_desc.dataType)
-    {
-    case miopenHalf:
-    {
-        half_float::half alpha(gemm_desc.alpha);
-        half_float::half beta(gemm_desc.beta);
 
-        rb_status =
-            rocblas_hgemm(handle.rhandle.get(),
-                          gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
-                          gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
-                          gemm_desc.m,
-                          gemm_desc.n,
-                          gemm_desc.k,
-                          reinterpret_cast<const rocblas_half*>(&alpha),
-                          static_cast<const rocblas_half*>(A) + a_offset,
-                          gemm_desc.lda,
-                          static_cast<const rocblas_half*>(B) + b_offset,
-                          gemm_desc.ldb,
-                          reinterpret_cast<const rocblas_half*>(&beta),
-                          static_cast<rocblas_half*>(C) + c_offset,
-                          gemm_desc.ldc);
-    }
-    break;
-
-    case miopenFloat:
-    {
-        float alpha = gemm_desc.alpha;
-        float beta  = gemm_desc.beta;
-
-        rb_status =
-            rocblas_sgemm(handle.rhandle.get(),
-                          gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
-                          gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
-                          gemm_desc.m,
-                          gemm_desc.n,
-                          gemm_desc.k,
-                          static_cast<const float*>(&alpha),
-                          static_cast<const float*>(A) + a_offset,
-                          gemm_desc.lda,
-                          static_cast<const float*>(B) + b_offset,
-                          gemm_desc.ldb,
-                          static_cast<const float*>(&beta),
-                          static_cast<float*>(C) + c_offset,
-                          gemm_desc.ldc);
-    }
-    break;
-    }
-#elif((ROCBLAS_USE_GEMM_METHOD == ROCBLAS_USE_GEMM_EX_NONBATCHED) or \
-      (ROCLBAS_USE_GEMM_METHOD == ROCBLAS_USE_GEMM_EX_BATCHED_NONBATCHED))
     switch(gemm_desc.dataType)
     {
     case miopenHalf:
@@ -243,9 +187,6 @@ miopenStatus_t CallGemm(Handle& handle,
     }
     break;
     }
-#else
-    MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
-#endif
 
     if(handle.IsProfilingEnabled())
     {
@@ -384,64 +325,6 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
 
     rocblas_status rb_status = rocblas_status::rocblas_status_internal_error;
 
-#if(ROCBLAS_USE_GEMM_METHOD == ROCBLAS_USE_SGEMM_HGEMM_BATCHED_NONBATCHED)
-    switch(gemm_desc.dataType)
-    {
-    case miopenHalf:
-    {
-        half_float::half alpha(gemm_desc.alpha);
-        half_float::half beta(gemm_desc.beta);
-
-        rb_status = rocblas_hgemm_strided_batched(
-            handle.rhandle.get(),
-            gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
-            gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
-            gemm_desc.m,
-            gemm_desc.n,
-            gemm_desc.k,
-            reinterpret_cast<const rocblas_half*>(&alpha),
-            static_cast<const rocblas_half*>(A) + a_offset,
-            gemm_desc.lda,
-            gemm_desc.strideA,
-            static_cast<const rocblas_half*>(B) + b_offset,
-            gemm_desc.ldb,
-            gemm_desc.strideB,
-            reinterpret_cast<const rocblas_half*>(&beta),
-            static_cast<rocblas_half*>(C) + c_offset,
-            gemm_desc.ldc,
-            gemm_desc.strideC,
-            gemm_desc.batch_count);
-    }
-    break;
-
-    case miopenFloat:
-    {
-        float alpha = gemm_desc.alpha;
-        float beta  = gemm_desc.beta;
-
-        rb_status = rocblas_sgemm_strided_batched(
-            handle.rhandle.get(),
-            gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
-            gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
-            gemm_desc.m,
-            gemm_desc.n,
-            gemm_desc.k,
-            static_cast<const float*>(&alpha),
-            static_cast<const float*>(A) + a_offset,
-            gemm_desc.lda,
-            gemm_desc.strideA,
-            static_cast<const float*>(B) + b_offset,
-            gemm_desc.ldb,
-            gemm_desc.strideB,
-            static_cast<const float*>(&beta),
-            static_cast<float*>(C) + c_offset,
-            gemm_desc.ldc,
-            gemm_desc.strideC,
-            gemm_desc.batch_count);
-    }
-    break;
-    }
-#elif(ROCBLAS_USE_GEMM_METHOD == ROCBLAS_USE_GEMM_EX_BATCHED_NONBATCHED)
     switch(gemm_desc.dataType)
     {
     case miopenHalf:
@@ -526,90 +409,6 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
     }
     break;
     }
-#elif(ROCBLAS_USE_GEMM_METHOD == ROCBLAS_USE_GEMM_EX_NONBATCHED)
-    switch(gemm_desc.dataType)
-    {
-    case miopenHalf:
-    {
-        float alpha = gemm_desc.alpha;
-        float beta  = gemm_desc.beta;
-
-        std::size_t zero = 0;
-        for(int i = 0; i < gemm_desc.batch_count; ++i)
-        {
-            rb_status = rocblas_gemm_ex(
-                handle.rhandle.get(),
-                gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
-                gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
-                gemm_desc.m,
-                gemm_desc.n,
-                gemm_desc.k,
-                &alpha,
-                static_cast<const rocblas_half*>(A) + a_offset + i * gemm_desc.strideA,
-                rocblas_datatype::rocblas_datatype_f16_r,
-                gemm_desc.lda,
-                static_cast<const rocblas_half*>(B) + b_offset + i * gemm_desc.strideB,
-                rocblas_datatype::rocblas_datatype_f16_r,
-                gemm_desc.ldb,
-                &beta,
-                static_cast<const rocblas_half*>(C) + c_offset + i * gemm_desc.strideC,
-                rocblas_datatype::rocblas_datatype_f16_r,
-                gemm_desc.ldc,
-                static_cast<rocblas_half*>(C) + c_offset + i * gemm_desc.strideC,
-                rocblas_datatype::rocblas_datatype_f16_r,
-                gemm_desc.ldc,
-                rocblas_datatype::rocblas_datatype_f32_r,
-                rocblas_gemm_algo::rocblas_gemm_algo_standard,
-                0,
-                0,
-                &zero,
-                nullptr);
-        }
-    }
-    break;
-
-    case miopenFloat:
-    {
-        float alpha = gemm_desc.alpha;
-        float beta  = gemm_desc.beta;
-
-        std::size_t zero = 0;
-        for(int i = 0; i < gemm_desc.batch_count; ++i)
-        {
-            rb_status = rocblas_gemm_ex(
-                handle.rhandle.get(),
-                gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
-                gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
-                gemm_desc.m,
-                gemm_desc.n,
-                gemm_desc.k,
-                &alpha,
-                static_cast<const float*>(A) + a_offset + i * gemm_desc.strideA,
-                rocblas_datatype::rocblas_datatype_f32_r,
-                gemm_desc.lda,
-                static_cast<const float*>(B) + b_offset + i * gemm_desc.strideB,
-                rocblas_datatype::rocblas_datatype_f32_r,
-                gemm_desc.ldb,
-                &beta,
-                static_cast<const float*>(C) + c_offset + i * gemm_desc.strideC,
-                rocblas_datatype::rocblas_datatype_f32_r,
-                gemm_desc.ldc,
-                static_cast<float*>(C) + c_offset + i * gemm_desc.strideC,
-                rocblas_datatype::rocblas_datatype_f32_r,
-                gemm_desc.ldc,
-                rocblas_datatype::rocblas_datatype_f32_r,
-                rocblas_gemm_algo::rocblas_gemm_algo_standard,
-                0,
-                0,
-                &zero,
-                nullptr);
-        }
-    }
-    break;
-    }
-#else
-    MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
-#endif
 
     if(handle.IsProfilingEnabled())
     {
@@ -687,63 +486,6 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
 
     rocblas_status rb_status = rocblas_status::rocblas_status_internal_error;
 
-#if(ROCBLAS_USE_GEMM_METHOD == ROCBLAS_USE_SGEMM_HGEMM_BATCHED_NONBATCHED)
-    switch(gemm_desc.dataType)
-    {
-    case miopenHalf:
-    {
-        half_float::half alpha(gemm_desc.alpha);
-        half_float::half beta(gemm_desc.beta);
-
-        for(int i = 0; i < gemm_desc.batch_count; ++i)
-        {
-            rb_status = rocblas_hgemm(
-                handle.rhandle.get(),
-                gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
-                gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
-                gemm_desc.m,
-                gemm_desc.n,
-                gemm_desc.k,
-                reinterpret_cast<const rocblas_half*>(&alpha),
-                static_cast<const rocblas_half*>(A) + a_offset + i * gemm_desc.strideA,
-                gemm_desc.lda,
-                static_cast<const rocblas_half*>(B) + b_offset + i * gemm_desc.strideB,
-                gemm_desc.ldb,
-                reinterpret_cast<const rocblas_half*>(&beta),
-                static_cast<rocblas_half*>(C) + c_offset + i * gemm_desc.strideC,
-                gemm_desc.ldc);
-        }
-    }
-    break;
-
-    case miopenFloat:
-    {
-        float alpha = gemm_desc.alpha;
-        float beta  = gemm_desc.beta;
-
-        for(int i = 0; i < gemm_desc.batch_count; ++i)
-        {
-            rb_status = rocblas_sgemm(
-                handle.rhandle.get(),
-                gemm_desc.transA ? rocblas_operation_transpose : rocblas_operation_none,
-                gemm_desc.transB ? rocblas_operation_transpose : rocblas_operation_none,
-                gemm_desc.m,
-                gemm_desc.n,
-                gemm_desc.k,
-                static_cast<const float*>(&alpha),
-                static_cast<const float*>(A) + a_offset + i * gemm_desc.strideA,
-                gemm_desc.lda,
-                static_cast<const float*>(B) + b_offset + i * gemm_desc.strideB,
-                gemm_desc.ldb,
-                static_cast<const float*>(&beta),
-                static_cast<float*>(C) + c_offset + i * gemm_desc.strideC,
-                gemm_desc.ldc);
-        }
-    }
-    break;
-    }
-#elif((ROCBLAS_USE_GEMM_METHOD == ROCBLAS_USE_GEMM_EX_NONBATCHED) or \
-      (ROCLBAS_USE_GEMM_METHOD == ROCBLAS_USE_GEMM_EX_BATCHED_NONBATCHED))
     switch(gemm_desc.dataType)
     {
     case miopenHalf:
@@ -824,9 +566,6 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
     }
     break;
     }
-#else
-    MIOPEN_THROW(miopenStatusInternalError, "rocBlas error encountered");
-#endif
 
     if(handle.IsProfilingEnabled())
     {
