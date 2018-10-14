@@ -650,6 +650,10 @@ struct ConvOclDirectFwdLegacyExhaustiveSearch : SolverBase<ConvolutionContext>
 {
     LegacyPerformanceConfig GetPerformanceConfig(const ConvolutionContext&) const;
     LegacyPerformanceConfig Search(const ConvolutionContext&) const;
+
+    private:
+    template <typename Tgpu>
+    LegacyPerformanceConfig SearchImpl(const ConvolutionContext&) const;
 };
 
 struct ConvOclDirectFwd : ConvOclDirectFwdLegacyExhaustiveSearch
@@ -827,7 +831,7 @@ struct PerformanceConfigConvAsmBwdWrW1x1 : Serializable<PerformanceConfigConvAsm
     int GetKMult() const { return k_mult; }
     int GetNPerGpr() const { return n_per_gpr; }
     int GetNPartCnt() const { return n_part_cnt; }
-    int GetHWPerGpr() const {   assert(c_per_gpr); assert(n_per_gpr); assert(chunk_size);  
+    int GetHWPerGpr() const {   assert(c_per_gpr); assert(n_per_gpr); assert(chunk_size);
                                 return wave_size / (c_per_gpr * n_per_gpr * chunk_size); } // "hw" stands for "height-and-width".
     int GetReadSize() const { return read_size; }
     int GetShortStore() const {return short_store; }
