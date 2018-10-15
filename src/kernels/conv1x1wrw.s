@@ -351,11 +351,11 @@ gcnAsmConv1x1WrW:
             v_fma_mix_f32 v[\v_acc], v[\v_base_out], v[\v_base_in], v[\v_acc] op_sel:[1,1,0] op_sel_hi:[1,1,0]
         .else
             v_cvt_f32_f16 v[vtmp_cvt_fir], v[\v_base_in]
-            v_cvt_f32_f16 v[vtmp_cvt_sec], v[f_gpr]
+            v_cvt_f32_f16 v[vtmp_cvt_sec], v[\v_base_out]
             v_mac_f32     v[\v_acc], v[vtmp_cvt_fir], v[vtmp_cvt_sec]
 
             v_lshrrev_b32 v[vtmp_cvt_fir], 16, v[\v_base_in]
-            v_lshrrev_b32 v[vtmp_cvt_sec], 16, v[f_gpr]
+            v_lshrrev_b32 v[vtmp_cvt_sec], 16, v[\v_base_out]
 
             v_cvt_f32_f16 v[vtmp_cvt_fir], v[vtmp_cvt_fir]
             v_cvt_f32_f16 v[vtmp_cvt_sec], v[vtmp_cvt_sec]
@@ -368,7 +368,7 @@ gcnAsmConv1x1WrW:
             v_fma_mix_f32 v[\v_acc], v[\v_base_out], v[\v_base_in], v[\v_acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
         .else
             v_cvt_f32_f16 v[vtmp_cvt_fir], v[\v_base_in]
-            v_cvt_f32_f16 v[vtmp_cvt_sec], v[f_gpr]
+            v_cvt_f32_f16 v[vtmp_cvt_sec], v[\v_base_out]
             v_mac_f32     v[\v_acc], v[vtmp_cvt_fir], v[vtmp_cvt_sec]
         .endif
     .endif
