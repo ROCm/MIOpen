@@ -125,7 +125,21 @@ inline static bool Next_1_4_8_12__32(int& v)
     return ret;
 }
 
+#ifndef NDEBUG
 inline static bool Is_1_4(const int& v) { return v == 1 || v == 4; }
+#endif
+
+inline static bool Next_1_4(int& v)
+{
+    assert(Is_1_4(v));
+    if(v == 4)
+    {
+        v = 1;
+        return true;
+    }
+    v = 4;
+    return false;
+}
 
 bool PerformanceConfigConvAsm1x1U::SetNextValue()
 {
@@ -134,22 +148,51 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue()
     {
         if(!NextLinear<1, 4>(read_size))
             break;
-        if(!Next_1_4_8_12__32(k_mult))
-            break;
-        if(!NextLinear<1, 16>(chunks_per_wave))
-            break;
-        if(!NextTwoPower<1, 64>(chunk_size))
-            break;
-        if(!NextLinear<1, 8>(n_mult))
-            break;
-        if(!NextTwoPower<1, 32>(c_mult))
-            break;
-        if(!NextLinear<1, 8>(waves_in_group))
-            break;
+        if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED{}))
+        {
+            /// Narrow search space in optimized mode.
+            if(use_spare_set ? !Next_1_4(k_mult) : !NextTwoPower<8, 32>(k_mult))
+                break;
+            if(!NextLinear<1, 8>(chunks_per_wave))
+                break;
+            if(use_spare_set ? !Next_1_4(chunk_size) : !NextTwoPower<16, 64>(chunk_size))
+                break;
+            if(!NextLinear<1, 4>(n_mult))
+                break;
+            if(!NextTwoPower<1, 4>(c_mult))
+                break;
+            if(!NextLinear<1, 4>(waves_in_group))
+                break;
+        }
+        else
+        {
+            if(!Next_1_4_8_12__32(k_mult))
+                break;
+            if(!NextLinear<1, 16>(chunks_per_wave))
+                break;
+            if(!NextTwoPower<1, 64>(chunk_size))
+                break;
+            if(!NextLinear<1, 8>(n_mult))
+                break;
+            if(!NextTwoPower<1, 32>(c_mult))
+                break;
+            if(!NextLinear<1, 8>(waves_in_group))
+                break;
+        }
         // All the fields of performance config have wrapped around.
         return false;
     } while(false);
     return true;
+}
+
+PerformanceConfigConvAsm1x1U::PerformanceConfigConvAsm1x1U(bool spare)
+    : PerformanceConfigConvAsm1x1U(1, 1, 1, 1, 1, 1, 1, spare)
+{
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED{}))
+    {
+        k_mult     = spare ? 1 : 8;
+        chunk_size = spare ? 1 : 16;
+    }
 }
 
 PerformanceConfigConvAsm1x1U::PerformanceConfigConvAsm1x1U(int read_size_,
@@ -197,7 +240,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidValue() const
         && IsLinear<1,8>(waves_in_group); // clang-format on
 }
 
-bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& config) const
+bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) const
 {
     int elements_in_dword = (config.in_data_type == "FP16" ? 2 : 1);
 
@@ -261,24 +304,6 @@ bool PerformanceConfigConvAsm1x1U::IsValidForProblem(const ConvolutionContext& c
     return res;
 }
 
-bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) const
-{
-    if(!IsValidForProblem(config))
-        return false;
-    if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED{})) // clang-format off
-    {
-        // Narrow search space in optimized mode.
-        if (! ((use_spare_set ? Is_1_4(k_mult) : IsTwoPower<8,32>(k_mult))
-            && IsLinear<1,8>(chunks_per_wave)
-            && (use_spare_set ? Is_1_4(chunk_size) : IsTwoPower<16,64>(chunk_size))
-            && IsLinear<1,4>(n_mult)
-            && IsTwoPower<1,4>(c_mult)
-            && IsLinear<1,4>(waves_in_group)))
-            return false;
-    } // clang-format on
-    return true;
-}
-
 void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config)
 {
     read_size       = 4;
@@ -289,61 +314,41 @@ void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config
     c_mult          = 1;
     waves_in_group  = 1;
 
-    if(!IsValidForProblem(config))
+    if(!IsValid(config))
     {
-        MIOPEN_LOG_I("!IsValidForProblem(): " << ToString() << ". Conservative re-init...");
-        read_size       = 1;
-        k_mult          = 1;
-        chunks_per_wave = 1;
-        chunk_size      = 1;
-        n_mult          = 1;
-        c_mult          = 1;
-        waves_in_group  = 1;
+        MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
+        read_size  = 1;
+        k_mult     = 1;
+        chunk_size = 1;
     }
-    if(!IsValidForProblem(config))
+    if(!IsValid(config))
     {
-        MIOPEN_LOG_I("!IsValidForProblem(): " << ToString() << ". Conservative re-init...");
-        read_size       = 1;
-        k_mult          = 2;
-        chunks_per_wave = 1;
-        chunk_size      = 1;
-        n_mult          = 1;
-        c_mult          = 1;
-        waves_in_group  = 1;
+        MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
+        k_mult = 2;
     }
-    if(!IsValidForProblem(config))
+    if(!IsValid(config))
     {
-        MIOPEN_LOG_I("!IsValidForProblem(): " << ToString() << ". Conservative re-init...");
-        read_size       = 1;
-        k_mult          = 1;
-        chunks_per_wave = 1;
-        chunk_size      = 1;
-        n_mult          = 1;
-        c_mult          = 2;
-        waves_in_group  = 1;
+        MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
+        k_mult = 1;
+        c_mult = 2;
     }
-    if(!IsValidForProblem(config))
+    if(!IsValid(config))
     {
-        MIOPEN_LOG_I("!IsValidForProblem(): " << ToString() << ". Conservative re-init...");
-        read_size       = 1;
+        MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
         k_mult          = 2;
         chunks_per_wave = 2;
-        chunk_size      = 1;
-        n_mult          = 1;
         c_mult          = 1;
-        waves_in_group  = 1;
     }
-    if(!IsValidForProblem(config))
+    if(!IsValid(config))
     {
-        MIOPEN_LOG_I("!IsValidForProblem(): " << ToString() << ". Conservative re-init...");
-        read_size       = 1;
-        k_mult          = 4;
-        chunks_per_wave = 2;
-        chunk_size      = 1;
-        n_mult          = 1;
-        c_mult          = 2;
-        waves_in_group  = 1;
-        assert(IsValidForProblem(config));
+        MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
+        k_mult = 4;
+        c_mult = 2;
+    }
+    if(!IsValid(config))
+    {
+        MIOPEN_LOG_E("All attampts failed");
+        assert(false);
     }
     MIOPEN_LOG_I(ToString());
 }
@@ -367,7 +372,7 @@ ConvAsm1x1U::GetPerformanceConfig(const ConvolutionContext& params) const
 bool ConvAsm1x1U::IsValidPerformanceConfig(const ConvolutionContext& problem,
                                            const PerformanceConfigConvAsm1x1U& c) const
 {
-    return c.IsValidValue() && c.IsValidForProblem(problem);
+    return c.IsValidValue() && c.IsValid(problem);
 }
 
 bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const

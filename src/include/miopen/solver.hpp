@@ -538,11 +538,11 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
     // ----------------- // Full set          Optimized       Spare
     // ----------------------------------------------------------------------------
     int read_size;       // [1..4]            <same>          <same>
-    int k_mult;          // 1,[4,8,12..32]    16,32           1,4
+    int k_mult;          // 1,[4,8,12..32]    2^n[8..32]      1,4
     int chunks_per_wave; // [1..16]           [1..8]          <same>
     int chunk_size;      // 2^n[1..64]        2^n[16..64]     1,4
     int n_mult;          // [1..8]            [1..4]          <same>
-    int c_mult;          // 2^n[1..32]        2^n[1,2]        <same>
+    int c_mult;          // 2^n[1..32]        2^n[1..4]       <same>
     int waves_in_group;  // [1..8]            [1..4]          <same>
     bool use_spare_set;
 
@@ -550,10 +550,7 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
     PerformanceConfigConvAsm1x1U() : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1, -1, false)
     {
     }
-    PerformanceConfigConvAsm1x1U(bool spare)
-        : PerformanceConfigConvAsm1x1U(1, 1, 1, 1, 1, 1, 1, spare)
-    {
-    }
+    PerformanceConfigConvAsm1x1U(bool spare);
 
     template <class Self, class F>
     static void Visit(Self&& self, F f)
@@ -584,7 +581,6 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
     bool IsValid(const ConvolutionContext& config) const;
     bool operator==(const PerformanceConfigConvAsm1x1U& other) const;
     std::string ToString() const;
-    bool IsValidForProblem(const ConvolutionContext& config) const;
 };
 
 struct ConvAsm1x1U : SolverBase<ConvolutionContext>
