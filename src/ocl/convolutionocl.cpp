@@ -41,6 +41,7 @@
 namespace miopen {
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_ENABLE_FIND_DB)
 
 struct AutoEnableProfiling
 {
@@ -883,9 +884,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
 
     ProblemDescription problem(xDesc, wDesc, yDesc, *this, 1);
 
-    const auto find_db_path = GetDbPath() + "/" + handle.GetDbPathFilename() + ".cd.fdb.txt";
-    Db find_db{find_db_path};
-    auto record = boost::optional<DbRecord>{boost::none}; // find_db.FindRecord(problem);
+    const auto find_db_path = GetFindDbPath() + "/" + handle.GetDbPathFilename() + ".cd.fdb.txt";
+    auto record =
+        boost::optional<DbRecord>{boost::none}; // Db{find_db_path, false}.FindRecord(problem);
     auto loaded = record.is_initialized();
 
     if(!loaded)
@@ -902,8 +903,6 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                         *this,
                         exhaustiveSearch,
                         *record);
-        // if(!find_db.StoreRecord(record.get()))
-        //    MIOPEN_LOG_W("Failed to store record to find-db at <" << find_db_path << ">");
     }
 
     std::vector<PerfField> perf_db;
@@ -930,6 +929,12 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
                             *record);
             loaded = false;
         }
+    }
+
+    if(IsEnabled(MIOPEN_DEBUG_ENABLE_FIND_DB{}) && !loaded)
+    {
+        if(!Db{find_db_path, false}.StoreRecord(record.get()))
+            MIOPEN_LOG_W("Failed to store record to find-db at <" << find_db_path << ">");
     }
 
     if(perf_db.empty())
