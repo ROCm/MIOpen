@@ -1,12 +1,14 @@
 #include <miopen/env.hpp>
 #include <miopen/stringutils.hpp>
 
+#include <string>
+
 namespace miopen {
 
 std::string ExpandUser(std::string p)
 {
     const char* home_dir = GetStringEnv(HOME{});
-    if(home_dir == nullptr)
+    if(home_dir == nullptr || home_dir == std::string("/") || home_dir == std::string(""))
     {
         // todo:
         // need to figure out what is the correct thing to do here
