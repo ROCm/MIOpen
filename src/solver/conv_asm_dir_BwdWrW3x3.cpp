@@ -284,6 +284,11 @@ void PerformanceConfigAsmDirect3x3WrW::EuristicInit(const ConvolutionContext& co
             /// because that's how reverse convolutions are handled in MIOpen.
             reverse_inout = 1;
         }
+        if(!IsValid(config))
+        {
+            MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init 2...");
+            pipe_lines_depth = 1;
+        }
         assert(IsValid(config));
     }
     MIOPEN_LOG_I(ToString());
