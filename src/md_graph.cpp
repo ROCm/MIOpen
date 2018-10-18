@@ -144,6 +144,20 @@ std::string FusionMDGraph::GetAlgoName()
     }
 }
 
+std::vector<DefaultKernelArg> FusionMDGraph::GetKernelArgs()
+{
+    auto ptr = GetCurVertex();
+    if(ptr != nullptr)
+    {
+        return ptr->default_args;
+    }
+    else
+    {
+        MIOPEN_LOG_I2("Invalid FusionPlan");
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+}
+
 std::vector<miopenConvFwdAlgorithm_t> FusionMDGraph::GetConvAlgos()
 {
     std::vector<miopenConvFwdAlgorithm_t> ret(conv_algo_set.begin(), conv_algo_set.end());
@@ -249,6 +263,37 @@ void FusionMDGraph::InitBN(FusionMDGraph& g)
     }
 }
 
+static std::vector<DefaultKernelArg> WinogradNodeArgs()
+{
+    auto zero_int = OpKernelArg(static_cast<int>(0));
+    return {
+        DefaultKernelArg("iN", InputTensorDesc, zero_int),
+        DefaultKernelArg("iC", InputTensorDesc, zero_int),
+        DefaultKernelArg("iH", InputTensorDesc, zero_int),
+        DefaultKernelArg("iW", InputTensorDesc, zero_int),
+        DefaultKernelArg("oK", OutputTensorDesc, zero_int),
+        DefaultKernelArg("devCUs", DevAttribute, zero_int),
+        DefaultKernelArg("flags", Other, zero_int),
+        DefaultKernelArg("reserved", Other, zero_int),
+        DefaultKernelArg("input", InputTensor, OpKernelArg(nullptr)),
+        DefaultKernelArg("weights", OpArg, OpKernelArg(nullptr), 0),
+        DefaultKernelArg("output", OutputTensor, OpKernelArg(nullptr)),
+        DefaultKernelArg("return_addr", Other, OpKernelArg(nullptr)),
+        DefaultKernelArg("x", OpAttr, zero_int, 0),
+        DefaultKernelArg("y", OpAttr, zero_int, 0),
+        DefaultKernelArg("pad_h", OpAttr, zero_int, 0),
+        DefaultKernelArg("pad_w", OpAttr, zero_int, 0),
+        DefaultKernelArg("oH", OutputTensorDesc, zero_int),
+        DefaultKernelArg("oW", OutputTensorDesc, zero_int),
+        DefaultKernelArg(
+            "bias", Other, OpKernelArg(nullptr)), // only valid when bias is in the plan
+        DefaultKernelArg(
+            "activAlpha",
+            Other,
+            OpKernelArg(static_cast<float>(0.0))) // Op[2] only for leaky relu otherwise 0
+    };
+}
+
 void FusionMDGraph::InitConv(FusionMDGraph& g)
 {
 
@@ -260,7 +305,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         static const std::string algo("miopenConvolutionWinogradBiasActiv");
         auto vc =
             std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward, program, kernel, algo);
-        vc->solver = solver::ConvBinWinogradRxS{};
+        vc->solver       = solver::ConvBinWinogradRxS{};
+        vc->default_args = WinogradNodeArgs();
         /// \todo Only 0x0 padding for now. 9_2_7 supports asymmetric padding, from 0 to 2^16.
         /// \todo Winograd supports wide range of RxS. 3x3 only for now.
         auto map_wino_conv = ConvForwardOpDescriptor::MDGraphKey(miopenConvolution,
@@ -287,10 +333,23 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         /// C>B>A| (4)
         auto vb =
             std::make_shared<MDGraph_vertex>(miopenFusionOpBiasForward, program, kernel, algo);
+        vb->default_args                = WinogradNodeArgs();
+        vb->default_args[6].default_val = OpKernelArg(1 << 7);
+        // set the bias parameters
+        vb->default_args[18].type   = OpArg;
+        vb->default_args[18].op_idx = 1;
         g.AddEdge(vc, vb, empty_map);
 
-        auto va_leaf = std::make_shared<MDGraph_vertex>(
+        auto vba_leaf = std::make_shared<MDGraph_vertex>(
             miopenFusionOpActivForward, program, kernel, algo, true);
+        vba_leaf->default_args                = WinogradNodeArgs();
+        vba_leaf->default_args[6].default_val = OpKernelArg((1 << 7) + (1 << 8));
+        // set the bias parameters
+        vba_leaf->default_args[18].type   = OpArg;
+        vba_leaf->default_args[18].op_idx = 1;
+
+        vba_leaf->default_args[19].type   = OpArg;
+        vba_leaf->default_args[19].op_idx = 2;
 
         FusionMDGraph_Edge_Map edg_activ_relu =
             ActivFusionOpDescriptor::MDGraphKey(miopenActivationRELU);
@@ -302,10 +361,17 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         map_emplace(edg_activ_leaky_relu, "weight", EdgeOp(0, true, OpAny));
         map_emplace(edg_activ_leaky_relu, "precision", EdgeOp(miopenFloat, true, OpEqual));
 
-        g.AddEdge(vb, va_leaf, edg_activ_relu);
-        g.AddEdge(vb, va_leaf, edg_activ_leaky_relu);
+        g.AddEdge(vb, vba_leaf, edg_activ_relu);
+        g.AddEdge(vb, vba_leaf, edg_activ_leaky_relu);
 
         /// C>A| (5)
+        auto va_leaf = std::make_shared<MDGraph_vertex>(
+            miopenFusionOpActivForward, program, kernel, algo, true);
+        va_leaf->default_args                = WinogradNodeArgs();
+        va_leaf->default_args[6].default_val = OpKernelArg((1 << 8));
+        va_leaf->default_args[19].type       = OpArg;
+        va_leaf->default_args[19].op_idx     = 1;
+
         g.AddEdge(vc, va_leaf, edg_activ_relu);
         g.AddEdge(vc, va_leaf, edg_activ_leaky_relu);
 

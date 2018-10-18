@@ -191,6 +191,37 @@ std::vector<std::pair<std::string, OpKernelArg>> ConvForwardOpDescriptor::GetArg
     return keys;
 }
 
+std::string ConvForwardOpDescriptor::GetArgKey(const std::string& k) const
+{
+    return k + std::to_string(GetIdx());
+}
+
+OpKernelArg ConvForwardOpDescriptor::GetOpAttr(const std::string& k) const
+{
+    int c, x, y;
+    std::tie(std::ignore, c, x, y) = tien<4>(filter_desc.GetLengths());
+    if(k == "x")
+    {
+        return OpKernelArg(x);
+    }
+    else if(k == "y")
+    {
+        return OpKernelArg(y);
+    }
+    else if(k == "pad_h")
+    {
+        return base_desc.pad_h;
+    }
+    else if(k == "pad_w")
+    {
+        return base_desc.pad_w;
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusInternalError, "Unknown Convolution Op Attribute");
+    }
+}
+
 FusionMDGraph_Edge_Map ConvForwardOpDescriptor::MDGraphKey(miopenConvolutionMode_t conv_mode,
                                                            miopenPaddingMode_t pad_mode,
                                                            int pad_h,
@@ -265,6 +296,11 @@ miopenStatus_t ActivFusionOpDescriptor::SetArgs(OperatorArgs& args,
     return miopenStatusSuccess;
 }
 
+std::string ActivFusionOpDescriptor::GetArgKey(const std::string& k) const
+{
+    return k + std::to_string(GetIdx());
+}
+
 std::vector<std::pair<std::string, OpKernelArg>> ActivFusionOpDescriptor::GetArgs() const
 {
     std::vector<std::pair<std::string, OpKernelArg>> keys;
@@ -285,6 +321,11 @@ std::vector<std::pair<std::string, OpKernelArg>> ActivFusionOpDescriptor::GetArg
     }
 
     return keys;
+}
+
+OpKernelArg ActivFusionOpDescriptor::GetOpAttr(const std::string& /* k */) const
+{
+    MIOPEN_THROW(miopenStatusInternalError, "Unknown Activation Op Attribute");
 }
 
 miopenStatus_t ActivFusionOpDescriptor::GetOutputDesc(TensorDescriptor& output_desc)
@@ -334,6 +375,11 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::SetArgs(OperatorArgs& args,
     return miopenStatusSuccess;
 }
 
+std::string BatchNormInferenceFusionOpDescriptor::GetArgKey(const std::string& k) const
+{
+    return k + std::to_string(GetIdx());
+}
+
 std::vector<std::pair<std::string, OpKernelArg>>
 BatchNormInferenceFusionOpDescriptor::GetArgs() const
 {
@@ -350,6 +396,11 @@ BatchNormInferenceFusionOpDescriptor::GetArgs() const
     ConstData_t estimatedVariance = nullptr;
     keys.emplace_back("estimatedVariance" + id, OpKernelArg(estimatedVariance));
     return keys;
+}
+
+OpKernelArg BatchNormInferenceFusionOpDescriptor::GetOpAttr(const std::string& /* k */) const
+{
+    MIOPEN_THROW(miopenStatusInternalError, "Unknown Activation Op Attribute");
 }
 
 FusionMDGraph_Edge_Map
@@ -378,6 +429,16 @@ miopenStatus_t BiasFusionOpDescriptor::SetArgs(OperatorArgs& args,
     auto bdata_any = OpKernelArg(bdata);
     args.ins_arg("bias" + std::to_string(GetIdx()), bdata_any);
     return miopenStatusSuccess;
+}
+
+std::string BiasFusionOpDescriptor::GetArgKey(const std::string& k) const
+{
+    return k + std::to_string(GetIdx());
+}
+
+OpKernelArg BiasFusionOpDescriptor::GetOpAttr(const std::string& /* k */) const
+{
+    MIOPEN_THROW(miopenStatusInternalError, "Unknown Activation Op Attribute");
 }
 
 std::vector<std::pair<std::string, OpKernelArg>> BiasFusionOpDescriptor::GetArgs() const
@@ -441,6 +502,62 @@ std::string FusionPlanDescriptor::GetAlgorithmName()
     else
     {
         MIOPEN_THROW(miopenStatusNotImplemented, "Unsupported starting op in Fusion Plan");
+    }
+}
+
+OpKernelArg FusionPlanDescriptor::GetTensorAttr(const std::string& k) const
+{
+    int N, C, H, W, oN, K, oH, oW;
+    std::tie(N, C, H, W)    = miopen::tien<4>(input_desc.GetLengths(), 1);
+    std::tie(oN, K, oH, oW) = miopen::tien<4>(output_desc.GetLengths(), 1);
+    if(k == "iN")
+    {
+        return OpKernelArg(N);
+    }
+    else if(k == "iC")
+    {
+        return OpKernelArg(C);
+    }
+    else if(k == "iH")
+    {
+        return OpKernelArg(H);
+    }
+    else if(k == "iW")
+    {
+        return OpKernelArg(W);
+    }
+    else if(k == "oN")
+    {
+        return OpKernelArg(oN);
+    }
+    else if(k == "oK")
+    {
+        return OpKernelArg(K);
+    }
+    else if(k == "oH")
+    {
+        return OpKernelArg(oH);
+    }
+    else if(k == "oW")
+    {
+        return OpKernelArg(oW);
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusInternalError, "Unknown Tensor Attribute: " + k);
+    }
+}
+
+OpKernelArg FusionPlanDescriptor::GetDevAttribute(const std::string& k, Handle& handle) const
+{
+    if(k == "devCUs")
+    {
+        int num_cus = handle.GetMaxComputeUnits();
+        return OpKernelArg(num_cus);
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusInternalError, "Unknown device attribute " + k);
     }
 }
 
@@ -519,11 +636,11 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 
         status = miopenStatusSuccess;
     }
-    arg_list = CalcArgOrder();
+    arg_list = CalcArgOrder(handle);
     return status;
 }
 
-std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder()
+std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder(Handle& handle)
 {
     std::vector<Exec_arg_t> arg_keys;
     // Construct the kernel args
@@ -617,68 +734,74 @@ std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder()
             MIOPEN_THROW("Kernel arguments not setup properly");
         }
     }
-    return arg_keys;
-}
-std::ostream& operator<<(std::ostream& s, const OpKernelArg& arg)
-{
-    union
+    else
     {
-        unsigned long long ul = 0;
-        double d;
-        float f;
-        half_float::half h;
-        char c[sizeof(ul)];
-    } val = {0};
-    if(arg.buffer.size() > sizeof(val.ul))
-        return s << "<too long value>";
-    for(int i    = 0; i < arg.buffer.size(); ++i)
-        val.c[i] = arg.buffer[i];
-    s << std::hex << "0x" << val.ul << std::dec << " = " << static_cast<long long>(val.ul);
-    switch(arg.buffer.size())
-    {
-    case 2: s << " = " << static_cast<float>(val.h) << "H"; break;
-    case 4: s << " = " << val.f << "F"; break;
-    case 8: s << " = " << val.d << "D"; break;
-    default: break;
-    }
-    return s;
-}
-
-static OpKernelArg GetArg(std::vector<std::shared_ptr<FusionOpDescriptor>>& op_map,
-                          const OperatorArgs& op_args,
-                          const miopenFusionOp_t op,
-                          const std::string arg_name)
-{
-    for(auto idx = 0; idx < op_map.size(); ++idx)
-    {
-        if(op_map[idx]->kind() == op)
+        auto default_args = lu.GetKernelArgs();
+        if(default_args.empty())
         {
-            std::string key = arg_name + std::to_string(idx);
-            MIOPEN_LOG_I2(*op_map[idx] << ", finding: " << key);
-            auto it = op_args.args_map.find(key);
-            if(it != op_args.args_map.end())
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "Default kernel args no supplied in metadata graph");
+        }
+        for(auto& arg : default_args)
+        {
+            MIOPEN_LOG_I2("Setting arg: " + arg.key);
+            switch(arg.type)
             {
-                MIOPEN_LOG_I2("found " << (it->second.is_ptr ? "pointer: " : "scalar: ") << key
-                                       << " = "
-                                       << it->second);
-                return it->second;
+            case OpArg:
+                if(arg.op_idx < op_map.size())
+                {
+                    auto& op = op_map.at(arg.op_idx);
+                    auto k   = op->GetArgKey(arg.key);
+                    arg_keys.emplace_back(
+                        k, arg.default_val.is_ptr ? Pointer : Scalar, arg.default_val.size());
+                    break;
+                }
+                else
+                {
+                    arg_keys.emplace_back(
+                        arg.key, Default, arg.default_val.size(), arg.default_val);
+                }
+                break;
+            case OpAttr:
+                if(arg.op_idx < op_map.size())
+                {
+                    auto& op     = op_map.at(arg.op_idx);
+                    auto op_attr = op->GetOpAttr(arg.key);
+                    arg_keys.emplace_back(arg.key, Default, op_attr.size(), op_attr);
+                }
+                else
+                {
+                    arg_keys.emplace_back(
+                        arg.key, Default, arg.default_val.size(), arg.default_val);
+                }
+                break;
+            case Other:
+                // The operator does not exist in the fusion plan, load the default value
+                arg_keys.emplace_back(arg.key, Default, arg.default_val.size(), arg.default_val);
+                break;
+            case InputTensor:
+                arg_keys.emplace_back("reserved_input_tensor_ptr", Input_Ptr, sizeof(ConstData_t));
+                break;
+            case OutputTensor:
+                arg_keys.emplace_back(
+                    "reserved_output_tensor_ptr", Output_Ptr, sizeof(ConstData_t));
+                break;
+            case DevAttribute:
+            {
+                auto dev_attr = GetDevAttribute(arg.key, handle);
+                arg_keys.emplace_back(arg.key, Default, dev_attr.size(), dev_attr);
+            }
+            break;
+            case InputTensorDesc:
+            case OutputTensorDesc:
+                auto tensor_arg = GetTensorAttr(arg.key);
+                arg_keys.emplace_back(arg.key, Default, tensor_arg.size(), tensor_arg);
+                break;
             }
         }
     }
-    MIOPEN_THROW(miopenStatusInternalError, "Not found: arg_name = " + arg_name);
+    return arg_keys;
 }
-
-#ifdef ADD_ARGUMENT
-#error "ADD_ARGUMENT defined"
-#endif
-#define ADD_ARGUMENT(argument_name)                                                     \
-    do                                                                                  \
-    {                                                                                   \
-        const OpKernelArg argument(argument_name);                                      \
-        args.emplace_back(argument);                                                    \
-        MIOPEN_LOG_I((argument.is_ptr ? "Pointer " : "Scalar ") << #argument_name " = " \
-                                                                << argument);           \
-    } while(false)
 
 miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
                                              TensorDescriptor& inputDesc,
@@ -712,98 +835,38 @@ miopenStatus_t FusionPlanDescriptor::Execute(Handle& handle,
     KernelInvoke kernel = kernels.front();
 
     std::vector<OpKernelArg> args;
-    if(kernel_source_type == Binary)
+    if(arg_list.empty())
     {
-        if((input_desc.GetType() != miopenFloat) || (output_desc.GetType() != miopenFloat))
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Only FP32 floats are currently supported for the Winograd kernel");
-        }
-        int N, C, H, W, oN, K, oH, oW;
-        std::tie(N, C, H, W)    = miopen::tien<4>(input_desc.GetLengths(), 1);
-        std::tie(oN, K, oH, oW) = miopen::tien<4>(output_desc.GetLengths(), 1);
-        if(N != oN)
-            MIOPEN_THROW("input and output batch sizes do not match");
-        const int n_groups = handle.GetMaxComputeUnits();
-        // Get topology (C>B>A, C>B, C>A), find out activation mode.
-        assert(op_map[0]->kind() == miopenFusionOpConvForward && 2 <= op_map.size() &&
-               op_map.size() <= 3);
-        bool is_bias       = false;
-        bool is_activation = false;
-        bool is_leakyRELU  = false;
-        for(const auto& op : op_map)
-        {
-            if(op->kind() == miopenFusionOpBiasForward)
-                is_bias = true;
-            else if(op->kind() == miopenFusionOpActivForward)
-            {
-                is_activation = true;
-                is_leakyRELU =
-                    (boost::any_cast<miopenActivationMode_t>(
-                         op->MDGraphKey().at("activ_mode").at(0).val) == miopenActivationLEAKYRELU);
-            }
-        }
-        const int flags        = (is_bias ? (1 << 7) : 0) + (is_activation ? (1 << 8) : 0);
-        const int reserved     = 0;
-        const int R            = 3;
-        const int S            = 3;
-        const int pad_h        = 1;
-        const int pad_w        = 1;
-        int* const return_addr = nullptr;
-        const auto weights     = GetArg(op_map, op_args, miopenFusionOpConvForward, "weights");
-        const auto bias = is_bias ? GetArg(op_map, op_args, miopenFusionOpBiasForward, "bias")
-                                  : OpKernelArg(nullptr); // Kernel does not use it.
-        const auto alpha = (is_activation && is_leakyRELU)
-                               ? GetArg(op_map, op_args, miopenFusionOpActivForward, "activAlpha")
-                               : OpKernelArg(0.0f); // Fixed to 0.0 for RELU.
-        ADD_ARGUMENT(N);
-        ADD_ARGUMENT(C);
-        ADD_ARGUMENT(H);
-        ADD_ARGUMENT(W);
-        ADD_ARGUMENT(K);
-        ADD_ARGUMENT(n_groups);
-        ADD_ARGUMENT(flags);
-        ADD_ARGUMENT(reserved);
-        ADD_ARGUMENT(input);
-        ADD_ARGUMENT(weights);
-        ADD_ARGUMENT(output);
-        ADD_ARGUMENT(return_addr);
-        ADD_ARGUMENT(R);
-        ADD_ARGUMENT(S);
-        ADD_ARGUMENT(pad_h);
-        ADD_ARGUMENT(pad_w);
-        ADD_ARGUMENT(oH);
-        ADD_ARGUMENT(oW);
-        ADD_ARGUMENT(bias);
-        ADD_ARGUMENT(alpha);
+        MIOPEN_THROW("Kernel arguments not setup properly");
     }
-    else
+    for(auto& arg : arg_list)
     {
-        if(arg_list.empty())
+        MIOPEN_LOG_I2("Key: " + arg.key);
+        switch(arg.type)
         {
-            MIOPEN_THROW("Kernel arguments not setup properly");
-        }
-        for(auto& arg : arg_list)
+        case Input_Ptr: args.emplace_back(OpKernelArg(input)); break;
+        case Output_Ptr: args.emplace_back(OpKernelArg(output)); break;
+        case Padding: args.emplace_back(OpKernelArg(0, arg.size)); break;
+        case Scalar:
+        case Pointer:
         {
-            switch(arg.type)
+            auto it = op_args.args_map.find(arg.key);
+            if(it != op_args.args_map.end())
             {
-            case Input_Ptr: args.emplace_back(OpKernelArg(input)); break;
-            case Output_Ptr: args.emplace_back(OpKernelArg(output)); break;
-            case Padding: args.emplace_back(OpKernelArg(0, arg.size)); break;
-            case Scalar:
-            case Pointer:
-                auto it = op_args.args_map.find(arg.key);
-                if(it != op_args.args_map.end())
-                {
-                    args.push_back(it->second);
-                }
-                break;
+                args.push_back(it->second);
             }
+            else
+            {
+                MIOPEN_THROW(miopenStatusInternalError, "Argument Not Set: " + arg.key);
+            }
+            break;
         }
-        if(args.empty())
-        {
-            MIOPEN_THROW("Operator args not populated properly");
+        case Default: args.push_back(arg.val); break;
         }
+    }
+    if(args.empty())
+    {
+        MIOPEN_THROW("Operator args not populated properly");
     }
     kernel(args);
     return miopenStatusSuccess;
