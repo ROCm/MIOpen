@@ -13,6 +13,7 @@ enum Exec_Arg_Type_t
     Output_Ptr,
     Pointer,
     Padding,
+    Default
 };
 
 struct Exec_arg_t
@@ -20,7 +21,15 @@ struct Exec_arg_t
     std::string key;
     Exec_Arg_Type_t type;
     int size;
-    Exec_arg_t(std::string k, Exec_Arg_Type_t t, int s) : key(std::move(k)), type(t), size(s) {}
+    OpKernelArg val;
+    Exec_arg_t(std::string k, Exec_Arg_Type_t t, int s)
+        : key(std::move(k)), type(t), size(s), val(OpKernelArg(0))
+    {
+    }
+    Exec_arg_t(std::string k, Exec_Arg_Type_t t, int s, OpKernelArg v)
+        : key(std::move(k)), type(t), size(s), val(v)
+    {
+    }
 };
 
 struct FusionPlanDescriptor : miopenFusionPlanDescriptor
@@ -55,7 +64,9 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
     protected:
     auto GetLocalWGSz();
     auto GetGlobalWGSz();
-    std::vector<Exec_arg_t> CalcArgOrder();
+    std::vector<Exec_arg_t> CalcArgOrder(Handle& handle);
+    OpKernelArg GetDevAttribute(const std::string& k, Handle& handle) const;
+    OpKernelArg GetTensorAttr(const std::string& k) const;
 
     private:
     miopenFusionDirection_t fusion_dir;

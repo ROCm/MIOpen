@@ -34,6 +34,28 @@
 
 namespace miopen {
 
+enum ArgOwnerType
+{
+    Other,
+    InputTensor,
+    OutputTensor,
+    DevAttribute,
+    OpArg,
+    OpAttr,
+    InputTensorDesc,
+    OutputTensorDesc
+};
+
+struct DefaultKernelArg
+{
+    DefaultKernelArg(std::string k, ArgOwnerType t, OpKernelArg v, int idx = 0)
+        : type(t), default_val(v), op_idx(idx), key(k){};
+    ArgOwnerType type;
+    OpKernelArg default_val;
+    int op_idx;
+    std::string key;
+};
+
 struct MDGraph_vertex
 {
     static int running_id;
@@ -50,6 +72,7 @@ struct MDGraph_vertex
 
     MDGraph_vertex(const MDGraph_vertex& other) = delete;
     std::string& operator[](std::string& x) { return vertex_data[x]; }
+    std::vector<DefaultKernelArg> default_args;
 
     solver::AnySolver solver;
     friend std::ostream& operator<<(std::ostream& stream, const MDGraph_vertex& v);
@@ -74,6 +97,7 @@ struct FusionMDGraph
     std::string GetProgramName();
     std::string GetKernelName();
     std::string GetAlgoName();
+    std::vector<DefaultKernelArg> GetKernelArgs();
     std::vector<miopenConvFwdAlgorithm_t> GetConvAlgos();
     bool SetConvAlgo(miopenConvFwdAlgorithm_t algo);
     static FusionMDGraph_Edge_Map EmptyEdgeMap(int weight = 0, MDGraph_op_t op = OpAny);
