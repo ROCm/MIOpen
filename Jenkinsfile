@@ -136,11 +136,11 @@ rocmtest opencl: rocmnode('vega') { cmake_build ->
     //     cmake_build('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=debug -DMIOPEN_USE_ROCBLAS=ON')
     // }
     stage('Hip Release') {
-        cmake_build('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_USE_ROCBLAS=ON')
+        cmake_build('hcc', '-DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
     }
 }, half_hip: rocmnode('vega') { cmake_build ->
     stage('Half Hip Release') {
-        cmake_build('hcc', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_USE_ROCBLAS=ON')
+        cmake_build('hcc', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release')
     }
 }, half_opencl: rocmnode('vega') { cmake_build ->
     stage('Half GCC Debug') {
@@ -162,10 +162,10 @@ rocmtest opencl_all: rocmnode('vega') { cmake_build ->
     }
 }, hip_all: rocmnode('vega') { cmake_build ->
     stage('Hip Release All') {
-        cmake_build('hcc', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_USE_ROCBLAS=ON')
+        cmake_build('hcc', '-DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
 }, half_hip_all: rocmnode('vega') { cmake_build ->
     stage('Half Hip Release All') {
-        cmake_build('hcc', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release -DMIOPEN_USE_ROCBLAS=ON')
+        cmake_build('hcc', '-DMIOPEN_TEST_HALF=On -DBUILD_DEV=On -DMIOPEN_TEST_ALL=On -DCMAKE_BUILD_TYPE=release')
     }
 }
