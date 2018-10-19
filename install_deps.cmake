@@ -47,5 +47,15 @@ if(NOT CMakeGet_FOUND)
     find_package(CMakeGet REQUIRED PATHS ${PREFIX})
 endif()
 
+# Set compiler to hcc if not set
+if(NOT DEFINED ENV{CXX} AND NOT DEFINED CMAKE_CXX_COMPILER AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    find_program(HCC hcc PATHS /opt/rocm PATH_SUFFIXES bin)
+    if(HCC)
+        set(ENV{CXX} ${HCC})
+    else()
+        message(FATAL_ERROR "Cannot find hcc")
+    endif()
+endif()
+
 cmake_get(pfultz2/rocm-recipes PREFIX ${PREFIX} CMAKE_ARGS ${PARSE_UNPARSED_ARGUMENTS})
 cmake_get_from(${CMAKE_CURRENT_LIST_DIR}/requirements.txt PREFIX ${PREFIX} CMAKE_ARGS -DCMAKE_INSTALL_RPATH=${PREFIX}/lib ${PARSE_UNPARSED_ARGUMENTS})
