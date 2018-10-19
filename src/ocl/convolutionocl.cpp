@@ -269,13 +269,14 @@ ConvolutionDescriptor::FindDataDirectSolutions(Handle& handle,
     construct_params.saveSearchRequest(true);
     construct_params.setGeneralCompOptions("");
     construct_params.setStream(&handle);
+    construct_params.setupRocm();
 
     if(mode == miopenGroupConv || mode == miopenDepthwise)
         construct_params.setGroupConvCounts(group_count);
 
     if((IsWinograd3x3Supported(handle, isForward, wDesc, (isForward ? xDesc : yDesc)) &&
         construct_params.mloIsFastBinaryWinograd3x3U()) &&
-       !(mode == miopenGroupConv || mode == miopenDepthwise))
+       construct_params.usesBinaryKernel() && !(mode == miopenGroupConv || mode == miopenDepthwise))
         return {};
 
     try
