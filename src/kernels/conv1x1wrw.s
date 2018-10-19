@@ -70,6 +70,7 @@ gid_z = 4
 default limit_wave_cnt, 0
 default hw_per_gpr, 1 // 1..4, 2^n
 default short_store, 0
+default data_prefetch, 0
 
 
 group_size = n_part_cnt
@@ -300,8 +301,8 @@ part2_offset = part1_chunks * input_w_stride * active_lanes_in_part1_chunks
 .VGPR_ALLOC voffset_ldsw
 accums_cnt = wei_w * wei_h * k_per_gpr * c_mult * k_mult
 .VGPR_ALLOC accums, accums_cnt
-.VGPR_ALLOC lines_in, read_size * c_mult
-.VGPR_ALLOC lines_out, read_size * k_mult
+.VGPR_ALLOC lines_in, read_size * c_mult * (data_prefetch + 1)
+.VGPR_ALLOC lines_out, read_size * k_mult * (data_prefetch + 1)
 .VGPR_ALLOC permute_addr
 .VGPR_ALLOC n_id
 .if (madmix_instructions_available == 0 && dot_instructions_available == 0 && fmamix_instructions_available == 0)
@@ -374,16 +375,19 @@ gcnAsmConv1x1WrW:
     .endif
 .endm
     
-.macro m_conv_accums elements_cnt
+.macro m_conv_accums elements_cnt, ld_part_id
     rotates_inflight = 0
     k_ds = 0
+    .if(\elements_cnt == 0)
+        .exitm
+    .endif
 
     .rept k_ds_rotates
         i = 0
         .rept (\elements_cnt + elements_in_dword - 1) / elements_in_dword
             kx = 0
             .rept k_mult
-                base_out = lines_out + kx * read_size
+                base_out = lines_out + kx * read_size + (\ld_part_id * read_size * k_mult)
                 
                 .if k_ds > 0
                     rotates_inflight = rotates_inflight - 1
@@ -395,7 +399,7 @@ gcnAsmConv1x1WrW:
                 cx = 0
 
                 .rept c_mult
-                    base_in = lines_in + cx * read_size
+                    base_in = lines_in + cx * read_size + (\ld_part_id * read_size * c_mult)
                     acc = accums + k_per_gpr * (cx * k_mult + kx) + k_ds * k_dpp_rotates
 
                         .if(elements_in_dword == 2)
@@ -619,12 +623,12 @@ gcnAsmConv1x1WrW:
         .endif
     .endm
 
-    .macro m_load inout, total_adj, dwords1, voff1, dwords2=0, voff2=0, shorts1=0, shorts2=0, ex_load=0
+    .macro m_load inout, total_adj, dwords1, voff1, w_cnt, ld_id, dwords2=0, voff2=0, shorts1=0, shorts2=0, ex_load=0
         .if lines_\inout == lines_in
             sequential_output_channels = sequential_c_channels
             ck_stride = input_c_stride
             mult = c_mult
-            dst = lines_in
+            dst = lines_in + \ld_id * read_size * c_mult
             desc = desc_in
             soff = soffset_in
             adj_size = c_per_gpr * input_c_stride
@@ -632,7 +636,7 @@ gcnAsmConv1x1WrW:
             mult = k_mult
             sequential_output_channels = sequential_k_channels
             ck_stride = output_k_stride
-            dst = lines_out
+            dst = lines_out + \ld_id * read_size * k_mult
             desc = desc_out
             soff = soffset_out
             adj_size = k_per_gpr * output_k_stride
@@ -651,10 +655,14 @@ gcnAsmConv1x1WrW:
                     increase_ioffset_or_soffset _sequential_ck_offset, soff, _seq_ck_offset_in_soffset, ck_stride
                 .endif
                 m_buffer_load_dwordx \dwords1, dst,            \voff1, desc, soff, _sequential_ck_offset
+                .if(\dwords1>0)
+                    \w_cnt = \w_cnt + 1
+                .endif
                 
                 .if(\shorts1 != 0)
                     short_offset = \dwords1 * dword_size
                     m_buffer_load_ushort 1, \dwords1 + dst, \voff1, desc, soff, (_sequential_ck_offset + short_offset)
+                    \w_cnt = \w_cnt + 1
                 .else
                     .if(\ex_load)
                     
@@ -665,14 +673,25 @@ gcnAsmConv1x1WrW:
                         m_buffer_load_dwordx bound_dwords_cnt, dst, \voff2, desc, soff, _sequential_ck_offset
                         short_offset = bound_dwords_cnt * dword_size
                         m_buffer_load_ushort bound_shorts_cnt, dst + bound_dwords_cnt, \voff2, desc, soff, (_sequential_ck_offset + short_offset)
-                    
+
+                        .if(bound_dwords_cnt )
+                            \w_cnt = \w_cnt + 1
+                        .endif
+                        .if(bound_shorts_cnt)
+                            \w_cnt = \w_cnt + 1
+                        .endif
+
                         s_mov_b64 exec, -1
                     .else
                         m_buffer_load_dwordx \dwords2, dst + \dwords1, \voff2, desc, soff, (_sequential_ck_offset + part2_offset)
+                        .if(\dwords2 > 0)
+                            \w_cnt = \w_cnt + 1
+                        .endif
 
                         .if(\shorts2 != 0)
                             short_offset = part2_offset + part2_dwords * dword_size
                             m_buffer_load_ushort 1, dst + \dwords1 + \dwords2, \voff2, desc, soff, (_sequential_ck_offset + short_offset)
+                            \w_cnt = \w_cnt + 1
                         .endif
                     .endif
                 .endif
@@ -686,48 +705,127 @@ gcnAsmConv1x1WrW:
                 \total_adj = \total_adj + adj_size
                 _mult_it = _mult_it + 1
             .else
-                \total_adj = \total_adj + _seq_ck_offset_in_soffset  //????
+                \total_adj = \total_adj + _seq_ck_offset_in_soffset 
             .endif
         .endr
     .endm
     
+.if(full_reads > 0 && full_reads < data_prefetch + 1)
+    data_prefetch = full_reads - 1
+.endif
+
+LD_PARTIAL_CHUNKS = 1
+LD_FULL_CHUNKS = 0
+LD_PART_A_ID = 0
+LD_PART_B_ID = data_prefetch
+last_free_ld_part = LD_PART_B_ID
+
+
+.macro ld_buffers_inc_pointers_rept_waitcnt chunk_type, ld_part_id, rept_wait_cnt=-1
+     wait_cnt = 0 
+    
+    .if(\chunk_type == LD_PARTIAL_CHUNKS)
+        m_load in,  c_off, part1_dwords, voffset_part1_in, wait_cnt, \ld_part_id, part2_dwords, voffset_part2_in, part1_shorts, part2_shorts, adv_perf_param_comb
+        m_load out, k_off, part1_dwords, voffset_part1_out, wait_cnt, \ld_part_id, part2_dwords, voffset_part2_out, part1_shorts, part2_shorts, adv_perf_param_comb
+    .else
+        c_off = 0
+        k_off = 0
+        m_load in,  c_off, (elements_per_lane / elements_in_dword), voffset_in, wait_cnt, \ld_part_id
+        m_load out, k_off, (elements_per_lane / elements_in_dword), voffset_out, wait_cnt, \ld_part_id
+        s_add_u32 s[soffset_in],  s[soffset_in],  0 + active_lanes_in_full_chunks * (elements_per_lane * input_w_stride) - c_off
+        s_add_u32 s[soffset_out], s[soffset_out], 0 + active_lanes_in_full_chunks * (elements_per_lane * output_w_stride) - k_off
+    .endif
+    .if(\rept_wait_cnt != -1)
+        \rept_wait_cnt = wait_cnt
+    .endif
+.endm
+
+.macro data_prefetch_init_q q_wait_cnt, singl_wait_cnt
+    q_id = LD_PART_A_ID
+    .rept data_prefetch
+        ld_buffers_inc_pointers_rept_waitcnt LD_FULL_CHUNKS, q_id, \singl_wait_cnt
+        \q_wait_cnt = \q_wait_cnt + \singl_wait_cnt
+        q_id = (q_id + 1)
+    .endr
+.endm
+
+.macro data_ld_prefetch_active_loop q_wait_cnt, loop_cnt=data_prefetch+1
+    q_id_conv = LD_PART_A_ID
+    q_id_data_ld = LD_PART_B_ID
+    .rept \loop_cnt
+        ld_buffers_inc_pointers_rept_waitcnt LD_FULL_CHUNKS, q_id_data_ld
+
+        s_wait \q_wait_cnt
+        
+        m_conv_accums elements_per_lane, q_id_conv
+
+        q_id_conv = ((q_id_conv + 1) % (data_prefetch + 1))
+        q_id_data_ld = ((q_id_data_ld + 1) % (data_prefetch + 1))
+    .endr
+.endm
+
+.macro data_prefetch_conv_finalizing q_wait_cnt, singl_wait_cnt, q_id_conv_off=0
+    q_id_conv = ((LD_PART_A_ID + \q_id_conv_off) % (data_prefetch + 1))
+
+    .rept data_prefetch
+        \q_wait_cnt = (\q_wait_cnt - \singl_wait_cnt)
+        s_wait \q_wait_cnt  
+        m_conv_accums elements_per_lane, q_id_conv
+        q_id_conv = ((q_id_conv + 1) % (data_prefetch + 1))
+    .endr
+.endm
 
 loop_n_begin: // loop over batch (n)
     s_mov_b32 s[loop_hw_cnt], 0
 
     c_off = 0
     k_off = 0
+    q_wait_vec_load_full = 0
+    single_wait_vec_load_full = 0
     .if full_reads
-        loop_hw_begin:
-            m_load in,  c_off, (elements_per_lane / elements_in_dword), voffset_in
-            m_load out, k_off, (elements_per_lane / elements_in_dword), voffset_out
-            
-            s_add_u32 s[soffset_in],  s[soffset_in],  0 + active_lanes_in_full_chunks * (elements_per_lane * input_w_stride) - c_off
-            s_add_u32 s[soffset_out], s[soffset_out], 0 + active_lanes_in_full_chunks * (elements_per_lane * output_w_stride) - k_off
-            s_waitcnt 0
-            //dump_vgpr lines_out, read_size
-            m_conv_accums elements_per_lane
+        loop_resi = 0
         
-        loop_hw_end:
-            s_addk_i32 s[loop_hw_cnt], 1
-            s_cmpk_ge_u32 s[loop_hw_cnt], 0+full_reads
-            s_cbranch_scc0 loop_hw_begin
+        data_prefetch_init_q q_wait_vec_load_full, single_wait_vec_load_full
+        
+        .if(full_reads >= 2 * data_prefetch + 1)
+            loop_hw_begin:
+                data_ld_prefetch_active_loop q_wait_vec_load_full
+
+            loop_hw_end:
+                s_addk_i32 s[loop_hw_cnt], 1 + data_prefetch
+                s_cmpk_gt_u32 s[loop_hw_cnt], 0 + full_reads - (2 * data_prefetch + 1)
+                s_cbranch_scc0 loop_hw_begin
+        .endif
+        .if( (full_reads - data_prefetch) % (data_prefetch + 1) != 0)
+            loop_resi = ((full_reads - data_prefetch) % (data_prefetch + 1))
+
+            data_ld_prefetch_active_loop q_wait_vec_load_full, loop_resi
+
+            last_free_ld_part = ((LD_PART_B_ID + loop_resi) % (data_prefetch + 1))
+        .endif
     .endif
     
     c_off = full_chunks * input_w_stride * active_lanes_in_full_chunks
     k_off = full_chunks * output_w_stride * active_lanes_in_full_chunks
     .if partial_chunks 
-            part1_dwords = part1_chunks  / elements_in_dword
-            part2_dwords = part2_chunks / elements_in_dword
-            part1_shorts = part1_chunks % elements_in_dword
-            part2_shorts = part2_chunks % elements_in_dword
-            m_load in,  c_off, part1_dwords, voffset_part1_in,  part2_dwords, voffset_part2_in, part1_shorts, part2_shorts, adv_perf_param_comb
-            m_load out, k_off, part1_dwords, voffset_part1_out, part2_dwords, voffset_part2_out, part1_shorts, part2_shorts, adv_perf_param_comb
-        s_waitcnt 0
-        
-        m_conv_accums partial_chunks
+        wait_vec_load_part = 0
+        part1_dwords = part1_chunks  / elements_in_dword
+        part2_dwords = part2_chunks / elements_in_dword
+        part1_shorts = part1_chunks % elements_in_dword
+        part2_shorts = part2_chunks % elements_in_dword
+        ld_buffers_inc_pointers_rept_waitcnt LD_PARTIAL_CHUNKS, last_free_ld_part, wait_vec_load_part
+        q_wait_vec_load_full = q_wait_vec_load_full + wait_vec_load_part
+    .endif
+
+    .if(full_reads != 0 && data_prefetch != 0)
+        data_prefetch_conv_finalizing q_wait_vec_load_full, single_wait_vec_load_full, loop_resi
     .endif
     
+    .if(partial_chunks)
+        s_wait 0
+        m_conv_accums partial_chunks, last_free_ld_part
+     .endif
+
     s_add_u32 s[soffset_in],  s[soffset_in],  0 + input_n_stride * n_per_gpr * n_part_cnt - c_off
     s_add_u32 s[soffset_out], s[soffset_out], 0 + output_n_stride * n_per_gpr * n_part_cnt- k_off
 loop_n_end:
