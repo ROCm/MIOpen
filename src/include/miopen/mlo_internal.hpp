@@ -665,6 +665,8 @@ struct mlo_construct_direct2D
     int mloConstructBwd() { return (0); }
     int mloConstructFwd() { return (0); }
 
+    bool usesBinaryKernel() { return _search_params.use_binaries; }
+
     protected:
     miopen::ConvolutionContext _search_params;
 
