@@ -589,12 +589,14 @@ gcnAsmConv1x1U:
                                 v_fma_mix_f32 v[acc], s[f_gpr], v[inp_gpr], v[acc] op_sel:[0,0,0] op_sel_hi:[1,1,0]
                                 v_fma_mix_f32 v[acc], s[f_gpr], v[inp_gpr], v[acc] op_sel:[1,1,0] op_sel_hi:[1,1,0]
                             .else
+                                v_mov_b32 v[vtmp_f_cvt], s[f_gpr]
                                 v_cvt_f32_f16 v[vtmp], v[inp_gpr]
-                                v_cvt_f32_f16 v[vtmp_f_cvt], v[f_gpr]
+                                v_cvt_f32_f16 v[vtmp_f_cvt], v[vtmp_f_cvt]
                                 v_mac_f32     v[acc], v[vtmp], v[vtmp_f_cvt]
 
+                                v_mov_b32 v[vtmp_f_cvt], s[f_gpr]
                                 v_lshrrev_b32 v[vtmp], 16, v[inp_gpr]
-                                v_lshrrev_b32 v[vtmp_f_cvt], 16, v[f_gpr]
+                                v_lshrrev_b32 v[vtmp_f_cvt], 16, v[vtmp_f_cvt]
 
                                 v_cvt_f32_f16 v[vtmp], v[vtmp]
                                 v_cvt_f32_f16 v[vtmp_f_cvt], v[vtmp_f_cvt]
