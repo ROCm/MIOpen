@@ -122,7 +122,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC")
 
     # A hack to make this work without the device enumerator
     link_libraries(-amdgpu-target=gfx803 -amdgpu-target=gfx900 -Wno-unused-command-line-argument)
-    CHECK_CXX_COMPILER_FLAG(-amdgpu-target=gfx906, GFX_906_FLAG_VALID)
+    CHECK_CXX_COMPILER_FLAG(-amdgpu-target=gfx906 -Werror, GFX_906_FLAG_VALID)
     if(GFX_906_FLAG_VALID)
         link_libraries(-amdgpu-target=gfx906)
     endif()
