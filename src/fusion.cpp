@@ -69,7 +69,19 @@ miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> d
     desc->GetOutputDesc(output_desc);
     op_map.emplace_back(desc);
     op_count++;
-    is_valid = lu.Advance(desc);
+    is_valid = lu.Advance(desc, [&](const std::string& sym, int& val) -> bool {
+        // check tensor attr
+        if(GetTensorAttr(sym, val))
+            return true;
+        // check op attr
+        if(desc->GetOpAttr(sym, val))
+            return true;
+        // check dev attr
+        // if(GetDevAttribute(sym, val, handle))
+        //     return true;
+        // else return false
+        return false;
+    });
     return miopenStatusSuccess;
 }
 
@@ -196,32 +208,76 @@ std::string ConvForwardOpDescriptor::GetArgKey(const std::string& k) const
     return k + std::to_string(GetIdx());
 }
 
+bool ConvForwardOpDescriptor::GetOpAttr(const std::string& sym, int& val) const
+{
+    int o, c, x, y;
+    std::tie(o, c, x, y) = tien<4>(filter_desc.GetLengths());
+    if(sym == "x")
+    {
+        val = x;
+        return true;
+    }
+    else if(sym == "y")
+    {
+        val = y;
+        return true;
+    }
+    else if(sym == "c")
+    {
+        val = c;
+        return true;
+    }
+    else if(sym == "pad_h")
+    {
+        val = base_desc.pad_h;
+        return true;
+    }
+    else if(sym == "pad_w")
+    {
+        val = base_desc.pad_w;
+        return true;
+    }
+    else if(sym == "dilation_h")
+    {
+        val = base_desc.dilation_h;
+        return true;
+    }
+    else if(sym == "dilation_w")
+    {
+        val = base_desc.dilation_w;
+        return true;
+    }
+    else if(sym == "u")
+    {
+        val = base_desc.u;
+        return true;
+    }
+    else if(sym == "v")
+    {
+        val = base_desc.v;
+        return true;
+    }
+    else if(sym == "k")
+    {
+        val = o;
+        return true;
+    }
+    else
+        return false;
+}
+
 OpKernelArg ConvForwardOpDescriptor::GetOpAttr(const std::string& k) const
 {
-    int c, x, y;
-    std::tie(std::ignore, c, x, y) = tien<4>(filter_desc.GetLengths());
-    if(k == "x")
+    int v;
+    if(GetOpAttr(k, v))
     {
-        return OpKernelArg(x);
-    }
-    else if(k == "y")
-    {
-        return OpKernelArg(y);
-    }
-    else if(k == "pad_h")
-    {
-        return base_desc.pad_h;
-    }
-    else if(k == "pad_w")
-    {
-        return base_desc.pad_w;
+        return OpKernelArg(v);
     }
     else
     {
         MIOPEN_THROW(miopenStatusInternalError, "Unknown Convolution Op Attribute");
     }
 }
-
 FusionMDGraph_Edge_Map ConvForwardOpDescriptor::MDGraphKey(miopenConvolutionMode_t conv_mode,
                                                            miopenPaddingMode_t pad_mode,
                                                            int pad_h,
@@ -466,7 +522,7 @@ std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
 {
     if(!op_map.empty())
     {
-        program_name = lu.GetProgramName();
+        program_name = lu.GetProgramName(handle);
         // Replace "GFX*" wildcard by device name (in lowercase)
         auto d = handle.GetDeviceName();
         std::transform(d.begin(), d.end(), d.begin(), ::tolower);
@@ -479,11 +535,11 @@ std::string FusionPlanDescriptor::GetProgramName(Handle& handle)
     }
 }
 
-std::string FusionPlanDescriptor::GetKernelName()
+std::string FusionPlanDescriptor::GetKernelName(Handle& handle)
 {
     if(!op_map.empty())
     {
-        kernel_name = lu.GetKernelName();
+        kernel_name = lu.GetKernelName(handle);
         return kernel_name;
     }
     else
@@ -492,11 +548,11 @@ std::string FusionPlanDescriptor::GetKernelName()
     }
 }
 
-std::string FusionPlanDescriptor::GetAlgorithmName()
+std::string FusionPlanDescriptor::GetAlgorithmName(Handle& handle)
 {
     if(!op_map.empty())
     {
-        algorithm_name = lu.GetAlgoName();
+        algorithm_name = lu.GetAlgoName(handle);
         return algorithm_name;
     }
     else
@@ -505,49 +561,65 @@ std::string FusionPlanDescriptor::GetAlgorithmName()
     }
 }
 
-OpKernelArg FusionPlanDescriptor::GetTensorAttr(const std::string& k) const
+bool FusionPlanDescriptor::GetTensorAttr(const std::string& sym, int& val) const
 {
     int N, C, H, W, oN, K, oH, oW;
     std::tie(N, C, H, W)    = miopen::tien<4>(input_desc.GetLengths(), 1);
     std::tie(oN, K, oH, oW) = miopen::tien<4>(output_desc.GetLengths(), 1);
-    if(k == "iN")
+    if(sym == "iN")
     {
-        return OpKernelArg(N);
+        val = N;
+        return true;
     }
-    else if(k == "iC")
+    else if(sym == "iC")
     {
-        return OpKernelArg(C);
+        val = C;
+        return true;
     }
-    else if(k == "iH")
+    else if(sym == "iH")
     {
-        return OpKernelArg(H);
+        val = H;
+        return true;
     }
-    else if(k == "iW")
+    else if(sym == "iW")
     {
-        return OpKernelArg(W);
+        val = W;
+        return true;
     }
-    else if(k == "oN")
+    else if(sym == "oN")
     {
-        return OpKernelArg(oN);
+        val = oN;
+        return true;
     }
-    else if(k == "oK")
+    else if(sym == "oK")
     {
-        return OpKernelArg(K);
+        val = K;
+        return true;
     }
-    else if(k == "oH")
+    else if(sym == "oH")
     {
-        return OpKernelArg(oH);
+        val = oH;
+        return true;
     }
-    else if(k == "oW")
+    else if(sym == "oW")
     {
-        return OpKernelArg(oW);
+        val = oW;
+        return true;
     }
     else
-    {
-        MIOPEN_THROW(miopenStatusInternalError, "Unknown Tensor Attribute: " + k);
-    }
+        return false;
 }
 
+OpKernelArg FusionPlanDescriptor::GetTensorAttr(const std::string& sym) const
+{
+    int val;
+    if(FusionPlanDescriptor::GetTensorAttr(sym, val))
+        return OpKernelArg(val);
+    else
+    {
+        MIOPEN_THROW(miopenStatusInternalError, "Unknown Tensor Attribute: " + sym);
+    }
+}
 OpKernelArg FusionPlanDescriptor::GetDevAttribute(const std::string& k, Handle& handle) const
 {
     if(k == "devCUs")
@@ -577,9 +649,9 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     }
     // Check if the kernel is assembly or OpenCL
     auto ops_head  = op_map[0];
-    algorithm_name = lu.GetAlgoName();
+    algorithm_name = lu.GetAlgoName(handle);
     program_name   = GetProgramName(handle);
-    kernel_name    = GetKernelName();
+    kernel_name    = GetKernelName(handle);
     MIOPEN_LOG_I2(program_name << ',' << kernel_name);
     if(program_name.empty())
     {
@@ -736,7 +808,7 @@ std::vector<Exec_arg_t> FusionPlanDescriptor::CalcArgOrder(Handle& handle)
     }
     else
     {
-        auto default_args = lu.GetKernelArgs();
+        auto default_args = lu.GetKernelArgs(handle);
         if(default_args.empty())
         {
             MIOPEN_THROW(miopenStatusInternalError,
