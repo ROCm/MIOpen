@@ -335,7 +335,8 @@ static void DirConvFindCore(Handle& handle,
                 CreateGemmGeometryConvBwdData(xDesc, wDesc, yDesc, true, network_config);
 
             // 1x1 does not require im2col or workspace
-            if(wei_h == 1 && wei_w == 1 && conv.v == 1 && conv.u == 1)
+            if(wei_h == 1 && wei_w == 1 && conv.v == 1 && conv.u == 1 && conv.pad_h == 0 &&
+               conv.pad_w == 0)
             {
                 MIOPEN_LOG_FUNCTION("transpose, 1x1");
 
@@ -1331,7 +1332,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         int out_h, out_w;
         std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
 
-        if(wei_h != 1 || wei_w != 1 || u != 1 || v != 1)
+        if(wei_h != 1 || wei_w != 1 || u != 1 || v != 1 || pad_h != 0 || pad_w != 0)
         {
             assert(workSpace != nullptr &&
                    workSpaceSize >= BackwardDataGetWorkSpaceSizeGEMM(handle, wDesc, xDesc));
@@ -1349,7 +1350,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         for(int i = 0; i < in_n; i++)
         {
             int out_offset = i * wei_n * out_h * out_w;
-            if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
+            if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
             {
                 MIOPEN_LOG_FUNCTION("transppose, non 1x1");
 
@@ -1389,7 +1390,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                     time_0 += handle.GetKernelTime();
                 }
             }
-            else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
+            else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1 && pad_h == 0 && pad_w == 0)
             {
                 MIOPEN_LOG_FUNCTION("transppose, 1x1");
 
@@ -1706,7 +1707,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
                 CreateGemmGeometryTranBwdData(dyDesc, wDesc, dxDesc, true, network_config);
 
             // 1x1 does not require im2col or workspace
-            if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
+            if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1 && pad_h == 0 && pad_w == 0)
             {
                 MIOPEN_LOG_FUNCTION("transppose, 1x1");
 
@@ -2616,7 +2617,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         int out_h, out_w;
         std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
 
-        if(wei_h != 1 || wei_w != 1 || u != 1 || v != 1)
+        if(wei_h != 1 || wei_w != 1 || u != 1 || v != 1 || pad_h != 0 || pad_w != 0)
         {
             assert(workSpace != nullptr &&
                    workSpaceSize >= ForwardGetWorkSpaceSizeGEMM(handle, wDesc, dxDesc));
@@ -2632,7 +2633,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         for(int i = 0; i < in_n; i++)
         {
             int in_offset = i * in_c * in_h * in_w;
-            if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
+            if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
             {
                 MIOPEN_LOG_FUNCTION("transpose, non 1x1");
 
@@ -2671,7 +2672,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                     time_0 += handle.GetKernelTime();
                 }
             }
-            else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
+            else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1 && pad_h == 0 && pad_w == 0)
             {
                 MIOPEN_LOG_FUNCTION("transpose, 1x1");
 
@@ -3058,7 +3059,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
             float time_gemm = 0;
 
             // 1x1 does not require im2col or workspace
-            if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
+            if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1 && pad_h == 0 && pad_w == 0)
             {
                 MIOPEN_LOG_FUNCTION("transpose, 1x1");
 
@@ -3564,7 +3565,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
 
         std::string network_config;
 
-        if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
+        if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
         {
             assert(workSpace != nullptr &&
                    workSpaceSize >= BackwardWeightsGetWorkSpaceSizeGEMM(handle, xDesc, dwDesc));
@@ -3581,7 +3582,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
         for(int i = 0; i < in_n; i++)
         {
             int in_offset = i * in_c * in_h * in_w;
-            if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1)
+            if(wei_h != 1 || wei_w != 1 || v != 1 || u != 1 || pad_h != 0 || pad_w != 0)
             {
                 MIOPEN_LOG_FUNCTION("transpose, non 1x1");
 
@@ -3621,7 +3622,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                     time_0 += handle.GetKernelTime();
                 }
             }
-            else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1)
+            else if(wei_h == 1 && wei_w == 1 && v == 1 && u == 1 && pad_h == 0 && pad_w == 0)
             {
                 MIOPEN_LOG_FUNCTION("transpose, 1x1");
 
