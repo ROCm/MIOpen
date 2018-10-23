@@ -27,6 +27,7 @@
 #include <miopen/md_graph.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/env.hpp>
+#include <miopen/mdg_expr.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)
 
@@ -61,15 +62,20 @@ std::ostream& operator<<(std::ostream& stream, const MDGraph_vertex& v)
     return stream;
 }
 
-MDGraph_vertex_ptr FusionMDGraph::GetCurVertex()
+MDGraph_vertex_ptr FusionMDGraph::GetCurVertex(Handle& handle)
 {
-    auto& cur_map           = cur_vertex[0].second;
-    int weight              = boost::any_cast<int>(cur_map["weight"]);
-    MDGraph_vertex_ptr& ptr = cur_vertex[0].first;
+    int weight             = -1;
+    MDGraph_vertex_ptr ptr = nullptr;
+    auto cur_arch          = handle.GetDeviceName();
 
     for(auto& cur : cur_vertex)
     {
-        if(boost::any_cast<int>(cur.second["weight"]) > weight)
+        auto it =
+            std::find(cur.first->supported_arch.begin(), cur.first->supported_arch.end(), cur_arch);
+        // Empty inidicates any arch is supported (say OpenCL kernels)
+        bool arch_sup =
+            cur.first->supported_arch.empty() || (it != cur.first->supported_arch.end());
+        if((boost::any_cast<int>(cur.second["weight"]) > weight) && arch_sup)
         {
             weight = boost::any_cast<int>(cur.second["weight"]);
             ptr    = cur.first;
@@ -101,9 +107,9 @@ std::vector<solver::AnySolver> FusionMDGraph::GetSolvers()
     return res;
 }
 
-std::string FusionMDGraph::GetProgramName()
+std::string FusionMDGraph::GetProgramName(Handle& handle)
 {
-    auto ptr = GetCurVertex();
+    auto ptr = GetCurVertex(handle);
 
     if(ptr != nullptr)
     {
@@ -116,9 +122,9 @@ std::string FusionMDGraph::GetProgramName()
     }
 }
 
-std::string FusionMDGraph::GetKernelName()
+std::string FusionMDGraph::GetKernelName(Handle& handle)
 {
-    auto ptr = GetCurVertex();
+    auto ptr = GetCurVertex(handle);
     if(ptr != nullptr)
     {
         return ptr->vertex_data["kernel"];
@@ -130,9 +136,9 @@ std::string FusionMDGraph::GetKernelName()
     }
 }
 
-std::string FusionMDGraph::GetAlgoName()
+std::string FusionMDGraph::GetAlgoName(Handle& handle)
 {
-    auto ptr = GetCurVertex();
+    auto ptr = GetCurVertex(handle);
     if(ptr != nullptr)
     {
         return ptr->vertex_data["algorithm"];
@@ -144,9 +150,9 @@ std::string FusionMDGraph::GetAlgoName()
     }
 }
 
-std::vector<DefaultKernelArg> FusionMDGraph::GetKernelArgs()
+std::vector<DefaultKernelArg> FusionMDGraph::GetKernelArgs(Handle& handle)
 {
-    auto ptr = GetCurVertex();
+    auto ptr = GetCurVertex(handle);
     if(ptr != nullptr)
     {
         return ptr->default_args;
@@ -305,30 +311,77 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         static const std::string algo("miopenConvolutionWinogradBiasActiv");
         auto vc =
             std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward, program, kernel, algo);
-        vc->solver       = solver::ConvBinWinogradRxS{};
-        vc->default_args = WinogradNodeArgs();
-        /// \todo Only 0x0 padding for now. 9_2_7 supports asymmetric padding, from 0 to 2^16.
-        /// \todo Winograd supports wide range of RxS. 3x3 only for now.
-        auto map_wino_conv = ConvForwardOpDescriptor::MDGraphKey(miopenConvolution,
-                                                                 miopenPaddingDefault,
-                                                                 /*pad_h*/ 1,
-                                                                 /*pad_w*/ 1,
-                                                                 /* u */ 1,
-                                                                 /* v */ 1,
-                                                                 /*dilation_h*/ 1,
-                                                                 /*dilation_w*/ 1,
-                                                                 /*k any*/ 0,
-                                                                 /*c any*/ 0,
-                                                                 /* x */ 3,
-                                                                 /* y */ 3);
-        map_wino_conv["c"].push_back(EdgeOp(0, true, OpNotEqual));
-        map_wino_conv["c"].push_back(EdgeOp(2, 0, OpModulo));
-        map_wino_conv["c"].push_back(EdgeOp(18, true, OpGTE));
-        map_emplace(map_wino_conv, "weight", EdgeOp(10, true, OpAny));
-        map_emplace(map_wino_conv, "algo", EdgeOp(miopenConvolutionFwdAlgoWinograd, true, OpAny));
-        map_emplace(map_wino_conv, "precision", EdgeOp(miopenFloat, true, OpEqual));
+        vc->solver         = solver::ConvBinWinogradRxS{};
+        vc->default_args   = WinogradNodeArgs();
+        vc->supported_arch = {"gfx803", "gfx900", "gfx906"};
 
-        g.AddEdge(nullptr, vc, map_wino_conv);
+        const auto common_constr = {
+            EdgeOp(std::string("u == 1"), true, OpEqual),
+            EdgeOp(std::string("u == v"), true, OpEqual),
+            EdgeOp(std::string("dilation_h == 1"), true, OpEqual),
+            EdgeOp(std::string("dilation_w == 1"), true, OpEqual),
+
+            EdgeOp(std::string("c * x * y <= (2^28)"), true, OpEqual),
+            EdgeOp(std::string("k * x * y <= (2^28)"), true, OpEqual),
+            EdgeOp(std::string("k * oH * oW <= (2^28)"), true, OpEqual),
+            EdgeOp(std::string("c * iH * iW <= (2^28)"), true, OpEqual),
+            EdgeOp(std::string("x <= (2^16)"), true, OpEqual),
+            EdgeOp(std::string("y <= (2^16)"), true, OpEqual),
+            EdgeOp(std::string("pad_h <= (2^16)"), true, OpEqual),
+            EdgeOp(std::string("pad_w <= (2^16)"), true, OpEqual),
+            EdgeOp(std::string("oH <= (2^16)"), true, OpEqual),
+            EdgeOp(std::string("oW <= (2^16)"), true, OpEqual),
+            EdgeOp(std::string("iH <= (2^16)"), true, OpEqual),
+            EdgeOp(std::string("iW <= (2^16)"), true, OpEqual),
+            EdgeOp(std::string("c <= (2^16)"), true, OpEqual),
+            EdgeOp(std::string("k <= (2^16)"), true, OpEqual),
+            EdgeOp(std::string("iN <= (2^16)"), true, OpEqual),
+            EdgeOp(std::string("((padded_x / 3) * (padded_y / 3) * c ) >= 18"), true, OpEqual),
+        };
+        FusionMDGraph_Edge_Map map_wino_conv_s1;
+        map_wino_conv_s1["constraints"] = {
+            EdgeOp(std::string("y <= 3"), true, OpEval),
+            EdgeOp(std::string("padded_y === 3"), true, OpEval),
+            EdgeOp(std::string("padded_x === (x ~ 3)"), true, OpEval),
+            EdgeOp(std::string("(c % 2) == 0"), true, OpAny),
+        };
+        map_emplace(map_wino_conv_s1, "weight", EdgeOp(5, true, OpAny));
+        map_emplace(
+            map_wino_conv_s1, "algo", EdgeOp(miopenConvolutionFwdAlgoWinograd, true, OpAny));
+        map_emplace(map_wino_conv_s1, "precision", EdgeOp(miopenFloat, true, OpEqual));
+        map_wino_conv_s1["constraints"].insert(
+            map_wino_conv_s1["constraints"].end(), common_constr.begin(), common_constr.end());
+        g.AddEdge(nullptr, vc, map_wino_conv_s1);
+
+        FusionMDGraph_Edge_Map map_wino_conv_s1_xgt3;
+        map_wino_conv_s1_xgt3["constraints"] = {
+            EdgeOp(std::string("y > 3"), true, OpEval),
+            EdgeOp(std::string("padded_y === (y ~ 6)"), true, OpEval),
+            EdgeOp(std::string("padded_x === (x ~ 3)"), true, OpEval),
+        };
+        map_emplace(map_wino_conv_s1_xgt3, "weight", EdgeOp(5, true, OpAny));
+        map_emplace(
+            map_wino_conv_s1_xgt3, "algo", EdgeOp(miopenConvolutionFwdAlgoWinograd, true, OpAny));
+        map_emplace(map_wino_conv_s1_xgt3, "precision", EdgeOp(miopenFloat, true, OpEqual));
+        map_wino_conv_s1_xgt3["constraints"].insert(
+            map_wino_conv_s1_xgt3["constraints"].end(), common_constr.begin(), common_constr.end());
+        g.AddEdge(nullptr, vc, map_wino_conv_s1_xgt3);
+
+        // add 3x3 with higher priority since its the fastest case
+        FusionMDGraph_Edge_Map map_wino_conv_xe3;
+        map_wino_conv_xe3["constraints"] = {
+            EdgeOp(std::string("(y == 3) & (x == 3)"), true, OpEval),
+            EdgeOp(std::string("padded_y === 3"), true, OpEval),
+            EdgeOp(std::string("padded_x === (x ~ 3)"), true, OpEval),
+            EdgeOp(std::string("(c % 2) == 0"), true, OpAny),
+        };
+        map_emplace(map_wino_conv_xe3, "weight", EdgeOp(100, true, OpAny));
+        map_emplace(
+            map_wino_conv_xe3, "algo", EdgeOp(miopenConvolutionFwdAlgoWinograd, true, OpAny));
+        map_emplace(map_wino_conv_xe3, "precision", EdgeOp(miopenFloat, true, OpEqual));
+        map_wino_conv_xe3["constraints"].insert(
+            map_wino_conv_xe3["constraints"].end(), common_constr.begin(), common_constr.end());
+        g.AddEdge(nullptr, vc, map_wino_conv_xe3);
 
         /// C>B>A| (4)
         auto vb =
@@ -417,7 +470,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                                 /*c any*/ 0,
                                                                 /* x */ 1,
                                                                 /* y */ 1);
-        map_emplace(map_asm_conv, "weight", EdgeOp(1, true, OpAny));
+        map_emplace(map_asm_conv, "weight", EdgeOp(50, true, OpAny));
         map_emplace(map_asm_conv, "algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
         map_emplace(map_asm_conv, "precision", EdgeOp(miopenFloat, true, OpEqual));
 
@@ -466,7 +519,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                 map_conv_bias["v"].push_back(EdgeOp(1, true, OpGTE));
                 map_conv_bias["v"].push_back(EdgeOp(2, true, OpLTE));
             }
-            map_emplace(map_conv_bias, "weight", EdgeOp(0, true, OpAny));
+            map_emplace(map_conv_bias, "weight", EdgeOp(10, true, OpAny));
             map_emplace(map_conv_bias, "algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
 
             g.AddEdge(nullptr, conv_v, map_conv_bias);
@@ -532,7 +585,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                 map_conv_bias["v"].push_back(EdgeOp(1, true, OpGTE));
                 map_conv_bias["v"].push_back(EdgeOp(2, true, OpLTE));
             }
-            map_emplace(map_conv_bias, "weight", EdgeOp(0, true, OpAny));
+            map_emplace(map_conv_bias, "weight", EdgeOp(10, true, OpAny));
             map_emplace(map_conv_bias, "algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
 
             g.AddEdge(nullptr, conv_v, map_conv_bias);
@@ -688,44 +741,91 @@ bool FusionMDGraph::ExecEdgeOp(const EdgeOp& edg_op, const EdgeOp& op_val)
     }
     case OpLTE: { return FusionMDGraph::ExecOpLTE(edg_op, op_val);
     }
+    case OpAdd:
+    case OpSub:
+    case OpMul:
+    case OpDiv:
+    case OpPow:
+    case OpAnd:
+    case OpOr:
+    case OpCeil:
+    case OpAssign:
+    case OpGT:
+    case OpLT:
+    case OpEval: { assert(false);
+    };
     }
     return false;
 }
 
 bool FusionMDGraph::CmpOpKey(const FusionMDGraph_Edge_Map& edge_val,
-                             const FusionMDGraph_Edge_Map& op_val) const
+                             const std::shared_ptr<FusionOpDescriptor>& op,
+                             std::function<bool(const std::string& sym, int& val)> attr_fun) const
 {
     for(auto& kv : edge_val)
     {
-        if(op_val.count(kv.first) == 1)
+        if(kv.first == "constraints")
         {
-            if(op_val.at(kv.first).size() > 1)
+            tree_visit v(attr_fun);
+            for(auto& edg_op : kv.second)
             {
-                MIOPEN_LOG_I("The operator attribute vector length cannot be greater than 1");
-                MIOPEN_THROW(miopenStatusInternalError);
-            }
-            for(auto& edg_ops : kv.second)
-            {
-                if(!FusionMDGraph::ExecEdgeOp(edg_ops, op_val.at(kv.first).at(0)))
+                assert(edg_op.val.type() == typeid(std::string));
+                using It = std::string::const_iterator;
+                auto exp = boost::any_cast<std::string>(edg_op.val);
+                It f(exp.begin()), l(exp.end());
+                MDGExprParser p;
+                boost::spirit::utree e;
+                auto parse_success =
+                    boost::spirit::qi::phrase_parse(f, l, p, boost::spirit::ascii::space, e);
+                if(!parse_success)
                 {
-                    MIOPEN_LOG_I2("Edge Op :" << edg_ops << " Op Val: " << op_val.at(kv.first).at(0)
-                                              << " Edge Op for key: "
-                                              << kv.first
-                                              << " Failed");
+                    MIOPEN_LOG_I2("Remaining unparsed: " << std::string(exp.begin(), exp.end()));
+                    MIOPEN_THROW(miopenStatusInternalError,
+                                 "Unable to parse graph constraint expression");
+                }
+                visit_res r = boost::spirit::utree::visit(e, v);
+                v.tabl.insert(r.tabl.begin(), r.tabl.end());
+                if(r.b_res)
+                {
+                    MIOPEN_LOG_I2("Constraint satisfied: " + exp);
+                }
+                else
+                {
+                    MIOPEN_LOG_I("Condition unsuccessful while matching graph: " + exp);
                     return false;
                 }
             }
-            MIOPEN_LOG_I2("Edge Op for key: " << kv.first << " Successfull");
         }
         else
         {
-            MIOPEN_LOG_I2("Key: " << kv.first << " NOT found");
+            auto op_val = op->MDGraphKey();
+            if(op_val.count(kv.first) == 1)
+            {
+                for(auto& edg_ops : kv.second)
+                {
+                    if(!FusionMDGraph::ExecEdgeOp(edg_ops, op_val.at(kv.first).at(0)))
+                    {
+                        MIOPEN_LOG_I2("Edge Op :" << edg_ops << " Op Val: "
+                                                  << op_val.at(kv.first).at(0)
+                                                  << " Edge Op for key: "
+                                                  << kv.first
+                                                  << " Failed");
+                        return false;
+                    }
+                }
+                MIOPEN_LOG_I2("Edge Op for key: " << kv.first << " Successfull");
+            }
+            else
+            {
+                MIOPEN_LOG_I2("Key: " << kv.first << " NOT found");
+            }
         }
     }
     return true;
 }
 
-bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
+bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op,
+                            std::function<bool(const std::string& sym, int& val)> attr_fun)
 {
     MIOPEN_LOG_I("Adding Op: " << *op);
     std::vector<std::pair<MDGraph_vertex_ptr, cur_vertex_map>> new_list;
@@ -742,12 +842,13 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
         {
             MIOPEN_LOG_I2("Current vertex: " << *cur_vertex_ptr);
         }
-        auto cur_map = kinder.second;
         // get the children of the cur_vertex
         auto& ch = edge_list[cur_vertex_ptr];
         // if op is in the children and the edge key satisfies update cur_vertex
         for(auto& ch_it : ch)
         {
+            auto cur_map = kinder.second;
+            MIOPEN_LOG_I2("Current path weight: " << boost::any_cast<int>(cur_map["weight"]));
             MIOPEN_LOG_I2("Child: " << *ch_it.first);
             std::set<miopenConvFwdAlgorithm_t> cur_path_set;
             if(ch_it.first->op == op->kind())
@@ -755,7 +856,7 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
                 for(auto& edg_map : ch_it.second)
                 {
                     int weight = boost::any_cast<int>(cur_map["weight"]);
-                    if(CmpOpKey(edg_map, op->MDGraphKey()))
+                    if(CmpOpKey(edg_map, op, attr_fun))
                     {
                         MIOPEN_LOG_I2("Key Match Successfull");
                         weight += boost::any_cast<int>(edg_map.at("weight").at(0).val);
@@ -795,6 +896,7 @@ bool FusionMDGraph::Advance(std::shared_ptr<FusionOpDescriptor> op)
                     }
                 }
             }
+            MIOPEN_LOG_I2("Current path final weight: " << boost::any_cast<int>(cur_map["weight"]));
         }
     }
     cur_vertex = new_list;

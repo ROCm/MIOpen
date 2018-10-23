@@ -67,6 +67,7 @@ struct MDGraph_vertex
     miopenFusionOp_t op;
     bool is_leaf = false;
     std::map<std::string, std::string> vertex_data;
+    std::vector<std::string> supported_arch;
     size_t map_hash = 0;
     int id;
 
@@ -88,16 +89,18 @@ struct FusionMDGraph
     static void InitConv(FusionMDGraph& g);
     static void InitBN(FusionMDGraph& g);
     void Reset();
-    bool Advance(std::shared_ptr<FusionOpDescriptor> op);
+    bool Advance(std::shared_ptr<FusionOpDescriptor> op,
+                 std::function<bool(const std::string& sym, int& val)> attr_fun);
     void AddEdge(MDGraph_vertex_ptr src, MDGraph_vertex_ptr dst, FusionMDGraph_Edge_Map& map);
 
     bool CmpOpKey(const FusionMDGraph_Edge_Map& edge_val,
-                  const FusionMDGraph_Edge_Map& op_val) const;
-    MDGraph_vertex_ptr GetCurVertex();
-    std::string GetProgramName();
-    std::string GetKernelName();
-    std::string GetAlgoName();
-    std::vector<DefaultKernelArg> GetKernelArgs();
+                  const std::shared_ptr<FusionOpDescriptor>& op,
+                  std::function<bool(const std::string& sym, int& val)> attr_fun) const;
+    MDGraph_vertex_ptr GetCurVertex(Handle& handle);
+    std::string GetProgramName(Handle& handle);
+    std::string GetKernelName(Handle& handle);
+    std::string GetAlgoName(Handle& handle);
+    std::vector<DefaultKernelArg> GetKernelArgs(Handle& handle);
     std::vector<miopenConvFwdAlgorithm_t> GetConvAlgos();
     bool SetConvAlgo(miopenConvFwdAlgorithm_t algo);
     static FusionMDGraph_Edge_Map EmptyEdgeMap(int weight = 0, MDGraph_op_t op = OpAny);
