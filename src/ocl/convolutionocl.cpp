@@ -1027,7 +1027,11 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             const
 #endif
                 auto num_kernels = kernels.size();
-            auto kernel          = kernels[0];
+            if(kernels.empty())
+                MIOPEN_THROW(
+                    "Error running Direct Forward convolution. Was Find() executed previously?");
+
+            auto kernel = kernels[0];
 
             visit_float(xDesc.GetType(), [&](auto as_float) {
                 // Miminum checks. Only check what is required to select
@@ -1427,7 +1431,11 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
             const
 #endif
                 auto num_kernels = kernels.size();
-            auto kernel          = kernels[0];
+            if(kernels.empty())
+                MIOPEN_THROW(
+                    "Error running Direct Forward convolution. Was Find() executed previously?");
+
+            auto kernel = kernels[0];
 
             visit_float(xDesc.GetType(), [&](auto as_float) {
                 // Miminum checks. Only check what is required to select
@@ -3478,7 +3486,8 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                 auto&& kernels =
                     handle.GetKernels("miopenConvolutionBwdWeightsAlgoDirect", network_config);
                 if(kernels.empty())
-                    MIOPEN_THROW("No kernels found");
+                    MIOPEN_THROW("Error running direct backwards weights convolution. Was Find() "
+                                 "executed previously?");
                 auto kernel = kernels[0];
 
                 handle.ResetKernelTime();
