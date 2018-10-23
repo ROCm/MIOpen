@@ -242,7 +242,7 @@ bool PerformanceConfigConvAsm1x1U::IsValidValue() const
 
 bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) const
 {
-    int elements_in_dword = (config.in_data_type == "FP16" ? 2 : 1);
+    const int elements_in_dword = 32 / config.float_size;
 
     if(!IsValidValue())
         return false;
@@ -252,13 +252,11 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
         return false;
     if(!(k_mult <= config.n_outputs))
         return false;
-    if((config.n_outputs % elements_in_dword) != 0)
-        return false;
-    if((config.n_inputs % elements_in_dword) != 0)
-        return false;
     if((c_mult % elements_in_dword) != 0)
         return false;
     if((k_mult % elements_in_dword) != 0)
+        return false;
+    if(chunks_per_wave % elements_in_dword != 0)
         return false;
     const int in_gprs =
         (chunks_per_wave * n_mult * c_mult + elements_in_dword - 1) / elements_in_dword;
@@ -285,23 +283,10 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
     if(!(chunks_per_wave <= total_chunks))
         return false;
 
-    int vec_c_in = 1, vec_k_out = 1, vec_c_filter = 1;
+    const int c_per_wave      = (config.n_inputs + waves_in_group - 1) / waves_in_group;
+    const int c_per_last_wave = config.n_inputs - (c_per_wave * (waves_in_group - 1));
 
-    int rounded_c       = (config.n_inputs + vec_c_in - 1) / vec_c_in;
-    int c_per_wave      = (rounded_c + waves_in_group - 1) / waves_in_group;
-    int c_per_last_wave = rounded_c - (c_per_wave * (waves_in_group - 1));
-    bool res            = (waves_in_group <= rounded_c);
-
-    res = res && (k_mult % vec_k_out == 0);
-    res = res && (k_mult % vec_k_out == 0);
-    res = res && ((chunks_per_wave % (elements_in_dword / vec_k_out)) == 0);
-
-    if(config.direction.IsBackwardData() && !(config.n_outputs % k_mult == 0) &&
-       !(k_mult % (elements_in_dword / vec_c_filter) == 0))
-        return false;
-    if(!((c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0)))
-        return false;
-    return res;
+    return (c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0);
 }
 
 void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config)
@@ -391,6 +376,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         return false;
     }
     assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
+    const int elements_in_dword = 32 / params.float_size;
     // clang-format off
     bool ok = (params.pad0 == 0         // -q  pad_w
         && params.pad1 == 0             // -p  pad_h
@@ -401,8 +387,8 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         && params.kernel_dilation0 == 1
         && params.kernel_dilation1 == 1
         && params.bias == 0
-        && params.n_inputs % params.vec_size == 0
-        && params.n_outputs % params.vec_size == 0
+        && params.n_inputs % elements_in_dword == 0
+        && params.n_outputs % elements_in_dword == 0
         && params.in_layout == "NCHW");
     if(!ok)
     {
