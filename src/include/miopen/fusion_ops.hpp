@@ -51,6 +51,18 @@ enum MDGraph_op_t
     OpModulo,   // op_val.val % edg_val.val == edg_val.result (only supported for ints)
     OpGTE,      // op_val.val >= edg_val.val (only supported for ints)
     OpLTE,      // op_val.val <= edg_val.val (only supported for ints)
+    OpEval,     // Evaluate the string expression
+    OpAdd,
+    OpSub,
+    OpMul,
+    OpDiv,
+    OpPow,
+    OpAnd,
+    OpOr,
+    OpCeil,
+    OpAssign,
+    OpGT,
+    OpLT,
 };
 
 std::ostream& operator<<(std::ostream& stream, const MDGraph_op_t& o);
@@ -63,6 +75,7 @@ struct EdgeOp
     boost::any val;
     boost::any result;
     MDGraph_op_t op = OpAny;
+    std::string member;
     friend std::ostream& operator<<(std::ostream& stream, const EdgeOp& o)
     {
         stream << "val: " << o.val << " op: " << o.op;

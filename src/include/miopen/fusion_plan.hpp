@@ -57,16 +57,17 @@ struct FusionPlanDescriptor : miopenFusionPlanDescriptor
 
     miopenStatus_t GetOp(int op_idx, std::shared_ptr<FusionOpDescriptor>& desc);
 
-    std::string GetKernelName();
+    std::string GetKernelName(Handle& handle);
     std::string GetProgramName(Handle& handle);
-    std::string GetAlgorithmName();
+    std::string GetAlgorithmName(Handle& handle);
 
     protected:
     auto GetLocalWGSz();
     auto GetGlobalWGSz();
     std::vector<Exec_arg_t> CalcArgOrder(Handle& handle);
     OpKernelArg GetDevAttribute(const std::string& k, Handle& handle) const;
-    OpKernelArg GetTensorAttr(const std::string& k) const;
+    OpKernelArg GetTensorAttr(const std::string& sym) const;
+    bool GetTensorAttr(const std::string& sym, int& val) const;
 
     private:
     miopenFusionDirection_t fusion_dir;
