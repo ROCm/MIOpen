@@ -14,7 +14,6 @@ AMD's library for high peformance machine learning primitives. MIOpen supports t
 * [MIOpenGEMM](https://github.com/ROCmSoftwarePlatform/MIOpenGEMM) to enable various functionalities including transposed and dilated convolutions
 * ROCm cmake modules can be installed from [here](https://github.com/RadeonOpenCompute/rocm-cmake)
 * [Half](http://half.sourceforge.net/) - IEEE 754-based half-precision floating point library
-* [OpenSSL](https://www.openssl.org/) or [libressl](https://www.libressl.org/)
 * [Boost](http://www.boost.org/) at least version 1.58
   * MIOpen uses `boost-system` and `boost-filesystem` packages to enable persistent [kernel cache](https://github.com/ROCmSoftwarePlatform/MIOpen/blob/master/doc/src/cache.md)
 
@@ -71,11 +70,6 @@ Set the C++ compiler to `hcc`.
 cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="<hip-installed-path>;<hcc-installed-path>;<clang-ocl-installed-path>" ..
 ```
 An example cmake step can be:
-* `OpenSSL` installed using `apt-get` on Ubuntu v16? **Yes**.
-```
-CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/hcc;/opt/rocm/hip" -DCMAKE_CXX_FLAGS="-isystem /usr/include/x86_64-linux-gnu/" ..
-```
-* `OpenSSL` installed using `apt-get` on Ubuntu v16? **No**.
 ```
 CXX=/opt/rocm/hcc/bin/hcc cmake -DMIOPEN_BACKEND=HIP -DCMAKE_PREFIX_PATH="/opt/rocm/hcc;/opt/rocm/hip" ..
 ```
@@ -173,9 +167,8 @@ Also, githooks can be installed to format the code per-commit:
 
 ## Installing the dependencies manually
 
-If Ubuntu v16 is used then the `OpenSSL` and `Boost` packages can also be installed by:
+If Ubuntu v16 is used then the `Boost` packages can also be installed by:
 ```
-sudo apt-get install libssl-dev
 sudo apt-get install libboost-dev
 sudo apt-get install libboost-system-dev
 sudo apt-get install libboost-filesystem-dev
