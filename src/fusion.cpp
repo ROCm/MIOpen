@@ -82,7 +82,10 @@ miopenStatus_t FusionPlanDescriptor::AddOp(std::shared_ptr<FusionOpDescriptor> d
         // else return false
         return false;
     });
-    return miopenStatusSuccess;
+    if(is_valid)
+        return miopenStatusSuccess;
+    else
+        return miopenStatusUnsupportedOp;
 }
 
 miopenStatus_t FusionPlanDescriptor::GetOp(int op_idx, std::shared_ptr<FusionOpDescriptor>& desc)
@@ -638,7 +641,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
     miopenStatus_t status = miopenStatusUnknownError;
     if(!isValid())
     {
-        MIOPEN_LOG_I2("Trying to compile an invalid FusionPlan");
+        MIOPEN_LOG_I2("A previous attempt to add an operator failed");
         MIOPEN_THROW(miopenStatusBadParm);
     }
     network_config = "";
