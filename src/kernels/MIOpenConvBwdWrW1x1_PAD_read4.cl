@@ -286,8 +286,8 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
     uint K_OFFSET = get_group_id(1) * MLO_N_LCL_OUT_MAPS;
 
 #else
-    uint K_OFFSET          = get_group_id(0) * MLO_N_LCL_OUT_MAPS;
-    uint C_OFFSET          = get_group_id(1) * MLO_N_LCL_IN_MAPS;
+    uint K_OFFSET = get_group_id(0) * MLO_N_LCL_OUT_MAPS;
+    uint C_OFFSET = get_group_id(1) * MLO_N_LCL_IN_MAPS;
 
 #endif
 
@@ -313,6 +313,7 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
         sdata[local_Id0 + i * MLO_GRP_SZ0] = (_FLOAT)(0);
     }
 
+#if MLO_OUT_CHANNEL_READ_SZ > 0
     for(uint faked_off = local_Id0; faked_off < MLO_MAX_LOADS; faked_off += MLO_GRP_SZ0)
     {
 #if MLO_FILTER_PAD0 > 0 || MLO_FILTER_PAD1 > 0 || \
@@ -384,6 +385,7 @@ MIOpenCvBwdWrW_8x8map(const __global _FLOAT* __restrict top_df,
             }
         }
     }
+#endif
 
 #define LAST_PIXELS (MLO_OUT_CHANNEL_STRIDE % MLO_READ_UNIT)
 
@@ -531,8 +533,8 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
     uint K_OFFSET = get_group_id(1) * MLO_N_LCL_OUT_MAPS;
 
 #else
-    uint K_OFFSET          = get_group_id(0) * MLO_N_LCL_OUT_MAPS;
-    uint C_OFFSET          = get_group_id(1) * MLO_N_LCL_IN_MAPS;
+    uint K_OFFSET = get_group_id(0) * MLO_N_LCL_OUT_MAPS;
+    uint C_OFFSET = get_group_id(1) * MLO_N_LCL_IN_MAPS;
 
 #endif
 
@@ -562,6 +564,7 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
         sdata[local_Id0 + i * MLO_GRP_SZ0] = (_FLOAT)(0);
     }
 
+#if MLO_OUT_CHANNEL_READ_SZ > 0
     for(uint faked_off = (local_Id0 % (MLO_GRP_SZ0 / 4)); faked_off < MLO_MAX_LOADS;
         faked_off += (MLO_GRP_SZ0 / 4))
     {
@@ -658,6 +661,7 @@ MIOpenCvBwdWrW_16x16map(const __global _FLOAT* __restrict top_df,
             }
         }
     }
+#endif
 
 #undef LAST_PIXELS
 #undef MLO_MAX_LOADS2

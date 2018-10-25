@@ -380,8 +380,20 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
 
         int data_len =
             (params.out_data_type == "FP16" ? 2 : params.out_data_type == "FP32" ? 4 : 8);
-        result.workspce_sz = wei_bstride * params.n_inputs * n_batch_blks * data_len;
+        result.workspce_sz =
+            static_cast<std::size_t>(wei_bstride) * static_cast<std::size_t>(params.n_inputs) *
+            static_cast<std::size_t>(n_batch_blks) * static_cast<std::size_t>(data_len);
+
+        if(result.workspce_sz > 4 * 1024 * 1024)
+        {
+            MIOPEN_LOG_I2(
+                "ConvOclBwdWrW2: cannot allocate a single workspace of more than 4GB, need "
+                << result.workspce_sz
+                << " byte");
+            return ConvSolution(miopenStatusNotInitialized);
+        }
     }
+
     return result;
 }
 } // namespace solver
