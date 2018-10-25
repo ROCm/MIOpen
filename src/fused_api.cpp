@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2018 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -151,6 +151,19 @@ extern "C" miopenStatus_t miopenCreateOpActivationForward(miopenFusionPlanDescri
     });
     return res;
 }
+
+extern "C" miopenStatus_t
+miopenCreateOpActivationBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                 miopenFusionOpDescriptor_t* activOp,
+                                 miopenActivationMode_t mode)
+{
+    // @TODO: Add in glue logic
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, mode);
+    miopenStatus_t res = miopenStatusSuccess;
+    return res;
+}
+//---
+
 extern "C" miopenStatus_t miopenCreateOpBiasForward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                                     miopenFusionOpDescriptor_t* biasOp,
                                                     const miopenTensorDescriptor_t bDesc)
@@ -182,6 +195,29 @@ miopenCreateOpBatchNormInference(miopenFusionPlanDescriptor_t fusePlanDesc,
     });
     return res;
 }
+
+extern "C" miopenStatus_t miopenCreateOpBatchNormForward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                         miopenFusionOpDescriptor_t* bnOp,
+                                                         const miopenBatchNormMode_t bn_mode,
+                                                         bool runningMeanVariance)
+{
+    // @TODO: Add in glue logic
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode, runningMeanVariance);
+    miopenStatus_t res = miopenStatusSuccess;
+    return res;
+}
+
+extern "C" miopenStatus_t miopenCreateOpBatchNormBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
+                                                          miopenFusionOpDescriptor_t* bnOp,
+                                                          const miopenBatchNormMode_t bn_mode)
+{
+    // @TODO: Add in glue logic
+    MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode);
+    miopenStatus_t res = miopenStatusSuccess;
+    return res;
+}
+//---
+
 extern "C" miopenStatus_t miopenCreateOperatorArgs(miopenOperatorArgs_t* args)
 {
     MIOPEN_LOG_FUNCTION(args);
@@ -222,7 +258,7 @@ extern "C" miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t args,
 }
 
 extern "C" miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
-                                                      const miopenFusionOpDescriptor_t activOp,
+                                                      const miopenFusionOpDescriptor_t activFwdOp,
                                                       const void* alpha,
                                                       const void* beta,
                                                       double activAlpha,
@@ -230,11 +266,27 @@ extern "C" miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
                                                       double activGamma)
 {
 
-    MIOPEN_LOG_FUNCTION(args, activOp, alpha, beta, activAlpha, activBeta, activGamma);
+    MIOPEN_LOG_FUNCTION(args, activFwdOp, alpha, beta, activAlpha, activBeta, activGamma);
     return miopen::try_([&] {
-        auto&& op = dynamic_cast<miopen::ActivFusionOpDescriptor&>(miopen::deref(activOp));
+        auto&& op = dynamic_cast<miopen::ActivFusionOpDescriptor&>(miopen::deref(activFwdOp));
         op.SetArgs(miopen::deref(args), alpha, beta, activAlpha, activBeta, activGamma);
     });
+}
+
+extern "C" miopenStatus_t miopenSetOpArgsActivBackward(miopenOperatorArgs_t args,
+                                                       const miopenFusionOpDescriptor_t activBwdOp,
+                                                       const void* alpha,
+                                                       const void* beta,
+                                                       const void* y,
+                                                       const void* reserved,
+                                                       double activAlpha,
+                                                       double activBeta,
+                                                       double activGamma)
+{
+    // @TODO: Add in glue logic
+    MIOPEN_LOG_FUNCTION(
+        args, activBwdOp, alpha, beta, y, reserved, activAlpha, activBeta, activGamma);
+    return miopenStatusSuccess;
 }
 
 // Fusion op args for Batch Normalization
@@ -263,6 +315,65 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormInference(miopenOperatorArgs_t
                    epsilon);
     });
 }
+
+extern "C" miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_t args,
+                                                          const miopenFusionOpDescriptor_t bnFwdOp,
+                                                          const void* alpha,
+                                                          const void* beta,
+                                                          const void* bnScale,
+                                                          const void* bnBias,
+                                                          void* savedMean,
+                                                          void* savedInvVariance,
+                                                          void* runningMean,
+                                                          void* runningVariance,
+                                                          double expAvgFactor,
+                                                          double epsilon)
+{
+
+    // @TODO: Add in glue logic
+    MIOPEN_LOG_FUNCTION(args,
+                        bnFwdOp,
+                        alpha,
+                        beta,
+                        bnScale,
+                        bnBias,
+                        savedMean,
+                        savedInvVariance,
+                        runningMean,
+                        runningVariance,
+                        expAvgFactor,
+                        epsilon);
+    return miopenStatusSuccess;
+}
+
+extern "C" miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs_t args,
+                                                           const miopenFusionOpDescriptor_t bnBwdOp,
+                                                           const void* alpha,
+                                                           const void* beta,
+                                                           const void* x,
+                                                           const void* bnScale,
+                                                           const void* bnBias,
+                                                           void* resultBnScaleDiff,
+                                                           void* resultBnBiasDiff,
+                                                           const void* savedMean,
+                                                           const void* savedInvVariance)
+{
+    // @TODO: Add in glue logic
+    MIOPEN_LOG_FUNCTION(args,
+                        bnBwdOp,
+                        alpha,
+                        beta,
+                        x,
+                        bnScale,
+                        bnBias,
+                        resultBnScaleDiff,
+                        resultBnBiasDiff,
+                        savedMean,
+                        savedInvVariance);
+    return miopenStatusSuccess;
+}
+//---
+
 // Return an error code that is "NotImplemented", if it exists then return success
 extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
                                                   const miopenFusionPlanDescriptor_t fusePlanDesc,
