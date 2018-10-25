@@ -100,6 +100,7 @@ typedef enum {
     miopenStatusInternalError  = 5, /*!< MIOpen failure. */
     miopenStatusNotImplemented = 6, /*!< Use of unimplemented feature. */
     miopenStatusUnknownError   = 7, /*!< Unknown error occurred. */
+    miopenStatusUnsupportedOp  = 8, /*!< Unsupported operator for fusion. */
 } miopenStatus_t;
 
 /*! @brief Get character string for an error code.
