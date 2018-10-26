@@ -302,44 +302,45 @@ static std::vector<DefaultKernelArg> WinogradNodeArgs()
 
 void FusionMDGraph::InitConv(FusionMDGraph& g)
 {
+    const auto common_constr = {
+        EdgeOp(std::string("u == v"), true, OpEqual),
+        EdgeOp(std::string("dilation_h == 1"), true, OpEqual),
+        EdgeOp(std::string("dilation_w == 1"), true, OpEqual),
 
+        EdgeOp(std::string("c * x * y <= (2^28)"), true, OpEqual),
+        EdgeOp(std::string("k * x * y <= (2^28)"), true, OpEqual),
+        EdgeOp(std::string("k * oH * oW <= (2^28)"), true, OpEqual),
+        EdgeOp(std::string("c * iH * iW <= (2^28)"), true, OpEqual),
+        EdgeOp(std::string("x <= (2^16)"), true, OpEqual),
+        EdgeOp(std::string("y <= (2^16)"), true, OpEqual),
+        EdgeOp(std::string("pad_h <= (2^16)"), true, OpEqual),
+        EdgeOp(std::string("pad_w <= (2^16)"), true, OpEqual),
+        EdgeOp(std::string("oH <= (2^16)"), true, OpEqual),
+        EdgeOp(std::string("oW <= (2^16)"), true, OpEqual),
+        EdgeOp(std::string("iH <= (2^16)"), true, OpEqual),
+        EdgeOp(std::string("iW <= (2^16)"), true, OpEqual),
+        EdgeOp(std::string("c <= (2^16)"), true, OpEqual),
+        EdgeOp(std::string("k <= (2^16)"), true, OpEqual),
+        EdgeOp(std::string("iN <= (2^16)"), true, OpEqual),
+        EdgeOp(std::string("((padded_x / 3) * (padded_y / 3) * c ) >= 18"), true, OpEqual),
+    };
     FusionMDGraph_Edge_Map empty_map = FusionMDGraph::EmptyEdgeMap();
+
     if(!miopen::IsDisabled(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD{}))
-    { /// Fused Winograd.
+    {
+        /// Fused Winograd.
         static const std::string program("conv_3x3_wheel_alpha_v9_2_7_GFX*_md10.so");
         static const std::string kernel("sp3AsmConvRxSU_CBA");
         static const std::string algo("miopenConvolutionWinogradBiasActiv");
-        auto vc =
+        auto vc_s1 =
             std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward, program, kernel, algo);
-        vc->solver         = solver::ConvBinWinogradRxS{};
-        vc->default_args   = WinogradNodeArgs();
-        vc->supported_arch = {"gfx803", "gfx900", "gfx906"};
+        vc_s1->solver         = solver::ConvBinWinogradRxS{};
+        vc_s1->default_args   = WinogradNodeArgs();
+        vc_s1->supported_arch = {"gfx803", "gfx900", "gfx906"};
 
-        const auto common_constr = {
-            EdgeOp(std::string("u == 1"), true, OpEqual),
-            EdgeOp(std::string("u == v"), true, OpEqual),
-            EdgeOp(std::string("dilation_h == 1"), true, OpEqual),
-            EdgeOp(std::string("dilation_w == 1"), true, OpEqual),
-
-            EdgeOp(std::string("c * x * y <= (2^28)"), true, OpEqual),
-            EdgeOp(std::string("k * x * y <= (2^28)"), true, OpEqual),
-            EdgeOp(std::string("k * oH * oW <= (2^28)"), true, OpEqual),
-            EdgeOp(std::string("c * iH * iW <= (2^28)"), true, OpEqual),
-            EdgeOp(std::string("x <= (2^16)"), true, OpEqual),
-            EdgeOp(std::string("y <= (2^16)"), true, OpEqual),
-            EdgeOp(std::string("pad_h <= (2^16)"), true, OpEqual),
-            EdgeOp(std::string("pad_w <= (2^16)"), true, OpEqual),
-            EdgeOp(std::string("oH <= (2^16)"), true, OpEqual),
-            EdgeOp(std::string("oW <= (2^16)"), true, OpEqual),
-            EdgeOp(std::string("iH <= (2^16)"), true, OpEqual),
-            EdgeOp(std::string("iW <= (2^16)"), true, OpEqual),
-            EdgeOp(std::string("c <= (2^16)"), true, OpEqual),
-            EdgeOp(std::string("k <= (2^16)"), true, OpEqual),
-            EdgeOp(std::string("iN <= (2^16)"), true, OpEqual),
-            EdgeOp(std::string("((padded_x / 3) * (padded_y / 3) * c ) >= 18"), true, OpEqual),
-        };
         FusionMDGraph_Edge_Map map_wino_conv_s1;
         map_wino_conv_s1["constraints"] = {
+            EdgeOp(std::string("u == 1"), true, OpEqual),
             EdgeOp(std::string("y <= 3"), true, OpEval),
             EdgeOp(std::string("padded_y === 3"), true, OpEval),
             EdgeOp(std::string("padded_x === (x ~ 3)"), true, OpEval),
@@ -351,10 +352,11 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         map_emplace(map_wino_conv_s1, "precision", EdgeOp(miopenFloat, true, OpEqual));
         map_wino_conv_s1["constraints"].insert(
             map_wino_conv_s1["constraints"].end(), common_constr.begin(), common_constr.end());
-        g.AddEdge(nullptr, vc, map_wino_conv_s1);
+        g.AddEdge(nullptr, vc_s1, map_wino_conv_s1);
 
         FusionMDGraph_Edge_Map map_wino_conv_s1_xgt3;
         map_wino_conv_s1_xgt3["constraints"] = {
+            EdgeOp(std::string("u == 1"), true, OpEqual),
             EdgeOp(std::string("y > 3"), true, OpEval),
             EdgeOp(std::string("padded_y === (y ~ 6)"), true, OpEval),
             EdgeOp(std::string("padded_x === (x ~ 3)"), true, OpEval),
@@ -365,11 +367,12 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         map_emplace(map_wino_conv_s1_xgt3, "precision", EdgeOp(miopenFloat, true, OpEqual));
         map_wino_conv_s1_xgt3["constraints"].insert(
             map_wino_conv_s1_xgt3["constraints"].end(), common_constr.begin(), common_constr.end());
-        g.AddEdge(nullptr, vc, map_wino_conv_s1_xgt3);
+        g.AddEdge(nullptr, vc_s1, map_wino_conv_s1_xgt3);
 
         // add 3x3 with higher priority since its the fastest case
         FusionMDGraph_Edge_Map map_wino_conv_xe3;
         map_wino_conv_xe3["constraints"] = {
+            EdgeOp(std::string("u == 1"), true, OpEqual),
             EdgeOp(std::string("(y == 3) & (x == 3)"), true, OpEval),
             EdgeOp(std::string("padded_y === 3"), true, OpEval),
             EdgeOp(std::string("padded_x === (x ~ 3)"), true, OpEval),
@@ -381,7 +384,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         map_emplace(map_wino_conv_xe3, "precision", EdgeOp(miopenFloat, true, OpEqual));
         map_wino_conv_xe3["constraints"].insert(
             map_wino_conv_xe3["constraints"].end(), common_constr.begin(), common_constr.end());
-        g.AddEdge(nullptr, vc, map_wino_conv_xe3);
+        g.AddEdge(nullptr, vc_s1, map_wino_conv_xe3);
 
         /// C>B>A| (4)
         auto vb =
@@ -391,7 +394,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         // set the bias parameters
         vb->default_args[18].type   = OpArg;
         vb->default_args[18].op_idx = 1;
-        g.AddEdge(vc, vb, empty_map);
+        g.AddEdge(vc_s1, vb, empty_map);
 
         auto vba_leaf = std::make_shared<MDGraph_vertex>(
             miopenFusionOpActivForward, program, kernel, algo, true);
@@ -425,8 +428,8 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         va_leaf->default_args[19].type       = OpArg;
         va_leaf->default_args[19].op_idx     = 1;
 
-        g.AddEdge(vc, va_leaf, edg_activ_relu);
-        g.AddEdge(vc, va_leaf, edg_activ_leaky_relu);
+        g.AddEdge(vc_s1, va_leaf, edg_activ_relu);
+        g.AddEdge(vc_s1, va_leaf, edg_activ_leaky_relu);
 
         /// \FIXME Bug: In spite of C>B| topology is disabled below, it is selected anyway for
         /// Winograd. Possible reason is presence of C>B>A| configuration, which is somehow matches
@@ -438,6 +441,105 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         /// kernel, algo, true);
         /// g.AddEdge(vc, vb_leaf, edg_activ_relu);
         /// g.AddEdge(vc, vb_leaf, edg_activ_leaky_relu);
+
+        // Stride 2
+        {
+
+            auto add_meta_wino = [&](FusionMDGraph_Edge_Map& m, int weight) {
+                map_emplace(m, "weight", EdgeOp(weight, true, OpEqual));
+                map_emplace(m, "algo", EdgeOp(miopenConvolutionFwdAlgoWinograd, true, OpAny));
+                map_emplace(m, "precision", EdgeOp(miopenFloat, true, OpEqual));
+                m["constraints"].insert(
+                    m["constraints"].end(), common_constr.begin(), common_constr.end());
+            };
+
+            static const std::string program_s2(
+                "conv_3x3_wheel_alpha_v9_2_7_stride_2_dec_GFX*_md10.so");
+
+            auto vc_s2 = std::make_shared<MDGraph_vertex>(
+                miopenFusionOpConvForward, program_s2, kernel, algo);
+            vc_s2->solver         = solver::ConvBinWinogradRxS{};
+            vc_s2->default_args   = WinogradNodeArgs();
+            vc_s2->supported_arch = {"gfx803", "gfx900", "gfx906"};
+
+            FusionMDGraph_Edge_Map map_wino_conv_s2;
+            map_wino_conv_s2["constraints"] = {
+                EdgeOp(std::string("u == 2"), true, OpEqual),
+                EdgeOp(std::string("padded_y === (y ~ 6)"), true, OpEqual),
+                EdgeOp(std::string("(x % 6) == 1"), true, OpEqual),
+                EdgeOp(std::string("padded_x === (x ~ 3)"), true, OpEqual),
+            };
+
+            add_meta_wino(map_wino_conv_s2, 5);
+            g.AddEdge(nullptr, vc_s2, map_wino_conv_s2);
+
+            FusionMDGraph_Edge_Map map_wino_conv_s2_modd;
+            map_wino_conv_s2_modd["constraints"] = {
+                EdgeOp(std::string("u == 2"), true, OpEqual),
+                EdgeOp(std::string("padded_y === (y ~ 6)"), true, OpEqual),
+                EdgeOp(std::string("(x % 6) != 1"), true, OpEqual),
+                EdgeOp(std::string("padded_x === (x ~ 6)"), true, OpEqual),
+            };
+
+            add_meta_wino(map_wino_conv_s2_modd, 5);
+            g.AddEdge(nullptr, vc_s2, map_wino_conv_s2_modd);
+
+            // high priority edge for 3x3 kernels
+            FusionMDGraph_Edge_Map map_wino_conv_s2_modd_xe3;
+            map_wino_conv_s2_modd_xe3["constraints"] = {
+                EdgeOp(std::string("u == 2"), true, OpEqual),
+                EdgeOp(std::string("(x == 3) & (y == 3)"), true, OpEqual),
+                EdgeOp(std::string("padded_y === (y ~ 6)"), true, OpEqual),
+                EdgeOp(std::string("(x % 6) != 1"), true, OpEqual),
+                EdgeOp(std::string("padded_x === (x ~ 6)"), true, OpEqual),
+            };
+            add_meta_wino(map_wino_conv_s2_modd_xe3, 100);
+            g.AddEdge(nullptr, vc_s2, map_wino_conv_s2_modd_xe3);
+
+            auto bias_s2 = std::make_shared<MDGraph_vertex>(
+                miopenFusionOpBiasForward, program_s2, kernel, algo);
+            bias_s2->default_args                = WinogradNodeArgs();
+            bias_s2->default_args[6].default_val = OpKernelArg(1 << 7);
+            // set the bias parameters
+            bias_s2->default_args[18].type   = OpArg;
+            bias_s2->default_args[18].op_idx = 1;
+            g.AddEdge(vc_s2, bias_s2, empty_map);
+
+            auto vba_leaf_s2 = std::make_shared<MDGraph_vertex>(
+                miopenFusionOpActivForward, program_s2, kernel, algo, true);
+            vba_leaf_s2->default_args                = WinogradNodeArgs();
+            vba_leaf_s2->default_args[6].default_val = OpKernelArg((1 << 7) + (1 << 8));
+            // set the bias parameters
+            vba_leaf_s2->default_args[18].type   = OpArg;
+            vba_leaf_s2->default_args[18].op_idx = 1;
+
+            vba_leaf_s2->default_args[19].type   = OpArg;
+            vba_leaf_s2->default_args[19].op_idx = 2;
+
+            FusionMDGraph_Edge_Map edg_activ_relu_s2 =
+                ActivFusionOpDescriptor::MDGraphKey(miopenActivationRELU);
+            map_emplace(edg_activ_relu_s2, "weight", EdgeOp(0, true, OpAny));
+            map_emplace(edg_activ_relu_s2, "precision", EdgeOp(miopenFloat, true, OpEqual));
+
+            FusionMDGraph_Edge_Map edg_activ_leaky_relu_s2 =
+                ActivFusionOpDescriptor::MDGraphKey(miopenActivationLEAKYRELU);
+            map_emplace(edg_activ_leaky_relu_s2, "weight", EdgeOp(0, true, OpAny));
+            map_emplace(edg_activ_leaky_relu_s2, "precision", EdgeOp(miopenFloat, true, OpEqual));
+
+            g.AddEdge(bias_s2, vba_leaf_s2, edg_activ_relu_s2);
+            g.AddEdge(bias_s2, vba_leaf_s2, edg_activ_leaky_relu_s2);
+
+            /// C>A| (5)
+            auto va_leaf_s2 = std::make_shared<MDGraph_vertex>(
+                miopenFusionOpActivForward, program_s2, kernel, algo, true);
+            va_leaf_s2->default_args                = WinogradNodeArgs();
+            va_leaf_s2->default_args[6].default_val = OpKernelArg((1 << 8));
+            va_leaf_s2->default_args[19].type       = OpArg;
+            va_leaf_s2->default_args[19].op_idx     = 1;
+
+            g.AddEdge(vc_s2, va_leaf_s2, edg_activ_relu_s2);
+            g.AddEdge(vc_s2, va_leaf_s2, edg_activ_leaky_relu_s2);
+        }
     }
 
     // first path (asm kernel)
