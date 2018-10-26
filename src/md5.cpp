@@ -46,16 +46,13 @@
 
 #define MD5_DIGEST_LENGTH 16
 
-/* Any 32-bit or wider unsigned integer data type will do */
-typedef uint32_t MD5_u32plus;
-
-typedef struct
+struct MD5_CTX
 {
-    MD5_u32plus lo, hi;
-    MD5_u32plus a, b, c, d;
+    uint32_t lo, hi;
+    uint32_t a, b, c, d;
     unsigned char buffer[64];
-    MD5_u32plus block[MD5_DIGEST_LENGTH];
-} MD5_CTX;
+    uint32_t block[MD5_DIGEST_LENGTH];
+};
 
 /*
  * The basic MD5 functions.
@@ -88,20 +85,20 @@ typedef struct
  *
  * Unfortunately, this optimization may be a C strict aliasing rules violation
  * if the caller's data buffer has effective type that cannot be aliased by
- * MD5_u32plus.  In practice, this problem may occur if these MD5 routines are
+ * uint32_t.  In practice, this problem may occur if these MD5 routines are
  * inlined into a calling function, or with future and dangerously advanced
  * link-time optimizations.  For the time being, keeping these MD5 routines in
  * their own translation unit avoids the problem.
  */
 #if defined(__i386__) || defined(__x86_64__) || defined(__vax__)
-#define SET(n) (*reinterpret_cast<const MD5_u32plus*>(&ptr[(n)*4]))
+#define SET(n) (*reinterpret_cast<const uint32_t*>(&ptr[(n)*4]))
 #define GET(n) SET(n)
 #else
-#define SET(n)                                                            \
-    (ctx->block[(n)] = static_cast<MD5_u32plus>(ptr[(n)*4]) |             \
-                       (static_cast<MD5_u32plus>(ptr[(n)*4 + 1]) << 8) |  \
-                       (static_cast<MD5_u32plus>(ptr[(n)*4 + 2]) << 16) | \
-                       (static_cast<MD5_u32plus>(ptr[(n)*4 + 3]) << 24))
+#define SET(n)                                                         \
+    (ctx->block[(n)] = static_cast<uint32_t>(ptr[(n)*4]) |             \
+                       (static_cast<uint32_t>(ptr[(n)*4 + 1]) << 8) |  \
+                       (static_cast<uint32_t>(ptr[(n)*4 + 2]) << 16) | \
+                       (static_cast<uint32_t>(ptr[(n)*4 + 3]) << 24))
 #define GET(n) (ctx->block[(n)])
 #endif
 
@@ -112,8 +109,7 @@ typedef struct
 static const void* body(MD5_CTX* ctx, const void* data, size_t size)
 {
     const unsigned char* ptr;
-    MD5_u32plus a, b, c, d;
-    MD5_u32plus saved_a, saved_b, saved_c, saved_d;
+    uint32_t a, b, c, d;
 
     ptr = static_cast<const unsigned char*>(data);
 
@@ -124,10 +120,7 @@ static const void* body(MD5_CTX* ctx, const void* data, size_t size)
 
     do
     {
-        saved_a = a;
-        saved_b = b;
-        saved_c = c;
-        saved_d = d;
+        uint32_t saved_a = a, saved_b = b, saved_c = c, saved_d = d;
 
         /* Round 1 */
         STEP(F, a, b, c, d, SET(0), 0xd76aa478, 7)
@@ -207,7 +200,7 @@ static const void* body(MD5_CTX* ctx, const void* data, size_t size)
         d += saved_d;
 
         ptr += 64;
-    } while(size -= 64);
+    } while((size -= 64) != 0u);
 
     ctx->a = a;
     ctx->b = b;
@@ -230,8 +223,8 @@ static void MD5_Init(MD5_CTX* ctx)
 
 static void MD5_Update(MD5_CTX* ctx, const void* data, size_t size)
 {
-    MD5_u32plus saved_lo;
-    size_t used, available;
+    uint32_t saved_lo;
+    size_t used;
 
     saved_lo = ctx->lo;
     if((ctx->lo = (saved_lo + size) & 0x1fffffff) < saved_lo)
@@ -240,9 +233,9 @@ static void MD5_Update(MD5_CTX* ctx, const void* data, size_t size)
 
     used = saved_lo & 0x3f;
 
-    if(used)
+    if(used != 0u)
     {
-        available = 64 - used;
+        size_t available = 64 - used;
 
         if(size < available)
         {
@@ -311,7 +304,7 @@ std::string md5(std::string s)
 {
     std::array<unsigned char, MD5_DIGEST_LENGTH> result{};
 
-    MD5_CTX ctx;
+    MD5_CTX ctx{};
     MD5_Init(&ctx);
     MD5_Update(&ctx, s.data(), s.length());
     MD5_Final(result.data(), &ctx);
