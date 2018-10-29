@@ -757,7 +757,6 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                                 /* y */ 1);
         map_emplace(map_asm_conv, "weight", EdgeOp(50, true, OpAny));
         map_emplace(map_asm_conv, "algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
-        map_emplace(map_asm_conv, "precision", EdgeOp(miopenFloat, true, OpEqual));
 
         g.AddEdge(nullptr, conv_v, map_asm_conv);
         g.AddEdge(conv_v, bias_v, empty_map);
