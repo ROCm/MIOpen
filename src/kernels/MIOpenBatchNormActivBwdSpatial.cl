@@ -34,6 +34,7 @@
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
 #define _FLOAT_PREC half
+#define EPSILON (_FLOAT)0.0001
 #ifndef HALF_MAX
 #define MAX_VAL 65504 /* max value */
 #else
@@ -43,6 +44,7 @@
 #if MIOPEN_USE_FP32 == 1
 #define _FLOAT float
 #define _FLOAT_PREC float
+#define EPSILON (_FLOAT)0.000001
 #ifndef FLT_MAX
 #define MAX_VAL 3.402823466e+38F /* max value */
 #else

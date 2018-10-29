@@ -39,6 +39,7 @@
 #else
 #define MAX_VAL HALF_MAX
 #endif
+#define EPSILON (_FLOAT_PREC)0.0001
 #endif
 #if MIOPEN_USE_FP32 == 1
 #define _FLOAT float
@@ -48,6 +49,7 @@
 #else
 #define MAX_VAL FLT_MAX
 #endif
+#define EPSILON (_FLOAT)0.000001
 #endif
 #if MIOPEN_USE_FPMIX == 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
@@ -375,10 +377,10 @@ __kernel void MIOpenBatchNormActivFwdTrainPerActivation(
 #if(MIO_RUNNING_RESULT == 1)
     double expAvgFactor,
 #endif
-    const __global _FLOAT* __restrict in,         /* x input */
-    __global _FLOAT* __restrict out,              /* y output */
-    const __global _FLOAT_PREC* __restrict bias,  /* beta 1xCxHxW */
-    const __global _FLOAT_PREC* __restrict scale, /* gamma 1xCxHxW */
+    const __global _FLOAT* __restrict in,        /* x input */
+    __global _FLOAT* __restrict out,             /* y output */
+    const __global _FLOAT_PREC* __restrict bias, /* beta 1xCxHxW */
+    const __global _FLOAT_PREC* __restrict scale /* gamma 1xCxHxW */
 
 #if(MIO_RUNNING_RESULT == 1)
     ,

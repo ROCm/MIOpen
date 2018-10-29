@@ -29,7 +29,6 @@
 #include <miopen/fusion_ops.hpp>
 #include <miopen/fusion.hpp>
 
-#include <boost/functional/hash.hpp>
 #include <unordered_map>
 
 namespace miopen {
@@ -88,6 +87,8 @@ struct FusionMDGraph
     static void Init(FusionMDGraph& g, miopenFusionOp_t op);
     static void InitConv(FusionMDGraph& g);
     static void InitBN(FusionMDGraph& g);
+    static void InitBNFwd(FusionMDGraph& g);
+    static void InitBNBwd(FusionMDGraph& g);
     void Reset();
     bool Advance(std::shared_ptr<FusionOpDescriptor> op,
                  std::function<bool(const std::string& sym, int& val)> attr_fun);
