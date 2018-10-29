@@ -41,6 +41,9 @@ enum miopenFusionOp_t
     miopenFusionOpActivForward       = 1,
     miopenFusionOpBatchNormInference = 2,
     miopenFusionOpBiasForward        = 3,
+    miopenFusionOpBatchNormFwdTrain  = 4,
+    miopenFusionOpBatchNormBwdTrain  = 5,
+    miopenFusionOpActivBackward      = 6,
 };
 
 enum MDGraph_op_t
