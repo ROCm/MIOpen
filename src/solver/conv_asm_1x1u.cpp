@@ -291,13 +291,14 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
 
 void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config)
 {
-    read_size       = 4;
-    k_mult          = 16;
-    chunks_per_wave = 1;
-    chunk_size      = 16;
-    n_mult          = 1;
-    c_mult          = 1;
-    waves_in_group  = 1;
+    const int elements_in_dword = (config.in_data_type == "FP16" ? 2 : 1);
+    read_size                   = 4;
+    k_mult                      = 16;
+    chunks_per_wave             = 1;
+    chunk_size                  = 16;
+    n_mult                      = 1;
+    c_mult                      = 1;
+    waves_in_group              = 1;
 
     if(!IsValid(config))
     {
@@ -310,29 +311,29 @@ void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
         k_mult = 2;
-    }
-    if(!IsValid(config))
-    {
-        MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
-        k_mult = 1;
         c_mult = 2;
     }
     if(!IsValid(config))
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
-        k_mult          = 2;
+        k_mult          = 1;
         chunks_per_wave = 2;
         c_mult          = 1;
     }
     if(!IsValid(config))
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
-        k_mult = 4;
-        c_mult = 2;
+        read_size       = 1;
+        k_mult          = (elements_in_dword == 1) ? 1 : 4;
+        chunks_per_wave = elements_in_dword;
+        chunk_size      = 1;
+        n_mult          = 1;
+        c_mult          = elements_in_dword;
+        waves_in_group  = 1;
     }
     if(!IsValid(config))
     {
-        MIOPEN_LOG_E("All attampts failed");
+        MIOPEN_LOG_E("All attempts failed");
         assert(false);
     }
     MIOPEN_LOG_I(ToString());
@@ -378,6 +379,7 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
     assert(params.weights_layout.length() == 0); // _weights_layout is not supported yet
     const int elements_in_dword = 32 / params.float_size;
     // clang-format off
+    const int img_hw = params.out_height * params.out_width;
     bool ok = (params.pad0 == 0         // -q  pad_w
         && params.pad1 == 0             // -p  pad_h
         && params.kernel_stride0 <= 2   // -u  stride_w
@@ -389,7 +391,9 @@ bool ConvAsm1x1U::IsApplicable(const ConvolutionContext& params) const
         && params.bias == 0
         && params.n_inputs % elements_in_dword == 0
         && params.n_outputs % elements_in_dword == 0
-        && params.in_layout == "NCHW");
+        && params.in_layout == "NCHW"
+        && img_hw >= elements_in_dword
+        && (elements_in_dword == 1 || params.n_outputs >= 4));
     if(!ok)
     {
         return false; // Early exit to speed up the check.
