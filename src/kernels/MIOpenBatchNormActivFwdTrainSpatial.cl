@@ -30,12 +30,17 @@
 #define FOUR 4
 #define EIGHT 8
 
+#ifndef MIOPEN_USE_FPMIX
+#define MIOPEN_USE_FPMIX 0
+#endif
+
 #define _FLOAT_ACCUM float
 #if MIOPEN_USE_FP16 == 1
 #define MIO_BN_NODPP 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
 #define _FLOAT_PREC half
+#define EPSILON (_FLOAT)0.0001
 #ifndef HALF_MAX
 #define MAX_VAL 65504 /* max value */
 #else
@@ -45,6 +50,7 @@
 #if MIOPEN_USE_FP32 == 1
 #define _FLOAT float
 #define _FLOAT_PREC float
+#define EPSILON (_FLOAT)0.000001
 #ifndef FLT_MAX
 #define MAX_VAL 3.402823466e+38F /* max value */
 #else
@@ -55,7 +61,7 @@
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
 #define _FLOAT_PREC float
-
+#endif
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
 #define _FLOAT4 PPCAT(_FLOAT, FOUR)
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
@@ -670,15 +676,15 @@ MIOpenBatchNormActivFwdTrainSpatial(_FLOAT_PREC INHW,
 
 // Save mean and calculate and save running mean
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-        *(resultSaveMean + grpid)        = (_FLOAT_PREC)mean;
-        *(resultSaveInvVariance + grpid) = (_FLOAT_PREC)invVariance;
+        *(savedMean + grpid)        = (_FLOAT_PREC)mean;
+        *(savedInvVariance + grpid) = (_FLOAT_PREC)invVariance;
 #endif
 
 #if(MIO_RUNNING_RESULT == 1)
-        _FLOAT_PREC pvt_runMean    = (_FLOAT_PREC)(*(resultRunningMean + grpid));
+        _FLOAT_PREC pvt_runMean    = (_FLOAT_PREC)(*(runningMean + grpid));
         _FLOAT_PREC pvt_newRunMean = mad(
             (_FLOAT_PREC)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
-        resultRunningMean[grpid] =
+        runningMean[grpid] =
             mad(mean, (_FLOAT_PREC)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
 #if MIOPEN_USE_FP16 == 1
         const float temp_adjust =
@@ -691,9 +697,8 @@ MIOpenBatchNormActivFwdTrainSpatial(_FLOAT_PREC INHW,
                                        : variance * ((_FLOAT_PREC)MIO_BN_NHW /
                                                      ((_FLOAT_PREC)MIO_BN_NHW - (_FLOAT_PREC)1.0));
 #endif
-        resultRunningVariance[grpid] =
-            (1 - (_FLOAT_PREC)expAvgFactor) * *(resultRunningVariance + grpid) +
-            (_FLOAT_PREC)expAvgFactor * adjust;
+        runningVariance[grpid] = (1 - (_FLOAT_PREC)expAvgFactor) * *(runningVariance + grpid) +
+                                 (_FLOAT_PREC)expAvgFactor * adjust;
 #endif
     }
 #endif
@@ -997,15 +1002,15 @@ MIOpenBatchNormActivFwdTrainSpatial(
 
 // Save mean and calculate and save running mean
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-        *(resultSaveMean + grpid)        = (_FLOAT_PREC)mean;
-        *(resultSaveInvVariance + grpid) = (_FLOAT_PREC)invVariance;
+        *(savedMean + grpid)        = (_FLOAT_PREC)mean;
+        *(savedInvVariance + grpid) = (_FLOAT_PREC)invVariance;
 #endif
 
 #if(MIO_RUNNING_RESULT == 1)
-        _FLOAT_PREC pvt_runMean          = (_FLOAT_PREC)(*(resultRunningMean + grpid));
-        _FLOAT_PREC pvt_newRunMean       = mad(
+        _FLOAT_PREC pvt_runMean     = (_FLOAT_PREC)(*(runningMean + grpid));
+        _FLOAT_PREC pvt_newRunMean  = mad(
             (_FLOAT_PREC)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
-        resultRunningMean[grpid] =
+        runningMean[grpid] =
             mad(mean, (_FLOAT_PREC)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
 #if MIOPEN_USE_FP16 == 1
         const float temp_adjust =
@@ -1018,9 +1023,8 @@ MIOpenBatchNormActivFwdTrainSpatial(
                                        : variance * ((_FLOAT_PREC)MIO_BN_NHW /
                                                      ((_FLOAT_PREC)MIO_BN_NHW - (_FLOAT_PREC)1.0));
 #endif
-        resultRunningVariance[grpid] =
-            (1 - (_FLOAT_PREC)expAvgFactor) * *(resultRunningVariance + grpid) +
-            (_FLOAT_PREC)expAvgFactor * adjust;
+        runningVariance[grpid]   = (1 - (_FLOAT_PREC)expAvgFactor) * *(runningVariance + grpid) +
+                                 (_FLOAT_PREC)expAvgFactor * adjust;
 #endif
     }
 #endif
@@ -1218,15 +1222,15 @@ MIOpenBatchNormActivFwdTrainSpatial(
 
 // Save mean and calculate and save running mean
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-        *(resultSaveMean + grpid)        = (_FLOAT_PREC)mean;
-        *(resultSaveInvVariance + grpid) = (_FLOAT_PREC)invVariance;
+        *(savedMean + grpid)        = (_FLOAT_PREC)mean;
+        *(savedInvVariance + grpid) = (_FLOAT_PREC)invVariance;
 #endif
 
 #if(MIO_RUNNING_RESULT == 1)
-        _FLOAT_PREC pvt_runMean          = (_FLOAT_PREC)(*(resultRunningMean + grpid));
-        _FLOAT_PREC pvt_newRunMean       = mad(
+        _FLOAT_PREC pvt_runMean     = (_FLOAT_PREC)(*(runningMean + grpid));
+        _FLOAT_PREC pvt_newRunMean  = mad(
             (_FLOAT_PREC)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
-        resultRunningMean[grpid] =
+        runningMean[grpid] =
             mad(mean, (_FLOAT_PREC)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
 #if MIOPEN_USE_FP16 == 1
         const float temp_adjust =
@@ -1239,9 +1243,8 @@ MIOpenBatchNormActivFwdTrainSpatial(
                                        : variance * ((_FLOAT_PREC)MIO_BN_NHW /
                                                      ((_FLOAT_PREC)MIO_BN_NHW - (_FLOAT_PREC)1.0));
 #endif
-        resultRunningVariance[grpid] =
-            (1 - (_FLOAT_PREC)expAvgFactor) * *(resultRunningVariance + grpid) +
-            (_FLOAT_PREC)expAvgFactor * adjust;
+        runningVariance[grpid]   = (1 - (_FLOAT_PREC)expAvgFactor) * *(runningVariance + grpid) +
+                                 (_FLOAT_PREC)expAvgFactor * adjust;
 #endif
     }
 #endif

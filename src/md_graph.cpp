@@ -219,7 +219,10 @@ void FusionMDGraph::Init(FusionMDGraph& g, miopenFusionOp_t op)
     {
     case miopenFusionOpConvForward: InitConv(g); break;
     case miopenFusionOpBatchNormInference: InitBN(g); break;
+    case miopenFusionOpBatchNormFwdTrain: InitBNFwd(g); break;
+    case miopenFusionOpBatchNormBwdTrain: InitBNBwd(g); break;
     case miopenFusionOpActivForward:
+    case miopenFusionOpActivBackward:
     case miopenFusionOpBiasForward:
         MIOPEN_THROW(
             miopenStatusNotImplemented,
@@ -231,6 +234,184 @@ FusionMDGraph_Edge_Map FusionMDGraph::EmptyEdgeMap(int weight /* = 0 */,
                                                    MDGraph_op_t op /* = OpAny */)
 {
     return {{"weight", {EdgeOp(weight, true, op)}}};
+}
+
+static std::vector<DefaultKernelArg> BNFwdArgs(miopenBatchNormMode_t mode)
+{
+    if(mode == miopenBNPerActivation)
+    {
+        return {
+            DefaultKernelArg("activAlpha", OpArg, OpKernelArg(static_cast<int>(0)), 1),
+            DefaultKernelArg("activBeta", OpArg, OpKernelArg(static_cast<int>(0)), 1),
+            DefaultKernelArg("activGamma", OpArg, OpKernelArg(static_cast<int>(0)), 1),
+            DefaultKernelArg("epsilon", OpArg, OpKernelArg(static_cast<double>(0.0)), 0),
+            DefaultKernelArg("expAvgFactor", OpArg, OpKernelArg(static_cast<double>(0.0)), 0),
+            DefaultKernelArg("input", InputTensor, OpKernelArg(nullptr)),
+            DefaultKernelArg("output", OutputTensor, OpKernelArg(nullptr)),
+            DefaultKernelArg("bnBias", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("bnScale", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("runningMean", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("runningVariance", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("savedInvVariance", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("savedMean", OpArg, OpKernelArg(nullptr), 0),
+        };
+    }
+    else if(mode == miopenBNSpatial)
+    {
+        return {
+            DefaultKernelArg("iNHW", OpAttr, OpKernelArg(static_cast<float>(0)), 0),
+            DefaultKernelArg("activAlpha", OpArg, OpKernelArg(static_cast<float>(0)), 1),
+            DefaultKernelArg("activBeta", OpArg, OpKernelArg(static_cast<float>(0)), 1),
+            DefaultKernelArg("activGamma", OpArg, OpKernelArg(static_cast<float>(0)), 1),
+            DefaultKernelArg("epsilon", OpArg, OpKernelArg(static_cast<double>(0.0)), 0),
+            DefaultKernelArg("expAvgFactor", OpArg, OpKernelArg(static_cast<double>(0.0)), 0),
+            DefaultKernelArg("input", InputTensor, OpKernelArg(nullptr)),
+            DefaultKernelArg("output", OutputTensor, OpKernelArg(nullptr)),
+            DefaultKernelArg("bnBias", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("bnScale", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("runningMean", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("runningVariance", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("savedInvVariance", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("savedMean", OpArg, OpKernelArg(nullptr), 0),
+        };
+    }
+    else
+    {
+        MIOPEN_THROW("Unknown batch norm mode");
+    }
+}
+
+void FusionMDGraph::InitBNFwd(FusionMDGraph& g)
+{
+    FusionMDGraph_Edge_Map empty_map = FusionMDGraph::EmptyEdgeMap();
+    // Batch Norm + Activation Fwd Training
+    {
+        auto bn_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormFwdTrain,
+                                                     "MIOpenBatchNormActivFwdTrainPerAct.cl",
+                                                     "MIOpenBatchNormActivFwdTrainPerActivation",
+                                                     "MIOpenBatchNormActivFwdTrainPerActivation");
+        bn_v->default_args = BNFwdArgs(miopenBNPerActivation);
+        FusionMDGraph_Edge_Map edg_activ =
+            BatchNormFwdTrainFusionOpDescriptor::MDGraphKey(miopenBNPerActivation);
+        edg_activ.insert(empty_map.begin(), empty_map.end()); // add the weight etc.
+
+        g.AddEdge(nullptr, bn_v, edg_activ);
+        auto activ_v =
+            std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
+                                             "MIOpenBatchNormActivFwdTrainPerAct.cl",
+                                             "MIOpenBatchNormActivFwdTrainPerActivation",
+                                             "MIOpenBatchNormActivFwdTrainPerActivation");
+        activ_v->default_args = BNFwdArgs(miopenBNPerActivation);
+        g.AddEdge(bn_v, activ_v, empty_map);
+    }
+
+    {
+        auto bn_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormFwdTrain,
+                                                     "MIOpenBatchNormActivFwdTrainSpatial.cl",
+                                                     "MIOpenBatchNormActivFwdTrainSpatial",
+                                                     "MIOpenBatchNormActivFwdTrainSpatial");
+        bn_v->default_args = BNFwdArgs(miopenBNSpatial);
+        FusionMDGraph_Edge_Map edg_spatial =
+            BatchNormFwdTrainFusionOpDescriptor::MDGraphKey(miopenBNSpatial);
+        edg_spatial.insert(empty_map.begin(), empty_map.end());
+        g.AddEdge(nullptr, bn_v, edg_spatial);
+        auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivForward,
+                                                        "MIOpenBatchNormActivFwdTrainSpatial.cl",
+                                                        "MIOpenBatchNormActivFwdTrainSpatial",
+                                                        "MIOpenBatchNormActivFwdTrainSpatial");
+        activ_v->default_args = BNFwdArgs(miopenBNSpatial);
+        g.AddEdge(bn_v, activ_v, empty_map);
+    }
+}
+
+static std::vector<DefaultKernelArg> BNBwdArgs(miopenBatchNormMode_t mode)
+{
+    float f_zero = 0;
+    if(mode == miopenBNPerActivation)
+    {
+        return {
+            DefaultKernelArg("x", OpArg, OpKernelArg(nullptr)),
+            DefaultKernelArg("y", OpArg, OpKernelArg(nullptr), 1), // probably from activation bwd
+            DefaultKernelArg("input", InputTensor, OpKernelArg(nullptr)),
+            DefaultKernelArg("output", OutputTensor, OpKernelArg(nullptr)),
+            DefaultKernelArg("activDiffScale", OpArg, OpKernelArg(f_zero), 1),
+            DefaultKernelArg("activGamma", OpArg, OpKernelArg(f_zero), 1),
+            DefaultKernelArg("activBeta", OpArg, OpKernelArg(f_zero), 1),
+            DefaultKernelArg("activAlpha", OpArg, OpKernelArg(f_zero), 1),
+            DefaultKernelArg("bnScale", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("bnBias", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("resBnScaleDiff", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("resBnBiasDiff", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("savedMean", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("savedInvVariance", OpArg, OpKernelArg(nullptr), 0),
+        };
+    }
+    else if(mode == miopenBNSpatial)
+    {
+        return {
+            DefaultKernelArg("x", OpArg, OpKernelArg(nullptr)),
+            DefaultKernelArg("y", OpArg, OpKernelArg(nullptr), 1), // probably from activation bwd
+            DefaultKernelArg("input", InputTensor, OpKernelArg(nullptr)),
+            DefaultKernelArg("output", OutputTensor, OpKernelArg(nullptr)),
+            DefaultKernelArg("activDiffScale", OpArg, OpKernelArg(f_zero), 1),
+            DefaultKernelArg("activGamma", OpArg, OpKernelArg(f_zero), 1),
+            DefaultKernelArg("activBeta", OpArg, OpKernelArg(f_zero), 1),
+            DefaultKernelArg("activAlpha", OpArg, OpKernelArg(f_zero), 1),
+            DefaultKernelArg("bnScale", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("bnBias", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("resBnScaleDiff", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("resBnBiasDiff", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("savedMean", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("savedInvVariance", OpArg, OpKernelArg(nullptr), 0),
+            DefaultKernelArg("iNHW", OpAttr, OpKernelArg(f_zero), 0),
+        };
+    }
+    else
+    {
+        MIOPEN_THROW("Unknown batch norm mode");
+    }
+}
+
+void FusionMDGraph::InitBNBwd(FusionMDGraph& g)
+{
+    FusionMDGraph_Edge_Map empty_map = FusionMDGraph::EmptyEdgeMap();
+    // Batch Norm + Activation Backwards Training
+    {
+        auto bn_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormBwdTrain,
+                                                     "MIOpenBatchNormActivBwdPerAct.cl",
+                                                     "MIOpenBatchNormActivBwdPerActivation",
+                                                     "MIOpenBatchNormActivBwdPerActivation");
+        bn_v->default_args = BNBwdArgs(miopenBNPerActivation);
+        FusionMDGraph_Edge_Map edg_activ =
+            BatchNormBwdTrainFusionOpDescriptor::MDGraphKey(miopenBNPerActivation);
+        edg_activ.insert(empty_map.begin(), empty_map.end()); // add the weight etc.
+
+        g.AddEdge(nullptr, bn_v, edg_activ);
+        auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivBackward,
+                                                        "MIOpenBatchNormActivBwdPerAct.cl",
+                                                        "MIOpenBatchNormActivBwdPerActivation",
+                                                        "MIOpenBatchNormActivBwdPerActivation");
+        activ_v->default_args = BNBwdArgs(miopenBNPerActivation);
+        g.AddEdge(bn_v, activ_v, empty_map);
+    }
+
+    {
+        auto bn_v = std::make_shared<MDGraph_vertex>(miopenFusionOpBatchNormBwdTrain,
+                                                     "MIOpenBatchNormActivBwdSpatial.cl",
+                                                     "MIOpenBatchNormActivBwdSpatial",
+                                                     "MIOpenBatchNormActivBwdSpatial");
+        bn_v->default_args = BNBwdArgs(miopenBNSpatial);
+        FusionMDGraph_Edge_Map edg_spatial =
+            BatchNormBwdTrainFusionOpDescriptor::MDGraphKey(miopenBNSpatial);
+        edg_spatial.insert(empty_map.begin(), empty_map.end());
+        g.AddEdge(nullptr, bn_v, edg_spatial);
+        auto activ_v = std::make_shared<MDGraph_vertex>(miopenFusionOpActivBackward,
+                                                        "MIOpenBatchNormActivBwdSpatial.cl",
+                                                        "MIOpenBatchNormActivBwdSpatial",
+                                                        "MIOpenBatchNormActivBwdSpatial");
+        activ_v->default_args = BNBwdArgs(miopenBNSpatial);
+        g.AddEdge(bn_v, activ_v, empty_map);
+    }
 }
 
 void FusionMDGraph::InitBN(FusionMDGraph& g)
@@ -409,12 +590,12 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         vba_leaf->default_args[19].op_idx = 2;
 
         FusionMDGraph_Edge_Map edg_activ_relu =
-            ActivFusionOpDescriptor::MDGraphKey(miopenActivationRELU);
+            ActivFwdFusionOpDescriptor::MDGraphKey(miopenActivationRELU);
         map_emplace(edg_activ_relu, "weight", EdgeOp(0, true, OpAny));
         map_emplace(edg_activ_relu, "precision", EdgeOp(miopenFloat, true, OpEqual));
 
         FusionMDGraph_Edge_Map edg_activ_leaky_relu =
-            ActivFusionOpDescriptor::MDGraphKey(miopenActivationLEAKYRELU);
+            ActivFwdFusionOpDescriptor::MDGraphKey(miopenActivationLEAKYRELU);
         map_emplace(edg_activ_leaky_relu, "weight", EdgeOp(0, true, OpAny));
         map_emplace(edg_activ_leaky_relu, "precision", EdgeOp(miopenFloat, true, OpEqual));
 
@@ -518,12 +699,12 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
             vba_leaf_s2->default_args[19].op_idx = 2;
 
             FusionMDGraph_Edge_Map edg_activ_relu_s2 =
-                ActivFusionOpDescriptor::MDGraphKey(miopenActivationRELU);
+                ActivFwdFusionOpDescriptor::MDGraphKey(miopenActivationRELU);
             map_emplace(edg_activ_relu_s2, "weight", EdgeOp(0, true, OpAny));
             map_emplace(edg_activ_relu_s2, "precision", EdgeOp(miopenFloat, true, OpEqual));
 
             FusionMDGraph_Edge_Map edg_activ_leaky_relu_s2 =
-                ActivFusionOpDescriptor::MDGraphKey(miopenActivationLEAKYRELU);
+                ActivFwdFusionOpDescriptor::MDGraphKey(miopenActivationLEAKYRELU);
             map_emplace(edg_activ_leaky_relu_s2, "weight", EdgeOp(0, true, OpAny));
             map_emplace(edg_activ_leaky_relu_s2, "precision", EdgeOp(miopenFloat, true, OpEqual));
 

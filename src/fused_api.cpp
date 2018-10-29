@@ -145,7 +145,7 @@ extern "C" miopenStatus_t miopenCreateOpActivationForward(miopenFusionPlanDescri
     MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, mode);
     miopenStatus_t res = miopenStatusUnknownError;
     miopen::try_([&] {
-        auto fod               = std::make_shared<miopen::ActivFusionOpDescriptor>(mode);
+        auto fod               = std::make_shared<miopen::ActivFwdFusionOpDescriptor>(mode);
         miopen::deref(activOp) = fod.get();
         res                    = miopen::deref(fusePlanDesc).AddOp(fod);
     });
@@ -157,9 +157,13 @@ miopenCreateOpActivationBackward(miopenFusionPlanDescriptor_t fusePlanDesc,
                                  miopenFusionOpDescriptor_t* activOp,
                                  miopenActivationMode_t mode)
 {
-    // @TODO: Add in glue logic
     MIOPEN_LOG_FUNCTION(fusePlanDesc, activOp, mode);
-    miopenStatus_t res = miopenStatusSuccess;
+    miopenStatus_t res = miopenStatusUnknownError;
+    miopen::try_([&] {
+        auto fod               = std::make_shared<miopen::ActivBwdFusionOpDescriptor>(mode);
+        miopen::deref(activOp) = fod.get();
+        res                    = miopen::deref(fusePlanDesc).AddOp(fod);
+    });
     return res;
 }
 //---
@@ -201,9 +205,14 @@ extern "C" miopenStatus_t miopenCreateOpBatchNormForward(miopenFusionPlanDescrip
                                                          const miopenBatchNormMode_t bn_mode,
                                                          bool runningMeanVariance)
 {
-    // @TODO: Add in glue logic
     MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode, runningMeanVariance);
-    miopenStatus_t res = miopenStatusSuccess;
+    miopenStatus_t res = miopenStatusUnknownError;
+    miopen::try_([&] {
+        auto bod = std::make_shared<miopen::BatchNormFwdTrainFusionOpDescriptor>(
+            bn_mode, runningMeanVariance);
+        miopen::deref(bnOp) = bod.get();
+        res                 = miopen::deref(fusePlanDesc).AddOp(bod);
+    });
     return res;
 }
 
@@ -211,9 +220,13 @@ extern "C" miopenStatus_t miopenCreateOpBatchNormBackward(miopenFusionPlanDescri
                                                           miopenFusionOpDescriptor_t* bnOp,
                                                           const miopenBatchNormMode_t bn_mode)
 {
-    // @TODO: Add in glue logic
     MIOPEN_LOG_FUNCTION(fusePlanDesc, bnOp, bn_mode);
-    miopenStatus_t res = miopenStatusSuccess;
+    miopenStatus_t res = miopenStatusUnknownError;
+    miopen::try_([&] {
+        auto bod = std::make_shared<miopen::BatchNormBwdTrainFusionOpDescriptor>(bn_mode);
+        miopen::deref(bnOp) = bod.get();
+        res                 = miopen::deref(fusePlanDesc).AddOp(bod);
+    });
     return res;
 }
 //---
@@ -268,7 +281,7 @@ extern "C" miopenStatus_t miopenSetOpArgsActivForward(miopenOperatorArgs_t args,
 
     MIOPEN_LOG_FUNCTION(args, activFwdOp, alpha, beta, activAlpha, activBeta, activGamma);
     return miopen::try_([&] {
-        auto&& op = dynamic_cast<miopen::ActivFusionOpDescriptor&>(miopen::deref(activFwdOp));
+        auto&& op = dynamic_cast<miopen::ActivFwdFusionOpDescriptor&>(miopen::deref(activFwdOp));
         op.SetArgs(miopen::deref(args), alpha, beta, activAlpha, activBeta, activGamma);
     });
 }
@@ -278,15 +291,23 @@ extern "C" miopenStatus_t miopenSetOpArgsActivBackward(miopenOperatorArgs_t args
                                                        const void* alpha,
                                                        const void* beta,
                                                        const void* y,
-                                                       const void* reserved,
+                                                       const void* /*reserved*/,
                                                        double activAlpha,
                                                        double activBeta,
                                                        double activGamma)
 {
-    // @TODO: Add in glue logic
-    MIOPEN_LOG_FUNCTION(
-        args, activBwdOp, alpha, beta, y, reserved, activAlpha, activBeta, activGamma);
-    return miopenStatusSuccess;
+    MIOPEN_LOG_FUNCTION(args, activBwdOp, alpha, beta, y, activAlpha, activBeta, activGamma);
+    return miopen::try_([&] {
+        auto&& op = dynamic_cast<miopen::ActivBwdFusionOpDescriptor&>(miopen::deref(activBwdOp));
+        op.SetArgs(miopen::deref(args),
+                   alpha,
+                   beta,
+                   DataCast(y),
+                   nullptr,
+                   activAlpha,
+                   activBeta,
+                   activGamma);
+    });
 }
 
 // Fusion op args for Batch Normalization
@@ -329,8 +350,6 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_t a
                                                           double expAvgFactor,
                                                           double epsilon)
 {
-
-    // @TODO: Add in glue logic
     MIOPEN_LOG_FUNCTION(args,
                         bnFwdOp,
                         alpha,
@@ -343,7 +362,21 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormForward(miopenOperatorArgs_t a
                         runningVariance,
                         expAvgFactor,
                         epsilon);
-    return miopenStatusSuccess;
+    return miopen::try_([&] {
+        auto&& op =
+            dynamic_cast<miopen::BatchNormFwdTrainFusionOpDescriptor&>(miopen::deref(bnFwdOp));
+        op.SetArgs(miopen::deref(args),
+                   alpha,
+                   beta,
+                   DataCast(runningMean),
+                   DataCast(runningVariance),
+                   DataCast(savedMean),
+                   DataCast(savedInvVariance),
+                   DataCast(bnScale),
+                   DataCast(bnBias),
+                   expAvgFactor,
+                   epsilon);
+    });
 }
 
 extern "C" miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs_t args,
@@ -358,7 +391,6 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs_t 
                                                            const void* savedMean,
                                                            const void* savedInvVariance)
 {
-    // @TODO: Add in glue logic
     MIOPEN_LOG_FUNCTION(args,
                         bnBwdOp,
                         alpha,
@@ -370,7 +402,20 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs_t 
                         resultBnBiasDiff,
                         savedMean,
                         savedInvVariance);
-    return miopenStatusSuccess;
+    return miopen::try_([&] {
+        auto&& op =
+            dynamic_cast<miopen::BatchNormBwdTrainFusionOpDescriptor&>(miopen::deref(bnBwdOp));
+        op.SetArgs(miopen::deref(args),
+                   alpha,
+                   beta,
+                   DataCast(x),
+                   DataCast(bnScale),
+                   DataCast(bnBias),
+                   DataCast(resultBnScaleDiff),
+                   DataCast(resultBnBiasDiff),
+                   DataCast(savedMean),
+                   DataCast(savedInvVariance));
+    });
 }
 //---
 

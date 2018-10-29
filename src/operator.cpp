@@ -35,7 +35,10 @@ std::ostream& operator<<(std::ostream& stream, const FusionOpDescriptor& x)
                     miopenFusionOpConvForward,
                     miopenFusionOpActivForward,
                     miopenFusionOpBatchNormInference,
-                    miopenFusionOpBiasForward);
+                    miopenFusionOpBiasForward,
+                    miopenFusionOpBatchNormFwdTrain,
+                    miopenFusionOpBatchNormBwdTrain,
+                    miopenFusionOpActivBackward);
     return stream;
 }
 
