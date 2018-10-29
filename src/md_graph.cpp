@@ -30,6 +30,7 @@
 #include <miopen/mdg_expr.hpp>
 
 MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_FUSED_WINOGRAD)
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_GCN_ASM_KERNELS)
 
 namespace miopen {
 
@@ -543,6 +544,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
     }
 
     // first path (asm kernel)
+    if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_KERNELS{}))
     { // Conv -> Bias -> Activ // Conv -> Activ
         auto conv_v = std::make_shared<MDGraph_vertex>(miopenFusionOpConvForward,
                                                        "conv1x1u_bias_activ.s",
@@ -658,7 +660,7 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
         conv_v->solver = solver::ConvOclDirectFwdFused{};
 
         // from ConvolutionDescriptor::IsDirectSupported
-        std::vector<size_t> lens = {1, 3, 5, 7, 9, 11};
+        std::vector<size_t> lens = {3, 5, 7, 9, 11};
         for(auto len : lens)
         {
             auto map_conv_bias = ConvForwardOpDescriptor::MDGraphKey(miopenConvolution,
@@ -673,20 +675,17 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                                                                      /*c any*/ 0,
                                                                      /* x */ len,
                                                                      /* y */ len);
-            if(len != 1)
-            {
-                map_conv_bias["pad_h"].clear();
-                map_conv_bias["pad_h"].push_back(EdgeOp(2, true, OpLTE));
-                map_conv_bias["pad_w"].clear();
-                map_conv_bias["pad_w"].push_back(EdgeOp(2, true, OpLTE));
+            map_conv_bias["pad_h"].clear();
+            map_conv_bias["pad_h"].push_back(EdgeOp(2, true, OpLTE));
+            map_conv_bias["pad_w"].clear();
+            map_conv_bias["pad_w"].push_back(EdgeOp(2, true, OpLTE));
 
-                map_conv_bias["u"].clear();
-                map_conv_bias["u"].push_back(EdgeOp(1, true, OpGTE));
-                map_conv_bias["u"].push_back(EdgeOp(2, true, OpLTE));
-                map_conv_bias["v"].clear();
-                map_conv_bias["v"].push_back(EdgeOp(1, true, OpGTE));
-                map_conv_bias["v"].push_back(EdgeOp(2, true, OpLTE));
-            }
+            map_conv_bias["u"].clear();
+            map_conv_bias["u"].push_back(EdgeOp(1, true, OpGTE));
+            map_conv_bias["u"].push_back(EdgeOp(2, true, OpLTE));
+            map_conv_bias["v"].clear();
+            map_conv_bias["v"].push_back(EdgeOp(1, true, OpGTE));
+            map_conv_bias["v"].push_back(EdgeOp(2, true, OpLTE));
             map_emplace(map_conv_bias, "weight", EdgeOp(10, true, OpAny));
             map_emplace(map_conv_bias, "algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
 
