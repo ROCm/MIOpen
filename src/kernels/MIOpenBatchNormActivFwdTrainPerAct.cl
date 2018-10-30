@@ -31,6 +31,7 @@
 #define EIGHT 8
 
 #if(MIOPEN_USE_FP16 == 1 && MIOPEN_USE_FPMIX == 0)
+
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
 #define _FLOAT_PREC half
@@ -41,7 +42,6 @@
 #endif
 #define EPSILON (_FLOAT_PREC)0.0001
 #elif(MIOPEN_USE_FP32 == 1 && MIOPEN_USE_FPMIX == 0)
-#endif
 #define _FLOAT float
 #define _FLOAT_PREC float
 #ifndef FLT_MAX
