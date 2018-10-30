@@ -30,7 +30,7 @@
 #define FOUR 4
 #define EIGHT 8
 
-#if MIOPEN_USE_FP16 == 1
+#if(MIOPEN_USE_FP16 == 1 && MIOPEN_USE_FPMIX == 0)
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
 #define _FLOAT_PREC half
@@ -40,8 +40,8 @@
 #define MAX_VAL HALF_MAX
 #endif
 #define EPSILON (_FLOAT_PREC)0.0001
+#elif(MIOPEN_USE_FP32 == 1 && MIOPEN_USE_FPMIX == 0)
 #endif
-#if MIOPEN_USE_FP32 == 1
 #define _FLOAT float
 #define _FLOAT_PREC float
 #ifndef FLT_MAX
@@ -50,18 +50,11 @@
 #define MAX_VAL FLT_MAX
 #endif
 #define EPSILON (_FLOAT)0.000001
-#endif
-#if MIOPEN_USE_FPMIX == 1
+#elif MIOPEN_USE_FPMIX == 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
 #define _FLOAT_PREC float
-/*
-#ifndef HALF_MAX
-#define MAX_VAL 65504
-#else
-#define MAX_VAL HALF_MAX
-#endif
-*/
+#define EPSILON (_FLOAT)0.000001
 #endif
 
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
@@ -370,9 +363,9 @@ __attribute__((always_inline)) void ActivationFunction(const uint n,
 //==================== PER ACTIVATION =======================
 
 __kernel void MIOpenBatchNormActivFwdTrainPerActivation(
-    const _FLOAT_PREC alpha,
-    const _FLOAT_PREC beta,
-    const _FLOAT_PREC gamma,
+    const _FLOAT alpha,
+    const _FLOAT beta,
+    const _FLOAT gamma,
     double epsilon, /* input fuzz param > 0 */
 #if(MIO_RUNNING_RESULT == 1)
     double expAvgFactor,
