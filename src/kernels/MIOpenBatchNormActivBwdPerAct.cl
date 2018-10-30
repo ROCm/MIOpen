@@ -29,8 +29,7 @@
 #define FOUR 4
 #define EIGHT 8
 
-#if MIOPEN_USE_FP16 == 1
-#define MIO_BN_NODPP 1
+#if(MIOPEN_USE_FP16 == 1 && MIOPEN_USE_FPMIX == 0)
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
 #define _FLOAT_PREC half
@@ -39,9 +38,8 @@
 #else
 #define MAX_VAL HALF_MAX
 #endif
-#define EPSILON (_FLOAT)0.0001
-#endif
-#if MIOPEN_USE_FP32 == 1
+#define EPSILON (_FLOAT_PREC)0.0001
+#elif(MIOPEN_USE_FP32 == 1 && MIOPEN_USE_FPMIX == 0)
 #define _FLOAT float
 #define _FLOAT_PREC float
 #ifndef FLT_MAX
@@ -50,18 +48,10 @@
 #define MAX_VAL FLT_MAX
 #endif
 #define EPSILON (_FLOAT)0.000001
-#endif
-#if MIOPEN_USE_FPMIX == 1
+#elif MIOPEN_USE_FPMIX == 1
 #pragma OPENCL EXTENSION cl_khr_fp16 : enable
 #define _FLOAT half
 #define _FLOAT_PREC float
-/*
-#ifndef HALF_MAX
-#define MAX_VAL 65504
-#else
-#define MAX_VAL HALF_MAX
-#endif
-*/
 #define EPSILON (_FLOAT)0.000001
 #endif
 
@@ -85,7 +75,7 @@
 //#define MIOPEN_NEURON_SQR 11         // sqr(x)
 #define MIOPEN_NEURON_TOTAL 10
 
-static __constant _FLOAT kBNLL_THRESHOLD = (_FLOAT)50.;
+static __constant _FLOAT_PREC kBNLL_THRESHOLD = (_FLOAT_PREC)50.;
 
 #ifndef MIO_BN_LDS_SIZE
 #define MIO_BN_LDS_SIZE 1
@@ -393,10 +383,10 @@ MIOpenBatchNormActivBwdPerActivation(const __global _FLOAT* __restrict x_in,
                                      const __global _FLOAT* __restrict y_in,
                                      const __global _FLOAT* __restrict dy_in,
                                      __global _FLOAT* __restrict dx_out,
-                                     _FLOAT_PREC diff_scale,
-                                     _FLOAT_PREC gamma,
-                                     _FLOAT_PREC beta,
-                                     _FLOAT_PREC alpha,
+                                     _FLOAT diff_scale,
+                                     _FLOAT gamma,
+                                     _FLOAT beta,
+                                     _FLOAT alpha,
                                      const __global _FLOAT_PREC* __restrict bnScale,
                                      const __global _FLOAT_PREC* __restrict bnBias,
                                      __global _FLOAT_PREC* __restrict dscale,
