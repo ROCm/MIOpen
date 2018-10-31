@@ -30,6 +30,12 @@
 namespace miopen {
 namespace solver {
 
+// Workaround for issue 1185.
+// OpenCL fails to allocate a single piece of GPU memory, if the require mem size is too large
+// However, the limit of mem size is unknown currently, and has been raised as a remaining question
+// in issue 1289
+#define WORKAROUND_ISSUE_1185 1
+
 bool ConvOclBwdWrW2::IsApplicable(const ConvolutionContext& params) const
 {
     return (params.kernel_dilation0 == 1 && params.kernel_dilation1 == 1) &&
@@ -384,14 +390,15 @@ ConvSolution ConvOclBwdWrW2::GetSolution(const ConvolutionContext& params) const
             static_cast<std::size_t>(wei_bstride) * static_cast<std::size_t>(params.n_inputs) *
             static_cast<std::size_t>(n_batch_blks) * static_cast<std::size_t>(data_len);
 
-        if(result.workspce_sz > 4 * 1024 * 1024)
+#if WORKAROUND_ISSUE_1185
+        if(result.workspce_sz > 8 * 1024 * 1024)
         {
-            MIOPEN_LOG_I2(
-                "ConvOclBwdWrW2: cannot allocate a single workspace of more than 4GB, need "
-                << result.workspce_sz
-                << " byte");
+            MIOPEN_LOG_I2("ConvOclBwdWrW2: limiting allocation of a single workspace to 8GB, need "
+                          << result.workspce_sz
+                          << " byte");
             return ConvSolution(miopenStatusNotInitialized);
         }
+#endif
     }
 
     return result;
