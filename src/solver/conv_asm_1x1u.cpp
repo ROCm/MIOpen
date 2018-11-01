@@ -161,7 +161,9 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue()
                 break;
             if(!NextTwoPower<1, 4>(c_mult))
                 break;
-            if(!NextLinear<1, 4>(waves_in_group))
+            if(!NextTwoPower<1, 4>(waves_c_in_group))
+                break;
+            if(!NextTwoPower<1, 8>(waves_k_in_group))
                 break;
         }
         else
@@ -176,7 +178,9 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue()
                 break;
             if(!NextTwoPower<1, 32>(c_mult))
                 break;
-            if(!NextLinear<1, 8>(waves_in_group))
+            if(!NextLinear<1, 8>(waves_c_in_group))
+                break;
+            if(!NextTwoPower<1, 8>(waves_k_in_group))
                 break;
         }
         // All the fields of performance config have wrapped around.
@@ -186,7 +190,7 @@ bool PerformanceConfigConvAsm1x1U::SetNextValue()
 }
 
 PerformanceConfigConvAsm1x1U::PerformanceConfigConvAsm1x1U(bool spare)
-    : PerformanceConfigConvAsm1x1U(1, 1, 1, 1, 1, 1, 1, spare)
+    : PerformanceConfigConvAsm1x1U(1, 1, 1, 1, 1, 1, 1, 1, spare)
 {
     if(!miopen::IsDisabled(MIOPEN_DEBUG_GCN_ASM_DIRECT_1X1U_SEARCH_OPTIMIZED{}))
     {
@@ -201,7 +205,8 @@ PerformanceConfigConvAsm1x1U::PerformanceConfigConvAsm1x1U(int read_size_,
                                                            int chunk_size_,
                                                            int n_mult_,
                                                            int c_mult_,
-                                                           int waves_in_group_,
+                                                           int waves_c_in_group_,
+                                                           int waves_k_in_group_,
                                                            bool use_spare_set_)
     : read_size(read_size_),
       k_mult(k_mult_),
@@ -209,7 +214,8 @@ PerformanceConfigConvAsm1x1U::PerformanceConfigConvAsm1x1U(int read_size_,
       chunk_size(chunk_size_),
       n_mult(n_mult_),
       c_mult(c_mult_),
-      waves_in_group(waves_in_group_),
+      waves_c_in_group(waves_c_in_group_),
+      waves_k_in_group(waves_k_in_group_),
       use_spare_set(use_spare_set_)
 {
 }
@@ -224,7 +230,8 @@ operator==(const PerformanceConfigConvAsm1x1U& other) const
         && chunk_size == other.chunk_size
         && n_mult == other.n_mult
         && c_mult == other.c_mult
-        && waves_in_group == other.waves_in_group
+        && waves_c_in_group == other.waves_c_in_group
+        && waves_k_in_group == other.waves_k_in_group
         && use_spare_set == other.use_spare_set; // clang-format on
 }
 
@@ -237,7 +244,8 @@ bool PerformanceConfigConvAsm1x1U::IsValidValue() const
         && IsTwoPower<1,64>(chunk_size)
         && IsLinear<1,8>(n_mult)
         && IsTwoPower<1,32>(c_mult)
-        && IsLinear<1,8>(waves_in_group); // clang-format on
+        && IsLinear<1,8>(waves_c_in_group)
+        && IsTwoPower<1,8>(waves_k_in_group); // clang-format on
 }
 
 bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) const
@@ -248,9 +256,11 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
         return false;
     if(!(read_size * elements_in_dword <= chunks_per_wave))
         return false;
-    if(!(waves_in_group <= config.n_inputs))
+    if(!(waves_c_in_group <= config.n_inputs))
         return false;
-    if(!(k_mult <= config.n_outputs))
+    if(!(k_mult * waves_k_in_group <= config.n_outputs))
+        return false;
+    if(!(waves_c_in_group * waves_k_in_group <= 16))
         return false;
     if((c_mult % elements_in_dword) != 0)
         return false;
@@ -270,9 +280,9 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
     if(!(vgprs < 256))
         return false;
     const int max_waves_per_CU = (256 / vgprs) * 4;
-    if(!(max_waves_per_CU >= waves_in_group))
+    if(!(max_waves_per_CU >= waves_c_in_group * waves_k_in_group))
         return false;
-    const int sgprs = 24 + 2 * k_mult * c_mult;
+    const int sgprs = 25 + 2 * k_mult * c_mult;
     if(!(sgprs < 102)) /// \todo This is valid for Gfx8 and Gfx9. Check for newer parts.
         return false;
     const int total_n_blocks = (config.batch_sz + GetNPerGpr() - 1) / GetNPerGpr();
@@ -283,8 +293,8 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
     if(!(chunks_per_wave <= total_chunks))
         return false;
 
-    const int c_per_wave      = (config.n_inputs + waves_in_group - 1) / waves_in_group;
-    const int c_per_last_wave = config.n_inputs - (c_per_wave * (waves_in_group - 1));
+    const int c_per_wave      = (config.n_inputs + waves_c_in_group - 1) / waves_c_in_group;
+    const int c_per_last_wave = config.n_inputs - (c_per_wave * (waves_c_in_group - 1));
 
     return (c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0);
 }
@@ -298,7 +308,8 @@ void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config
     chunk_size                  = 16;
     n_mult                      = 1;
     c_mult                      = 1;
-    waves_in_group              = 1;
+    waves_c_in_group            = 1;
+    waves_k_in_group            = 1;
 
     if(!IsValid(config))
     {
@@ -323,13 +334,14 @@ void PerformanceConfigConvAsm1x1U::EuristicInit(const ConvolutionContext& config
     if(!IsValid(config))
     {
         MIOPEN_LOG_I("!IsValid(): " << ToString() << ". Conservative re-init...");
-        read_size       = 1;
-        k_mult          = (elements_in_dword == 1) ? 1 : 4;
-        chunks_per_wave = elements_in_dword;
-        chunk_size      = 1;
-        n_mult          = 1;
-        c_mult          = elements_in_dword;
-        waves_in_group  = 1;
+        read_size        = 1;
+        k_mult           = (elements_in_dword == 1) ? 1 : 4;
+        chunks_per_wave  = elements_in_dword;
+        chunk_size       = 1;
+        n_mult           = 1;
+        c_mult           = elements_in_dword;
+        waves_c_in_group = 1;
+        waves_k_in_group = 1;
     }
     if(!IsValid(config))
     {
@@ -662,13 +674,15 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
     GenerateClangDefsym(options, "chunk_size", pcfg->GetChunkSize());
     GenerateClangDefsym(options, "n_mult", pcfg->GetNMult());
     GenerateClangDefsym(options, "c_mult", pcfg->GetCMult());
-    GenerateClangDefsym(options, "waves_in_group", pcfg->GetWavesInGroup());
+    GenerateClangDefsym(options, "waves_c_in_group", pcfg->GetWavesCInGroup());
+    GenerateClangDefsym(options, "waves_k_in_group", pcfg->GetWavesKInGroup());
 
     KernelInfo kinfo;
     kinfo.comp_options = options.str();
 
+    const int waves_in_group = pcfg->GetWavesCInGroup() * pcfg->GetWavesKInGroup();
     kinfo.l_wk.clear(); // workgroupsize
-    kinfo.l_wk.push_back(64 * pcfg->GetWavesInGroup());
+    kinfo.l_wk.push_back(64 * waves_in_group);
     kinfo.l_wk.push_back(1);
     kinfo.l_wk.push_back(1);
 
@@ -679,7 +693,8 @@ ConvSolution ConvAsm1x1U::GetSolution(const ConvolutionContext& params,
         kinfo.l_wk[0] *
         divide_round_plus_inf(AsmImgHeight(params) * AsmImgWidth(params), hw_per_wave));
 
-    kinfo.g_wk.push_back(divide_round_plus_inf(params.n_outputs, pcfg->GetKMult()));
+    kinfo.g_wk.push_back(
+        divide_round_plus_inf(params.n_outputs, pcfg->GetKMult() * pcfg->GetWavesKInGroup()));
     const int n_images_per_wave = pcfg->GetNMult() * pcfg->GetNPerGpr();
     kinfo.g_wk.push_back(divide_round_plus_inf(params.batch_sz, n_images_per_wave));
 
