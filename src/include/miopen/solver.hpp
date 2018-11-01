@@ -537,17 +537,19 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
 {
     // ----------------- // Full set          Optimized       Spare
     // ----------------------------------------------------------------------------
-    int read_size;       // [1..4]            <same>          <same>
-    int k_mult;          // 1,[4,8,12..32]    2^n[8..32]      1,4
-    int chunks_per_wave; // [1..16]           [1..8]          <same>
-    int chunk_size;      // 2^n[1..64]        2^n[16..64]     1,4
-    int n_mult;          // [1..8]            [1..4]          <same>
-    int c_mult;          // 2^n[1..32]        2^n[1..4]       <same>
-    int waves_in_group;  // [1..8]            [1..4]          <same>
+    int read_size;        // [1..4]            <same>          <same>
+    int k_mult;           // 1,[4,8,12..32]    2^n[8..32]      1,4
+    int chunks_per_wave;  // [1..16]           [1..8]          <same>
+    int chunk_size;       // 2^n[1..64]        2^n[16..64]     1,4
+    int n_mult;           // [1..8]            [1..4]          <same>
+    int c_mult;           // 2^n[1..32]        2^n[1..4]       <same>
+    int waves_c_in_group; // [1..8]            [1..4]          <same>
+    int waves_k_in_group; // 1,[2,4,8]         1,[2,4,8]       <same>
     bool use_spare_set;
 
-    PerformanceConfigConvAsm1x1U(int, int, int, int, int, int, int, bool);
-    PerformanceConfigConvAsm1x1U() : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1, -1, false)
+    PerformanceConfigConvAsm1x1U(int, int, int, int, int, int, int, int, bool);
+    PerformanceConfigConvAsm1x1U()
+        : PerformanceConfigConvAsm1x1U(-1, -1, -1, -1, -1, -1, -1, -1, false)
     {
     }
     PerformanceConfigConvAsm1x1U(bool spare);
@@ -561,7 +563,8 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
         f(self.chunk_size, "chunk_size");
         f(self.n_mult, "n_mult");
         f(self.c_mult, "c_mult");
-        f(self.waves_in_group, "waves_in_group");
+        f(self.waves_c_in_group, "waves_c_in_group");
+        f(self.waves_k_in_group, "waves_k_in_group");
     }
 
     // clang-format off
@@ -571,7 +574,8 @@ struct PerformanceConfigConvAsm1x1U : Serializable<PerformanceConfigConvAsm1x1U>
     int GetChunkSize() const { return chunk_size; }
     int GetNMult() const { return n_mult; }
     int GetCMult() const { return c_mult; }
-    int GetWavesInGroup() const { return waves_in_group; }
+    int GetWavesCInGroup() const { return waves_c_in_group; }
+    int GetWavesKInGroup() const { return waves_k_in_group; }
     int GetNPerGpr() const { assert(chunk_size); return 64 / chunk_size; }
     // clang-format on
 
