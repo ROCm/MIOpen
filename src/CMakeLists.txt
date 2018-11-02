@@ -148,6 +148,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride1.inc
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dec.inc
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dil.inc
+        kernels/Conv_Winograd_v14_3_3_fp16dot_stride1.inc
+        kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dec.inc
+        kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dil.inc
         kernels/Conv_Winograd_v13_3_12_epilogue.inc
         kernels/Conv_Winograd_v13_3_12_prologue.inc
         kernels/inst_wrappers.inc
@@ -207,6 +210,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride1.s
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dec.s
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dil.s
+        kernels/Conv_Winograd_v14_3_3_fp16dot_stride1.s
+        kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dec.s
+        kernels/Conv_Winograd_v14_3_3_fp16dot_stride2_dil.s
         kernels/conv_3x3_wheel_alpha_v9_2_7_gfx803_md10.so
         kernels/conv_3x3_wheel_alpha_v9_2_7_gfx900_md10.so
         kernels/conv_3x3_wheel_alpha_v9_2_7_gfx906_md10.so

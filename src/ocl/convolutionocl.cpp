@@ -972,7 +972,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
                                                Data_t workSpace,
                                                size_t workSpaceSize) const
 {
-    MIOPEN_LOG_I2("algo = " << algo);
+    MIOPEN_LOG_I2("algo = " << algo << ", workspace = " << workSpaceSize);
     if(x == nullptr || w == nullptr || y == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -1004,7 +1004,6 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
         miopen::checkNumericsInput(handle, wDesc, w);
     }
 
-    MIOPEN_LOG_I("workspace = " << workSpaceSize);
     if(mode == miopenConvolution)
     {
         if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1])
@@ -2270,7 +2269,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
                                                     Data_t workSpace,
                                                     size_t workSpaceSize) const
 {
-    MIOPEN_LOG_I2("algo = " << algo);
+    MIOPEN_LOG_I2("algo = " << algo << ", workspace = " << workSpaceSize);
     if(dx == nullptr || w == nullptr || dy == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -3337,11 +3336,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(Handle& handle,
                                                        Data_t workSpace,
                                                        size_t workSpaceSize) const
 {
-    MIOPEN_LOG_I2("algo = " << algo);
-#ifdef NDEBUG
-    (void)workSpaceSize; // Suppress warning
-#endif
-
+    MIOPEN_LOG_I2("algo = " << algo << ", workspace = " << workSpaceSize);
     if(x == nullptr || dw == nullptr || dy == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);

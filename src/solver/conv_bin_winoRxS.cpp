@@ -27,6 +27,10 @@
 #include "miopen/solver.hpp"
 #include "miopen/env.hpp"
 
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)
+/// \todo Detect at runtime and remove this var:
+MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_SRAM_EDC_DISABLED)
+
 /// \return v rounded up (towards +inf) to the nearest multiple of m.
 /// Defined for positive values only.
 static inline int Ceiling(const int v, const int m)
@@ -55,9 +59,6 @@ static inline int FloorDiv(const int x, const int y)
     return x / y;
 }
 
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS)
-MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FP16) // For a while, for triaging purposes.
-
 namespace miopen {
 namespace solver {
 
@@ -73,7 +74,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ConvolutionContext& params) const
     const bool fp16 = (params.float_size == 16);
     if(fp16)
     { // These are supplied in asm source format.
-        if(!params.use_asm_kernels || !miopen::IsEnabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_FP16{}))
+        if(!params.use_asm_kernels)
             return false;
     }
     else
@@ -253,7 +254,13 @@ ConvSolution ConvBinWinogradRxS::GetSolution(const ConvolutionContext& params) c
     if(params.float_size == 16)
     {
         kernel.kernel_name = "sp3AsmConvRxSU";
-        kernel.kernel_file = "Conv_Winograd_v13_3_12_fp16dot_stride";
+        kernel.kernel_file = "Conv_Winograd_";
+        if(miopen::IsEnabled(MIOPEN_DEBUG_SRAM_EDC_DISABLED{}))
+            kernel.kernel_file += "v13_3_12";
+        else
+            kernel.kernel_file += "v14_3_3";
+        kernel.kernel_file += "_fp16dot_stride";
+
         if(params.kernel_stride0 == 2)
         {
             if(params.direction.IsForward())
