@@ -296,6 +296,8 @@ bool PerformanceConfigConvAsm1x1U::IsValid(const ConvolutionContext& config) con
     const int c_per_wave      = (config.n_inputs + waves_c_in_group - 1) / waves_c_in_group;
     const int c_per_last_wave = config.n_inputs - (c_per_wave * (waves_c_in_group - 1));
 
+    if(config.direction.IsBackwardData() && !(config.n_outputs % k_mult == 0))
+        return false;
     return (c_per_wave % c_mult == 0) && (c_per_last_wave % c_mult == 0);
 }
 
