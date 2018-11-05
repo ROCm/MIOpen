@@ -925,6 +925,9 @@ last_wave:
         k = 0
         .rept k_mult / vec_k_out
             nb = 0
+            s_cmpk_ge_i32 s[current_k], 0 + hi_output_channels - k
+            s_cmov_b32 s[desc_out+2], 0
+
             .rept n_mult
                 s_mov_b32 exec_lo, active_mask_lo
                 s_mov_b32 exec_hi, active_mask_hi
@@ -955,10 +958,6 @@ last_wave:
                     s_add_u32 s[soffset_out], s[soffset_out], 0 + active_n_per_gpr * output_n_stride
                 .endif
             .endr
-            .if (1  || hi_output_channels % (k_mult / vec_k_out))
-                s_cmpk_ge_i32 s[current_k], 0 + hi_output_channels - k - 1
-                s_cmov_b32 s[desc_out+2], 0
-            .endif
             k = k + 1
         .endr
     .endm
