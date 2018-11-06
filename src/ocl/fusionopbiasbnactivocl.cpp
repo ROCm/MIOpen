@@ -195,6 +195,12 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(
     {
         read_unit = 1;
     }
+
+    if(input_desc.GetType() == miopenHalf)
+    {
+        add += " -DMIOPEN_USE_FPMIX=1";
+    }
+
     add += " -DMIO_BN_CHW=" + std::to_string(c * h * w) + " -DMIO_BN_HW=" + std::to_string(h * w) +
            " -DMIO_BN_N=" + std::to_string(n) + " -DMIO_BN_GRP0=" + std::to_string(vld.at(0)) +
            " -DMIO_BN_GRP1=" + std::to_string(1) + " -DMIO_BN_GRP2=" + std::to_string(1);
