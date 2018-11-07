@@ -804,6 +804,11 @@ void FusionMDGraph::InitConv(FusionMDGraph& g)
                 map_conv_bias["v"].push_back(EdgeOp(1, true, OpGTE));
                 map_conv_bias["v"].push_back(EdgeOp(2, true, OpLTE));
             }
+            else
+            {
+                // 1x1 convolutions are only supported for single precision
+                map_emplace(map_conv_bias, "precision", EdgeOp(miopenFloat, true, OpEqual));
+            }
             map_emplace(map_conv_bias, "weight", EdgeOp(10, true, OpAny));
             map_emplace(map_conv_bias, "algo", EdgeOp(miopenConvolutionFwdAlgoDirect, true, OpAny));
 
