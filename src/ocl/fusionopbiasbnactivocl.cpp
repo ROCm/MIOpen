@@ -184,16 +184,12 @@ miopenStatus_t BatchNormInferenceFusionOpDescriptor::GetCompileParms(
 
     // The output_desc should be fully formed by this stage.
     std::tie(n, c, h, w) = tien<4>(input_desc.GetLengths());
-    size_t read_unit = 0;
+    size_t read_unit = 1;
     size_t read_len  = (mode == miopenBNSpatial) ? h * w : c * h * w;
 
-    if(mode == miopenBNSpatial)
+    if(mode == miopenBNSpatial && input_desc.GetType() != miopenHalf)
     {
         read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
-    }
-    else
-    {
-        read_unit = 1;
     }
 
     if(input_desc.GetType() == miopenHalf)
@@ -234,16 +230,12 @@ BatchNormInferenceFusionOpDescriptor::GetGlobalWGSz(Handle& /*handle*/,
 
     // The output_desc should be fully formed by this stage.
     std::tie(n, c, h, w) = tien<4>(input_desc.GetLengths());
-    size_t read_unit = 0;
+    size_t read_unit = 1;
     size_t read_len  = (mode == miopenBNSpatial) ? h * w : c * h * w;
 
-    if(mode /*ops_head->mode*/ == miopenBNSpatial)
+    if(mode == miopenBNSpatial && input_desc.GetType() != miopenHalf)
     {
         read_unit = (read_len % 4 == 0) ? 4 : (read_len % 2 == 0) ? 2 : 1;
-    }
-    else
-    {
-        read_unit = 1;
     }
 
     size_t xgridsize = read_len / read_unit;
