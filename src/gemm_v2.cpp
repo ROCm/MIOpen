@@ -36,20 +36,19 @@
 #endif
 
 #if MIOPEN_USE_ROCBLAS
-#define ROCBLAS_TIMING_ENQUEUE_DUMMY 0
-#if ROCBLAS_TIMING_ENQUEUE_DUMMY
-#define ROCBLAS_TIMING_MEMSET_SIZE 10000000
-#endif
+#define ROCBLAS_TIMING_MEMSET_SIZE (10 * 1024 * 1024)
 #endif
 
 namespace miopen {
 
 #if MIOPEN_USE_ROCBLAS
-#if ROCBLAS_TIMING_ENQUEUE_DUMMY
-// enqueue a useless and harmless gpu memset for rocblas kernel timing purpose
+// Enqueue gpu memset for rocblas kernel timing purpose
+// Be careful, will set mem to 0
 static void
 dummy_memset(Handle& handle, Data_t mem, std::size_t mem_len, miopenDataType_t data_type)
 {
+    MIOPEN_LOG_I2("dummy gpu memset");
+
     std::size_t data_size = 0;
 
     switch(data_type)
@@ -72,7 +71,6 @@ dummy_memset(Handle& handle, Data_t mem, std::size_t mem_len, miopenDataType_t d
         hipMemsetAsync(mem, 0, sz, handle.GetStream());
 }
 #endif
-#endif
 
 miopenStatus_t CallGemm(Handle& handle,
                         GemmDescriptor gemm_desc,
@@ -82,7 +80,8 @@ miopenStatus_t CallGemm(Handle& handle,
                         int b_offset,
                         Data_t C,
                         int c_offset,
-                        std::string* kcache_key)
+                        std::string* kcache_key,
+                        bool enqueue_dummy_kernel)
 {
     // do row-to-column major conversion here
     if(!gemm_desc.isColMajor)
@@ -102,9 +101,10 @@ miopenStatus_t CallGemm(Handle& handle,
     HipEventPtr stop  = nullptr;
     if(handle.IsProfilingEnabled())
     {
-#if ROCBLAS_TIMING_ENQUEUE_DUMMY
-        dummy_memset(handle, C, gemm_desc.m * gemm_desc.n, gemm_desc.dataType);
-#endif
+        if(enqueue_dummy_kernel)
+        {
+            dummy_memset(handle, C, gemm_desc.m * gemm_desc.n, gemm_desc.dataType);
+        }
 
         start = make_hip_event();
         stop  = make_hip_event();
@@ -207,6 +207,8 @@ miopenStatus_t CallGemm(Handle& handle,
     return miopenStatusSuccess;
 
 #elif MIOPEN_USE_MIOPENGEMM
+    (void)enqueue_dummy_kernel;
+
     if(gemm_desc.dataType != miopenFloat)
         return miopenStatusNotImplemented;
 
@@ -293,7 +295,8 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                                       int b_offset,
                                       Data_t C,
                                       int c_offset,
-                                      std::string* kcache_key)
+                                      std::string* kcache_key,
+                                      bool enqueue_dummy_kernel)
 {
     // do row-to-column major conversion here
     if(!gemm_desc.isColMajor)
@@ -314,10 +317,12 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
     HipEventPtr stop  = nullptr;
     if(handle.IsProfilingEnabled())
     {
-#if ROCBLAS_TIMING_ENQUEUE_DUMMY
-        dummy_memset(
-            handle, C, gemm_desc.m * gemm_desc.n * gemm_desc.batch_count, gemm_desc.dataType);
-#endif
+        if(enqueue_dummy_kernel)
+        {
+            dummy_memset(
+                handle, C, gemm_desc.m * gemm_desc.n * gemm_desc.batch_count, gemm_desc.dataType);
+        }
+
         start = make_hip_event();
         stop  = make_hip_event();
         hipEventRecord(start.get(), handle.GetStream());
@@ -430,7 +435,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
 
 #elif MIOPEN_USE_MIOPENGEMM
     return CallGemmStridedBatchedSequential(
-        handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key);
+        handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, kcache_key, enqueue_dummy_kernel);
 #else
     (void)handle;
     (void)gemm_desc;
@@ -441,6 +446,7 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
     (void)C;
     (void)c_offset;
     (void)kcache_key;
+    (void)enqueu_dummy_kernel;
 
     return miopenStatusNotImplemented;
 #endif
@@ -454,7 +460,8 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
                                                 int b_offset,
                                                 Data_t C,
                                                 int c_offset,
-                                                std::string* kcache_key)
+                                                std::string* kcache_key,
+                                                bool enqueue_dummy_kernel)
 {
     // do row-to-column major conversion here
     if(!gemm_desc.isColMajor)
@@ -475,9 +482,10 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
     HipEventPtr stop  = nullptr;
     if(handle.IsProfilingEnabled())
     {
-#if ROCBLAS_TIMING_ENQUEUE_DUMMY
-        dummy_memset(handle, C, gemm_desc.m * gemm_desc.n, gemm_desc.dataType);
-#endif
+        if(enqueue_dummy_kernel)
+        {
+            dummy_memset(handle, C, gemm_desc.m * gemm_desc.n, gemm_desc.dataType);
+        }
 
         start = make_hip_event();
         stop  = make_hip_event();
@@ -586,6 +594,8 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
     return miopenStatusSuccess;
 
 #elif MIOPEN_USE_MIOPENGEMM
+    (void)enqueue_dummy_kernel;
+
     if(gemm_desc.dataType != miopenFloat)
         return miopenStatusNotImplemented;
 
@@ -695,6 +705,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
     (void)C;
     (void)c_offset;
     (void)kcache_key;
+    (void)enqueue_dummy_kernel;
 
     return miopenStatusNotImplemented;
 #endif
