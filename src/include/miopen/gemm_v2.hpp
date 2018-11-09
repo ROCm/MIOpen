@@ -66,7 +66,8 @@ miopenStatus_t CallGemm(Handle& handle,
                         int b_offset,
                         Data_t C,
                         int c_offset,
-                        std::string* kcache_key = nullptr);
+                        std::string* kcache_key,
+                        bool enqueue_dummy_kernel);
 
 miopenStatus_t CallGemmStridedBatched(Handle& handle,
                                       GemmDescriptor gemm_desc,
@@ -76,7 +77,8 @@ miopenStatus_t CallGemmStridedBatched(Handle& handle,
                                       int b_offset,
                                       Data_t C,
                                       int c_offset,
-                                      std::string* kcache_key = nullptr);
+                                      std::string* kcache_key,
+                                      bool enqueue_dummy_kernel);
 
 miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
                                                 GemmDescriptor gemm_desc,
@@ -86,7 +88,8 @@ miopenStatus_t CallGemmStridedBatchedSequential(Handle& handle,
                                                 int b_offset,
                                                 Data_t C,
                                                 int c_offset,
-                                                std::string* kcache_key = nullptr);
+                                                std::string* kcache_key,
+                                                bool enqueue_dummy_kernel);
 
 // GEMM parameters for Convolution (using Im2Col) Fwd
 // y = w * Im2Col(x)
