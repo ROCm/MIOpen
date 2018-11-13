@@ -1124,4 +1124,269 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(const TensorDe
                           xDesc.GetType()};
 }
 
+// y = w * Im2Col(x)
+GemmDescriptor CreateGemmDescriptorGroupConvFwd(const TensorDescriptor& wDesc,
+                                                const TensorDescriptor& xDesc,
+                                                const TensorDescriptor& yDesc,
+                                                int groupCount)
+{
+#ifndef NDEBUG
+    assert(wDesc.GetType() == xDesc.GetType() && wDesc.GetType() == yDesc.GetType());
+#endif
+
+    int in_c;
+    std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+
+    int wei_n, wei_h, wei_w;
+    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
+
+    bool isColMajor       = false;
+    bool transA           = false;
+    bool transB           = false;
+    int m                 = wei_n / groupCount;
+    int n                 = out_h * out_w;
+    int k                 = (in_c / groupCount) * wei_h * wei_w;
+    int lda               = k;
+    int ldb               = n;
+    int ldc               = n;
+    int batch_count       = groupCount;
+    long long int strideA = m * k;
+    long long int strideB = k * n;
+    long long int strideC = m * n;
+    float alpha           = 1.;
+    float beta            = 0.;
+
+    return GemmDescriptor{isColMajor,
+                          transA,
+                          transB,
+                          m,
+                          n,
+                          k,
+                          lda,
+                          ldb,
+                          ldc,
+                          batch_count,
+                          strideA,
+                          strideB,
+                          strideC,
+                          alpha,
+                          beta,
+                          xDesc.GetType()};
+}
+
+// dx = Col2Im(transpose(w) * dy)
+GemmDescriptor CreateGemmDescriptorGroupConvBwdData(const TensorDescriptor& wDesc,
+                                                    const TensorDescriptor& dyDesc,
+                                                    const TensorDescriptor& dxDesc,
+                                                    int groupCount)
+{
+#ifndef NDEBUG
+    assert(wDesc.GetType() == dxDesc.GetType() && wDesc.GetType() == dyDesc.GetType());
+#endif
+
+    int in_c;
+    std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
+
+    int wei_n, wei_h, wei_w;
+    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(wDesc.GetLengths());
+
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
+
+    bool isColMajor       = false;
+    bool transA           = true;
+    bool transB           = false;
+    int m                 = (in_c / groupCount) * wei_h * wei_w;
+    int n                 = out_h * out_w;
+    int k                 = wei_n / groupCount;
+    int lda               = m;
+    int ldb               = n;
+    int ldc               = n;
+    int batch_count       = groupCount;
+    long long int strideA = m * k;
+    long long int strideB = k * n;
+    long long int strideC = m * n;
+    float alpha           = 1.;
+    float beta            = 0.;
+
+    return GemmDescriptor{isColMajor,
+                          transA,
+                          transB,
+                          m,
+                          n,
+                          k,
+                          lda,
+                          ldb,
+                          ldc,
+                          batch_count,
+                          strideA,
+                          strideB,
+                          strideC,
+                          alpha,
+                          beta,
+                          dxDesc.GetType()};
+}
+
+// dw = dy * transpose(Im2Col(x))
+GemmDescriptor CreateGemmDescriptorGroupConvBwdWeight(const TensorDescriptor& dyDesc,
+                                                      const TensorDescriptor& xDesc,
+                                                      const TensorDescriptor& dwDesc,
+                                                      int groupCount)
+{
+#ifndef NDEBUG
+    assert(dwDesc.GetType() == xDesc.GetType() && dwDesc.GetType() == dyDesc.GetType());
+#endif
+
+    int in_c;
+    std::tie(std::ignore, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+
+    int wei_n, wei_h, wei_w;
+    std::tie(wei_n, std::ignore, wei_h, wei_w) = tien<4>(dwDesc.GetLengths());
+
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
+
+    bool isColMajor       = false;
+    bool transA           = false;
+    bool transB           = true;
+    int m                 = wei_n / groupCount;
+    int n                 = (in_c / groupCount) * wei_h * wei_w;
+    int k                 = out_h * out_w;
+    int lda               = k;
+    int ldb               = k;
+    int ldc               = n;
+    int batch_count       = groupCount;
+    long long int strideA = m * k;
+    long long int strideB = k * n;
+    long long int strideC = m * n;
+    float alpha           = 1.;
+    float beta            = 1.;
+
+    return GemmDescriptor{isColMajor,
+                          transA,
+                          transB,
+                          m,
+                          n,
+                          k,
+                          lda,
+                          ldb,
+                          ldc,
+                          batch_count,
+                          strideA,
+                          strideB,
+                          strideC,
+                          alpha,
+                          beta,
+                          xDesc.GetType()};
+}
+
+// y = CNHW2NCHW(w * NCHW2CNHW(x))
+GemmDescriptor CreateGemmDescriptorGroupConvCNHWFwd(const TensorDescriptor& wDesc,
+                                                    const TensorDescriptor& xDesc,
+                                                    const TensorDescriptor& yDesc,
+                                                    int groupCount)
+{
+#ifndef NDEBUG
+    assert(wDesc.GetType() == xDesc.GetType() && wDesc.GetType() == yDesc.GetType());
+#endif
+
+    int in_n, in_c;
+    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(xDesc.GetLengths());
+
+    int wei_n;
+    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
+
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(yDesc.GetLengths());
+
+    bool isColMajor       = false;
+    bool transA           = false;
+    bool transB           = false;
+    int m                 = wei_n / groupCount;
+    int n                 = in_n * out_h * out_w;
+    int k                 = in_c / groupCount;
+    int lda               = k;
+    int ldb               = n;
+    int ldc               = n;
+    int batch_count       = groupCount;
+    long long int strideA = m * k;
+    long long int strideB = k * n;
+    long long int strideC = m * n;
+    float alpha           = 1.;
+    float beta            = 0.;
+
+    return GemmDescriptor{isColMajor,
+                          transA,
+                          transB,
+                          m,
+                          n,
+                          k,
+                          lda,
+                          ldb,
+                          ldc,
+                          batch_count,
+                          strideA,
+                          strideB,
+                          strideC,
+                          alpha,
+                          beta,
+                          xDesc.GetType()};
+}
+
+// dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
+GemmDescriptor CreateGemmDescriptorGroupConvCNHWBwdData(const TensorDescriptor& wDesc,
+                                                        const TensorDescriptor& dyDesc,
+                                                        const TensorDescriptor& dxDesc,
+                                                        int groupCount)
+{
+#ifndef NDEBUG
+    assert(wDesc.GetType() == dxDesc.GetType() && wDesc.GetType() == dyDesc.GetType());
+#endif
+
+    int in_n, in_c;
+    std::tie(in_n, in_c, std::ignore, std::ignore) = tien<4>(dxDesc.GetLengths());
+
+    int wei_n;
+    std::tie(wei_n, std::ignore, std::ignore, std::ignore) = tien<4>(wDesc.GetLengths());
+
+    int out_h, out_w;
+    std::tie(std::ignore, std::ignore, out_h, out_w) = tien<4>(dyDesc.GetLengths());
+
+    bool isColMajor       = false;
+    bool transA           = true;
+    bool transB           = false;
+    int m                 = in_c / groupCount;
+    int n                 = in_n * out_h * out_w;
+    int k                 = wei_n / groupCount;
+    int lda               = m;
+    int ldb               = n;
+    int ldc               = n;
+    int batch_count       = groupCount;
+    long long int strideA = m * k;
+    long long int strideB = k * n;
+    long long int strideC = m * n;
+    float alpha           = 1.;
+    float beta            = 0.;
+
+    return GemmDescriptor{isColMajor,
+                          transA,
+                          transB,
+                          m,
+                          n,
+                          k,
+                          lda,
+                          ldb,
+                          ldc,
+                          batch_count,
+                          strideA,
+                          strideB,
+                          strideC,
+                          alpha,
+                          beta,
+                          dxDesc.GetType()};
+}
+
 } // namespace miopen
