@@ -1850,7 +1850,9 @@ int ConvDriver<Tgpu, Tref, Tfile>::RunBackwardBiasCPU()
             {
                 for(int w = 0; w < out_w; w++)
                 {
-                    if((inflags.GetValueStr("mode")) == "conv")
+                    if((inflags.GetValueStr("mode")) == "conv" ||
+                       (inflags.GetValueStr("mode")) == "group" ||
+                       (inflags.GetValueStr("mode")) == "dw")
                     {
                         db_host[c] += static_cast<Tref>(
                             dout[n * out_nstride + c * out_cstride + h * out_hstride + w]);

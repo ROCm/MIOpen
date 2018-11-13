@@ -138,6 +138,42 @@ GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdData(const TensorDesc
 GemmDescriptor CreateGemmStridedBatchedDescriptorConv1x1BwdWeight(const TensorDescriptor& dyDesc,
                                                                   const TensorDescriptor& xDesc,
                                                                   const TensorDescriptor& dwDesc);
+
+// GEMM parameters for Group Convolution (using Im2Col) Fwd
+// y = w * Im2Col(x)
+GemmDescriptor CreateGemmDescriptorGroupConvFwd(const TensorDescriptor& wDesc,
+                                                const TensorDescriptor& xDesc,
+                                                const TensorDescriptor& yDesc,
+                                                int groupCount = 1);
+
+// GEMM parameters for Group Convolution (using Im2Col) Bwd-Data
+// dx = Col2Im(transpose(w) * dy)
+GemmDescriptor CreateGemmDescriptorGroupConvBwdData(const TensorDescriptor& wDesc,
+                                                    const TensorDescriptor& dyDesc,
+                                                    const TensorDescriptor& dxDesc,
+                                                    int groupCount = 1);
+
+// GEMM parameters for Group Convolution (using Im2Col) Bwd-Weight
+// dw = dy * transpose(Im2Col(x))
+GemmDescriptor CreateGemmDescriptorGroupConvBwdWeight(const TensorDescriptor& dyDesc,
+                                                      const TensorDescriptor& xDesc,
+                                                      const TensorDescriptor& dwDesc,
+                                                      int groupCount = 1);
+
+// GEMM parameters for 1x1 Group Convolution (using CNHW) Fwd
+// y = CNHW2NCHW(w * NCHW2CNHW(x))
+GemmDescriptor CreateGemmDescriptorGroupConvCNHWFwd(const TensorDescriptor& wDesc,
+                                                    const TensorDescriptor& xDesc,
+                                                    const TensorDescriptor& yDesc,
+                                                    int groupCount = 1);
+
+// GEMM parameters for 1x1 Group Convolution (using CNHW) Bwd-Data
+// dx = CNHW2NCHW(transpose(w) * NCHW2CNHW(dy))
+GemmDescriptor CreateGemmDescriptorGroupConvCNHWBwdData(const TensorDescriptor& wDesc,
+                                                        const TensorDescriptor& dyDesc,
+                                                        const TensorDescriptor& dxDesc,
+                                                        int groupCount = 1);
+
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_GEMM_V2_HPP_
