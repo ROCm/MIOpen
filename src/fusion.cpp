@@ -921,8 +921,11 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         MIOPEN_LOG_I2("A previous attempt to add an operator failed");
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    network_config = "";
-    network_config += output_desc.ToString();
+    network_config =
+        input_desc.ToString() + ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
+    network_config +=
+        output_desc.ToString() + ((input_desc.GetType() == miopenHalf) ? "FP16" : "FP32");
+
     for(auto&& op : op_map)
     {
         op->GetNetworkConfig(network_config, handle);
